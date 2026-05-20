@@ -24,8 +24,12 @@ async function runMigration() {
     database: process.env.POSTGRES_DB || "postgres",
     user: usePooler ? `postgres.${projectRef}` : process.env.POSTGRES_USER || "postgres",
     password: process.env.POSTGRES_PASSWORD,
+    // Audit fix M-23: Supabase's Postgres endpoints serve valid TLS certs;
+    // defaulting to rejectUnauthorized:true closes the prior MITM risk on
+    // untrusted networks. Operators running against a self-hosted Postgres
+    // without a recognized CA can opt out via `PG_SSL_INSECURE=true`.
     ssl: {
-      rejectUnauthorized: false, // For Supabase connection
+      rejectUnauthorized: String(process.env.PG_SSL_INSECURE || "").toLowerCase() !== "true",
     },
     connectionTimeoutMillis: 10000,
   });

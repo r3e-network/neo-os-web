@@ -61,13 +61,13 @@
     "icon": "/miniapps/recovery-guardian/logo.jpg",
     "banner": "/miniapps/recovery-guardian/banner.jpg"
   },
-  "permissions": {
-    "read": true,
-    "oracle": true,
-    "compute": true,
-    "confidential": true,
-    "aa": true
-  },
+  "permissions": [
+    "read:blockchain",
+    "oracle",
+    "compute",
+    "confidential",
+    "aa"
+  ],
   "features": {
     "stateless": true,
     "offlineSupport": false,

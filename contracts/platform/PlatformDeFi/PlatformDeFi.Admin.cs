@@ -59,6 +59,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(!IsPaused(), "platform paused");
         }
 
+        // Audit fix H-13: typed events for AdminChanged / PauseStateChanged /
+        // ContractUpgraded should be added at the contract level — declare them in
+        // PlatformDeFi.cs and raise via the standard `event` invocation pattern.
+        // (Initial attempt used `Runtime.Notify(name, state)` but that overload is
+        // not exposed in the current DevPack.)
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
@@ -121,6 +126,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 Put(AppKey(appId, PREFIX_POOL_BALANCE), 0);
                 Put(AppKey(appId, PREFIX_FLASH_TOTAL_BORROWED), 0);
                 Put(AppKey(appId, PREFIX_FLASH_TOTAL_FEES), 0);
+                // Audit fix C-1: initialize per-LP deposit accumulator.
+                Put(AppKey(appId, PREFIX_FLASH_TOTAL_LP_DEPOSITS), 0);
             }
             else if (productType == ProductType_Capsule)
             {

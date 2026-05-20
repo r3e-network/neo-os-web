@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   useSimulationStatus,
   useStartSimulation,
@@ -39,14 +40,11 @@ export default function SimulationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Simulations
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Control and monitor platform transaction simulations
-        </p>
-      </div>
+      <PageHeader
+        title="Simulations"
+        description="Control and monitor platform transaction simulations"
+        highlightLastWord
+      />
 
       <Card variant="glass">
         <CardHeader className="flex flex-row items-center justify-between">

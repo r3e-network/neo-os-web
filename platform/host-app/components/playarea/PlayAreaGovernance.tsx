@@ -334,7 +334,7 @@ export function CouncilGovernancePlayArea(props: PlayAreaRegistryProps) {
                   <button
                     key={key}
                     type="button"
-                    className={`group flex w-full flex-col items-stretch justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 sm:flex-row sm:items-center sm:gap-3 sm:rounded-2xl sm:py-3 ${
+                    className={`group flex w-full flex-col items-stretch justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40 sm:flex-row sm:items-center sm:gap-3 sm:rounded-2xl sm:py-3 ${
                       active
                         ? "border-emerald-500 bg-emerald-50 text-emerald-950"
                         : "border-gray-200 bg-white text-gray-950 hover:border-emerald-200 hover:bg-emerald-50/40"
@@ -408,7 +408,7 @@ export function CouncilGovernancePlayArea(props: PlayAreaRegistryProps) {
                   <button
                     key={key}
                     type="button"
-                    className={`w-full rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 ${
+                    className={`w-full rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40 ${
                       active
                         ? "border-emerald-500 bg-emerald-50 text-emerald-950"
                         : "border-gray-200 bg-white text-gray-950 hover:border-emerald-200 hover:bg-emerald-50/40"

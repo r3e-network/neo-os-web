@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useUsers, useSearchUsers } from "@/lib/hooks/useUsers";
 import { formatDate, truncate } from "@/lib/utils";
 
@@ -38,14 +39,11 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Users
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Manage platform users
-        </p>
-      </div>
+      <PageHeader
+        title="Users"
+        description="Manage platform users"
+        highlightLastWord
+      />
 
       <Card variant="glass">
         <CardHeader>

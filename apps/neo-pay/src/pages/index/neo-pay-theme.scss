@@ -1,4 +1,30 @@
 :global(.theme-neo-pay) {
+  --stream-bg-start: #f0f7ff;
+  --stream-bg-end: #e0eefa;
+  --stream-card-bg: rgba(255, 255, 255, 0.88);
+  --stream-card-border: rgba(59, 130, 246, 0.18);
+  --stream-card-shadow: 0 8px 28px rgba(59, 130, 246, 0.08);
+  --stream-accent: #2563EB;
+  --stream-accent-strong: #0891B2;
+  --stream-accent-glow: rgba(37, 99, 235, 0.3);
+  --stream-accent-seafoam: #0891B2;
+  --stream-text: #0f172a;
+  --stream-muted: rgba(15, 23, 42, 0.55);
+  --stream-success: #16a34a;
+  --stream-success-light: #34d399;
+  --stream-danger: #ef4444;
+  --stream-flow-gradient: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
+  --stream-timeline-track: rgba(59, 130, 246, 0.12);
+  --stream-timeline-fill: linear-gradient(90deg, #2563EB, #0891B2);
+  --stream-progress-glow: 0 0 10px rgba(37, 99, 235, 0.2);
+  --stream-surface: rgba(255, 255, 255, 0.7);
+  --stream-surface-hover: rgba(255, 255, 255, 0.85);
+  --stream-divider: rgba(59, 130, 246, 0.08);
+  --stream-badge-bg: rgba(59, 130, 246, 0.1);
+  --stream-badge-text: #2563EB;
+}
+
+:global(.theme-dark .theme-neo-pay) {
   --stream-font: 'DM Sans', 'Inter', sans-serif;
   --stream-bg-start: #081420;
   --stream-bg-end: #0c1e33;
@@ -30,29 +56,4 @@
   --border-color: var(--stream-card-border);
 }
 
-:global(.theme-light .theme-neo-pay),
-:global([data-theme="light"] .theme-neo-pay) {
-  --stream-bg-start: #f0f7ff;
-  --stream-bg-end: #e0eefa;
-  --stream-card-bg: rgba(255, 255, 255, 0.88);
-  --stream-card-border: rgba(59, 130, 246, 0.18);
-  --stream-card-shadow: 0 8px 28px rgba(59, 130, 246, 0.08);
-  --stream-accent: #2563EB;
-  --stream-accent-strong: #0891B2;
-  --stream-accent-glow: rgba(37, 99, 235, 0.3);
-  --stream-accent-seafoam: #0891B2;
-  --stream-text: #0f172a;
-  --stream-muted: rgba(15, 23, 42, 0.55);
-  --stream-success: #16a34a;
-  --stream-success-light: #34d399;
-  --stream-danger: #ef4444;
-  --stream-flow-gradient: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
-  --stream-timeline-track: rgba(59, 130, 246, 0.12);
-  --stream-timeline-fill: linear-gradient(90deg, #2563EB, #0891B2);
-  --stream-progress-glow: 0 0 10px rgba(37, 99, 235, 0.2);
-  --stream-surface: rgba(255, 255, 255, 0.7);
-  --stream-surface-hover: rgba(255, 255, 255, 0.85);
-  --stream-divider: rgba(59, 130, 246, 0.08);
-  --stream-badge-bg: rgba(59, 130, 246, 0.1);
-  --stream-badge-text: #2563EB;
-}
+

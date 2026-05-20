@@ -674,7 +674,33 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
   };
 }
 
+/**
+ * Audit fix H-4: refuse to construct the Host SDK in a browser context.
+ *
+ * The Host SDK exposes host-only methods (oracle, compute, automation,
+ * secrets, apiKeys) that should never be reachable from a miniapp's iframe.
+ * The Admin SDK already had this guard (admin.ts:55); apply the same
+ * pattern here so a developer mistake (e.g. calling installMiniAppSDK with
+ * a host-SDK config) fails loudly instead of silently leaking the API
+ * key to every miniapp running on the page.
+ *
+ * Set HOST_SDK_ALLOW_BROWSER=true at build time only to opt out (e.g. for
+ * specific test harnesses that intentionally run host-SDK code in a
+ * browser-like jsdom environment).
+ */
+function assertHostSdkServerContext(): void {
+  if (typeof window === "undefined") return;
+  const allowBrowser =
+    typeof process !== "undefined" &&
+    process.env?.HOST_SDK_ALLOW_BROWSER === "true";
+  if (allowBrowser) return;
+  throw new Error(
+    "createHostSDK is server-only. Do not bundle host-SDK code into the browser bundle.",
+  );
+}
+
 export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
+  assertHostSdkServerContext();
   const mini = createMiniAppSDK(cfg);
 
   return {

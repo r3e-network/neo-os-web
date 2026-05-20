@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   useReviewTemplateMarketRequest,
   useTemplateMarketRequests,
@@ -505,15 +506,11 @@ export default function TemplateStudioPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Template Studio
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          No-code template marketplace for frontend and contract miniapp
-          templates.
-        </p>
-      </div>
+      <PageHeader
+        title="Template Studio"
+        description="No-code template marketplace for frontend and contract miniapp templates."
+        highlightLastWord
+      />
 
       <Card variant="glass">
         <CardHeader>

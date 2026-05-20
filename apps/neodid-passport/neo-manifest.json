@@ -30,9 +30,9 @@
     "icon": "/miniapps/neodid-passport/logo.jpg",
     "banner": "/miniapps/neodid-passport/banner.jpg"
   },
-  "permissions": {
-    "read": true
-  },
+  "permissions": [
+    "read:blockchain"
+  ],
   "features": {
     "stateless": true,
     "offlineSupport": false,

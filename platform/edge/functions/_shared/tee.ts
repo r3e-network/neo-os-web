@@ -11,17 +11,32 @@ function logMTLSStatus(message: string) {
   mtlsStatusLogged = true;
 }
 
+/**
+ * Audit fix H-7: explicit hostname allowlist.
+ *
+ * Previously this function suffix-matched `*.workers.dev`, which meant any
+ * attacker-controlled `attacker.workers.dev` URL routed through `requestJSON`
+ * would auto-attach `MORPHEUS_RUNTIME_TOKEN` / `PHALA_API_TOKEN` /
+ * `PHALA_SHARED_SECRET` Bearer credentials. The suffix wildcard has been
+ * removed; additional hosts can be added via `TEE_PUBLIC_RUNTIME_HOSTS`
+ * (comma-separated) at deploy time but never via a URL.
+ */
 function isPublicRuntimeHost(hostname: string) {
   const host = String(hostname || "")
     .trim()
     .toLowerCase();
-  return (
-    [
-      "oracle.meshmini.app",
-      "edge.meshmini.app",
-      "control.meshmini.app",
-    ].includes(host) || host.endsWith(".workers.dev")
-  );
+  if (!host) return false;
+  const baseline = [
+    "oracle.meshmini.app",
+    "edge.meshmini.app",
+    "control.meshmini.app",
+  ];
+  if (baseline.includes(host)) return true;
+  const extra = (getEnv("TEE_PUBLIC_RUNTIME_HOSTS") || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return extra.includes(host);
 }
 
 function canUsePublicRuntimeWithoutMTLS(url: string) {
@@ -97,10 +112,20 @@ export async function requestJSON(
   },
   req?: Request,
 ): Promise<unknown | Response> {
-  if (isProductionEnv() && !url.toLowerCase().startsWith("https://")) {
+  // Audit fix H-7: require HTTPS in every environment, not just production.
+  // The previous `isProductionEnv()` heuristic was fragile (a staging deploy
+  // missing the env-var would silently downgrade to http). Allow http only
+  // for explicit localhost / private-IP URLs which are always operator-set.
+  const lowerUrl = url.toLowerCase();
+  const isHttps = lowerUrl.startsWith("https://");
+  const isLocalhost =
+    lowerUrl.startsWith("http://localhost") ||
+    lowerUrl.startsWith("http://127.0.0.1") ||
+    lowerUrl.startsWith("http://[::1]");
+  if (!isHttps && !(isLocalhost && !isProductionEnv())) {
     return error(
       400,
-      "TEE service URL must use https:// in production",
+      "TEE service URL must use https:// (http only allowed for localhost in non-production)",
       "INSECURE_TEE_URL",
       req,
     );

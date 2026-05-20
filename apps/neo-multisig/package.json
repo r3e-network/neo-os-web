@@ -38,8 +38,7 @@
     "raf": "^3.4.1",
     "rgbcolor": "^1.0.1",
     "stackblur-canvas": "^2.7.0",
-    "svg-pathdata": "^8.0.0",
-    "vue": "catalog:"
+    "svg-pathdata": "^8.0.0"
   },
   "devDependencies": {
     "@babel/runtime": "^7.28.6",
@@ -54,7 +53,6 @@
     "typescript": "catalog:",
     "util": "^0.12.5",
     "vite": "catalog:",
-    "vite-plugin-node-polyfills": "^0.25.0",
-    "@vitejs/plugin-vue": "^5.0.0"
+    "vite-plugin-node-polyfills": "^0.25.0"
   }
 }

@@ -85,7 +85,7 @@ export function OperationPanel({
                     type="button"
                     onClick={() => setActiveTabIdx(idx)}
                     className={cn(
-                      "relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 sm:text-sm",
+                      "relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30 sm:text-sm",
                       activeTabIdx === idx
                         ? getTabActiveColor(op.button_style)
                         : "text-gray-600 hover:bg-white/70 hover:text-gray-900",
@@ -117,7 +117,7 @@ export function OperationPanel({
                       type="button"
                       onClick={() => setActiveTabIdx(idx)}
                       className={cn(
-                        "min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30",
+                        "min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30",
                         activeTabIdx === idx
                           ? getTabActiveColor(op.button_style)
                           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
@@ -541,7 +541,7 @@ function operationTone(op: OperationEntry) {
     inactiveChoice:
       "border-gray-200 bg-gray-100 text-gray-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800",
     submitClass:
-      "bg-emerald-700 text-white shadow-sm shadow-emerald-700/15 hover:bg-emerald-800 focus-visible:ring-emerald-500 disabled:border disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100",
+      "bg-emerald-700 text-white shadow-sm shadow-emerald-700/15 hover:bg-emerald-800 focus-visible:ring-neo/50 disabled:border disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100",
   };
 }
 
@@ -594,7 +594,7 @@ function ChoiceParam({
               type="button"
               onClick={() => onChange(option.value)}
               className={cn(
-                "min-h-9 cursor-pointer rounded-xl border px-2.5 py-1.5 text-center text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 sm:min-h-11 sm:px-3 sm:py-2 sm:text-sm",
+                "min-h-9 cursor-pointer rounded-xl border px-2.5 py-1.5 text-center text-xs font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30 sm:min-h-11 sm:px-3 sm:py-2 sm:text-sm",
                 active ? tone.activeChoice : tone.inactiveChoice,
               )}
             >
@@ -654,7 +654,7 @@ function PrimaryValueParam({
               key={preset.value}
               type="button"
               onClick={() => onChange(preset.value)}
-              className="min-h-8 cursor-pointer rounded-xl border border-gray-200 bg-white px-2 py-1 text-center transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 sm:min-h-9 sm:py-1.5"
+              className="min-h-8 cursor-pointer rounded-xl border border-gray-200 bg-white px-2 py-1 text-center transition hover:border-emerald-200 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30 sm:min-h-9 sm:py-1.5"
             >
               <span className="block text-xs font-black text-gray-950 sm:text-sm">
                 {preset.label}
@@ -691,7 +691,7 @@ function ParamInput({
 
   if (param.type === "boolean") {
     return (
-      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 transition-colors hover:border-emerald-300 hover:bg-white">
+      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 transition-colors hover:border-neo/40 hover:bg-white">
         <input
           type="checkbox"
           className="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"

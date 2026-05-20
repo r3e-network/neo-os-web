@@ -93,6 +93,15 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_FLASH_TOTAL_BORROWED = new byte[] { 0x35 };
         private static readonly byte[] PREFIX_FLASH_TOTAL_FEES = new byte[] { 0x36 };
         private static readonly byte[] PREFIX_FLASH_REENTRANCY = new byte[] { 0x3E };
+        // Per-LP deposit balance for FlashLoan pool. Maps (appId, provider) -> deposited amount.
+        // Without this, FlashWithdraw had no way to constrain a caller to their own deposit and
+        // any caller could drain the entire pool (audit finding C-1).
+        private static readonly byte[] PREFIX_FLASH_PROVIDER_BAL = new byte[] { 0x3F };
+        // Sum of all per-LP deposits for an app's FlashLoan pool. Mirrors the pool
+        // balance MINUS accumulated fees, giving an observable invariant:
+        //   PREFIX_POOL_BALANCE = PREFIX_FLASH_TOTAL_LP_DEPOSITS + cumulative fees
+        // so off-chain monitors can compute fee revenue without iterating per-LP keys.
+        private static readonly byte[] PREFIX_FLASH_TOTAL_LP_DEPOSITS = new byte[] { 0x37 };
         #endregion
 
         #region Capsule Prefixes (0x40-0x4F)
@@ -122,7 +131,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private const long FLASH_MIN_LOAN = 100_000_000;       // 1 GAS
         private const long FLASH_MAX_LOAN = 10_000_000_000_000; // 100,000 GAS
         private const int FLASH_FEE_BPS = 9;                    // 0.09%
-        private const ulong FLASH_COOLDOWN_SECONDS = 300;       // 5 min
+        // Audit fix NEW-L-2: store the cooldown directly in milliseconds so the
+        // use site no longer has to multiply by 1000. Constant name reflects
+        // the unit. (Runtime.Time on Neo N3 is ms.)
+        private const ulong FLASH_COOLDOWN_MS = 300_000UL;       // 5 min
         private const int FLASH_MAX_DAILY = 10;
         #endregion
 
@@ -149,6 +161,17 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             public UInt160 Borrower;
             public BigInteger Collateral;
             public BigInteger Debt;
+            // Reserved-for-future-use fields, audit finding NEW-H-7.
+            // SelfLoan currently ships as a flat-fee, no-interest loan. The
+            // fields below are written at CreateLoan but never updated after,
+            // so reading them is meaningless except for the creation snapshot.
+            // They remain in the struct because existing on-chain Loan records
+            // already include them; deleting would break deserialization of
+            // any live loan on mainnet (contract `0x942da5...`). If/when an
+            // interest-accrual implementation lands, write a helper that
+            // updates LastYieldTime/YieldAccrued on every state-mutating call
+            // (RepayLoan, AddCollateral, CloseLoan) and document the yield
+            // source (NEO voting rewards, anchor profits, etc.).
             public BigInteger OriginalDebt;
             public BigInteger CreatedTime;
             public BigInteger LastYieldTime;

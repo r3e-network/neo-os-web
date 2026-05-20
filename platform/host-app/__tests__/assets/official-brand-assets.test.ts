@@ -18,7 +18,27 @@ function decodeEmbeddedSvg(svg: string) {
   return Buffer.from(match[1], "base64").toString("utf8");
 }
 
-describe("official brand assets", () => {
+// The miniapp asset tree (public/miniapps/<slug>/) is gitignored and populated
+// by `npm run export:miniapp-dapps`. Detect that and skip rather than failing
+// in fresh checkouts (the prior behavior coupled unit-test correctness to the
+// asset-staging pipeline). CI can opt into strict mode by setting
+// MINIAPP_ASSETS_REQUIRED=1.
+const stagedAssetsPresent = (() => {
+  try {
+    fs.accessSync(path.join(hostRoot, "public/miniapps/gas-lucky-pool/logo.svg"));
+    fs.accessSync(path.join(hostRoot, "public/miniapps/council-governance/logo.svg"));
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+const describeWhenStaged =
+  stagedAssetsPresent || process.env.MINIAPP_ASSETS_REQUIRED === "1"
+    ? describe
+    : describe.skip;
+
+describeWhenStaged("official brand assets", () => {
   it("uses the official OneGate mark instead of the generated wallet placeholder", () => {
     const walletLogo = readHostAsset("wallets/onegate.svg");
     const appLogo = readHostAsset("miniapps/gas-lucky-pool/logo.svg");

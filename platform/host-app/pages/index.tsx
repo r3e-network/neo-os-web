@@ -394,7 +394,7 @@ export default function LandingPage({
               </div>
               <Link
                 href="/miniapps"
-                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:border-emerald-300 hover:text-emerald-700"
+                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:border-neo/40 hover:text-emerald-700"
               >
                 {t("actions.viewAll")}
               </Link>
@@ -445,7 +445,10 @@ export default function LandingPage({
                 aria-hidden="true"
               />
               <input
+                id="catalog-search"
+                name="q"
                 type="search"
+                autoComplete="off"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t("home.catalog.searchPlaceholder", "host")}
@@ -727,7 +730,7 @@ function HomeMiniAppRow({
     <Link
       href={`/miniapps/${app.app_id}`}
       className={cn(
-        "group flex min-w-0 items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-emerald-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+        "group flex min-w-0 items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-neo/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
         spacious && "p-4",
       )}
     >
@@ -777,7 +780,7 @@ function FeatureItem({
   desc: string;
 }) {
   return (
-    <Card className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:border-emerald-300 hover:shadow-md">
+    <Card className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:border-neo/40 hover:shadow-md">
       <div className="relative z-10 mb-5 flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-900 transition-colors group-hover:border-emerald-200 group-hover:bg-emerald-50 group-hover:text-emerald-700">
         <Icon size={26} aria-hidden="true" />
       </div>

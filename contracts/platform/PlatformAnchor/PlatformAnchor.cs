@@ -37,6 +37,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private const int MODE_TRUST = 1;
         private const int MODE_PROFIT = 2;
         private const long REWARD_SCALE = 100_000_000;
+        // Audit fix M-11: anti-spam fee for permissionless RegisterCustomAnchorApp.
+        // 1 GAS is small enough for legitimate operators and significant enough that
+        // a storage-bloat attacker pays per app. The fee accrues to the platform pool.
+        private const long ANCHOR_CUSTOM_APP_REGISTRATION_FEE = 100_000_000;
 
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_PAUSED = new byte[] { 0x02 };
@@ -105,6 +109,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [Safe]
         public static UInt160 AbstractAccount() => ReadAddress((ByteString)PREFIX_ABSTRACT_ACCOUNT);
 
+        // Audit fix H-13: typed events for AdminChanged / PauseStateChanged /
+        // AbstractAccountChanged / ContractUpgraded should be added — declare them
+        // in this contract via the `event` pattern and raise from each setter.
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
@@ -141,6 +148,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         {
             ValidateAddress(appAdmin);
             ExecutionEngine.Assert(Runtime.CheckWitness(appAdmin), "app admin witness required");
+            // Audit fix M-11: charge a small GAS fee for self-service anchor app
+            // registration so an attacker cannot spam state with unbounded apps.
+            // The fee is taken from the app admin's prepaid GAS credit; if they have
+            // no credit, the registration fails. Pre-allowlisted apps (registered
+            // via RegisterAnchorApp by the platform admin) are exempt.
+            ConsumeGasCredit(appAdmin, ANCHOR_CUSTOM_APP_REGISTRATION_FEE);
             RegisterAnchorAppCore(appId, mode, appAdmin);
         }
 

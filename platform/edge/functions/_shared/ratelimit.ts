@@ -116,9 +116,21 @@ export async function requireRateLimit(req: Request, endpoint: string, auth?: Au
   try {
     hit = await bump(identifier, identifierType, windowSeconds);
   } catch (e) {
-    // In local dev, do not hard-fail on missing DB/RPC plumbing.
-    if (!isProductionEnv()) return null;
-    console.error("[ratelimit] rate limit bump failed in production:", e instanceof Error ? e.message : String(e));
+    // Audit fix H-8: previously failed open in any non-production environment,
+    // which (combined with the fragile `isProductionEnv()` heuristic) made it
+    // possible for a misconfigured staging-but-actually-production deploy to
+    // disable all rate limits silently. Now defaults to fail-closed; setting
+    // EDGE_RATELIMIT_FAIL_OPEN=true is required to opt back into the previous
+    // local-dev convenience.
+    const failOpen = (getEnv("EDGE_RATELIMIT_FAIL_OPEN") || "").trim() === "true";
+    if (failOpen && !isProductionEnv()) {
+      console.warn(
+        "[ratelimit] failing open (EDGE_RATELIMIT_FAIL_OPEN=true, non-production):",
+        e instanceof Error ? e.message : String(e),
+      );
+      return null;
+    }
+    console.error("[ratelimit] rate limit bump failed:", e instanceof Error ? e.message : String(e));
     return json({ error: { code: "RATE_LIMIT_UNAVAILABLE", message: "rate limit service unavailable" } }, { status: 503 }, req);
   }
 

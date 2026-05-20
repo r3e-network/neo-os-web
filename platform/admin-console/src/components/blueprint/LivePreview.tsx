@@ -138,7 +138,7 @@ export function LivePreview({
                       }
                     }}
                     className={cn(
-                      "px-2 py-1 text-[9px] font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neo",
+                      "px-2 py-1 text-[9px] font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500/50",
                       activeTab === i
                         ? "border-neo text-neo"
                         : "border-transparent text-gray-500",

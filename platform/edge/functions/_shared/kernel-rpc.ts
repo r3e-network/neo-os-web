@@ -10,20 +10,50 @@
  * sends to the kernel instead of individual miniapp contracts.
  */
 
-import { getEnv } from "./env.ts";
+import { getEnv, isProductionEnv } from "./env.ts";
 
-const KERNEL_HASH =
-  getEnv("CONTRACT_MORPHEUS_ORACLE_HASH") ??
-  getEnv("MORPHEUS_ORACLE_HASH") ??
-  "";
-
+/**
+ * Audit fix E-6: read the kernel hash lazily so the boot order is not
+ * "import resolves env once and caches an empty string forever". A
+ * Supabase Functions deploy that boots before its secrets arrive used to
+ * silently capture `""` at module-import time and return intents with
+ * `contract_hash: ""` until the pod restarted. Reading per-call adds a
+ * negligible Map lookup and lets the function fail-fast against the live
+ * env on every invocation.
+ *
+ * Required env: CONTRACT_MORPHEUS_ORACLE_HASH (canonical) or
+ * MORPHEUS_ORACLE_HASH (legacy alias).
+ */
 export function getKernelHash(): string {
-  return KERNEL_HASH;
+  return (
+    getEnv("CONTRACT_MORPHEUS_ORACLE_HASH") ??
+    getEnv("MORPHEUS_ORACLE_HASH") ??
+    ""
+  );
+}
+
+/**
+ * Strict kernel-hash accessor: throws when not configured in production
+ * and returns "" only in non-production environments where a placeholder
+ * value can be tolerated. Edge functions that depend on the kernel
+ * should call this rather than `getKernelHash()` so a misconfigured
+ * deploy fails on first request instead of silently returning empty
+ * `contract_hash` intents to the wallet.
+ */
+export function requireKernelHash(): string {
+  const hash = getKernelHash();
+  if (hash) return hash;
+  if (isProductionEnv()) {
+    throw new Error(
+      "kernel contract hash not configured (CONTRACT_MORPHEUS_ORACLE_HASH)",
+    );
+  }
+  return "";
 }
 
 export function buildKernelStateRead(appId: string, stateKey: string) {
   return {
-    contract: KERNEL_HASH,
+    contract: getKernelHash(),
     operation: "GetMiniAppState",
     args: [
       { type: "String", value: appId },
@@ -38,7 +68,7 @@ export function buildKernelStateWrite(
   value: string,
 ) {
   return {
-    contract: KERNEL_HASH,
+    contract: getKernelHash(),
     operation: "PutMiniAppState",
     args: [
       { type: "String", value: appId },
@@ -50,7 +80,7 @@ export function buildKernelStateWrite(
 
 export function buildKernelStateDelete(appId: string, stateKey: string) {
   return {
-    contract: KERNEL_HASH,
+    contract: getKernelHash(),
     operation: "DeleteMiniAppState",
     args: [
       { type: "String", value: appId },
@@ -65,7 +95,7 @@ export function buildKernelStateBatchWrite(
   values: string[],
 ) {
   return {
-    contract: KERNEL_HASH,
+    contract: getKernelHash(),
     operation: "PutMiniAppStateBatch",
     args: [
       { type: "String", value: appId },
