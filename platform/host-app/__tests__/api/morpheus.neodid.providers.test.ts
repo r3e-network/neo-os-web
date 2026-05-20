@@ -99,15 +99,13 @@ describe("/api/morpheus/neodid/providers", () => {
     const payload = JSON.parse(res._getData());
     expect(payload.source).toBe("canonical-network-metadata");
     expect(payload.network).toBe("testnet");
+    const { MORPHEUS_PUBLIC_REGISTRY } = require("../../../../apps/shared/constants/generated-morpheus-registry");
+    const testnetRegistry = MORPHEUS_PUBLIC_REGISTRY.testnet;
     expect(payload.registry.contract).toBe("");
-    expect(payload.oracle.contract).toBe("0x4b882e94ed766807c4fd728768f972e13008ad52");
-    // AA testnet contract from the synced Morpheus registry (sync via
-    // `node deploy/scripts/sync_morpheus_registry.mjs`).
-    expect(payload.aa.contract).toBe("0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38");
-    expect(payload.runtime.runtime_url).toBe(
-      "https://oracle.meshmini.app/testnet",
-    );
-    expect(payload.runtime.edge_url).toBe("https://edge.meshmini.app/testnet");
-    expect(payload.runtime.control_plane_url).toBe("https://control.meshmini.app/testnet");
+    expect(payload.oracle.contract).toBe(testnetRegistry.contracts.morpheusOracle);
+    expect(payload.aa.contract).toBe(testnetRegistry.contracts.aaCore);
+    expect(payload.runtime.runtime_url).toBe(testnetRegistry.morpheus.runtimeUrl);
+    expect(payload.runtime.edge_url).toBe(testnetRegistry.morpheus.edgeUrl);
+    expect(payload.runtime.control_plane_url).toBe(testnetRegistry.morpheus.controlPlaneUrl);
   });
 });
