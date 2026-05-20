@@ -57,7 +57,7 @@ The platform provides:
 - **Thin edge gateways**: Supabase / Deno functions that authenticate users, rate-limit traffic, enforce policy, and forward Oracle / Compute / RNG / sponsorship requests to external systems.
 - **SaaS integrations**: Sentry (error tracking), PostHog (product analytics), Supabase Realtime (live notifications).
 - **Validation and deployment scripts**: testnet workflow checks, contract scripts, and environment validators.
-- **Test suite**: 500+ test files covering OS proxies, shared services, edge utilities, contracts, and layering.
+- **Test suite**: 215+ test files / 989+ test cases across contracts (53 cases), host-app (651), admin-console (223), deploy scripts (60), and edge `_shared` helpers (Deno).
 
 The platform does **not** embed the Morpheus Oracle runtime or the AA runtime anymore.
 

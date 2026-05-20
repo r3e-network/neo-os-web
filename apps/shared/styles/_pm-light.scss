@@ -1,0 +1,157 @@
+/**
+ * Polymarket-light shared partial for miniapp PlayAreas.
+ *
+ * Import once at the top of a miniapp's PlayArea.scss:
+ *   @use "@shared/styles/pm-light" as pm;
+ *
+ * Provides tokens and a set of utility classes for the dense, light, Inter-
+ * driven aesthetic used by polymarket.com market detail pages and adopted
+ * across this platform.
+ */
+
+/* ============================================================
+ *  Color tokens
+ * ============================================================ */
+
+$bg: #ffffff;
+$surface: #fafbfc;
+$surface-2: #f4f5f7;
+$border: #e6e8ea;
+$border-strong: #cad1d9;
+
+$text: #18181b;
+$text-2: #4a5562;
+$text-muted: #77808d;
+$text-faint: #aeb4bc;
+
+// Platform brand accent (Neo green) — used sparingly on primary CTA / active.
+$neo: #00b87a;
+$neo-strong: #009563;
+$neo-soft: #e6f9f0;
+$neo-soft-2: #d7f5e0;
+
+// Polymarket blue — used for secondary accent (today / selected).
+$blue: #1452f0;
+$blue-soft: #e7eefd;
+$blue-text: #0e3fc7;
+
+// Yes / No (for market-style miniapps).
+$green: #27ae60;
+$green-soft: #d7f5e0;
+$green-text: #0f7a3a;
+$red: #d93f3f;
+$red-soft: #fae0e0;
+$red-text: #a91f1f;
+
+$amber: #f59e0b;
+$amber-soft: #fef3c7;
+
+/* ============================================================
+ *  Mixins
+ * ============================================================ */
+
+@mixin card {
+  background: $bg;
+  border: 1px solid $border;
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+@mixin section-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $text-muted;
+}
+
+@mixin big-number {
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: $text;
+  font-variant-numeric: tabular-nums;
+}
+
+@mixin primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: $neo;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 0;
+  cursor: pointer;
+  transition: background 120ms ease, transform 100ms ease;
+
+  &:hover:not(:disabled) {
+    background: $neo-strong;
+  }
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  &:disabled {
+    background: $surface-2;
+    color: $text-faint;
+    cursor: not-allowed;
+  }
+}
+
+@mixin secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: $bg;
+  color: $text;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid $border;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+
+  &:hover:not(:disabled) {
+    border-color: $border-strong;
+    background: $surface;
+  }
+  &:disabled {
+    color: $text-faint;
+    cursor: not-allowed;
+  }
+}
+
+@mixin pill($color: $blue) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: $color;
+}
+
+/* ============================================================
+ *  Base canvas (apply on the PlayArea root)
+ * ============================================================ */
+
+@mixin pm-canvas {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px 24px;
+  min-height: 100vh;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: $text;
+  background: $bg;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

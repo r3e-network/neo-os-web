@@ -82,6 +82,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_TOTAL_BORROWERS = new byte[] { 0x27 };
         private static readonly byte[] PREFIX_PROFIT_ANCHOR_CONTRACT = new byte[] { 0x28 };
         private static readonly byte[] PREFIX_PROFIT_ANCHOR_APP_ID = new byte[] { 0x29 };
+        // Running total of NEO forfeited via AbandonLoan, awaiting admin sweep
+        // through WithdrawAbandonedCollateral. Abandoned loans are identified by
+        // `loan.Active == false && loan.Debt > 0` so no extra per-loan flag is needed.
+        private static readonly byte[] PREFIX_TOTAL_ABANDONED_COLLATERAL = new byte[] { 0x2A };
+        // Origination fees retained on CreateLoan (LENDING_FEE_BPS portion of
+        // loanAmount). Without an accumulator + sweep these GAS units would
+        // accumulate untracked in the contract balance forever.
+        private static readonly byte[] PREFIX_TOTAL_LENDING_FEES = new byte[] { 0x2B };
         #endregion
 
         #region FlashLoan Prefixes (0x30-0x3F)
@@ -93,6 +101,15 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_FLASH_TOTAL_BORROWED = new byte[] { 0x35 };
         private static readonly byte[] PREFIX_FLASH_TOTAL_FEES = new byte[] { 0x36 };
         private static readonly byte[] PREFIX_FLASH_REENTRANCY = new byte[] { 0x3E };
+        // Per-LP deposit balance for FlashLoan pool. Maps (appId, provider) -> deposited amount.
+        // Without this, FlashWithdraw had no way to constrain a caller to their own deposit and
+        // any caller could drain the entire pool (audit finding C-1).
+        private static readonly byte[] PREFIX_FLASH_PROVIDER_BAL = new byte[] { 0x3F };
+        // Sum of all per-LP deposits for an app's FlashLoan pool. Mirrors the pool
+        // balance MINUS accumulated fees, giving an observable invariant:
+        //   PREFIX_POOL_BALANCE = PREFIX_FLASH_TOTAL_LP_DEPOSITS + cumulative fees
+        // so off-chain monitors can compute fee revenue without iterating per-LP keys.
+        private static readonly byte[] PREFIX_FLASH_TOTAL_LP_DEPOSITS = new byte[] { 0x37 };
         #endregion
 
         #region Capsule Prefixes (0x40-0x4F)
@@ -105,6 +122,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_TOTAL_CAPSULE_USERS = new byte[] { 0x46 };
         private static readonly byte[] PREFIX_TOTAL_WITHDRAWN = new byte[] { 0x47 };
         private static readonly byte[] PREFIX_TOTAL_PENALTIES = new byte[] { 0x48 };
+        // Unlock fee (CAPSULE_FEE_BPS portion of compound) retained at unlock.
+        // Same trapped-funds pattern as the lending fee — accumulator + sweep.
+        private static readonly byte[] PREFIX_TOTAL_CAPSULE_FEES = new byte[] { 0x49 };
         #endregion
 
         #region Lending Constants
@@ -122,14 +142,21 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private const long FLASH_MIN_LOAN = 100_000_000;       // 1 GAS
         private const long FLASH_MAX_LOAN = 10_000_000_000_000; // 100,000 GAS
         private const int FLASH_FEE_BPS = 9;                    // 0.09%
-        private const ulong FLASH_COOLDOWN_SECONDS = 300;       // 5 min
+        // Audit fix NEW-L-2: store the cooldown directly in milliseconds so the
+        // use site no longer has to multiply by 1000. Constant name reflects
+        // the unit. (Runtime.Time on Neo N3 is ms.)
+        private const ulong FLASH_COOLDOWN_MS = 300_000UL;       // 5 min
         private const int FLASH_MAX_DAILY = 10;
         #endregion
 
         #region Capsule Constants
         private const int CAPSULE_FEE_BPS = 100;              // 1%
         private const int CAPSULE_EARLY_PENALTY_BPS = 500;    // 5%
-        private const long CAPSULE_MIN_DEPOSIT = 1;           // 1 NEO (whole units)
+        // 20 NEO is the smallest deposit where the 5% early-withdrawal penalty
+        // rounds to ≥1 NEO under integer math (20 * 500 / 10000 = 1). Anything
+        // smaller would silently waive the penalty; bumping the floor here keeps
+        // CAPSULE_EARLY_PENALTY_BPS economically meaningful.
+        private const long CAPSULE_MIN_DEPOSIT = 20;          // 20 NEO (whole units)
         private const int CAPSULE_MIN_LOCK_DAYS = 7;
         private const int CAPSULE_MAX_LOCK_DAYS = 365;
         private const int TIER1_DAYS = 7;
@@ -149,6 +176,17 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             public UInt160 Borrower;
             public BigInteger Collateral;
             public BigInteger Debt;
+            // Reserved-for-future-use fields, audit finding NEW-H-7.
+            // SelfLoan currently ships as a flat-fee, no-interest loan. The
+            // fields below are written at CreateLoan but never updated after,
+            // so reading them is meaningless except for the creation snapshot.
+            // They remain in the struct because existing on-chain Loan records
+            // already include them; deleting would break deserialization of
+            // any live loan on mainnet (contract `0x942da5...`). If/when an
+            // interest-accrual implementation lands, write a helper that
+            // updates LastYieldTime/YieldAccrued on every state-mutating call
+            // (RepayLoan, AddCollateral, CloseLoan) and document the yield
+            // source (NEO voting rewards, anchor profits, etc.).
             public BigInteger OriginalDebt;
             public BigInteger CreatedTime;
             public BigInteger LastYieldTime;
@@ -207,6 +245,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [DisplayName("CollateralAdded")]
         public static event CollateralAddedHandler OnCollateralAdded;
 
+        public delegate void LoanAbandonedHandler(string appId, BigInteger loanId, UInt160 borrower, BigInteger collateral);
+        [DisplayName("LoanAbandoned")]
+        public static event LoanAbandonedHandler OnLoanAbandoned;
+
+        public delegate void AbandonedCollateralWithdrawnHandler(string appId, UInt160 to, BigInteger amount);
+        [DisplayName("AbandonedCollateralWithdrawn")]
+        public static event AbandonedCollateralWithdrawnHandler OnAbandonedCollateralWithdrawn;
+        // LendingFeesWithdrawn / CapsuleFeesWithdrawn / FlashLoanFeesWithdrawn
+        // events live in PlatformDeFi.FeeSweep.cs alongside their sweep methods.
+
         [DisplayName("ProfitAnchorConfigured")]
         public static event ProfitAnchorConfiguredHandler OnProfitAnchorConfigured;
 
@@ -235,6 +283,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         [DisplayName("EarlyWithdraw")]
         public static event EarlyWithdrawHandler OnEarlyWithdraw;
+
+        public delegate void CapsulePenaltiesWithdrawnHandler(string appId, UInt160 to, BigInteger amount);
+        [DisplayName("CapsulePenaltiesWithdrawn")]
+        public static event CapsulePenaltiesWithdrawnHandler OnCapsulePenaltiesWithdrawn;
 
         #endregion
     }

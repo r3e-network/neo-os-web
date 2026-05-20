@@ -30,7 +30,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary:
-        "bg-neo text-gray-900 hover:bg-neo/90 shadow-[0_4px_14px_rgba(0,229,153,0.3)] hover:shadow-[0_6px_20px_rgba(0,229,153,0.4)] focus-visible:ring-neo",
+        "bg-neo text-gray-900 hover:bg-neo/90 shadow-[0_4px_14px_rgba(0,229,153,0.3)] hover:shadow-[0_6px_20px_rgba(0,229,153,0.4)] focus-visible:ring-primary-500/50",
       secondary:
         "bg-white/10 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/10 focus-visible:ring-gray-500/50 backdrop-blur-md",
       danger:

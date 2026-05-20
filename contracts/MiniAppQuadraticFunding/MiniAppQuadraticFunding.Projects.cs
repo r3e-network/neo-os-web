@@ -118,6 +118,13 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(project.RoundId == roundId, "project mismatch");
             ExecutionEngine.Assert(project.Active, "project inactive");
 
+            // Audit fix C-2: prohibit project owner and round creator from contributing.
+            // Self-contribution allowed the project owner to inflate TotalContributed (which
+            // is paid back via ClaimProject) and round creators to launder funds back to
+            // themselves through the matching pool.
+            ExecutionEngine.Assert(contributor != project.Owner, "owner cannot contribute");
+            ExecutionEngine.Assert(contributor != round.Creator, "round creator cannot contribute");
+
             UInt160 gateway = Gateway();
             bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
             ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(contributor), "unauthorized");

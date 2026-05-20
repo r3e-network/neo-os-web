@@ -34,6 +34,12 @@ namespace NeoMiniAppPlatform.Contracts
             bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
             ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
 
+            // Cap events per creator. AddCreatorEvent already tracks the running
+            // count via PREFIX_CREATOR_EVENT_COUNT, so this check is O(1).
+            ExecutionEngine.Assert(
+                GetCreatorEventCountInternal(creator) < MAX_EVENTS_PER_CREATOR,
+                "creator event quota exhausted");
+
             BigInteger eventId = TotalEvents() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_EVENT_ID, eventId);
 
@@ -220,7 +226,14 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (ContractManagement.GetContract(to) != null)
             {
-                Contract.Call(to, "onNEP11Payment", CallFlags.All, from, tokenId, data);
+                // Audit fix NEW-H-4: CallFlags.All let the recipient write back
+                // to MiniAppEventTicketPass storage and reuse the sender's
+                // witness for other tickets. AllowCall lets the recipient
+                // perform downstream business logic (e.g. logging, escrow
+                // record-keeping), AllowNotify lets it emit events. It can
+                // no longer write to platform storage under our witness or
+                // ride the seller's signature to drain other tickets.
+                Contract.Call(to, "onNEP11Payment", CallFlags.AllowCall | CallFlags.AllowNotify, from, tokenId, data);
             }
             return true;
         }

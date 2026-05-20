@@ -77,6 +77,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             return data == null ? UInt160.Zero : (UInt160)data;
         }
 
+        // Audit fix H-13: typed events for role changes / pauses / upgrades should
+        // be declared on this contract via `[DisplayName] event` and raised here.
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();

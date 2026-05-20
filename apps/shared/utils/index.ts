@@ -46,7 +46,7 @@ export {
 // chain.ts
 export { isEvmChain, requireNeoChain } from "./chain";
 
-// errorHandling.ts
+// errors.ts (formerly errorHandling.ts — error classes)
 export {
   MiniAppError,
   WalletConnectionError,
@@ -56,15 +56,19 @@ export {
   NetworkError,
   ValidationError,
   isMiniAppError,
+  formatErrorMessage,
+  createStatusRef,
+} from "./errors";
+
+// async-utils.ts (formerly errorHandling.ts — async helpers)
+export {
   handleAsync,
   handleContractOperation,
-  createStatusRef,
-  formatErrorMessage,
   withTimeout,
   retryAsync,
   pollForEvent,
   safeAsync,
-} from "./errorHandling";
+} from "./async-utils";
 
 // transaction.ts
 export {
@@ -138,6 +142,15 @@ export {
   readTimedCacheValue,
   writeTimedCache,
 } from "./runtime-cache";
+
+// safe-storage.ts
+export {
+  safeReadStorage,
+  safeWriteStorage,
+  safeRemoveStorage,
+  safeReadJSON,
+  safeWriteJSON,
+} from "./safe-storage";
 
 // runtime-origin.ts
 export { getHostOrigin } from "./runtime-origin";

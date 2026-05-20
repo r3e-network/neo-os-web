@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { NeoButton, NeoCard, NeoInput, NeoSelect } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import MilestoneHero from "./components/MilestoneHero";
@@ -115,7 +115,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoCard variant="erobo" className="create-form-card">
               <div className="create-form">
                 <NeoInput value={beneficiary} label={t("beneficiaryAddress") || "Beneficiary"} placeholder={t("beneficiaryPlaceholder") || "N-address..."} onChange={setBeneficiary} />
-                <NeoInput value={tokenSymbol} label={t("tokenSymbol") || "Token"} placeholder="GAS" onChange={setTokenSymbol} />
+                <NeoSelect
+                  value={tokenSymbol}
+                  label={t("tokenSymbol") || "Token"}
+                  options={[
+                    { value: "GAS", label: "GAS" },
+                    { value: "NEO", label: "NEO" },
+                  ]}
+                  onChange={setTokenSymbol}
+                />
                 <NeoInput value={amount} label={t("amount") || "Amount"} placeholder={t("amountPlaceholder") || "100000000"} onChange={setAmount} />
                 <NeoInput value={description} type="textarea" label={t("description") || "Description"} placeholder={t("descriptionPlaceholder") || "Milestone description..."} onChange={setDescription} />
                 <NeoButton variant="primary" loading={isCreating} onClick={handleCreate} aria-label={t("submit") || "Submit"}>

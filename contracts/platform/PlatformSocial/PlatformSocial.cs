@@ -17,6 +17,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void EnvelopeCreatedHandler(string appId, BigInteger envelopeId, UInt160 creator, BigInteger totalAmount, BigInteger packetCount);
     public delegate void EnvelopeClaimedHandler(string appId, BigInteger envelopeId, UInt160 claimer, BigInteger amount, BigInteger remaining);
     public delegate void EnvelopeCompletedHandler(string appId, BigInteger envelopeId, UInt160 bestLuckWinner, BigInteger bestLuckAmount);
+    public delegate void EnvelopeRefundedHandler(string appId, BigInteger envelopeId, UInt160 creator, BigInteger refundAmount);
     public delegate void RangeGasPoolCreatedHandler(string appId, BigInteger poolId, UInt160 creator, BigInteger totalAmount, BigInteger minClaimAmount, BigInteger maxClaimAmount, BigInteger maxClaims);
     public delegate void RangeGasPoolClaimedHandler(string appId, BigInteger poolId, UInt160 claimer, BigInteger amount, BigInteger remainingAmount, BigInteger remainingClaims);
     public delegate void RangeGasPoolCompletedHandler(string appId, BigInteger poolId, UInt160 bestLuckWinner, BigInteger bestLuckAmount);
@@ -31,6 +32,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void AttemptMadeHandler(string appId, BigInteger vaultId, UInt160 attacker, bool success, BigInteger attemptNumber);
     public delegate void VaultBrokenHandler(string appId, BigInteger vaultId, UInt160 winner, BigInteger reward);
     public delegate void BountyIncreasedHandler(string appId, BigInteger vaultId, BigInteger amount, BigInteger newTotal);
+    public delegate void VaultRefundedHandler(string appId, BigInteger vaultId, UInt160 creator, BigInteger refund);
 
     /// <summary>
     /// PlatformSocial - Multi-tenant social engine consolidating RedEnvelope,
@@ -43,7 +45,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Multi-tenant social engine: RedEnvelope, HeritageTrust, UnbreakableVault.")]
-    [ContractPermission("*", "*")]
+    // Audit fix H-11: wildcard `*:*` permission replaced with the actual call surface
+    // (NEO + GAS native methods only). PlatformSocial never invokes user-controlled
+    // contracts, so an explicit allowlist is strictly tighter than the previous
+    // wildcard.
+    [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer", "balanceOf")]
+    [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer", "balanceOf")]
     public partial class PlatformSocialContract : SmartContract
     {
         // -----------------------------------------------------------------------
@@ -80,12 +87,25 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_TRUST_ID        = new byte[] { 0x20 };
         private static readonly byte[] PREFIX_TRUSTS          = new byte[] { 0x21 };
         private static readonly byte[] PREFIX_GUARDIANS       = new byte[] { 0x25 };
+        // Per-trust guardian counter so AddGuardian can cap at MAX_GUARDIANS_PER_TRUST
+        // without iterating every PREFIX_GUARDIANS entry on each add.
+        private static readonly byte[] PREFIX_GUARDIAN_COUNT  = new byte[] { 0x27 };
+        // Aggregate NEO liability across all active trusts for the app. Incremented
+        // on CreateTrust, decremented on ExecuteTrust/CancelTrust. The vault solvency
+        // invariant asserts the contract balance covers this total on every payout so
+        // a stale per-trust balance check cannot silently drain principal that has
+        // already been promised to another trust.
+        private static readonly byte[] PREFIX_TRUST_ACTIVE_PRINCIPAL = new byte[] { 0x26 };
 
         // -----------------------------------------------------------------------
         // Vault storage prefixes (0x30-0x3F)
         // -----------------------------------------------------------------------
         private static readonly byte[] PREFIX_VAULT_ID        = new byte[] { 0x30 };
         private static readonly byte[] PREFIX_VAULTS          = new byte[] { 0x31 };
+        // Audit fix H-10: commit-reveal prevents mempool front-running of solutions.
+        // PREFIX_VAULT_COMMIT stores H(salt || solution || attacker) keyed by (vaultId, attacker).
+        // Each entry holds {commitBlock, ...}. The reveal must arrive after VAULT_REVEAL_DELAY_BLOCKS.
+        private static readonly byte[] PREFIX_VAULT_COMMIT    = new byte[] { 0x32 };
 
         // -----------------------------------------------------------------------
         // Direct credit prefixes (0x70+)
@@ -103,21 +123,29 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private const int  MAX_PACKETS         = 100;
         private const long MIN_RANGE_POOL_AMOUNT = 10000000; // 0.1 GAS
 
-        // Trust
-        private const long MIN_PRINCIPAL          = 1;           // 1 NEO
-        private const int  HEARTBEAT_MIN_SECONDS  = 604800;      // 7 days
-        private const int  HEARTBEAT_MAX_SECONDS  = 31536000;    // 365 days
-        private const int  TRUST_PLATFORM_FEE_BPS = 100;         // 1%
-        private const int  CANCEL_PENALTY_BPS     = 500;         // 5%
-        private const int  GRACE_PERIOD_SECONDS   = 604800;      // 7 days
+        // Trust. Runtime.Time on Neo N3 is BLOCK TIMESTAMP IN MILLISECONDS, so all
+        // duration constants must be in milliseconds. The original constants were
+        // labelled as seconds and added directly to Runtime.Time, producing
+        // deadlines 1000x sooner than documented (e.g. "7 days" → 10 minutes).
+        private const long MIN_PRINCIPAL          = 1;                  // 1 NEO
+        private const int MAX_GUARDIANS_PER_TRUST = 10;                  // bounded storage per trust
+        private const long HEARTBEAT_MIN_MS       = 604800000L;          // 7 days
+        private const long HEARTBEAT_MAX_MS       = 31536000000L;        // 365 days
+        private const int  TRUST_PLATFORM_FEE_BPS = 100;                 // 1%
+        private const int  CANCEL_PENALTY_BPS     = 500;                 // 5%
+        private const long GRACE_PERIOD_MS        = 604800000L;          // 7 days
 
         // Vault
-        private const long MIN_BOUNTY          = 100000000;   // 1 GAS
-        private const long ATTEMPT_FEE_EASY    = 10000000;    // 0.1 GAS
-        private const long ATTEMPT_FEE_MEDIUM  = 50000000;    // 0.5 GAS
-        private const long ATTEMPT_FEE_HARD    = 100000000;   // 1 GAS
-        private const int  VAULT_PLATFORM_FEE_BPS = 200;      // 2%
-        private const int  DEFAULT_VAULT_EXPIRY   = 2592000;   // 30 days
+        private const long MIN_BOUNTY              = 100000000;          // 1 GAS
+        private const long ATTEMPT_FEE_EASY        = 10000000;           // 0.1 GAS
+        private const long ATTEMPT_FEE_MEDIUM      = 50000000;           // 0.5 GAS
+        private const long ATTEMPT_FEE_HARD        = 100000000;          // 1 GAS
+        private const int  VAULT_PLATFORM_FEE_BPS  = 200;                // 2%
+        private const long DEFAULT_VAULT_EXPIRY_MS = 2592000000L;        // 30 days
+        // Audit fix H-10: minimum delay between commit and reveal (in ms).
+        // Long enough to make front-running impractical even when a block is empty,
+        // short enough to keep UX acceptable (~30 seconds).
+        private const long VAULT_REVEAL_MIN_DELAY_MS = 30000L;
 
         // -----------------------------------------------------------------------
         // Events
@@ -136,6 +164,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         [DisplayName("EnvelopeCompleted")]
         public static event EnvelopeCompletedHandler OnEnvelopeCompleted;
+
+        [DisplayName("EnvelopeRefunded")]
+        public static event EnvelopeRefundedHandler OnEnvelopeRefunded;
 
         [DisplayName("RangeGasPoolCreated")]
         public static event RangeGasPoolCreatedHandler OnRangeGasPoolCreated;
@@ -178,6 +209,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         [DisplayName("BountyIncreased")]
         public static event BountyIncreasedHandler OnBountyIncreased;
+
+        [DisplayName("VaultRefunded")]
+        public static event VaultRefundedHandler OnVaultRefunded;
 
         // -----------------------------------------------------------------------
         // Data Structures

@@ -156,7 +156,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* ── 2. Week Progress Calendar ── */}
       <div className="checkin-week-wrapper">
         <div className="checkin-week-progress-label">
-          <span className="checkin-progress-text">{weekSlotFilled}/7 {t("dayPrefix") || "Day"}s</span>
+          <span className="checkin-progress-text">{weekSlotFilled}/7 days</span>
           {weekSlotFilled === 7 && <span className="checkin-week-complete-badge">{t("complete") || "COMPLETE"}</span>}
         </div>
         <div className="checkin-week-row">

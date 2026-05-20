@@ -1,121 +1,208 @@
-@use "@shared/styles/tokens.scss" as *;
+/**
+ * FogPlay PlayArea — Polymarket-light treatment.
+ */
+
+@use "@shared/styles/pm-light" as pm;
 @use "@shared/styles/playarea-base";
+
 .coinflip-play-area {
-  display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 24px 14px 20px;
-  min-height: 300px; text-align: center; position: relative; overflow: hidden;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12), transparent 42%),
-    linear-gradient(180deg, #f8fafc 0%, #eef7f4 48%, #f8fafc 100%);
-  color: #0f172a;
+  @include pm.pm-canvas;
 }
+
+/* ============================================================
+ *  1. Top stats — Wins · Losses · Games · Won
+ * ============================================================ */
 
 .stats-row {
-  display: flex; align-items: center; justify-content: center; gap: 0;
-  width: 100%; max-width: 440px; padding: 14px 10px;
-  background: rgba(255, 255, 255, 0.88); border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 18px; position: relative; z-index: 2;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.07);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 14px 18px;
+  @include pm.card;
 }
+
+.stat-divider {
+  display: none;
+}
+
 .stat-cell {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  display: grid;
+  gap: 4px;
+
+  &.win .stat-count {
+    color: pm.$green-text;
+  }
+  &.loss .stat-count {
+    color: pm.$red-text;
+  }
+  &.won .won-amount {
+    color: pm.$neo-strong;
+  }
 }
-.stat-count { font-size: 18px; font-weight: 800; color: #1f2937; }
-.stat-count.won-amount { font-size: 13px; color: #22c55e; }
-.stat-label { font-size: 8px; font-weight: 800; letter-spacing: 0.12em; color: #64748b; text-transform: uppercase; }
-.stat-divider { width: 1px; height: 34px; background: rgba(15, 23, 42, 0.09); flex-shrink: 0; }
+
+.stat-count {
+  font-size: 22px;
+  font-weight: 700;
+  color: pm.$text;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.stat-label {
+  @include pm.section-eyebrow;
+}
+
+/* ============================================================
+ *  2. Arena hero (coin flip visualization)
+ * ============================================================ */
+
+.coinflip-play-area :where(.arena-hero, .coin-stage) {
+  padding: 24px 20px;
+  @include pm.card;
+}
+
+/* ============================================================
+ *  3. Custom bet section
+ * ============================================================ */
 
 .custom-bet-section {
-  width: 100%; max-width: 400px; position: relative; z-index: 2;
+  padding: 16px 18px;
+  @include pm.card;
 }
+
+/* ============================================================
+ *  4. History section
+ * ============================================================ */
 
 .history-section {
-  width: 100%; max-width: 440px; position: relative; z-index: 2;
+  display: grid;
+  gap: 10px;
 }
+
 .history-header {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px;
-  padding-bottom: 8px; border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 0 4px;
 }
+
 .history-title {
-  font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
-  color: #475569; text-transform: uppercase;
+  @include pm.section-eyebrow;
 }
+
 .history-empty {
-  text-align: center; padding: 24px 16px; font-size: 13px;
-  font-weight: 600; color: #9ca3af; font-style: italic;
+  padding: 24px 18px;
+  text-align: center;
+  font-size: 13px;
+  color: pm.$text-muted;
 }
-.history-table-wrap { overflow-x: auto; max-width: 100%; }
+
+.history-section :where(.NeoCard, [class*="card"]) {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+
+  & > * {
+    @include pm.card;
+    padding: 14px 18px;
+  }
+}
+
+.history-table-wrap {
+  overflow-x: auto;
+}
+
 .history-table {
-  width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
 
   th {
-    font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
-    color: #9ca3af; padding: 8px 10px; border-bottom: 1px solid #f3f4f6;
+    @include pm.section-eyebrow;
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid pm.$border;
+    background: pm.$surface;
   }
 
   td {
-    padding: 10px 10px; border-bottom: 1px solid #f3f4f6;
-    color: #1f2937; font-weight: 600;
+    padding: 10px 12px;
+    border-bottom: 1px solid pm.$border;
+    color: pm.$text;
   }
 
-  tbody tr { transition: background 0.15s ease; }
-  tbody tr:hover { background: #f9fafb; }
+  tr:last-child td {
+    border-bottom: 0;
+  }
 
-  .row-win { border-left: 2px solid rgba(34, 197, 94, 0.4); }
-  .row-loss { border-left: 2px solid rgba(239, 68, 68, 0.3); }
+  .amount-cell {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .payout-win {
+    color: pm.$green-text;
+  }
+  .payout-loss {
+    color: pm.$text-faint;
+  }
+
+  .row-win {
+    background: pm.$green-soft;
+  }
+  .row-loss {
+    background: transparent;
+  }
 }
+
 .choice-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px;
-  font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-  background: #f3f4f6; color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: pm.$surface-2;
+  color: pm.$text-2;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
 }
+
 .outcome-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px;
-  font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
 
-  &.won { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
-  &.lost { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+  &.won {
+    background: pm.$green-soft;
+    color: pm.$green-text;
+  }
+  &.lost {
+    background: pm.$red-soft;
+    color: pm.$red-text;
+  }
 }
-.amount-cell { font-family: monospace; font-size: 12px; font-weight: 700; }
-.payout-win { color: #22c55e; }
-.payout-loss { color: #9ca3af; }
 
-@media (prefers-reduced-motion: reduce) {
-  .coinflip-play-area { &::before { animation: none; } }
-}
+/* ============================================================
+ *  Status toast (StandaloneDappSurface)
+ * ============================================================ */
 
-@media (max-width: 520px) {
-  .stats-row {
-    padding: 12px 8px;
-  }
-
-  .stat-count {
-    font-size: 16px;
-  }
-
-  .stat-count.won-amount {
-    font-size: 11px;
-  }
-
-  .history-table {
-    table-layout: fixed;
-
-    th,
-    td {
-      padding: 8px 4px;
-    }
-
-    th {
-      font-size: 8px;
-      letter-spacing: 0.04em;
-    }
-  }
-
-  .choice-badge,
-  .outcome-badge {
-    max-width: 100%;
-    padding-inline: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+.standalone-dapp-root .status-toast {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: pm.$bg;
+  color: pm.$text;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid pm.$border;
+  box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.18);
 }

@@ -1,6 +1,6 @@
 import Head from "next/head";
 import dynamic from "next/dynamic";
-import { Layout } from "@/components/layout";
+import { Layout, PageHero } from "@/components/layout";
 
 const SecretsContent = dynamic(
   () => import("@/components/features/secrets/SecretsContent"),
@@ -13,15 +13,15 @@ export default function SecretsPage() {
       <Head>
         <title>Secrets - Yiwu MiniApps</title>
       </Head>
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="text-3xl font-extrabold text-gray-900">Secret Tokens</h1>
-        <p className="mt-2 text-gray-600">
-          Manage tokens for TEE confidential computing
-        </p>
-        <div className="mt-8">
-          <SecretsContent />
-        </div>
-      </div>
+      <PageHero
+        align="center"
+        eyebrow="TEE"
+        title="Secret Tokens"
+        description="Manage tokens for TEE confidential computing — bind, list, and revoke per-app secrets without exposing key material to the host frontend."
+      />
+      <main className="mx-auto max-w-4xl px-4 pb-14">
+        <SecretsContent />
+      </main>
     </Layout>
   );
 }

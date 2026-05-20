@@ -1,4 +1,4 @@
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { NeoButton, NeoCard, NeoInput, NeoSelect } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import "./PlayArea.scss";
@@ -60,10 +60,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Recipe Builder */}
       <NeoCard title={t("recipeBuilder") || "Recipe Builder"}>
         <div className="stack">
-          <NeoInput
+          <NeoSelect
             value={asset}
             label={t("asset") || "Asset"}
-            placeholder={t("assetPlaceholder") || "NEO, GAS, etc."}
+            options={[
+              { value: "NEO", label: "NEO" },
+              { value: "GAS", label: "GAS" },
+              { value: "BTC", label: "BTC" },
+            ]}
             onChange={(val) => { if (state.asset) state.asset.set(val); }}
           />
           <NeoInput
