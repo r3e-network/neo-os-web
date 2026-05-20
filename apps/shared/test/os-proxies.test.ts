@@ -13,12 +13,16 @@ import { CheckinProxy } from "../services/os/CheckinProxy";
 import { GameProxy, type PoolConfig } from "../services/os/GameProxy";
 import { PaymentProxy } from "../services/os/PaymentProxy";
 
+// Audit fix E-1 / H-3: signing requires explicit user confirmation; the new
+// canonical method is `wallet.invokeWithConfirmation(intent, ctx)`. The mock
+// exposes both so tests can assert the confirmation path runs.
 const walletMock = vi.hoisted(() => ({
   address: { value: null as string | null },
   connect: vi.fn(async () => {
     walletMock.address.value = "NMockSender";
   }),
   invokeContract: vi.fn(async () => ({ txid: "0xwalletintent" })),
+  invokeWithConfirmation: vi.fn(async () => ({ txid: "0xwalletintent" })),
 }));
 
 vi.mock("../utils/wallet-sdk", () => ({
@@ -54,6 +58,7 @@ describe("EdgeClient", () => {
     walletMock.address.value = null;
     walletMock.connect.mockClear();
     walletMock.invokeContract.mockClear();
+    walletMock.invokeWithConfirmation.mockClear();
   });
 
   afterEach(() => {
@@ -146,7 +151,7 @@ describe("EdgeClient", () => {
     expect(result).toEqual(payload);
   });
 
-  it("should submit standard OS invocation intents through the connected wallet", async () => {
+  it("should submit standard OS invocation intents through the connected wallet (confirmation path)", async () => {
     const intent = {
       contract: "0xabc",
       operation: "claimRewards",
@@ -158,12 +163,18 @@ describe("EdgeClient", () => {
     const result = await client.call("os-checkin-claim");
 
     expect(walletMock.connect).toHaveBeenCalledOnce();
-    expect(walletMock.invokeContract).toHaveBeenCalledWith({
-      scriptHash: "0xabc",
-      operation: "claimRewards",
-      args: [{ type: "Hash160", value: "NMockSender" }],
-      signers: [{ account: "NMockSender", scopes: 1 }],
-    });
+    // Audit fix E-1 / H-3: route through invokeWithConfirmation so the wallet
+    // adapter can render a user-confirmation modal before signing.
+    expect(walletMock.invokeWithConfirmation).toHaveBeenCalledWith(
+      {
+        scriptHash: "0xabc",
+        operation: "claimRewards",
+        args: [{ type: "Hash160", value: "NMockSender" }],
+        signers: [{ account: "NMockSender", scopes: 1 }],
+      },
+      expect.objectContaining({ endpoint: "os-binder", appId: "app-1" }),
+    );
+    expect(walletMock.invokeContract).not.toHaveBeenCalled();
     expect(result).toEqual({
       ...intent,
       txid: "0xwalletintent",
@@ -192,16 +203,20 @@ describe("EdgeClient", () => {
     await client.call("os-checkin-checkin");
 
     expect(walletMock.connect).not.toHaveBeenCalled();
-    expect(walletMock.invokeContract).toHaveBeenCalledWith({
-      scriptHash: "0xgas",
-      operation: "transfer",
-      args: [
-        { type: "Hash160", value: "NAlreadyConnected" },
-        { type: "Hash160", value: "0xcontract" },
-        { type: "Integer", value: "100000" },
-      ],
-      signers: [{ account: "NExplicit", scopes: 16 }],
-    });
+    expect(walletMock.invokeWithConfirmation).toHaveBeenCalledWith(
+      {
+        scriptHash: "0xgas",
+        operation: "transfer",
+        args: [
+          { type: "Hash160", value: "NAlreadyConnected" },
+          { type: "Hash160", value: "0xcontract" },
+          { type: "Integer", value: "100000" },
+        ],
+        signers: [{ account: "NExplicit", scopes: 16 }],
+      },
+      expect.objectContaining({ endpoint: "os-binder", appId: "app-1" }),
+    );
+    expect(walletMock.invokeContract).not.toHaveBeenCalled();
   });
 
   it("should throw on non-OK response with error message from body", async () => {

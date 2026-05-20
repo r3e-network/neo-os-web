@@ -1,7 +1,7 @@
 import Head from "next/head";
 import type { GetStaticProps } from "next";
 import Link from "next/link";
-import {
+import React, {
   useDeferredValue,
   useEffect,
   useMemo,
@@ -37,6 +37,8 @@ import { interpolate, type Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/react";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 import { BRAND } from "@/lib/brand";
+import { getCategoryTheme, type CategoryId } from "@/lib/category-theme";
+import { CountUp } from "@/components/CountUp";
 import {
   Rocket,
   Shield,
@@ -62,7 +64,7 @@ import {
 // Category definitions with icons
 const CATEGORY_ICONS: Record<
   string,
-  ComponentType<{ size?: number | string; className?: string }>
+  ComponentType<{ size?: number | string; className?: string; style?: React.CSSProperties }>
 > = {
   all: LayoutGrid,
   gaming: Gamepad2,
@@ -267,15 +269,15 @@ export default function LandingPage({
   const platformStats = [
     {
       label: t("home.stats.enabledApps", "host"),
-      value: String(catalogApps.length || initialApps.length),
+      value: catalogApps.length || initialApps.length,
     },
     {
       label: t("home.stats.featured", "host"),
-      value: String(featuredList.length),
+      value: featuredList.length,
     },
     {
       label: t("home.stats.operatorTools", "host"),
-      value: String(toolApps.length),
+      value: toolApps.length,
     },
   ];
 
@@ -349,14 +351,15 @@ export default function LandingPage({
                   {platformStats.map((item) => (
                     <div
                       key={item.label}
-                      className="rounded-lg border border-gray-200 bg-white p-3"
+                      className="rounded-lg border border-gray-200 bg-white p-3 transition-all hover:border-emerald-200 hover:shadow-sm"
                     >
                       <p className="m-0 truncate text-[11px] font-semibold text-gray-600">
                         {item.label}
                       </p>
-                      <p className="m-0 mt-1 truncate text-lg font-black text-gray-900">
-                        {item.value}
-                      </p>
+                      <CountUp
+                        value={item.value}
+                        className="m-0 mt-1 block truncate text-lg font-black text-gray-900"
+                      />
                     </div>
                   ))}
                 </div>
@@ -394,7 +397,7 @@ export default function LandingPage({
               </div>
               <Link
                 href="/miniapps"
-                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:border-emerald-300 hover:text-emerald-700"
+                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:border-neo/40 hover:text-emerald-700"
               >
                 {t("actions.viewAll")}
               </Link>
@@ -445,7 +448,10 @@ export default function LandingPage({
                 aria-hidden="true"
               />
               <input
+                id="catalog-search"
+                name="q"
                 type="search"
+                autoComplete="off"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t("home.catalog.searchPlaceholder", "host")}
@@ -469,22 +475,31 @@ export default function LandingPage({
                   {categories.map((cat) => {
                     const Icon = cat.icon;
                     const isActive = selectedCategory === cat.id;
+                    const theme = getCategoryTheme(cat.id as CategoryId);
                     return (
                       <button
                         key={cat.id}
                         type="button"
                         onClick={() => setSelectedCategory(cat.id)}
                         className={cn(
-                          "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo",
+                          "group relative w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo",
                           isActive
-                            ? "bg-emerald-50 text-emerald-700 font-bold shadow-[inset_0_0_20px_rgba(4,120,87,0.08)]"
-                            : "text-gray-600 hover:bg-white/50 hover:text-gray-900",
+                            ? `${theme.bgTint} ${theme.text} font-bold border ${theme.borderActive}`
+                            : "text-gray-600 border border-transparent hover:bg-white hover:text-gray-900 hover:border-gray-200",
                         )}
                       >
+                        {isActive && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
+                            style={{ backgroundColor: theme.accent }}
+                          />
+                        )}
                         <span className="flex items-center gap-3 text-sm">
                           <Icon
                             size={18}
-                            className={isActive ? "text-emerald-700" : ""}
+                            className={isActive ? "" : "text-gray-400 group-hover:text-gray-600"}
+                            style={isActive ? { color: theme.accent } : undefined}
                             aria-hidden="true"
                           />
                           {cat.label}
@@ -493,8 +508,8 @@ export default function LandingPage({
                           className={cn(
                             "text-xs px-2.5 py-1 rounded-full font-semibold",
                             isActive
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-gray-200/50 text-gray-500",
+                              ? `${theme.countBg} ${theme.countText}`
+                              : "bg-gray-100 text-gray-500 group-hover:bg-gray-200",
                           )}
                         >
                           {cat.count}
@@ -715,6 +730,8 @@ function HomeMiniAppRow({
     availability.label,
     t,
   );
+  const theme = getCategoryTheme(app.category);
+  const isLive = availability.tone === "live";
   const statusClass =
     availability.tone === "live"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -727,10 +744,25 @@ function HomeMiniAppRow({
     <Link
       href={`/miniapps/${app.app_id}`}
       className={cn(
-        "group flex min-w-0 items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-emerald-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+        "group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-gray-200 bg-white p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
         spacious && "p-4",
       )}
+      style={{
+        // hover border picks up the category accent via CSS var
+        ["--category-accent" as string]: theme.accent,
+      }}
+      onMouseEnter={(event) => {
+        event.currentTarget.style.borderColor = theme.accent;
+      }}
+      onMouseLeave={(event) => {
+        event.currentTarget.style.borderColor = "";
+      }}
     >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 top-0 bottom-0 w-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        style={{ backgroundColor: theme.accent }}
+      />
       <MiniAppLogo
         appId={app.app_id}
         category={app.category}
@@ -743,15 +775,27 @@ function HomeMiniAppRow({
       />
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-2">
+          <span
+            aria-hidden="true"
+            className="shrink-0 h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: theme.accent }}
+            title={String(app.category || "")}
+          />
           <span className="truncate text-sm font-bold text-gray-900">
             {appName}
           </span>
           <span
             className={cn(
-              "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
+              "shrink-0 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
               statusClass,
             )}
           >
+            {isLive && (
+              <span
+                aria-hidden="true"
+                className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-dot"
+              />
+            )}
             {availabilityLabel}
           </span>
         </span>
@@ -760,7 +804,8 @@ function HomeMiniAppRow({
         </span>
       </span>
       <ArrowUpRight
-        className="h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-emerald-600"
+        className="h-4 w-4 shrink-0 text-gray-400 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+        style={{ color: undefined }}
         aria-hidden="true"
       />
     </Link>
@@ -777,7 +822,7 @@ function FeatureItem({
   desc: string;
 }) {
   return (
-    <Card className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:border-emerald-300 hover:shadow-md">
+    <Card className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:border-neo/40 hover:shadow-md">
       <div className="relative z-10 mb-5 flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-900 transition-colors group-hover:border-emerald-200 group-hover:bg-emerald-50 group-hover:text-emerald-700">
         <Icon size={26} aria-hidden="true" />
       </div>

@@ -140,8 +140,25 @@ namespace NeoMiniAppPlatform.Contracts
 
             AcquireReentrancyLock(appId);
 
+            // Audit fix M-2: rejection sampling to eliminate modular bias.
+            // Naively taking the first byte mod 6 makes outcomes 1..4 occur with
+            // probability 43/256 (16.8%) and 5..6 with probability 41/256 (16.0%).
+            // We scan oracleResult byte-by-byte for the first value in the unbiased
+            // range [0, 252) (the largest multiple of 6 below 256) and use that.
             byte[] randomBytes = (byte[])oracleResult;
-            BigInteger rolled = (randomBytes[0] % 6) + 1;
+            int rngIndex = 0;
+            byte sampled = 0xFF;
+            while (rngIndex < randomBytes.Length)
+            {
+                byte candidate = randomBytes[rngIndex];
+                if (candidate < 252) { sampled = candidate; break; }
+                rngIndex++;
+            }
+            // Fallback: if every byte landed in the bias zone (probability < 2^-2048
+            // for a 256-byte oracle result), fall back to the first byte to remain
+            // deterministic. Astronomically unlikely in practice.
+            if (sampled == 0xFF) sampled = randomBytes[0];
+            BigInteger rolled = (sampled % 6) + 1;
             bool won = rolled == bet.ChosenNumber;
             BigInteger payout = won
                 ? bet.Amount * 6 * (100 - DI_PLATFORM_FEE_PERCENT) / 100
@@ -213,70 +230,8 @@ namespace NeoMiniAppPlatform.Contracts
             return limits;
         }
 
-        private static void ValidateDiceRequestMapping(string appId, BigInteger betId, BigInteger requestId)
-        {
-            ExecutionEngine.Assert(requestId > 0, "requestId required");
-            ByteString mappedBet = Storage.Get(Storage.CurrentContext, AppKey(appId, DI_PREFIX_REQ_TO_BET, requestId));
-            ExecutionEngine.Assert(mappedBet != null && (BigInteger)mappedBet == betId, "oracle request mismatch");
-            Storage.Delete(Storage.CurrentContext, AppKey(appId, DI_PREFIX_REQ_TO_BET, requestId));
-        }
-
-        private static void ValidateDiceBetLimits(string appId, UInt160 player, BigInteger amount)
-        {
-            ExecutionEngine.Assert(amount <= DI_MAX_BET, "bet exceeds maximum");
-
-            BigInteger dailyTotal = GetDiceDailyBet(appId, player);
-            ExecutionEngine.Assert(dailyTotal + amount <= DI_DAILY_LIMIT, "daily limit exceeded");
-
-            BigInteger lastBetTime = AppGetInt(appId, DI_PREFIX_PLAYER_LAST, player);
-            BigInteger elapsed = Runtime.Time - lastBetTime;
-            ExecutionEngine.Assert(lastBetTime == 0 || elapsed >= DI_COOLDOWN_MS, "please wait before placing another bet");
-
-            BigInteger betCount = AppGetInt(appId, DI_PREFIX_PLAYER_COUNT, player);
-            if (elapsed >= DI_COOLDOWN_MS * 5) betCount = 0;
-            ExecutionEngine.Assert(betCount < DI_MAX_CONSECUTIVE, "max consecutive bets reached");
-        }
-
-        private static void RecordDiceBet(string appId, UInt160 player, BigInteger amount)
-        {
-            BigInteger currentTime = Runtime.Time;
-            BigInteger currentDay = currentTime / 86400000;
-            BigInteger dailyTotal = GetDiceDailyBet(appId, player);
-            Storage.Put(Storage.CurrentContext, AppKey(appId, DI_PREFIX_PLAYER_DAILY, player),
-                StdLib.Serialize(new object[] { currentDay, dailyTotal + amount }));
-
-            BigInteger lastBetTime = AppGetInt(appId, DI_PREFIX_PLAYER_LAST, player);
-            BigInteger elapsed = currentTime - lastBetTime;
-            BigInteger betCount = AppGetInt(appId, DI_PREFIX_PLAYER_COUNT, player);
-            betCount = elapsed >= DI_COOLDOWN_MS * 5 ? 1 : betCount + 1;
-
-            Storage.Put(Storage.CurrentContext, AppKey(appId, DI_PREFIX_PLAYER_LAST, player), currentTime);
-            Storage.Put(Storage.CurrentContext, AppKey(appId, DI_PREFIX_PLAYER_COUNT, player), betCount);
-        }
-
-        private static BigInteger GetDiceDailyBet(string appId, UInt160 player)
-        {
-            ByteString data = Storage.Get(Storage.CurrentContext, AppKey(appId, DI_PREFIX_PLAYER_DAILY, player));
-            if (data == null) return 0;
-
-            object[] stored = (object[])StdLib.Deserialize(data);
-            BigInteger storedDay = (BigInteger)stored[0];
-            BigInteger currentDay = Runtime.Time / 86400000;
-
-            if (storedDay != currentDay) return 0;
-            return (BigInteger)stored[1];
-        }
-
-        private static void StoreDiceBet(string appId, BigInteger betId, DiceBet bet)
-        {
-            Storage.Put(Storage.CurrentContext, AppKey(appId, DI_PREFIX_BETS, betId), StdLib.Serialize(bet));
-        }
-
-        private static DiceBet LoadDiceBet(string appId, BigInteger betId)
-        {
-            ByteString data = Storage.Get(Storage.CurrentContext, AppKey(appId, DI_PREFIX_BETS, betId));
-            if (data == null) return new DiceBet();
-            return (DiceBet)StdLib.Deserialize(data);
-        }
+        // Audit fix M-4 / M-5 / M-2 / partial-file-budget: dice limit + storage
+        // helpers moved to PlatformGame.Dice.Internal.cs to keep this file under
+        // 300 lines (ContractProjectConventionsTest.ContractPartialFilesStayReviewable).
     }
 }

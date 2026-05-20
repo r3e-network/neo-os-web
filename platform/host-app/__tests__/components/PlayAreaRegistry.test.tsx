@@ -226,7 +226,6 @@ describe("PlayAreaRegistry", () => {
     expect(
       screen.getByRole("heading", { name: "Council proposal workspace" }),
     ).toBeVisible();
-    expect(screen.getByText("Create, inspect, and vote")).toBeVisible();
     expect(screen.getByTitle("Council Governance dApp")).toHaveAttribute(
       "src",
       expect.stringContaining("/miniapps/council-governance/index.html?"),
@@ -389,7 +388,6 @@ describe("PlayAreaRegistry", () => {
     expect(
       screen.getByRole("heading", { name: "Forever Album photo vault" }),
     ).toBeVisible();
-    expect(screen.getByText("Upload and view album")).toBeVisible();
     expect(screen.getByText("Upload photos")).toBeVisible();
     expect(screen.getByText("View gallery")).toBeVisible();
     expect(
@@ -405,7 +403,7 @@ describe("PlayAreaRegistry", () => {
     expect(screen.queryByText("Wallet album preview")).not.toBeInTheDocument();
   });
 
-  it("keeps TrustAnchor focused on user staking while folding routing diagnostics", () => {
+  it("keeps TrustAnchor focused on the user dApp iframe", () => {
     renderPlayarea({
       app_id: "miniapp-trustanchor",
       name: "TrustAnchor",
@@ -413,19 +411,16 @@ describe("PlayAreaRegistry", () => {
       description: "Manual 21-agent AA routing",
     });
 
-    expect(screen.getByText("Stake NEO")).toBeVisible();
-    expect(screen.getByText("Redeem NEO")).toBeVisible();
-    expect(screen.getByText("Claim GAS")).toBeVisible();
-    expect(screen.getByText("Operator route details")).toBeVisible();
+    // TrustAnchor user surface now embeds the actual standalone dApp iframe
+    // instead of templated stake/redeem/claim status rows. The dApp itself
+    // is "specifically and carefully designed for the miniapp functionality."
+    expect(
+      screen.getByTestId("native-dapp-frame-miniapp-trustanchor"),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Agent #1")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("Operator route details"));
-
-    expect(screen.getByText("Registered agents")).toBeVisible();
-    expect(screen.getByText("Selected manual route")).toBeVisible();
   });
 
-  it("renders Anchor admin consoles as operator-only routing surfaces", () => {
+  it("renders Anchor admin consoles as their own dApp iframes", () => {
     renderPlayarea({
       app_id: "miniapp-profitanchor-admin",
       name: "ProfitAnchor Admin",
@@ -433,9 +428,9 @@ describe("PlayAreaRegistry", () => {
       description: "Operator manual routing",
     });
 
-    expect(screen.getByText("Move NEO")).toBeVisible();
-    expect(screen.getByText("Update target")).toBeVisible();
-    expect(screen.getByText("Sync vote")).toBeVisible();
+    expect(
+      screen.getByTestId("native-dapp-frame-miniapp-profitanchor-admin"),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Stake NEO")).not.toBeInTheDocument();
     expect(screen.queryByText("Claim GAS")).not.toBeInTheDocument();
   });
@@ -465,7 +460,13 @@ describe("PlayAreaRegistry", () => {
     );
 
     expect(screen.getByText("Next round is ready to start")).toBeVisible();
-    expect(screen.getAllByText("Rollover Ready").length).toBeGreaterThan(0);
+    // The LastSurvivor native play area now embeds the actual dApp iframe,
+    // so the platform-side "Rollover Ready" status card no longer renders
+    // (that status fact lives inside the dApp). The amber rollover banner
+    // is the platform-side signal we still keep.
+    expect(
+      screen.getByTestId("native-dapp-frame-miniapp-last-survivor"),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Round Ended")).not.toBeInTheDocument();
   });
 
@@ -501,7 +502,8 @@ describe("PlayAreaRegistry", () => {
       expect(
         screen.getByTestId(`native-playarea-${manifest.appId}`),
       ).toBeVisible();
-      expect(screen.getByText("Live MiniApp workspace")).toBeVisible();
+      // The dApp iframe IS the focal content — no "Live MiniApp workspace"
+      // header banner sits above it. Just assert the iframe loads the dApp.
       expect(
         screen.getByTestId(`profiled-dapp-frame-${manifest.appId}`),
       ).toHaveAttribute("src", expect.stringContaining(manifest.entryUrl));
@@ -602,9 +604,12 @@ describe("PlayAreaRegistry", () => {
     expect(
       screen.getByRole("heading", { name: "OneGate Vault" }),
     ).toBeVisible();
-    expect(screen.getByText("Reward ready")).toBeVisible();
-    expect(screen.getByText(/Your OneGate scan is verified/i)).toBeVisible();
-    expect(screen.getByText("Reward range")).toBeVisible();
+    // The OneGate Vault native play area now embeds the actual dApp iframe,
+    // so the platform-side "Reward ready" / "Reward range" status cards no
+    // longer render — those facts live inside the dApp itself.
+    expect(
+      screen.getByTestId("native-dapp-frame-miniapp-gas-lucky-pool"),
+    ).toBeInTheDocument();
     expect(screen.queryByText("OneGate QR key")).not.toBeInTheDocument();
     expect(screen.queryByText("Single-use guard")).not.toBeInTheDocument();
     expect(screen.queryByText("Campaign setup")).not.toBeInTheDocument();

@@ -95,6 +95,15 @@ namespace NeoMiniAppPlatform.Contracts
             }
         }
 
+        // Audit fix H-13 (partial): event emission for role changes is a documented
+        // follow-up. Neo C# DevPack does not expose `Runtime.Notify(name, state)`;
+        // typed `event` declarations must live on each concrete contract (the base
+        // class cannot declare them on inheritors' behalf). Each MiniApp contract
+        // that extends MiniAppBase should add typed `AdminChanged`, `OracleChanged`,
+        // `GatewayChanged`, `PauseStateChanged`, and `ContractUpgraded` events and
+        // raise them from the corresponding setter. Until then, off-chain indexers
+        // must reconstruct role changes by replaying storage diffs on the admin
+        // prefixes — slower but still detectable.
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
@@ -106,6 +115,10 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ValidateAddress(oracle);
+            // Audit fix NEW-I-2: refuse to point at a non-existent contract. A
+            // typo'd hash would silently route every oracle callback into the
+            // void; assert the target is a deployed contract first.
+            ExecutionEngine.Assert(ContractManagement.GetContract(oracle) != null, "oracle is not a deployed contract");
             Storage.Put(Storage.CurrentContext, PREFIX_ORACLE, oracle);
         }
 
@@ -113,6 +126,8 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ValidateAddress(registry);
+            // Audit fix NEW-I-2: same as SetOracle — refuse a non-contract hash.
+            ExecutionEngine.Assert(ContractManagement.GetContract(registry) != null, "pause registry is not a deployed contract");
             Storage.Put(Storage.CurrentContext, PREFIX_PAUSE_REGISTRY, registry);
         }
 
@@ -120,6 +135,8 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ValidateAddress(gateway);
+            // Audit fix NEW-I-2: same as SetOracle — refuse a non-contract hash.
+            ExecutionEngine.Assert(ContractManagement.GetContract(gateway) != null, "gateway is not a deployed contract");
             Storage.Put(Storage.CurrentContext, PREFIX_GATEWAY, gateway);
         }
 

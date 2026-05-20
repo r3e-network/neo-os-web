@@ -1,0 +1,21 @@
+{
+  "_comment": "Pre-staged ESLint config. To activate lint scripts, install dev deps: npm install --save-dev --workspace platform/host-app eslint@^9 eslint-config-next@^15  — then add `\"lint\": \"next lint --dir pages --dir components --dir lib --dir hooks\"` to the package.json scripts block. The audit (2026-05-19) noted no lint was configured anywhere; this file is the unblocking step.",
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "react-hooks/exhaustive-deps": "warn",
+    "@next/next/no-img-element": "warn",
+    "react/no-unescaped-entities": "off",
+    "react/display-name": "off"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "next-env.d.ts",
+    "**/*.d.ts",
+    "playwright-report/",
+    "test-results/",
+    "lib/codegen/",
+    "supabase/functions/"
+  ]
+}

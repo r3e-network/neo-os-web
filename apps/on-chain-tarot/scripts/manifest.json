@@ -8,11 +8,6 @@
       "file": "calculate-cards.js",
       "entry_point": "calculateCards",
       "description": "Calculate tarot cards from deterministic seed"
-    },
-    "generate-interpretation": {
-      "file": "generate-interpretation.js",
-      "entry_point": "generateInterpretation",
-      "description": "Generate reading interpretation from cards"
     }
   }
 }

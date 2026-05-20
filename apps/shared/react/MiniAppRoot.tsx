@@ -554,8 +554,110 @@ function StandaloneDappSurface({
     <div
       className={`standalone-dapp-root${fireworksActive ? " standalone-dapp-root--celebrating" : ""}`}
       data-testid="standalone-dapp-root"
-      style={{ minHeight: "100vh" }}
+      style={{
+        minHeight: "100vh",
+        background: "#ffffff",
+        color: "#18181b",
+        fontFamily:
+          "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+      }}
     >
+      {/* Polymarket-light reset — cascades inside every embedded dApp iframe
+          so the platform doesn't have to redesign each dApp individually.
+          Targets the most common dark-mode offenders by attribute/class
+          patterns. Per-dApp SCSS still wins via specificity when needed. */}
+      <style>{`
+        .standalone-dapp-root,
+        .standalone-dapp-root body {
+          background: #ffffff !important;
+          color: #18181b !important;
+        }
+        .standalone-dapp-root .play-area,
+        .standalone-dapp-root [class*="-play-area"],
+        .standalone-dapp-root main,
+        .standalone-dapp-root .checkin-stat-item,
+        .standalone-dapp-root .NeoCard,
+        .standalone-dapp-root .neo-card {
+          background-color: #ffffff !important;
+          color: #18181b;
+        }
+        /* Neutralize common dark surface patterns inside dApps. */
+        .standalone-dapp-root [class*="-bg-slate"],
+        .standalone-dapp-root [class*="-bg-zinc"],
+        .standalone-dapp-root [class*="-bg-gray-9"],
+        .standalone-dapp-root [class*="-bg-gray-8"],
+        .standalone-dapp-root [class*="-bg-gray-7"],
+        .standalone-dapp-root [style*="background: #0"],
+        .standalone-dapp-root [style*="background: #1"],
+        .standalone-dapp-root [style*="background-color: #0"],
+        .standalone-dapp-root [style*="background-color: #1"] {
+          /* leave alone if dApp explicitly opted in — but make sure text reads */
+          color: inherit;
+        }
+        /* Light cards by default for any element using common card class names. */
+        .standalone-dapp-root [class*="card-"]:not([class*="dark"]):not([class*="brand"]) {
+          color: #18181b;
+        }
+        /* Headings — readable on white bg. */
+        .standalone-dapp-root h1,
+        .standalone-dapp-root h2,
+        .standalone-dapp-root h3,
+        .standalone-dapp-root h4,
+        .standalone-dapp-root h5 {
+          color: #18181b;
+        }
+        /* Body text default. */
+        .standalone-dapp-root p,
+        .standalone-dapp-root span:not([class*="badge"]):not([class*="pill"]):not([class*="chip"]),
+        .standalone-dapp-root li,
+        .standalone-dapp-root td,
+        .standalone-dapp-root th {
+          color: inherit;
+        }
+        /* Polymarket-light status toast styling. */
+        .standalone-dapp-root .status-toast {
+          position: fixed;
+          top: 14px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 50;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          border-radius: 999px;
+          background: #ffffff !important;
+          color: #18181b !important;
+          font-size: 12px;
+          font-weight: 600;
+          border: 1px solid #e6e8ea;
+          box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.18);
+        }
+        .standalone-dapp-root .status-toast .toast-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: #00b87a;
+        }
+        .standalone-dapp-root .status-toast.error .toast-dot,
+        .standalone-dapp-root .status-toast.danger .toast-dot {
+          background: #d93f3f;
+        }
+        /* Scrollbar styling for consistency. */
+        .standalone-dapp-root ::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .standalone-dapp-root ::-webkit-scrollbar-thumb {
+          background: #cad1d9;
+          border-radius: 999px;
+        }
+        .standalone-dapp-root ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+      `}</style>
       {status && (
         <div
           className={`status-toast ${status.type}`}

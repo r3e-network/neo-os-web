@@ -56,7 +56,10 @@ function buildPgConfig() {
   if (databaseUrl) {
     return {
       connectionString: databaseUrl,
-      ssl: { rejectUnauthorized: false },
+      // Audit fix M-23: verify TLS against the system CA bundle by default.
+    // Opt-out via `PG_SSL_INSECURE=true` only when the upstream is known to
+    // serve a cert not chained to a recognized authority.
+    ssl: { rejectUnauthorized: String(process.env.PG_SSL_INSECURE || "").toLowerCase() !== "true" },
       connectionTimeoutMillis: 10000,
     };
   }
@@ -73,7 +76,10 @@ function buildPgConfig() {
     database: getEnv("POSTGRES_DB", "postgres"),
     user: getEnv("POSTGRES_USER", "postgres"),
     password,
-    ssl: { rejectUnauthorized: false },
+    // Audit fix M-23: verify TLS against the system CA bundle by default.
+    // Opt-out via `PG_SSL_INSECURE=true` only when the upstream is known to
+    // serve a cert not chained to a recognized authority.
+    ssl: { rejectUnauthorized: String(process.env.PG_SSL_INSECURE || "").toLowerCase() !== "true" },
     connectionTimeoutMillis: 10000,
   };
 }

@@ -22,7 +22,7 @@ import type { ResolvedMiniAppContractDomain } from "../../../lib/miniapp-runtime
 import { DetailContentBlocks } from "./DetailContentBlocks";
 import { MiniAppLogo } from "./MiniAppLogo";
 
-const ONEGATE_QR_LOGO_SRC = "/miniapps/gas-lucky-pool/onegate-logo.png";
+const ONEGATE_QR_LOGO_SRC = "/miniapp-assets/gas-lucky-pool/onegate-logo.png";
 
 export function OneGateLaunchCard({
   app,
@@ -498,7 +498,10 @@ export function MiniAppListRail({
           aria-hidden="true"
         />
         <input
+          id="miniapp-detail-search"
+          name="q"
           type="search"
+          autoComplete="off"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search miniapps"

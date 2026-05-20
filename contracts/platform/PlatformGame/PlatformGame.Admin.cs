@@ -26,6 +26,8 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ContractManagement.Update(nef, manifest, new object[0]);
+            // Audit fix H-13: declare a typed `ContractUpgraded` event on this
+            // contract and raise it here once added.
         }
 
         // ===================================================================
@@ -112,7 +114,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAddress(newAdmin);
             ExecutionEngine.Assert(newAdmin != Admin(), "same admin");
 
-            BigInteger executeAfter = Runtime.Time + TIMELOCK_DELAY_SECONDS;
+            BigInteger executeAfter = Runtime.Time + TIMELOCK_DELAY_MS;
             Storage.Put(Storage.CurrentContext, PREFIX_PENDING_PLATFORM_ADMIN, newAdmin);
             Storage.Put(Storage.CurrentContext, PREFIX_PLATFORM_ADMIN_CHANGE_TIME, executeAfter);
 
@@ -130,6 +132,10 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger changeTime = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_PLATFORM_ADMIN_CHANGE_TIME);
             ExecutionEngine.Assert(Runtime.Time >= changeTime, "timelock active");
 
+            // Audit fix M-6 / H-13: declare a typed `AdminChanged` event on this
+            // contract so off-chain monitors can see the actual switch (the prior
+            // implementation only signaled on `ProposeAdmin`, leaving subscribers
+            // blind to the moment the admin actually rotated).
             UInt160 newAdmin = (UInt160)pending;
             Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, newAdmin);
             Storage.Delete(Storage.CurrentContext, PREFIX_PENDING_PLATFORM_ADMIN);

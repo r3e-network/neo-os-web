@@ -154,7 +154,7 @@ function MiniAppListingCard({
   return (
     <Link
       href={`/miniapps/${encodeURIComponent(app.app_id)}?network=${targetNetwork}`}
-      className={`group relative overflow-hidden rounded-[22px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-900/10 ${large ? "col-span-full" : ""}`}
+      className={`group relative overflow-hidden rounded-[22px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-neo/40 hover:shadow-lg hover:shadow-emerald-900/10 ${large ? "col-span-full" : ""}`}
     >
       <div
         className={`h-1.5 bg-gradient-to-r ${accent.gradient}`}
@@ -451,7 +451,10 @@ export default function MiniAppsPage({
                     aria-hidden="true"
                   />
                   <input
+                    id="miniapps-search"
+                    name="q"
                     type="search"
+                    autoComplete="off"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder={t("catalog.searchPlaceholder", "host")}
