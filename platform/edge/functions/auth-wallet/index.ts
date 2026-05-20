@@ -68,6 +68,15 @@ export async function handler(req: Request): Promise<Response> {
     return error(401, "invalid or expired nonce", "AUTH_INVALID", req);
   }
 
+  // Audit fix C-4 / H-4: bind the signed message to the address it claims to
+  // authenticate. Without this check the message-nonce binding alone was
+  // structurally fragile (a victim's `users.nonce` could be overwritten via
+  // unauthenticated calls to auth-wallet-nonce, and only the nonce — not the
+  // address — was required to be part of the signed payload).
+  if (!message.includes(address)) {
+    return error(401, "address not present in signed message", "AUTH_INVALID", req);
+  }
+
   // Clear nonce
   const { error: nonceClearError } = await supabase.from("users").update({ nonce: null }).eq("id", accountId);
   if (nonceClearError) {
@@ -83,7 +92,12 @@ export async function handler(req: Request): Promise<Response> {
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
   };
 
-  const jwtSecret = getEnv("SUPABASE_JWT_SECRET") || getEnv("NEXTAUTH_SECRET");
+  // Audit fix H-5: drop the NEXTAUTH_SECRET fallback. The Supabase JWT secret
+  // and the NextAuth signing secret have different rotation policies and
+  // different blast radii; sharing material between them widens the
+  // forgery surface for no real benefit. If SUPABASE_JWT_SECRET is missing
+  // we fail closed.
+  const jwtSecret = getEnv("SUPABASE_JWT_SECRET");
   if (!jwtSecret) {
     return error(500, "JWT signing not configured", "CONFIG_ERROR", req);
   }

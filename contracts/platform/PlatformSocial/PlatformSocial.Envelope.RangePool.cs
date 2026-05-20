@@ -19,7 +19,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger minClaimAmount,
             BigInteger maxClaimAmount,
             BigInteger maxClaims,
-            BigInteger expirySeconds)
+            BigInteger expiryMs)
         {
             ValidateAppNotPaused(appId);
             ValidateAppRegistered(appId, APP_TYPE_ENVELOPE);
@@ -29,7 +29,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(minClaimAmount > 0, "min claim required");
             ExecutionEngine.Assert(minClaimAmount <= maxClaimAmount, "invalid claim range");
             ExecutionEngine.Assert(maxClaims > 0 && maxClaims <= MAX_PACKETS, "1-100 claims");
-            ExecutionEngine.Assert(expirySeconds > 0, "expiry required");
+            // expiryMs is the lifetime in milliseconds (Runtime.Time is ms on Neo N3).
+            ExecutionEngine.Assert(expiryMs > 0, "expiry required");
             ExecutionEngine.Assert(totalAmount >= minClaimAmount * maxClaims, "pool below minimum claims");
             ExecutionEngine.Assert(totalAmount <= maxClaimAmount * maxClaims, "pool exceeds maximum claims");
 
@@ -50,7 +51,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 RemainingAmount = totalAmount,
                 BestLuckAddress = UInt160.Zero,
                 BestLuckAmount = 0,
-                ExpiryTime = Runtime.Time + (ulong)expirySeconds,
+                ExpiryTime = Runtime.Time + (ulong)expiryMs,
                 Active = true
             };
             StoreRangeGasPool(appId, poolId, pool);

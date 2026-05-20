@@ -80,10 +80,15 @@ namespace NeoMiniAppPlatform.Contracts
         /// - Request-bound callbacks verify requestId -> playId before payout
         /// - Transfers prize atomically
         /// </summary>
-        public static void ResolveGachaPull(string appId, BigInteger playId, BigInteger randomResult)
+        public static void ResolveGachaPull(string appId, BigInteger playId, BigInteger requestId, BigInteger randomResult)
         {
+            // Audit fix H-12: settlement must always carry the original requestId; the
+            // prior public entry hard-coded 0, and the internal resolver only enforced
+            // the requestId mapping when requestId > 0, so any oracle (or an attacker
+            // who reached this method) could resolve any play to any outcome.
             ValidateOracle();
-            ResolveGachaPullFromOracle(appId, playId, 0, (ByteString)randomResult.ToByteArray());
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
+            ResolveGachaPullFromOracle(appId, playId, requestId, (ByteString)randomResult.ToByteArray());
         }
 
         private static void ResolveGachaPullFromOracle(
@@ -95,7 +100,7 @@ namespace NeoMiniAppPlatform.Contracts
             RequireRegistered(appId);
             RequireGameType(appId, GameType_Gacha);
 
-            if (requestId > 0)
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
             {
                 byte[] reqKey = AppKey(appId, GA_PREFIX_REQ_TO_PLAY, requestId);
                 ByteString mappedPlay = Storage.Get(Storage.CurrentContext, reqKey);
@@ -139,7 +144,13 @@ namespace NeoMiniAppPlatform.Contracts
             if (selectedAssetType == GA_ASSET_NEP17)
             {
                 ExecutionEngine.Assert(selectedItem.Stock >= selectedItem.Amount, "insufficient stock");
-                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.All,
+                // Mirror audit fix M-1 (FlashLoan) / NEW-H-4 (EventTicketPass):
+                // selectedAssetHash is user-controlled (any account can create a
+                // gacha machine and pick the prize asset). CallFlags.All would let
+                // a malicious asset's `transfer` method call other contracts and
+                // re-enter the platform under our witness. AllowCall + AllowNotify
+                // is sufficient for a legitimate NEP-17 settlement.
+                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.AllowCall | CallFlags.AllowNotify,
                     Runtime.ExecutingScriptHash, play.Player, selectedItem.Amount, null);
                 ExecutionEngine.Assert(ok, "prize transfer failed");
 
@@ -152,7 +163,7 @@ namespace NeoMiniAppPlatform.Contracts
                 // Pop last token from the token list
                 string tokenId = PopGachaItemToken(appId, machineId, expectedIndex, selectedItem.TokenCount);
                 selectedItem.TokenCount -= 1;
-                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.All,
+                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.AllowCall | CallFlags.AllowNotify,
                     Runtime.ExecutingScriptHash, play.Player, tokenId, null);
                 ExecutionEngine.Assert(ok, "NFT transfer failed");
 
@@ -179,6 +190,36 @@ namespace NeoMiniAppPlatform.Contracts
             OnGachaPlayResolved(appId, play.Player, machineId, expectedIndex, playId,
                 selectedAssetType, selectedAssetHash, awardedAmount,
                 awardedTokenId == null ? "" : awardedTokenId);
+        }
+
+        /// <summary>
+        /// Refund a gacha play when the oracle reports failure. Mirrors
+        /// RefundDiceBetFromOracle so a Morpheus failure can't silently strand
+        /// the player's spent GAS credit — the original play.Price is returned
+        /// as GAS to the player.
+        /// </summary>
+        private static void RefundGachaPlayFromOracle(string appId, BigInteger playId, BigInteger requestId)
+        {
+            RequireRegistered(appId);
+            RequireGameType(appId, GameType_Gacha);
+
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
+            byte[] reqKey = AppKey(appId, GA_PREFIX_REQ_TO_PLAY, requestId);
+            ByteString mappedPlay = Storage.Get(Storage.CurrentContext, reqKey);
+            ExecutionEngine.Assert(mappedPlay != null && (BigInteger)mappedPlay == playId, "oracle request mismatch");
+            Storage.Delete(Storage.CurrentContext, reqKey);
+
+            GachaPlay play = LoadGachaPlay(appId, playId);
+            ExecutionEngine.Assert(play.Player != UInt160.Zero, "play not found");
+            ExecutionEngine.Assert(!play.Resolved, "already resolved");
+
+            play.Resolved = true;
+            StoreGachaPlay(appId, playId, play);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, play.Player, play.Price),
+                "gacha refund failed");
+            OnGachaPlayRefunded(appId, play.Player, play.MachineId, playId, play.Price);
         }
     }
 }

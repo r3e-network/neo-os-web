@@ -35,6 +35,16 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "EventTicketPass issues NEP-11 tickets with QR check-in support for event management.")]
+    // Audit fix NEW-H-1 / NEW-H-2:
+    //   *:onNEP11Payment — Transfer() at Methods.cs:221-224 calls the recipient
+    //     contract's onNEP11Payment hook when `to` is a contract. Without this
+    //     permission, NEP-11 transfers to contract recipients (marketplaces,
+    //     vaults, claim escrows) revert at the manifest gate.
+    //   *:isPaused — MiniAppBase.ValidateNotGloballyPaused (MiniAppCompactBase.cs:90-94)
+    //     calls `pauseRegistry.isPaused(appId)` when a pause registry is set.
+    //     Without this permission, calling SetPauseRegistry on a deployed
+    //     contract bricks every state-mutating method.
+    [ContractPermission("*", "onNEP11Payment", "isPaused")]
     public partial class MiniAppEventTicketPass : MiniAppBase
     {
         #region App Constants
@@ -65,6 +75,15 @@ namespace NeoMiniAppPlatform.Contracts
 
         /// <summary>Maximum ticket supply per event.</summary>
         private const int MAX_SUPPLY = 100000;
+
+        /// <summary>
+        /// Maximum number of events a single creator address may register.
+        /// Bounds storage growth: at MAX_SUPPLY tickets per event, a creator
+        /// could otherwise mint unbounded tickets across unbounded events. The
+        /// limit is high enough for legitimate event organizers (one venue can
+        /// realistically run 100 events / year) but stops single-creator spam.
+        /// </summary>
+        private const int MAX_EVENTS_PER_CREATOR = 100;
         #endregion
 
         #region Storage Prefixes

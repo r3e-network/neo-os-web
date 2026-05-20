@@ -34,10 +34,10 @@
     "icon": "/miniapps/graveyard/logo.jpg",
     "banner": "/miniapps/graveyard/banner.jpg"
   },
-  "permissions": {
-    "payments": true,
-    "read": true
-  },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
   "features": {
     "stateless": true,
     "offlineSupport": false,

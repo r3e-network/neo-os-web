@@ -84,7 +84,7 @@ export function Navbar() {
             href="/"
             prefetch={false}
             aria-label={t("navigation.home")}
-            className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105"
+            className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 transition-transform hover:scale-105"
           >
             <img
               src="/brand/yiwu-mark.svg"
@@ -111,7 +111,7 @@ export function Navbar() {
                     router.pathname.startsWith(link.href) ? "page" : undefined
                   }
                   className={cn(
-                    "px-4 py-1.5 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+                    "px-4 py-1.5 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
                     router.pathname.startsWith(link.href)
                       ? "text-gray-900 bg-white shadow-sm"
                       : "text-gray-600 hover:text-gray-900 hover:bg-white/60",
@@ -132,16 +132,19 @@ export function Navbar() {
         >
           <div className="relative w-full group">
             <Search
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-neo transition-colors"
               aria-hidden="true"
             />
             <input
+              id="navbar-search"
+              name="q"
               type="search"
+              autoComplete="off"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("actions.search")}
               aria-label={t("actions.search")}
-              className="w-full h-10 pl-10 pr-4 text-sm rounded-2xl border border-gray-200 bg-gray-50/50 text-gray-900 placeholder-gray-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 hover:border-emerald-300"
+              className="w-full h-10 pl-10 pr-4 text-sm rounded-2xl border border-gray-200 bg-gray-50/50 text-gray-900 placeholder-gray-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 hover:border-neo/40"
             />
           </div>
         </form>
@@ -154,7 +157,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setLocale(locale === "en" ? "zh" : "en")}
-            className="px-2 py-2 rounded-xl border border-transparent hover:border-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer flex items-center gap-1.5 sm:px-3"
+            className="px-2 py-2 rounded-xl border border-transparent hover:border-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer flex items-center gap-1.5 sm:px-3"
             aria-label={t("language.switch")}
           >
             <Globe size={18} aria-hidden="true" />
@@ -169,7 +172,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer"
+            className="md:hidden p-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer"
             aria-label={t("navigation.toggleMenu")}
             aria-haspopup="true"
             aria-expanded={mobileMenuOpen}
@@ -189,16 +192,19 @@ export function Navbar() {
           <form onSubmit={handleSearch} role="search" className="mb-4">
             <div className="relative group">
               <Search
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-neo"
                 aria-hidden="true"
               />
               <input
+                id="mobile-search"
+                name="q"
                 type="search"
+                autoComplete="off"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("actions.search")}
                 aria-label={t("actions.search")}
-                className="w-full h-11 pl-10 pr-4 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                className="w-full h-11 pl-10 pr-4 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
               />
             </div>
           </form>
@@ -213,7 +219,7 @@ export function Navbar() {
                     router.pathname.startsWith(link.href) ? "page" : undefined
                   }
                   className={cn(
-                    "block px-4 py-3 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+                    "block px-4 py-3 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
                     router.pathname.startsWith(link.href)
                       ? "text-gray-900 bg-gray-100"
                       : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",

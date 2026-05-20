@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface PlatformConfig {
   maintenanceMode?: boolean;
@@ -66,26 +67,6 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading)
-    return (
-      <div className="flex justify-center p-12">
-        <Spinner />
-      </div>
-    );
-
-  if (loadError || !config) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-red-400 mb-4">
-          {loadError || "Settings unavailable"}
-        </p>
-        <Button variant="secondary" onClick={() => window.location.reload()}>
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {saveError && (
@@ -94,19 +75,34 @@ export default function SettingsPage() {
         </div>
       )}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Platform Settings
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Global configuration and platform tuning
-          </p>
-        </div>
-        <Button onClick={handleSave} disabled={saving}>
+        <PageHeader
+          title="Platform Settings"
+          description="Global configuration and platform tuning"
+          highlightLastWord
+        />
+        <Button onClick={handleSave} disabled={loading || saving || !config}>
           {saving ? "Saving..." : "Save Configuration"}
         </Button>
       </div>
 
+      {loading && (
+        <div className="flex justify-center p-12">
+          <Spinner />
+        </div>
+      )}
+
+      {!loading && (loadError || !config) && (
+        <div className="p-8 text-center">
+          <p className="text-red-400 mb-4">
+            {loadError || "Settings unavailable"}
+          </p>
+          <Button variant="secondary" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {!loading && config && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card variant="glass">
           <CardHeader>
@@ -227,6 +223,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Attributes;
 using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
@@ -60,6 +61,13 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(AppKey(appId, PREFIX_AGENT_CANDIDATE, agentId), CandidateBytes(candidate));
         }
 
+        /// <summary>
+        /// Rotate a single agent's account. App admin only. The batch form
+        /// (SetAgentAccounts) was intentionally removed so a compromised
+        /// admin cannot redirect all 21 votes in one transaction — they must
+        /// call this 21 separate times, each emitting AnchorAgentAccountUpdated,
+        /// which off-chain monitors will catch on the first abnormal rotation.
+        /// </summary>
         public static void SetAgentAccount(
             string appId,
             BigInteger agentId,
@@ -68,24 +76,6 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         {
             ValidateAppAuthority(appId);
             SetAgentAccountCore(appId, agentId, agentAccount, verificationScriptHash);
-        }
-
-        public static void SetAgentAccounts(
-            string appId,
-            BigInteger[] agentIds,
-            UInt160[] agentAccounts,
-            ByteString[] verificationScriptHashes)
-        {
-            ValidateAppAuthority(appId);
-            ExecutionEngine.Assert(agentIds != null && agentAccounts != null && verificationScriptHashes != null, "agent arrays required");
-            ExecutionEngine.Assert(agentIds.Length > 0 && agentIds.Length <= 21, "invalid agent batch");
-            ExecutionEngine.Assert(agentIds.Length == agentAccounts.Length, "agent length mismatch");
-            ExecutionEngine.Assert(agentIds.Length == verificationScriptHashes.Length, "script length mismatch");
-
-            for (int i = 0; i < agentIds.Length; i++)
-            {
-                SetAgentAccountCore(appId, agentIds[i], agentAccounts[i], verificationScriptHashes[i]);
-            }
         }
 
         public static void TransferAgentNeo(

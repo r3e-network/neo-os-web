@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useServicesHealth } from "@/lib/hooks/useServices";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -23,14 +24,11 @@ export default function ServicesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Services
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Monitor service health and status
-        </p>
-      </div>
+      <PageHeader
+        title="Services"
+        description="Monitor service health and status"
+        highlightLastWord
+      />
 
       <Card variant="glass">
         <CardHeader>

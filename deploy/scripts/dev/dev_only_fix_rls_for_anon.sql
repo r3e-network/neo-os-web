@@ -1,9 +1,28 @@
 -- =============================================================================
--- Fix RLS Policies for Development (Allow anon role full access)
+-- DEV ONLY — Fix RLS Policies for local development
 -- =============================================================================
--- This is a DEVELOPMENT WORKAROUND when the correct service_role JWT key is not available.
--- In production, use the proper service_role key from Supabase dashboard.
+-- Audit fix M-21: This is a DEVELOPMENT WORKAROUND when the correct
+-- service_role JWT key is not available. It grants `anon` full write access to
+-- five tables, which is catastrophic in production: anonymous browser clients
+-- holding the public anon key could read/write `pool_accounts`,
+-- `account_balances`, `chain_txs`, and forge contract event records.
+--
+-- This script lives under `deploy/scripts/dev/` and is renamed to make the
+-- intent unmistakable. The DO block below also hard-fails if the database
+-- identifies as a production deployment.
 -- =============================================================================
+
+DO $$
+DECLARE
+    env_name text;
+BEGIN
+    env_name := lower(coalesce(current_setting('app.environment', true), ''));
+    IF env_name IN ('prod', 'production', 'live', 'mainnet') THEN
+        RAISE EXCEPTION
+            'dev_only_fix_rls_for_anon.sql refuses to run in environment %', env_name
+            USING HINT = 'this script is dev-only; do not apply to production';
+    END IF;
+END $$;
 
 -- Add policies for anon role to perform all operations
 -- These policies allow the anon key to bypass RLS for development purposes

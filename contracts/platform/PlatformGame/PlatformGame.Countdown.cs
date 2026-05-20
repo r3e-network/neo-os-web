@@ -31,11 +31,16 @@ namespace NeoMiniAppPlatform.Contracts
         private const int CD_DIVIDEND_SHARE_BPS    = 3000;
         private const int CD_NEXT_ROUND_SHARE_BPS  = 1000;
         private const int CD_REFERRAL_SHARE_BPS    = 700;
-        private const long CD_BASE_KEY_PRICE       = 10000000;   // 0.1 GAS
+        private const long CD_BASE_KEY_PRICE       = 10000000;       // 0.1 GAS
         private const int CD_KEY_PRICE_INCREMENT_BPS = 10;
-        private const long CD_TIME_PER_KEY_SECONDS = 86400;
-        private const long CD_INITIAL_DURATION     = 86400;      // 24 hours
-        private const long CD_MAX_DURATION         = 86400;
+        // Runtime.Time on Neo N3 is BLOCK TIMESTAMP IN MILLISECONDS. Every
+        // duration below is expressed in ms so the round-end checks
+        // (`Runtime.Time >= round.EndTime`) actually measure the documented
+        // wall-clock interval. Previously these were seconds, giving a
+        // ~24-second effective round instead of 24 hours.
+        private const long CD_TIME_PER_KEY_MS      = 86400000L;      // 24h per key buy
+        private const long CD_INITIAL_DURATION_MS  = 86400000L;      // 24 hours
+        private const long CD_MAX_DURATION_MS      = 86400000L;      // 24 hours
         private const long CD_MIN_KEYS             = 1;
 
         // ---------------------------------------------------------------
@@ -51,6 +56,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] CD_PREFIX_TOTAL_ROUNDS       = new byte[] { 0xA7 };
         private static readonly byte[] CD_PREFIX_PLAYER_BADGES      = new byte[] { 0xA8 };
         private static readonly byte[] CD_PREFIX_DIVIDENDS_CLAIMED  = new byte[] { 0xA9 };
+        // Per-buy 5% platform fee accumulator. Without this the fee was siphoned
+        // off into untracked contract balance — admin could never recover it.
+        private static readonly byte[] CD_PREFIX_PLATFORM_FEES      = new byte[] { 0xAA };
 
         // ---------------------------------------------------------------
         //  Countdown data structures
@@ -92,6 +100,7 @@ namespace NeoMiniAppPlatform.Contracts
         public delegate void CountdownRoundStartedHandler(string appId, BigInteger roundId, BigInteger endTime);
         public delegate void CountdownTimeExtendedHandler(string appId, BigInteger roundId, BigInteger newEndTime, BigInteger keysAdded);
         public delegate void CountdownBadgeHandler(string appId, UInt160 player, BigInteger badgeType, string badgeName);
+        public delegate void CountdownPlatformFeesWithdrawnHandler(string appId, UInt160 to, BigInteger amount);
 
         [DisplayName("CountdownKeysPurchased")]
         public static event CountdownKeysPurchasedHandler OnCountdownKeysPurchased;
@@ -107,6 +116,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("CountdownBadge")]
         public static event CountdownBadgeHandler OnCountdownBadge;
+
+        [DisplayName("CountdownPlatformFeesWithdrawn")]
+        public static event CountdownPlatformFeesWithdrawnHandler OnCountdownPlatformFeesWithdrawn;
 
         // ===================================================================
         //  Admin: start a new countdown round
@@ -172,10 +184,22 @@ namespace NeoMiniAppPlatform.Contracts
             round.TotalKeys += keyCount;
             round.LastBuyer = player;
 
+            // Track the 5% platform fee in a per-app accumulator so admin can sweep
+            // it via WithdrawCountdownPlatformFees. Previously the fee was just
+            // subtracted from the pot contribution and sat untracked in contract
+            // GAS balance forever.
+            BigInteger platformFee = cost - potContribution;
+            if (platformFee > 0)
+            {
+                ByteString feeKey = AppKey(appId, CD_PREFIX_PLATFORM_FEES);
+                BigInteger accumulated = (BigInteger)Storage.Get(Storage.CurrentContext, feeKey);
+                Storage.Put(Storage.CurrentContext, feeKey, accumulated + platformFee);
+            }
+
             // Extend timer (capped at max duration from now)
-            BigInteger timeToAdd = keyCount * CD_TIME_PER_KEY_SECONDS;
+            BigInteger timeToAdd = keyCount * CD_TIME_PER_KEY_MS;
             BigInteger newEndTime = round.EndTime + timeToAdd;
-            BigInteger maxEndTime = Runtime.Time + CD_MAX_DURATION;
+            BigInteger maxEndTime = Runtime.Time + CD_MAX_DURATION_MS;
             if (newEndTime > maxEndTime) newEndTime = maxEndTime;
             round.EndTime = newEndTime;
 
@@ -197,6 +221,31 @@ namespace NeoMiniAppPlatform.Contracts
 
             OnCountdownKeysPurchased(appId, player, keyCount, potContribution, roundId);
             OnCountdownTimeExtended(appId, roundId, newEndTime, keyCount);
+        }
+
+        /// <summary>
+        /// Sweep the accumulated 5% per-buy platform fee to a designated recipient.
+        /// Same admin-gated pattern as the capsule and abandoned-loan sweeps.
+        /// Without this the platform-fee portion of every Countdown buy would be
+        /// permanently locked in the contract.
+        /// </summary>
+        public static void WithdrawCountdownPlatformFees(string appId, UInt160 to)
+        {
+            RequireRegistered(appId);
+            RequireAppAdminOrPlatformAdmin(appId);
+            ValidateAddress(to);
+
+            ByteString feeKey = AppKey(appId, CD_PREFIX_PLATFORM_FEES);
+            BigInteger amount = (BigInteger)Storage.Get(Storage.CurrentContext, feeKey);
+            ExecutionEngine.Assert(amount > 0, "no platform fees");
+
+            Storage.Put(Storage.CurrentContext, feeKey, 0);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, to, amount),
+                "platform fee transfer failed");
+
+            OnCountdownPlatformFeesWithdrawn(appId, to, amount);
         }
 
         /// <summary>

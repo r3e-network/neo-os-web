@@ -25,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             string appId,
             UInt160 creator,
             BigInteger packetCount,
-            BigInteger expirySeconds)
+            BigInteger expiryMs)
         {
             ValidateAppNotPaused(appId);
             ValidateAppRegistered(appId, APP_TYPE_ENVELOPE);
@@ -41,7 +41,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(totalAmount >= MIN_ENVELOPE_AMOUNT, "min 0.1 GAS");
             ExecutionEngine.Assert(packetCount > 0 && packetCount <= MAX_PACKETS, "1-100 packets");
             ExecutionEngine.Assert(totalAmount >= packetCount * MIN_PER_PACKET, "min 0.01 GAS per packet");
-            ExecutionEngine.Assert(expirySeconds > 0, "expiry required");
+            // expiryMs is the lifetime in milliseconds (Runtime.Time is ms on Neo N3).
+            ExecutionEngine.Assert(expiryMs > 0, "expiry required");
 
             ConsumeGasCredit(creator, totalAmount);
 
@@ -59,15 +60,25 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 RemainingAmount = totalAmount,
                 BestLuckAddress = UInt160.Zero,
                 BestLuckAmount = 0,
-                ExpiryTime = Runtime.Time + (ulong)expirySeconds
+                ExpiryTime = Runtime.Time + (ulong)expiryMs
             };
             StoreEnvelope(appId, envelopeId, envelope);
 
-            // Pre-generate deterministic packet amounts using block-derived seed
+            // Audit fix H-9 (partial): mix in `Runtime.GetRandom()` so the seed cannot
+            // be fully pre-computed from public inputs (envelopeId, creator, Runtime.Time)
+            // by a mempool observer. `Runtime.GetRandom()` is the consensus-derived
+            // beacon for the block and is unknown until the create tx mines. This is
+            // still weaker than a Morpheus VRF callback (which would make the split
+            // entirely unpredictable to the block producer too) — see open work to
+            // route envelope amounts through the same VRF callback flow the games use.
+            BigInteger beacon = Runtime.GetRandom();
+            if (beacon < 0) beacon = -beacon;
             ByteString seed = CryptoLib.Sha256(
                 Helper.Concat(
-                    Helper.Concat((ByteString)envelopeId.ToByteArray(), (ByteString)(byte[])creator),
-                    (ByteString)Runtime.Time.ToString()));
+                    Helper.Concat(
+                        Helper.Concat((ByteString)envelopeId.ToByteArray(), (ByteString)(byte[])creator),
+                        (ByteString)Runtime.Time.ToString()),
+                    (ByteString)beacon.ToByteArray()));
             StoreGeneratedAmounts(appId, envelopeId, totalAmount, packetCount, (byte[])seed);
 
             OnEnvelopeCreated(appId, envelopeId, creator, totalAmount, packetCount);
@@ -125,6 +136,44 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             }
 
             return amount;
+        }
+
+        /// <summary>
+        /// Creator reclaims unclaimed GAS from an expired envelope. CreateEnvelope
+        /// consumed the creator's full GAS credit, and ClaimEnvelope rejects after
+        /// ExpiryTime — without this method the unclaimed RemainingAmount would be
+        /// locked in the contract forever. Refund is gated on:
+        ///   • envelope exists
+        ///   • caller is the original creator (witness)
+        ///   • envelope has actually expired (Runtime.Time > ExpiryTime)
+        ///   • RemainingAmount > 0
+        /// </summary>
+        public static BigInteger RefundExpiredEnvelope(string appId, BigInteger envelopeId)
+        {
+            ValidateAppRegistered(appId, APP_TYPE_ENVELOPE);
+
+            EnvelopeData envelope = GetEnvelope(appId, envelopeId);
+            ExecutionEngine.Assert(envelope.Creator != UInt160.Zero, "envelope not found");
+            ExecutionEngine.Assert(Runtime.CheckWitness(envelope.Creator), "only creator");
+            ExecutionEngine.Assert(Runtime.Time > (ulong)envelope.ExpiryTime, "not expired yet");
+            ExecutionEngine.Assert(envelope.RemainingAmount > 0, "nothing to refund");
+
+            BigInteger refund = envelope.RemainingAmount;
+
+            // Zero out the remaining amount BEFORE transferring (checks-effects-
+            // interactions). Also mark every unclaimed packet as consumed by setting
+            // ClaimedCount to PacketCount so a follow-up ClaimEnvelope would short-
+            // circuit on "envelope empty".
+            envelope.RemainingAmount = 0;
+            envelope.ClaimedCount = envelope.PacketCount;
+            StoreEnvelope(appId, envelopeId, envelope);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, envelope.Creator, refund),
+                "refund transfer failed");
+
+            OnEnvelopeRefunded(appId, envelopeId, envelope.Creator, refund);
+            return refund;
         }
 
         #endregion

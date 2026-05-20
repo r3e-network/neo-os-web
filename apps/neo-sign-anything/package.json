@@ -6,15 +6,11 @@
     "dev": "uni",
     "build": "vite build"
   },
-  "dependencies": {
-    "vue": "catalog:",
-    "lucide-vue-next": "^0.363.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "sass": "catalog:",
     "terser": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "@vitejs/plugin-vue": "^5.0.0"
+    "vite": "catalog:"
   }
 }

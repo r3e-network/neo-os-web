@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface Secret {
   id: string;
@@ -91,13 +92,6 @@ export default function OracleSecretsPage() {
     setIsEditing(true);
   };
 
-  if (loading)
-    return (
-      <div className="flex justify-center p-12">
-        <Spinner />
-      </div>
-    );
-
   return (
     <div className="space-y-6">
       {saveError && (
@@ -115,18 +109,23 @@ export default function OracleSecretsPage() {
         </div>
       )}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            NeoOracle Secrets
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage API keys and tokens injected by the TEE Oracle
-          </p>
-        </div>
-        <Button onClick={openNew}>Add Secret</Button>
+        <PageHeader
+          title="NeoOracle Secrets"
+          description="Manage API keys and tokens injected by the TEE Oracle"
+          highlightLastWord
+        />
+        <Button onClick={openNew} disabled={loading}>
+          Add Secret
+        </Button>
       </div>
 
-      {isEditing && (
+      {loading && (
+        <div className="flex justify-center p-12">
+          <Spinner />
+        </div>
+      )}
+
+      {!loading && isEditing && (
         <Card
           variant="glass"
           className="border-neo/50 shadow-[0_0_15px_rgba(0,229,153,0.1)]"
@@ -198,6 +197,8 @@ export default function OracleSecretsPage() {
         </Card>
       )}
 
+      {!loading && (
+      <>
       <Card variant="glass">
         <CardContent className="p-0">
           <table
@@ -278,6 +279,8 @@ export default function OracleSecretsPage() {
           </p>
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 }

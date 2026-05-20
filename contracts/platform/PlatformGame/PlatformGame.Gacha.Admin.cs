@@ -14,6 +14,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         public static BigInteger CreateGachaMachine(
             string appId,
+            UInt160 creator,
             string name,
             BigInteger price)
         {
@@ -21,7 +22,12 @@ namespace NeoMiniAppPlatform.Contracts
             RequireNotPaused(appId);
             RequireGameType(appId, GameType_Gacha);
 
-            UInt160 creator = Runtime.Transaction.Sender;
+            // Audit fix NEW-H-3: identify the creator via an explicit parameter
+            // and witness check rather than `Runtime.Transaction.Sender`. The
+            // previous Tx.Sender approach failed for multi-sig and AA contract
+            // accounts where the first signer's script-hash is not the user's
+            // intended owner identity. Now mirrors PlatformSocial.Trust.ExecuteTrust
+            // (audit fix M-7).
             ValidateUserOrAbstractAccount(creator);
 
             ExecutionEngine.Assert(name != null && name.Length > 0, "name required");
@@ -186,7 +192,10 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, pendingKey, amount);
 
             string inventoryMemo = appId + GA_INVENTORY_MEMO_SUFFIX + ":" + machineId + ":" + itemIndex;
-            bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.All,
+            // item.AssetHash is user-controlled (machine owner chose it in AddGachaItem).
+            // Restrict to AllowCall + AllowNotify per the M-1 / NEW-H-4 audit pattern
+            // so a malicious asset cannot re-enter the platform under our witness.
+            bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.AllowCall | CallFlags.AllowNotify,
                 owner, Runtime.ExecutingScriptHash, amount, (ByteString)inventoryMemo);
             Storage.Delete(Storage.CurrentContext, pendingKey);
             ExecutionEngine.Assert(ok, "transfer failed");

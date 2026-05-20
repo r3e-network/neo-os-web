@@ -64,10 +64,14 @@ export function MiniAppsPageHeader({
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          MiniApps
+        {/* Matches PageHeader.tsx style for intra-app consistency. */}
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white sm:text-3xl">
+          Mini
+          <span className="text-neo drop-shadow-[0_0_8px_rgba(0,229,153,0.5)]">
+            Apps
+          </span>
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="mt-1 text-gray-600 dark:text-gray-400">
           Manage registered MiniApps
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">

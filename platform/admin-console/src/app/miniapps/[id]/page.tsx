@@ -107,10 +107,14 @@ export default function MiniAppConfigPage(props: {
           &larr; Back
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            MiniApp Configuration
+          {/* Matches PageHeader.tsx — text-2xl font-black + sm:text-3xl + neo highlight on last word */}
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white sm:text-3xl">
+            MiniApp{" "}
+            <span className="text-neo drop-shadow-[0_0_8px_rgba(0,229,153,0.5)]">
+              Configuration
+            </span>
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 font-mono text-sm">
+          <p className="mt-1 text-gray-600 dark:text-gray-400 font-mono text-sm">
             {params.id}
           </p>
         </div>

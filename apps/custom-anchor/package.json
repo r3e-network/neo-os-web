@@ -5,13 +5,10 @@
   "scripts": {
     "build": "vite build"
   },
-  "dependencies": {
-    "vue": "catalog:"
-  },
+  "dependencies": {},
   "devDependencies": {
     "sass": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "@vitejs/plugin-vue": "^5.0.0"
+    "vite": "catalog:"
   }
 }

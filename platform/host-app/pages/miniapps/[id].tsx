@@ -7,7 +7,6 @@ import { AppDetailHeader, AppNewsList, OperationPanel } from "../../components";
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
 import { getNativePlayAreaOperationFallback } from "../../components/playarea/PlayAreaRegistry";
 import {
-  MiniAppListRail,
   MiniAppStatusBoard,
   OneGateLaunchCard,
   OverviewTab,
@@ -94,7 +93,7 @@ const ForumTab = dynamic(
 
 export default function MiniAppDetailPage({
   app,
-  miniAppNav,
+  miniAppNav: _miniAppNav,
   notifications,
   sharedRuntime,
   error,
@@ -396,21 +395,19 @@ export default function MiniAppDetailPage({
 
   return (
     <Layout hideFooter>
-      <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f4f8f6_48%,#f8fafc_100%)] pb-28 pt-16 text-gray-900 xl:pb-10">
+      <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f4f8f6_48%,#f8fafc_100%)] pb-28 pt-16 text-gray-900 xl:pb-6">
         <Head>
           <title>{`${app.name} - ${BRAND.productName}`}</title>
         </Head>
         <AppDetailHeader app={app} onBack={handleBack} />
 
-        <main className="mx-auto max-w-[1600px] px-3 py-5 sm:px-5">
+        <main className="mx-auto max-w-[1600px] px-3 py-2 sm:px-4 sm:py-3">
           <div
-            className="miniapp-stable-scroll grid grid-cols-1 items-start gap-5 xl:grid-cols-[248px_minmax(0,1fr)_360px]"
+            className="miniapp-stable-scroll grid grid-cols-1 items-start gap-3 xl:grid-cols-[minmax(0,1fr)_340px]"
             data-testid="miniapp-detail-layout"
           >
-            <MiniAppListRail currentAppId={app.app_id} miniapps={miniAppNav} />
-
             <section
-              className="order-1 min-w-0 space-y-5 xl:order-none"
+              className="order-1 min-w-0 space-y-3 xl:order-none"
               aria-label="MiniApp workspace"
             >
               <section
@@ -813,7 +810,7 @@ export default function MiniAppDetailPage({
               >
                 <button
                   type="button"
-                  className="mx-auto flex min-h-[46px] w-full max-w-[520px] cursor-pointer items-center justify-between gap-3 rounded-[14px] border border-emerald-500 bg-emerald-700 px-3.5 py-2 text-left text-white shadow-lg shadow-emerald-900/15 transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                  className="mx-auto flex min-h-[46px] w-full max-w-[520px] cursor-pointer items-center justify-between gap-3 rounded-[14px] border border-emerald-500 bg-emerald-700 px-3.5 py-2 text-left text-white shadow-lg shadow-emerald-900/15 transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:ring-offset-2"
                   onClick={() => setMobileActionOpen(true)}
                   aria-expanded={mobileActionOpen}
                   aria-controls="mobile-action-sheet"

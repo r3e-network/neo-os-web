@@ -6,7 +6,9 @@
   ],
   "scripts": {
     "verify:repo": "bash scripts/verify_repo.sh",
-    "test": "npm run -s test:deploy-scripts && npm run -s test:host-app && npm run -s test:admin-console",
+    "test": "npm run -s test:deploy-scripts && npm run -s test:host-app && npm run -s test:admin-console && npm run -s test:shared && npm run -s test:miniapps",
+    "test:shared": "cd apps/shared && npx vitest run",
+    "test:miniapps": "node scripts/run-miniapp-tests.mjs",
     "test:go": "node -e \"console.log('Legacy Go service layer moved to external repos; root Go test suite is no longer part of neo-miniapps-platform.')\"",
     "test:testnet:local-gates": "bash deploy/scripts/run_local_validation_gates.sh",
     "test:testnet:live": "bash deploy/scripts/run_live_testnet_validation.sh",

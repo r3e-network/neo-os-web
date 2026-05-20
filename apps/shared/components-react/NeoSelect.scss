@@ -1,0 +1,30 @@
+.neo-select {
+  &__wrapper {
+    position: relative;
+  }
+
+  &__field {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 36px;
+    cursor: pointer;
+    background-image: none;
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+
+  &__chevron {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    pointer-events: none;
+  }
+}

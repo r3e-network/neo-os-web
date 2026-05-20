@@ -6,7 +6,7 @@
  * Actions: fetchPrice, updateAsset.
  */
 
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { NeoButton, NeoCard, NeoSelect } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import "./PlayArea.scss";
@@ -23,7 +23,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const asset = str("asset", "NEO");
   const priceDisplay = str("priceDisplay", t("notAvailable") || "N/A");
   const networkDisplay = str("networkDisplay", "");
-  const datafeedHash = str("datafeedHash", "");
   const datafeedShort = str("datafeedShort", "");
   const sourceLabel = str("sourceLabel", "");
   const errorMsg = str("errorMsg", "");
@@ -66,10 +65,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       {/* Operation Section */}
       <div className="stack">
-        <NeoInput
+        <NeoSelect
           value={asset}
           label={t("asset") || "Asset"}
-          placeholder={t("assetPlaceholder") || "NEO / GAS / BTC"}
+          options={[
+            { value: "NEO", label: "NEO" },
+            { value: "GAS", label: "GAS" },
+            { value: "BTC", label: "BTC" },
+          ]}
           onChange={(val) => dispatch("updateAsset", val)}
         />
         <NeoButton

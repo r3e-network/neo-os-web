@@ -139,6 +139,26 @@ export class EdgeClient {
     return this.submitWalletIntentIfPresent(payload as T);
   }
 
+  /**
+   * Audit fix E-1 / H-3: signing requires explicit user confirmation.
+   *
+   * Previously this method auto-signed any invocation-shaped response from
+   * any OS edge endpoint with no confirmation. A malicious or buggy miniapp
+   * could craft a flow that popped a sign request the user never asked for.
+   *
+   * The new behavior asks the wallet adapter to render a confirmation modal
+   * via `wallet.invokeWithConfirmation(intent, { context })`. If the wallet
+   * adapter does not yet implement that method, we fall back to throwing —
+   * better to surface a clear error than to auto-sign. The host-app's
+   * wallet store should implement `invokeWithConfirmation` to display the
+   * intent (contract hash, method, args, signers) and await user click.
+   *
+   * The legacy auto-sign path is gated behind the explicit caller flag
+   * `OSMiniAppAutoSign=true` (window global) which only the host can set,
+   * not miniapps. This preserves a controlled escape hatch for trusted
+   * flows (e.g. the host's own UI calling its own SDK) while denying the
+   * default-auto-sign exploit path.
+   */
   private async submitWalletIntentIfPresent<T>(payload: T): Promise<T> {
     const intent = resolveInvocationIntent(payload);
     if (!intent) return payload;
@@ -150,9 +170,28 @@ export class EdgeClient {
       throw new Error("Wallet address is required to submit OS invocation intent.");
     }
 
-    const result: InvokeResult = await wallet.invokeContract(
-      withSender(intent, walletAddress),
-    );
+    const invokeWithConfirmation = (wallet as unknown as {
+      invokeWithConfirmation?: (params: InvokeParams, ctx?: Record<string, unknown>) => Promise<InvokeResult>;
+    }).invokeWithConfirmation;
+    const allowLegacyAutoSign =
+      typeof window !== "undefined" &&
+      (window as unknown as { OSMiniAppAutoSign?: boolean }).OSMiniAppAutoSign === true;
+
+    let result: InvokeResult;
+    const params = withSender(intent, walletAddress);
+    if (typeof invokeWithConfirmation === "function") {
+      result = await invokeWithConfirmation(params, {
+        endpoint: "os-binder",
+        appId: this.appId,
+      });
+    } else if (allowLegacyAutoSign) {
+      result = await wallet.invokeContract(params);
+    } else {
+      throw new Error(
+        "Wallet adapter must implement `invokeWithConfirmation` to sign OS-binder intents. " +
+          "Auto-signing without explicit user confirmation has been disabled (audit fix E-1/H-3).",
+      );
+    }
     if (!isRecord(payload)) return result as T;
     return {
       ...payload,
