@@ -22,16 +22,17 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         {
             string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
-            // Audit fix NEW-M-7: auto-stake from an NEP-17 transfer now requires
-            // a structured 2-element StdLib-serialized array `["stake", appId]`.
-            // The old bare-string-memo trigger was unsafe (any memo matching a
-            // registered appId would silently auto-stake).
+            // Auto-stake opt-in: NEP-17 transfer of NEO with a "stake:<appId>"
+            // string memo auto-stakes into the named app. Plain string memos
+            // (no "stake:" prefix) cleanly fall through to deposit-only; this
+            // replaces the prior StdLib.Deserialize-on-untrusted-input which
+            // threw on any non-serialized memo and reverted the whole transfer.
             Assert.Contains("if (data is ByteString)", code);
-            Assert.Contains("StdLib.Deserialize(payload)", code);
-            Assert.Contains("op == \"stake\"", code);
+            Assert.Contains("memo.StartsWith(\"stake:\")", code);
             Assert.Contains("StakeFromCredit(appId, from, amount)", code);
             Assert.Contains("private static void StakeFromCredit(string appId, UInt160 user, BigInteger amount)", code);
             Assert.DoesNotContain("if (data is string)", code);
+            Assert.DoesNotContain("StdLib.Deserialize(payload)", code);
         }
 
         [Fact]
