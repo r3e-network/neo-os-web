@@ -70,6 +70,7 @@ namespace NeoMiniAppPlatform.Contracts
         public delegate void CoinFlipBetPlacedHandler(string appId, UInt160 player, BigInteger amount, bool choice, BigInteger betId);
         public delegate void CoinFlipBetResolvedHandler(string appId, UInt160 player, BigInteger payout, bool won, BigInteger betId);
         public delegate void CoinFlipRngRequestedHandler(string appId, BigInteger betId, BigInteger requestId);
+        public delegate void CoinFlipBetRefundedHandler(string appId, UInt160 player, BigInteger amount, BigInteger betId);
 
         [DisplayName("CoinFlipBetPlaced")]
         public static event CoinFlipBetPlacedHandler OnCoinFlipBetPlaced;
@@ -79,6 +80,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("CoinFlipRngRequested")]
         public static event CoinFlipRngRequestedHandler OnCoinFlipRngRequested;
+
+        [DisplayName("CoinFlipBetRefunded")]
+        public static event CoinFlipBetRefundedHandler OnCoinFlipBetRefunded;
 
         // ===================================================================
         //  Player: place bet
@@ -163,10 +167,16 @@ namespace NeoMiniAppPlatform.Contracts
         /// - Resolved flag prevents double-settlement
         /// - Reentrancy guard protects state
         /// </summary>
-        public static void ResolveCoinFlipBet(string appId, BigInteger betId, ByteString oracleResult)
+        public static void ResolveCoinFlipBet(string appId, BigInteger betId, BigInteger requestId, ByteString oracleResult)
         {
+            // Audit fix H-12: settlement must always carry the original requestId so
+            // the oracle response is bound to the specific bet. The previous signature
+            // accepted no requestId and the internal resolver had a `requestId > 0`
+            // shortcut that skipped the mapping check; a compromised oracle could then
+            // resolve any bet to any outcome.
             ValidateOracle();
-            ResolveCoinFlipBetFromOracle(appId, betId, 0, oracleResult);
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
+            ResolveCoinFlipBetFromOracle(appId, betId, requestId, oracleResult);
         }
 
         private static void ResolveCoinFlipBetFromOracle(
@@ -177,7 +187,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             RequireRegistered(appId);
 
-            if (requestId > 0)
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
             {
                 byte[] reqKey = AppKey(appId, CF_PREFIX_REQ_TO_BET, requestId);
                 ByteString mappedBet = Storage.Get(Storage.CurrentContext, reqKey);
@@ -220,6 +230,35 @@ namespace NeoMiniAppPlatform.Contracts
             ReleaseReentrancyLock(appId);
 
             OnCoinFlipBetResolved(appId, bet.Player, payout, won, betId);
+        }
+
+        /// <summary>
+        /// Refund a CoinFlip bet when the oracle reports failure. Mirrors
+        /// RefundDiceBetFromOracle so a Morpheus failure can't silently strand
+        /// the player's stake — they get the full bet amount back as GAS.
+        /// </summary>
+        private static void RefundCoinFlipBetFromOracle(string appId, BigInteger betId, BigInteger requestId)
+        {
+            RequireRegistered(appId);
+            RequireGameType(appId, GameType_CoinFlip);
+
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
+            byte[] reqKey = AppKey(appId, CF_PREFIX_REQ_TO_BET, requestId);
+            ByteString mappedBet = Storage.Get(Storage.CurrentContext, reqKey);
+            ExecutionEngine.Assert(mappedBet != null && (BigInteger)mappedBet == betId, "oracle request mismatch");
+            Storage.Delete(Storage.CurrentContext, reqKey);
+
+            CoinFlipBet bet = LoadCoinFlipBet(appId, betId);
+            ExecutionEngine.Assert(bet.Player != UInt160.Zero, "bet not found");
+            ExecutionEngine.Assert(!bet.Resolved, "already resolved");
+
+            bet.Resolved = true;
+            StoreCoinFlipBet(appId, betId, bet);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, bet.Player, bet.Amount),
+                "coinflip refund failed");
+            OnCoinFlipBetRefunded(appId, bet.Player, bet.Amount, betId);
         }
 
     }

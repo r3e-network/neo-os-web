@@ -97,7 +97,10 @@ export default function DashboardPage() {
         </Card>
 
         <Card variant="glass" className="relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 group-hover:bg-emerald-500/10 blur-[30px] rounded-full transition-all duration-500 -z-10" />
+          {/* Glow matches the `text-neo` body so the card reads as a single
+              brand-aligned surface; previous emerald-500/5 was a different green
+              and clashed with the neo text. */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-neo/5 group-hover:bg-neo/10 blur-[30px] rounded-full transition-all duration-500 -z-10" />
           <CardContent className="pt-6">
             <div className="text-sm font-bold uppercase text-gray-500 dark:text-gray-400">
               Platform Status

@@ -42,10 +42,10 @@
 .console-tool__form,
 .console-tool__result {
   min-width: 0;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 8px;
-  background: rgba(2, 6, 23, 0.58);
-  box-shadow: 0 18px 60px rgba(2, 6, 23, 0.32);
+  border: 1px solid #e6e8ea;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: none;
 }
 
 .console-tool__form {
@@ -60,7 +60,7 @@
 }
 
 .console-tool__field span {
-  color: rgba(226, 232, 240, 0.78);
+  color: #4a5562;
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -68,10 +68,10 @@
 .console-tool__field select {
   width: 100%;
   min-height: 42px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid #e6e8ea;
   border-radius: 8px;
-  background: rgba(15, 23, 42, 0.78);
-  color: #f8fafc;
+  background: #ffffff;
+  color: #18181b;
   font: inherit;
   padding: 0 12px;
 }
@@ -134,15 +134,15 @@
 
 .console-tool__rows div {
   min-width: 0;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.56);
+  border: 1px solid #e6e8ea;
+  border-radius: 10px;
+  background: #fafbfc;
   padding: 10px 12px;
 }
 
 .console-tool__rows span {
   display: block;
-  color: rgba(226, 232, 240, 0.62);
+  color: #77808d;
   font-size: 0.74rem;
   font-weight: 700;
 }
@@ -150,7 +150,7 @@
 .console-tool__rows strong {
   display: block;
   overflow-wrap: anywhere;
-  color: #f8fafc;
+  color: #18181b;
   font-size: 0.92rem;
   line-height: 1.35;
   margin-top: 4px;
@@ -160,10 +160,10 @@
   overflow: auto;
   max-height: 280px;
   margin: 0;
-  border: 1px solid rgba(45, 212, 191, 0.18);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.24);
-  color: #d9f99d;
+  border: 1px solid #e6e8ea;
+  border-radius: 10px;
+  background: #f4f5f7;
+  color: #18181b;
   font-size: 0.78rem;
   line-height: 1.48;
   padding: 12px;

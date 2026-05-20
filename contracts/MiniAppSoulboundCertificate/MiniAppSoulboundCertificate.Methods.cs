@@ -192,19 +192,14 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         public static bool Transfer(UInt160 from, UInt160 to, ByteString tokenId, object data)
         {
-            ValidateNotGloballyPaused(APP_ID);
+            // Audit fix NEW-M-2: every Transfer() call on a soulbound token must
+            // observably fail so external tools probing for the "soulbound"
+            // property by attempting a no-op transfer can detect non-transferability.
+            // The prior self-transfer short-circuit returned true silently, which
+            // made the contract look transferable.
             ValidateAddress(from);
             ValidateAddress(to);
-
-            ExecutionEngine.Assert(Runtime.CheckWitness(from), "unauthorized");
-            ExecutionEngine.Assert(GetTokenOwner(tokenId) == from, "not owner");
-
-            if (from == to)
-            {
-                return true;
-            }
-
-            ExecutionEngine.Assert(false, "non-transferable");
+            ExecutionEngine.Assert(false, "soulbound: non-transferable");
             return false;
         }
 

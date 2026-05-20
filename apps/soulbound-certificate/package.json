@@ -8,15 +8,13 @@
     "build": "vite build"
   },
   "dependencies": {
-    "qrcode": "^1.5.3",
-    "vue": "catalog:"
+    "qrcode": "^1.5.3"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.5",
     "sass": "catalog:",
     "terser": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "@vitejs/plugin-vue": "^5.0.0"
+    "vite": "catalog:"
   }
 }

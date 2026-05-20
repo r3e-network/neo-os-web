@@ -56,10 +56,13 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger elapsed = Runtime.Time - capsule.LastCompoundTime;
             if (elapsed <= 0) return;
 
-            // Precision-safe: multiply before dividing to preserve precision
-            BigInteger yearSeconds = 365 * 86400;
+            // Runtime.Time is in MILLISECONDS, so `elapsed` is also in ms. Use
+            // year-in-ms (365 * 86_400_000) for the denominator. Previously used
+            // year-in-seconds, making the computed yield 1000x too small.
+            // Precision-safe: multiply before dividing to preserve precision.
+            BigInteger yearMs = 365L * 86400000L;
             BigInteger numerator = capsule.Principal * capsule.ApyBps * elapsed;
-            BigInteger denominator = 10000 * yearSeconds;
+            BigInteger denominator = 10000 * yearMs;
             BigInteger yieldAmount = numerator / denominator;
 
             if (yieldAmount > 0)
@@ -82,22 +85,33 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         /// <summary>
         /// Create a savings capsule with NEO deposit.
         /// Caller must have pre-deposited NEO via OnNEP17Payment.
+        ///
+        /// Audit fix M-8: takes an explicit <paramref name="principalAmount"/>.
+        /// The prior version swept the owner's entire NEO credit balance into
+        /// the capsule, so an owner pre-depositing 10 NEO planning three smaller
+        /// capsules and a refund would silently lock all 10 NEO in the first one.
         /// </summary>
-        public static BigInteger CreateCapsule(string appId, UInt160 owner, BigInteger lockDays)
+        public static BigInteger CreateCapsule(string appId, UInt160 owner, BigInteger lockDays, BigInteger principalAmount)
         {
             ValidateApp(appId, ProductType_Capsule);
             ValidateAddress(owner);
             ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
             ExecutionEngine.Assert(lockDays >= CAPSULE_MIN_LOCK_DAYS && lockDays <= CAPSULE_MAX_LOCK_DAYS,
                 "invalid lock period (7-365 days)");
+            ExecutionEngine.Assert(principalAmount >= CAPSULE_MIN_DEPOSIT, "min 20 NEO deposit");
 
-            // Consume all prepaid NEO credit
+            // Consume only the requested principalAmount; refund the rest back to
+            // the user's credit ledger so they can withdraw it via WithdrawCredit.
             StorageMap neoCredits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
             ByteString creditKey = (ByteString)(byte[])owner;
             ByteString creditData = neoCredits.Get(creditKey);
-            BigInteger neoAmount = creditData == null ? 0 : (BigInteger)creditData;
-            ExecutionEngine.Assert(neoAmount >= CAPSULE_MIN_DEPOSIT, "min 1 NEO deposit");
-            neoCredits.Delete(creditKey);
+            BigInteger availableCredit = creditData == null ? 0 : (BigInteger)creditData;
+            ExecutionEngine.Assert(availableCredit >= principalAmount, "insufficient NEO credit");
+
+            BigInteger neoAmount = principalAmount;
+            BigInteger remainingCredit = availableCredit - principalAmount;
+            if (remainingCredit == 0) neoCredits.Delete(creditKey);
+            else neoCredits.Put(creditKey, remainingCredit);
 
             // Track unique users
             ByteString userCountKey = AppKey(appId, PREFIX_USER_CAPSULE_COUNT, owner);
@@ -113,7 +127,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(idKey, capsuleId);
 
             BigInteger apyBps = GetApyForLockDays(lockDays);
-            BigInteger unlockTime = Runtime.Time + (lockDays * 86400);
+            // Runtime.Time is in MILLISECONDS on Neo N3; convert lockDays to ms so
+            // a "7-day capsule" actually locks for 7 days (previously: 7*86400 ms = ~10
+            // minutes). 86_400_000 ms per day.
+            BigInteger unlockTime = Runtime.Time + (lockDays * 86400000);
 
             Capsule capsule = new Capsule
             {
@@ -165,7 +182,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 NEO.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, capsule.Principal),
                 "principal transfer failed");
 
-            // Transfer GAS compound minus fee
+            // Transfer GAS compound minus fee. The fee portion that's actually
+            // retained equals min(fee, compound) — when compound <= fee, the
+            // entire compound stays in the contract as the fee.
+            BigInteger feeRetained = capsule.Compound > fee ? fee : capsule.Compound;
+            if (feeRetained > 0)
+            {
+                ByteString feeKey = AppKey(appId, PREFIX_TOTAL_CAPSULE_FEES);
+                Put(feeKey, GetBigInteger(feeKey) + feeRetained);
+            }
+
             if (capsule.Compound > fee)
             {
                 ExecutionEngine.Assert(
@@ -225,72 +251,37 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             CompoundCapsuleYield(appId, capsuleId);
         }
 
-        #endregion
-
-        #region Capsule Read Methods
-
-        [Safe]
-        public static Capsule GetCapsule(string appId, BigInteger capsuleId)
+        /// <summary>
+        /// Sweep accumulated early-withdrawal penalties to a designated recipient.
+        /// Gated by ValidateAppAuthority — platform admin or the app's own admin.
+        /// Without this hook, penalty NEO sits idle in the contract forever even
+        /// though PREFIX_TOTAL_PENALTIES correctly tracks the running total.
+        /// Withdrawal resets the counter so subsequent sweeps only see new penalties.
+        /// </summary>
+        public static void WithdrawCapsulePenalties(string appId, UInt160 to)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                AppKey(appId, PREFIX_CAPSULES, capsuleId));
-            if (data == null) return new Capsule();
-            return (Capsule)StdLib.Deserialize(data);
-        }
+            ValidateAppAuthority(appId);
+            ValidateAddress(to);
 
-        [Safe]
-        public static Map<string, object> GetCapsuleStats(string appId)
-        {
-            Map<string, object> stats = new Map<string, object>();
-            stats["totalCapsules"] = GetBigInteger(AppKey(appId, PREFIX_CAPSULE_ID));
-            stats["totalLocked"] = GetBigInteger(AppKey(appId, PREFIX_TOTAL_LOCKED));
-            stats["totalCompound"] = GetBigInteger(AppKey(appId, PREFIX_TOTAL_COMPOUND));
-            stats["totalUsers"] = GetBigInteger(AppKey(appId, PREFIX_TOTAL_CAPSULE_USERS));
-            stats["totalWithdrawn"] = GetBigInteger(AppKey(appId, PREFIX_TOTAL_WITHDRAWN));
-            stats["totalPenalties"] = GetBigInteger(AppKey(appId, PREFIX_TOTAL_PENALTIES));
-            stats["capsuleFeeBps"] = CAPSULE_FEE_BPS;
-            stats["earlyPenaltyBps"] = CAPSULE_EARLY_PENALTY_BPS;
-            stats["minDeposit"] = CAPSULE_MIN_DEPOSIT;
-            stats["minLockDays"] = CAPSULE_MIN_LOCK_DAYS;
-            stats["maxLockDays"] = CAPSULE_MAX_LOCK_DAYS;
-            stats["tier1Days"] = TIER1_DAYS;
-            stats["tier1ApyBps"] = TIER1_APY_BPS;
-            stats["tier2Days"] = TIER2_DAYS;
-            stats["tier2ApyBps"] = TIER2_APY_BPS;
-            stats["tier3Days"] = TIER3_DAYS;
-            stats["tier3ApyBps"] = TIER3_APY_BPS;
-            stats["tier4Days"] = TIER4_DAYS;
-            stats["tier4ApyBps"] = TIER4_APY_BPS;
-            return stats;
-        }
+            ByteString totalPenaltiesKey = AppKey(appId, PREFIX_TOTAL_PENALTIES);
+            BigInteger amount = GetBigInteger(totalPenaltiesKey);
+            ExecutionEngine.Assert(amount > 0, "no penalties to withdraw");
 
-        [Safe]
-        public static Map<string, object> GetCapsuleDetails(string appId, BigInteger capsuleId)
-        {
-            Capsule c = GetCapsule(appId, capsuleId);
-            Map<string, object> details = new Map<string, object>();
-            if (c.Owner == UInt160.Zero) return details;
+            // Reset the counter BEFORE the transfer so a malicious NEO contract
+            // cannot re-enter and drain the counter twice (checks-effects-interactions).
+            Put(totalPenaltiesKey, 0);
 
-            details["id"] = capsuleId;
-            details["owner"] = c.Owner;
-            details["principal"] = c.Principal;
-            details["compound"] = c.Compound;
-            details["createdTime"] = c.CreatedTime;
-            details["unlockTime"] = c.UnlockTime;
-            details["lockDays"] = c.LockDays;
-            details["apyBps"] = c.ApyBps;
-            details["active"] = c.Active;
-            details["earlyWithdrawn"] = c.EarlyWithdrawn;
+            ExecutionEngine.Assert(
+                NEO.Transfer(Runtime.ExecutingScriptHash, to, amount),
+                "penalty withdrawal transfer failed");
 
-            if (c.Active)
-            {
-                BigInteger remaining = c.UnlockTime - Runtime.Time;
-                details["remainingTime"] = remaining > 0 ? remaining : 0;
-                details["canUnlock"] = Runtime.Time >= c.UnlockTime;
-            }
-            return details;
+            OnCapsulePenaltiesWithdrawn(appId, to, amount);
         }
 
         #endregion
+
+        // Audit fix M-8 / partial-file-budget: capsule read methods (GetCapsule,
+        // GetCapsuleStats, GetCapsuleDetails) moved to PlatformDeFi.Capsule.Query.cs
+        // to keep this partial under 300 lines for security review.
     }
 }

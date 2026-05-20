@@ -1,6 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
+import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 
 function stringField(row: unknown, key: string): string | undefined {
@@ -14,10 +15,18 @@ export async function handler(req: Request): Promise<Response> {
   if (preflight) return preflight;
   if (req.method !== "POST") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
+  // Audit fix H-5: rate-limit anonymous nonce issuance. Without this, an
+  // attacker could rotate-overwrite any user's `users.nonce` at will (causing
+  // login DoS, enumerating registered users via the `account_id` returned by
+  // this endpoint, and pre-positioning nonces for chained attacks against
+  // auth-wallet).
+  const limited = await requireRateLimit(req, "auth-wallet-nonce");
+  if (limited) return limited;
+
   const bodyOrErr = await readJsonBody(req);
   if (bodyOrErr instanceof Response) return bodyOrErr;
   const address = ((bodyOrErr as Record<string, unknown>)?.address as string ?? "").trim();
-  
+
   if (!address) {
     return error(400, "address required", "INVALID_INPUT", req);
   }

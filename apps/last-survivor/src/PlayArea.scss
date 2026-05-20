@@ -1,133 +1,323 @@
-@use "@shared/styles/tokens.scss" as *;
+/**
+ * LastSurvivor PlayArea — Polymarket-light treatment.
+ *
+ * Mirrors the platform-wide Polymarket-light aesthetic: white canvas,
+ * hairline cards, Inter, big tabular-num hero, restrained accents. The
+ * platform Action Console (outside the iframe) owns the primary
+ * "Buy Keys" action; this surface is data-first.
+ */
+
+@use "@shared/styles/pm-light" as pm;
 @use "@shared/styles/playarea-base";
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap");
 
 .survivor-play-area {
-  display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 20px 12px;
-  min-height: 300px; position: relative; font-family: "Orbitron", monospace;
-  background: repeating-linear-gradient(0deg, transparent, transparent 49px, rgba(220, 38, 38, 0.04) 49px, rgba(220, 38, 38, 0.04) 50px),
-    repeating-linear-gradient(90deg, transparent, transparent 49px, rgba(220, 38, 38, 0.04) 49px, rgba(220, 38, 38, 0.04) 50px);
-  &::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: repeating-linear-gradient(90deg, #dc2626 0, #dc2626 20px, #eab308 20px, #eab308 40px); animation: hazard-scroll 2s linear infinite; }
-  &::after { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: repeating-linear-gradient(90deg, #eab308 0, #eab308 20px, #dc2626 20px, #dc2626 40px); animation: hazard-scroll 2s linear infinite reverse; }
+  @include pm.pm-canvas;
 }
-@keyframes hazard-scroll { 0% { background-position: 0 0; } 100% { background-position: 40px 0; } }
 
-/* Round info bar */
+/* ============================================================
+ *  1. Round info bar — Round · Status · Prize Pool
+ * ============================================================ */
+
 .round-info-bar {
-  display: flex; align-items: center; justify-content: center; gap: 0;
-  width: 100%; max-width: 440px; padding: 12px 16px;
-  background: rgba(220, 38, 38, 0.06); border: 1px solid rgba(220, 38, 38, 0.15);
-  border-radius: 8px; position: relative; z-index: 1;
-}
-.round-info-item { flex: 1; text-align: center; display: flex; flex-direction: column; gap: 2px; }
-.round-info-label { font-size: 7px; font-weight: 900; letter-spacing: 0.15em; color: rgba(220, 38, 38, 0.5); text-transform: uppercase; }
-.round-info-value { font-size: 14px; font-weight: 800; color: #1f2937; font-family: "Orbitron", monospace; }
-.round-info-value.status-active { color: #22c55e; }
-.round-info-value.status-ended { color: #eab308; }
-.round-info-value.pot-value { color: #eab308; font-size: 13px; }
-.round-info-divider { width: 1px; height: 28px; background: rgba(220, 38, 38, 0.2); flex-shrink: 0; margin: 0 4px; }
-
-/* Hero container */
-.hero-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; text-align: center; gap: 24px; padding: 24px 16px; width: 100%; position: relative; z-index: 1;
-  &::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 30%, rgba(220, 38, 38, 0.12) 0%, transparent 70%); pointer-events: none; }
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 14px 18px;
+  @include pm.card;
 }
 
-/* Buy keys card */
-.buy-keys-card { width: 100%; max-width: 400px; background: rgba(220, 38, 38, 0.05); border: 1px solid rgba(220, 38, 38, 0.2); border-radius: 4px; padding: 20px; backdrop-filter: blur(8px); position: relative; z-index: 1; box-shadow: 0 0 20px rgba(220, 38, 38, 0.08), inset 0 1px 0 rgba(234, 179, 8, 0.1); }
-
-/* Last buyer badge */
-.last-buyer-badge { display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: rgba(234, 179, 8, 0.06); border: 1px solid rgba(234, 179, 8, 0.2); border-radius: 8px; position: relative; z-index: 1; width: 100%; max-width: 400px; animation: leader-glow 3s ease-in-out infinite; }
-.last-buyer-icon { font-size: 22px; }
-.last-buyer-info { display: flex; flex-direction: column; flex: 1; }
-.last-buyer-label { font-size: 8px; font-weight: 900; letter-spacing: 0.15em; color: rgba(234, 179, 8, 0.6); text-transform: uppercase; }
-.last-buyer-address { font-size: 13px; font-weight: 800; font-family: "Orbitron", monospace; color: #eab308; filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.3)); }
-.last-buyer-hint { font-size: 8px; font-weight: 700; color: rgba(220, 38, 38, 0.6); text-transform: uppercase; letter-spacing: 0.08em; }
-@keyframes leader-glow { 0%, 100% { box-shadow: 0 0 8px rgba(234, 179, 8, 0.1); } 50% { box-shadow: 0 0 18px rgba(234, 179, 8, 0.2); } }
-
-/* Participation stats bar */
-.participation-bar {
-  display: flex; align-items: center; justify-content: center; gap: 0;
-  width: 100%; max-width: 440px; padding: 12px 12px;
-  background: rgba(234, 179, 8, 0.04); border: 1px solid rgba(234, 179, 8, 0.12);
-  border-radius: 8px; position: relative; z-index: 1;
-}
-.participation-item { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
-.participation-icon { font-size: 18px; flex-shrink: 0; }
-.participation-detail { display: flex; flex-direction: column; gap: 1px; }
-.participation-label { font-size: 7px; font-weight: 900; letter-spacing: 0.12em; color: rgba(234, 179, 8, 0.5); text-transform: uppercase; }
-.participation-value { font-size: 16px; font-weight: 800; color: #1f2937; font-family: "Orbitron", monospace; }
-.participation-divider { width: 1px; height: 32px; background: rgba(234, 179, 8, 0.15); flex-shrink: 0; margin: 0 4px; }
-
-/* Claim card */
-.claim-card {
-  width: 100%; max-width: 400px; position: relative; z-index: 1;
-  background: rgba(234, 179, 8, 0.06); border: 1px solid rgba(234, 179, 8, 0.25);
-  border-radius: 8px; padding: 20px; animation: leader-glow 3s ease-in-out infinite;
-}
-.claim-card-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
-.claim-card-trophy { font-size: 36px; }
-.claim-card-text { font-size: 11px; font-weight: 700; color: rgba(234, 179, 8, 0.8); text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.5; }
-
-/* History section */
-.history-section {
-  width: 100%; max-width: 440px; position: relative; z-index: 1;
-}
-.history-section-header {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
-  padding-bottom: 8px; border-bottom: 1px solid rgba(220, 38, 38, 0.15);
-}
-.history-section-icon { font-size: 18px; }
-.history-section-title {
-  font-size: 10px; font-weight: 900; letter-spacing: 0.15em;
-  color: rgba(220, 38, 38, 0.6); text-transform: uppercase;
+.round-info-item {
+  display: grid;
+  gap: 4px;
 }
 
-@media (prefers-reduced-motion: reduce) { .survivor-play-area { &::before, &::after { animation: none; } } }
-
-/* Rules section */
-.rules-card {
-  margin-top: 1rem;
+.round-info-divider {
+  display: none;
 }
-.rules-title {
-  font-size: 0.875rem;
+
+.round-info-label {
+  @include pm.section-eyebrow;
+}
+
+.round-info-value {
+  font-size: 18px;
   font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 0.75rem;
+  color: pm.$text;
+  font-variant-numeric: tabular-nums;
+
+  &.pot-value {
+    color: pm.$neo-strong;
+  }
+
+  &.status-active {
+    color: pm.$green-text;
+  }
+
+  &.status-ended {
+    color: pm.$text-muted;
+  }
 }
+
+/* ============================================================
+ *  2. Hero card — wraps DangerRingHero + DangerMeter
+ * ============================================================ */
+
+.hero-container {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+  @include pm.card;
+}
+
+.hero-container :where(.danger-pulse, .pulse-bg) {
+  display: none !important;
+}
+
+/* ============================================================
+ *  3. Current leader badge
+ * ============================================================ */
+
+.last-buyer-badge {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  @include pm.card;
+}
+
+.last-buyer-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: pm.$neo-soft;
+  color: pm.$neo-strong;
+  font-weight: 700;
+}
+
+.last-buyer-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.last-buyer-label {
+  @include pm.section-eyebrow;
+}
+
+.last-buyer-address {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: pm.$text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.last-buyer-hint {
+  font-size: 11px;
+  color: pm.$text-muted;
+  text-align: right;
+}
+
+/* ============================================================
+ *  4. Participation strip — Your Keys · Total Keys · Your Share
+ * ============================================================ */
+
+.participation-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 14px 18px;
+  @include pm.card;
+}
+
+.participation-divider {
+  display: none;
+}
+
+.participation-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.participation-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: pm.$surface-2;
+  color: pm.$text-muted;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.participation-detail {
+  display: grid;
+  gap: 2px;
+}
+
+.participation-label {
+  @include pm.section-eyebrow;
+}
+
+.participation-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: pm.$text;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ *  5. Buy Keys / Claim cards
+ * ============================================================ */
+
+.buy-keys-card,
+.claim-card,
+.rules-card {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.buy-keys-card > *,
+.claim-card > *,
+.rules-card > * {
+  @include pm.card;
+  padding: 16px 18px;
+}
+
+.claim-card-inner {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.claim-card-trophy {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: pm.$amber-soft;
+  color: pm.$amber;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.claim-card-text {
+  font-size: 13px;
+  color: pm.$text-2;
+  line-height: 1.5;
+}
+
+/* ============================================================
+ *  6. Rules — How It Works
+ * ============================================================ */
+
+.rules-title {
+  margin: 0 0 12px;
+  @include pm.section-eyebrow;
+  font-size: 12px;
+}
+
 .rules-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: grid;
+  gap: 12px;
 }
+
 .rule-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
 }
+
 .rule-number {
-  flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: pm.$neo-soft;
+  color: pm.$neo-strong;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rule-text {
+  display: grid;
+  gap: 2px;
+
+  strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: pm.$text;
+  }
+
+  span {
+    font-size: 12px;
+    line-height: 1.5;
+    color: pm.$text-muted;
+  }
+}
+
+/* ============================================================
+ *  7. History section
+ * ============================================================ */
+
+.history-section {
+  display: grid;
+  gap: 10px;
+  padding: 14px 18px;
+  @include pm.card;
+}
+
+.history-section-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #ecfdf5;
-  color: #059669;
-  font-size: 0.75rem;
-  font-weight: 700;
+  gap: 8px;
 }
-.rule-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
+
+.history-section-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: pm.$surface-2;
+  color: pm.$text-muted;
+  font-size: 13px;
 }
-.rule-text strong {
-  font-size: 0.8125rem;
-  color: #1f2937;
+
+.history-section-title {
+  @include pm.section-eyebrow;
+  font-size: 12px;
 }
-.rule-text span {
-  font-size: 0.75rem;
-  color: #6b7280;
-  line-height: 1.4;
+
+/* ============================================================
+ *  Status toast (StandaloneDappSurface)
+ * ============================================================ */
+
+.standalone-dapp-root .status-toast {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: pm.$bg;
+  color: pm.$text;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid pm.$border;
+  box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.18);
 }

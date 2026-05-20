@@ -134,12 +134,34 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             if (Runtime.CallingScriptHash == NEO.Hash)
             {
                 AddCredit(PREFIX_NEO_CREDIT, from, amount);
-                if (data is string)
+                // Auto-stake opt-in: a "stake:<appId>" string memo on the NEP-17
+                // transfer auto-stakes the deposited NEO into the named app.
+                //
+                // Prior version (audit fix NEW-M-7) ran StdLib.Deserialize on the
+                // payload to look for a 2-element array `["stake", appId]`. That
+                // approach throws on any non-serialized input — meaning a NEO
+                // payment with a plain string memo (the common wallet default)
+                // would revert the entire transfer, not just skip auto-stake.
+                // Documented intent: "a bare string is treated as a deposit only";
+                // implementation violated that contract.
+                //
+                // The string-prefix format is safer (no Deserialize on untrusted
+                // input), simpler (any wallet can construct it without an SDK),
+                // and any non-matching memo cleanly falls through to deposit-only.
+                if (data is ByteString)
                 {
-                    string appId = (string)data;
-                    if (appId.Length > 0)
+                    ByteString payload = (ByteString)data;
+                    if (payload != null && payload.Length > 6)
                     {
-                        StakeFromCredit(appId, from, amount);
+                        string memo = (string)payload;
+                        if (memo.StartsWith("stake:"))
+                        {
+                            string appId = memo.Substring(6);
+                            if (appId.Length > 0)
+                            {
+                                StakeFromCredit(appId, from, amount);
+                            }
+                        }
                     }
                 }
                 return;

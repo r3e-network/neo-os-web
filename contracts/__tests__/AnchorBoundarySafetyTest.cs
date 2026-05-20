@@ -22,9 +22,17 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         {
             string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
-            Assert.Contains("if (data is string)", code);
+            // Auto-stake opt-in: NEP-17 transfer of NEO with a "stake:<appId>"
+            // string memo auto-stakes into the named app. Plain string memos
+            // (no "stake:" prefix) cleanly fall through to deposit-only; this
+            // replaces the prior StdLib.Deserialize-on-untrusted-input which
+            // threw on any non-serialized memo and reverted the whole transfer.
+            Assert.Contains("if (data is ByteString)", code);
+            Assert.Contains("memo.StartsWith(\"stake:\")", code);
             Assert.Contains("StakeFromCredit(appId, from, amount)", code);
             Assert.Contains("private static void StakeFromCredit(string appId, UInt160 user, BigInteger amount)", code);
+            Assert.DoesNotContain("if (data is string)", code);
+            Assert.DoesNotContain("StdLib.Deserialize(payload)", code);
         }
 
         [Fact]

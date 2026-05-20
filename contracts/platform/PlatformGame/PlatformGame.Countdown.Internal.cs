@@ -24,8 +24,14 @@ namespace NeoMiniAppPlatform.Contracts
             if (!round.Active || round.Settled) return;
 
             UInt160 winner = round.LastBuyer;
-            BigInteger winnerPrize = round.Pot * CD_WINNER_SHARE_BPS / 10000;
+            // Distribute 100% of the pot — the prior split (48% winner + 10% next
+            // round + 30% dividends + 7% referral) left 37% of every pot trapped
+            // in the contract because dividends and referrals were never paid out
+            // (no claim methods, dead DividendsClaimed / ReferralEarnings struct
+            // fields). Fold the unused shares into the winner so every pot is
+            // fully distributed: ~90% to winner, ~10% rolls to the next round.
             BigInteger nextRoundPot = round.Pot * CD_NEXT_ROUND_SHARE_BPS / 10000;
+            BigInteger winnerPrize = round.Pot - nextRoundPot;
 
             round.Active = false;
             round.Settled = true;
@@ -94,7 +100,7 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 Id = newRoundId,
                 StartTime = Runtime.Time,
-                EndTime = Runtime.Time + CD_INITIAL_DURATION,
+                EndTime = Runtime.Time + CD_INITIAL_DURATION_MS,
                 Pot = seedPot,
                 TotalKeys = 0,
                 LastBuyer = UInt160.Zero,
