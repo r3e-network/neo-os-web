@@ -82,6 +82,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_TOTAL_BORROWERS = new byte[] { 0x27 };
         private static readonly byte[] PREFIX_PROFIT_ANCHOR_CONTRACT = new byte[] { 0x28 };
         private static readonly byte[] PREFIX_PROFIT_ANCHOR_APP_ID = new byte[] { 0x29 };
+        // Borrower-initiated abandonment: closes the loan and forfeits the NEO
+        // collateral to the contract. Avoids leaving stuck `Active` loans where
+        // a borrower walks away. Per-loan flag distinguishes abandoned from
+        // normally-closed loans (debt-fully-repaid) for off-chain analytics.
+        private static readonly byte[] PREFIX_LOAN_ABANDONED = new byte[] { 0x2A };
+        // Running total of NEO forfeited via AbandonLoan, awaiting admin sweep
+        // through WithdrawAbandonedCollateral (same pattern as capsule penalties).
+        private static readonly byte[] PREFIX_TOTAL_ABANDONED_COLLATERAL = new byte[] { 0x2B };
         #endregion
 
         #region FlashLoan Prefixes (0x30-0x3F)
@@ -229,6 +237,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         [DisplayName("CollateralAdded")]
         public static event CollateralAddedHandler OnCollateralAdded;
+
+        public delegate void LoanAbandonedHandler(string appId, BigInteger loanId, UInt160 borrower, BigInteger collateral);
+        [DisplayName("LoanAbandoned")]
+        public static event LoanAbandonedHandler OnLoanAbandoned;
+
+        public delegate void AbandonedCollateralWithdrawnHandler(string appId, UInt160 to, BigInteger amount);
+        [DisplayName("AbandonedCollateralWithdrawn")]
+        public static event AbandonedCollateralWithdrawnHandler OnAbandonedCollateralWithdrawn;
 
         [DisplayName("ProfitAnchorConfigured")]
         public static event ProfitAnchorConfiguredHandler OnProfitAnchorConfigured;

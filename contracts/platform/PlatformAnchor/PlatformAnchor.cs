@@ -18,6 +18,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void AnchorVoteChangedHandler(string appId, BigInteger agentId, UInt160 votingAccount, ECPoint candidate);
     public delegate void AnchorAgentTransferHandler(string appId, BigInteger fromAgentId, BigInteger toAgentId, BigInteger amount);
     public delegate void AnchorAgentAccountUpdatedHandler(string appId, BigInteger agentId, UInt160 account, ByteString verificationScriptHash);
+    public delegate void AnchorAgentAccountChangeProposedHandler(string appId, BigInteger agentId, UInt160 newAccount, BigInteger executeAfter);
+    public delegate void AnchorAgentAccountChangeCancelledHandler(string appId, BigInteger agentId);
 
     /// <summary>
     /// Shared manual AA-agent routing anchor for TrustAnchor and ProfitAnchor.
@@ -70,6 +72,20 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_AGENT_SCRIPT_HASH = new byte[] { 0x32 };
         private static readonly byte[] PREFIX_AGENT_ACTIVE = new byte[] { 0x35 };
 
+        // Agent rotation timelock (audit follow-up): when an app admin's key is
+        // compromised, the attacker could otherwise redirect every NEO vote to
+        // their own AAs in a single tx. Rotations now stage through a pending
+        // slot and only apply after AGENT_ROTATION_TIMELOCK_MS, giving the
+        // legitimate operator a window to notice and call CancelAgentAccountChange.
+        private static readonly byte[] PREFIX_PENDING_AGENT_ACCOUNT = new byte[] { 0x36 };
+        private static readonly byte[] PREFIX_PENDING_AGENT_SCRIPT = new byte[] { 0x37 };
+        private static readonly byte[] PREFIX_PENDING_AGENT_TIME = new byte[] { 0x38 };
+
+        // 24 hours in milliseconds (Runtime.Time is ms on Neo N3). Tuned for: long
+        // enough that an off-chain monitor + key-rotation flow can react, short
+        // enough that legitimate operational rotations don't feel painful.
+        private const long AGENT_ROTATION_TIMELOCK_MS = 86_400_000;
+
         [DisplayName("AnchorAppRegistered")]
         public static event AnchorAppRegisteredHandler OnAnchorAppRegistered;
 
@@ -93,6 +109,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         [DisplayName("AnchorAgentAccountUpdated")]
         public static event AnchorAgentAccountUpdatedHandler OnAnchorAgentAccountUpdated;
+
+        [DisplayName("AnchorAgentAccountChangeProposed")]
+        public static event AnchorAgentAccountChangeProposedHandler OnAnchorAgentAccountChangeProposed;
+
+        [DisplayName("AnchorAgentAccountChangeCancelled")]
+        public static event AnchorAgentAccountChangeCancelledHandler OnAnchorAgentAccountChangeCancelled;
 
         public static void _deploy(object data, bool update)
         {
