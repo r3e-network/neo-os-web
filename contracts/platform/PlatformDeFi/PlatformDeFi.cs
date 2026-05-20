@@ -145,7 +145,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         #region Capsule Constants
         private const int CAPSULE_FEE_BPS = 100;              // 1%
         private const int CAPSULE_EARLY_PENALTY_BPS = 500;    // 5%
-        private const long CAPSULE_MIN_DEPOSIT = 1;           // 1 NEO (whole units)
+        // 20 NEO is the smallest deposit where the 5% early-withdrawal penalty
+        // rounds to ≥1 NEO under integer math (20 * 500 / 10000 = 1). Anything
+        // smaller would silently waive the penalty; bumping the floor here keeps
+        // CAPSULE_EARLY_PENALTY_BPS economically meaningful.
+        private const long CAPSULE_MIN_DEPOSIT = 20;          // 20 NEO (whole units)
         private const int CAPSULE_MIN_LOCK_DAYS = 7;
         private const int CAPSULE_MAX_LOCK_DAYS = 365;
         private const int TIER1_DAYS = 7;
