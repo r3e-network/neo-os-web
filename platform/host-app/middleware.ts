@@ -13,6 +13,7 @@ export function buildCSP(
   nonce: string,
   options: {
     allowMiniAppEmbedding?: boolean;
+    allowMiniAppFrames?: boolean;
     allowNativeWalletEval?: boolean;
   } = {},
 ): string {
@@ -100,6 +101,11 @@ export function buildCSP(
     .filter((host) => host && /^https:\/\/[A-Za-z0-9.-]+$/.test(host));
   const frameAncestors = [...baseFrameAncestors, ...extraFrameAncestors].join(" ");
 
+  const frameSrc =
+    options.allowMiniAppEmbedding || options.allowMiniAppFrames
+      ? "frame-src 'self' blob:"
+      : "frame-src 'none'";
+
   const csp = [
     "default-src 'self'",
     // Next.js uses inline scripts; nonce-based CSP keeps this strict without 'unsafe-inline'.
@@ -109,7 +115,7 @@ export function buildCSP(
     "img-src 'self' data: https:",
     "font-src 'self' data: https:",
     `connect-src ${connectSrc}`,
-    options.allowMiniAppEmbedding ? "frame-src 'self' blob:" : "frame-src 'none'",
+    frameSrc,
     options.allowMiniAppEmbedding ? `frame-ancestors ${frameAncestors}` : "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
@@ -159,7 +165,11 @@ function resolveMiniAppDetailRewriteId(pathname: string): string | null {
 export function middleware(req: NextRequest) {
   // Skip CSP for Next.js internals and static assets.
   const pathname = req.nextUrl.pathname;
-  const isMiniAppRuntimeAsset = pathname.startsWith("/miniapps/");
+  const detailRewriteId = resolveMiniAppDetailRewriteId(pathname);
+  const isMiniAppDetailHostPage =
+    Boolean(detailRewriteId) || pathname.startsWith("/miniapp-detail/");
+  const isMiniAppRuntimeAsset =
+    pathname.startsWith("/miniapps/") && !detailRewriteId;
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
@@ -173,8 +183,6 @@ export function middleware(req: NextRequest) {
   const nonce = randomNonce();
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-csp-nonce", nonce);
-  const detailRewriteId = resolveMiniAppDetailRewriteId(pathname);
-
   const res = detailRewriteId
     ? NextResponse.rewrite(
         new URL(`/miniapp-detail/${detailRewriteId}`, req.url),
@@ -190,6 +198,7 @@ export function middleware(req: NextRequest) {
     "Content-Security-Policy",
     buildCSP(nonce, {
       allowMiniAppEmbedding: isMiniAppRuntimeAsset,
+      allowMiniAppFrames: isMiniAppDetailHostPage,
       allowNativeWalletEval: isOneGateVaultHtmlPath(pathname),
     }),
   );
