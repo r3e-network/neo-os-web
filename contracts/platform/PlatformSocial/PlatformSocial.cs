@@ -87,6 +87,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_TRUST_ID        = new byte[] { 0x20 };
         private static readonly byte[] PREFIX_TRUSTS          = new byte[] { 0x21 };
         private static readonly byte[] PREFIX_GUARDIANS       = new byte[] { 0x25 };
+        // Per-trust guardian counter so AddGuardian can cap at MAX_GUARDIANS_PER_TRUST
+        // without iterating every PREFIX_GUARDIANS entry on each add.
+        private static readonly byte[] PREFIX_GUARDIAN_COUNT  = new byte[] { 0x27 };
         // Aggregate NEO liability across all active trusts for the app. Incremented
         // on CreateTrust, decremented on ExecuteTrust/CancelTrust. The vault solvency
         // invariant asserts the contract balance covers this total on every payout so
@@ -125,6 +128,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         // labelled as seconds and added directly to Runtime.Time, producing
         // deadlines 1000x sooner than documented (e.g. "7 days" → 10 minutes).
         private const long MIN_PRINCIPAL          = 1;                  // 1 NEO
+        private const int MAX_GUARDIANS_PER_TRUST = 10;                  // bounded storage per trust
         private const long HEARTBEAT_MIN_MS       = 604800000L;          // 7 days
         private const long HEARTBEAT_MAX_MS       = 31536000000L;        // 365 days
         private const int  TRUST_PLATFORM_FEE_BPS = 100;                 // 1%
