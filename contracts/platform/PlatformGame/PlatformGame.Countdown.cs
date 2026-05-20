@@ -56,6 +56,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] CD_PREFIX_TOTAL_ROUNDS       = new byte[] { 0xA7 };
         private static readonly byte[] CD_PREFIX_PLAYER_BADGES      = new byte[] { 0xA8 };
         private static readonly byte[] CD_PREFIX_DIVIDENDS_CLAIMED  = new byte[] { 0xA9 };
+        // Per-buy 5% platform fee accumulator. Without this the fee was siphoned
+        // off into untracked contract balance — admin could never recover it.
+        private static readonly byte[] CD_PREFIX_PLATFORM_FEES      = new byte[] { 0xAA };
 
         // ---------------------------------------------------------------
         //  Countdown data structures
@@ -97,6 +100,7 @@ namespace NeoMiniAppPlatform.Contracts
         public delegate void CountdownRoundStartedHandler(string appId, BigInteger roundId, BigInteger endTime);
         public delegate void CountdownTimeExtendedHandler(string appId, BigInteger roundId, BigInteger newEndTime, BigInteger keysAdded);
         public delegate void CountdownBadgeHandler(string appId, UInt160 player, BigInteger badgeType, string badgeName);
+        public delegate void CountdownPlatformFeesWithdrawnHandler(string appId, UInt160 to, BigInteger amount);
 
         [DisplayName("CountdownKeysPurchased")]
         public static event CountdownKeysPurchasedHandler OnCountdownKeysPurchased;
@@ -112,6 +116,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("CountdownBadge")]
         public static event CountdownBadgeHandler OnCountdownBadge;
+
+        [DisplayName("CountdownPlatformFeesWithdrawn")]
+        public static event CountdownPlatformFeesWithdrawnHandler OnCountdownPlatformFeesWithdrawn;
 
         // ===================================================================
         //  Admin: start a new countdown round
@@ -177,6 +184,18 @@ namespace NeoMiniAppPlatform.Contracts
             round.TotalKeys += keyCount;
             round.LastBuyer = player;
 
+            // Track the 5% platform fee in a per-app accumulator so admin can sweep
+            // it via WithdrawCountdownPlatformFees. Previously the fee was just
+            // subtracted from the pot contribution and sat untracked in contract
+            // GAS balance forever.
+            BigInteger platformFee = cost - potContribution;
+            if (platformFee > 0)
+            {
+                ByteString feeKey = AppKey(appId, CD_PREFIX_PLATFORM_FEES);
+                BigInteger accumulated = (BigInteger)Storage.Get(Storage.CurrentContext, feeKey);
+                Storage.Put(Storage.CurrentContext, feeKey, accumulated + platformFee);
+            }
+
             // Extend timer (capped at max duration from now)
             BigInteger timeToAdd = keyCount * CD_TIME_PER_KEY_MS;
             BigInteger newEndTime = round.EndTime + timeToAdd;
@@ -202,6 +221,31 @@ namespace NeoMiniAppPlatform.Contracts
 
             OnCountdownKeysPurchased(appId, player, keyCount, potContribution, roundId);
             OnCountdownTimeExtended(appId, roundId, newEndTime, keyCount);
+        }
+
+        /// <summary>
+        /// Sweep the accumulated 5% per-buy platform fee to a designated recipient.
+        /// Same admin-gated pattern as the capsule and abandoned-loan sweeps.
+        /// Without this the platform-fee portion of every Countdown buy would be
+        /// permanently locked in the contract.
+        /// </summary>
+        public static void WithdrawCountdownPlatformFees(string appId, UInt160 to)
+        {
+            RequireRegistered(appId);
+            RequireAppAdminOrPlatformAdmin(appId);
+            ValidateAddress(to);
+
+            ByteString feeKey = AppKey(appId, CD_PREFIX_PLATFORM_FEES);
+            BigInteger amount = (BigInteger)Storage.Get(Storage.CurrentContext, feeKey);
+            ExecutionEngine.Assert(amount > 0, "no platform fees");
+
+            Storage.Put(Storage.CurrentContext, feeKey, 0);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, to, amount),
+                "platform fee transfer failed");
+
+            OnCountdownPlatformFeesWithdrawn(appId, to, amount);
         }
 
         /// <summary>
