@@ -242,6 +242,33 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             CompoundCapsuleYield(appId, capsuleId);
         }
 
+        /// <summary>
+        /// Sweep accumulated early-withdrawal penalties to a designated recipient.
+        /// Gated by ValidateAppAuthority — platform admin or the app's own admin.
+        /// Without this hook, penalty NEO sits idle in the contract forever even
+        /// though PREFIX_TOTAL_PENALTIES correctly tracks the running total.
+        /// Withdrawal resets the counter so subsequent sweeps only see new penalties.
+        /// </summary>
+        public static void WithdrawCapsulePenalties(string appId, UInt160 to)
+        {
+            ValidateAppAuthority(appId);
+            ValidateAddress(to);
+
+            ByteString totalPenaltiesKey = AppKey(appId, PREFIX_TOTAL_PENALTIES);
+            BigInteger amount = GetBigInteger(totalPenaltiesKey);
+            ExecutionEngine.Assert(amount > 0, "no penalties to withdraw");
+
+            // Reset the counter BEFORE the transfer so a malicious NEO contract
+            // cannot re-enter and drain the counter twice (checks-effects-interactions).
+            Put(totalPenaltiesKey, 0);
+
+            ExecutionEngine.Assert(
+                NEO.Transfer(Runtime.ExecutingScriptHash, to, amount),
+                "penalty withdrawal transfer failed");
+
+            OnCapsulePenaltiesWithdrawn(appId, to, amount);
+        }
+
         #endregion
 
         // Audit fix M-8 / partial-file-budget: capsule read methods (GetCapsule,
