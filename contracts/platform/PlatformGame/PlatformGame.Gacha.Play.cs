@@ -144,7 +144,13 @@ namespace NeoMiniAppPlatform.Contracts
             if (selectedAssetType == GA_ASSET_NEP17)
             {
                 ExecutionEngine.Assert(selectedItem.Stock >= selectedItem.Amount, "insufficient stock");
-                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.All,
+                // Mirror audit fix M-1 (FlashLoan) / NEW-H-4 (EventTicketPass):
+                // selectedAssetHash is user-controlled (any account can create a
+                // gacha machine and pick the prize asset). CallFlags.All would let
+                // a malicious asset's `transfer` method call other contracts and
+                // re-enter the platform under our witness. AllowCall + AllowNotify
+                // is sufficient for a legitimate NEP-17 settlement.
+                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.AllowCall | CallFlags.AllowNotify,
                     Runtime.ExecutingScriptHash, play.Player, selectedItem.Amount, null);
                 ExecutionEngine.Assert(ok, "prize transfer failed");
 
@@ -157,7 +163,7 @@ namespace NeoMiniAppPlatform.Contracts
                 // Pop last token from the token list
                 string tokenId = PopGachaItemToken(appId, machineId, expectedIndex, selectedItem.TokenCount);
                 selectedItem.TokenCount -= 1;
-                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.All,
+                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.AllowCall | CallFlags.AllowNotify,
                     Runtime.ExecutingScriptHash, play.Player, tokenId, null);
                 ExecutionEngine.Assert(ok, "NFT transfer failed");
 

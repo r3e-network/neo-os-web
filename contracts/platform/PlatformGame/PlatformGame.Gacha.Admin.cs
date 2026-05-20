@@ -192,7 +192,10 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(Storage.CurrentContext, pendingKey, amount);
 
             string inventoryMemo = appId + GA_INVENTORY_MEMO_SUFFIX + ":" + machineId + ":" + itemIndex;
-            bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.All,
+            // item.AssetHash is user-controlled (machine owner chose it in AddGachaItem).
+            // Restrict to AllowCall + AllowNotify per the M-1 / NEW-H-4 audit pattern
+            // so a malicious asset cannot re-enter the platform under our witness.
+            bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.AllowCall | CallFlags.AllowNotify,
                 owner, Runtime.ExecutingScriptHash, amount, (ByteString)inventoryMemo);
             Storage.Delete(Storage.CurrentContext, pendingKey);
             ExecutionEngine.Assert(ok, "transfer failed");
