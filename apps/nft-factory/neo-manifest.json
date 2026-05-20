@@ -20,8 +20,8 @@
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/nft-factory/index.html",
-    "icon": "/miniapps/nft-factory/logo.svg",
-    "banner": "/miniapps/nft-factory/banner.svg"
+    "icon": "/miniapp-assets/nft-factory/logo.svg",
+    "banner": "/miniapp-assets/nft-factory/banner.svg"
   },
   "permissions": ["wallet:sign-message", "read:blockchain"],
   "features": {

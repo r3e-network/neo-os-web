@@ -86,6 +86,30 @@ namespace NeoMiniAppPlatform.Contracts
                 contributor);
         }
 
+        // Audit fix NEW-H-8: per-funder matching-pool contribution ledger.
+        private static ByteString BuildMatchingFunderKey(BigInteger roundId, UInt160 funder)
+        {
+            return (ByteString)Helper.Concat(
+                Helper.Concat(PREFIX_MATCHING_FUNDER, (ByteString)roundId.ToByteArray()),
+                funder);
+        }
+
+        private static BigInteger GetBigInteger(ByteString key)
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, key);
+            return data == null ? 0 : (BigInteger)data;
+        }
+
+        private static void Put(ByteString key, BigInteger value)
+        {
+            Storage.Put(Storage.CurrentContext, key, value);
+        }
+
+        private static void Delete(ByteString key)
+        {
+            Storage.Delete(Storage.CurrentContext, key);
+        }
+
         private static BigInteger GetContributionInternal(UInt160 contributor, BigInteger roundId, BigInteger projectId)
         {
             byte[] key = BuildContributionKey(contributor, roundId, projectId);

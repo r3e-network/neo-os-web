@@ -220,7 +220,14 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (ContractManagement.GetContract(to) != null)
             {
-                Contract.Call(to, "onNEP11Payment", CallFlags.All, from, tokenId, data);
+                // Audit fix NEW-H-4: CallFlags.All let the recipient write back
+                // to MiniAppEventTicketPass storage and reuse the sender's
+                // witness for other tickets. AllowCall lets the recipient
+                // perform downstream business logic (e.g. logging, escrow
+                // record-keeping), AllowNotify lets it emit events. It can
+                // no longer write to platform storage under our witness or
+                // ride the seller's signature to drain other tickets.
+                Contract.Call(to, "onNEP11Payment", CallFlags.AllowCall | CallFlags.AllowNotify, from, tokenId, data);
             }
             return true;
         }

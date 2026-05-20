@@ -14,6 +14,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         public static BigInteger CreateGachaMachine(
             string appId,
+            UInt160 creator,
             string name,
             BigInteger price)
         {
@@ -21,7 +22,12 @@ namespace NeoMiniAppPlatform.Contracts
             RequireNotPaused(appId);
             RequireGameType(appId, GameType_Gacha);
 
-            UInt160 creator = Runtime.Transaction.Sender;
+            // Audit fix NEW-H-3: identify the creator via an explicit parameter
+            // and witness check rather than `Runtime.Transaction.Sender`. The
+            // previous Tx.Sender approach failed for multi-sig and AA contract
+            // accounts where the first signer's script-hash is not the user's
+            // intended owner identity. Now mirrors PlatformSocial.Trust.ExecuteTrust
+            // (audit fix M-7).
             ValidateUserOrAbstractAccount(creator);
 
             ExecutionEngine.Assert(name != null && name.Length > 0, "name required");

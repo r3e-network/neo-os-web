@@ -69,7 +69,10 @@ export function buildEmbeddedDappUrl(
       : `/miniapps/${slug}/index.html`);
   const params = new URLSearchParams();
   params.set("network", network);
-  params.set("source", "platform");
+  // "embed" tells the standalone dApp shell to render in minimal mode
+  // (no internal sidebar/tabs/stats) since the platform iframe already
+  // provides the surrounding chrome — see MiniAppRoot.standaloneDappMode.
+  params.set("source", "embed");
   if (launchContext?.operation)
     params.set("operation", launchContext.operation);
   if (launchContext?.tab) params.set("tab", launchContext.tab);
@@ -157,7 +160,7 @@ const TONE_STYLES: Record<
     soft: "bg-emerald-50",
     active: "border-emerald-500 bg-emerald-50 text-emerald-950",
     text: "text-emerald-700",
-    ring: "focus-visible:ring-emerald-400/40",
+    ring: "focus-visible:ring-neo/40",
   },
   violet: {
     accent: "bg-violet-500",
@@ -219,33 +222,21 @@ export function PlayShell({
 }) {
   const styles = toneStyle(tone);
 
+  // The page-level AppDetailHeader is the visible chrome; PlayShell's own
+  // header is intentionally screen-reader-only so the dApp iframe stays
+  // above the fold. Title remains an <h2> for assistive tech + tests.
+  void styles;
   return (
     <div className="bg-white">
-      <div className="hidden border-b border-gray-100 bg-white px-4 py-3 sm:block sm:px-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
-              <span className={`h-2.5 w-2.5 rounded-full ${styles.accent}`} />
-              <span className="truncate text-xs font-black uppercase tracking-wide text-gray-700">
-                {app.name}
-              </span>
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gray-700">
-                Native dApp
-              </span>
-            </div>
-            <h2 className="m-0 text-base font-black tracking-tight text-gray-950 sm:text-lg">
-              {title}
-            </h2>
-            <p className="mt-1 max-w-3xl text-sm leading-5 text-gray-600">
-              {subtitle}
-            </p>
-          </div>
-        </div>
+      <div className="sr-only">
+        <h2>{title}</h2>
+        <p>{subtitle}</p>
+        <span>{app.name}</span>
       </div>
-      <div className="p-3 sm:p-4">
-        <div className="min-w-0 space-y-3">{children}</div>
+      <div className="p-0">
+        <div className="min-w-0">{children}</div>
         {side && (
-          <div className="mt-3">
+          <div className="mt-2 px-2 sm:px-3">
             <SecondaryInfo
               title="Activity and details"
               description="Recent events, raw readings, and diagnostic context are available when needed."
@@ -256,7 +247,7 @@ export function PlayShell({
         )}
       </div>
       {footer && (
-        <div className="border-t border-gray-100 bg-gray-50/80 px-4 py-2.5 sm:px-5">
+        <div className="border-t border-gray-100 bg-gray-50/80 px-3 py-1.5 text-xs sm:px-4">
           {footer}
         </div>
       )}
@@ -549,13 +540,21 @@ export function ActionBoard({
 }
 
 export function EmbeddedDappSurface({
+  // title/subtitle are intentionally accepted but no longer rendered as a
+  // header block — the actual dApp iframe IS the focal content. A small
+  // pop-out link still appears for users who want a full-window view.
   title,
   subtitle,
   url,
   tone = "emerald",
   frameTitle,
   testId,
-  heightClass = "h-[620px]",
+  // Default to a viewport-driven height with a sensible minimum so the
+  // dApp's core UI fits above the fold on common screen sizes without
+  // collapsing to nothing on short windows. The Polymarket-style compact
+  // chrome (navbar 64px + sticky detail header ~48px + small footer ~32px
+  // + outer padding ~28px ≈ 172px) leaves the rest for the dApp.
+  heightClass = "min-h-[580px] h-[calc(100vh-172px)]",
 }: {
   title: string;
   subtitle: string;
@@ -565,33 +564,27 @@ export function EmbeddedDappSurface({
   testId: string;
   heightClass?: string;
 }) {
-  const styles = toneStyle(tone);
+  void title;
+  void subtitle;
+  void tone;
 
   return (
-    <section className="overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 bg-gray-50/80 px-3.5 py-3">
-        <div className="min-w-0">
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${styles.accent}`} />
-            <span className="text-[10px] font-black uppercase tracking-wide text-gray-700">
-              Live dApp
-            </span>
-          </div>
-          <h3 className="m-0 text-sm font-black text-gray-950">{title}</h3>
-          <p className="m-0 mt-1 max-w-3xl text-xs leading-5 text-gray-600">
-            {subtitle}
-          </p>
-        </div>
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className={`inline-flex shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-black transition hover:bg-gray-50 ${styles.text}`}
-        >
-          Open full dApp
-          <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden="true" />
-        </a>
-      </div>
+    <section className="group relative overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5">
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Open dApp in a new window"
+        title="Open in a new window"
+        className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white/95 px-2 py-1 text-[11px] font-semibold text-gray-600 opacity-0 shadow-sm backdrop-blur transition hover:text-gray-900 group-hover:opacity-100 focus:opacity-100"
+      >
+        <ArrowRightLeft className="h-3 w-3" aria-hidden="true" />
+        New window
+      </a>
+      {/* Audit fix C-4: miniapps run in the host's origin and must be sandboxed.
+          allow-scripts is required for the dApp to function; allow-same-origin is
+          intentionally omitted so a malicious miniapp cannot read window.parent.* or
+          lift sb-access-token from sessionStorage. */}
       <iframe
         title={frameTitle}
         src={url}
@@ -599,6 +592,7 @@ export function EmbeddedDappSurface({
         className={`block ${heightClass} w-full border-0 bg-white`}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
+        sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
       />
     </section>
   );

@@ -25,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             string appId,
             UInt160 creator,
             BigInteger packetCount,
-            BigInteger expirySeconds)
+            BigInteger expiryMs)
         {
             ValidateAppNotPaused(appId);
             ValidateAppRegistered(appId, APP_TYPE_ENVELOPE);
@@ -41,7 +41,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(totalAmount >= MIN_ENVELOPE_AMOUNT, "min 0.1 GAS");
             ExecutionEngine.Assert(packetCount > 0 && packetCount <= MAX_PACKETS, "1-100 packets");
             ExecutionEngine.Assert(totalAmount >= packetCount * MIN_PER_PACKET, "min 0.01 GAS per packet");
-            ExecutionEngine.Assert(expirySeconds > 0, "expiry required");
+            // expiryMs is the lifetime in milliseconds (Runtime.Time is ms on Neo N3).
+            ExecutionEngine.Assert(expiryMs > 0, "expiry required");
 
             ConsumeGasCredit(creator, totalAmount);
 
@@ -59,15 +60,25 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 RemainingAmount = totalAmount,
                 BestLuckAddress = UInt160.Zero,
                 BestLuckAmount = 0,
-                ExpiryTime = Runtime.Time + (ulong)expirySeconds
+                ExpiryTime = Runtime.Time + (ulong)expiryMs
             };
             StoreEnvelope(appId, envelopeId, envelope);
 
-            // Pre-generate deterministic packet amounts using block-derived seed
+            // Audit fix H-9 (partial): mix in `Runtime.GetRandom()` so the seed cannot
+            // be fully pre-computed from public inputs (envelopeId, creator, Runtime.Time)
+            // by a mempool observer. `Runtime.GetRandom()` is the consensus-derived
+            // beacon for the block and is unknown until the create tx mines. This is
+            // still weaker than a Morpheus VRF callback (which would make the split
+            // entirely unpredictable to the block producer too) — see open work to
+            // route envelope amounts through the same VRF callback flow the games use.
+            BigInteger beacon = Runtime.GetRandom();
+            if (beacon < 0) beacon = -beacon;
             ByteString seed = CryptoLib.Sha256(
                 Helper.Concat(
-                    Helper.Concat((ByteString)envelopeId.ToByteArray(), (ByteString)(byte[])creator),
-                    (ByteString)Runtime.Time.ToString()));
+                    Helper.Concat(
+                        Helper.Concat((ByteString)envelopeId.ToByteArray(), (ByteString)(byte[])creator),
+                        (ByteString)Runtime.Time.ToString()),
+                    (ByteString)beacon.ToByteArray()));
             StoreGeneratedAmounts(appId, envelopeId, totalAmount, packetCount, (byte[])seed);
 
             OnEnvelopeCreated(appId, envelopeId, creator, totalAmount, packetCount);

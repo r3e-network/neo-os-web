@@ -23,15 +23,20 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             string appId,
             UInt160 owner,
             UInt160 heir,
-            BigInteger deadlineSeconds)
+            BigInteger heartbeatIntervalMs)
         {
             ValidateAppNotPaused(appId);
             ValidateAppRegistered(appId, APP_TYPE_TRUST);
             ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
             ExecutionEngine.Assert(owner != UInt160.Zero && owner.IsValid, "invalid owner");
             ExecutionEngine.Assert(heir != UInt160.Zero && heir.IsValid && heir != owner, "invalid heir");
+            // Runtime.Time is BLOCK TIMESTAMP IN MILLISECONDS on Neo N3, so the
+            // heartbeat interval must be in ms (HEARTBEAT_MIN_MS = 7 days,
+            // HEARTBEAT_MAX_MS = 365 days). Previously the parameter was treated
+            // as seconds and added directly to Runtime.Time, making the actual
+            // deadline 1000x sooner than declared.
             ExecutionEngine.Assert(
-                deadlineSeconds >= HEARTBEAT_MIN_SECONDS && deadlineSeconds <= HEARTBEAT_MAX_SECONDS,
+                heartbeatIntervalMs >= HEARTBEAT_MIN_MS && heartbeatIntervalMs <= HEARTBEAT_MAX_MS,
                 "invalid interval");
 
             // Read the owner's NEO credit balance as the principal
@@ -55,8 +60,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 Principal = neoAmount,
                 CreatedTime = Runtime.Time,
                 LastHeartbeat = Runtime.Time,
-                HeartbeatInterval = deadlineSeconds,
-                Deadline = Runtime.Time + (ulong)deadlineSeconds,
+                HeartbeatInterval = heartbeatIntervalMs,
+                Deadline = Runtime.Time + (ulong)heartbeatIntervalMs,
                 Active = true,
                 Executed = false,
                 Cancelled = false
@@ -79,6 +84,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(trust.Active, "trust not active");
             ExecutionEngine.Assert(Runtime.CheckWitness(trust.Owner), "unauthorized");
 
+            // Audit fix M-6: refuse heartbeats once the deadline + grace window has
+            // elapsed. Without this check, an owner who reappeared after the heir
+            // could already legitimately execute the trust could simply heartbeat to
+            // re-extend the timer indefinitely, defeating the "if owner is gone, heir
+            // inherits" semantic.
+            BigInteger graceDeadline = trust.Deadline + GRACE_PERIOD_MS;
+            ExecutionEngine.Assert(Runtime.Time < (ulong)graceDeadline, "grace period elapsed");
+
             trust.LastHeartbeat = Runtime.Time;
             trust.Deadline = Runtime.Time + trust.HeartbeatInterval;
             StoreTrust(appId, trustId, trust);
@@ -89,21 +102,28 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         /// <summary>
         /// Heir (or guardian) executes the trust after the deadline + grace period.
         /// </summary>
-        public static void ExecuteTrust(string appId, BigInteger trustId)
+        public static void ExecuteTrust(string appId, BigInteger trustId, UInt160 executor)
         {
             ValidateAppNotPaused(appId);
             ValidateAppRegistered(appId, APP_TYPE_TRUST);
+            ExecutionEngine.Assert(executor != null && executor.IsValid, "invalid executor");
 
             TrustData trust = GetTrust(appId, trustId);
             ExecutionEngine.Assert(trust.Active, "trust not active");
             ExecutionEngine.Assert(!trust.Executed, "already executed");
 
-            BigInteger graceDeadline = trust.Deadline + GRACE_PERIOD_SECONDS;
+            BigInteger graceDeadline = trust.Deadline + GRACE_PERIOD_MS;
             ExecutionEngine.Assert(Runtime.Time >= (ulong)graceDeadline, "owner still alive");
 
-            // Must be the heir or a registered guardian
-            bool isHeir = Runtime.CheckWitness(trust.Heir);
-            bool isGuardian = IsGuardian(appId, trustId, Runtime.Transaction.Sender);
+            // Audit fix M-7: previous version used `Runtime.Transaction.Sender` to
+            // identify the guardian, which (a) is just the first signer of the tx and
+            // not a witness assertion, and (b) fails for multi-sig / contract-account
+            // guardians whose `Tx.Sender` may not match `Guardians[]`. Require the
+            // executor address explicitly and verify it via `CheckWitness`, matching
+            // every other authorization path in this codebase.
+            ExecutionEngine.Assert(Runtime.CheckWitness(executor), "executor witness required");
+            bool isHeir = executor == trust.Heir;
+            bool isGuardian = IsGuardian(appId, trustId, executor);
             ExecutionEngine.Assert(isHeir || isGuardian, "unauthorized executor");
 
             ExecutionEngine.Assert(

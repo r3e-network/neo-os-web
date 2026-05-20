@@ -1,11 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
 import { MiniAppInfo } from "./types";
 import { ArrowLeft } from "lucide-react";
 import { isFlagshipMiniApp } from "@/lib/miniapp-showcase";
-import {
-  buildMiniAppBannerSources,
-  buildModernImageSources,
-} from "@/lib/miniapp-media";
 import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 
 type Props = {
@@ -13,161 +9,85 @@ type Props = {
   onBack: () => void;
 };
 
+/**
+ * Polymarket-style compact detail header.
+ * One sticky row, ~48px tall, so the play area stays above the fold.
+ *   [< back] [icon] AppName · category · status   [appSurface chip]
+ * The full description and banner live in the page status board / dApp itself.
+ */
 export function AppDetailHeader({ app, onBack }: Props) {
   const isFlagship = isFlagshipMiniApp(app.app_id);
-  const appSurface = app.contract_hash ? "Contract-backed" : "MiniApp";
-  let statusBadge = "Unavailable";
-  let statusColor = "text-gray-500 bg-gray-100 border-gray-200";
+  const appSurface = app.contract_hash ? "Contract" : "MiniApp";
+
+  let statusLabel = "Unavailable";
+  let statusDotClass = "bg-gray-400";
+  let statusTextClass = "text-gray-500";
   if (app.status === "active") {
-    statusBadge = "Online";
-    statusColor = "text-emerald-700 bg-emerald-50 border-emerald-200";
+    statusLabel = "Online";
+    statusDotClass = "bg-emerald-500";
+    statusTextClass = "text-emerald-700";
   } else if (app.status === "beta") {
-    statusBadge = "Beta";
-    statusColor = "text-sky-700 bg-sky-50 border-sky-200";
+    statusLabel = "Beta";
+    statusDotClass = "bg-sky-500";
+    statusTextClass = "text-sky-700";
   } else if (app.status === "disabled") {
-    statusBadge = "Maintenance";
-    statusColor = "text-amber-700 bg-amber-50 border-amber-200";
+    statusLabel = "Maintenance";
+    statusDotClass = "bg-amber-500";
+    statusTextClass = "text-amber-700";
   } else if (app.status === "pending") {
-    statusBadge = "Pending";
-    statusColor = "text-gray-500 bg-gray-100 border-gray-200";
+    statusLabel = "Pending";
+    statusDotClass = "bg-gray-400";
+    statusTextClass = "text-gray-500";
   }
 
-  const bannerSources = useMemo(
-    () =>
-      buildMiniAppBannerSources({
-        appID: app.app_id,
-        entryURL: app.entry_url,
-        bannerURL: app.banner_url,
-        manifest: app.manifest || null,
-      }),
-    [app.app_id, app.banner_url, app.entry_url, app.manifest],
-  );
-  const [bannerIndex, setBannerIndex] = useState(0);
-
-  useEffect(() => {
-    setBannerIndex(0);
-  }, [bannerSources]);
-
-  const bannerSource = bannerSources[bannerIndex];
-  const modernBannerSources = buildModernImageSources(bannerSource);
-
   return (
-    <header className="border-b border-gray-200 bg-white/95 px-3 py-3 shadow-sm shadow-gray-950/5 backdrop-blur sm:px-6 sm:py-4">
-      <div className="mx-auto max-w-[1600px]">
+    <header className="sticky top-16 z-20 border-b border-gray-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex max-w-[1600px] items-center gap-2 px-3 py-2 sm:px-5 sm:py-2.5">
         <button
           type="button"
           onClick={onBack}
           aria-label="Go back"
-          className="group mb-2 flex w-fit cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:mb-3 sm:gap-2 sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm"
+          className="group flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         >
-          <ArrowLeft
-            size={15}
-            className="transition-transform duration-200 group-hover:-translate-x-0.5"
-          />
-          Back to MiniApps
+          <ArrowLeft size={16} />
         </button>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-white">
+          <MiniAppLogo
+            appId={app.app_id}
+            category={app.category}
+            entryUrl={app.entry_url}
+            logoUrl={app.logo_url}
+            manifest={app.manifest || null}
+            size="sm"
+            className="h-full w-full"
+            alt={app.name}
+          />
+        </div>
+        <h1
+          className="m-0 truncate text-sm font-bold text-gray-900 sm:text-base"
+          title={app.name}
+        >
+          {app.name}
+        </h1>
+        <span className="hidden h-4 w-px shrink-0 bg-gray-200 sm:block" />
+        <span className="hidden text-xs font-semibold capitalize text-gray-500 sm:inline">
+          {app.category}
+        </span>
+        <span className="hidden h-4 w-px shrink-0 bg-gray-200 sm:block" />
+        <span className="hidden items-center gap-1.5 text-xs font-semibold sm:inline-flex">
+          <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
+          <span className={statusTextClass}>{statusLabel}</span>
+        </span>
+        {isFlagship && (
+          <span className="hidden rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 sm:inline">
+            Flagship
+          </span>
+        )}
 
-        <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-sm shadow-gray-950/5 sm:h-[72px] sm:w-[72px] sm:rounded-2xl sm:p-1.5">
-              <MiniAppLogo
-                appId={app.app_id}
-                category={app.category}
-                entryUrl={app.entry_url}
-                logoUrl={app.logo_url}
-                manifest={app.manifest || null}
-                size="lg"
-                className="h-full w-full rounded-lg"
-                alt={app.name}
-              />
-            </div>
-
-            <div className="min-w-0">
-              <div className="mb-1.5 flex flex-wrap items-center gap-1.5 sm:mb-2 sm:gap-2">
-                {isFlagship && (
-                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 sm:px-2.5 sm:py-1 sm:text-[11px]">
-                    Flagship
-                  </span>
-                )}
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 sm:px-2.5 sm:py-1 sm:text-[11px]">
-                  {app.category}
-                </span>
-                <span className="hidden rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 sm:inline-flex sm:px-2.5 sm:py-1 sm:text-[11px]">
-                  {appSurface}
-                </span>
-                <span
-                  className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-[11px] ${statusColor}`}
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span
-                      className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${app.status === "active" ? "bg-emerald-500" : app.status === "beta" ? "bg-sky-400" : "hidden"}`}
-                    />
-                    <span
-                      className={`relative inline-flex h-2 w-2 rounded-full ${app.status === "active" ? "bg-emerald-500" : app.status === "beta" ? "bg-sky-400" : "bg-current"}`}
-                    />
-                  </span>
-                  {statusBadge}
-                </span>
-              </div>
-
-              <h1
-                className="m-0 truncate text-xl font-black text-gray-900 sm:text-3xl"
-                title={app.name}
-              >
-                {app.name}
-              </h1>
-              <p className="mt-0.5 line-clamp-1 max-w-4xl text-xs leading-5 text-gray-500 sm:mt-1 sm:line-clamp-2 sm:text-sm">
-                {app.description}
-              </p>
-            </div>
-          </div>
-
-          <div className="relative hidden h-24 w-64 shrink-0 overflow-hidden rounded-[20px] border border-gray-200 bg-gradient-to-br from-emerald-50 via-white to-sky-50 shadow-sm shadow-gray-950/5 lg:block">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(16,185,129,0.16),transparent_36%),radial-gradient(circle_at_82%_70%,rgba(14,165,233,0.14),transparent_36%)]" />
-            <div className="absolute inset-0 flex items-center gap-3 px-4 text-gray-900">
-              <MiniAppLogo
-                appId={app.app_id}
-                category={app.category}
-                entryUrl={app.entry_url}
-                logoUrl={app.logo_url}
-                manifest={app.manifest || null}
-                size="md"
-                className="rounded-lg shadow-none"
-                alt=""
-              />
-              <div className="min-w-0">
-                <p className="m-0 truncate text-sm font-black">{app.name}</p>
-                <p className="m-0 mt-1 truncate text-xs font-semibold text-gray-500">
-                  Integrated dApp runtime
-                </p>
-              </div>
-            </div>
-            {bannerSource ? (
-              <picture className="absolute inset-0 block h-full w-full">
-                {modernBannerSources.avif && (
-                  <source srcSet={modernBannerSources.avif} type="image/avif" />
-                )}
-                {modernBannerSources.webp && (
-                  <source srcSet={modernBannerSources.webp} type="image/webp" />
-                )}
-                <img
-                  src={bannerSource}
-                  alt=""
-                  aria-hidden="true"
-                  className="h-full w-full object-cover"
-                  loading="eager"
-                  decoding="async"
-                  onError={() => {
-                    setBannerIndex((prev) =>
-                      prev + 1 < bannerSources.length
-                        ? prev + 1
-                        : bannerSources.length,
-                    );
-                  }}
-                />
-              </picture>
-            ) : null}
-          </div>
+        <div className="ml-auto hidden items-center gap-2 sm:flex">
+          <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+            {appSurface}
+          </span>
         </div>
       </div>
     </header>

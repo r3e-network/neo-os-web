@@ -94,7 +94,7 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 Id = newRoundId,
                 StartTime = Runtime.Time,
-                EndTime = Runtime.Time + CD_INITIAL_DURATION,
+                EndTime = Runtime.Time + CD_INITIAL_DURATION_MS,
                 Pot = seedPot,
                 TotalKeys = 0,
                 LastBuyer = UInt160.Zero,

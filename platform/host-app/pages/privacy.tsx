@@ -40,7 +40,7 @@ export default function PrivacyPage() {
       <main className="mx-auto max-w-4xl px-6 py-14">
         <div className="space-y-5">
           {sections.map((section) => (
-            <Card key={section.title} className="p-6">
+            <Card key={section.title} className="glass-card p-6">
               <h2 className="text-lg font-bold text-gray-900">{section.title}</h2>
               <p className="mt-3 text-sm leading-6 text-gray-600">{section.body}</p>
             </Card>

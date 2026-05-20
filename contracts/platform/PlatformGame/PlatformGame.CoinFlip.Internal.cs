@@ -29,20 +29,37 @@ namespace NeoMiniAppPlatform.Contracts
         private static void RecordCoinFlipBet(string appId, UInt160 player, BigInteger amount)
         {
             BigInteger currentTime = Runtime.Time;
-            BigInteger currentDay = currentTime / 86400000;
 
-            BigInteger dailyTotal = GetCoinFlipDailyBet(appId, player);
+            // Audit fix M-5: read `lastBetTime` BEFORE overwriting `CF_PREFIX_PLAYER_LAST`
+            // so the betCount reset branch (`elapsed >= cooldown*5`) actually fires.
+            // Audit fix M-4: rolling 24-hour window keyed on an anchor timestamp rather
+            // than a calendar-day bucket so straddling UTC midnight no longer halves the
+            // effective daily cap.
+            BigInteger lastBetTime = AppGetInt(appId, CF_PREFIX_PLAYER_LAST, player);
+            BigInteger elapsed = currentTime - lastBetTime;
+
             byte[] dailyKey = AppKey(appId, CF_PREFIX_PLAYER_DAILY, player);
+            ByteString existing = Storage.Get(Storage.CurrentContext, dailyKey);
+            BigInteger anchor = currentTime;
+            BigInteger storedTotal = 0;
+            if (existing != null)
+            {
+                object[] stored = (object[])StdLib.Deserialize(existing);
+                BigInteger storedAnchor = (BigInteger)stored[0];
+                BigInteger candidateTotal = (BigInteger)stored[1];
+                if (currentTime - storedAnchor < 86400000)
+                {
+                    anchor = storedAnchor;
+                    storedTotal = candidateTotal;
+                }
+            }
             Storage.Put(Storage.CurrentContext, dailyKey,
-                StdLib.Serialize(new object[] { currentDay, dailyTotal + amount }));
+                StdLib.Serialize(new object[] { anchor, storedTotal + amount }));
 
             Storage.Put(Storage.CurrentContext,
                 AppKey(appId, CF_PREFIX_PLAYER_LAST, player), currentTime);
 
-            BigInteger lastBetTime = AppGetInt(appId, CF_PREFIX_PLAYER_LAST, player);
-            BigInteger elapsed = currentTime - lastBetTime;
             BigInteger betCount = AppGetInt(appId, CF_PREFIX_PLAYER_COUNT, player);
-
             if (elapsed >= CF_COOLDOWN_MS * 5)
             {
                 betCount = 1;
@@ -62,11 +79,10 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString data = Storage.Get(Storage.CurrentContext, dailyKey);
             if (data == null) return 0;
 
+            // Audit fix M-4: rolling 24h window, see RecordCoinFlipBet.
             object[] stored = (object[])StdLib.Deserialize(data);
-            BigInteger storedDay = (BigInteger)stored[0];
-            BigInteger currentDay = Runtime.Time / 86400000;
-
-            if (storedDay != currentDay) return 0;
+            BigInteger anchor = (BigInteger)stored[0];
+            if (Runtime.Time - anchor >= 86400000) return 0;
             return (BigInteger)stored[1];
         }
 

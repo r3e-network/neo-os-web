@@ -45,7 +45,16 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Multi-tenant game engine consolidating Countdown, CoinFlip, Gacha, and Dice into one reusable contract.")]
-    [ContractPermission("*", "*")]
+    // Audit fix H-11: wildcard `*:*` permission replaced with explicit allowlist.
+    // - NEO native: needed for collateral/voting paths (transfer, vote, balanceOf).
+    // - GAS native: needed for settlement / payout / balance pre-check.
+    // - Any contract: still allowed for `transfer` and `onNEP17Payment` callbacks so
+    //   Gacha can pay out per-app-registered NEP-17/NEP-11 prize assets and oracle
+    //   request callbacks can be wired. Method scope is constrained so a malicious
+    //   prize asset cannot call arbitrary platform methods back through reentrancy.
+    [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer", "vote", "balanceOf", "getAccountState")]
+    [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer", "balanceOf")]
+    [ContractPermission("*", "transfer", "onNEP17Payment", "onNEP11Payment", "requestFromCallback", "getSelectedCandidate")]
     public partial class PlatformGameContract : SmartContract
     {
         // ---------------------------------------------------------------
@@ -76,10 +85,14 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_GAME_ACTIVE    = new byte[] { 0x84 };
         private static readonly byte[] PREFIX_REENTRANCY     = new byte[] { 0x85 };
 
-        // Timelock for platform admin changes
+        // Timelock for platform admin changes.
+        // Runtime.Time is BLOCK TIMESTAMP IN MILLISECONDS on Neo N3, so the
+        // delay must be expressed in ms for the comparison `Runtime.Time >= changeTime`
+        // to mean "24 hours have passed". Previously stored as seconds (86400)
+        // which gave a ~86-second effective timelock.
         private static readonly byte[] PREFIX_PENDING_PLATFORM_ADMIN = new byte[] { 0x86 };
         private static readonly byte[] PREFIX_PLATFORM_ADMIN_CHANGE_TIME = new byte[] { 0x87 };
-        private const long TIMELOCK_DELAY_SECONDS = 86400; // 24 hours
+        private const long TIMELOCK_DELAY_MS = 86400000; // 24 hours in milliseconds
 
         // ---------------------------------------------------------------
         //  Events
