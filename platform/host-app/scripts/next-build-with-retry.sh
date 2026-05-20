@@ -4,6 +4,7 @@ set -euo pipefail
 ATTEMPTS="${NEXT_BUILD_RETRY_ATTEMPTS:-12}"
 LOCK_DIR="${TMPDIR:-/tmp}/neo-miniapp-host-next-build.lock"
 LOCK_PID_FILE="$LOCK_DIR/pid"
+LOCK_WAIT_SECONDS="${NEXT_BUILD_LOCK_WAIT_SECONDS:-300}"
 
 # Next.js standalone tracing may hit intermittent `.next/*` artifact races on
 # some local filesystems. Default to one build worker for deterministic release
@@ -51,8 +52,25 @@ acquire_build_lock() {
   local existing_pid=""
   existing_pid="$(cat "$LOCK_PID_FILE" 2>/dev/null || true)"
   if [[ -n "$existing_pid" ]] && kill -0 "$existing_pid" >/dev/null 2>&1; then
-    echo "[next-build-with-retry] another host-app build is already running (pid=$existing_pid)"
-    exit 1
+    if [[ "$LOCK_WAIT_SECONDS" -le 0 ]]; then
+      echo "[next-build-with-retry] another host-app build is already running (pid=$existing_pid)"
+      exit 1
+    fi
+
+    echo "[next-build-with-retry] another host-app build is already running (pid=$existing_pid); waiting up to ${LOCK_WAIT_SECONDS}s"
+    local waited=0
+    while [[ "$waited" -lt "$LOCK_WAIT_SECONDS" ]]; do
+      sleep 1
+      waited=$((waited + 1))
+      if ! kill -0 "$existing_pid" >/dev/null 2>&1; then
+        break
+      fi
+    done
+
+    if kill -0 "$existing_pid" >/dev/null 2>&1; then
+      echo "[next-build-with-retry] another host-app build is still running after ${LOCK_WAIT_SECONDS}s (pid=$existing_pid)"
+      exit 1
+    fi
   fi
 
   echo "[next-build-with-retry] removing stale build lock"
