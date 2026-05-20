@@ -222,6 +222,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         /// <summary>
         /// Add a guardian who can execute the trust on behalf of the heir.
+        /// Bounded by MAX_GUARDIANS_PER_TRUST so a compromised owner key can't
+        /// inflate per-trust storage indefinitely with spam-added guardians.
         /// </summary>
         public static void AddGuardian(string appId, BigInteger trustId, UInt160 guardian)
         {
@@ -234,7 +236,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(guardian != UInt160.Zero && guardian.IsValid && guardian != trust.Owner, "invalid guardian");
             ExecutionEngine.Assert(!IsGuardian(appId, trustId, guardian), "already guardian");
 
+            ByteString countKey = AppKey(appId, PREFIX_GUARDIAN_COUNT, trustId);
+            BigInteger count = GetBigInteger(countKey);
+            ExecutionEngine.Assert(count < MAX_GUARDIANS_PER_TRUST, "guardian quota reached");
+
             Put(AppKey(appId, PREFIX_GUARDIANS, trustId, guardian), 1);
+            Put(countKey, count + 1);
         }
 
         /// <summary>
