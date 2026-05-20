@@ -22,9 +22,16 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         {
             string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
-            Assert.Contains("if (data is string)", code);
+            // Audit fix NEW-M-7: auto-stake from an NEP-17 transfer now requires
+            // a structured 2-element StdLib-serialized array `["stake", appId]`.
+            // The old bare-string-memo trigger was unsafe (any memo matching a
+            // registered appId would silently auto-stake).
+            Assert.Contains("if (data is ByteString)", code);
+            Assert.Contains("StdLib.Deserialize(payload)", code);
+            Assert.Contains("op == \"stake\"", code);
             Assert.Contains("StakeFromCredit(appId, from, amount)", code);
             Assert.Contains("private static void StakeFromCredit(string appId, UInt160 user, BigInteger amount)", code);
+            Assert.DoesNotContain("if (data is string)", code);
         }
 
         [Fact]

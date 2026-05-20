@@ -38,6 +38,8 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Description", "Quadratic Funding rounds for public grants with off-chain matching.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")]  // GAS token
     [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer")]  // NEO token
+    // Audit fix NEW-H-2: pause-registry isPaused callback (MiniAppBase.ValidateNotGloballyPaused).
+    [ContractPermission("*", "isPaused")]
     public partial class MiniAppQuadraticFunding : MiniAppBase
     {
         #region App Constants
@@ -79,6 +81,11 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_CREATOR_ROUNDS = new byte[] { 0x29 };
         /// <summary>Storage prefix for contribution.</summary>
         private static readonly byte[] PREFIX_CONTRIBUTION = new byte[] { 0x2A };
+        // Audit fix NEW-H-8: per-funder matching-pool contributions. Maps
+        // (roundId, funder) -> contributed amount so CancelRound can refund
+        // proportionally instead of paying the entire matching pool back to
+        // the round creator.
+        private static readonly byte[] PREFIX_MATCHING_FUNDER = new byte[] { 0x2B };
         #endregion
 
         #region Data Structures

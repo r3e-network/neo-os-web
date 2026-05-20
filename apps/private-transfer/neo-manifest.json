@@ -32,13 +32,13 @@
     "icon": "/miniapps/private-transfer/logo.jpg",
     "banner": "/miniapps/private-transfer/banner.jpg"
   },
-  "permissions": {
-    "payments": true,
-    "oracle": true,
-    "compute": true,
-    "confidential": true,
-    "read": true
-  },
+  "permissions": [
+    "invoke:primary",
+    "oracle",
+    "compute",
+    "confidential",
+    "read:blockchain"
+  ],
   "features": {
     "stateless": true,
     "offlineSupport": false,

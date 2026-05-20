@@ -173,6 +173,11 @@ function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegratio
     morpheusDatafeedCvmId: registry.morpheus.datafeedCvmId,
     morpheusDatafeedCvmName: registry.morpheus.datafeedCvmName,
     morpheusDatafeedAttestationExplorerUrl: registry.morpheus.datafeedAttestationExplorerUrl,
+    // Optional-field reads use `(...) as Record<string, string>` because the
+    // canonical Morpheus registry can publish per-network field sets — for
+    // example `aaAddressMarket` and `aaPaymaster` currently exist on testnet
+    // but not on mainnet. The frontend code treats missing fields as empty
+    // strings rather than typecheck-failing.
     contracts: {
       neo: NEO_HASH,
       gas: GAS_HASH,
@@ -181,10 +186,10 @@ function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegratio
       aaWeb3AuthVerifier: registry.contracts.aaWeb3AuthVerifier,
       aaSessionKeyVerifier: registry.contracts.aaSessionKeyVerifier,
       aaSocialRecoveryVerifier: registry.contracts.aaSocialRecoveryVerifier,
-      aaAddressMarket: registry.contracts.aaAddressMarket,
-      aaPaymaster: registry.contracts.aaPaymaster,
+      aaAddressMarket: (registry.contracts as Record<string, string>).aaAddressMarket ?? "",
+      aaPaymaster: (registry.contracts as Record<string, string>).aaPaymaster ?? "",
       morpheusOracle: registry.contracts.morpheusOracle,
-      oracleCallbackConsumer: registry.contracts.oracleCallbackConsumer,
+      oracleCallbackConsumer: (registry.contracts as Record<string, string>).oracleCallbackConsumer ?? "",
       morpheusDatafeed: registry.contracts.morpheusDatafeed,
       morpheusNeoDid: registry.contracts.morpheusNeoDid,
     },
@@ -195,10 +200,10 @@ function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegratio
       aaWeb3AuthVerifier: registry.domains.aaWeb3AuthVerifier,
       aaSessionKeyVerifier: registry.domains.aaSessionKeyVerifier,
       aaSocialRecoveryVerifier: registry.domains.aaSocialRecoveryVerifier,
-      aaAddressMarket: registry.domains.aaAddressMarket,
-      aaPaymaster: registry.domains.aaPaymaster,
+      aaAddressMarket: (registry.domains as Record<string, string>).aaAddressMarket ?? "",
+      aaPaymaster: (registry.domains as Record<string, string>).aaPaymaster ?? "",
       oracle: registry.domains.oracle,
-      callbackConsumer: registry.domains.callbackConsumer,
+      callbackConsumer: (registry.domains as Record<string, string>).callbackConsumer ?? "",
       datafeed: registry.domains.datafeed,
       neodid: registry.domains.neodid,
     },

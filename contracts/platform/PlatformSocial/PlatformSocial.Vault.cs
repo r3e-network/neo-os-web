@@ -55,7 +55,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 AttemptCount = 0,
                 Difficulty = difficulty,
                 CreatedTime = Runtime.Time,
-                ExpiryTime = Runtime.Time + DEFAULT_VAULT_EXPIRY,
+                ExpiryTime = Runtime.Time + DEFAULT_VAULT_EXPIRY_MS,
                 Broken = false,
                 Expired = false,
                 Winner = UInt160.Zero
@@ -67,11 +67,49 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         }
 
         /// <summary>
-        /// Attempt to break a vault by providing the plaintext secret.
-        /// The attempt fee (based on difficulty) is taken from attacker's GAS credit
-        /// and added to the bounty pool.
+        /// Commit to a vault attempt without revealing the solution. The commitment
+        /// is `H(attacker || solution || salt)` and must be revealed via
+        /// <see cref="RevealAttempt"/> at least <see cref="VAULT_REVEAL_MIN_DELAY_MS"/>
+        /// later (audit fix H-10).
+        ///
+        /// Front-running protection: the previous single-step `AttemptBreak` accepted
+        /// the plaintext solution in the tx body, so any mempool observer (including
+        /// validators) could copy it, raise their fee, and steal the reward. Commit-
+        /// reveal makes the front-runner's copy useless: the commit references the
+        /// attacker's address, so re-using it would just lose the reveal.
         /// </summary>
-        public static bool AttemptBreak(string appId, BigInteger vaultId, UInt160 attacker, ByteString solution)
+        public static void CommitAttempt(string appId, BigInteger vaultId, UInt160 attacker, ByteString commitment)
+        {
+            ValidateAppNotPaused(appId);
+            ValidateAppRegistered(appId, APP_TYPE_VAULT);
+            ExecutionEngine.Assert(Runtime.CheckWitness(attacker), "unauthorized");
+            ExecutionEngine.Assert(commitment != null && commitment.Length == 32, "invalid commitment");
+
+            VaultData vault = GetVault(appId, vaultId);
+            ExecutionEngine.Assert(vault.Creator != UInt160.Zero, "vault not found");
+            ExecutionEngine.Assert(!vault.Broken, "already broken");
+            ExecutionEngine.Assert(!vault.Expired, "vault expired");
+            ExecutionEngine.Assert(Runtime.Time < (ulong)vault.ExpiryTime, "vault expired");
+
+            // Commit fee is the same as the prior attempt fee so abusers can't spam
+            // commits cheaply.
+            BigInteger attemptFee = GetAttemptFee(vault.Difficulty);
+            ConsumeGasCredit(attacker, attemptFee);
+            vault.Bounty += attemptFee;
+            StoreVault(appId, vaultId, vault);
+
+            // Store {commitment, commitTime}. Overwrites a prior pending commit by the
+            // same attacker, which is intentional — only the most recent commit can be
+            // revealed.
+            ByteString record = StdLib.Serialize(new object[] { commitment, Runtime.Time });
+            Put(AppKey(appId, PREFIX_VAULT_COMMIT, vaultId, attacker), record);
+        }
+
+        /// <summary>
+        /// Reveal a previously committed solution. The reveal must happen at least
+        /// <see cref="VAULT_REVEAL_MIN_DELAY_MS"/> after the commit (audit fix H-10).
+        /// </summary>
+        public static bool RevealAttempt(string appId, BigInteger vaultId, UInt160 attacker, ByteString solution, ByteString salt)
         {
             ValidateAppNotPaused(appId);
             ValidateAppRegistered(appId, APP_TYPE_VAULT);
@@ -83,11 +121,33 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(!vault.Expired, "vault expired");
             ExecutionEngine.Assert(Runtime.Time < (ulong)vault.ExpiryTime, "vault expired");
 
-            BigInteger attemptFee = GetAttemptFee(vault.Difficulty);
-            ConsumeGasCredit(attacker, attemptFee);
+            ByteString commitKey = AppKey(appId, PREFIX_VAULT_COMMIT, vaultId, attacker);
+            ByteString stored = Storage.Get(Storage.CurrentContext, commitKey);
+            ExecutionEngine.Assert(stored != null, "no commit");
+
+            object[] record = (object[])StdLib.Deserialize(stored);
+            ByteString commitment = (ByteString)record[0];
+            BigInteger commitTime = (BigInteger)record[1];
+            // Use BigInteger arithmetic for the delay check so a future-dated
+            // commitTime can't underflow into a giant `ulong` value and
+            // accidentally satisfy the threshold. Runtime.Time is monotonic so
+            // `(BigInteger)Runtime.Time >= commitTime` always under normal
+            // operation; this just hardens against state corruption.
+            BigInteger nowMs = (BigInteger)Runtime.Time;
+            ExecutionEngine.Assert(nowMs >= commitTime, "commit in the future");
+            ExecutionEngine.Assert(nowMs - commitTime >= VAULT_REVEAL_MIN_DELAY_MS, "reveal too soon");
+
+            // Verify commitment = SHA256(attacker || solution || salt).
+            ByteString preimage = Helper.Concat(
+                Helper.Concat((ByteString)(byte[])attacker, solution),
+                salt);
+            ByteString computed = CryptoLib.Sha256(preimage);
+            ExecutionEngine.Assert(computed == commitment, "commitment mismatch");
+
+            // Consume the commit so it can't be replayed.
+            Storage.Delete(Storage.CurrentContext, commitKey);
 
             vault.AttemptCount += 1;
-            vault.Bounty += attemptFee;
 
             ByteString attemptHash = CryptoLib.Sha256(solution);
             bool success = attemptHash == vault.SecretHash;
@@ -99,6 +159,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
                 BigInteger fee = vault.Bounty * VAULT_PLATFORM_FEE_BPS / 10000;
                 BigInteger reward = vault.Bounty - fee;
+
+                StoreVault(appId, vaultId, vault);
 
                 ExecutionEngine.Assert(
                     GAS.Transfer(Runtime.ExecutingScriptHash, attacker, reward),
@@ -115,10 +177,25 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
                 OnVaultBroken(appId, vaultId, attacker, reward);
             }
+            else
+            {
+                StoreVault(appId, vaultId, vault);
+            }
 
-            StoreVault(appId, vaultId, vault);
             OnAttemptMade(appId, vaultId, attacker, success, vault.AttemptCount);
             return success;
+        }
+
+        /// <summary>
+        /// DEPRECATED — kept for ABI compatibility but rejects all calls.
+        /// Use <see cref="CommitAttempt"/> + <see cref="RevealAttempt"/> instead.
+        /// The plaintext-solution form was vulnerable to mempool front-running
+        /// (audit fix H-10).
+        /// </summary>
+        public static bool AttemptBreak(string appId, BigInteger vaultId, UInt160 attacker, ByteString solution)
+        {
+            ExecutionEngine.Assert(false, "use CommitAttempt + RevealAttempt (front-run fix)");
+            return false;
         }
 
         /// <summary>

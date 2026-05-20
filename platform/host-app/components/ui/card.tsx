@@ -3,7 +3,7 @@
  * Supports various layouts, states, and interactive features
  */
 
-import React, { forwardRef, useId } from "react";
+import React, { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 export type CardVariant =
@@ -31,12 +31,15 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 // Variant Styles
 // ============================================================================
 
+// Host-app Card variants are tuned for the light theme used across pages.
+// (The dark admin-console has its own Card component under
+//  platform/admin-console/src/components/ui/Card.tsx.)
 const variantStyles: Record<CardVariant, string> = {
-  default: "bg-gray-900/80 border border-gray-800",
-  elevated: "bg-gray-900 shadow-lg shadow-black/20",
-  outlined: "bg-transparent border-2 border-gray-700",
+  default: "bg-white border border-gray-200 shadow-sm",
+  elevated: "bg-white shadow-lg shadow-gray-200/40",
+  outlined: "bg-transparent border-2 border-gray-200",
   ghost: "bg-transparent",
-  glass: "bg-gray-900/60 backdrop-blur-md border border-white/10",
+  glass: "bg-white/70 backdrop-blur-md border border-gray-200/60 shadow-sm",
 };
 
 // ============================================================================
@@ -96,9 +99,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           roundedStyles[rounded],
           // Interactive/Hoverable
           (interactive || hoverable) &&
-            "cursor-pointer hover:border-gray-600 hover:shadow-lg",
+            "cursor-pointer hover:border-neo/40 hover:shadow-md",
           interactive &&
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-neo focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-neo focus-visible:ring-offset-2 focus-visible:ring-offset-white",
           className,
         )}
         {...props}
@@ -155,7 +158,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
     return (
       <Tag
         ref={ref}
-        className={cn("text-xl font-semibold text-white", className)}
+        className={cn("text-xl font-semibold text-gray-900", className)}
         {...props}
       >
         {children}
@@ -177,7 +180,7 @@ export const CardDescription = forwardRef<
   CardDescriptionProps
 >(({ className, children, ...props }, ref) => {
   return (
-    <p ref={ref} className={cn("text-sm text-gray-400", className)} {...props}>
+    <p ref={ref} className={cn("text-sm text-gray-600", className)} {...props}>
       {children}
     </p>
   );
@@ -218,7 +221,7 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
       <div
         ref={ref}
         className={cn(
-          "flex items-center gap-3 mt-4 pt-4 border-t border-gray-800",
+          "flex items-center gap-3 mt-4 pt-4 border-t border-gray-200",
           align === "center" && "justify-center",
           align === "right" && "justify-end",
           align === "between" && "justify-between",
@@ -318,11 +321,11 @@ const badgeVariantStyles: Record<
   NonNullable<CardBadgeProps["variant"]>,
   string
 > = {
-  default: "bg-gray-700 text-gray-300",
-  success: "bg-emerald-500/20 text-emerald-400",
-  warning: "bg-amber-500/20 text-amber-400",
-  error: "bg-red-500/20 text-red-400",
-  info: "bg-blue-500/20 text-blue-400",
+  default: "bg-gray-100 text-gray-700",
+  success: "bg-emerald-50 text-emerald-700",
+  warning: "bg-amber-50 text-amber-700",
+  error: "bg-red-50 text-red-700",
+  info: "bg-blue-50 text-blue-700",
 };
 
 export const CardBadge = forwardRef<HTMLSpanElement, CardBadgeProps>(

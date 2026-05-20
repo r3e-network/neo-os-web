@@ -4,7 +4,6 @@ try {
   withSentryConfig = require("@sentry/nextjs").withSentryConfig;
 } catch {}
 
-const MINIAPP_CORS_ORIGIN = "https://neomini.app";
 const ONEGATE_VAULT_STANDALONE_ENTRY = "/miniapps/gas-lucky-pool/index.html";
 
 function parsePositiveInt(value) {
@@ -138,7 +137,11 @@ const nextConfig = {
       {
         source: "/miniapps/:path*",
         headers: [
-          { key: "Access-Control-Allow-Origin", value: MINIAPP_CORS_ORIGIN },
+          // Wildcard CORS for static miniapp assets: dApps load inside a
+          // sandboxed iframe (no allow-same-origin → origin "null"), and Vite's
+          // crossorigin module preloads require a matching ACAO. Static asset
+          // surfaces don't carry credentials, so "*" is safe here.
+          { key: "Access-Control-Allow-Origin", value: "*" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Content-Security-Policy", value: MiniAppCSP },
@@ -155,7 +158,11 @@ const nextConfig = {
       {
         source: "/miniapp-assets/:path*",
         headers: [
-          { key: "Access-Control-Allow-Origin", value: MINIAPP_CORS_ORIGIN },
+          // Wildcard CORS for static miniapp assets: dApps load inside a
+          // sandboxed iframe (no allow-same-origin → origin "null"), and Vite's
+          // crossorigin module preloads require a matching ACAO. Static asset
+          // surfaces don't carry credentials, so "*" is safe here.
+          { key: "Access-Control-Allow-Origin", value: "*" },
           {
             key: "Cache-Control",
             value:

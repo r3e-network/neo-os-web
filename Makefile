@@ -20,7 +20,11 @@ GOLANGCI_LINT_VERSION ?= v1.64.8
 GOLANGCI_LINT ?= $(GOBIN)/golangci-lint
 
 COORDINATOR_CLIENT_ADDR ?= localhost:4433
-INSECURE ?= 1
+# Audit fix M-17: invert the default so `--insecure` must be explicitly
+# opted into. The previous default (`INSECURE ?= 1`) auto-passed --insecure
+# to nitrorun for every invocation, including any deploy path that forgot
+# to override it. Local TEE testing should set INSECURE=1 explicitly.
+INSECURE ?= 0
 NITRORUN_FLAGS :=
 ifneq ($(filter 1 true yes,$(INSECURE)),)
   NITRORUN_FLAGS += --insecure

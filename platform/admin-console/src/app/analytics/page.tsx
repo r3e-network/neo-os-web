@@ -7,6 +7,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAnalytics, useMiniAppUsage } from "@/lib/hooks/useAnalytics";
 import { formatNumber } from "@/lib/utils";
 
@@ -40,14 +41,11 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Analytics
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Platform usage and metrics
-        </p>
-      </div>
+      <PageHeader
+        title="Analytics"
+        description="Platform usage and metrics"
+        highlightLastWord
+      />
 
       {analyticsError && (
         <div

@@ -143,8 +143,14 @@ export function ThemeProvider({
 }: ThemeProviderProps) {
   const [mode, setModeState] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") return defaultMode;
-    const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    return (stored as ThemeMode) || defaultMode;
+    // Sandboxed iframes (sandbox="allow-scripts" w/o allow-same-origin)
+    // throw on localStorage access. Wrap in try/catch.
+    try {
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      return (stored as ThemeMode) || defaultMode;
+    } catch {
+      return defaultMode;
+    }
   });
 
   const [systemPreference, setSystemPreference] = useState<ColorScheme>(() => {
@@ -214,7 +220,11 @@ export function ThemeProvider({
   const setMode = useCallback((newMode: ThemeMode) => {
     setModeState(newMode);
     if (typeof window !== "undefined") {
-      localStorage.setItem(THEME_STORAGE_KEY, newMode);
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, newMode);
+      } catch {
+        // sandboxed iframe — ignore
+      }
     }
   }, []);
 

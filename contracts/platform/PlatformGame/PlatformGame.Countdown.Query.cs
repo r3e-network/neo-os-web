@@ -64,8 +64,8 @@ namespace NeoMiniAppPlatform.Contracts
             // Constants for frontend calculation
             status["baseKeyPrice"] = CD_BASE_KEY_PRICE;
             status["keyPriceIncrementBps"] = CD_KEY_PRICE_INCREMENT_BPS;
-            status["timeAddedPerKey"] = CD_TIME_PER_KEY_SECONDS;
-            status["maxDuration"] = CD_MAX_DURATION;
+            status["timeAddedPerKeyMs"] = CD_TIME_PER_KEY_MS;
+            status["maxDurationMs"] = CD_MAX_DURATION_MS;
             status["platformFeeBps"] = CD_PLATFORM_FEE_BPS;
             status["winnerShareBps"] = CD_WINNER_SHARE_BPS;
             status["dividendShareBps"] = CD_DIVIDEND_SHARE_BPS;

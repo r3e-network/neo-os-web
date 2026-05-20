@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface PriceFeed {
   id: string;
@@ -93,13 +94,6 @@ export default function PriceFeedsPage() {
     setIsEditing(true);
   };
 
-  if (loading)
-    return (
-      <div className="flex justify-center p-12">
-        <Spinner />
-      </div>
-    );
-
   return (
     <div className="space-y-6">
       {saveError && (
@@ -117,18 +111,23 @@ export default function PriceFeedsPage() {
         </div>
       )}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            PriceFeed Tokens
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage oracle feeds and symbols
-          </p>
-        </div>
-        <Button onClick={openNew}>Add Token</Button>
+        <PageHeader
+          title="PriceFeed Tokens"
+          description="Manage oracle feeds and symbols"
+          highlightLastWord
+        />
+        <Button onClick={openNew} disabled={loading}>
+          Add Token
+        </Button>
       </div>
 
-      {isEditing && (
+      {loading && (
+        <div className="flex justify-center p-12">
+          <Spinner />
+        </div>
+      )}
+
+      {!loading && isEditing && (
         <Card
           variant="glass"
           className="border-neo/50 shadow-[0_0_15px_rgba(0,229,153,0.1)]"
@@ -219,6 +218,7 @@ export default function PriceFeedsPage() {
         </Card>
       )}
 
+      {!loading && (
       <Card variant="glass">
         <CardContent className="p-0">
           <table
@@ -285,6 +285,7 @@ export default function PriceFeedsPage() {
           </table>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

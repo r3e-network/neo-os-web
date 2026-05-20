@@ -30,10 +30,15 @@ namespace NeoMiniAppPlatform.Contracts
             UInt160 oracle = Oracle();
             ExecutionEngine.Assert(oracle != UInt160.Zero && oracle.IsValid, "oracle not set");
 
+            // Audit fix NEW-M-10: CallFlags.All let the Morpheus oracle (or
+            // whatever the configured oracle is) write to PlatformGame storage
+            // and call other contracts under our witness. The oracle only
+            // needs to record the request and emit its own event; AllowCall +
+            // AllowNotify is sufficient.
             return (BigInteger)Contract.Call(
                 oracle,
                 "requestFromCallback",
-                CallFlags.All,
+                CallFlags.AllowCall | CallFlags.AllowNotify,
                 requester,
                 requestType,
                 payload,
@@ -95,6 +100,12 @@ namespace NeoMiniAppPlatform.Contracts
             string error)
         {
             ValidateOracle();
+            // Audit fix NEW-M-11: validate requestType on EVERY callback (the
+            // prior code only validated on the success path, so a misbehaving
+            // oracle could trigger a Dice refund by calling OnOracleResult with
+            // an arbitrary requestType and success=false). Now refunds are
+            // gated on the oracle producing the expected requestType too.
+            ExecutionEngine.Assert(requestType == "vrf_random", "unexpected oracle request");
             OracleRequestContext context = LoadOracleRequestContext(requestId);
 
             if (!success)
@@ -106,7 +117,6 @@ namespace NeoMiniAppPlatform.Contracts
                 Storage.Delete(Storage.CurrentContext, OracleRequestKey(requestId));
                 return;
             }
-            ExecutionEngine.Assert(requestType == "vrf_random", "unexpected oracle request");
             ExecutionEngine.Assert(result != null && result.Length > 0, "empty oracle result");
 
             if (context.GameType == GameType_CoinFlip)

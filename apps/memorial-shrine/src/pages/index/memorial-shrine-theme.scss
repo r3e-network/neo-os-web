@@ -1,4 +1,43 @@
 :global(.theme-memorial-shrine) {
+  --shrine-bg: #f7f3ec;
+  --shrine-dark: #efe6d9;
+  --shrine-medium: #e4d6c2;
+  --shrine-gold: #b3832c;
+  --shrine-gold-light: #d9c3a3;
+  --shrine-gold-soft: rgba(179, 131, 44, 0.12);
+  --shrine-gold-border-soft: rgba(179, 131, 44, 0.35);
+  --shrine-text: #2b241c;
+  --shrine-muted: #6f6357;
+  --shrine-incense: #d97706;
+  --shrine-banner-glow: rgba(179, 131, 44, 0.12);
+  --shrine-title-glow: rgba(179, 131, 44, 0.25);
+  --shrine-banner-border: rgba(179, 131, 44, 0.25);
+  --shrine-card: linear-gradient(180deg, #f2ebe1, #e8dfd0, #d8cbb8);
+  --shrine-card-border: rgba(43, 36, 28, 0.12);
+  --shrine-card-shadow: 0 4px 16px rgba(62, 51, 38, 0.2);
+  --shrine-form-bg: #efe6d9;
+  --shrine-form-border: rgba(179, 131, 44, 0.22);
+  --shrine-input-bg: rgba(255, 255, 255, 0.7);
+  --shrine-input-border: rgba(43, 36, 28, 0.12);
+  --shrine-input-text: #2b241c;
+  --shrine-button-bg: linear-gradient(135deg, #b3832c, #8b5e19);
+  --shrine-button-text: #ffffff;
+  --shrine-panel: rgba(255, 255, 255, 0.7);
+  --shrine-panel-border: rgba(43, 36, 28, 0.12);
+  --shrine-overlay: rgba(15, 23, 42, 0.3);
+  --shrine-panel-soft: rgba(43, 36, 28, 0.06);
+  --shrine-panel-strong: rgba(43, 36, 28, 0.12);
+  --shrine-divider: rgba(43, 36, 28, 0.12);
+  --memorial-bg-gradient: linear-gradient(180deg, #f7f3ec 0%, #efe6d9 50%, #e4d6c2 100%);
+
+  --bg-primary: var(--shrine-bg);
+  --bg-secondary: var(--shrine-dark);
+  --text-primary: var(--shrine-text);
+  --text-secondary: var(--shrine-muted);
+  --border-color: var(--shrine-banner-border);
+}
+
+:global(.theme-dark .theme-memorial-shrine) {
   --shrine-bg: #0a0d14;
   --shrine-dark: #12161f;
   --shrine-medium: #1a1f2e;
@@ -38,42 +77,4 @@
   --border-color: var(--shrine-banner-border);
 }
 
-:global(.theme-light .theme-memorial-shrine),
-:global([data-theme="light"] .theme-memorial-shrine) {
-  --shrine-bg: #f7f3ec;
-  --shrine-dark: #efe6d9;
-  --shrine-medium: #e4d6c2;
-  --shrine-gold: #b3832c;
-  --shrine-gold-light: #d9c3a3;
-  --shrine-gold-soft: rgba(179, 131, 44, 0.12);
-  --shrine-gold-border-soft: rgba(179, 131, 44, 0.35);
-  --shrine-text: #2b241c;
-  --shrine-muted: #6f6357;
-  --shrine-incense: #d97706;
-  --shrine-banner-glow: rgba(179, 131, 44, 0.12);
-  --shrine-title-glow: rgba(179, 131, 44, 0.25);
-  --shrine-banner-border: rgba(179, 131, 44, 0.25);
-  --shrine-card: linear-gradient(180deg, #f2ebe1, #e8dfd0, #d8cbb8);
-  --shrine-card-border: rgba(43, 36, 28, 0.12);
-  --shrine-card-shadow: 0 4px 16px rgba(62, 51, 38, 0.2);
-  --shrine-form-bg: #efe6d9;
-  --shrine-form-border: rgba(179, 131, 44, 0.22);
-  --shrine-input-bg: rgba(255, 255, 255, 0.7);
-  --shrine-input-border: rgba(43, 36, 28, 0.12);
-  --shrine-input-text: #2b241c;
-  --shrine-button-bg: linear-gradient(135deg, #b3832c, #8b5e19);
-  --shrine-button-text: #ffffff;
-  --shrine-panel: rgba(255, 255, 255, 0.7);
-  --shrine-panel-border: rgba(43, 36, 28, 0.12);
-  --shrine-overlay: rgba(15, 23, 42, 0.3);
-  --shrine-panel-soft: rgba(43, 36, 28, 0.06);
-  --shrine-panel-strong: rgba(43, 36, 28, 0.12);
-  --shrine-divider: rgba(43, 36, 28, 0.12);
-  --memorial-bg-gradient: linear-gradient(180deg, #f7f3ec 0%, #efe6d9 50%, #e4d6c2 100%);
 
-  --bg-primary: var(--shrine-bg);
-  --bg-secondary: var(--shrine-dark);
-  --text-primary: var(--shrine-text);
-  --text-secondary: var(--shrine-muted);
-  --border-color: var(--shrine-banner-border);
-}

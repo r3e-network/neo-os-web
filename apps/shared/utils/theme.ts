@@ -11,6 +11,29 @@ function normalizeTheme(value?: string | null): Theme | null {
   return null;
 }
 
+// Sandboxed iframes (sandbox="allow-scripts" without allow-same-origin)
+// throw when accessing window.localStorage. Optional chaining doesn't help
+// because the property exists but the getter throws — wrap in try/catch.
+function safeReadStorage(key: string): string | null {
+  try {
+    return typeof window !== "undefined" && window.localStorage
+      ? window.localStorage.getItem(key)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeWriteStorage(key: string, value: string): void {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      window.localStorage.setItem(key, value);
+    }
+  } catch {
+    // sandboxed iframe — ignore
+  }
+}
+
 export function getTheme(): Theme {
   const fromQuery = normalizeTheme(readQueryParam("theme"));
   if (fromQuery) return fromQuery;
@@ -20,16 +43,18 @@ export function getTheme(): Theme {
     if (fromAttr) return fromAttr;
   }
   if (typeof window !== "undefined") {
-    const stored = normalizeTheme(window.localStorage?.getItem("theme"));
+    const stored = normalizeTheme(safeReadStorage("theme"));
     if (stored) return stored;
     if (
       window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: light)").matches
+      window.matchMedia("(prefers-color-scheme: dark)").matches
     ) {
-      return "light";
+      return "dark";
     }
   }
-  return "dark";
+  // Platform default is light (Polymarket-aligned). Opt into dark via
+  // ?theme=dark, data-theme="dark", or system preference.
+  return "light";
 }
 
 export function setTheme(theme: Theme): void {
@@ -37,9 +62,7 @@ export function setTheme(theme: Theme): void {
   document.documentElement.setAttribute("data-theme", theme);
   document.documentElement.classList.toggle("theme-dark", theme === "dark");
   document.documentElement.classList.toggle("theme-light", theme === "light");
-  if (typeof window !== "undefined") {
-    window.localStorage?.setItem("theme", theme);
-  }
+  safeWriteStorage("theme", theme);
 }
 
 export function initTheme(): Theme {
