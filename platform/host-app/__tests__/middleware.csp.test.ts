@@ -67,6 +67,19 @@ describe("middleware CSP", () => {
     expect(scriptSrc).toContain("script-src 'self' 'nonce-test-nonce'");
     expect(scriptSrc).not.toContain("'unsafe-inline'");
     expect(scriptSrc).not.toContain("'unsafe-eval'");
+    expect(csp).toContain("frame-src 'none'");
+    expect(csp).toContain("frame-ancestors 'none'");
+  });
+
+  it("lets host detail pages embed same-origin miniapp frames without becoming embeddable", () => {
+    const csp = withProductionEnv(() =>
+      buildCSP("test-nonce", { allowMiniAppFrames: true }),
+    );
+    const scriptSrc = scriptDirective(csp);
+
+    expect(scriptSrc).toContain("script-src 'self' 'nonce-test-nonce'");
+    expect(scriptSrc).not.toContain("'unsafe-inline'");
+    expect(csp).toContain("frame-src 'self' blob:");
     expect(csp).toContain("frame-ancestors 'none'");
   });
 });

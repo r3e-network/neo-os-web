@@ -4,6 +4,7 @@ import {
   type NeoExplorerGovernanceNetwork,
 } from "@/lib/neo-explorer-governance";
 import { logger } from "@/lib/logger";
+import { handlePublicReadCors } from "@/lib/public-read-cors";
 import { relaxedLimit } from "@/lib/rate-limit";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -26,6 +27,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (handlePublicReadCors(req, res)) return;
+
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
