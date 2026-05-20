@@ -259,6 +259,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [DisplayName("EarlyWithdraw")]
         public static event EarlyWithdrawHandler OnEarlyWithdraw;
 
+        public delegate void CapsulePenaltiesWithdrawnHandler(string appId, UInt160 to, BigInteger amount);
+        [DisplayName("CapsulePenaltiesWithdrawn")]
+        public static event CapsulePenaltiesWithdrawnHandler OnCapsulePenaltiesWithdrawn;
+
         #endregion
     }
 }

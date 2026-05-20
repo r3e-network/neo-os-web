@@ -85,6 +85,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_TRUST_ID        = new byte[] { 0x20 };
         private static readonly byte[] PREFIX_TRUSTS          = new byte[] { 0x21 };
         private static readonly byte[] PREFIX_GUARDIANS       = new byte[] { 0x25 };
+        // Aggregate NEO liability across all active trusts for the app. Incremented
+        // on CreateTrust, decremented on ExecuteTrust/CancelTrust. The vault solvency
+        // invariant asserts the contract balance covers this total on every payout so
+        // a stale per-trust balance check cannot silently drain principal that has
+        // already been promised to another trust.
+        private static readonly byte[] PREFIX_TRUST_ACTIVE_PRINCIPAL = new byte[] { 0x26 };
 
         // -----------------------------------------------------------------------
         // Vault storage prefixes (0x30-0x3F)
