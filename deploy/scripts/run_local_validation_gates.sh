@@ -47,6 +47,7 @@ if [[ $run_host -eq 1 ]]; then
   echo ""
   echo "=== Host App Local Gates ==="
   npm run -s test:host-app
+  rm -rf "$REPO_ROOT/platform/host-app/.next"
   npm --prefix platform/host-app run build
 fi
 
@@ -54,6 +55,7 @@ if [[ $run_admin -eq 1 ]]; then
   echo ""
   echo "=== Admin Console Local Gates ==="
   npm run -s test:admin-console
+  rm -rf "$REPO_ROOT/platform/admin-console/.next"
   npm --prefix platform/admin-console run build
 fi
 
