@@ -34,6 +34,12 @@ namespace NeoMiniAppPlatform.Contracts
             bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
             ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
 
+            // Cap events per creator. AddCreatorEvent already tracks the running
+            // count via PREFIX_CREATOR_EVENT_COUNT, so this check is O(1).
+            ExecutionEngine.Assert(
+                GetCreatorEventCountInternal(creator) < MAX_EVENTS_PER_CREATOR,
+                "creator event quota exhausted");
+
             BigInteger eventId = TotalEvents() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_EVENT_ID, eventId);
 

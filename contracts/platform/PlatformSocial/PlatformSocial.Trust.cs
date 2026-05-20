@@ -68,6 +68,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             };
             StoreTrust(appId, trustId, trust);
 
+            // Solvency: track aggregate active principal so payouts can assert the
+            // contract balance covers every outstanding trust, not just this one.
+            ByteString totalKey = AppKey(appId, PREFIX_TRUST_ACTIVE_PRINCIPAL);
+            Put(totalKey, GetBigInteger(totalKey) + neoAmount);
+
             OnTrustCreated(appId, trustId, owner, heir, neoAmount);
             return trustId;
         }
@@ -126,6 +131,15 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             bool isGuardian = IsGuardian(appId, trustId, executor);
             ExecutionEngine.Assert(isHeir || isGuardian, "unauthorized executor");
 
+            // Solvency: assert the contract balance covers EVERY outstanding active
+            // trust, not just this one. The per-trust check below would still pass
+            // if another trust's principal had been silently lost, leaking it to the
+            // current heir at the cost of the next executor.
+            ByteString totalKey = AppKey(appId, PREFIX_TRUST_ACTIVE_PRINCIPAL);
+            BigInteger activeTotal = GetBigInteger(totalKey);
+            ExecutionEngine.Assert(
+                NEO.BalanceOf(Runtime.ExecutingScriptHash) >= activeTotal,
+                "aggregate trust solvency check failed");
             ExecutionEngine.Assert(
                 NEO.BalanceOf(Runtime.ExecutingScriptHash) >= trust.Principal,
                 "insufficient trust liquidity");
@@ -136,6 +150,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             trust.Active = false;
             trust.Executed = true;
             StoreTrust(appId, trustId, trust);
+
+            // Decrement aggregate liability before transfers (checks-effects-interactions).
+            Put(totalKey, activeTotal - trust.Principal);
 
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, trust.Heir, heirAmount),
@@ -165,6 +182,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(trust.Active, "trust not active");
             ExecutionEngine.Assert(!trust.Executed, "already executed");
             ExecutionEngine.Assert(Runtime.CheckWitness(trust.Owner), "unauthorized");
+
+            // Solvency: same aggregate check as ExecuteTrust — refuse the cancel if
+            // the contract is already under-funded for outstanding obligations.
+            ByteString totalKey = AppKey(appId, PREFIX_TRUST_ACTIVE_PRINCIPAL);
+            BigInteger activeTotal = GetBigInteger(totalKey);
+            ExecutionEngine.Assert(
+                NEO.BalanceOf(Runtime.ExecutingScriptHash) >= activeTotal,
+                "aggregate trust solvency check failed");
             ExecutionEngine.Assert(
                 NEO.BalanceOf(Runtime.ExecutingScriptHash) >= trust.Principal,
                 "insufficient trust liquidity");
@@ -175,6 +200,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             trust.Active = false;
             trust.Cancelled = true;
             StoreTrust(appId, trustId, trust);
+
+            // Decrement aggregate liability before transfers.
+            Put(totalKey, activeTotal - trust.Principal);
 
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, trust.Owner, refundAmount),
