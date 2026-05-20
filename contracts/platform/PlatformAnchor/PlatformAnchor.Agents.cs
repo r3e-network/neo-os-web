@@ -1,6 +1,7 @@
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Attributes;
 using Neo.SmartContract.Framework.Native;
 using Neo.SmartContract.Framework.Services;
 
@@ -60,32 +61,122 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(AppKey(appId, PREFIX_AGENT_CANDIDATE, agentId), CandidateBytes(candidate));
         }
 
+        /// <summary>
+        /// DEPRECATED — instant agent rotation removed. A compromised app-admin
+        /// key could otherwise redirect every NEO vote in a single tx. Use the
+        /// propose/execute timelock flow instead: <see cref="ProposeAgentAccountChange"/>
+        /// followed by <see cref="ExecuteAgentAccountChange"/> after the delay.
+        /// </summary>
         public static void SetAgentAccount(
             string appId,
             BigInteger agentId,
             UInt160 agentAccount,
             ByteString verificationScriptHash)
         {
-            ValidateAppAuthority(appId);
-            SetAgentAccountCore(appId, agentId, agentAccount, verificationScriptHash);
+            ExecutionEngine.Assert(false, "use ProposeAgentAccountChange + timelock");
         }
 
+        /// <summary>
+        /// DEPRECATED — see <see cref="SetAgentAccount"/>. Rotate agents one at a
+        /// time via the timelock so a single compromised proposal can be cancelled
+        /// without affecting the rest of the committee.
+        /// </summary>
         public static void SetAgentAccounts(
             string appId,
             BigInteger[] agentIds,
             UInt160[] agentAccounts,
             ByteString[] verificationScriptHashes)
         {
-            ValidateAppAuthority(appId);
-            ExecutionEngine.Assert(agentIds != null && agentAccounts != null && verificationScriptHashes != null, "agent arrays required");
-            ExecutionEngine.Assert(agentIds.Length > 0 && agentIds.Length <= 21, "invalid agent batch");
-            ExecutionEngine.Assert(agentIds.Length == agentAccounts.Length, "agent length mismatch");
-            ExecutionEngine.Assert(agentIds.Length == verificationScriptHashes.Length, "script length mismatch");
+            ExecutionEngine.Assert(false, "use ProposeAgentAccountChange + timelock");
+        }
 
-            for (int i = 0; i < agentIds.Length; i++)
+        /// <summary>
+        /// Stage a pending agent account rotation. The change applies after
+        /// AGENT_ROTATION_TIMELOCK_MS via <see cref="ExecuteAgentAccountChange"/>.
+        /// Re-proposing on the same agentId overwrites the prior pending slot,
+        /// resetting the timer — this is intentional so a legitimate operator can
+        /// correct a typo without waiting out the original delay.
+        /// </summary>
+        public static void ProposeAgentAccountChange(
+            string appId,
+            BigInteger agentId,
+            UInt160 agentAccount,
+            ByteString verificationScriptHash)
+        {
+            ValidateAppAuthority(appId);
+            ValidateAgent(appId, agentId);
+            ValidateAddress(agentAccount);
+            ExecutionEngine.Assert(verificationScriptHash != null && verificationScriptHash.Length == 20, "account id hash required");
+
+            BigInteger executeAfter = Runtime.Time + AGENT_ROTATION_TIMELOCK_MS;
+            PutAddress(AppKey(appId, PREFIX_PENDING_AGENT_ACCOUNT, agentId), agentAccount);
+            Put(AppKey(appId, PREFIX_PENDING_AGENT_SCRIPT, agentId), verificationScriptHash);
+            Put(AppKey(appId, PREFIX_PENDING_AGENT_TIME, agentId), executeAfter);
+
+            OnAnchorAgentAccountChangeProposed(appId, agentId, agentAccount, executeAfter);
+        }
+
+        /// <summary>
+        /// Apply a previously proposed agent rotation. Callable by anyone once the
+        /// timelock elapses — this matches the platform-admin change pattern and
+        /// stops a griefing app admin from proposing-then-disappearing.
+        /// </summary>
+        public static void ExecuteAgentAccountChange(string appId, BigInteger agentId)
+        {
+            ValidateAgent(appId, agentId);
+
+            ByteString pendingAccount = GetRaw(AppKey(appId, PREFIX_PENDING_AGENT_ACCOUNT, agentId));
+            ExecutionEngine.Assert(pendingAccount != null, "no pending change");
+
+            BigInteger executeAfter = GetBigInteger(AppKey(appId, PREFIX_PENDING_AGENT_TIME, agentId));
+            ExecutionEngine.Assert((BigInteger)Runtime.Time >= executeAfter, "timelock active");
+
+            ByteString pendingScript = GetRaw(AppKey(appId, PREFIX_PENDING_AGENT_SCRIPT, agentId));
+            ExecutionEngine.Assert(pendingScript != null, "pending script missing");
+
+            UInt160 newAccount = (UInt160)pendingAccount;
+            SetAgentAccountCore(appId, agentId, newAccount, pendingScript);
+
+            Delete(AppKey(appId, PREFIX_PENDING_AGENT_ACCOUNT, agentId));
+            Delete(AppKey(appId, PREFIX_PENDING_AGENT_SCRIPT, agentId));
+            Delete(AppKey(appId, PREFIX_PENDING_AGENT_TIME, agentId));
+        }
+
+        /// <summary>
+        /// Abort a pending agent rotation. Same gate as ProposeAgentAccountChange:
+        /// platform admin or app admin. The legitimate operator should call this
+        /// the moment AgentAccountChangeProposed signals an unexpected change.
+        /// </summary>
+        public static void CancelAgentAccountChange(string appId, BigInteger agentId)
+        {
+            ValidateAppAuthority(appId);
+            ExecutionEngine.Assert(
+                GetRaw(AppKey(appId, PREFIX_PENDING_AGENT_ACCOUNT, agentId)) != null,
+                "no pending change");
+
+            Delete(AppKey(appId, PREFIX_PENDING_AGENT_ACCOUNT, agentId));
+            Delete(AppKey(appId, PREFIX_PENDING_AGENT_SCRIPT, agentId));
+            Delete(AppKey(appId, PREFIX_PENDING_AGENT_TIME, agentId));
+
+            OnAnchorAgentAccountChangeCancelled(appId, agentId);
+        }
+
+        /// <summary>
+        /// Read the pending rotation for an agent. Returns zero-valued fields when
+        /// no proposal is staged.
+        /// </summary>
+        [Safe]
+        public static object[] GetPendingAgentAccountChange(string appId, BigInteger agentId)
+        {
+            ByteString pendingAccount = GetRaw(AppKey(appId, PREFIX_PENDING_AGENT_ACCOUNT, agentId));
+            ByteString pendingScript = GetRaw(AppKey(appId, PREFIX_PENDING_AGENT_SCRIPT, agentId));
+            BigInteger executeAfter = GetBigInteger(AppKey(appId, PREFIX_PENDING_AGENT_TIME, agentId));
+            return new object[]
             {
-                SetAgentAccountCore(appId, agentIds[i], agentAccounts[i], verificationScriptHashes[i]);
-            }
+                pendingAccount == null ? UInt160.Zero : (UInt160)pendingAccount,
+                pendingScript ?? (ByteString)new byte[0],
+                executeAfter,
+            };
         }
 
         public static void TransferAgentNeo(
