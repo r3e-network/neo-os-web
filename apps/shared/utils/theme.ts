@@ -1,5 +1,6 @@
 import { readQueryParam } from "./url";
 import { getHostOrigin } from "./runtime-origin";
+import { safeReadStorage, safeWriteStorage } from "./safe-storage";
 
 export type Theme = "light" | "dark";
 
@@ -9,29 +10,6 @@ function normalizeTheme(value?: string | null): Theme | null {
   if (trimmed === "light") return "light";
   if (trimmed === "dark") return "dark";
   return null;
-}
-
-// Sandboxed iframes (sandbox="allow-scripts" without allow-same-origin)
-// throw when accessing window.localStorage. Optional chaining doesn't help
-// because the property exists but the getter throws — wrap in try/catch.
-function safeReadStorage(key: string): string | null {
-  try {
-    return typeof window !== "undefined" && window.localStorage
-      ? window.localStorage.getItem(key)
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function safeWriteStorage(key: string, value: string): void {
-  try {
-    if (typeof window !== "undefined" && window.localStorage) {
-      window.localStorage.setItem(key, value);
-    }
-  } catch {
-    // sandboxed iframe — ignore
-  }
 }
 
 export function getTheme(): Theme {
