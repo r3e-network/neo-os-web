@@ -191,5 +191,35 @@ namespace NeoMiniAppPlatform.Contracts
                 selectedAssetType, selectedAssetHash, awardedAmount,
                 awardedTokenId == null ? "" : awardedTokenId);
         }
+
+        /// <summary>
+        /// Refund a gacha play when the oracle reports failure. Mirrors
+        /// RefundDiceBetFromOracle so a Morpheus failure can't silently strand
+        /// the player's spent GAS credit — the original play.Price is returned
+        /// as GAS to the player.
+        /// </summary>
+        private static void RefundGachaPlayFromOracle(string appId, BigInteger playId, BigInteger requestId)
+        {
+            RequireRegistered(appId);
+            RequireGameType(appId, GameType_Gacha);
+
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
+            byte[] reqKey = AppKey(appId, GA_PREFIX_REQ_TO_PLAY, requestId);
+            ByteString mappedPlay = Storage.Get(Storage.CurrentContext, reqKey);
+            ExecutionEngine.Assert(mappedPlay != null && (BigInteger)mappedPlay == playId, "oracle request mismatch");
+            Storage.Delete(Storage.CurrentContext, reqKey);
+
+            GachaPlay play = LoadGachaPlay(appId, playId);
+            ExecutionEngine.Assert(play.Player != UInt160.Zero, "play not found");
+            ExecutionEngine.Assert(!play.Resolved, "already resolved");
+
+            play.Resolved = true;
+            StoreGachaPlay(appId, playId, play);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, play.Player, play.Price),
+                "gacha refund failed");
+            OnGachaPlayRefunded(appId, play.Player, play.MachineId, playId, play.Price);
+        }
     }
 }
