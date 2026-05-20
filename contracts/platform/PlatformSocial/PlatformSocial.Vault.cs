@@ -213,6 +213,43 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         }
 
         /// <summary>
+        /// Creator reclaims the unclaimed bounty from an expired, never-broken vault.
+        /// Without this method the bounty (original + all accumulated attempt fees)
+        /// would be locked in the contract forever once the expiry deadline passed.
+        /// Refund is gated on:
+        ///   • caller is the original creator (witness)
+        ///   • vault has actually expired (Runtime.Time &gt; ExpiryTime)
+        ///   • vault was never broken (no attacker won the bounty)
+        ///   • Bounty &gt; 0 and not already refunded
+        /// </summary>
+        public static BigInteger RefundExpiredVault(string appId, BigInteger vaultId)
+        {
+            ValidateAppRegistered(appId, APP_TYPE_VAULT);
+
+            VaultData vault = GetVault(appId, vaultId);
+            ExecutionEngine.Assert(vault.Creator != UInt160.Zero, "vault not found");
+            ExecutionEngine.Assert(Runtime.CheckWitness(vault.Creator), "only creator");
+            ExecutionEngine.Assert(!vault.Broken, "vault already broken");
+            ExecutionEngine.Assert(!vault.Expired, "vault already refunded");
+            ExecutionEngine.Assert(Runtime.Time > (ulong)vault.ExpiryTime, "vault not expired");
+            ExecutionEngine.Assert(vault.Bounty > 0, "nothing to refund");
+
+            BigInteger refund = vault.Bounty;
+
+            // Zero the bounty and mark expired BEFORE the transfer (CEI).
+            vault.Bounty = 0;
+            vault.Expired = true;
+            StoreVault(appId, vaultId, vault);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, vault.Creator, refund),
+                "refund transfer failed");
+
+            OnVaultRefunded(appId, vaultId, vault.Creator, refund);
+            return refund;
+        }
+
+        /// <summary>
         /// Read vault state.
         /// </summary>
         [Safe]
