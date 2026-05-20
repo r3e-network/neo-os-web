@@ -251,10 +251,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(loan.Active, "loan not active");
             ExecutionEngine.Assert(Runtime.CheckWitness(loan.Borrower), "unauthorized");
 
-            // Mark loan inactive and flag it as abandoned for off-chain analytics.
+            // Mark loan inactive while retaining loan.Debt > 0 — that combination
+            // uniquely identifies "abandoned" versus normally-closed loans
+            // (which have Debt == 0 after full repayment).
             loan.Active = false;
             StoreLoan(appId, loanId, loan);
-            Put(AppKey(appId, PREFIX_LOAN_ABANDONED, loanId), 1);
 
             // Move the collateral out of the active-loans accumulator into the
             // abandoned-collateral pool. Net contract NEO holdings unchanged.
@@ -262,8 +263,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ByteString abandonedKey = AppKey(appId, PREFIX_TOTAL_ABANDONED_COLLATERAL);
             Put(abandonedKey, GetBigInteger(abandonedKey) + loan.Collateral);
 
-            // Also subtract the outstanding debt from the platform's total-debt
-            // accumulator so observability numbers reflect the cleared liability.
+            // Subtract the outstanding debt from the platform total so the
+            // observability numbers reflect the cleared liability.
             if (loan.Debt > 0)
             {
                 UpdateTotalDebt(appId, loan.Debt, false);
@@ -298,17 +299,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         }
 
         /// <summary>
-        /// Read whether a loan was abandoned (vs. normally closed). Returns false
-        /// for loans that don't exist or were closed via full repayment.
-        /// </summary>
-        [Safe]
-        public static bool IsLoanAbandoned(string appId, BigInteger loanId)
-        {
-            return GetBigInteger(AppKey(appId, PREFIX_LOAN_ABANDONED, loanId)) == 1;
-        }
-
-        /// <summary>
         /// Read the per-app abandoned-collateral pool balance awaiting admin sweep.
+        /// Abandoned loans themselves are identified by GetLoan(...) returning a
+        /// record with Active==false && Debt>0.
         /// </summary>
         [Safe]
         public static BigInteger GetTotalAbandonedCollateral(string appId)
