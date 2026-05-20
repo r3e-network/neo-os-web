@@ -86,6 +86,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         // through WithdrawAbandonedCollateral. Abandoned loans are identified by
         // `loan.Active == false && loan.Debt > 0` so no extra per-loan flag is needed.
         private static readonly byte[] PREFIX_TOTAL_ABANDONED_COLLATERAL = new byte[] { 0x2A };
+        // Origination fees retained on CreateLoan (LENDING_FEE_BPS portion of
+        // loanAmount). Without an accumulator + sweep these GAS units would
+        // accumulate untracked in the contract balance forever.
+        private static readonly byte[] PREFIX_TOTAL_LENDING_FEES = new byte[] { 0x2B };
         #endregion
 
         #region FlashLoan Prefixes (0x30-0x3F)
@@ -118,6 +122,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_TOTAL_CAPSULE_USERS = new byte[] { 0x46 };
         private static readonly byte[] PREFIX_TOTAL_WITHDRAWN = new byte[] { 0x47 };
         private static readonly byte[] PREFIX_TOTAL_PENALTIES = new byte[] { 0x48 };
+        // Unlock fee (CAPSULE_FEE_BPS portion of compound) retained at unlock.
+        // Same trapped-funds pattern as the lending fee — accumulator + sweep.
+        private static readonly byte[] PREFIX_TOTAL_CAPSULE_FEES = new byte[] { 0x49 };
         #endregion
 
         #region Lending Constants
@@ -245,6 +252,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         public delegate void AbandonedCollateralWithdrawnHandler(string appId, UInt160 to, BigInteger amount);
         [DisplayName("AbandonedCollateralWithdrawn")]
         public static event AbandonedCollateralWithdrawnHandler OnAbandonedCollateralWithdrawn;
+        // LendingFeesWithdrawn / CapsuleFeesWithdrawn / FlashLoanFeesWithdrawn
+        // events live in PlatformDeFi.FeeSweep.cs alongside their sweep methods.
 
         [DisplayName("ProfitAnchorConfigured")]
         public static event ProfitAnchorConfiguredHandler OnProfitAnchorConfigured;
