@@ -187,18 +187,6 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         }
 
         /// <summary>
-        /// DEPRECATED — kept for ABI compatibility but rejects all calls.
-        /// Use <see cref="CommitAttempt"/> + <see cref="RevealAttempt"/> instead.
-        /// The plaintext-solution form was vulnerable to mempool front-running
-        /// (audit fix H-10).
-        /// </summary>
-        public static bool AttemptBreak(string appId, BigInteger vaultId, UInt160 attacker, ByteString solution)
-        {
-            ExecutionEngine.Assert(false, "use CommitAttempt + RevealAttempt (front-run fix)");
-            return false;
-        }
-
-        /// <summary>
         /// Increase the bounty on an existing vault.
         /// Owner signature fix: requires CheckWitness on vault.Creator
         /// (the original contract used a weaker IsAbstractAccountAuthorized check).
