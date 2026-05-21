@@ -423,14 +423,21 @@ async function prepareCouncilActors() {
       candidatePreparation.candidateCheck.registerPrice = registerGas.toString();
 
       while (candidateActors.length < 2) {
-        const prepared = await prepareEphemeralCandidate(funder, {
-          threshold,
-          registerGas,
-          keepFunderCandidate: candidateActors.some((candidate) => candidate.account.address === funder.account.address),
-        });
-        candidateActors.push(prepared);
+        try {
+          const prepared = await prepareEphemeralCandidate(funder, {
+            threshold,
+            registerGas,
+            keepFunderCandidate: candidateActors.some((candidate) => candidate.account.address === funder.account.address),
+          });
+          candidateActors.push(prepared);
+        } catch (error) {
+          prerequisiteIssues.push(error instanceof Error ? error.message : String(error));
+          break;
+        }
       }
-      return { admin: candidateActors[0], user: candidateActors[1] };
+      if (candidateActors.length >= 2) {
+        return { admin: candidateActors[0], user: candidateActors[1] };
+      }
     }
   }
 
