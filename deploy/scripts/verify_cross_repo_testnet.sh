@@ -224,7 +224,13 @@ fi
 
 echo ""
 echo "=== Public Runtime API: neo-morpheus-oracle ==="
+set +e
 (cd "$MORPHEUS_DIR" && node scripts/check-public-runtime-api.mjs "$MORPHEUS_PUBLIC_API_URL")
+runtime_api_status=$?
+set -e
+if [[ $runtime_api_status -ne 0 ]]; then
+  echo "[runtime-api] unhealthy (exit_code=$runtime_api_status). Continuing with direct smoke checks to capture downstream impact." >&2
+fi
 
 NEO_TESTNET_WIF="${NEO_TESTNET_WIF:-}"
 AA_TEST_WIF="${AA_TEST_WIF:-}"
@@ -363,6 +369,11 @@ fi
     ${TIMEOUT_BIN:+$TIMEOUT_BIN "${PAYMASTER_RELAY_TIMEOUT_SECONDS}s"} \
     node sdk/js/tests/v3_testnet_paymaster_relay.mjs)
 )
+
+if [[ $runtime_api_status -ne 0 ]]; then
+  echo "[runtime-api] public runtime API check failed earlier (exit_code=$runtime_api_status); direct smoke checks completed, but cross-repo validation remains unhealthy." >&2
+  exit "$runtime_api_status"
+fi
 
 echo ""
 echo "Cross-repo testnet validation completed successfully."
