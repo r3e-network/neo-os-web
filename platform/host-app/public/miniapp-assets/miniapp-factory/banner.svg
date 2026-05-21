@@ -1,45 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 640" role="img" aria-label="MiniApp Factory banner">
   <defs>
-    <linearGradient id="surface" x1="0" y1="0" x2="1440" y2="640" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#101B16"/>
-      <stop offset=".54" stop-color="#0B2C22"/>
-      <stop offset="1" stop-color="#FFF8F3"/>
+    <linearGradient id="page" x1="0" y1="0" x2="1440" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EAF7FF"/>
+      <stop offset=".58" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EAF7FF"/>
     </linearGradient>
-    <linearGradient id="panel" x1="180" y1="96" x2="1040" y2="560" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#18D986"/>
-      <stop offset="1" stop-color="#FF8A50"/>
+    <linearGradient id="bg" x1="42" y1="28" x2="456" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00AF92"/>
+      <stop offset=".58" stop-color="#1262E5"/>
+      <stop offset="1" stop-color="#092A33"/>
     </linearGradient>
-    <linearGradient id="coin" x1="0" y1="0" x2="1" y2="1">
-      <stop stop-color="#FFF7C2"/>
-      <stop offset=".54" stop-color="#FF8A50"/>
-      <stop offset="1" stop-color="#101B16"/>
-    </linearGradient>
+    <radialGradient id="wash" cx="34%" cy="22%" r="76%">
+      <stop stop-color="#FFFFFF" stop-opacity=".34"/>
+      <stop offset=".64" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="outerShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#092A33" flood-opacity=".16"/>
+    </filter>
+    <filter id="letterShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#092A33" flood-opacity=".22"/>
+    </filter>
   </defs>
-  <rect width="1440" height="640" fill="url(#surface)"/>
-  <path d="M0 516c188-62 326-70 488-24 190 54 352 68 540-16 154-68 284-72 412-18v182H0V516Z" fill="#101B16" opacity=".62"/>
-  <circle cx="1124" cy="16" r="286" fill="#FF8A50" opacity=".16"/>
-  <circle cx="1010" cy="564" r="242" fill="#18D986" opacity=".14"/>
-  <rect x="104" y="108" width="690" height="416" rx="46" fill="#FFFFFF" fill-opacity=".08" stroke="#FFFFFF" stroke-opacity=".2"/>
-  <path d="M104 478c142-44 274-42 396 6 113 44 211 39 294-13v53H104v-46Z" fill="#FFFFFF" opacity=".06"/>
-  <text x="164" y="244" fill="#F8FFF9" font-family="Inter, Arial, sans-serif" font-size="68" font-weight="900">MiniApp Factory</text>
-  <text x="168" y="306" fill="#FFF8F3" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="650" opacity=".88">Package launch-ready Neo MiniApps</text>
-
-    <rect x="168" y="374" width="158" height="52" rx="16" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".22"/>
-    <text x="195" y="408" fill="#FFF8F3" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Manifest</text>
-
-    <rect x="344" y="374" width="210" height="52" rx="16" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".22"/>
-    <text x="371" y="408" fill="#FFF8F3" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">OneGate link</text>
-
-    <rect x="168" y="444" width="145" height="52" rx="16" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".22"/>
-    <text x="195" y="478" fill="#FFF8F3" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Catalog</text>
-
-        <g transform="translate(794 80)">
-          <rect width="410" height="320" rx="44" fill="#FFFFFF" opacity=".9"/>
-          <rect x="52" y="56" width="96" height="96" rx="24" fill="url(#panel)"/>
-          <rect x="184" y="56" width="96" height="96" rx="24" fill="url(#coin)"/>
-          <rect x="52" y="188" width="96" height="96" rx="24" fill="#FF8A50"/>
-          <rect x="184" y="188" width="96" height="96" rx="24" fill="#101B16" fill-opacity=".92"/>
-          <path d="M148 104h36M100 152v36M148 236h36M280 104h58M280 236h62" stroke="#101B16" stroke-width="14" stroke-linecap="round"/>
-          <circle cx="166" cy="170" r="28" fill="#101B16"/>
-        </g>
+  <rect width="1440" height="640" fill="url(#page)"/>
+  <circle cx="1256" cy="88" r="178" fill="#00AF92" opacity=".07"/>
+  <circle cx="116" cy="560" r="210" fill="#1262E5" opacity=".06"/>
+  <g transform="translate(104 116)">
+    <text x="0" y="34" fill="#00AF92" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="850" letter-spacing="4">TOOLS</text>
+    <text x="0" y="134" fill="#092A33" font-family="Inter, Arial, sans-serif" font-size="78" font-weight="900">MiniApp Factory</text>
+    <text x="2" y="194" fill="#092A33" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="650" opacity=".68">Neo MiniApp</text>
+    <g transform="translate(0 268)">
+      <rect x="0" y="0" width="176" height="52" rx="26" fill="#00AF92" opacity=".14"/>
+      <text x="32" y="34" fill="#092A33" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="850">ONEGATE</text>
+      <rect x="198" y="0" width="148" height="52" rx="26" fill="#1262E5" opacity=".12"/>
+      <text x="234" y="34" fill="#092A33" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="850">NEP-21</text>
+      <rect x="368" y="0" width="154" height="52" rx="26" fill="#FFFFFF" stroke="#00AF92" stroke-opacity=".22" stroke-width="2"/>
+      <text x="406" y="34" fill="#092A33" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="850">TESTNET</text>
+    </g>
+  </g>
+  <g transform="translate(842 76)" filter="url(#outerShadow)">
+    <rect x="0" y="0" width="420" height="420" rx="128" fill="url(#bg)"/>
+    <rect x="0" y="0" width="420" height="420" rx="128" fill="url(#wash)"/>
+    <g transform="translate(-46 -46)">
+      <rect x="98" y="98" width="126" height="126" rx="38" fill="#FFFFFF" opacity=".18"/><rect x="288" y="98" width="126" height="126" rx="38" fill="#FFFFFF" opacity=".14"/><rect x="98" y="288" width="126" height="126" rx="38" fill="#FFFFFF" opacity=".14"/><rect x="288" y="288" width="126" height="126" rx="38" fill="#FFFFFF" opacity=".22"/>
+    </g>
+    <text x="210" y="250" text-anchor="middle" filter="url(#letterShadow)" fill="#FFFFFF" font-family="Avenir Next, Inter, Arial, sans-serif" font-size="148" font-weight="900" letter-spacing="-10">MF</text>
+    <path d="M138 286c42 22 102 22 144 0" fill="none" stroke="#1262E5" stroke-width="16" stroke-linecap="round" opacity=".9"/>
+  </g>
 </svg>

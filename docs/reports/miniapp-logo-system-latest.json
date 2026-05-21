@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-17T12:47:38.320Z",
+  "generatedAt": "2026-05-21T01:33:19.351Z",
   "total": 60,
   "style": {
     "principles": [
@@ -121,7 +121,8 @@
       "code": "CG",
       "logo": "/miniapps/council-governance/logo.jpg",
       "banner": "/miniapps/council-governance/banner.jpg",
-      "svg": "/miniapps/council-governance/logo.svg"
+      "svg": "/miniapps/council-governance/logo.svg",
+      "officialBrandAsset": true
     },
     {
       "slug": "custom-anchor",
@@ -221,7 +222,8 @@
       "code": "OG",
       "logo": "/miniapps/gas-lucky-pool/logo.jpg",
       "banner": "/miniapps/gas-lucky-pool/banner.jpg",
-      "svg": "/miniapps/gas-lucky-pool/logo.svg"
+      "svg": "/miniapps/gas-lucky-pool/logo.svg",
+      "officialBrandAsset": true
     },
     {
       "slug": "gas-sponsor",
@@ -251,7 +253,8 @@
       "code": "GM",
       "logo": "/miniapps/gov-merc/logo.jpg",
       "banner": "/miniapps/gov-merc/banner.jpg",
-      "svg": "/miniapps/gov-merc/logo.svg"
+      "svg": "/miniapps/gov-merc/logo.svg",
+      "officialBrandAsset": true
     },
     {
       "slug": "graveyard",
