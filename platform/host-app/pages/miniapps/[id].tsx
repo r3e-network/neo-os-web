@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import dynamic from "next/dynamic";
-import { Activity, ChevronUp, ShieldCheck, Wallet, X } from "lucide-react";
-import { AppDetailHeader, AppNewsList, OperationPanel } from "../../components";
+import { ChevronUp, Wallet, X } from "lucide-react";
+import { AppDetailHeader, OperationPanel } from "../../components";
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
 import type { OperationEntry } from "../../components/types";
 import { getNativePlayAreaOperationFallback } from "../../components/playarea/PlayAreaRegistry";
 import {
   MiniAppStatusBoard,
   OneGateLaunchCard,
-  OverviewTab,
-  contractDomainBadgeClass,
-  formatContractDomainNetwork,
-  formatContractDomainSource,
 } from "../../components/features/miniapp/MiniAppDetailSections";
+import { AppNotFoundView } from "../../components/features/miniapp/AppNotFoundView";
+import { DetailTabsSection } from "../../components/features/miniapp/DetailTabsSection";
+import { SharedRuntimePanel } from "../../components/features/miniapp/SharedRuntimePanel";
+import { TechnicalDetailsPanel } from "../../components/features/miniapp/TechnicalDetailsPanel";
+import { NetworkSafetyBadge } from "../../components/features/miniapp/NetworkSafetyBadge";
+import { LaunchParamsAppliedNotice } from "../../components/features/miniapp/LaunchParamsAppliedNotice";
 import {
   ONEGATE_VAULT_APP_ID,
   ONEGATE_VAULT_DAPP_ID,
-  TAB_PANEL_CLASSNAME,
   buildDetailTabs,
   buildOneGateVaultLaunchUrl,
   isFrontendLocalOperation,
@@ -54,43 +54,6 @@ import {
   buildOneGateDirectMiniAppUrl,
   buildOneGateLaunchUrl,
 } from "../../../../apps/shared/utils/onegate-launch";
-
-const AppSecretsTab = dynamic(
-  () =>
-    import("../../components/features/secrets/AppSecretsTab").then((m) => ({
-      default: m.AppSecretsTab,
-    })),
-  {
-    loading: () => (
-      <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />
-    ),
-    ssr: false,
-  },
-);
-const ReviewsTab = dynamic(
-  () =>
-    import("../../components/features/reviews").then((m) => ({
-      default: m.ReviewsTab,
-    })),
-  {
-    loading: () => (
-      <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />
-    ),
-    ssr: false,
-  },
-);
-const ForumTab = dynamic(
-  () =>
-    import("../../components/features/forum").then((m) => ({
-      default: m.ForumTab,
-    })),
-  {
-    loading: () => (
-      <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />
-    ),
-    ssr: false,
-  },
-);
 
 export default function MiniAppDetailPage({
   app,
@@ -348,25 +311,10 @@ export default function MiniAppDetailPage({
 
   if (error || !app) {
     return (
-      <Layout hideFooter>
-        <div className="min-h-screen bg-white pb-24 pt-20 text-gray-900">
-          <div className="flex min-h-[calc(100vh-5rem)] flex-col items-center justify-center p-8">
-            <h1 className="mb-4 text-[32px] font-extrabold text-gray-900">
-              App Not Found
-            </h1>
-            <p className="mb-6 text-base text-gray-500">
-              {error || "The requested MiniApp does not exist."}
-            </p>
-            <button
-              type="button"
-              className="cursor-pointer rounded-lg border border-gray-200 bg-transparent px-6 py-3 text-sm text-gray-900 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-              onClick={() => router.push("/miniapps")}
-            >
-              ← Back to MiniApps
-            </button>
-          </div>
-        </div>
-      </Layout>
+      <AppNotFoundView
+        message={error}
+        onBack={() => router.push("/miniapps")}
+      />
     );
   }
 
@@ -443,105 +391,17 @@ export default function MiniAppDetailPage({
                 runtimeDisplayValue={runtimeDisplayValue}
               />
 
-              <section
-                className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 sm:p-4"
-                data-testid="miniapp-detail-tabs"
-              >
-                <div
-                  role="tablist"
-                  className="mb-5 flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1"
-                >
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      role="tab"
-                      id={`tab-${tab.id}`}
-                      aria-selected={activeTabConfig?.id === tab.id}
-                      aria-controls={`tabpanel-${tab.id}`}
-                      tabIndex={activeTabConfig?.id === tab.id ? 0 : -1}
-                      className={`cursor-pointer rounded-xl bg-transparent px-3 py-2 text-sm font-semibold ring-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:px-4 ${
-                        activeTabConfig?.id === tab.id
-                          ? "bg-white text-emerald-700 ring-gray-200"
-                          : "text-gray-500 ring-transparent hover:bg-white/70 hover:text-gray-900"
-                      }`}
-                      onClick={() => handleDetailTabClick(tab.id)}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-
-                {activeTabConfig?.type === "content" && (
-                  <div
-                    id={`tabpanel-${activeTabConfig.id}`}
-                    role="tabpanel"
-                    aria-labelledby={`tab-${activeTabConfig.id}`}
-                    className={TAB_PANEL_CLASSNAME}
-                  >
-                    <OverviewTab app={app} blocks={activeTabConfig.blocks} />
-                  </div>
-                )}
-
-                {activeTabConfig?.type === "reviews" && (
-                  <div
-                    id={`tabpanel-${activeTabConfig.id}`}
-                    role="tabpanel"
-                    aria-labelledby={`tab-${activeTabConfig.id}`}
-                    className={TAB_PANEL_CLASSNAME}
-                  >
-                    <ReviewsTab appId={app.app_id} network={targetNetwork} />
-                  </div>
-                )}
-
-                {activeTabConfig?.type === "forum" && (
-                  <div
-                    id={`tabpanel-${activeTabConfig.id}`}
-                    role="tabpanel"
-                    aria-labelledby={`tab-${activeTabConfig.id}`}
-                    className={TAB_PANEL_CLASSNAME}
-                  >
-                    <ForumTab appId={app.app_id} network={targetNetwork} />
-                  </div>
-                )}
-
-                {activeTabConfig?.type === "news" && (
-                  <div
-                    id={`tabpanel-${activeTabConfig.id}`}
-                    role="tabpanel"
-                    aria-labelledby={`tab-${activeTabConfig.id}`}
-                    className={TAB_PANEL_CLASSNAME}
-                  >
-                    {showNews ? (
-                      <AppNewsList
-                        notifications={liveNotifications}
-                        loading={newsLoading}
-                      />
-                    ) : (
-                      <p className="text-xs text-gray-500">
-                        News feed disabled by manifest.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {activeTabConfig?.type === "secrets" && (
-                  <div
-                    id={`tabpanel-${activeTabConfig.id}`}
-                    role="tabpanel"
-                    aria-labelledby={`tab-${activeTabConfig.id}`}
-                    className={TAB_PANEL_CLASSNAME}
-                  >
-                    {showSecrets ? (
-                      <AppSecretsTab appId={app.app_id} appName={app.name} />
-                    ) : (
-                      <p className="text-xs text-gray-500">
-                        Secrets are not enabled for this MiniApp.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </section>
+              <DetailTabsSection
+                app={app}
+                tabs={tabs}
+                activeTabConfig={activeTabConfig}
+                onTabClick={handleDetailTabClick}
+                targetNetwork={targetNetwork}
+                liveNotifications={liveNotifications}
+                newsLoading={newsLoading}
+                showNews={showNews}
+                showSecrets={showSecrets}
+              />
             </section>
 
             <aside
@@ -595,23 +455,10 @@ export default function MiniAppDetailPage({
                 />
 
                 {launchContext.hasParams && !hasClaimOnlyServerPayout && (
-                  <div
-                    className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800"
-                    data-testid="launch-params-status"
-                  >
-                    <p className="m-0 font-semibold">
-                      Launch parameters applied
-                    </p>
-                    <p className="m-0 break-words">
-                      Source: {launchContext.source}
-                      {launchContext.operation
-                        ? ` · Operation: ${launchContext.operation}`
-                        : ""}
-                      {launchContext.keys.length > 0
-                        ? ` · Fields: ${launchContext.keys.join(", ")}`
-                        : ""}
-                    </p>
-                  </div>
+                  <LaunchParamsAppliedNotice
+                    launchContext={launchContext}
+                    testId="launch-params-status"
+                  />
                 )}
 
                 <div className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
@@ -626,29 +473,12 @@ export default function MiniAppDetailPage({
                   </span>
                 </div>
 
-                <div
-                  className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
-                    networkSafetyOk
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border-amber-200 bg-amber-50 text-amber-700"
-                  }`}
-                  data-testid="network-safety-status"
-                >
-                  <div className="flex items-start gap-2">
-                    <ShieldCheck
-                      className="mt-0.5 h-4 w-4 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <p className="m-0 font-semibold">
-                        Target: {targetNetworkLabel}
-                      </p>
-                      <p className="m-0 break-words">
-                        Wallet: {walletNetworkLabel}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <NetworkSafetyBadge
+                  networkSafetyOk={networkSafetyOk}
+                  targetNetworkLabel={targetNetworkLabel}
+                  walletNetworkLabel={walletNetworkLabel}
+                  testId="network-safety-status"
+                />
 
                 {networkAvailabilityReason && (
                   <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
@@ -684,130 +514,14 @@ export default function MiniAppDetailPage({
                 )}
               </section>
 
-              {sharedRuntime && (
-                <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
-                    <Activity
-                      className="h-4 w-4 text-emerald-600"
-                      aria-hidden="true"
-                    />
-                    Shared Runtime
-                  </h3>
-                  <p className="my-1.5 text-xs text-gray-500">
-                    Instance ID:{" "}
-                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                      {sharedRuntime.instance.instanceId}
-                    </code>
-                  </p>
-                  <p className="my-1.5 text-xs text-gray-500">
-                    Recipe:{" "}
-                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                      {sharedRuntime.instance.recipeId}@
-                      {sharedRuntime.instance.recipeVersion}
-                    </code>
-                  </p>
-                  <p className="my-1.5 text-xs text-gray-500">
-                    Mode:{" "}
-                    <span className="rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                      {sharedRuntime.instance.runtimeMode}
-                    </span>
-                  </p>
-                  <p className="my-1.5 text-xs text-gray-500">
-                    Status:{" "}
-                    <span className="rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                      {sharedRuntime.instance.status === 1
-                        ? "active"
-                        : String(sharedRuntime.instance.status)}
-                    </span>
-                  </p>
-                  <div className="mt-4 space-y-3">
-                    {sharedRuntime.modules.map((module) => (
-                      <div
-                        key={`${module.binding}:${module.moduleId}:${module.version}`}
-                        className="rounded-lg border border-gray-200 bg-gray-50 p-3"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs font-semibold uppercase text-gray-500">
-                            {module.binding}
-                          </span>
-                          <span
-                            className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${module.active ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
-                          >
-                            {module.active ? "active" : "inactive"}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-700">
-                          {module.moduleId}@{module.version}
-                        </p>
-                        {module.contractHash && (
-                          <p className="mt-1 break-all text-[11px] text-gray-500">
-                            {module.contractHash}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
+              {sharedRuntime && <SharedRuntimePanel runtime={sharedRuntime} />}
 
-              <details className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-                <summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50">
-                  <ShieldCheck
-                    className="h-4 w-4 text-emerald-600"
-                    aria-hidden="true"
-                  />
-                  Technical details
-                </summary>
-                <div className="mt-3 space-y-2">
-                  <p className="my-0 text-xs text-gray-500">
-                    Application ID:{" "}
-                    <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
-                      {app.app_id}
-                    </code>
-                  </p>
-                  <p className="my-0 text-xs text-gray-500">
-                    Contract Hash:{" "}
-                    <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
-                      {contractDisplayValue}
-                    </code>
-                  </p>
-                  <p className="my-0 text-xs text-gray-500">
-                    Runtime:{" "}
-                    <span className="rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
-                      {runtimeDisplayValue}
-                    </span>
-                  </p>
-                  {contractDomainBinding && (
-                    <p
-                      className="my-0 text-xs text-gray-500"
-                      data-testid="contract-domain-binding-technical"
-                    >
-                      {formatContractDomainNetwork(
-                        contractDomainBinding.network,
-                      )}{" "}
-                      Domain:{" "}
-                      <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
-                        {contractDomainBinding.domain}
-                      </code>{" "}
-                      <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${contractDomainBadgeClass(contractDomainBinding.source)}`}
-                      >
-                        {formatContractDomainSource(
-                          contractDomainBinding.source,
-                        )}
-                      </span>
-                    </p>
-                  )}
-                  {app.docs_url && (
-                    <p className="my-0 text-xs text-gray-500">
-                      Docs URL:{" "}
-                      <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
-                        {app.docs_url}
-                      </code>
-                    </p>
-                  )}
-                </div>
-              </details>
+              <TechnicalDetailsPanel
+                app={app}
+                contractDisplayValue={contractDisplayValue}
+                runtimeDisplayValue={runtimeDisplayValue}
+                contractDomainBinding={contractDomainBinding}
+              />
             </aside>
           </div>
 
@@ -898,20 +612,10 @@ export default function MiniAppDetailPage({
                     />
 
                     {launchContext.hasParams && !hasClaimOnlyServerPayout && (
-                      <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800">
-                        <p className="m-0 font-semibold">
-                          Launch parameters applied
-                        </p>
-                        <p className="m-0 break-words">
-                          Source: {launchContext.source}
-                          {launchContext.operation
-                            ? ` · Operation: ${launchContext.operation}`
-                            : ""}
-                          {launchContext.keys.length > 0
-                            ? ` · Fields: ${launchContext.keys.join(", ")}`
-                            : ""}
-                        </p>
-                      </div>
+                      <LaunchParamsAppliedNotice
+                        launchContext={launchContext}
+                        className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800"
+                      />
                     )}
 
                     <div className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
@@ -926,28 +630,11 @@ export default function MiniAppDetailPage({
                       </span>
                     </div>
 
-                    <div
-                      className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
-                        networkSafetyOk
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : "border-amber-200 bg-amber-50 text-amber-700"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <ShieldCheck
-                          className="mt-0.5 h-4 w-4 shrink-0"
-                          aria-hidden="true"
-                        />
-                        <div className="min-w-0">
-                          <p className="m-0 font-semibold">
-                            Target: {targetNetworkLabel}
-                          </p>
-                          <p className="m-0 break-words">
-                            Wallet: {walletNetworkLabel}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    <NetworkSafetyBadge
+                      networkSafetyOk={networkSafetyOk}
+                      targetNetworkLabel={targetNetworkLabel}
+                      walletNetworkLabel={walletNetworkLabel}
+                    />
 
                     {invokeFeedback && (
                       <div

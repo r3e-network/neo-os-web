@@ -11,9 +11,7 @@ import React, {
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
-import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import type { MiniAppInfo } from "@/components/types";
 import {
   partitionMiniApps,
@@ -22,29 +20,26 @@ import {
   sortMiniApps,
 } from "@/lib/miniapp-showcase";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
+import { compactMiniAppManifestForCatalog } from "@/lib/miniapp-catalog-view";
 import {
-  compactMiniAppManifestForCatalog,
-  getMiniAppCatalogAvailability,
-} from "@/lib/miniapp-catalog-view";
-import {
-  getAvailabilityLabel,
   getCategoryLabel,
   getLocalizedMiniAppDescription,
   getLocalizedMiniAppName,
   getNetworkLabel,
 } from "@/lib/i18n/miniapp-display";
-import { interpolate, type Locale } from "@/lib/i18n";
+import { interpolate } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/react";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 import { BRAND } from "@/lib/brand";
-import { getCategoryTheme, type CategoryId } from "@/lib/category-theme";
-import { CountUp } from "@/components/CountUp";
+import { CategoryFilterButton } from "@/components/features/home/CategoryFilterButton";
+import { PlatformStatusPanel } from "@/components/features/home/PlatformStatusPanel";
+import { FeaturedAppsAside } from "@/components/features/home/FeaturedAppsAside";
+import { OperatorToolsSection } from "@/components/features/home/OperatorToolsSection";
+import { FeaturesGridSection } from "@/components/features/home/FeaturesGridSection";
+import { HomeCtaSection } from "@/components/features/home/HomeCtaSection";
+import { HomeMiniAppRow } from "@/components/features/home/HomeMiniAppRow";
 import {
   Rocket,
-  Shield,
-  Zap,
-  Globe,
-  Cpu,
   LayoutGrid,
   Filter,
   Gamepad2,
@@ -54,10 +49,6 @@ import {
   Vote,
   Wrench,
   Code2,
-  ChevronRight,
-  ArrowUpRight,
-  CheckCircle2,
-  Layers3,
   Search,
 } from "lucide-react";
 
@@ -347,97 +338,17 @@ export default function LandingPage({
                 </div>
               </div>
 
-              <div className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="m-0 text-xs font-semibold uppercase text-gray-600">
-                      {t("home.status.title", "host")}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900">
-                      {t("home.status.subtitle", "host")}
-                    </p>
-                  </div>
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-                    <Layers3 className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {platformStats.map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-lg border border-gray-200 bg-white p-3 transition-all hover:border-emerald-200 hover:shadow-sm"
-                    >
-                      <p className="m-0 truncate text-[11px] font-semibold text-gray-600">
-                        {item.label}
-                      </p>
-                      <CountUp
-                        value={item.value}
-                        className="m-0 mt-1 block truncate text-lg font-black text-gray-900"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="grid gap-2 text-sm text-gray-600">
-                  {[
-                    t("home.status.itemNetwork", "host"),
-                    t("home.status.itemConsole", "host"),
-                    t("home.status.itemPlayArea", "host"),
-                  ].map((item) => (
-                    <div key={item} className="flex items-center gap-2">
-                      <CheckCircle2
-                        className="h-4 w-4 text-emerald-600"
-                        aria-hidden="true"
-                      />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <PlatformStatusPanel platformStats={platformStats} t={t} />
             </div>
           </div>
 
-          <aside
-            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
-            data-testid="homepage-featured-apps"
-          >
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="m-0 text-xs font-semibold uppercase text-gray-600">
-                  {t("home.featured.eyebrow", "host")}
-                </p>
-                <h2 className="m-0 mt-1 text-lg font-bold text-gray-900">
-                  {t("home.featured.title", "host")}
-                </h2>
-              </div>
-              <Link
-                href="/miniapps"
-                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:border-neo/40 hover:text-emerald-700"
-              >
-                {t("actions.viewAll")}
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {featuredList.map((app) => (
-                <HomeMiniAppRow
-                  key={app.app_id}
-                  app={app}
-                  targetNetwork={targetNetwork}
-                  locale={locale}
-                  t={t}
-                />
-              ))}
-              {catalogLoading && featuredList.length === 0 && (
-                <div className="space-y-2">
-                  {Array.from({ length: 9 }, (_, index) => (
-                    <div
-                      key={index}
-                      className="h-16 animate-pulse rounded-xl bg-gray-100"
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </aside>
+          <FeaturedAppsAside
+            featuredList={featuredList}
+            targetNetwork={targetNetwork}
+            locale={locale}
+            catalogLoading={catalogLoading}
+            t={t}
+          />
         </div>
       </section>
 
@@ -487,48 +398,14 @@ export default function LandingPage({
                 </h2>
                 <div className="space-y-2">
                   {categories.map((cat) => {
-                    const Icon = cat.icon;
                     const isActive = selectedCategory === cat.id;
-                    const theme = getCategoryTheme(cat.id as CategoryId);
                     return (
-                      <button
+                      <CategoryFilterButton
                         key={cat.id}
-                        type="button"
-                        onClick={() => setSelectedCategory(cat.id)}
-                        className={cn(
-                          "group relative w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo",
-                          isActive
-                            ? `${theme.bgTint} ${theme.text} font-bold border ${theme.borderActive}`
-                            : "text-gray-600 border border-transparent hover:bg-white hover:text-gray-900 hover:border-gray-200",
-                        )}
-                      >
-                        {isActive && (
-                          <span
-                            aria-hidden="true"
-                            className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full"
-                            style={{ backgroundColor: theme.accent }}
-                          />
-                        )}
-                        <span className="flex items-center gap-3 text-sm">
-                          <Icon
-                            size={18}
-                            className={isActive ? "" : "text-gray-400 group-hover:text-gray-600"}
-                            style={isActive ? { color: theme.accent } : undefined}
-                            aria-hidden="true"
-                          />
-                          {cat.label}
-                        </span>
-                        <span
-                          className={cn(
-                            "text-xs px-2.5 py-1 rounded-full font-semibold",
-                            isActive
-                              ? `${theme.countBg} ${theme.countText}`
-                              : "bg-gray-100 text-gray-500 group-hover:bg-gray-200",
-                          )}
-                        >
-                          {cat.count}
-                        </span>
-                      </button>
+                        category={cat}
+                        isActive={isActive}
+                        onSelect={() => setSelectedCategory(cat.id)}
+                      />
                     );
                   })}
                 </div>
@@ -601,251 +478,19 @@ export default function LandingPage({
       </section>
 
       {/* Account & Oracle Tools */}
-      <section className="bg-white px-4 py-14 sm:px-6">
-        <div className="mx-auto max-w-[1500px]">
-          <div className="mb-6 flex items-end justify-between gap-6">
-            <div>
-              <h2 className="m-0 text-2xl font-black text-gray-900 md:text-3xl">
-                {t("home.tools.title", "host")}
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
-                {t("home.tools.description", "host")}
-              </p>
-            </div>
-            <Link href="/miniapps">
-              <Button
-                variant="outline"
-                className="rounded-full border-emerald-200 text-emerald-800 hover:bg-emerald-50"
-              >
-                {t("home.tools.browse", "host")}
-              </Button>
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {catalogLoading ? (
-              Array.from({ length: 3 }, (_, i) => (
-                <div key={i} className="h-24 animate-pulse rounded-xl bg-gray-100" />
-              ))
-            ) : toolApps && toolApps.length > 0 ? (
-              toolApps.map((app) => (
-                <HomeMiniAppRow
-                  key={app.app_id}
-                  app={app}
-                  targetNetwork={targetNetwork}
-                  locale={locale}
-                  t={t}
-                  spacious
-                />
-              ))
-            ) : (
-              <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 py-12 text-gray-500">
-                <Wrench className="w-12 h-12 mb-3 text-gray-300" />
-                <p className="text-base font-semibold">
-                  {t("home.tools.emptyTitle", "host")}
-                </p>
-                <p className="text-sm mt-1">
-                  {t("home.tools.emptyBody", "host")}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+      <OperatorToolsSection
+        toolApps={toolApps}
+        catalogLoading={catalogLoading}
+        targetNetwork={targetNetwork}
+        locale={locale}
+        t={t}
+      />
 
       {/* Features Grid */}
-      <section className="bg-[#f6f8fb] px-4 py-16 sm:px-6">
-        <div className="mx-auto max-w-[1500px]">
-          <div className="mb-8">
-            <h2 className="m-0 text-2xl font-black text-gray-900 md:text-3xl">
-              {t("home.capabilities.title", "host")}
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
-              {t("home.capabilities.description", "host")}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <FeatureItem
-              icon={Shield}
-              title={t("home.capabilities.teeTitle", "host")}
-              desc={t("home.capabilities.teeDesc", "host")}
-            />
-            <FeatureItem
-              icon={Zap}
-              title={t("home.capabilities.vrfTitle", "host")}
-              desc={t("home.capabilities.vrfDesc", "host")}
-            />
-            <FeatureItem
-              icon={Globe}
-              title={t("home.capabilities.oracleTitle", "host")}
-              desc={t("home.capabilities.oracleDesc", "host")}
-            />
-            <FeatureItem
-              icon={Cpu}
-              title={t("home.capabilities.storageTitle", "host")}
-              desc={t("home.capabilities.storageDesc", "host")}
-            />
-          </div>
-        </div>
-      </section>
+      <FeaturesGridSection t={t} />
 
       {/* Hero CTA Section */}
-      <section className="bg-white px-4 py-16 sm:px-6">
-        <div className="mx-auto flex max-w-[1500px] flex-col gap-5 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-6 text-gray-950 shadow-sm md:flex-row md:items-center md:justify-between md:p-8">
-          <div>
-            <h2 className="m-0 text-2xl font-black md:text-3xl">
-              {t("home.cta.title", "host")}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-700">
-              {t("home.cta.body", "host")}
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/developer">
-              <Button className="h-12 rounded-lg bg-emerald-700 px-5 text-sm font-bold text-white hover:bg-emerald-800">
-                {t("home.cta.start", "host")}
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/docs">
-              <Button
-                variant="outline"
-                className="h-12 rounded-lg border-emerald-200 bg-white px-5 text-sm font-bold text-emerald-800 hover:bg-emerald-50"
-              >
-                {t("home.cta.docs", "host")}
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <HomeCtaSection t={t} />
     </Layout>
-  );
-}
-
-function HomeMiniAppRow({
-  app,
-  spacious = false,
-  targetNetwork,
-  locale,
-  t,
-}: {
-  app: MiniAppInfo;
-  spacious?: boolean;
-  targetNetwork: string;
-  locale: Locale;
-  t: (key: string, ns?: "common" | "host" | "admin" | "miniapp") => string;
-}) {
-  const availability = getMiniAppCatalogAvailability(app, targetNetwork);
-  const appName = getLocalizedMiniAppName(app, locale);
-  const appDescription = getLocalizedMiniAppDescription(app, locale);
-  const availabilityLabel = getAvailabilityLabel(
-    availability.tone,
-    availability.label,
-    t,
-  );
-  const theme = getCategoryTheme(app.category);
-  const isLive = availability.tone === "live";
-  const statusClass =
-    availability.tone === "live"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : availability.tone === "pending"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : availability.tone === "unsupported"
-          ? "border-sky-200 bg-sky-50 text-sky-700"
-          : "border-gray-200 bg-gray-50 text-gray-500";
-  return (
-    <Link
-      href={`/miniapps/${app.app_id}`}
-      className={cn(
-        "group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-gray-200 bg-white p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
-        spacious && "p-4",
-      )}
-      style={{
-        // hover border picks up the category accent via CSS var
-        ["--category-accent" as string]: theme.accent,
-      }}
-      onMouseEnter={(event) => {
-        event.currentTarget.style.borderColor = theme.accent;
-      }}
-      onMouseLeave={(event) => {
-        event.currentTarget.style.borderColor = "";
-      }}
-    >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute left-0 top-0 bottom-0 w-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-        style={{ backgroundColor: theme.accent }}
-      />
-      <MiniAppLogo
-        appId={app.app_id}
-        category={app.category}
-        entryUrl={app.entry_url}
-        logoUrl={app.logo_url}
-        manifest={app.manifest || null}
-        size={spacious ? "lg" : "md"}
-        className="shrink-0"
-        alt={appName}
-      />
-      <span className="min-w-0 flex-1">
-        <span className="flex min-w-0 items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="shrink-0 h-1.5 w-1.5 rounded-full"
-            style={{ backgroundColor: theme.accent }}
-            title={String(app.category || "")}
-          />
-          <span className="truncate text-sm font-bold text-gray-900">
-            {appName}
-          </span>
-          <span
-            className={cn(
-              "shrink-0 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
-              statusClass,
-            )}
-          >
-            {isLive && (
-              <span
-                aria-hidden="true"
-                className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-dot"
-              />
-            )}
-            {availabilityLabel}
-          </span>
-        </span>
-        <span className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
-          {appDescription}
-        </span>
-      </span>
-      <ArrowUpRight
-        className="h-4 w-4 shrink-0 text-gray-400 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-        style={{ color: undefined }}
-        aria-hidden="true"
-      />
-    </Link>
-  );
-}
-
-function FeatureItem({
-  icon: Icon,
-  title,
-  desc,
-}: {
-  icon: ComponentType<{ size?: number | string; className?: string }>;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <Card className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:border-neo/40 hover:shadow-md">
-      <div className="relative z-10 mb-5 flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-900 transition-colors group-hover:border-emerald-200 group-hover:bg-emerald-50 group-hover:text-emerald-700">
-        <Icon size={26} aria-hidden="true" />
-      </div>
-      <h3 className="relative z-10 mb-3 text-lg font-bold text-gray-900">
-        {title}
-      </h3>
-      <p className="relative z-10 text-sm font-medium leading-6 text-gray-600">
-        {desc}
-      </p>
-    </Card>
   );
 }
