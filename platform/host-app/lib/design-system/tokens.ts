@@ -8,70 +8,70 @@
 // ============================================================================
 
 export const colors = {
-  // Primary Colors
+  // Primary Colors — Neo brand green
   primary: {
-    DEFAULT: "#00E599",
-    50: "#e6fff5",
-    100: "#ccfbea",
-    200: "#99f7d4",
-    300: "#66f3bf",
-    400: "#33efa9",
-    500: "#00E599",
-    600: "#00cc88",
-    700: "#00b377",
-    800: "#008a5c",
-    900: "#006141",
+    DEFAULT: "#16C784",
+    50: "#e9faf2",
+    100: "#d6f7ec",
+    200: "#aef0d8",
+    300: "#6fe3b8",
+    400: "#34d399",
+    500: "#16C784",
+    600: "#0fb174",
+    700: "#0c9c66",
+    800: "#0a7d52",
+    900: "#08603f",
   },
 
-  // Secondary Colors
+  // Secondary Colors — Neo Soft violet
   secondary: {
-    DEFAULT: "#7000FF",
-    50: "#f0e6ff",
-    100: "#e1ccff",
-    200: "#c399ff",
-    300: "#a566ff",
-    400: "#8833ff",
-    500: "#7000FF",
-    600: "#5a00cc",
-    700: "#4a00b3",
-    800: "#3a0099",
-    900: "#2a007f",
+    DEFAULT: "#7B61FF",
+    50: "#f3f0ff",
+    100: "#eeeaff",
+    200: "#ddd4ff",
+    300: "#c4b5ff",
+    400: "#a48dff",
+    500: "#7B61FF",
+    600: "#6a4df4",
+    700: "#5b3fe0",
+    800: "#4a32bd",
+    900: "#3a2899",
   },
 
   // Accent/Neo Brand Color
   neo: {
-    DEFAULT: "#00E599",
-    hover: "#00cc88",
-    glow: "rgba(0, 229, 153, 0.4)",
-    muted: "rgba(0, 229, 153, 0.1)",
+    DEFAULT: "#16C784",
+    hover: "#0fb174",
+    glow: "rgba(22, 199, 132, 0.4)",
+    muted: "rgba(22, 199, 132, 0.1)",
   },
 
-  // Electric Purple
+  // Interactive Violet
   electric: {
-    DEFAULT: "#7000FF",
-    glow: "rgba(112, 0, 255, 0.4)",
-    muted: "rgba(112, 0, 255, 0.1)",
+    DEFAULT: "#7B61FF",
+    glow: "rgba(123, 97, 255, 0.4)",
+    muted: "rgba(123, 97, 255, 0.1)",
   },
 
   // Semantic Colors
   success: {
-    DEFAULT: "#10B981",
-    light: "#D1FAE5",
-    dark: "#047857",
+    DEFAULT: "#16C784",
+    light: "#E4F8F0",
+    dark: "#0c9c66",
   },
   warning: {
-    DEFAULT: "#F59E0B",
-    light: "#FEF3C7",
+    DEFAULT: "#F5A623",
+    light: "#FFF3DD",
     dark: "#B45309",
   },
   error: {
-    DEFAULT: "#EF4444",
-    light: "#FEE2E2",
+    DEFAULT: "#EA3943",
+    light: "#FDE7E9",
     dark: "#B91C1C",
   },
   info: {
-    DEFAULT: "#3B82F6",
-    light: "#DBEAFE",
+    DEFAULT: "#3E8CFF",
+    light: "#E6F0FF",
     dark: "#1D4ED8",
   },
 
@@ -92,39 +92,39 @@ export const colors = {
 
   // Background
   background: {
-    DEFAULT: "#F8FAFC",
-    light: "#F8FAFC",
+    DEFAULT: "#F4F5F7",
+    light: "#F4F5F7",
   },
 
   // Foreground
   foreground: {
-    DEFAULT: "#1F2937",
-    light: "#1F2937",
+    DEFAULT: "#1E1E2E",
+    light: "#1E1E2E",
   },
 
   // Border
   border: {
-    DEFAULT: "#E5E7EB",
-    light: "#E5E7EB",
+    DEFAULT: "#E6E8EE",
+    light: "#E6E8EE",
   },
 
   // Input
   input: {
-    DEFAULT: "#D1D5DB",
-    light: "#D1D5DB",
+    DEFAULT: "#E6E8EE",
+    light: "#E6E8EE",
   },
 
   // Ring
   ring: {
-    DEFAULT: "#00E599",
-    light: "#00E599",
+    DEFAULT: "#7B61FF",
+    light: "#7B61FF",
   },
 
   // Card
   card: {
-    DEFAULT: "rgba(255, 255, 255, 1)",
-    light: "rgba(255, 255, 255, 1)",
-    foreground: "#1F2937",
+    DEFAULT: "#FFFFFF",
+    light: "#FFFFFF",
+    foreground: "#1E1E2E",
   },
 } as const;
 

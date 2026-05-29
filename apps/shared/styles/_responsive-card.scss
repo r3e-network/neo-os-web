@@ -171,27 +171,27 @@
 }
 
 .variant-elevated {
-  box-shadow: var(--card-shadow, 0 4px 12px rgba(0, 0, 0, 0.1));
-  border: none;
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 
   @include responsive.desktop {
-    box-shadow: var(--card-shadow, 0 8px 24px rgba(0, 0, 0, 0.12));
+    box-shadow: var(--ns-shadow-lg, 0 16px 40px rgba(20, 22, 38, 0.1));
   }
 }
 
 .variant-outlined {
   background: transparent;
-  border: 2px solid var(--card-border, var(--border-color, #e5e7eb));
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
 }
 
 .variant-filled {
-  background: var(--card-bg, var(--bg-primary, #e5e7eb));
+  background: var(--ns-surface-subtle, #f7f8fa);
   border: none;
 }
 
 .variant-glass {
-  background: #f3f4f6;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid #e5e7eb;
+  background: var(--glass-bg, rgba(255, 255, 255, 0.72));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border, rgba(20, 22, 38, 0.06));
 }
