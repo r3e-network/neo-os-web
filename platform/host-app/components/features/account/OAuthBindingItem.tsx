@@ -21,7 +21,7 @@ export function OAuthBindingItem({
   const isConnected = Boolean(account);
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100 p-4">
+    <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 p-4">
       <div className="flex items-center gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white">
           <img
@@ -50,7 +50,7 @@ export function OAuthBindingItem({
         className={cn(
           "h-8 text-xs",
           isConnected
-            ? "border-gray-200 text-gray-500 transition-colors hover:border-red-400/30 hover:text-red-400"
+            ? "border-gray-200 text-gray-600 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
             : "bg-neo hover:bg-neo/90",
         )}
       >

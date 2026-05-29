@@ -19,7 +19,7 @@ export function AppNotFoundView({
           </p>
           <button
             type="button"
-            className="cursor-pointer rounded-lg border border-gray-200 bg-transparent px-6 py-3 text-sm text-gray-900 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="cursor-pointer rounded-full border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm transition-all hover:border-neo/40 hover:bg-gray-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             onClick={onBack}
           >
             ← Back to MiniApps

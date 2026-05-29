@@ -239,9 +239,10 @@ export function ConnectButton() {
             >
               <div className="sticky top-0 z-10 -mt-2 mb-2 flex justify-end bg-white/95 pb-2 backdrop-blur">
                 <button
+                  type="button"
                   onClick={closeConnectModal}
                   aria-label={t("auth.closeLoginModal")}
-                  className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 cursor-pointer"
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                 >
                   <X size={20} />
                 </button>
@@ -262,8 +263,9 @@ export function ConnectButton() {
                     {t("auth.emailSocial")}
                   </p>
                   <button
+                    type="button"
                     onClick={() => auth.loginSocial("google")}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
                     <img
                       src="/brand/oauth-google.svg"
@@ -277,8 +279,9 @@ export function ConnectButton() {
                     {interpolate(t("auth.continueWith"), { provider: "Google" })}
                   </button>
                   <button
+                    type="button"
                     onClick={() => auth.loginSocial("github")}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
                     <img
                       src="/brand/oauth-github.svg"

@@ -51,7 +51,7 @@ export default function SecretsContent() {
       {error && (
         <div
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-3"
+          className="rounded-xl border border-red-200 bg-red-50 p-3"
         >
           <p className="text-sm text-red-600">{error}</p>
           <button
@@ -84,7 +84,7 @@ export default function SecretsContent() {
               id="secrets-app-filter"
               value={selectedApp}
               onChange={(e) => setSelectedApp(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white text-gray-900 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              className="w-full cursor-pointer rounded-xl border border-gray-200 bg-white text-gray-900 px-3 py-2 transition-colors focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             >
               <option value="all">All Apps</option>
               <option value="global">Global Secrets Only</option>
