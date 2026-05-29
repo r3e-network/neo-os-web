@@ -23,7 +23,7 @@
  * ```
  */
 
-import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useRef, useSyncExternalStore } from "react";
 import type { ObservableState, Observable } from "../context";
 
 // ============================================================================
@@ -54,7 +54,9 @@ export function useStateBindings(state: ObservableState) {
 
   // Snapshot is a revision counter — increments on any change to trigger re-render.
   // We use a simple counter because React compares snapshots with Object.is().
-  const revisionRef = { current: 0 };
+  // useRef keeps the counter stable across renders so getSnapshot reliably
+  // observes increments made by subscribeCombined's wrapped change handler.
+  const revisionRef = useRef(0);
   const getSnapshot = useCallback(() => {
     // Re-read to trigger recompute; the actual values are read via accessors
     for (const observable of Object.values(state)) {

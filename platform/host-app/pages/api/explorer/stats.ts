@@ -3,13 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { logger } from "@/lib/logger";
 import { handlePublicReadCors } from "@/lib/public-read-cors";
 import { relaxedLimit } from "@/lib/rate-limit";
-
-function getNeoRPCURL(network: "testnet" | "mainnet"): string {
-  if (network === "mainnet") {
-    return process.env.NEO_RPC_MAINNET || "https://api.n3index.dev/mainnet";
-  }
-  return process.env.NEO_RPC_TESTNET || "https://api.n3index.dev/testnet";
-}
+import { getNeoRPCURL } from "@/lib/explorer-rpc";
 
 interface NetworkStats {
   height: number;
