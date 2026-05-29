@@ -194,7 +194,7 @@ export const Modal: React.FC<ModalProps> = ({
         id={id || modalId}
         className={cn(
           // Base styles
-          "relative w-full bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl",
+          "relative w-full bg-white border border-gray-100 rounded-2xl shadow-xl",
           // Size
           sizeStyles[size],
           // Animation
@@ -206,9 +206,9 @@ export const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             {title && (
-              <h2 id={titleId} className="text-lg font-semibold text-white">
+              <h2 id={titleId} className="text-lg font-semibold text-gray-900">
                 {title}
               </h2>
             )}
@@ -241,7 +241,7 @@ export const Modal: React.FC<ModalProps> = ({
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-800">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
             {footer}
           </div>
         )}
@@ -293,21 +293,23 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onCancel} title={title} size="sm">
-      <p className="text-gray-300 mb-6">{message}</p>
+      <p className="text-gray-600 mb-6">{message}</p>
       <div className="flex justify-end gap-3">
         <button
+          type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+          className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         >
           {cancelText}
         </button>
         <button
+          type="button"
           onClick={handleConfirm}
           className={cn(
-            "px-4 py-2 text-sm font-semibold rounded-lg transition-colors",
+            "rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
             confirmVariant === "danger"
-              ? "bg-red-500 hover:bg-red-600 text-white"
-              : "bg-neo hover:bg-neo/90 text-gray-900",
+              ? "bg-red-500 hover:bg-red-600 text-white focus-visible:ring-red-500/60"
+              : "bg-neo hover:bg-neo/90 text-gray-900 focus-visible:ring-neo/60",
           )}
         >
           {confirmText}

@@ -62,20 +62,20 @@ const sizeStyles: Record<InputSize, string> = {
 
 const variantStyles: Record<InputVariant, { base: string; focus: string }> = {
   default: {
-    base: "bg-gray-800 border border-gray-700 text-white placeholder-gray-500",
-    focus: "focus:border-neo focus:ring-1 focus:ring-neo",
+    base: "bg-white border border-gray-200 text-gray-900 placeholder-gray-400",
+    focus: "focus:border-secondary focus:ring-2 focus:ring-secondary/20",
   },
   filled: {
-    base: "bg-gray-800/50 border border-transparent text-white placeholder-gray-500",
-    focus: "focus:bg-gray-800 focus:border-neo focus:ring-1 focus:ring-neo",
+    base: "bg-gray-50 border border-transparent text-gray-900 placeholder-gray-400",
+    focus: "focus:bg-white focus:border-secondary focus:ring-2 focus:ring-secondary/20",
   },
   outline: {
-    base: "bg-transparent border-2 border-gray-700 text-white placeholder-gray-500",
-    focus: "focus:border-neo focus:ring-0",
+    base: "bg-transparent border-2 border-gray-200 text-gray-900 placeholder-gray-400",
+    focus: "focus:border-secondary focus:ring-0",
   },
   ghost: {
-    base: "bg-transparent border-0 text-white placeholder-gray-500",
-    focus: "focus:bg-gray-800/50",
+    base: "bg-transparent border-0 text-gray-900 placeholder-gray-400",
+    focus: "focus:bg-gray-50",
   },
 };
 
@@ -84,9 +84,8 @@ const variantStyles: Record<InputVariant, { base: string; focus: string }> = {
 // ============================================================================
 
 const stateStyles = {
-  error: "border-red-500 focus:border-red-500 focus:ring-red-500/20",
-  success:
-    "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500/20",
+  error: "border-destructive focus:border-destructive focus:ring-destructive/20",
+  success: "border-primary focus:border-primary focus:ring-primary/20",
 };
 
 // ============================================================================
@@ -178,11 +177,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-gray-300 mb-1.5"
+            className="block text-sm font-medium text-gray-700 mb-1.5"
           >
             {label}
             {required && (
-              <span className="text-red-500 ml-1" aria-hidden="true">
+              <span className="text-destructive ml-1" aria-hidden="true">
                 *
               </span>
             )}
@@ -208,7 +207,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               // Base styles
               "w-full appearance-none transition-all duration-200",
-              "placeholder:text-gray-500",
+              "placeholder:text-gray-400",
               "focus:outline-none",
               // Disabled
               disabled && "opacity-50 cursor-not-allowed",
@@ -263,7 +262,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {showClear && !loading && (
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md text-gray-400 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
               onClick={handleClear}
               aria-label="Clear input"
             >
@@ -297,7 +296,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={error ? errorId : helperId}
             className={cn(
               "mt-1.5 text-sm",
-              error ? "text-red-400" : "text-gray-500",
+              error ? "text-destructive" : "text-gray-500",
             )}
             role={error ? "alert" : undefined}
           >
@@ -376,10 +375,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {label && (
           <label
             htmlFor={generatedId}
-            className="block text-sm font-medium text-gray-300 mb-1.5"
+            className="block text-sm font-medium text-gray-700 mb-1.5"
           >
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="text-destructive ml-1">*</span>}
           </label>
         )}
 
@@ -395,11 +394,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-required={required}
           className={cn(
             "w-full appearance-none transition-all duration-200 resize-none",
-            "bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl",
-            "focus:outline-none focus:border-neo focus:ring-1 focus:ring-neo",
+            "bg-white border border-gray-200 text-gray-900 placeholder-gray-400 rounded-xl",
+            "focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20",
             sizeStyles[size],
             error &&
-              "border-red-500 focus:border-red-500 focus:ring-red-500/20",
+              "border-destructive focus:border-destructive focus:ring-destructive/20",
             props.disabled && "opacity-50 cursor-not-allowed",
             className,
           )}
@@ -420,7 +419,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             id={error ? errorId : helperId}
             className={cn(
               "mt-1.5 text-sm",
-              error ? "text-red-400" : "text-gray-500",
+              error ? "text-destructive" : "text-gray-500",
             )}
             role={error ? "alert" : undefined}
           >

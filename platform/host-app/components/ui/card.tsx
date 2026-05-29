@@ -35,7 +35,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 // (The dark admin-console has its own Card component under
 //  platform/admin-console/src/components/ui/Card.tsx.)
 const variantStyles: Record<CardVariant, string> = {
-  default: "bg-white border border-gray-200 shadow-sm",
+  default: "bg-white border border-gray-100 shadow-md",
   elevated: "bg-white shadow-lg shadow-gray-200/40",
   outlined: "bg-transparent border-2 border-gray-200",
   ghost: "bg-transparent",
@@ -99,7 +99,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           roundedStyles[rounded],
           // Interactive/Hoverable
           (interactive || hoverable) &&
-            "cursor-pointer hover:border-neo/40 hover:shadow-md",
+            "cursor-pointer hover:-translate-y-0.5 hover:border-neo/40 hover:shadow-lg",
           interactive &&
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-neo focus-visible:ring-offset-2 focus-visible:ring-offset-white",
           className,

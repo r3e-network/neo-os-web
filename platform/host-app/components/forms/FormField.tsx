@@ -9,10 +9,10 @@ import type {
 import { cn } from "@/lib/utils";
 
 const defaultFieldClassName =
-  "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all placeholder-gray-500 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-1 focus-visible:ring-neo/50";
+  "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 transition-all placeholder-gray-400 focus-visible:outline-none focus-visible:border-neo/50 focus-visible:ring-2 focus-visible:ring-neo/20";
 
 const glassFieldClassName =
-  "w-full cursor-pointer rounded-xl border border-gray-200/80 bg-white/50 px-4 py-2.5 text-sm font-semibold text-gray-900 backdrop-blur-md transition-all placeholder-gray-500 hover:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo";
+  "w-full cursor-pointer rounded-xl border border-gray-200/80 bg-white/50 px-4 py-2.5 text-sm font-semibold text-gray-900 backdrop-blur-md transition-all placeholder-gray-400 hover:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/20";
 
 type FieldShellProps = {
   id?: string;

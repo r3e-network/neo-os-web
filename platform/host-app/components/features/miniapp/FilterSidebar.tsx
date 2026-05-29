@@ -114,7 +114,7 @@ export function FilterSidebar({
                             "text-xs px-2 py-0.5 rounded-full font-medium transition-colors",
                             isSelected
                               ? "bg-neo/20 text-neo"
-                              : "bg-gray-100 text-gray-500 group-hover:text-gray-300",
+                              : "bg-gray-100 text-gray-500 group-hover:text-gray-700",
                           )}
                         >
                           {option.count}
