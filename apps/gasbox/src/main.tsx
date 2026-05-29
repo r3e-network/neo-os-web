@@ -58,6 +58,14 @@ defineMiniApp({
       if (machine) gasbox.selectMachine(machine);
     });
 
+    ctx.registerAction("refreshMachines", async () => {
+      await gasbox.loadAll();
+    });
+
+    ctx.registerAction("openStudio", async () => {
+      ctx.setStatus(ctx.t("studioGuidance") || "Open Studio to create, fund, or activate machines.", "info");
+    });
+
     // Synthetic counters for manifest stats — Machine type doesn't track per-machine pulls,
     // so totalPulls aggregates from all machines' itemsPulled summed via composable history.
     const totalPulls = createDerived(

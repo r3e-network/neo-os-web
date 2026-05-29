@@ -131,17 +131,17 @@ export function findCountdownLifecycleApps(
   const targets: CountdownLifecycleTarget[] = [];
 
   for (const app of apps) {
-    for (const module of getPlatformRuntimeModules(app)) {
-      if (!isCountdownModule(module)) continue;
-      const binding = module.networks[key];
+    for (const runtimeModule of getPlatformRuntimeModules(app)) {
+      if (!isCountdownModule(runtimeModule)) continue;
+      const binding = runtimeModule.networks[key];
       if (!binding?.registered || !binding.contract_hash) continue;
 
       targets.push({
-        appId: module.appId || app.app_id,
+        appId: runtimeModule.appId || app.app_id,
         contractHash: binding.contract_hash,
         network,
-        statusMethod: operationName(module.operations, "status", DEFAULT_STATUS_METHOD),
-        maintenanceMethod: operationName(module.operations, "rollover", DEFAULT_MAINTENANCE_METHOD),
+        statusMethod: operationName(runtimeModule.operations, "status", DEFAULT_STATUS_METHOD),
+        maintenanceMethod: operationName(runtimeModule.operations, "rollover", DEFAULT_MAINTENANCE_METHOD),
       });
     }
   }

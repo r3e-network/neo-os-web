@@ -32,7 +32,7 @@ export function BasicTab({
 }: Props) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Input
           label="App ID *"
           placeholder="com.example.myapp"
@@ -65,7 +65,7 @@ export function BasicTab({
           onChange={(e) => update("version", e.target.value)}
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Input
           label="Developer User ID *"
           placeholder="UUID from users table"
@@ -91,8 +91,8 @@ export function BasicTab({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <p className="text-sm font-medium text-gray-700">
           No-Code Template Binding
         </p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -122,13 +122,13 @@ export function BasicTab({
         <div>
           <label
             htmlFor="frontend-params-json"
-            className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+            className="mb-1 block text-xs text-gray-500"
           >
             Frontend Params JSON
           </label>
           <textarea
             id="frontend-params-json"
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={4}
             value={form.frontend_template_params_json}
             onChange={(e) =>
@@ -200,13 +200,13 @@ export function BasicTab({
           <div>
             <label
               htmlFor="contract-init-params-json"
-              className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+              className="mb-1 block text-xs text-gray-500"
             >
               Contract Init Params JSON
             </label>
             <textarea
               id="contract-init-params-json"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+              className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={4}
               value={form.contract_template_init_params_json}
               onChange={(e) =>
@@ -219,13 +219,13 @@ export function BasicTab({
           <div>
             <label
               htmlFor="contract-init-schema-json"
-              className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+              className="mb-1 block text-xs text-gray-500"
             >
               Contract Init Schema JSON
             </label>
             <textarea
               id="contract-init-schema-json"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+              className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={4}
               value={form.contract_template_init_schema_json}
               onChange={(e) =>
@@ -247,13 +247,13 @@ export function BasicTab({
           <div>
             <label
               htmlFor="contract-method-schema-json"
-              className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+              className="mb-1 block text-xs text-gray-500"
             >
               Contract Method Schema JSON
             </label>
             <textarea
               id="contract-method-schema-json"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+              className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={4}
               value={form.contract_template_method_schema_json}
               onChange={(e) =>
@@ -266,13 +266,13 @@ export function BasicTab({
           <div>
             <label
               htmlFor="security-profile-json"
-              className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+              className="mb-1 block text-xs text-gray-500"
             >
               Security Profile JSON
             </label>
             <textarea
               id="security-profile-json"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+              className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={4}
               value={form.contract_template_security_profile_json}
               onChange={(e) =>

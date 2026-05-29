@@ -20,22 +20,22 @@ export function JsonTab({
 }: Props) {
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+      <p className="text-xs text-gray-500">
         Paste or upload a full MiniApp definition in JSON or YAML, then import
         directly.
       </p>
-      <div className="flex gap-2 items-center">
+      <div className="flex items-center gap-2">
         <input
           id="manifest-file-upload"
           type="file"
           accept=".json,.yaml,.yml"
           onChange={onFileUpload}
-          className="text-sm dark:text-gray-100 file:mr-2 file:rounded-md file:border-0 file:bg-primary-600 file:px-3 file:py-1.5 file:text-sm file:text-white file:cursor-pointer hover:file:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md"
+          className="rounded-lg text-sm file:mr-2 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary-600 file:px-3 file:py-1.5 file:text-sm file:text-white hover:file:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           aria-label="Upload JSON or YAML manifest"
         />
       </div>
       <textarea
-        className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-3 font-mono text-xs transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full resize-none rounded-xl border border-gray-300 bg-white p-3 font-mono text-xs text-gray-900 transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:opacity-100"
         rows={16}
         value={jsonText}
         onChange={(e) => setJsonText(e.target.value)}

@@ -11,9 +11,15 @@ import type { AAService, ChainService, EventBus } from "@shared/services";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
-import { deriveAAAccountIdHash, generateAASessionKeyPair } from "@shared/utils/aa-account";
+import {
+  deriveAAAccountIdHash,
+  generateAASessionKeyPair,
+} from "@shared/utils/aa-account";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { getExternalIntegrationConfig } from "@shared/constants/rpc";
+import {
+  getExternalIntegrationConfig,
+  getNetwork,
+} from "@shared/constants/rpc";
 
 type SessionConfiguration = {
   txid: string;
@@ -31,10 +37,16 @@ export interface UseAASessionKeyLabOptions {
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLabOptions) {
+export function useAASessionKeyLab({
+  aa,
+  chain,
+  eventBus,
+  t,
+}: UseAASessionKeyLabOptions) {
   const wallet = useWallet() as WalletSDK;
   const { address, connect, invokeContract } = wallet;
-  const integration = getExternalIntegrationConfig("testnet");
+  const network = getNetwork();
+  const integration = getExternalIntegrationConfig(network);
   const aaCore = integration.contracts.aaCore;
 
   // Form state (plain object, mutations happen through actions)
@@ -55,20 +67,28 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
   function normalizeHashOrAddress(value: string): string {
     const trimmed = String(value || "").trim();
     if (!trimmed) throw new Error(t("invalidTargetContract"));
-    const normalized = trimmed.startsWith("N") ? addressToScriptHash(trimmed) : normalizeScriptHash(trimmed);
-    if (!/^0x[0-9a-f]{40}$/i.test(normalized)) throw new Error(t("invalidTargetContract"));
+    const normalized = trimmed.startsWith("N")
+      ? addressToScriptHash(trimmed)
+      : normalizeScriptHash(trimmed);
+    if (!/^0x[0-9a-f]{40}$/i.test(normalized))
+      throw new Error(t("invalidTargetContract"));
     return normalized.toLowerCase();
   }
 
   function normalizeSessionPublicKey(value: string): string {
-    const normalized = String(value || "").trim().replace(/^0x/i, "").toLowerCase();
-    if (!/^[0-9a-f]{66}$/i.test(normalized)) throw new Error(t("invalidSessionPublicKey"));
+    const normalized = String(value || "")
+      .trim()
+      .replace(/^0x/i, "")
+      .toLowerCase();
+    if (!/^[0-9a-f]{66}$/i.test(normalized))
+      throw new Error(t("invalidSessionPublicKey"));
     return normalized;
   }
 
   function normalizeExpiry(value: string): number {
     const parsed = Number.parseInt(String(value || "").trim(), 10);
-    if (!Number.isFinite(parsed) || parsed <= Math.floor(Date.now() / 1000)) throw new Error(t("invalidExpiry"));
+    if (!Number.isFinite(parsed) || parsed <= Math.floor(Date.now() / 1000))
+      throw new Error(t("invalidExpiry"));
     return parsed;
   }
 
@@ -76,7 +96,9 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
   const derivedAccountIdHash: Observable<string> = {
     get: () => {
       try {
-        return form.accountSeed.trim() ? `0x${deriveAAAccountIdHash(form.accountSeed)}` : "";
+        return form.accountSeed.trim()
+          ? `0x${deriveAAAccountIdHash(form.accountSeed)}`
+          : "";
       } catch (_e) {
         return "";
       }
@@ -94,7 +116,9 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
   const normalizedTargetContract: Observable<string> = {
     get: () => {
       try {
-        return form.targetContract.trim() ? normalizeHashOrAddress(form.targetContract) : "";
+        return form.targetContract.trim()
+          ? normalizeHashOrAddress(form.targetContract)
+          : "";
       } catch (_e) {
         return "";
       }
@@ -105,7 +129,7 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
 
   // Display values
   const sessionStatusDisplay: Observable<string> = {
-    get: () => lastConfigured.get() ? t("configured") : t("pending"),
+    get: () => (lastConfigured.get() ? t("configured") : t("pending")),
     set: () => {},
     subscribe: (fn) => lastConfigured.subscribe(fn),
   };
@@ -129,13 +153,13 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
   };
 
   const sponsorStatusDisplay: Observable<string> = {
-    get: () => sponsorState.get() ? t("checked") : t("idle"),
+    get: () => (sponsorState.get() ? t("checked") : t("idle")),
     set: () => {},
     subscribe: (fn) => sponsorState.subscribe(fn),
   };
 
   const isCheckingSponsorship: Observable<boolean> = {
-    get: () => aa.isCheckingSponsorship,
+    get: () => aa.isCheckingSponsorship.get(),
     set: () => {},
     subscribe: () => () => {},
   };
@@ -144,15 +168,46 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
   const detailItems: Observable<Array<{ label: string; value: string }>> = {
     get: () => {
       const lc = lastConfigured.get();
-      const sponsorStateText = JSON.stringify(sponsorState.get() ?? {}, null, 2);
+      const sponsorStateText = JSON.stringify(
+        sponsorState.get() ?? {},
+        null,
+        2,
+      );
       return [
-        { label: t("accountIdHash"), value: lc?.accountIdHash || derivedAccountIdHash.get() || t("notAvailable") },
-        { label: t("sessionPublicKey"), value: lc?.publicKey || form.sessionPublicKey || t("notAvailable") },
-        { label: t("targetContract"), value: lc?.targetContract || normalizedTargetContract.get() || t("notAvailable") },
-        { label: t("allowedMethod"), value: lc?.allowedMethod || normalizedAllowedMethod.get() || t("anyMethod") },
-        { label: t("expiresAt"), value: String(lc?.expiresAt || form.expiresAt || t("notAvailable")) },
+        {
+          label: t("accountIdHash"),
+          value:
+            lc?.accountIdHash ||
+            derivedAccountIdHash.get() ||
+            t("notAvailable"),
+        },
+        {
+          label: t("sessionPublicKey"),
+          value: lc?.publicKey || form.sessionPublicKey || t("notAvailable"),
+        },
+        {
+          label: t("targetContract"),
+          value:
+            lc?.targetContract ||
+            normalizedTargetContract.get() ||
+            t("notAvailable"),
+        },
+        {
+          label: t("allowedMethod"),
+          value:
+            lc?.allowedMethod ||
+            normalizedAllowedMethod.get() ||
+            t("anyMethod"),
+        },
+        {
+          label: t("expiresAt"),
+          value: String(lc?.expiresAt || form.expiresAt || t("notAvailable")),
+        },
         { label: t("lastTx"), value: lc?.txid || t("notAvailable") },
-        { label: t("generatedPrivateKey"), value: generatedPrivateKey.get() || t("notAvailable") },
+        {
+          label: t("generatedPrivateKey"),
+          value: generatedPrivateKey.get() || t("notAvailable"),
+        },
         { label: t("sponsorship"), value: sponsorStateText },
       ];
     },
@@ -161,7 +216,11 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
       const u1 = lastConfigured.subscribe(fn);
       const u2 = generatedPrivateKey.subscribe(fn);
       const u3 = sponsorState.subscribe(fn);
-      return () => { u1(); u2(); u3(); };
+      return () => {
+        u1();
+        u2();
+        u3();
+      };
     },
   };
 
@@ -179,7 +238,9 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
       sponsorState.set(result as unknown as Record<string, unknown>);
       eventBus.emit("sponsor:checked", {});
     } catch (error: unknown) {
-      eventBus.emit("sponsor:error", { message: formatErrorMessage(error, t("sponsorCheckFailed")) });
+      eventBus.emit("sponsor:error", {
+        message: formatErrorMessage(error, t("sponsorCheckFailed")),
+      });
       throw error;
     }
   }
@@ -190,7 +251,9 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
       sponsorState.set(result as unknown as Record<string, unknown>);
       eventBus.emit("sponsor:requested", {});
     } catch (error: unknown) {
-      eventBus.emit("sponsor:error", { message: formatErrorMessage(error, t("sponsorRequestFailed")) });
+      eventBus.emit("sponsor:error", {
+        message: formatErrorMessage(error, t("sponsorRequestFailed")),
+      });
       throw error;
     }
   }
@@ -235,7 +298,9 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
       });
       eventBus.emit("session:configured", { txid: lastConfigured.get()!.txid });
     } catch (error: unknown) {
-      eventBus.emit("session:error", { message: formatErrorMessage(error, t("sessionConfigureFailed")) });
+      eventBus.emit("session:error", {
+        message: formatErrorMessage(error, t("sessionConfigureFailed")),
+      });
       throw error;
     } finally {
       isSubmitting.set(false);

@@ -49,6 +49,7 @@ import {
 } from "./lib/page-config";
 import { parseJSONObjectText } from "./lib/media-utils";
 import { downloadJsonFile } from "./lib/download-utils";
+import { useAdminApiKeyReady } from "@/lib/hooks/useAdminApiKeyReady";
 import { useMiniAppBatchImportController } from "./lib/use-miniapp-batch-import-controller";
 import { useMiniAppPublishReviewController } from "./lib/use-miniapp-publish-review-controller";
 import { useMiniAppDetailDiffController } from "./lib/use-miniapp-detail-diff-controller";
@@ -67,7 +68,10 @@ type LiveSmokeReportRow = {
 };
 
 export default function MiniAppsPage() {
-  const { data: miniapps, isLoading, error } = useMiniApps();
+  const adminReady = useAdminApiKeyReady();
+  const { data: miniapps, isLoading, error } = useMiniApps({
+    enabled: adminReady,
+  });
   const createMutation = useCreateMiniApp();
   const updateMutation = useUpdateMiniApp();
   const statusMutation = useUpdateMiniAppStatus();
@@ -104,7 +108,7 @@ export default function MiniAppsPage() {
   const [liveSmokeReports, setLiveSmokeReports] = useState<
     LiveSmokeReportRow[]
   >([]);
-  const [liveSmokeLoading, setLiveSmokeLoading] = useState(true);
+  const [liveSmokeLoading, setLiveSmokeLoading] = useState(false);
   const [liveSmokeError, setLiveSmokeError] = useState("");
   const {
     form,
@@ -234,9 +238,16 @@ export default function MiniAppsPage() {
           : "Failed to apply installed template draft",
       );
     }
-  }, []);
+  }, [clearEditorMessages, setForm, setJsonText]);
 
   useEffect(() => {
+    if (!adminReady) {
+      setLiveSmokeReports([]);
+      setLiveSmokeError("");
+      setLiveSmokeLoading(false);
+      return;
+    }
+
     let cancelled = false;
     const loadReports = async () => {
       setLiveSmokeLoading(true);
@@ -272,7 +283,7 @@ export default function MiniAppsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [adminReady]);
 
   const handleCreate = async () => {
     const ok = await handleCreateInternal();
@@ -396,6 +407,7 @@ export default function MiniAppsPage() {
   return (
     <div className="space-y-6">
       <MiniAppsPageHeader
+        adminReady={adminReady}
         importError={importError}
         publishInfo={publishInfo}
         templateInstallInfo={templateInstallInfo}
@@ -430,6 +442,7 @@ export default function MiniAppsPage() {
       />
 
       <LiveSmokeReportsCard
+        adminReady={adminReady}
         reports={liveSmokeReports}
         loading={liveSmokeLoading}
         error={liveSmokeError}

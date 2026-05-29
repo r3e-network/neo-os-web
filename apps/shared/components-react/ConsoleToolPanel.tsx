@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Play, RotateCcw } from "lucide-react";
+import { Activity, Copy, Database, Play, RotateCcw } from "lucide-react";
 import type { ObservableState } from "../react/context";
 import type { PlatformServices } from "../services";
 import type { MiniAppLaunchContext } from "../utils/launch-params";
@@ -77,6 +77,11 @@ function setObservable(state: ObservableState, key: string, value: unknown) {
   }
 }
 
+function readObservable(state: ObservableState, key: string, fallback: string) {
+  const value = state[key]?.get?.();
+  return value == null || value === "" ? fallback : String(value);
+}
+
 export function previewId(seed: string) {
   let hash = 2166136261;
   for (let index = 0; index < seed.length; index += 1) {
@@ -102,6 +107,11 @@ export function ConsoleToolPanel({
     () => (result ? JSON.stringify(result.payload, null, 2) : ""),
     [result],
   );
+  const networkLabel = readObservable(state, "networkLabel", t("notAvailable"));
+  const endpointLabel = readObservable(state, "endpointLabel", t("notAvailable"));
+  const requestCount = readObservable(state, "requestCount", "0");
+  const lastDigest = readObservable(state, "lastDigest", t("notAvailable"));
+  const signalLabel = result?.status ?? t("statusReady");
 
   function updateValue(key: string, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -131,14 +141,61 @@ export function ConsoleToolPanel({
 
   return (
     <div className="console-tool">
-      <section className="console-tool__intro" aria-labelledby="console-title">
-        <span className="console-tool__eyebrow">{t(config.eyebrowKey)}</span>
-        <h2 id="console-title">{t(config.titleKey)}</h2>
-        <p>{t(config.descriptionKey)}</p>
+      <section className="console-tool__hero" aria-labelledby="console-title">
+        <div className="console-tool__intro">
+          <span className="console-tool__eyebrow">{t(config.eyebrowKey)}</span>
+          <h2 id="console-title">{t(config.titleKey)}</h2>
+          <p>{t(config.descriptionKey)}</p>
+        </div>
+        <div className="console-tool__hero-metrics" aria-label={t("statistics")}>
+          <div className="console-tool__metric">
+            <span>{t("statNetwork")}</span>
+            <strong>{networkLabel}</strong>
+          </div>
+          <div className="console-tool__metric">
+            <span>{t("statEndpoint")}</span>
+            <strong>{endpointLabel}</strong>
+          </div>
+          <div className="console-tool__metric">
+            <span>{t("statRequests")}</span>
+            <strong>{requestCount}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section className="console-tool__asset-card" aria-label={t(config.titleKey)}>
+        <div className="console-tool__asset-token" aria-hidden="true">
+          <Database size={24} />
+        </div>
+        <div className="console-tool__asset-copy">
+          <span>{endpointLabel}</span>
+          <strong>{lastDigest}</strong>
+          <p>{t("consoleRequestHint")}</p>
+        </div>
+        <div className="console-tool__asset-signal" aria-label={t("consoleSignal")}>
+          <span>{t("consoleSignal")}</span>
+          <div className="console-tool__sparkline" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+          <strong>{signalLabel}</strong>
+        </div>
       </section>
 
       <section className="console-tool__workspace">
         <div className="console-tool__form" aria-label={t(config.titleKey)}>
+          <div className="console-tool__flow" aria-label={t("consoleFlow")}>
+            <span>{t("consoleFlowInput")}</span>
+            <span>{t("consoleFlowPreview")}</span>
+            <span>{t("consoleFlowVerify")}</span>
+          </div>
+          <div className="console-tool__hint">
+            <Activity size={16} aria-hidden="true" />
+            <span>{t("consoleRequestHint")}</span>
+          </div>
           {config.fields.map((field) => {
             if (field.type === "select") {
               return (
@@ -203,7 +260,10 @@ export function ConsoleToolPanel({
                   </div>
                 ))}
               </div>
-              <pre>{payloadText}</pre>
+              <div className="console-tool__payload-card">
+                <span>{t("consolePayload")}</span>
+                <pre>{payloadText}</pre>
+              </div>
             </>
           ) : (
             <div className="console-tool__empty">

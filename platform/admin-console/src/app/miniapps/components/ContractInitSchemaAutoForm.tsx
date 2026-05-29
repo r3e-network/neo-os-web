@@ -20,7 +20,7 @@ export function ContractInitSchemaAutoForm({
 }: Props) {
   if (parseError) {
     return (
-      <p className="text-xs text-danger-600 dark:text-danger-400">
+      <p className="text-xs text-danger-600">
         Contract Init Schema parse error: {parseError}
       </p>
     );
@@ -29,9 +29,9 @@ export function ContractInitSchemaAutoForm({
   if (!fields.length) return null;
 
   return (
-    <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3">
+    <div className="rounded-lg border border-gray-200 p-3 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+        <p className="text-xs font-medium text-gray-700">
           Auto Form (from Contract Init Schema)
         </p>
         <Button size="sm" variant="ghost" onClick={onApplyDefaults}>
@@ -52,12 +52,12 @@ export function ContractInitSchemaAutoForm({
 
           return (
             <div key={field.key} className="space-y-1">
-              <div className="block text-xs text-gray-500 dark:text-gray-400">
+              <div className="block text-xs text-gray-500">
                 {field.label}
                 {field.required ? " *" : ""}
               </div>
               {field.type === "boolean" ? (
-                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
                   <input
                     type="checkbox"
                     className="rounded accent-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
@@ -69,7 +69,7 @@ export function ContractInitSchemaAutoForm({
               ) : field.enumValues.length ? (
                 <select
                   id={`field-${field.key}`}
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                  className="w-full rounded-lg border border-gray-300 p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
                   value={displayValue}
                   onChange={(event) => onChange(field, event.target.value)}
                   aria-label={field.label}
@@ -97,12 +97,12 @@ export function ContractInitSchemaAutoForm({
                       ? String(field.defaultValue)
                       : ""
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                  className="w-full rounded-lg border border-gray-300 p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
                   aria-label={field.label}
                 />
               )}
               {field.description ? (
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                <p className="text-[11px] text-gray-500">
                   {field.description}
                 </p>
               ) : null}

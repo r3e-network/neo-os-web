@@ -5,6 +5,7 @@
 "use client";
 
 import { useState } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -16,9 +17,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { useUsers, useSearchUsers } from "@/lib/hooks/useUsers";
 import { formatDate, truncate } from "@/lib/utils";
+
+function safeText(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
+}
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,6 +40,9 @@ export default function UsersPage() {
   const users = searchTerm ? searchResults : allUsers;
   const isLoading = searchTerm ? searchLoading : allUsersLoading;
   const error = searchTerm ? searchError : allUsersError;
+  const visibleUsers = Array.isArray(users) ? users : [];
+  const emailCoverage = visibleUsers.filter((user) => safeText(user.email)).length;
+  const searchModeLabel = searchTerm ? "Search active" : "All users";
 
   return (
     <div className="space-y-6">
@@ -45,12 +52,56 @@ export default function UsersPage() {
         highlightLastWord
       />
 
-      <Card variant="glass">
+      <div
+        aria-label="User directory summary"
+        className="users-summary-grid grid gap-3 sm:grid-cols-3"
+      >
+        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+          <p className="text-xs font-semibold uppercase text-gray-500">
+            Visible Users
+          </p>
+          <p className="mt-2 text-2xl font-black text-gray-950">
+            {visibleUsers.length}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+          <p className="text-xs font-semibold uppercase text-gray-500">
+            Email Coverage
+          </p>
+          <p className="mt-2 text-2xl font-black text-gray-950">
+            {emailCoverage}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+          <p className="text-xs font-semibold uppercase text-gray-500">
+            Search Mode
+          </p>
+          <p className="mt-2 text-sm font-semibold text-gray-700">
+            {searchModeLabel}
+          </p>
+          {searchTerm ? (
+            <p className="mt-1 text-xs text-gray-500">
+              Showing {visibleUsers.length} result for {searchTerm}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-gray-500">All users</p>
+          )}
+        </div>
+      </div>
+
+      <Card
+        aria-label="User management panel"
+        className="users-management-card"
+        variant="default"
+      >
         <CardHeader>
-          <CardTitle>User Management</CardTitle>
+          <CardTitle>User Directory</CardTitle>
+          <p className="mt-1 text-sm text-gray-500">
+            Search by address or email, then review metadata and activity timestamps.
+          </p>
         </CardHeader>
-        <CardContent>
-          <div className="mb-4">
+        <CardContent className="space-y-5">
+          <div>
             <Input
               type="search"
               id="user-search-input"
@@ -61,60 +112,108 @@ export default function UsersPage() {
             />
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center py-8">
+          {isLoading && (
+            <div className="flex justify-center py-10">
               <Spinner />
-            </div>
-          ) : error ? (
-            <div
-              role="alert"
-              className="text-center text-danger-600 dark:text-danger-400"
-            >
-              Failed to load users
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table aria-label="Users list">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Updated</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users?.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium" title={user.id}>
-                        {truncate(user.id, 12)}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {user.address}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500 dark:text-gray-400">
-                        {user.email || "N/A"}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500 dark:text-gray-400">
-                        {formatDate(user.created_at)}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500 dark:text-gray-400">
-                        {formatDate(user.updated_at)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
             </div>
           )}
 
-          {!isLoading && users?.length === 0 && (
-            <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-              {searchTerm
-                ? "No users found matching your search"
-                : "No users registered yet"}
+          {!isLoading && error && (
+            <div
+              role="alert"
+              aria-label="User directory could not be loaded"
+              className="rounded-xl border border-danger-200 bg-danger-50 p-4"
+            >
+              <p className="text-sm font-semibold text-danger-700">
+                User directory could not be loaded
+              </p>
             </div>
+          )}
+
+          {!isLoading && !error && (
+            <>
+              <div
+                aria-label="Mobile users list"
+                className="users-mobile-list space-y-3 md:hidden"
+              >
+                {visibleUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    <p className="text-sm font-semibold text-gray-900">
+                      {safeText(user.email) || "No email on file"}
+                    </p>
+                    <p className="mt-1 break-all font-mono text-xs text-gray-600">
+                      {user.address}
+                    </p>
+                    <div className="mt-4 grid gap-3 rounded-lg bg-gray-50 p-3 text-xs text-gray-600 sm:grid-cols-2">
+                      <div>
+                        <p className="font-semibold uppercase text-gray-500">
+                          Created
+                        </p>
+                        <p className="mt-1 font-medium text-gray-700">
+                          {formatDate(user.created_at)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-semibold uppercase text-gray-500">
+                          Updated
+                        </p>
+                        <p className="mt-1 font-medium text-gray-700">
+                          {formatDate(user.updated_at)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="users-desktop-table hidden md:block">
+                <div className="overflow-x-auto">
+                  <Table aria-label="Users list">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User ID</TableHead>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Updated</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {visibleUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium" title={user.id}>
+                            {truncate(user.id, 12)}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {user.address}
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {safeText(user.email) || "No email on file"}
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {formatDate(user.created_at)}
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-500">
+                            {formatDate(user.updated_at)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {visibleUsers.length === 0 && (
+                <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-600">
+                  {searchTerm
+                    ? "No users found matching your search"
+                    : "No users registered yet"}
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

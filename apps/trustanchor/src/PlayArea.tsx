@@ -29,6 +29,8 @@ export default function PlayArea({ state }: PlayAreaProps) {
   const selectedAgent = stats?.selectedAgentId
     ? `#${stats.selectedAgentId}`
     : "None";
+  const agentTotal = agentCount || agentAccounts.length || 21;
+  const routeStatus = stats?.selectedAgentId ? "Route selected" : "Awaiting route";
 
   return (
     <div className="trustanchor-play-area">
@@ -64,12 +66,78 @@ export default function PlayArea({ state }: PlayAreaProps) {
         </div>
       </div>
 
-      <details className="neo-card">
+      <section className="anchor-workspace" aria-label="TrustAnchor staking workspace">
+        <div className="anchor-status-card">
+          <div className="anchor-section-head">
+            <span>Transaction route</span>
+            <h3>Stake routing workspace</h3>
+            <p>
+              Stake, redeem, and claim stay in the wallet flow while AA agent
+              routing remains visible for every reward cycle.
+            </p>
+          </div>
+
+          <div className="anchor-flow" aria-label="TrustAnchor transaction flow">
+            <div>
+              <span className="anchor-flow__number">01</span>
+              <strong>Choose amount</strong>
+            </div>
+            <div>
+              <span className="anchor-flow__number">02</span>
+              <strong>Sign wallet tx</strong>
+            </div>
+            <div>
+              <span className="anchor-flow__number">03</span>
+              <strong>Track rewards</strong>
+            </div>
+          </div>
+
+          <div className="anchor-guidance-grid">
+            <div>
+              <span>User flow</span>
+              <strong>Stake, redeem, or claim without leaving TrustAnchor.</strong>
+            </div>
+            <div>
+              <span>Agent route</span>
+              <strong>
+                {selectedAgent === "None"
+                  ? "No active route selected yet."
+                  : `Current route ${selectedAgent}.`}
+              </strong>
+            </div>
+            <div>
+              <span>Safety rail</span>
+              <strong>Admin-only agent movement stays outside the user tx.</strong>
+            </div>
+          </div>
+        </div>
+
+        <aside className="anchor-route-card" aria-label="TrustAnchor route state">
+          <span>Route state</span>
+          <strong>{selectedAgent}</strong>
+          <dl>
+            <div>
+              <dt>Status</dt>
+              <dd>{routeStatus}</dd>
+            </div>
+            <div>
+              <dt>Agents</dt>
+              <dd>{agentTotal}/21</dd>
+            </div>
+            <div>
+              <dt>Reward pool</dt>
+              <dd>{rewardReserveDisplay}</dd>
+            </div>
+          </dl>
+        </aside>
+      </section>
+
+      <details className="neo-card anchor-routing-model" open>
         <summary className="section-title">How routing is protected</summary>
         <div className="anchor-flow-list">
           <span>Current route: {selectedAgent}.</span>
           <span>
-            {agentCount || agentAccounts.length}/21 AA agents registered for
+            {agentTotal}/21 AA agents registered for
             TrustAnchor.
           </span>
           <span>

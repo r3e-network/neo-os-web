@@ -244,8 +244,8 @@ export function resolveMiniAppRuntime(
   const manifest = asObject(app.manifest);
   const platformModules = getPlatformRuntimeModules(app);
   if (platformModules.length > 0) {
-    const module = getFirstPlatformModuleForNetwork(platformModules, network);
-    const binding = module?.networks[network];
+    const runtimeModule = getFirstPlatformModuleForNetwork(platformModules, network);
+    const binding = runtimeModule?.networks[network];
     const contractHash = asString(binding?.contract_hash);
     const registered = binding?.registered === true;
 
@@ -264,10 +264,10 @@ export function resolveMiniAppRuntime(
     return {
       mode: "platform",
       network,
-      appId: module?.appId ?? app.app_id,
-      binding: module?.binding ?? null,
-      platform: module?.platform ?? null,
-      moduleType: module?.moduleType ?? null,
+      appId: runtimeModule?.appId ?? app.app_id,
+      binding: runtimeModule?.binding ?? null,
+      platform: runtimeModule?.platform ?? null,
+      moduleType: runtimeModule?.moduleType ?? null,
       contractHash: contractHash || null,
       registered,
       writesEnabled,
@@ -276,7 +276,7 @@ export function resolveMiniAppRuntime(
         : !contractHash
           ? "platform contract is not configured for this network"
           : "miniapp is not registered in the platform contract for this network",
-      module,
+      module: runtimeModule,
     };
   }
 

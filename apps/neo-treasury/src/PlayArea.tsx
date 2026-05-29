@@ -1,22 +1,24 @@
 /**
- * PlayArea.tsx — Neo Treasury
+ * PlayArea.tsx - Neo Treasury
  *
- * Full interactive treasury dashboard: stats bar with USD/NEO/GAS totals,
- * hero section, category breakdown, loading/error states, and refresh action.
+ * Read-only treasury dashboard. The page remains useful while live balances
+ * are loading or unavailable, then fills in public chain totals when present.
  */
 
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import TreasuryHero from "./components/TreasuryHero";
-import TreasuryLoadingState from "./components/TreasuryLoadingState";
+import {
+  DA_HONGFEI_ADDRESSES,
+  ERIK_ZHANG_ADDRESSES,
+} from "./utils/treasury";
 import "./PlayArea.scss";
 
 interface TreasuryData {
   totalUsd: number;
   totalNeo: number;
   totalGas: number;
-  lastUpdated: string;
+  lastUpdated: number | string;
   prices: Record<string, unknown>;
   categories: Array<{ name: string; [key: string]: unknown }>;
 }
@@ -27,8 +29,21 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+function formatNumber(value: unknown, maximumFractionDigits = 2) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "0";
+  return amount.toLocaleString(undefined, { maximumFractionDigits });
+}
+
+function formatLastUpdated(value: number | string | undefined) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { bool, str, num, val } = useStateBindings(state);
+  const { bool, str, val } = useStateBindings(state);
 
   const data = val<TreasuryData>("data");
   const loading = bool("loading");
@@ -36,104 +51,157 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const totalUsdDisplay = str("totalUsdDisplay");
   const totalNeoDisplay = str("totalNeoDisplay");
   const totalGasDisplay = str("totalGasDisplay");
-  const founderCount = num("founderCount");
+  const hasLiveData = Boolean(data);
+  const watchedAddressCount =
+    DA_HONGFEI_ADDRESSES.length + ERIK_ZHANG_ADDRESSES.length;
+  const lastUpdated = formatLastUpdated(data?.lastUpdated);
+  const signalLabel = hasLiveData
+    ? t("treasuryLiveSynced")
+    : loading
+      ? t("treasuryLiveLoading")
+      : t("treasuryLivePending");
+  const isRefreshing = loading && hasLiveData;
+
+  const watchGroups = data?.categories?.length
+    ? data.categories.map((category) => ({
+        name: String(category.name || t("treasuryGroup")),
+        addresses: Array.isArray(category.wallets)
+          ? category.wallets.length
+          : 0,
+        neo: `${formatNumber(category.totalNeo, 4)} NEO`,
+        gas: `${formatNumber(category.totalGas, 4)} GAS`,
+        usd: `$${formatNumber(category.totalUsd, 2)}`,
+      }))
+    : [
+        {
+          name: "Da Hongfei",
+          addresses: DA_HONGFEI_ADDRESSES.length,
+          neo: t("treasuryLivePending"),
+          gas: t("treasuryLivePending"),
+          usd: t("treasuryLivePending"),
+        },
+        {
+          name: "Erik Zhang",
+          addresses: ERIK_ZHANG_ADDRESSES.length,
+          neo: t("treasuryLivePending"),
+          gas: t("treasuryLivePending"),
+          usd: t("treasuryLivePending"),
+        },
+      ];
 
   const handleRefresh = async () => {
     await dispatch("refresh");
   };
 
-  const formatNumber = (value: unknown, maximumFractionDigits = 2) => {
-    const amount = Number(value);
-    if (!Number.isFinite(amount)) return "0";
-    return amount.toLocaleString(undefined, { maximumFractionDigits });
-  };
-
-  const formatCategoryDetail = (cat: { name: string; [key: string]: unknown }) => {
-    const walletCount = Array.isArray(cat.wallets) ? cat.wallets.length : 0;
-    return [
-      walletCount > 0 ? `${walletCount} ${t("wallets") || "wallets"}` : null,
-      `${formatNumber(cat.totalNeo, 4)} NEO`,
-      `${formatNumber(cat.totalGas, 4)} GAS`,
-      `$${formatNumber(cat.totalUsd, 2)}`,
-    ].filter(Boolean).join(" | ");
-  };
-
   return (
     <div className="treasury-play-area">
-      {/* Stats Bar */}
-      <div className="stats-bar">
-        <div className="stat-chip">
-          <span className="stat-value">{totalUsdDisplay || "--"}</span>
-          <span className="stat-label">{t("sidebarTotalUsd") || "Total USD"}</span>
+      <section className="treasury-hero" aria-label={t("title")}>
+        <div className="treasury-hero__copy">
+          <span className="treasury-eyebrow">{t("docSubtitle")}</span>
+          <h2>{t("title")}</h2>
+          <p>{t("docDescription")}</p>
         </div>
-        <div className="stat-chip">
-          <span className="stat-value">{totalNeoDisplay || "--"}</span>
-          <span className="stat-label">{t("tokenNeo") || "NEO"}</span>
+        <div className="treasury-hero__metrics" aria-label={t("treasuryInfo")}>
+          <div className="treasury-metric">
+            <span>{t("sidebarTotalUsd")}</span>
+            <strong>{hasLiveData ? totalUsdDisplay : t("treasuryLivePending")}</strong>
+          </div>
+          <div className="treasury-metric">
+            <span>{t("tokenNeo")}</span>
+            <strong>{hasLiveData ? totalNeoDisplay : "--"}</strong>
+          </div>
+          <div className="treasury-metric">
+            <span>{t("tokenGas")}</span>
+            <strong>{hasLiveData ? totalGasDisplay : "--"}</strong>
+          </div>
         </div>
-        <div className="stat-chip">
-          <span className="stat-value">{totalGasDisplay || "--"}</span>
-          <span className="stat-label">{t("tokenGas") || "GAS"}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{founderCount}</span>
-          <span className="stat-label">{t("categories") || "Categories"}</span>
-        </div>
-      </div>
+      </section>
 
-      {/* Hero */}
-      <TreasuryHero
-        t={t}
-        totalUsd={data?.totalUsd}
-        totalNeo={data?.totalNeo}
-        totalGas={data?.totalGas}
-      />
+      <section className="treasury-signal-card" aria-label={t("treasuryLiveStatus")}>
+        <div className="treasury-token" aria-hidden="true">
+          N
+        </div>
+        <div className="treasury-signal-card__copy">
+          <span>{t("treasuryLiveStatus")}</span>
+          <strong>{signalLabel}</strong>
+          <p>
+            {hasLiveData
+              ? t("treasurySyncedHint")
+              : t("treasuryPendingHint")}
+          </p>
+        </div>
+        <div className="treasury-sparkline" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+      </section>
 
-      {/* Main Content */}
-      {data ? (
-        <>
-          <TreasuryLoadingState t={t} loading={loading} error="" hasData={true} />
-
-          {/* Category Breakdown */}
-          {data.categories && data.categories.length > 0 && (
-            <NeoCard variant="erobo" className="categories-card">
-              <span className="section-title">{t("treasuryBreakdown") || "Treasury Breakdown"}</span>
-              <div className="categories-list">
-                {data.categories.map((cat: { name: string; [key: string]: unknown }, idx: number) => (
-                  <div key={idx} className="category-row">
-                    <span className="category-name">{cat.name}</span>
-                    <span className="category-detail">{formatCategoryDetail(cat)}</span>
-                  </div>
-                ))}
+      <section className="treasury-watchlist" aria-label={t("treasuryWatchlist")}>
+        {watchGroups.map((group) => (
+          <NeoCard variant="erobo" className="treasury-group-card" key={group.name}>
+            <div className="treasury-group-header">
+              <span>{group.name}</span>
+              <strong>
+                {group.addresses} {t("addresses")}
+              </strong>
+            </div>
+            <dl>
+              <div>
+                <dt>{t("tokenNeo")}</dt>
+                <dd>{group.neo}</dd>
               </div>
-            </NeoCard>
-          )}
+              <div>
+                <dt>{t("tokenGas")}</dt>
+                <dd>{group.gas}</dd>
+              </div>
+              <div>
+                <dt>{t("sidebarTotalUsd")}</dt>
+                <dd>{group.usd}</dd>
+              </div>
+            </dl>
+          </NeoCard>
+        ))}
+      </section>
 
-          {/* Last Updated */}
-          {data.lastUpdated && (
-            <span className="last-updated">{t("lastUpdated") || "Last updated"}: {data.lastUpdated}</span>
-          )}
-        </>
-      ) : (
-        <TreasuryLoadingState
-          t={t}
-          loading={loading}
-          error={error}
-          hasData={false}
-          onRetry={handleRefresh}
-        />
-      )}
+      <section className="treasury-route" aria-label={t("treasuryReadOnlyRoute")}>
+        <div>
+          <span>01</span>
+          <strong>{t("step1")}</strong>
+        </div>
+        <div>
+          <span>02</span>
+          <strong>{t("step2")}</strong>
+        </div>
+        <div>
+          <span>03</span>
+          <strong>{t("step4")}</strong>
+        </div>
+      </section>
 
-      {/* Operation Panel */}
-      <NeoCard variant="erobo" className="operation-card">
+      <NeoCard variant="erobo" className="treasury-action-card">
+        <div className="treasury-readonly-note">
+          <span>{t("treasuryReadOnlyRoute")}</span>
+          <strong>{watchedAddressCount} {t("addresses")}</strong>
+          <p>{t("feature3Desc")}</p>
+          {error && <p className="treasury-error">{error}</p>}
+          {lastUpdated && (
+            <p className="treasury-updated">
+              {t("lastUpdated")}: {lastUpdated}
+            </p>
+          )}
+        </div>
         <NeoButton
-          size="sm"
+          size="lg"
           variant="primary"
           className="op-btn"
-          disabled={loading}
+          disabled={isRefreshing}
           onClick={handleRefresh}
-          aria-label={loading ? (t("refreshing") || "Refreshing...") : (t("refreshData") || "Refresh")}
+          aria-label={isRefreshing ? t("refreshing") : t("refreshData")}
         >
-          {loading ? (t("refreshing") || "Refreshing...") : (t("refreshData") || "Refresh Data")}
+          {isRefreshing ? t("refreshing") : t("refreshData")}
         </NeoButton>
       </NeoCard>
     </div>

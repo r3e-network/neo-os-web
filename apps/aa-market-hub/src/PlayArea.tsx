@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MarketListing } from "./utils/aa-market";
@@ -16,9 +15,8 @@ interface PlayAreaProps {
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { str, bool, val } = useStateBindings(state);
+  const { str, bool, num, val } = useStateBindings(state);
 
-  // State bindings
   const listings = val<MarketListing[]>("listings") ?? [];
   const isLoading = bool("isLoading");
   const isSubmitting = bool("isSubmitting");
@@ -26,77 +24,140 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const walletAddress = str("walletAddress");
   const selectedListingId = str("selectedListingId");
   const selectedListing = val<MarketListing>("selectedListing");
-  const selectedListingHasPendingRefund = bool("selectedListingHasPendingRefund");
-  const canCreateListing = bool("canCreateListing");
+  const selectedListingHasPendingRefund = bool(
+    "selectedListingHasPendingRefund",
+  );
   const canManageSelectedListing = bool("canManageSelectedListing");
   const canBuySelectedListing = bool("canBuySelectedListing");
+  const totalListings = num("totalListingsDisplay", listings.length);
+  const activeListings = num("activeListingsDisplay", 0);
+  const selectedListingDisplay = str(
+    "selectedListingDisplay",
+    t("notAvailable"),
+  );
 
-  // Local form state
   const [marketHash, setMarketHash] = useState("");
+  const canLoadListings = Boolean(marketHash.trim());
+  const isMarketReady = canLoadListings;
+  const listingCountLabel = String(totalListings || listings.length);
+  const activeCountLabel = String(activeListings);
 
   return (
     <div className="market-play-area">
-      {/* Summary */}
-      <NeoCard variant="erobo" className="mb-6">
-        <p className="summary">{t("hubSummary")}</p>
-      </NeoCard>
-
-      {!marketHash.trim() && (
-        <div className="empty-state">
-          {t("emptyStateEnterHash")}
+      <section className="market-hero">
+        <div className="market-hero__copy">
+          <h2>{t("marketHeroTitle")}</h2>
+          <p>{t("hubSummary")}</p>
+          <div
+            className="market-hero__metrics"
+            aria-label={t("marketMetricsLabel")}
+          >
+            <div className="market-metric">
+              <span>{t("marketMetricListings")}</span>
+              <strong>{listingCountLabel}</strong>
+            </div>
+            <div className="market-metric">
+              <span>{t("marketMetricActive")}</span>
+              <strong>{activeCountLabel}</strong>
+            </div>
+            <div className="market-metric">
+              <span>{t("selectedListingLabel")}</span>
+              <strong>{selectedListingDisplay}</strong>
+            </div>
+          </div>
         </div>
-      )}
-
-      {marketHash.trim() && listings.length === 0 && !isLoading && (
-        <div className="empty-state">
-          {t("emptyStateNoListings")}
-        </div>
-      )}
-
-      {/* Listing Cards */}
-      <div className="listings">
-        {listings.map((listing) => (
-          <ListingCard
-            key={listing.id}
-            listing={listing}
-            isSelected={listing.id === selectedListingId}
+        <div className="market-command">
+          <WalletConnectCard
             t={t}
-            onSelect={(l) => dispatch("selectListing", l.id)}
+            marketHash={marketHash}
+            walletAddress={walletAddress}
+            isWalletConnecting={isWalletConnecting}
+            isLoading={isLoading}
+            canLoadListings={canLoadListings}
+            onMarketHashChange={setMarketHash}
+            onConnect={() => dispatch("connectWallet")}
+            onLoadListings={() => dispatch("loadListings", marketHash)}
           />
-        ))}
-      </div>
+        </div>
+      </section>
 
-      {/* Wallet & Market */}
-      <WalletConnectCard
-        t={t}
-        marketHash={marketHash}
-        walletAddress={walletAddress}
-        isWalletConnecting={isWalletConnecting}
-        isLoading={isLoading}
-        onMarketHashChange={setMarketHash}
-        onConnect={() => dispatch("connectWallet")}
-        onLoadListings={() => dispatch("loadListings", marketHash)}
-      />
+      <section className="market-steps" aria-label={t("marketStepsLabel")}>
+        <div className="market-step">
+          <span className="market-step__icon">01</span>
+          <strong>{t("marketStepConnect")}</strong>
+          <span>{t("marketStepConnectDesc")}</span>
+        </div>
+        <div className="market-step">
+          <span className="market-step__icon">02</span>
+          <strong>{t("marketStepLoad")}</strong>
+          <span>{t("marketStepLoadDesc")}</span>
+        </div>
+        <div className="market-step">
+          <span className="market-step__icon">03</span>
+          <strong>{t("marketStepSettlement")}</strong>
+          <span>{t("marketStepSettlementDesc")}</span>
+        </div>
+      </section>
 
-      {/* Create Listing */}
-      <CreateListingCard
-        t={t}
-        isSubmitting={isSubmitting}
-        canCreateListing={canCreateListing}
-        dispatch={dispatch}
-      />
+      <section className="market-workspace">
+        <div className="market-list-panel">
+          <div className="market-section-heading">
+            <div>
+              <span>{t("marketBoardLabel")}</span>
+              <h3>{t("marketBoardTitle")}</h3>
+            </div>
+            <strong>{listingCountLabel}</strong>
+          </div>
 
-      {/* Manage Listing */}
-      <ManageListingCard
-        t={t}
-        selectedListing={selectedListing}
-        isSubmitting={isSubmitting}
-        canManage={canManageSelectedListing}
-        canBuy={canBuySelectedListing}
-        hasPendingRefund={selectedListingHasPendingRefund}
-        walletAddress={walletAddress}
-        dispatch={dispatch}
-      />
+          {!marketHash.trim() && (
+            <div className="empty-state">
+              <span className="empty-state__badge">AA</span>
+              <strong>{t("emptyStateTitle")}</strong>
+              <span>{t("emptyStateEnterHash")}</span>
+            </div>
+          )}
+
+          {marketHash.trim() && listings.length === 0 && !isLoading && (
+            <div className="empty-state">
+              <span className="empty-state__badge">0</span>
+              <strong>{t("emptyStateNoListingsTitle")}</strong>
+              <span>{t("emptyStateNoListings")}</span>
+            </div>
+          )}
+
+          <div className="listings">
+            {listings.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                isSelected={listing.id === selectedListingId}
+                t={t}
+                onSelect={(l) => dispatch("selectListing", l.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <aside className="market-side-rail">
+          <CreateListingCard
+            t={t}
+            isSubmitting={isSubmitting}
+            isMarketReady={isMarketReady}
+            dispatch={dispatch}
+          />
+
+          <ManageListingCard
+            t={t}
+            selectedListing={selectedListing}
+            isSubmitting={isSubmitting}
+            canManage={canManageSelectedListing}
+            canBuy={canBuySelectedListing}
+            hasPendingRefund={selectedListingHasPendingRefund}
+            walletAddress={walletAddress}
+            dispatch={dispatch}
+          />
+        </aside>
+      </section>
     </div>
   );
 }

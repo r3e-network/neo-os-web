@@ -5,6 +5,7 @@
 import type { Metadata } from "next";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
+import { AdminAccessKeyPanel } from "@/components/layout/AdminAccessKeyPanel";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -32,7 +33,7 @@ function AdminSecurityNotice() {
   return (
     <div
       role="alert"
-      className="border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-xs text-amber-200"
+      className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900"
     >
       <strong className="font-semibold">Admin console is unauthenticated.</strong>{" "}
       No session-auth provider is configured. Deploy behind a VPN / IP
@@ -48,13 +49,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-white text-gray-900 antialiased selection:bg-neo/30 selection:text-neo">
+      <body className="bg-white text-gray-900 antialiased selection:bg-emerald-100 selection:text-emerald-900">
         <Providers>
           <div className="flex min-h-screen flex-col overflow-x-hidden md:h-screen md:flex-row md:overflow-hidden">
             <Sidebar />
             <div className="flex flex-1 flex-col overflow-hidden relative">
               <Header />
               <AdminSecurityNotice />
+              <div className="px-4 pt-4 sm:px-6 lg:px-10">
+                <AdminAccessKeyPanel />
+              </div>
               <main className="flex-1 overflow-y-auto bg-transparent p-4 sm:p-6 lg:p-10 relative z-10">
                 <div className="mx-auto w-full max-w-[1600px]">{children}</div>
               </main>

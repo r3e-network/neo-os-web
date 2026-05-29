@@ -1,8 +1,21 @@
+export type AdminNavigationIcon =
+  | "analytics"
+  | "contracts"
+  | "dashboard"
+  | "miniapps"
+  | "priceFeeds"
+  | "secrets"
+  | "services"
+  | "settings"
+  | "simulations"
+  | "templates"
+  | "users";
+
 export type AdminNavigationItem = {
   readonly labelKey?: string;
   readonly labelFallback: string;
   readonly href: string;
-  readonly icon: string;
+  readonly iconKey: AdminNavigationIcon;
 };
 
 export const ADMIN_NAVIGATION_ITEMS = [
@@ -10,64 +23,64 @@ export const ADMIN_NAVIGATION_ITEMS = [
     labelKey: "navigation.dashboard",
     labelFallback: "Dashboard",
     href: "/",
-    icon: "📊",
+    iconKey: "dashboard",
   },
   {
     labelKey: "navigation.services",
     labelFallback: "Services",
     href: "/services",
-    icon: "🔧",
+    iconKey: "services",
   },
   {
     labelKey: "navigation.simulations",
     labelFallback: "Simulations",
     href: "/simulations",
-    icon: "🤖",
+    iconKey: "simulations",
   },
   {
     labelKey: "navigation.miniapps",
     labelFallback: "MiniApps",
     href: "/miniapps",
-    icon: "📱",
+    iconKey: "miniapps",
   },
   {
     labelKey: "navigation.templateStudio",
     labelFallback: "Template Studio",
     href: "/templates",
-    icon: "🧱",
+    iconKey: "templates",
   },
   {
     labelKey: "navigation.users",
     labelFallback: "Users",
     href: "/users",
-    icon: "👥",
+    iconKey: "users",
   },
   {
     labelKey: "navigation.analytics",
     labelFallback: "Analytics",
     href: "/analytics",
-    icon: "📈",
+    iconKey: "analytics",
   },
   {
     labelKey: "navigation.contracts",
     labelFallback: "Contracts",
     href: "/contracts",
-    icon: "📄",
+    iconKey: "contracts",
   },
   {
     labelFallback: "Price Feeds",
     href: "/pricefeeds",
-    icon: "📈",
+    iconKey: "priceFeeds",
   },
   {
     labelFallback: "Oracle Secrets",
     href: "/oracle-secrets",
-    icon: "🔑",
+    iconKey: "secrets",
   },
   {
     labelFallback: "Settings",
     href: "/settings",
-    icon: "⚙️",
+    iconKey: "settings",
   },
 ] as const satisfies readonly AdminNavigationItem[];
 

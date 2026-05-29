@@ -3,7 +3,10 @@
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
-import { getAdminAuthHeaders } from "@/lib/admin-client";
+import {
+  getAdminAuthHeaders,
+  getAdminFetchOptions,
+} from "@/lib/admin-client";
 import { DEFAULT_STALE_TIME_MS } from "@/lib/constants";
 import type { AnalyticsData, MiniAppUsage } from "@/types";
 
@@ -11,7 +14,11 @@ import type { AnalyticsData, MiniAppUsage } from "@/types";
  * Fetch analytics overview data
  */
 async function fetchAnalytics(): Promise<AnalyticsData> {
-  const response = await fetch("/api/analytics", { headers: getAdminAuthHeaders(), signal: AbortSignal.timeout(15000) });
+  const response = await fetch("/api/analytics", {
+    ...getAdminFetchOptions(),
+    headers: getAdminAuthHeaders(),
+    signal: AbortSignal.timeout(15000),
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch analytics: ${response.status}`);
   }
@@ -23,6 +30,7 @@ async function fetchAnalytics(): Promise<AnalyticsData> {
  */
 async function fetchMiniAppUsage(days = 30): Promise<MiniAppUsage[]> {
   const response = await fetch(`/api/analytics/usage?days=${encodeURIComponent(String(days))}`, {
+    ...getAdminFetchOptions(),
     headers: getAdminAuthHeaders(),
     signal: AbortSignal.timeout(15000),
   });
@@ -61,7 +69,11 @@ export function useUsageByApp() {
   return useQuery({
     queryKey: ["analytics", "by-app"],
     queryFn: async () => {
-      const response = await fetch("/api/analytics/by-app", { headers: getAdminAuthHeaders(), signal: AbortSignal.timeout(15000) });
+      const response = await fetch("/api/analytics/by-app", {
+        ...getAdminFetchOptions(),
+        headers: getAdminAuthHeaders(),
+        signal: AbortSignal.timeout(15000),
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch usage by app");
       }

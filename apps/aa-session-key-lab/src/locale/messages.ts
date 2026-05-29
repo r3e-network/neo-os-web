@@ -5,10 +5,16 @@ const appMessages = {
   latestState: { en: "Latest Configuration", zh: "最近配置" },
   configureSession: { en: "Configure Session Key", zh: "配置 Session Key" },
   accountSeed: { en: "Account ID / Hash", zh: "账户 ID / Hash" },
-  accountSeedPlaceholder: { en: "seed string or 0x hash", zh: "种子字符串或 0x 哈希" },
+  accountSeedPlaceholder: {
+    en: "seed string or 0x hash",
+    zh: "种子字符串或 0x 哈希",
+  },
   accountIdHash: { en: "Account ID Hash", zh: "账户 ID 哈希" },
   sessionPublicKey: { en: "Session Public Key", zh: "Session 公钥" },
-  sessionPublicKeyPlaceholder: { en: "33-byte compressed public key", zh: "33 字节压缩公钥" },
+  sessionPublicKeyPlaceholder: {
+    en: "33-byte compressed public key",
+    zh: "33 字节压缩公钥",
+  },
   targetContract: { en: "Target Contract", zh: "目标合约" },
   targetContractPlaceholder: { en: "0x... or N...", zh: "0x... 或 N..." },
   allowedMethod: { en: "Allowed Method", zh: "允许方法" },
@@ -21,22 +27,58 @@ const appMessages = {
   requestSponsor: { en: "Request Sponsorship", zh: "请求赞助" },
   sponsorship: { en: "Sponsorship", zh: "赞助状态" },
   lastTx: { en: "Last Transaction", zh: "最近交易" },
-  docsSubtitle: { en: "Configure SessionKeyVerifier directly on-chain", zh: "直接在链上配置 SessionKeyVerifier" },
+  docsSubtitle: {
+    en: "Configure SessionKeyVerifier directly on-chain",
+    zh: "直接在链上配置 SessionKeyVerifier",
+  },
   feature1Name: { en: "Verifier Config", zh: "Verifier 配置" },
-  feature1Desc: { en: "Calls aaCore.callVerifier(setSessionKey) with real chain params.", zh: "通过真实链上参数调用 aaCore.callVerifier(setSessionKey)。" },
+  feature1Desc: {
+    en: "Calls aaCore.callVerifier(setSessionKey) with real chain params.",
+    zh: "通过真实链上参数调用 aaCore.callVerifier(setSessionKey)。",
+  },
   feature2Name: { en: "Key Generation", zh: "密钥生成" },
-  feature2Desc: { en: "Generate a compressed P-256 session key locally in the browser.", zh: "在浏览器本地生成压缩 P-256 session key。" },
+  feature2Desc: {
+    en: "Generate a compressed P-256 session key locally in the browser.",
+    zh: "在浏览器本地生成压缩 P-256 session key。",
+  },
   feature3Name: { en: "Sponsor State", zh: "赞助状态" },
-  feature3Desc: { en: "Check and request gas sponsorship before relay flows.", zh: "在 relay 流程前检查并请求 gas 赞助。" },
-  invalidTargetContract: { en: "Target contract must be a Neo address or script hash.", zh: "目标合约必须是 Neo 地址或脚本哈希。" },
-  invalidSessionPublicKey: { en: "Session public key must be a 33-byte compressed hex key.", zh: "Session 公钥必须是 33 字节压缩十六进制公钥。" },
-  invalidExpiry: { en: "Expiry must be a future Unix timestamp.", zh: "过期时间必须是未来的 Unix 时间戳。" },
-  sessionKeyGenerated: { en: "Session key generated locally.", zh: "已在本地生成 Session key。" },
-  sessionKeyGenerateFailed: { en: "Failed to generate session key.", zh: "Session key 生成失败。" },
-  sessionConfigured: { en: "Session key configuration submitted.", zh: "Session key 配置已提交。" },
-  sessionConfigureFailed: { en: "Session key configuration failed.", zh: "Session key 配置失败。" },
+  feature3Desc: {
+    en: "Check and request gas sponsorship before relay flows.",
+    zh: "在 relay 流程前检查并请求 gas 赞助。",
+  },
+  invalidTargetContract: {
+    en: "Target contract must be a Neo address or script hash.",
+    zh: "目标合约必须是 Neo 地址或脚本哈希。",
+  },
+  invalidSessionPublicKey: {
+    en: "Session public key must be a 33-byte compressed hex key.",
+    zh: "Session 公钥必须是 33 字节压缩十六进制公钥。",
+  },
+  invalidExpiry: {
+    en: "Expiry must be a future Unix timestamp.",
+    zh: "过期时间必须是未来的 Unix 时间戳。",
+  },
+  sessionKeyGenerated: {
+    en: "Session key generated locally.",
+    zh: "已在本地生成 Session key。",
+  },
+  sessionKeyGenerateFailed: {
+    en: "Failed to generate session key.",
+    zh: "Session key 生成失败。",
+  },
+  sessionConfigured: {
+    en: "Session key configuration submitted.",
+    zh: "Session key 配置已提交。",
+  },
+  sessionConfigureFailed: {
+    en: "Session key configuration failed.",
+    zh: "Session key 配置失败。",
+  },
   sponsorCheckComplete: { en: "Sponsor check complete.", zh: "赞助检查完成。" },
-  sponsorRequestComplete: { en: "Sponsor request submitted.", zh: "赞助请求已提交。" },
+  sponsorRequestComplete: {
+    en: "Sponsor request submitted.",
+    zh: "赞助请求已提交。",
+  },
   sponsorCheckFailed: { en: "Sponsor check failed.", zh: "赞助检查失败。" },
   sponsorRequestFailed: { en: "Sponsor request failed.", zh: "赞助请求失败。" },
   // UI display strings
@@ -51,6 +93,50 @@ const appMessages = {
   sessionVerifier: { en: "Session Verifier", zh: "Session Verifier" },
   sponsor: { en: "Sponsor", zh: "赞助商" },
   anyMethod: { en: "Any method", zh: "任意方法" },
+  sessionHeroTitle: {
+    en: "Scoped session keys for safer AA actions",
+    zh: "为 AA 操作配置更安全的作用域 Session Key",
+  },
+  sessionHeroCopy: {
+    en: "Generate a local session key, bind it to one contract and method, then submit the scoped verifier update through the connected wallet.",
+    zh: "先在本地生成 session key，再绑定到指定合约和方法，最后通过已连接钱包提交受限 verifier 更新。",
+  },
+  sessionMetricsLabel: {
+    en: "Session key readiness",
+    zh: "Session key 就绪状态",
+  },
+  sessionMetricStatus: { en: "Session", zh: "Session" },
+  sessionMetricSponsor: { en: "Sponsor", zh: "赞助" },
+  sessionMetricScope: { en: "Scope", zh: "作用域" },
+  sessionCommandTitle: { en: "Key & sponsorship", zh: "密钥与赞助" },
+  sessionKeyReady: { en: "ready", zh: "已就绪" },
+  sessionKeyMissing: { en: "missing", zh: "未生成" },
+  sessionFlowLabel: { en: "Session setup workflow", zh: "Session 设置流程" },
+  sessionFlowKey: { en: "Generate key", zh: "生成密钥" },
+  sessionFlowKeyDesc: {
+    en: "Create a browser-local key before assigning scope.",
+    zh: "先生成仅保存在浏览器本地的密钥，再设置权限范围。",
+  },
+  sessionFlowSponsor: { en: "Check sponsor", zh: "检查赞助" },
+  sessionFlowSponsorDesc: {
+    en: "Confirm GAS sponsorship before relay-style actions.",
+    zh: "在 relay 类操作前确认 GAS 赞助状态。",
+  },
+  sessionFlowConfigure: { en: "Configure scope", zh: "配置作用域" },
+  sessionFlowConfigureDesc: {
+    en: "Submit only after account, key, target, and expiry are present.",
+    zh: "账户、密钥、目标合约和过期时间齐全后再提交。",
+  },
+  sessionStateLabel: { en: "Live state", zh: "实时状态" },
+  sessionEmptyCopy: {
+    en: "Generate a key or submit a configuration to populate this board.",
+    zh: "生成密钥或提交配置后，这里会显示最新状态。",
+  },
+  sessionScopeTitle: { en: "Target scope", zh: "目标作用域" },
+  configureSessionBlocked: {
+    en: "Add an account ID/hash, session public key, target contract, and expiry before submitting.",
+    zh: "请先填写账户 ID/Hash、Session 公钥、目标合约和过期时间，再提交配置。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

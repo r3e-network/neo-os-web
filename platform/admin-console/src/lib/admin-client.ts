@@ -1,24 +1,51 @@
 /**
  * Admin console client utilities.
  *
- * Browser pages call the admin console's own Next.js API routes (same-origin).
- * These routes run server-side and authenticate via the ADMIN_CONSOLE_API_KEY
- * env var — the browser never sees or sends the key. No session cookie is
- * needed; the API routes are the auth boundary.
- *
- * For server-to-server callers (e.g. CI, scripts), pass the key via
- * `X-Admin-Key` or `Authorization: Bearer <key>` header.
+ * API routes require an explicit admin key header. Until the console has a
+ * real session login flow, operators can paste the key into this tab; it is
+ * held only in sessionStorage and attached to same-origin admin API requests.
  */
+
+export const ADMIN_API_KEY_STORAGE_KEY = "neo-miniapps.admin-api-key";
+export const ADMIN_API_KEY_CHANGED_EVENT = "neo-miniapps.admin-api-key.changed";
+
+function getSessionStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage;
+}
+
+export function getStoredAdminApiKey(): string {
+  try {
+    return getSessionStorage()?.getItem(ADMIN_API_KEY_STORAGE_KEY)?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
+export function hasStoredAdminApiKey(): boolean {
+  return Boolean(getStoredAdminApiKey());
+}
+
+export function setStoredAdminApiKey(value: string): void {
+  const storage = getSessionStorage();
+  if (!storage || typeof window === "undefined") return;
+
+  const trimmed = value.trim();
+  if (trimmed) {
+    storage.setItem(ADMIN_API_KEY_STORAGE_KEY, trimmed);
+  } else {
+    storage.removeItem(ADMIN_API_KEY_STORAGE_KEY);
+  }
+
+  window.dispatchEvent(new Event(ADMIN_API_KEY_CHANGED_EVENT));
+}
 
 /**
  * Returns headers for browser -> Next.js API route calls.
- *
- * SECURITY: The admin API key must NEVER be exposed to the browser.
- * Browser requests rely on same-origin trust — the Next.js server validates
- * the request itself. No auth header is needed from the browser.
  */
 export function getAdminAuthHeaders(): HeadersInit {
-  return {};
+  const key = getStoredAdminApiKey();
+  return key ? { "X-Admin-Key": key } : {};
 }
 
 /**

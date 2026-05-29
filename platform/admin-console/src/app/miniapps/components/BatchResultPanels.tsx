@@ -1,5 +1,6 @@
 "use client";
 
+import { Boxes, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -76,15 +77,37 @@ export function BatchResultPanels({
   return (
     <>
       {batchImportResult && (
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle>
-              Batch Import Details ({batchImportResult.summary.total} item
-              {batchImportResult.summary.total === 1 ? "" : "s"})
-            </CardTitle>
+        <Card
+          className="batch-import-result-card batch-import-result-shell overflow-hidden"
+          variant="default"
+        >
+          <CardHeader className="space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex min-w-0 gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-100 bg-primary-50 text-primary-700">
+                  <Boxes className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <CardTitle>
+                    Batch Import Details ({batchImportResult.summary.total} item
+                    {batchImportResult.summary.total === 1 ? "" : "s"})
+                  </CardTitle>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Inspect every imported definition before publishing wider
+                    fleet changes.
+                  </p>
+                </div>
+              </div>
+              <Badge variant={batchImportResult.success ? "success" : "danger"}>
+                {batchImportResult.success ? "success" : "needs review"}
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-xs text-gray-600 dark:text-gray-300">
+          <CardContent className="space-y-3 bg-gray-50">
+            <div
+              aria-label="Batch import summary"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600"
+            >
               Success: {batchImportResult.success ? "yes" : "no"} | Dry run:{" "}
               {batchImportResult.dry_run ? "yes" : "no"} | Imported{" "}
               {batchImportResult.summary.imported} | Validated{" "}
@@ -92,11 +115,9 @@ export function BatchResultPanels({
               {batchImportResult.summary.failed}
             </div>
             {!batchImportRows.length ? (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                No per-file records returned.
-              </p>
+              <p className="text-xs text-gray-500">No per-file records returned.</p>
             ) : (
-              <div className="max-h-64 overflow-auto rounded-md border border-gray-200 dark:border-gray-700">
+              <div className="max-h-64 overflow-auto rounded-xl border border-gray-200 bg-white">
                 <Table aria-label="Batch import result rows">
                   <TableHeader>
                     <TableRow>
@@ -149,26 +170,49 @@ export function BatchResultPanels({
       )}
 
       {batchRollbackResult && (
-        <Card variant="glass">
-          <CardHeader>
-            <CardTitle>
-              Batch Rollback Details ({batchRollbackResult.summary.total} target
-              {batchRollbackResult.summary.total === 1 ? "" : "s"})
-            </CardTitle>
+        <Card
+          className="batch-rollback-result-card batch-rollback-result-shell overflow-hidden"
+          variant="default"
+        >
+          <CardHeader className="space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex min-w-0 gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-700">
+                  <RotateCcw className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <CardTitle>
+                    Batch Rollback Details ({batchRollbackResult.summary.total}{" "}
+                    target
+                    {batchRollbackResult.summary.total === 1 ? "" : "s"})
+                  </CardTitle>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Confirm rollback results and failed targets without losing
+                    item-level context.
+                  </p>
+                </div>
+              </div>
+              <Badge
+                variant={batchRollbackResult.success ? "success" : "danger"}
+              >
+                {batchRollbackResult.success ? "success" : "needs review"}
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-xs text-gray-600 dark:text-gray-300">
+          <CardContent className="space-y-3 bg-gray-50">
+            <div
+              aria-label="Batch rollback summary"
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600"
+            >
               Success: {batchRollbackResult.success ? "yes" : "no"} | Rolled
               back {batchRollbackResult.summary.rolled_back} | Disabled created
               apps {batchRollbackResult.summary.disabled_created_app} | Failed{" "}
               {batchRollbackResult.summary.failed}
             </div>
             {!batchRollbackRows.length ? (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                No rollback item records returned.
-              </p>
+              <p className="text-xs text-gray-500">No rollback item records returned.</p>
             ) : (
-              <div className="max-h-56 overflow-auto rounded-md border border-gray-200 dark:border-gray-700">
+              <div className="max-h-56 overflow-auto rounded-xl border border-gray-200 bg-white">
                 <Table aria-label="Batch rollback result rows">
                   <TableHeader>
                     <TableRow>

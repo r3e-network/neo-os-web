@@ -1,0 +1,383 @@
+{
+  "generated_at": "2026-05-26T02:58:20.720Z",
+  "objective_scope": [
+    "60 miniapps",
+    "miniapp platform UI",
+    "host app and admin console local gates",
+    "AA surfaces and paymaster relay",
+    "mainnet contract domain and read-only method surfaces",
+    "oracle services and pricefeeds",
+    "control-plane durable oracle job path",
+    "cross-repo testnet transaction path",
+    "contract/runtime drift evidence"
+  ],
+  "summary": {
+    "status": "pass",
+    "requirement_count": 12,
+    "pass": 12,
+    "partial": 0,
+    "fail": 0,
+    "direct_testnet_tx_count": 5,
+    "testnet_feed_backfill_tx_count": 32
+  },
+  "inputs": {
+    "platform_root": "/Users/jinghuiliao/git/neo-miniapps-platform",
+    "oracle_root": "/Users/jinghuiliao/git/neo-morpheus-oracle",
+    "runtimeUi": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-latest.json",
+    "coverage": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/miniapp-coverage-latest.json",
+    "playareas": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/miniapp-playarea-functionality-latest.json",
+    "liveHarness": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/live-smoke/live-harness-coverage-latest.json",
+    "businessCompleteness": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/miniapp-business-completeness-latest.json",
+    "runtimeScreenshotsDir": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/miniapp-runtime-ui-screenshots",
+    "contractDomains": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/contract-domain-coverage-latest.json",
+    "mainnetMethods": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/mainnet-miniapp-contract-methods-latest.json",
+    "hostFullLog": "/tmp/host-app-full-current.redacted.log",
+    "platformLocalGatesLog": "/tmp/platform-local-gates-current.redacted.log",
+    "directLog": "/tmp/cross_repo_testnet_direct.redacted.log",
+    "testnetBackfillLogs": [
+      "/tmp/testnet-market-hours-backfill-retry.redacted.log",
+      "/tmp/testnet-market-hours-backfill-rest.redacted.log",
+      "/tmp/testnet-continuous-backfill-current.redacted.log"
+    ],
+    "mainnetFreshness": "/tmp/feed-freshness-mainnet-current.json",
+    "testnetFreshness": "/tmp/feed-freshness-testnet-current.json",
+    "betterstack": "/tmp/betterstack-current.json",
+    "oracle": {
+      "drift": "/Users/jinghuiliao/git/neo-morpheus-oracle/docs/reports/feed-registry-drift-latest.json",
+      "controlPlaneSmoke": "/Users/jinghuiliao/git/neo-morpheus-oracle/examples/deployments/control-plane-smoke.testnet.latest.json",
+      "workerLog": "/tmp/oracle-worker-current.redacted.log",
+      "relayerLog": "/tmp/oracle-relayer-current.redacted.log",
+      "runtimeMatrixLog": "/tmp/oracle-runtime-matrix-current.redacted.log",
+      "webBuildLog": "/tmp/oracle-web-build-current.redacted.log"
+    }
+  },
+  "requirements": [
+    {
+      "id": "platform.host-admin-gates",
+      "title": "Host app, AA surfaces, and Admin Console local gates pass tests, builds, and e2e",
+      "status": "pass",
+      "evidence": {
+        "host_full_log": "/tmp/host-app-full-current.redacted.log",
+        "platform_local_gates_log": "/tmp/platform-local-gates-current.redacted.log",
+        "host_full": {
+          "checks": {
+            "jestSuites": true,
+            "jestTests": true,
+            "e2e": true
+          },
+          "jest_suites_passed": 127,
+          "jest_tests_passed": 666,
+          "e2e_passed": 27
+        },
+        "local_gates": {
+          "checks": {
+            "completed": true,
+            "adminTests": true,
+            "adminFiles": true
+          }
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "frontend.runtime-ui",
+      "title": "All 60 miniapps render professional desktop/mobile UI without runtime failures",
+      "status": "pass",
+      "evidence": {
+        "file": "docs/reports/miniapp-runtime-ui-latest.json",
+        "catalog_count": 60,
+        "catalog_total_count": 60,
+        "total_checks": 120,
+        "passed": 120,
+        "failed": 0,
+        "warnings": 0,
+        "failures": 0,
+        "screenshots_enabled": true,
+        "screenshot_png_count": 120,
+        "screenshot_dir": "docs/reports/miniapp-runtime-ui-screenshots"
+      },
+      "notes": [
+        "Automated evidence covers rendering, text, controls, asset failures, horizontal overflow, and screenshots. Human aesthetic review remains qualitative."
+      ]
+    },
+    {
+      "id": "miniapps.coverage",
+      "title": "All 60 miniapps have complete catalog, PlayArea, live harness, and chain coverage classification",
+      "status": "pass",
+      "evidence": {
+        "coverage_file": "docs/reports/miniapp-coverage-latest.json",
+        "playarea_file": "docs/reports/miniapp-playarea-functionality-latest.json",
+        "live_harness_file": "docs/reports/live-smoke/live-harness-coverage-latest.json",
+        "coverage_summary": {
+          "testnet+mainnet": 36,
+          "frontend-only": 24
+        },
+        "action_required": [],
+        "rpc_unknown": [],
+        "playarea_failures": 0,
+        "live_harness": {
+          "totalActive": 60,
+          "byCoverage": {
+            "live-chain-flow": 32,
+            "stateless-ui-flow": 23,
+            "shared-runtime-flow": 4,
+            "server-backed-flow": 1
+          },
+          "missingLiveChainHarness": [],
+          "blockedNoTestnetContract": []
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "contracts.mainnet-readiness",
+      "title": "Contract domains and mainnet read-only method surfaces have no blockers",
+      "status": "pass",
+      "evidence": {
+        "contract_domain_file": "docs/reports/contract-domain-coverage-latest.json",
+        "mainnet_methods_file": "docs/reports/mainnet-miniapp-contract-methods-latest.json",
+        "contract_domains": {
+          "generated_at": "2026-05-26T02:57:40.285Z",
+          "started_at": "2026-05-26T02:57:20.250Z",
+          "network": "neo-n3-mainnet",
+          "rpc_url": "https://api.n3index.dev/mainnet",
+          "network_magic": 860833102,
+          "total_contract_bindings": 46,
+          "configured": 46,
+          "config_missing": 0,
+          "chain_ok": 46,
+          "chain_missing": 0,
+          "chain_mismatch": 0,
+          "chain_error": 0,
+          "unique_domain_bindings": 38,
+          "unique_configured_domains": 38,
+          "unique_chain_ok": 38,
+          "unique_chain_missing": 0,
+          "unique_chain_mismatch": 0,
+          "unique_chain_error": 0,
+          "unique_actionable": 0,
+          "skipped_rpc": false
+        },
+        "mainnet_methods": {
+          "totalMiniapps": 60,
+          "mainnetContractApps": 36,
+          "uniqueMainnetContracts": 27,
+          "safeInvocationsAttempted": 846,
+          "blockerCount": 0,
+          "contractStateErrors": 0
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "oracle.mainnet-freshness",
+      "title": "Neo mainnet pricefeed has all 33 configured pairs fresh",
+      "status": "pass",
+      "evidence": {
+        "source": "/tmp/feed-freshness-mainnet-current.json",
+        "total": 33,
+        "fresh": 33,
+        "stale": 0,
+        "actionable_stale": 0,
+        "stale_pairs": []
+      },
+      "notes": []
+    },
+    {
+      "id": "oracle.testnet-freshness",
+      "title": "Neo testnet pricefeed has all 33 configured pairs fresh",
+      "status": "pass",
+      "evidence": {
+        "source": "/tmp/feed-freshness-testnet-current.json",
+        "total": 33,
+        "fresh": 33,
+        "stale": 0,
+        "actionable_stale": 0,
+        "stale_pairs": [],
+        "backfill_tx_hashes": [
+          "0x00ff8a77ed478ce421d0e31d4132ef89cfd4d35ce5cf08c4565d53a863fed8b4",
+          "0x032a810aa4512c1211014f612b417fd33b2e5950a3dce6df550998f97c0e55b3",
+          "0x088e60440e7906a3ec649d451c42923e40e074032efc0cf2a5cc53c6eade03ec",
+          "0x0a22a12a75bb618be9cd60c1e7dc9f5bc5982b3d00b14fb933b6877f4625e8c5",
+          "0x0b72c9a89b87748df4fdea9d2d281d8c4ea238542dc5c6d633e3f3e76ad01e4c",
+          "0x18bd774bd09b5d7fd9395e95e29687bfdd5055c88aa950a33c659cbbc17f2c8e",
+          "0x1d02a149d9eff7e8c16149d29b51aa473d094a3bc6237bd9014da1ec1fe43b65",
+          "0x27c7fee4c8fe74e427cea9c7db7a8a5684df7b91791ed318e44b3df3e1a47533",
+          "0x2b6f05ebc317050ae617f9499ffb90a16d254d8d7262d7f57060a57bcbab8d72",
+          "0x2ef203218d3849f7105d3560c5e92f6fb5a18fe562d546215ea4979e60d3166f",
+          "0x2f6e5bf651d03f9b32065c194c1a558003cebfecffd275d443dab84977758d54",
+          "0x30e92b971e88928aa1b2049942a32bc0278b3bd4be49d1cc715d8cc1637d1277",
+          "0x32f48271d2039eb7b0a596391e25222857a1928a20245c4dab733d7a8674aa6e",
+          "0x3d920f501404e05e5a22e4828dc2ea58ac6211559f1abd0fe6d01e58132cfc95",
+          "0x5cbe48307ace75503c15b89bd0d8bf6452107ec7ff72379791448016fcaa4459",
+          "0x5fb6c6bdf51a97608441875743cc2cf4c6f62977071d9d6fb56f236b9831faf6",
+          "0x61509c4f1bc5f520de731642877dbe7abcd1023e3f80c289e783fd030f5d95b4",
+          "0x615cf698cc2e826473f072cad7a5a9736218f132457f16a3b9e050585b9d76d6",
+          "0x65ab2b6f5bfc9e197cf1861d15078d168c16d5722b454fc8e64742c9ac434c5d",
+          "0x6727a880cbbbcbd67e66458df9e104cb7f031329aa2ea336aa3653403928b3b6",
+          "0x6b97f056fb1a7d4890f82a6b75fb3ad6486d05961cc05104e7bbec3af6f57700",
+          "0x6d69d2d65dbbe06029ad0e4c0a9d9586a2f92835cb970f4e4ff8a4bd14e004b6",
+          "0x711c2e7de459a092cb87b45f9ebd2f1782911843be1b25a0052854899e1658fe",
+          "0xaed4cd2f13c2a94f29d063650de9cd0ee3c177892c4715cf56765314f919832e",
+          "0xaef317f1148becf7a1213db9ee7112e1ea651170c941760e4ad518085f2fd362",
+          "0xb9f40cb5623e3ff00b7c25895ef18bae743e6ccfa11d831a7db0f6be0d9a2cd7",
+          "0xc4da893652378ba1f1230eb87f30eb89d854f4770dc9f360b6ab404184604cc2",
+          "0xc62424815536ecc9e3fd498edaffa3e18b72ae6e8614611c3f0703e5c7ef6688",
+          "0xcd25d13492f08cfe9785a2f40f17976112179a0cfec6d94f647536146e0edd5c",
+          "0xcf1caf1e3d97982149f40b7ba8083d4b4c33d22c9d7d100a89ab6b6fcc0f9633",
+          "0xda6fcedafc2666facac7dc8583ce0aaaa4eda2cce2946b09ae1b1ef5af0d3aea",
+          "0xf414d0375bda75e5182de1611778e54872bd58a72ead5253d8f734c9b2d228e6"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "oracle.drift",
+      "title": "Configured feed registry pairs are present on chain with no blocking drift",
+      "status": "pass",
+      "evidence": {
+        "file": "docs/reports/feed-registry-drift-latest.json",
+        "summary": {
+          "network_count": 2,
+          "configured_pair_count": 66,
+          "onchain_pair_count": 72,
+          "missing_onchain_pair_count": 0,
+          "configured_onchain_stale_pair_count": 0,
+          "legacy_extra_onchain_pair_count": 6,
+          "blocking_issue_count": 0,
+          "fail_on_extra": false,
+          "status": "pass"
+        },
+        "legacy_extra_onchain_pairs": [
+          "TWELVEDATA:1000FLM-USD",
+          "TWELVEDATA:1000JPY-USD",
+          "TWELVEDATA:FLM-USD",
+          "TWELVEDATA:FLM-USD",
+          "TWELVEDATA:XAG-USD",
+          "TWELVEDATA:XAU-USD"
+        ]
+      },
+      "notes": [
+        "Legacy extra on-chain records are classified as non-blocking because the deployed datafeed contract has no safe per-pair delete method."
+      ]
+    },
+    {
+      "id": "oracle.service-gates",
+      "title": "Oracle worker, relayer, runtime matrix, and web build gates pass",
+      "status": "pass",
+      "evidence": {
+        "worker_log": "/tmp/oracle-worker-current.redacted.log",
+        "relayer_log": "/tmp/oracle-relayer-current.redacted.log",
+        "runtime_matrix_log": "/tmp/oracle-runtime-matrix-current.redacted.log",
+        "web_build_log": "/tmp/oracle-web-build-current.redacted.log",
+        "worker": {
+          "pass": 189,
+          "fail": 0,
+          "has_passes": true,
+          "fail0": true
+        },
+        "relayer": {
+          "pass": 216,
+          "fail": 0,
+          "has_passes": true,
+          "fail0": true
+        },
+        "runtime_matrix": {
+          "pass": 6,
+          "fail": 0,
+          "has_passes": true,
+          "fail0": true
+        },
+        "web_build": {
+          "compiled": true,
+          "staticPages": true
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "oracle.control-plane-smoke",
+      "title": "Control plane accepts and completes a durable testnet oracle job",
+      "status": "pass",
+      "evidence": {
+        "file": "examples/deployments/control-plane-smoke.testnet.latest.json",
+        "network": "testnet",
+        "route": "/oracle/query",
+        "accepted_status": 202,
+        "terminal_status": "succeeded"
+      },
+      "notes": []
+    },
+    {
+      "id": "oracle.betterstack",
+      "title": "Relayer and feed heartbeat monitors are up",
+      "status": "pass",
+      "evidence": {
+        "source": "/tmp/betterstack-current.json",
+        "total_heartbeats": 6,
+        "down": [],
+        "relayers": [
+          {
+            "name": "morpheus-relayer",
+            "status": "up"
+          },
+          {
+            "name": "morpheus-relayer-feed",
+            "status": "up"
+          }
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "cross-repo.transactions",
+      "title": "Cross-repo testnet path can submit Oracle and AA paymaster transactions",
+      "status": "pass",
+      "evidence": {
+        "source": "/tmp/cross_repo_testnet_direct.redacted.log",
+        "checks": {
+          "runtimeApiOperational": true,
+          "oracleSmoke": true,
+          "aaRelayHalt": true,
+          "completed": true
+        },
+        "tx_hashes": [
+          "0x04ef95fe2b9e4594b6477d4108376ad9364a939a89c3db9764e1c40de9a10f28",
+          "0x55eef4e19c9061897a5fb661088d867c42159a4341bdeeee062fcfeb7236f1b4",
+          "0x89f2874ca20444d7ec885af4860a59a33904ea24eb012fded8a7b1345ecca480",
+          "0xa2f9cb0f630aee10e52e236eec94f52c0505a88ce0a69cfd32189fce9e31ef78",
+          "0xf1bc711b9b5ee0682a73f041e7283f4bf960a23ae5aa2c6231fccf3434a5eef7"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "business-completeness",
+      "title": "Miniapp business completeness report has no failures",
+      "status": "pass",
+      "evidence": {
+        "file": "docs/reports/miniapp-business-completeness-latest.json",
+        "failures": 0,
+        "warnings": 0,
+        "summary": {
+          "total": 60,
+          "passing": 60,
+          "needsFollowUp": 0,
+          "cleanupWarnings": 0,
+          "byDomain": {
+            "aa": 6,
+            "tool": 15,
+            "social": 9,
+            "game": 7,
+            "governance": 7,
+            "finance": 10,
+            "oracle": 6
+          },
+          "gaps": [],
+          "cleanup": []
+        }
+      },
+      "notes": []
+    }
+  ]
+}

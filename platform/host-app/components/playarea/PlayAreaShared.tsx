@@ -40,6 +40,8 @@ export type PlayAreaRegistryProps = {
 export type PlayAreaComponent = (props: PlayAreaRegistryProps) => JSX.Element;
 export type NativePlayAreaKind = "custom" | "oracle" | "profiled";
 
+const EMBEDDED_DAPP_SETTLE_MS = 800;
+
 export type PlayTone =
   | "emerald"
   | "violet"
@@ -270,7 +272,7 @@ export function SecondaryInfo({
 }) {
   return (
     <details
-      className="group rounded-[18px] border border-gray-200 bg-gray-50/70 shadow-sm shadow-gray-950/5"
+      className="group rounded-xl border border-gray-200 bg-gray-50/70 shadow-sm shadow-gray-950/5"
       open={defaultOpen}
     >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30">
@@ -367,7 +369,7 @@ export function MetricGrid({ stats }: { stats: PlayMetric[] }) {
         {stats.slice(0, 8).map((item) => (
           <div
             key={item.label}
-            className="rounded-2xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm shadow-gray-950/5"
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm shadow-gray-950/5"
           >
             <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-600">
               {item.label}
@@ -386,7 +388,7 @@ export function MetricGrid({ stats }: { stats: PlayMetric[] }) {
 
 export function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
   return (
-    <div className="rounded-[18px] border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5">
+    <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="m-0 text-sm font-bold text-gray-900">
           {activity?.title || "Recent activity"}
@@ -400,7 +402,7 @@ export function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
           {activity.rows.slice(0, 4).map((row, index) => (
             <div
               key={`${row.primary}:${index}`}
-              className="rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2"
+              className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -450,7 +452,7 @@ export function ActionRow({
   icon?: React.ReactNode;
 }) {
   const styles = toneStyle(tone);
-  const className = `group flex w-full flex-col items-stretch justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition sm:flex-row sm:items-center sm:gap-3 sm:rounded-2xl sm:py-3 ${
+  const className = `group flex w-full flex-col items-stretch justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition sm:flex-row sm:items-center sm:gap-3 sm:py-3 ${
     active ? styles.active : "border-gray-200 bg-white text-gray-950"
   }`;
   const content = (
@@ -514,7 +516,7 @@ export function ActionBoard({
 }) {
   const styles = toneStyle(tone);
   return (
-    <section className="rounded-[16px] border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 sm:rounded-[20px] sm:p-3.5">
+    <section className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 sm:p-3.5">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="m-0 text-sm font-black text-gray-950">{title}</h3>
@@ -567,9 +569,26 @@ export function EmbeddedDappSurface({
   void title;
   void subtitle;
   void tone;
+  const [frameLoaded, setFrameLoaded] = useState(false);
+  const [showLoading, setShowLoading] = useState(true);
+  const loadingTitle = frameTitle.replace(/\s+dApp$/i, "");
+
+  useEffect(() => {
+    setFrameLoaded(false);
+    setShowLoading(true);
+  }, [url]);
+
+  useEffect(() => {
+    if (!frameLoaded) return undefined;
+    const timeout = window.setTimeout(
+      () => setShowLoading(false),
+      EMBEDDED_DAPP_SETTLE_MS,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [frameLoaded]);
 
   return (
-    <section className="group relative overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5">
+    <section className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5">
       <a
         href={url}
         target="_blank"
@@ -589,11 +608,38 @@ export function EmbeddedDappSurface({
         title={frameTitle}
         src={url}
         data-testid={testId}
-        className={`block ${heightClass} w-full border-0 bg-white`}
-        loading="lazy"
+        className={`block ${heightClass} w-full border-0 bg-white transition-opacity duration-300 ${showLoading ? "opacity-0" : "opacity-100"}`}
+        loading="eager"
+        onLoad={() => setFrameLoaded(true)}
         referrerPolicy="no-referrer-when-downgrade"
         sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
       />
+      {showLoading && (
+        <div
+          className="absolute inset-0 grid place-items-center bg-[#f7f8fb] px-6 text-center"
+          data-testid={`${testId}-loading`}
+          aria-live="polite"
+        >
+          <div className="w-full max-w-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-white shadow-md shadow-gray-950/10 ring-1 ring-gray-200">
+              <div className="grid h-11 w-11 place-items-center rounded-xl bg-gray-950 text-white shadow-inner">
+                <Radio className="h-5 w-5" aria-hidden="true" />
+              </div>
+            </div>
+            <p className="m-0 mt-5 text-base font-black text-gray-950">
+              Loading {loadingTitle}
+            </p>
+            <div
+              className="mx-auto mt-4 grid h-2 max-w-44 grid-cols-3 gap-1.5"
+              aria-hidden="true"
+            >
+              <span className="rounded-full bg-emerald-400" />
+              <span className="rounded-full bg-sky-400" />
+              <span className="rounded-full bg-orange-300" />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

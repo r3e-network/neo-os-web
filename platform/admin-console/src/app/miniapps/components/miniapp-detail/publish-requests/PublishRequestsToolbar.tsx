@@ -23,11 +23,9 @@ export function PublishRequestsToolbar({
   triggerPublishRemindersPending,
 }: Props) {
   return (
-    <div className="mb-2 flex items-center justify-between">
-      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-        Publish Requests
-      </h4>
-      <div className="flex items-center gap-2">
+    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h4 className="text-sm font-semibold text-gray-700">Publish Requests</h4>
+      <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="ghost" onClick={onExportPublishRequestsCsv}>
           Export Requests CSV
         </Button>
@@ -57,7 +55,7 @@ export function PublishRequestsToolbar({
         </Button>
         <select
           id="publish-request-status-filter"
-          className="cursor-pointer rounded-md border border-gray-300 p-1.5 text-xs transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+          className="cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs text-gray-700 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
           value={publishRequestStatus}
           onChange={(event) =>
             onPublishRequestStatusChange(

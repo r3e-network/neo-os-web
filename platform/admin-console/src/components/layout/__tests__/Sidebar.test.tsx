@@ -119,4 +119,23 @@ describe("Sidebar Component", () => {
     const sidebar = container.firstChild;
     expect(sidebar).toHaveClass("w-64");
   });
+
+  it("keeps the sidebar restrained and aligned with the light admin shell", () => {
+    const { container } = render(<Sidebar />);
+    const sidebar = container.firstChild as HTMLElement;
+
+    expect(sidebar).toHaveClass("bg-white");
+    for (const token of [
+      "dark:",
+      "rounded-2xl",
+      "bg-neo",
+      "shadow-[",
+      "tracking-wider",
+      "ring-neo",
+    ]) {
+      expect(container.innerHTML, `sidebar should not include ${token}`).not.toContain(
+        token,
+      );
+    }
+  });
 });

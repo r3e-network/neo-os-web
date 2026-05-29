@@ -28,10 +28,29 @@ describe("Card Component", () => {
     expect(card).toHaveClass("glass-card");
   });
 
+  it("uses compact light operator-console chrome", () => {
+    const { container } = render(
+      <Card>
+        <CardHeader>
+          <CardTitle>Operator Surface</CardTitle>
+        </CardHeader>
+        <CardContent>Content</CardContent>
+        <CardFooter>Footer</CardFooter>
+      </Card>,
+    );
+    const card = container.firstChild as HTMLElement;
+
+    expect(card.className).toContain("rounded-xl");
+    expect(card.className).not.toContain("rounded-2xl");
+    expect(container.innerHTML).not.toContain("dark:");
+  });
+
   it("should apply bordered variant", () => {
     const { container } = render(<Card variant="bordered">Content</Card>);
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass("border", "border-gray-200/50");
+    expect(card).toHaveClass("border", "border-gray-200", "rounded-xl");
+    expect(card.className).not.toContain("rounded-2xl");
+    expect(card.className).not.toContain("dark:");
   });
 
   it("should render card with header", () => {

@@ -3,7 +3,10 @@
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
-import { getAdminAuthHeaders } from "@/lib/admin-client";
+import {
+  getAdminAuthHeaders,
+  getAdminFetchOptions,
+} from "@/lib/admin-client";
 import { DEFAULT_STALE_TIME_MS, HEALTH_POLL_INTERVAL_MS } from "@/lib/constants";
 import type { User } from "@/types";
 
@@ -12,6 +15,7 @@ import type { User } from "@/types";
  */
 async function fetchUsers(): Promise<User[]> {
   const response = await fetch("/api/users", {
+    ...getAdminFetchOptions(),
     headers: getAdminAuthHeaders(),
     signal: AbortSignal.timeout(15000),
   });
@@ -26,6 +30,7 @@ async function fetchUsers(): Promise<User[]> {
  */
 async function fetchUser(userId: string): Promise<User> {
   const response = await fetch(`/api/users?id=${encodeURIComponent(userId)}`, {
+    ...getAdminFetchOptions(),
     headers: getAdminAuthHeaders(),
     signal: AbortSignal.timeout(15000),
   });
@@ -71,6 +76,7 @@ export function useSearchUsers(searchTerm: string) {
     queryFn: async (): Promise<User[]> => {
       if (!searchTerm) return [];
       const response = await fetch(`/api/users?search=${encodeURIComponent(searchTerm)}`, {
+        ...getAdminFetchOptions(),
         headers: getAdminAuthHeaders(),
         signal: AbortSignal.timeout(15000),
       });

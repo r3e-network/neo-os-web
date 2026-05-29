@@ -9,7 +9,7 @@
     font-size: 12px;
     font-weight: 600;
     color: #374151;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
     margin-left: 2px;
   }
 
@@ -88,12 +88,20 @@
   }
 
   &--disabled {
-    opacity: 0.5;
+    opacity: 1;
     cursor: not-allowed;
     pointer-events: none;
+    .neo-input__label,
+    .neo-input__hint {
+      color: #6b7280;
+    }
     .neo-input__wrapper {
       background: #f9fafb;
       border-color: #e5e7eb;
+    }
+    .neo-input__field,
+    .neo-input__suffix {
+      color: #6b7280;
     }
   }
 }

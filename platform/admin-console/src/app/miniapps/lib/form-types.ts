@@ -12,5 +12,4 @@
  * This branded type centralizes the one unavoidable `any` so the rest of the
  * codebase is `any`-free while keeping form tab components readable.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
 export type MiniAppFormState = Record<string, any>;

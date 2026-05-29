@@ -58,12 +58,16 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   };
 
   const selectedListing: Observable<MarketListing | null> = {
-    get: () => listings.get().find((l) => l.id === selectedListingId.get()) ?? null,
+    get: () =>
+      listings.get().find((l) => l.id === selectedListingId.get()) ?? null,
     set: () => {},
     subscribe: (fn) => {
       const u1 = listings.subscribe(fn);
       const u2 = selectedListingId.subscribe(fn);
-      return () => { u1(); u2(); };
+      return () => {
+        u1();
+        u2();
+      };
     },
   };
 
@@ -78,14 +82,25 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   };
 
   const canCreateListing: Observable<boolean> = {
-    get: () => Boolean(marketHash.get().trim() && aaContractHash.get().trim() && accountIdHash.get().trim() && priceGas.get().trim()),
+    get: () =>
+      Boolean(
+        marketHash.get().trim() &&
+        aaContractHash.get().trim() &&
+        accountIdHash.get().trim() &&
+        priceGas.get().trim(),
+      ),
     set: () => {},
     subscribe: (fn) => {
       const u1 = marketHash.subscribe(fn);
       const u2 = aaContractHash.subscribe(fn);
       const u3 = accountIdHash.subscribe(fn);
       const u4 = priceGas.subscribe(fn);
-      return () => { u1(); u2(); u3(); u4(); };
+      return () => {
+        u1();
+        u2();
+        u3();
+        u4();
+      };
     },
   };
 
@@ -182,7 +197,9 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
       }
       return walletAddress.get();
     } catch (error: unknown) {
-      eventBus.emit("wallet:error", { message: formatErrorMessage(error, t("connectFailed")) });
+      eventBus.emit("wallet:error", {
+        message: formatErrorMessage(error, t("connectFailed")),
+      });
       throw error;
     } finally {
       isWalletConnecting.set(false);
@@ -195,12 +212,20 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
         throw new Error(t("marketHashRequired"));
       }
       isLoading.set(true);
-      listings.set(await listAddressListings(wallet, marketHash.get(), walletAddress.get()));
+      listings.set(
+        await listAddressListings(
+          wallet,
+          marketHash.get(),
+          walletAddress.get(),
+        ),
+      );
       const currentListings = listings.get();
       const firstListing = currentListings[0];
 
       if (selectedListingId.get()) {
-        const nextSelected = currentListings.find((l) => l.id === selectedListingId.get());
+        const nextSelected = currentListings.find(
+          (l) => l.id === selectedListingId.get(),
+        );
         if (nextSelected) {
           selectListing(nextSelected);
         } else if (firstListing) {
@@ -215,7 +240,9 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
       persistConfig();
       eventBus.emit("listings:loaded", { count: currentListings.length });
     } catch (error: unknown) {
-      eventBus.emit("listings:error", { message: formatErrorMessage(error, t("loadListingsFailed")) });
+      eventBus.emit("listings:error", {
+        message: formatErrorMessage(error, t("loadListingsFailed")),
+      });
       throw error;
     } finally {
       isLoading.set(false);
@@ -230,11 +257,16 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
       isSubmitting.set(true);
       const address = await chain.ensureWallet();
       const result = await action(address);
-      eventBus.emit("action:success", { message: successMessage, txid: result.txid });
+      eventBus.emit("action:success", {
+        message: successMessage,
+        txid: result.txid,
+      });
       await loadListings();
       return result;
     } catch (error: unknown) {
-      eventBus.emit("action:error", { message: formatErrorMessage(error, t("actionFailed")) });
+      eventBus.emit("action:error", {
+        message: formatErrorMessage(error, t("actionFailed")),
+      });
       throw error;
     } finally {
       isSubmitting.set(false);
@@ -243,13 +275,14 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
 
   async function submitCreateListing() {
     const result = await runWriteAction(
-      (address) => createAddressListing(wallet, marketHash.get(), address, {
-        aaContractHash: aaContractHash.get(),
-        accountIdHash: accountIdHash.get(),
-        priceGas: priceGas.get(),
-        title: listingTitle.get(),
-        metadataUri: metadataUri.get(),
-      }),
+      (address) =>
+        createAddressListing(wallet, marketHash.get(), address, {
+          aaContractHash: aaContractHash.get(),
+          accountIdHash: accountIdHash.get(),
+          priceGas: priceGas.get(),
+          title: listingTitle.get(),
+          metadataUri: metadataUri.get(),
+        }),
       t("createListingSuccess"),
     );
     accountIdHash.set("");
@@ -262,7 +295,14 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   async function submitUpdatePrice() {
     if (!selectedListing.get()) return;
     return runWriteAction(
-      (address) => updateAddressListingPrice(wallet, marketHash.get(), address, selectedListing.get()!.id, nextPriceGas.get()),
+      (address) =>
+        updateAddressListingPrice(
+          wallet,
+          marketHash.get(),
+          address,
+          selectedListing.get()!.id,
+          nextPriceGas.get(),
+        ),
       t("updatePriceSuccess"),
     );
   }
@@ -270,7 +310,13 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   async function submitCancelSelected() {
     if (!selectedListing.get()) return;
     return runWriteAction(
-      (address) => cancelAddressListing(wallet, marketHash.get(), address, selectedListing.get()!.id),
+      (address) =>
+        cancelAddressListing(
+          wallet,
+          marketHash.get(),
+          address,
+          selectedListing.get()!.id,
+        ),
       t("cancelListingSuccess"),
     );
   }
@@ -278,7 +324,14 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   async function submitBuySelected() {
     if (!selectedListing.get()) return;
     return runWriteAction(
-      (address) => buyAddressListing(wallet, marketHash.get(), address, selectedListing.get()!.id, { newBackupOwner: newBackupOwner.get() }),
+      (address) =>
+        buyAddressListing(
+          wallet,
+          marketHash.get(),
+          address,
+          selectedListing.get()!,
+          { newBackupOwner: newBackupOwner.get() },
+        ),
       t("buyListingSuccess"),
     );
   }
@@ -286,18 +339,29 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   async function submitRefundSelected() {
     if (!selectedListing.get()) return;
     return runWriteAction(
-      (address) => refundPendingAddressPurchase(wallet, marketHash.get(), address, selectedListing.get()!.id),
+      (address) =>
+        refundPendingAddressPurchase(
+          wallet,
+          marketHash.get(),
+          address,
+          selectedListing.get()!.id,
+        ),
       t("refundPendingSuccess"),
     );
   }
 
   const loadAll = async () => {
     marketHash.set(readCachedString(MARKET_HASH_STORAGE_KEY));
-    aaContractHash.set(readCachedString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash());
+    aaContractHash.set(
+      readCachedString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash(),
+    );
     newBackupOwner.set(walletAddress.get());
     if (marketHash.get().trim()) {
       await loadListings().catch((e: unknown) => {
-        console.warn("[aa-market-hub] loadListings failed:", e instanceof Error ? e.message : String(e));
+        console.warn(
+          "[aa-market-hub] loadListings failed:",
+          e instanceof Error ? e.message : String(e),
+        );
       });
     }
   };

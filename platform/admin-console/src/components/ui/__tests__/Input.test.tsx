@@ -64,7 +64,28 @@ describe("Input Component", () => {
   it("should have correct base styles", () => {
     render(<Input id="styled-input" />);
     const input = screen.getByRole("textbox");
-    expect(input).toHaveClass("rounded-md");
+    expect(input).toHaveClass("rounded-xl");
+  });
+
+  it("uses light operator-console field chrome without local dark-mode forks", () => {
+    render(
+      <Input
+        id="operator-input"
+        label="Operator field"
+        placeholder="Value"
+        disabled
+        error="Use a valid value"
+      />,
+    );
+    const input = screen.getByLabelText("Operator field");
+    const error = screen.getByText("Use a valid value");
+    const fieldMarkup = input.closest("div")?.innerHTML ?? "";
+
+    expect(fieldMarkup).not.toContain("dark:");
+    expect(input.className).not.toContain("disabled:opacity-50");
+    expect(input).toHaveClass("rounded-xl", "border", "border-danger-500");
+    expect(input).toHaveClass("disabled:opacity-100");
+    expect(error).toHaveClass("text-danger-600");
   });
 
   it("should set aria-invalid when error is present", () => {

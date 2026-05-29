@@ -7,6 +7,10 @@ import { getAdminAuthHeaders } from "@/lib/admin-client";
 import { DEFAULT_STALE_TIME_MS } from "@/lib/constants";
 import type { MiniApp } from "@/types";
 
+type AdminQueryOptions = {
+  enabled?: boolean;
+};
+
 /**
  * Fetch all MiniApps
  */
@@ -43,10 +47,11 @@ async function fetchMiniApp(appId: string): Promise<MiniApp> {
 /**
  * Hook to fetch all MiniApps
  */
-export function useMiniApps() {
+export function useMiniApps(options: AdminQueryOptions = {}) {
   return useQuery({
     queryKey: ["miniapps"],
     queryFn: fetchMiniApps,
+    enabled: options.enabled ?? true,
     staleTime: DEFAULT_STALE_TIME_MS,
   });
 }

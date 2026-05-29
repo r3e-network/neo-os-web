@@ -61,17 +61,13 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
 
   return (
     <>
-      <dl className="grid grid-cols-2 gap-4 text-sm">
+      <dl className="grid gap-4 text-sm sm:grid-cols-2">
         <div>
-          <dt className="font-medium text-gray-500 dark:text-gray-400">
-            Entry URL
-          </dt>
+          <dt className="font-medium text-gray-500">Entry URL</dt>
           <dd>{selectedApp.entry_url}</dd>
         </div>
         <div>
-          <dt className="font-medium text-gray-500 dark:text-gray-400">
-            Status
-          </dt>
+          <dt className="font-medium text-gray-500">Status</dt>
           <dd>
             <Badge
               variant={selectedApp.status === "active" ? "success" : "danger"}
@@ -81,23 +77,17 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
           </dd>
         </div>
         <div>
-          <dt className="font-medium text-gray-500 dark:text-gray-400">
-            Developer Pubkey
-          </dt>
+          <dt className="font-medium text-gray-500">Developer Pubkey</dt>
           <dd className="font-mono break-all text-xs">
             {selectedApp.developer_pubkey || "—"}
           </dd>
         </div>
         <div>
-          <dt className="font-medium text-gray-500 dark:text-gray-400">
-            Assets Allowed
-          </dt>
+          <dt className="font-medium text-gray-500">Assets Allowed</dt>
           <dd>{selectedApp.assets_allowed?.join(", ") || "—"}</dd>
         </div>
         <div>
-          <dt className="font-medium text-gray-500 dark:text-gray-400">
-            Permissions
-          </dt>
+          <dt className="font-medium text-gray-500">Permissions</dt>
           <dd>
             {Object.entries(selectedApp.permissions || {})
               .filter(([, value]) => value)
@@ -106,9 +96,7 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
           </dd>
         </div>
         <div>
-          <dt className="font-medium text-gray-500 dark:text-gray-400">
-            Limits
-          </dt>
+          <dt className="font-medium text-gray-500">Limits</dt>
           <dd>
             <pre className="overflow-auto text-xs">
               {JSON.stringify(selectedApp.limits, null, 2)}
@@ -139,20 +127,20 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
           <>
             {contracts.length > 0 && (
               <div>
-                <h4 className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <h4 className="mb-2 text-sm font-semibold text-gray-700">
                   Contracts
                 </h4>
-                <div className="divide-y rounded-lg border border-gray-200 dark:divide-gray-700 dark:border-gray-700">
+                <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
                   {contracts.map((contract, idx) => (
                     <div
                       key={idx}
-                      className="flex justify-between px-3 py-2 text-sm"
+                      className="flex flex-col gap-1 px-3 py-2 text-sm sm:flex-row sm:justify-between"
                     >
                       <span className="shrink-0 font-medium">
                         {contract.name}
                       </span>
                       <span
-                        className="ml-2 min-w-0 truncate font-mono text-xs text-gray-500 dark:text-gray-400"
+                        className="min-w-0 truncate font-mono text-xs text-gray-500 sm:ml-2"
                         title={contract.hash}
                       >
                         {contract.hash}
@@ -165,27 +153,27 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
 
             {operations.length > 0 && (
               <div>
-                <h4 className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <h4 className="mb-2 text-sm font-semibold text-gray-700">
                   Operations
                 </h4>
-                <div className="divide-y rounded-lg border border-gray-200 dark:divide-gray-700 dark:border-gray-700">
+                <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
                   {operations.map((operation, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-4 px-3 py-2 text-sm"
+                      className="grid gap-2 px-3 py-2 text-sm sm:grid-cols-[8rem_minmax(0,1fr)_auto_minmax(0,1.4fr)] sm:items-center"
                     >
-                      <span className="w-32 font-medium">{operation.name}</span>
+                      <span className="font-medium">{operation.name}</span>
                       <span className="font-mono text-xs">
                         {operation.method}
                       </span>
                       {operation.gas_cost && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="text-xs text-gray-500">
                           {operation.gas_cost} GAS
                         </span>
                       )}
                       {operation.description && (
                         <span
-                          className="ml-auto min-w-0 truncate text-xs text-gray-500 dark:text-gray-400"
+                          className="min-w-0 truncate text-xs text-gray-500"
                           title={operation.description}
                         >
                           {operation.description}
@@ -199,13 +187,13 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
 
             {content && (
               <div>
-                <h4 className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                <h4 className="mb-2 text-sm font-semibold text-gray-700">
                   Content
                 </h4>
-                <dl className="grid grid-cols-2 gap-2 text-sm">
+                <dl className="grid gap-2 text-sm sm:grid-cols-2">
                   {!!content.description && (
-                    <div className="col-span-2">
-                      <dt className="font-medium text-gray-500 dark:text-gray-400">
+                    <div className="sm:col-span-2">
+                      <dt className="font-medium text-gray-500">
                         Description
                       </dt>
                       <dd>{String(content.description)}</dd>
@@ -213,17 +201,13 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
                   )}
                   {!!content.category && (
                     <div>
-                      <dt className="font-medium text-gray-500 dark:text-gray-400">
-                        Category
-                      </dt>
+                      <dt className="font-medium text-gray-500">Category</dt>
                       <dd>{String(content.category)}</dd>
                     </div>
                   )}
                   {Array.isArray(content.tags) && content.tags.length > 0 && (
                     <div>
-                      <dt className="font-medium text-gray-500 dark:text-gray-400">
-                        Tags
-                      </dt>
+                      <dt className="font-medium text-gray-500">Tags</dt>
                       <dd>{(content.tags as string[]).join(", ")}</dd>
                     </div>
                   )}
@@ -235,16 +219,16 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
       })()}
 
       <div>
-        <h4 className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+        <h4 className="mb-2 text-sm font-semibold text-gray-700">
           Live Validation
         </h4>
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3">
+        <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
           <div className="flex flex-wrap gap-2">
             <a
               href={workflowHref}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-primary-400 hover:text-primary-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+              className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-primary-400 hover:text-primary-600"
             >
               Workflow
             </a>
@@ -252,7 +236,7 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
               href={reportsHref}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-primary-400 hover:text-primary-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+              className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-primary-400 hover:text-primary-600"
             >
               Reports
             </a>
@@ -260,26 +244,26 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
               href={runbookHref}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-primary-400 hover:text-primary-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+              className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-primary-400 hover:text-primary-600"
             >
               Runbook
             </a>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             Use the scoped command below to rerun live smoke for this MiniApp
             without triggering the whole suite.
           </p>
           {liveSmoke ? (
             <div>
-              <div className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+              <div className="mb-1 text-xs font-medium text-gray-500">
                 Suggested lane: {liveSmoke.lane}
               </div>
-              <pre className="overflow-auto rounded-lg bg-gray-50 p-3 text-xs dark:bg-gray-800">
+              <pre className="overflow-auto rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-700">
                 {liveSmoke.command}
               </pre>
             </div>
           ) : (
-            <pre className="overflow-auto rounded-lg bg-gray-50 p-3 text-xs dark:bg-gray-800">
+            <pre className="overflow-auto rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-700">
               npm run test:testnet:live:smoke
             </pre>
           )}
@@ -287,10 +271,10 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
       </div>
 
       <div>
-        <h4 className="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">
+        <h4 className="mb-1 text-sm font-semibold text-gray-700">
           Full Manifest
         </h4>
-        <pre className="max-h-64 overflow-auto rounded-lg bg-gray-50 p-3 text-xs dark:bg-gray-800">
+        <pre className="max-h-64 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
           {JSON.stringify(selectedApp.manifest || {}, null, 2)}
         </pre>
       </div>

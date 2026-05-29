@@ -336,15 +336,17 @@ export const miniAppConfigSchema = miniAppConfigBaseSchema.superRefine((value, c
     }
   }
 
-  for (const module of modules) {
-    const dependencies = Array.isArray(module.depends_on) ? module.depends_on : [];
+  for (const contractModule of modules) {
+    const dependencies = Array.isArray(contractModule.depends_on)
+      ? contractModule.depends_on
+      : [];
     for (const dependency of dependencies) {
       const dependencyKey = String(dependency || "").trim();
       if (dependencyKey && !uniqueBindingIds.has(dependencyKey)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["contract_composition", "modules"],
-          message: `Module "${module.module_id}" depends on missing binding "${dependencyKey}"`,
+          message: `Module "${contractModule.module_id}" depends on missing binding "${dependencyKey}"`,
         });
       }
     }

@@ -74,6 +74,16 @@ export const baseMessages = {
     en: "Run the form to preview the request payload.",
     zh: "运行表单以预览请求载荷。",
   },
+  consoleFlow: { en: "Request flow", zh: "请求流程" },
+  consoleFlowInput: { en: "Input", zh: "输入" },
+  consoleFlowPreview: { en: "Preview", zh: "预览" },
+  consoleFlowVerify: { en: "Verify", zh: "验证" },
+  consoleRequestHint: {
+    en: "Keep every request readable before it is bound to an on-chain callback.",
+    zh: "在绑定链上回调前，保持每个请求都可读、可检查。",
+  },
+  consoleSignal: { en: "Oracle signal", zh: "预言机信号" },
+  consolePayload: { en: "Payload", zh: "载荷" },
   errorTitle: { en: "Something went wrong", zh: "出现错误" },
   unexpectedError: { en: "An unexpected error occurred", zh: "发生了意外错误" },
 

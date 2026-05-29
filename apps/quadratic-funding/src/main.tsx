@@ -2,7 +2,7 @@
  * Quadratic Funding — Entry Point (React)
  */
 
-import { defineMiniApp, createObservable, refsToObservables } from "@shared/react";
+import { defineMiniApp, refsToObservables } from "@shared/react";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -48,6 +48,14 @@ defineMiniApp({
       await qf.refreshRounds();
     });
 
+    ctx.registerAction("switchTab", async (...args: unknown[]) => {
+      await qf.onTabChange(String(args[0] ?? "rounds"));
+    });
+
+    ctx.registerAction("selectRound", async (...args: unknown[]) => {
+      await qf.handleSelectRound(args[0] as Parameters<typeof qf.handleSelectRound>[0]);
+    });
+
     return {
       state: refsToObservables({
         rounds: qf.rounds,
@@ -69,10 +77,11 @@ defineMiniApp({
         contributionStatus: qf.contributionStatus,
         activeTab: qf.activeTab,
         opStats: qf.opStats,
-        roundCount: createObservable(0),
-        projectCount: createObservable(0),
-        selectedRoundDisplay: createObservable(""),
-        matchingPoolDisplay: createObservable(""),
+        roundCount: qf.roundCount,
+        activeRoundCount: qf.activeRoundCount,
+        projectCount: qf.projectCount,
+        selectedRoundDisplay: qf.selectedRoundDisplay,
+        matchingPoolDisplay: qf.matchingPoolDisplay,
       }),
       loadData: qf.refreshRounds,
     };

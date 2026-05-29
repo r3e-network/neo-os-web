@@ -2,8 +2,48 @@
 @use "@shared/styles/variables.scss" as *;
 @use "../pages/index/gov-merc-theme.scss" as *;
 
-.form-group-neo {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.gov-merc-action-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #dfe7e2;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+
+  > div:first-child {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  span {
+    color: #102019;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0;
+  }
+
+  p {
+    margin: 0;
+    color: #66756e;
+    font-size: 12px;
+    line-height: 1.38;
+    letter-spacing: 0;
+  }
+
+  .neo-btn {
+    min-height: 42px;
+    border-radius: 14px;
+    white-space: normal;
+    line-height: 1.18;
+  }
+
+  .neo-input__label,
+  .neo-input__field,
+  .neo-input__suffix {
+    letter-spacing: 0;
+  }
 }

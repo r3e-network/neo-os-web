@@ -22,13 +22,11 @@ export function PublishRequestsStatusSummary({
   return (
     <>
       {publishReviewError && (
-        <p className="mb-2 text-xs text-danger-600 dark:text-danger-400">
-          {publishReviewError}
-        </p>
+        <p className="mb-2 text-xs text-danger-600">{publishReviewError}</p>
       )}
 
       {publishReminderResult && (
-        <p className="mb-2 text-xs text-gray-600 dark:text-gray-300">
+        <p className="mb-2 text-xs text-gray-600">
           Reminder {publishReminderResult.dry_run ? "dry-run" : "sent"}:{" "}
           {publishReminderResult.sent} items ({publishReminderResult.channel})
         </p>
@@ -36,7 +34,7 @@ export function PublishRequestsStatusSummary({
 
       {publishAuditVerifyResult && (
         <p
-          className={`mb-2 text-xs ${publishAuditVerifyResult.ok ? "text-success-600 dark:text-success-400" : "text-danger-600 dark:text-danger-400"}`}
+          className={`mb-2 text-xs ${publishAuditVerifyResult.ok ? "text-success-600" : "text-danger-600"}`}
         >
           Audit chain {publishAuditVerifyResult.ok ? "OK" : "FAILED"} | Events{" "}
           {publishAuditVerifyResult.total_events} | Invalid{" "}
@@ -46,7 +44,7 @@ export function PublishRequestsStatusSummary({
       )}
 
       {sla && (
-        <div className="mb-2 rounded border border-gray-200 p-2 text-[11px] text-gray-600 dark:border-gray-700 dark:text-gray-300">
+        <div className="mb-2 rounded-xl border border-gray-200 bg-gray-50 p-3 text-[11px] text-gray-600">
           SLA {sla.minutes}m / Escalation {sla.escalation_minutes}m | Pending{" "}
           {sla.pending} | Breached {sla.sla_breached} | Escalated{" "}
           {sla.escalated}

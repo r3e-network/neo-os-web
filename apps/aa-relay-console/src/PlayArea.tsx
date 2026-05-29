@@ -1,10 +1,7 @@
 /**
- * PlayArea.tsx -- AA Relay Console
+ * PlayArea.tsx - AA Relay Console
  *
- * Uses all state: aaAddressDisplay, paymasterDisplay, sponsorState,
- * relayResponse, aaCoreDisplay, relayUrlDisplay, networkDisplay,
- * isCheckingSponsorship, isRelaying.
- * Actions: checkSponsor, requestSponsor, submitRelay.
+ * Wallet-style sponsored relay workspace for AA payload preparation.
  */
 
 import { useState } from "react";
@@ -19,10 +16,24 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+const DEFAULT_PAYLOAD = `{
+  "metaInvocation": {
+    "scriptHash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"
+  }
+}`;
+
+function isValidJson(value: string) {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool } = useStateBindings(state);
 
-  // State bindings
   const aaAddressDisplay = str("aaAddressDisplay", t("notAvailable") || "N/A");
   const paymasterDisplay = str("paymasterDisplay", t("unset") || "unset");
   const sponsorState = str("sponsorState", "{}");
@@ -33,60 +44,194 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isCheckingSponsorship = bool("isCheckingSponsorship");
   const isRelaying = bool("isRelaying");
 
-  // Local form state
   const [aaAddress, setAaAddress] = useState("");
   const [dappIdLocal, setDappIdLocal] = useState("");
-  const [payloadJsonLocal, setPayloadJsonLocal] = useState('{\n  "metaInvocation": {\n    "scriptHash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"\n  }\n}');
+  const [payloadJsonLocal, setPayloadJsonLocal] = useState(DEFAULT_PAYLOAD);
+
+  const hasAAAddress = Boolean(aaAddress.trim());
+  const payloadJsonIsValid = isValidJson(payloadJsonLocal);
+  const canCheckSponsor = hasAAAddress && !isCheckingSponsorship;
+  const canRequestSponsor = hasAAAddress && !isCheckingSponsorship;
+  const canSubmitRelay = hasAAAddress && payloadJsonIsValid && !isRelaying;
+  const draftAAAddress = aaAddress.trim() || t("notAvailable");
+  const dappDisplay = dappIdLocal.trim() || t("unset");
+
+  const stateItems = [
+    { label: t("labelAA") || "AA", value: aaAddressDisplay },
+    { label: t("paymasterLabel") || "Paymaster", value: paymasterDisplay },
+    { label: t("labelSponsor") || "Sponsor", value: sponsorState },
+    { label: t("relayLabel") || "Relay", value: relayResponse },
+  ];
 
   return (
     <div className="relay-play-area">
-      {/* Infrastructure info */}
-      <NeoCard variant="erobo" className="infra-card">
-        <div className="infra-grid">
-          {networkDisplay && (
-            <div className="infra-row">
-              <span className="label">{t("network") || "Network"}</span>
-              <span className="value">{networkDisplay}</span>
+      <section className="relay-hero">
+        <div className="relay-hero__copy">
+          <h2>{t("relayHeroTitle")}</h2>
+          <p>{t("relayHeroCopy")}</p>
+          <div
+            className="relay-hero__metrics"
+            aria-label={t("relayMetricsLabel")}
+          >
+            <div className="relay-metric">
+              <span>{t("network") || "Network"}</span>
+              <strong>{networkDisplay || "--"}</strong>
             </div>
-          )}
-          {aaCoreDisplay && (
-            <div className="infra-row">
-              <span className="label">AA Core</span>
-              <span className="value mono">{aaCoreDisplay}</span>
+            <div className="relay-metric">
+              <span>{t("relayEndpointMetric")}</span>
+              <strong>{relayUrlDisplay || "--"}</strong>
             </div>
-          )}
-          {relayUrlDisplay && (
-            <div className="infra-row">
-              <span className="label">{t("heroRelay") || "Relay"}</span>
-              <span className="value mono">{relayUrlDisplay}</span>
+            <div className="relay-metric">
+              <span>{t("paymasterLabel") || "Paymaster"}</span>
+              <strong>{dappDisplay}</strong>
             </div>
-          )}
-        </div>
-      </NeoCard>
-
-      {/* Result Section */}
-      <NeoCard variant="erobo" className="result-card">
-        <div className="response-grid">
-          <div><span className="label">{t("labelAA") || "AA"}</span><span className="value">{aaAddressDisplay}</span></div>
-          <div><span className="label">{t("paymasterLabel") || "Paymaster"}</span><span className="value">{paymasterDisplay}</span></div>
-          <div><span className="label">{t("labelSponsor") || "Sponsor"}</span><span className="value mono">{sponsorState}</span></div>
-          <div><span className="label">{t("relayLabel") || "Relay"}</span><span className="value mono">{relayResponse}</span></div>
-        </div>
-      </NeoCard>
-
-      {/* Operation Section */}
-      <NeoCard variant="erobo" className="operation-card">
-        <div className="stack">
-          <NeoInput value={aaAddress} label={t("aaAddress") || "AA Address"} placeholder={t("aaAddressPlaceholder") || "N..."} onChange={(val) => setAaAddress(val)} />
-          <NeoInput value={dappIdLocal} label={t("dappId") || "Paymaster Dapp ID"} placeholder={t("dappIdPlaceholder") || "Optional dapp id"} onChange={(val) => setDappIdLocal(val)} />
-          <NeoInput type="textarea" value={payloadJsonLocal} label={t("payloadJson") || "Relay Payload JSON"} placeholder={t("payloadJsonPlaceholder") || "{}"} aria-label={t("payloadJson") || "Relay Payload JSON"} onChange={(val) => setPayloadJsonLocal(val)} />
-          <div className="actions-row">
-            <NeoButton variant="secondary" loading={isCheckingSponsorship} aria-label={t("sponsorCheck") || "Check Sponsorship"} onClick={() => dispatch("checkSponsor", aaAddress, dappIdLocal)}>{t("sponsorCheck") || "Check Sponsorship"}</NeoButton>
-            <NeoButton variant="secondary" loading={isCheckingSponsorship} aria-label={t("sponsorRequest") || "Request Sponsorship"} onClick={() => dispatch("requestSponsor", aaAddress, dappIdLocal)}>{t("sponsorRequest") || "Request Sponsorship"}</NeoButton>
-            <NeoButton variant="primary" loading={isRelaying} aria-label={t("submitRelay") || "Submit Relay"} onClick={() => dispatch("submitRelay", aaAddress, dappIdLocal, payloadJsonLocal)}>{t("submitRelay") || "Submit Relay Payload"}</NeoButton>
           </div>
         </div>
-      </NeoCard>
+
+        <NeoCard
+          variant="erobo"
+          title={t("relayCommandTitle")}
+          className="relay-command"
+        >
+          <div className="relay-command__status">
+            <span>{t("aaCoreLabel")}</span>
+            <strong>{aaCoreDisplay || "--"}</strong>
+          </div>
+          <div className="relay-form">
+            <NeoInput
+              value={aaAddress}
+              label={t("aaAddress") || "AA Address"}
+              hint={t("aaAddressHint")}
+              placeholder={t("aaAddressPlaceholder") || "N..."}
+              onChange={(val) => setAaAddress(val)}
+            />
+            {!canCheckSponsor && (
+              <p className="relay-hint">{t("sponsorBlocked")}</p>
+            )}
+            <div className="relay-action-grid">
+              <NeoButton
+                variant="secondary"
+                loading={isCheckingSponsorship}
+                disabled={!canCheckSponsor}
+                aria-label={t("sponsorCheck") || "Check Sponsorship"}
+                onClick={() => dispatch("checkSponsor", aaAddress, dappIdLocal)}
+              >
+                {t("sponsorCheck") || "Check Sponsorship"}
+              </NeoButton>
+              <NeoButton
+                variant="secondary"
+                loading={isCheckingSponsorship}
+                disabled={!canRequestSponsor}
+                aria-label={t("sponsorRequest") || "Request Sponsorship"}
+                onClick={() =>
+                  dispatch("requestSponsor", aaAddress, dappIdLocal)
+                }
+              >
+                {t("sponsorRequest") || "Request Sponsorship"}
+              </NeoButton>
+            </div>
+          </div>
+        </NeoCard>
+      </section>
+
+      <section className="relay-flow" aria-label={t("relayFlowLabel")}>
+        <div className="relay-flow__step">
+          <span>01</span>
+          <strong>{t("relayFlowSponsor")}</strong>
+          <p>{t("relayFlowSponsorDesc")}</p>
+        </div>
+        <div className="relay-flow__step">
+          <span>02</span>
+          <strong>{t("relayFlowRequest")}</strong>
+          <p>{t("relayFlowRequestDesc")}</p>
+        </div>
+        <div className="relay-flow__step">
+          <span>03</span>
+          <strong>{t("relayFlowSubmit")}</strong>
+          <p>{t("relayFlowSubmitDesc")}</p>
+        </div>
+      </section>
+
+      <section className="relay-workspace">
+        <div className="relay-state-panel">
+          <div className="relay-section-heading">
+            <div>
+              <span>{t("relayStateLabel")}</span>
+              <h3>{t("relayStateTitle")}</h3>
+            </div>
+            <strong>{draftAAAddress}</strong>
+          </div>
+
+          <div className="relay-state-grid">
+            {stateItems.map((item) => (
+              <div key={item.label} className="relay-state-card">
+                <span>{item.label}</span>
+                <pre>{item.value}</pre>
+              </div>
+            ))}
+          </div>
+
+          <div className="relay-risk-note">
+            <span>PM</span>
+            <div>
+              <strong>{t("relayRiskTitle")}</strong>
+              <p>{t("relayRiskCopy")}</p>
+            </div>
+          </div>
+        </div>
+
+        <aside className="relay-side-rail">
+          <NeoCard
+            variant="erobo"
+            title={t("relaySubmitTitle")}
+            className="relay-submit-card"
+          >
+            <div className="relay-scope-summary">
+              <strong>{t("relayDraftLabel")}</strong>
+              <span>{draftAAAddress}</span>
+            </div>
+            {(!canSubmitRelay || !payloadJsonIsValid) && (
+              <p className="relay-hint">
+                {payloadJsonIsValid ? t("relayBlocked") : t("payloadInvalid")}
+              </p>
+            )}
+            <div className="relay-form">
+              <NeoInput
+                value={dappIdLocal}
+                label={t("dappId") || "Paymaster Dapp ID"}
+                hint={t("dappIdHint")}
+                placeholder={t("dappIdPlaceholder") || "Optional dapp id"}
+                onChange={(val) => setDappIdLocal(val)}
+              />
+              <NeoInput
+                type="textarea"
+                value={payloadJsonLocal}
+                label={t("payloadJson") || "Relay Payload JSON"}
+                hint={t("payloadJsonHint")}
+                placeholder={t("payloadJsonPlaceholder") || "{}"}
+                aria-label={t("payloadJson") || "Relay Payload JSON"}
+                onChange={(val) => setPayloadJsonLocal(val)}
+              />
+              <NeoButton
+                variant="primary"
+                loading={isRelaying}
+                disabled={!canSubmitRelay}
+                aria-label={t("submitRelay") || "Submit Relay"}
+                onClick={() =>
+                  dispatch(
+                    "submitRelay",
+                    aaAddress,
+                    dappIdLocal,
+                    payloadJsonLocal,
+                  )
+                }
+              >
+                {t("submitRelay") || "Submit Relay Payload"}
+              </NeoButton>
+            </div>
+          </NeoCard>
+        </aside>
+      </section>
     </div>
   );
 }
