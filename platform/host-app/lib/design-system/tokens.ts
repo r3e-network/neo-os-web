@@ -248,8 +248,8 @@ export const shadows = {
   xl: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
   "2xl": "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
   inner: "inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)",
-  glow: "0 0 15px rgba(0, 229, 153, 0.4)",
-  "glow-lg": "0 0 30px rgba(0, 229, 153, 0.5)",
+  glow: "0 0 15px rgba(22, 199, 132, 0.4)",
+  "glow-lg": "0 0 30px rgba(22, 199, 132, 0.5)",
   "glow-secondary": "0 0 15px rgba(112, 0, 255, 0.4)",
   "glow-error": "0 0 15px rgba(239, 68, 68, 0.4)",
 } as const;
@@ -327,29 +327,3 @@ export type ZIndexKey = keyof typeof zIndex;
 export type BreakpointKey = keyof typeof breakpoints;
 export type TransitionKey = keyof typeof transitions;
 export type MotionKey = keyof typeof motion;
-
-// ============================================================================
-// Token Export Helper
-// ============================================================================
-
-/**
- * Get a color value with optional alpha
- */
-export function getColor(color: string, alpha?: number): string {
-  if (alpha !== undefined) {
-    // Convert hex to rgba
-    const hex = color.replace("#", "");
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-  return color;
-}
-
-/**
- * Get CSS variable string for a token
- */
-export function getCSSVariable(name: string): string {
-  return `var(--ds-${name})`;
-}

@@ -64,7 +64,7 @@ export const MiniAppCard = memo(function MiniAppCard({
       aria-label={`View ${app.name}`}
       className="relative block rounded-3xl outline-none"
     >
-      <Card className="group overflow-hidden glass-card rounded-3xl border border-gray-200/50 bg-white/60 shadow-lg hover:shadow-[0_10px_40px_rgba(0,229,153,0.15)] transition-all duration-500 hover:-translate-y-2 relative">
+      <Card className="group overflow-hidden glass-card rounded-3xl border border-gray-200/50 bg-white/60 shadow-lg hover:shadow-[0_10px_40px_rgba(22,199,132,0.15)] transition-all duration-500 hover:-translate-y-2 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/0 pointer-events-none z-10 rounded-3xl" />
         <div className="h-48 w-full bg-gray-100 relative overflow-hidden">
           {bannerSource ? (
