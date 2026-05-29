@@ -1,193 +1,490 @@
 @use "@shared/styles/console-common" as console;
-@use "@shared/styles/hero" as *;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @use "@shared/styles/playarea-base";
 
-.health-play-area { @include console.play-area; min-height: 300px; }
-
-.hero-container {
-  margin-bottom: 20px;
-  background: radial-gradient(ellipse at 50% 40%, var(--health-accent-soft, rgba(16, 185, 129, 0.08)) 0%, transparent 55%);
-  text-align: center;
+.wallet-health-shell {
+  @include console.play-area;
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(320px, 0.42fr);
+  gap: 18px;
+  min-height: 560px;
+  align-items: start;
+  color: #102019;
+  letter-spacing: 0;
 }
 
-.health-gauge-scene { display: flex; justify-content: center; align-items: center; height: 100px; }
+.wallet-health-main,
+.wallet-health-side {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
 
-.gauge-ring {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: conic-gradient(var(--health-accent, #10b981) calc(var(--score, 0) * 1%), #f3f4f6 0);
+.wallet-health-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.34fr);
+  gap: 16px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(8, 22, 18, 0.96), rgba(20, 65, 48, 0.94)),
+    #102019;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+  color: #f8fffb;
+  overflow: hidden;
+  letter-spacing: 0;
+}
+
+.wallet-health-hero-copy {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  position: relative;
-  animation: heartbeat-pulse 2.5s ease-in-out infinite;
-  box-shadow: 0 0 20px var(--health-accent-glow, rgba(16, 185, 129, 0.2));
+  gap: 10px;
+  min-width: 0;
 
-  &::before {
-    content: "";
-    position: absolute;
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    background: var(--health-bg-start, #ffffff);
+  h2 {
+    margin: 0;
+    color: #f8fffb;
+    font-size: 28px;
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  p {
+    margin: 0;
+    max-width: 520px;
+    color: rgba(248, 255, 251, 0.74);
+    font-size: 14px;
+    line-height: 1.55;
+    letter-spacing: 0;
   }
 }
 
-.gauge-value {
-  position: relative;
-  z-index: 1;
-  font-size: 22px;
-  font-weight: 900;
-  color: var(--health-accent-strong, #10b981);
-  text-shadow: 0 0 12px var(--health-accent-glow-strong, rgba(16, 185, 129, 0.4));
+.wallet-health-hero .wallet-health-hero-copy h2 {
+  color: #f8fffb;
 }
 
-.network-badge {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-}
-
-.risk-alert {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
-}
-
-.risk-icon { font-size: 16px; }
-
-/* Connect State */
-.empty-state { text-align: center; }
-
-.connect-card {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 24px;
-}
-
-.connect-message {
-  font-size: 14px;
-  opacity: 0.7;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.connection-status {
-  font-size: 11px;
-  opacity: 0.4;
-  display: block;
-}
-
-/* Health Dashboard */
-.health-stack { @include console.stack(16px); }
-
-/* Wallet Info Card */
-.wallet-info-card {
-  padding: 0;
-}
-
-.wallet-info {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.info-label {
+.wallet-health-kicker {
+  width: fit-content;
+  padding: 5px 9px;
+  border: 1px solid rgba(166, 255, 203, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #a6ffcb;
   font-size: 12px;
-  opacity: 0.5;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
-.info-value {
-  font-size: 13px;
-  font-weight: 500;
+.wallet-health-score-card {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.09);
+  text-align: center;
 
-  &.mono {
-    font-family: 'SF Mono', 'Fira Code', monospace;
+  strong,
+  small,
+  span {
+    display: block;
+  }
+
+  strong {
+    color: #ffffff;
+    font-size: 15px;
+    line-height: 1.2;
+    letter-spacing: 0;
+  }
+
+  small {
+    margin-top: 4px;
+    color: rgba(248, 255, 251, 0.72);
     font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0;
   }
 }
 
-.balance-row {
+.wallet-health-score-label {
+  color: rgba(248, 255, 251, 0.62);
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.wallet-health-score-ring {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background:
+    conic-gradient(#2ee68a calc(var(--score, 0) * 1%), rgba(255, 255, 255, 0.18) 0),
+    #102019;
+  box-shadow: inset 0 0 0 10px rgba(8, 22, 18, 0.96);
+
+  span {
+    display: grid;
+    place-items: center;
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    background: #f8fffb;
+    color: #102019;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+}
+
+.wallet-health-balance-strip,
+.wallet-health-connect-panel,
+.wallet-health-checklist-panel,
+.wallet-health-recommendations-panel {
+  border-color: rgba(17, 24, 39, 0.1);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+}
+
+.wallet-health-section-heading {
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  margin-bottom: 12px;
+
+  span {
+    color: #66756e;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  strong {
+    max-width: 62%;
+    color: #102019;
+    font-size: 13px;
+    line-height: 1.25;
+    text-align: right;
+    word-break: break-word;
+    letter-spacing: 0;
+  }
+}
+
+.wallet-health-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+
+  div {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #e2e8e4;
+    border-radius: 14px;
+    background: #f7faf8;
+  }
+
+  span,
+  strong {
+    display: block;
+    min-width: 0;
+  }
+
+  span {
+    color: #66756e;
+    font-size: 12px;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  strong {
+    margin-top: 6px;
+    color: #102019;
+    font-size: 17px;
+    line-height: 1.18;
+    word-break: break-word;
+    letter-spacing: 0;
+  }
+}
+
+.wallet-health-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  .neo-btn {
+    min-height: 44px;
+    border-radius: 14px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+}
+
+.wallet-health-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.wallet-health-insight {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid #dfe7e2;
+  border-radius: 14px;
+  background: #f7faf8;
+
+  span,
+  strong {
+    display: block;
+  }
+
+  span {
+    color: #66756e;
+    font-size: 12px;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  strong {
+    margin-top: 7px;
+    color: #102019;
+    font-size: 15px;
+    line-height: 1.2;
+    word-break: break-word;
+    letter-spacing: 0;
+  }
+}
+
+.wallet-health-connect-panel {
+  p {
+    margin: 0 0 12px;
+    color: #53645c;
+    font-size: 13px;
+    line-height: 1.5;
+    letter-spacing: 0;
+  }
+}
+
+.wallet-health-risk-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 11px;
+  border-radius: 14px;
+  background: #f7faf8;
+  border: 1px solid #dfe7e2;
+
+  div {
+    min-width: 0;
+  }
+
+  span,
+  strong {
+    display: block;
+  }
+
+  span {
+    color: #66756e;
+    font-size: 12px;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  strong {
+    margin-top: 3px;
+    color: #102019;
+    font-size: 14px;
+    line-height: 1.2;
+    letter-spacing: 0;
+  }
+}
+
+.wallet-health-risk-dot {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.12);
+}
+
+.risk-medium .wallet-health-risk-dot,
+.wallet-health-risk-row.risk-medium .wallet-health-risk-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.14);
+}
+
+.risk-low .wallet-health-risk-dot,
+.wallet-health-risk-row.risk-low .wallet-health-risk-dot {
+  background: #10b981;
+  box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.14);
+}
+
+.wallet-health-checklist-list {
+  display: grid;
+  gap: 9px;
+}
+
+.wallet-health-checklist-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid #dfe7e2;
+  border-radius: 14px;
+  background: #ffffff;
+
+  strong {
+    display: block;
+    color: #102019;
+    font-size: 13px;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: #66756e;
+    font-size: 12px;
+    line-height: 1.35;
+    letter-spacing: 0;
+  }
+
+  .neo-btn {
+    min-width: 96px;
+    border-radius: 12px;
+    white-space: normal;
+    line-height: 1.15;
+  }
+}
+
+.wallet-health-checklist-item.is-done {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: #f1fcf6;
+}
+
+.wallet-health-auto {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-}
-
-.balance-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.balance-label {
-  font-size: 10px;
+  min-width: 64px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: #edf7f1;
+  color: #107a52;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  opacity: 0.5;
+  line-height: 1.2;
+  letter-spacing: 0;
 }
 
-.balance-value {
-  font-size: 16px;
-  font-weight: 700;
+.wallet-health-recommendations-panel {
+  ul {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    position: relative;
+    min-width: 0;
+    padding: 9px 10px 9px 26px;
+    border-radius: 12px;
+    background: #f7faf8;
+    color: #42544b;
+    font-size: 12px;
+    line-height: 1.35;
+    letter-spacing: 0;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 14px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+    }
+  }
 }
 
-.balance-divider {
-  width: 1px;
-  height: 32px;
-  background: #e5e7eb;
+@media (max-width: 880px) {
+  .wallet-health-shell {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .wallet-health-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-health-score-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: start;
+    text-align: left;
+  }
 }
 
-/* Stats */
-.stats-grid { display: flex; flex-direction: column; gap: 8px; }
-.stat-item { @include console.stat-row; }
-.stat-label { @include console.stat-label; }
-.stat-value { @include console.stat-value; }
+@media (max-width: 640px) {
+  .wallet-health-shell {
+    gap: 12px;
+  }
 
-@keyframes heartbeat-pulse {
-  0%, 100% { transform: scale(1); }
-  14% { transform: scale(1.08); }
-  28% { transform: scale(1); }
-  42% { transform: scale(1.12); }
-  56% { transform: scale(1); }
-}
+  .wallet-health-hero {
+    padding: 16px;
+    border-radius: 16px;
+  }
 
-@media (max-width: 480px) {
-  .gauge-ring { width: 64px; height: 64px; }
-  .gauge-ring::before { width: 50px; height: 50px; }
-  .gauge-value { font-size: 18px; }
-  .health-gauge-scene { height: 80px; }
-  .balance-row { gap: 12px; }
-}
+  .wallet-health-hero-copy h2 {
+    font-size: 24px;
+    line-height: 1.08;
+  }
 
-@media (prefers-reduced-motion: reduce) {
-  .gauge-ring { animation: none; }
+  .wallet-health-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-health-balance-grid,
+  .wallet-health-insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-health-checklist-item {
+    grid-template-columns: 1fr;
+
+    .neo-btn,
+    .wallet-health-auto {
+      width: 100%;
+    }
+  }
+
+  .wallet-health-section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+
+    strong {
+      max-width: 100%;
+      text-align: left;
+    }
+  }
 }

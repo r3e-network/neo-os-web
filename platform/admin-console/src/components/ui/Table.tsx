@@ -18,10 +18,7 @@ export const Table = forwardRef<
     <div className="overflow-x-auto">
       <table
         ref={ref}
-        className={cn(
-          "min-w-full divide-y divide-gray-200 dark:divide-gray-700",
-          className,
-        )}
+        className={cn("min-w-full divide-y divide-gray-200", className)}
         {...props}
       />
     </div>
@@ -37,7 +34,7 @@ export const TableHeader = forwardRef<
   return (
     <thead
       ref={ref}
-      className={cn("bg-gray-50 dark:bg-gray-800", className)}
+      className={cn("bg-gray-50", className)}
       {...props}
     />
   );
@@ -52,10 +49,7 @@ export const TableBody = forwardRef<
   return (
     <tbody
       ref={ref}
-      className={cn(
-        "divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900",
-        className,
-      )}
+      className={cn("divide-y divide-gray-200 bg-white", className)}
       {...props}
     />
   );
@@ -70,10 +64,7 @@ export const TableRow = forwardRef<
   return (
     <tr
       ref={ref}
-      className={cn(
-        "hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
-        className,
-      )}
+      className={cn("transition-colors hover:bg-gray-50", className)}
       {...props}
     />
   );
@@ -90,7 +81,7 @@ export const TableHead = forwardRef<
       ref={ref}
       scope="col"
       className={cn(
-        "px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase ",
+        "px-6 py-3 text-left text-xs font-medium uppercase text-gray-600",
         className,
       )}
       {...props}
@@ -108,7 +99,7 @@ export const TableCell = forwardRef<
     <td
       ref={ref}
       className={cn(
-        "px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100",
+        "whitespace-nowrap px-6 py-4 text-sm text-gray-900",
         className,
       )}
       {...props}

@@ -6,6 +6,18 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/layout/PageHeader";
+import {
+  getAdminAuthHeaders,
+  getAdminFetchOptions,
+} from "@/lib/admin-client";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
 
 interface PriceFeed {
   id: string;
@@ -26,18 +38,34 @@ export default function PriceFeedsPage() {
     source: "chainlink",
     enabled: true,
   });
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+
+  const activeFeeds = feeds.filter((feed) => feed.enabled).length;
+  const disabledFeeds = feeds.length - activeFeeds;
+  const uniqueSources = new Set(feeds.map((feed) => feed.source)).size;
+  const summaryItems = [
+    { label: "Configured Feeds", value: feeds.length, helper: "Registry entries" },
+    { label: "Active Feeds", value: activeFeeds, helper: "Enabled for runtime" },
+    { label: "Disabled", value: disabledFeeds, helper: "Held out safely" },
+    { label: "Sources", value: uniqueSources, helper: "Provider groups" },
+  ];
+  const inputClass =
+    "h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 shadow-sm transition-colors placeholder:text-gray-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:bg-gray-50 disabled:text-gray-500";
+  const labelClass = "mb-1 block text-sm font-semibold text-gray-700";
 
   useEffect(() => {
     mountedRef.current = true;
     fetchFeeds()
       .catch((e: unknown) => {
-        console.warn(
-          "[pricefeeds] failed to load feeds:",
-          e instanceof Error ? e.message : String(e),
-        );
+        const message = e instanceof Error ? e.message : String(e);
+        console.warn("[pricefeeds] failed to load feeds:", message);
+        if (mountedRef.current) {
+          setFeeds([]);
+          setLoadError(message);
+        }
       })
       .finally(() => {
         if (mountedRef.current) setLoading(false);
@@ -48,26 +76,39 @@ export default function PriceFeedsPage() {
   }, []);
 
   const fetchFeeds = async () => {
-    const res = await fetch("/api/pricefeeds");
-    const data = await res.json();
+    const res = await fetch("/api/pricefeeds", {
+      ...getAdminFetchOptions(),
+      headers: getAdminAuthHeaders(),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      const message =
+        data && typeof data === "object" && "error" in data
+          ? String(data.error)
+          : "Failed to load pricefeeds";
+      throw new Error(message);
+    }
+    if (!Array.isArray(data)) {
+      throw new Error("Invalid pricefeed payload");
+    }
     if (mountedRef.current) setFeeds(data);
+    if (mountedRef.current) setLoadError(null);
   };
 
   const handleSave = async () => {
     setSaveError(null);
     try {
       const res = await fetch("/api/pricefeeds", {
+        ...getAdminFetchOptions(),
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
         body: JSON.stringify(editForm),
       });
       if (!res.ok) throw new Error("Failed to save pricefeed");
+      await fetchFeeds();
       setIsEditing(false);
-      fetchFeeds();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsEditing(false);
     }
   };
 
@@ -75,9 +116,13 @@ export default function PriceFeedsPage() {
     if (!confirm("Are you sure you want to remove this pricefeed?")) return;
     setDeleteError(null);
     try {
-      const res = await fetch(`/api/pricefeeds?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/pricefeeds?id=${id}`, {
+        ...getAdminFetchOptions(),
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+      });
       if (!res.ok) throw new Error("Failed to delete pricefeed");
-      fetchFeeds();
+      await fetchFeeds();
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : String(err));
     }
@@ -97,23 +142,30 @@ export default function PriceFeedsPage() {
   return (
     <div className="space-y-6">
       {saveError && (
-        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
-          <p className="text-sm text-red-400">
+        <div className="rounded-xl border border-danger-200 bg-danger-50 p-4">
+          <p className="text-sm font-semibold text-danger-700">
             Failed to save pricefeed: {saveError}
           </p>
         </div>
       )}
       {deleteError && (
-        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
-          <p className="text-sm text-red-400">
+        <div className="rounded-xl border border-danger-200 bg-danger-50 p-4">
+          <p className="text-sm font-semibold text-danger-700">
             Failed to delete pricefeed: {deleteError}
           </p>
         </div>
       )}
-      <div className="flex items-center justify-between">
+      {loadError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-800">
+            Failed to load pricefeeds: {loadError}
+          </p>
+        </div>
+      )}
+      <div className="pricefeeds-page-header flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader
           title="PriceFeed Tokens"
-          description="Manage oracle feeds and symbols"
+          description="Manage oracle feed metadata, providers, and runtime enablement."
           highlightLastWord
         />
         <Button onClick={openNew} disabled={loading}>
@@ -121,33 +173,67 @@ export default function PriceFeedsPage() {
         </Button>
       </div>
 
+      {!loading && (
+        <div
+          aria-label="PriceFeed inventory summary"
+          className="pricefeeds-summary-grid grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+        >
+          {summaryItems.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+            >
+              <p className="text-xs font-semibold uppercase text-gray-500">
+                {item.label}
+              </p>
+              <div className="mt-2 flex items-end justify-between gap-3">
+                <p className="text-2xl font-black text-gray-950">
+                  {item.value}
+                </p>
+                <p className="text-right text-xs font-medium text-gray-500">
+                  {item.helper}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {loading && (
         <div className="flex justify-center p-12">
           <Spinner />
         </div>
       )}
 
-      {!loading && isEditing && (
+      {!loading && !loadError && isEditing && (
         <Card
-          variant="glass"
-          className="border-neo/50 shadow-[0_0_15px_rgba(0,229,153,0.1)]"
+          aria-label="PriceFeed token editor"
+          className="pricefeeds-editor-card"
+          variant="default"
         >
           <CardHeader>
-            <CardTitle>{editForm.id ? "Edit Token" : "New Token"}</CardTitle>
+            <CardTitle>
+              {editForm.id ? "Edit Feed Token" : "New Feed Token"}
+            </CardTitle>
+            <p className="mt-1 text-sm text-gray-500">
+              Keep identifiers explicit so operators can compare registry rows
+              with mainnet freshness reports.
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label
                   htmlFor="feed-id"
-                  className="block text-sm text-gray-400 mb-1"
+                  className={labelClass}
                 >
-                  Feed ID (e.g. BTC-USD)
+                  Feed ID
                 </label>
                 <input
                   id="feed-id"
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white"
+                  className={inputClass}
                   value={editForm.id}
+                  placeholder="TWELVEDATA:BTC-USD"
                   onChange={(e) =>
                     setEditForm({ ...editForm, id: e.target.value })
                   }
@@ -157,14 +243,15 @@ export default function PriceFeedsPage() {
               <div>
                 <label
                   htmlFor="feed-symbol"
-                  className="block text-sm text-gray-400 mb-1"
+                  className={labelClass}
                 >
-                  Symbol (e.g. BTC)
+                  Symbol
                 </label>
                 <input
                   id="feed-symbol"
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white"
+                  className={inputClass}
                   value={editForm.symbol}
+                  placeholder="BTC"
                   onChange={(e) =>
                     setEditForm({ ...editForm, symbol: e.target.value })
                   }
@@ -173,14 +260,15 @@ export default function PriceFeedsPage() {
               <div>
                 <label
                   htmlFor="feed-pair"
-                  className="block text-sm text-gray-400 mb-1"
+                  className={labelClass}
                 >
-                  Pair (e.g. BTC/USD)
+                  Pair
                 </label>
                 <input
                   id="feed-pair"
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white"
+                  className={inputClass}
                   value={editForm.pair}
+                  placeholder="BTC/USD"
                   onChange={(e) =>
                     setEditForm({ ...editForm, pair: e.target.value })
                   }
@@ -189,13 +277,13 @@ export default function PriceFeedsPage() {
               <div>
                 <label
                   htmlFor="feed-source"
-                  className="block text-sm text-gray-400 mb-1"
+                  className={labelClass}
                 >
                   Data Source
                 </label>
                 <select
                   id="feed-source"
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white"
+                  className={inputClass}
                   value={editForm.source}
                   onChange={(e) =>
                     setEditForm({ ...editForm, source: e.target.value })
@@ -208,7 +296,31 @@ export default function PriceFeedsPage() {
                 </select>
               </div>
             </div>
-            <div className="flex justify-end gap-3 pt-4">
+            <label
+              htmlFor="feed-enabled"
+              className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-gray-800">
+                  Enable feed for runtime use
+                </span>
+                <span className="text-xs text-gray-500">
+                  Disabled feeds remain visible for audit without appearing as
+                  active sources.
+                </span>
+              </span>
+              <input
+                id="feed-enabled"
+                type="checkbox"
+                aria-label="Enable feed for runtime use"
+                className="h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                checked={editForm.enabled}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, enabled: e.target.checked })
+                }
+              />
+            </label>
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
               <Button variant="ghost" onClick={() => setIsEditing(false)}>
                 Cancel
               </Button>
@@ -218,73 +330,92 @@ export default function PriceFeedsPage() {
         </Card>
       )}
 
-      {!loading && (
-      <Card variant="glass">
-        <CardContent className="p-0">
-          <table
-            className="w-full text-left text-sm text-gray-300"
-            aria-label="Price feed sources"
-          >
-            <caption className="sr-only">Price Feed Sources</caption>
-            <thead className="bg-white/5 text-gray-400">
-              <tr>
-                <th className="p-4 font-medium">Symbol</th>
-                <th className="p-4 font-medium">Feed ID</th>
-                <th className="p-4 font-medium">Source</th>
-                <th className="p-4 font-medium">Status</th>
-                <th className="p-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {feeds.length > 0 ? (
-                feeds.map((feed) => (
-                  <tr
-                    key={feed.id}
-                    className="hover:bg-white/5 transition-colors"
-                  >
-                    <td className="p-4 font-bold text-white">{feed.symbol}</td>
-                    <td className="p-4">{feed.id}</td>
-                    <td className="p-4 capitalize">{feed.source}</td>
-                    <td className="p-4">
-                      <Badge variant={feed.enabled ? "success" : "default"}>
-                        {feed.enabled ? "Active" : "Disabled"}
-                      </Badge>
-                    </td>
-                    <td className="p-4 text-right space-x-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          setEditForm(feed);
-                          setIsEditing(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleDelete(feed.id)}
-                      >
-                        Remove
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="p-8 text-center text-gray-500 dark:text-gray-400"
-                  >
-                    No price feeds configured
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
+      {!loading && !loadError && (
+        <Card className="pricefeeds-table-card" variant="default">
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <CardTitle>Oracle Feed Registry</CardTitle>
+              <p className="mt-1 text-sm text-gray-500">
+                Track symbols, provider routing, and whether each feed is
+                active for runtime reads.
+              </p>
+            </div>
+            <Badge variant="info">{feeds.length} feeds</Badge>
+          </CardHeader>
+          <CardContent className="p-0">
+            {feeds.length > 0 ? (
+              <Table aria-label="Price feed sources">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Asset</TableHead>
+                    <TableHead>Feed ID</TableHead>
+                    <TableHead>Pair</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {feeds.map((feed) => (
+                    <TableRow key={feed.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-black text-emerald-700">
+                            {feed.symbol.slice(0, 2).toUpperCase()}
+                          </span>
+                          <span className="font-bold text-gray-950">
+                            {feed.symbol}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-gray-600">
+                        {feed.id}
+                      </TableCell>
+                      <TableCell className="text-gray-600">
+                        {feed.pair}
+                      </TableCell>
+                      <TableCell>
+                        <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-bold uppercase text-gray-600">
+                          {feed.source}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={feed.enabled ? "success" : "default"}>
+                          {feed.enabled ? "Active" : "Disabled"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setEditForm(feed);
+                              setIsEditing(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDelete(feed.id)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="px-6 py-10 text-center text-sm text-gray-500">
+                No price feeds configured
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

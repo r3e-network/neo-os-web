@@ -1,7 +1,13 @@
 import React from "react";
 import fs from "fs";
 import path from "path";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 import {
@@ -512,6 +518,38 @@ describe("PlayAreaRegistry", () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  it("keeps embedded MiniApps visually alive while the dApp iframe is loading", () => {
+    jest.useFakeTimers();
+    renderPlayarea({
+      app_id: "miniapp-neo-swap",
+      name: "Neo Swap",
+      category: "defi",
+      description: "Preview live pricefeed quotes before wallet submission",
+    });
+
+    const frame = screen.getByTestId("profiled-dapp-frame-miniapp-neo-swap");
+    expect(frame).toHaveAttribute("loading", "eager");
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-neo-swap-loading"),
+    ).toBeVisible();
+    expect(screen.getByText("Loading Neo Swap")).toBeVisible();
+
+    fireEvent.load(frame);
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-neo-swap-loading"),
+    ).toBeVisible();
+
+    act(() => {
+      jest.advanceTimersByTime(900);
+    });
+
+    expect(
+      screen.queryByTestId("profiled-dapp-frame-miniapp-neo-swap-loading"),
+    ).not.toBeInTheDocument();
+    jest.useRealTimers();
+  });
 
   it("renders the confidential transfer miniapp as a Morpheus-backed private payment desk", () => {
     expect(hasNativePlayArea("miniapp-private-transfer")).toBe(true);

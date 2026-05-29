@@ -2,6 +2,43 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   title: { en: "Quadratic Funding", zh: "二次方资助" },
+  qfHeroTitle: {
+    en: "Fund public goods with matching power",
+    zh: "用匹配资金放大公共物品资助",
+  },
+  qfHeroSubtitle: {
+    en: "Create rounds, register projects, contribute GAS, and finalize matching from one clean grant console.",
+    zh: "在一个清爽的资助控制台里创建轮次、登记项目、捐助 GAS 并结算匹配金额。",
+  },
+  qfPrimaryAction: { en: "Contribute", zh: "立即捐助" },
+  qfRefreshAction: { en: "Refresh rounds", zh: "刷新轮次" },
+  qfWalletSummary: { en: "Funding summary", zh: "资助概览" },
+  qfTabsLabel: { en: "Funding workflow", zh: "资助流程" },
+  qfRoundHealth: { en: "Round health", zh: "轮次状态" },
+  qfSelectedRound: { en: "Selected round", zh: "已选轮次" },
+  qfLiveRound: { en: "Live rounds", zh: "进行中轮次" },
+  qfTrustTitle: { en: "Funding safeguards", zh: "资助保障" },
+  qfTrustItemOne: { en: "Round setup", zh: "轮次创建" },
+  qfTrustItemTwo: { en: "Donor signal", zh: "捐助信号" },
+  qfTrustItemThree: { en: "On-chain close", zh: "链上结算" },
+  qfNoRoundTitle: { en: "No funding round selected", zh: "尚未选择资助轮次" },
+  qfNoRoundBody: {
+    en: "Create a GAS matching round or refresh the contract to load active community rounds.",
+    zh: "创建一个 GAS 匹配轮次，或刷新合约读取进行中的社区轮次。",
+  },
+  qfNoProjectsTitle: { en: "No projects in this round", zh: "当前轮次暂无项目" },
+  qfNoProjectsBody: {
+    en: "Register a project with a concise mission and link before donors contribute.",
+    zh: "先登记项目使命与链接，再让捐助者进行资助。",
+  },
+  qfSelectRoundBeforeProject: {
+    en: "Select or create a round before registering a project.",
+    zh: "注册项目前请先选择或创建轮次。",
+  },
+  qfContributionHint: {
+    en: "Contribution calls are signed against the selected round and project ID.",
+    zh: "捐助交易会按已选轮次和项目 ID 发起签名。",
+  },
   tabRounds: { en: "Rounds", zh: "轮次" },
   tabProjects: { en: "Projects", zh: "项目" },
   tabContribute: { en: "Contribute", zh: "捐助" },
@@ -69,6 +106,7 @@ const appMessages = {
   unusedClaimed: { en: "Unused matching claimed", zh: "剩余匹配已领取" },
 
   registerProject: { en: "Register Project", zh: "注册项目" },
+  projectsList: { en: "Project ledger", zh: "项目账本" },
   registeringProject: { en: "Registering...", zh: "注册中..." },
   projectName: { en: "Project name", zh: "项目名称" },
   projectNamePlaceholder: { en: "Open Source Explorer", zh: "开源浏览器" },
@@ -101,6 +139,7 @@ const appMessages = {
   invalidContribution: { en: "Invalid contribution", zh: "捐助信息无效" },
   invalidProject: { en: "Invalid project details", zh: "项目信息无效" },
   selectProjectHint: { en: "Choose a project from the list above.", zh: "从上方列表选择项目。" },
+  selectRoundFirst: { en: "Select a round before contributing.", zh: "捐助前请先选择轮次。" },
   noSelectedRound: { en: "Select a round to view projects.", zh: "请选择轮次查看项目。" },
 
   dateUnknown: { en: "Schedule TBD", zh: "时间待定" },

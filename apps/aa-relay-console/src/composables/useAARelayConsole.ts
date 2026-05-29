@@ -9,7 +9,10 @@ import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { AAService, EventBus } from "@shared/services";
 import type { SponsorshipStatus, RelayResult } from "@shared/services";
-import { getExternalIntegrationConfig } from "@shared/constants/rpc";
+import {
+  getExternalIntegrationConfig,
+  getNetwork,
+} from "@shared/constants/rpc";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export interface UseAARelayConsoleOptions {
@@ -20,12 +23,19 @@ export interface UseAARelayConsoleOptions {
 
 type SponsorResult = SponsorshipStatus | RelayResult | null;
 
-export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions) {
-  const integration = getExternalIntegrationConfig("testnet");
+export function useAARelayConsole({
+  aa,
+  eventBus,
+  t,
+}: UseAARelayConsoleOptions) {
+  const network = getNetwork();
+  const integration = getExternalIntegrationConfig(network);
 
   const aaAddress = createObservable("");
   const dappId = createObservable("");
-  const payloadJson = createObservable('{\n  "metaInvocation": {\n    "scriptHash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"\n  }\n}');
+  const payloadJson = createObservable(
+    '{\n  "metaInvocation": {\n    "scriptHash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"\n  }\n}',
+  );
   const sponsorResult = createObservable<SponsorResult>(null);
   const lastRelayResult = createObservable<RelayResult | null>(null);
 
@@ -67,21 +77,21 @@ export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions)
   };
 
   const networkDisplay: Observable<string> = {
-    get: () => "testnet",
+    get: () => network,
     set: () => {},
     subscribe: () => () => {},
   };
 
   const isCheckingSponsorship: Observable<boolean> = {
-    get: () => aa.isCheckingSponsorship,
+    get: () => aa.isCheckingSponsorship.get(),
     set: () => {},
-    subscribe: () => () => {},
+    subscribe: (fn) => aa.isCheckingSponsorship.subscribe(fn),
   };
 
   const isRelaying: Observable<boolean> = {
-    get: () => aa.isRelaying,
+    get: () => aa.isRelaying.get(),
     set: () => {},
-    subscribe: () => () => {},
+    subscribe: (fn) => aa.isRelaying.subscribe(fn),
   };
 
   // Actions
@@ -90,7 +100,9 @@ export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions)
       sponsorResult.set(await aa.checkSponsorship());
       eventBus.emit("sponsor:checked", {});
     } catch (e) {
-      eventBus.emit("sponsor:error", { message: formatErrorMessage(e, t("sponsorCheckError")) });
+      eventBus.emit("sponsor:error", {
+        message: formatErrorMessage(e, t("sponsorCheckError")),
+      });
       throw e;
     }
   }
@@ -100,7 +112,9 @@ export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions)
       sponsorResult.set(await aa.requestSponsorship("0.1"));
       eventBus.emit("sponsor:requested", {});
     } catch (e) {
-      eventBus.emit("sponsor:error", { message: formatErrorMessage(e, t("sponsorRequestError")) });
+      eventBus.emit("sponsor:error", {
+        message: formatErrorMessage(e, t("sponsorRequestError")),
+      });
       throw e;
     }
   }
@@ -114,7 +128,9 @@ export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions)
       sponsorResult.set(result);
       eventBus.emit("relay:submitted", {});
     } catch (e) {
-      eventBus.emit("relay:error", { message: formatErrorMessage(e, t("relayError")) });
+      eventBus.emit("relay:error", {
+        message: formatErrorMessage(e, t("relayError")),
+      });
       throw e;
     }
   }

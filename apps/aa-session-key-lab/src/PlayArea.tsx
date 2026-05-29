@@ -1,8 +1,7 @@
 /**
- * PlayArea.tsx — AA Session Key Lab
+ * PlayArea.tsx - AA Session Key Lab
  *
- * Full interactive session key console: stats bar with key/sponsor/session
- * status, detail items grid, form for configuration, and sponsor actions.
+ * Wallet-style session-key workspace for configuring scoped AA permissions.
  */
 
 import { useState } from "react";
@@ -22,7 +21,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const isSubmitting = bool("isSubmitting");
   const isCheckingSponsorship = bool("isCheckingSponsorship");
-  const detailItems = val<Array<{ label: string; value: unknown }>>("detailItems") ?? [];
+  const detailItems =
+    val<Array<{ label: string; value: unknown }>>("detailItems") ?? [];
   const derivedAccountIdHash = str("derivedAccountIdHash");
   const normalizedTargetContract = str("normalizedTargetContract");
   const normalizedAllowedMethod = str("normalizedAllowedMethod");
@@ -32,15 +32,53 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const walletDisplay = str("walletDisplay");
   const sponsorStatusDisplay = str("sponsorStatusDisplay");
 
-  // Local form state
   const [accountSeed, setAccountSeed] = useState("");
   const [sessionPublicKey, setSessionPublicKey] = useState("");
   const [targetContract, setTargetContract] = useState("");
   const [allowedMethod, setAllowedMethod] = useState("*");
-  const [expiresAt, setExpiresAt] = useState(String(Math.floor(Date.now() / 1000) + 3600));
+  const [expiresAt, setExpiresAt] = useState(() =>
+    String(Math.floor(Date.now() / 1000) + 3600),
+  );
+
+  const canConfigure =
+    Boolean(accountSeed.trim()) &&
+    Boolean(sessionPublicKey.trim()) &&
+    Boolean(targetContract.trim()) &&
+    Boolean(expiresAt.trim()) &&
+    !isSubmitting;
+  const sessionKeyState = sessionPublicKey.trim()
+    ? t("sessionKeyReady")
+    : t("sessionKeyMissing");
+  const scopeDisplay =
+    normalizedTargetContract ||
+    (targetContract.trim() ? targetContract.trim() : t("notAvailable"));
+  const methodDisplay =
+    normalizedAllowedMethod || allowedMethod.trim() || t("anyMethod");
+
+  const environmentItems = [
+    { label: t("aaCore") || "AA Core", value: aaCoreDisplay || "--" },
+    {
+      label: t("sessionVerifier") || "Session Verifier",
+      value: sessionVerifierDisplay || "--",
+    },
+    {
+      label: t("derivedAccountId") || "Account ID Hash",
+      value: derivedAccountIdHash || "--",
+    },
+    {
+      label: t("normalizedTarget") || "Target Contract",
+      value: normalizedTargetContract || "--",
+    },
+    {
+      label: t("normalizedMethod") || "Allowed Method",
+      value: normalizedAllowedMethod || "--",
+    },
+  ];
 
   const handleGenerateKey = async () => {
-    const result = await dispatch("generateKey") as unknown as { publicKey?: string };
+    const result = (await dispatch("generateKey")) as unknown as {
+      publicKey?: string;
+    };
     if (result?.publicKey) {
       setSessionPublicKey(result.publicKey);
     }
@@ -48,87 +86,194 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="session-play-area">
-      {/* Stats Bar */}
-      <div className="stats-bar">
-        <div className="stat-chip">
-          <span className="stat-value">{sessionStatusDisplay || "--"}</span>
-          <span className="stat-label">{t("sessionStatus") || "Session"}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{sponsorStatusDisplay || "--"}</span>
-          <span className="stat-label">{t("sponsorStatus") || "Sponsor"}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{walletDisplay || "--"}</span>
-          <span className="stat-label">{t("wallet") || "Wallet"}</span>
-        </div>
-      </div>
-
-      {/* Environment Info */}
-      <NeoCard variant="erobo" className="env-card">
-        <div className="env-grid">
-          <div className="env-item">
-            <span className="env-label">{t("aaCore") || "AA Core"}</span>
-            <span className="env-value">{aaCoreDisplay || "--"}</span>
-          </div>
-          <div className="env-item">
-            <span className="env-label">{t("sessionVerifier") || "Session Verifier"}</span>
-            <span className="env-value">{sessionVerifierDisplay || "--"}</span>
-          </div>
-          <div className="env-item">
-            <span className="env-label">{t("derivedAccountId") || "Account ID Hash"}</span>
-            <span className="env-value">{derivedAccountIdHash || "--"}</span>
-          </div>
-          <div className="env-item">
-            <span className="env-label">{t("normalizedTarget") || "Target Contract"}</span>
-            <span className="env-value">{normalizedTargetContract || "--"}</span>
-          </div>
-          <div className="env-item">
-            <span className="env-label">{t("normalizedMethod") || "Allowed Method"}</span>
-            <span className="env-value">{normalizedAllowedMethod || "--"}</span>
-          </div>
-        </div>
-      </NeoCard>
-
-      {/* Detail Items Grid */}
-      <NeoCard variant="erobo" className="result-card">
-        <div className="details-grid">
-          {detailItems.map((item: { label: string; value: unknown }) => (
-            <div key={item.label} className="detail-row">
-              <span className="label">{item.label}</span>
-              <span className="value">{String(item.value ?? (t("notAvailable") || "N/A"))}</span>
+      <section className="session-hero">
+        <div className="session-hero__copy">
+          <h2>{t("sessionHeroTitle")}</h2>
+          <p>{t("sessionHeroCopy")}</p>
+          <div
+            className="session-hero__metrics"
+            aria-label={t("sessionMetricsLabel")}
+          >
+            <div className="session-metric">
+              <span>{t("sessionMetricStatus")}</span>
+              <strong>{sessionStatusDisplay || "--"}</strong>
             </div>
-          ))}
-          {detailItems.length === 0 && (
-            <span className="empty-hint">{t("noDetails") || "No session details yet. Generate a key to begin."}</span>
-          )}
+            <div className="session-metric">
+              <span>{t("sessionMetricSponsor")}</span>
+              <strong>{sponsorStatusDisplay || "--"}</strong>
+            </div>
+            <div className="session-metric">
+              <span>{t("sessionMetricScope")}</span>
+              <strong>{methodDisplay}</strong>
+            </div>
+          </div>
         </div>
-      </NeoCard>
 
-      {/* Operation Section */}
-      <NeoCard variant="erobo" className="operation-card">
-        <div className="stack">
-          <NeoInput value={accountSeed} label={t("accountSeed") || "Account Seed"} placeholder={t("accountSeedPlaceholder") || "Enter seed"} onChange={(v: string) => setAccountSeed(v)} />
-          <NeoInput value={sessionPublicKey} label={t("sessionPublicKey") || "Session Public Key"} placeholder={t("sessionPublicKeyPlaceholder") || "Public key"} onChange={(v: string) => setSessionPublicKey(v)} />
-          <NeoInput value={targetContract} label={t("targetContract") || "Target Contract"} placeholder={t("targetContractPlaceholder") || "Contract hash"} onChange={(v: string) => setTargetContract(v)} />
-          <NeoInput value={allowedMethod} label={t("allowedMethod") || "Allowed Method"} placeholder={t("allowedMethodPlaceholder") || "*"} onChange={(v: string) => setAllowedMethod(v)} />
-          <NeoInput value={expiresAt} label={t("expiresAt") || "Expires At"} placeholder={t("expiresAtPlaceholder") || "Unix timestamp"} onChange={(v: string) => setExpiresAt(v)} />
-          <div className="actions-row">
-            <NeoButton variant="secondary" aria-label={t("generateKey") || "Generate Key"} onClick={handleGenerateKey}>
+        <NeoCard
+          variant="erobo"
+          title={t("sessionCommandTitle")}
+          className="session-command"
+        >
+          <div className="session-command__status">
+            <span>{t("wallet") || "Wallet"}</span>
+            <strong>{walletDisplay || t("notConnected")}</strong>
+          </div>
+          <div className="session-command__status">
+            <span>{t("sessionPublicKey")}</span>
+            <strong>{sessionKeyState}</strong>
+          </div>
+          <div className="session-action-grid">
+            <NeoButton
+              variant="secondary"
+              aria-label={t("generateKey") || "Generate Key"}
+              onClick={handleGenerateKey}
+            >
               {t("generateKey") || "Generate Key"}
             </NeoButton>
-            <NeoButton variant="secondary" loading={isCheckingSponsorship} aria-label={t("checkSponsor") || "Check Sponsor"} onClick={() => dispatch("checkSponsor")}>
+            <NeoButton
+              variant="secondary"
+              loading={isCheckingSponsorship}
+              aria-label={t("checkSponsor") || "Check Sponsor"}
+              onClick={() => dispatch("checkSponsor")}
+            >
               {t("checkSponsor") || "Check Sponsor"}
             </NeoButton>
-            <NeoButton variant="secondary" loading={isCheckingSponsorship} aria-label={t("requestSponsor") || "Request Sponsor"} onClick={() => dispatch("requestSponsor")}>
+            <NeoButton
+              variant="secondary"
+              loading={isCheckingSponsorship}
+              aria-label={t("requestSponsor") || "Request Sponsor"}
+              onClick={() => dispatch("requestSponsor")}
+            >
               {t("requestSponsor") || "Request Sponsor"}
             </NeoButton>
-            <NeoButton variant="primary" loading={isSubmitting} aria-label={t("configureSession") || "Configure"} onClick={() => dispatch("configureSessionKey", accountSeed, sessionPublicKey, targetContract, allowedMethod, expiresAt)}>
-              {t("configureSession") || "Configure Session"}
-            </NeoButton>
           </div>
+        </NeoCard>
+      </section>
+
+      <section className="session-flow" aria-label={t("sessionFlowLabel")}>
+        <div className="session-flow__step">
+          <span>01</span>
+          <strong>{t("sessionFlowKey")}</strong>
+          <p>{t("sessionFlowKeyDesc")}</p>
         </div>
-      </NeoCard>
+        <div className="session-flow__step">
+          <span>02</span>
+          <strong>{t("sessionFlowSponsor")}</strong>
+          <p>{t("sessionFlowSponsorDesc")}</p>
+        </div>
+        <div className="session-flow__step">
+          <span>03</span>
+          <strong>{t("sessionFlowConfigure")}</strong>
+          <p>{t("sessionFlowConfigureDesc")}</p>
+        </div>
+      </section>
+
+      <section className="session-workspace">
+        <div className="session-main-panel">
+          <div className="session-section-heading">
+            <div>
+              <span>{t("sessionStateLabel")}</span>
+              <h3>{t("latestState")}</h3>
+            </div>
+            <strong>{sessionStatusDisplay || "--"}</strong>
+          </div>
+
+          <div className="session-env-grid">
+            {environmentItems.map((item) => (
+              <div key={item.label} className="session-env-item">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+
+          <NeoCard variant="erobo" className="session-result-card">
+            <div className="session-detail-list">
+              {detailItems.map((item) => (
+                <div key={item.label} className="session-detail-row">
+                  <span>{item.label}</span>
+                  <strong>
+                    {String(item.value ?? (t("notAvailable") || "N/A"))}
+                  </strong>
+                </div>
+              ))}
+              {detailItems.length === 0 && (
+                <div className="session-empty-state">
+                  <span>SK</span>
+                  <strong>{t("noDetails")}</strong>
+                  <p>{t("sessionEmptyCopy")}</p>
+                </div>
+              )}
+            </div>
+          </NeoCard>
+        </div>
+
+        <aside className="session-side-rail">
+          <NeoCard
+            variant="erobo"
+            title={t("configureSession")}
+            className="session-config-card"
+          >
+            <div className="session-config-copy">
+              <strong>{t("sessionScopeTitle")}</strong>
+              <span>{scopeDisplay}</span>
+            </div>
+            {!canConfigure && (
+              <p className="session-hint">{t("configureSessionBlocked")}</p>
+            )}
+            <div className="session-form">
+              <NeoInput
+                value={accountSeed}
+                label={t("accountSeed") || "Account Seed"}
+                placeholder={t("accountSeedPlaceholder") || "Enter seed"}
+                onChange={(v: string) => setAccountSeed(v)}
+              />
+              <NeoInput
+                value={sessionPublicKey}
+                label={t("sessionPublicKey") || "Session Public Key"}
+                placeholder={t("sessionPublicKeyPlaceholder") || "Public key"}
+                onChange={(v: string) => setSessionPublicKey(v)}
+              />
+              <NeoInput
+                value={targetContract}
+                label={t("targetContract") || "Target Contract"}
+                placeholder={t("targetContractPlaceholder") || "Contract hash"}
+                onChange={(v: string) => setTargetContract(v)}
+              />
+              <NeoInput
+                value={allowedMethod}
+                label={t("allowedMethod") || "Allowed Method"}
+                placeholder={t("allowedMethodPlaceholder") || "*"}
+                onChange={(v: string) => setAllowedMethod(v)}
+              />
+              <NeoInput
+                value={expiresAt}
+                label={t("expiresAt") || "Expires At"}
+                placeholder={t("expiresAtPlaceholder") || "Unix timestamp"}
+                onChange={(v: string) => setExpiresAt(v)}
+              />
+              <NeoButton
+                variant="primary"
+                loading={isSubmitting}
+                disabled={!canConfigure}
+                aria-label={t("configureSession") || "Configure"}
+                onClick={() =>
+                  dispatch(
+                    "configureSessionKey",
+                    accountSeed,
+                    sessionPublicKey,
+                    targetContract,
+                    allowedMethod,
+                    expiresAt,
+                  )
+                }
+              >
+                {t("configureSession") || "Configure Session"}
+              </NeoButton>
+            </div>
+          </NeoCard>
+        </aside>
+      </section>
     </div>
   );
 }

@@ -26,17 +26,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const baseStyles =
-      "inline-flex items-center justify-center rounded-xl font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]";
+      "inline-flex items-center justify-center rounded-xl font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-100";
 
     const variants = {
       primary:
-        "bg-neo text-gray-900 hover:bg-neo/90 shadow-[0_4px_14px_rgba(0,229,153,0.3)] hover:shadow-[0_6px_20px_rgba(0,229,153,0.4)] focus-visible:ring-primary-500/50",
+        "bg-neo text-gray-900 shadow-sm hover:bg-neo/90 focus-visible:ring-primary-500/50 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none",
       secondary:
-        "bg-white/10 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/10 focus-visible:ring-gray-500/50 backdrop-blur-md",
+        "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-400 disabled:bg-gray-50 disabled:text-gray-400",
       danger:
-        "bg-danger-600 text-white hover:bg-danger-700 shadow-[0_4px_14px_rgba(220,38,38,0.3)] focus-visible:ring-danger-600",
+        "bg-danger-600 text-white shadow-sm hover:bg-danger-700 focus-visible:ring-danger-600 disabled:bg-gray-100 disabled:text-gray-400 disabled:shadow-none",
       ghost:
-        "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 focus-visible:ring-gray-500/50",
+        "text-gray-700 hover:bg-gray-100 focus-visible:ring-gray-400 disabled:text-gray-400 disabled:hover:bg-transparent",
     };
 
     const sizes = {

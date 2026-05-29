@@ -459,7 +459,10 @@ export function useRedEnvelope({
    * without requiring the full EnvelopeItem object.
    */
   const handleClaimFromPool = async (envelopeId: string) => {
+    if (openingId.get()) return;
+
     try {
+      openingId.set(envelopeId);
       const result = await claimEnvelope(envelopeId);
 
       if (result.amount > 0) {
@@ -475,6 +478,8 @@ export function useRedEnvelope({
       await loadEnvelopes();
     } catch (e) {
       throw e;
+    } finally {
+      openingId.set(null);
     }
   };
 

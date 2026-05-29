@@ -1,13 +1,17 @@
 /**
- * PlayArea.tsx — Recovery Guardian
+ * PlayArea.tsx - Recovery Guardian
  *
- * Social recovery management with guardian state query, preview/credential
- * links, and workspace navigation. Uses all state and actions from main.tsx.
+ * Wallet-style social recovery workspace with guarded link preparation.
  */
 
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import {
+  isAccountLocator,
+  isOptionalHash160,
+  isRecoveryExpiryMinutes,
+} from "./utils/validation";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -19,213 +23,249 @@ interface PlayAreaProps {
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool } = useStateBindings(state);
 
-  // Guardian state
   const hasPayload = bool("hasPayload");
   const isLoading = bool("isLoading");
   const isQuerying = bool("isQuerying");
   const renderedPayload = str("renderedPayload", t("notAvailable") || "N/A");
 
-  // Derived payload fields
   const accountId = str("accountId", t("notAvailable") || "N/A");
   const verifierHash = str("verifierHash", t("notAvailable") || "N/A");
   const threshold = str("threshold", t("notAvailable") || "N/A");
   const timelock = str("timelock", t("notAvailable") || "N/A");
 
-  // URLs
   const previewUrl = str("previewUrl");
   const credentialUrl = str("credentialUrl");
 
-  // Form fields
   const accountAddress = str("accountAddress");
   const verifierHashOverride = str("verifierHashOverride");
   const recoveryNewOwner = str("recoveryNewOwner");
   const recoveryExpiryMinutes = str("recoveryExpiryMinutes", "30");
   const recoveryTemplateId = str("recoveryTemplateId");
 
-  const handleAction = (name: string) => dispatch(name);
+  const accountReady = isAccountLocator(accountAddress);
+  const ownerReady = isAccountLocator(recoveryNewOwner);
+  const expiryReady = isRecoveryExpiryMinutes(recoveryExpiryMinutes);
+  const verifierReady = isOptionalHash160(verifierHashOverride);
+  const canQueryState = accountReady && !isQuerying;
+  const canPrepareRecovery =
+    accountReady && ownerReady && expiryReady && verifierReady && !isLoading;
+  const accountDisplay = accountAddress.trim() || t("notAvailable");
+  const expiryDisplay = expiryReady ? recoveryExpiryMinutes : t("notAvailable");
+
   const setField = (field: string, value: string) => {
     dispatch("setField", field, value);
   };
+  const handleAction = (name: string) => dispatch(name);
+
+  const stateItems = [
+    { label: t("accountId") || "Account ID", value: accountId },
+    { label: t("currentVerifier") || "Verifier", value: verifierHash },
+    { label: t("threshold") || "Threshold", value: threshold },
+    { label: t("timelockLabel") || "Timelock", value: timelock },
+  ];
+
+  const linkActions = [
+    {
+      key: "openRecoveryPreviewLink",
+      label: t("openRecoveryPreview") || "Open Recovery Preview",
+    },
+    {
+      key: "copyRecoveryPreviewLink",
+      label: t("copyRecoveryLink") || "Copy Recovery Link",
+    },
+    {
+      key: "shareRecoveryPreviewLink",
+      label: t("shareRecoveryLink") || "Share Recovery Link",
+    },
+    {
+      key: "openRecoveryCredentialLink",
+      label: t("openRecoveryCredential") || "Open Recovery Credential",
+    },
+    {
+      key: "copyRecoveryCredentialLink",
+      label: t("copyRecoveryCredential") || "Copy Recovery Credential",
+    },
+    {
+      key: "shareRecoveryCredentialLink",
+      label: t("shareRecoveryCredential") || "Share Recovery Credential",
+    },
+  ];
 
   return (
     <div className="guardian-play-area">
-      {/* Guardian State Display */}
-      {hasPayload && (
-        <NeoCard title={t("guardianState") || "Guardian State"}>
-          <div className="guardian-details">
-            <div className="detail-row">
-              <span className="label">{t("accountId") || "Account ID"}</span>
-              <span className="value mono">{accountId}</span>
+      <section className="guardian-hero">
+        <div className="guardian-hero__copy">
+          <h2>{t("guardianHeroTitle")}</h2>
+          <p>{t("guardianHeroCopy")}</p>
+          <div
+            className="guardian-hero__metrics"
+            aria-label={t("guardianMetricsLabel")}
+          >
+            <div className="guardian-metric">
+              <span>{t("guardianMetricAccount")}</span>
+              <strong>{accountDisplay}</strong>
             </div>
-            <div className="detail-row">
-              <span className="label">{t("verifierHash") || "Verifier Hash"}</span>
-              <span className="value mono">{verifierHash}</span>
+            <div className="guardian-metric">
+              <span>{t("guardianMetricOwner")}</span>
+              <strong>{recoveryNewOwner.trim() || t("notAvailable")}</strong>
             </div>
-            <div className="detail-row">
-              <span className="label">{t("threshold") || "Threshold"}</span>
-              <span className="value">{threshold}</span>
+            <div className="guardian-metric">
+              <span>{t("guardianMetricExpiry")}</span>
+              <strong>{expiryDisplay}</strong>
             </div>
-            <div className="detail-row">
-              <span className="label">{t("timelock") || "Timelock"}</span>
-              <span className="value">{timelock}</span>
+          </div>
+        </div>
+
+        <NeoCard
+          variant="erobo"
+          title={t("guardianCommandTitle")}
+          className="guardian-command"
+        >
+          <div className="guardian-form">
+            <NeoInput
+              value={accountAddress}
+              onChange={(v) => setField("accountAddress", v)}
+              label={t("accountAddress") || "Account Address"}
+              hint={t("accountAddressHint")}
+              placeholder={t("accountAddressPlaceholder") || "NeoAddress..."}
+            />
+            {!canQueryState && (
+              <p className="guardian-hint">{t("queryBlocked")}</p>
+            )}
+            <div className="guardian-action-grid">
+              <NeoButton
+                variant="primary"
+                loading={isQuerying}
+                disabled={!canQueryState}
+                onClick={() => handleAction("queryGuardianState")}
+                aria-label={t("queryState") || "Query State"}
+              >
+                {t("queryState") || "Query State"}
+              </NeoButton>
+              <NeoButton
+                variant="secondary"
+                onClick={() => handleAction("openRecoveryDocs")}
+                aria-label={t("openRecoveryDocs") || "Recovery Docs"}
+              >
+                {t("openRecoveryDocs") || "Recovery Docs"}
+              </NeoButton>
             </div>
           </div>
         </NeoCard>
-      )}
+      </section>
 
-      {/* Result Section */}
-      <div className="result-section">
-        {hasPayload && (
-          <div className="note-box">
-            <p className="note-title">{t("noteTitle") || "Recovery Info"}</p>
-            <p className="note-text">{t("noteText") || "Guardian state loaded successfully."}</p>
-            {previewUrl && (
-              <div className="link-box">
-                <p className="link-label">{t("openRecoveryPreview") || "Recovery Preview"}</p>
-                <p className="link-value">{previewUrl}</p>
-                <div className="link-actions">
-                  <NeoButton
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleAction("copyRecoveryPreviewLink")}
-                    aria-label={t("copyRecoveryLink") || "Copy Link"}
-                  >
-                    {t("copyRecoveryLink") || "Copy Link"}
-                  </NeoButton>
-                  <NeoButton
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleAction("shareRecoveryPreviewLink")}
-                    aria-label={t("shareRecoveryLink") || "Share Link"}
-                  >
-                    {t("shareRecoveryLink") || "Share"}
-                  </NeoButton>
-                </div>
+      <section className="guardian-flow" aria-label={t("guardianFlowLabel")}>
+        <div className="guardian-flow__step">
+          <span>01</span>
+          <strong>{t("guardianFlowRead")}</strong>
+          <p>{t("guardianFlowReadDesc")}</p>
+        </div>
+        <div className="guardian-flow__step">
+          <span>02</span>
+          <strong>{t("guardianFlowPrepare")}</strong>
+          <p>{t("guardianFlowPrepareDesc")}</p>
+        </div>
+        <div className="guardian-flow__step">
+          <span>03</span>
+          <strong>{t("guardianFlowCredential")}</strong>
+          <p>{t("guardianFlowCredentialDesc")}</p>
+        </div>
+      </section>
+
+      <section className="guardian-workspace">
+        <div className="guardian-state-panel">
+          <div className="guardian-section-heading">
+            <div>
+              <span>{t("guardianStateLabel")}</span>
+              <h3>{t("guardianStateTitle")}</h3>
+            </div>
+            <strong>{hasPayload ? t("latestState") : t("notAvailable")}</strong>
+          </div>
+
+          <div className="guardian-state-grid">
+            {stateItems.map((item) => (
+              <div key={item.label} className="guardian-state-card">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
               </div>
+            ))}
+          </div>
+
+          <div className="guardian-payload-card">
+            <span>{t("latestState")}</span>
+            <pre>{renderedPayload}</pre>
+          </div>
+
+          <div className="guardian-risk-note">
+            <span>SR</span>
+            <div>
+              <strong>{t("guardianRiskTitle")}</strong>
+              <p>{t("guardianRiskCopy")}</p>
+            </div>
+          </div>
+        </div>
+
+        <aside className="guardian-side-rail">
+          <NeoCard
+            variant="erobo"
+            title={t("guardianPrepareTitle")}
+            className="guardian-prepare-card"
+          >
+            <div className="guardian-scope-summary">
+              <strong>{t("guardianDraftLabel")}</strong>
+              <span>{accountDisplay}</span>
+            </div>
+            {!canPrepareRecovery && (
+              <p className="guardian-hint">{t("recoveryLinkBlocked")}</p>
             )}
-            {credentialUrl && (
-              <div className="link-box">
-                <p className="link-label">{t("openRecoveryCredential") || "Recovery Credential"}</p>
-                <p className="link-value">{credentialUrl}</p>
-                <div className="link-actions">
+            <div className="guardian-form">
+              <NeoInput
+                value={recoveryNewOwner}
+                onChange={(v) => setField("recoveryNewOwner", v)}
+                label={t("newOwner") || "New Owner"}
+                hint={t("newOwnerHint")}
+                placeholder={t("newOwnerPlaceholder") || "NeoAddress..."}
+              />
+              <NeoInput
+                value={recoveryExpiryMinutes}
+                onChange={(v) => setField("recoveryExpiryMinutes", v)}
+                label={t("recoveryExpiry") || "Expiry (minutes)"}
+                hint={t("recoveryExpiryHint")}
+                placeholder={t("recoveryExpiryPlaceholder") || "30"}
+              />
+              <NeoInput
+                value={verifierHashOverride}
+                onChange={(v) => setField("verifierHashOverride", v)}
+                label={t("verifierHash") || "Verifier Hash Override"}
+                hint={t("verifierHashHint")}
+                placeholder={t("verifierHashPlaceholder") || "0x..."}
+              />
+              <NeoInput
+                value={recoveryTemplateId}
+                onChange={(v) => setField("recoveryTemplateId", v)}
+                label={t("recoveryTemplateId") || "Template ID"}
+                hint={t("recoveryTemplateIdHint")}
+                placeholder={
+                  t("recoveryTemplateIdPlaceholder") || "Enter template ID"
+                }
+              />
+              <div className="guardian-link-grid">
+                {linkActions.map((action) => (
                   <NeoButton
+                    key={action.key}
                     variant="secondary"
-                    size="sm"
-                    onClick={() => handleAction("copyRecoveryCredentialLink")}
-                    aria-label={t("copyRecoveryCredential") || "Copy Credential"}
+                    disabled={!canPrepareRecovery}
+                    onClick={() => handleAction(action.key)}
+                    aria-label={action.label}
                   >
-                    {t("copyRecoveryCredential") || "Copy"}
+                    {action.label}
                   </NeoButton>
-                  <NeoButton
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleAction("shareRecoveryCredentialLink")}
-                    aria-label={t("shareRecoveryCredential") || "Share Credential"}
-                  >
-                    {t("shareRecoveryCredential") || "Share"}
-                  </NeoButton>
-                </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
-        <pre className="json-box">{renderedPayload}</pre>
-      </div>
+            </div>
+          </NeoCard>
 
-      {/* Operation Section */}
-      <div className="operation-section">
-        <div className="stack">
-          <NeoInput
-            value={accountAddress}
-            onChange={(v) => setField("accountAddress", v)}
-            label={t("accountAddress") || "Account Address"}
-            placeholder={t("accountAddressPlaceholder") || "NeoAddress..."}
-          />
-          <NeoInput
-            value={verifierHashOverride}
-            onChange={(v) => setField("verifierHashOverride", v)}
-            label={t("verifierHash") || "Verifier Hash Override"}
-            placeholder={t("verifierHashPlaceholder") || "0x..."}
-          />
-          <NeoInput
-            value={recoveryNewOwner}
-            onChange={(v) => setField("recoveryNewOwner", v)}
-            label={t("newOwner") || "New Owner"}
-            placeholder={t("newOwnerPlaceholder") || "NeoAddress..."}
-          />
-          <NeoInput
-            value={recoveryExpiryMinutes}
-            onChange={(v) => setField("recoveryExpiryMinutes", v)}
-            label={t("recoveryExpiry") || "Expiry (minutes)"}
-            placeholder={t("recoveryExpiryPlaceholder") || "30"}
-          />
-          <NeoInput
-            value={recoveryTemplateId}
-            onChange={(v) => setField("recoveryTemplateId", v)}
-            label={t("recoveryTemplateId") || "Template ID"}
-            placeholder={t("recoveryTemplateIdPlaceholder") || "Enter template ID"}
-          />
-
-          {/* Primary Actions */}
-          <div className="button-row">
-            <NeoButton
-              variant="primary"
-              loading={isQuerying}
-              onClick={() => handleAction("queryGuardianState")}
-              aria-label={t("queryState") || "Query State"}
-            >
-              {t("queryState") || "Query State"}
-            </NeoButton>
-            <NeoButton
-              variant="secondary"
-              onClick={() => handleAction("openRecoveryPreviewLink")}
-              aria-label={t("openRecoveryPreview") || "Open Preview"}
-            >
-              {t("openRecoveryPreview") || "Open Preview"}
-            </NeoButton>
-          </div>
-
-          {/* Link Actions */}
-          <div className="button-row">
-            <NeoButton
-              variant="secondary"
-              onClick={() => handleAction("copyRecoveryPreviewLink")}
-              aria-label={t("copyRecoveryLink") || "Copy Preview Link"}
-            >
-              {t("copyRecoveryLink") || "Copy Preview Link"}
-            </NeoButton>
-            <NeoButton
-              variant="secondary"
-              onClick={() => handleAction("shareRecoveryPreviewLink")}
-              aria-label={t("shareRecoveryLink") || "Share Preview"}
-            >
-              {t("shareRecoveryLink") || "Share Preview"}
-            </NeoButton>
-            <NeoButton
-              variant="secondary"
-              onClick={() => handleAction("openRecoveryCredentialLink")}
-              aria-label={t("openRecoveryCredential") || "Open Credential"}
-            >
-              {t("openRecoveryCredential") || "Open Credential"}
-            </NeoButton>
-            <NeoButton
-              variant="secondary"
-              onClick={() => handleAction("copyRecoveryCredentialLink")}
-              aria-label={t("copyRecoveryCredential") || "Copy Credential"}
-            >
-              {t("copyRecoveryCredential") || "Copy Credential"}
-            </NeoButton>
-            <NeoButton
-              variant="secondary"
-              onClick={() => handleAction("shareRecoveryCredentialLink")}
-              aria-label={t("shareRecoveryCredential") || "Share Credential"}
-            >
-              {t("shareRecoveryCredential") || "Share Credential"}
-            </NeoButton>
-          </div>
-
-          {/* Workspace Actions */}
-          <div className="button-row">
+          <div className="guardian-workspace-links">
             <NeoButton
               variant="secondary"
               onClick={() => handleAction("openIdentityWorkspace")}
@@ -240,16 +280,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             >
               {t("openAaWorkspace") || "AA Workspace"}
             </NeoButton>
-            <NeoButton
-              variant="secondary"
-              onClick={() => handleAction("openRecoveryDocs")}
-              aria-label={t("openRecoveryDocs") || "Recovery Docs"}
-            >
-              {t("openRecoveryDocs") || "Recovery Docs"}
-            </NeoButton>
           </div>
-        </div>
-      </div>
+        </aside>
+      </section>
+
+      {(previewUrl || credentialUrl) && (
+        <section className="guardian-link-preview">
+          {previewUrl && (
+            <div>
+              <span>{t("openRecoveryPreview")}</span>
+              <strong>{previewUrl}</strong>
+            </div>
+          )}
+          {credentialUrl && (
+            <div>
+              <span>{t("openRecoveryCredential")}</span>
+              <strong>{credentialUrl}</strong>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

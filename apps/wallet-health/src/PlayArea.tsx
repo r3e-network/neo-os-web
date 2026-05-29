@@ -1,14 +1,9 @@
-/**
- * PlayArea.tsx — Wallet Health
- *
- * Wallet diagnostics dashboard with safety score gauge, risk alerts,
- * balance display, and health stats. Uses all state from main.tsx setup().
- */
-
+import type { CSSProperties } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { HealthStat } from "./composables/useWalletHealth";
+import type { ChecklistItem } from "./composables/useHealthScore";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -20,121 +15,165 @@ interface PlayAreaProps {
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
 
-  // Connection state
   const address = str("address");
   const isConnected = bool("isConnected");
   const isRefreshing = bool("isRefreshing");
   const connectionStatus = str("connectionStatus");
   const networkLabel = str("networkLabel");
-
-  // Balance state
   const neoDisplay = str("neoDisplay", t("notAvailable") || "N/A");
   const gasDisplay = str("gasDisplay", t("notAvailable") || "N/A");
-
-  // Health state
   const safetyScore = num("safetyScore");
   const riskLabel = str("riskLabel");
   const riskClass = str("riskClass");
   const riskIcon = str("riskIcon");
-  const healthStats = val<HealthStat[]>("healthStats") ?? [];
+  const healthStats = val<HealthStat[]>("healthStats", []) ?? [];
+  const checklistItems = val<ChecklistItem[]>("checklistItems", []) ?? [];
+  const recommendations = val<string[]>("recommendations", []) ?? [];
+  const completedChecklistCount = num("completedChecklistCount");
+  const totalChecklistCount = num("totalChecklistCount");
 
-  const handleAction = (name: string) => dispatch(name);
+  const completionText = t("checklistProgress", {
+    completed: completedChecklistCount,
+    total: totalChecklistCount,
+  });
+  const scoreStyle = { "--score": safetyScore } as CSSProperties;
+  const riskIconLabel = riskIcon ? riskIcon.replace("-", " ") : riskLabel;
+  const visibleRecommendations = recommendations.length > 0
+    ? recommendations
+    : [t("allSet") || "All checks look good"];
 
   const truncateAddress = (addr: string) => {
-    if (!addr || addr.length < 12) return addr;
+    if (!addr || addr.length < 14) return addr;
     return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
   };
 
   return (
-    <div className="health-play-area">
-      {/* Hero Section */}
-      <div className="hero-container">
-        <div className="health-gauge-scene" aria-hidden="true">
-          <div
-            className="gauge-ring"
-            style={{ "--score": safetyScore } as React.CSSProperties}
-          >
-            <span className={`gauge-value ${riskClass}`}>{safetyScore}</span>
+    <div className="wallet-health-shell">
+      <section className="wallet-health-main" aria-label={t("walletHeroTitle")}>
+        <div className="wallet-health-hero">
+          <div className="wallet-health-hero-copy">
+            <p className="wallet-health-kicker">{networkLabel || "Neo N3"}</p>
+            <h2>{t("walletHeroTitle")}</h2>
+            <p>{t("walletHeroSubtitle")}</p>
+          </div>
+          <div className="wallet-health-score-card">
+            <div className="wallet-health-score-ring" style={scoreStyle}>
+              <span>{safetyScore}</span>
+            </div>
+            <div>
+              <span className="wallet-health-score-label">{t("statScore")}</span>
+              <strong>{riskLabel}</strong>
+              <small>{completionText}</small>
+            </div>
           </div>
         </div>
-        {networkLabel && (
-          <span className="network-badge">{networkLabel}</span>
-        )}
-      </div>
 
-      {/* Risk Alerts */}
-      {riskLabel && (
-        <div className={`risk-alert ${riskClass}`}>
-          <span className="risk-icon">{riskIcon}</span>
-          <span className="risk-text">{riskLabel}</span>
-        </div>
-      )}
-
-      {/* Not Connected State */}
-      {!isConnected ? (
-        <div className="empty-state">
-          <NeoCard variant="erobo" className="connect-card">
-            <span className="connect-message">
-              {t("walletNotConnected") || "Connect your wallet to view health diagnostics."}
-            </span>
-            {connectionStatus && (
-              <span className="connection-status">{connectionStatus}</span>
-            )}
-            <NeoButton
-              size="sm"
-              variant="primary"
-              onClick={() => handleAction("connectWallet")}
-            >
-              {t("connectWallet") || "Connect Wallet"}
-            </NeoButton>
-          </NeoCard>
-        </div>
-      ) : (
-        /* Health Dashboard */
-        <div className="health-stack">
-          {/* Wallet Info */}
-          <NeoCard variant="erobo" className="wallet-info-card">
-            <div className="wallet-info">
-              <div className="info-row">
-                <span className="info-label">{t("address") || "Address"}</span>
-                <span className="info-value mono">{truncateAddress(address)}</span>
-              </div>
-              <div className="balance-row">
-                <div className="balance-item">
-                  <span className="balance-label">NEO</span>
-                  <span className="balance-value">{neoDisplay}</span>
-                </div>
-                <div className="balance-divider" />
-                <div className="balance-item">
-                  <span className="balance-label">GAS</span>
-                  <span className="balance-value">{gasDisplay}</span>
-                </div>
-              </div>
+        <NeoCard variant="erobo" className="wallet-health-balance-strip">
+          <div className="wallet-health-section-heading">
+            <span>{t("balanceStripTitle")}</span>
+            <strong>{isConnected ? truncateAddress(address) : connectionStatus}</strong>
+          </div>
+          <div className="wallet-health-balance-grid">
+            <div>
+              <span>{t("statConnection")}</span>
+              <strong>{connectionStatus}</strong>
             </div>
-          </NeoCard>
+            <div>
+              <span>NEO</span>
+              <strong>{neoDisplay}</strong>
+            </div>
+            <div>
+              <span>GAS</span>
+              <strong>{gasDisplay}</strong>
+            </div>
+          </div>
+        </NeoCard>
 
-          {/* Health Stats */}
-          <div className="stats-grid">
-            {healthStats.map((stat) => (
-              <div key={stat.label} className="stat-item">
-                <span className="stat-label">{stat.label}</span>
-                <span className="stat-value">{stat.value}</span>
+        <div className="wallet-health-action-grid">
+          <NeoButton
+            size="md"
+            variant="primary"
+            disabled={isConnected}
+            onClick={() => dispatch("connectWallet")}
+          >
+            {isConnected ? t("statusConnected") : t("connectWallet")}
+          </NeoButton>
+          <NeoButton
+            size="md"
+            variant="secondary"
+            disabled={!isConnected || isRefreshing}
+            onClick={() => dispatch("refreshBalances")}
+          >
+            {isRefreshing ? t("loading") : t("refreshBalances")}
+          </NeoButton>
+        </div>
+
+        <div className="wallet-health-insight-grid">
+          {healthStats.slice(0, 3).map((stat) => (
+            <div key={stat.label} className="wallet-health-insight">
+              <span>{stat.label}</span>
+              <strong>{stat.value}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <aside className="wallet-health-side" aria-label={t("riskInsights")}>
+        <NeoCard variant="erobo" className="wallet-health-connect-panel">
+          <div className="wallet-health-section-heading">
+            <span>{t("networkReadiness")}</span>
+            <strong>{networkLabel || "Neo N3"}</strong>
+          </div>
+          <p>{t("connectHint")}</p>
+          <div className={`wallet-health-risk-row ${riskClass}`}>
+            <span className="wallet-health-risk-dot" aria-label={riskIconLabel} />
+            <div>
+              <span>{t("riskInsights")}</span>
+              <strong>{riskLabel}</strong>
+            </div>
+          </div>
+        </NeoCard>
+
+        <NeoCard variant="erobo" className="wallet-health-checklist-panel">
+          <div className="wallet-health-section-heading">
+            <span>{t("sectionChecklist")}</span>
+            <strong>{completionText}</strong>
+          </div>
+          <div className="wallet-health-checklist-list">
+            {checklistItems.map((item) => (
+              <div key={item.id} className={`wallet-health-checklist-item ${item.done ? "is-done" : ""}`}>
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>{item.desc}</p>
+                </div>
+                {item.auto ? (
+                  <span className="wallet-health-auto">{t("autoChecked")}</span>
+                ) : (
+                  <NeoButton
+                    size="sm"
+                    variant={item.done ? "success" : "secondary"}
+                    onClick={() => dispatch("toggleChecklist", item.id)}
+                  >
+                    {item.done ? t("markUndo") : t("markDone")}
+                  </NeoButton>
+                )}
               </div>
             ))}
           </div>
+        </NeoCard>
 
-          <NeoButton
-            size="sm"
-            variant="secondary"
-            disabled={isRefreshing}
-            onClick={() => handleAction("refreshBalances")}
-          >
-            {isRefreshing
-              ? (t("loading") || "Loading...")
-              : (t("refresh") || "Refresh")}
-          </NeoButton>
-        </div>
-      )}
+        <NeoCard variant="erobo" className="wallet-health-recommendations-panel">
+          <div className="wallet-health-section-heading">
+            <span>{t("recommendationsTitle")}</span>
+            <strong>{recommendations.length}</strong>
+          </div>
+          <ul>
+            {visibleRecommendations.map((recommendation) => (
+              <li key={recommendation}>{recommendation}</li>
+            ))}
+          </ul>
+        </NeoCard>
+      </aside>
     </div>
   );
 }

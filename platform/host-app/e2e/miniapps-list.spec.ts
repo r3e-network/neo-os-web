@@ -1,7 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
-function miniappCardSelector(appId: string) {
-  return `a[href="/miniapps/${appId}"], a[href^="/miniapps/${appId}?"]`;
+function marketRowLocator(page: Page, appId: string) {
+  return page.locator(
+    `[data-testid="miniapp-market-row"][href^="/miniapps/${appId}?network="]`,
+  );
 }
 
 test.describe("MiniApps List", () => {
@@ -20,8 +22,10 @@ test.describe("MiniApps List", () => {
         .includes("testnet")
         ? "Neo N3 Testnet"
         : "Neo N3 Mainnet";
-    await expect(page.getByText(networkLabel)).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Yiwu MiniApps" })).toBeVisible();
+    await expect(
+      page.getByTestId("miniapps-market-shell").locator("section").first().getByText(networkLabel),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Yiwu MiniApps/i);
     await expect(
       page.getByText(
         "Browse small, focused MiniApps for Neo N3. Pick one, open the play area, and operate from the shared action console.",
@@ -36,14 +40,14 @@ test.describe("MiniApps List", () => {
     const supportedApps = Array.isArray(body.apps)
       ? body.apps.filter((app: { status?: string }) => app.status !== "disabled")
       : [];
-    const cards = page.locator('a[href^="/miniapps/miniapp-"]');
+    const cards = page.getByTestId("miniapp-market-row");
     expect(supportedApps.length).toBeGreaterThan(30);
     await expect(cards).toHaveCount(supportedApps.length);
-    await expect(page.locator(miniappCardSelector("miniapp-last-survivor"))).toBeVisible();
-    await expect(page.locator(miniappCardSelector("miniapp-fogplay"))).toBeVisible();
-    await expect(page.locator(miniappCardSelector("miniapp-neo-pay"))).toBeVisible();
-    await expect(page.locator(miniappCardSelector("miniapp-profitanchor"))).toBeVisible();
-    await expect(page.locator(miniappCardSelector("miniapp-trustanchor"))).toBeVisible();
+    await expect(marketRowLocator(page, "miniapp-last-survivor")).toBeVisible();
+    await expect(marketRowLocator(page, "miniapp-fogplay")).toBeVisible();
+    await expect(marketRowLocator(page, "miniapp-neo-pay")).toBeVisible();
+    await expect(marketRowLocator(page, "miniapp-profitanchor")).toBeVisible();
+    await expect(marketRowLocator(page, "miniapp-trustanchor")).toBeVisible();
     await expect(page.locator('a[href="/miniapps/miniapp-flamingo"]')).toHaveCount(0);
     await expect(page.locator('a[href="/miniapps/miniapp-flaminggo"]')).toHaveCount(0);
     await expect(page.locator('a[href="/miniapps/miniapp-neoburger"]')).toHaveCount(0);
@@ -51,9 +55,18 @@ test.describe("MiniApps List", () => {
   });
 
   test("should link core cards to their detail pages", async ({ page }) => {
-    await expect(page.locator(miniappCardSelector("miniapp-last-survivor"))).toHaveAttribute("href", /\/miniapps\/miniapp-last-survivor(\?|$)/);
-    await expect(page.locator(miniappCardSelector("miniapp-redenvelope"))).toHaveAttribute("href", /\/miniapps\/miniapp-redenvelope(\?|$)/);
-    await expect(page.locator(miniappCardSelector("miniapp-self-loan"))).toHaveAttribute("href", /\/miniapps\/miniapp-self-loan(\?|$)/);
+    await expect(marketRowLocator(page, "miniapp-last-survivor")).toHaveAttribute(
+      "href",
+      /^\/miniapps\/miniapp-last-survivor\?network=/,
+    );
+    await expect(marketRowLocator(page, "miniapp-redenvelope")).toHaveAttribute(
+      "href",
+      /^\/miniapps\/miniapp-redenvelope\?network=/,
+    );
+    await expect(marketRowLocator(page, "miniapp-self-loan")).toHaveAttribute(
+      "href",
+      /^\/miniapps\/miniapp-self-loan\?network=/,
+    );
   });
 
   test("should show status and category metadata", async ({ page }) => {

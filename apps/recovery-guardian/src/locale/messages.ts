@@ -2,28 +2,124 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   title: { en: "Recovery Guardian", zh: "恢复守护者" },
-  subtitle: { en: "Live recovery state console for AA guardian and timelock status", zh: "面向 AA guardian 与 timelock 状态的实时恢复控制台" },
-  docsSubtitle: { en: "Query bound verifier state, timelock windows, pending recovery, and active private-session state.", zh: "查询绑定 verifier 状态、timelock 窗口、pending recovery 和 active private-session 状态。" },
+  guardianHeroTitle: {
+    en: "Social recovery workspace",
+    zh: "社交恢复工作台",
+  },
+  guardianHeroCopy: {
+    en: "Read guardian state first, then prepare recovery preview and credential links only after the account, new owner, and expiry window are ready.",
+    zh: "先读取 guardian 状态，再在账户、新 owner 与过期窗口就绪后准备恢复预览和凭证链接。",
+  },
+  guardianMetricsLabel: {
+    en: "Recovery preparation summary",
+    zh: "恢复准备摘要",
+  },
+  guardianMetricAccount: { en: "Account", zh: "账户" },
+  guardianMetricOwner: { en: "New Owner", zh: "新 Owner" },
+  guardianMetricExpiry: { en: "Expiry Minutes", zh: "过期分钟" },
+  guardianCommandTitle: { en: "Guardian Preflight", zh: "Guardian 预检" },
+  accountAddressHint: {
+    en: "Use a Neo address or Hash160 before querying guardian state.",
+    zh: "查询 guardian 状态前，请输入 Neo 地址或 Hash160。",
+  },
+  queryBlocked: {
+    en: "Enter a valid account address or Hash160 before querying state.",
+    zh: "输入有效账户地址或 Hash160 后才能查询状态。",
+  },
+  guardianFlowLabel: { en: "Recovery workflow", zh: "恢复流程" },
+  guardianFlowRead: { en: "Read state", zh: "读取状态" },
+  guardianFlowReadDesc: {
+    en: "Inspect verifier, threshold, and timelock state before preparing recovery.",
+    zh: "准备恢复前先检查 verifier、threshold 与 timelock 状态。",
+  },
+  guardianFlowPrepare: { en: "Prepare recovery", zh: "准备恢复" },
+  guardianFlowPrepareDesc: {
+    en: "Require the account, new owner, and expiry window before generating links.",
+    zh: "生成链接前必须补齐账户、新 owner 与过期窗口。",
+  },
+  guardianFlowCredential: { en: "Share credential", zh: "分享凭证" },
+  guardianFlowCredentialDesc: {
+    en: "Open, copy, or share preview and credential links only after preflight.",
+    zh: "只有预检通过后才打开、复制或分享预览和凭证链接。",
+  },
+  guardianStateLabel: { en: "Guardian Runtime", zh: "Guardian 运行态" },
+  guardianStateTitle: { en: "Recovery state", zh: "恢复状态" },
+  guardianRiskTitle: { en: "Recovery guardrails", zh: "恢复防护栏" },
+  guardianRiskCopy: {
+    en: "Recovery links stay disabled until the account, new owner, expiry window, and optional verifier override are valid.",
+    zh: "账户、新 owner、过期窗口和可选 verifier override 有效前，恢复链接会保持禁用。",
+  },
+  guardianPrepareTitle: { en: "Prepare Recovery", zh: "准备恢复" },
+  guardianDraftLabel: { en: "Draft Account", zh: "草稿账户" },
+  newOwnerHint: {
+    en: "Required recovery owner as a Neo address or Hash160.",
+    zh: "必填恢复 owner，可使用 Neo 地址或 Hash160。",
+  },
+  recoveryExpiryHint: {
+    en: "Required, 5 to 1440 minutes.",
+    zh: "必填，范围 5 到 1440 分钟。",
+  },
+  verifierHashHint: {
+    en: "Optional Hash160 override for diagnostics.",
+    zh: "可选 Hash160 override，用于诊断。",
+  },
+  recoveryTemplateIdHint: {
+    en: "Optional credential template identifier.",
+    zh: "可选凭证模板 ID。",
+  },
+  recoveryLinkBlocked: {
+    en: "Complete a valid account, new owner, expiry window, and optional verifier override before using recovery links.",
+    zh: "使用恢复链接前，请补齐有效账户、新 owner、过期窗口和可选 verifier override。",
+  },
+  subtitle: {
+    en: "Live recovery state console for AA guardian and timelock status",
+    zh: "面向 AA guardian 与 timelock 状态的实时恢复控制台",
+  },
+  docsSubtitle: {
+    en: "Query bound verifier state, timelock windows, pending recovery, and active private-session state.",
+    zh: "查询绑定 verifier 状态、timelock 窗口、pending recovery 和 active private-session 状态。",
+  },
   latestState: { en: "Latest State", zh: "最新状态" },
   guardianState: { en: "Guardian State", zh: "守护状态" },
-  accountAddress: { en: "Account Address / Script Hash", zh: "账户地址 / Script Hash" },
+  accountAddress: {
+    en: "Account Address / Script Hash",
+    zh: "账户地址 / Script Hash",
+  },
   accountAddressPlaceholder: { en: "N... or 0x...", zh: "N... 或 0x..." },
   verifierHash: { en: "Verifier Hash Override", zh: "Verifier Hash 覆盖" },
   verifierHashPlaceholder: { en: "0x... (optional)", zh: "0x...（可选）" },
   queryState: { en: "Query State", zh: "查询状态" },
   newOwner: { en: "New Owner", zh: "新所有者" },
   newOwnerPlaceholder: { en: "N... or 0x...", zh: "N... 或 0x..." },
-  recoveryExpiry: { en: "Recovery Expiry (minutes)", zh: "恢复过期时间（分钟）" },
+  recoveryExpiry: {
+    en: "Recovery Expiry (minutes)",
+    zh: "恢复过期时间（分钟）",
+  },
   recoveryExpiryPlaceholder: { en: "30", zh: "30" },
   recoveryTemplateId: { en: "Recovery Template ID", zh: "恢复模板 ID" },
-  recoveryTemplateIdPlaceholder: { en: "Optional certificate template id", zh: "可选的证书模板 ID" },
+  recoveryTemplateIdPlaceholder: {
+    en: "Optional certificate template id",
+    zh: "可选的证书模板 ID",
+  },
   openRecoveryPreview: { en: "Open Recovery Preview", zh: "打开恢复预览" },
   copyRecoveryLink: { en: "Copy Recovery Link", zh: "复制恢复链接" },
   shareRecoveryLink: { en: "Share Recovery Link", zh: "分享恢复链接" },
-  openRecoveryCredential: { en: "Open Recovery Credential", zh: "打开恢复凭证" },
-  copyRecoveryCredential: { en: "Copy Recovery Credential Link", zh: "复制恢复凭证链接" },
-  shareRecoveryCredential: { en: "Share Recovery Credential Link", zh: "分享恢复凭证链接" },
-  openIdentityWorkspace: { en: "Open Identity Workspace", zh: "打开身份工作区" },
+  openRecoveryCredential: {
+    en: "Open Recovery Credential",
+    zh: "打开恢复凭证",
+  },
+  copyRecoveryCredential: {
+    en: "Copy Recovery Credential Link",
+    zh: "复制恢复凭证链接",
+  },
+  shareRecoveryCredential: {
+    en: "Share Recovery Credential Link",
+    zh: "分享恢复凭证链接",
+  },
+  openIdentityWorkspace: {
+    en: "Open Identity Workspace",
+    zh: "打开身份工作区",
+  },
   openAaWorkspace: { en: "Open AA Workspace", zh: "打开 AA 工作区" },
   openRecoveryDocs: { en: "Open Recovery Docs", zh: "打开恢复文档" },
   currentVerifier: { en: "Verifier", zh: "Verifier" },
@@ -39,13 +135,34 @@ const appMessages = {
   executableAt: { en: "Executable At", zh: "可执行时间" },
   queryLoaded: { en: "Recovery state loaded", zh: "恢复状态已加载" },
   queryFailed: { en: "Failed to load recovery state", zh: "加载恢复状态失败" },
-  previewLinkReady: { en: "Recovery preview link ready", zh: "恢复预览链接已准备好" },
-  previewLinkCopied: { en: "Recovery preview link copied", zh: "恢复预览链接已复制" },
-  previewLinkShared: { en: "Recovery preview link shared", zh: "恢复预览链接已分享" },
-  credentialLinkReady: { en: "Recovery credential draft ready", zh: "恢复凭证草稿已准备好" },
-  credentialLinkCopied: { en: "Recovery credential link copied", zh: "恢复凭证链接已复制" },
-  credentialLinkShared: { en: "Recovery credential link shared", zh: "恢复凭证链接已分享" },
-  previewLinkUnavailable: { en: "Recovery preview link is not ready yet", zh: "恢复预览链接尚未准备好" },
+  previewLinkReady: {
+    en: "Recovery preview link ready",
+    zh: "恢复预览链接已准备好",
+  },
+  previewLinkCopied: {
+    en: "Recovery preview link copied",
+    zh: "恢复预览链接已复制",
+  },
+  previewLinkShared: {
+    en: "Recovery preview link shared",
+    zh: "恢复预览链接已分享",
+  },
+  credentialLinkReady: {
+    en: "Recovery credential draft ready",
+    zh: "恢复凭证草稿已准备好",
+  },
+  credentialLinkCopied: {
+    en: "Recovery credential link copied",
+    zh: "恢复凭证链接已复制",
+  },
+  credentialLinkShared: {
+    en: "Recovery credential link shared",
+    zh: "恢复凭证链接已分享",
+  },
+  previewLinkUnavailable: {
+    en: "Recovery preview link is not ready yet",
+    zh: "恢复预览链接尚未准备好",
+  },
   noStateYet: { en: "No recovery state loaded yet.", zh: "尚未加载恢复状态。" },
   noteTitle: { en: "Operator Note", zh: "运维提示" },
   noteText: {
@@ -53,11 +170,20 @@ const appMessages = {
     zh: "恢复票据生成仍然属于身份工作区，因为它需要实时 Web3Auth / NeoDID 机密主体。本小程序是面向 guardian 状态的读优化控制面。",
   },
   feature1Name: { en: "Read First", zh: "先读后写" },
-  feature1Desc: { en: "Inspect recovery and timelock state before sending any ownership-changing transaction.", zh: "在发送任何变更所有权的交易前，先检查 recovery 与 timelock 状态。" },
+  feature1Desc: {
+    en: "Inspect recovery and timelock state before sending any ownership-changing transaction.",
+    zh: "在发送任何变更所有权的交易前，先检查 recovery 与 timelock 状态。",
+  },
   feature2Name: { en: "Verifier-Aware", zh: "感知 Verifier" },
-  feature2Desc: { en: "Auto-resolve the bound verifier from AA core or override it explicitly for diagnostics.", zh: "可从 AA core 自动解析绑定 verifier，也可以手动覆盖用于诊断。" },
+  feature2Desc: {
+    en: "Auto-resolve the bound verifier from AA core or override it explicitly for diagnostics.",
+    zh: "可从 AA core 自动解析绑定 verifier，也可以手动覆盖用于诊断。",
+  },
   feature3Name: { en: "Session Visibility", zh: "会话可见性" },
-  feature3Desc: { en: "Recovery and private-session state are inspected together because they share the same verifier boundary.", zh: "Recovery 与 private-session 状态一并检查，因为它们共享同一 verifier 边界。" },
+  feature3Desc: {
+    en: "Recovery and private-session state are inspected together because they share the same verifier boundary.",
+    zh: "Recovery 与 private-session 状态一并检查，因为它们共享同一 verifier 边界。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

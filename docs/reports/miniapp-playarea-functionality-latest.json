@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T01:52:43.062Z",
+  "generatedAt": "2026-05-26T02:57:07.504Z",
   "summary": {
     "total": 60,
     "status": {
@@ -51,7 +51,7 @@
       "hasStandaloneSurface": true,
       "hasBuiltIndex": true,
       "builtIndex": "platform/host-app/public/miniapps/aa-market-hub/index.html",
-      "sourceFileCount": 10,
+      "sourceFileCount": 11,
       "buttonCount": 8,
       "inputCount": 8,
       "surfaceControlCount": 1,
@@ -1452,11 +1452,11 @@
       "hasStandaloneSurface": true,
       "hasBuiltIndex": true,
       "builtIndex": "platform/host-app/public/miniapps/recovery-guardian/index.html",
-      "sourceFileCount": 4,
-      "buttonCount": 14,
+      "sourceFileCount": 5,
+      "buttonCount": 5,
       "inputCount": 5,
       "surfaceControlCount": 1,
-      "actionCount": 24,
+      "actionCount": 15,
       "operationsCount": 0,
       "hasFileUpload": false,
       "workflowEvidence": [

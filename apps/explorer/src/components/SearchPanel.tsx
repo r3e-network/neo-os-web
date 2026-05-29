@@ -22,6 +22,11 @@ export default function SearchPanel({
 }: SearchPanelProps) {
   return (
     <NeoCard variant="erobo" className="search-card">
+      <div className="search-card__header">
+        <span>{t("explorerSearchScope")}</span>
+        <strong>{selectedNetwork === "mainnet" ? t("mainnet") : t("testnet")}</strong>
+      </div>
+
       <div className="search-box">
         <NeoInput
           value={searchQuery}

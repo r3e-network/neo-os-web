@@ -7,6 +7,7 @@
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService, BalanceService, EventBus } from "@shared/services";
+import { useMorpheusDataFeed } from "@shared/composables/useMorpheusDataFeed";
 import { toFixedDecimals } from "@shared/utils/format";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Token } from "@/types";
@@ -33,6 +34,7 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   const showSelector = createObservable(false);
   const selectorTarget = createObservable<"from" | "to">("from");
   const isSwapping = createObservable(false);
+  const datafeed = useMorpheusDataFeed();
   let swapAnimTimer: ReturnType<typeof setTimeout> | null = null;
 
   function applyTokenBalances(neo: number, gas: number) {
@@ -100,23 +102,22 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     onFromAmountChange();
   }
 
+  function setFromAmount(value: string) {
+    fromAmount.set(value);
+    onFromAmountChange();
+  }
+
   async function loadExchangeRate() {
     if (rateLoading.get()) return;
     rateLoading.set(true);
     exchangeRate.set("");
     try {
-      const sdk = await import("@shared/utils/wallet-sdk").then((m) => m.waitForSDK?.() || null);
-      if (sdk?.datafeed?.getPrice) {
-        const fromPrice = await sdk.datafeed.getPrice(`${fromToken.get().symbol}-USD`);
-        const toPrice = await sdk.datafeed.getPrice(`${toToken.get().symbol}-USD`);
-        if (fromPrice?.price && toPrice?.price) {
-          const rate = parseFloat(fromPrice.price) / parseFloat(toPrice.price);
-          if (Number.isFinite(rate) && rate > 0) {
-            exchangeRate.set(rate.toFixed(6));
-            onFromAmountChange();
-            return;
-          }
-        }
+      const fromPrice = await datafeed.getPrice(fromToken.get().symbol);
+      const toPrice = await datafeed.getPrice(toToken.get().symbol);
+      const rate = fromPrice / toPrice;
+      if (Number.isFinite(rate) && rate > 0) {
+        exchangeRate.set(rate.toFixed(6));
+        onFromAmountChange();
       }
     } catch (e) {
       console.warn("[useSwapEngine] exchange rate load failed:", e instanceof Error ? e.message : String(e));
@@ -207,7 +208,7 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   return {
     fromToken, toToken, fromAmount, toAmount, exchangeRate, rateLoading, loading,
     showSelector, selectorTarget, isSwapping, availableTokens, canSwap,
-    swapButtonText, slippage, minReceived, setMaxAmount, loadExchangeRate,
+    swapButtonText, slippage, minReceived, setMaxAmount, setFromAmount, loadExchangeRate,
     swapTokens, openFromSelector, openToSelector, closeSelector, selectToken,
     executeSwap, refreshBalances, loadAll, cleanup,
   };

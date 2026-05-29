@@ -119,9 +119,11 @@ fi
 npm run test:deploy-scripts
 npm --prefix platform/admin-console test --silent
 npm --prefix platform/admin-console run typecheck
-rm -rf platform/admin-console/.next
+rm -rf platform/admin-console/.next >/dev/null 2>&1 || true
+rm -rf platform/admin-console/.next >/dev/null 2>&1 || true
 if ! npm --prefix platform/admin-console run build; then
-  rm -rf platform/admin-console/.next
+  rm -rf platform/admin-console/.next >/dev/null 2>&1 || true
+  rm -rf platform/admin-console/.next >/dev/null 2>&1 || true
   npm --prefix platform/admin-console run build
 fi
 PLAYWRIGHT_WORKERS="${PLAYWRIGHT_WORKERS:-1}" npm --prefix platform/host-app run test:full

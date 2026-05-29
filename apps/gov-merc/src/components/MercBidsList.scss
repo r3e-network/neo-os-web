@@ -2,37 +2,81 @@
 @use "@shared/styles/variables.scss" as *;
 @use "../pages/index/gov-merc-theme.scss" as *;
 
-.empty-neo {
-  font-family: var(--font-family-mono, "Courier New", monospace);
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--merc-empty-text);
+.gov-merc-empty-bids {
+  display: grid;
+  gap: 8px;
+  min-height: 150px;
+  place-content: center;
+  padding: 18px;
+  border: 1px dashed #cfd9d4;
+  border-radius: 16px;
+  background: #f7faf8;
   text-align: center;
-  text-shadow: var(--merc-empty-shadow);
-  padding: 32px;
+
+  strong {
+    color: #102019;
+    font-size: 14px;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  p {
+    max-width: 280px;
+    margin: 0 auto;
+    color: #66756e;
+    font-size: 12px;
+    line-height: 1.45;
+    letter-spacing: 0;
+  }
 }
 
-.bid-row {
-  display: flex;
-  justify-content: space-between;
+.gov-merc-bid-list {
+  display: grid;
+  gap: 8px;
+}
+
+.gov-merc-bid-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px dotted var(--merc-bid-divider);
-  transition: background 0.2s ease;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dfe7e2;
+  border-radius: 14px;
+  background: #f7faf8;
 
-  &:hover { background: rgba(120, 40, 200, 0.05); }
-}
+  span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: #edf7f1;
+    color: #107a52;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
 
-.bid-address {
-  font-family: var(--font-family-mono, "Courier New", monospace);
-  font-size: 10px;
-  color: var(--merc-bid-address);
-}
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    color: #102019;
+    font-family: "SF Mono", "JetBrains Mono", monospace;
+    font-size: 12px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    letter-spacing: 0;
+  }
 
-.bid-amount {
-  font-family: var(--font-family-mono, "Courier New", monospace);
-  font-weight: 700;
-  color: var(--merc-bid-amount);
-  text-shadow: 0 0 6px rgba(0, 229, 153, 0.3);
+  em {
+    color: #107a52;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
 }

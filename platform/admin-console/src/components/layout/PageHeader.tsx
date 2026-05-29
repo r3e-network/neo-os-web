@@ -11,9 +11,7 @@ import type { ReactNode } from "react";
 export interface PageHeaderProps {
   /** Main page title. */
   title: string;
-  /** Optional highlight applied to the last word of the title (the dashboard's
-   *  brand-mark treatment). When set, the trailing word is rendered in the
-   *  neo green with a soft drop-shadow. */
+  /** Optional highlight applied to the last word of the title. */
   highlightLastWord?: boolean;
   /** Short descriptive subtitle. */
   description?: string;
@@ -34,18 +32,21 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   const Heading = as;
-  const headingClass = cn(
-    "text-2xl font-black text-gray-900 dark:text-white sm:text-3xl",
-  );
+  const headingClass = cn("text-xl font-black text-gray-900 sm:text-2xl");
 
   const titleNode = highlightLastWord ? renderHighlighted(title) : title;
 
   return (
-    <header className={cn("flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between", className)}>
+    <header
+      className={cn(
+        "admin-page-header flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between",
+        className,
+      )}
+    >
       <div>
         <Heading className={headingClass}>{titleNode}</Heading>
         {description && (
-          <p className="mt-1 max-w-2xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
+          <p className="mt-1 max-w-2xl text-sm text-gray-600">
             {description}
           </p>
         )}
@@ -62,13 +63,13 @@ function renderHighlighted(title: string): ReactNode {
   const lastSpace = trimmed.lastIndexOf(" ");
   if (lastSpace === -1) {
     return (
-      <span className="text-neo drop-shadow-[0_0_8px_rgba(0,229,153,0.5)]">{trimmed}</span>
+      <span className="text-emerald-600">{trimmed}</span>
     );
   }
   return (
     <>
       {trimmed.slice(0, lastSpace)}{" "}
-      <span className="text-neo drop-shadow-[0_0_8px_rgba(0,229,153,0.5)]">
+      <span className="text-emerald-600">
         {trimmed.slice(lastSpace + 1)}
       </span>
     </>

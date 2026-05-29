@@ -1,14 +1,24 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useMemo, useState, type ChangeEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import yaml from "js-yaml";
+import {
+  Boxes,
+  CheckCircle2,
+  FileCode2,
+  GitPullRequestArrow,
+  Search,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { cn } from "@/lib/utils";
 import {
   useReviewTemplateMarketRequest,
   useTemplateMarketRequests,
@@ -275,6 +285,13 @@ export default function TemplateStudioPage() {
 
   const templates = templatesQuery.data?.templates || [];
   const requests = requestsQuery.data?.requests || [];
+  const verifiedTemplates = templates.filter((item) => item.is_verified).length;
+  const activeTemplates = templates.filter((item) => item.is_active).length;
+  const pendingRequests = requests.filter(
+    (request) => request.status === "pending",
+  ).length;
+  const hasTemplateError = templatesQuery.isError;
+  const hasRequestError = requestsQuery.isError;
 
   const selectedManifestText = useMemo(() => {
     if (!selectedTemplate) return "";
@@ -508,202 +525,191 @@ export default function TemplateStudioPage() {
     <div className="space-y-6">
       <PageHeader
         title="Template Studio"
-        description="No-code template marketplace for frontend and contract miniapp templates."
+        description="Curate frontend and contract templates before they become MiniApp Builder drafts."
         highlightLastWord
       />
 
-      <Card variant="glass">
+      <section
+        aria-label="Template Studio operations summary"
+        className="template-studio-summary-grid grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        <SummaryCard
+          icon={Boxes}
+          label="Marketplace"
+          value={hasTemplateError ? "Unavailable" : templates.length.toLocaleString()}
+          detail={
+            hasTemplateError
+              ? "Template catalog failed to load"
+              : "Catalog entries in the current view"
+          }
+          tone={hasTemplateError ? "danger" : "info"}
+        />
+        <SummaryCard
+          icon={CheckCircle2}
+          label="Verified"
+          value={hasTemplateError ? "-" : verifiedTemplates.toLocaleString()}
+          detail="Templates approved for reuse"
+          tone="success"
+        />
+        <SummaryCard
+          icon={GitPullRequestArrow}
+          label="Pending Requests"
+          value={hasRequestError ? "Unavailable" : pendingRequests.toLocaleString()}
+          detail="Publish requests awaiting review"
+          tone={pendingRequests > 0 ? "warning" : "neutral"}
+        />
+        <SummaryCard
+          icon={Sparkles}
+          label="Active Templates"
+          value={
+            hasTemplateError
+              ? "-"
+              : `${activeTemplates.toLocaleString()}/${templates.length.toLocaleString()}`
+          }
+          detail="Available to MiniApp Builder"
+          tone="neutral"
+        />
+      </section>
+
+      <Card
+        aria-label="Template Studio controls"
+        className="template-studio-filters-card overflow-hidden"
+        variant="default"
+      >
         <CardHeader>
-          <CardTitle>Template Filters</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary-100 bg-primary-50 text-primary-700">
+              <Search className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div>
+              <CardTitle>Template Filters</CardTitle>
+              <p className="mt-1 text-sm text-gray-600">
+                Narrow by template role, source, activation, and verification.
+              </p>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
             <Input
               label="Search"
               placeholder="template id/name/tag"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <div>
-              <label
-                htmlFor="template-kind"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Kind
-              </label>
-              <select
-                id="template-kind"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                value={kind}
-                onChange={(e) =>
-                  setKind(e.target.value as TemplateKind | "all")
-                }
-              >
-                <option value="all">all</option>
-                <option value="frontend">frontend</option>
-                <option value="contract">contract</option>
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="template-category"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Category
-              </label>
-              <select
-                id="template-category"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {CATEGORIES.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="template-source"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Source
-              </label>
-              <select
-                id="template-source"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                value={source}
-                onChange={(e) =>
-                  setSource(e.target.value as TemplateSourceType | "all")
-                }
-              >
-                <option value="all">all</option>
-                <option value="miniapp">miniapp</option>
-                <option value="community">community</option>
-                <option value="verified">verified</option>
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="template-active"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Active
-              </label>
-              <select
-                id="template-active"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                value={active}
-                onChange={(e) =>
-                  setActive(e.target.value as "all" | "true" | "false")
-                }
-              >
-                <option value="all">all</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="template-verified"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Verified
-              </label>
-              <select
-                id="template-verified"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                value={verified}
-                onChange={(e) =>
-                  setVerified(e.target.value as "all" | "true" | "false")
-                }
-              >
-                <option value="all">all</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
-            </div>
+            <SelectField
+              id="template-kind"
+              label="Kind"
+              value={kind}
+              onChange={(value) => setKind(value as TemplateKind | "all")}
+              options={["all", "frontend", "contract"]}
+            />
+            <SelectField
+              id="template-category"
+              label="Category"
+              value={category}
+              onChange={setCategory}
+              options={CATEGORIES}
+            />
+            <SelectField
+              id="template-source"
+              label="Source"
+              value={source}
+              onChange={(value) =>
+                setSource(value as TemplateSourceType | "all")
+              }
+              options={["all", "miniapp", "community", "verified"]}
+            />
+            <SelectField
+              id="template-active"
+              label="Active"
+              value={active}
+              onChange={(value) =>
+                setActive(value as "all" | "true" | "false")
+              }
+              options={["all", "true", "false"]}
+            />
+            <SelectField
+              id="template-verified"
+              label="Verified"
+              value={verified}
+              onChange={(value) =>
+                setVerified(value as "all" | "true" | "false")
+              }
+              options={["all", "true", "false"]}
+            />
           </div>
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card variant="glass" className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle>Template Marketplace ({templates.length})</CardTitle>
+        <Card
+          aria-label="Template marketplace panel"
+          className="template-marketplace-card overflow-hidden xl:col-span-2"
+          variant="default"
+        >
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>Template Marketplace</CardTitle>
+              <p className="mt-1 text-sm text-gray-600">
+                Review reusable UI and contract starting points.
+              </p>
+            </div>
+            <Badge variant={hasTemplateError ? "danger" : "info"}>
+              {hasTemplateError ? "Unavailable" : `${templates.length} Total`}
+            </Badge>
           </CardHeader>
           <CardContent>
             {templatesQuery.isLoading ? (
-              <Spinner />
+              <LoadingState />
             ) : templatesQuery.isError ? (
-              <p className="text-sm text-danger-600 dark:text-danger-400">
-                {templatesQuery.error instanceof Error
-                  ? templatesQuery.error.message
-                  : "Failed to load templates"}
-              </p>
+              <AlertState
+                label="Template marketplace could not be loaded"
+                title="Template marketplace could not be loaded"
+                message={
+                  templatesQuery.error instanceof Error
+                    ? templatesQuery.error.message
+                    : "Fresh template catalog data is unavailable."
+                }
+              />
             ) : !templates.length ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No templates found.
-              </p>
+              <EmptyState message="No templates found" />
             ) : (
               <div className="space-y-3">
                 {templates.map((item) => (
-                  <button
+                  <TemplateListItem
                     key={`${item.template_kind}:${item.row_id}`}
-                    type="button"
-                    onClick={() => setSelectedTemplate(item)}
-                    className="w-full rounded-lg border border-gray-200 p-3 text-left transition-colors hover:border-primary-400 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-                  >
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
-                        {item.name}
-                      </span>
-                      <Badge variant={kindBadgeVariant(item.template_kind)}>
-                        {item.template_kind}
-                      </Badge>
-                      <Badge variant={sourceBadgeVariant(item.source_type)}>
-                        {item.source_type}
-                      </Badge>
-                      {item.is_verified ? (
-                        <Badge variant="success">verified</Badge>
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      <code>{item.template_id}</code> · v{item.version} ·{" "}
-                      {item.category}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
-                      {item.description || "No description"}
-                    </p>
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      usage {item.usage_count} · rating {item.rating_avg ?? "-"}{" "}
-                      ({item.rating_count})
-                    </div>
-                  </button>
+                    item={item}
+                    selected={selectedTemplate?.row_id === item.row_id}
+                    onSelect={() => setSelectedTemplate(item)}
+                  />
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card variant="glass">
+        <Card
+          aria-label="Template detail panel"
+          className="template-detail-card overflow-hidden"
+          variant="default"
+        >
           <CardHeader>
             <CardTitle>Template Detail</CardTitle>
+            <p className="mt-1 text-sm text-gray-600">
+              Inspect manifest payloads before editing or installing.
+            </p>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {!selectedTemplate ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Select a template to view details.
-              </p>
+              <EmptyState message="Select a template to view details" />
             ) : (
               <>
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <p className="text-base font-bold text-gray-950">
                     {selectedTemplate.name}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-xs font-medium text-gray-500">
                     {selectedTemplate.template_id} · v{selectedTemplate.version}
                   </p>
                 </div>
@@ -718,21 +724,33 @@ export default function TemplateStudioPage() {
                   >
                     {selectedTemplate.source_type}
                   </Badge>
-                  {selectedTemplate.is_active ? (
-                    <Badge variant="success">active</Badge>
-                  ) : (
-                    <Badge variant="danger">inactive</Badge>
-                  )}
+                  <Badge
+                    variant={selectedTemplate.is_active ? "success" : "danger"}
+                  >
+                    {selectedTemplate.is_active ? "active" : "inactive"}
+                  </Badge>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-gray-600">
                   {selectedTemplate.description || "No description"}
                 </p>
-                <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <dl className="grid grid-cols-2 gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs">
                   <div>
-                    Updated: {formatDateTime(selectedTemplate.updated_at)}
+                    <dt className="font-bold uppercase tracking-wide text-gray-500">
+                      Updated
+                    </dt>
+                    <dd className="mt-1 font-medium text-gray-700">
+                      {formatDateTime(selectedTemplate.updated_at)}
+                    </dd>
                   </div>
-                  <div>Category: {selectedTemplate.category}</div>
-                </div>
+                  <div>
+                    <dt className="font-bold uppercase tracking-wide text-gray-500">
+                      Category
+                    </dt>
+                    <dd className="mt-1 font-medium text-gray-700">
+                      {selectedTemplate.category}
+                    </dd>
+                  </div>
+                </dl>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
@@ -750,7 +768,7 @@ export default function TemplateStudioPage() {
                     Install To MiniApp Builder
                   </Button>
                 </div>
-                <pre className="max-h-64 overflow-auto rounded-md bg-gray-50 p-2 text-xs dark:bg-gray-800">
+                <pre className="max-h-64 overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
                   {selectedManifestText}
                 </pre>
               </>
@@ -759,62 +777,60 @@ export default function TemplateStudioPage() {
         </Card>
       </div>
 
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle>Publish Requests</CardTitle>
+      <Card
+        aria-label="Template publish requests panel"
+        className="template-requests-card overflow-hidden"
+        variant="default"
+      >
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Publish Requests</CardTitle>
+            <p className="mt-1 text-sm text-gray-600">
+              Approve, reject, or cancel queued template submissions.
+            </p>
+          </div>
+          <SelectField
+            id="request-status"
+            label="Status"
+            value={requestStatus}
+            onChange={(value) =>
+              setRequestStatus(
+                value as
+                  | "all"
+                  | "pending"
+                  | "approved"
+                  | "rejected"
+                  | "cancelled",
+              )
+            }
+            options={["pending", "all", "approved", "rejected", "cancelled"]}
+            compact
+          />
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <label
-              htmlFor="request-status"
-              className="text-sm text-gray-600 dark:text-gray-300"
-            >
-              Status
-            </label>
-            <select
-              id="request-status"
-              className="rounded-md border border-gray-300 p-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              value={requestStatus}
-              onChange={(e) =>
-                setRequestStatus(
-                  e.target.value as
-                    | "all"
-                    | "pending"
-                    | "approved"
-                    | "rejected"
-                    | "cancelled",
-                )
-              }
-            >
-              <option value="pending">pending</option>
-              <option value="all">all</option>
-              <option value="approved">approved</option>
-              <option value="rejected">rejected</option>
-              <option value="cancelled">cancelled</option>
-            </select>
-          </div>
-
           {requestsQuery.isLoading ? (
-            <Spinner />
+            <LoadingState />
           ) : requestsQuery.isError ? (
-            <p className="text-sm text-danger-600 dark:text-danger-400">
-              {requestsQuery.error instanceof Error
-                ? requestsQuery.error.message
-                : "Failed to load requests"}
-            </p>
+            <AlertState
+              label="Template publish requests could not be loaded"
+              title="Template publish requests could not be loaded"
+              message={
+                requestsQuery.error instanceof Error
+                  ? requestsQuery.error.message
+                  : "Fresh request data is unavailable."
+              }
+            />
           ) : !requests.length ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              No publish requests.
-            </p>
+            <EmptyState message="No publish requests" />
           ) : (
             <div className="space-y-2">
               {requests.map((request) => (
                 <div
                   key={request.id}
-                  className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                  className="rounded-xl border border-gray-200 bg-gray-50 p-3"
                 >
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="font-mono text-xs text-gray-600 dark:text-gray-300">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs font-semibold text-gray-700">
                       {request.id.slice(0, 8)}
                     </span>
                     <Badge variant={kindBadgeVariant(request.template_kind)}>
@@ -823,17 +839,17 @@ export default function TemplateStudioPage() {
                     <Badge variant={requestBadgeVariant(request.status)}>
                       {request.status}
                     </Badge>
-                    <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                    <span className="ml-auto text-xs font-medium text-gray-500">
                       {formatDateTime(request.created_at)}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-2 text-xs font-medium text-gray-500">
                     template row: {request.template_row_id}
                   </p>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="secondary"
                       onClick={() => setSelectedRequest(request)}
                     >
                       View
@@ -873,7 +889,7 @@ export default function TemplateStudioPage() {
           )}
 
           {selectedRequest ? (
-            <div className="rounded-md bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
               <div>Request: {selectedRequest.id}</div>
               <div>Requested by: {selectedRequest.requested_by}</div>
               <div>Reviewed by: {selectedRequest.reviewed_by || "-"}</div>
@@ -883,47 +899,49 @@ export default function TemplateStudioPage() {
         </CardContent>
       </Card>
 
-      <Card variant="glass">
+      <Card
+        aria-label="Template editor panel"
+        className="template-editor-card overflow-hidden"
+        variant="default"
+      >
         <CardHeader>
-          <CardTitle>Upload / Edit Template (JSON or YAML)</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-success-100 bg-success-50 text-success-700">
+              <FileCode2 className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div>
+              <CardTitle>Upload / Edit Template</CardTitle>
+              <p className="mt-1 text-sm text-gray-600">
+                Import JSON or YAML, normalize metadata, then publish or queue
+                for review.
+              </p>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label
-              htmlFor="import-template-file"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
+            <FieldLabel htmlFor="import-template-file">
               Import Template File
-            </label>
+            </FieldLabel>
             <input
               id="import-template-file"
               type="file"
               accept=".json,.yaml,.yml"
               onChange={onUploadTemplateFile}
-              className="text-sm dark:text-gray-100 file:mr-2 file:rounded-md file:border-0 file:bg-primary-600 file:px-3 file:py-1.5 file:text-sm file:text-white file:cursor-pointer hover:file:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md"
+              className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-primary-800 hover:file:bg-primary-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <div>
-              <label
-                htmlFor="template-kind-form"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Kind
-              </label>
-              <select
-                id="template-kind-form"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                value={form.kind}
-                onChange={(e) =>
-                  setForm({ ...form, kind: e.target.value as TemplateKind })
-                }
-              >
-                <option value="frontend">frontend</option>
-                <option value="contract">contract</option>
-              </select>
-            </div>
+            <SelectField
+              id="template-kind-form"
+              label="Kind"
+              value={form.kind}
+              onChange={(value) =>
+                setForm({ ...form, kind: value as TemplateKind })
+              }
+              options={["frontend", "contract"]}
+            />
             <Input
               label="Template ID"
               value={form.template_id}
@@ -938,29 +956,18 @@ export default function TemplateStudioPage() {
               onChange={(e) => setForm({ ...form, version: e.target.value })}
               placeholder="1.0.0"
             />
-            <div>
-              <label
-                htmlFor="template-source-form"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Source
-              </label>
-              <select
-                id="template-source-form"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                value={form.source_type}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    source_type: e.target.value as TemplateSourceType,
-                  })
-                }
-              >
-                <option value="community">community</option>
-                <option value="miniapp">miniapp</option>
-                <option value="verified">verified</option>
-              </select>
-            </div>
+            <SelectField
+              id="template-source-form"
+              label="Source"
+              value={form.source_type}
+              onChange={(value) =>
+                setForm({
+                  ...form,
+                  source_type: value as TemplateSourceType,
+                })
+              }
+              options={["community", "miniapp", "verified"]}
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -993,128 +1000,77 @@ export default function TemplateStudioPage() {
             placeholder="prediction, market, no-code"
           />
 
-          <div>
-            <label
-              htmlFor="template-description"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Description
-            </label>
-            <textarea
-              id="template-description"
-              className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              rows={3}
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-              placeholder="What this template is for and what is customizable."
-            />
-          </div>
+          <TextAreaField
+            id="template-description"
+            label="Description"
+            rows={3}
+            value={form.description}
+            onChange={(value) => setForm({ ...form, description: value })}
+            placeholder="What this template is for and what is customizable."
+          />
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label
-                htmlFor="param-schema"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Param Schema (JSON)
-              </label>
-              <textarea
-                id="param-schema"
-                className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                rows={8}
-                value={form.schema_text}
-                onChange={(e) =>
-                  setForm({ ...form, schema_text: e.target.value })
-                }
-                placeholder={`{
+            <TextAreaField
+              id="param-schema"
+              label="Param Schema (JSON)"
+              rows={8}
+              value={form.schema_text}
+              onChange={(value) => setForm({ ...form, schema_text: value })}
+              placeholder={`{
  "type": "object",
  "properties": {}
 }`}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="ui-schema"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                UI Schema (JSON)
-              </label>
-              <textarea
-                id="ui-schema"
-                className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                rows={8}
-                value={form.ui_schema_text}
-                onChange={(e) =>
-                  setForm({ ...form, ui_schema_text: e.target.value })
-                }
-                placeholder={`{
+              mono
+            />
+            <TextAreaField
+              id="ui-schema"
+              label="UI Schema (JSON)"
+              rows={8}
+              value={form.ui_schema_text}
+              onChange={(value) => setForm({ ...form, ui_schema_text: value })}
+              placeholder={`{
  "ui:order": []
 }`}
-              />
-            </div>
+              mono
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <div>
-              <label
-                htmlFor="manifest-format"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Manifest Format
-              </label>
-              <select
-                id="manifest-format"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                value={form.manifest_format}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    manifest_format: e.target.value as TemplateManifestFormat,
-                  })
-                }
-              >
-                <option value="json">json</option>
-                <option value="yaml">yaml</option>
-              </select>
-            </div>
+            <SelectField
+              id="manifest-format"
+              label="Manifest Format"
+              value={form.manifest_format}
+              onChange={(value) =>
+                setForm({
+                  ...form,
+                  manifest_format: value as TemplateManifestFormat,
+                })
+              }
+              options={["json", "yaml"]}
+            />
             <div className="md:col-span-3">
-              <label
-                htmlFor="template-manifest"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Template Manifest
-              </label>
-              <textarea
+              <TextAreaField
                 id="template-manifest"
-                className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                label="Template Manifest"
                 rows={12}
                 value={form.manifest_text}
-                onChange={(e) =>
-                  setForm({ ...form, manifest_text: e.target.value })
-                }
+                onChange={(value) => setForm({ ...form, manifest_text: value })}
                 placeholder={
                   form.manifest_format === "json"
                     ? '{\n "key": "value"\n}'
                     : "template:\n key: value"
                 }
+                mono
               />
             </div>
           </div>
 
           {formError ? (
-            <p className="text-sm text-danger-600 dark:text-danger-400">
-              {formError}
-            </p>
+            <InlineAlert tone="danger">{formError}</InlineAlert>
           ) : null}
-          {formInfo ? (
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              {formInfo}
-            </p>
-          ) : null}
+          {formInfo ? <InlineAlert tone="info">{formInfo}</InlineAlert> : null}
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button onClick={onSubmit} disabled={upsertMutation.isPending}>
               {upsertMutation.isPending ? "Saving..." : "Save Template"}
             </Button>
@@ -1134,3 +1090,250 @@ export default function TemplateStudioPage() {
     </div>
   );
 }
+
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  detail: string;
+  tone: "success" | "warning" | "danger" | "info" | "neutral";
+}) {
+  return (
+    <Card variant="default">
+      <CardContent className="flex min-h-36 flex-col justify-between gap-5 p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
+              {label}
+            </p>
+            <p className="mt-3 text-3xl font-black leading-none text-gray-950">
+              {value}
+            </p>
+          </div>
+          <div
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
+              summaryToneClasses[tone],
+            )}
+          >
+            <Icon className="h-5 w-5" aria-hidden="true" />
+          </div>
+        </div>
+        <p className="text-sm font-medium text-gray-600">{detail}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TemplateListItem({
+  item,
+  selected,
+  onSelect,
+}: {
+  item: TemplateCatalogItem;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "w-full rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50",
+        selected
+          ? "border-primary-300 bg-primary-50"
+          : "border-gray-200 bg-gray-50 hover:border-primary-300 hover:bg-white",
+      )}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-gray-950">
+            {item.name}
+          </p>
+          <p className="mt-1 text-xs font-medium text-gray-500">
+            <code>{item.template_id}</code> · v{item.version} · {item.category}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant={kindBadgeVariant(item.template_kind)}>
+            {item.template_kind}
+          </Badge>
+          <Badge variant={sourceBadgeVariant(item.source_type)}>
+            {item.source_type}
+          </Badge>
+          {item.is_verified ? <Badge variant="success">verified</Badge> : null}
+        </div>
+      </div>
+      <p className="mt-3 text-sm text-gray-600">
+        {item.description || "No description"}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium text-gray-500">
+        <span>usage {item.usage_count}</span>
+        <span>
+          rating {item.rating_avg ?? "-"} ({item.rating_count})
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function FieldLabel({
+  htmlFor,
+  children,
+}: {
+  htmlFor: string;
+  children: ReactNode;
+}) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="mb-1 block text-sm font-semibold text-gray-700"
+    >
+      {children}
+    </label>
+  );
+}
+
+function SelectField({
+  id,
+  label,
+  value,
+  onChange,
+  options,
+  compact = false,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "min-w-36" : undefined}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <select
+        id={id}
+        className={cn(
+          "w-full rounded-xl border border-gray-300 bg-white text-sm text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50",
+          compact ? "h-10 px-3" : "h-11 px-3",
+        )}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function TextAreaField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows,
+  mono = false,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows: number;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <textarea
+        id={id}
+        className={cn(
+          "w-full resize-y rounded-xl border border-gray-300 bg-white p-3 text-gray-900 transition-colors placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50",
+          mono ? "font-mono text-xs" : "text-sm",
+        )}
+        rows={rows}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="flex min-h-32 items-center justify-center">
+      <Spinner />
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm font-medium text-gray-500">
+      {message}
+    </p>
+  );
+}
+
+function AlertState({
+  label,
+  title,
+  message,
+}: {
+  label: string;
+  title: string;
+  message: string;
+}) {
+  return (
+    <div
+      aria-label={label}
+      className="rounded-xl border border-warning-200 bg-warning-50 px-4 py-3"
+      role="alert"
+    >
+      <p className="text-sm font-bold text-warning-800">{title}</p>
+      <p className="mt-1 text-sm text-warning-700">{message}</p>
+    </div>
+  );
+}
+
+function InlineAlert({
+  children,
+  tone,
+}: {
+  children: ReactNode;
+  tone: "danger" | "info";
+}) {
+  return (
+    <p
+      className={cn(
+        "rounded-xl border px-4 py-3 text-sm font-medium",
+        tone === "danger"
+          ? "border-danger-100 bg-danger-50 text-danger-700"
+          : "border-primary-100 bg-primary-50 text-primary-700",
+      )}
+    >
+      {children}
+    </p>
+  );
+}
+
+const summaryToneClasses = {
+  success: "border-success-100 bg-success-50 text-success-700",
+  warning: "border-warning-100 bg-warning-50 text-warning-700",
+  danger: "border-danger-100 bg-danger-50 text-danger-700",
+  info: "border-primary-100 bg-primary-50 text-primary-700",
+  neutral: "border-gray-200 bg-gray-100 text-gray-700",
+};

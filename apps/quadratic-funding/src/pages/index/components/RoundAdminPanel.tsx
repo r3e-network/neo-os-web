@@ -14,7 +14,7 @@ export default function RoundAdminPanel({ round, canManage, canFinalize, canClai
   const [matchedAmounts, setMatchedAmounts] = useState("");
 
   return (
-    <NeoCard title={t("adminTools")}>
+    <NeoCard title={t("adminTools")} className="qf-admin-panel">
       <NeoInput value={matchingAmount} type="number" label={t("addMatching")} onChange={setMatchingAmount} />
       <NeoButton size="sm" variant="secondary" loading={isAddingMatching} disabled={!canManage} onClick={() => onAddMatching(matchingAmount)}>{t("addMatching")}</NeoButton>
       <NeoInput value={projectIds} label={t("finalizeProjectsJson")} onChange={setProjectIds} />

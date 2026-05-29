@@ -1,10 +1,3 @@
-/**
- * PlayArea.tsx — Quadratic Funding
- *
- * Full interactive UI with tabs for Rounds, Projects, and Contributions.
- * Uses all state keys and actions from main.tsx setup().
- */
-
 import { useState } from "react";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -22,12 +15,28 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+function formatTokenAmount(value: unknown) {
+  if (value === null || value === undefined || value === "") return "0";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "0";
+  const raw = String(value);
+  if (raw.includes(".")) return raw;
+  try {
+    const amount = typeof value === "bigint" ? value : BigInt(raw);
+    if (amount < 100000000n) return amount.toString();
+    const padded = amount.toString().padStart(9, "0");
+    const whole = padded.slice(0, -8) || "0";
+    const fraction = padded.slice(-8).replace(/0+$/, "");
+    return fraction ? `${whole}.${fraction}` : whole;
+  } catch (_error) {
+    return raw;
+  }
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
-  // Round state
   const rounds = val<Array<Record<string, unknown>>>("rounds") ?? [];
-  const selectedRoundId = val<string>("selectedRoundId");
+  const selectedRoundId = val<string>("selectedRoundId") ?? "";
   const selectedRound = val<Record<string, unknown>>("selectedRound");
   const isRefreshingRounds = bool("isRefreshingRounds");
   const isAddingMatching = bool("isAddingMatching");
@@ -37,252 +46,291 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canFinalizeSelectedRound = bool("canFinalizeSelectedRound");
   const canClaimUnused = bool("canClaimUnused");
 
-  // Project state
   const projects = val<Array<Record<string, unknown>>>("projects") ?? [];
   const isRefreshingProjects = bool("isRefreshingProjects");
-  const claimingProjectId = str("claimingProjectId");
-
-  // Contribution state
-  const contributeForm = val<Record<string, unknown>>("contributeForm");
-
-  // Display state
   const activeTab = str("activeTab", "rounds");
   const matchingPoolDisplay = str("matchingPoolDisplay", t("notAvailable") || "N/A");
-  const selectedRoundDisplay = str("selectedRoundDisplay");
-  const roundCount = num("roundCount");
-  const projectCount = num("projectCount");
+  const selectedRoundDisplay = str("selectedRoundDisplay", t("notAvailable") || "N/A");
+  const roundCount = num("roundCount", rounds.length);
+  const projectCount = num("projectCount", projects.length);
+  const activeRoundCount = num("activeRoundCount", rounds.filter((r) => r.status === "active").length);
 
-  // Status
   const roundsStatus = val<Record<string, unknown>>("roundsStatus");
-  const projectsStatus = val<Record<string, unknown>>("projectsStatus");
-  const contributionStatus = val<Record<string, unknown>>("contributionStatus");
+  const statusMessage = roundsStatus ? String(roundsStatus.message ?? "") : "";
+  const statusType = roundsStatus ? String(roundsStatus.type ?? "") : "info";
 
-  // Local form state for project registration
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [projectLink, setProjectLink] = useState("");
-
-  // Local form state for contributions
   const [contributeProjectId, setContributeProjectId] = useState("");
   const [contributeAmount, setContributeAmount] = useState("");
+  const [contributionMemo, setContributionMemo] = useState("");
 
-  // Computed
-  const activeRounds = rounds.filter((r) => r.status === "active").length;
-  const roundProgressPct = rounds.length === 0 ? 0 : Math.round((activeRounds / rounds.length) * 100);
-
-  const roundStatusLabel = (round: Record<string, unknown>) =>
-    String(round.statusLabel ?? round.status ?? "");
-  const formatAmount = (v: unknown) => String(v ?? "0");
-  const formatSchedule = (v: unknown) => String(v ?? "");
+  const roundProgressPct =
+    roundCount === 0 ? 0 : Math.round((activeRoundCount / roundCount) * 100);
 
   const switchTab = (tab: string) => {
-    if (state.activeTab) state.activeTab.set(tab);
+    state.activeTab?.set(tab);
+    void dispatch("switchTab", tab);
   };
 
-  const statusMessage = roundsStatus
-    ? String((roundsStatus as Record<string, unknown>).message ?? "")
-    : "";
-  const statusType = roundsStatus
-    ? String((roundsStatus as Record<string, unknown>).type ?? "")
-    : "";
+  const selectRound = (round: Record<string, unknown>) => {
+    state.selectedRoundId?.set(String(round.id ?? ""));
+    void dispatch("selectRound", round);
+  };
+
+  const roundStatusLabel = (round: Record<string, unknown>) =>
+    String(round.statusLabel ?? round.status ?? t("roundStatusActive"));
+
+  const formatSchedule = (value: unknown) => {
+    if (typeof value === "string" && value.length > 0) return value;
+    if (typeof value === "number" && value > 0) {
+      return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(
+        new Date(value * 1000),
+      );
+    }
+    return t("dateUnknown");
+  };
 
   return (
     <div className="qf-play-area">
-      <FundingHero
-        t={t}
-        progressPct={roundProgressPct}
-        matchingPoolDisplay={matchingPoolDisplay}
-        projectCount={projects.length}
-      />
-
-      {/* Status Banner */}
-      {statusMessage && (
-        <div className={`status-banner status-${statusType}`}>
-          <span>{statusMessage}</span>
-        </div>
-      )}
-
-      {/* Tab Navigation */}
-      <div className="tab-bar">
-        <NeoButton
-          size="sm"
-          variant={activeTab === "rounds" ? "primary" : "secondary"}
-          onClick={() => switchTab("rounds")}
-        >
-          {t("tabRounds") || "Rounds"} ({rounds.length})
-        </NeoButton>
-        <NeoButton
-          size="sm"
-          variant={activeTab === "projects" ? "primary" : "secondary"}
-          onClick={() => switchTab("projects")}
-        >
-          {t("tabProjects") || "Projects"} ({projects.length})
-        </NeoButton>
-        <NeoButton
-          size="sm"
-          variant={activeTab === "contribute" ? "primary" : "secondary"}
-          onClick={() => switchTab("contribute")}
-        >
-          {t("tabContribute") || "Contribute"}
-        </NeoButton>
-      </div>
-
-      {/* Rounds Tab */}
-      {activeTab === "rounds" && (
-        <>
-          <RoundForm
-            onSubmit={(...args: unknown[]) => dispatch("createRound", ...args)}
+      <div className="qf-shell">
+        <div className="qf-main-column">
+          <FundingHero
             t={t}
-          />
-          <RoundList
-            rounds={rounds}
-            selectedRoundId={selectedRoundId ?? ""}
+            progressPct={roundProgressPct}
+            matchingPoolDisplay={matchingPoolDisplay}
+            projectCount={projectCount}
+            roundCount={roundCount}
+            activeRoundCount={activeRoundCount}
+            selectedRoundDisplay={selectedRoundDisplay}
             isRefreshing={isRefreshingRounds}
-            roundStatusLabel={roundStatusLabel}
-            formatAmount={formatAmount}
-            formatSchedule={formatSchedule}
-            formatAddress={formatAddress}
             onRefresh={() => dispatch("refreshRounds")}
-            onSelect={(round: Record<string, unknown>) => {
-              if (state.selectedRoundId) state.selectedRoundId.set(String(round.id ?? ""));
-            }}
-            t={t}
+            onContribute={() => switchTab("contribute")}
           />
-          {selectedRound && (
-            <RoundAdminPanel
-              round={selectedRound}
-              canManage={canManageSelectedRound}
-              canFinalize={canFinalizeSelectedRound}
-              canClaimUnused={canClaimUnused}
-              isAddingMatching={isAddingMatching}
-              isFinalizing={isFinalizing}
-              isClaimingUnused={isClaimingUnused}
-              onAddMatching={(...args: unknown[]) => dispatch("addMatching", ...args)}
-              onFinalize={(...args: unknown[]) => dispatch("finalize", ...args)}
-              onClaimUnused={() => dispatch("claimUnused")}
-              t={t}
-            />
-          )}
-        </>
-      )}
 
-      {/* Projects Tab */}
-      {activeTab === "projects" && (
-        <>
-          <NeoCard title={t("registerProject") || "Register Project"}>
-            <div className="field-stack">
-              <NeoInput
-                value={projectName}
-                label={t("projectName") || "Project Name"}
-                placeholder={t("projectNamePlaceholder") || "Enter project name"}
-                onChange={(v) => setProjectName(v)}
-              />
-              <NeoInput
-                value={projectDescription}
-                label={t("projectDescription") || "Description"}
-                placeholder={t("projectDescriptionPlaceholder") || "Describe your project"}
-                onChange={(v) => setProjectDescription(v)}
-              />
-              <NeoInput
-                value={projectLink}
-                label={t("projectLink") || "Link"}
-                placeholder={t("projectLinkPlaceholder") || "https://..."}
-                onChange={(v) => setProjectLink(v)}
-              />
-              <NeoButton
-                variant="primary"
-                onClick={() =>
-                  dispatch("registerProject", {
-                    name: projectName,
-                    description: projectDescription,
-                    link: projectLink,
-                  })
-                }
-              >
-                {t("registerProject") || "Register Project"}
-              </NeoButton>
+          {statusMessage && (
+            <div className={`qf-status-banner qf-status-${statusType}`}>
+              <span>{statusMessage}</span>
             </div>
-          </NeoCard>
+          )}
 
-          <NeoCard title={t("projectsList") || "Projects"}>
-            {isRefreshingProjects && (
-              <div className="loading-indicator">
-                <div className="loading-spinner" />
-                <span>{t("loading") || "Loading..."}</span>
-              </div>
-            )}
-            {projects.length === 0 && !isRefreshingProjects ? (
-              <span className="empty-text">{t("emptyProjects") || "No projects registered yet."}</span>
-            ) : (
-              <div className="project-list">
-                {projects.map((project) => (
-                  <div key={String(project.id)} className="project-card">
-                    <div className="project-header">
-                      <span className="project-name">{String(project.name || `#${project.id}`)}</span>
-                      <span className={`status-pill ${project.active ? "active" : "inactive"}`}>
-                        {project.active ? (t("active") || "Active") : (t("inactive") || "Inactive")}
-                      </span>
-                    </div>
-                    <span className="project-desc">{String(project.description || "")}</span>
-                    <div className="project-stats">
-                      <span>{t("totalContributed") || "Contributed"}: {formatAmount(project.totalContributed)}</span>
-                      <span>{t("contributors") || "Contributors"}: {String(project.contributorCount ?? 0)}</span>
-                      <span>{t("matched") || "Matched"}: {formatAmount(project.matchedAmount)}</span>
-                    </div>
-                    {project.link && (
-                      <span className="project-link">{String(project.link)}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </NeoCard>
-        </>
-      )}
-
-      {/* Contribute Tab */}
-      {activeTab === "contribute" && (
-        <NeoCard title={t("quickContribute") || "Contribute"}>
-          <div className="field-stack">
-            {selectedRound ? (
-              <div className="selected-round-info">
-                <span className="info-label">{t("sidebarSelectedRound") || "Selected Round"}</span>
-                <span className="info-value">
-                  {String(selectedRound.title || `#${selectedRound.id}`)}
-                </span>
-              </div>
-            ) : (
-              <div className="empty-state-text">
-                <span>{t("selectRoundFirst") || "Please select a round from the Rounds tab first."}</span>
-              </div>
-            )}
-            <NeoInput
-              value={contributeProjectId}
-              label={t("projectId") || "Project ID"}
-              placeholder={t("projectIdPlaceholder") || "Enter project ID"}
-              onChange={(v) => setContributeProjectId(v)}
-            />
-            <NeoInput
-              value={contributeAmount}
-              label={t("contributionAmount") || "Amount"}
-              placeholder={t("contributionAmountPlaceholder") || "0.0"}
-              onChange={(v) => setContributeAmount(v)}
-            />
-            <NeoButton
-              variant="primary"
-              disabled={!selectedRound}
-              onClick={() =>
-                dispatch("contribute", {
-                  projectId: contributeProjectId,
-                  amount: contributeAmount,
-                })
-              }
-            >
-              {t("contribute") || "Contribute"}
-            </NeoButton>
+          <div className="qf-wallet-strip" aria-label={t("qfWalletSummary")}>
+            <div className="qf-wallet-item">
+              <span className="qf-wallet-label">{t("tabRounds")}</span>
+              <strong>{roundCount}</strong>
+            </div>
+            <div className="qf-wallet-item">
+              <span className="qf-wallet-label">{t("qfLiveRound")}</span>
+              <strong>{activeRoundCount}</strong>
+            </div>
+            <div className="qf-wallet-item">
+              <span className="qf-wallet-label">{t("sidebarMatchingPool")}</span>
+              <strong>{matchingPoolDisplay}</strong>
+            </div>
+            <div className="qf-wallet-item">
+              <span className="qf-wallet-label">{t("tabProjects")}</span>
+              <strong>{projectCount}</strong>
+            </div>
           </div>
-        </NeoCard>
-      )}
+
+          <div className="qf-action-tabs" role="tablist" aria-label={t("qfTabsLabel")}>
+            {["rounds", "projects", "contribute"].map((tab) => (
+              <NeoButton
+                key={tab}
+                size="sm"
+                variant={activeTab === tab ? "primary" : "secondary"}
+                onClick={() => switchTab(tab)}
+              >
+                {tab === "rounds" && `${t("tabRounds")} (${roundCount})`}
+                {tab === "projects" && `${t("tabProjects")} (${projectCount})`}
+                {tab === "contribute" && t("tabContribute")}
+              </NeoButton>
+            ))}
+          </div>
+
+          {activeTab === "rounds" && (
+            <div className="qf-content-grid">
+              <RoundForm onSubmit={(...args: unknown[]) => dispatch("createRound", ...args)} t={t} />
+              <div className="qf-side-stack">
+                <RoundList
+                  rounds={rounds}
+                  selectedRoundId={selectedRoundId}
+                  isRefreshing={isRefreshingRounds}
+                  roundStatusLabel={roundStatusLabel}
+                  formatAmount={formatTokenAmount}
+                  formatSchedule={formatSchedule}
+                  formatAddress={formatAddress}
+                  onRefresh={() => dispatch("refreshRounds")}
+                  onSelect={selectRound}
+                  t={t}
+                />
+                {selectedRound && (
+                  <RoundAdminPanel
+                    round={selectedRound}
+                    canManage={canManageSelectedRound}
+                    canFinalize={canFinalizeSelectedRound}
+                    canClaimUnused={canClaimUnused}
+                    isAddingMatching={isAddingMatching}
+                    isFinalizing={isFinalizing}
+                    isClaimingUnused={isClaimingUnused}
+                    onAddMatching={(...args: unknown[]) => dispatch("addMatching", ...args)}
+                    onFinalize={(...args: unknown[]) => dispatch("finalize", ...args)}
+                    onClaimUnused={() => dispatch("claimUnused")}
+                    t={t}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "projects" && (
+            <div className="qf-content-grid">
+              <NeoCard title={t("registerProject")} className="qf-form-panel">
+                <div className="qf-form-grid">
+                  <NeoInput
+                    value={projectName}
+                    label={t("projectName")}
+                    placeholder={t("projectNamePlaceholder")}
+                    onChange={setProjectName}
+                  />
+                  <NeoInput
+                    value={projectDescription}
+                    label={t("projectDescription")}
+                    placeholder={t("projectDescriptionPlaceholder")}
+                    onChange={setProjectDescription}
+                  />
+                  <NeoInput
+                    value={projectLink}
+                    label={t("projectLink")}
+                    placeholder={t("projectLinkPlaceholder")}
+                    onChange={setProjectLink}
+                  />
+                </div>
+                <div className="qf-panel-footer">
+                  <span>{selectedRound ? selectedRoundDisplay : t("qfSelectRoundBeforeProject")}</span>
+                  <NeoButton
+                    variant="primary"
+                    onClick={() =>
+                      dispatch("registerProject", {
+                        name: projectName,
+                        description: projectDescription,
+                        link: projectLink,
+                      })
+                    }
+                  >
+                    {t("registerProject")}
+                  </NeoButton>
+                </div>
+              </NeoCard>
+
+              <NeoCard title={t("projectsList") || t("tabProjects")} className="qf-project-panel">
+                {isRefreshingProjects && (
+                  <div className="qf-loading-row">{t("loading") || "Loading..."}</div>
+                )}
+                {projects.length === 0 && !isRefreshingProjects ? (
+                  <div className="qf-empty-ledger">
+                    <strong>{t("qfNoProjectsTitle")}</strong>
+                    <span>{t("qfNoProjectsBody")}</span>
+                  </div>
+                ) : (
+                  <div className="qf-project-grid">
+                    {projects.map((project) => (
+                      <div key={String(project.id)} className="qf-project-card">
+                        <div className="qf-project-header">
+                          <strong>{String(project.name || `#${project.id}`)}</strong>
+                          <span className={`qf-status-pill ${project.active ? "active" : "inactive"}`}>
+                            {project.active ? t("projectStatusActive") : t("projectStatusInactive")}
+                          </span>
+                        </div>
+                        <span>{String(project.description || t("projectDescriptionPlaceholder"))}</span>
+                        <div className="qf-project-stats">
+                          <span>{t("totalContributed")}: {formatTokenAmount(project.totalContributed)}</span>
+                          <span>{t("donors")}: {String(project.contributorCount ?? 0)}</span>
+                          <span>{t("matchedAmount")}: {formatTokenAmount(project.matchedAmount)}</span>
+                        </div>
+                        {project.link && <span className="qf-project-link">{String(project.link)}</span>}
+                        <NeoButton
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            setContributeProjectId(String(project.id ?? ""));
+                            switchTab("contribute");
+                          }}
+                        >
+                          {t("contributeNow")}
+                        </NeoButton>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </NeoCard>
+            </div>
+          )}
+
+          {activeTab === "contribute" && (
+            <NeoCard title={t("quickContribute")} className="qf-contribute-panel">
+              <div className="qf-contribute-summary">
+                <span>{t("sidebarSelectedRound")}</span>
+                <strong>{selectedRound ? selectedRoundDisplay : t("qfNoRoundTitle")}</strong>
+              </div>
+              <div className="qf-form-grid">
+                <NeoInput
+                  value={contributeProjectId}
+                  label={t("contributionProjectId")}
+                  placeholder={t("selectProjectHint")}
+                  onChange={setContributeProjectId}
+                />
+                <NeoInput
+                  value={contributeAmount}
+                  label={t("contributionAmount")}
+                  placeholder={t("contributionAmountPlaceholder")}
+                  onChange={setContributeAmount}
+                />
+                <NeoInput
+                  value={contributionMemo}
+                  label={t("contributionMemo")}
+                  placeholder={t("contributionMemoPlaceholder")}
+                  onChange={setContributionMemo}
+                />
+              </div>
+              <div className="qf-panel-footer">
+                <span>{selectedRound ? t("qfContributionHint") : t("selectRoundFirst")}</span>
+                <NeoButton
+                  variant="primary"
+                  disabled={!selectedRound}
+                  onClick={() =>
+                    dispatch("contribute", {
+                      projectId: contributeProjectId,
+                      amount: contributeAmount,
+                      memo: contributionMemo,
+                    })
+                  }
+                >
+                  {t("contribute")}
+                </NeoButton>
+              </div>
+            </NeoCard>
+          )}
+        </div>
+
+        <aside className="qf-side-column" aria-label={t("qfTrustTitle")}>
+          <div className="qf-impact-strip">
+            <div>
+              <strong>{t("qfTrustItemOne")}</strong>
+              <span>{t("step1")}</span>
+            </div>
+            <div>
+              <strong>{t("qfTrustItemTwo")}</strong>
+              <span>{t("step3")}</span>
+            </div>
+            <div>
+              <strong>{t("qfTrustItemThree")}</strong>
+              <span>{t("step4")}</span>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

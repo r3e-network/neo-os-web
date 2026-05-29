@@ -1,9 +1,17 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    // App translations
-title: { en: "Gov Merc", zh: "治理雇佣兵" },
+  // App translations
+  title: { en: "Gov Merc", zh: "治理雇佣兵" },
   subtitle: { en: "Bid for governance influence", zh: "竞价治理影响力" },
+  govHeroTitle: { en: "Governance Influence Market", zh: "治理影响力市场" },
+  govHeroSubtitle: {
+    en: "Pool NEO voting weight, compete with GAS bids, and route each epoch through a transparent market workflow.",
+    zh: "汇聚 NEO 投票权、用 GAS 竞价，并通过透明市场流程分配每个周期的治理影响力。",
+  },
+  marketSignalTitle: { en: "Neo N3 governance desk", zh: "Neo N3 治理台" },
+  marketReady: { en: "Ready", zh: "就绪" },
+  walletStatusIdle: { en: "Wallet not connected", zh: "钱包未连接" },
   rent: { en: "Pool", zh: "池子" },
   market: { en: "Bids", zh: "竞价" },
   poolStats: { en: "Pool Stats", zh: "池子统计" },
@@ -16,8 +24,50 @@ title: { en: "Gov Merc", zh: "治理雇佣兵" },
   withdrawAmount: { en: "Withdraw amount", zh: "提取金额" },
   placeBid: { en: "Place Bid", zh: "提交竞价" },
   bidAmount: { en: "Bid amount", zh: "竞价金额" },
+  actionDepositHint: {
+    en: "Add NEO voting power to the shared pool for future epochs.",
+    zh: "向共享池增加 NEO 投票权，用于后续周期。",
+  },
+  actionWithdrawHint: {
+    en: "Release unused pool deposits when you no longer want exposure.",
+    zh: "不再参与时，可释放未使用的池内存款。",
+  },
+  actionBidHint: {
+    en: "Commit GAS to compete for the right to steer the epoch.",
+    zh: "投入 GAS 竞价，争取本周期的治理指向权。",
+  },
   bidLeaderboard: { en: "Bid Leaderboard", zh: "竞价榜" },
   noBids: { en: "No bids yet", zh: "暂无竞价" },
+  emptyBidTitle: { en: "No active bids yet", zh: "暂无活跃竞价" },
+  emptyBidCopy: {
+    en: "The first valid GAS bid becomes the market signal for this epoch.",
+    zh: "第一笔有效 GAS 竞价会成为本周期的市场信号。",
+  },
+  flowTitle: { en: "Epoch flow", zh: "周期流程" },
+  flowDeposit: { en: "Pool voting weight", zh: "汇聚投票权" },
+  flowDepositCopy: {
+    en: "Depositors contribute NEO influence while their position remains tracked.",
+    zh: "存入者贡献 NEO 影响力，同时保留可追踪仓位。",
+  },
+  flowBid: { en: "Run GAS auction", zh: "运行 GAS 竞价" },
+  flowBidCopy: {
+    en: "Bidders compete for the active epoch with transparent amounts.",
+    zh: "竞价者用透明金额争夺当前周期。",
+  },
+  flowInfluence: { en: "Route governance", zh: "路由治理权" },
+  flowInfluenceCopy: {
+    en: "Winning bid directs the pooled influence for that epoch.",
+    zh: "获胜竞价决定该周期池子的治理指向。",
+  },
+  riskNoteTitle: { en: "Operator readiness", zh: "操作就绪度" },
+  riskNoteCopy: {
+    en: "Deposits, withdrawals, and bids are routed through OS service proxies. Review the epoch and amount before submitting.",
+    zh: "存入、提取与竞价均通过 OS 服务代理路由；提交前请确认周期和金额。",
+  },
+  settlementWindow: { en: "Settlement window", zh: "结算窗口" },
+  epochSettlement: { en: "Per epoch", zh: "按周期" },
+  executionPath: { en: "Execution path", zh: "执行路径" },
+  executionPathCopy: { en: "OS proxy guarded", zh: "OS 代理保护" },
   tabStats: { en: "Stats", zh: "统计" },
   depositSuccess: { en: "Deposit submitted", zh: "存入已提交" },
   withdrawSuccess: { en: "Withdrawal submitted", zh: "提取已提交" },
@@ -65,7 +115,7 @@ title: { en: "Gov Merc", zh: "治理雇佣兵" },
     en: "Bids, deposits, and epoch status are transparent.",
     zh: "竞价、存入与周期状态全程透明。",
   },
-    activeBids: { en: "Active Bids", zh: "活跃竞价" },
+  activeBids: { en: "Active Bids", zh: "活跃竞价" },
   tokenNeo: { en: "NEO", zh: "NEO" },
 } as const;
 

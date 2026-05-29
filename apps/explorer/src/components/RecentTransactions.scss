@@ -1,38 +1,137 @@
-@use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss" as *;
-@use "@shared/styles/mixins.scss" as *;
-
-.recent-section { display: flex; flex-direction: column; gap: 8px; }
-
-.section-title {
-  @include stat-label;
-  color: var(--matrix-success, rgba(0, 229, 153, 1));
-  margin-bottom: 12px;
-  display: block;
-  text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
+.recent-section {
+  display: grid;
+  gap: 10px;
 }
 
-.tx-card { cursor: pointer; margin-bottom: 4px; }
-.tx-content { display: flex; justify-content: space-between; align-items: center; width: 100%; }
-.tx-info { display: flex; align-items: center; gap: 8px; }
-.tx-hash { font-family: $font-mono; font-size: 13px; font-weight: 600; color: var(--text-primary); }
-.tx-time { font-size: 11px; color: var(--text-secondary, rgba(255, 255, 255, 0.5)); font-weight: 500; }
+.section-title {
+  display: block;
+  margin-bottom: 2px;
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.recent-empty-state {
+  min-width: 0;
+}
+
+.recent-empty-state .neo-card__content {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(260px, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.recent-empty-state .neo-card__content > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.recent-empty-state span {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.recent-empty-state strong {
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.recent-empty-state ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recent-empty-state li {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #111827;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.tx-card {
+  cursor: pointer;
+}
+
+.tx-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.tx-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tx-hash {
+  min-width: 0;
+  overflow: hidden;
+  color: #111827;
+  font-family: "SF Mono", "Fira Code", "Roboto Mono", monospace;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tx-time {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
 
 .vm-state {
   padding: 4px 10px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  border-radius: 100px;
+  border: 1px solid #dbe4ef;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.68rem;
+  font-weight: 850;
+}
 
-  &.HALT {
-    background: rgba(0, 229, 153, 0.1);
-    color: var(--matrix-success, #00e599);
-    border: 1px solid rgba(0, 229, 153, 0.2);
+.vm-state.HALT {
+  border-color: rgba(16, 185, 129, 0.26);
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.vm-state.FAULT {
+  border-color: rgba(239, 68, 68, 0.22);
+  background: #fff1f2;
+  color: #be123c;
+}
+
+@media (max-width: 760px) {
+  .recent-empty-state .neo-card__content,
+  .recent-empty-state ul {
+    grid-template-columns: 1fr;
   }
-  &.FAULT {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--matrix-error, #ef4444);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+
+  .tx-content {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

@@ -9,7 +9,10 @@ import { createObservable } from "@shared/react/context";
 import type { ChainService } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
-import { getExternalIntegrationConfig } from "@shared/constants/rpc";
+import {
+  getExternalIntegrationConfig,
+  getNetwork,
+} from "@shared/constants/rpc";
 
 export interface UseAAPermissionsLabOptions {
   chain: ChainService;
@@ -18,7 +21,8 @@ export interface UseAAPermissionsLabOptions {
 }
 
 export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissionsLabOptions) {
-  const aaCore = getExternalIntegrationConfig("testnet").contracts.aaCore;
+  const network = getNetwork();
+  const aaCore = getExternalIntegrationConfig(network).contracts.aaCore;
 
   const form = {
     accountIdHash: "",

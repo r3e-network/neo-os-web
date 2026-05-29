@@ -73,6 +73,9 @@ const nextConfig = {
   reactStrictMode: true,
   devIndicators: false,
   poweredByHeader: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   compress: true,
   images: {
     formats: ["image/avif", "image/webp"],

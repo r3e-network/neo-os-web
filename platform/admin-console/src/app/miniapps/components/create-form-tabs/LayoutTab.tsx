@@ -41,10 +41,10 @@ export function LayoutTab({
   return (
     <div className="space-y-6">
       <div>
-        <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div className="block text-sm font-medium text-gray-700 mb-2">
           Hero
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input
             label="Eyebrow"
             placeholder="e.g. Prediction Market"
@@ -66,7 +66,7 @@ export function LayoutTab({
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="text-sm font-medium text-gray-700">
             Tabs
           </div>
           <button
@@ -84,7 +84,7 @@ export function LayoutTab({
                 ],
               })
             }
-            className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md"
+            className="cursor-pointer rounded-lg text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           >
             + Add Tab
           </button>
@@ -92,9 +92,9 @@ export function LayoutTab({
         {dtTabs.map((t, i) => (
           <div
             key={i}
-            className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2"
+            className="mb-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3"
           >
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-wrap items-center gap-2">
               <Input
                 id={`tab-id-${i}`}
                 placeholder="ID"
@@ -119,7 +119,7 @@ export function LayoutTab({
               />
               <select
                 id={`tab-type-${i}`}
-                className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer dark:bg-gray-800 dark:text-gray-100 w-32 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                className="w-32 shrink-0 cursor-pointer rounded-xl border border-gray-300 bg-white p-1.5 text-xs text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
                 value={t.type}
                 onChange={(e) => {
                   const next = [...dtTabs];
@@ -139,7 +139,7 @@ export function LayoutTab({
                 onClick={() =>
                   updateDT({ tabs: dtTabs.filter((_, idx) => idx !== i) })
                 }
-                className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+                className="shrink-0 cursor-pointer rounded-lg px-2 text-xs text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
               >
                 Remove
               </button>
@@ -157,17 +157,17 @@ export function LayoutTab({
           </div>
         ))}
         {!dtTabs.length && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             No tabs added
           </p>
         )}
       </div>
 
       <div>
-        <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div className="block text-sm font-medium text-gray-700 mb-2">
           Operation Panel
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input
             label="Title"
             placeholder="Operations"
@@ -200,20 +200,20 @@ export function LayoutTab({
       </div>
 
       <div>
-        <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div className="block text-sm font-medium text-gray-700 mb-2">
           Frontend Spec (Optional)
         </div>
-        <div className="grid grid-cols-4 gap-4 mb-2">
+        <div className="mb-2 grid grid-cols-1 gap-4 md:grid-cols-4">
           <div>
             <label
               htmlFor="frontend-spec-format"
-              className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+              className="block text-xs text-gray-500 mb-1"
             >
               Format
             </label>
             <select
               id="frontend-spec-format"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+              className="w-full cursor-pointer rounded-xl border border-gray-300 bg-white p-2 text-sm text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               value={form.frontend_spec_format}
               onChange={(e) =>
                 update(
@@ -227,13 +227,13 @@ export function LayoutTab({
               <option value="json">json</option>
             </select>
           </div>
-          <div className="col-span-3">
-            <div className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+          <div className="md:col-span-3">
+            <div className="block text-xs text-gray-500 mb-1">
               Spec Content
             </div>
             <textarea
               id="frontend-spec-content"
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+              className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={6}
               placeholder={
                 form.frontend_spec_format === "markdown"
@@ -248,7 +248,7 @@ export function LayoutTab({
             />
           </div>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-500">
           Supports `markdown`, `yaml`, or `json`. Host app will render
           tabs/operation panel from this definition.
         </p>
@@ -258,13 +258,13 @@ export function LayoutTab({
         <div>
           <label
             htmlFor="logic-json"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-gray-700 mb-1"
           >
             Logic JSON (Optional)
           </label>
           <textarea
             id="logic-json"
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={6}
             value={form.logic_json}
             onChange={(e) => update("logic_json", e.target.value)}
@@ -274,13 +274,13 @@ export function LayoutTab({
         <div>
           <label
             htmlFor="marketplace-json"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-gray-700 mb-1"
           >
             Marketplace JSON (Optional)
           </label>
           <textarea
             id="marketplace-json"
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={6}
             value={form.marketplace_json}
             onChange={(e) => update("marketplace_json", e.target.value)}

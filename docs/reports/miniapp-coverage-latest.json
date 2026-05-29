@@ -1,14 +1,23 @@
 {
-  "generated_at": "2026-05-08T18:46:21.294Z",
+  "generated_at": "2026-05-26T01:50:01.429Z",
   "testnet_rpc": "https://api.n3index.dev/testnet",
   "mainnet_rpc": "https://api.n3index.dev/mainnet",
+  "testnet_rpc_candidates": [
+    "https://api.n3index.dev/testnet",
+    "https://testnet1.neo.coz.io:443"
+  ],
+  "mainnet_rpc_candidates": [
+    "https://api.n3index.dev/mainnet",
+    "https://mainnet2.neo.coz.io:443",
+    "https://mainnet1.neo.coz.io:443"
+  ],
   "testnet_network_magic": 894710606,
   "mainnet_network_magic": 860833102,
   "summary": {
-    "testnet+mainnet": 35,
-    "frontend-only": 24,
-    "mainnet-only-testnet-deferred": 1
+    "testnet+mainnet": 36,
+    "frontend-only": 24
   },
+  "rpc_unknown": [],
   "action_required": [],
   "rows": [
     {
@@ -19,14 +28,17 @@
       "stateless": true,
       "testnet_hash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
       "testnet_exists": true,
-      "testnet_name": "UnifiedSmartWalletV3Testnet",
+      "testnet_name": "UnifiedSmartWalletV3",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x0268a387913b250166ddec032b03332690a1ef78",
       "mainnet_exists": true,
       "mainnet_name": "UnifiedSmartWalletV3",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "aa-market-hub",
@@ -37,13 +49,16 @@
       "testnet_hash": "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf",
       "testnet_exists": true,
       "testnet_name": "AAAddressMarket-market-mneku8bc-market",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69",
       "mainnet_exists": true,
       "mainnet_name": "AAAddressMarket",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "aa-permissions-lab",
@@ -53,14 +68,17 @@
       "stateless": true,
       "testnet_hash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
       "testnet_exists": true,
-      "testnet_name": "UnifiedSmartWalletV3Testnet",
+      "testnet_name": "UnifiedSmartWalletV3",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x0268a387913b250166ddec032b03332690a1ef78",
       "mainnet_exists": true,
       "mainnet_name": "UnifiedSmartWalletV3",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "aa-relay-console",
@@ -70,14 +88,17 @@
       "stateless": true,
       "testnet_hash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
       "testnet_exists": true,
-      "testnet_name": "UnifiedSmartWalletV3Testnet",
+      "testnet_name": "UnifiedSmartWalletV3",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x0268a387913b250166ddec032b03332690a1ef78",
       "mainnet_exists": true,
       "mainnet_name": "UnifiedSmartWalletV3",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "aa-session-key-lab",
@@ -88,13 +109,16 @@
       "testnet_hash": "0xed44c88535650b4dd6b8d59776e6ed045462cab6",
       "testnet_exists": true,
       "testnet_name": "SessionKeyVerifier-1773393653613-session",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x3ba8333406e59f9fd83cf378b33706a33d9f3755",
       "mainnet_exists": true,
       "mainnet_name": "SessionKeyVerifier",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "asset-factory",
@@ -105,13 +129,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "automation-copilot",
@@ -122,13 +149,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "breakup-contract",
@@ -139,13 +169,16 @@
       "testnet_hash": "0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8",
       "testnet_exists": true,
       "testnet_name": "MiniAppBreakupContract",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x7742a80565ef04c0b7487d1679e6efbeb2d0c6a9",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppBreakupContract",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "burn-league",
@@ -156,13 +189,16 @@
       "testnet_hash": "0x0946e3c3db8abdd2fa14bbae4978992015473c09",
       "testnet_exists": true,
       "testnet_name": "MiniAppBurnLeague",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xd829b7a8c0d9fa3c67a29c703a277de3f922f173",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppBurnLeague",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "council-governance",
@@ -173,13 +209,16 @@
       "testnet_hash": "0x4c61e5575ae9e151027f6724d07fac127d4cc25f",
       "testnet_exists": true,
       "testnet_name": "MiniAppCouncilGovernance",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xc7e50e67589df63302cbea1a6b00beb649ee74d8",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppCouncilGovernance",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "custom-anchor",
@@ -190,13 +229,16 @@
       "testnet_hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
       "testnet_exists": true,
       "testnet_name": "PlatformAnchor",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "mainnet_exists": true,
       "mainnet_name": "PlatformAnchor",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "daily-checkin",
@@ -207,13 +249,16 @@
       "testnet_hash": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
       "testnet_exists": true,
       "testnet_name": "MiniAppDailyCheckIn",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppDailyCheckIn",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "dev-tipping",
@@ -224,13 +269,16 @@
       "testnet_hash": "0x389aa2c619f0cfed5b495dd8638107d20f37e086",
       "testnet_exists": true,
       "testnet_name": "MiniAppDevTipping",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x1d476b067a180bc54ee4f90c91489ffa123759a4",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppDevTipping",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "dice-game",
@@ -241,13 +289,16 @@
       "testnet_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
       "testnet_exists": true,
       "testnet_name": "PlatformGame",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       "mainnet_exists": true,
       "mainnet_name": "PlatformGame",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "event-ticket-pass",
@@ -258,13 +309,16 @@
       "testnet_hash": "0x90bad472146aab97de71498e8d736c3124e7c82b",
       "testnet_exists": true,
       "testnet_name": "MiniAppEventTicketPass",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x90bad472146aab97de71498e8d736c3124e7c82b",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppEventTicketPass",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with create/issue/check-in.",
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "explorer",
@@ -275,13 +329,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "flashloan",
@@ -292,13 +349,16 @@
       "testnet_hash": "0xde8e595d8d3c293731db499367ee2a768e1e458b",
       "testnet_exists": true,
       "testnet_name": "MiniAppFlashLoan",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xb5d8fb0dc2319edc4be3104304b4136b925df6e4",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppFlashLoan",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "fogplay",
@@ -308,14 +368,17 @@
       "stateless": true,
       "testnet_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
       "testnet_exists": true,
-      "testnet_name": "MiniAppFogPlay",
+      "testnet_name": "PlatformGame",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       "mainnet_exists": true,
       "mainnet_name": "PlatformGame",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "forever-album",
@@ -326,13 +389,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "gas-lucky-pool",
@@ -343,13 +409,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "gas-sponsor",
@@ -360,13 +429,16 @@
       "testnet_hash": "0x31888679572bf2de61462ff9934b6265d60284f2",
       "testnet_exists": true,
       "testnet_name": "MiniAppGasSponsor",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x80ea8435a88334b9b80077220097d88c440615f1",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppGasSponsor",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "gasbox",
@@ -376,14 +448,17 @@
       "stateless": true,
       "testnet_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
       "testnet_exists": true,
-      "testnet_name": "MiniAppGASBox",
+      "testnet_name": "PlatformGame",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       "mainnet_exists": true,
       "mainnet_name": "PlatformGame",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "gov-merc",
@@ -394,13 +469,16 @@
       "testnet_hash": "0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62",
       "testnet_exists": true,
       "testnet_name": "MiniAppGovMerc",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppGovMerc",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "graveyard",
@@ -411,13 +489,16 @@
       "testnet_hash": "0xb55aa635b10a5abb5cbac169db26a38df739778e",
       "testnet_exists": true,
       "testnet_name": "MiniAppGraveyard",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppGraveyard",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "last-survivor",
@@ -428,13 +509,16 @@
       "testnet_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
       "testnet_exists": true,
       "testnet_name": "PlatformGame",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       "mainnet_exists": true,
       "mainnet_name": "PlatformGame",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "memorial-shrine",
@@ -445,13 +529,16 @@
       "testnet_hash": "0x87f0fe2ba69cd973a3274471234d3cc13ef943c5",
       "testnet_exists": true,
       "testnet_name": "MiniAppMemorialShrine",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xee7a548b71c69364fcb0e45a63a40f141b938e42",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppMemorialShrine",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "milestone-escrow",
@@ -462,13 +549,16 @@
       "testnet_hash": "0x442162de25008ac78d4cce62ed8d8a64401b7ece",
       "testnet_exists": true,
       "testnet_name": "MiniAppMilestoneEscrow",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x442162de25008ac78d4cce62ed8d8a64401b7ece",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppMilestoneEscrow",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with fund/create/approve/claim.",
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "miniapp-factory",
@@ -479,13 +569,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neo-convert",
@@ -496,13 +589,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neo-multisig",
@@ -513,13 +609,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neo-ns",
@@ -530,13 +629,16 @@
       "testnet_hash": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
       "testnet_exists": true,
       "testnet_name": "NameService",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
       "mainnet_exists": true,
       "mainnet_name": "NameService",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neo-pay",
@@ -547,13 +649,16 @@
       "testnet_hash": "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
       "testnet_exists": true,
       "testnet_name": "MiniAppNeoPay",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppNeoPay",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neo-pay-shared-example",
@@ -564,13 +669,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neo-sign-anything",
@@ -581,13 +689,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neo-swap",
@@ -598,13 +709,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neo-treasury",
@@ -615,13 +729,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neo-x-bridge",
@@ -632,13 +749,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "neodid-passport",
@@ -649,13 +769,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "nft-factory",
@@ -666,13 +789,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "on-chain-tarot",
@@ -683,13 +809,16 @@
       "testnet_hash": "0x5cdf29c30727ce06696736ae0fb49abd9fd79730",
       "testnet_exists": true,
       "testnet_name": "MiniAppOnChainTarot",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xfb5d6b25c974a301e34c570dd038de8c25f3ae56",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppOnChainTarot",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "oracle-compute-lab",
@@ -700,13 +829,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "oracle-http-console",
@@ -717,13 +849,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "oracle-neodid-console",
@@ -734,13 +869,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "oracle-price-console",
@@ -751,13 +889,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "oracle-seal-console",
@@ -768,13 +909,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "oracle-vrf-console",
@@ -785,13 +929,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "private-transfer",
@@ -802,13 +949,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "profitanchor",
@@ -819,13 +969,16 @@
       "testnet_hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
       "testnet_exists": true,
       "testnet_name": "PlatformAnchor",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "mainnet_exists": true,
       "mainnet_name": "PlatformAnchor",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "profitanchor-admin",
@@ -836,13 +989,16 @@
       "testnet_hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
       "testnet_exists": true,
       "testnet_name": "PlatformAnchor",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "mainnet_exists": true,
       "mainnet_name": "PlatformAnchor",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "quadratic-funding",
@@ -853,30 +1009,36 @@
       "testnet_hash": "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43",
       "testnet_exists": true,
       "testnet_name": "MiniAppQuadraticFunding",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppQuadraticFunding",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with round/project/contribute/finalize/claim.",
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "recovery-guardian",
       "app_id": "miniapp-recovery-guardian",
-      "classification": "mainnet-only-testnet-deferred",
+      "classification": "testnet+mainnet",
       "source_present": true,
       "stateless": true,
-      "testnet_hash": null,
-      "testnet_exists": false,
-      "testnet_name": null,
+      "testnet_hash": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
+      "testnet_exists": true,
+      "testnet_name": "SocialRecoveryVerifier",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
       "mainnet_exists": true,
       "mainnet_name": "SocialRecoveryVerifier",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "red-envelope",
@@ -887,13 +1049,16 @@
       "testnet_hash": "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
       "testnet_exists": true,
       "testnet_name": "MiniAppRedEnvelope",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppRedEnvelope",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "self-loan",
@@ -904,13 +1069,16 @@
       "testnet_hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
       "testnet_exists": true,
       "testnet_name": "PlatformDeFi",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x942da575b31f39cbb59e64b5813b128739b44c25",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppSelfLoan",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "soulbound-certificate",
@@ -921,13 +1089,16 @@
       "testnet_hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
       "testnet_exists": true,
       "testnet_name": "MiniAppSoulboundCertificate",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppSoulboundCertificate",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with template/issue/revoke.",
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "time-capsule",
@@ -938,13 +1109,16 @@
       "testnet_hash": "0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489",
       "testnet_exists": true,
       "testnet_name": "MiniAppTimeCapsule",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0xd853a4ac293ff96e7f70f774c2155d846f91a989",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppTimeCapsule",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "timestamp-proof",
@@ -955,13 +1129,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "trustanchor",
@@ -972,13 +1149,16 @@
       "testnet_hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
       "testnet_exists": true,
       "testnet_name": "PlatformAnchor",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "mainnet_exists": true,
       "mainnet_name": "PlatformAnchor",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "trustanchor-admin",
@@ -989,13 +1169,16 @@
       "testnet_hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
       "testnet_exists": true,
       "testnet_name": "PlatformAnchor",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "mainnet_exists": true,
       "mainnet_name": "PlatformAnchor",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "unbreakable-vault",
@@ -1006,13 +1189,16 @@
       "testnet_hash": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
       "testnet_exists": true,
       "testnet_name": "MiniAppUnbreakableVault",
+      "testnet_rpc_source": "https://api.n3index.dev/testnet",
       "mainnet_hash": "0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppUnbreakableVault",
+      "mainnet_rpc_source": "https://api.n3index.dev/mainnet",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     },
     {
       "app": "wallet-health",
@@ -1023,13 +1209,16 @@
       "testnet_hash": null,
       "testnet_exists": false,
       "testnet_name": null,
+      "testnet_rpc_source": null,
       "mainnet_hash": null,
       "mainnet_exists": false,
       "mainnet_name": null,
+      "mainnet_rpc_source": null,
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
-      "stale_readme_flags": []
+      "stale_readme_flags": [],
+      "contract_errors": []
     }
   ]
 }

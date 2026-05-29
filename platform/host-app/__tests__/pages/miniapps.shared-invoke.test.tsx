@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import MiniAppDetailPage from "../../pages/miniapps/[id]";
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockInvoke = jest.fn();
 let mockWalletState = {
   connected: true,
@@ -11,7 +12,13 @@ let mockWalletState = {
 };
 
 jest.mock("next/router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({
+    asPath: "/miniapps/miniapp-explorer-console?network=testnet",
+    pathname: "/miniapps/[id]",
+    push: mockPush,
+    query: {},
+    replace: mockReplace,
+  }),
 }));
 
 jest.mock("../../components/layout", () => ({
@@ -68,6 +75,7 @@ jest.mock("../../lib/wallet/store", () => ({
 describe("MiniAppDetailPage shared invoke", () => {
   beforeEach(() => {
     mockPush.mockReset();
+    mockReplace.mockReset();
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue({ txid: "0xsharedtx" });
     mockWalletState = {
@@ -80,6 +88,204 @@ describe("MiniAppDetailPage shared invoke", () => {
 
   afterEach(() => {
     delete process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK;
+  });
+
+  it("keeps on-chain actions disabled until a wallet is connected", () => {
+    mockWalletState = {
+      connected: false,
+      address: "",
+      network: null,
+    };
+
+    render(
+      <MiniAppDetailPage
+        app={{
+          app_id: "miniapp-last-survivor",
+          name: "Last Survivor",
+          description: "Platform game",
+          icon: "timer",
+          category: "gaming",
+          entry_url: "mf://manifest?app=miniapp-last-survivor",
+          contract_hash: "0xlegacydedicated0000000000000000000000000000",
+          permissions: { payments: true },
+          detail_template: {
+            layout: "default",
+            tabs: [
+              {
+                id: "overview",
+                label: "Overview",
+                type: "content",
+                blocks: [],
+              },
+            ],
+            operation_panel: { title: "Play", operations: [] },
+          },
+          operations: [
+            {
+              name: "Buy Keys",
+              method: "buyCountdownKeys",
+              params: [
+                {
+                  name: "player",
+                  type: "hash160",
+                  label: "Player",
+                  required: true,
+                  default_value: "$wallet",
+                  hidden: true,
+                },
+                {
+                  name: "keyCount",
+                  type: "integer",
+                  label: "Keys",
+                  required: true,
+                },
+              ],
+            },
+          ],
+          manifest: {
+            runtime: {
+              mode: "platform",
+              modules: [
+                {
+                  binding: "countdown-auction",
+                  platform: "PlatformGame",
+                  appId: "miniapp-last-survivor",
+                  moduleType: 1,
+                  networks: {
+                    "neo-n3-testnet": {
+                      contract_hash:
+                        "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+                      registered: true,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        }}
+        miniAppNav={[]}
+        notifications={[]}
+        sharedRuntime={null}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Buy Keys" })).toBeDisabled();
+    expect(
+      screen.getByText("Connect wallet before sending transactions."),
+    ).toBeVisible();
+  });
+
+  it("keeps frontend-local actions usable when sibling on-chain actions require a wallet", async () => {
+    mockWalletState = {
+      connected: false,
+      address: "",
+      network: null,
+    };
+
+    render(
+      <MiniAppDetailPage
+        app={{
+          app_id: "miniapp-explorer-console",
+          name: "Explorer Console",
+          description: "Search locally, then submit optional chain actions.",
+          icon: "search",
+          category: "utility",
+          entry_url: "mf://manifest?app=miniapp-explorer-console",
+          contract_hash: "0xlegacydedicated0000000000000000000000000000",
+          permissions: { payments: true },
+          detail_template: {
+            layout: "default",
+            tabs: [
+              {
+                id: "overview",
+                label: "Overview",
+                type: "content",
+                blocks: [],
+              },
+            ],
+            operation_panel: { title: "Explorer", operations: [] },
+          },
+          operations: [
+            {
+              name: "Search",
+              method: "explorerSearch",
+              params: [
+                {
+                  name: "query",
+                  type: "string",
+                  label: "Search query",
+                  required: true,
+                  default_value: "neo",
+                },
+              ],
+            },
+            {
+              name: "Submit Anchor",
+              method: "submitAnchor",
+              params: [
+                {
+                  name: "payload",
+                  type: "string",
+                  label: "Payload",
+                  required: true,
+                },
+              ],
+            },
+          ],
+          manifest: {
+            runtime: {
+              mode: "platform",
+              modules: [
+                {
+                  binding: "anchor",
+                  platform: "PlatformAnchor",
+                  appId: "miniapp-explorer-console",
+                  moduleType: 1,
+                  networks: {
+                    "neo-n3-testnet": {
+                      contract_hash:
+                        "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+                      registered: true,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        }}
+        miniAppNav={[]}
+        notifications={[]}
+        sharedRuntime={null}
+      />,
+    );
+
+    expect(screen.getByTestId("operation-submit-button")).not.toBeDisabled();
+    expect(
+      screen.queryByText("Connect wallet before sending transactions."),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("operation-submit-button"));
+
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: "/miniapps/[id]",
+          query: expect.objectContaining({
+            operation: "explorerSearch",
+            query: "neo",
+          }),
+        }),
+        undefined,
+        { shallow: true },
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Submit Anchor" }));
+
+    expect(screen.getByTestId("operation-submit-button")).toBeDisabled();
+    expect(
+      screen.getByText("Connect wallet before sending transactions."),
+    ).toBeVisible();
   });
 
   it("invokes the shared module contract using operation recipes", async () => {

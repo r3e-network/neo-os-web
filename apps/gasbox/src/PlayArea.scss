@@ -2,421 +2,477 @@
 @use "@shared/styles/playarea-base";
 
 .gasbox-play-area {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  position: relative;
+  display: grid;
+  gap: 16px;
+  padding: 18px 12px 22px;
+  background: #f7f8fb;
+  color: #111827;
 }
 
-.gasbox-loading {
+.gasbox-play-area .neo-card {
+  min-width: 0;
+}
+
+.gasbox-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+  gap: 16px;
+  align-items: stretch;
+  padding: 22px;
+  border: 1px solid #dbe4ef;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+}
+
+.gasbox-hero__copy {
+  display: grid;
+  align-content: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.gasbox-eyebrow,
+.gasbox-metric span,
+.gasbox-signal-card__copy span,
+.gasbox-hero-stat-label,
+.gasbox-section-header span,
+.gasbox-market-empty__copy span,
+.gasbox-empty-actions span,
+.gasbox-player-route span,
+.gasbox-safety-copy span,
+.gasbox-safety-stats span,
+.gasbox-detail-stat-label,
+.gasbox-top-prize-label,
+.gasbox-rarity-title,
+.gasbox-status-badge,
+.gasbox-prompt-icon {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.gasbox-eyebrow,
+.gasbox-section-header span,
+.gasbox-player-route span {
+  color: #0f766e;
+}
+
+.gasbox-hero h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 1.9rem;
+  font-weight: 850;
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.gasbox-hero p,
+.gasbox-signal-card__copy p,
+.gasbox-market-empty__copy p,
+.gasbox-safety-copy p,
+.gasbox-selected-desc,
+.gasbox-prompt-text,
+.gasbox-result-desc {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.48;
+}
+
+.gasbox-hero__metrics,
+.gasbox-safety-stats {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gasbox-metric,
+.gasbox-safety-stats div,
+.gasbox-detail-stat {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #9ca3af;
-  font-size: 0.875rem;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid #dbe4ef;
+  border-radius: 12px;
+  background: #f8fafc;
 }
 
-.gasbox-loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(16, 185, 129, 0.15);
-  border-top-color: #10b981;
-  border-radius: 50%;
-  animation: gasbox-spin 0.8s linear infinite;
+.gasbox-metric strong,
+.gasbox-hero-stat-value,
+.gasbox-section-header strong,
+.gasbox-market-empty__copy strong,
+.gasbox-empty-actions strong,
+.gasbox-player-route strong,
+.gasbox-safety-copy strong,
+.gasbox-safety-stats strong,
+.gasbox-selected-name,
+.gasbox-detail-stat-value,
+.gasbox-top-prize-name,
+.gasbox-result-item {
+  min-width: 0;
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.28;
 }
 
-@keyframes gasbox-spin {
-  to { transform: rotate(360deg); }
+.gasbox-metric strong,
+.gasbox-safety-stats strong {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ── Hero Stats ── */
+.gasbox-signal-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(170px, 0.34fr);
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #eefcf7 52%, #fff7ed 100%);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.07);
+}
+
+.gasbox-token,
+.gasbox-machine-icon,
+.gasbox-selected-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  border-radius: 999px;
+  background: #dff7ea;
+  color: #047857;
+  font-size: 1.25rem;
+  font-weight: 850;
+}
+
+.gasbox-signal-card__copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.gasbox-signal-card__copy strong {
+  color: #111827;
+  font-size: 1.14rem;
+  font-weight: 850;
+  line-height: 1.22;
+}
+
+.gasbox-capsule-stack {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  align-items: end;
+  min-width: 0;
+  height: 52px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.gasbox-capsule-stack i {
+  display: block;
+  min-width: 0;
+  border-radius: 999px 999px 8px 8px;
+  background: linear-gradient(180deg, #8178ff 0%, #10b981 100%);
+}
+
+.gasbox-capsule-stack i:nth-child(1) { height: 46%; }
+.gasbox-capsule-stack i:nth-child(2) { height: 70%; }
+.gasbox-capsule-stack i:nth-child(3) { height: 55%; }
+.gasbox-capsule-stack i:nth-child(4) { height: 86%; }
+
+.gasbox-player-route {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gasbox-player-route div,
+.gasbox-hero-stat {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #dbe4ef;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
 
 .gasbox-hero-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-}
-
-.gasbox-hero-stat {
-  text-align: center;
-  padding: 1rem 0.5rem;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 1px solid #f3f4f6;
-  transition: border-color 0.2s;
-
-  &:hover {
-    border-color: rgba(16, 185, 129, 0.25);
-  }
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .gasbox-hero-stat-value {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #10b981;
+  font-size: 1.35rem;
 }
 
-.gasbox-hero-stat-label {
-  display: block;
-  font-size: 0.75rem;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 0.25rem;
+.gasbox-machines-card .neo-card__content {
+  display: grid;
+  gap: 14px;
 }
 
-/* ── Machines Card ── */
-
-.gasbox-machines-card {
-  width: 100%;
+.gasbox-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
 }
 
-.gasbox-section-title {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #374151;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.75rem;
+.gasbox-market-empty {
+  min-width: 0;
 }
 
-.gasbox-empty {
-  text-align: center;
-  padding: 1.5rem;
-  color: #9ca3af;
-  font-size: 0.8125rem;
+.gasbox-market-empty .neo-card__content {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(260px, 0.7fr);
+  gap: 16px;
+  align-items: center;
 }
 
-/* ── Machine Grid ── */
+.gasbox-market-empty__copy,
+.gasbox-empty-actions,
+.gasbox-empty-actions div,
+.gasbox-safety-copy,
+.gasbox-selected-info,
+.gasbox-prompt-content,
+.gasbox-result-content {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gasbox-empty-actions .neo-btn {
+  justify-self: start;
+}
+
+.gasbox-empty-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gasbox-empty-button-row .neo-btn {
+  min-width: 148px;
+}
 
 .gasbox-machine-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 0.625rem;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
 }
 
 .gasbox-machine-item {
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-
-  &--selected {
-    border-color: #10b981 !important;
-    background: rgba(16, 185, 129, 0.06);
-    box-shadow: 0 0 16px rgba(16, 185, 129, 0.08);
-  }
-
-  &--inactive {
-    opacity: 0.55;
-  }
 }
 
-.gasbox-machine-icon {
-  font-size: 1.75rem;
-  text-align: center;
-  margin-bottom: 0.375rem;
+.gasbox-machine-item--selected {
+  border-color: #10b981;
+  background: #ecfdf5;
 }
 
-.gasbox-machine-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  text-align: center;
+.gasbox-machine-item--inactive {
+  opacity: 0.62;
+}
+
+.gasbox-machine-item .neo-card__content {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.gasbox-machine-info,
+.gasbox-selected-display {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
 }
 
 .gasbox-machine-name {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #1f2937;
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 850;
 }
 
-.gasbox-machine-desc {
-  font-size: 0.6875rem;
-  color: #6b7280;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.gasbox-machine-cost {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #fbbf24;
-  margin-top: 0.125rem;
-}
-
+.gasbox-machine-desc,
 .gasbox-machine-meta {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.gasbox-machine-cost,
+.gasbox-result-amount {
+  color: #047857;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.gasbox-machine-meta,
+.gasbox-selected-tags,
+.gasbox-machine-status-row,
+.gasbox-top-prize {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  font-size: 0.6875rem;
-  color: #9ca3af;
+  align-items: center;
 }
 
-.gasbox-machine-items-count,
-.gasbox-machine-plays-count {
-  white-space: nowrap;
-}
-
-/* ── Pull Card / Selected Machine ── */
-
-.gasbox-pull-card {
-  width: 100%;
-}
-
-.gasbox-selected-display {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.gasbox-pull-card .neo-card__content {
+  display: grid;
+  gap: 16px;
 }
 
 .gasbox-selected-header {
   display: flex;
-  gap: 0.75rem;
+  gap: 12px;
   align-items: flex-start;
-}
-
-.gasbox-selected-icon {
-  font-size: 2.5rem;
-  flex-shrink: 0;
-}
-
-.gasbox-selected-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
   min-width: 0;
 }
 
 .gasbox-selected-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1f2937;
   margin: 0;
+  font-size: 1.2rem;
 }
 
-.gasbox-selected-desc {
-  font-size: 0.8125rem;
-  color: #6b7280;
-  line-height: 1.4;
-  margin: 0;
+.gasbox-tag,
+.gasbox-status-badge,
+.gasbox-rarity-bar-label {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 4px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
-
-.gasbox-selected-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.gasbox-tag {
-  font-size: 0.625rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: #f3f4f6;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-/* ── Machine Detail Stats ── */
 
 .gasbox-machine-detail-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .gasbox-detail-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 10px 4px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #f3f4f6;
+  display: grid;
+  justify-items: start;
 }
-
-.gasbox-detail-stat-value {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #10b981;
-}
-
-.gasbox-detail-stat-label {
-  font-size: 0.625rem;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  text-align: center;
-}
-
-/* ── Top Prize ── */
 
 .gasbox-top-prize {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: rgba(251, 191, 36, 0.06);
-  border: 1px dashed rgba(251, 191, 36, 0.2);
-  border-radius: 10px;
-}
-
-.gasbox-top-prize-label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: rgba(251, 191, 36, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  padding: 12px 14px;
+  border: 1px dashed rgba(245, 158, 11, 0.32);
+  border-radius: 12px;
+  background: #fffbeb;
 }
 
 .gasbox-top-prize-name {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #fbbf24;
+  color: #92400e;
 }
 
-/* ── Rarity Distribution ── */
-
-.gasbox-rarity-distribution {
-  display: flex;
-  flex-direction: column;
+.gasbox-rarity-distribution,
+.gasbox-rarity-bars {
+  display: grid;
   gap: 8px;
 }
 
 .gasbox-rarity-title {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   margin: 0;
-}
-
-.gasbox-rarity-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  color: #64748b;
 }
 
 .gasbox-rarity-bar-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(120px, 0.55fr) minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  gap: 8px;
-}
-
-.gasbox-rarity-bar-label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  min-width: 100px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .gasbox-rarity-bar-track {
-  flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  background: #f3f4f6;
+  min-width: 0;
+  height: 8px;
   overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
 }
 
 .gasbox-rarity-bar-fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s ease;
-
-  &.gasbox-rarity--common { background: #9ca3af; }
-  &.gasbox-rarity--uncommon { background: #34d399; }
-  &.gasbox-rarity--rare { background: #60a5fa; }
-  &.gasbox-rarity--epic { background: #a78bfa; }
-  &.gasbox-rarity--legendary { background: #fbbf24; }
+  border-radius: 999px;
+  background: #10b981;
 }
 
 .gasbox-rarity-bar-pct {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: #6b7280;
-  min-width: 40px;
-  text-align: right;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
-/* ── Machine Status Badges ── */
+.gasbox-rarity--common { color: #475569; }
+.gasbox-rarity--uncommon { color: #047857; }
+.gasbox-rarity--rare { color: #2563eb; }
+.gasbox-rarity--epic { color: #6d28d9; }
+.gasbox-rarity--legendary { color: #92400e; }
 
-.gasbox-machine-status-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+.gasbox-rarity-bar-fill.gasbox-rarity--common { background: #94a3b8; }
+.gasbox-rarity-bar-fill.gasbox-rarity--uncommon { background: #10b981; }
+.gasbox-rarity-bar-fill.gasbox-rarity--rare { background: #3b82f6; }
+.gasbox-rarity-bar-fill.gasbox-rarity--epic { background: #8b5cf6; }
+.gasbox-rarity-bar-fill.gasbox-rarity--legendary { background: #f59e0b; }
+
+.gasbox-status-badge--ready {
+  border-color: rgba(16, 185, 129, 0.24);
+  background: #ecfdf5;
+  color: #047857;
 }
 
-.gasbox-status-badge {
-  font-size: 0.625rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-
-  &--ready {
-    background: rgba(16, 185, 129, 0.12);
-    color: #10b981;
-  }
-
-  &--inactive {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
-  }
-
-  &--empty {
-    background: rgba(251, 191, 36, 0.12);
-    color: #fbbf24;
-  }
+.gasbox-status-badge--inactive {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: #fff1f2;
+  color: #be123c;
 }
 
-/* ── Pull Lever / Button ── */
+.gasbox-status-badge--empty {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: #fffbeb;
+  color: #92400e;
+}
 
-.gasbox-lever-container {
-  transition: transform 0.3s ease;
-
-  &.gasbox-lever--pulled {
-    animation: gasbox-lever-pull 0.6s ease-out;
-  }
-
-  &.gasbox-lever--spinning .gasbox-pull-btn-icon {
-    animation: gasbox-icon-spin 0.5s linear infinite;
-  }
+.gasbox-lever-container.gasbox-lever--pulled {
+  animation: gasbox-lever-pull 0.42s ease-out;
 }
 
 @keyframes gasbox-lever-pull {
   0% { transform: scale(1); }
-  30% { transform: scale(0.95); }
-  60% { transform: scale(1.03); }
+  45% { transform: scale(0.97); }
   100% { transform: scale(1); }
 }
 
-@keyframes gasbox-icon-spin {
-  to { transform: rotate(360deg); }
-}
-
 .gasbox-pull-btn {
-  min-height: 56px;
+  min-height: 52px;
 }
 
 .gasbox-pull-btn-content {
@@ -427,203 +483,151 @@
   width: 100%;
 }
 
-.gasbox-pull-btn-icon {
-  font-size: 1.25rem;
-  display: inline-block;
-}
-
-.gasbox-pull-btn-text {
-  font-size: 1.125rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.gasbox-pull-btn-text,
+.gasbox-pull-btn-cost {
+  font-size: 0.9rem;
+  font-weight: 850;
 }
 
 .gasbox-pull-btn-cost {
-  font-size: 0.75rem;
-  font-weight: 600;
-  opacity: 0.7;
+  opacity: 0.72;
 }
 
-/* ── Select Prompt ── */
-
-.gasbox-select-prompt {
-  width: 100%;
+.gasbox-select-prompt .neo-card__content {
+  display: grid;
+  place-items: center;
 }
 
 .gasbox-prompt-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 1.5rem;
+  justify-items: center;
   text-align: center;
 }
 
-.gasbox-prompt-icon {
-  font-size: 2rem;
-  opacity: 0.4;
-  animation: gasbox-bounce 1.5s ease-in-out infinite;
+.gasbox-safety-card .neo-card__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
+  gap: 16px;
+  align-items: center;
 }
 
-@keyframes gasbox-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+.gasbox-loading {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  min-height: 240px;
+  padding: 36px 16px;
+  color: #047857;
+  font-size: 0.9rem;
+  font-weight: 800;
 }
 
-.gasbox-prompt-text {
-  font-size: 0.875rem;
-  color: #9ca3af;
-  margin: 0;
+.gasbox-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(16, 185, 129, 0.18);
+  border-top-color: #10b981;
+  border-radius: 999px;
+  animation: gasbox-spin 0.8s linear infinite;
 }
 
-/* ── Rarity Badges (inline) ── */
-
-.gasbox-rarity-badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  width: fit-content;
+@keyframes gasbox-spin {
+  to { transform: rotate(360deg); }
 }
-
-.gasbox-rarity--common {
-  background: rgba(156, 163, 175, 0.15);
-  color: #9ca3af;
-}
-
-.gasbox-rarity--uncommon {
-  background: rgba(52, 211, 153, 0.15);
-  color: #34d399;
-}
-
-.gasbox-rarity--rare {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-}
-
-.gasbox-rarity--epic {
-  background: rgba(167, 139, 250, 0.15);
-  color: #a78bfa;
-}
-
-.gasbox-rarity--legendary {
-  background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
-}
-
-/* ── Pull Result Overlay ── */
 
 .gasbox-result-overlay {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.42);
   backdrop-filter: blur(4px);
-  animation: gasbox-fade-in 0.2s ease;
 }
 
 .gasbox-result-content {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2rem;
+  width: min(360px, 100%);
+  justify-items: center;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
   border-radius: 16px;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
-  max-width: 320px;
-  width: 90%;
   text-align: center;
-  overflow: hidden;
-  animation: gasbox-result-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes gasbox-result-pop {
-  from { transform: scale(0.85); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.gasbox-result-glow {
-  position: absolute;
-  top: -40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.3;
-  pointer-events: none;
-
-  &.gasbox-rarity--common { background: #9ca3af; }
-  &.gasbox-rarity--uncommon { background: #34d399; }
-  &.gasbox-rarity--rare { background: #3b82f6; }
-  &.gasbox-rarity--epic { background: #a78bfa; }
-  &.gasbox-rarity--legendary { background: #fbbf24; }
-}
-
-.gasbox-result-sparkle {
-  font-size: 2.5rem;
-  z-index: 1;
-  animation: gasbox-sparkle-pulse 1s ease-in-out infinite alternate;
-}
-
-@keyframes gasbox-sparkle-pulse {
-  from { transform: scale(1); }
-  to { transform: scale(1.15); }
-}
-
-.gasbox-result-rarity {
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  z-index: 1;
 }
 
 .gasbox-result-item {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #1f2937;
-  z-index: 1;
   margin: 0;
+  font-size: 1.45rem;
 }
 
-.gasbox-result-desc {
-  font-size: 0.8125rem;
-  color: #6b7280;
-  line-height: 1.4;
-  z-index: 1;
-  margin: 0;
+@media (max-width: 900px) {
+  .gasbox-signal-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .gasbox-capsule-stack {
+    grid-column: 1 / -1;
+  }
+
+  .gasbox-market-empty .neo-card__content,
+  .gasbox-safety-card .neo-card__content {
+    grid-template-columns: 1fr;
+  }
 }
 
-.gasbox-result-amount {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fbbf24;
-  z-index: 1;
+@media (max-width: 760px) {
+  .gasbox-play-area {
+    gap: 14px;
+    padding: 14px 10px 18px;
+  }
+
+  .gasbox-hero {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .gasbox-hero h2 {
+    font-size: 1.55rem;
+  }
+
+  .gasbox-player-route,
+  .gasbox-hero-stats,
+  .gasbox-machine-detail-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .gasbox-rarity-bar-row {
+    grid-template-columns: 1fr;
+  }
 }
 
-@keyframes gasbox-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+@media (max-width: 480px) {
+  .gasbox-signal-card,
+  .gasbox-selected-header {
+    grid-template-columns: 1fr;
+  }
 
-/* ── Reduced Motion ── */
+  .gasbox-selected-header {
+    display: grid;
+  }
+
+  .gasbox-token,
+  .gasbox-machine-icon,
+  .gasbox-selected-icon {
+    width: 52px;
+    height: 52px;
+    flex-basis: 52px;
+  }
+
+  .gasbox-empty-button-row .neo-btn {
+    width: 100%;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .gasbox-lever-container { animation: none; }
-  .gasbox-pull-btn-icon { animation: none; }
-  .gasbox-result-content { animation: none; }
-  .gasbox-result-sparkle { animation: none; }
-  .gasbox-prompt-icon { animation: none; }
-  .gasbox-loading-spinner { animation: none; }
+  .gasbox-lever-container,
+  .gasbox-loading-spinner {
+    animation: none;
+  }
 }

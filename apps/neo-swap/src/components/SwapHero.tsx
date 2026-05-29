@@ -1,35 +1,39 @@
 /**
- * SwapHero.tsx -- Hero display for Neo Swap.
+ * SwapHero.tsx -- Pair and quote header for Neo Swap.
  */
 
+import { ArrowRight } from "lucide-react";
 import "./SwapHero.scss";
 
 interface SwapHeroProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   currentRate: string;
+  fromSymbol: string;
+  toSymbol: string;
 }
 
-export default function SwapHero({ t, currentRate }: SwapHeroProps) {
+export default function SwapHero({
+  t,
+  currentRate,
+  fromSymbol,
+  toSymbol,
+}: SwapHeroProps) {
   return (
-    <div className="hero-container">
-      <div className="hero-swap-display">
-        <div className="hero-token">
-          <div className="token-icon token-icon--from">N</div>
-          <span className="token-name">NEO</span>
+    <div className="swap-hero-content">
+      <div className="swap-hero-pair" aria-label={t("subtitle")}>
+        <div className="swap-hero-token">
+          <span>{fromSymbol.slice(0, 1)}</span>
+          <strong>{fromSymbol}</strong>
         </div>
-        <div className="hero-arrow" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
-            <path d="M5 12h14m-4-4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-        <div className="hero-token">
-          <div className="token-icon token-icon--to">G</div>
-          <span className="token-name">GAS</span>
+        <ArrowRight size={20} aria-hidden="true" />
+        <div className="swap-hero-token">
+          <span>{toSymbol.slice(0, 1)}</span>
+          <strong>{toSymbol}</strong>
         </div>
       </div>
-      <div className="hero-price-quote">
-        <span className="price-label">{t("sidebarRate")}</span>
-        <span className="price-value">{currentRate}</span>
+      <div className="swap-hero-quote">
+        <span>{t("sidebarRate")}</span>
+        <strong>{currentRate}</strong>
       </div>
     </div>
   );

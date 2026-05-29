@@ -9,6 +9,7 @@ const appsRoot = path.join(repoRoot, "apps");
 const publicRoot = path.join(repoRoot, "platform", "host-app", "public", "miniapps");
 
 const archivedSlugs = new Set(["flamingo", "flaminggo", "neoburger", "neo-burger"]);
+const selected = new Set(process.argv.slice(2).filter((arg) => !arg.startsWith("-")));
 const defaultBaseUrl = "https://neomini.app";
 const baseUrl = normalizeBaseUrl(
   process.env.MINIAPP_DAPP_BASE_URL ||
@@ -115,6 +116,21 @@ async function readManifest(appDir) {
   return JSON.parse(text);
 }
 
+async function readPublicCatalogItems() {
+  const entries = await fs.readdir(publicRoot, { withFileTypes: true });
+  const apps = [];
+  for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+    if (!entry.isDirectory()) continue;
+    const slug = entry.name;
+    const appDir = path.join(publicRoot, slug);
+    if (!(await exists(path.join(appDir, "index.html")))) continue;
+    if (!(await exists(path.join(appDir, "neo-manifest.json")))) continue;
+    const manifest = await readManifest(appDir);
+    apps.push(buildCatalogItem(slug, manifest));
+  }
+  return apps;
+}
+
 function buildCatalogItem(slug, manifest) {
   const appId = asString(manifest.id, `miniapp-${slug}`);
   const urls = asObject(manifest.urls);
@@ -182,11 +198,14 @@ async function main() {
   const staged = [];
   const skipped = [];
   const catalogApps = [];
+  const seenSelected = new Set();
 
   for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
     if (!entry.isDirectory() || entry.name === "shared") continue;
     const slug = entry.name;
     if (archivedSlugs.has(slug)) continue;
+    if (selected.size > 0 && !selected.has(slug)) continue;
+    seenSelected.add(slug);
 
     const appDir = path.join(appsRoot, slug);
     const manifestPath = path.join(appDir, "neo-manifest.json");
@@ -207,12 +226,21 @@ async function main() {
     catalogApps.push(buildCatalogItem(slug, manifest));
   }
 
+  for (const slug of selected) {
+    if (!seenSelected.has(slug)) {
+      skipped.push({ slug, reason: "missing app directory or neo-manifest.json" });
+    }
+  }
+
+  const outputCatalogApps = selected.size > 0
+    ? await readPublicCatalogItems()
+    : catalogApps;
   const generatedAt = new Date().toISOString();
   const catalog = {
     generated_at: generatedAt,
     base_url: baseUrl,
-    count: catalogApps.length,
-    apps: catalogApps,
+    count: outputCatalogApps.length,
+    apps: outputCatalogApps,
   };
   await fs.writeFile(
     path.join(publicRoot, "catalog.json"),
@@ -224,7 +252,7 @@ async function main() {
       generatedAt,
       source: "neo-miniapps-platform",
       baseUrl,
-      dapps: catalogApps.map((app) => app.onegate),
+      dapps: outputCatalogApps.map((app) => app.onegate),
     }, null, 2)}\n`,
   );
 
@@ -233,8 +261,9 @@ async function main() {
       {
         publicRoot,
         baseUrl,
+        selectedCount: selected.size,
         stagedCount: staged.length,
-        catalogCount: catalogApps.length,
+        catalogCount: outputCatalogApps.length,
         skipped,
       },
       null,

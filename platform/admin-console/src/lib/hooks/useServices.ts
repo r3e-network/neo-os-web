@@ -3,7 +3,10 @@
 // =============================================================================
 
 import { useQuery } from "@tanstack/react-query";
-import { getAdminAuthHeaders } from "@/lib/admin-client";
+import {
+  getAdminAuthHeaders,
+  getAdminFetchOptions,
+} from "@/lib/admin-client";
 import { HEALTH_POLL_INTERVAL_MS, HEALTH_STALE_TIME_MS } from "@/lib/constants";
 import type { ServiceHealth } from "@/types";
 
@@ -12,7 +15,11 @@ import type { ServiceHealth } from "@/types";
  */
 async function fetchServicesHealth(): Promise<ServiceHealth[]> {
   // Call Next.js API route that checks internal services
-  const response = await fetch("/api/services/health", { headers: getAdminAuthHeaders(), signal: AbortSignal.timeout(15000) });
+  const response = await fetch("/api/services/health", {
+    ...getAdminFetchOptions(),
+    headers: getAdminAuthHeaders(),
+    signal: AbortSignal.timeout(15000),
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch services health: ${response.status}`);
   }
@@ -38,10 +45,14 @@ export function useServiceHealth(serviceName: string) {
   return useQuery({
     queryKey: ["services", "health", serviceName],
     queryFn: async () => {
-      const response = await fetch(`/api/services/health?service=${encodeURIComponent(serviceName)}`, {
-        headers: getAdminAuthHeaders(),
-        signal: AbortSignal.timeout(15000),
-      });
+      const response = await fetch(
+        `/api/services/health?service=${encodeURIComponent(serviceName)}`,
+        {
+          ...getAdminFetchOptions(),
+          headers: getAdminAuthHeaders(),
+          signal: AbortSignal.timeout(15000),
+        },
+      );
       if (!response.ok) {
         throw new Error(`Failed to fetch ${serviceName} health: ${response.status}`);
       }
