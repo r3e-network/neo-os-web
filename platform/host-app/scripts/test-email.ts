@@ -32,7 +32,7 @@ async function testEmail() {
       text: "This is a test email from Yiwu.",
       html: `
         <div style="font-family: Arial; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #00E599;">Yiwu</h2>
+          <h2 style="color: #16C784;">Yiwu</h2>
           <p>Test email sent successfully!</p>
           <p>Your verification code: <strong>123456</strong></p>
         </div>

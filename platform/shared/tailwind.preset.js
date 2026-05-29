@@ -1,9 +1,9 @@
 /**
- * Shared Tailwind CSS preset for Yiwu MiniApps.
+ * Shared Tailwind CSS preset for Neo MiniApps (Neo Soft design system).
  *
- * Contains the common design-system tokens (brand colors, dark-mode strategy)
- * used by both host-app and admin-console.  App-specific overrides live in
- * each app's own tailwind.config.js.
+ * Contains the common design-system tokens (brand colors, surfaces) used by
+ * both host-app and admin-console. App-specific overrides live in each app's
+ * own tailwind.config.js. Canonical reference: docs/DESIGN_SYSTEM.md
  *
  * @type {import('tailwindcss').Config}
  */
@@ -12,33 +12,42 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        /* ── surface ──────────────────────────────────────── */
-        background: "#020617",
-        foreground: "#f8fafc",
+        /* ── surface (Neo Soft light) ─────────────────────── */
+        background: "#f4f5f7",
+        foreground: "#1e1e2e",
+        ink: "#1e1e2e",
 
         /* ── brand: Neo Green ─────────────────────────────── */
         neo: {
-          DEFAULT: "#00E599",
-          hover: "#00cc88",
-          glow: "rgba(0, 229, 153, 0.4)",
+          DEFAULT: "#16c784",
+          hover: "#0fb174",
+          glow: "rgba(22, 199, 132, 0.4)",
         },
 
-        /* ── brand: Electric Purple ───────────────────────── */
+        /* ── interactive: Violet ──────────────────────────── */
+        violet: {
+          DEFAULT: "#7b61ff",
+          hover: "#6a4df4",
+          soft: "#eeeaff",
+          glow: "rgba(123, 97, 255, 0.4)",
+        },
+
+        /* ── brand: Electric Purple (legacy alias → violet) ─ */
         electric: {
-          purple: "#7000FF",
-          glow: "rgba(112, 0, 255, 0.4)",
+          purple: "#7b61ff",
+          glow: "rgba(123, 97, 255, 0.4)",
         },
 
         /* ── primary (shared subset) ─────────────────────── */
         primary: {
-          100: "#ccfbea",
-          500: "#00E599",
-          600: "#00cc88",
-          700: "#00b377",
+          100: "#d6f7ec",
+          500: "#16c784",
+          600: "#0fb174",
+          700: "#0c9c66",
         },
       },
       ringColor: {
-        neo: "rgba(0, 229, 153, 0.3)",
+        neo: "rgba(123, 97, 255, 0.3)",
       },
     },
   },

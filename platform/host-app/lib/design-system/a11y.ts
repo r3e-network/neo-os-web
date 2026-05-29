@@ -497,7 +497,7 @@ export function useHighContrastMode(): boolean {
 /**
  * Get focus ring styles
  */
-export function getFocusRingStyles(color: string = "#00E599"): React.CSSProperties {
+export function getFocusRingStyles(color: string = "#7B61FF"): React.CSSProperties {
   return {
     outline: "none",
     boxShadow: `0 0 0 2px ${color}, 0 0 0 4px rgba(255, 255, 255, 0.5)`,
@@ -507,7 +507,7 @@ export function getFocusRingStyles(color: string = "#00E599"): React.CSSProperti
 /**
  * Get focus ring inset styles
  */
-export function getFocusRingInsetStyles(color: string = "#00E599"): React.CSSProperties {
+export function getFocusRingInsetStyles(color: string = "#7B61FF"): React.CSSProperties {
   return {
     outline: "none",
     boxShadow: `inset 0 0 0 2px ${color}`,
