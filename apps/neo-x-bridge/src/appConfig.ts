@@ -15,7 +15,7 @@ export const manifest: MiniAppManifest = {
   icon: "link",
   category: "defi",
   shell: "console",
-  theme: { family: "finance", accentColor: "#00e599", density: "comfortable" },
+  theme: { family: "finance", accentColor: "#16c784", density: "comfortable" },
   tabs: [{ key: "console", labelKey: "tabConsole", icon: "link", default: true }],
   stats: [
     { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },

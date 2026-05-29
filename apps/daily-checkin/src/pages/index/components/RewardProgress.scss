@@ -8,7 +8,7 @@
   @include card-base(12px, 12px);
   flex: 1; text-align: center; opacity: 0.5; transition: all 0.3s;
   display: flex; flex-direction: column; align-items: center;
-  &.reached { opacity: 1; background: rgba(0, 229, 153, 0.1); border-color: rgba(0, 229, 153, 0.2); box-shadow: 0 0 10px rgba(0, 229, 153, 0.1); }
+  &.reached { opacity: 1; background: rgba(22, 199, 132, 0.1); border-color: rgba(22, 199, 132, 0.2); box-shadow: 0 0 10px rgba(22, 199, 132, 0.1); }
   &.next { opacity: 1; background: rgba(255, 222, 89, 0.05); border-color: rgba(255, 222, 89, 0.2); box-shadow: 0 0 15px rgba(255, 222, 89, 0.05); }
 }
 

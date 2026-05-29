@@ -13,7 +13,7 @@ export function useWalletPdf(t: (key: string) => string) {
     const height = doc.internal.pageSize.getHeight();
     const centerX = width / 2;
 
-    const neoGreen = "#00E599";
+    const neoGreen = "#16c784";
     const neoDark = "#121212";
     const neoGrey = "#1F2937";
 

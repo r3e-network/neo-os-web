@@ -49,7 +49,7 @@
   background:
     linear-gradient(135deg, rgba(15, 23, 42, 0.97), rgba(27, 36, 58, 0.94) 48%, rgba(4, 92, 74, 0.92)),
     linear-gradient(90deg, #111827, #12392f);
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 18px 42px rgba(20, 22, 38, 0.15);
   letter-spacing: 0;
 }
 
@@ -161,7 +161,7 @@
     border: 1px solid var(--tarot-border);
     border-radius: 8px;
     background: var(--tarot-panel);
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 16px 36px rgba(20, 22, 38, 0.05);
     letter-spacing: 0;
   }
 
@@ -550,7 +550,7 @@
   aspect-ratio: 744 / 1040;
   border-radius: 8px;
   object-fit: cover;
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 16px 30px rgba(20, 22, 38, 0.2);
   transform-origin: 50% 102%;
 }
 
