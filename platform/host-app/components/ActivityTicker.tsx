@@ -17,6 +17,9 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 function formatTimeAgo(timestamp: string): string {
+  // Guard falsy input: new Date(null).getTime() is 0 (finite), which would
+  // otherwise render a bogus "~56y ago" instead of an empty label.
+  if (!timestamp) return "";
   const now = Date.now();
   const then = new Date(timestamp).getTime();
   if (!Number.isFinite(then)) return "";
