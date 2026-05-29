@@ -313,6 +313,14 @@ export default function LandingPage({
 
             <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:items-end">
               <div>
+                <img
+                  src="/brand/neo-mascot.svg"
+                  alt=""
+                  aria-hidden="true"
+                  width={128}
+                  height={128}
+                  className="mb-5 h-24 w-24 animate-float-slow sm:h-32 sm:w-32"
+                />
                 <h1 className="m-0 max-w-4xl text-4xl font-black leading-tight text-gray-950 sm:text-5xl lg:text-6xl">
                   {t("home.hero.title", "host")}
                 </h1>
