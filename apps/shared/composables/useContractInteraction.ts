@@ -203,7 +203,6 @@ export function useContractInteraction(options: ContractInteractionOptions) {
       throw new Error(sanitized);
     } finally {
       isProcessing.set(false);
-      paymentError.set(null);
     }
   };
 
