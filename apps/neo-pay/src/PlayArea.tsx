@@ -139,7 +139,7 @@ export default function PlayArea({
 
   const getProgressColor = (pct: number): string => {
     if (pct >= 100) return "#3b82f6";
-    if (pct >= 50) return "#00e599";
+    if (pct >= 50) return "#16c784";
     return "#00c9ff";
   };
 

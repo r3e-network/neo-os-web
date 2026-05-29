@@ -18,7 +18,7 @@
   &.high { background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444); box-shadow: 0 0 6px rgba(239, 68, 68, 0.3); }
   &.critical { background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444, #dc2626); box-shadow: 0 0 12px rgba(239, 68, 68, 0.5); animation: critical-flash 1s ease-in-out infinite alternate; }
 }
-.meter-glow-point { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); box-shadow: 0 0 8px rgba(255, 255, 255, 0.8); transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2; border: 2px solid rgba(0, 0, 0, 0.3); }
+.meter-glow-point { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); box-shadow: 0 0 8px rgba(255, 255, 255, 0.8); transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2; border: 2px solid rgba(20, 22, 38, 0.3); }
 .zone-markers { position: absolute; inset: 0; z-index: 1; }
 .zone-mark { position: absolute; top: -3px; bottom: -3px; width: 1px; }
 .zone-tick { display: block; width: 1px; height: 100%; background: rgba(255, 255, 255, 0.15); }
