@@ -1,3 +1,12 @@
+/**
+ * Console-style shared mixins (Neo Soft).
+ *   @use "@shared/styles/console-common" as console;
+ *
+ * Internals reference Neo Soft CSS variables (with hex fallbacks) so consoles
+ * inherit the unified look. Mixin names/signatures are unchanged.
+ * Canonical reference: docs/DESIGN_SYSTEM.md
+ */
+
 @mixin stack($gap: 14px) {
   display: flex;
   flex-direction: column;
@@ -7,11 +16,11 @@
 @mixin json-box($max-height: null) {
   width: 100%;
   border-radius: 14px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  padding: 12px;
-  color: #1f2937;
-  font-family: var(--font-mono, monospace);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  padding: 14px;
+  color: var(--ns-text, #2a2d3d);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
   font-size: 12px;
   line-height: 1.6;
 
@@ -24,7 +33,9 @@
 @mixin label {
   display: block;
   font-size: 11px;
-  color: #6b7280;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ns-text-muted, #8a92a6);
   text-transform: uppercase;
 }
 
@@ -32,7 +43,7 @@
   display: block;
   margin-top: 6px;
   font-size: 13px;
-  color: #1f2937;
+  color: var(--ns-text, #2a2d3d);
   word-break: break-all;
   white-space: pre-wrap;
 }
@@ -76,10 +87,11 @@
 }
 
 @mixin detail-card {
-  padding: 14px;
-  border-radius: 14px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
 }
 
 // ── Console Play Area root ──
@@ -87,18 +99,19 @@
   display: flex;
   flex-direction: column;
   gap: $gap;
-  padding: 20px 12px;
+  padding: 20px 16px;
+  color: var(--ns-text, #2a2d3d);
 }
 
 // ── Console Output / Result panel ──
 @mixin console-output {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 12px;
   padding: 16px;
-  font-family: 'JetBrains Mono', var(--font-mono, monospace);
+  font-family: "JetBrains Mono", var(--font-mono, monospace);
   font-size: 13px;
-  color: #1f2937;
+  color: var(--ns-text, #2a2d3d);
   overflow-x: auto;
   white-space: pre-wrap;
 }
@@ -108,8 +121,8 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #9ca3af;
+  letter-spacing: 0.12em;
+  color: var(--ns-text-muted, #8a92a6);
   margin: 0;
 }
 
@@ -118,22 +131,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
-  border-radius: 10px;
+  padding: 12px 16px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 14px;
 }
 
 @mixin stat-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #9ca3af;
+  letter-spacing: 0.08em;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 @mixin stat-value {
   font-size: 14px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--ns-text, #2a2d3d);
 }

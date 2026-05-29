@@ -48,7 +48,7 @@ export default class MyDocument extends Document<Props> {
             name="description"
             content={BRAND.description}
           />
-          <meta name="theme-color" content="#00e599" />
+          <meta name="theme-color" content="#16c784" />
           <link rel="icon" href="/favicon.ico" sizes="any" />
           <link rel="icon" href="/brand/yiwu-mark.svg" type="image/svg+xml" />
           <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
