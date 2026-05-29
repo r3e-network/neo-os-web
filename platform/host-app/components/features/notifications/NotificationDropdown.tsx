@@ -270,7 +270,7 @@ export function NotificationDropdown({
                     }}
                   >
                     {!n.read && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-neo rounded-r-full shadow-[0_0_10px_rgba(0,229,153,0.5)]" />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-neo rounded-r-full shadow-[0_0_10px_rgba(22,199,132,0.5)]" />
                     )}
 
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm border border-gray-100 group-hover:scale-110 transition-transform duration-300">

@@ -85,7 +85,7 @@ export function FilterSidebar({
                       className={cn(
                         "flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl cursor-pointer text-sm transition-all duration-300 group border",
                         isSelected
-                          ? "bg-neo/10 text-neo font-bold border-neo/30 shadow-[inset_0_0_10px_rgba(0,229,153,0.1)]"
+                          ? "bg-neo/10 text-neo font-bold border-neo/30 shadow-[inset_0_0_10px_rgba(22,199,132,0.1)]"
                           : "border-transparent text-gray-600 hover:bg-white/50 hover:text-gray-900",
                       )}
                     >
