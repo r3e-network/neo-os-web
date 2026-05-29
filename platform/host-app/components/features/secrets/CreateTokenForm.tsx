@@ -61,7 +61,7 @@ export function CreateTokenForm({
 
   if (created) {
     return (
-      <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+      <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
         <h4 className="font-semibold text-emerald-800">Secret Created!</h4>
         <p className="mt-1 text-sm text-emerald-700">
           Your secret has been securely stored.
@@ -76,7 +76,7 @@ export function CreateTokenForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-6 rounded-lg border border-gray-200 p-4"
+      className="mb-6 rounded-xl border border-gray-100 bg-gray-50 p-4"
     >
       <h4 className="font-semibold text-gray-900">Create New Secret</h4>
       <div className="mt-3 space-y-3">
@@ -89,7 +89,7 @@ export function CreateTokenForm({
                 type="button"
                 aria-pressed={secretType === type.value}
                 onClick={() => setSecretType(type.value)}
-                className={`rounded-lg border p-2 text-left text-sm text-gray-900 cursor-pointer transition-colors ${
+                className={`rounded-xl border bg-white p-2 text-left text-sm text-gray-900 cursor-pointer transition-colors ${
                   secretType === type.value
                     ? "border-neo bg-neo/10"
                     : "border-gray-200 hover:border-gray-300"
@@ -111,7 +111,7 @@ export function CreateTokenForm({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My API Token"
-            className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 transition-colors focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           />
         </div>
         <div>
@@ -125,7 +125,7 @@ export function CreateTokenForm({
               value={secretValue}
               onChange={(e) => setSecretValue(e.target.value)}
               placeholder="Enter your secret value"
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 pr-10 text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 pr-10 text-gray-900 placeholder-gray-400 transition-colors focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             />
             <button
               type="button"
@@ -150,7 +150,7 @@ export function CreateTokenForm({
             value={appId}
             onChange={(e) => setAppId(e.target.value)}
             placeholder="Leave empty for global access"
-            className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 transition-colors focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           />
           <p className="mt-1 text-xs text-gray-500">
             Restrict to specific MiniApp or leave empty for all apps

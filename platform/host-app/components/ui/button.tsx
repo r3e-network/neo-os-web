@@ -63,11 +63,11 @@ const variantStyles: Record<
       "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent",
   },
   ghost: {
-    base: "bg-transparent text-gray-300 font-medium",
-    hover: "hover:bg-white/5 hover:text-white",
+    base: "bg-transparent text-gray-600 font-medium",
+    hover: "hover:bg-gray-100 hover:text-gray-900",
     active: "active:scale-[0.98]",
     disabled:
-      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300",
+      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-600",
   },
   danger: {
     base: "bg-red-500 text-white font-semibold",
@@ -143,7 +143,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           // Base styles
           "inline-flex items-center justify-center font-medium",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-neo focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-neo focus-visible:ring-offset-2 focus-visible:ring-offset-white",
           // Animation
           animationClasses,
           // Variant
