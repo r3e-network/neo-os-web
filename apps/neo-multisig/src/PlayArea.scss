@@ -307,6 +307,20 @@
   cursor: pointer;
   text-align: left;
   letter-spacing: 0;
+  transition:
+    border-color var(--ns-t-fast, 150ms) ease,
+    box-shadow var(--ns-t-fast, 150ms) ease;
+
+  &:hover {
+    border-color: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+    box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--multisig-blue);
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  }
 }
 
 .multisig-history-card span {

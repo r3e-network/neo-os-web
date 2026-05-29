@@ -8,9 +8,9 @@
   padding: 24px 16px;
   min-height: 300px;
   font-family: 'Lora', Georgia, serif;
-  background: #ffffff;
-  color: #1f2937;
-  border-radius: 12px;
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-text, #2a2d3d);
+  border-radius: var(--ns-radius-lg, 20px);
   position: relative;
   overflow: hidden;
 }
@@ -19,32 +19,33 @@
 .stat-chip {
   display: flex; flex-direction: column; align-items: center;
   text-align: center; padding: 10px 12px; flex: 1; min-width: 60px;
-  background: #f9fafb; border-radius: 10px;
-  border: 1px solid #f3f4f6;
+  background: var(--ns-surface-subtle, #f7f8fa); border-radius: var(--ns-radius-sm, 12px);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 }
-.stat-value { font-size: 18px; font-weight: 700; color: #10b981; font-variant-numeric: tabular-nums; }
-.stat-label { font-size: 9px; font-weight: 600; text-transform: uppercase; color: #9ca3af; letter-spacing: 1px; margin-top: 2px; }
+.stat-value { font-size: 18px; font-weight: 700; color: var(--ns-brand, #16c784); font-variant-numeric: tabular-nums; }
+.stat-label { font-size: 9px; font-weight: 600; text-transform: uppercase; color: var(--ns-text-muted, #8a92a6); letter-spacing: 1px; margin-top: 2px; }
 
 .header { text-align: center; padding: 32px 16px; }
-.header .title { display: block; font-size: 28px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
-.header .tagline { display: block; font-size: 16px; color: #9ca3af; letter-spacing: 6px; margin-bottom: 8px; font-style: italic; }
-.header .subtitle { display: block; font-size: 13px; color: #9ca3af; }
+.header .title { display: block; font-size: 28px; font-weight: 700; color: var(--ns-ink, #1e1e2e); margin-bottom: 8px; }
+.header .tagline { display: block; font-size: 16px; color: var(--ns-text-muted, #8a92a6); letter-spacing: 6px; margin-bottom: 8px; font-style: italic; }
+.header .subtitle { display: block; font-size: 13px; color: var(--ns-text-muted, #8a92a6); }
 
-.obituary-banner { background: #f9fafb; border-radius: 12px; padding: 14px 18px; border: 1px solid #f3f4f6; min-width: 0; }
-.obituary-banner .banner-title { display: block; font-size: 13px; color: #1f2937; margin-bottom: 8px; font-weight: 600; letter-spacing: 1px; }
+.obituary-banner { background: var(--ns-surface-subtle, #f7f8fa); border-radius: var(--ns-radius-sm, 12px); padding: 14px 18px; border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06)); min-width: 0; }
+.obituary-banner .banner-title { display: block; font-size: 13px; color: var(--ns-text, #2a2d3d); margin-bottom: 8px; font-weight: 600; letter-spacing: 1px; }
 .obituary-banner .banner-scroll { display: flex; gap: 18px; max-width: 100%; white-space: nowrap; overflow-x: auto; }
-.obituary-item { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; margin-right: 0; font-size: 12px; color: #9ca3af; background: none; border: none; cursor: pointer; font-family: 'Lora', Georgia, serif; }
-.obituary-item .name { color: #1f2937; margin-right: 8px; }
+.obituary-item { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; margin-right: 0; font-size: 12px; color: var(--ns-text-muted, #8a92a6); background: none; border: none; cursor: pointer; font-family: 'Lora', Georgia, serif; }
+.obituary-item .name { color: var(--ns-text, #2a2d3d); margin-right: 8px; }
 .obituary-item .text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.obituary-item:focus-visible { outline: none; border-radius: 6px; box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18)); }
 
 .detail-card { margin-bottom: 4px; }
 .detail-header { margin-bottom: 12px; }
-.detail-name { display: block; font-size: 20px; font-weight: 700; color: #1f2937; }
-.detail-years { display: block; font-size: 13px; color: #9ca3af; margin-top: 2px; }
-.detail-bio { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 16px; }
+.detail-name { display: block; font-size: 20px; font-weight: 700; color: var(--ns-ink, #1e1e2e); }
+.detail-years { display: block; font-size: 13px; color: var(--ns-text-muted, #8a92a6); margin-top: 2px; }
+.detail-bio { font-size: 14px; color: var(--ns-text-2, #5b6478); line-height: 1.6; margin-bottom: 16px; }
 
-.tribute-form { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
-.tribute-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #10b981; font-weight: 600; }
+.tribute-form { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06)); }
+.tribute-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--ns-brand, #16c784); font-weight: 600; }
 .tribute-row { display: flex; gap: 10px; }
 .tribute-row > * { flex: 1; }
 
@@ -54,7 +55,7 @@
 .year-row > * { flex: 1; }
 
 .memorials-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
-.empty-memorials { text-align: center; padding: 48px 16px; color: #9ca3af; font-style: italic; }
+.empty-memorials { text-align: center; padding: 48px 16px; color: var(--ns-text-muted, #8a92a6); font-style: italic; }
 
 @media (max-width: 520px) {
   .memorial-play-area {

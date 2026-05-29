@@ -114,10 +114,10 @@ body {
   div {
     min-width: 0;
     padding: 14px;
-    border: 1px solid #dfe7e2;
-    border-radius: 16px;
-    background: #ffffff;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    border-radius: var(--ns-radius-md, 16px);
+    background: var(--ns-surface, #ffffff);
+    box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   }
 
   span {
@@ -127,8 +127,8 @@ body {
     width: 28px;
     height: 28px;
     border-radius: 999px;
-    background: #edf7f1;
-    color: #107a52;
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-strong, #0fb174);
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0;
@@ -155,10 +155,10 @@ body {
 .gov-merc-pool-panel,
 .gov-merc-risk-panel,
 .gov-merc-bid-panel {
-  border-color: rgba(17, 24, 39, 0.1);
-  border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .gov-merc-section-heading {
@@ -196,9 +196,9 @@ body {
   div {
     min-width: 0;
     padding: 12px;
-    border: 1px solid #e2e8e4;
-    border-radius: 14px;
-    background: #f7faf8;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    border-radius: var(--ns-radius-sm, 12px);
+    background: var(--ns-surface-subtle, #f7f8fa);
   }
 
   span,
