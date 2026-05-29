@@ -170,6 +170,50 @@ describe("OperationPanel", () => {
     expect(screen.getByLabelText("Stake amount")).toHaveValue(42);
   });
 
+  it("refreshes form values when launch params change under the same route signature", () => {
+    const { rerender } = render(
+      <OperationPanel
+        operations={operations}
+        onInvoke={jest.fn()}
+        showTitle={false}
+        launchContext={{
+          appId: "miniapp-profitanchor",
+          source: "onegate",
+          operation: "stake",
+          tab: null,
+          network: "testnet",
+          params: { amount: "12" },
+          keys: ["amount"],
+          hasParams: true,
+          signature: "stable-onegate-session",
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Stake amount")).toHaveValue(12);
+
+    rerender(
+      <OperationPanel
+        operations={operations}
+        onInvoke={jest.fn()}
+        showTitle={false}
+        launchContext={{
+          appId: "miniapp-profitanchor",
+          source: "onegate",
+          operation: "stake",
+          tab: null,
+          network: "testnet",
+          params: { amount: "33" },
+          keys: ["amount"],
+          hasParams: true,
+          signature: "stable-onegate-session",
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Stake amount")).toHaveValue(33);
+  });
+
   it("renders market-style controls inside the action box without invented amount shortcuts", () => {
     render(
       <OperationPanel
@@ -245,6 +289,63 @@ describe("OperationPanel", () => {
     expect(
       screen.queryByRole("button", { name: "25 GAS" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("keeps generated field ids unique when desktop and mobile action panels coexist", () => {
+    const repeatedOperation = [
+      {
+        name: "Buy Keys",
+        method: "buyCountdownKeys",
+        params: [
+          {
+            name: "side",
+            label: "Side",
+            type: "select" as const,
+            options: [
+              { label: "Fast", value: "fast" },
+              { label: "Safe", value: "safe" },
+            ],
+          },
+          {
+            name: "keyCount",
+            label: "Keys",
+            type: "integer" as const,
+            default_value: "3",
+          },
+          {
+            name: "memo",
+            label: "Memo",
+            type: "string" as const,
+            default_value: "round-ready",
+          },
+        ],
+      },
+    ];
+
+    const { container } = render(
+      <>
+        <OperationPanel
+          operations={repeatedOperation}
+          onInvoke={jest.fn()}
+          showTitle={false}
+        />
+        <OperationPanel
+          operations={repeatedOperation}
+          onInvoke={jest.fn()}
+          showTitle={false}
+        />
+      </>,
+    );
+
+    const fieldIds = Array.from(
+      container.querySelectorAll("input[id], select[id], textarea[id]"),
+      (element) => element.id,
+    );
+
+    expect(fieldIds).toHaveLength(new Set(fieldIds).size);
+    expect(screen.getAllByLabelText("Keys")).toHaveLength(2);
+    expect(screen.getAllByLabelText("Memo")).toHaveLength(2);
+    expect(screen.getAllByLabelText("Side")).toHaveLength(2);
   });
 
   it("treats OneGate Vault claim keys as QR context instead of editable amount controls", async () => {

@@ -71,15 +71,15 @@ export function OperationParamsEditor({
   };
 
   return (
-    <div className="pl-4 border-l-2 border-gray-100 dark:border-gray-800">
+    <div className="pl-4 border-l-2 border-gray-100">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs text-gray-500">
           Parameters
         </span>
         <button
           type="button"
           onClick={add}
-          className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md"
+          className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-lg"
         >
           + Add Param
         </button>
@@ -95,7 +95,7 @@ export function OperationParamsEditor({
           />
           <select
             id={`param-type-${i}`}
-            className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 w-28 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="rounded-lg border border-gray-300 p-1.5 text-xs cursor-pointer transition-colors w-28 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             value={p.type}
             onChange={(e) => update(i, "type", e.target.value)}
             aria-label="Parameter type"
@@ -136,7 +136,7 @@ export function OperationParamsEditor({
           <button
             type="button"
             onClick={() => remove(i)}
-            className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+            className="text-red-500 text-xs px-1 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
             aria-label={`Remove parameter ${i + 1}`}
           >
             ×
@@ -160,14 +160,14 @@ export function ContentBlocksEditor({
     onChange(next);
   };
   return (
-    <div className="pl-4 border-l-2 border-gray-100 dark:border-gray-800">
+    <div className="pl-4 border-l-2 border-gray-100">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-gray-500 dark:text-gray-400">
+        <span className="text-xs text-gray-500">
           Content Blocks
         </span>
         <select
           id="block-type-select"
-          className="text-xs cursor-pointer text-primary-600 border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md"
+          className="text-xs cursor-pointer text-primary-600 border-0 bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-lg"
           defaultValue=""
           onChange={(e) => {
             if (e.target.value) {
@@ -190,10 +190,10 @@ export function ContentBlocksEditor({
       {blocks.map((b, i) => (
         <div
           key={i}
-          className="rounded border border-gray-100 dark:border-gray-700 p-2 mb-2 space-y-1"
+          className="rounded border border-gray-100 p-2 mb-2 space-y-1"
         >
           <div className="flex gap-2 items-center">
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-20 shrink-0">
+            <span className="text-xs font-medium text-gray-500 w-20 shrink-0">
               {b.type}
             </span>
             <Input
@@ -207,7 +207,7 @@ export function ContentBlocksEditor({
               type="button"
               aria-label={`Remove ${b.type} block ${i + 1}`}
               onClick={() => onChange(blocks.filter((_, idx) => idx !== i))}
-              className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg"
+              className="text-red-500 text-xs px-1 shrink-0 cursor-pointer rounded-lg"
             >
               ×
             </button>
@@ -237,7 +237,7 @@ function BlockFields({
     return (
       <textarea
         id={`content-block-markdown-${blockIndex}`}
-        className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+        className="w-full rounded-lg border border-gray-300 p-2 text-xs resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
         rows={3}
         placeholder="Markdown content"
         value={block.content || ""}
@@ -267,7 +267,7 @@ function BlockFields({
       <div className="flex gap-2">
         <select
           id={`notice-tone-${blockIndex}`}
-          className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer dark:bg-gray-800 dark:text-gray-100 w-28 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+          className="rounded-lg border border-gray-300 p-1.5 text-xs cursor-pointer w-28 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           value={block.tone || "info"}
           onChange={(e) => onChange({ tone: e.target.value })}
           aria-label={`Notice tone for block ${blockIndex + 1}`}
@@ -341,7 +341,7 @@ function KVEditor({
             type="button"
             aria-label={`Remove pair ${i + 1}`}
             onClick={() => onChange(entries.filter((_, idx) => idx !== i))}
-            className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg"
+            className="text-red-500 text-xs px-1 shrink-0 cursor-pointer rounded-lg"
           >
             ×
           </button>
@@ -351,7 +351,7 @@ function KVEditor({
         type="button"
         aria-label="Add pair"
         onClick={() => onChange([...entries, { key: "", value: "" }])}
-        className="text-xs cursor-pointer text-primary-600 hover:underline rounded-md"
+        className="text-xs cursor-pointer text-primary-600 hover:underline rounded-lg"
       >
         + Add pair
       </button>
@@ -396,7 +396,7 @@ function LinksEditor({
             type="button"
             aria-label={`Remove link ${i + 1}`}
             onClick={() => onChange(links.filter((_, idx) => idx !== i))}
-            className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg"
+            className="text-red-500 text-xs px-1 shrink-0 cursor-pointer rounded-lg"
           >
             ×
           </button>
@@ -406,7 +406,7 @@ function LinksEditor({
         type="button"
         aria-label="Add link"
         onClick={() => onChange([...links, { label: "", href: "" }])}
-        className="text-xs cursor-pointer text-primary-600 hover:underline rounded-md"
+        className="text-xs cursor-pointer text-primary-600 hover:underline rounded-lg"
       >
         + Add link
       </button>

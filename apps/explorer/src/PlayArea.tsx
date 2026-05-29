@@ -1,7 +1,7 @@
 /**
  * PlayArea.tsx — Explorer
  *
- * READ-ONLY blockchain explorer with network stats, search, and recent transactions.
+ * Read-only blockchain explorer with network stats, search, and recent transactions.
  * Uses all state keys and actions from main.tsx setup().
  */
 
@@ -22,7 +22,6 @@ interface PlayAreaProps {
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
-  // Network stats
   const mainnetHeight = num("mainnetHeight");
   const mainnetTxCount = num("mainnetTxCount");
   const testnetHeight = num("testnetHeight");
@@ -30,7 +29,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const recentTxCount = num("recentTxCount");
   const isLoading = bool("isLoading");
 
-  // Search state
   const searchQuery = str("searchQuery");
   const selectedNetwork = str("selectedNetwork", "mainnet") as "mainnet" | "testnet";
   const isSearching = bool("isSearching");
@@ -65,7 +63,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const formatNumber = (n: number) =>
-    n > 0 ? n.toLocaleString() : (t("notAvailable") || "N/A");
+    n > 0 ? n.toLocaleString() : t("explorerDataPending");
+
+  const activeHeight = selectedNetwork === "mainnet" ? mainnetHeight : testnetHeight;
+  const activeTxCount = selectedNetwork === "mainnet" ? mainnetTxCount : testnetTxCount;
+  const activeNetworkLabel = selectedNetwork === "mainnet" ? t("mainnet") : t("testnet");
+  const activeNetworkHint = selectedNetwork === "mainnet"
+    ? t("explorerMainnetHint")
+    : t("explorerTestnetHint");
 
   const handleSearch = async () => {
     await dispatch("search");
@@ -77,37 +82,81 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="explorer-play-area">
-      {/* Network Stats */}
+      <section className="explorer-hero" aria-label={t("title")}>
+        <div className="explorer-hero__copy">
+          <span className="explorer-eyebrow">{t("docSubtitle")}</span>
+          <h2>{t("title")}</h2>
+          <p>{t("docDescription")}</p>
+        </div>
+        <div className="explorer-hero__metrics" aria-label={t("sidebarNetwork")}>
+          <div className="explorer-metric">
+            <span>{activeNetworkLabel}</span>
+            <strong>{activeNetworkHint}</strong>
+          </div>
+          <div className="explorer-metric">
+            <span>{t("blockHeight")}</span>
+            <strong className="mono">{formatNumber(activeHeight)}</strong>
+          </div>
+          <div className="explorer-metric">
+            <span>{t("transactions")}</span>
+            <strong className="mono">{formatNumber(activeTxCount)}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section className="explorer-signal-card" aria-label={t("explorerReadOnly")}>
+        <div className="explorer-token" aria-hidden="true">N3</div>
+        <div className="explorer-signal-card__copy">
+          <span>{t("explorerReadOnly")}</span>
+          <strong>{t("explorerSearchScope")}</strong>
+          <p>{t("explorerSafetyDesc")}</p>
+        </div>
+        <div className="explorer-network-stack" aria-label={t("sidebarNetwork")}>
+          <div>
+            <span>{t("mainnet")}</span>
+            <strong>{formatNumber(mainnetHeight)}</strong>
+          </div>
+          <div>
+            <span>{t("testnet")}</span>
+            <strong>{formatNumber(testnetHeight)}</strong>
+          </div>
+        </div>
+      </section>
+
       <div className="network-stats">
-        <NeoCard variant="erobo" className="stat-card">
-          <div className="stat-block">
-            <span className="stat-network-label">{t("mainnet") || "Mainnet"}</span>
-            <div className="stat-row">
-              <span className="stat-label">{t("blockHeight") || "Block Height"}</span>
-              <span className="stat-value mono">{formatNumber(mainnetHeight)}</span>
+        {[
+          { label: t("mainnet"), height: mainnetHeight, txCount: mainnetTxCount },
+          { label: t("testnet"), height: testnetHeight, txCount: testnetTxCount },
+        ].map((network) => (
+          <NeoCard variant="erobo" className="stat-card" key={network.label}>
+            <div className="stat-block">
+              <span className="stat-network-label">{network.label}</span>
+              <div className="stat-row">
+                <span className="stat-label">{t("blockHeight")}</span>
+                <span className="stat-value mono">{formatNumber(network.height)}</span>
+              </div>
+              <div className="stat-row">
+                <span className="stat-label">{t("transactions")}</span>
+                <span className="stat-value mono">{formatNumber(network.txCount)}</span>
+              </div>
             </div>
-            <div className="stat-row">
-              <span className="stat-label">{t("transactions") || "Transactions"}</span>
-              <span className="stat-value mono">{formatNumber(mainnetTxCount)}</span>
-            </div>
-          </div>
-        </NeoCard>
-        <NeoCard variant="erobo" className="stat-card">
-          <div className="stat-block">
-            <span className="stat-network-label">{t("testnet") || "Testnet"}</span>
-            <div className="stat-row">
-              <span className="stat-label">{t("blockHeight") || "Block Height"}</span>
-              <span className="stat-value mono">{formatNumber(testnetHeight)}</span>
-            </div>
-            <div className="stat-row">
-              <span className="stat-label">{t("transactions") || "Transactions"}</span>
-              <span className="stat-value mono">{formatNumber(testnetTxCount)}</span>
-            </div>
-          </div>
-        </NeoCard>
+          </NeoCard>
+        ))}
       </div>
 
-      {/* Search */}
+      <section className="explorer-search-primer" aria-label={t("explorerSearchScope")}>
+        <div>
+          <span>{t("feature3Name")}</span>
+          <strong>{t("explorerSearchHint")}</strong>
+        </div>
+        <ul>
+          <li>{t("explorerTipTx")}</li>
+          <li>{t("explorerTipAddress")}</li>
+          <li>{t("explorerTipContract")}</li>
+          <li>{t("explorerTipBlock")}</li>
+        </ul>
+      </section>
+
       <SearchPanel
         t={t}
         searchQuery={searchQuery}
@@ -118,22 +167,52 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         onSearch={handleSearch}
       />
 
-      {/* Loading State */}
+      <section className="explorer-workflow" aria-label={t("explorerWorkflowTitle")}>
+        <div>
+          <span>01</span>
+          <strong>{t("step1")}</strong>
+        </div>
+        <div>
+          <span>02</span>
+          <strong>{t("step2")}</strong>
+        </div>
+        <div>
+          <span>03</span>
+          <strong>{t("step3")}</strong>
+        </div>
+      </section>
+
+      <NeoCard variant="erobo" className="explorer-readonly-note">
+        <div className="explorer-readonly-note__summary">
+          <span>{t("explorerSafetyTitle")}</span>
+          <strong>{t("explorerReadOnly")}</strong>
+          <p>{t("feature1Desc")}</p>
+        </div>
+        <div className="explorer-readonly-note__stats">
+          <div>
+            <span>{t("sidebarRecentTxs")}</span>
+            <strong>{recentTxCount > 0 ? recentTxCount.toLocaleString() : t("explorerDataPending")}</strong>
+          </div>
+          <div>
+            <span>{t("searchResult")}</span>
+            <strong>{searchResult ? t("explorerResultReady") : t("explorerDataPending")}</strong>
+          </div>
+        </div>
+      </NeoCard>
+
       {(isSearching || isLoading) && (
         <div className="loading" role="status" aria-live="polite">
           <div className="loading-spinner" />
-          <span>{t("searching") || "Searching..."}</span>
+          <span>{t("searching")}</span>
         </div>
       )}
 
-      {/* Search Result */}
       <SearchResultDisplay
         t={t}
         result={searchResult}
         formatTime={formatTime}
       />
 
-      {/* Recent Transactions */}
       <RecentTransactions
         t={t}
         transactions={recentTxs}
@@ -142,11 +221,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         onViewTx={handleViewTx}
       />
 
-      {/* Recent TX count footer */}
       {recentTxCount > 0 && (
         <div className="recent-count-footer">
           <span className="recent-count-label">
-            {t("recentTxCount") || "Recent transactions"}: {recentTxCount}
+            {t("recentTxCount")}: {recentTxCount}
           </span>
         </div>
       )}

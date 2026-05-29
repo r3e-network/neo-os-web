@@ -13,25 +13,39 @@ export default function RecentTransactions({ t, transactions, formatTime, trunca
   return (
     <div className="recent-section">
       <span className="section-title">{t("recentTransactions")}</span>
-      {transactions.map((tx) => (
-        <NeoCard
-          key={tx.hash}
-          variant="erobo"
-          className="tx-card"
-          hoverable
-          onClick={() => onViewTx(tx.hash)}
-        >
-          <div className="tx-content">
-            <div className="tx-info">
-              <span className="tx-hash mono">{truncateHash(tx.hash)}</span>
-              <span className={`vm-state ${tx.vmState}`}>
-                {tx.vmState === "HALT" ? t("vmHalt") : t("vmFault")}
-              </span>
-            </div>
-            <span className="tx-time">{formatTime(tx.blockTime)}</span>
+      {transactions.length === 0 ? (
+        <NeoCard variant="erobo" className="recent-empty-state">
+          <div>
+            <span>{t("explorerRecentEmptyTitle")}</span>
+            <strong>{t("explorerRecentEmptyDesc")}</strong>
           </div>
+          <ul aria-label={t("explorerWorkflowTitle")}>
+            <li>{t("explorerTipTx")}</li>
+            <li>{t("explorerTipAddress")}</li>
+            <li>{t("explorerTipContract")}</li>
+          </ul>
         </NeoCard>
-      ))}
+      ) : (
+        transactions.map((tx) => (
+          <NeoCard
+            key={tx.hash}
+            variant="erobo"
+            className="tx-card"
+            hoverable
+            onClick={() => onViewTx(tx.hash)}
+          >
+            <div className="tx-content">
+              <div className="tx-info">
+                <span className="tx-hash mono">{truncateHash(tx.hash)}</span>
+                <span className={`vm-state ${tx.vmState}`}>
+                  {tx.vmState === "HALT" ? t("vmHalt") : t("vmFault")}
+                </span>
+              </div>
+              <span className="tx-time">{formatTime(tx.blockTime)}</span>
+            </div>
+          </NeoCard>
+        ))
+      )}
     </div>
   );
 }

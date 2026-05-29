@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { ChevronDown, Edit3 } from "lucide-react";
 import { MiniAppLaunchContext, OperationEntry, OperationParam } from "./types";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ type Props = {
   className?: string;
   variant?: "card" | "embedded";
   disabledReason?: string | null;
+  getDisabledReason?: (operation: OperationEntry) => string | null;
   launchContext?: MiniAppLaunchContext | null;
 };
 
@@ -26,8 +27,10 @@ export function OperationPanel({
   className,
   variant = "card",
   disabledReason = null,
+  getDisabledReason,
   launchContext = null,
 }: Props) {
+  const panelIdPrefix = useFieldIdPrefix("operation-panel");
   const requestedOperationIndex = useMemo(
     () => resolveRequestedOperationIndex(operations, launchContext?.operation),
     [launchContext?.operation, operations],
@@ -49,8 +52,8 @@ export function OperationPanel({
     operations[Math.min(activeTabIdx, operations.length - 1)] ?? operations[0];
   const embedded = variant === "embedded";
   const shellClass = embedded
-    ? "overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
-    : "overflow-hidden rounded-[20px] border border-gray-200 bg-white shadow-lg shadow-gray-950/6";
+    ? "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
+    : "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md shadow-gray-950/6";
 
   return (
     <div
@@ -139,12 +142,32 @@ export function OperationPanel({
           op={activeOp}
           onInvoke={onInvoke}
           disabledReason={disabledReason}
+          getDisabledReason={getDisabledReason}
           launchContext={launchContext}
           compact={embedded}
+          fieldIdPrefix={panelIdPrefix}
         />
       </div>
     </div>
   );
+}
+
+function useFieldIdPrefix(prefix: string) {
+  const reactId = useId();
+  return useMemo(
+    () => `${prefix}-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`,
+    [prefix, reactId],
+  );
+}
+
+function buildFieldId(prefix: string, ...parts: Array<string | undefined>) {
+  const suffix = parts
+    .map((part) => String(part || "field").trim())
+    .join("-")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+  return `${prefix}-${suffix || "field"}`;
 }
 
 function splitOperationTabs(
@@ -260,18 +283,22 @@ function OperationForm({
   op,
   onInvoke,
   disabledReason,
+  getDisabledReason,
   launchContext,
   compact,
+  fieldIdPrefix,
 }: {
   op: OperationEntry;
   onInvoke: Props["onInvoke"];
   disabledReason?: string | null;
+  getDisabledReason?: (operation: OperationEntry) => string | null;
   launchContext?: MiniAppLaunchContext | null;
   compact?: boolean;
+  fieldIdPrefix: string;
 }) {
   const initialValues = useMemo(
     () => buildLaunchParamValues(op.params ?? [], launchContext?.params),
-    [launchContext?.signature, op],
+    [launchContext?.params, op],
   );
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [submitting, setSubmitting] = useState(false);
@@ -310,10 +337,14 @@ function OperationForm({
     setError(null);
   }, [initialValues]);
 
+  const effectiveDisabledReason = getDisabledReason
+    ? getDisabledReason(op)
+    : disabledReason;
+
   const handleSubmit = async () => {
     if (submitting) return;
-    if (disabledReason) {
-      setError(disabledReason);
+    if (effectiveDisabledReason) {
+      setError(effectiveDisabledReason);
       return;
     }
 
@@ -343,7 +374,7 @@ function OperationForm({
   const tone = operationTone(op);
   const claimKeyValue = String(values.claimKey || values.key || "").trim();
   const submitDisabledReason =
-    disabledReason ||
+    effectiveDisabledReason ||
     (serverPayoutOperation && !claimKeyValue
       ? "Open this reward from a OneGate QR code."
       : null);
@@ -400,6 +431,7 @@ function OperationForm({
             param={firstChoiceParam}
             value={values[firstChoiceParam.name] ?? ""}
             tone={tone}
+            fieldIdPrefix={fieldIdPrefix}
             onChange={(value) =>
               setValues((current) => ({
                 ...current,
@@ -413,6 +445,7 @@ function OperationForm({
           <PrimaryValueParam
             param={primaryValueParam}
             value={values[primaryValueParam.name] ?? ""}
+            fieldIdPrefix={fieldIdPrefix}
             onChange={(value) =>
               setValues((current) => ({
                 ...current,
@@ -429,6 +462,7 @@ function OperationForm({
                 key={param.name}
                 param={param}
                 value={values[param.name] ?? ""}
+                fieldIdPrefix={fieldIdPrefix}
                 onChange={(value) =>
                   setValues((current) => ({ ...current, [param.name]: value }))
                 }
@@ -448,16 +482,16 @@ function OperationForm({
           </div>
         )}
 
-        {disabledReason && !error && (
+        {effectiveDisabledReason && !error && (
           <div
             aria-live="polite"
             className="break-words rounded-lg bg-amber-50 p-3 text-sm text-amber-700"
           >
-            {disabledReason}
+            {effectiveDisabledReason}
           </div>
         )}
 
-        {submitDisabledReason && !disabledReason && !error && (
+        {submitDisabledReason && !effectiveDisabledReason && !error && (
           <div
             aria-live="polite"
             className="break-words rounded-lg bg-amber-50 p-3 text-sm text-amber-700"
@@ -549,16 +583,18 @@ function ChoiceParam({
   param,
   value,
   tone,
+  fieldIdPrefix,
   onChange,
 }: {
   param: OperationParam;
   value: string;
   tone: ReturnType<typeof operationTone>;
+  fieldIdPrefix: string;
   onChange: (v: string) => void;
 }) {
   const options = parseSelectOptions(param.options);
   const label = param.label || param.name;
-  const selectId = `choice-${param.name}`;
+  const selectId = buildFieldId(fieldIdPrefix, "choice", param.name);
 
   return (
     <div className="space-y-2">
@@ -610,18 +646,20 @@ function ChoiceParam({
 function PrimaryValueParam({
   param,
   value,
+  fieldIdPrefix,
   onChange,
 }: {
   param: OperationParam;
   value: string;
+  fieldIdPrefix: string;
   onChange: (v: string) => void;
 }) {
   const label = param.label || param.name;
   const presets = quickPresetsFor(param);
-  const inputId = param.name || label.toLowerCase().replace(/\s+/g, "-");
+  const inputId = buildFieldId(fieldIdPrefix, param.name || label);
 
   return (
-    <div className="space-y-2 rounded-2xl border border-gray-200 bg-white p-2 shadow-sm shadow-gray-950/5 sm:p-3">
+    <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm shadow-gray-950/5 sm:p-3">
       <div className="flex items-center justify-between gap-3">
         <label
           htmlFor={inputId}
@@ -681,10 +719,12 @@ function quickPresetsFor(
 function ParamInput({
   param,
   value,
+  fieldIdPrefix,
   onChange,
 }: {
   param: OperationParam;
   value: string;
+  fieldIdPrefix: string;
   onChange: (v: string) => void;
 }) {
   const label = param.label || param.name;
@@ -707,7 +747,7 @@ function ParamInput({
     const parsedOptions = parseSelectOptions(param.options);
     if (parsedOptions.length === 0) return null;
 
-    const selectId = `select-${label.toLowerCase().replace(/\s+/g, "-")}`;
+    const selectId = buildFieldId(fieldIdPrefix, "select", param.name || label);
     return (
       <div className="flex flex-col space-y-1.5">
         <label htmlFor={selectId} className="text-sm font-medium text-gray-700">
@@ -734,7 +774,7 @@ function ParamInput({
     );
   }
 
-  const inputId = param.name || label.toLowerCase().replace(/\s+/g, "-");
+  const inputId = buildFieldId(fieldIdPrefix, param.name || label);
   const multiline =
     param.type === "string" &&
     /candidate|public\s*keys|keys|list/i.test(`${param.name} ${label}`);

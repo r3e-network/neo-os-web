@@ -19,7 +19,7 @@ export function PermissionsTab({
   return (
     <div className="space-y-6">
       <div>
-        <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <div className="mb-2 block text-sm font-medium text-gray-700">
           Permissions
         </div>
         <div className="flex flex-wrap gap-3">
@@ -36,7 +36,7 @@ export function PermissionsTab({
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Input
           label="Daily Gas Cap/User"
           placeholder="20"
@@ -56,7 +56,7 @@ export function PermissionsTab({
           onChange={(e) => update("max_gas_per_tx", e.target.value)}
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Input
           label="Assets Allowed (comma-separated)"
           placeholder="GAS"

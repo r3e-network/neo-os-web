@@ -1,98 +1,105 @@
-/**
- * MercActionCards.tsx -- Deposit/Withdraw/Bid forms for Gov Merc.
- */
-
-import { useState } from "react";
-import { NeoButton, NeoInput, NeoCard } from "@shared/components-react";
+import { NeoButton, NeoInput } from "@shared/components-react";
 import "./MercActionCards.scss";
+
+export type AmountField = "depositAmount" | "withdrawAmount" | "bidAmount";
 
 interface MercActionCardsProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   isBusy: boolean;
+  depositAmount: string;
+  withdrawAmount: string;
+  bidAmount: string;
+  onAmountChange: (key: AmountField, value: string) => void;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export default function MercActionCards({ t, isBusy, dispatch }: MercActionCardsProps) {
-  const [depositAmount, setDepositAmount] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [bidAmount, setBidAmount] = useState("");
+function isPositiveAmount(value: string) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0;
+}
 
-  const handleDeposit = async () => {
-    await dispatch("depositNeo");
-    setDepositAmount("");
-  };
-
-  const handleWithdraw = async () => {
-    await dispatch("withdrawNeo");
-    setWithdrawAmount("");
-  };
-
-  const handleBid = async () => {
-    await dispatch("placeBid");
-    setBidAmount("");
-  };
-
+export default function MercActionCards({
+  t,
+  isBusy,
+  depositAmount,
+  withdrawAmount,
+  bidAmount,
+  onAmountChange,
+  dispatch,
+}: MercActionCardsProps) {
   return (
     <>
-      {/* Deposit Card */}
-      <NeoCard variant="erobo">
-        <div className="form-group-neo">
-          <NeoInput
-            value={depositAmount}
-            type="number"
-            placeholder={t("enterAmount")}
-            label={t("depositAmount")}
-            onChange={(val) => setDepositAmount(val)}
-          />
-          <NeoButton
-            variant="primary"
-            loading={isBusy}
-            onClick={handleDeposit}
-          >
-            {t("depositNeo")}
-          </NeoButton>
+      <div className="gov-merc-action-card">
+        <div>
+          <span>{t("depositNeo")}</span>
+          <p>{t("actionDepositHint")}</p>
         </div>
-      </NeoCard>
+        <NeoInput
+          value={depositAmount}
+          type="number"
+          min={0}
+          suffix="NEO"
+          placeholder={t("enterAmount")}
+          label={t("depositAmount")}
+          onChange={(value) => onAmountChange("depositAmount", value)}
+        />
+        <NeoButton
+          variant="primary"
+          loading={isBusy}
+          disabled={isBusy || !isPositiveAmount(depositAmount)}
+          onClick={() => dispatch("depositNeo")}
+        >
+          {t("depositNeo")}
+        </NeoButton>
+      </div>
 
-      {/* Withdraw Card */}
-      <NeoCard variant="erobo">
-        <div className="form-group-neo">
-          <NeoInput
-            value={withdrawAmount}
-            type="number"
-            placeholder={t("enterAmount")}
-            label={t("withdrawAmount")}
-            onChange={(val) => setWithdrawAmount(val)}
-          />
-          <NeoButton
-            variant="secondary"
-            loading={isBusy}
-            onClick={handleWithdraw}
-          >
-            {t("withdrawNeo")}
-          </NeoButton>
+      <div className="gov-merc-action-card">
+        <div>
+          <span>{t("withdrawNeo")}</span>
+          <p>{t("actionWithdrawHint")}</p>
         </div>
-      </NeoCard>
+        <NeoInput
+          value={withdrawAmount}
+          type="number"
+          min={0}
+          suffix="NEO"
+          placeholder={t("enterAmount")}
+          label={t("withdrawAmount")}
+          onChange={(value) => onAmountChange("withdrawAmount", value)}
+        />
+        <NeoButton
+          variant="secondary"
+          loading={isBusy}
+          disabled={isBusy || !isPositiveAmount(withdrawAmount)}
+          onClick={() => dispatch("withdrawNeo")}
+        >
+          {t("withdrawNeo")}
+        </NeoButton>
+      </div>
 
-      {/* Bid Card */}
-      <NeoCard variant="erobo">
-        <div className="form-group-neo">
-          <NeoInput
-            value={bidAmount}
-            type="number"
-            placeholder={t("enterAmount")}
-            label={t("bidAmount")}
-            onChange={(val) => setBidAmount(val)}
-          />
-          <NeoButton
-            variant="primary"
-            loading={isBusy}
-            onClick={handleBid}
-          >
-            {t("placeBid")}
-          </NeoButton>
+      <div className="gov-merc-action-card">
+        <div>
+          <span>{t("placeBid")}</span>
+          <p>{t("actionBidHint")}</p>
         </div>
-      </NeoCard>
+        <NeoInput
+          value={bidAmount}
+          type="number"
+          min={0}
+          suffix="GAS"
+          placeholder={t("enterAmount")}
+          label={t("bidAmount")}
+          onChange={(value) => onAmountChange("bidAmount", value)}
+        />
+        <NeoButton
+          variant="primary"
+          loading={isBusy}
+          disabled={isBusy || !isPositiveAmount(bidAmount)}
+          onClick={() => dispatch("placeBid")}
+        >
+          {t("placeBid")}
+        </NeoButton>
+      </div>
     </>
   );
 }

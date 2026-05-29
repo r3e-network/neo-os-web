@@ -89,7 +89,7 @@ export function PlayAreaRegistry(props: PlayAreaRegistryProps) {
 
   return (
     <div
-      className="overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5 sm:rounded-[26px]"
+      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
       data-testid={`native-playarea-${props.app.app_id}`}
     >
       <Component {...props} />

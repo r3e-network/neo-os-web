@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const crypto = require("crypto");
 const CozNeon = require("@cityofzion/neon-js");
 const { chooseNeoCapableActor } = require("./lib/live_actor_selection");
@@ -18,6 +19,72 @@ let Neon;
 const { getManifestContractHash, getNetworkConfig, normalizeNetworkName } = require("./lib/neo_network");
 
 const root = path.resolve(__dirname, "..", "..");
+
+function acquireRunLock() {
+  const tmpRoot = process.env.TMPDIR || os.tmpdir();
+  const lockSuffix = crypto
+    .createHash("sha1")
+    .update(root)
+    .digest("hex")
+    .slice(0, 10);
+  const lockDir = path.join(
+    tmpRoot,
+    `neo-miniapps-platform.flagship-live-flows.${lockSuffix}.lock`,
+  );
+  const pidFile = path.join(lockDir, "pid");
+
+  const writePid = () => {
+    fs.writeFileSync(pidFile, String(process.pid), "utf8");
+  };
+
+  try {
+    fs.mkdirSync(lockDir);
+    writePid();
+  } catch {
+    let existingPid = "";
+    try {
+      existingPid = String(fs.readFileSync(pidFile, "utf8")).trim();
+    } catch {}
+
+    const pid = Number(existingPid);
+    if (Number.isFinite(pid) && pid > 0) {
+      try {
+        process.kill(pid, 0);
+        console.error(
+          `[flagship-live-flows] another run is already in progress (pid=${pid}); exiting.`,
+        );
+        process.exit(2);
+      } catch {
+        // Stale pid file; proceed to steal lock.
+      }
+    }
+
+    try {
+      fs.rmSync(lockDir, { recursive: true, force: true });
+      fs.mkdirSync(lockDir);
+      writePid();
+    } catch (error) {
+      console.error(
+        `[flagship-live-flows] failed to acquire lock at ${lockDir}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      process.exit(2);
+    }
+  }
+
+  const cleanup = () => {
+    try {
+      fs.rmSync(lockDir, { recursive: true, force: true });
+    } catch {}
+  };
+
+  process.on("exit", cleanup);
+  process.on("SIGINT", () => process.exit(130));
+  process.on("SIGTERM", () => process.exit(143));
+}
+
+acquireRunLock();
 const siblingOracleEnvPath = path.resolve(root, "..", "neo-morpheus-oracle", ".env");
 const siblingOracleEnvLocalPath = path.resolve(root, "..", "neo-morpheus-oracle", ".env.local");
 const siblingEdgeGatewayConfigPath = path.resolve(
@@ -138,6 +205,10 @@ const ORACLE_UPDATER_MIN_GAS = 10000000n;
 const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
 const GASBOX_APP_ID = "miniapp-gasbox";
 const GASBOX_SCAN_MAX_MACHINE_ID = Math.max(1, Number(process.env.GASBOX_SCAN_MAX_MACHINE_ID || "250"));
+const GASBOX_SCAN_TIMEOUT_MS = Math.max(
+  2000,
+  Number(process.env.GASBOX_SCAN_TIMEOUT_MS || "15000"),
+);
 const FLAGSHIP_TASKS = [
   ["dailyCheckin", runDailyCheckin],
   ["lastSurvivor", runLastSurvivor],
@@ -1329,7 +1400,9 @@ function assertPlayableGasBoxMachine(machineId, machine, item, itemIndex) {
 }
 
 async function findPlayableGasBoxMachine(contractHash) {
+  const deadline = Date.now() + GASBOX_SCAN_TIMEOUT_MS;
   for (let machineId = 1; machineId <= GASBOX_SCAN_MAX_MACHINE_ID; machineId += 1) {
+    if (Date.now() > deadline) break;
     const machine = await invokeRead(contractHash, "getGachaMachine", [
       { type: "String", value: GASBOX_APP_ID },
       { type: "Integer", value: String(machineId) },
@@ -1338,6 +1411,7 @@ async function findPlayableGasBoxMachine(contractHash) {
     const itemCount = Number(machine.itemCount || 0);
     if (itemCount <= 0) continue;
     for (let itemIndex = 1; itemIndex <= itemCount; itemIndex += 1) {
+      if (Date.now() > deadline) break;
       const item = await invokeRead(contractHash, "getGachaItem", [
         { type: "String", value: GASBOX_APP_ID },
         { type: "Integer", value: String(machineId) },
@@ -1348,7 +1422,9 @@ async function findPlayableGasBoxMachine(contractHash) {
       return { machineId, machine, item, itemIndex };
     }
   }
-  throw new Error("no active GASBOX machine with funded GAS prize inventory found");
+  throw new Error(
+    `no active GASBOX machine with funded GAS prize inventory found (maxMachineId=${GASBOX_SCAN_MAX_MACHINE_ID}, timeoutMs=${GASBOX_SCAN_TIMEOUT_MS})`,
+  );
 }
 
 async function provisionGasBoxMachine(contractHash) {
@@ -1945,7 +2021,14 @@ async function runFogPlay() {
       };
     } catch (error) {
       const message = String(error?.message || error);
-      if (message.toLowerCase().includes("max consecutive bets reached")) {
+      const lower = message.toLowerCase();
+      if (
+        lower.includes("max consecutive bets reached") ||
+        lower.includes("please wait before placing another bet") ||
+        lower.includes("rate limit") ||
+        lower.includes("rate-limit") ||
+        lower.includes("cooldown")
+      ) {
         lastCooldown = message;
         continue;
       }

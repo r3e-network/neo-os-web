@@ -41,7 +41,7 @@ export type MiniAppInvokeFeedback = {
 };
 
 type UseMiniAppDetailInvokeParams = {
-  app: MiniAppInfo;
+  app: MiniAppInfo | null;
   appSupportsTargetNetwork: boolean;
   directContractHash: string | null;
   launchContext: MiniAppLaunchContext;
@@ -77,6 +77,10 @@ export function useMiniAppDetailInvoke({
     async (operation: OperationEntry, values: Record<string, string>) => {
       setInvokeFeedback(null);
       try {
+        if (!app) {
+          throw new Error("MiniApp is unavailable. Return to the catalog and try again.");
+        }
+
         if (isFrontendLocalOperation(operation.method)) {
           const query = buildFrontendOperationQuery(
             router.query,

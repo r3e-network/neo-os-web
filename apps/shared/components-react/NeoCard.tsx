@@ -83,7 +83,7 @@ export function NeoCard({
           {header}
         </div>
       )}
-      <div className="neo-card__body">{children}</div>
+      <div className="neo-card__body neo-card__content">{children}</div>
       {footer && <div className="neo-card__footer">{footer}</div>}
     </div>
   );

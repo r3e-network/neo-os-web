@@ -89,6 +89,7 @@ defineMiniApp({
         // composable folds isCreating into isLoading
         isCreating: envelope.isLoading,
         luckyMessage: envelope.luckyMessage,
+        openingId: envelope.openingId,
         showOpeningModal: envelope.showOpeningModal,
         openingEnvelope: envelope.openingEnvelope,
         envelopeCount: envelope.envelopeCount,

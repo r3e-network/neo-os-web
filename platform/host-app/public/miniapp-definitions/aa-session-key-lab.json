@@ -1,0 +1,107 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-aa-session-key-lab",
+  "name": "AA Session Key Lab",
+  "name_zh": "AA Session Key 实验室",
+  "description": "Configure SessionKeyVerifier on-chain and inspect account-abstraction sponsorship state from a focused MiniApp.",
+  "description_zh": "用专用小程序在链上配置 SessionKeyVerifier 并检查 AA 赞助状态。",
+  "template_type": "utility",
+  "category": "utility",
+  "tags": ["aa", "session-key", "verifier", "sponsor"],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "Yiwu",
+    "email": "dev@r3e.network",
+    "url": "https://neomini.app"
+  },
+  "contract": {
+    "template_id": "aa-session-key-lab",
+    "contract_hash": "0x3ba8333406e59f9fd83cf378b33706a33d9f3755",
+    "domains": {
+      "neo-n3-mainnet": "sessionkey.smartwallet.neo"
+    }
+  },
+  "contract_domains": {
+    "neo-n3-mainnet": "sessionkey.smartwallet.neo"
+  },
+  "entry_url": "mf://manifest?app=miniapp-aa-session-key-lab",
+  "dapp_url": "/miniapps/aa-session-key-lab/index.html",
+  "media": {
+    "icon": "/miniapps/aa-session-key-lab/logo.jpg",
+    "banner": "/miniapps/aa-session-key-lab/banner.jpg"
+  },
+  "permissions": {
+    "aa": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "Account Abstraction"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "AA Session Key Lab focuses on delegated session controls for the shared Neo smart wallet runtime."
+          },
+          {
+            "type": "key_value",
+            "title": "Runtime",
+            "items": [
+              {
+                "key": "Mainnet domain",
+                "value": "sessionkey.smartwallet.neo"
+              },
+              {
+                "key": "Mode",
+                "value": "Session key verifier"
+              },
+              {
+                "key": "Transactions",
+                "value": "Wallet guarded"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "AA Session Key Lab",
+      "subtitle": "Open the embedded lab to inspect delegated session controls.",
+      "cta_label": "Open Session Key Lab",
+      "operations": []
+    }
+  },
+  "operations": [],
+  "integration": {
+    "news_integration": false,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": ["total_transactions", "daily_active_users"]
+  },
+  "manifest": {
+    "runtime": {
+      "mode": "dedicated",
+      "modules": []
+    },
+    "contracts": {
+      "neo-n3-mainnet": "0x3ba8333406e59f9fd83cf378b33706a33d9f3755",
+      "neo-n3-testnet": "0xed44c88535650b4dd6b8d59776e6ed045462cab6"
+    },
+    "contract_domains": {
+      "neo-n3-mainnet": "sessionkey.smartwallet.neo"
+    }
+  }
+}

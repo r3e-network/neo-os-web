@@ -146,4 +146,28 @@ describe("Table Component", () => {
     expect(screen.getByText("Service A")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
   });
+
+  it("uses light operator-console table chrome without local dark-mode forks", () => {
+    const { container } = render(
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell>Service A</TableCell>
+            <TableCell>Active</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+
+    expect(container.innerHTML).not.toContain("dark:");
+    expect(screen.getByRole("table")).toHaveClass("divide-gray-200");
+    expect(screen.getByText("Name")).toHaveClass("text-gray-600");
+    expect(screen.getByText("Service A")).toHaveClass("text-gray-900");
+  });
 });

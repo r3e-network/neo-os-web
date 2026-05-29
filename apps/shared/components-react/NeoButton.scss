@@ -7,7 +7,7 @@
   gap: $spacing-2;
   font-family: $font-family;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   cursor: pointer;
   border: 1px solid transparent;
   border-radius: 12px;
@@ -17,7 +17,14 @@
 
   &:hover:not(:disabled) { transform: translateY(-1px); }
   &:active:not(:disabled) { transform: translateY(0); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:disabled {
+    opacity: 1;
+    cursor: not-allowed;
+    background: #e5e7eb;
+    border-color: #d1d5db;
+    color: #6b7280;
+    box-shadow: none;
+  }
   &:focus-visible { outline: 2px solid #10b981; outline-offset: 2px; }
 
   &--block { width: 100%; display: flex; }

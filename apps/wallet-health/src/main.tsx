@@ -36,6 +36,15 @@ defineMiniApp({
         handler: health.refreshBalances,
         errorKey: "refreshFailed",
       },
+      toggleChecklist: {
+        handler: (...args: unknown[]) => {
+          const [id] = args;
+          if (typeof id === "string") {
+            health.toggleChecklist(id);
+          }
+        },
+        errorKey: "error",
+      },
     });
 
     return {
@@ -52,6 +61,10 @@ defineMiniApp({
         riskClass: health.riskClass,
         riskIcon: health.riskIcon,
         healthStats: health.healthStats,
+        checklistItems: health.checklistItems,
+        completedChecklistCount: health.completedChecklistCount,
+        totalChecklistCount: health.totalChecklistCount,
+        recommendations: health.recommendations,
       },
       loadData: async () => {
         if (health.address.value) {

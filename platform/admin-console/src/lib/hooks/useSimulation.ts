@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAdminAuthHeaders } from "@/lib/admin-client";
+import {
+  getAdminAuthHeaders,
+  getAdminFetchOptions,
+} from "@/lib/admin-client";
 
 export interface SimulationStatus {
   running: boolean;
@@ -9,15 +12,19 @@ export interface SimulationStatus {
   tx_count?: number;
 }
 
-export function useSimulationStatus() {
+export function useSimulationStatus(enabled = true) {
   return useQuery<SimulationStatus>({
     queryKey: ["simulation", "status"],
     queryFn: async () => {
-      const res = await fetch("/api/simulations", { headers: getAdminAuthHeaders() });
+      const res = await fetch("/api/simulations", {
+        ...getAdminFetchOptions(),
+        headers: getAdminAuthHeaders(),
+      });
       if (!res.ok) throw new Error("Failed to fetch simulation status");
       return res.json();
     },
-    refetchInterval: 5000,
+    enabled,
+    refetchInterval: enabled ? 5000 : false,
   });
 }
 
@@ -26,12 +33,32 @@ export function useStartSimulation() {
   return useMutation({
     mutationFn: async (config?: unknown) => {
       const res = await fetch("/api/simulations", {
+        ...getAdminFetchOptions(),
         method: "POST",
-        headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
-        body: (() => { try { return JSON.stringify({ action: "start", config }); } catch (_e: unknown) { console.warn("[useSimulation] JSON.stringify failed:", _e instanceof Error ? _e.message : String(_e)); return '{"action":"start"}'; } })(),
+        headers: {
+          ...getAdminAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: (() => {
+          try {
+            return JSON.stringify({ action: "start", config });
+          } catch (_e: unknown) {
+            console.warn(
+              "[useSimulation] JSON.stringify failed:",
+              _e instanceof Error ? _e.message : String(_e),
+            );
+            return '{"action":"start"}';
+          }
+        })(),
       });
       if (!res.ok) {
-        const error = await res.json().catch((e: unknown) => { console.warn("[useSimulation] failed to parse start simulation response:", e instanceof Error ? e.message : String(e)); return { error: "Failed to start simulation" }; });
+        const error = await res.json().catch((e: unknown) => {
+          console.warn(
+            "[useSimulation] failed to parse start simulation response:",
+            e instanceof Error ? e.message : String(e),
+          );
+          return { error: "Failed to start simulation" };
+        });
         throw new Error(error.error || "Failed to start simulation");
       }
       return res.json();
@@ -47,12 +74,22 @@ export function useStopSimulation() {
   return useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/simulations", {
+        ...getAdminFetchOptions(),
         method: "POST",
-        headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
+        headers: {
+          ...getAdminAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ action: "stop" }),
       });
       if (!res.ok) {
-        const error = await res.json().catch((e: unknown) => { console.warn("[useSimulation] failed to parse stop simulation response:", e instanceof Error ? e.message : String(e)); return { error: "Failed to stop simulation" }; });
+        const error = await res.json().catch((e: unknown) => {
+          console.warn(
+            "[useSimulation] failed to parse stop simulation response:",
+            e instanceof Error ? e.message : String(e),
+          );
+          return { error: "Failed to stop simulation" };
+        });
         throw new Error(error.error || "Failed to stop simulation");
       }
       return res.json();

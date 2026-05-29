@@ -1,6 +1,14 @@
-import { getExternalIntegrationConfig } from "@shared/constants/rpc";
-import { addressToScriptHash, normalizeScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
-import type { ContractArg, InvokeResult, WalletSDK } from "@shared/utils/wallet-sdk";
+import { GAS_HASH, getExternalIntegrationConfig } from "@shared/constants/rpc";
+import {
+  addressToScriptHash,
+  normalizeScriptHash,
+  ownerMatchesAddress,
+} from "@shared/utils/neo";
+import type {
+  ContractArg,
+  InvokeResult,
+  WalletSDK,
+} from "@shared/utils/wallet-sdk";
 
 const LISTING_STATUS: Record<number, string> = {
   1: "active",
@@ -41,7 +49,10 @@ export function getDefaultAAContractHash(): string {
 }
 
 function sanitizeHex(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase().replace(/^0x/i, "");
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^0x/i, "");
 }
 
 function reverseHex(hexValue: string): string {
@@ -63,7 +74,9 @@ function base64ToBytes(value: unknown): Uint8Array {
 }
 
 function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+    "",
+  );
 }
 
 function normalizeHash160Input(value: unknown, label: string): string {
@@ -88,7 +101,9 @@ function normalizeHash160Input(value: unknown, label: string): string {
 function parseGasToFractions(value: unknown): string {
   const raw = String(value ?? "").trim();
   if (!/^\d+(\.\d{1,8})?$/.test(raw)) {
-    throw new Error("Price must be a positive GAS amount with up to 8 decimals.");
+    throw new Error(
+      "Price must be a positive GAS amount with up to 8 decimals.",
+    );
   }
 
   const [wholePart, fractionPart = ""] = raw.split(".");
@@ -138,11 +153,17 @@ function decodeInteger(item: unknown): string {
   return "0";
 }
 
-function decodeListing(result: InvokeResult): Omit<MarketListing, "myPendingPayment" | "isMine"> | null {
+function decodeListing(
+  result: InvokeResult,
+): Omit<MarketListing, "myPendingPayment" | "isMine"> | null {
   const item = Array.isArray(result?.stack) ? result.stack[0] : null;
   if (!item || typeof item !== "object") return null;
   const typed = item as { type?: string; value?: unknown };
-  if (typed.type !== "Array" || !Array.isArray(typed.value) || typed.value.length === 0) {
+  if (
+    typed.type !== "Array" ||
+    !Array.isArray(typed.value) ||
+    typed.value.length === 0
+  ) {
     return null;
   }
 
@@ -202,9 +223,16 @@ async function invokeMarketRead(
     operation,
     args,
   });
-  if (String(result?.state ?? "").toUpperCase().includes("FAULT")) {
+  if (
+    String(result?.state ?? "")
+      .toUpperCase()
+      .includes("FAULT")
+  ) {
     const exception = result?.exception;
-    const sanitized = typeof exception === "string" && exception.length < 100 ? exception : "Contract operation failed";
+    const sanitized =
+      typeof exception === "string" && exception.length < 100
+        ? exception
+        : "Contract operation failed";
     throw new Error(sanitized);
   }
   return result;
@@ -218,10 +246,15 @@ export async function getPendingPaymentOf(
 ): Promise<string> {
   if (!payerAddress) return "0";
   const payerHash = normalizeHash160Input(payerAddress, "Payer");
-  const result = await invokeMarketRead(wallet, marketHash, "getPendingPaymentOf", [
-    { type: "Integer", value: String(listingId) },
-    { type: "Hash160", value: normalizeScriptHash(payerHash) },
-  ]);
+  const result = await invokeMarketRead(
+    wallet,
+    marketHash,
+    "getPendingPaymentOf",
+    [
+      { type: "Integer", value: String(listingId) },
+      { type: "Hash160", value: normalizeScriptHash(payerHash) },
+    ],
+  );
   return decodeInteger(result?.stack?.[0]);
 }
 
@@ -240,7 +273,18 @@ export async function readAddressListing(
   }
 
   const myPendingPayment = currentAddress
-    ? await getPendingPaymentOf(wallet, marketHash, decoded.id, currentAddress).catch((e: unknown) => { console.warn("[aa-market] getPendingPaymentOf failed, using '0':", e instanceof Error ? e.message : String(e)); return "0"; })
+    ? await getPendingPaymentOf(
+        wallet,
+        marketHash,
+        decoded.id,
+        currentAddress,
+      ).catch((e: unknown) => {
+        console.warn(
+          "[aa-market] getPendingPaymentOf failed, using '0':",
+          e instanceof Error ? e.message : String(e),
+        );
+        return "0";
+      })
     : "0";
 
   return {
@@ -255,18 +299,38 @@ export async function listAddressListings(
   marketHash: string,
   currentAddress?: string | null,
 ): Promise<MarketListing[]> {
-  const countResult = await invokeMarketRead(wallet, marketHash, "getListingCount");
+  const countResult = await invokeMarketRead(
+    wallet,
+    marketHash,
+    "getListingCount",
+  );
   const count = Number(decodeInteger(countResult?.stack?.[0]));
   if (!Number.isFinite(count) || count <= 0) {
     return [];
   }
 
   const reads = Array.from({ length: count }, (_, index) =>
-    invokeMarketRead(wallet, marketHash, "getListing", [{ type: "Integer", value: String(index + 1) }]).catch((e: unknown) => { console.warn("[aa-market] getListing failed at index", index, ":", e instanceof Error ? e.message : String(e)); return null; }));
+    invokeMarketRead(wallet, marketHash, "getListing", [
+      { type: "Integer", value: String(index + 1) },
+    ]).catch((e: unknown) => {
+      console.warn(
+        "[aa-market] getListing failed at index",
+        index,
+        ":",
+        e instanceof Error ? e.message : String(e),
+      );
+      return null;
+    }),
+  );
 
   const decoded = (await Promise.all(reads))
     .map((result) => (result ? decodeListing(result) : null))
-    .filter((listing): listing is Omit<MarketListing, "myPendingPayment" | "isMine"> => Boolean(listing));
+    .filter(
+      (
+        listing,
+      ): listing is Omit<MarketListing, "myPendingPayment" | "isMine"> =>
+        Boolean(listing),
+    );
 
   if (!currentAddress) {
     return decoded
@@ -275,7 +339,19 @@ export async function listAddressListings(
   }
 
   const pendingPayments = await Promise.all(
-    decoded.map((listing) => getPendingPaymentOf(wallet, marketHash, listing.id, currentAddress).catch((e: unknown) => { console.warn("[aa-market] getPendingPaymentOf failed for listing", listing.id, ":", e instanceof Error ? e.message : String(e)); return "0"; })),
+    decoded.map((listing) =>
+      getPendingPaymentOf(wallet, marketHash, listing.id, currentAddress).catch(
+        (e: unknown) => {
+          console.warn(
+            "[aa-market] getPendingPaymentOf failed for listing",
+            listing.id,
+            ":",
+            e instanceof Error ? e.message : String(e),
+          );
+          return "0";
+        },
+      ),
+    ),
   );
 
   return decoded
@@ -287,11 +363,18 @@ export async function listAddressListings(
     .sort((left, right) => Number(right.id) - Number(left.id));
 }
 
-function buildEscrowCreationSigner(accountAddress: string, marketHash: string, aaContractHash: string) {
+function buildEscrowCreationSigner(
+  accountAddress: string,
+  marketHash: string,
+  aaContractHash: string,
+) {
   return {
     account: accountAddress,
     scopes: 16,
-    allowedContracts: [normalizeScriptHash(marketHash), normalizeScriptHash(aaContractHash)],
+    allowedContracts: [
+      normalizeScriptHash(marketHash),
+      normalizeScriptHash(aaContractHash),
+    ],
   };
 }
 
@@ -302,8 +385,14 @@ export async function createAddressListing(
   input: CreateListingInput,
 ): Promise<{ txid: string }> {
   const address = requireAddress(callerAddress);
-  const aaContractHash = normalizeHash160Input(input.aaContractHash || getDefaultAAContractHash(), "AA contract");
-  const accountIdHash = normalizeHash160Input(input.accountIdHash, "Account ID hash");
+  const aaContractHash = normalizeHash160Input(
+    input.aaContractHash || getDefaultAAContractHash(),
+    "AA contract",
+  );
+  const accountIdHash = normalizeHash160Input(
+    input.accountIdHash,
+    "Account ID hash",
+  );
 
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
@@ -363,18 +452,37 @@ export async function buyAddressListing(
   wallet: WalletSDK,
   marketHash: string,
   callerAddress: string,
-  listingId: string,
+  listing: Pick<MarketListing, "id" | "priceRaw">,
   options: { newBackupOwner?: string },
 ): Promise<{ txid: string }> {
   const address = requireAddress(callerAddress);
-  const backupOwner = normalizeHash160Input(options.newBackupOwner || address, "Backup owner");
-  const result = await wallet.invokeContract({
-    scriptHash: normalizeScriptHash(marketHash),
-    operation: "settleListing",
-    args: [
-      { type: "Integer", value: String(listingId) },
-      { type: "Hash160", value: address },
-      { type: "Hash160", value: normalizeScriptHash(backupOwner) },
+  const buyerHash = normalizeHash160Input(address, "Buyer");
+  const backupOwner = normalizeHash160Input(
+    options.newBackupOwner || address,
+    "Backup owner",
+  );
+  const marketScriptHash = normalizeScriptHash(marketHash);
+  const result = await wallet.invokeMultiple({
+    invokeArgs: [
+      {
+        scriptHash: GAS_HASH,
+        operation: "transfer",
+        args: [
+          { type: "Hash160", value: normalizeScriptHash(buyerHash) },
+          { type: "Hash160", value: marketScriptHash },
+          { type: "Integer", value: String(listing.priceRaw) },
+          { type: "Any", value: null },
+        ],
+      },
+      {
+        scriptHash: marketScriptHash,
+        operation: "settleListing",
+        args: [
+          { type: "Integer", value: String(listing.id) },
+          { type: "Hash160", value: normalizeScriptHash(buyerHash) },
+          { type: "Hash160", value: normalizeScriptHash(backupOwner) },
+        ],
+      },
     ],
     signers: [{ account: address, scopes: 1 }],
   });
@@ -389,10 +497,14 @@ export async function refundPendingAddressPurchase(
   listingId: string,
 ): Promise<{ txid: string }> {
   const address = requireAddress(callerAddress);
+  const payerHash = normalizeHash160Input(address, "Payer");
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
     operation: "refundPendingPayment",
-    args: [{ type: "Integer", value: String(listingId) }],
+    args: [
+      { type: "Integer", value: String(listingId) },
+      { type: "Hash160", value: normalizeScriptHash(payerHash) },
+    ],
     signers: [{ account: address, scopes: 1 }],
   });
 

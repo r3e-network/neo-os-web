@@ -1,4 +1,4 @@
-import { createDerived } from "@shared/react/context";
+import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -35,6 +35,10 @@ export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy
 
   const checklistState: Record<string, boolean> = {};
   const checklistStorageKey = "checklist";
+  const checklistRevision = createObservable(0);
+  const notifyChecklistChanged = () => {
+    checklistRevision.set(checklistRevision.get() + 1);
+  };
 
   const checklistBase = [
     { id: "backup", titleKey: "checklistBackup", descKey: "checklistBackupDesc" },
@@ -45,42 +49,47 @@ export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy
     { id: "twofa", titleKey: "checklist2fa", descKey: "checklist2faDesc" },
   ];
 
-  const checklistItems = createDerived<ChecklistItem[]>(() =>
-    checklistBase.map((item) => ({
-      id: item.id,
-      title: t(item.titleKey),
-      desc: t(item.descKey),
-      done: item.id === "gas" ? gasOk.get() : checklistState[item.id] === true,
-      auto: item.id === "gas",
-    }))
-  , []);
+  const checklistItems = createDerived<ChecklistItem[]>(
+    () =>
+      checklistBase.map((item) => ({
+        id: item.id,
+        title: t(item.titleKey),
+        desc: t(item.descKey),
+        done: item.id === "gas" ? gasOk.get() : checklistState[item.id] === true,
+        auto: item.id === "gas",
+      })),
+    [checklistRevision, gasOk],
+  );
 
-  const completedChecklistCount = createDerived(() => checklistItems.get().filter((item) => item.done).length, []);
-  const totalChecklistCount = createDerived(() => checklistItems.get().length, []);
+  const completedChecklistCount = createDerived(
+    () => checklistItems.get().filter((item) => item.done).length,
+    [checklistItems],
+  );
+  const totalChecklistCount = createDerived(() => checklistItems.get().length, [checklistItems]);
 
   const safetyScore = createDerived(() => {
     if (totalChecklistCount.get() === 0) return 0;
     const score = (completedChecklistCount.get() / totalChecklistCount.get()) * 100;
     return Math.round(score);
-  }, []);
+  }, [completedChecklistCount, totalChecklistCount]);
 
   const riskLabel = createDerived(() => {
     if (safetyScore.get() >= 80) return t("riskLow");
     if (safetyScore.get() >= 50) return t("riskMedium");
     return t("riskHigh");
-  }, []);
+  }, [safetyScore]);
 
   const riskClass = createDerived(() => {
     if (safetyScore.get() >= 80) return "risk-low";
     if (safetyScore.get() >= 50) return "risk-medium";
     return "risk-high";
-  }, []);
+  }, [safetyScore]);
 
   const riskIcon = createDerived(() => {
     if (safetyScore.get() >= 80) return "check-circle";
     if (safetyScore.get() >= 50) return "alert-circle";
     return "alert-circle";
-  }, []);
+  }, [safetyScore]);
 
   const recommendations = createDerived(() => {
     const items: string[] = [];
@@ -88,7 +97,7 @@ export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy
     if (!gasOk.get()) items.push(t("recommendationGasLow"));
     if (!checklistState.permissions) items.push(t("recommendationPermissions"));
     return items;
-  }, []);
+  }, [checklistRevision, gasOk]);
 
   const loadChecklist = () => {
     storage.get(checklistStorageKey).then((result) => {
@@ -97,6 +106,7 @@ export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy
         Object.keys(parsed).forEach((key) => {
           checklistState[key] = Boolean(parsed[key]);
         });
+        notifyChecklistChanged();
       }
     }).catch((_e) => {
       console.warn("[useHealthScore] loadChecklist failed:", _e instanceof Error ? _e.message : String(_e));
@@ -112,6 +122,7 @@ export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy
   const toggleChecklist = (id: string) => {
     if (id === "gas") return;
     checklistState[id] = !checklistState[id];
+    notifyChecklistChanged();
     saveChecklist();
   };
 

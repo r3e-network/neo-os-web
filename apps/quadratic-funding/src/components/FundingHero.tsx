@@ -1,32 +1,73 @@
-const RING_R = 52;
-const ringCircumference = 2 * Math.PI * RING_R;
+import { NeoButton } from "@shared/components-react";
 
 interface FundingHeroProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   progressPct: number;
   matchingPoolDisplay: string;
   projectCount: number;
+  roundCount: number;
+  activeRoundCount: number;
+  selectedRoundDisplay: string;
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  onContribute: () => void;
 }
 
-export default function FundingHero({ t, progressPct, matchingPoolDisplay, projectCount }: FundingHeroProps) {
-  const ringOffset = ringCircumference - (progressPct / 100) * ringCircumference;
+export default function FundingHero({
+  t,
+  progressPct,
+  matchingPoolDisplay,
+  projectCount,
+  roundCount,
+  activeRoundCount,
+  selectedRoundDisplay,
+  isRefreshing,
+  onRefresh,
+  onContribute,
+}: FundingHeroProps) {
+  const boundedProgress = Math.max(0, Math.min(100, progressPct));
+
   return (
-    <div className="hero-container">
-      <span className="hero-label">{t("appName")}</span>
-      <div className="hero-progress-ring">
-        <svg viewBox="0 0 120 120" className="ring-svg">
-          <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
-          <circle cx="60" cy="60" r="52" fill="none" stroke="url(#qfRingGrad)" strokeWidth="8" strokeLinecap="round"
-            strokeDasharray={ringCircumference} strokeDashoffset={ringOffset} transform="rotate(-90 60 60)" className="ring-progress" />
-          <defs><linearGradient id="qfRingGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="var(--qf-ring-start, #f472b6)" /><stop offset="100%" stopColor="var(--qf-ring-end, #ec4899)" /></linearGradient></defs>
-        </svg>
-        <div className="ring-center"><span className="ring-value">{progressPct}%</span><span className="ring-sub">{t("tabRounds")}</span></div>
+    <section className="qf-hero" aria-labelledby="qf-hero-title">
+      <div className="qf-hero-copy">
+        <span className="qf-hero-kicker">{t("title")}</span>
+        <h1 id="qf-hero-title">{t("qfHeroTitle")}</h1>
+        <p>{t("qfHeroSubtitle")}</p>
+        <div className="qf-hero-actions">
+          <NeoButton variant="primary" onClick={onContribute}>
+            {t("qfPrimaryAction")}
+          </NeoButton>
+          <NeoButton variant="secondary" disabled={isRefreshing} onClick={onRefresh}>
+            {t("qfRefreshAction")}
+          </NeoButton>
+        </div>
       </div>
-      <div className="hero-stats-row">
-        <div className="hero-stat"><span className="hero-stat-label">{t("sidebarMatchingPool")}</span><span className="hero-stat-value">{matchingPoolDisplay}</span></div>
-        <div className="hero-stat-divider" />
-        <div className="hero-stat"><span className="hero-stat-label">{t("tabProjects")}</span><span className="hero-stat-value">{projectCount}</span></div>
+
+      <div className="qf-hero-ledger" aria-label={t("qfRoundHealth")}>
+        <div className="qf-hero-ledger-head">
+          <span>{t("qfSelectedRound")}</span>
+          <strong>{selectedRoundDisplay}</strong>
+        </div>
+        <div className="qf-progress-bar" aria-label={`${boundedProgress}% ${t("qfLiveRound")}`}>
+          <span style={{ width: `${boundedProgress}%` }} />
+        </div>
+        <div className="qf-hero-metrics">
+          <div className="qf-hero-metric">
+            <span>{t("sidebarMatchingPool")}</span>
+            <strong>{matchingPoolDisplay}</strong>
+          </div>
+          <div className="qf-hero-metric">
+            <span>{t("qfLiveRound")}</span>
+            <strong>
+              {activeRoundCount}/{roundCount}
+            </strong>
+          </div>
+          <div className="qf-hero-metric">
+            <span>{t("tabProjects")}</span>
+            <strong>{projectCount}</strong>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

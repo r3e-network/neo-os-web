@@ -1,9 +1,18 @@
 "use client";
 
 import { useMemo, useState, type ChangeEvent } from "react";
+import {
+  Boxes,
+  CheckCircle2,
+  FileCode2,
+  LayoutTemplate,
+  Rocket,
+  type LucideIcon,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
+import { cn } from "@/lib/utils";
 import {
   type ContractInitSchemaField,
   extractContractInitSchemaFields,
@@ -91,6 +100,30 @@ type BlueprintItem = {
   overrides: Partial<MiniAppFormState>;
 };
 
+type BuilderWorkflowStep = {
+  label: string;
+  description: string;
+  icon: LucideIcon;
+};
+
+const BUILDER_WORKFLOW_STEPS: BuilderWorkflowStep[] = [
+  {
+    label: "Template",
+    description: "Start from a reusable frontend and contract pattern.",
+    icon: LayoutTemplate,
+  },
+  {
+    label: "Configure",
+    description: "Tune content, permissions, operations, and assets.",
+    icon: FileCode2,
+  },
+  {
+    label: "Validate",
+    description: "Export a thin plan before publishing to runtime.",
+    icon: CheckCircle2,
+  },
+];
+
 type CreateFormPanelProps = {
   form: MiniAppFormState;
   setForm: (form: MiniAppFormState) => void;
@@ -153,6 +186,9 @@ export function CreateFormPanel({
 }: CreateFormPanelProps) {
   const [tab, setTab] = useState("basic");
   const [modularCommandInfo, setModularCommandInfo] = useState("");
+  const [selectedBlueprintKey, setSelectedBlueprintKey] = useState<
+    string | null
+  >(null);
   const [assetFiles, setAssetFiles] = useState<
     Partial<Record<MiniAppMediaAssetKind, File>>
   >({});
@@ -211,7 +247,7 @@ export function CreateFormPanel({
       );
       return {} as Record<string, unknown>;
     }
-  }, [form.contract_template_init_params_json]);
+  }, [form.contract_template_init_params_json, parseJSONObjectText]);
   const modularPreview = useMemo(
     () => buildModularPreview(form, toConfig),
     [form, toConfig],
@@ -386,6 +422,7 @@ export function CreateFormPanel({
   const applyTemplate = (key: string) => {
     const t = blueprints[key];
     if (!t) return;
+    setSelectedBlueprintKey(key);
     setForm({
       ...emptyForm,
       ...t.overrides,
@@ -418,52 +455,101 @@ export function CreateFormPanel({
   };
 
   return (
-    <Card variant="glass">
-      <CardHeader>
-        <CardTitle>
-          {mode === "edit" ? "Edit MiniApp" : "Create New MiniApp"}
-        </CardTitle>
+    <Card
+      aria-label="MiniApp builder editor"
+      className="miniapps-create-form-panel miniapps-create-form-shell overflow-hidden"
+      variant="default"
+    >
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary-100 bg-primary-50 text-primary-700">
+            <Rocket className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <CardTitle>
+              {mode === "edit" ? "Edit MiniApp" : "Create New MiniApp"}
+            </CardTitle>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-600">
+              Build from a governed template, then keep the manifest, assets,
+              contract bindings, and publish plan in one operator workflow.
+            </p>
+          </div>
+        </div>
+        <span className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase text-emerald-700">
+          {mode === "edit" ? "Edit mode" : "Draft mode"}
+        </span>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div
+          aria-label="MiniApp builder workflow"
+          className="grid gap-3 md:grid-cols-3"
+        >
+          {BUILDER_WORKFLOW_STEPS.map((step) => {
+            const Icon = step.icon;
+            return (
+              <div
+                key={step.label}
+                className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-primary-700">
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <p className="text-sm font-bold text-gray-950">
+                    {step.label}
+                  </p>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-gray-600">
+                  {step.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
         {/* Template Marketplace Selector */}
-        <div className="mb-6 rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900/50 p-6 overflow-hidden relative">
-          <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-primary-100/50 dark:bg-primary-900/20 blur-2xl"></div>
-          <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-32 h-32 rounded-full bg-blue-100/50 dark:bg-blue-900/20 blur-2xl"></div>
-          <div className="relative">
-            <h3 className="mb-2 text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <span className="text-xl">🏪</span> Template Marketplace
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-              Select a fully-featured template to scaffold your MiniApp frontend
-              and smart contract without writing code.
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="miniapps-template-marketplace mb-6 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-100 bg-white text-primary-700">
+                  <Boxes className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Template Marketplace
+                  </h3>
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+                    Select a fully-featured template to scaffold your MiniApp
+                    frontend and smart contract without writing code.
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex w-fit rounded-full border border-primary-100 bg-primary-50 px-3 py-1 text-xs font-bold uppercase text-primary-700">
+                {Object.keys(blueprints).length} templates
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
               {Object.entries(blueprints).map(([key, t]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => applyTemplate(key)}
-                  className="group relative flex flex-col items-start rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:-translate-y-1 hover:border-primary-400 hover:shadow-lg hover:shadow-primary-500/10 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                  aria-pressed={selectedBlueprintKey === key}
+                  className={cn(
+                    "miniapps-template-card flex min-h-32 flex-col items-start rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50",
+                    selectedBlueprintKey === key
+                      ? "border-primary-300 bg-primary-50"
+                      : "border-gray-200 bg-white hover:border-primary-300 hover:bg-primary-50/40",
+                  )}
                 >
-                  <div className="mb-3 rounded-lg bg-primary-50 p-2 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
-                    <svg
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                      />
-                    </svg>
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
+                    <LayoutTemplate className="h-4 w-4" aria-hidden="true" />
                   </div>
-                  <div className="text-base font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                  <div className="text-sm font-bold text-gray-950">
                     {t.label}
                   </div>
-                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  <div className="mt-2 text-xs leading-5 text-gray-600">
                     {t.desc}
                   </div>
                 </button>
@@ -559,34 +645,34 @@ export function CreateFormPanel({
         {formError && (
           <p
             role="alert"
-            className="text-sm text-danger-600 dark:text-danger-400"
+            className="text-sm text-danger-600"
           >
             {formError}
           </p>
         )}
         {modularPlanDraft && modularPreview.valid && !formError && (
-          <details className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-300">
-            <summary className="cursor-pointer list-none font-semibold text-gray-900 dark:text-gray-100 focus-visible:outline-none">
+          <details className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+            <summary className="cursor-pointer list-none font-semibold text-gray-900 focus-visible:outline-none">
               Modular thin plan usage
             </summary>
             <div className="mt-3 space-y-2">
               <p>
                 Suggested plan path:{" "}
-                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">
+                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px]">
                   {modularPlanPathHint}
                 </code>
               </p>
               {modularPlanDraft.definition_path && (
                 <p>
                   Definition source:{" "}
-                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">
+                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px]">
                     {modularPlanDraft.definition_path}
                   </code>
                 </p>
               )}
               <p>
                 Validate-only usage:{" "}
-                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">
+                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px]">
                   {modularValidateOnlyCommand}
                 </code>
               </p>
@@ -594,12 +680,12 @@ export function CreateFormPanel({
           </details>
         )}
         {modularCommandInfo && !formError && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             {modularCommandInfo}
           </p>
         )}
         {tab !== "json" && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button onClick={onSubmit} disabled={loading}>
               {loading
                 ? mode === "edit"
@@ -639,7 +725,7 @@ export function CreateFormPanel({
           </div>
         )}
         {tab === "json" && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={onCancel}>
               Cancel
             </Button>

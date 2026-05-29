@@ -1,5 +1,6 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import MiniAppsPage from "../../pages/miniapps/index";
 import { I18nProvider } from "@/lib/i18n/react";
 import { LOCALE_STORAGE_KEY } from "@/lib/i18n";
@@ -12,6 +13,22 @@ jest.mock("next/router", () => ({
     prefetch: jest.fn(),
     pathname: "/miniapps",
   })),
+}));
+
+jest.mock("next/link", () => ({
+  __esModule: true,
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 jest.mock("../../components/layout", () => ({
@@ -31,6 +48,12 @@ jest.mock("../../components/features/miniapp", () => ({
         <div key={app.app_id}>{app.name}</div>
       ))}
     </div>
+  ),
+}));
+
+jest.mock("@/components/features/miniapp/MiniAppLogo", () => ({
+  MiniAppLogo: ({ alt }: { alt?: string }) => (
+    <span aria-label={alt} data-testid="miniapp-logo" />
   ),
 }));
 
@@ -85,7 +108,7 @@ describe("MiniAppsPage", () => {
     render(<MiniAppsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("LastSurvivor")).toBeInTheDocument();
+      expect(screen.getAllByText("LastSurvivor").length).toBeGreaterThan(0);
     });
 
     expect(screen.getByText("On-Chain Tarot")).toBeInTheDocument();
@@ -117,14 +140,14 @@ describe("MiniAppsPage", () => {
       />,
     );
 
-    expect(screen.getByText("GasBox")).toBeInTheDocument();
+    expect(screen.getAllByText("GasBox").length).toBeGreaterThan(0);
     expect(screen.getByText("On-Chain Tarot")).toBeInTheDocument();
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/miniapps/catalog?scope=all",
       expect.any(Object),
     );
     await waitFor(() => {
-      expect(screen.getByText("LastSurvivor")).toBeInTheDocument();
+      expect(screen.getAllByText("LastSurvivor").length).toBeGreaterThan(0);
     });
   });
 
@@ -166,9 +189,73 @@ describe("MiniAppsPage", () => {
     });
 
     expect(screen.getByPlaceholderText("按名称、分类或应用 ID 搜索")).toBeInTheDocument();
-    expect(screen.getByText("最后生还者")).toBeInTheDocument();
-    expect(screen.getByText("最后按下按钮的人赢得奖池。")).toBeInTheDocument();
+    expect(screen.getAllByText("最后生还者").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("最后按下按钮的人赢得奖池。").length).toBeGreaterThan(0);
     expect(screen.getAllByText("已上线").length).toBeGreaterThan(0);
-    expect(screen.getByText("打开小程序")).toBeInTheDocument();
+    expect(screen.getAllByText("打开小程序").length).toBeGreaterThan(0);
+  });
+
+  it("renders a wallet-style market shell with quick filters and a lead preview", async () => {
+    const user = userEvent.setup();
+    global.fetch = jest.fn(() => new Promise<Response>(() => undefined)) as typeof fetch;
+
+    render(
+      <MiniAppsPage
+        initialApps={[
+          {
+            app_id: "miniapp-live-swap",
+            name: "Live Swap",
+            description: "Mainnet swap route",
+            icon: "L",
+            category: "defi",
+            entry_url: "mf://manifest?app=miniapp-live-swap",
+            contract_hash: "0x123",
+            permissions: {},
+          },
+          {
+            app_id: "miniapp-tool-console",
+            name: "Tool Console",
+            description: "Operator utility",
+            icon: "T",
+            category: "utility",
+            entry_url: "mf://manifest?app=miniapp-tool-console",
+            permissions: {},
+          },
+          {
+            app_id: "miniapp-pending-lab",
+            name: "Pending Lab",
+            description: "Queued for launch",
+            icon: "P",
+            category: "gaming",
+            entry_url: "mf://manifest?app=miniapp-pending-lab",
+            status: "pending",
+            permissions: {},
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId("miniapps-market-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("miniapps-market-search")).toBeInTheDocument();
+    expect(screen.getByTestId("miniapps-lead-preview")).toHaveTextContent("Live Swap");
+    expect(screen.getByTestId("miniapps-lead-preview")).toHaveClass(
+      "min-h-[260px]",
+    );
+    expect(screen.getByTestId("miniapps-market-list")).toBeInTheDocument();
+    expect(screen.getAllByTestId("miniapp-market-row")).toHaveLength(3);
+    expect(screen.getAllByTestId("miniapp-row-open")[0]).toHaveTextContent("Open app");
+
+    const quickFilters = screen.getByTestId("miniapps-quick-filters");
+    expect(within(quickFilters).getAllByRole("button")).toHaveLength(3);
+
+    await act(async () => {
+      await user.click(within(quickFilters).getByRole("button", { name: /tool/i }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Tool Console").length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText("Live Swap")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pending Lab")).not.toBeInTheDocument();
   });
 });

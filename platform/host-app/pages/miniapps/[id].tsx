@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Activity, ChevronUp, ShieldCheck, Wallet, X } from "lucide-react";
 import { AppDetailHeader, AppNewsList, OperationPanel } from "../../components";
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
+import type { OperationEntry } from "../../components/types";
 import { getNativePlayAreaOperationFallback } from "../../components/playarea/PlayAreaRegistry";
 import {
   MiniAppStatusBoard,
@@ -229,8 +230,21 @@ export default function MiniAppDetailPage({
     resolvedRuntime?.mode === "platform"
       ? resolvedRuntime.disabledReason
       : null;
+  const walletRequiredReason = walletConnected
+    ? null
+    : "Connect wallet before sending transactions.";
   const operationDisabledReason =
-    networkAvailabilityReason || networkGuardReason || runtimeDisabledReason;
+    networkAvailabilityReason ||
+    networkGuardReason ||
+    runtimeDisabledReason ||
+    walletRequiredReason;
+  const getOperationDisabledReason = useCallback(
+    (operation: OperationEntry) =>
+      isFrontendLocalOperation(operation.method)
+        ? null
+        : operationDisabledReason,
+    [operationDisabledReason],
+  );
 
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
@@ -315,6 +329,23 @@ export default function MiniAppDetailPage({
     setActiveTab(tabId);
   }, []);
 
+  const handleInvoke = useMiniAppDetailInvoke({
+    app,
+    appSupportsTargetNetwork,
+    directContractHash,
+    launchContext,
+    networkAvailabilityReason,
+    resolvedRuntime,
+    router,
+    setInvokeFeedback,
+    sharedRuntime,
+    targetCatalogNetwork,
+    targetNetwork,
+    walletAddress,
+    walletConnected,
+    walletNetwork,
+  });
+
   if (error || !app) {
     return (
       <Layout hideFooter>
@@ -345,23 +376,6 @@ export default function MiniAppDetailPage({
     router.push("/miniapps");
   };
 
-  const handleInvoke = useMiniAppDetailInvoke({
-    app,
-    appSupportsTargetNetwork,
-    directContractHash,
-    launchContext,
-    networkAvailabilityReason,
-    resolvedRuntime,
-    router,
-    setInvokeFeedback,
-    sharedRuntime,
-    targetCatalogNetwork,
-    targetNetwork,
-    walletAddress,
-    walletConnected,
-    walletNetwork,
-  });
-
   const operationPanel = app.detail_template?.operation_panel;
   const operationTitle =
     operationPanel?.title ||
@@ -374,11 +388,6 @@ export default function MiniAppDetailPage({
   const hasClaimOnlyServerPayout = operations.some(
     isOneGateVaultPayoutOperation,
   );
-  const operationPanelDisabledReason = operations.every((operation) =>
-    isFrontendLocalOperation(operation.method),
-  )
-    ? null
-    : operationDisabledReason;
   const contractDisplayValue = networkAvailabilityReason
     ? `Not deployed on ${targetNetworkLabel}`
     : resolvedRuntime?.mode === "platform"
@@ -395,7 +404,7 @@ export default function MiniAppDetailPage({
 
   return (
     <Layout hideFooter>
-      <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f4f8f6_48%,#f8fafc_100%)] pb-28 pt-16 text-gray-900 xl:pb-6">
+      <div className="min-h-screen bg-[#f7f8fb] pb-28 pt-16 text-gray-900 xl:pb-6">
         <Head>
           <title>{`${app.name} - ${BRAND.productName}`}</title>
         </Head>
@@ -435,12 +444,12 @@ export default function MiniAppDetailPage({
               />
 
               <section
-                className="rounded-[24px] border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 sm:p-4"
+                className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 sm:p-4"
                 data-testid="miniapp-detail-tabs"
               >
                 <div
                   role="tablist"
-                  className="mb-5 flex flex-wrap gap-1 rounded-2xl border border-gray-200 bg-gray-100 p-1"
+                  className="mb-5 flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1"
                 >
                   {tabs.map((tab) => (
                     <button
@@ -540,7 +549,7 @@ export default function MiniAppDetailPage({
               aria-label="MiniApp actions"
               data-testid="miniapp-actions"
             >
-              <section className="overflow-hidden rounded-[26px] border border-gray-200 bg-white p-4 shadow-xl shadow-gray-950/8 sm:p-5">
+              <section className="overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-md shadow-gray-950/8 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-600">
@@ -573,7 +582,7 @@ export default function MiniAppDetailPage({
                     showTitle={false}
                     className="mt-3 border-0 shadow-none"
                     variant="embedded"
-                    disabledReason={operationPanelDisabledReason}
+                    getDisabledReason={getOperationDisabledReason}
                     launchContext={launchContext}
                   />
                 )}
@@ -605,7 +614,7 @@ export default function MiniAppDetailPage({
                   </div>
                 )}
 
-                <div className="mt-3 flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                <div className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
                   <Wallet
                     className="h-4 w-4 text-gray-400"
                     aria-hidden="true"
@@ -618,7 +627,7 @@ export default function MiniAppDetailPage({
                 </div>
 
                 <div
-                  className={`mt-3 rounded-2xl border px-3 py-2 text-xs ${
+                  className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
                     networkSafetyOk
                       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                       : "border-amber-200 bg-amber-50 text-amber-700"
@@ -642,14 +651,14 @@ export default function MiniAppDetailPage({
                 </div>
 
                 {networkAvailabilityReason && (
-                  <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
                     {networkAvailabilityReason}
                   </div>
                 )}
 
                 {invokeFeedback && (
                   <div
-                    className={`mt-3 rounded-2xl border px-3 py-2 text-xs break-words ${
+                    className={`mt-3 rounded-xl border px-3 py-2 text-xs break-words ${
                       invokeFeedback.type === "success"
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                         : "border-red-200 bg-red-50 text-red-700"
@@ -805,12 +814,12 @@ export default function MiniAppDetailPage({
           {operations.length > 0 && (
             <>
               <div
-                className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-white/95 px-3 py-2.5 shadow-[0_-16px_40px_rgba(15,23,42,0.12)] backdrop-blur xl:hidden"
+                className="mobile-action-dock-shell fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-white px-3 py-2.5 shadow-sm xl:hidden"
                 data-testid="mobile-action-dock"
               >
                 <button
                   type="button"
-                  className="mx-auto flex min-h-[46px] w-full max-w-[520px] cursor-pointer items-center justify-between gap-3 rounded-[14px] border border-emerald-500 bg-emerald-700 px-3.5 py-2 text-left text-white shadow-lg shadow-emerald-900/15 transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:ring-offset-2"
+                  className="mobile-action-button mx-auto flex min-h-12 w-full max-w-[520px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-emerald-600 bg-emerald-700 px-3.5 py-2 text-left text-white shadow-sm transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:ring-offset-2"
                   onClick={() => setMobileActionOpen(true)}
                   aria-expanded={mobileActionOpen}
                   aria-controls="mobile-action-sheet"
@@ -846,7 +855,7 @@ export default function MiniAppDetailPage({
                     aria-label="Close actions"
                     onClick={() => setMobileActionOpen(false)}
                   />
-                  <section className="absolute inset-x-0 bottom-0 max-h-[82vh] overflow-y-auto rounded-t-[24px] border border-gray-200 bg-white p-3 shadow-2xl shadow-gray-950/30 sm:p-4">
+                  <section className="mobile-action-sheet-shell absolute inset-x-0 bottom-0 max-h-[82vh] overflow-y-auto rounded-t-xl border border-gray-200 bg-white p-3 shadow-md shadow-gray-950/10 sm:p-4">
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-600">
@@ -877,7 +886,7 @@ export default function MiniAppDetailPage({
                       showTitle={false}
                       className="border-0 shadow-none"
                       variant="embedded"
-                      disabledReason={operationPanelDisabledReason}
+                      getDisabledReason={getOperationDisabledReason}
                       launchContext={launchContext}
                     />
 
@@ -889,7 +898,7 @@ export default function MiniAppDetailPage({
                     />
 
                     {launchContext.hasParams && !hasClaimOnlyServerPayout && (
-                      <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800">
+                      <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800">
                         <p className="m-0 font-semibold">
                           Launch parameters applied
                         </p>
@@ -905,7 +914,7 @@ export default function MiniAppDetailPage({
                       </div>
                     )}
 
-                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                    <div className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
                       <Wallet
                         className="h-4 w-4 text-gray-400"
                         aria-hidden="true"
@@ -918,7 +927,7 @@ export default function MiniAppDetailPage({
                     </div>
 
                     <div
-                      className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
+                      className={`mt-3 rounded-xl border px-3 py-2 text-xs ${
                         networkSafetyOk
                           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                           : "border-amber-200 bg-amber-50 text-amber-700"
@@ -942,7 +951,7 @@ export default function MiniAppDetailPage({
 
                     {invokeFeedback && (
                       <div
-                        className={`mt-3 rounded-lg border px-3 py-2 text-xs break-words ${
+                        className={`mt-3 rounded-xl border px-3 py-2 text-xs break-words ${
                           invokeFeedback.type === "success"
                             ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                             : "border-red-200 bg-red-50 text-red-700"
