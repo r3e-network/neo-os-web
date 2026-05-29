@@ -4,7 +4,7 @@
 
 .hero-container {
   margin-bottom: 20px;
-  background: radial-gradient(ellipse at 50% 40%, rgba(0, 229, 153, 0.08) 0%, transparent 55%);
+  background: radial-gradient(ellipse at 50% 40%, rgba(22, 199, 132, 0.08) 0%, transparent 55%);
 }
 
 .capsule-scene {
@@ -12,23 +12,23 @@
   justify-content: center;
   align-items: center;
   height: 110px;
-  background: linear-gradient(180deg, rgba(0, 229, 153, 0.03), transparent);
+  background: linear-gradient(180deg, rgba(22, 199, 132, 0.03), transparent);
 }
 
 .capsule-graphic { display: flex; flex-direction: column; align-items: center; position: relative; }
-.capsule-top { width: 40px; height: 20px; background: linear-gradient(180deg, rgba(0, 229, 153, 0.3), rgba(0, 229, 153, 0.15)); border-radius: 20px 20px 0 0; border: 1px solid rgba(0, 229, 153, 0.3); border-bottom: none; }
-.capsule-body { width: 50px; height: 40px; background: linear-gradient(180deg, rgba(0, 229, 153, 0.15), rgba(0, 229, 153, 0.05)); border: 1px solid rgba(0, 229, 153, 0.2); border-radius: 0 0 6px 6px; position: relative; }
-.capsule-band { width: 100%; height: 4px; background: linear-gradient(90deg, rgba(0, 229, 153, 0.2), rgba(0, 229, 153, 0.5), rgba(0, 229, 153, 0.2)); box-shadow: 0 0 8px rgba(0, 229, 153, 0.3); position: absolute; top: 50%; transform: translateY(-50%); }
-.capsule-glow { position: absolute; width: 60px; height: 60px; background: radial-gradient(circle, rgba(0, 229, 153, 0.15), transparent 70%); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); animation: wormhole-spin 6s linear infinite; }
+.capsule-top { width: 40px; height: 20px; background: linear-gradient(180deg, rgba(22, 199, 132, 0.3), rgba(22, 199, 132, 0.15)); border-radius: 20px 20px 0 0; border: 1px solid rgba(22, 199, 132, 0.3); border-bottom: none; }
+.capsule-body { width: 50px; height: 40px; background: linear-gradient(180deg, rgba(22, 199, 132, 0.15), rgba(22, 199, 132, 0.05)); border: 1px solid rgba(22, 199, 132, 0.2); border-radius: 0 0 6px 6px; position: relative; }
+.capsule-band { width: 100%; height: 4px; background: linear-gradient(90deg, rgba(22, 199, 132, 0.2), rgba(22, 199, 132, 0.5), rgba(22, 199, 132, 0.2)); box-shadow: 0 0 8px rgba(22, 199, 132, 0.3); position: absolute; top: 50%; transform: translateY(-50%); }
+.capsule-glow { position: absolute; width: 60px; height: 60px; background: radial-gradient(circle, rgba(22, 199, 132, 0.15), transparent 70%); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); animation: wormhole-spin 6s linear infinite; }
 
 .hero-stats {
   display: flex;
   gap: 16px;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(0, 229, 153, 0.1);
+  box-shadow: 0 4px 20px rgba(22, 199, 132, 0.1);
   transition: box-shadow 0.3s ease, transform 0.3s ease;
   &:hover {
-    box-shadow: 0 6px 28px rgba(0, 229, 153, 0.25);
+    box-shadow: 0 6px 28px rgba(22, 199, 132, 0.25);
     transform: translateY(-2px);
   }
 }
@@ -36,10 +36,10 @@
 .hero-stat {
   text-align: center;
   padding: 8px 16px;
-  background: linear-gradient(180deg, rgba(0, 229, 153, 0.05), transparent);
+  background: linear-gradient(180deg, rgba(22, 199, 132, 0.05), transparent);
   border-radius: 8px;
-  border: 1px solid rgba(0, 229, 153, 0.15);
-  box-shadow: inset 0 1px 0 rgba(0, 229, 153, 0.06);
+  border: 1px solid rgba(22, 199, 132, 0.15);
+  box-shadow: inset 0 1px 0 rgba(22, 199, 132, 0.06);
 }
 
 .hero-stat-value {

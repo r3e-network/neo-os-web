@@ -53,10 +53,10 @@ export default function CountdownTimer({
 
   const urgencyColor = useMemo(() => {
     switch (urgencyLevel) {
-      case "calm": return "#00e599";
+      case "calm": return "#16c784";
       case "attention": return "#fbbf24";
       case "urgent": return "#ef4444";
-      default: return "#00e599";
+      default: return "#16c784";
     }
   }, [urgencyLevel]);
 

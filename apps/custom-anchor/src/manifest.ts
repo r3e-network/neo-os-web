@@ -8,7 +8,7 @@ export const manifest: MiniAppManifest = {
   shell: "console",
   theme: {
     family: "finance",
-    accentColor: "#00E599",
+    accentColor: "#16c784",
     density: "compact",
   },
   tabs: [

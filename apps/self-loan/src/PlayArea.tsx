@@ -115,7 +115,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   /* ---------- Derived health gauge ---------- */
   const hf = healthFactor > 0 ? healthFactor : 0;
   const healthColor =
-    hf >= 2 ? "#00e599" : hf >= 1.2 ? "#f59e0b" : "#ef4444";
+    hf >= 2 ? "#16c784" : hf >= 1.2 ? "#f59e0b" : "#ef4444";
   const healthPercent = Math.min(hf / 3, 1) * 100;
   const healthLabel =
     hf >= 2
@@ -127,7 +127,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   /* ---------- Derived LTV ---------- */
   const ltvPct = selectedLtvPercent > 0 ? selectedLtvPercent : currentLTV;
   const ltvColor =
-    ltvPct <= 50 ? "#00e599" : ltvPct <= 75 ? "#f59e0b" : "#ef4444";
+    ltvPct <= 50 ? "#16c784" : ltvPct <= 75 ? "#f59e0b" : "#ef4444";
 
   /* ---------- Display helpers ---------- */
   const displayNeoBalance =
@@ -330,7 +330,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 className="selfloan-ltv-bar"
                 style={{
                   width: `${Math.min(ltvPct, 100)}%`,
-                  background: `linear-gradient(90deg, #00e599, ${ltvColor})`,
+                  background: `linear-gradient(90deg, #16c784, ${ltvColor})`,
                 }}
               />
             </div>
