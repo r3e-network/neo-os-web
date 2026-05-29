@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T02:30:42.698Z",
+  "generatedAt": "2026-05-26T02:19:38.558Z",
   "network": "neo-n3-mainnet",
   "rpcUrl": "https://mainnet2.neo.coz.io:443",
   "networkMagic": 860833102,
@@ -11,9 +11,9 @@
   "safeMethodsDiscovered": 846,
   "safeInvocationsAttempted": 846,
   "safeInvocationsSkipped": 0,
-  "haltCount": 813,
+  "haltCount": 814,
   "expectedFaultCount": 28,
-  "sampleFaultCount": 5,
+  "sampleFaultCount": 4,
   "blockerCount": 0,
   "blockers": [],
   "rows": [
@@ -902,7 +902,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Boolean",
           "stackItems": 1
         },
@@ -4165,10 +4165,10 @@
         "total": 30,
         "discovered": 30,
         "skippedByLimit": 0,
-        "halt": 29,
+        "halt": 30,
         "expectedFault": 0,
         "sampleFault": 0,
-        "rpcOrSampleError": 1,
+        "rpcOrSampleError": 0,
         "hardFailures": 0,
         "hardChecked": [
           "admin/0",
@@ -4594,8 +4594,11 @@
               "type": "Hash160"
             }
           ],
-          "status": "rpc_or_sample_error",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
         },
         {
           "method": "getUserStats",
@@ -4710,7 +4713,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -6937,7 +6940,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -7117,7 +7120,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -7254,7 +7257,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Boolean",
           "stackItems": 1
         },
@@ -7511,7 +7514,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -7974,7 +7977,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -8478,7 +8481,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -9903,7 +9906,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "ByteString",
           "stackItems": 1
         },
@@ -10308,7 +10311,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -10745,7 +10748,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -14966,7 +14969,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -14990,7 +14993,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -15381,7 +15384,7 @@
     }
   ],
   "verifier": {
-    "timeoutMs": 8000,
+    "timeoutMs": 15000,
     "concurrency": 6,
     "progressEvery": 10,
     "maxSafeReads": 0

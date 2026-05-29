@@ -46,7 +46,7 @@ type MiniAppStatsRow = {
   last_activity_at?: string | null;
 };
 
-function useLocalCatalogOnly(): boolean {
+function shouldUseLocalCatalogOnly(): boolean {
   return process.env.NODE_ENV === "test"
     || process.env.PLAYWRIGHT === "1"
     || process.env.MINIAPP_CATALOG_SOURCE === "local";
@@ -109,7 +109,7 @@ export function filterCatalogByNetwork(apps: MiniAppInfo[], network: CatalogNetw
 }
 
 async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMiniAppCatalogOptions = {}): Promise<MiniAppInfo[]> {
-  if (useLocalCatalogOnly()) return [];
+  if (shouldUseLocalCatalogOnly()) return [];
   const { url: supabaseURL, authHeaders } = getSupabaseEnv();
   if (!supabaseURL || !authHeaders) return [];
 
@@ -226,7 +226,7 @@ export async function loadMiniAppStatsMap(): Promise<Record<string, {
   volume: number;
   lastActivityAt: string | null;
 }>> {
-  if (useLocalCatalogOnly()) return {};
+  if (shouldUseLocalCatalogOnly()) return {};
   const { url: supabaseURL, authHeaders } = getSupabaseEnv();
   if (!supabaseURL || !authHeaders) return {};
 

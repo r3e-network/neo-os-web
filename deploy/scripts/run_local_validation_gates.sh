@@ -55,7 +55,8 @@ if [[ $run_admin -eq 1 ]]; then
   echo ""
   echo "=== Admin Console Local Gates ==="
   npm run -s test:admin-console
-  rm -rf "$REPO_ROOT/platform/admin-console/.next"
+  rm -rf "$REPO_ROOT/platform/admin-console/.next" >/dev/null 2>&1 || true
+  rm -rf "$REPO_ROOT/platform/admin-console/.next" >/dev/null 2>&1 || true
   npm --prefix platform/admin-console run build
 fi
 

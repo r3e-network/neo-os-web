@@ -63,6 +63,26 @@ function getStaticTopLevelRoutes() {
 }
 
 describe("admin navigation contract", () => {
+  it("uses stable icon keys instead of emoji glyphs", () => {
+    expect(ADMIN_NAVIGATION_ITEMS.every((item) => item.iconKey)).toBe(true);
+    expect(ADMIN_NAVIGATION_ITEMS.map((item) => item.iconKey)).toEqual([
+      "dashboard",
+      "services",
+      "simulations",
+      "miniapps",
+      "templates",
+      "users",
+      "analytics",
+      "contracts",
+      "priceFeeds",
+      "secrets",
+      "settings",
+    ]);
+    expect(JSON.stringify(ADMIN_NAVIGATION_ITEMS)).not.toMatch(
+      /[\u{1F300}-\u{1FAFF}]/u,
+    );
+  });
+
   it("keeps the shared admin navigation in sync with every static top-level page", () => {
     expect(ADMIN_NAVIGATION_ITEMS.map((item) => item.href).sort()).toEqual([
       "/",
@@ -80,6 +100,9 @@ describe("admin navigation contract", () => {
         ADMIN_NAVIGATION_ITEMS.find((item) => item.labelFallback === name)?.href,
       );
     }
+    for (const item of ADMIN_NAVIGATION_ITEMS) {
+      expect(screen.getByTestId(`admin-nav-icon-${item.iconKey}`)).toBeInTheDocument();
+    }
 
     document.body.innerHTML = "";
 
@@ -89,6 +112,9 @@ describe("admin navigation contract", () => {
         "href",
         ADMIN_NAVIGATION_ITEMS.find((item) => item.labelFallback === name)?.href,
       );
+    }
+    for (const item of ADMIN_NAVIGATION_ITEMS) {
+      expect(screen.getByTestId(`admin-mobile-nav-icon-${item.iconKey}`)).toBeInTheDocument();
     }
   });
 });

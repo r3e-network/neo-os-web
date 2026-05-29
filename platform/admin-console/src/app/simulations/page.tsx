@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
@@ -17,10 +19,47 @@ export default function SimulationsPage() {
   const stopSimulation = useStopSimulation();
 
   const [config, setConfig] = useState({
-    min_interval_ms: 1000,
-    max_interval_ms: 5000,
+    min_interval_ms: "1000",
+    max_interval_ms: "5000",
     mini_apps: "",
   });
+
+  const running = Boolean(status?.running);
+  const activeMiniApps = status?.active_miniapps ?? [];
+  const workerCount = status?.workers_per_app ?? 0;
+  const uptimeSeconds = status?.uptime_seconds ?? 0;
+  const txCount = status?.tx_count ?? 0;
+  const isStartDisabled = isLoading || running || startSimulation.isPending;
+  const isStopDisabled = isLoading || !running || stopSimulation.isPending;
+  const controlsDisabled = isLoading || running || startSimulation.isPending;
+  const mutationError = startSimulation.error || stopSimulation.error;
+  const statusItems = [
+    {
+      label: "Mode",
+      value: isLoading ? "Loading" : running ? "Running" : "Stopped",
+      helper: running ? "Scenario runner active" : "Ready for scoped testing",
+    },
+    {
+      label: "Active MiniApps",
+      value: activeMiniApps.length,
+      helper: `${workerCount} workers per app`,
+    },
+    {
+      label: "Uptime",
+      value: `${uptimeSeconds}s`,
+      helper: "Current run duration",
+    },
+    {
+      label: "Transactions",
+      value: txCount,
+      helper: "Simulated operations",
+    },
+  ];
+
+  const parseInterval = (value: string, fallback: number) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
 
   const handleStart = () => {
     const apps = config.mini_apps
@@ -28,8 +67,8 @@ export default function SimulationsPage() {
       .map((s) => s.trim())
       .filter(Boolean);
     startSimulation.mutate({
-      min_interval_ms: config.min_interval_ms,
-      max_interval_ms: config.max_interval_ms,
+      min_interval_ms: parseInterval(config.min_interval_ms, 1000),
+      max_interval_ms: parseInterval(config.max_interval_ms, 5000),
       ...(apps.length > 0 ? { mini_apps: apps } : {}),
     });
   };
@@ -41,149 +80,179 @@ export default function SimulationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Simulations"
-        description="Control and monitor platform transaction simulations"
+        title="Transaction Simulations"
+        description="Control dry-run transaction load before exposing contract flows."
         highlightLastWord
       />
 
-      <Card variant="glass">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Simulation Control</CardTitle>
-          <div className="flex items-center space-x-2">
-            Status:{" "}
-            {isLoading ? (
-              <Spinner />
-            ) : status?.running ? (
-              <Badge variant="success">Running</Badge>
-            ) : (
-              <Badge variant="default">Stopped</Badge>
-            )}
+      <div
+        aria-label="Simulation status summary"
+        className="simulation-summary-grid grid gap-3 lg:grid-cols-4"
+      >
+        {statusItems.map((item) => (
+          <div
+            key={item.label}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+          >
+            <p className="text-xs font-semibold uppercase text-gray-500">
+              {item.label}
+            </p>
+            <div className="mt-2 flex items-end justify-between gap-3">
+              <p className="text-2xl font-black text-gray-950">
+                {item.value}
+              </p>
+              <p className="text-right text-xs font-medium text-gray-500">
+                {item.helper}
+              </p>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        ))}
+      </div>
+
+      {(error || mutationError) && (
+        <div className="rounded-xl border border-danger-200 bg-danger-50 p-4">
           {error && (
-            <div className="text-danger-600 mb-4">
+            <p className="text-sm font-semibold text-danger-700">
               Error loading simulation status:{" "}
               {error instanceof Error ? error.message : String(error)}
-            </div>
+            </p>
           )}
+          {mutationError && (
+            <p className="text-sm font-semibold text-danger-700">
+              Error updating simulation:{" "}
+              {mutationError instanceof Error
+                ? mutationError.message
+                : String(mutationError)}
+            </p>
+          )}
+        </div>
+      )}
 
-          <div className="flex flex-col space-y-4 mb-8">
-            {!status?.running && (
-              <div className="flex space-x-4 items-center">
-                <div>
-                  <label
-                    htmlFor="min_interval_ms"
-                    className="block text-sm font-medium mb-1"
-                  >
-                    Min Interval (ms)
-                  </label>
-                  <input
-                    id="min_interval_ms"
-                    type="number"
-                    value={config.min_interval_ms}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        min_interval_ms: parseInt(e.target.value),
-                      })
-                    }
-                    className="border rounded p-2 text-sm w-32 bg-white dark:bg-gray-900"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="max_interval_ms"
-                    className="block text-sm font-medium mb-1"
-                  >
-                    Max Interval (ms)
-                  </label>
-                  <input
-                    id="max_interval_ms"
-                    type="number"
-                    value={config.max_interval_ms}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        max_interval_ms: parseInt(e.target.value),
-                      })
-                    }
-                    className="border rounded p-2 text-sm w-32 bg-white dark:bg-gray-900"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label
-                    htmlFor="mini_apps"
-                    className="block text-sm font-medium mb-1"
-                  >
-                    Target MiniApps (comma separated, empty for all)
-                  </label>
-                  <input
-                    id="mini_apps"
-                    type="text"
-                    value={config.mini_apps}
-                    onChange={(e) =>
-                      setConfig({ ...config, mini_apps: e.target.value })
-                    }
-                    placeholder="app1, app2..."
-                    className="border rounded p-2 text-sm w-full bg-white dark:bg-gray-900"
-                  />
-                </div>
-              </div>
-            )}
-            <div className="flex space-x-4">
-              <button
-                onClick={handleStart}
-                disabled={
-                  isLoading || status?.running || startSimulation.isPending
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
+        <Card
+          aria-label="Simulation control panel"
+          className="simulation-control-card"
+          variant="default"
+        >
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <CardTitle>Scenario Runner</CardTitle>
+              <p className="mt-1 text-sm text-gray-500">
+                Scope synthetic transaction traffic by interval and MiniApp
+                before wiring production flows.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase text-gray-500">
+                Status
+              </span>
+              {isLoading ? (
+                <Spinner />
+              ) : running ? (
+                <Badge variant="success">Running</Badge>
+              ) : (
+                <Badge variant="default">Stopped</Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              No deploys, upgrades, or fund transfers are executed here.
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(15rem,1.4fr)]">
+              <Input
+                id="min_interval_ms"
+                label="Minimum interval"
+                type="number"
+                min={0}
+                value={config.min_interval_ms}
+                disabled={controlsDisabled}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    min_interval_ms: e.target.value,
+                  })
                 }
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                {startSimulation.isPending ? "Starting..." : "Start Simulation"}
-              </button>
-              <button
+              />
+              <Input
+                id="max_interval_ms"
+                label="Maximum interval"
+                type="number"
+                min={0}
+                value={config.max_interval_ms}
+                disabled={controlsDisabled}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    max_interval_ms: e.target.value,
+                  })
+                }
+              />
+              <Input
+                id="mini_apps"
+                label="Target MiniApps"
+                type="text"
+                value={config.mini_apps}
+                disabled={controlsDisabled}
+                placeholder="oracle-price-console, aa-market-hub"
+                onChange={(e) =>
+                  setConfig({ ...config, mini_apps: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button
+                variant="danger"
                 onClick={handleStop}
-                disabled={
-                  isLoading || !status?.running || stopSimulation.isPending
-                }
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                disabled={isStopDisabled}
+                isLoading={stopSimulation.isPending}
               >
-                {stopSimulation.isPending ? "Stopping..." : "Stop Simulation"}
-              </button>
+                Stop Simulation
+              </Button>
+              <Button
+                onClick={handleStart}
+                disabled={isStartDisabled}
+                isLoading={startSimulation.isPending}
+              >
+                Start Simulation
+              </Button>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Details</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded">
-                <div className="text-sm text-gray-500">Active MiniApps</div>
-                <div className="text-xl font-bold">
-                  {status?.active_miniapps?.length || 0}
-                </div>
-              </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded">
-                <div className="text-sm text-gray-500">Workers per App</div>
-                <div className="text-xl font-bold">
-                  {status?.workers_per_app || 0}
-                </div>
-              </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded">
-                <div className="text-sm text-gray-500">Uptime (s)</div>
-                <div className="text-xl font-bold">
-                  {status?.uptime_seconds || 0}
-                </div>
-              </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded">
-                <div className="text-sm text-gray-500">
-                  Transactions Simulated
-                </div>
-                <div className="text-xl font-bold">{status?.tx_count || 0}</div>
-              </div>
+        <Card
+          aria-label="Active MiniApps"
+          className="simulation-active-apps"
+          variant="default"
+        >
+          <CardHeader>
+            <CardTitle>Active MiniApps</CardTitle>
+            <p className="mt-1 text-sm text-gray-500">
+              Current synthetic traffic scope.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {activeMiniApps.length > 0 ? (
+                activeMiniApps.map((appId) => (
+                  <span
+                    key={appId}
+                    className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"
+                  >
+                    {appId}
+                  </span>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">
+                  No scoped MiniApps reported.
+                </p>
+              )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

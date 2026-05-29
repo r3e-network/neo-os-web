@@ -9,7 +9,12 @@ interface ListingCardProps {
   onSelect: (listing: MarketListing) => void;
 }
 
-export function ListingCard({ listing, isSelected, t, onSelect }: ListingCardProps) {
+export function ListingCard({
+  listing,
+  isSelected,
+  t,
+  onSelect,
+}: ListingCardProps) {
   const hasPendingPayment = BigInt(listing.myPendingPayment || "0") > 0n;
 
   return (
@@ -18,37 +23,79 @@ export function ListingCard({ listing, isSelected, t, onSelect }: ListingCardPro
       className={`listing-card${isSelected ? " listing-card--selected" : ""}`}
     >
       <div className="listing-card__header">
-        <div>
-          <div className="listing-card__title">
-            <span>#{listing.id}</span>
-            <span className={`chip chip--${listing.status}`}>{listing.status}</span>
-            {listing.isMine && <span className="chip chip--mine">{t("mine")}</span>}
-            {hasPendingPayment && <span className="chip chip--pending">{t("pendingRefund")}</span>}
+        <div className="listing-card__identity">
+          <span className="listing-card__avatar">AA</span>
+          <div>
+            <div className="listing-card__title">
+              <span>#{listing.id}</span>
+              <span className={`chip chip--${listing.status}`}>
+                {listing.status}
+              </span>
+              {listing.isMine && (
+                <span className="chip chip--mine">{t("mine")}</span>
+              )}
+              {hasPendingPayment && (
+                <span className="chip chip--pending">{t("pendingRefund")}</span>
+              )}
+            </div>
+            <p className="listing-card__subtitle">
+              {listing.title || t("untitledListing")}
+            </p>
           </div>
-          <p className="listing-card__subtitle">{listing.title || t("untitledListing")}</p>
         </div>
-        <NeoButton variant="secondary" aria-label={isSelected ? t("selected") : t("selectListing")} onClick={() => onSelect(listing)}>
-          {isSelected ? t("selected") : t("selectListing")}
-        </NeoButton>
+        <div className="listing-card__price">
+          <strong>{listing.priceGas}</strong>
+          <span>{t("tokenGas")}</span>
+        </div>
       </div>
 
-      <div className="row"><span className="label">{t("priceLabel")}</span><span className="value">{listing.priceGas} {t("tokenGas")}</span></div>
-      <div className="row"><span className="label">{t("aaContractLabel")}</span><span className="value">{listing.aaContractHash}</span></div>
-      <div className="row"><span className="label">{t("accountIdLabel")}</span><span className="value">{listing.accountIdHash}</span></div>
-      <div className="row"><span className="label">{t("sellerLabel")}</span><span className="value">{listing.seller || t("notAvailable")}</span></div>
-      <div className="row"><span className="label">{t("buyerLabel")}</span><span className="value">{listing.buyer || t("notAvailable")}</span></div>
+      <div className="listing-card__details">
+        <div className="row">
+          <span className="label">{t("aaContractLabel")}</span>
+          <span className="value">{listing.aaContractHash}</span>
+        </div>
+        <div className="row">
+          <span className="label">{t("accountIdLabel")}</span>
+          <span className="value">{listing.accountIdHash}</span>
+        </div>
+        <div className="row">
+          <span className="label">{t("sellerLabel")}</span>
+          <span className="value">{listing.seller || t("notAvailable")}</span>
+        </div>
+        <div className="row">
+          <span className="label">{t("buyerLabel")}</span>
+          <span className="value">{listing.buyer || t("notAvailable")}</span>
+        </div>
+      </div>
       {listing.metadataUri && (
         <div className="row">
           <span className="label">{t("metadataLabel")}</span>
-          <a className="value value--link" href={listing.metadataUri} target="_blank" rel="noopener noreferrer" aria-label={t("viewMetadata")}>{listing.metadataUri}</a>
+          <a
+            className="value value--link"
+            href={listing.metadataUri}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("viewMetadata")}
+          >
+            {listing.metadataUri}
+          </a>
         </div>
       )}
       {hasPendingPayment && (
         <div className="row">
           <span className="label">{t("myPendingPayment")}</span>
-          <span className="value">{formatGasFractions(listing.myPendingPayment)} {t("tokenGas")}</span>
+          <span className="value">
+            {formatGasFractions(listing.myPendingPayment)} {t("tokenGas")}
+          </span>
         </div>
       )}
+      <NeoButton
+        variant={isSelected ? "primary" : "secondary"}
+        aria-label={isSelected ? t("selected") : t("selectListing")}
+        onClick={() => onSelect(listing)}
+      >
+        {isSelected ? t("selected") : t("selectListing")}
+      </NeoButton>
     </NeoCard>
   );
 }

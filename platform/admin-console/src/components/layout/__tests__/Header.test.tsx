@@ -2,8 +2,9 @@
 // Header Component Tests
 // =============================================================================
 
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { usePathname } from "next/navigation";
 import { Header } from "../Header";
 
 vi.mock("next/navigation", () => ({
@@ -53,6 +54,10 @@ vi.mock("../../../../../shared/i18n/LanguageSwitcher", () => ({
 }));
 
 describe("Header Component", () => {
+  beforeEach(() => {
+    vi.mocked(usePathname).mockReturnValue("/");
+  });
+
   it("should render header", () => {
     render(<Header />);
     expect(screen.getByRole("banner")).toBeInTheDocument();
@@ -70,6 +75,17 @@ describe("Header Component", () => {
     ).toBeInTheDocument();
   });
 
+  it("uses the active route label and concise section context", () => {
+    vi.mocked(usePathname).mockReturnValue("/miniapps");
+
+    render(<Header />);
+
+    expect(
+      screen.getByRole("heading", { name: "MiniApps" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Registry and publish control")).toBeInTheDocument();
+  });
+
   it("should display environment indicator", () => {
     render(<Header />);
     expect(screen.getByText("Local Development")).toBeInTheDocument();
@@ -80,5 +96,27 @@ describe("Header Component", () => {
     const header = screen.getByRole("banner");
     expect(header).toHaveClass("sticky");
     expect(header).toHaveClass("top-0");
+  });
+
+  it("keeps the header on the solid light operator-console chrome", () => {
+    const { container } = render(<Header />);
+    const header = screen.getByRole("banner");
+
+    expect(header.className).toContain("bg-white");
+    for (const token of [
+      "dark:",
+      "bg-white/95",
+      "backdrop-blur",
+      "rounded-md",
+      "ring-neo",
+      "shadow-lg",
+    ]) {
+      expect(container.innerHTML, `header should not include ${token}`).not.toContain(
+        token,
+      );
+      expect(header.className, `header shell should not include ${token}`).not.toContain(
+        token,
+      );
+    }
   });
 });

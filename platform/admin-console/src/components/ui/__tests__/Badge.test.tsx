@@ -73,4 +73,20 @@ describe("Badge Component", () => {
     expect(badge).toHaveClass("text-xs");
     expect(badge).toHaveClass("font-bold");
   });
+
+  it("uses light operator-console status colors without local dark-mode forks", () => {
+    const { container } = render(
+      <div>
+        <Badge>Default</Badge>
+        <Badge variant="success">Success</Badge>
+        <Badge variant="warning">Warning</Badge>
+        <Badge variant="danger">Danger</Badge>
+        <Badge variant="info">Info</Badge>
+      </div>,
+    );
+
+    expect(container.innerHTML).not.toContain("dark:");
+    expect(screen.getByText("Default")).toHaveClass("ring-gray-200");
+    expect(screen.getByText("Info")).toHaveClass("ring-primary-200");
+  });
 });

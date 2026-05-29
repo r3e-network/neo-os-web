@@ -1,8 +1,7 @@
 /**
- * PlayArea.tsx — AA Account Lab
+ * PlayArea.tsx - AA Account Lab
  *
- * AA account inspection and registration interface.
- * Uses all state keys and actions from main.tsx setup().
+ * Wallet-style AA account registration and inspection workspace.
  */
 
 import { useState } from "react";
@@ -20,139 +19,242 @@ interface PlayAreaProps {
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool } = useStateBindings(state);
 
-  // State bindings
   const isInspecting = bool("isInspecting");
   const isSubmitting = bool("isSubmitting");
   const currentVerifier = str("currentVerifier", t("notAvailable") || "N/A");
   const currentHook = str("currentHook", t("notAvailable") || "N/A");
-  const currentBackupOwner = str("currentBackupOwner", t("notAvailable") || "N/A");
+  const currentBackupOwner = str(
+    "currentBackupOwner",
+    t("notAvailable") || "N/A",
+  );
   const aaCoreDisplay = str("aaCoreDisplay");
   const defaultVerifierDisplay = str("defaultVerifierDisplay");
   const networkDisplay = str("networkDisplay");
 
-  // Local form state
   const [inspectAccountId, setInspectAccountId] = useState("");
   const [registerAccountId, setRegisterAccountId] = useState("");
-  const [verifierHash, setVerifierHash] = useState(defaultVerifierDisplay || "");
+  const [verifierHash, setVerifierHash] = useState(
+    defaultVerifierDisplay || "",
+  );
   const [verifierParamsHex, setVerifierParamsHex] = useState("");
   const [hookHash, setHookHash] = useState("");
   const [backupOwner, setBackupOwner] = useState("");
   const [escapeTimelock, setEscapeTimelock] = useState("2592000");
 
+  const canInspect = Boolean(inspectAccountId.trim()) && !isInspecting;
+  const canRegister =
+    Boolean(registerAccountId.trim()) &&
+    Boolean(verifierHash.trim()) &&
+    Boolean(backupOwner.trim()) &&
+    Boolean(escapeTimelock.trim()) &&
+    !isSubmitting;
+  const inspectedAccountDisplay = inspectAccountId.trim() || t("notAvailable");
+  const registerAccountDisplay = registerAccountId.trim() || t("notAvailable");
+
   const detailItems = [
     { label: t("currentVerifier") || "Verifier", value: currentVerifier },
     { label: t("currentHook") || "Hook", value: currentHook },
-    { label: t("currentBackupOwner") || "Backup Owner", value: currentBackupOwner },
+    {
+      label: t("currentBackupOwner") || "Backup Owner",
+      value: currentBackupOwner,
+    },
     { label: t("aaCore") || "AA Core", value: aaCoreDisplay },
   ];
 
   return (
     <div className="aa-account-play-area">
-      {/* Network Info */}
-      {networkDisplay && (
-        <div className="network-info">
-          <span className="network-label">{t("network") || "Network"}</span>
-          <span className="network-value">{networkDisplay}</span>
-        </div>
-      )}
-
-      {/* Inspector Section */}
-      <NeoCard variant="erobo" title={t("inspectorTitle") || "Account Inspector"}>
-        <div className="field-stack">
-          <NeoInput
-            value={inspectAccountId}
-            label={t("accountId") || "Account ID"}
-            placeholder={t("accountIdPlaceholder") || "Enter account ID hash"}
-            onChange={(v) => setInspectAccountId(v)}
-          />
-          <div className="actions-row">
-            <NeoButton
-              variant="primary"
-              loading={isInspecting}
-              aria-label={t("inspect") || "Inspect"}
-              onClick={() => dispatch("inspect", inspectAccountId)}
-            >
-              {t("inspect") || "Inspect"}
-            </NeoButton>
-            <NeoButton
-              variant="secondary"
-              aria-label={t("connectWallet") || "Connect Wallet"}
-              onClick={() => dispatch("connect")}
-            >
-              {t("connectWallet") || "Connect Wallet"}
-            </NeoButton>
+      <section className="account-hero">
+        <div className="account-hero__copy">
+          <h2>{t("accountHeroTitle")}</h2>
+          <p>{t("accountHeroCopy")}</p>
+          <div
+            className="account-hero__metrics"
+            aria-label={t("accountMetricsLabel")}
+          >
+            <div className="account-metric">
+              <span>{t("network") || "Network"}</span>
+              <strong>{networkDisplay || "--"}</strong>
+            </div>
+            <div className="account-metric">
+              <span>{t("defaultVerifier") || "Default Verifier"}</span>
+              <strong>{defaultVerifierDisplay || t("notAvailable")}</strong>
+            </div>
+            <div className="account-metric">
+              <span>{t("accountMetricAccount")}</span>
+              <strong>{registerAccountDisplay}</strong>
+            </div>
           </div>
         </div>
 
-        <div className="details-grid">
-          {detailItems.map((item) => (
-            <div key={item.label} className="detail-item">
-              <span className="label">{item.label}</span>
-              <span className="value mono">{item.value}</span>
+        <NeoCard
+          variant="erobo"
+          title={
+            t("accountInspectorTitle") ||
+            t("inspectorTitle") ||
+            "Account Inspector"
+          }
+          className="account-command"
+        >
+          <div className="account-form">
+            <NeoInput
+              value={inspectAccountId}
+              label={t("accountId") || "Account ID"}
+              hint={t("accountIdHint")}
+              placeholder={t("accountIdPlaceholder") || "Enter account ID hash"}
+              onChange={(v) => setInspectAccountId(v)}
+            />
+            {!canInspect && (
+              <p className="account-hint">{t("inspectBlocked")}</p>
+            )}
+            <div className="account-action-grid">
+              <NeoButton
+                variant="primary"
+                loading={isInspecting}
+                disabled={!canInspect}
+                aria-label={t("inspect") || "Inspect"}
+                onClick={() => dispatch("inspect", inspectAccountId)}
+              >
+                {t("inspect") || "Inspect"}
+              </NeoButton>
+              <NeoButton
+                variant="secondary"
+                aria-label={t("connectWallet") || "Connect Wallet"}
+                onClick={() => dispatch("connect")}
+              >
+                {t("connectWallet") || "Connect Wallet"}
+              </NeoButton>
             </div>
-          ))}
-        </div>
-      </NeoCard>
+          </div>
+        </NeoCard>
+      </section>
 
-      {/* Register Section */}
-      <NeoCard variant="erobo" title={t("registerTitle") || "Register Account"}>
-        <div className="field-stack">
-          <NeoInput
-            value={registerAccountId}
-            label={t("accountId") || "Account ID"}
-            placeholder={t("accountIdPlaceholder") || "Enter account ID hash"}
-            onChange={(v) => setRegisterAccountId(v)}
-          />
-          <NeoInput
-            value={verifierHash}
-            label={t("verifier") || "Verifier Hash"}
-            placeholder={t("verifierPlaceholder") || "0x..."}
-            onChange={(v) => setVerifierHash(v)}
-          />
-          <NeoInput
-            value={verifierParamsHex}
-            label={t("verifierParams") || "Verifier Params (hex)"}
-            placeholder={t("verifierParamsPlaceholder") || "0x..."}
-            onChange={(v) => setVerifierParamsHex(v)}
-          />
-          <NeoInput
-            value={hookHash}
-            label={t("hook") || "Hook Hash"}
-            placeholder={t("hookPlaceholder") || "0x..."}
-            onChange={(v) => setHookHash(v)}
-          />
-          <NeoInput
-            value={backupOwner}
-            label={t("backupOwner") || "Backup Owner"}
-            placeholder={t("backupOwnerPlaceholder") || "NeoAddress..."}
-            onChange={(v) => setBackupOwner(v)}
-          />
-          <NeoInput
-            value={escapeTimelock}
-            label={t("timelock") || "Escape Timelock (seconds)"}
-            placeholder={t("timelockPlaceholder") || "2592000"}
-            onChange={(v) => setEscapeTimelock(v)}
-          />
-          <NeoButton
-            variant="primary"
-            loading={isSubmitting}
-            aria-label={t("register") || "Register"}
-            onClick={() =>
-              dispatch(
-                "register",
-                registerAccountId,
-                verifierHash,
-                verifierParamsHex,
-                hookHash,
-                backupOwner,
-                escapeTimelock,
-              )
-            }
-          >
-            {t("register") || "Register"}
-          </NeoButton>
+      <section className="account-flow" aria-label={t("accountFlowLabel")}>
+        <div className="account-flow__step">
+          <span>01</span>
+          <strong>{t("accountFlowInspect")}</strong>
+          <p>{t("accountFlowInspectDesc")}</p>
         </div>
-      </NeoCard>
+        <div className="account-flow__step">
+          <span>02</span>
+          <strong>{t("accountFlowRegister")}</strong>
+          <p>{t("accountFlowRegisterDesc")}</p>
+        </div>
+        <div className="account-flow__step">
+          <span>03</span>
+          <strong>{t("accountFlowRecovery")}</strong>
+          <p>{t("accountFlowRecoveryDesc")}</p>
+        </div>
+      </section>
+
+      <section className="account-workspace">
+        <div className="account-state-panel">
+          <div className="account-section-heading">
+            <div>
+              <span>{t("accountStateLabel")}</span>
+              <h3>{t("accountStateTitle")}</h3>
+            </div>
+            <strong>{inspectedAccountDisplay}</strong>
+          </div>
+
+          <div className="account-detail-grid">
+            {detailItems.map((item) => (
+              <div key={item.label} className="account-detail-card">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+
+          <div className="account-risk-note">
+            <span>AA</span>
+            <div>
+              <strong>{t("accountRiskTitle")}</strong>
+              <p>{t("accountRiskCopy")}</p>
+            </div>
+          </div>
+        </div>
+
+        <aside className="account-side-rail">
+          <NeoCard
+            variant="erobo"
+            title={t("registerTitle") || "Register Account"}
+            className="account-register-card"
+          >
+            <div className="account-scope-summary">
+              <strong>{t("accountShellLabel")}</strong>
+              <span>{registerAccountDisplay}</span>
+            </div>
+            {!canRegister && (
+              <p className="account-hint">{t("registerBlocked")}</p>
+            )}
+            <div className="account-form">
+              <NeoInput
+                value={registerAccountId}
+                label={t("accountId") || "Account ID"}
+                hint={t("accountIdHint")}
+                placeholder={
+                  t("accountIdPlaceholder") || "Enter account ID hash"
+                }
+                onChange={(v) => setRegisterAccountId(v)}
+              />
+              <NeoInput
+                value={verifierHash}
+                label={t("verifier") || "Verifier Hash"}
+                hint={t("verifierHint")}
+                placeholder={t("verifierPlaceholder") || "0x..."}
+                onChange={(v) => setVerifierHash(v)}
+              />
+              <NeoInput
+                value={verifierParamsHex}
+                label={t("verifierParams") || "Verifier Params (hex)"}
+                hint={t("verifierParamsHint")}
+                placeholder={t("verifierParamsPlaceholder") || "0x..."}
+                onChange={(v) => setVerifierParamsHex(v)}
+              />
+              <NeoInput
+                value={hookHash}
+                label={t("hook") || "Hook Hash"}
+                hint={t("hookHint")}
+                placeholder={t("hookPlaceholder") || "0x..."}
+                onChange={(v) => setHookHash(v)}
+              />
+              <NeoInput
+                value={backupOwner}
+                label={t("backupOwner") || "Backup Owner"}
+                hint={t("backupOwnerHint")}
+                placeholder={t("backupOwnerPlaceholder") || "NeoAddress..."}
+                onChange={(v) => setBackupOwner(v)}
+              />
+              <NeoInput
+                value={escapeTimelock}
+                label={t("timelock") || "Escape Timelock"}
+                hint={t("timelockHint")}
+                placeholder={t("timelockPlaceholder") || "2592000"}
+                onChange={(v) => setEscapeTimelock(v)}
+              />
+              <NeoButton
+                variant="primary"
+                loading={isSubmitting}
+                disabled={!canRegister}
+                aria-label={t("register") || "Register"}
+                onClick={() =>
+                  dispatch(
+                    "register",
+                    registerAccountId,
+                    verifierHash,
+                    verifierParamsHex,
+                    hookHash,
+                    backupOwner,
+                    escapeTimelock,
+                  )
+                }
+              >
+                {t("register") || "Register"}
+              </NeoButton>
+            </div>
+          </NeoCard>
+        </aside>
+      </section>
     </div>
   );
 }

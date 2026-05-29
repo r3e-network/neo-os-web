@@ -1,7 +1,7 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-    title: { en: "GASBOX", zh: "Neo 扭蛋机" },
+    title: { en: "GasBox", zh: "Neo 扭蛋机" },
     docSubtitle: { en: "On-chain blind boxes with escrowed prizes", zh: "奖品托管的链上盲盒" },
     docDescription: {
         en: "Neo Gacha lets creators publish machines with on-chain metadata and escrowed prize inventory. Players pay GAS to spin, results are resolved via verifiable randomness, and prizes are transferred automatically.",
@@ -24,6 +24,49 @@ const appMessages = {
     heroSubtitle: { en: "Transparent odds and verifiable on-chain draws", zh: "透明概率与可验证链上抽取" },
     loadingMachines: { en: "Loading machines...", zh: "加载机器中..." },
     noMachines: { en: "No active machines yet.", zh: "暂无可用机器。" },
+    gasboxPending: { en: "Sync pending", zh: "等待同步" },
+    gasboxLiveStatus: { en: "Live market status", zh: "实时市场状态" },
+    gasboxMarketEmptyTitle: { en: "No active machines loaded", zh: "尚未加载可用机器" },
+    gasboxMarketEmptyDesc: {
+        en: "Refresh the market or publish a machine from Studio to start the player route.",
+        zh: "刷新市场，或在工作室发布机器来开启玩家路径。",
+    },
+    gasboxMarketEmptyHint: {
+        en: "The player view stays focused on active machines with escrowed inventory and readable odds.",
+        zh: "玩家视图只聚焦已启用、库存托管且概率清晰的机器。",
+    },
+    gasboxPlayerRoute: { en: "Player route", zh: "玩家路径" },
+    gasboxEscrowSafetyTitle: { en: "Escrow and odds safety", zh: "托管与概率安全" },
+    gasboxEscrowSafetyDesc: {
+        en: "Prizes are escrowed before activation, odds remain inspectable, and pulls require the selected machine to be active.",
+        zh: "奖品先托管再激活，概率可核查，且只有选中已启用机器后才能抽取。",
+    },
+    gasboxStudioHint: {
+        en: "Create or fund machines from Studio before they appear in the market.",
+        zh: "在工作室创建或补充库存后，机器才会出现在市场中。",
+    },
+    refreshMachines: { en: "Refresh Machines", zh: "刷新机器" },
+    openStudio: { en: "Open Studio", zh: "打开工作室" },
+    studioGuidance: {
+        en: "Open Studio to create, fund, or activate machines before they appear in the player market.",
+        zh: "打开工作室创建、补充库存或启用机器后，它们才会出现在玩家市场中。",
+    },
+    selectMachine: { en: "Select a Machine", zh: "选择机器" },
+    totalMachines: { en: "Machines", zh: "机器" },
+    yourPulls: { en: "Your Pulls", zh: "你的抽取" },
+    totalPulls: { en: "Total Pulls", zh: "总抽取" },
+    items: { en: "items", zh: "物品" },
+    plays: { en: "plays", zh: "游玩" },
+    pullCost: { en: "Pull Cost", zh: "抽取成本" },
+    totalItems: { en: "Items", zh: "物品" },
+    totalPlays: { en: "Plays", zh: "游玩次数" },
+    rarityDistribution: { en: "Drop Rates", zh: "掉落概率" },
+    readyToPlay: { en: "Ready to Play", zh: "可游玩" },
+    inactive: { en: "Inactive", zh: "未启用" },
+    pulling: { en: "Pulling...", zh: "抽取中..." },
+    pull: { en: "Pull", zh: "抽取" },
+    dismiss: { en: "Dismiss", zh: "关闭" },
+    selectMachinePrompt: { en: "Select a machine from the market to review odds and play cost.", zh: "从市场选择机器，查看概率与游玩成本。" },
     noOwnedMachines: { en: "No machines owned yet.", zh: "暂无拥有的机器。" },
     connectWallet: { en: "Connect your wallet to continue.", zh: "请连接钱包以继续。" },
     receiptMissing: { en: "Payment receipt missing", zh: "支付收据缺失" },

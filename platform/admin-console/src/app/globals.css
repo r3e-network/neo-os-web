@@ -24,7 +24,7 @@
 
   html {
     @apply scroll-smooth;
-    font-family: var(--font-inter), Inter, system-ui, sans-serif;
+    font-family: var(--font-inter, Inter), system-ui, sans-serif;
   }
 
   body {
@@ -43,7 +43,7 @@
   }
 
   .neo-gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#00E599] via-[#00D4FF] to-[#7000FF];
+    @apply text-emerald-600;
   }
 }
 
@@ -57,5 +57,5 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-white/10 rounded-full hover:bg-gray-400 dark:hover:bg-white/20 transition-colors;
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
 }

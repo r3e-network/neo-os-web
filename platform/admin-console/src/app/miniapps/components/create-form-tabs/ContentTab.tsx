@@ -57,7 +57,7 @@ export function ContentTab({
     <div className="space-y-4">
       <textarea
         id="app-description"
-        className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:opacity-100"
         rows={3}
         placeholder="App description"
         value={form.content_description}
@@ -66,14 +66,14 @@ export function ContentTab({
       />
       <textarea
         id="app-description-zh"
-        className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:opacity-100"
         rows={3}
         placeholder="App description (ZH)"
         value={form.description_zh}
         onChange={(e) => update("description_zh", e.target.value)}
         aria-label="App description zh"
       />
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Input
           label="Icon URL"
           placeholder="https://..."
@@ -93,7 +93,7 @@ export function ContentTab({
           onChange={(e) => update("content_banner_url", e.target.value)}
         />
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Input
           label="Docs URL"
           placeholder="https://docs.example.com"
@@ -103,13 +103,13 @@ export function ContentTab({
         <div>
           <label
             htmlFor="content-category"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-gray-700 mb-1"
           >
             Category
           </label>
           <select
             id="content-category"
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="w-full cursor-pointer rounded-xl border border-gray-300 bg-white p-2 text-sm text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             value={form.content_category}
             onChange={(e) => update("content_category", e.target.value)}
           >
@@ -132,13 +132,13 @@ export function ContentTab({
         <div>
           <label
             htmlFor="logo-variants-json"
-            className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+            className="block text-xs text-gray-500 mb-1"
           >
             Logo Variants JSON
           </label>
           <textarea
             id="logo-variants-json"
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={5}
             value={form.content_logo_variants_json}
             onChange={(e) =>
@@ -151,13 +151,13 @@ export function ContentTab({
         <div>
           <label
             htmlFor="banner-variants-json"
-            className="block text-xs text-gray-500 dark:text-gray-400 mb-1"
+            className="block text-xs text-gray-500 mb-1"
           >
             Banner Variants JSON
           </label>
           <textarea
             id="banner-variants-json"
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+            className="w-full resize-none rounded-xl border border-gray-300 bg-white p-2 font-mono text-xs text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={5}
             value={form.content_banner_variants_json}
             onChange={(e) =>
@@ -169,11 +169,11 @@ export function ContentTab({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3">
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+        <p className="text-sm font-medium text-gray-700">
           Upload Media to Cloudflare R2 CDN
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-500">
           Enter `app_id` first. Upload can update primary URL fields and variant
           JSON.
         </p>
@@ -191,9 +191,9 @@ export function ContentTab({
               return (
                 <div
                   key={assetType}
-                  className="rounded border border-gray-200 dark:border-gray-700 p-2 space-y-2"
+                  className="space-y-2 rounded-xl border border-gray-200 bg-white p-2"
                 >
-                  <p className="text-xs font-medium uppercase text-gray-600 dark:text-gray-300">
+                  <p className="text-xs font-medium uppercase text-gray-600">
                     {assetType}
                   </p>
                   <input
@@ -203,18 +203,18 @@ export function ContentTab({
                     onChange={(event) =>
                       handleAssetFileSelect(assetType, event)
                     }
-                    className="block w-full text-xs dark:text-gray-100 file:mr-2 file:rounded-md file:border-0 file:bg-primary-600 file:px-2 file:py-1 file:text-xs file:text-white file:cursor-pointer hover:file:bg-primary-700"
+                    className="block w-full text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-primary-600 file:px-2 file:py-1 file:text-xs file:text-white file:cursor-pointer hover:file:bg-primary-700"
                     aria-label={`Upload ${assetType}`}
                   />
                   {variantAssetType && variantSettings ? (
-                    <div className="space-y-2 rounded border border-gray-200 dark:border-gray-700 p-2">
-                      <p className="text-[11px] text-gray-600 dark:text-gray-300">
+                    <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-2">
+                      <p className="text-[11px] text-gray-600">
                         Optional Variant Metadata
                       </p>
                       <div className="grid grid-cols-3 gap-2">
                         <select
                           id={`${assetType}-theme`}
-                          className="rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-[11px] dark:bg-gray-800 dark:text-gray-100"
+                          className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-900"
                           value={variantSettings.theme}
                           onChange={(event) =>
                             updateAssetVariantSettings(variantAssetType, {
@@ -231,7 +231,7 @@ export function ContentTab({
                         </select>
                         <select
                           id={`${assetType}-density`}
-                          className="rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-[11px] dark:bg-gray-800 dark:text-gray-100"
+                          className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-900"
                           value={variantSettings.density}
                           onChange={(event) =>
                             updateAssetVariantSettings(variantAssetType, {
@@ -249,7 +249,7 @@ export function ContentTab({
                         <input
                           id={`${assetType}-locale`}
                           type="text"
-                          className="rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-[11px] dark:bg-gray-800 dark:text-gray-100"
+                          className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-900"
                           value={variantSettings.locale}
                           maxLength={16}
                           placeholder="locale"
@@ -261,7 +261,7 @@ export function ContentTab({
                           aria-label={`${assetType} locale`}
                         />
                       </div>
-                      <label className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-300">
+                      <label className="flex items-center gap-1 text-[11px] text-gray-600">
                         <input
                           type="checkbox"
                           checked={variantSettings.applyAsPrimary}
@@ -320,12 +320,12 @@ export function ContentTab({
         </div>
 
         {mediaUploadError ? (
-          <p className="text-xs text-danger-600 dark:text-danger-400">
+          <p className="text-xs text-danger-600">
             {mediaUploadError}
           </p>
         ) : null}
         {mediaUploadInfo ? (
-          <p className="text-xs text-gray-600 dark:text-gray-300">
+          <p className="text-xs text-gray-600">
             {mediaUploadInfo}
           </p>
         ) : null}

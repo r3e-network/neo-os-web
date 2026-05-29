@@ -1,32 +1,440 @@
-@use "@shared/styles/console-common" as console;
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss" as *;
 
 .sign-play-area {
-  @include console.play-area;
+  --sign-ink: #161a22;
+  --sign-muted: #667085;
+  --sign-soft: #f5f7fa;
+  --sign-panel: #ffffff;
+  --sign-border: #e6eaf0;
+  --sign-green: #16a34a;
+  --sign-yellow: #f0b90b;
+  --sign-purple: #7c6df2;
+  --sign-blue: #2f80ed;
+  --sign-danger: #d92d20;
+
+  width: 100%;
+  min-height: 100%;
+  padding: 12px;
+  background: linear-gradient(180deg, #f7f9fc 0%, var(--sign-soft) 54%, #fbfcfd 100%);
+  color: var(--sign-ink);
+  letter-spacing: 0;
+}
+
+.sign-shell {
+  width: min(100%, 1420px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(320px, 0.44fr);
+  gap: 14px;
+  align-items: start;
+  letter-spacing: 0;
+}
+
+.sign-main,
+.sign-side {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  letter-spacing: 0;
+}
+
+.sign-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.62fr);
+  gap: 14px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--sign-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, #ffffff 0%, #f9fbff 56%, #fff7ed 100%);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  letter-spacing: 0;
+}
+
+.sign-hero-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  letter-spacing: 0;
+}
+
+.sign-hero-accent {
+  width: 42px;
+  height: 42px;
+  display: inline-block;
+  border: 1px solid rgba(240, 185, 11, 0.34);
+  border-radius: 8px;
+  background: #fef3c7;
+  box-shadow: inset 0 -10px 18px rgba(240, 185, 11, 0.16);
+  letter-spacing: 0;
+}
+
+.sign-hero .sign-hero-copy > h2 {
+  margin: 0;
+  color: var(--sign-ink);
+  font-size: 28px;
+  font-weight: 780;
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.sign-hero .sign-hero-copy > p {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--sign-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.sign-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(230, 234, 240, 0.9);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.78);
+  letter-spacing: 0;
+}
+
+.sign-hero-stats > div {
+  min-width: 0;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px;
+  border: 1px solid rgba(230, 234, 240, 0.95);
+  border-radius: 8px;
+  background: #ffffff;
+  letter-spacing: 0;
+}
+
+.sign-hero .sign-hero-stats span {
+  color: #8a94a6;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.sign-hero .sign-hero-stats strong {
+  min-width: 0;
+  color: var(--sign-ink);
+  font-size: 18px;
+  font-weight: 780;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0;
+}
+
+.sign-flow-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  letter-spacing: 0;
+}
+
+.sign-flow-strip > div {
+  min-width: 0;
+  min-height: 104px;
+  padding: 14px;
+  border: 1px solid var(--sign-border);
+  border-radius: 8px;
+  background: var(--sign-panel);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  letter-spacing: 0;
+}
+
+.sign-flow-strip span {
+  display: inline-flex;
   align-items: center;
-  min-height: 300px;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  color: #8a6500;
+  background: #fff4cc;
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: 0;
 }
 
-.stats-bar {
-  display: flex; gap: 10px; flex-wrap: wrap; width: 100%;
+.sign-flow-strip strong {
+  display: block;
+  color: var(--sign-ink);
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.25;
+  letter-spacing: 0;
 }
 
-.stat-chip {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 10px 14px; flex: 1; min-width: 80px;
+.sign-flow-strip p {
+  margin: 7px 0 0;
+  color: var(--sign-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+.sign-workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.46fr) minmax(0, 0.54fr);
+  gap: 12px;
+  align-items: stretch;
+  letter-spacing: 0;
+}
+
+.sign-message-panel,
+.sign-result-panel,
+.sign-safety-panel,
+.sign-broadcast-panel {
+  min-width: 0;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  letter-spacing: 0;
+}
+
+.sign-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--sign-ink);
+  letter-spacing: 0;
+}
+
+.sign-section-heading > span {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.sign-section-heading > strong {
+  color: var(--sign-muted);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.25;
+  text-align: right;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.sign-message-field {
+  display: grid;
+  gap: 8px;
+  color: var(--sign-muted);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.sign-message-field textarea {
+  width: 100%;
+  min-height: 156px;
+  resize: vertical;
+  padding: 14px;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  outline: none;
+  color: var(--sign-ink);
+  background: #f8fafc;
+  font: 650 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+.sign-message-field textarea::placeholder {
+  color: #98a2b3;
+  letter-spacing: 0;
+}
+
+.sign-message-field textarea:focus {
+  border-color: rgba(22, 163, 74, 0.62);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.sign-action-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  letter-spacing: 0;
+}
+
+.sign-action-grid .neo-btn {
+  border-radius: 8px;
+  font-weight: 720;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.sign-wallet-note {
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(240, 185, 11, 0.28);
+  border-radius: 8px;
+  color: #8a6500;
+  background: #fffbeb;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+.sign-result-stack {
+  display: grid;
+  gap: 10px;
+  letter-spacing: 0;
+}
+
+.sign-result-box {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid rgba(230, 234, 240, 0.95);
+  border-radius: 8px;
   background: #f9fafb;
-  border: 1px solid #f3f4f6;
-  border-radius: 10px;
+  letter-spacing: 0;
 }
 
-.stat-chip .stat-value {
-  font-size: 14px; font-weight: 700;
-  color: #10b981;
-  font-variant-numeric: tabular-nums;
+.sign-result-box span {
+  grid-column: 1 / -1;
+  color: #8a94a6;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.2;
+  letter-spacing: 0;
 }
 
-.stat-chip .stat-label {
-  font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
-  color: #9ca3af; margin-top: 2px;
+.sign-result-box strong {
+  min-width: 0;
+  color: var(--sign-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  letter-spacing: 0;
+}
+
+.sign-result-box button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  color: var(--sign-ink);
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 720;
+  cursor: pointer;
+  letter-spacing: 0;
+}
+
+.sign-result-box button:disabled {
+  color: #98a2b3;
+  background: #eef2f7;
+  cursor: not-allowed;
+}
+
+.sign-safety-panel p,
+.sign-broadcast-panel p {
+  margin: 0;
+  color: var(--sign-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.sign-signal-row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(230, 234, 240, 0.95);
+  color: var(--sign-muted);
+  font-size: 13px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.sign-signal-row strong {
+  color: var(--sign-ink);
+  font-size: 13px;
+  font-weight: 760;
+  text-align: right;
+  letter-spacing: 0;
+}
+
+@media (max-width: 1080px) {
+  .sign-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .sign-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sign-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .sign-play-area {
+    padding: 10px;
+  }
+
+  .sign-hero {
+    padding: 14px;
+  }
+
+  .sign-hero .sign-hero-copy > h2 {
+    font-size: 24px;
+  }
+
+  .sign-hero-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 8px;
+  }
+
+  .sign-hero-stats > div {
+    min-height: 64px;
+    padding: 9px;
+  }
+
+  .sign-hero .sign-hero-stats strong {
+    font-size: 16px;
+  }
+
+  .sign-flow-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .sign-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sign-result-box {
+    grid-template-columns: 1fr;
+  }
 }

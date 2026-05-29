@@ -1,42 +1,410 @@
 @use "@shared/styles/tokens.scss" as *;
 
 .multisig-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding: 20px 12px;
-  min-height: 300px;
+  --multisig-ink: #161a22;
+  --multisig-muted: #667085;
+  --multisig-soft: #f5f7fa;
+  --multisig-panel: #ffffff;
+  --multisig-border: #e6eaf0;
+  --multisig-green: #16a34a;
+  --multisig-yellow: #f0b90b;
+  --multisig-blue: #2f80ed;
+
+  width: 100%;
+  min-height: 100%;
+  padding: 12px;
+  background: linear-gradient(180deg, #f7f9fc 0%, var(--multisig-soft) 54%, #fbfcfd 100%);
+  color: var(--multisig-ink);
+  letter-spacing: 0;
 }
 
-.summary-card { margin: 0; }
+.multisig-shell {
+  width: min(100%, 1420px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 0.72fr) minmax(320px, 0.42fr);
+  gap: 14px;
+  align-items: start;
+  letter-spacing: 0;
+}
 
-.summary-grid {
+.multisig-main,
+.multisig-side {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  letter-spacing: 0;
+}
+
+.multisig-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.62fr);
+  gap: 14px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--multisig-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, #ffffff 0%, #f9fbff 56%, #fff7ed 100%);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  letter-spacing: 0;
+}
+
+.multisig-hero-copy {
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  letter-spacing: 0;
+}
+
+.multisig-hero-accent {
+  width: 42px;
+  height: 42px;
+  display: inline-block;
+  border: 1px solid rgba(240, 185, 11, 0.34);
+  border-radius: 8px;
+  background: #fef3c7;
+  box-shadow: inset 0 -10px 18px rgba(240, 185, 11, 0.16);
+  letter-spacing: 0;
+}
+
+.multisig-hero h2 {
+  margin: 0;
+  color: var(--multisig-ink);
+  font-size: 28px;
+  font-weight: 780;
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.multisig-hero p {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--multisig-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.multisig-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(230, 234, 240, 0.9);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.78);
+  letter-spacing: 0;
 }
 
-.summary-row {
+.multisig-stat-grid > div {
+  min-width: 0;
+  min-height: 72px;
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px;
+  border: 1px solid rgba(230, 234, 240, 0.95);
+  border-radius: 8px;
+  background: #ffffff;
+  letter-spacing: 0;
+}
+
+.multisig-stat-grid span {
+  color: #8a94a6;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.multisig-stat-grid strong {
+  min-width: 0;
+  color: var(--multisig-ink);
+  font-size: 18px;
+  font-weight: 780;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0;
+}
+
+.multisig-workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.48fr) minmax(0, 0.52fr);
+  gap: 12px;
+  align-items: stretch;
+  letter-spacing: 0;
+}
+
+.multisig-request-panel,
+.multisig-activity-panel,
+.multisig-signer-panel,
+.multisig-route-panel {
+  min-width: 0;
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  letter-spacing: 0;
+}
+
+.multisig-section-heading {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px solid #f3f4f6;
-
-  &:last-child { border-bottom: none; }
+  gap: 12px;
+  color: var(--multisig-ink);
+  letter-spacing: 0;
 }
 
-.summary-label {
+.multisig-section-heading > span {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.multisig-section-heading > strong {
+  color: var(--multisig-muted);
   font-size: 13px;
-  color: #6b7280;
-  font-weight: 500;
+  font-weight: 720;
+  line-height: 1.25;
+  text-align: right;
+  white-space: nowrap;
+  letter-spacing: 0;
 }
 
-.summary-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1f2937;
+.multisig-request-panel > p,
+.multisig-signer-panel > p,
+.multisig-route-panel > p {
+  margin: 0;
+  color: var(--multisig-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
 
-  &.pending { color: #d97706; }
-  &.completed { color: #10b981; }
+.multisig-quorum-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  letter-spacing: 0;
+}
+
+.multisig-quorum-strip > div {
+  min-width: 0;
+  min-height: 68px;
+  padding: 11px;
+  border: 1px solid rgba(230, 234, 240, 0.95);
+  border-radius: 8px;
+  background: #f9fafb;
+  letter-spacing: 0;
+}
+
+.multisig-quorum-strip span {
+  display: block;
+  color: #8a94a6;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.multisig-quorum-strip strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--multisig-ink);
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0;
+}
+
+.multisig-primary-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  letter-spacing: 0;
+}
+
+.multisig-primary-actions .neo-btn,
+.multisig-load-box .neo-btn {
+  border-radius: 8px;
+  font-weight: 720;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.multisig-primary-actions .neo-btn {
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.multisig-load-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding-top: 12px;
+  border-top: 1px solid rgba(230, 234, 240, 0.95);
+  letter-spacing: 0;
+}
+
+.multisig-empty-state {
+  min-height: 142px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 1px dashed rgba(138, 148, 166, 0.38);
+  border-radius: 8px;
+  background: #f9fafb;
+  letter-spacing: 0;
+}
+
+.multisig-empty-state strong {
+  color: var(--multisig-ink);
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.multisig-empty-state span {
+  color: var(--multisig-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+.multisig-history-list {
+  display: grid;
+  gap: 10px;
+  letter-spacing: 0;
+}
+
+.multisig-history-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(230, 234, 240, 0.95);
+  border-radius: 8px;
+  color: var(--multisig-ink);
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: 0;
+}
+
+.multisig-history-card span {
+  font-size: 13px;
+  font-weight: 760;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.multisig-history-card strong {
+  color: var(--multisig-green);
+  font-size: 12px;
+  font-weight: 760;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.multisig-history-card em {
+  grid-column: 1 / -1;
+  color: var(--multisig-muted);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.multisig-signal-row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(230, 234, 240, 0.95);
+  color: var(--multisig-muted);
+  font-size: 13px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.multisig-signal-row strong {
+  color: var(--multisig-ink);
+  font-size: 13px;
+  font-weight: 760;
+  text-align: right;
+  letter-spacing: 0;
+}
+
+@media (max-width: 1080px) {
+  .multisig-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .multisig-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .multisig-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .multisig-play-area {
+    padding: 10px;
+  }
+
+  .multisig-hero {
+    padding: 14px;
+  }
+
+  .multisig-hero h2 {
+    font-size: 24px;
+  }
+
+  .multisig-stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 8px;
+  }
+
+  .multisig-stat-grid > div {
+    min-height: 64px;
+    padding: 9px;
+  }
+
+  .multisig-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .multisig-quorum-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .multisig-load-box {
+    grid-template-columns: 1fr;
+  }
 }

@@ -25,6 +25,7 @@ export interface UseWalletAnalysisOptions {
 
 export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnalysisOptions) {
   const isRefreshing = createObservable(false);
+  const balanceRevision = createObservable(0);
 
   const balances = {
     neo: 0n,
@@ -41,9 +42,9 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
     return "accent";
   }, []);
 
-  const gasOk = createDerived(() => balances.gas >= GAS_LOW_THRESHOLD, []);
-  const neoDisplay = createDerived(() => balances.neo.toString(), []);
-  const gasDisplay = createDerived(() => formatFixed8(balances.gas, 4), []);
+  const gasOk = createDerived(() => balances.gas >= GAS_LOW_THRESHOLD, [balanceRevision]);
+  const neoDisplay = createDerived(() => balances.neo.toString(), [balanceRevision]);
+  const gasDisplay = createDerived(() => formatFixed8(balances.gas, 4), [balanceRevision]);
 
   const refreshBalances = async () => {
     if (!chain.address.get()) return;
@@ -61,6 +62,7 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
         [{ type: "Hash160", value: chain.address.get() }],
         { scriptHash: GAS_HASH },
       ));
+      balanceRevision.set(balanceRevision.get() + 1);
       eventBus.emit("balances:refreshed", { neo: balances.neo, gas: balances.gas });
     } catch (e) {
       eventBus.emit("balances:error", {

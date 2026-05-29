@@ -619,19 +619,27 @@ function StandaloneDappSurface({
         /* Polymarket-light status toast styling. */
         .standalone-dapp-root .status-toast {
           position: fixed;
-          top: 14px;
+          top: auto;
+          bottom: calc(16px + env(safe-area-inset-bottom, 0px));
           left: 50%;
           transform: translateX(-50%);
-          z-index: 50;
+          z-index: 80;
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
+          width: max-content;
+          max-width: min(calc(100vw - 32px), 520px);
           padding: 8px 16px;
           border-radius: 999px;
           background: #ffffff !important;
           color: #18181b !important;
           font-size: 12px;
           font-weight: 600;
+          line-height: 1.35;
+          text-align: center;
+          white-space: normal;
+          pointer-events: none;
           border: 1px solid #e6e8ea;
           box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.18);
         }

@@ -23,7 +23,7 @@ describe("Button Component", () => {
   it("should apply secondary variant", () => {
     render(<Button variant="secondary">Secondary</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("bg-white/10");
+    expect(button).toHaveClass("bg-white");
   });
 
   it("should apply danger variant", () => {
@@ -60,6 +60,28 @@ describe("Button Component", () => {
     render(<Button disabled>Disabled</Button>);
     const button = screen.getByRole("button");
     expect(button).toBeDisabled();
+  });
+
+  it("uses readable light-theme operator controls", () => {
+    render(
+      <div>
+        <Button>Primary</Button>
+        <Button variant="secondary" disabled>
+          Secondary
+        </Button>
+        <Button variant="ghost">Ghost</Button>
+      </div>,
+    );
+    const buttons = screen.getAllByRole("button");
+    const joinedClasses = buttons.map((button) => button.className).join(" ");
+
+    expect(joinedClasses).not.toContain("dark:");
+    expect(joinedClasses).not.toContain("backdrop-blur");
+    expect(joinedClasses).not.toContain("disabled:opacity-50");
+    expect(joinedClasses).not.toContain("shadow-[");
+    expect(screen.getByRole("button", { name: "Secondary" })).toHaveClass(
+      "disabled:opacity-100",
+    );
   });
 
   it("should show loading spinner when isLoading is true", () => {

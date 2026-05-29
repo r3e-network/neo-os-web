@@ -11,7 +11,10 @@ import type { ChainService } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
-import { getExternalIntegrationConfig } from "@shared/constants/rpc";
+import {
+  getExternalIntegrationConfig,
+  getNetwork,
+} from "@shared/constants/rpc";
 
 export interface UseAAAccountLabOptions {
   chain: ChainService;
@@ -20,7 +23,8 @@ export interface UseAAAccountLabOptions {
 }
 
 export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOptions) {
-  const integration = getExternalIntegrationConfig("testnet");
+  const network = getNetwork();
+  const integration = getExternalIntegrationConfig(network);
   const aaCore = integration.contracts.aaCore;
   const defaultVerifier = integration.contracts.aaWeb3AuthVerifier;
 
@@ -58,7 +62,7 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
   };
 
   const networkDisplay: Observable<string> = {
-    get: () => t("testnet"),
+    get: () => network,
     set: () => {},
     subscribe: () => () => {},
   };

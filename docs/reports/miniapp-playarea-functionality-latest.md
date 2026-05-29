@@ -1,6 +1,6 @@
 # MiniApp PlayArea Functionality Audit
 
-Generated: 2026-05-21T01:52:43.062Z
+Generated: 2026-05-26T02:57:07.504Z
 
 ## Summary
 
@@ -72,7 +72,7 @@ Generated: 2026-05-21T01:52:43.062Z
 | miniapp-profitanchor | custom native playarea | yes | yes | 1 | 10 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-profitanchor-admin | custom native playarea | yes | yes | 1 | 10 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-quadratic-funding | profiled host + embedded real dApp | yes | yes | 25 | 25 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
-| miniapp-recovery-guardian | profiled host + embedded real dApp | yes | yes | 20 | 24 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
+| miniapp-recovery-guardian | profiled host + embedded real dApp | yes | yes | 11 | 15 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-redenvelope | custom native playarea | yes | yes | 3 | 9 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-self-loan | custom native playarea | yes | yes | 8 | 16 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-soulbound-certificate | profiled host + embedded real dApp | yes | yes | 4 | 16 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |

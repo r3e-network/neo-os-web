@@ -86,19 +86,19 @@ export function ContractsTab({
     <div className="space-y-6">
       <div>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="text-sm font-medium text-gray-700">
             Contracts
           </div>
           <button
             type="button"
             onClick={addContract}
-            className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md"
+            className="cursor-pointer rounded-lg text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           >
             + Add Contract
           </button>
         </div>
         {form.contracts.map((c: { name: string; hash: string }, i: number) => (
-          <div key={i} className="flex gap-2 mb-2">
+          <div key={i} className="mb-2 flex flex-wrap gap-2">
             <Input
               id={`contract-name-${i}`}
               placeholder="Contract name"
@@ -116,27 +116,27 @@ export function ContractsTab({
             <button
               type="button"
               onClick={() => removeContract(i)}
-              className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+              className="shrink-0 cursor-pointer rounded-lg px-2 text-xs text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
             >
               Remove
             </button>
           </div>
         ))}
         {!form.contracts.length && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             No contracts added
           </p>
         )}
       </div>
       <div>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="text-sm font-medium text-gray-700">
             Operations
           </div>
           <button
             type="button"
             onClick={addOperation}
-            className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md"
+            className="cursor-pointer rounded-lg text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           >
             + Add Operation
           </button>
@@ -145,9 +145,9 @@ export function ContractsTab({
           (o: OperationEntry, i: number) => (
             <div
               key={i}
-              className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2"
+              className="mb-3 space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3"
             >
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Input
                   id={`op-name-${i}`}
                   placeholder="Name"
@@ -183,16 +183,16 @@ export function ContractsTab({
                 <button
                   type="button"
                   onClick={() => removeOperation(i)}
-                  className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+                  className="shrink-0 cursor-pointer rounded-lg px-2 text-xs text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
                 >
                   Remove
                 </button>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <div className="w-40">
                   <select
                     id={`button-style-${i}`}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                    className="w-full cursor-pointer rounded-xl border border-gray-300 bg-white p-1.5 text-xs text-gray-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
                     value={o.button_style}
                     onChange={(e) =>
                       updateOperation(i, "button_style", e.target.value)
@@ -228,27 +228,27 @@ export function ContractsTab({
           ),
         )}
         {!form.operations.length && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             No operations added
           </p>
         )}
       </div>
       <div>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="text-sm font-medium text-gray-700">
             Components
           </div>
           <button
             type="button"
             onClick={addComponent}
-            className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md"
+            className="cursor-pointer rounded-lg text-xs text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
           >
             + Add Component
           </button>
         </div>
         {(form.components as ComponentEntry[]).map(
           (c: ComponentEntry, i: number) => (
-            <div key={i} className="flex gap-2 mb-2">
+            <div key={i} className="mb-2 flex flex-wrap gap-2">
               <Input
                 id={`comp-type-${i}`}
                 placeholder="live_voting"
@@ -273,7 +273,7 @@ export function ContractsTab({
               <button
                 type="button"
                 onClick={() => removeComponent(i)}
-                className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+                className="shrink-0 cursor-pointer rounded-lg px-2 text-xs text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
               >
                 Remove
               </button>
@@ -281,12 +281,12 @@ export function ContractsTab({
           ),
         )}
         {!form.components.length && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500">
             No components added
           </p>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Input
           label="Callback Contract"
           placeholder="0x..."
@@ -302,33 +302,33 @@ export function ContractsTab({
       </div>
       {modularPreview?.visible && (
         <div
-          className={`rounded-xl border p-4 ${modularPreview.valid ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-950/20" : "border-amber-200 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20"}`}
+          className={`rounded-xl border p-4 ${modularPreview.valid ? "border-emerald-200 bg-emerald-50/60" : "border-amber-200 bg-amber-50/60"}`}
         >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <div className="text-sm font-semibold text-gray-900">
                 Modular Plan Preview
                 {modularPreview.mode ? ` · ${modularPreview.mode}` : ""}
               </div>
               <p
-                className={`mt-1 text-xs ${modularPreview.valid ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}`}
+                className={`mt-1 text-xs ${modularPreview.valid ? "text-emerald-700" : "text-amber-700"}`}
               >
                 {modularPreview.message}
               </p>
             </div>
             <span
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase ${modularPreview.valid ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"}`}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase ${modularPreview.valid ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
             >
               {modularPreview.valid ? "Valid" : "Needs Fixes"}
             </span>
           </div>
-          <p className="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
+          <p className="mt-3 text-[11px] text-gray-500">
             Shared/router fields are currently driven by imported JSON or
             installed template drafts. Use this preview to validate recipe,
             binding, registry, and instance wiring before save.
           </p>
           {modularPreview.preview && (
-            <pre className="mt-3 max-h-80 overflow-auto rounded-lg border border-gray-200 bg-white/80 p-3 text-[11px] leading-5 text-gray-700 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200">
+            <pre className="mt-3 max-h-80 overflow-auto rounded-lg border border-gray-200 bg-white/80 p-3 text-[11px] leading-5 text-gray-700">
               {modularPreview.preview}
             </pre>
           )}

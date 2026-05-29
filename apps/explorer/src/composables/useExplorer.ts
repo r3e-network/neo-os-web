@@ -59,6 +59,17 @@ export interface UseExplorerOptions {
 // Helpers
 // ============================================================================
 
+function isLocalStaticExplorer() {
+  if (typeof window === "undefined") return false;
+  const { hostname } = window.location;
+  const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  return isLocalHost && window.location.pathname.includes("/miniapps/explorer/");
+}
+
+function shouldUseExplorerApi() {
+  return !isLocalStaticExplorer();
+}
+
 const getApiBase = () => {
   const hostOrigin = getHostOrigin();
   return hostOrigin && hostOrigin !== window.location.origin ? `${hostOrigin}/api/explorer` : "/api/explorer";
@@ -136,6 +147,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
   const loadStats = async () => {
     const cached = readCachedJSON<ExplorerStats>(STATS_CACHE_KEY);
     if (cached) stats.set(cached);
+    if (!shouldUseExplorerApi()) return;
 
     let freshStats: ExplorerStats | null = null;
 
@@ -157,6 +169,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
   const loadRecentTxs = async () => {
     const cached = readCachedJSON<TransactionRecord[]>(TXS_CACHE_KEY);
     if (cached) recentTxs.set(cached);
+    if (!shouldUseExplorerApi()) return;
 
     let freshTxs: TransactionRecord[] = [];
     let hasFreshTxs = false;
@@ -184,6 +197,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
   const search = async () => {
     const query = searchQuery.get().trim();
     if (!query) return;
+    if (!shouldUseExplorerApi()) return null;
 
     isSearching.set(true);
     searchResult.set(null);

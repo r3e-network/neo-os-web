@@ -1,0 +1,107 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-aa-relay-console",
+  "name": "AA Relay Console",
+  "name_zh": "AA Relay 控制台",
+  "description": "Prepare and validate sponsored account-abstraction relay packages before submission.",
+  "description_zh": "在提交前准备并验证受赞助的账户抽象 relay 包。",
+  "template_type": "utility",
+  "category": "utility",
+  "tags": ["aa", "relay", "paymaster", "sponsor"],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "Yiwu",
+    "email": "dev@r3e.network",
+    "url": "https://neomini.app"
+  },
+  "contract": {
+    "template_id": "aa-relay-console",
+    "contract_hash": "0x0268a387913b250166ddec032b03332690a1ef78",
+    "domains": {
+      "neo-n3-mainnet": "core.smartwallet.neo"
+    }
+  },
+  "contract_domains": {
+    "neo-n3-mainnet": "core.smartwallet.neo"
+  },
+  "entry_url": "mf://manifest?app=miniapp-aa-relay-console",
+  "dapp_url": "/miniapps/aa-relay-console/index.html",
+  "media": {
+    "icon": "/miniapps/aa-relay-console/logo.jpg",
+    "banner": "/miniapps/aa-relay-console/banner.jpg"
+  },
+  "permissions": {
+    "aa": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "Account Abstraction"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "AA Relay Console keeps relay package preparation, sponsor checks, and smart wallet context in one guarded workspace."
+          },
+          {
+            "type": "key_value",
+            "title": "Runtime",
+            "items": [
+              {
+                "key": "Mainnet domain",
+                "value": "core.smartwallet.neo"
+              },
+              {
+                "key": "Mode",
+                "value": "Relay package preparation"
+              },
+              {
+                "key": "Transactions",
+                "value": "Wallet guarded"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "AA Relay Console",
+      "subtitle": "Prepare and validate the sponsored relay package before submission.",
+      "cta_label": "Open relay workspace",
+      "operations": []
+    }
+  },
+  "operations": [],
+  "integration": {
+    "news_integration": false,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": ["total_transactions", "daily_active_users"]
+  },
+  "manifest": {
+    "runtime": {
+      "mode": "dedicated",
+      "modules": []
+    },
+    "contracts": {
+      "neo-n3-mainnet": "0x0268a387913b250166ddec032b03332690a1ef78",
+      "neo-n3-testnet": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"
+    },
+    "contract_domains": {
+      "neo-n3-mainnet": "core.smartwallet.neo"
+    }
+  }
+}

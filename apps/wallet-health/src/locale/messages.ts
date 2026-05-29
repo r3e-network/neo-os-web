@@ -6,6 +6,21 @@ const appMessages = {
   tabChecklist: { en: "Checklist", zh: "清单" },
 
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
+  walletHeroTitle: { en: "Wallet Health Command Center", zh: "钱包健康指挥台" },
+  walletHeroSubtitle: {
+    en: "Review balances, network readiness, and signing hygiene before moving assets or approving app requests.",
+    zh: "转账或授权前，集中检查余额、网络状态与签名安全习惯。",
+  },
+  connectHint: {
+    en: "Connect a Neo N3 wallet to refresh live balances. The safety checklist stays local on this device.",
+    zh: "连接 Neo N3 钱包后可刷新实时余额；安全清单仅保存在本设备。",
+  },
+  riskInsights: { en: "Risk insights", zh: "风险洞察" },
+  balanceStripTitle: { en: "Balance and connection", zh: "余额与连接" },
+  checklistProgress: { en: "{completed}/{total} complete", zh: "{completed}/{total} 已完成" },
+  recommendationsTitle: { en: "Next actions", zh: "下一步动作" },
+  networkReadiness: { en: "Network readiness", zh: "网络就绪" },
+  refreshBalances: { en: "Refresh balances", zh: "刷新余额" },
   refresh: { en: "Refresh", zh: "刷新" },
 
   statusConnected: { en: "Connected", zh: "已连接" },

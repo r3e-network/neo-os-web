@@ -1,5 +1,5 @@
 /**
- * PopularPairs.tsx -- Popular trading pairs for Neo Swap.
+ * PopularPairs.tsx -- Accessible popular trading pairs for Neo Swap.
  */
 
 import { NeoCard } from "@shared/components-react";
@@ -12,25 +12,33 @@ interface PopularPairsProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export default function PopularPairs({ t, selectedPair, popularPairs, dispatch }: PopularPairsProps) {
+export default function PopularPairs({
+  t,
+  selectedPair,
+  popularPairs,
+  dispatch,
+}: PopularPairsProps) {
   const handleSelectPair = (pairId: string) => {
     dispatch("selectPair", pairId);
   };
 
   return (
-    <NeoCard variant="erobo">
+    <NeoCard variant="erobo" className="neo-swap-pairs-card">
+      <div className="pair-header">
+        <span>{t("marketPairs")}</span>
+        <strong>{t("popularPairs")}</strong>
+      </div>
       <div className="pair-list">
         {popularPairs.map((pair) => (
-          <div
+          <button
             key={pair.id}
-            className={`pair-item ${selectedPair === pair.id ? "active" : ""}`}
+            type="button"
+            className={`pair-item${selectedPair === pair.id ? " active" : ""}`}
             onClick={() => handleSelectPair(pair.id)}
           >
-            <div className="pair-info">
-              <span className="pair-name">{pair.name}</span>
-              <span className="pair-rate">{pair.rate}</span>
-            </div>
-          </div>
+            <span className="pair-name">{pair.name}</span>
+            <span className="pair-rate">{pair.rate}</span>
+          </button>
         ))}
       </div>
     </NeoCard>

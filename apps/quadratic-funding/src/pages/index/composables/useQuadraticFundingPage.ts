@@ -62,10 +62,26 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   );
 
   // Computed display data
+  const roundCount = createDerived(() => rounds.get().length, [rounds]);
+  const activeRoundCount = createDerived(
+    () => rounds.get().filter((round) => round.status === "active").length,
+    [rounds],
+  );
+  const projectCount = createDerived(() => projects.get().length, [projects]);
+  const selectedRoundDisplay = createDerived(() => {
+    const round = selectedRound.get();
+    return round ? round.title || `#${round.id}` : t("notAvailable");
+  }, [rounds, selectedRoundId]);
+  const matchingPoolDisplay = createDerived(() => {
+    const round = selectedRound.get();
+    if (!round) return t("notAvailable");
+    return `${formatAmount(round.assetSymbol || "GAS", round.matchingPool)} ${round.assetSymbol || "GAS"}`;
+  }, [rounds, selectedRoundId]);
+
   const appState = createDerived(() => ({
-    roundCount: rounds.get().length,
+    roundCount: roundCount.get(),
     selectedRoundId: selectedRoundId.get(),
-  }), []);
+  }), [rounds, selectedRoundId]);
 
   const opStats = createDerived<StatsDisplayItem[]>(() => [
     { label: t("tabRounds"), value: rounds.get().length },
@@ -121,6 +137,10 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) => { await finalizeRound(projectIdsRaw, matchedRaw).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
   const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => { await claimProject(project).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
   const handleClaimUnused = async () => { await claimUnused().catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
+  const handleSelectRound = async (round: Parameters<typeof selectRound>[0]) => {
+    selectRound(round);
+    await refreshProjects();
+  };
 
   const onTabChange = async (tabId: string) => {
     activeTab.set(tabId);
@@ -163,6 +183,11 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     activeTab,
     appState,
     opStats,
+    roundCount,
+    activeRoundCount,
+    projectCount,
+    selectedRoundDisplay,
+    matchingPoolDisplay,
     projectsStatus,
     contributionStatus,
     // Form refs
@@ -173,6 +198,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     handleCreateRound,
     handleRegisterProject,
     handleContribute,
+    handleSelectRound,
     handleAddMatching,
     handleFinalize,
     handleClaimProject,

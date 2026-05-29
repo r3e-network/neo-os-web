@@ -12,8 +12,29 @@ import {
   resolveAdminNavigationLabel,
 } from "@/lib/admin-navigation";
 import { cn } from "@/lib/utils";
+import { AdminNavIcon } from "./AdminNavIcon";
 import { useTranslation } from "../../../../shared/i18n/react";
 import { LanguageToggle } from "../../../../shared/i18n/LanguageSwitcher";
+
+const ADMIN_ROUTE_CONTEXT: Record<string, string> = {
+  "/": "Monitor and manage your MiniApp platform",
+  "/analytics": "Usage and adoption signals",
+  "/contracts": "Mainnet contract readiness",
+  "/miniapps": "Registry and publish control",
+  "/oracle-secrets": "Oracle credential operations",
+  "/pricefeeds": "Oracle feed health",
+  "/services": "Service health and configuration",
+  "/settings": "Platform configuration",
+  "/simulations": "Scenario runner",
+  "/templates": "Template Studio",
+  "/users": "User operations",
+};
+
+function isActivePath(pathname: string | null, href: string) {
+  if (!pathname) return href === "/";
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function Header() {
   const { t } = useTranslation("admin");
@@ -31,21 +52,31 @@ export function Header() {
     ...item,
     name: resolveAdminNavigationLabel(item, tc),
   }));
+  const activeNavigationItem =
+    mobileNavigation.find((item) => isActivePath(pathname, item.href)) ??
+    mobileNavigation[0];
+  const sectionTitle =
+    activeNavigationItem?.href === "/"
+      ? t("dashboard.title")
+      : activeNavigationItem?.name || t("dashboard.title");
+  const sectionContext =
+    ADMIN_ROUTE_CONTEXT[activeNavigationItem?.href ?? "/"] ||
+    t("dashboard.overview");
 
   return (
     <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
-      <div className="flex min-h-14 items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+      <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-semibold text-gray-900 sm:text-base">
-            {t("dashboard.title")}
+          <h2 className="truncate text-sm font-black text-gray-950 sm:text-base">
+            {sectionTitle}
           </h2>
           <p className="hidden text-xs font-medium text-gray-500 sm:block">
-            {t("dashboard.overview")}
+            {sectionContext}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <LanguageToggle />
-          <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 sm:inline-flex">
+          <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             {envLabel}
           </span>
@@ -57,20 +88,25 @@ export function Header() {
       >
         <div className="flex gap-2 overflow-x-auto pb-1">
           {mobileNavigation.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = isActivePath(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40",
+                  "inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40",
                   isActive
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                     : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
-                <span aria-hidden="true">{item.icon}</span>
+                <AdminNavIcon
+                  active={isActive}
+                  className="h-6 w-6 rounded-lg border-0 bg-transparent shadow-none"
+                  icon={item.iconKey}
+                  testIdPrefix="admin-mobile-nav-icon"
+                />
                 <span>{item.name}</span>
               </Link>
             );

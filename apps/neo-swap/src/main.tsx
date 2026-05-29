@@ -31,7 +31,9 @@ defineMiniApp({
       await notify.guard(() => swap.executeSwap(), "swapSuccess");
     });
     ctx.registerAction("swapTokens", async () => { swap.swapTokens(); });
+    ctx.registerAction("setFromAmount", async (value: unknown) => { swap.setFromAmount(String(value ?? "")); });
     ctx.registerAction("setMaxAmount", async () => { swap.setMaxAmount(); });
+    ctx.registerAction("refreshRate", async () => { await swap.loadExchangeRate(); });
     ctx.registerAction("openFromSelector", async () => { swap.openFromSelector(); });
     ctx.registerAction("openToSelector", async () => { swap.openToSelector(); });
     ctx.registerAction("closeSelector", async () => { swap.closeSelector(); });

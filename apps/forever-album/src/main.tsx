@@ -39,6 +39,7 @@ defineMiniApp({
 
     ctx.registerAction("openUpload", async () => { album.openUpload(); });
     ctx.registerAction("closeUpload", async () => { album.closeUpload(); });
+    ctx.registerAction("refreshPhotos", async () => { await album.loadPhotos(); });
     ctx.registerAction("closeViewer", async () => { album.closeViewer(); });
     ctx.registerAction("openDecrypt", async () => { album.openDecrypt(); });
     ctx.registerAction("closeDecrypt", async () => { album.closeDecrypt(); });

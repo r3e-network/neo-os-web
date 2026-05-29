@@ -48,23 +48,21 @@ export function PublishRequestsList({
       {publishRequestsQuery.isLoading ? (
         <Spinner />
       ) : publishRequestsQuery.isError ? (
-        <p className="text-xs text-danger-600 dark:text-danger-400">
+        <p className="text-xs text-danger-600">
           {publishRequestsQuery.error instanceof Error
             ? publishRequestsQuery.error.message
             : "Failed to load publish requests"}
         </p>
       ) : !publishRequestsQuery.data?.requests.length ? (
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          No publish requests.
-        </p>
+        <p className="text-xs text-gray-500">No publish requests.</p>
       ) : (
-        <div className="divide-y rounded-lg border border-gray-200 dark:divide-gray-700 dark:border-gray-700">
+        <div className="divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
           {publishRequestsQuery.data.requests.map((request) => (
             <div
               key={request.id}
-              className="flex items-center gap-3 px-3 py-2 text-xs"
+              className="flex flex-col gap-2 px-3 py-3 text-xs sm:flex-row sm:items-center"
             >
-              <span className="font-mono text-[10px] text-gray-500 dark:text-gray-400">
+              <span className="font-mono text-[10px] text-gray-500">
                 {truncate(request.id, 14)}
               </span>
               <span className="font-medium">
@@ -81,11 +79,11 @@ export function PublishRequestsList({
               >
                 {request.status}
               </Badge>
-              <span className="text-gray-500 dark:text-gray-400">
+              <span className="text-gray-500">
                 {formatDate(request.requested_at)}
               </span>
               {renderTimingBadge(request)}
-              <span className="ml-auto flex items-center gap-1">
+              <span className="flex flex-wrap items-center gap-1 sm:ml-auto">
                 <Button
                   size="sm"
                   variant="ghost"
@@ -121,8 +119,8 @@ export function PublishRequestsList({
 
       {publishDetailRequestId && selectedPublishRequest && (
         <div className="mt-2">
-          <div className="mb-1 flex items-center justify-between">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
+          <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-semibold text-gray-700">
               Request {truncate(selectedPublishRequest.id, 20)}
             </p>
             <Button

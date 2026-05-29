@@ -52,7 +52,7 @@ export function usePriceConsole({ t }: UsePriceConsoleOptions) {
   };
 
   const sourceLabel: Observable<string> = {
-    get: () => `on-chain · ${integration.rpcUrl}`,
+    get: () => `on-chain ${network} RPC`,
     set: () => {},
     subscribe: () => () => {},
   };

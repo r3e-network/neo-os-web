@@ -42,9 +42,6 @@ export function PerformanceReportPanel({
 
   // Skip in production unless explicitly allowed — defer to after mount to avoid hydration mismatch
   const isDev = process.env.NODE_ENV === "development";
-  if (devOnly && !isDev && mounted) {
-    return null;
-  }
 
   const positionClasses = {
     "top-right": "top-4 right-4",
@@ -54,6 +51,8 @@ export function PerformanceReportPanel({
   };
 
   useEffect(() => {
+    if (devOnly && !isDev && mounted) return undefined;
+
     let active = true;
     const updateMetrics = () => {
       if (!active) return;
@@ -68,7 +67,11 @@ export function PerformanceReportPanel({
       active = false;
       clearInterval(interval);
     };
-  }, [refreshInterval]);
+  }, [devOnly, isDev, mounted, refreshInterval]);
+
+  if (devOnly && !isDev && mounted) {
+    return null;
+  }
 
   // Group metrics by name
   const groupedMetrics = metrics.reduce(
