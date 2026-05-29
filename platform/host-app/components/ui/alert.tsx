@@ -30,27 +30,31 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const variantStyles: Record<
   AlertVariant,
-  { container: string; icon: string; title: string }
+  { container: string; icon: string; title: string; body: string }
 > = {
   success: {
-    container: "bg-emerald-500/10 border-emerald-500/20",
-    icon: "text-emerald-400",
-    title: "text-emerald-300",
+    container: "bg-emerald-50 border-emerald-200",
+    icon: "text-emerald-600",
+    title: "text-emerald-800",
+    body: "text-emerald-700",
   },
   error: {
-    container: "bg-red-500/10 border-red-500/20",
-    icon: "text-red-400",
-    title: "text-red-300",
+    container: "bg-red-50 border-red-200",
+    icon: "text-red-600",
+    title: "text-red-800",
+    body: "text-red-700",
   },
   warning: {
-    container: "bg-amber-500/10 border-amber-500/20",
-    icon: "text-amber-400",
-    title: "text-amber-300",
+    container: "bg-amber-50 border-amber-200",
+    icon: "text-amber-600",
+    title: "text-amber-800",
+    body: "text-amber-700",
   },
   info: {
-    container: "bg-blue-500/10 border-blue-500/20",
-    icon: "text-blue-400",
-    title: "text-blue-300",
+    container: "bg-blue-50 border-blue-200",
+    icon: "text-blue-600",
+    title: "text-blue-800",
+    body: "text-blue-700",
   },
 };
 
@@ -177,7 +181,7 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
               {title}
             </p>
           )}
-          <div className={cn("text-sm text-gray-300", title && "mt-1")}>
+          <div className={cn("text-sm", variantStyle.body, title && "mt-1")}>
             {children}
           </div>
 
@@ -192,7 +196,7 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
           <button
             type="button"
             onClick={onDismiss}
-            className="shrink-0 text-gray-400 hover:text-white transition-colors"
+            className="shrink-0 rounded-md text-gray-400 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
             aria-label="Dismiss alert"
           >
             <svg
@@ -266,7 +270,8 @@ export const AlertButton = forwardRef<HTMLButtonElement, AlertButtonProps>(
         ref={ref}
         className={cn(
           "text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors",
-          "border-gray-600 hover:border-gray-500 text-white",
+          "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40",
           className,
         )}
         {...props}
@@ -289,7 +294,7 @@ export const AlertTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
   ...props
 }) => {
   return (
-    <p className={cn("font-semibold text-white", className)} {...props}>
+    <p className={cn("font-semibold text-gray-900", className)} {...props}>
       {children}
     </p>
   );
@@ -305,7 +310,7 @@ export const AlertDescription: React.FC<
   React.HTMLAttributes<HTMLParagraphElement>
 > = ({ className, children, ...props }) => {
   return (
-    <p className={cn("text-sm text-gray-300", className)} {...props}>
+    <p className={cn("text-sm text-gray-600", className)} {...props}>
       {children}
     </p>
   );

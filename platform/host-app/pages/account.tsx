@@ -74,7 +74,7 @@ export default function AccountPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-100 p-4">
+                  <div className="flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neo/20">
                       <Wallet
                         className="text-neo"
@@ -194,13 +194,13 @@ export default function AccountPage() {
                 <CardContent className="space-y-3">
                   <Link
                     href="/miniapps"
-                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200"
+                    className="block rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:border-neo/30 hover:bg-neo/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
                     Browse live miniapps
                   </Link>
                   <Link
                     href="/docs"
-                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200"
+                    className="block rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:border-neo/30 hover:bg-neo/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
                     Read integration docs
                   </Link>

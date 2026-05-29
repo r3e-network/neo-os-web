@@ -239,7 +239,7 @@ function NewThreadForm({
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Thread title..."
         aria-label="Thread title"
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        className="w-full px-3 py-2 mb-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 transition-colors focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         maxLength={200}
       />
       <textarea
@@ -248,7 +248,7 @@ function NewThreadForm({
         onChange={(e) => setContent(e.target.value)}
         placeholder="What's on your mind?"
         aria-label="Thread content"
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 bg-white text-gray-900 transition-colors resize-none placeholder-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        className="w-full px-3 py-2 mb-3 rounded-xl border border-gray-200 bg-white text-gray-900 transition-colors resize-none placeholder-gray-400 focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         rows={4}
         maxLength={5000}
       />
@@ -419,7 +419,7 @@ function ThreadDetail({
               }}
               placeholder="Write a reply..."
               aria-label="Reply"
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              className="flex-1 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-400 transition-colors focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
               maxLength={2000}
             />
             <button

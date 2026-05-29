@@ -38,8 +38,8 @@ export default function LoginPage() {
       <Head>
         <title>{t("auth.login")}</title>
       </Head>
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-sm space-y-6 rounded-2xl bg-white p-8 shadow-lg">
+      <main className="flex min-h-screen items-center justify-center bg-[#f4f5f7] px-4">
+        <div className="w-full max-w-sm space-y-6 rounded-2xl border border-gray-100 bg-white p-8 shadow-md">
           <h1 className="text-center text-2xl font-extrabold text-gray-900">
             {t("auth.login")}
           </h1>
@@ -51,7 +51,7 @@ export default function LoginPage() {
                 key={p.id}
                 onClick={() => loginSocial(p.id)}
                 disabled={loading}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${p.bg} ${p.text}`}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:ring-offset-2 ${p.bg} ${p.text}`}
               >
                 <img
                   src={p.iconSrc}
@@ -132,7 +132,7 @@ export default function LoginPage() {
           {error && (
             <div
               role="alert"
-              className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600"
+              className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-600"
             >
               {error}
               <button

@@ -115,7 +115,7 @@ export default function DocsPage() {
               placeholder="Search documentation..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 w-full rounded-xl border border-gray-200 bg-gray-100 pl-12 pr-4 text-gray-900 transition-all placeholder-gray-500 focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-12 pr-4 text-gray-900 shadow-sm transition-all placeholder-gray-400 focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             />
           </div>
         </PageHero>
