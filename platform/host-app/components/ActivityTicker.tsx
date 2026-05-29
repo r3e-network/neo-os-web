@@ -19,6 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
 function formatTimeAgo(timestamp: string): string {
   const now = Date.now();
   const then = new Date(timestamp).getTime();
+  if (!Number.isFinite(then)) return "";
   const diff = Math.floor((now - then) / 1000);
 
   if (diff < 60) return `${diff}s ago`;

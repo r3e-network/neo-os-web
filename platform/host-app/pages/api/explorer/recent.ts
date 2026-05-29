@@ -4,8 +4,8 @@ import { logger } from "@/lib/logger";
 import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { handlePublicReadCors } from "@/lib/public-read-cors";
 import { relaxedLimit } from "@/lib/rate-limit";
+import { neoRpcCall, type Network } from "@/lib/explorer-rpc";
 
-type Network = "mainnet" | "testnet";
 type RpcBlock = {
   hash?: unknown;
   index?: unknown;
@@ -19,38 +19,7 @@ type RpcTransaction = Record<string, unknown> & {
   vmState?: unknown;
 };
 
-function getNeoRPCURL(network: Network): string {
-  if (network === "mainnet") {
-    return process.env.NEO_RPC_MAINNET || "https://api.n3index.dev/mainnet";
-  }
-  return process.env.NEO_RPC_TESTNET || "https://api.n3index.dev/testnet";
-}
-
-async function rpcCall<T>(
-  network: Network,
-  method: string,
-  params: unknown[],
-): Promise<T> {
-  const response = await fetch(getNeoRPCURL(network), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method,
-      params,
-      id: 1,
-    }),
-    signal: AbortSignal.timeout(5000),
-  });
-  if (!response.ok) {
-    throw new Error(`RPC error: ${response.status}`);
-  }
-  const payload = await response.json();
-  if (payload?.error) {
-    throw new Error(String(payload.error.message || payload.error.code || "RPC error"));
-  }
-  return payload?.result as T;
-}
+const RPC_TIMEOUT_MS = 5000;
 
 function normalizeBlockTime(value: unknown): string | null {
   const timestamp = Number(value);
@@ -63,13 +32,13 @@ async function fetchRecentTransactionsFromRpc(
   network: Network,
   limit: number,
 ): Promise<Array<Record<string, unknown>>> {
-  const blockCount = await rpcCall<number>(network, "getblockcount", []);
+  const blockCount = await neoRpcCall<number>(network, "getblockcount", [], { timeoutMs: RPC_TIMEOUT_MS });
   const latestHeight = Math.max(0, Number(blockCount || 0) - 1);
   const scanCount = Math.min(Math.max(limit * 2, 1), 8, latestHeight + 1);
   const heights = Array.from({ length: scanCount }, (_, index) => latestHeight - index);
   const blocks = await Promise.all(
     heights.map((height) =>
-      rpcCall<RpcBlock>(network, "getblock", [height, true]).catch((error: unknown) => {
+      neoRpcCall<RpcBlock>(network, "getblock", [height, true], { timeoutMs: RPC_TIMEOUT_MS }).catch((error: unknown) => {
         logger.warn(
           `Explorer recent RPC block ${height} failed:`,
           error instanceof Error ? error.message : String(error),
