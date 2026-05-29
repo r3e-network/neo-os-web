@@ -35,7 +35,7 @@ export function ScrollReveal({
 
     // Failsafe: ensure content shows up eventually
     const failsafe = setTimeout(() => {
-      if (!isVisible) setIsVisible(true);
+      setIsVisible((v) => v || true);
     }, 600);
 
     // Use standard IntersectionObserver
@@ -60,7 +60,7 @@ export function ScrollReveal({
       clearTimeout(failsafe);
       observer.disconnect();
     };
-  }, [threshold, offset, reversible, isVisible]);
+  }, [threshold, offset, reversible]);
 
   const classes = [
     "scroll-reveal",

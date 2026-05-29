@@ -4,15 +4,7 @@ import { logger } from "@/lib/logger";
 import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { handlePublicReadCors } from "@/lib/public-read-cors";
 import { standardLimit } from "@/lib/rate-limit";
-
-type Network = "mainnet" | "testnet";
-
-function getNeoRPCURL(network: Network): string {
-  if (network === "mainnet") {
-    return process.env.NEO_RPC_MAINNET || "https://api.n3index.dev/mainnet";
-  }
-  return process.env.NEO_RPC_TESTNET || "https://api.n3index.dev/testnet";
-}
+import { neoRpcCall, type Network } from "@/lib/explorer-rpc";
 
 // Explorer Search API - proxies to Edge Function or queries indexer directly
 export default async function handler(
@@ -105,32 +97,6 @@ function detectSearchType(query: string): string {
   return "unknown";
 }
 
-async function rpcCall<T>(
-  network: Network,
-  method: string,
-  params: unknown[],
-): Promise<T> {
-  const response = await fetch(getNeoRPCURL(network), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method,
-      params,
-      id: 1,
-    }),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!response.ok) {
-    throw new Error(`RPC error: ${response.status}`);
-  }
-  const payload = await response.json();
-  if (payload?.error) {
-    throw new Error(String(payload.error.message || payload.error.code || "RPC error"));
-  }
-  return payload?.result as T;
-}
-
 async function supabaseQuery(
   url: string,
   key: string,
@@ -156,7 +122,7 @@ async function supabaseQuery(
 async function searchBlock(network: Network, query: string) {
   const heightOrHash = /^\d+$/.test(query) ? Number(query) : query;
   try {
-    const block = await rpcCall<Record<string, unknown>>(network, "getblock", [
+    const block = await neoRpcCall<Record<string, unknown>>(network, "getblock", [
       heightOrHash,
       true,
     ]);
@@ -229,7 +195,7 @@ async function searchTransaction(
 
 async function searchTransactionRpc(network: Network, hash: string) {
   try {
-    const tx = await rpcCall<Record<string, unknown>>(network, "getrawtransaction", [
+    const tx = await neoRpcCall<Record<string, unknown>>(network, "getrawtransaction", [
       hash,
       true,
     ]);
@@ -304,7 +270,7 @@ async function searchContract(
 
 async function searchContractRpc(network: Network, contractHash: string) {
   try {
-    const contract = await rpcCall<Record<string, unknown>>(network, "getcontractstate", [
+    const contract = await neoRpcCall<Record<string, unknown>>(network, "getcontractstate", [
       contractHash,
     ]);
     if (!contract) return { type: "contract", found: false, network, contract_hash: contractHash };

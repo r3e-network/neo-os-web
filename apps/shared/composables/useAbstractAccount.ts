@@ -178,7 +178,6 @@ export function useAbstractAccount(config: AAConfig = {}) {
       throw new MiniAppError(msg, ERROR_CODE_GAS_SPONSORSHIP_CHECK, undefined, undefined, undefined, ERROR_CODE_GAS_SPONSORSHIP_CHECK);
     } finally {
       isCheckingSponsorship.set(false);
-      error.set(null);
     }
   };
 
@@ -200,7 +199,6 @@ export function useAbstractAccount(config: AAConfig = {}) {
       throw new MiniAppError(msg, ERROR_CODE_GAS_SPONSORSHIP_REQUEST, undefined, undefined, undefined, ERROR_CODE_GAS_SPONSORSHIP_REQUEST);
     } finally {
       isCheckingSponsorship.set(false);
-      error.set(null);
     }
   };
 
@@ -237,7 +235,6 @@ export function useAbstractAccount(config: AAConfig = {}) {
       throw new MiniAppError(msg, ERROR_CODE_RELAY_SUBMISSION, undefined, undefined, undefined, ERROR_CODE_RELAY_SUBMISSION);
     } finally {
       isRelaying.set(false);
-      error.set(null);
     }
   };
 
