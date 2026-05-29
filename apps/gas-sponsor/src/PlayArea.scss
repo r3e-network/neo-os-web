@@ -24,16 +24,17 @@
   min-width: 80px;
   text-align: center;
   padding: 12px 10px;
-  border-radius: 10px;
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
 .gas-stat-value {
   display: block;
   font-size: 18px;
   font-weight: 800;
-  color: #1f2937;
+  color: var(--ns-text, #2a2d3d);
+  font-variant-numeric: tabular-nums;
 }
 
 .gas-stat-label {
@@ -42,7 +43,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #9ca3af;
+  color: var(--ns-text-muted, #8a92a6);
   margin-top: 2px;
 }
 
@@ -54,15 +55,15 @@
 
 .quota-bar-container {
   height: 8px;
-  border-radius: 4px;
-  background: #f3f4f6;
+  border-radius: 999px;
+  background: var(--ns-surface-subtle, #f7f8fa);
   overflow: hidden;
 }
 
 .quota-bar {
   height: 100%;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
   transition: width 0.4s ease;
 }
 
@@ -77,12 +78,12 @@
 .quota-text {
   font-size: 12px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--ns-text, #2a2d3d);
 }
 
 .quota-reset {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .donate-form,

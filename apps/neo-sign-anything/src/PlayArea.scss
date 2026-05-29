@@ -1,21 +1,21 @@
 @use "@shared/styles/tokens.scss" as *;
 
 .sign-play-area {
-  --sign-ink: #161a22;
-  --sign-muted: #667085;
-  --sign-soft: #f5f7fa;
-  --sign-panel: #ffffff;
-  --sign-border: #e6eaf0;
-  --sign-green: var(--ns-brand);
+  --sign-ink: var(--ns-ink, #1e1e2e);
+  --sign-muted: var(--ns-text-2, #5b6478);
+  --sign-soft: var(--ns-surface-subtle, #f7f8fa);
+  --sign-panel: var(--ns-surface, #ffffff);
+  --sign-border: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  --sign-green: var(--ns-brand, #16c784);
   --sign-yellow: #f0b90b;
-  --sign-purple: #7c6df2;
-  --sign-blue: #2f80ed;
-  --sign-danger: #d92d20;
+  --sign-purple: var(--ns-violet, #7b61ff);
+  --sign-blue: var(--ns-info, #3e8cff);
+  --sign-danger: var(--ns-down, #ea3943);
 
   width: 100%;
   min-height: 100%;
   padding: 12px;
-  background: linear-gradient(180deg, #f7f9fc 0%, var(--sign-soft) 54%, #fbfcfd 100%);
+  background: var(--ns-bg, #f4f5f7);
   color: var(--sign-ink);
   letter-spacing: 0;
 }
