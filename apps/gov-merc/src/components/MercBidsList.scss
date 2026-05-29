@@ -8,9 +8,9 @@
   min-height: 150px;
   place-content: center;
   padding: 18px;
-  border: 1px dashed #cfd9d4;
-  border-radius: 16px;
-  background: #f7faf8;
+  border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
   text-align: center;
 
   strong {
@@ -42,9 +42,9 @@
   align-items: center;
   min-width: 0;
   padding: 10px;
-  border: 1px solid #dfe7e2;
-  border-radius: 14px;
-  background: #f7faf8;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
 
   span {
     display: inline-flex;
@@ -53,8 +53,8 @@
     width: 28px;
     height: 28px;
     border-radius: 999px;
-    background: #edf7f1;
-    color: #107a52;
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-strong, #0fb174);
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0;

@@ -7,10 +7,10 @@
   gap: 12px;
   min-width: 0;
   padding: 14px;
-  border: 1px solid #dfe7e2;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 
   > div:first-child {
     display: grid;
