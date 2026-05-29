@@ -4,10 +4,10 @@
 
 .section-title {
   @include stat-label;
-  color: var(--matrix-success, rgba(0, 229, 153, 1));
+  color: var(--matrix-success, rgba(22, 199, 132, 1));
   margin-bottom: 12px;
   display: block;
-  text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
+  text-shadow: 0 0 10px rgba(22, 199, 132, 0.3);
 }
 
 .result-card { margin-bottom: 12px; }
