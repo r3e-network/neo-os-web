@@ -103,7 +103,7 @@ export function ConnectButton() {
           <div className="flex items-center gap-2 rounded-xl bg-gray-100/50 border border-gray-200/50 px-4 py-2 backdrop-blur-md shadow-sm">
             <div className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neo opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-neo border border-neo/50 shadow-[0_0_8px_rgba(0,229,153,0.8)]"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-neo border border-neo/50 shadow-[0_0_8px_rgba(22,199,132,0.8)]"></span>
             </div>
             <span className="text-sm font-bold text-gray-900 ">
               {user.email || user.name || t("auth.connected")}
@@ -158,7 +158,7 @@ export function ConnectButton() {
               ) : (
                 <KeyRound className="h-4 w-4 text-amber-700" />
               )}
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-white bg-neo shadow-[0_0_8px_rgba(0,229,153,0.8)]" />
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-white bg-neo shadow-[0_0_8px_rgba(22,199,132,0.8)]" />
             </div>
             <div className="flex flex-col">
               <span
@@ -310,7 +310,7 @@ export function ConnectButton() {
                       <button
                         key={w.id}
                         onClick={() => handleConnect(w.id)}
-                        className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40 group cursor-pointer"
+                        className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-neo hover:shadow-[0_0_15px_rgba(22,199,132,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40 group cursor-pointer"
                         data-testid={`wallet-option-${w.id}`}
                       >
                         <span className="grid h-12 w-16 shrink-0 place-items-center rounded-xl border border-gray-200 bg-white px-2 shadow-sm">
@@ -452,7 +452,7 @@ export function ConnectButton() {
         onClick={() => setShowConnectModal(true)}
         disabled={wallet.loading || auth.loading}
         aria-label={t("auth.loginSignup")}
-        className="group relative flex items-center gap-2 rounded-xl bg-black/5 backdrop-blur-md px-3 py-2.5 text-sm font-bold text-gray-900 transition-all hover:bg-black/10 border border-black/10 shadow-[0_0_15px_rgba(0,229,153,0.1)] hover:shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:border-neo/50 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo sm:px-5"
+        className="group relative flex items-center gap-2 rounded-xl bg-black/5 backdrop-blur-md px-3 py-2.5 text-sm font-bold text-gray-900 transition-all hover:bg-black/10 border border-black/10 shadow-[0_0_15px_rgba(22,199,132,0.1)] hover:shadow-[0_0_20px_rgba(22,199,132,0.3)] hover:border-neo/50 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo sm:px-5"
       >
         <span className="relative z-10 hidden sm:inline">
           {wallet.loading || auth.loading

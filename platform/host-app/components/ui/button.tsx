@@ -6,7 +6,6 @@
 import React, { forwardRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { colors, borderRadius, transitions } from "@/lib/design-system/tokens";
-import { keyboardNavigation } from "@/lib/design-system/a11y";
 
 export type ButtonVariant =
   | "primary"
@@ -134,13 +133,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       [loading, disabled, onClick],
     );
 
-    const handleKeyDown = useCallback(
-      keyboardNavigation.activate(() => {
-        // Trigger click on Enter/Space
-      }),
-      [],
-    );
-
     const variantStyle = useMemo(() => variantStyles[variant], [variant]);
     const sizeStyle = useMemo(() => sizeStyles[size], [size]);
 
@@ -169,7 +161,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         disabled={disabled || loading}
         onClick={handleClick}
-        onKeyDown={handleKeyDown}
         aria-busy={loading}
         {...props}
       >

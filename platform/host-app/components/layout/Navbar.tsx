@@ -174,7 +174,7 @@ export function Navbar() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer"
             aria-label={t("navigation.toggleMenu")}
-            aria-haspopup="true"
+            aria-controls="mobile-nav-menu"
             aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -185,6 +185,7 @@ export function Navbar() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div
+          id="mobile-nav-menu"
           className="md:hidden absolute top-full left-0 w-full border-b border-gray-200 bg-white/95 backdrop-blur-2xl px-4 py-4 shadow-xl"
           role="navigation"
           aria-label={t("navigation.mobile")}
