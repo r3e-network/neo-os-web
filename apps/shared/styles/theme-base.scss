@@ -1,66 +1,152 @@
 /**
- * Shared Base Theme for Miniapps
+ * Neo Soft — Shared Base Theme for Miniapps
  *
- * Provides common semantic CSS variables for consistent theming
- * across all miniapps. Each app can extend these with their own
- * app-specific variables.
+ * Source of truth for the semantic CSS custom properties consumed across all
+ * 60 miniapps. The default :root is the Neo Soft LIGHT theme (E-Robo inspired):
+ * soft cool-gray canvas, white floating cards, soft navy-tinted shadows, navy
+ * ink text, Neo-green brand + violet interactive accent, pastel icon badges.
+ *
+ * Canonical reference: docs/DESIGN_SYSTEM.md
+ *
+ * Both the canonical --ns-* tokens and legacy semantic aliases (--bg-card,
+ * --text-primary, --accent-primary, --shadow-*, ...) are declared here so that
+ * existing components inherit the new look with no per-component changes.
  */
 
-/**
- * Dark Theme (Default)
- *
- * Base colors for dark mode - used when no theme class is present
- */
 :root {
-  /* Semantic Colors - Dark Mode */
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --bg-card: #f9fafb;
-  --bg-hover: #f3f4f6;
-  --bg-active: #e5e7eb;
+  /* ============================================================
+   *  Neo Soft canonical tokens
+   * ============================================================ */
 
-  /* Text Colors - Dark Mode */
-  --text-primary: #f8fafc;
-  --text-secondary: rgba(248, 250, 252, 0.7);
-  --text-tertiary: rgba(248, 250, 252, 0.5);
-  --text-disabled: rgba(248, 250, 252, 0.3);
+  /* Canvas & surface */
+  --ns-bg: #f4f5f7;
+  --ns-bg-2: #eceef2;
+  --ns-surface: #ffffff;
+  --ns-surface-subtle: #f7f8fa;
+  --ns-border: rgba(20, 22, 38, 0.06);
+  --ns-border-strong: rgba(20, 22, 38, 0.1);
 
-  /* Border Colors - Dark Mode */
-  --border-color: #e5e7eb;
-  --border-color-hover: #e5e7eb;
-  --border-color-active: #d1d5db;
-  --border-subtle: #e5e7eb;
+  /* Text (navy ink) */
+  --ns-ink: #1e1e2e;
+  --ns-text: #2a2d3d;
+  --ns-text-2: #5b6478;
+  --ns-text-muted: #8a92a6;
+  --ns-text-faint: #aeb4c2;
 
-  /* Card Background Colors - Dark Mode */
-  --bg-card-hover: #f3f4f6;
-  --bg-elevated: #f3f4f6;
+  /* Brand & semantic */
+  --ns-brand: #16c784;
+  --ns-brand-strong: #0fb174;
+  --ns-brand-soft: #e4f8f0;
+  --ns-violet: #7b61ff;
+  --ns-violet-strong: #6a4df4;
+  --ns-violet-soft: #eeeaff;
+  --ns-up: #16c784;
+  --ns-down: #ea3943;
+  --ns-success: #16c784;
+  --ns-success-soft: #e4f8f0;
+  --ns-danger: #ea3943;
+  --ns-danger-soft: #fde7e9;
+  --ns-warning: #f5a623;
+  --ns-warning-soft: #fff3dd;
+  --ns-info: #3e8cff;
+  --ns-info-soft: #e6f0ff;
+  --ns-spark: #ff6b6b;
 
-  /* Card-specific tokens */
-  --card-shadow: var(--shadow-md);
-  --card-border: var(--border-color);
-  --card-bg: var(--bg-primary);
+  /* Pastel icon-badge palette */
+  --ns-badge-peach-bg: #ffe4c3;
+  --ns-badge-peach-fg: #e8923b;
+  --ns-badge-mint-bg: #d5eec9;
+  --ns-badge-mint-fg: #3fa66a;
+  --ns-badge-lavender-bg: #e0e2ff;
+  --ns-badge-lavender-fg: #6a6cf0;
+  --ns-badge-sky-bg: #dff0ff;
+  --ns-badge-sky-fg: #3e8cff;
+  --ns-badge-rose-bg: #ffebe4;
+  --ns-badge-rose-fg: #f0795b;
+  --ns-badge-lilac-bg: #ede4ff;
+  --ns-badge-lilac-fg: #8b6cf0;
+  --ns-badge-seafoam-bg: #def5e9;
+  --ns-badge-seafoam-fg: #16c784;
 
-  /* Accent Colors */
-  --accent-primary: #3b82f6;
-  --accent-primary-hover: #2563eb;
-  --accent-primary-active: #1d4ed8;
-  --accent-secondary: #8b5cf6;
-  --accent-success: #10b981;
-  --accent-warning: #f59e0b;
-  --accent-error: #ef4444;
-  --accent-info: #06b6d4;
+  /* Gradients */
+  --ns-gradient-hero: linear-gradient(135deg, #8b7bf0 0%, #a99cf5 100%);
+  --ns-gradient-brand: linear-gradient(135deg, #16c784 0%, #7b61ff 100%);
 
-  /* Shadows - Dark Mode */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
+  /* Radius */
+  --ns-radius-xs: 8px;
+  --ns-radius-sm: 12px;
+  --ns-radius-md: 16px;
+  --ns-radius-lg: 20px;
+  --ns-radius-xl: 24px;
+  --ns-radius-full: 9999px;
+
+  /* Soft, navy-tinted shadows (never pure black) */
+  --ns-shadow-xs: 0 1px 2px rgba(20, 22, 38, 0.04);
+  --ns-shadow-sm: 0 2px 8px rgba(20, 22, 38, 0.05);
+  --ns-shadow-md: 0 8px 24px rgba(20, 22, 38, 0.06);
+  --ns-shadow-lg: 0 16px 40px rgba(20, 22, 38, 0.1);
+  --ns-shadow-xl: 0 24px 60px rgba(20, 22, 38, 0.14);
+  --ns-focus-ring: 0 0 0 4px rgba(123, 97, 255, 0.18);
+  --ns-glow-brand: 0 8px 24px rgba(22, 199, 132, 0.2);
+
+  /* Motion */
+  --ns-t-fast: 150ms;
+  --ns-t: 220ms;
+  --ns-t-slow: 320ms;
+  --ns-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ns-ease-snappy: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ============================================================
+   *  Legacy semantic aliases (mapped onto Neo Soft)
+   * ============================================================ */
+
+  /* Backgrounds */
+  --bg-primary: var(--ns-bg);
+  --bg-secondary: var(--ns-bg-2);
+  --bg-tertiary: #e2e5eb;
+  --bg-card: var(--ns-surface);
+  --bg-hover: rgba(20, 22, 38, 0.04);
+  --bg-active: rgba(20, 22, 38, 0.07);
+  --bg-card-hover: var(--ns-surface-subtle);
+  --bg-elevated: var(--ns-surface);
+
+  /* Text */
+  --text-primary: var(--ns-ink);
+  --text-secondary: var(--ns-text-2);
+  --text-tertiary: var(--ns-text-muted);
+  --text-disabled: var(--ns-text-faint);
+
+  /* Borders */
+  --border-color: var(--ns-border-strong);
+  --border-color-hover: rgba(20, 22, 38, 0.14);
+  --border-color-active: rgba(20, 22, 38, 0.18);
+  --border-subtle: var(--ns-border);
+
+  /* Card tokens */
+  --card-bg: var(--ns-surface);
+  --card-shadow: var(--ns-shadow-md);
+  --card-border: var(--ns-border);
+
+  /* Accents */
+  --accent-primary: var(--ns-violet);
+  --accent-primary-hover: var(--ns-violet-strong);
+  --accent-primary-active: #5b3fe0;
+  --accent-secondary: var(--ns-brand);
+  --accent-success: var(--ns-success);
+  --accent-warning: var(--ns-warning);
+  --accent-error: var(--ns-danger);
+  --accent-info: var(--ns-info);
+
+  /* Shadows */
+  --shadow-sm: var(--ns-shadow-sm);
+  --shadow-md: var(--ns-shadow-md);
+  --shadow-lg: var(--ns-shadow-lg);
+  --shadow-xl: var(--ns-shadow-xl);
 
   /* Effects */
-  --glass-bg: #f3f4f6;
-  --glass-border: #e5e7eb;
-  --backdrop-blur: blur(10px);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: var(--ns-border);
+  --backdrop-blur: blur(16px);
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -69,17 +155,18 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
 
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* Border Radius (legacy names → softer scale) */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
   --radius-full: 9999px;
 
   /* Transitions */
   --transition-fast: 150ms ease;
-  --transition-normal: 250ms ease;
-  --transition-slow: 350ms ease;
+  --transition-normal: 220ms ease;
+  --transition-slow: 320ms ease;
 
   /* Z-Index Scale */
   --z-index-dropdown: 100;
@@ -93,155 +180,262 @@
 }
 
 /**
- * Light Theme
- *
- * Override colors for light mode - applied when .theme-light
- * or [data-theme="light"] is present
+ * Explicit light theme — identical to the default Neo Soft light.
  */
 .theme-light,
 [data-theme="light"] {
-  /* Semantic Colors - Light Mode */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #e2e8f0;
-  --bg-tertiary: #cbd5e1;
-  --bg-card: #374151;
-  --bg-hover: rgba(15, 23, 42, 0.04);
-  --bg-active: rgba(15, 23, 42, 0.08);
-
-  /* Text Colors - Light Mode */
-  --text-primary: #0f172a;
-  --text-secondary: rgba(15, 23, 42, 0.7);
-  --text-tertiary: rgba(15, 23, 42, 0.5);
-  --text-disabled: rgba(15, 23, 42, 0.3);
-
-  /* Border Colors - Light Mode */
-  --border-color: rgba(15, 23, 42, 0.1);
-  --border-color-hover: rgba(15, 23, 42, 0.15);
-  --border-color-active: rgba(15, 23, 42, 0.2);
-  --border-subtle: rgba(15, 23, 42, 0.08);
-
-  /* Card Background Colors - Light Mode */
-  --bg-card-hover: rgba(15, 23, 42, 0.04);
-  --bg-elevated: rgba(15, 23, 42, 0.08);
-
-  /* Shadows - Light Mode */
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
-  --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.12);
-  --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.18);
-  --shadow-xl: 0 20px 25px rgba(15, 23, 42, 0.24);
-
-  /* Effects - Light Mode */
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(15, 23, 42, 0.1);
+  color-scheme: light;
 }
 
 /**
- * Theme Utility Classes
- *
- * Common utility classes for theme-aware styling
+ * Optional coherent dark variant (navy canvas) for apps that opt in via
+ * .theme-dark / [data-theme="dark"]. Default remains light.
+ */
+.theme-dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ns-bg: #0f1117;
+  --ns-bg-2: #161925;
+  --ns-surface: #1a1d2b;
+  --ns-surface-subtle: #222637;
+  --ns-border: rgba(255, 255, 255, 0.06);
+  --ns-border-strong: rgba(255, 255, 255, 0.12);
+  --ns-ink: #f4f6fb;
+  --ns-text: #e6e9f2;
+  --ns-text-2: #aab2c5;
+  --ns-text-muted: #7e879b;
+  --ns-text-faint: #5c6478;
+
+  --bg-primary: var(--ns-bg);
+  --bg-secondary: var(--ns-bg-2);
+  --bg-tertiary: #2b3040;
+  --bg-card: var(--ns-surface);
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.08);
+  --bg-card-hover: var(--ns-surface-subtle);
+  --bg-elevated: var(--ns-surface-subtle);
+  --text-primary: var(--ns-ink);
+  --text-secondary: var(--ns-text-2);
+  --text-tertiary: var(--ns-text-muted);
+  --text-disabled: var(--ns-text-faint);
+  --border-color: var(--ns-border-strong);
+  --border-subtle: var(--ns-border);
+  --card-border: var(--ns-border);
+  --glass-bg: rgba(26, 29, 43, 0.72);
+  --glass-border: var(--ns-border);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+/**
+ * Theme Utility Classes — Neo Soft
  */
 
 .theme-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
+  background: var(--ns-surface);
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-lg);
+  box-shadow: var(--ns-shadow-md);
 }
 
 .theme-card-hover {
   transition:
-    background var(--transition-normal),
-    border-color var(--transition-normal);
+    transform var(--ns-t) var(--ns-ease-smooth),
+    box-shadow var(--ns-t) var(--ns-ease-smooth);
 
   &:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-color-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--ns-shadow-lg);
   }
 }
 
 .theme-button {
-  background: var(--accent-primary);
-  color: var(--text-primary);
+  background: var(--ns-ink);
+  color: #ffffff;
   border: none;
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  transition: background var(--transition-fast);
+  border-radius: var(--ns-radius-full);
+  padding: 12px 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--ns-t-fast) ease,
+    transform var(--ns-t-fast) ease;
 
   &:hover {
-    background: var(--accent-primary-hover);
+    background: #2a2a40;
   }
 
   &:active {
-    background: var(--accent-primary-active);
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    background: var(--ns-surface-subtle);
+    color: var(--ns-text-faint);
+    cursor: not-allowed;
+  }
+}
+
+.theme-button-brand {
+  background: var(--ns-brand);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--ns-radius-full);
+  padding: 12px 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--ns-t-fast) ease,
+    transform var(--ns-t-fast) ease;
+
+  &:hover {
+    background: var(--ns-brand-strong);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    background: var(--ns-surface-subtle);
+    color: var(--ns-text-faint);
+    cursor: not-allowed;
   }
 }
 
 .theme-button-secondary {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  transition: background var(--transition-fast);
+  background: var(--ns-surface);
+  color: var(--ns-ink);
+  border: 1px solid var(--ns-border-strong);
+  border-radius: var(--ns-radius-full);
+  padding: 12px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--ns-t-fast) ease,
+    border-color var(--ns-t-fast) ease;
 
   &:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-color-hover);
+    background: var(--ns-surface-subtle);
+    border-color: rgba(20, 22, 38, 0.16);
   }
 }
 
 .theme-input {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  transition: border-color var(--transition-fast);
+  background: var(--ns-surface);
+  color: var(--ns-ink);
+  border: 1px solid var(--ns-border-strong);
+  border-radius: var(--ns-radius-md);
+  padding: 12px 14px;
+  transition:
+    border-color var(--ns-t-fast) ease,
+    box-shadow var(--ns-t-fast) ease;
 
   &:focus {
     outline: none;
-    border-color: var(--accent-primary);
+    border-color: var(--ns-violet);
+    box-shadow: var(--ns-focus-ring);
   }
 
   &::placeholder {
-    color: var(--text-tertiary);
+    color: var(--ns-text-faint);
   }
+}
+
+/**
+ * Pastel icon badge — signature E-Robo element.
+ * Usage: <div class="ns-icon-badge ns-badge--mint">◆</div>
+ */
+.ns-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ns-radius-full);
+  background: var(--ns-badge-lavender-bg);
+  color: var(--ns-badge-lavender-fg);
+  font-size: 20px;
+  flex-shrink: 0;
+
+  &.ns-badge--peach {
+    background: var(--ns-badge-peach-bg);
+    color: var(--ns-badge-peach-fg);
+  }
+  &.ns-badge--mint {
+    background: var(--ns-badge-mint-bg);
+    color: var(--ns-badge-mint-fg);
+  }
+  &.ns-badge--lavender {
+    background: var(--ns-badge-lavender-bg);
+    color: var(--ns-badge-lavender-fg);
+  }
+  &.ns-badge--sky {
+    background: var(--ns-badge-sky-bg);
+    color: var(--ns-badge-sky-fg);
+  }
+  &.ns-badge--rose {
+    background: var(--ns-badge-rose-bg);
+    color: var(--ns-badge-rose-fg);
+  }
+  &.ns-badge--lilac {
+    background: var(--ns-badge-lilac-bg);
+    color: var(--ns-badge-lilac-fg);
+  }
+  &.ns-badge--seafoam {
+    background: var(--ns-badge-seafoam-bg);
+    color: var(--ns-badge-seafoam-fg);
+  }
+}
+
+/**
+ * Eyebrow / section label
+ */
+.ns-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted);
 }
 
 /**
  * Text Styles
  */
 .theme-text-primary {
-  color: var(--text-primary);
+  color: var(--ns-ink);
 }
 
 .theme-text-secondary {
-  color: var(--text-secondary);
+  color: var(--ns-text-2);
 }
 
 .theme-text-tertiary {
-  color: var(--text-tertiary);
+  color: var(--ns-text-muted);
 }
 
 /**
  * Status Colors
  */
 .theme-status-success {
-  color: var(--accent-success);
-  background: rgba(16, 185, 129, 0.1);
+  color: var(--ns-success);
+  background: var(--ns-success-soft);
 }
 
 .theme-status-warning {
-  color: var(--accent-warning);
-  background: rgba(245, 158, 11, 0.1);
+  color: var(--ns-warning);
+  background: var(--ns-warning-soft);
 }
 
 .theme-status-error {
-  color: var(--accent-error);
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--ns-danger);
+  background: var(--ns-danger-soft);
 }
 
 .theme-status-info {
-  color: var(--accent-info);
-  background: rgba(6, 182, 212, 0.1);
+  color: var(--ns-info);
+  background: var(--ns-info-soft);
 }

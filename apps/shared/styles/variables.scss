@@ -21,29 +21,30 @@
 // Color Palette
 // ============================================================================
 
-$color-primary: #3b82f6;
-$color-secondary: #8b5cf6;
-$color-success: #10b981;
-$color-warning: #f59e0b;
-$color-danger: #ef4444;
-$color-info: #06b6d4;
+$color-primary: #7b61ff; // violet — interactive accent
+$color-secondary: #16c784; // Neo brand green
+$color-success: #16c784;
+$color-warning: #f5a623;
+$color-danger: #ea3943;
+$color-info: #3e8cff;
 
-$color-text-primary: #1f2937;
-$color-text-secondary: #6b7280;
-$color-text-muted: #9ca3af;
+$color-ink: #1e1e2e; // navy ink (headings / primary CTA)
+$color-text-primary: #1e1e2e;
+$color-text-secondary: #5b6478;
+$color-text-muted: #8a92a6;
 
-$color-bg-primary: #ffffff;
-$color-bg-secondary: #f9fafb;
-$color-bg-tertiary: #f3f4f6;
+$color-bg-primary: #ffffff; // card surface
+$color-bg-secondary: #f7f8fa; // subtle inset
+$color-bg-tertiary: #f4f5f7; // page canvas
 
-$color-border: #e5e7eb;
-$color-border-light: #f3f4f6;
+$color-border: #e6e8ee;
+$color-border-light: #f0f2f5;
 
-// Dark mode colors
-$color-dark-bg-primary: #111827;
-$color-dark-bg-secondary: #1f2937;
-$color-dark-text-primary: #f9fafb;
-$color-dark-text-secondary: #d1d5db;
+// Dark mode colors (Neo Soft dark)
+$color-dark-bg-primary: #0f1117;
+$color-dark-bg-secondary: #1a1d2b;
+$color-dark-text-primary: #f4f6fb;
+$color-dark-text-secondary: #aab2c5;
 
 // ============================================================================
 // Spacing Scale (4px base unit)
@@ -100,14 +101,14 @@ $line-height-relaxed: 1.75;
 // Shadows
 // ============================================================================
 
-$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
-$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03);
-$shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
-$shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.04);
+$shadow-sm: 0 2px 8px rgba(20, 22, 38, 0.05);
+$shadow-md: 0 8px 24px rgba(20, 22, 38, 0.06);
+$shadow-lg: 0 16px 40px rgba(20, 22, 38, 0.1);
+$shadow-xl: 0 24px 60px rgba(20, 22, 38, 0.14);
 
-$shadow-glow-sm: 0 0 12px rgba(59, 130, 246, 0.25);
-$shadow-glow-md: 0 0 24px rgba(59, 130, 246, 0.35);
-$shadow-glow-lg: 0 0 36px rgba(59, 130, 246, 0.45);
+$shadow-glow-sm: 0 0 12px rgba(123, 97, 255, 0.2);
+$shadow-glow-md: 0 8px 24px rgba(123, 97, 255, 0.28);
+$shadow-glow-lg: 0 16px 36px rgba(123, 97, 255, 0.36);
 
 // ============================================================================
 // Transitions

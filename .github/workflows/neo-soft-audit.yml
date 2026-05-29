@@ -1,0 +1,46 @@
+name: Neo Soft UI Audit
+
+# Continuous audit for the Neo Soft design system (docs/DESIGN_SYSTEM.md):
+# shared SCSS compiles, no legacy brand colors leak into UI source, all
+# miniapps build green, and miniapp layout stays consistent.
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - feat/neo-soft-ui-redesign
+    paths:
+      - "apps/**"
+      - "platform/**"
+      - "scripts/neo-soft-audit.sh"
+      - "scripts/build-miniapp-dapps.mjs"
+      - ".github/workflows/neo-soft-audit.yml"
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+  schedule:
+    # Daily continuous audit at 02:00 UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  neo-soft-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6 (pinned)
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6 (pinned)
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run Neo Soft audit (SCSS + legacy-color scan + 60-app build + layout)
+        run: bash scripts/neo-soft-audit.sh

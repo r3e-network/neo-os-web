@@ -1,18 +1,22 @@
-// Card base pattern (found in 20+ components)
-@mixin card-base($radius: 12px, $padding: 16px) {
-  background: var(--bg-card, #f9fafb);
-  border: 1px solid var(--border-color, #f3f4f6);
+// Card base pattern (found in 20+ components) — Neo Soft white card
+@mixin card-base($radius: 16px, $padding: 20px) {
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: $radius;
   padding: $padding;
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
-// Card with hover effect
-@mixin card-interactive($radius: 12px, $padding: 16px) {
+// Card with hover effect — lifts on hover
+@mixin card-interactive($radius: 16px, $padding: 20px) {
   @include card-base($radius, $padding);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition:
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   &:hover {
-    background: var(--bg-elevated, #f3f4f6);
+    transform: translateY(-2px);
+    box-shadow: var(--ns-shadow-lg, 0 16px 40px rgba(20, 22, 38, 0.1));
   }
 }
 
