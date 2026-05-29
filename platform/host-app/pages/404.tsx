@@ -13,7 +13,7 @@ export default function Custom404() {
       >
         {/* Soft brand glow background — matches PageHero radial-gradient treatment. */}
         <div
-          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(0,229,153,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(0,163,255,0.10),transparent_28%)]"
+          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(22,199,132,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(0,163,255,0.10),transparent_28%)]"
           aria-hidden="true"
         />
         <div className="max-w-md text-center">
@@ -33,7 +33,7 @@ export default function Custom404() {
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-neo px-5 py-3 text-sm font-semibold text-gray-900 transition-all hover:bg-neo/90 hover:shadow-[0_4px_14px_rgba(0,229,153,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-neo px-5 py-3 text-sm font-semibold text-gray-900 transition-all hover:bg-neo/90 hover:shadow-[0_4px_14px_rgba(22,199,132,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             >
               Go to home
             </Link>

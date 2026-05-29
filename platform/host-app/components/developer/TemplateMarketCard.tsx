@@ -34,7 +34,7 @@ export function TemplateMarketCard({
   onInstall,
 }: TemplateMarketCardProps) {
   return (
-    <div className="rounded-3xl border border-gray-200/50 bg-white/60 p-5 backdrop-blur-xl transition-all hover:border-neo/40 hover:shadow-[0_10px_30px_rgba(0,229,153,0.1)]">
+    <div className="rounded-3xl border border-gray-200/50 bg-white/60 p-5 backdrop-blur-xl transition-all hover:border-neo/40 hover:shadow-[0_10px_30px_rgba(22,199,132,0.1)]">
       <div className="mb-2 flex items-center gap-2 text-xs">
         <span
           className={`rounded-full px-2 py-0.5 ${templateKind === "contract" ? "bg-orange-500/20 text-orange-300" : "bg-neo/20 text-neo"}`}

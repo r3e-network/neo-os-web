@@ -37,7 +37,7 @@ export function PageHero({
         className,
       )}
     >
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(0,229,153,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(0,163,255,0.10),transparent_28%)]" />
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(22,199,132,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(0,163,255,0.10),transparent_28%)]" />
       <div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6 sm:py-16">
         <div
           className={cn(
