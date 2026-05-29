@@ -7,17 +7,17 @@
   gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
-  background: #ffffff;
-  color: #1f2937;
-  border-radius: 12px;
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-text, #2a2d3d);
+  border-radius: var(--ns-radius-lg, 20px);
   position: relative;
   overflow: hidden;
 }
 
 .hero-stats { display: flex; gap: 12px; flex-wrap: wrap; }
-.hero-stat { flex: 1; min-width: 80px; text-align: center; padding: 14px 10px; border-radius: 8px; border: 1px solid #f3f4f6; background: #f9fafb; }
-.hero-stat-value { font-size: 22px; font-weight: 800; color: #10b981; display: block; }
-.hero-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 1.5px; margin-top: 4px; display: block; }
+.hero-stat { flex: 1; min-width: 80px; text-align: center; padding: 14px 10px; border-radius: var(--ns-radius-md, 16px); border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06)); background: var(--ns-surface-subtle, #f7f8fa); }
+.hero-stat-value { font-size: 22px; font-weight: 800; color: var(--ns-brand, #16c784); display: block; font-variant-numeric: tabular-nums; }
+.hero-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--ns-text-muted, #8a92a6); letter-spacing: 0.08em; margin-top: 4px; display: block; }
 
 .destroy-form {
   display: flex;
@@ -36,7 +36,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #6b7280;
+  color: var(--ns-text-2, #5b6478);
 }
 
 .type-options {
@@ -47,23 +47,28 @@
 
 .type-option {
   padding: 6px 14px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #6b7280;
+  border-radius: 999px;
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 
   &.active {
-    border-color: #10b981;
-    background: #ecfdf5;
-    color: #10b981;
+    border-color: var(--ns-brand, #16c784);
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-strong, #0fb174);
   }
 
   &:hover {
-    border-color: #10b981;
+    border-color: var(--ns-brand, #16c784);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
   }
 }
 

@@ -9,6 +9,7 @@
 .key-selector { display: flex; align-items: center; gap: 12px; justify-content: center; margin-bottom: $spacing-4; }
 .key-adjust-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; color: var(--text-primary); font-size: 20px;
   &:hover:not(:disabled) { background: rgba(234, 179, 8, 0.15); border-color: rgba(234, 179, 8, 0.3); }
+  &:focus-visible { outline: none; box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18)); }
   &:disabled { opacity: 0.3; cursor: not-allowed; }
   &.plus:hover:not(:disabled) { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
 }
@@ -17,8 +18,9 @@
 .key-count-value { font-size: 28px; font-weight: 900; color: #eab308; font-family: 'Orbitron', monospace; }
 .key-count-unit { font-size: 9px; font-weight: 700; text-transform: uppercase; color: rgba(234, 179, 8, 0.5); letter-spacing: 0.1em; }
 .key-presets { display: flex; gap: 8px; justify-content: center; margin-bottom: $spacing-4; }
-.preset-chip { padding: 6px 14px; border-radius: 8px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.6); font-size: 12px; font-weight: 800; font-family: 'Orbitron', monospace; cursor: pointer; transition: all 0.2s ease;
+.preset-chip { padding: 6px 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.6); font-size: 12px; font-weight: 800; font-family: 'Orbitron', monospace; cursor: pointer; transition: all 0.2s ease;
   &:hover { background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.3); color: #eab308; }
+  &:focus-visible { outline: none; box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18)); }
   &.active { background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); color: #eab308; box-shadow: 0 0 10px rgba(234, 179, 8, 0.15); }
 }
 .cost-gas-icon { margin-right: 4px; }

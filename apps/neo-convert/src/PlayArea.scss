@@ -33,9 +33,9 @@
   text-align: center;
   margin: 30px 0 40px;
   color: var(--text-primary);
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   padding-bottom: 24px;
-  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.08) 0%, transparent 60%);
+  background: radial-gradient(ellipse at center, rgba(22, 199, 132, 0.08) 0%, transparent 60%);
 
   .hero-icon {
     font-size: 40px;
