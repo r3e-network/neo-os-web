@@ -224,7 +224,7 @@ function MiniAppListingCard({
           {getCategoryLabel(app.category, t)}
         </span>
         <span
-          className="inline-flex items-center gap-1 rounded-full bg-gray-950 px-3 py-1.5 text-xs font-black text-white transition-colors group-hover:bg-emerald-600"
+          className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:border-emerald-600 group-hover:text-white"
           data-testid="miniapp-row-open"
         >
           {t("catalog.openApp", "host")}
@@ -498,7 +498,7 @@ export default function MiniAppsPage({
                       {networkLabel}
                     </span>
                   </div>
-                  <h1 className="m-0 text-4xl font-black leading-tight text-gray-950 sm:text-5xl">
+                  <h1 className="m-0 text-3xl font-extrabold leading-tight tracking-tight text-gray-950 sm:text-4xl">
                     {t("hero.title", "host")}
                   </h1>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">
@@ -564,14 +564,14 @@ export default function MiniAppsPage({
                 </div>
 
                 <aside
-                  className="flex min-h-[260px] flex-col justify-between rounded-xl bg-gray-950 p-5 text-white shadow-md sm:min-h-[340px]"
+                  className="flex min-h-[260px] flex-col justify-between rounded-2xl border border-gray-200 bg-gradient-to-br from-emerald-50 via-white to-violet-50 p-5 text-gray-900 shadow-sm sm:min-h-[340px]"
                   data-testid="miniapps-lead-preview"
                 >
                   {hero ? (
                     <>
                       <div>
                         <div className="flex items-start justify-between gap-3">
-                          <div className="rounded-full bg-white/20 px-3 py-1 text-xs font-black uppercase text-white">
+                          <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold uppercase text-emerald-700">
                             {getAvailabilityLabel(
                               getMiniAppCatalogAvailability(hero, targetNetwork)
                                 .tone,
@@ -583,13 +583,13 @@ export default function MiniAppsPage({
                           <button
                             type="button"
                             onClick={() => setStatusFilter("all")}
-                            className="rounded-full bg-white/20 px-3 py-1 text-xs font-black uppercase text-white transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                            className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-bold uppercase text-gray-500 transition-colors hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                           >
                             {t("catalog.filters.all", "host")}
                           </button>
                         </div>
                         <div className="mt-6 flex items-center gap-4 sm:mt-9">
-                          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-white p-2 shadow-sm sm:h-20 sm:w-20">
+                          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-gray-200 bg-white p-2 shadow-sm sm:h-20 sm:w-20">
                             <MiniAppLogo
                               appId={hero.app_id}
                               category={hero.category}
@@ -602,21 +602,21 @@ export default function MiniAppsPage({
                             />
                           </div>
                           <div className="min-w-0">
-                            <p className="m-0 text-sm font-bold text-white/70">
+                            <p className="m-0 text-xs font-bold uppercase tracking-wide text-gray-500">
                               {getLocalizedMiniAppCategoryLabel(hero, locale, t)}
                             </p>
-                            <h2 className="m-0 mt-1 truncate text-2xl font-black sm:text-3xl">
+                            <h2 className="m-0 mt-1 truncate text-2xl font-extrabold text-gray-900 sm:text-3xl">
                               {getLocalizedMiniAppName(hero, locale)}
                             </h2>
                           </div>
                         </div>
-                        <p className="mt-4 line-clamp-2 text-base font-semibold leading-7 text-white/80 sm:mt-5 sm:line-clamp-3">
+                        <p className="mt-4 line-clamp-2 text-sm leading-6 text-gray-600 sm:mt-5 sm:line-clamp-3 sm:text-base">
                           {getLocalizedMiniAppDescription(hero, locale)}
                         </p>
                       </div>
                       <Link
                         href={`/miniapps/${hero.app_id}?network=${targetNetwork}`}
-                        className="mt-4 inline-flex h-12 items-center justify-center rounded-xl bg-white px-5 text-sm font-black text-gray-950 shadow-sm transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 sm:mt-6 sm:h-14"
+                        className="mt-4 inline-flex h-12 items-center justify-center rounded-xl bg-emerald-700 px-5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:mt-6 sm:h-14"
                       >
                         {t("catalog.openApp", "host")}
                         <ArrowUpRight
@@ -627,8 +627,8 @@ export default function MiniAppsPage({
                     </>
                   ) : (
                     <div className="flex h-full flex-col items-center justify-center text-center">
-                      <Boxes className="h-12 w-12 text-white/70" />
-                      <p className="mt-3 text-sm font-bold text-white/80">
+                      <Boxes className="h-12 w-12 text-gray-300" />
+                      <p className="mt-3 text-sm font-semibold text-gray-500">
                         {t("catalog.empty", "host")}
                       </p>
                     </div>
@@ -652,8 +652,8 @@ export default function MiniAppsPage({
                       onClick={() => setStatusFilter(value as StatusFilter)}
                       className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                         active
-                          ? "border-gray-950 bg-gray-950 text-white"
-                          : "border-white bg-white/80 text-gray-500 hover:text-gray-900"
+                          ? "border-emerald-600 bg-emerald-600 text-white"
+                          : "border-gray-200 bg-white text-gray-500 hover:text-gray-900"
                       }`}
                     >
                       {label}

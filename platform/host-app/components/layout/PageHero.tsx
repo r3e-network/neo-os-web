@@ -51,7 +51,7 @@ export function PageHero({
                 {eyebrow}
               </p>
             )}
-            <h1 className="mt-3 text-3xl font-black text-gray-900 sm:text-5xl">
+            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
               {title}
             </h1>
             {description && (

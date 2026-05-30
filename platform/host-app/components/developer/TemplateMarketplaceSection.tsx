@@ -75,14 +75,14 @@ export function TemplateMarketplaceSection({
         />
 
         {marketError ? (
-          <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/15 px-3 py-2 text-sm text-red-300">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
             {marketError}
           </div>
         ) : null}
 
         {marketLoading ? (
           <DeveloperStateCard message="Loading template marketplace..." />
-        ) : (
+        ) : marketTemplates.length ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {marketTemplates.slice(0, 18).map((item) => (
               <TemplateMarketCard
@@ -102,9 +102,19 @@ export function TemplateMarketplaceSection({
                 onInstall={() => onApplyTemplate(item)}
               />
             ))}
-            {!marketTemplates.length ? (
-              <DeveloperStateCard message="No templates matched current filters." />
-            ) : null}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-14 text-center">
+            <span className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-violet-50 text-violet-500">
+              <Store size={22} aria-hidden="true" />
+            </span>
+            <p className="text-base font-semibold text-gray-700">
+              No templates matched current filters
+            </p>
+            <p className="mt-1 max-w-sm text-sm text-gray-500">
+              Try clearing the search or selecting a different kind, category,
+              or source above.
+            </p>
           </div>
         )}
       </div>
