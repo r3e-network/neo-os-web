@@ -230,6 +230,7 @@
 
 .custom-anchor-id-card {
   display: grid;
+  grid-template-rows: auto auto 1fr;
   align-content: start;
   gap: 14px;
   min-height: 100%;
@@ -256,6 +257,7 @@
 
 .custom-anchor-id-card dl {
   display: grid;
+  align-content: space-between;
   gap: 8px;
   margin: 0;
 }

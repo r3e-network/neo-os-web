@@ -196,6 +196,11 @@
   padding: 22px;
 }
 
+.private-transfer__status--idle,
+.private-transfer__status--sealing {
+  justify-content: center;
+}
+
 .private-transfer__status-icon {
   display: grid;
   width: 40px;

@@ -60,7 +60,8 @@ $accent-soft: #eeeaff;
 .stamp-mark {
   font-size: 18px;
   line-height: 1;
-  color: $accent-strong;
+  // override global `.standalone-dapp-root span:not(...)` color reset so the badge keeps its accent
+  color: $accent-strong !important;
 }
 
 .hero-copy {

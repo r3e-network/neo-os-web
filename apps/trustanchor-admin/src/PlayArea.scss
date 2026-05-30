@@ -16,6 +16,17 @@
   min-height: 100%;
   padding: 16px;
   color: var(--ns-ink);
+
+  // Tie the primary CTA to this app's violet identity hue (shared default is green)
+  .neo-btn--primary:not(:disabled) {
+    background: var(--anchor-accent);
+    box-shadow: 0 2px 10px rgba(123, 97, 255, 0.28);
+
+    &:hover:not(:disabled) {
+      background: var(--anchor-accent-strong);
+      box-shadow: 0 4px 16px rgba(123, 97, 255, 0.32);
+    }
+  }
 }
 
 .anchor-admin-shell {

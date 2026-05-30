@@ -187,7 +187,8 @@ body { background: var(--anchor-bg, #ffffff); }
 
 .anchor-route-card {
   display: grid;
-  gap: 16px;
+  gap: 8px;
+  align-content: start;
   min-height: 100%;
   padding: 22px;
   background:
@@ -201,7 +202,8 @@ body { background: var(--anchor-bg, #ffffff); }
 }
 
 .anchor-route-card > strong {
-  align-self: center;
+  align-self: start;
+  margin-bottom: 4px;
   color: var(--ns-ink, #1e1e2e);
   font-size: 28px;
   line-height: 1.1;
@@ -212,6 +214,8 @@ body { background: var(--anchor-bg, #ffffff); }
   display: grid;
   gap: 8px;
   margin: 0;
+  margin-top: auto;
+  padding-top: 4px;
 }
 
 .anchor-route-card dl div {

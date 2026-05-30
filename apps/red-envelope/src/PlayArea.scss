@@ -183,7 +183,7 @@
 
 .redenv-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 0.62fr) minmax(280px, 0.38fr);
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 12px;
   align-items: stretch;
 }
@@ -238,12 +238,12 @@
 
 .redenv-selected-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(88px, 0.4fr) minmax(78px, 0.34fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 
   div {
     min-width: 0;
-    padding: 11px;
+    padding: 12px 11px;
     border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
     border-radius: 14px;
     background: var(--ns-surface-subtle, #f7f8fa);
@@ -345,6 +345,8 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+  transition: border-color var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease),
+    background var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
 
   span {
     min-width: 0;
@@ -367,6 +369,11 @@
     white-space: nowrap;
     letter-spacing: 0;
     font-variant-numeric: tabular-nums;
+  }
+
+  &:hover:not(.redenv-row--static):not(.redenv-row--selected) {
+    border-color: rgba(200, 30, 42, 0.22);
+    background: var(--ns-surface, #ffffff);
   }
 
   &--selected {
