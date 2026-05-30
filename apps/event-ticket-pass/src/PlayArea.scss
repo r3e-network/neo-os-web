@@ -144,8 +144,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 12px;
-  padding: 24px 20px;
+  // Center the prompt within a balanced block so there is no residual
+  // white void below the button — content sits in the middle of the card.
+  min-height: 160px;
+  padding: 8px 20px;
   text-align: center;
   font-size: 14px;
   color: var(--ns-text-muted);
