@@ -226,7 +226,7 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   line-height: 1.5;
-  padding: 0.62rem 0.76rem;
+  padding: 0.68rem 0.78rem 0.68rem calc(0.78rem - 3px);
 }
 
 .gas-pool-claim-only__button {

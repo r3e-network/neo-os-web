@@ -332,7 +332,7 @@
   font-weight: 700;
 }
 
-.treasury-action-card {
+.treasury-action-card .neo-card__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
@@ -374,7 +374,7 @@
   }
 
   .treasury-hero,
-  .treasury-action-card {
+  .treasury-action-card .neo-card__body {
     grid-template-columns: 1fr;
   }
 

@@ -116,7 +116,7 @@
 .council-access {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.55rem;
   padding: 0.8rem 1rem;
   border: 1px solid #f0d58a;
@@ -139,9 +139,17 @@
   color: var(--ns-violet-strong, #6a4df4);
 }
 
+.council-access > span:not(.council-access-dot) {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.45;
+}
+
 .council-access-dot {
+  flex-shrink: 0;
   width: 0.55rem;
   height: 0.55rem;
+  margin-top: 0.32rem;
   border-radius: 999px;
   background: currentColor;
 }
