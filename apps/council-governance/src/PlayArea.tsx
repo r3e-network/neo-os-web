@@ -285,9 +285,31 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
       ) : (
         <section className="council-board">
           {isLoading ? (
-            <div className="council-loading">
-              <div className="council-loading-spinner" />
-              <span>{t("loadingProposals")}</span>
+            <div
+              className="council-loading"
+              role="status"
+              aria-busy="true"
+              aria-label={t("loadingProposals")}
+            >
+              <div className="council-skeleton" aria-hidden="true">
+                {[0, 1, 2].map((row) => (
+                  <div key={row} className="council-skeleton-row">
+                    <div className="council-skeleton-head">
+                      <span className="council-skeleton-pill" />
+                      <span className="council-skeleton-tag" />
+                    </div>
+                    <span className="council-skeleton-line council-skeleton-line--title" />
+                    <span className="council-skeleton-line" />
+                  </div>
+                ))}
+              </div>
+              <div className="council-loading-note">
+                <span className="council-loading-spinner" aria-hidden="true" />
+                <div className="council-loading-note-text">
+                  <strong>{t("loadingProposals")}</strong>
+                  <span>{t("loadingProposalsHint")}</span>
+                </div>
+              </div>
             </div>
           ) : visibleProposals.length === 0 ? (
             <div className="council-empty">

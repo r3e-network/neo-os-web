@@ -106,7 +106,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           ) : (
             <div className="empty-state">
               <span className="empty-icon" aria-hidden="true">📜</span>
-              <span>{t("emptyCertificates") || "No certificates yet"}</span>
+              <span className="empty-title">{t("emptyCertificates") || "No certificates yet"}</span>
+              <span className="empty-hint">{t("emptyCertificatesHint") || "Certificates issued to this wallet will appear here."}</span>
             </div>
           )}
         </NeoCard>

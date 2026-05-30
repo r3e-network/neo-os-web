@@ -219,6 +219,10 @@ const appMessages = {
   lastStatus: { en: "Last Status", zh: "最近状态" },
   lastRoute: { en: "Route", zh: "路径" },
   emptyPayload: { en: "No bridge intent prepared yet.", zh: "还没有生成跨链意图。" },
+  emptyPayloadHint: {
+    en: "Prepare an asset or message intent from the operation panel to generate the signed bridge handoff.",
+    zh: "在操作面板中准备资产或消息意图，即可生成已签名的跨链交接载荷。",
+  },
   statusReady: { en: "Bridge console ready", zh: "跨链控制台已就绪" },
   statusAssetReady: { en: "Asset bridge handoff prepared", zh: "资产桥交接载荷已生成" },
   statusMessageReady: { en: "Message bridge intent prepared", zh: "消息桥意图已生成" },
