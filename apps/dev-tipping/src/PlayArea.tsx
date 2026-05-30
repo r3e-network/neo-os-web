@@ -93,11 +93,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           {developers.length > 0 ? (
             <TipList developers={developers} formatNum={formatNum} onSelect={handleSelectDev} t={t} />
           ) : (
-            <div className="tipping-empty">
-              <span className="tipping-empty__icon" aria-hidden="true">♡</span>
-              <span className="tipping-empty__title">{t("topDevelopers") || "Top Developers"}</span>
-              <span className="tipping-empty__hint">{t("docSubtitle") || t("subtitle")}</span>
-            </div>
+            <>
+              <div className="tipping-empty">
+                <span className="tipping-empty__icon" aria-hidden="true">♡</span>
+                <span className="tipping-empty__title">{t("noDevelopers") || "No developers yet"}</span>
+                <span className="tipping-empty__hint">{t("noDevelopersHint") || t("docSubtitle")}</span>
+              </div>
+
+              <div className="tipping-guide">
+                <span className="tipping-guide__label">{t("howItWorks") || "How it works"}</span>
+                <ol className="tipping-guide__steps">
+                  <li className="tipping-guide__step">
+                    <span className="tipping-guide__num">1</span>
+                    <span className="tipping-guide__text">{t("step1")}</span>
+                  </li>
+                  <li className="tipping-guide__step">
+                    <span className="tipping-guide__num">2</span>
+                    <span className="tipping-guide__text">{t("step2")}</span>
+                  </li>
+                  <li className="tipping-guide__step">
+                    <span className="tipping-guide__num">3</span>
+                    <span className="tipping-guide__text">{t("step3")}</span>
+                  </li>
+                  <li className="tipping-guide__step">
+                    <span className="tipping-guide__num">4</span>
+                    <span className="tipping-guide__text">{t("step4")}</span>
+                  </li>
+                </ol>
+              </div>
+            </>
           )}
 
           {recentTips.length > 0 && (

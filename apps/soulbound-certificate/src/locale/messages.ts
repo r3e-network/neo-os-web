@@ -26,7 +26,15 @@ const appMessages = {
   yourTemplates: { en: "Your Templates", zh: "我的模板" },
   refresh: { en: "Refresh", zh: "刷新" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
+  walletNotConnectedHint: {
+    en: "Connect a wallet to load your certificate templates.",
+    zh: "连接钱包以加载你的证书模板。",
+  },
   emptyTemplates: { en: "No templates yet", zh: "暂无模板" },
+  emptyTemplatesHint: {
+    en: "Create a template to start issuing certificates.",
+    zh: "创建模板即可开始签发证书。",
+  },
 
   statusActive: { en: "Active", zh: "启用" },
   statusInactive: { en: "Inactive", zh: "停用" },
@@ -82,6 +90,10 @@ const appMessages = {
   issuedSuccess: { en: "Certificate issued", zh: "证书已签发" },
 
   emptyCertificates: { en: "No certificates yet", zh: "暂无证书" },
+  emptyCertificatesHint: {
+    en: "Certificates issued to this wallet will appear here.",
+    zh: "签发到该钱包的证书将显示在此处。",
+  },
   certificateRevoked: { en: "Revoked", zh: "已撤销" },
   certificateValid: { en: "Valid", zh: "有效" },
   tokenId: { en: "Token ID", zh: "Token ID" },

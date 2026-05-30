@@ -84,9 +84,9 @@
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  border: 1px solid rgba(225, 231, 242, 0.95);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.76);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .permissions-metric span,

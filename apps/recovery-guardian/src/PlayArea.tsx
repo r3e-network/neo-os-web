@@ -196,22 +196,50 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("guardianStateLabel")}</span>
               <h3>{t("guardianStateTitle")}</h3>
             </div>
-            <strong>{hasPayload ? t("latestState") : t("notAvailable")}</strong>
+            <strong
+              className={hasPayload ? undefined : "guardian-state-pill--idle"}
+            >
+              {hasPayload ? t("latestState") : t("awaitingQuery")}
+            </strong>
           </div>
 
-          <div className="guardian-state-grid">
-            {stateItems.map((item) => (
-              <div key={item.label} className="guardian-state-card">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
+          {hasPayload ? (
+            <>
+              <div className="guardian-state-grid">
+                {stateItems.map((item) => (
+                  <div key={item.label} className="guardian-state-card">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="guardian-payload-card">
-            <span>{t("latestState")}</span>
-            <pre>{renderedPayload}</pre>
-          </div>
+              <div className="guardian-payload-card">
+                <span>{t("latestState")}</span>
+                <pre>{renderedPayload}</pre>
+              </div>
+            </>
+          ) : (
+            <div className="guardian-state-empty">
+              <span className="guardian-state-empty__badge" aria-hidden="true">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              </span>
+              <strong>{t("noStateYet")}</strong>
+              <p>{t("noStateHint")}</p>
+            </div>
+          )}
 
           <div className="guardian-risk-note">
             <span>SR</span>

@@ -138,7 +138,15 @@ export default function PlayArea({ t, state, services }: PlayAreaProps) {
               <span className="bridge-empty-icon" aria-hidden="true">
                 <ArrowLeftRight size={20} />
               </span>
-              <p>{t("emptyPayload")}</p>
+              <div className="bridge-empty-copy">
+                <strong>{t("emptyPayload")}</strong>
+                <p>{t("emptyPayloadHint")}</p>
+              </div>
+              <div className="bridge-empty-skeleton" aria-hidden="true">
+                <span className="skeleton-row skeleton-row--lg" />
+                <span className="skeleton-row" />
+                <span className="skeleton-row skeleton-row--sm" />
+              </div>
             </div>
           )}
         </NeoCard>
