@@ -8,7 +8,7 @@
   &__label {
     font-size: 12px;
     font-weight: 600;
-    color: #374151;
+    color: var(--ns-text-2, #5b6478);
     letter-spacing: 0;
     margin-left: 2px;
   }
@@ -16,15 +16,21 @@
   &__wrapper {
     display: flex;
     align-items: center;
-    background: #ffffff;
-    border: 1px solid #d1d5db;
+    background: var(--ns-surface, #ffffff);
+    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
     border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: all 0.2s ease;
+    box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+    transition:
+      border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
+      box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
+
+    &:hover:not(:focus-within) {
+      border-color: rgba(20, 22, 38, 0.18);
+    }
 
     &:focus-within {
-      border-color: #16c784;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+      border-color: var(--ns-violet, #7b61ff);
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
     }
   }
 
@@ -37,11 +43,11 @@
     font-size: 14px;
     font-family: $font-family;
     font-weight: 500;
-    color: #1f2937;
+    color: var(--ns-text, #2a2d3d);
     width: 100%;
 
     &::placeholder {
-      color: #9ca3af;
+      color: var(--ns-text-faint, #aeb4c2);
     }
   }
 
@@ -77,14 +83,14 @@
 
   &--error {
     .neo-input__wrapper {
-      border-color: #ef4444;
-      background: #fef2f2;
+      border-color: var(--ns-down, #ea3943);
+      background: var(--ns-danger-soft, #fde7e9);
       &:focus-within {
-        border-color: #ef4444;
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        border-color: var(--ns-down, #ea3943);
+        box-shadow: 0 0 0 4px rgba(234, 57, 67, 0.16);
       }
     }
-    .neo-input__label { color: #ef4444; }
+    .neo-input__label { color: var(--ns-down, #ea3943); }
   }
 
   &--disabled {
