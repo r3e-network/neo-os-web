@@ -209,7 +209,7 @@
   display: block;
   min-width: 0;
   border-radius: 4px;
-  background: linear-gradient(180deg, var(--ns-violet) 0%, var(--ns-brand) 100%);
+  background: linear-gradient(180deg, var(--ns-violet) 0%, rgba(123, 97, 255, 0.4) 100%);
 }
 
 .console-tool__sparkline i:nth-child(1) {
