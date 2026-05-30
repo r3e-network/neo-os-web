@@ -36,6 +36,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="price-play-area">
       <section className="price-hero" aria-label={t("priceHeroTitle")}>
         <div className="price-hero__copy">
+          <span className="price-hero__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+              <path
+                d="M3 13h3l2.4-6 3.2 12 2.6-8 1.8 4H21"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
           <span className="price-eyebrow">{t("priceHeroTitle")}</span>
           <h2>{displayPair}</h2>
           <p>{t("priceHeroSubtitle")}</p>
