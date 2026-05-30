@@ -78,6 +78,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="shrine-hero__title">{t("title") || "Memorial Shrine"}</span>
             <span className="shrine-hero__subtitle">{t("subtitle") || "On-chain memorials"}</span>
           </div>
+          <NeoButton variant="primary" className="shrine-hero__cta" onClick={() => setShowCreateForm(!showCreateForm)} aria-label={t("createMemorial") || "Create Memorial"}>
+            {showCreateForm ? (t("cancel") || "Cancel") : (t("createMemorial") || "Create Memorial")}
+          </NeoButton>
         </div>
         <div className="shrine-hero__stats">
           <div className="stat-chip">
@@ -154,10 +157,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       )}
 
       {/* Create Memorial */}
-      <NeoButton variant="secondary" onClick={() => setShowCreateForm(!showCreateForm)} aria-label={t("createMemorial") || "Create Memorial"}>
-        {showCreateForm ? (t("cancel") || "Cancel") : (t("createMemorial") || "Create Memorial")}
-      </NeoButton>
-
       {showCreateForm && (
         <NeoCard variant="erobo" className="create-form-card">
           <div className="create-form">
@@ -179,11 +178,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       {/* Memorial Grid */}
       {memorials.length > 0 ? (
-        <div className="memorials-grid">
-          {memorials.map((memorial) => (
-            <TombstoneCard key={memorial.id} memorial={memorial} onClick={() => dispatch("openMemorial", memorial.id)} t={t} />
-          ))}
-        </div>
+        <section className="memorials-section">
+          <span className="section-eyebrow">{t("memorials") || "Memorials"}</span>
+          <div className="memorials-grid">
+            {memorials.map((memorial) => (
+              <TombstoneCard key={memorial.id} memorial={memorial} onClick={() => dispatch("openMemorial", memorial.id)} t={t} />
+            ))}
+          </div>
+        </section>
       ) : (
         <div className="empty-memorials"><p>{t("noMemorials") || "No memorials yet."}</p></div>
       )}

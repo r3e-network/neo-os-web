@@ -88,8 +88,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="session-play-area">
       <section className="session-hero">
         <div className="session-hero__copy">
-          <h2>{t("sessionHeroTitle")}</h2>
-          <p>{t("sessionHeroCopy")}</p>
+          <div className="session-hero__head">
+            <div className="session-hero__badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle
+                  cx="7.5"
+                  cy="15.5"
+                  r="4.5"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M10.5 12.5 19 4m-2 2 2.5 2.5M15 6l2.5 2.5"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div className="session-hero__heading">
+              <h2>{t("sessionHeroTitle")}</h2>
+              <p>{t("sessionHeroCopy")}</p>
+            </div>
+          </div>
           <div
             className="session-hero__metrics"
             aria-label={t("sessionMetricsLabel")}

@@ -52,8 +52,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section className="wallet-health-main" aria-label={t("walletHeroTitle")}>
         <div className="wallet-health-hero">
           <div className="wallet-health-hero-copy">
-            <p className="wallet-health-kicker">{networkLabel || "Neo N3"}</p>
-            <h2>{t("walletHeroTitle")}</h2>
+            <div className="wallet-health-hero-intro">
+              <span className="wallet-health-hero-badge" aria-hidden="true">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+              </span>
+              <div className="wallet-health-hero-heading">
+                <span className="wallet-health-kicker">{networkLabel || "Neo N3"}</span>
+                <h2>{t("walletHeroTitle")}</h2>
+              </div>
+            </div>
             <p>{t("walletHeroSubtitle")}</p>
           </div>
           <div className="wallet-health-score-card">

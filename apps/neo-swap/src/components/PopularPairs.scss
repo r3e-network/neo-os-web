@@ -9,17 +9,17 @@
 }
 
 .pair-header span {
-  color: #0f766e;
-  font-size: 0.74rem;
-  font-weight: 850;
-  letter-spacing: 0;
+  color: #8a92a6;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .pair-header strong {
-  color: #111827;
+  color: #1e1e2e;
   font-size: 1rem;
-  font-weight: 850;
-  letter-spacing: 0;
+  font-weight: 700;
 }
 
 .pair-list {
@@ -33,32 +33,40 @@
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
-  padding: 12px;
-  border: 1px solid #dbe4ef;
-  border-radius: 8px;
-  background: #ffffff;
+  padding: 13px 14px;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 14px;
+  background: #f7f8fa;
   color: inherit;
   cursor: pointer;
   font: inherit;
   text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .pair-item:hover,
 .pair-item.active {
-  border-color: #10b981;
-  background: #ecfdf5;
+  border-color: #16c784;
+  background: #e4f8f0;
 }
 
 .pair-name {
-  color: #111827;
+  color: #1e1e2e;
   font-size: 0.9rem;
-  font-weight: 850;
-  letter-spacing: 0;
+  font-weight: 700;
 }
 
 .pair-rate {
-  color: #64748b;
-  font-size: 0.78rem;
-  font-weight: 750;
-  letter-spacing: 0;
+  color: #5b6478;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pair-item {
+    transition: none;
+  }
 }

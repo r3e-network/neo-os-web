@@ -129,6 +129,41 @@
 .stack { @include console.stack; }
 .button-row { @include console.button-grid(2); }
 
+/* Neutralize the legacy global `.neo-select` decoration that leaks onto the
+   React NeoSelect wrapper (double box + double chevron). The inner
+   `.neo-input__wrapper` is the single visible field — keep this select visually
+   identical to the sibling text inputs. */
+.stack .neo-select {
+  width: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  appearance: none;
+
+  .neo-select__field {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: none;
+  }
+
+  /* single chevron, drawn in the wrapper gutter */
+  .neo-select__wrapper::after {
+    content: "";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    transform: translateY(-60%) rotate(45deg);
+    border-right: 2px solid var(--ns-text-muted, #8a92a6);
+    border-bottom: 2px solid var(--ns-text-muted, #8a92a6);
+    pointer-events: none;
+  }
+
+  .neo-select__field { padding-right: 36px; }
+}
+
 .json-box {
   @include console.json-box(420px);
   white-space: pre-wrap;

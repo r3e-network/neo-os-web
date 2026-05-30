@@ -1,6 +1,6 @@
 .forever-album-grid-card {
   border-color: #e2eaf1;
-  border-radius: 16px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 16px 36px rgba(24, 38, 58, 0.06);
   letter-spacing: 0;
@@ -118,21 +118,35 @@
 .forever-album-empty {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 14px;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 24px;
   border: 1px solid #e6edf3;
-  border-radius: 14px;
-  background: #f8fbfd;
+  border-radius: 16px;
+  background: #f7f8fa;
+  text-align: center;
+
+  .forever-album-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #e4f8f0;
+    color: #0fb174;
+  }
 
   strong {
     color: #152238;
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 700;
   }
 
-  span {
+  .forever-album-empty-desc {
+    max-width: 280px;
     color: #657383;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.45;
   }
 }

@@ -32,14 +32,31 @@
   gap: 24px;
 }
 
+.guardian-hero__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.guardian-hero__badge {
+  display: grid;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-badge-seafoam-bg, #def5e9);
+  color: var(--ns-badge-seafoam-fg, #16c784);
+}
+
 .guardian-hero__copy h2 {
   max-width: 780px;
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 32px;
-  font-weight: 850;
-  letter-spacing: 0;
-  line-height: 1.12;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.14;
 }
 
 .guardian-hero__copy p {
@@ -60,11 +77,11 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px;
+  gap: 6px;
+  padding: 14px 16px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-sm, 14px);
-  background: rgba(255, 255, 255, 0.76);
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface, #fff);
 }
 
 .guardian-metric span,
@@ -75,24 +92,26 @@
 .guardian-link-preview span {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .guardian-metric strong {
   overflow: hidden;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 22px;
-  font-weight: 850;
-  line-height: 1.1;
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .guardian-command,
 .guardian-prepare-card {
-  border-radius: 12px;
+  border-radius: var(--ns-radius-md, 16px);
 }
 
 .guardian-command {
@@ -191,7 +210,7 @@
 .guardian-flow__step strong {
   color: var(--ns-ink, #1e1e2e);
   font-size: 15px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .guardian-flow__step p {
@@ -214,11 +233,11 @@
 }
 
 .guardian-state-panel {
-  padding: 20px;
-  border: 1px solid rgba(225, 232, 242, 0.95);
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 14px 34px rgba(27, 39, 72, 0.055);
+  padding: 24px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface, #fff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .guardian-section-heading {
@@ -230,24 +249,24 @@
 }
 
 .guardian-section-heading h3 {
-  margin: 5px 0 0;
-  color: #181b24;
-  font-size: 28px;
-  font-weight: 850;
-  line-height: 1.05;
+  margin: 6px 0 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
 }
 
 .guardian-section-heading strong {
-  display: grid;
-  min-width: 96px;
-  min-height: 48px;
+  display: inline-grid;
   place-items: center;
-  padding: 0 14px;
-  border-radius: 18px;
-  background: var(--ns-ink);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 850;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--ns-badge-seafoam-bg, #def5e9);
+  color: var(--ns-badge-seafoam-fg, #16c784);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .guardian-state-grid {
@@ -259,23 +278,21 @@
 .guardian-state-card {
   display: flex;
   min-width: 0;
-  min-height: 132px;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px;
-  border: 1px solid rgba(225, 232, 242, 0.95);
-  border-radius: 14px;
-  background: #fbfcfe;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .guardian-state-card strong,
 .guardian-link-preview strong {
   overflow-wrap: anywhere;
-  color: #374151;
+  color: var(--ns-text-2, #5b6478);
   font-family: "SF Mono", "Fira Code", monospace;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.45;
 }
 
@@ -286,9 +303,9 @@
   gap: 12px;
   margin-top: 12px;
   padding: 18px;
-  border: 1px solid rgba(225, 232, 242, 0.95);
-  border-radius: 14px;
-  background: #fbfcfe;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .guardian-payload-card pre {
@@ -309,35 +326,35 @@
   align-items: flex-start;
   margin-top: 16px;
   padding: 18px;
-  border: 1px solid rgba(225, 232, 242, 0.95);
-  border-radius: 14px;
-  background: #f8fafc;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .guardian-risk-note > span {
   display: grid;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: 18px;
-  background: #def5e9;
-  color: #178a5b;
-  font-size: 14px;
-  font-weight: 850;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-badge-seafoam-bg, #def5e9);
+  color: var(--ns-badge-seafoam-fg, #16c784);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .guardian-risk-note strong {
   display: block;
-  margin-bottom: 5px;
-  color: #20242f;
+  margin-bottom: 4px;
+  color: var(--ns-ink, #1e1e2e);
   font-size: 15px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .guardian-risk-note p {
   margin: 0;
-  color: #6f788a;
+  color: var(--ns-text-2, #5b6478);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -355,17 +372,17 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border: 1px solid rgba(223, 230, 240, 0.95);
-  border-radius: 18px;
-  background: #f8fafc;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .guardian-scope-summary span {
   overflow: hidden;
-  color: #252a35;
+  color: var(--ns-text-2, #5b6478);
   font-family: "SF Mono", "Fira Code", monospace;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -382,9 +399,10 @@
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  border: 1px solid rgba(225, 232, 242, 0.95);
-  border-radius: 14px;
-  background: #fff;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface, #fff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 @media (max-width: 960px) {
@@ -411,8 +429,13 @@
   }
 
   .guardian-hero__copy h2 {
-    font-size: 28px;
-    line-height: 1.12;
+    font-size: 22px;
+    line-height: 1.16;
+  }
+
+  .guardian-hero__badge {
+    width: 42px;
+    height: 42px;
   }
 
   .guardian-action-grid,

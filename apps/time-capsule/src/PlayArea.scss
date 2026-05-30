@@ -1,6 +1,5 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
-@import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
 
 // Violet accent (this app's identity hue)
 $accent: #7b61ff;
@@ -14,9 +13,20 @@ $accent-soft: #eeeaff;
   max-width: 720px;
   margin: 0 auto;
   padding: 4px;
-  font-family: 'Special Elite', 'Courier New', monospace;
+  font-family: $font-family;
   color: var(--ns-text, #2a2d3d);
   position: relative;
+
+  // Tie the primary CTA to this app's violet identity hue
+  .neo-btn--primary:not(:disabled) {
+    background: $accent;
+    box-shadow: 0 2px 10px rgba(123, 97, 255, 0.28);
+
+    &:hover:not(:disabled) {
+      background: $accent-strong;
+      box-shadow: 0 4px 16px rgba(123, 97, 255, 0.32);
+    }
+  }
 }
 
 .capsule-form {

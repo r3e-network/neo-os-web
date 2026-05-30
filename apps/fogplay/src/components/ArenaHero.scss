@@ -9,12 +9,12 @@
   &.flipping { width: 250px; height: 250px; background: radial-gradient(circle, var(--coin-arena-ambient-flip) 0%, transparent 70%); }
 }
 .coin-stage { position: relative; z-index: 2; }
-.side-labels { display: flex; align-items: center; gap: 16px; z-index: 2; }
-.side-badge { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 999px; background: rgba(255, 255, 255, 0.82); border: 1px solid rgba(15, 23, 42, 0.08); transition: all 0.3s ease; opacity: 0.64;
-  &.active { opacity: 1; background: var(--coin-side-active-bg); border-color: var(--coin-side-active-border); box-shadow: 0 0 12px var(--coin-side-glow); }
+.side-labels { display: flex; align-items: center; gap: 12px; z-index: 2; }
+.side-badge { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 18px; border-radius: 999px; background: #f7f8fa; border: 1px solid rgba(20, 22, 38, 0.06); transition: all 0.3s ease; color: #8a92a6;
+  &.active { background: var(--coin-side-active-bg); border-color: var(--coin-side-active-border); color: var(--coin-success); }
 }
-.side-text { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: #0f172a; }
-.side-vs { font-size: 12px; font-weight: 900; color: #64748b; letter-spacing: 0.12em; }
+.side-text { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: inherit; }
+.side-vs { font-size: 11px; font-weight: 800; color: #aeb4c2; letter-spacing: 0.12em; }
 .result-flash { display: flex; align-items: center; gap: 10px; padding: 10px 24px; border-radius: 14px; z-index: 10; animation: flash-entrance 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   &.win { background: rgba(52, 211, 153, 0.15); border: 2px solid rgba(52, 211, 153, 0.4); box-shadow: 0 0 30px rgba(52, 211, 153, 0.25); }
   &.lose { background: rgba(239, 68, 68, 0.15); border: 2px solid rgba(239, 68, 68, 0.4); box-shadow: 0 0 30px rgba(239, 68, 68, 0.25); }

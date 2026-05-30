@@ -2,6 +2,7 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   appName: { en: "AA Account Lab", zh: "AA 注册实验室" },
+  accountHeroEyebrow: { en: "Account Abstraction", zh: "账户抽象" },
   accountHeroTitle: {
     en: "Account control center for Neo AA shells",
     zh: "Neo AA 账户壳的控制中心",

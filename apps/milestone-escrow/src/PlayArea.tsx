@@ -75,6 +75,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="milestone-escrow-play-area">
+      {/* Hero */}
+      <MilestoneHero
+        t={t}
+        progressPercent={progressPercent}
+        checkpoints={milestoneCheckpoints}
+      />
+
       {/* Stats Bar */}
       <div className="stats-bar">
         <div className="stat-chip">
@@ -87,22 +94,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="stat-chip">
           <span className="stat-value">{creatorEscrowCount}</span>
-          <span className="stat-label">{t("created") || "Created"}</span>
+          <span className="stat-label">{t("createdByYou")}</span>
         </div>
         <div className="stat-chip">
           <span className="stat-value">{beneficiaryEscrowCount}</span>
-          <span className="stat-label">{t("beneficiary") || "Beneficiary"}</span>
+          <span className="stat-label">{t("forYou")}</span>
         </div>
       </div>
-
-      {/* Hero */}
-      <MilestoneHero
-        t={t}
-        progressPercent={progressPercent}
-        checkpoints={milestoneCheckpoints}
-        activeCount={activeCount}
-        completedCount={completedCount}
-      />
 
       {/* Create Escrow */}
       {hasAddress && contractReady && (

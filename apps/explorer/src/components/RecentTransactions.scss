@@ -1,15 +1,17 @@
 .recent-section {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
-.section-title {
+.recent-section > .section-title {
   display: block;
-  margin-bottom: 2px;
-  color: #0f766e;
-  font-size: 0.76rem;
-  font-weight: 850;
-  letter-spacing: 0;
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: none;
 }
 
 .recent-empty-state {
@@ -18,8 +20,8 @@
 
 .recent-empty-state .neo-card__content {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(260px, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(240px, 1fr);
+  gap: 16px;
   align-items: center;
 }
 
@@ -30,16 +32,17 @@
 }
 
 .recent-empty-state span {
-  color: #64748b;
-  font-size: 0.74rem;
-  font-weight: 850;
-  letter-spacing: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .recent-empty-state strong {
-  color: #111827;
+  color: var(--ns-ink, #1e1e2e);
   font-size: 1rem;
-  font-weight: 850;
+  font-weight: 800;
   line-height: 1.35;
 }
 
@@ -54,13 +57,12 @@
 
 .recent-empty-state li {
   min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
+  padding: 10px 8px;
   border-radius: 12px;
-  background: #f8fafc;
-  color: #111827;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text, #2a2d3d);
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -87,41 +89,40 @@
 .tx-hash {
   min-width: 0;
   overflow: hidden;
-  color: #111827;
+  color: var(--ns-ink, #1e1e2e);
   font-family: "SF Mono", "Fira Code", "Roboto Mono", monospace;
+  font-variant-numeric: tabular-nums;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .tx-time {
-  color: #64748b;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 0.76rem;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .vm-state {
   padding: 4px 10px;
-  border: 1px solid #dbe4ef;
   border-radius: 999px;
-  background: #f8fafc;
-  color: #475569;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
   font-size: 0.68rem;
-  font-weight: 850;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .vm-state.HALT {
-  border-color: rgba(16, 185, 129, 0.26);
-  background: #ecfdf5;
-  color: #047857;
+  background: #e4f8f0;
+  color: #0fb174;
 }
 
 .vm-state.FAULT {
-  border-color: rgba(239, 68, 68, 0.22);
-  background: #fff1f2;
-  color: #be123c;
+  background: #fde7e9;
+  color: #c81e2a;
 }
 
 @media (max-width: 760px) {

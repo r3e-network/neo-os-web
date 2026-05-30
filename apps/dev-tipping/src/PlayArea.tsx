@@ -95,7 +95,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           ) : (
             <div className="tipping-empty">
               <span className="tipping-empty__icon" aria-hidden="true">♡</span>
-              <span>{t("subtitle") || "Support developers"}</span>
+              <span className="tipping-empty__title">{t("topDevelopers") || "Top Developers"}</span>
+              <span className="tipping-empty__hint">{t("docSubtitle") || t("subtitle")}</span>
             </div>
           )}
 

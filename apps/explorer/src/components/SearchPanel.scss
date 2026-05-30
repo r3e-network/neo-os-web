@@ -17,18 +17,19 @@
 }
 
 .search-card__header span {
-  color: #64748b;
-  font-size: 0.74rem;
-  font-weight: 850;
-  letter-spacing: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .search-card__header strong {
   min-width: 0;
   overflow: hidden;
-  color: #111827;
+  color: var(--ns-ink, #1e1e2e);
   font-size: 0.95rem;
-  font-weight: 850;
+  font-weight: 800;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -36,7 +37,7 @@
 
 .search-box {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .search-input input {
@@ -48,7 +49,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   padding-top: 14px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
 @media (max-width: 480px) {

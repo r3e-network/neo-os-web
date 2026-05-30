@@ -29,7 +29,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <section className="multisig-main" aria-label={t("multisigHeroTitle")}>
           <div className="multisig-hero">
             <div className="multisig-hero-copy">
-              <span className="multisig-hero-accent" aria-hidden="true" />
+              <span className="multisig-hero-accent" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+                  <path
+                    d="M12 2.5 19.5 6v6c0 4.4-3.2 7.8-7.5 9.5C7.7 19.8 4.5 16.4 4.5 12V6L12 2.5Z"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="m8.6 12 2.3 2.3 4.5-4.6"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <span className="multisig-hero-eyebrow">{t("multisigHeroEyebrow")}</span>
               <h2>{t("multisigHeroTitle")}</h2>
               <p>{t("multisigHeroSubtitle")}</p>
             </div>

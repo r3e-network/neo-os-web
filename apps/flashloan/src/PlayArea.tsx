@@ -84,32 +84,50 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="flashloan-play-area">
-      {/* Stats Row */}
-      <div className="flashloan-hero-stats">
-        <div className="flashloan-hero-stat">
-          <span className="flashloan-hero-stat-value">{poolBalance}</span>
-          <span className="flashloan-hero-stat-label">{t("poolBalance") || "Pool Balance (GAS)"}</span>
+      {/* Hero — identity + pool snapshot in one card */}
+      <NeoCard variant="erobo" className="flashloan-hero">
+        <div className="flashloan-hero__head">
+          <div className="flashloan-hero__badge" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" />
+            </svg>
+          </div>
+          <div className="flashloan-hero__text">
+            <h2 className="flashloan-hero__title">{t("title") || "Flash Loan"}</h2>
+            <p className="flashloan-hero__subtitle">
+              {t("flashloanInfo") ||
+                "Borrow and repay atomically in a single transaction via a callback contract."}
+            </p>
+          </div>
         </div>
-        <div className="flashloan-hero-stat">
-          <span className="flashloan-hero-stat-value">{totalLoans}</span>
-          <span className="flashloan-hero-stat-label">{t("totalLoans") || "Total Loans"}</span>
+        <div className="flashloan-hero__stats">
+          <div className="flashloan-stat">
+            <span className="flashloan-stat__value">{poolBalance}</span>
+            <span className="flashloan-stat__label">{t("poolBalance") || "Pool Balance"}</span>
+          </div>
+          <div className="flashloan-stat">
+            <span className="flashloan-stat__value">{totalLoans}</span>
+            <span className="flashloan-stat__label">{t("totalLoans") || "Loans Executed"}</span>
+          </div>
+          <div className="flashloan-stat">
+            <span className="flashloan-stat__value">{totalVolume.toFixed(2)}</span>
+            <span className="flashloan-stat__label">{t("totalVolume") || "Total Volume (GAS)"}</span>
+          </div>
+          <div className="flashloan-stat">
+            <span className="flashloan-stat__value">{totalFees.toFixed(2)}</span>
+            <span className="flashloan-stat__label">{t("totalFees") || "Total Fees (GAS)"}</span>
+          </div>
         </div>
-        <div className="flashloan-hero-stat">
-          <span className="flashloan-hero-stat-value">{totalVolume.toFixed(2)}</span>
-          <span className="flashloan-hero-stat-label">{t("totalVolume") || "Total Volume"}</span>
-        </div>
-        <div className="flashloan-hero-stat">
-          <span className="flashloan-hero-stat-value">{totalFees.toFixed(2)}</span>
-          <span className="flashloan-hero-stat-label">{t("totalFees") || "Fees Earned"}</span>
-        </div>
-      </div>
-
-      {/* Wallet not connected hint */}
-      {!address && (
-        <NeoCard variant="erobo">
-          <p className="flashloan-empty">{t("connectWallet") || "Connect a wallet to request a flash loan."}</p>
-        </NeoCard>
-      )}
+      </NeoCard>
 
       {/* Loan Request */}
       <NeoCard variant="erobo" className="flashloan-request-card">
@@ -132,6 +150,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <p className="flashloan-fixed-callback">
             {t("callbackMethodFixed") || "Callback method is fixed to onFlashLoan for safety."}
           </p>
+          {!address && (
+            <p className="flashloan-connect-hint">
+              {t("connectWalletToUse") || "Connect wallet to use Flash Loan"}
+            </p>
+          )}
           {validationError && (
             <p className="flashloan-validation-error">{validationError}</p>
           )}
