@@ -59,6 +59,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="vault-play-area">
       <VaultHero t={t} myVaultCount={myVaultCount} recentVaultCount={recentVaultCount} />
 
+      <div className="vault-grid">
       {/* Create Vault */}
       <NeoCard title={t("createVault") || "Create Vault"}>
         <div className="vault-form">
@@ -158,6 +159,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </NeoButton>
         </div>
       </NeoCard>
+      </div>
 
       {/* Recent Vaults */}
       <NeoCard title={t("recentVaults") || "Recent Vaults"}>

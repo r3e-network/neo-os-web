@@ -8,9 +8,9 @@
   min-width: 0;
   min-height: 82px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ns-surface-subtle, #f7f8fa);
 
   span,
   strong {
@@ -19,7 +19,7 @@
   }
 
   span {
-    color: rgba(248, 255, 251, 0.68);
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
@@ -28,7 +28,7 @@
 
   strong {
     margin-top: 8px;
-    color: #ffffff;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 16px;
     font-weight: 850;
     line-height: 1.15;

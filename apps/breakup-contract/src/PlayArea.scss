@@ -1,23 +1,171 @@
+/**
+ * Breakup Contract PlayArea — Neo Soft (light) system.
+ *
+ * Accent identity: RED (#EA3943 / strong #C81E2A / soft #FDE7E9).
+ *
+ * Layout intent:
+ *   - One centered column (max-width) of white cards (radius 20, soft shadow)
+ *     on a subtle canvas so the page never reads as a thin form.
+ *   - Leads with a purposeful hero card: accent icon badge + title + subtitle
+ *     on the left, with the active/pending/broken/total stat strip beneath as
+ *     --ns-surface-subtle tiles (red values) — balanced, not a lone number row.
+ *   - The "New Contract" form groups stake + duration into a 2-column row so
+ *     the fields don't stretch as lonely full-width inputs.
+ *   - The contract list (previously unstyled bare divs) becomes proper cards
+ *     with a header, status chip, meta rows and actions.
+ *   - Empty state: a centered, padded muted message — never a tall void.
+ */
+
 @use "@shared/styles/tokens.scss" as *;
-@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap');
+
+/* ── Neo Soft tokens (resolved locals w/ fallbacks) ───────────────── */
+$ns-bg: var(--ns-surface, #ffffff);
+$ns-subtle: var(--ns-surface-subtle, #f7f8fa);
+$ns-border: var(--ns-border, rgba(20, 22, 38, 0.06));
+$ns-border-strong: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+$ns-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+$ns-radius: var(--ns-radius-lg, 20px);
+
+$ns-ink: var(--ns-ink, #1e1e2e);
+$ns-text: var(--ns-text, #2a2d3d);
+$ns-text-2: var(--ns-text-2, #5b6478);
+$ns-text-muted: var(--ns-text-muted, #8a92a6);
+$ns-text-faint: var(--ns-text-faint, #aeb4c2);
+
+/* Accent — RED */
+$ac: #ea3943;
+$ac-strong: #c81e2a;
+$ac-soft: #fde7e9;
+$ac-border: rgba(234, 57, 67, 0.22);
+
+/* Status tones */
+$tone-success: #16c784;
+$tone-success-soft: #e4f8f0;
+$tone-warning: #b9791a;
+$tone-warning-soft: #fff3dd;
+
+/* ============================================================
+ *  Root canvas — one centered column
+ * ============================================================ */
 
 .breakup-play-area {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 24px 16px;
-  min-height: 300px;
-  font-family: 'Courier Prime', 'Courier New', monospace;
-  background: #ffffff;
-  color: #1f2937;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  gap: 16px;
+  padding: 20px 18px 28px;
+  max-width: 680px;
+  margin: 0 auto;
+  min-height: 100vh;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: $ns-text;
+  background: $ns-subtle;
+  border-radius: 0;
+  border: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.hero-stats { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.hero-stat { text-align: center; padding: 10px 16px; background: #f9fafb; border-radius: 4px; border: 1px solid #f3f4f6; min-width: 70px; }
-.hero-stat-value { display: block; font-size: 22px; font-weight: 700; color: #10b981; }
-.hero-stat-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 1.5px; margin-top: 2px; }
+/* ============================================================
+ *  1. Hero card — icon badge + title + subtitle + stat strip
+ * ============================================================ */
+
+.breakup-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 24px 24px;
+  border-radius: $ns-radius;
+  background: linear-gradient(135deg, $ac-soft 0%, $ns-bg 60%);
+  border: 1px solid $ac-border;
+  box-shadow: $ns-shadow;
+}
+
+.breakup-hero-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.breakup-hero-badge {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: $ac-soft;
+  color: $ac-strong;
+  border: 1px solid $ac-border;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.breakup-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.breakup-hero-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: $ns-ink;
+  line-height: 1.15;
+}
+
+.breakup-hero-subtitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: $ns-text-2;
+  line-height: 1.4;
+}
+
+/* Stat strip inside the hero card */
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 0;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  text-align: center;
+  background: $ns-bg;
+  border-radius: 14px;
+  border: 1px solid $ns-border;
+  min-width: 0;
+}
+
+.hero-stat-value {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: $ac-strong;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-stat-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $ns-text-muted;
+}
+
+/* ============================================================
+ *  2. Create-contract form
+ * ============================================================ */
 
 .create-contract-section {
   display: flex;
@@ -26,16 +174,176 @@
 }
 
 .contract-description {
-  font-size: 13px;
-  color: #6b7280;
-  line-height: 1.6;
   margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: $ns-text-2;
 }
 
+/* Group stake + duration into a balanced 2-up row */
+.create-contract-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* ============================================================
+ *  4. Contract list (previously unstyled)
+ * ============================================================ */
+
+.contracts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contract-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
+
+  &--active {
+    border-color: $ac-border;
+    box-shadow: 0 0 0 1px $ac-border inset;
+  }
+
+  &--broken {
+    opacity: 0.82;
+  }
+}
+
+.contract-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.contract-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: $ns-ink;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.contract-status {
+  flex-shrink: 0;
+  padding: 4px 11px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: $ns-bg;
+  color: $ns-text-2;
+  border: 1px solid $ns-border;
+
+  &--success {
+    background: $tone-success-soft;
+    color: $tone-success;
+  }
+  &--warning {
+    background: $tone-warning-soft;
+    color: $tone-warning;
+  }
+  &--danger {
+    background: $ac-soft;
+    color: $ac-strong;
+  }
+  &--ghost {
+    background: $ns-bg;
+    color: $ns-text-muted;
+  }
+}
+
+.contract-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.contract-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: $ns-bg;
+  border: 1px solid $ns-border;
+  min-width: 0;
+}
+
+.contract-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $ns-text-muted;
+}
+
+.contract-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: $ns-ink;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &.mono {
+    font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+.contract-terms {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: $ns-bg;
+  border: 1px solid $ns-border;
+  font-size: 12px;
+  line-height: 1.6;
+  color: $ns-text-2;
+}
+
+.contract-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* ============================================================
+ *  5. Empty state — centered, padded, never a tall void
+ * ============================================================ */
+
 .empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px;
   text-align: center;
-  padding: 24px;
-  color: #9ca3af;
-  font-size: 14px;
-  font-style: italic;
+  color: $ns-text-muted;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ============================================================
+ *  Responsive
+ * ============================================================ */
+
+@media (max-width: 480px) {
+  .hero-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .create-contract-grid,
+  .contract-meta {
+    grid-template-columns: 1fr;
+  }
 }

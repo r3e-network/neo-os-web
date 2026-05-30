@@ -56,20 +56,20 @@
   align-items: center;
   gap: 2px;
   padding: 10px 14px;
-  border: 1px solid rgba(22, 199, 132, 0.16);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 12px;
-  background: rgba(3, 12, 19, 0.58);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .hero-stat-value {
-  color: #f7fbff;
+  color: var(--ns-ink, #1e1e2e);
   font-size: 24px;
   font-weight: 900;
   line-height: 1;
 }
 
 .hero-stat-label {
-  color: #8fa4b3;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.12em;

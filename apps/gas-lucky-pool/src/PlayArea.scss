@@ -976,11 +976,11 @@ body {
   height: 3rem;
   place-items: center;
   border-radius: 12px;
-  background: #111827;
+  background: var(--ns-success, #16c784);
   color: #ffffff;
   font-size: 0.82rem;
   font-weight: 900;
-  box-shadow: 0 10px 22px rgba(20, 22, 38, 0.14);
+  box-shadow: 0 10px 22px rgba(15, 177, 116, 0.22);
 }
 
 .gas-pool-list,

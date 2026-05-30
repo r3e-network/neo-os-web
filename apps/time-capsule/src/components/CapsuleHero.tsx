@@ -10,15 +10,21 @@ interface CapsuleHeroProps {
 export default function CapsuleHero({ t, totalCapsules, lockedCount, revealedCount }: CapsuleHeroProps) {
   return (
     <div className="hero-container">
-      <div className="capsule-scene" aria-hidden="true">
-        <div className="capsule-graphic">
-          <div className="capsule-top" />
-          <div className="capsule-body">
-            <div className="capsule-band" />
+      <div className="hero-head">
+        <div className="hero-badge" aria-hidden="true">
+          <div className="capsule-graphic">
+            <div className="capsule-top" />
+            <div className="capsule-body">
+              <div className="capsule-band" />
+            </div>
           </div>
-          <div className="capsule-glow" />
+        </div>
+        <div className="hero-copy">
+          <h2 className="hero-title">{t("title")}</h2>
+          <p className="hero-subtitle">{t("subtitle")}</p>
         </div>
       </div>
+
       <div className="hero-stats">
         <div className="hero-stat">
           <span className="hero-stat-value">{totalCapsules}</span>

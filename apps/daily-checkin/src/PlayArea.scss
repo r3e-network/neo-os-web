@@ -1,13 +1,19 @@
 /**
- * Daily Check-in PlayArea — Polymarket-light style.
+ * Daily Check-in PlayArea — Neo Soft (light) system.
  *
- * Tokens & layout patterns adapted directly from polymarket.com light theme:
- *   - White canvas, hairline borders (#E6E8EA), Inter, dense metric rows
- *   - Bold large numbers (tabular-nums) as the visual anchor
- *   - Soft-tinted Yes/No (green/red) and primary blue (#1452F0) accents
- *   - 14-15px radii on cards, 6-7px on buttons/chips
+ * Accent identity: GREEN (#16C784).
+ *
+ * Layout intent:
+ *   - White cards (radius 20, soft shadow), --ns-surface-subtle insets,
+ *     navy ink text, hairline borders.
+ *   - The hero leads with the current-streak number balanced by a compact
+ *     info strip (status / next reward / best) so it never reads as a lone
+ *     number floating in empty space.
+ *   - The page is fleshed out with real data cards (stats, rewards,
+ *     milestones, platform, history) instead of a thin column.
  *   - The platform Action Console (outside the iframe) owns the primary
- *     "Check In" / "Claim" CTA — the dApp is data only
+ *     "Check In" / "Claim" CTA — the dApp surface is data only, so the
+ *     in-app buttons stay hidden.
  */
 
 @use "@shared/styles/variables.scss" as *;
@@ -16,33 +22,29 @@
 @use "@shared/styles/playarea-base";
 
 /* ============================================================
- *  Polymarket light tokens (local)
+ *  Neo Soft tokens (resolved locals w/ fallbacks)
  * ============================================================ */
 
-$pm-bg: #ffffff;
-$pm-surface: #fafbfc;
-$pm-surface-2: #f4f5f7;
-$pm-border: #e6e8ea;
-$pm-border-strong: #cad1d9;
+$ns-bg: var(--ns-surface, #ffffff);
+$ns-subtle: var(--ns-surface-subtle, #f7f8fa);
+$ns-border: var(--ns-border, rgba(20, 22, 38, 0.06));
+$ns-border-strong: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+$ns-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+$ns-radius: var(--ns-radius-lg, 20px);
 
-$pm-text: #18181b;
-$pm-text-2: #4a5562;
-$pm-text-muted: #77808d;
-$pm-text-faint: #aeb4bc;
+$ns-ink: var(--ns-ink, #1e1e2e);
+$ns-text: var(--ns-text, #2a2d3d);
+$ns-text-2: var(--ns-text-2, #5b6478);
+$ns-text-muted: var(--ns-text-muted, #8a92a6);
+$ns-text-faint: var(--ns-text-faint, #aeb4c2);
 
-$pm-blue: #1452f0;
-$pm-blue-hover: #0e3fc7;
-$pm-blue-soft: #e7eefd;
+/* Accent — GREEN */
+$ac: #16c784;
+$ac-strong: #0fb174;
+$ac-soft: #e4f8f0;
+$ac-border: rgba(22, 199, 132, 0.22);
 
-$pm-green: #27ae60;
-$pm-green-soft: #d7f5e0;
-$pm-green-text: #0f7a3a;
-
-$pm-red: #d93f3f;
-$pm-red-soft: #fae0e0;
-$pm-red-text: #a91f1f;
-
-$pm-amber: #f59e0b;
+$amber: #f59e0b;
 
 /* ============================================================
  *  Root canvas
@@ -50,33 +52,27 @@ $pm-amber: #f59e0b;
 
 .checkin-play-area {
   display: grid;
-  gap: 14px;
-  padding: 18px 20px 24px;
+  gap: 16px;
+  padding: 18px 20px 26px;
+  max-width: 760px;
+  margin: 0 auto;
   min-height: 100vh;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: $pm-text;
-  background: $pm-bg;
+  color: $ns-text;
+  background: $ns-subtle;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hide the legacy fire/ember chrome — we render a clean light layout. */
+/* Hide the legacy fire/ember chrome + in-app CTA (Action Console owns it). */
 .flame-bg-effects,
 .ember,
 .checkin-best-text,
 .checkin-flame-stack,
 .confetti-container,
-.checkin-milestones-card,
-.checkin-global-card,
-.checkin-history-card,
-.checkin-rewards-card,
 .action-card,
 .status-pill,
-.reward-preview {
-  display: none !important;
-}
-
-/* The platform Action Console (outside the iframe) owns the primary CTA. */
+.reward-preview,
 .checkin-btn,
 .checkin-btn--ready,
 .checkin-claim-btn {
@@ -85,133 +81,174 @@ $pm-amber: #f59e0b;
 
 /* ============================================================
  *  1. Hero — current streak (the focal datapoint).
- *     JSX structure (cannot change without touching React):
+ *     JSX structure:
  *       .checkin-streak-section
  *         .checkin-fire-ring
- *           .checkin-streak-number   ← the big "0"
- *         .checkin-streak-text       ← "Day Streak" label
+ *           .checkin-streak-number   ← the big number
+ *         .checkin-streak-text       ← "Day Streak" label (becomes sub-line)
  *         .checkin-tier-badge        ← optional pill
  *
- *     Polymarket-style treatment: the ring becomes the whole hero card,
- *     the number is left-aligned and oversized, the label is the eyebrow.
+ *     Treatment: a single white card split into a number block (left) and a
+ *     compact info strip (right) so the figure is balanced, not lonely.
  * ============================================================ */
 
 .checkin-streak-section {
   position: relative;
   display: grid;
-  align-items: center;
-  gap: 6px;
+  align-items: stretch;
+  gap: 0;
   padding: 0;
 }
 
 .checkin-fire-ring {
   position: relative;
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "badge eyebrow"
+    "badge label";
+  align-items: center;
+  column-gap: 22px;
+  row-gap: 2px;
   width: 100%;
   height: auto;
-  padding: 24px 26px 20px;
-  border-radius: 16px;
-  background: $pm-bg;
-  border: 1px solid $pm-border;
-  box-shadow: none;
+  padding: 26px 26px 24px;
+  border-radius: $ns-radius;
+  background: linear-gradient(135deg, $ac-soft 0%, $ns-bg 62%);
+  border: 1px solid $ac-border;
+  box-shadow: $ns-shadow;
 
   /* hide any decorative flame inside the ring */
   & > .checkin-flame-stack {
     display: none;
   }
 
+  /* Eyebrow above the streak label (top of the right column) */
   &::before {
     content: "Current streak";
-    position: absolute;
-    top: 18px;
-    left: 26px;
+    grid-area: eyebrow;
+    align-self: end;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: $pm-text-muted;
+    color: $ac-strong;
   }
 }
 
+/* Number block: icon-badge feel via the accent ring around the figure */
 .checkin-streak-number {
-  margin-top: 22px;
-  font-size: 72px;
-  font-weight: 700;
+  position: relative;
+  grid-area: badge;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin: 0;
+  border-radius: 24px;
+  background: $ns-bg;
+  border: 1px solid $ac-border;
+  box-shadow: 0 6px 16px -8px rgba(22, 199, 132, 0.45);
+  font-size: 40px;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
-  color: $pm-text;
+  color: $ac-strong;
   font-variant-numeric: tabular-nums;
 }
 
-/* second label appended after the number: "days" */
-.checkin-fire-ring::after {
-  content: "days";
-  margin-bottom: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  color: $pm-text-muted;
-  letter-spacing: 0.01em;
-}
-
-/* Show a "Best" sub-line stacked under the hero — uses .checkin-streak-text */
+/* "Day Streak" descriptor — the prominent right-column line under the eyebrow */
 .checkin-streak-text {
+  grid-area: label;
+  align-self: start;
   display: block;
-  padding: 10px 26px;
-  font-size: 12px;
-  font-weight: 600;
-  color: $pm-text-muted;
-  letter-spacing: 0.02em;
+  padding: 0;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: $ns-ink;
+  letter-spacing: -0.02em;
   text-transform: none;
-  border-top: 1px dashed $pm-border;
-  margin: 0 -1px;
+  border: 0;
 }
 
-/* Optional tier chip — sits in the top-right of the hero card */
+/* Optional tier chip — top-right of the hero card */
 .checkin-tier-badge {
   position: absolute;
-  top: 16px;
+  top: 18px;
   right: 22px;
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: 999px;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
-  background: $pm-blue-soft;
-  color: $pm-blue;
-  border: 1px solid rgba(20, 82, 240, 0.18);
+  background: $ac-soft;
+  color: $ac-strong;
+  border: 1px solid $ac-border;
   z-index: 2;
 
   &.blaze,
   &.inferno {
     background: rgba(245, 158, 11, 0.12);
-    color: $pm-amber;
+    color: $amber;
     border-color: rgba(245, 158, 11, 0.28);
   }
 }
 
-/* Tier colour accents on the hero card */
+/* Tier accent tweaks */
 .checkin-fire-ring.blaze,
 .checkin-fire-ring.inferno {
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.05) 0%, $pm-bg 80%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, $ns-bg 62%);
   border-color: rgba(245, 158, 11, 0.28);
+
+  .checkin-streak-number {
+    color: $amber;
+    border-color: rgba(245, 158, 11, 0.32);
+    box-shadow: 0 6px 16px -8px rgba(245, 158, 11, 0.5);
+  }
+
+  &::before {
+    color: $amber;
+  }
 }
 
 .checkin-fire-ring.cold .checkin-streak-number {
-  color: $pm-text;
+  color: $ns-text-muted;
+  border-color: $ns-border-strong;
+  box-shadow: none;
+}
+
+/* ============================================================
+ *  Shared card chrome
+ * ============================================================ */
+
+.checkin-week-wrapper,
+.checkin-stats-card,
+.checkin-rewards-card,
+.checkin-milestones-card,
+.checkin-global-card,
+.checkin-history-card {
+  padding: 20px 22px !important;
+  border-radius: $ns-radius !important;
+  background: $ns-bg !important;
+  border: 1px solid $ns-border !important;
+  box-shadow: $ns-shadow !important;
+}
+
+.checkin-section-title {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $ns-text-muted;
 }
 
 /* ============================================================
  *  2. Week strip
  * ============================================================ */
-
-.checkin-week-wrapper {
-  padding: 16px 18px 18px;
-  border-radius: 16px;
-  background: $pm-bg;
-  border: 1px solid $pm-border;
-}
 
 .checkin-week-progress-label {
   display: flex;
@@ -225,19 +262,19 @@ $pm-amber: #f59e0b;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: $pm-text-muted;
+  color: $ns-text-muted;
 
   &::before {
     content: "This Week · ";
-    color: $pm-text-faint;
+    color: $ns-text-faint;
   }
 }
 
 .checkin-week-complete-badge {
   padding: 3px 10px;
   border-radius: 999px;
-  background: $pm-green-soft;
-  color: $pm-green-text;
+  background: $ac-soft;
+  color: $ac-strong;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -254,10 +291,10 @@ $pm-amber: #f59e0b;
   place-items: center;
   gap: 6px;
   padding: 14px 0 12px;
-  border-radius: 10px;
-  background: $pm-surface;
-  border: 1px solid $pm-border;
-  color: $pm-text-faint;
+  border-radius: 12px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
+  color: $ns-text-faint;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -265,17 +302,17 @@ $pm-amber: #f59e0b;
   transition: all 140ms ease;
 
   &.checked {
-    background: $pm-green-soft;
-    border-color: rgba(39, 174, 96, 0.3);
-    color: $pm-green-text;
+    background: $ac-soft;
+    border-color: $ac-border;
+    color: $ac-strong;
   }
 
   &.today,
   &.today-ready {
-    background: $pm-blue;
-    border-color: $pm-blue;
+    background: $ac;
+    border-color: $ac;
     color: #ffffff;
-    box-shadow: 0 8px 18px -8px rgba(20, 82, 240, 0.55);
+    box-shadow: 0 8px 18px -8px rgba(22, 199, 132, 0.55);
     font-weight: 800;
   }
 }
@@ -300,7 +337,7 @@ $pm-amber: #f59e0b;
   top: -6px;
   right: -4px;
   font-size: 11px;
-  color: $pm-amber;
+  color: $amber;
   text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
 }
 
@@ -308,14 +345,14 @@ $pm-amber: #f59e0b;
   margin-top: 14px;
   height: 4px;
   border-radius: 999px;
-  background: $pm-surface-2;
+  background: $ns-subtle;
   overflow: hidden;
 }
 
 .checkin-connector-fill {
   height: 100%;
   border-radius: 999px;
-  background: $pm-blue;
+  background: $ac;
   transition: width 320ms ease;
 }
 
@@ -328,17 +365,18 @@ $pm-amber: #f59e0b;
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 16px;
-  padding: 12px 18px;
-  border-radius: 14px;
-  background: $pm-bg;
-  border: 1px solid $pm-border;
+  padding: 14px 20px;
+  border-radius: $ns-radius;
+  background: $ns-bg;
+  border: 1px solid $ns-border;
+  box-shadow: $ns-shadow;
 }
 
 .utc-clock {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  color: $pm-text-2;
+  color: $ns-text-2;
   font-variant-numeric: tabular-nums;
 }
 
@@ -346,14 +384,14 @@ $pm-amber: #f59e0b;
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: $pm-text;
+  color: $ns-ink;
 }
 
 .clock-utc-label {
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: $pm-text-faint;
+  color: $ns-text-faint;
 }
 
 /* Suppress the SVG ring — compact text pill instead */
@@ -377,15 +415,15 @@ $pm-amber: #f59e0b;
   gap: 8px;
   padding: 8px 14px;
   border-radius: 999px;
-  background: $pm-blue-soft;
-  border: 1px solid rgba(20, 82, 240, 0.22);
+  background: $ac-soft;
+  border: 1px solid $ac-border;
   transform: none;
 }
 
 .countdown-section .countdown-timer__time {
   font-size: 14px;
   font-weight: 700;
-  color: $pm-blue;
+  color: $ac-strong;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   text-shadow: none !important;
@@ -396,29 +434,12 @@ $pm-amber: #f59e0b;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: $pm-blue-hover;
+  color: $ac-strong;
 }
 
 /* ============================================================
- *  4. Stats grid
+ *  4. Stat tiles (shared by Your Stats + Platform Stats)
  * ============================================================ */
-
-.checkin-stats-card {
-  padding: 16px 18px !important;
-  border-radius: 14px !important;
-  background: $pm-bg !important;
-  border: 1px solid $pm-border !important;
-  box-shadow: none !important;
-}
-
-.checkin-section-title {
-  margin: 0 0 12px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: $pm-text-muted;
-}
 
 .checkin-stats-grid {
   display: grid;
@@ -430,16 +451,16 @@ $pm-amber: #f59e0b;
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border-radius: 10px;
-  background: $pm-surface;
-  border: 1px solid $pm-border;
+  border-radius: 12px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
   text-align: left;
 }
 
 .checkin-stat-value {
   font-size: 22px;
-  font-weight: 700;
-  color: $pm-text;
+  font-weight: 800;
+  color: $ns-ink;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
@@ -449,7 +470,148 @@ $pm-amber: #f59e0b;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: $pm-text-muted;
+  color: $ns-text-muted;
+}
+
+/* ============================================================
+ *  5. Rewards
+ * ============================================================ */
+
+.checkin-rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.checkin-reward-item {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
+  text-align: left;
+}
+
+.checkin-reward-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: $ns-ink;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+
+  &--unclaimed {
+    color: $ac-strong;
+  }
+}
+
+.checkin-reward-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $ns-text-muted;
+}
+
+/* ============================================================
+ *  6. Milestones
+ * ============================================================ */
+
+.checkin-milestones-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.checkin-milestone {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
+  position: relative;
+
+  &.reached {
+    background: $ac-soft;
+    border-color: $ac-border;
+  }
+
+  &.next {
+    border-color: $ac-border;
+    box-shadow: 0 0 0 1px $ac-border inset;
+  }
+}
+
+.checkin-milestone-icon {
+  font-size: 20px;
+  line-height: 1;
+  color: $ns-text-faint;
+  margin-bottom: 2px;
+
+  .reached & {
+    color: $ac-strong;
+  }
+}
+
+.checkin-milestone-day {
+  font-size: 13px;
+  font-weight: 800;
+  color: $ns-ink;
+  letter-spacing: -0.01em;
+}
+
+.checkin-milestone-reward {
+  font-size: 13px;
+  font-weight: 700;
+  color: $ac-strong;
+}
+
+.checkin-milestone-cumulative {
+  font-size: 11px;
+  font-weight: 600;
+  color: $ns-text-muted;
+}
+
+/* ============================================================
+ *  7. History
+ * ============================================================ */
+
+.checkin-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.checkin-history-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
+}
+
+.checkin-history-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: $ns-text-2;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkin-history-streak {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: $ns-text-muted;
+}
+
+.checkin-history-reward {
+  font-size: 12px;
+  font-weight: 800;
+  color: $ac-strong;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ============================================================
@@ -464,10 +626,25 @@ $pm-amber: #f59e0b;
   z-index: 50;
   padding: 8px 16px;
   border-radius: 999px;
-  background: $pm-bg;
-  color: $pm-text;
+  background: $ns-bg;
+  color: $ns-ink;
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid $pm-border;
+  border: 1px solid $ns-border;
   box-shadow: 0 12px 28px -10px rgba(20, 22, 38, 0.18);
+}
+
+/* ============================================================
+ *  Responsive
+ * ============================================================ */
+
+@media (max-width: 520px) {
+  .checkin-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checkin-fire-ring {
+    column-gap: 16px;
+    padding: 22px 18px 20px;
+  }
 }

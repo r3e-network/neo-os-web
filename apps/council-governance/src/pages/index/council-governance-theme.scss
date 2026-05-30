@@ -1,20 +1,20 @@
 :global(.theme-council-governance) {
-  --senate-bg: #f5f5f0;
-  --senate-gold: #c5a059;
-  --senate-slate: #2c3e50;
-  --senate-marble-top: #ffffff;
-  --senate-marble-bottom: #f0f0e8;
-  --senate-card-bg: #ffffff;
-  --senate-card-border: #dcdcdc;
-  --senate-card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  --senate-danger-bg: #fff0f0;
+  --senate-bg: var(--ns-surface-subtle, #f7f8fa);
+  --senate-gold: var(--ns-violet-strong, #6a4df4);
+  --senate-slate: var(--ns-ink, #1e1e2e);
+  --senate-marble-top: var(--ns-surface, #ffffff);
+  --senate-marble-bottom: var(--ns-surface-subtle, #f7f8fa);
+  --senate-card-bg: var(--ns-surface, #ffffff);
+  --senate-card-border: var(--ns-border, rgba(20, 22, 38, 0.06));
+  --senate-card-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  --senate-danger-bg: var(--ns-danger-soft, #fde7e9);
   --senate-danger-border: #e74c3c;
   --senate-danger-text: #c0392b;
-  --senate-button-gradient: linear-gradient(to bottom, #2c3e50, #1a252f);
+  --senate-button-gradient: linear-gradient(to bottom, var(--ns-violet, #7b61ff), var(--ns-violet-strong, #6a4df4));
   --senate-success: #00c07a;
   --senate-danger: #dc2626;
   --senate-warning: #eab308;
-  --senate-executed: #6d28d9;
+  --senate-executed: var(--ns-violet, #7b61ff);
   --senate-font: "Cinzel", serif;
 }
 
