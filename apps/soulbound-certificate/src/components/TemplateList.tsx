@@ -19,7 +19,7 @@ export default function TemplateList({ templates, refreshing, togglingId, hasAdd
           <NeoButton size="sm" variant="primary" onClick={onConnect}>{t("connectWallet")}</NeoButton>
         </div>
       ) : templates.length === 0 ? (
-        <span>{t("emptyTemplates")}</span>
+        <div className="empty-note">{t("emptyTemplates")}</div>
       ) : (
         (templates as Array<Record<string, unknown>>).map((tmpl) => (
           <div key={String(tmpl.id)} className="template-card">

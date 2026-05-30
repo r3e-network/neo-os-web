@@ -10,15 +10,61 @@
 }
 
 /* ============================================================
- *  1. Top stats — Wins · Losses · Games · Won
+ *  1. Hero — identity + top stats (Wins · Losses · Games · Won)
  * ============================================================ */
+
+.play-hero {
+  display: grid;
+  gap: 16px;
+  padding: 20px 20px 18px;
+  @include pm.card;
+}
+
+.play-hero__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.play-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: pm.$blue-soft;
+  color: pm.$blue-text;
+}
+
+.play-hero__text {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.play-hero__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: pm.$ink;
+}
+
+.play-hero__subtitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: pm.$text-2;
+}
 
 .stats-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 12px;
-  padding: 14px 18px;
-  @include pm.card;
+  gap: 10px;
 }
 
 .stat-divider {
@@ -28,6 +74,10 @@
 .stat-cell {
   display: grid;
   gap: 4px;
+  padding: 12px 14px;
+  background: pm.$surface;
+  border: 1px solid pm.$border;
+  border-radius: 14px;
 
   &.win .stat-count {
     color: pm.$green-text;
@@ -41,8 +91,8 @@
 }
 
 .stat-count {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
   color: pm.$text;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -52,13 +102,28 @@
   @include pm.section-eyebrow;
 }
 
+@media (max-width: 480px) {
+  .stats-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* ============================================================
  *  2. Arena hero (coin flip visualization)
  * ============================================================ */
 
-.coinflip-play-area :where(.arena-hero, .coin-stage) {
-  padding: 24px 20px;
+.coinflip-play-area .arena-hero {
+  padding: 20px;
   @include pm.card;
+}
+
+.coinflip-play-area .coin-stage {
+  width: 100%;
+}
+
+/* Center the constrained bet column so it reads balanced, not left-stranded */
+.coinflip-play-area .bet-section {
+  margin-inline: auto;
 }
 
 /* ============================================================

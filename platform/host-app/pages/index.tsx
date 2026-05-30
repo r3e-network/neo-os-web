@@ -317,14 +317,14 @@ export default function LandingPage({
                   src="/brand/neo-mascot.svg"
                   alt=""
                   aria-hidden="true"
-                  width={128}
-                  height={128}
-                  className="mb-5 h-24 w-24 animate-float-slow sm:h-32 sm:w-32"
+                  width={72}
+                  height={72}
+                  className="mb-4 h-14 w-14 animate-float-slow sm:h-16 sm:w-16"
                 />
-                <h1 className="m-0 max-w-4xl text-4xl font-black leading-tight text-gray-950 sm:text-5xl lg:text-6xl">
+                <h1 className="m-0 max-w-xl text-[1.75rem] font-extrabold leading-[1.16] tracking-tight text-balance [word-break:keep-all] text-gray-950 sm:text-[2.1rem] lg:text-[2.5rem]">
                   {t("home.hero.title", "host")}
                 </h1>
-                <p className="mt-5 max-w-3xl text-base leading-7 text-gray-600 sm:text-lg">
+                <p className="mt-4 max-w-xl text-[0.95rem] leading-7 text-gray-600 sm:text-base">
                   {t("home.hero.body", "host")}
                 </p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">

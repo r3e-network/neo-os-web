@@ -3,6 +3,13 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   title: { en: "Automation Copilot", zh: "自动化副驾驶" },
   subtitle: { en: "Recipe console for price-triggered Morpheus workflows", zh: "面向价格触发 Morpheus 工作流的配方控制台" },
+  network: { en: "Network", zh: "网络" },
+  oracleInfo: { en: "Oracle Info", zh: "Oracle 信息" },
+  oracleHash: { en: "Oracle Hash", zh: "Oracle 哈希" },
+  datafeedHash: { en: "Datafeed Hash", zh: "Datafeed 哈希" },
+  recipeBuilder: { en: "Recipe Builder", zh: "配方生成器" },
+  payload: { en: "Payload", zh: "载荷" },
+  payloadEmpty: { en: "Fetch a price or build a recipe to preview the payload.", zh: "获取价格或生成配方以预览载荷。" },
   docsSubtitle: { en: "Inspect live data, assemble a recipe, and keep pricefeed separated from slower jobs.", zh: "检查实时报价、拼装自动化配方，并保持 pricefeed 与慢任务隔离。" },
   latestResult: { en: "Latest Result", zh: "最新结果" },
   automationActions: { en: "Automation Actions", zh: "自动化操作" },

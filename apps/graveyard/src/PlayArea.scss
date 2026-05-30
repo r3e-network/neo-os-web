@@ -1,24 +1,134 @@
 @use "@shared/styles/tokens.scss" as *;
-@import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
+
+// Violet accent identity for this app, mapped onto the Neo Soft system.
+$grave-accent: var(--ns-violet, #7b61ff);
+$grave-accent-strong: var(--ns-violet-strong, #6a4df4);
+$grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 
 .graveyard-play-area {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 20px 12px;
-  min-height: 300px;
-  background: var(--ns-surface, #ffffff);
+  gap: 16px;
+  padding: 16px;
+  max-width: 880px;
+  margin: 0 auto;
   color: var(--ns-text, #2a2d3d);
-  border-radius: var(--ns-radius-lg, 20px);
-  position: relative;
-  overflow: hidden;
 }
 
-.hero-stats { display: flex; gap: 12px; flex-wrap: wrap; }
-.hero-stat { flex: 1; min-width: 80px; text-align: center; padding: 14px 10px; border-radius: var(--ns-radius-md, 16px); border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06)); background: var(--ns-surface-subtle, #f7f8fa); }
-.hero-stat-value { font-size: 22px; font-weight: 800; color: var(--ns-brand, #16c784); display: block; font-variant-numeric: tabular-nums; }
-.hero-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--ns-text-muted, #8a92a6); letter-spacing: 0.08em; margin-top: 4px; display: block; }
+/* ── Hero ─────────────────────────────────────────────── */
+.grave-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 20px;
+  padding: 20px 24px;
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
 
+.grave-hero-lead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.grave-hero-badge {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  line-height: 1;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: $grave-accent-soft;
+  color: $grave-accent-strong;
+}
+
+.grave-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.grave-hero-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.grave-hero-subtitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ns-text-2, #5b6478);
+}
+
+/* ── Stat strip ───────────────────────────────────────── */
+.hero-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hero-stat {
+  flex: 1 1 auto;
+  min-width: 88px;
+  text-align: center;
+  padding: 12px 14px;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.hero-stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ns-ink, #1e1e2e);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.hero-stat-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+  letter-spacing: 0.08em;
+}
+
+/* ── Main grid ────────────────────────────────────────── */
+.grave-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .grave-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.grave-chamber,
+.grave-records {
+  // NeoCard already supplies white surface + shadow + radius
+  height: 100%;
+}
+
+/* ── Destruction form ─────────────────────────────────── */
 .destroy-form {
   display: flex;
   flex-direction: column;
@@ -57,13 +167,13 @@
   transition: all 0.2s ease;
 
   &.active {
-    border-color: var(--ns-brand, #16c784);
-    background: var(--ns-brand-soft, #e4f8f0);
-    color: var(--ns-brand-strong, #0fb174);
+    border-color: $grave-accent;
+    background: $grave-accent-soft;
+    color: $grave-accent-strong;
   }
 
   &:hover {
-    border-color: var(--ns-brand, #16c784);
+    border-color: $grave-accent;
   }
 
   &:focus-visible {
@@ -72,12 +182,172 @@
   }
 }
 
+.grave-warning-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--ns-radius-sm, 12px);
+  border: 1px solid var(--ns-danger-soft, #fde7e9);
+  background: var(--ns-danger-soft, #fde7e9);
+}
+
+.grave-warning-title {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ns-danger, #ea3943);
+}
+
+.grave-warning-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+}
+
 .shake {
   animation: shake 0.4s ease-in-out;
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  75% { transform: translateX(6px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+/* ── History / records ────────────────────────────────── */
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.history-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.history-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: $grave-accent-soft;
+  color: $grave-accent-strong;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px 20px;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.empty-text {
+  font-size: 13px;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.history-icon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.history-hash {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ns-ink, #1e1e2e);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-time {
+  font-size: 11px;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.history-badge {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: $grave-accent-soft;
+  border: 1px solid transparent;
+
+  &.forgotten {
+    background: var(--ns-surface, #ffffff);
+    border-color: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  }
+}
+
+.badge-text {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $grave-accent-strong;
+
+  .history-badge.forgotten & {
+    color: var(--ns-text-muted, #8a92a6);
+  }
 }

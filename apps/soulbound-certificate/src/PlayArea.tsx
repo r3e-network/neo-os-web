@@ -25,20 +25,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="certificate-play-area">
-      {/* Stats Bar */}
-      <div className="hero-stats">
-        <div className="hero-stat">
-          <span className="hero-stat-value">{templatesCount}</span>
-          <span className="hero-stat-label">{t("templatesTab") || "Templates"}</span>
+      {/* Hero */}
+      <div className="certificate-hero">
+        <div className="hero-lead">
+          <div className="hero-badge" aria-hidden="true">🎓</div>
+          <div className="hero-copy">
+            <h2 className="hero-title">{t("title") || "Soulbound Certificate"}</h2>
+            <p className="hero-subtitle">{t("docSubtitle") || "On-chain, non-transferable NEP-11 certificates"}</p>
+          </div>
         </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{certificatesCount}</span>
-          <span className="hero-stat-label">{t("certificatesTab") || "Certificates"}</span>
+
+        <div className="hero-stats">
+          <div className="hero-stat">
+            <span className="hero-stat-value">{templatesCount}</span>
+            <span className="hero-stat-label">{t("templatesTab") || "Templates"}</span>
+          </div>
+          <div className="hero-stat">
+            <span className="hero-stat-value">{certificatesCount}</span>
+            <span className="hero-stat-label">{t("certificatesTab") || "Certificates"}</span>
+          </div>
+          <div className="hero-stat">
+            <span className="hero-stat-value">{activeTemplatesCount}</span>
+            <span className="hero-stat-label">{t("sidebarActive") || "Active"}</span>
+          </div>
         </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{activeTemplatesCount}</span>
-          <span className="hero-stat-label">{t("sidebarActive") || "Active"}</span>
-        </div>
+
+        {!address && (
+          <div className="connect-prompt">
+            <NeoButton variant="primary" onClick={() => dispatch("connectWallet")}>
+              {t("walletNotConnected") || "Connect Wallet"}
+            </NeoButton>
+          </div>
+        )}
       </div>
 
       {/* Loading indicator */}
@@ -51,50 +69,45 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {/* Template list with all actions */}
-      <TemplateList
-        templates={templates}
-        refreshing={isRefreshing}
-        togglingId={togglingId}
-        hasAddress={!!address}
-        onRefresh={() => dispatch("refreshTemplates")}
-        onConnect={() => dispatch("connectWallet")}
-        onIssue={(template: unknown) => dispatch("openIssueModal", template)}
-        onToggle={(template: unknown) => dispatch("toggleTemplate", template)}
-        onCopyIssueLink={(template: unknown) => dispatch("copyIssueLink", template)}
-        onShareIssueLink={(template: unknown) => dispatch("shareIssueLink", template)}
-        t={t}
-      />
+      <div className="certificate-grid">
+        {/* Template list with all actions */}
+        <TemplateList
+          templates={templates}
+          refreshing={isRefreshing}
+          togglingId={togglingId}
+          hasAddress={!!address}
+          onRefresh={() => dispatch("refreshTemplates")}
+          onConnect={() => dispatch("connectWallet")}
+          onIssue={(template: unknown) => dispatch("openIssueModal", template)}
+          onToggle={(template: unknown) => dispatch("toggleTemplate", template)}
+          onCopyIssueLink={(template: unknown) => dispatch("copyIssueLink", template)}
+          onShareIssueLink={(template: unknown) => dispatch("shareIssueLink", template)}
+          t={t}
+        />
 
-      {/* Certificates summary */}
-      {certificates.length > 0 && (
-        <NeoCard title={t("certificatesTab") || "My Certificates"} variant="default">
-          <div className="certificates-grid">
-            {(certificates as Array<Record<string, unknown>>).map((cert, idx) => (
-              <div key={String(cert.tokenId ?? idx)} className="cert-item">
-                <div className="cert-info">
-                  <span className="cert-name">{String(cert.name || cert.templateName || `#${idx + 1}`)}</span>
-                  {cert.recipientName && (
-                    <span className="cert-recipient">{String(cert.recipientName)}</span>
-                  )}
+        {/* Certificates summary */}
+        <NeoCard title={t("certificatesTab") || "My Certificates"} variant="default" className="certificates-card">
+          {certificates.length > 0 ? (
+            <div className="certificates-grid">
+              {(certificates as Array<Record<string, unknown>>).map((cert, idx) => (
+                <div key={String(cert.tokenId ?? idx)} className="cert-item">
+                  <div className="cert-info">
+                    <span className="cert-name">{String(cert.name || cert.templateName || `#${idx + 1}`)}</span>
+                    {cert.recipientName && (
+                      <span className="cert-recipient">{String(cert.recipientName)}</span>
+                    )}
+                  </div>
+                  <span className={`cert-badge ${cert.revoked ? "revoked" : "valid"}`}>
+                    {cert.revoked ? (t("certificateRevoked") || "Revoked") : (t("certificateValid") || "Valid")}
+                  </span>
                 </div>
-                <span className={`cert-badge ${cert.revoked ? "revoked" : "valid"}`}>
-                  {cert.revoked ? (t("certificateRevoked") || "Revoked") : (t("certificateValid") || "Valid")}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-note">{t("emptyCertificates") || "No certificates yet"}</div>
+          )}
         </NeoCard>
-      )}
-
-      {/* Wallet connection prompt */}
-      {!address && (
-        <div className="connect-prompt">
-          <NeoButton variant="primary" onClick={() => dispatch("connectWallet")}>
-            {t("walletNotConnected") || "Connect Wallet"}
-          </NeoButton>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -1,38 +1,109 @@
 @use "@shared/styles/console-common" as console;
 @use "@shared/styles/tokens.scss" as *;
 
-.automation-play-area { @include console.play-area; min-height: 300px; }
+.automation-play-area { @include console.play-area; }
 
-.stats-bar {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.stat-chip {
+/* ── Hero (identity + live snapshot + primary actions) ── */
+.copilot-hero {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 10px 16px;
-  border-radius: 10px;
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
-  flex: 1;
-  min-width: 100px;
+  gap: 18px;
 }
 
-.stat-chip-label {
+.copilot-hero__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.copilot-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-violet-soft, #eeeaff);
+  color: var(--ns-violet-strong, #6a4df4);
+}
+
+.copilot-hero__text {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.copilot-hero__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.copilot-hero__subtitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.copilot-hero__stats {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.copilot-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 88px;
+  padding: 10px 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 14px);
+}
+
+.copilot-stat__value {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--ns-ink, #1e1e2e);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  word-break: break-word;
+}
+
+.copilot-stat__label {
   font-size: 10px;
-  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #9ca3af;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
-.stat-chip-value {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1f2937;
+/* ── Body: builder (main) + oracle/payload (side) ── */
+.copilot-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+
+  @media (min-width: 860px) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.copilot-col { min-width: 0; }
+
+.copilot-col--side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .info-grid {
@@ -46,7 +117,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 8px 0;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 
   &:last-child { border-bottom: none; }
 }
@@ -57,8 +128,30 @@
 
 .stack { @include console.stack; }
 .button-row { @include console.button-grid(2); }
+
 .json-box {
-  @include console.json-box(520px);
+  @include console.json-box(420px);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Graceful empty state for the payload preview */
+.payload-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px 16px;
+  border-radius: 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .copilot-hero__head { grid-template-columns: auto minmax(0, 1fr); }
+  .copilot-hero__stats { grid-column: 1 / -1; }
+  .copilot-stat { flex: 1; min-width: 0; }
 }

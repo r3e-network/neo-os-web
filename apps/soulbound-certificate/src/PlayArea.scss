@@ -1,35 +1,187 @@
 @use "@shared/styles/tokens.scss" as *;
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap');
+
+// Blue accent (this app keeps a blue identity hue) on the Neo Soft light system
+$soul-accent: #3e8cff;
+$soul-accent-strong: #2f6fe0;
+$soul-accent-soft: #e6f0ff;
 
 .certificate-play-area {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 20px 12px;
-  min-height: 300px;
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  background: #ffffff;
-  color: #1f2937;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  position: relative;
+  gap: 20px;
+  padding: 0;
+  color: var(--ns-text);
 }
 
-.hero-stats { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+/* ── Hero ───────────────────────────────────────────── */
+.certificate-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 20px 24px;
+  padding: 22px 24px;
+  background: var(--ns-surface);
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-lg);
+  box-shadow: var(--ns-shadow-md);
+}
+
+.hero-lead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: var(--ns-radius-full);
+  background: $soul-accent-soft;
+  color: $soul-accent-strong;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.hero-copy { min-width: 0; }
+
+.hero-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--ns-ink);
+}
+
+.hero-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ns-text-2);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .hero-stat {
-  text-align: center;
-  padding: 10px 18px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #f3f4f6;
-  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 78px;
+  padding: 10px 14px;
+  background: var(--ns-surface-subtle);
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-sm);
 }
-.hero-stat-value { display: block; font-size: 22px; font-weight: 700; color: #16c784; }
-.hero-stat-label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #9ca3af; letter-spacing: 1.5px; margin-top: 2px; }
 
-.loading-card { text-align: center; padding: 16px; }
-.loading-text { font-size: 14px; color: #9ca3af; }
+.hero-stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ns-ink);
+}
 
+.hero-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ns-text-muted);
+}
+
+.connect-prompt {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 4px;
+}
+
+/* ── Layout grid ────────────────────────────────────── */
+.certificate-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .certificate-hero {
+    grid-template-columns: 1fr;
+  }
+  .hero-stats { justify-content: flex-start; }
+  .certificate-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Loading ────────────────────────────────────────── */
+.loading-card { text-align: center; }
+.loading-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ns-border-strong);
+  border-top-color: $soul-accent;
+  border-radius: 50%;
+  animation: soul-spin 0.7s linear infinite;
+}
+@keyframes soul-spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 13px; color: var(--ns-text-muted); }
+
+/* ── Templates list (shared classes) ────────────────── */
+.templates-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.template-card {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--ns-surface-subtle);
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ns-ink);
+
+  & + & { margin-top: 8px; }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--ns-text-muted);
+  font-size: 14px;
+}
+
+.empty-note {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--ns-text-muted);
+  font-size: 14px;
+}
+
+/* ── Certificates summary ───────────────────────────── */
 .certificates-grid {
   display: flex;
   flex-direction: column;
@@ -40,43 +192,46 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #f3f4f6;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--ns-surface-subtle);
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-sm);
 }
 
 .cert-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .cert-name {
   font-size: 14px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--ns-ink);
 }
 
 .cert-recipient {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--ns-text-muted);
 }
 
 .cert-badge {
+  flex-shrink: 0;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 6px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: var(--ns-radius-xs);
 
-  &.valid { background: #ecfdf5; color: #059669; }
-  &.revoked { background: #fef2f2; color: #dc2626; }
-}
-
-.connect-prompt {
-  display: flex;
-  justify-content: center;
-  padding: 12px 0;
+  &.valid {
+    background: var(--ns-success-soft);
+    color: var(--ns-brand-strong);
+  }
+  &.revoked {
+    background: var(--ns-danger-soft);
+    color: var(--ns-danger);
+  }
 }

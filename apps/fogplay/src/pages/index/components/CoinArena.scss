@@ -1,5 +1,5 @@
-.premium-arena { box-sizing: border-box; width: 100%; padding: 40px 20px; position: relative; background: var(--coin-arena-bg); border-radius: 32px; border: 1px solid var(--coin-arena-border); overflow: hidden; backdrop-filter: blur(20px); }
-.arena-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px; }
+.premium-arena { box-sizing: border-box; width: 100%; padding: 24px 20px; position: relative; background: var(--coin-arena-bg); border-radius: 24px; border: 1px solid var(--coin-arena-border); overflow: hidden; backdrop-filter: blur(20px); }
+.arena-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 280px; }
 .arena-bg { position: absolute; inset: 0; z-index: -1; }
 .arena-orbit { position: absolute; top: 50%; left: 50%; width: 250px; height: 250px; border: 1px dashed var(--coin-orbit-border); border-radius: 50%; transform: translate(-50%, -50%); animation: rotate 60s linear infinite; }
 .arena-glow { position: absolute; top: 50%; left: 50%; width: 150px; height: 150px; background: radial-gradient(circle, var(--coin-arena-ambient) 0%, transparent 70%); transform: translate(-50%, -50%); transition: all 0.5s ease;
@@ -21,7 +21,7 @@
   }
 
   .arena-content {
-    min-height: 332px;
+    min-height: 248px;
   }
 
   .arena-orbit {

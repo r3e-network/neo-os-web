@@ -49,23 +49,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="breakup-play-area">
-      {/* Stats Bar */}
-      <div className="hero-stats">
-        <div className="hero-stat">
-          <span className="hero-stat-value">{activeCount}</span>
-          <span className="hero-stat-label">{t("active") || "Active"}</span>
+      {/* Hero */}
+      <div className="breakup-hero">
+        <div className="breakup-hero-head">
+          <div className="breakup-hero-badge" aria-hidden="true">
+            ♥
+          </div>
+          <div className="breakup-hero-copy">
+            <h1 className="breakup-hero-title">{t("title") || "Breakup Contract"}</h1>
+            <p className="breakup-hero-subtitle">
+              {t("subtitle") || "Relationship stakes on-chain"}
+            </p>
+          </div>
         </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{pendingCount}</span>
-          <span className="hero-stat-label">{t("pending") || "Pending"}</span>
-        </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{brokenCount}</span>
-          <span className="hero-stat-label">{t("broken") || "Broken"}</span>
-        </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{contractCount}</span>
-          <span className="hero-stat-label">{t("total") || "Total"}</span>
+
+        {/* Stats Bar */}
+        <div className="hero-stats">
+          <div className="hero-stat">
+            <span className="hero-stat-value">{activeCount}</span>
+            <span className="hero-stat-label">{t("active") || "Active"}</span>
+          </div>
+          <div className="hero-stat">
+            <span className="hero-stat-value">{pendingCount}</span>
+            <span className="hero-stat-label">{t("pending") || "Pending"}</span>
+          </div>
+          <div className="hero-stat">
+            <span className="hero-stat-value">{brokenCount}</span>
+            <span className="hero-stat-label">{t("broken") || "Broken"}</span>
+          </div>
+          <div className="hero-stat">
+            <span className="hero-stat-value">{contractCount}</span>
+            <span className="hero-stat-label">{t("total") || "Total"}</span>
+          </div>
         </div>
       </div>
 
@@ -81,20 +96,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={partner}
             onChange={setPartner}
           />
-          <NeoInput
-            label={t("stakeAmount") || "Stake (GAS)"}
-            placeholder="10"
-            type="number"
-            value={stake}
-            onChange={setStake}
-          />
-          <NeoInput
-            label={t("durationDays") || "Duration (days)"}
-            placeholder="90"
-            type="number"
-            value={days}
-            onChange={setDays}
-          />
+          <div className="create-contract-grid">
+            <NeoInput
+              label={t("stakeAmount") || "Stake (GAS)"}
+              placeholder="10"
+              type="number"
+              value={stake}
+              onChange={setStake}
+            />
+            <NeoInput
+              label={t("durationDays") || "Duration (days)"}
+              placeholder="90"
+              type="number"
+              value={days}
+              onChange={setDays}
+            />
+          </div>
           <NeoInput
             label={t("contractTitle") || "Title"}
             placeholder={t("contractTitlePlaceholder") || "Our covenant"}
