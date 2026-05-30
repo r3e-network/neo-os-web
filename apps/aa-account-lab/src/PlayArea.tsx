@@ -65,7 +65,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="aa-account-play-area">
       <section className="account-hero">
         <div className="account-hero__copy">
-          <h2>{t("accountHeroTitle")}</h2>
+          <div className="account-hero__intro">
+            <span className="account-hero__badge" aria-hidden="true">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </span>
+            <div className="account-hero__heading">
+              <span className="account-hero__eyebrow">
+                {t("accountHeroEyebrow")}
+              </span>
+              <h2>{t("accountHeroTitle")}</h2>
+            </div>
+          </div>
           <p>{t("accountHeroCopy")}</p>
           <div
             className="account-hero__metrics"
@@ -166,7 +188,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <div className="account-risk-note">
-            <span>AA</span>
+            <span aria-hidden="true">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z" />
+              </svg>
+            </span>
             <div>
               <strong>{t("accountRiskTitle")}</strong>
               <p>{t("accountRiskCopy")}</p>

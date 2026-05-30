@@ -15,7 +15,10 @@ export default function HistoryTab({ history, forgettingId, onForget, t }: Histo
         <span className="history-count">{history.length}</span>
       </div>
       {history.length === 0 ? (
-        <div className="empty-state"><span className="empty-text">{t("noDestructions")}</span></div>
+        <div className="empty-state">
+          <span className="empty-icon" aria-hidden="true">{"⚰️"}</span>
+          <span className="empty-text">{t("noDestructions")}</span>
+        </div>
       ) : (
         <div className="history-list">
           {(history as Array<Record<string, unknown>>).map((item, index) => (

@@ -108,7 +108,8 @@ export default function PlayArea({
   const claimReceiptItems = [
     {
       label: t("claimKeyLabel"),
-      value: displayClaimKey || "—",
+      value: displayClaimKey || t("claimKeyPending"),
+      muted: !displayClaimKey,
     },
     {
       label: t("claimNetworkLabel"),
@@ -233,7 +234,9 @@ export default function PlayArea({
               {claimReceiptItems.map((item) => (
                 <div key={item.label}>
                   <dt>{item.label}</dt>
-                  <dd>{item.value}</dd>
+                  <dd className={item.muted ? "is-pending" : undefined}>
+                    {item.value}
+                  </dd>
                 </div>
               ))}
             </dl>

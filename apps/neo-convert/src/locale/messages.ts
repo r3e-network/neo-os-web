@@ -25,6 +25,26 @@ const appMessages = {
         en: "GAS Balance",
         zh: "GAS 余额"
     },
+    generateNewAccount: {
+        en: "Generate New Account",
+        zh: "生成新账户"
+    },
+    convertKey: {
+        en: "Convert Key",
+        zh: "转换密钥"
+    },
+    convertHint: {
+        en: "Paste a WIF, private key, public key, or NeoVM script — everything is processed on your device.",
+        zh: "粘贴 WIF、私钥、公钥或 NeoVM 脚本——所有处理均在您的设备本地完成。"
+    },
+    enterKeyPlaceholder: {
+        en: "Enter WIF, hex, or address...",
+        zh: "输入 WIF、Hex 或地址……"
+    },
+    convert: {
+        en: "Convert",
+        zh: "转换"
+    },
     tabGenerate: {
         en: "Generate",
         zh: "生成"

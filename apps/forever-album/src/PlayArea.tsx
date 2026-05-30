@@ -76,7 +76,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <main className="forever-album-main">
           <section className="forever-album-hero" aria-labelledby="forever-album-title">
             <div className="forever-album-hero-copy">
-              <span className="forever-album-kicker">{t("title")}</span>
+              <div className="forever-album-hero-badge">
+                <span className="forever-album-hero-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="3" />
+                    <circle cx="8.5" cy="8.5" r="1.6" />
+                    <path d="m21 15-5-5L5 21" />
+                  </svg>
+                </span>
+                <span className="forever-album-kicker">{t("title")}</span>
+              </div>
               <h1 id="forever-album-title">{t("vaultHeroTitle")}</h1>
               <p>{t("vaultHeroSubtitle")}</p>
               <div className="forever-album-actions">
@@ -97,11 +106,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="forever-album-progress" aria-label={t("sizeHint", { size: formatBytes(totalPayloadSize, t), max: "60 KB" })}>
                 <span style={{ width: `${Math.max(4, uploadPct)}%` }} />
               </div>
-              <div className="forever-album-device-grid">
-                <span />
-                <span />
-                <span />
-                <span />
+              <div className="forever-album-device-steps">
+                <span className="forever-album-device-step">
+                  <em>1</em>
+                  {t("vaultTimelineOne")}
+                </span>
+                <span className="forever-album-device-step">
+                  <em>2</em>
+                  {t("vaultTimelineTwo")}
+                </span>
+                <span className="forever-album-device-step">
+                  <em>3</em>
+                  {t("vaultTimelineThree")}
+                </span>
               </div>
             </div>
           </section>

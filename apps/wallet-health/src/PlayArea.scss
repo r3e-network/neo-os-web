@@ -43,19 +43,19 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 
   h2 {
     margin: 0;
     color: var(--ns-ink, #1e1e2e);
-    font-size: 28px;
-    line-height: 1.05;
+    font-size: 26px;
+    line-height: 1.1;
     font-weight: 800;
     letter-spacing: -0.02em;
   }
 
-  p {
+  > p {
     margin: 0;
     max-width: 520px;
     color: var(--ns-text-2, #5b6478);
@@ -69,17 +69,38 @@
   color: var(--ns-ink, #1e1e2e);
 }
 
-.wallet-health-kicker {
-  width: fit-content;
-  padding: 5px 9px;
-  border: none;
-  border-radius: 999px;
+.wallet-health-hero-intro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.wallet-health-hero-badge {
+  display: grid;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 50%;
   background: var(--ns-success-soft, #e4f8f0);
   color: #0fb174;
-  font-size: 12px;
+}
+
+.wallet-health-hero-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wallet-health-kicker {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
   font-weight: 700;
+  line-height: 1.2;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
 }
 
 .wallet-health-score-card {
@@ -130,20 +151,21 @@
   height: 92px;
   border-radius: 50%;
   background:
-    conic-gradient(#16c784 calc(var(--score, 0) * 1%), rgba(20, 22, 38, 0.08) 0),
+    conic-gradient(#16c784 calc(var(--score, 0) * 1%), rgba(20, 22, 38, 0.07) 0),
     var(--ns-surface, #ffffff);
-  box-shadow: inset 0 0 0 10px var(--ns-surface, #ffffff);
+  box-shadow: inset 0 0 0 9px var(--ns-surface, #ffffff);
 
   span {
     display: grid;
     place-items: center;
-    width: 66px;
-    height: 66px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
     background: var(--ns-surface, #ffffff);
     color: var(--ns-ink, #1e1e2e);
-    font-size: 24px;
-    font-weight: 900;
+    font-size: 26px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
     letter-spacing: 0;
   }
 }
@@ -152,10 +174,10 @@
 .wallet-health-connect-panel,
 .wallet-health-checklist-panel,
 .wallet-health-recommendations-panel {
-  border-color: rgba(17, 24, 39, 0.1);
-  border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 14px 36px rgba(20, 22, 38, 0.08);
+  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 20px;
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .wallet-health-section-heading {
@@ -164,21 +186,23 @@
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 
   span {
-    color: #66756e;
-    font-size: 12px;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 11px;
     font-weight: 700;
-    line-height: 1.25;
-    letter-spacing: 0;
+    line-height: 1.3;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
 
   strong {
     max-width: 62%;
-    color: #102019;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 13px;
-    line-height: 1.25;
+    font-weight: 700;
+    line-height: 1.3;
     text-align: right;
     word-break: break-word;
     letter-spacing: 0;
@@ -193,9 +217,9 @@
   div {
     min-width: 0;
     padding: 12px;
-    border: 1px solid #e2e8e4;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
     border-radius: 14px;
-    background: #f7faf8;
+    background: var(--ns-surface-subtle, #f7f8fa);
   }
 
   span,
@@ -205,7 +229,7 @@
   }
 
   span {
-    color: #66756e;
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 12px;
     line-height: 1.25;
     letter-spacing: 0;
@@ -213,9 +237,10 @@
 
   strong {
     margin-top: 6px;
-    color: #102019;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 17px;
     line-height: 1.18;
+    font-variant-numeric: tabular-nums;
     word-break: break-word;
     letter-spacing: 0;
   }
@@ -243,9 +268,9 @@
 .wallet-health-insight {
   min-width: 0;
   padding: 13px;
-  border: 1px solid #dfe7e2;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 14px;
-  background: #f7faf8;
+  background: var(--ns-surface-subtle, #f7f8fa);
 
   span,
   strong {
@@ -253,7 +278,7 @@
   }
 
   span {
-    color: #66756e;
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 12px;
     line-height: 1.25;
     letter-spacing: 0;
@@ -261,9 +286,10 @@
 
   strong {
     margin-top: 7px;
-    color: #102019;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 15px;
     line-height: 1.2;
+    font-variant-numeric: tabular-nums;
     word-break: break-word;
     letter-spacing: 0;
   }
@@ -272,7 +298,7 @@
 .wallet-health-connect-panel {
   p {
     margin: 0 0 12px;
-    color: #53645c;
+    color: var(--ns-text-2, #5b6478);
     font-size: 13px;
     line-height: 1.5;
     letter-spacing: 0;
@@ -284,10 +310,10 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding: 11px;
+  padding: 12px;
   border-radius: 14px;
-  background: #f7faf8;
-  border: 1px solid #dfe7e2;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 
   div {
     min-width: 0;
@@ -299,7 +325,7 @@
   }
 
   span {
-    color: #66756e;
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 12px;
     line-height: 1.25;
     letter-spacing: 0;
@@ -307,8 +333,9 @@
 
   strong {
     margin-top: 3px;
-    color: #102019;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 14px;
+    font-weight: 700;
     line-height: 1.2;
     letter-spacing: 0;
   }
@@ -319,20 +346,20 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.12);
+  background: #ea3943;
+  box-shadow: 0 0 0 5px rgba(234, 57, 67, 0.12);
 }
 
 .risk-medium .wallet-health-risk-dot,
 .wallet-health-risk-row.risk-medium .wallet-health-risk-dot {
-  background: #f59e0b;
-  box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.14);
+  background: #f0a020;
+  box-shadow: 0 0 0 5px rgba(240, 160, 32, 0.16);
 }
 
 .risk-low .wallet-health-risk-dot,
 .wallet-health-risk-row.risk-low .wallet-health-risk-dot {
-  background: #10b981;
-  box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.14);
+  background: #16c784;
+  box-shadow: 0 0 0 5px rgba(22, 199, 132, 0.16);
 }
 
 .wallet-health-checklist-list {
@@ -346,22 +373,23 @@
   gap: 10px;
   align-items: center;
   min-width: 0;
-  padding: 11px;
-  border: 1px solid #dfe7e2;
+  padding: 12px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--ns-surface-subtle, #f7f8fa);
 
   strong {
     display: block;
-    color: #102019;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 13px;
+    font-weight: 700;
     line-height: 1.25;
     letter-spacing: 0;
   }
 
   p {
     margin: 4px 0 0;
-    color: #66756e;
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 12px;
     line-height: 1.35;
     letter-spacing: 0;
@@ -376,8 +404,8 @@
 }
 
 .wallet-health-checklist-item.is-done {
-  border-color: rgba(16, 185, 129, 0.3);
-  background: #f1fcf6;
+  border-color: rgba(22, 199, 132, 0.32);
+  background: #effbf5;
 }
 
 .wallet-health-auto {
@@ -388,8 +416,8 @@
   min-height: 32px;
   padding: 0 10px;
   border-radius: 12px;
-  background: #edf7f1;
-  color: #107a52;
+  background: var(--ns-success-soft, #e4f8f0);
+  color: #0fb174;
   font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
@@ -408,23 +436,23 @@
   li {
     position: relative;
     min-width: 0;
-    padding: 9px 10px 9px 26px;
+    padding: 10px 12px 10px 28px;
     border-radius: 12px;
-    background: #f7faf8;
-    color: #42544b;
-    font-size: 12px;
-    line-height: 1.35;
+    background: var(--ns-surface-subtle, #f7f8fa);
+    color: var(--ns-text-2, #5b6478);
+    font-size: 13px;
+    line-height: 1.4;
     letter-spacing: 0;
 
     &::before {
       content: "";
       position: absolute;
-      left: 10px;
-      top: 14px;
+      left: 12px;
+      top: 15px;
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #10b981;
+      background: #16c784;
     }
   }
 }

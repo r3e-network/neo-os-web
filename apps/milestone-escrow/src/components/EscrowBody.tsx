@@ -1,4 +1,4 @@
-import { NeoCard, NeoButton } from "@shared/components-react";
+import { NeoButton } from "@shared/components-react";
 import EscrowList from "../pages/index/components/EscrowList";
 
 interface EscrowBodyProps {
@@ -25,7 +25,19 @@ export default function EscrowBody(props: EscrowBodyProps) {
   const { t, contractReady, isRefreshing, hasAddress, creatorEscrows, beneficiaryEscrows, approvingId, cancellingId, claimingId, statusLabelFunc, formatAmountFunc, formatAddressFunc } = props;
 
   if (!contractReady) {
-    return <NeoCard title={t("deploymentPendingTitle")}><p>{t("deploymentPendingDesc")}</p></NeoCard>;
+    return (
+      <div className="escrow-notice">
+        <div className="escrow-notice__icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 8v4" />
+            <path d="M12 16h.01" />
+          </svg>
+        </div>
+        <span className="escrow-notice__title">{t("deploymentPendingTitle")}</span>
+        <p className="escrow-notice__desc">{t("deploymentPendingDesc")}</p>
+      </div>
+    );
   }
 
   return (
@@ -35,14 +47,20 @@ export default function EscrowBody(props: EscrowBodyProps) {
         <NeoButton size="sm" variant="secondary" loading={isRefreshing} aria-label={t("refresh")} onClick={props.onRefresh}>{t("refresh")}</NeoButton>
       </div>
       {!hasAddress ? (
-        <div className="empty-state">
-          <NeoCard>
-            <span className="mb-3 block text-sm">{t("walletNotConnected")}</span>
-            <NeoButton size="sm" variant="primary" aria-label={t("connectWallet")} onClick={props.onConnectWallet}>{t("connectWallet")}</NeoButton>
-          </NeoCard>
+        <div className="escrow-notice">
+          <div className="escrow-notice__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="6" width="18" height="13" rx="2" />
+              <path d="M3 10h18" />
+              <path d="M16 14h.01" />
+            </svg>
+          </div>
+          <span className="escrow-notice__title">{t("walletNotConnected")}</span>
+          <NeoButton size="sm" variant="primary" aria-label={t("connectWallet")} onClick={props.onConnectWallet}>{t("connectWallet")}</NeoButton>
         </div>
       ) : (
         <EscrowList
+          t={t}
           creatorEscrows={creatorEscrows}
           beneficiaryEscrows={beneficiaryEscrows}
           approvingId={approvingId}

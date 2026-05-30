@@ -170,21 +170,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </section>
 
-      <div className="gasbox-hero-stats" aria-label={t("gasboxLiveStatus")}>
-        <div className="gasbox-hero-stat">
-          <span className="gasbox-hero-stat-value">{machineCountDisplay}</span>
-          <span className="gasbox-hero-stat-label">{t("machines")}</span>
-        </div>
-        <div className="gasbox-hero-stat">
-          <span className="gasbox-hero-stat-value">{userPullsDisplay}</span>
-          <span className="gasbox-hero-stat-label">{t("yourPulls")}</span>
-        </div>
-        <div className="gasbox-hero-stat">
-          <span className="gasbox-hero-stat-value">{totalPullsDisplay}</span>
-          <span className="gasbox-hero-stat-label">{t("totalPulls")}</span>
-        </div>
-      </div>
-
       <NeoCard variant="erobo" className="gasbox-machines-card">
         <div className="gasbox-section-header">
           <span>{t("market")}</span>

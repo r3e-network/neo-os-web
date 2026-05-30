@@ -4,11 +4,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 18px;
-  border: 1px solid rgba(225, 232, 242, 0.95);
-  border-radius: 26px;
-  background: #fff;
-  box-shadow: 0 14px 34px rgba(27, 39, 72, 0.06);
+  padding: 20px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 20px;
+  background: var(--ns-surface, #fff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   transition:
     transform 0.2s ease,
     border-color 0.2s ease,
@@ -16,16 +16,16 @@
 
   &:hover {
     transform: translateY(-2px);
-    border-color: rgba(20, 184, 128, 0.38);
-    box-shadow: 0 18px 42px rgba(27, 39, 72, 0.09);
+    border-color: rgba(15, 177, 116, 0.38);
+    box-shadow: 0 16px 40px rgba(20, 22, 38, 0.1);
   }
 }
 
 .listing-card--selected {
-  border-color: rgba(20, 184, 128, 0.62);
+  border-color: rgba(15, 177, 116, 0.62);
   box-shadow:
-    0 0 0 3px rgba(20, 184, 128, 0.12),
-    0 18px 42px rgba(27, 39, 72, 0.08);
+    0 0 0 3px rgba(15, 177, 116, 0.12),
+    0 16px 40px rgba(20, 22, 38, 0.1);
 }
 
 .listing-card__header {
@@ -45,14 +45,14 @@
 .listing-card__avatar {
   display: grid;
   flex: 0 0 auto;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   place-items: center;
-  border-radius: 20px;
-  background: #d5eec9;
-  color: #257e4f;
+  border-radius: 14px;
+  background: #e4f8f0;
+  color: #0fb174;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .listing-card__title {
@@ -60,14 +60,14 @@
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  color: #20242f;
+  color: var(--ns-ink, #1e1e2e);
   font-size: 16px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .listing-card__subtitle {
   margin: 8px 0 0;
-  color: #626b7d;
+  color: var(--ns-text-2, #5b6478);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -79,26 +79,28 @@
 
 .listing-card__price strong {
   display: block;
-  color: #151821;
+  color: var(--ns-ink, #1e1e2e);
   font-size: 24px;
-  font-weight: 900;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .listing-card__price span {
-  color: #8d96a8;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .listing-card__details {
   display: grid;
   gap: 8px;
-  padding: 12px;
-  border-radius: 20px;
-  background: #f8fafc;
+  padding: 14px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .row {
@@ -109,24 +111,24 @@
 }
 
 .label {
-  color: #8d96a8;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .value {
   min-width: 0;
-  color: #374151;
+  color: var(--ns-text-2, #5b6478);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
 .value--link {
-  color: #287bbf;
+  color: #2f6fe0;
   text-decoration: none;
 
   &:hover {
@@ -148,15 +150,15 @@
 }
 
 .chip--active {
-  border-color: rgba(16, 185, 129, 0.22);
-  background: rgba(16, 185, 129, 0.11);
-  color: #0f8a5d;
+  border-color: rgba(15, 177, 116, 0.22);
+  background: #e4f8f0;
+  color: #0fb174;
 }
 
 .chip--sold {
-  border-color: rgba(40, 123, 191, 0.2);
-  background: rgba(223, 240, 255, 0.9);
-  color: #287bbf;
+  border-color: rgba(47, 111, 224, 0.2);
+  background: #e6f0ff;
+  color: #2f6fe0;
 }
 
 .chip--cancelled {

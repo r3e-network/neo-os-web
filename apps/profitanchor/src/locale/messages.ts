@@ -3,6 +3,7 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   appName: { en: "ProfitAnchor", zh: "ProfitAnchor" },
   title: { en: "ProfitAnchor", zh: "ProfitAnchor" },
+  heroTitle: { en: "Stake. Redeem. Claim.", zh: "质押 · 赎回 · 领取" },
   heroDescription: {
     en: "Stake NEO, redeem NEO, and claim GAS rewards. Manual 21-agent routing is handled separately in ProfitAnchor Admin.",
     zh: "质押 NEO、赎回 NEO、领取 GAS 奖励。21 个 AA agent 的手动调仓由 ProfitAnchor Admin 单独处理。",

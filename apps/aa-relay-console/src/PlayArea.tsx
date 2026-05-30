@@ -67,7 +67,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="relay-play-area">
       <section className="relay-hero">
         <div className="relay-hero__copy">
-          <h2>{t("relayHeroTitle")}</h2>
+          <div className="relay-hero__head">
+            <span className="relay-hero__badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M12 2 4 6v6c0 4.42 3.05 7.7 8 9 4.95-1.3 8-4.58 8-9V6l-8-4Z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="m9 12 2 2 4-4"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <h2>{t("relayHeroTitle")}</h2>
+          </div>
           <p>{t("relayHeroCopy")}</p>
           <div
             className="relay-hero__metrics"

@@ -87,6 +87,10 @@ const appMessages = {
   },
   permissionsStateLabel: { en: "Live state", zh: "实时状态" },
   permissionsStateTitle: { en: "Current permissions", zh: "当前权限" },
+  permissionsStateEmpty: {
+    en: "Inspect an account to load its permissions",
+    zh: "检查账户以加载其权限",
+  },
   permissionsRiskTitle: {
     en: "Writes change the account permission boundary",
     zh: "写操作会改变账户权限边界",

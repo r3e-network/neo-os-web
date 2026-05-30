@@ -3,19 +3,26 @@
 .sign-play-area {
   --sign-ink: var(--ns-ink, #1e1e2e);
   --sign-muted: var(--ns-text-2, #5b6478);
+  --sign-label: var(--ns-text-muted, #8a92a6);
   --sign-soft: var(--ns-surface-subtle, #f7f8fa);
   --sign-panel: var(--ns-surface, #ffffff);
-  --sign-border: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  --sign-border: var(--ns-border, rgba(20, 22, 38, 0.06));
   --sign-green: var(--ns-brand, #16c784);
-  --sign-yellow: #f0b90b;
+  --sign-amber: var(--ns-warning, #f5a623);
+  --sign-amber-soft: var(--ns-warning-soft, #fff3dd);
+  --sign-badge-bg: var(--ns-badge-peach-bg, #ffe4c3);
+  --sign-badge-fg: var(--ns-badge-peach-fg, #e8923b);
   --sign-purple: var(--ns-violet, #7b61ff);
   --sign-blue: var(--ns-info, #3e8cff);
   --sign-danger: var(--ns-down, #ea3943);
+  --sign-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  --sign-radius: var(--ns-radius-lg, 20px);
+  --sign-radius-sm: var(--ns-radius-sm, 12px);
 
   width: 100%;
   min-height: 100%;
-  padding: 12px;
-  background: var(--ns-bg, #f4f5f7);
+  padding: 16px;
+  background: transparent;
   color: var(--sign-ink);
   letter-spacing: 0;
 }
@@ -25,7 +32,7 @@
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 0.72fr) minmax(320px, 0.44fr);
-  gap: 14px;
+  gap: 16px;
   align-items: start;
   letter-spacing: 0;
 }
@@ -34,23 +41,22 @@
 .sign-side {
   min-width: 0;
   display: grid;
-  gap: 14px;
+  gap: 16px;
   letter-spacing: 0;
 }
 
 .sign-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(340px, 0.62fr);
-  gap: 14px;
-  align-items: stretch;
+  gap: 20px;
+  align-items: center;
   min-width: 0;
-  padding: 18px;
+  padding: 24px;
   border: 1px solid var(--sign-border);
-  border-radius: 8px;
+  border-radius: var(--sign-radius);
   overflow: hidden;
-  background:
-    linear-gradient(135deg, #ffffff 0%, #f9fbff 56%, #fff7ed 100%);
-  box-shadow: 0 12px 28px rgba(20, 22, 38, 0.06);
+  background: var(--sign-panel);
+  box-shadow: var(--sign-shadow);
   letter-spacing: 0;
 }
 
@@ -59,28 +65,34 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   letter-spacing: 0;
 }
 
 .sign-hero-accent {
-  width: 42px;
-  height: 42px;
-  display: inline-block;
-  border: 1px solid rgba(240, 185, 11, 0.34);
-  border-radius: 8px;
-  background: #fef3c7;
-  box-shadow: inset 0 -10px 18px rgba(240, 185, 11, 0.16);
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ns-radius-md, 16px);
+  color: var(--sign-badge-fg);
+  background: var(--sign-badge-bg);
   letter-spacing: 0;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
 }
 
 .sign-hero .sign-hero-copy > h2 {
   margin: 0;
   color: var(--sign-ink);
-  font-size: 28px;
-  font-weight: 780;
-  line-height: 1.12;
-  letter-spacing: 0;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.02em;
 }
 
 .sign-hero .sign-hero-copy > p {
@@ -95,63 +107,61 @@
 .sign-hero-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid rgba(230, 234, 240, 0.9);
-  border-radius: 8px;
-  background: rgba(248, 250, 252, 0.78);
+  gap: 10px;
   letter-spacing: 0;
 }
 
 .sign-hero-stats > div {
   min-width: 0;
-  min-height: 72px;
+  min-height: 76px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 7px;
-  padding: 11px;
-  border: 1px solid rgba(230, 234, 240, 0.95);
-  border-radius: 8px;
-  background: #ffffff;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--sign-border);
+  border-radius: var(--sign-radius-sm);
+  background: var(--sign-soft);
   letter-spacing: 0;
 }
 
 .sign-hero .sign-hero-stats span {
-  color: #8a94a6;
-  font-size: 12px;
-  font-weight: 720;
+  color: var(--sign-label);
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1.2;
-  letter-spacing: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .sign-hero .sign-hero-stats strong {
   min-width: 0;
   color: var(--sign-ink);
-  font-size: 18px;
-  font-weight: 780;
-  line-height: 1;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 
 .sign-flow-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   letter-spacing: 0;
 }
 
 .sign-flow-strip > div {
   min-width: 0;
-  min-height: 104px;
-  padding: 14px;
+  min-height: 108px;
+  padding: 18px;
   border: 1px solid var(--sign-border);
-  border-radius: 8px;
+  border-radius: var(--sign-radius);
   background: var(--sign-panel);
-  box-shadow: 0 8px 20px rgba(20, 22, 38, 0.04);
+  box-shadow: var(--sign-shadow);
   letter-spacing: 0;
 }
 
@@ -159,31 +169,32 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  color: #8a6500;
-  background: #fff4cc;
-  font-size: 12px;
-  font-weight: 760;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  color: var(--sign-badge-fg);
+  background: var(--sign-badge-bg);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 
 .sign-flow-strip strong {
   display: block;
   color: var(--sign-ink);
-  font-size: 14px;
-  font-weight: 760;
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1.25;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 
 .sign-flow-strip p {
-  margin: 7px 0 0;
+  margin: 8px 0 0;
   color: var(--sign-muted);
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
   letter-spacing: 0;
 }
 
@@ -200,15 +211,24 @@
 .sign-safety-panel,
 .sign-broadcast-panel {
   min-width: 0;
-  border-radius: 8px;
+  border: 1px solid var(--sign-border);
+  border-radius: var(--sign-radius);
+  box-shadow: var(--sign-shadow);
+}
+
+.sign-message-panel.neo-card .neo-card__body,
+.sign-result-panel.neo-card .neo-card__body,
+.sign-safety-panel.neo-card .neo-card__body,
+.sign-broadcast-panel.neo-card .neo-card__body {
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  padding: 22px;
   letter-spacing: 0;
 }
 
 .sign-section-heading {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   color: var(--sign-ink);
@@ -217,30 +237,32 @@
 
 .sign-section-heading > span {
   min-width: 0;
-  font-size: 14px;
-  font-weight: 760;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1.25;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 
 .sign-section-heading > strong {
   color: var(--sign-muted);
-  font-size: 13px;
-  font-weight: 720;
+  font-size: 12px;
+  font-weight: 700;
   line-height: 1.25;
   text-align: right;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 
 .sign-message-field {
   display: grid;
   gap: 8px;
-  color: var(--sign-muted);
-  font-size: 12px;
-  font-weight: 720;
+  color: var(--sign-label);
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1.2;
-  letter-spacing: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .sign-message-field textarea {
@@ -248,23 +270,25 @@
   min-height: 156px;
   resize: vertical;
   padding: 14px;
-  border: 1px solid #d9dee7;
-  border-radius: 8px;
+  border: 1px solid var(--sign-border);
+  border-radius: var(--sign-radius-sm);
   outline: none;
   color: var(--sign-ink);
-  background: #f8fafc;
-  font: 650 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--sign-soft);
+  font: 500 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0;
+  text-transform: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .sign-message-field textarea::placeholder {
-  color: #98a2b3;
+  color: var(--sign-label);
   letter-spacing: 0;
 }
 
 .sign-message-field textarea:focus {
-  border-color: rgba(22, 163, 74, 0.62);
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+  border-color: var(--sign-amber);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.16);
 }
 
 .sign-action-grid {
@@ -275,22 +299,22 @@
 }
 
 .sign-action-grid .neo-btn {
-  border-radius: 8px;
-  font-weight: 720;
+  border-radius: var(--ns-radius-full, 9999px);
+  font-weight: 700;
   white-space: nowrap;
   letter-spacing: 0;
 }
 
 .sign-wallet-note {
   margin: 0;
-  padding: 11px 12px;
-  border: 1px solid rgba(240, 185, 11, 0.28);
-  border-radius: 8px;
-  color: #8a6500;
-  background: #fffbeb;
+  padding: 12px 14px;
+  border: 1px solid var(--ns-warning, #f5a623);
+  border-radius: var(--sign-radius-sm);
+  color: #8a5b00;
+  background: var(--sign-amber-soft);
   font-size: 13px;
-  font-weight: 700;
-  line-height: 1.45;
+  font-weight: 600;
+  line-height: 1.5;
   letter-spacing: 0;
 }
 
@@ -306,20 +330,21 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px 12px;
   align-items: center;
-  padding: 13px;
-  border: 1px solid rgba(230, 234, 240, 0.95);
-  border-radius: 8px;
-  background: #f9fafb;
+  padding: 14px;
+  border: 1px solid var(--sign-border);
+  border-radius: var(--sign-radius-sm);
+  background: var(--sign-soft);
   letter-spacing: 0;
 }
 
 .sign-result-box span {
   grid-column: 1 / -1;
-  color: #8a94a6;
-  font-size: 12px;
-  font-weight: 720;
+  color: var(--sign-label);
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1.2;
-  letter-spacing: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .sign-result-box strong {
@@ -335,20 +360,26 @@
 
 .sign-result-box button {
   min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid #d9dee7;
-  border-radius: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--sign-border);
+  border-radius: var(--ns-radius-full, 9999px);
   color: var(--sign-ink);
-  background: #ffffff;
+  background: var(--sign-panel);
   font-size: 12px;
-  font-weight: 720;
+  font-weight: 700;
   cursor: pointer;
   letter-spacing: 0;
+  transition: border-color 0.18s ease, color 0.18s ease;
+}
+
+.sign-result-box button:not(:disabled):hover {
+  border-color: var(--sign-amber);
+  color: var(--sign-badge-fg);
 }
 
 .sign-result-box button:disabled {
-  color: #98a2b3;
-  background: #eef2f7;
+  color: var(--sign-label);
+  background: var(--sign-soft);
   cursor: not-allowed;
 }
 
@@ -368,7 +399,7 @@
   justify-content: space-between;
   gap: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(230, 234, 240, 0.95);
+  border-top: 1px solid var(--sign-border);
   color: var(--sign-muted);
   font-size: 13px;
   line-height: 1.25;
@@ -401,15 +432,15 @@
 
 @media (max-width: 640px) {
   .sign-play-area {
-    padding: 10px;
+    padding: 12px;
   }
 
   .sign-hero {
-    padding: 14px;
+    padding: 20px;
   }
 
   .sign-hero .sign-hero-copy > h2 {
-    font-size: 24px;
+    font-size: 23px;
   }
 
   .sign-hero-stats {

@@ -3,27 +3,38 @@ interface MilestoneHeroProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   progressPercent: number;
   checkpoints: Checkpoint[];
-  activeCount: number;
-  completedCount: number;
 }
 
-export default function MilestoneHero({ t, progressPercent, checkpoints, activeCount, completedCount }: MilestoneHeroProps) {
+export default function MilestoneHero({ t, progressPercent, checkpoints }: MilestoneHeroProps) {
   return (
     <div className="hero-container">
-      <span className="hero-label">{t("appName")}</span>
-      <div className="hero-progress-track">
-        <div className="hero-progress-fill" style={{ width: progressPercent + "%" }} />
-        {checkpoints.map((cp) => (
-          <div key={cp.label} className={`hero-checkpoint${cp.done ? " hero-checkpoint--done" : ""}`} style={{ left: cp.position + "%" }}>
-            <div className="checkpoint-dot" />
-            <span className="checkpoint-label">{cp.label}</span>
-          </div>
-        ))}
+      <div className="hero-head">
+        <div className="hero-badge" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </div>
+        <div className="hero-headings">
+          <span className="hero-eyebrow">{t("escrowsTab")}</span>
+          <h2 className="hero-title">{t("title")}</h2>
+          <p className="hero-subtitle">{t("docSubtitle")}</p>
+        </div>
       </div>
-      <div className="hero-stats-row">
-        <div className="hero-stat"><span className="hero-stat-label">{t("statusActive")}</span><span className="hero-stat-value">{activeCount}</span></div>
-        <div className="hero-stat-divider" />
-        <div className="hero-stat"><span className="hero-stat-label">{t("statusCompleted")}</span><span className="hero-stat-value">{completedCount}</span></div>
+
+      <div className="hero-progress">
+        <div className="hero-progress-meta">
+          <span className="hero-progress-label">{t("milestones")}</span>
+          <span className="hero-progress-pct">{progressPercent}%</span>
+        </div>
+        <div className="hero-progress-track">
+          <div className="hero-progress-fill" style={{ width: progressPercent + "%" }} />
+          {checkpoints.map((cp) => (
+            <div key={cp.label} className={`hero-checkpoint${cp.done ? " hero-checkpoint--done" : ""}`} style={{ left: cp.position + "%" }}>
+              <div className="checkpoint-dot" />
+              <span className="checkpoint-label">{cp.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

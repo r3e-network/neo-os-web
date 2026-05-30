@@ -51,25 +51,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="anchor-admin-shell">
         <main className="anchor-admin-main">
           <section className="anchor-admin-hero">
-            <div className="anchor-admin-hero-copy">
-              <span className="anchor-admin-kicker">TrustAnchor Admin</span>
-              <h2>{t("adminHeroTitle")}</h2>
-              <p>{t("adminHeroSubtitle")}</p>
+            <div className="anchor-admin-hero-top">
+              <div className="anchor-admin-hero-badge" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 7h12M16 7l-3-3M16 7l-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M20 17H8M8 17l3-3M8 17l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div className="anchor-admin-hero-copy">
+                <span className="anchor-admin-kicker">TrustAnchor Admin</span>
+                <h2>{t("adminHeroTitle")}</h2>
+                <p>{t("adminHeroSubtitle")}</p>
+              </div>
             </div>
-            <div className="anchor-admin-meter" aria-label={t("trackedNeo")}>
-              <strong>{totalNeoDisplay}</strong>
-              <span>{t("trackedNeo")}</span>
-            </div>
-          </section>
-
-          <section className="anchor-admin-route-map" aria-label={t("routeMapTitle")}>
-            <div className="anchor-admin-section-heading">
-              <span>{t("routeMapTitle")}</span>
-              <strong>{selectedAgent}</strong>
-            </div>
-            <div className="anchor-admin-route-grid">
+            <div className="anchor-admin-hero-stats">
               {routeItems.map((item) => (
-                <div key={item.label} className="anchor-admin-route-tile">
+                <div key={item.label} className="anchor-admin-hero-stat">
                   <span>{item.label}</span>
                   <strong>{item.value}</strong>
                 </div>
@@ -185,19 +182,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("agentDirectoryTitle")}</span>
               <strong>{agentCount}</strong>
             </div>
-            {visibleAgents.map((agent, idx) => (
-              <div key={idx} className="anchor-admin-agent-row">
-                <span>#{String(agent.agentId ?? idx + 1)}</span>
-                <code>
-                  {String(
-                    agent.accountAddress ??
-                      agent.address ??
-                      agent.name ??
-                      `agent-${idx + 1}`,
-                  )}
-                </code>
-              </div>
-            ))}
+            {visibleAgents.length === 0 ? (
+              <div className="anchor-admin-agent-empty">{t("agentDirectoryEmpty")}</div>
+            ) : (
+              visibleAgents.map((agent, idx) => (
+                <div key={idx} className="anchor-admin-agent-row">
+                  <span>#{String(agent.agentId ?? idx + 1)}</span>
+                  <code>
+                    {String(
+                      agent.accountAddress ??
+                        agent.address ??
+                        agent.name ??
+                        `agent-${idx + 1}`,
+                    )}
+                  </code>
+                </div>
+              ))
+            )}
           </section>
 
           <section className="anchor-admin-safety-card" aria-label={t("operatorRule")}>

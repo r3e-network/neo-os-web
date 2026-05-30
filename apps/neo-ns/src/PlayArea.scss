@@ -2,7 +2,7 @@
 @use "@shared/styles/variables.scss" as *;
 
 .neo-ns-play-area {
-  display: flex; flex-direction: column; gap: 20px; padding: 20px 12px; min-height: 300px;
+  display: flex; flex-direction: column; gap: 20px; padding: 20px 12px;
 }
 
 /* ── Hero (identity + primary search) ── */
@@ -42,7 +42,7 @@
 }
 
 .nns-stat {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   min-width: 72px; padding: 10px 14px;
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -55,15 +55,44 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Non-zero counts pick up the app's green accent for a touch of life */
+.nns-stat--active .nns-stat__value { color: var(--ns-brand-strong, #0fb174); }
+.nns-stat--warn .nns-stat__value { color: var(--ns-down, #ea3943); }
+
 .nns-stat__label {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
   color: var(--ns-text-muted, #8a92a6);
 }
 
+/* Wallet status reads as a connection indicator, not a big number —
+   smaller text + a state dot so long words like "Disconnected" never overflow. */
+.nns-stat--status { min-width: 96px; }
+
+.nns-stat__status {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+}
+
+.nns-stat__dot {
+  flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ns-text-muted, #8a92a6);
+}
+
+.nns-stat--status.is-connected .nns-stat__dot { background: var(--ns-brand-strong, #0fb174); }
+
+.nns-stat__statusText {
+  font-size: 13px; font-weight: 700; line-height: 1.15;
+  color: var(--ns-text-2, #5b6478);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.nns-stat--status.is-connected .nns-stat__statusText { color: var(--ns-ink, #1e1e2e); }
+
 @media (max-width: 640px) {
   .nns-hero__head { grid-template-columns: auto minmax(0, 1fr); }
   .nns-hero__stats { grid-column: 1 / -1; }
-  .nns-stat { flex: 1; }
+  .nns-stat { flex: 1 1 0; min-width: 0; }
+  .nns-stat--status { min-width: 0; }
+  .nns-stat__statusText { font-size: 12px; }
 }
 
 .address-bar {

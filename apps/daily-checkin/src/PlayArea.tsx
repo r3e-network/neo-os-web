@@ -134,7 +134,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="ember ember-3" />
       </div>
 
-      {/* ── 1. Streak Fire Ring ── */}
+      {/* ── 1. Hero — streak identity card ── */}
       <div className="checkin-streak-section">
         <div className={`checkin-fire-ring ${streakTier}${currentStreak > 0 ? " active" : ""}`}>
           <div className="checkin-flame-stack" aria-hidden="true">
@@ -144,7 +144,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <span key={currentStreak} className="checkin-streak-number">{currentStreak}</span>
         </div>
-        <span className="checkin-streak-text">{t("dayStreak") || "Day Streak"}</span>
+        <div className="checkin-hero-body">
+          <span className="checkin-hero-eyebrow">{t("title") || "Daily Check-in"}</span>
+          <span className="checkin-streak-text">{currentStreak} {t("dayStreak") || "Day Streak"}</span>
+          <span className="checkin-hero-subtitle">{t("docSubtitle") || "Earn GAS by checking in daily"}</span>
+        </div>
         {streakTierLabel && (
           <span className={`checkin-tier-badge ${streakTier}`}>{streakTierLabel}</span>
         )}

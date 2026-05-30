@@ -97,8 +97,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="treasury-play-area">
       <section className="treasury-hero" aria-label={t("title")}>
         <div className="treasury-hero__copy">
-          <span className="treasury-eyebrow">{t("docSubtitle")}</span>
-          <h2>{t("title")}</h2>
+          <div className="treasury-hero__heading">
+            <span className="treasury-hero__badge" aria-hidden="true">
+              N
+            </span>
+            <div className="treasury-hero__titles">
+              <span className="treasury-eyebrow">{t("docSubtitle")}</span>
+              <h2>{t("title")}</h2>
+            </div>
+          </div>
           <p>{t("docDescription")}</p>
         </div>
         <div className="treasury-hero__metrics" aria-label={t("treasuryInfo")}>

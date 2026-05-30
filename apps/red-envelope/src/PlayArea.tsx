@@ -135,6 +135,14 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         <section className="redenv-main" aria-label={t("redEnvelopeHeroTitle")}>
           <div className="redenv-hero">
             <div className="redenv-hero-copy">
+              <div className="redenv-hero-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+                  <rect x="4" y="3" width="16" height="18" rx="3" fill="currentColor" opacity="0.16" />
+                  <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
+                  <path d="M9 3l3 5 3-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="12" cy="13" r="2.6" fill="currentColor" />
+                </svg>
+              </div>
               <span>{t("shareReadyTitle")}</span>
               <h2>{t("redEnvelopeHeroTitle")}</h2>
               <p>{t("redEnvelopeHeroSubtitle")}</p>

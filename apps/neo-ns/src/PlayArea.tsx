@@ -57,16 +57,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </p>
           </div>
           <div className="nns-hero__stats" aria-hidden={false}>
-            <div className="nns-stat">
+            <div className={`nns-stat${domainCount > 0 ? " nns-stat--active" : ""}`}>
               <span className="nns-stat__value">{domainCount}</span>
               <span className="nns-stat__label">{t("tabDomains") || "Domains"}</span>
             </div>
-            <div className="nns-stat">
+            <div className={`nns-stat${expiringSoon > 0 ? " nns-stat--warn" : ""}`}>
               <span className="nns-stat__value">{expiringSoon}</span>
               <span className="nns-stat__label">{t("expiringSoon") || "Expiring"}</span>
             </div>
-            <div className="nns-stat">
-              <span className="nns-stat__value">{walletStatus || "--"}</span>
+            <div className={`nns-stat nns-stat--status${address ? " is-connected" : ""}`}>
+              <span className="nns-stat__status">
+                <span className="nns-stat__dot" aria-hidden="true" />
+                <span className="nns-stat__statusText">{walletStatus || "--"}</span>
+              </span>
               <span className="nns-stat__label">{t("walletStatus") || "Wallet"}</span>
             </div>
           </div>

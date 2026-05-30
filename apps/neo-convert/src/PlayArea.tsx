@@ -120,6 +120,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <NeoCard variant="erobo" title={t("convertKey") || "Convert Key"}>
         <div className="convert-section">
+          <p className="convert-hint">
+            {t("convertHint") ||
+              "Paste a WIF, private key, public key, or NeoVM script — everything is processed on your device."}
+          </p>
           <NeoInput
             value={keyInput}
             onChange={(v) => setKeyInput(v)}

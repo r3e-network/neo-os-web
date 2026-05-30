@@ -1,27 +1,165 @@
-@use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss" as *;
-@use "@shared/styles/mixins.scss" as *;
+@use "@shared/styles/pm-light" as pm;
 
-.card-title-glass { font-size: 14px; font-weight: $font-weight-bold; text-transform: uppercase; border-bottom: 1px solid rgba(255, 255, 255, 0.2); margin-bottom: $spacing-4; padding-bottom: $spacing-2; display: block; color: var(--text-primary); letter-spacing: 0.1em; }
-.cost-row-glass { display: flex; justify-content: space-between; margin: $spacing-4 0; padding: $spacing-3; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; }
-.cost-label-glass { font-size: 12px; font-weight: $font-weight-bold; text-transform: uppercase; color: var(--text-primary); }
-.cost-value-glass { @include mono-number(18px); color: var(--doom-success); }
-.key-selector { display: flex; align-items: center; gap: 12px; justify-content: center; margin-bottom: $spacing-4; }
-.key-adjust-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; color: var(--text-primary); font-size: 20px;
-  &:hover:not(:disabled) { background: rgba(234, 179, 8, 0.15); border-color: rgba(234, 179, 8, 0.3); }
-  &:focus-visible { outline: none; box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18)); }
-  &:disabled { opacity: 0.3; cursor: not-allowed; }
-  &.plus:hover:not(:disabled) { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); }
+.card-title-glass {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 14px;
+  display: block;
+  color: pm.$text-muted;
 }
-.adjust-icon { font-weight: 900; font-size: 18px; }
-.key-display { display: flex; flex-direction: column; align-items: center; min-width: 80px; padding: 8px 16px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(234, 179, 8, 0.2); border-radius: 12px; }
-.key-count-value { font-size: 28px; font-weight: 900; color: #eab308; font-family: 'Orbitron', monospace; }
-.key-count-unit { font-size: 9px; font-weight: 700; text-transform: uppercase; color: rgba(234, 179, 8, 0.5); letter-spacing: 0.1em; }
-.key-presets { display: flex; gap: 8px; justify-content: center; margin-bottom: $spacing-4; }
-.preset-chip { padding: 6px 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.6); font-size: 12px; font-weight: 800; font-family: 'Orbitron', monospace; cursor: pointer; transition: all 0.2s ease;
-  &:hover { background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.3); color: #eab308; }
-  &:focus-visible { outline: none; box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18)); }
-  &.active { background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); color: #eab308; box-shadow: 0 0 10px rgba(234, 179, 8, 0.15); }
+
+.key-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 14px;
 }
-.cost-gas-icon { margin-right: 4px; }
-.hint-text-glass { font-size: 10px; font-weight: $font-weight-bold; text-transform: uppercase; opacity: 0.6; display: block; margin-bottom: $spacing-4; color: var(--text-secondary); text-align: center; }
+
+.key-adjust-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid pm.$border-strong;
+  background: pm.$bg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+  color: pm.$text;
+  font-size: 20px;
+
+  &:hover:not(:disabled) {
+    background: pm.$surface;
+    border-color: rgba(20, 22, 38, 0.16);
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: pm.$focus-ring;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  &.plus:hover:not(:disabled) {
+    background: pm.$neo-soft;
+    border-color: rgba(22, 199, 132, 0.4);
+    color: pm.$neo-strong;
+  }
+}
+
+.adjust-icon {
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.key-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 92px;
+  padding: 8px 16px;
+  background: pm.$surface;
+  border: 1px solid pm.$border;
+  border-radius: 14px;
+}
+
+.key-count-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: pm.$ink;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.key-count-unit {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: pm.$text-muted;
+  letter-spacing: 0.1em;
+}
+
+.key-presets {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.preset-chip {
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: pm.$bg;
+  border: 1px solid pm.$border-strong;
+  color: pm.$text-2;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+
+  &:hover {
+    background: pm.$neo-soft;
+    border-color: rgba(22, 199, 132, 0.4);
+    color: pm.$neo-strong;
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: pm.$focus-ring;
+  }
+  &.active {
+    background: pm.$neo-soft;
+    border-color: rgba(22, 199, 132, 0.5);
+    color: pm.$neo-strong;
+  }
+}
+
+.cost-row-glass {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  background: pm.$surface;
+  border: 1px solid pm.$border;
+  border-radius: 14px;
+}
+
+.cost-label-glass {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: pm.$text-muted;
+}
+
+.cost-value-glass {
+  font-size: 18px;
+  font-weight: 800;
+  color: pm.$neo-strong;
+  font-variant-numeric: tabular-nums;
+}
+
+.cost-gas-icon {
+  margin-right: 4px;
+}
+
+.hint-text-glass {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 14px;
+  color: pm.$text-muted;
+  text-align: center;
+  line-height: 1.5;
+}

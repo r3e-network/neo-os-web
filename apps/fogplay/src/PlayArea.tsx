@@ -3,7 +3,6 @@ import { NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ArenaHero from "./components/ArenaHero";
-import RecordStatsBar from "./components/RecordStatsBar";
 import WagerControls from "./components/WagerControls";
 import ResultOverlay from "./pages/index/components/ResultOverlay";
 import type { GameResult, GameHistoryItem } from "./composables/useCoinFlip";
@@ -101,8 +100,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         displayOutcome={displayOutcome}
         result={result}
       />
-
-      <RecordStatsBar t={t} wins={wins} losses={losses} totalGames={totalGames} />
 
       <div className="custom-bet-section">
         <NeoInput

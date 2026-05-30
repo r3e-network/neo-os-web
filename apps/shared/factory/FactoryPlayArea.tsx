@@ -183,15 +183,23 @@ export function FactoryPlayArea({
   return (
     <div className="domain-factory">
       <section className="domain-factory-hero">
-        <div>
-          <h2>{t("title")}</h2>
-          <p>{t("subtitle")}</p>
+        <div className="domain-factory-hero__lead">
+          <span className="ns-icon-badge ns-badge--mint domain-factory-hero__badge" aria-hidden="true">◆</span>
+          <div className="domain-factory-hero__text">
+            <h2>{t("title")}</h2>
+            <p>{t("subtitle")}</p>
+          </div>
         </div>
         <div className="domain-factory-hero__status" aria-label={t("planStatus")}>
-          <span className={currentPlan.publishable ? "is-ready" : "is-blocked"}>
+          <span
+            className={`domain-factory-hero__pill ${currentPlan.publishable ? "is-ready" : "is-blocked"}`}
+          >
             {currentPlan.publishable ? t("ready") : t("blocked")}
           </span>
-          <strong>{currentPlan.digest.slice(-10)}</strong>
+          <div className="domain-factory-hero__meta">
+            <span className="domain-factory-hero__metalabel">{t("packageDigest")}</span>
+            <strong>{currentPlan.digest.slice(-10)}</strong>
+          </div>
           <small>{networkLabel(activeNetwork)}</small>
         </div>
       </section>

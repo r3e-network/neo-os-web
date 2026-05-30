@@ -1,37 +1,54 @@
-@use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss" as *;
-@use "@shared/styles/mixins.scss" as *;
-
-.section-title {
-  @include stat-label;
-  color: var(--matrix-success, rgba(22, 199, 132, 1));
-  margin-bottom: 12px;
-  display: block;
-  text-shadow: 0 0 10px rgba(22, 199, 132, 0.3);
+.result-section {
+  display: grid;
+  gap: 12px;
 }
 
-.result-card { margin-bottom: 12px; }
-.result-rows { display: flex; flex-direction: column; gap: 8px; }
+.result-section > .section-title {
+  display: block;
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: none;
+}
+
+.result-card {
+  min-width: 0;
+}
+
+.result-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .result-row {
-  @include card-base(12px, 12px);
-  backdrop-filter: blur(5px);
-  transition: background 0.2s;
-  &:hover { background: var(--bg-card, rgba(255, 255, 255, 0.05)); }
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.label {
-  @include stat-label;
-  font-weight: 600;
-  margin-bottom: 4px;
+.result-row .label {
   display: block;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.value {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
+.result-row .value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ns-ink, #1e1e2e);
   word-break: break-all;
 }
 
-.mono { font-family: $font-mono; }
+.result-row .value.mono {
+  font-family: "SF Mono", "Fira Code", "Roboto Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}

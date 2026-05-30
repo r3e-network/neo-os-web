@@ -45,6 +45,9 @@ export default function PlayArea({ t, state, services }: PlayAreaProps) {
     <div className="neo-x-bridge-play-area">
       <section className="bridge-console-hero" aria-label="Neo X bridge overview">
         <div className="bridge-hero-copy">
+          <span className="bridge-hero-badge" aria-hidden="true">
+            <ArrowLeftRight size={22} />
+          </span>
           <span className="bridge-eyebrow">AxLabs / BaneLabs Bridge Console</span>
           <h2>Neo N3 and Neo X cross-chain control</h2>
           <p>
@@ -122,13 +125,22 @@ export default function PlayArea({ t, state, services }: PlayAreaProps) {
             </NeoButton>
           }
         >
-          {activeOperation && (
-            <div className="operation-summary">
-              <span>{activeOperation.id}</span>
-              <strong>{activeOperation.title}</strong>
+          {activeOperation ? (
+            <>
+              <div className="operation-summary">
+                <span>{activeOperation.id}</span>
+                <strong>{activeOperation.title}</strong>
+              </div>
+              <pre className="payload-preview">{payload}</pre>
+            </>
+          ) : (
+            <div className="bridge-empty" role="status">
+              <span className="bridge-empty-icon" aria-hidden="true">
+                <ArrowLeftRight size={20} />
+              </span>
+              <p>{t("emptyPayload")}</p>
             </div>
           )}
-          <pre className="payload-preview">{payload}</pre>
         </NeoCard>
 
         <NeoCard variant="erobo" title="Operation status" className="bridge-status-card">
