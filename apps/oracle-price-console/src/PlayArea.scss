@@ -28,7 +28,7 @@
   border: 1px solid var(--ns-border);
   border-radius: var(--ns-radius-lg);
   background:
-    linear-gradient(135deg, #ffffff 0%, #f3fbf7 100%);
+    linear-gradient(135deg, #ffffff 0%, #f6f4ff 100%);
   box-shadow: var(--ns-shadow-md);
 }
 
@@ -38,6 +38,19 @@
   justify-content: center;
   gap: 8px;
   min-width: 0;
+}
+
+.price-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 4px;
+  border-radius: 14px;
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
 }
 
 .price-eyebrow {
@@ -155,7 +168,7 @@
   display: block;
   min-width: 0;
   border-radius: 999px 999px 8px 8px;
-  background: linear-gradient(180deg, var(--ns-brand) 0%, var(--ns-brand-strong) 100%);
+  background: linear-gradient(180deg, var(--ns-violet) 0%, var(--ns-violet-strong) 100%);
 }
 
 .price-sparkline i:nth-child(1) {
@@ -193,8 +206,8 @@
 }
 
 .asset-token--neo {
-  background: var(--ns-brand-soft);
-  color: var(--ns-brand-strong);
+  background: var(--ns-violet-soft);
+  color: var(--ns-violet-strong);
 }
 
 .asset-token--gas {
@@ -227,8 +240,8 @@
   width: fit-content;
   border-radius: 999px;
   padding: 5px 10px;
-  color: var(--ns-brand-strong);
-  background: var(--ns-brand-soft);
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
   font-size: 11px;
   font-weight: 700;
 }
@@ -299,8 +312,8 @@
   justify-content: center;
   min-height: 32px;
   border-radius: 999px;
-  color: var(--ns-brand-strong);
-  background: var(--ns-brand-soft);
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
   font-size: 11px;
   font-weight: 700;
 }
