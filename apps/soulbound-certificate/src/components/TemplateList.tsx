@@ -16,13 +16,15 @@ export default function TemplateList({ templates, refreshing, togglingId, hasAdd
       {!hasAddress ? (
         <div className="empty-state">
           <span className="empty-icon" aria-hidden="true">🔑</span>
-          <span>{t("walletNotConnected")}</span>
-          <NeoButton size="sm" variant="primary" onClick={onConnect}>{t("connectWallet")}</NeoButton>
+          <span className="empty-title">{t("walletNotConnected")}</span>
+          <span className="empty-hint">{t("walletNotConnectedHint")}</span>
+          <NeoButton className="empty-action" size="sm" variant="primary" onClick={onConnect}>{t("connectWallet")}</NeoButton>
         </div>
       ) : templates.length === 0 ? (
         <div className="empty-state">
           <span className="empty-icon" aria-hidden="true">📋</span>
-          <span>{t("emptyTemplates")}</span>
+          <span className="empty-title">{t("emptyTemplates")}</span>
+          <span className="empty-hint">{t("emptyTemplatesHint")}</span>
         </div>
       ) : (
         (templates as Array<Record<string, unknown>>).map((tmpl) => (

@@ -164,6 +164,11 @@ const appMessages = {
     zh: "恢复预览链接尚未准备好",
   },
   noStateYet: { en: "No recovery state loaded yet.", zh: "尚未加载恢复状态。" },
+  noStateHint: {
+    en: "Run Query State above to inspect verifier, threshold, and timelock details here.",
+    zh: "在上方运行“查询状态”，即可在此查看 verifier、threshold 与 timelock 详情。",
+  },
+  awaitingQuery: { en: "Awaiting query", zh: "等待查询" },
   noteTitle: { en: "Operator Note", zh: "运维提示" },
   noteText: {
     en: "Recovery ticket generation still belongs in the identity workspace because it requires the live Web3Auth / NeoDID confidential subject. This miniapp is the read-optimized control surface for guardian state.",

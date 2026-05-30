@@ -387,13 +387,71 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--tip-accent-soft);
   color: var(--tip-accent-strong);
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
+}
+
+/* ── "How it works" guide panel (shown alongside empty state) ── */
+.tipping-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 18px 20px;
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+}
+
+.tipping-guide__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.tipping-guide__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tipping-guide__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tipping-guide__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--tip-accent-soft);
+  color: var(--tip-accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.tipping-guide__text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+  padding-top: 3px;
 }
 
 /* ── Accent alignment: primary buttons follow this app's violet identity ── */

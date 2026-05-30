@@ -64,6 +64,8 @@ const appMessages = {
   decryptedPhoto: { en: "Decrypted photo", zh: "解密照片" },
   emptyTitle: { en: "No photos yet", zh: "暂无照片" },
   emptyDesc: { en: "Upload your first memory on-chain.", zh: "上传你的第一份链上记忆。" },
+  emptyTipPublicOrPrivate: { en: "Public or encrypted", zh: "公开或加密" },
+  emptyTipSizeSafe: { en: "Up to 5 · <60KB", zh: "最多 5 张 · <60KB" },
   selectMore: { en: "Select", zh: "选择" },
   uploadHint: { en: "{count} selected · Up to {max}", zh: "已选 {count} 张 · 最多 {max} 张" },
   sizeHint: { en: "{size} / {max} total", zh: "总计 {size} / {max}" },
