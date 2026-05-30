@@ -32,6 +32,28 @@
   gap: 24px;
 }
 
+.permissions-hero__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.permissions-hero__badge {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+
+  svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
 .permissions-hero__copy h2 {
   max-width: 780px;
   margin: 0;
