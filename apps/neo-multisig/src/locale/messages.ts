@@ -20,6 +20,7 @@ const appMessages = {
     en: "Create shared transactions, collect signatures, and broadcast with confidence.",
     zh: "创建共享交易，收集签名，安全广播。",
   },
+  multisigHeroEyebrow: { en: "Shared treasury", zh: "共享金库" },
   multisigHeroTitle: { en: "Multisig Approval Desk", zh: "多签审批工作台" },
   multisigHeroSubtitle: {
     en: "Prepare a shared Neo transaction, track quorum progress, and keep broadcast readiness visible before any wallet approval.",

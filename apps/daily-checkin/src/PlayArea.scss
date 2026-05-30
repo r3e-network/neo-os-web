@@ -94,64 +94,39 @@ $amber: #f59e0b;
 
 .checkin-streak-section {
   position: relative;
-  display: grid;
-  align-items: stretch;
-  gap: 0;
-  padding: 0;
-}
-
-.checkin-fire-ring {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: 1fr 1fr;
-  grid-template-areas:
-    "badge eyebrow"
-    "badge label";
+  display: flex;
   align-items: center;
-  column-gap: 22px;
-  row-gap: 2px;
+  gap: 18px;
   width: 100%;
-  height: auto;
-  padding: 26px 26px 24px;
+  padding: 22px 24px;
   border-radius: $ns-radius;
-  background: linear-gradient(135deg, $ac-soft 0%, $ns-bg 62%);
+  background: linear-gradient(135deg, $ac-soft 0%, $ns-bg 64%);
   border: 1px solid $ac-border;
   box-shadow: $ns-shadow;
 
-  /* hide any decorative flame inside the ring */
-  & > .checkin-flame-stack {
+  /* hide decorative flame chrome */
+  .checkin-flame-stack {
     display: none;
-  }
-
-  /* Eyebrow above the streak label (top of the right column) */
-  &::before {
-    content: "Current streak";
-    grid-area: eyebrow;
-    align-self: end;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: $ac-strong;
   }
 }
 
-/* Number block: icon-badge feel via the accent ring around the figure */
-.checkin-streak-number {
+/* Icon badge — the streak figure, accent-ringed */
+.checkin-fire-ring {
   position: relative;
-  grid-area: badge;
-  align-self: center;
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 88px;
-  height: 88px;
-  margin: 0;
-  border-radius: 24px;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
   background: $ns-bg;
   border: 1px solid $ac-border;
   box-shadow: 0 6px 16px -8px rgba(22, 199, 132, 0.45);
-  font-size: 40px;
+}
+
+.checkin-streak-number {
+  display: block;
+  font-size: 32px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -159,22 +134,62 @@ $amber: #f59e0b;
   font-variant-numeric: tabular-nums;
 }
 
-/* "Day Streak" descriptor — the prominent right-column line under the eyebrow */
+/* Body column: eyebrow + title + subtitle */
+.checkin-hero-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.checkin-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $ac-strong;
+}
+
 .checkin-streak-text {
-  grid-area: label;
-  align-self: start;
   display: block;
-  padding: 0;
   margin: 0;
-  font-size: 20px;
+  padding: 0;
+  border: 0;
+  font-size: 22px;
   font-weight: 800;
+  line-height: 1.15;
   color: $ns-ink;
   letter-spacing: -0.02em;
   text-transform: none;
-  border: 0;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Optional tier chip — top-right of the hero card */
+.checkin-hero-subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: $ns-text-2;
+}
+
+/* Best-streak chip — top-right of the hero */
+.checkin-best-text {
+  display: inline-flex !important;
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: $ns-bg;
+  color: $ns-text-muted;
+  border: 1px solid $ns-border;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tier chip — sits just under the best chip when present */
 .checkin-tier-badge {
   position: absolute;
   top: 18px;
@@ -197,27 +212,29 @@ $amber: #f59e0b;
   }
 }
 
+/* When a tier badge is shown, push the best chip below it */
+.checkin-streak-section:has(.checkin-tier-badge) .checkin-best-text {
+  top: 46px;
+}
+
 /* Tier accent tweaks */
 .checkin-fire-ring.blaze,
 .checkin-fire-ring.inferno {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, $ns-bg 62%);
-  border-color: rgba(245, 158, 11, 0.28);
+  border-color: rgba(245, 158, 11, 0.32);
+  box-shadow: 0 6px 16px -8px rgba(245, 158, 11, 0.5);
 
   .checkin-streak-number {
-    color: $amber;
-    border-color: rgba(245, 158, 11, 0.32);
-    box-shadow: 0 6px 16px -8px rgba(245, 158, 11, 0.5);
-  }
-
-  &::before {
     color: $amber;
   }
 }
 
-.checkin-fire-ring.cold .checkin-streak-number {
-  color: $ns-text-muted;
+.checkin-fire-ring.cold {
   border-color: $ns-border-strong;
   box-shadow: none;
+
+  .checkin-streak-number {
+    color: $ns-text-muted;
+  }
 }
 
 /* ============================================================
@@ -643,8 +660,25 @@ $amber: #f59e0b;
     grid-template-columns: 1fr;
   }
 
+  .checkin-streak-section {
+    gap: 14px;
+    padding: 20px 18px;
+  }
+
   .checkin-fire-ring {
-    column-gap: 16px;
-    padding: 22px 18px 20px;
+    width: 64px;
+    height: 64px;
+  }
+
+  .checkin-streak-number {
+    font-size: 28px;
+  }
+
+  .checkin-best-text {
+    display: none !important;
+  }
+
+  .checkin-streak-section:has(.checkin-tier-badge) .checkin-best-text {
+    display: none !important;
   }
 }

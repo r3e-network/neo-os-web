@@ -21,7 +21,7 @@
   flex-wrap: wrap;
   gap: 20px;
   padding: 22px 24px;
-  background: var(--ns-surface, #ffffff);
+  background: linear-gradient(135deg, #ffffff 0%, var(--vault-accent-soft) 140%);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
@@ -81,19 +81,21 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  min-width: 76px;
+  min-width: 78px;
   padding: 12px 16px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  background: var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(20, 22, 38, 0.04);
 }
 
 .hero-stat-value {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--ns-ink, #1e1e2e);
+  color: var(--vault-accent-strong);
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .hero-stat-label {

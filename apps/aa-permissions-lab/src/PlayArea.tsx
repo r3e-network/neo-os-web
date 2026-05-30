@@ -141,14 +141,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </strong>
           </div>
 
-          <div className="permissions-detail-grid">
-            {detailItems.map((item) => (
-              <div key={item.label} className="permissions-detail-card">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
+          {accountReady ? (
+            <div className="permissions-detail-list">
+              {detailItems.map((item) => (
+                <div key={item.label} className="permissions-detail-row">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="permissions-empty-state">
+              <span>AA</span>
+              <p>{t("permissionsStateEmpty")}</p>
+            </div>
+          )}
 
           <div className="permissions-risk-note">
             <span>AA</span>

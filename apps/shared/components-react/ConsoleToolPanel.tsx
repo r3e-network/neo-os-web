@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, Copy, Database, Play, RotateCcw } from "lucide-react";
+import { Activity, Copy, Database, FileSearch, Play, RotateCcw, ShieldCheck } from "lucide-react";
 import type { ObservableState } from "../react/context";
 import type { PlatformServices } from "../services";
 import type { MiniAppLaunchContext } from "../utils/launch-params";
@@ -143,9 +143,14 @@ export function ConsoleToolPanel({
     <div className="console-tool">
       <section className="console-tool__hero" aria-labelledby="console-title">
         <div className="console-tool__intro">
-          <span className="console-tool__eyebrow">{t(config.eyebrowKey)}</span>
-          <h2 id="console-title">{t(config.titleKey)}</h2>
-          <p>{t(config.descriptionKey)}</p>
+          <span className="console-tool__hero-badge" aria-hidden="true">
+            <ShieldCheck size={22} />
+          </span>
+          <div className="console-tool__intro-copy">
+            <span className="console-tool__eyebrow">{t(config.eyebrowKey)}</span>
+            <h2 id="console-title">{t(config.titleKey)}</h2>
+            <p>{t(config.descriptionKey)}</p>
+          </div>
         </div>
         <div className="console-tool__hero-metrics" aria-label={t("statistics")}>
           <div className="console-tool__metric">
@@ -267,6 +272,9 @@ export function ConsoleToolPanel({
             </>
           ) : (
             <div className="console-tool__empty">
+              <span className="console-tool__empty-icon" aria-hidden="true">
+                <FileSearch size={22} />
+              </span>
               <span>{t("statusReady")}</span>
               <strong>{t("previewWaiting")}</strong>
             </div>

@@ -1,30 +1,34 @@
 .anchor-admin-playarea {
-  --anchor-accent: #5f6eea;
-  --anchor-accent-strong: #20244f;
-  --anchor-accent-soft: #eef0ff;
-  --anchor-ink: #171923;
-  --anchor-muted: #667085;
-  --anchor-border: #dfe4ea;
-  --anchor-surface: #ffffff;
-  --anchor-page: #f6f8fb;
+  // Neo Soft tokens (violet accent for this app)
+  --ns-surface: #ffffff;
+  --ns-surface-subtle: #f7f8fa;
+  --ns-border: rgba(20, 22, 38, 0.06);
+  --ns-shadow-md: 0 8px 24px rgba(20, 22, 38, 0.06);
+  --ns-ink: #1e1e2e;
+  --ns-text-2: #5b6478;
+  --ns-text-muted: #8a92a6;
+  --ns-radius-lg: 20px;
+
+  --anchor-accent: #7b61ff;
+  --anchor-accent-strong: #6a4df4;
+  --anchor-accent-soft: #eeeaff;
 
   min-height: 100%;
   padding: 16px;
-  color: var(--anchor-ink);
-  background: var(--anchor-page);
+  color: var(--ns-ink);
 }
 
 .anchor-admin-shell {
   display: grid;
   grid-template-columns: minmax(0, 0.78fr) minmax(320px, 0.42fr);
-  gap: 14px;
+  gap: 16px;
   align-items: start;
 }
 
 .anchor-admin-main,
 .anchor-admin-side {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -32,120 +36,136 @@
 .anchor-admin-route-map,
 .anchor-admin-agent-strip,
 .anchor-admin-safety-card {
-  border: 1px solid var(--anchor-border);
-  border-radius: 18px;
-  background: var(--anchor-surface);
-  box-shadow: 0 16px 36px rgba(20, 22, 38, 0.06);
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
 }
 
+/* ── Hero ─────────────────────────────────────────────── */
 .anchor-admin-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.28fr);
-  gap: 16px;
-  align-items: stretch;
-  min-height: 218px;
-  padding: 20px;
-  overflow: hidden;
-  background:
-    linear-gradient(115deg, #ffffff 0%, #f6f7ff 66%, var(--anchor-accent-soft) 100%);
+  gap: 18px;
+  padding: 24px;
+}
+
+.anchor-admin-hero-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.anchor-admin-hero-badge {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--anchor-accent-soft);
+  color: var(--anchor-accent-strong);
 }
 
 .anchor-admin-hero-copy {
-  display: grid;
-  align-content: center;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   min-width: 0;
 }
 
 .anchor-admin-kicker {
-  width: fit-content;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: var(--anchor-accent-soft);
-  color: var(--anchor-accent);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ns-text-muted);
 }
 
 .anchor-admin-hero h2 {
-  max-width: 620px;
   margin: 0;
-  color: #111827;
-  font-size: 44px;
-  font-weight: 900;
-  line-height: 1.02;
-  letter-spacing: 0;
+  color: var(--ns-ink);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .anchor-admin-hero p {
-  max-width: 650px;
   margin: 0;
-  color: #374151;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.55;
-  letter-spacing: 0;
+  color: var(--ns-text-2);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
-.anchor-admin-meter {
+.anchor-admin-hero-stats {
   display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 6px;
-  min-height: 148px;
-  padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  border-radius: 18px;
-  background: var(--anchor-accent-strong);
-  color: #ffffff;
-  text-align: center;
-  box-shadow: 0 24px 44px rgba(32, 36, 79, 0.22);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.anchor-admin-meter strong {
-  font-size: 26px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0;
+.anchor-admin-hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--ns-surface-subtle);
 }
 
-.anchor-admin-meter span {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 12px;
+.anchor-admin-hero-stat span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ns-text-muted);
+}
+
+.anchor-admin-hero-stat strong {
+  min-width: 0;
+  color: var(--ns-ink);
+  font-size: 18px;
   font-weight: 800;
-  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* ── Sections ─────────────────────────────────────────── */
 .anchor-admin-route-map,
 .anchor-admin-agent-strip,
 .anchor-admin-safety-card {
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  gap: 14px;
+  padding: 20px;
 }
 
 .anchor-admin-section-heading {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  align-items: center;
+  align-items: baseline;
   min-width: 0;
 }
 
 .anchor-admin-section-heading span {
-  color: var(--anchor-muted);
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0;
+  color: var(--ns-ink);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .anchor-admin-section-heading strong {
   min-width: 0;
-  color: var(--anchor-ink);
-  font-size: 15px;
-  font-weight: 900;
-  letter-spacing: 0;
+  color: var(--anchor-accent-strong);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -160,30 +180,31 @@
 .anchor-admin-route-tile {
   display: grid;
   gap: 5px;
-  min-height: 74px;
-  padding: 13px;
-  border: 1px solid #edf0f5;
+  min-height: 72px;
+  padding: 13px 14px;
   border-radius: 14px;
-  background: #fbfcff;
+  background: var(--ns-surface-subtle);
 }
 
 .anchor-admin-route-tile span,
 .anchor-admin-vote-preview span,
 .anchor-admin-safety-list span {
-  color: var(--anchor-muted);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0;
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .anchor-admin-route-tile strong,
 .anchor-admin-vote-preview strong {
   min-width: 0;
-  color: var(--anchor-ink);
+  color: var(--ns-ink);
   font-size: 18px;
-  font-weight: 900;
-  line-height: 1.1;
-  letter-spacing: 0;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -192,12 +213,12 @@
 .anchor-admin-command-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .anchor-admin-workflow-card {
   min-width: 0;
-  border-radius: 18px;
+  border-radius: var(--ns-radius-lg);
 }
 
 .anchor-admin-workflow-card .neo-card__body {
@@ -208,11 +229,10 @@
 .anchor-admin-workflow-card p,
 .anchor-admin-safety-card p {
   margin: 0;
-  color: #4b5563;
+  color: var(--ns-text-2);
   font-size: 13px;
-  font-weight: 650;
-  line-height: 1.48;
-  letter-spacing: 0;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .anchor-admin-form-grid {
@@ -227,13 +247,17 @@
 
 .anchor-admin-vote-preview {
   display: grid;
-  gap: 6px;
-  padding: 12px;
-  border: 1px solid #edf0f5;
+  gap: 5px;
+  padding: 12px 14px;
   border-radius: 14px;
   background: var(--anchor-accent-soft);
 }
 
+.anchor-admin-vote-preview strong {
+  color: var(--anchor-accent-strong);
+}
+
+/* ── Agent directory ──────────────────────────────────── */
 .anchor-admin-agent-strip {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -244,31 +268,30 @@
 
 .anchor-admin-agent-row {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
-  min-height: 74px;
-  padding: 12px;
-  border: 1px solid #edf0f5;
+  min-height: 72px;
+  padding: 12px 13px;
   border-radius: 14px;
-  background: #fbfcff;
+  background: var(--ns-surface-subtle);
 }
 
 .anchor-admin-agent-row span {
   width: fit-content;
-  padding: 4px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
   background: var(--anchor-accent-soft);
-  color: var(--anchor-accent);
+  color: var(--anchor-accent-strong);
   font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .anchor-admin-agent-row code {
   display: block;
   min-width: 0;
   overflow: hidden;
-  color: #344054;
+  color: var(--ns-text-2);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 1.4;
@@ -276,18 +299,35 @@
   white-space: nowrap;
 }
 
+.anchor-admin-agent-empty {
+  grid-column: 1 / -1;
+  padding: 24px 16px;
+  border-radius: 14px;
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ── Operator rule ────────────────────────────────────── */
 .anchor-admin-safety-list {
   display: grid;
   gap: 8px;
 }
 
 .anchor-admin-safety-list span {
-  min-height: 40px;
-  padding: 10px 12px;
-  border: 1px solid #edf0f5;
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 10px 14px;
   border-radius: 12px;
-  background: #fbfcff;
-  color: #344054;
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 @media (max-width: 1060px) {
@@ -312,28 +352,28 @@
   }
 
   .anchor-admin-hero {
-    grid-template-columns: 1fr;
-    min-height: 0;
-    padding: 16px;
+    padding: 20px;
   }
 
-  .anchor-admin-hero h2 {
-    font-size: 34px;
+  .anchor-admin-hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .anchor-admin-route-grid,
+  .anchor-admin-route-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .anchor-admin-command-grid,
-  .anchor-admin-agent-strip,
   .anchor-admin-side,
   .anchor-admin-form-grid {
     grid-template-columns: 1fr;
   }
 
-  .anchor-admin-command-grid {
-    grid-template-columns: 1fr;
+  .anchor-admin-agent-strip {
+    grid-template-columns: 1fr 1fr;
   }
 
   .anchor-admin-agent-strip .anchor-admin-section-heading {
-    grid-column: auto;
+    grid-column: 1 / -1;
   }
 }

@@ -1,4 +1,4 @@
-import { NeoButton, NeoCard } from "@shared/components-react";
+import { NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import EventList from "./pages/index/components/EventList";
@@ -25,19 +25,39 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="ticket-play-area">
-      {/* Stats Bar */}
-      <div className="hero-stats">
-        <div className="hero-stat">
-          <span className="hero-stat-value">{eventsCount}</span>
-          <span className="hero-stat-label">{t("sidebarEvents") || "Events"}</span>
+      {/* Hero */}
+      <div className="ticket-hero">
+        <div className="ticket-hero__top">
+          <div className="ticket-hero__badge" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5V9a2 2 0 0 0 0 4v2.5A1.5 1.5 0 0 1 18.5 17h-13A1.5 1.5 0 0 1 4 15.5V13a2 2 0 0 0 0-4V6.5Z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+              <path d="M13 5v12" stroke="currentColor" strokeWidth="1.6" strokeDasharray="2 2.4" />
+            </svg>
+          </div>
+          <div className="ticket-hero__heading">
+            <span className="ticket-hero__eyebrow">{t("eventPass") || "Event Pass"}</span>
+            <h2 className="ticket-hero__title">{t("title") || "Event Ticket Pass"}</h2>
+            <p className="ticket-hero__subtitle">{t("docSubtitle") || "On-chain tickets with organizer check-in"}</p>
+          </div>
         </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{ticketsCount}</span>
-          <span className="hero-stat-label">{t("sidebarTickets") || "Tickets"}</span>
-        </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{activeEventsCount}</span>
-          <span className="hero-stat-label">{t("sidebarActive") || "Active"}</span>
+        <div className="ticket-hero__stats">
+          <div className="ticket-hero__stat">
+            <span className="ticket-hero__stat-value">{eventsCount}</span>
+            <span className="ticket-hero__stat-label">{t("sidebarEvents") || "Events"}</span>
+          </div>
+          <div className="ticket-hero__stat">
+            <span className="ticket-hero__stat-value">{ticketsCount}</span>
+            <span className="ticket-hero__stat-label">{t("sidebarTickets") || "Tickets"}</span>
+          </div>
+          <div className="ticket-hero__stat">
+            <span className="ticket-hero__stat-value">{activeEventsCount}</span>
+            <span className="ticket-hero__stat-label">{t("sidebarActive") || "Active"}</span>
+          </div>
         </div>
       </div>
 
@@ -78,15 +98,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             ))}
           </div>
         </NeoCard>
-      )}
-
-      {/* Wallet connection prompt */}
-      {!address && (
-        <div className="connect-prompt">
-          <NeoButton variant="primary" onClick={() => dispatch("connectWallet")}>
-            {t("walletNotConnected") || "Connect Wallet"}
-          </NeoButton>
-        </div>
       )}
     </div>
   );

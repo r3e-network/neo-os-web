@@ -7,7 +7,6 @@ import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ProofHero from "./components/ProofHero";
-import ProofQuickStats from "./components/ProofQuickStats";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -30,11 +29,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="proof-play-area">
       <ProofHero t={t} totalProofs={totalProofs} yourProofs={yourProofs} />
 
-      <ProofQuickStats t={t} totalProofs={totalProofs} yourProofs={yourProofs} />
-
       {/* Latest Proof Info */}
       <div className="latest-proof-bar">
-        <span className="latest-label">{t("latestProof") || "Latest Proof"}</span>
+        <span className="latest-label">{t("latestId") || "Latest ID"}</span>
         <span className="latest-value">{latestId}</span>
       </div>
 
@@ -44,7 +41,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoInput
             value={content}
             type="textarea"
-            label={t("content") || "Content to Timestamp"}
+            label={t("enterContent") || "Enter content to timestamp"}
             placeholder={t("contentPlaceholder") || "Enter text, hash, or data to create an immutable timestamp proof..."}
             onChange={(val) => setContent(val)}
           />
@@ -66,13 +63,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </NeoCard>
 
       {/* Proof List */}
-      <div className="proof-list-container">
-        {totalProofs === 0 && (
-          <div className="empty-state">
-            <span>{t("noProofs") || "No proofs created yet"}</span>
-          </div>
-        )}
-      </div>
+      {totalProofs === 0 && (
+        <div className="empty-state">
+          <span className="empty-icon" aria-hidden="true">&#x2726;</span>
+          <span className="empty-text">{t("noProofs") || "No proofs created yet"}</span>
+        </div>
+      )}
     </div>
   );
 }

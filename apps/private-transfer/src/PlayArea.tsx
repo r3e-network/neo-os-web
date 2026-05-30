@@ -106,15 +106,22 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
   return (
     <div className="private-transfer">
       <section className="private-transfer__hero">
-        <div>
-          <span>Neo N3 private payments</span>
+        <div className="private-transfer__hero-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            <circle cx="12" cy="16" r="1" />
+          </svg>
+        </div>
+        <div className="private-transfer__hero-body">
+          <span className="private-transfer__eyebrow">Neo N3 private payments</span>
           <h2>Confidential transfer desk</h2>
           <p>
             Seal recipient, amount, memo, and note secret before anything leaves
             the browser. Morpheus handles the private compute path.
           </p>
+          <span className="private-transfer__badge">No on-chain zk curve dependency</span>
         </div>
-        <div className="private-transfer__badge">No on-chain zk curve dependency</div>
       </section>
 
       <section className="private-transfer__grid">
@@ -153,6 +160,12 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
         </div>
 
         <aside className={`private-transfer__status private-transfer__status--${submitState.status}`}>
+          <div className="private-transfer__status-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2 4 6v6c0 5 3.4 7.7 8 10 4.6-2.3 8-5 8-10V6l-8-4Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+          </div>
           <span>Morpheus confidential compute</span>
           <strong>{submitState.message}</strong>
           {submitState.status === "stored" && (

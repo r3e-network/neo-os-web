@@ -164,39 +164,52 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="selfloan-play-area">
-      {/* ==================== Platform Stats ==================== */}
-      <div className="selfloan-hero-stats">
-        <div className="selfloan-hero-stat">
-          <span className="selfloan-hero-stat-value">
-            ${neoPrice > 0 ? neoPrice.toFixed(2) : "--"}
+      {/* ==================== Hero ==================== */}
+      <div className="selfloan-hero">
+        <div className="selfloan-hero-lead">
+          <span className="selfloan-hero-badge" aria-hidden="true">
+            {"$"}
           </span>
-          <span className="selfloan-hero-stat-label">
-            {t("neoPrice") || "NEO Price"}
-          </span>
+          <div className="selfloan-hero-copy">
+            <h2 className="selfloan-hero-title">{t("title") || "SelfLoan"}</h2>
+            <p className="selfloan-hero-subtitle">
+              {t("docSubtitle") || "Tiered LTV self-loans with auto-repayment"}
+            </p>
+          </div>
         </div>
-        <div className="selfloan-hero-stat">
-          <span className="selfloan-hero-stat-value">
-            {displayTotalLoans}
-          </span>
-          <span className="selfloan-hero-stat-label">
-            {t("totalLoans") || "Total Loans"}
-          </span>
-        </div>
-        <div className="selfloan-hero-stat">
-          <span className="selfloan-hero-stat-value">
-            {displayTotalBorrowed}
-          </span>
-          <span className="selfloan-hero-stat-label">
-            {t("totalBorrowed") || "Total Borrowed"}
-          </span>
-        </div>
-        <div className="selfloan-hero-stat">
-          <span className="selfloan-hero-stat-value">
-            {displayTotalRepaid}
-          </span>
-          <span className="selfloan-hero-stat-label">
-            {t("totalRepaid") || "Total Repaid"}
-          </span>
+        <div className="selfloan-hero-stats">
+          <div className="selfloan-hero-stat">
+            <span className="selfloan-hero-stat-value">
+              ${neoPrice > 0 ? neoPrice.toFixed(2) : "--"}
+            </span>
+            <span className="selfloan-hero-stat-label">
+              {t("neoPrice") || "NEO Price"}
+            </span>
+          </div>
+          <div className="selfloan-hero-stat">
+            <span className="selfloan-hero-stat-value">
+              {displayTotalLoans}
+            </span>
+            <span className="selfloan-hero-stat-label">
+              {t("totalLoans") || "Total Loans"}
+            </span>
+          </div>
+          <div className="selfloan-hero-stat">
+            <span className="selfloan-hero-stat-value">
+              {displayTotalBorrowed}
+            </span>
+            <span className="selfloan-hero-stat-label">
+              {t("totalBorrowed") || "Total Borrowed"}
+            </span>
+          </div>
+          <div className="selfloan-hero-stat">
+            <span className="selfloan-hero-stat-value">
+              {displayTotalRepaid}
+            </span>
+            <span className="selfloan-hero-stat-label">
+              {t("totalRepaid") || "Total Repaid"}
+            </span>
+          </div>
         </div>
       </div>
 

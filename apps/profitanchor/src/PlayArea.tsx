@@ -15,7 +15,7 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export default function PlayArea({ state }: PlayAreaProps) {
+export default function PlayArea({ t, state }: PlayAreaProps) {
   const { val, num, str } = useStateBindings(state);
 
   const stats = val<ProfitAnchorStats | null>("stats", null);
@@ -35,34 +35,42 @@ export default function PlayArea({ state }: PlayAreaProps) {
   return (
     <div className="profitanchor-play-area">
       <section className="anchor-primary-card anchor-primary-card--profit">
-        <div>
-          <span className="anchor-kicker">ProfitAnchor</span>
-          <h2>Stake. Redeem. Claim.</h2>
-          <p>
-            NEO-backed rewards with manual AA agent routing handled in the
-            admin console.
-          </p>
+        <div className="anchor-primary-head">
+          <span className="anchor-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="5" r="3" />
+              <path d="M12 8v8" />
+              <path d="M5 12a7 7 0 0 0 14 0" />
+              <path d="M5 12H3" />
+              <path d="M21 12h-2" />
+            </svg>
+          </span>
+          <div>
+            <span className="anchor-kicker">{t("appName")}</span>
+            <h2>{t("heroTitle")}</h2>
+            <p>{t("heroDescription")}</p>
+          </div>
         </div>
         <div className="anchor-score">
           <span>{myStakeDisplay}</span>
-          <small>your stake</small>
+          <small>{t("myStake")}</small>
         </div>
       </section>
 
       <div className="anchor-stat-grid">
         <div className="stat-chip">
           <span className="stat-value">{pendingRewardsDisplay}</span>
-          <span className="stat-label">Claimable</span>
+          <span className="stat-label">{t("pendingRewards")}</span>
         </div>
         <div className="stat-chip">
           <span className="stat-value">
             {totalNeoDisplay || `${stats?.totalStaked ?? 0} NEO`}
           </span>
-          <span className="stat-label">Total staked</span>
+          <span className="stat-label">{t("totalNeoTracked")}</span>
         </div>
         <div className="stat-chip">
           <span className="stat-value">{rewardReserveDisplay}</span>
-          <span className="stat-label">Reward reserve</span>
+          <span className="stat-label">{t("rewardReserve")}</span>
         </div>
       </div>
 

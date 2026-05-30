@@ -66,19 +66,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="burn-league-play-area">
-      {/* Hero Stats */}
-      <div className="burn-league-hero-stats">
-        <div className="burn-league-hero-stat">
-          <span className="burn-league-hero-stat-value">{totalBurnedDisplay}</span>
-          <span className="burn-league-hero-stat-label">{t("totalBurned")}</span>
+      {/* Hero — icon badge + title + subtitle + compact stat strip */}
+      <div className="burn-league-hero">
+        <div className="burn-league-hero-lead">
+          <span className="burn-league-hero-badge" aria-hidden="true">{"🔥"}</span>
+          <div className="burn-league-hero-copy">
+            <h2 className="burn-league-hero-title">{t("title")}</h2>
+            <p className="burn-league-hero-subtitle">{t("subtitle")}</p>
+          </div>
         </div>
-        <div className="burn-league-hero-stat">
-          <span className="burn-league-hero-stat-value">{userBurnedDisplay}</span>
-          <span className="burn-league-hero-stat-label">{t("yourBurns")}</span>
-        </div>
-        <div className="burn-league-hero-stat">
-          <span className="burn-league-hero-stat-value">{rewardPoolDisplay}</span>
-          <span className="burn-league-hero-stat-label">{t("rewardPool")}</span>
+        <div className="burn-league-hero-stats">
+          <div className="burn-league-hero-stat">
+            <span className="burn-league-hero-stat-value">{totalBurnedDisplay}</span>
+            <span className="burn-league-hero-stat-label">{t("totalBurned")}</span>
+          </div>
+          <div className="burn-league-hero-stat">
+            <span className="burn-league-hero-stat-value">{userBurnedDisplay}</span>
+            <span className="burn-league-hero-stat-label">{t("yourBurns")}</span>
+          </div>
+          <div className="burn-league-hero-stat">
+            <span className="burn-league-hero-stat-value">{rewardPoolDisplay}</span>
+            <span className="burn-league-hero-stat-label">{t("rewardPool")}</span>
+          </div>
         </div>
       </div>
 

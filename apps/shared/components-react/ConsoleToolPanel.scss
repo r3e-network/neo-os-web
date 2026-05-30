@@ -1,9 +1,9 @@
 .console-tool {
   display: grid;
   gap: 16px;
-  padding: 18px 12px 22px;
-  border-radius: 16px;
-  background: #f7f8fb;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .console-tool .neo-btn:disabled {
@@ -17,16 +17,35 @@
 .console-tool__hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 0.9fr);
-  gap: 14px;
+  gap: 20px;
   align-items: stretch;
-  padding: 18px;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  padding: 24px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
 }
 
 .console-tool__intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.console-tool__hero-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: var(--ns-radius-full);
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
+}
+
+.console-tool__intro-copy {
   display: grid;
   align-content: center;
   gap: 8px;
@@ -34,33 +53,35 @@
 }
 
 .console-tool__eyebrow {
-  color: #8178ff;
-  font-size: 0.75rem;
-  font-weight: 850;
-  letter-spacing: 0;
+  color: var(--ns-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .console-tool__intro h2 {
   margin: 0;
-  color: #111827;
-  font-size: 1.4rem;
-  font-weight: 850;
-  line-height: 1.18;
-  letter-spacing: 0;
+  color: var(--ns-ink);
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 .console-tool__intro p {
   margin: 0;
   max-width: 42rem;
-  color: #64748b;
-  font-size: 0.95rem;
-  line-height: 1.56;
+  color: var(--ns-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.55;
 }
 
 .console-tool__hero-metrics {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
+  align-content: center;
 }
 
 .console-tool__metric {
@@ -69,25 +90,27 @@
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  padding: 11px 14px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-sm);
+  background: var(--ns-surface-subtle);
 }
 
 .console-tool__metric span {
-  color: #64748b;
-  font-size: 0.72rem;
-  font-weight: 800;
+  color: var(--ns-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .console-tool__metric strong {
   min-width: 0;
   overflow: hidden;
-  color: #111827;
-  font-size: 0.82rem;
-  font-weight: 850;
+  color: var(--ns-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -98,77 +121,80 @@
   align-items: center;
   gap: 16px;
   min-width: 0;
-  padding: 18px;
-  border: 1px solid rgba(129, 120, 255, 0.24);
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ffffff 0%, #eefcf7 46%, #fff3f7 100%);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.07);
+  padding: 20px 24px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
 }
 
 .console-tool__asset-token {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 58px;
-  height: 58px;
-  flex: 0 0 58px;
-  border-radius: 999px;
-  color: #0891b2;
-  background: #dff7ff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.76);
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: var(--ns-radius-full);
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
 }
 
 .console-tool__asset-copy {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
 }
 
 .console-tool__asset-copy span {
-  color: #64748b;
-  font-size: 0.82rem;
-  font-weight: 850;
+  color: var(--ns-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .console-tool__asset-copy strong {
   overflow-wrap: anywhere;
-  color: #111827;
-  font-size: 1.12rem;
-  font-weight: 850;
-  line-height: 1.22;
+  color: var(--ns-ink);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
 }
 
 .console-tool__asset-copy p {
   margin: 0;
-  color: #64748b;
-  font-size: 0.78rem;
-  font-weight: 650;
+  color: var(--ns-text-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
   line-height: 1.45;
 }
 
 .console-tool__asset-signal {
   display: grid;
   gap: 8px;
-  min-width: 180px;
+  min-width: 168px;
   margin-left: auto;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16);
+  padding: 14px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-sm);
+  background: var(--ns-surface-subtle);
 }
 
 .console-tool__asset-signal span {
-  color: #64748b;
-  font-size: 0.72rem;
-  font-weight: 850;
+  color: var(--ns-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .console-tool__asset-signal strong {
   overflow-wrap: anywhere;
-  color: #111827;
-  font-size: 0.78rem;
-  font-weight: 850;
+  color: var(--ns-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
 }
 
 .console-tool__sparkline {
@@ -176,14 +202,14 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
   align-items: end;
-  height: 42px;
+  height: 36px;
 }
 
 .console-tool__sparkline i {
   display: block;
   min-width: 0;
-  border-radius: 999px 999px 8px 8px;
-  background: linear-gradient(180deg, #8178ff 0%, #18c29c 100%);
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--ns-violet) 0%, var(--ns-brand) 100%);
 }
 
 .console-tool__sparkline i:nth-child(1) {
@@ -199,7 +225,7 @@
 }
 
 .console-tool__sparkline i:nth-child(4) {
-  height: 88%;
+  height: 90%;
 }
 
 .console-tool__sparkline i:nth-child(5) {
@@ -209,23 +235,23 @@
 .console-tool__workspace {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
-  gap: 14px;
+  gap: 16px;
   align-items: start;
 }
 
 .console-tool__form,
 .console-tool__result {
   min-width: 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
 }
 
 .console-tool__form {
   display: grid;
   gap: 14px;
-  padding: 18px;
+  padding: 20px;
 }
 
 .console-tool__flow {
@@ -238,31 +264,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
-  border-radius: 999px;
-  color: #6d5dfc;
-  background: #eff0ff;
-  font-size: 0.72rem;
-  font-weight: 850;
+  min-height: 34px;
+  border-radius: var(--ns-radius-full);
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .console-tool__hint {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  padding: 11px 13px;
-  border: 1px solid #dbe4ef;
-  border-radius: 12px;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 0.78rem;
-  font-weight: 650;
+  padding: 12px 14px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-sm);
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
   line-height: 1.45;
 }
 
 .console-tool__hint svg {
   flex: 0 0 auto;
-  color: #18c29c;
+  color: var(--ns-brand-strong);
   margin-top: 1px;
 }
 
@@ -272,27 +298,27 @@
 }
 
 .console-tool__field span {
-  color: #374151;
-  font-size: 0.78rem;
-  font-weight: 760;
+  color: var(--ns-text-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .console-tool__field select {
   width: 100%;
   min-height: 44px;
-  border: 1px solid #d1d5db;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #111827;
+  border: 1px solid var(--ns-border-strong);
+  border-radius: var(--ns-radius-sm);
+  background: var(--ns-surface);
+  color: var(--ns-ink);
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
   padding: 0 14px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--ns-shadow-xs);
 }
 
 .console-tool__field select:focus {
-  outline: 2px solid rgba(16, 185, 129, 0.22);
+  outline: 2px solid rgba(123, 97, 255, 0.28);
   outline-offset: 2px;
 }
 
@@ -314,7 +340,7 @@
 .console-tool__result {
   display: grid;
   gap: 14px;
-  padding: 18px;
+  padding: 20px;
 }
 
 .console-tool__result-head {
@@ -333,15 +359,18 @@
 .console-tool__result-head span,
 .console-tool__empty span,
 .console-tool__payload-card span {
-  color: #64748b;
-  font-size: 0.74rem;
-  font-weight: 850;
+  color: var(--ns-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .console-tool__result-head strong,
 .console-tool__empty strong {
-  color: #111827;
-  font-size: 1.05rem;
+  color: var(--ns-ink);
+  font-size: 1.0625rem;
+  font-weight: 700;
   line-height: 1.35;
 }
 
@@ -353,24 +382,28 @@
 
 .console-tool__rows div {
   min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #f8fafc;
+  padding: 11px 14px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-sm);
+  background: var(--ns-surface-subtle);
 }
 
 .console-tool__rows span {
   display: block;
-  color: #64748b;
-  font-size: 0.72rem;
-  font-weight: 800;
+  color: var(--ns-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .console-tool__rows strong {
   display: block;
   overflow-wrap: anywhere;
-  color: #111827;
+  color: var(--ns-ink);
   font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   line-height: 1.35;
   margin-top: 4px;
 }
@@ -384,11 +417,11 @@
   overflow: auto;
   max-height: 280px;
   margin: 0;
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #f8fafc;
-  color: #111827;
+  padding: 14px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-sm);
+  background: var(--ns-surface-subtle);
+  color: var(--ns-ink);
   font-size: 0.78rem;
   line-height: 1.48;
   white-space: pre-wrap;
@@ -396,15 +429,47 @@
 }
 
 .console-tool__empty {
-  min-height: 260px;
+  min-height: 160px;
   place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 28px 24px;
   text-align: center;
+}
+
+.console-tool__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 2px;
+  border-radius: var(--ns-radius-full);
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
+  padding: 0;
+}
+
+.console-tool__empty span:not(.console-tool__empty-icon) {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--ns-radius-full);
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
+  letter-spacing: 0.04em;
+}
+
+.console-tool__empty strong {
+  max-width: 24rem;
+  color: var(--ns-text-2);
+  font-size: 0.9375rem;
+  font-weight: 600;
 }
 
 @media (max-width: 860px) {
   .console-tool {
-    padding: 14px 10px 18px;
-    border-radius: 14px;
+    gap: 14px;
   }
 
   .console-tool__hero,
@@ -413,24 +478,19 @@
   }
 
   .console-tool__hero {
-    padding: 14px;
-    border-radius: 14px;
-  }
-
-  .console-tool__intro h2 {
-    font-size: 1.28rem;
-    line-height: 1.12;
+    gap: 16px;
+    padding: 20px;
   }
 
   .console-tool__asset-card {
     flex-wrap: wrap;
     align-items: flex-start;
-    padding: 14px;
+    padding: 20px;
   }
 
   .console-tool__asset-copy strong {
     font-size: 1rem;
-    line-height: 1.16;
+    line-height: 1.18;
   }
 
   .console-tool__asset-signal {

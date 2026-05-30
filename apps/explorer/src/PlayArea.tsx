@@ -83,10 +83,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="explorer-play-area">
       <section className="explorer-hero" aria-label={t("title")}>
-        <div className="explorer-hero__copy">
-          <span className="explorer-eyebrow">{t("docSubtitle")}</span>
-          <h2>{t("title")}</h2>
-          <p>{t("docDescription")}</p>
+        <div className="explorer-hero__intro">
+          <div className="explorer-hero__badge" aria-hidden="true">N3</div>
+          <div className="explorer-hero__copy">
+            <span className="explorer-eyebrow">{t("docSubtitle")}</span>
+            <h2>{t("title")}</h2>
+            <p>{t("docDescription")}</p>
+          </div>
         </div>
         <div className="explorer-hero__metrics" aria-label={t("sidebarNetwork")}>
           <div className="explorer-metric">
@@ -100,25 +103,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="explorer-metric">
             <span>{t("transactions")}</span>
             <strong className="mono">{formatNumber(activeTxCount)}</strong>
-          </div>
-        </div>
-      </section>
-
-      <section className="explorer-signal-card" aria-label={t("explorerReadOnly")}>
-        <div className="explorer-token" aria-hidden="true">N3</div>
-        <div className="explorer-signal-card__copy">
-          <span>{t("explorerReadOnly")}</span>
-          <strong>{t("explorerSearchScope")}</strong>
-          <p>{t("explorerSafetyDesc")}</p>
-        </div>
-        <div className="explorer-network-stack" aria-label={t("sidebarNetwork")}>
-          <div>
-            <span>{t("mainnet")}</span>
-            <strong>{formatNumber(mainnetHeight)}</strong>
-          </div>
-          <div>
-            <span>{t("testnet")}</span>
-            <strong>{formatNumber(testnetHeight)}</strong>
           </div>
         </div>
       </section>
@@ -220,14 +204,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         truncateHash={truncateHash}
         onViewTx={handleViewTx}
       />
-
-      {recentTxCount > 0 && (
-        <div className="recent-count-footer">
-          <span className="recent-count-label">
-            {t("recentTxCount")}: {recentTxCount}
-          </span>
-        </div>
-      )}
     </div>
   );
 }

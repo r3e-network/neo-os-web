@@ -115,25 +115,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           )}
 
-          <div className="qf-wallet-strip" aria-label={t("qfWalletSummary")}>
-            <div className="qf-wallet-item">
-              <span className="qf-wallet-label">{t("tabRounds")}</span>
-              <strong>{roundCount}</strong>
-            </div>
-            <div className="qf-wallet-item">
-              <span className="qf-wallet-label">{t("qfLiveRound")}</span>
-              <strong>{activeRoundCount}</strong>
-            </div>
-            <div className="qf-wallet-item">
-              <span className="qf-wallet-label">{t("sidebarMatchingPool")}</span>
-              <strong>{matchingPoolDisplay}</strong>
-            </div>
-            <div className="qf-wallet-item">
-              <span className="qf-wallet-label">{t("tabProjects")}</span>
-              <strong>{projectCount}</strong>
-            </div>
-          </div>
-
           <div className="qf-action-tabs" role="tablist" aria-label={t("qfTabsLabel")}>
             {["rounds", "projects", "contribute"].map((tab) => (
               <NeoButton

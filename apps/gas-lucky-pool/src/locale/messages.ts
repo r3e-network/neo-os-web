@@ -65,6 +65,7 @@ const appMessagesBase = {
   claimReceiptTitle: { en: "Claim receipt", zh: "领取凭证" },
   claimAmountLabel: { en: "Reward", zh: "奖励" },
   claimKeyLabel: { en: "Claim key", zh: "领取 key" },
+  claimKeyPending: { en: "Awaiting scan", zh: "等待扫码" },
   claimNetworkLabel: { en: "Network", zh: "网络" },
   networkMainnet: { en: "Neo N3 MainNet", zh: "Neo N3 主网" },
   networkTestnet: { en: "Neo N3 TestNet", zh: "Neo N3 测试网" },

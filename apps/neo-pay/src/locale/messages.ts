@@ -5,6 +5,38 @@ const appMessages = {
   createTab: { en: "Create", zh: "创建" },
   vaultsTab: { en: "Streams", zh: "资金流" },
 
+  // Hero + overview
+  heroEyebrow: { en: "Payment streams", zh: "流式支付" },
+  heroTitle: { en: "Stream payments over time", zh: "随时间流式发放资金" },
+  heroSubtitle: {
+    en: "Lock GAS or NEO and release it on a schedule — for payrolls, subscriptions, and allowances.",
+    zh: "锁定 GAS 或 NEO 并按计划释放——适用于工资、订阅与津贴。",
+  },
+  totalStreams: { en: "Total Streams", zh: "总流数量" },
+  active: { en: "Active", zh: "活跃" },
+  createdByYou: { en: "Created by You", zh: "你创建的" },
+  youAreBeneficiary: { en: "You're Beneficiary", zh: "你是受益人" },
+
+  // Create form
+  createStream: { en: "Create Stream", zh: "创建资金流" },
+  recipient: { en: "Recipient Address", zh: "收款地址" },
+  recipientPlaceholder: { en: "N3 address...", zh: "输入 N3 地址……" },
+  amount: { en: "Amount", zh: "金额" },
+  duration: { en: "Duration", zh: "周期" },
+  durationPlaceholder: { en: "Number of days", zh: "天数" },
+  token: { en: "Token", zh: "代币" },
+
+  // Lists
+  yourCreatedStreams: { en: "Your Created Streams", zh: "你创建的资金流" },
+  streamsYouReceive: { en: "Streams You Receive", zh: "你收到的资金流" },
+  noCreatedStreams: {
+    en: "You haven't created any streams yet",
+    zh: "你还没有创建任何资金流",
+  },
+  noBeneficiaryStreams: { en: "No incoming streams", zh: "暂无收到的资金流" },
+  to: { en: "To", zh: "收款方" },
+  from: { en: "From", zh: "付款方" },
+
   vaultName: { en: "Stream name", zh: "资金流名称" },
   vaultNamePlaceholder: { en: "Monthly payroll stream", zh: "每月工资流" },
   beneficiary: { en: "Beneficiary address", zh: "受益人地址" },
