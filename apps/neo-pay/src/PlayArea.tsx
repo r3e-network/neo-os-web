@@ -138,42 +138,70 @@ export default function PlayArea({
   };
 
   const getProgressColor = (pct: number): string => {
-    if (pct >= 100) return "#3b82f6";
-    if (pct >= 50) return "#16c784";
-    return "#00c9ff";
+    if (pct >= 100) return "var(--ns-info, #3e8cff)";
+    return "var(--ns-brand, #16c784)";
   };
 
   const tokenOptions = ["GAS", "NEO", "bNEO"];
 
   return (
     <div className="neopay-play-area">
-      {/* ==================== Stats Bar ==================== */}
-      <div className="neopay-hero-stats">
-        <div className="neopay-hero-stat">
-          <span className="neopay-hero-stat-value">{totalStreamCount}</span>
-          <span className="neopay-hero-stat-label">
-            {t("totalStreams") || "Total Streams"}
-          </span>
+      {/* ==================== Hero ==================== */}
+      <div className="neopay-hero">
+        <div className="neopay-hero-top">
+          <div className="neopay-hero-badge" aria-hidden="true">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 12h4l2 6 4-12 2 6h4" />
+            </svg>
+          </div>
+          <div className="neopay-hero-text">
+            <span className="neopay-hero-eyebrow">
+              {t("ariaStreams") || "Streams"}
+            </span>
+            <h2 className="neopay-hero-title">{t("title") || "NeoPay"}</h2>
+            <p className="neopay-hero-subtitle">
+              {t("docSubtitle") ||
+                "Scheduled releases for payrolls, subscriptions, and allowances"}
+            </p>
+          </div>
         </div>
-        <div className="neopay-hero-stat">
-          <span className="neopay-hero-stat-value">{activeCount}</span>
-          <span className="neopay-hero-stat-label">
-            {t("active") || "Active"}
-          </span>
-        </div>
-        <div className="neopay-hero-stat">
-          <span className="neopay-hero-stat-value">{createdStreamCount}</span>
-          <span className="neopay-hero-stat-label">
-            {t("createdByYou") || "Created by You"}
-          </span>
-        </div>
-        <div className="neopay-hero-stat">
-          <span className="neopay-hero-stat-value">
-            {beneficiaryStreamCount}
-          </span>
-          <span className="neopay-hero-stat-label">
-            {t("youAreBeneficiary") || "You're Beneficiary"}
-          </span>
+
+        <div className="neopay-hero-stats">
+          <div className="neopay-hero-stat">
+            <span className="neopay-hero-stat-value">{totalStreamCount}</span>
+            <span className="neopay-hero-stat-label">
+              {t("totalStreams") || "Total Streams"}
+            </span>
+          </div>
+          <div className="neopay-hero-stat">
+            <span className="neopay-hero-stat-value">{activeCount}</span>
+            <span className="neopay-hero-stat-label">
+              {t("active") || "Active"}
+            </span>
+          </div>
+          <div className="neopay-hero-stat">
+            <span className="neopay-hero-stat-value">{createdStreamCount}</span>
+            <span className="neopay-hero-stat-label">
+              {t("createdByYou") || "Created by You"}
+            </span>
+          </div>
+          <div className="neopay-hero-stat">
+            <span className="neopay-hero-stat-value">
+              {beneficiaryStreamCount}
+            </span>
+            <span className="neopay-hero-stat-label">
+              {t("youAreBeneficiary") || "You're Beneficiary"}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -251,7 +279,23 @@ export default function PlayArea({
           </div>
         ) : createdStreams.length === 0 ? (
           <div className="neopay-empty">
-            {t("noCreatedStreams") || "You haven't created any streams yet"}
+            <span className="neopay-empty-icon" aria-hidden="true">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 12h4l2 6 4-12 2 6h4" />
+              </svg>
+            </span>
+            <span>
+              {t("noCreatedStreams") || "You haven't created any streams yet"}
+            </span>
           </div>
         ) : (
           <div className="neopay-stream-list">
@@ -330,7 +374,21 @@ export default function PlayArea({
           </div>
         ) : beneficiaryStreams.length === 0 ? (
           <div className="neopay-empty">
-            {t("noBeneficiaryStreams") || "No incoming streams"}
+            <span className="neopay-empty-icon" aria-hidden="true">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 5v14M19 12l-7 7-7-7" />
+              </svg>
+            </span>
+            <span>{t("noBeneficiaryStreams") || "No incoming streams"}</span>
           </div>
         ) : (
           <div className="neopay-stream-list">

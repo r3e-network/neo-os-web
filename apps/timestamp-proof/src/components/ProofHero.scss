@@ -1,113 +1,124 @@
-@use "@shared/styles/hero" as *;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
+// Violet accent (this app's identity hue)
+$accent: #7b61ff;
+$accent-strong: #6a4df4;
+$accent-soft: #eeeaff;
+
 .hero-container {
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, rgba(159, 157, 243, 0.1), rgba(107, 114, 128, 0.06), rgba(192, 192, 192, 0.05));
-  background-size: 200% 200%;
-  animation: ts-silver-gradient 8s ease-in-out infinite;
-  box-shadow:
-    0 0 24px rgba(159, 157, 243, 0.08),
-    inset 0 1px 0 rgba(159, 157, 243, 0.1);
-  border: 1px solid rgba(159, 157, 243, 0.1);
-  border-radius: 16px;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: 0;
+  text-align: left;
+  gap: 18px;
+  padding: 22px;
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
-.stamp-scene {
+.hero-head {
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 80px;
+  gap: 16px;
+}
+
+.hero-badge {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: $accent-soft;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .stamp-seal {
-  width: 50px;
-  height: 50px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: ts-stamp-impression 5s ease-in-out infinite;
-  background: radial-gradient(circle, rgba(159, 157, 243, 0.15), transparent 70%);
 }
 
 .stamp-ring {
   position: absolute;
   inset: 0;
-  border: 3px solid rgba(159, 157, 243, 0.4);
+  border: 2px dashed rgba(123, 97, 255, 0.45);
   border-radius: 50%;
-  border-style: dashed;
-  animation: stamp-rotate 10s linear infinite;
-  box-shadow: 0 0 8px rgba(159, 157, 243, 0.2);
+  animation: ts-stamp-rotate 12s linear infinite;
 }
 
-.stamp-text {
-  font-size: 20px;
-  color: rgba(159, 157, 243, 0.6);
-  animation: ts-clock-tick 8s steps(4) infinite;
-  display: inline-block;
+.stamp-mark {
+  font-size: 18px;
+  line-height: 1;
+  color: $accent-strong;
 }
 
-@keyframes stamp-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
-@keyframes ts-clock-tick {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(90deg); }
-  50% { transform: rotate(180deg); }
-  75% { transform: rotate(270deg); }
+.hero-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--ns-ink, #1e1e2e);
 }
 
-@keyframes ts-stamp-impression {
-  0%, 100% {
-    box-shadow: 0 0 12px rgba(159, 157, 243, 0.15);
-    transform: scale(1);
-  }
-  15% {
-    transform: scale(1.1);
-    box-shadow: 0 0 32px rgba(159, 157, 243, 0.4);
-  }
-  30% {
-    transform: scale(0.97);
-    box-shadow: 0 0 20px rgba(159, 157, 243, 0.25);
-  }
-  45% {
-    transform: scale(1);
-    box-shadow: 0 0 12px rgba(159, 157, 243, 0.15);
-  }
-}
-
-@keyframes ts-silver-gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+.hero-subtitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
 }
 
 .hero-stats {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+
+  &:hover {
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 .hero-stat {
-  text-align: center;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, rgba(159, 157, 243, 0.1), rgba(107, 114, 128, 0.04));
-  border-radius: 8px;
-  border: 1px solid rgba(159, 157, 243, 0.15);
-  box-shadow: 0 0 16px rgba(159, 157, 243, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 14px 8px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 12px;
 }
 
 .hero-stat-value {
   display: block;
   font-size: 20px;
   font-weight: 800;
-  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  color: var(--ns-ink, #1e1e2e);
+  font-variant-numeric: tabular-nums;
 }
 
 .hero-stat-label {
@@ -115,16 +126,26 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 1px;
+  letter-spacing: 0.1em;
+  color: var(--ns-text-muted, #8a92a6);
   margin-top: 2px;
+}
+
+@keyframes ts-stamp-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ts-stamp-impression {
+  0%, 100% { transform: scale(1); }
+  15% { transform: scale(1.08); }
+  30% { transform: scale(0.98); }
+  45% { transform: scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stamp-seal,
-  .stamp-ring,
-  .stamp-text,
-  .hero-container {
+  .stamp-ring {
     animation: none;
   }
 }

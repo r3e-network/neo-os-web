@@ -37,8 +37,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <section className="tarot-main" aria-label={t("tarotHeroTitle")}>
           <div className="tarot-hero">
             <div className="tarot-hero-copy">
-              <span>{t("oracleRequestTitle")}</span>
-              <h2>{t("tarotHeroTitle")}</h2>
+              <div className="tarot-hero-intro">
+                <span className="tarot-hero-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M12 2.5l2.6 5.27 5.82.85-4.21 4.1.99 5.8L12 15.77 6.8 18.52l.99-5.8L3.58 8.62l5.82-.85L12 2.5z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <div className="tarot-hero-heading">
+                  <span className="tarot-hero-eyebrow">{t("oracleRequestTitle")}</span>
+                  <h2>{t("tarotHeroTitle")}</h2>
+                </div>
+              </div>
               <p>{t("tarotHeroSubtitle")}</p>
             </div>
             <div className="tarot-oracle-stats">

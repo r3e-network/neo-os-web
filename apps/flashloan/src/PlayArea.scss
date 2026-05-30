@@ -11,39 +11,91 @@
 .flashloan-loading {
   text-align: center;
   padding: 3rem 1rem;
-  color: #6b7280;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 0.875rem;
 }
 
-/* ── Hero Stats ── */
-.flashloan-hero-stats {
+/* ── Hero ── */
+.flashloan-hero__head {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
-.flashloan-hero-stat {
-  text-align: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #f3f4f6;
+.flashloan-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
 }
 
-.flashloan-hero-stat-value {
-  display: block;
-  font-size: 1.5rem;
+.flashloan-hero__text {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.flashloan-hero__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.flashloan-hero__subtitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.flashloan-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.flashloan-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+}
+
+.flashloan-stat__value {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  color: var(--ns-ink, #1e1e2e);
+  font-variant-numeric: tabular-nums;
+}
+
+.flashloan-stat__label {
+  font-size: 10px;
   font-weight: 700;
-  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
-.flashloan-hero-stat-label {
-  display: block;
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 0.25rem;
+@media (max-width: 560px) {
+  .flashloan-hero__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ── Request Card ── */
@@ -52,19 +104,28 @@
 }
 
 .flashloan-section-title {
-  font-size: 0.875rem;
+  font-size: 1.0625rem;
   font-weight: 700;
-  color: #1f2937;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.75rem;
+  color: var(--ns-ink, #1e1e2e);
+  letter-spacing: -0.01em;
+  margin: 0 0 0.875rem;
 }
 
 .flashloan-empty {
   text-align: center;
   padding: 1.5rem;
-  color: #9ca3af;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 0.8125rem;
+}
+
+.flashloan-connect-hint {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8125rem;
+  text-align: center;
 }
 
 /* ── Pool Grid ── */
@@ -130,10 +191,10 @@
 .flashloan-fixed-callback {
   margin: 0;
   padding: 0.625rem 0.75rem;
-  border: 1px solid #d1fae5;
-  border-radius: 6px;
-  background: #ecfdf5;
-  color: #047857;
+  border: 1px solid var(--ns-brand-soft, #e4f8f0);
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
   font-size: 0.8125rem;
   font-weight: 600;
   line-height: 1.45;
@@ -151,15 +212,44 @@
   gap: 0.5rem;
 }
 
-.flashloan-loan-row {
+.flashloan-loan-details {
   display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.875rem;
+}
+
+.flashloan-loan-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.75fr 0.75fr;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
   padding: 0.625rem 0.75rem;
-  border-radius: 6px;
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.flashloan-loan-callback {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+  word-break: break-all;
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+  }
+}
+
+.flashloan-validation-error {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: #fde7e9;
+  color: #c81e2a;
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .flashloan-loan-info {
@@ -199,12 +289,12 @@
   grid-template-columns: 1fr 1fr 0.75fr 0.75fr;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 
   span {
     font-size: 0.6875rem;
     font-weight: 700;
-    color: #9ca3af;
+    color: var(--ns-text-muted, #8a92a6);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
@@ -215,29 +305,32 @@
   grid-template-columns: 1fr 1fr 0.75fr 0.75fr;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #f9fafb;
+  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   transition: background 0.15s;
 
   &:hover {
-    background: #f9fafb;
+    background: var(--ns-surface-subtle, #f7f8fa);
   }
 }
 
 .flashloan-cell-pool {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--ns-ink, #1e1e2e);
+  font-variant-numeric: tabular-nums;
 }
 
 .flashloan-cell-amount {
   font-size: 0.8125rem;
-  color: #10b981;
+  color: var(--ns-brand-strong, #0fb174);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .flashloan-cell-fee {
   font-size: 0.8125rem;
-  color: #6b7280;
+  color: var(--ns-text-2, #5b6478);
+  font-variant-numeric: tabular-nums;
 }
 
 .flashloan-cell-status {
@@ -247,13 +340,13 @@
 }
 
 .flashloan-status--active {
-  color: #fbbf24;
+  color: #d97706;
 }
 
 .flashloan-status--repaid {
-  color: #10b981;
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .flashloan-status--liquidated {
-  color: #f87171;
+  color: #c81e2a;
 }

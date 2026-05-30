@@ -18,9 +18,9 @@
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
   gap: 16px;
   align-items: stretch;
-  padding: 22px;
-  border: 1px solid rgba(22, 199, 132, 0.12);
-  border-radius: var(--ns-radius-md, 16px);
+  padding: 24px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
   background:
     radial-gradient(120% 140% at 100% 0%, var(--ns-brand-soft, #e4f8f0) 0%, rgba(228, 248, 240, 0) 60%),
     var(--ns-surface, #ffffff);
@@ -37,7 +37,6 @@
 .gasbox-eyebrow,
 .gasbox-metric span,
 .gasbox-signal-card__copy span,
-.gasbox-hero-stat-label,
 .gasbox-section-header span,
 .gasbox-market-empty__copy span,
 .gasbox-empty-actions span,
@@ -49,35 +48,34 @@
 .gasbox-rarity-title,
 .gasbox-status-badge,
 .gasbox-prompt-icon {
-  color: #64748b;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 0.74rem;
-  font-weight: 850;
+  font-weight: 800;
   letter-spacing: 0;
 }
 
 .gasbox-eyebrow,
 .gasbox-section-header span,
 .gasbox-player-route span {
-  color: #0f766e;
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .gasbox-eyebrow {
   width: fit-content;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .gasbox-hero h2 {
   margin: 0;
-  color: #111827;
-  font-size: 1.9rem;
-  font-weight: 850;
-  line-height: 1.12;
-  letter-spacing: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -0.02em;
 }
 
 .gasbox-hero p,
@@ -88,20 +86,36 @@
 .gasbox-prompt-text,
 .gasbox-result-desc {
   margin: 0;
-  color: #64748b;
+  color: var(--ns-text-2, #5b6478);
   font-size: 0.84rem;
-  font-weight: 650;
-  line-height: 1.48;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
-.gasbox-hero__metrics,
+.gasbox-hero__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-content: center;
+  min-width: 0;
+}
+
 .gasbox-safety-stats {
   display: grid;
   gap: 8px;
   min-width: 0;
 }
 
-.gasbox-metric,
+.gasbox-metric {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
 .gasbox-safety-stats div,
 .gasbox-detail-stat {
   display: flex;
@@ -116,7 +130,6 @@
 }
 
 .gasbox-metric strong,
-.gasbox-hero-stat-value,
 .gasbox-section-header strong,
 .gasbox-market-empty__copy strong,
 .gasbox-empty-actions strong,
@@ -128,13 +141,23 @@
 .gasbox-top-prize-name,
 .gasbox-result-item {
   min-width: 0;
-  color: #111827;
+  color: var(--ns-ink, #1e1e2e);
   font-size: 1rem;
-  font-weight: 850;
+  font-weight: 800;
   line-height: 1.28;
 }
 
-.gasbox-metric strong,
+.gasbox-metric strong {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.gasbox-metric span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .gasbox-safety-stats strong {
   overflow: hidden;
   text-align: right;
@@ -149,9 +172,11 @@
   align-items: center;
   min-width: 0;
   padding: 18px;
-  border: 1px solid rgba(16, 185, 129, 0.22);
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ffffff 0%, #eefcf7 52%, #fff7ed 100%);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    radial-gradient(120% 160% at 0% 0%, var(--ns-brand-soft, #e4f8f0) 0%, rgba(228, 248, 240, 0) 58%),
+    var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
@@ -161,14 +186,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 58px;
-  height: 58px;
-  flex: 0 0 58px;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
   border-radius: 999px;
-  background: #dff7ea;
-  color: #047857;
-  font-size: 1.25rem;
-  font-weight: 850;
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 1.2rem;
+  font-weight: 800;
 }
 
 .gasbox-signal-card__copy {
@@ -178,9 +203,9 @@
 }
 
 .gasbox-signal-card__copy strong {
-  color: #111827;
-  font-size: 1.14rem;
-  font-weight: 850;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1.1rem;
+  font-weight: 800;
   line-height: 1.22;
 }
 
@@ -192,16 +217,16 @@
   min-width: 0;
   height: 52px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .gasbox-capsule-stack i {
   display: block;
   min-width: 0;
   border-radius: 999px 999px 8px 8px;
-  background: linear-gradient(180deg, #8178ff 0%, #10b981 100%);
+  background: linear-gradient(180deg, var(--ns-brand, #16c784) 0%, var(--ns-brand-strong, #0fb174) 100%);
 }
 
 .gasbox-capsule-stack i:nth-child(1) { height: 46%; }
@@ -215,8 +240,7 @@
   gap: 10px;
 }
 
-.gasbox-player-route div,
-.gasbox-hero-stat {
+.gasbox-player-route div {
   display: grid;
   gap: 8px;
   min-width: 0;
@@ -225,16 +249,6 @@
   border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
-}
-
-.gasbox-hero-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.gasbox-hero-stat-value {
-  font-size: 1.35rem;
 }
 
 .gasbox-machines-card .neo-card__content {
@@ -299,8 +313,8 @@
 }
 
 .gasbox-machine-item--selected {
-  border-color: #10b981;
-  background: #ecfdf5;
+  border-color: var(--ns-brand, #16c784);
+  background: var(--ns-brand-soft, #e4f8f0);
 }
 
 .gasbox-machine-item--inactive {
@@ -321,24 +335,25 @@
 }
 
 .gasbox-machine-name {
-  color: #111827;
+  color: var(--ns-ink, #1e1e2e);
   font-size: 0.95rem;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .gasbox-machine-desc,
 .gasbox-machine-meta {
-  color: #64748b;
+  color: var(--ns-text-2, #5b6478);
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
 }
 
 .gasbox-machine-cost,
 .gasbox-result-amount {
-  color: #047857;
+  color: var(--ns-brand-strong, #0fb174);
   font-size: 0.9rem;
-  font-weight: 850;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .gasbox-machine-meta,
@@ -601,13 +616,15 @@
   }
 
   .gasbox-hero h2 {
-    font-size: 1.55rem;
+    font-size: 1.4rem;
   }
 
-  .gasbox-player-route,
-  .gasbox-hero-stats,
+  .gasbox-player-route {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .gasbox-machine-detail-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .gasbox-rarity-bar-row {

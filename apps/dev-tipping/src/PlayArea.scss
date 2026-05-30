@@ -361,14 +361,26 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 28px 16px;
+  padding: 28px 20px;
   text-align: center;
   color: var(--ns-text-muted, #8a92a6);
   font-size: 13px;
   line-height: 1.5;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  background: var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 16px);
+  border-radius: var(--ns-radius-lg, 20px);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+}
+
+.tipping-empty__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.tipping-empty__hint {
+  max-width: 30ch;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .tipping-empty__icon {
@@ -382,4 +394,19 @@
   color: var(--tip-accent-strong);
   font-size: 20px;
   line-height: 1;
+}
+
+/* ── Accent alignment: primary buttons follow this app's violet identity ── */
+.dev-tipping-play-area .neo-btn--primary:not(:disabled) {
+  background: var(--tip-accent);
+  box-shadow: 0 2px 8px rgba(123, 97, 255, 0.25);
+
+  &:hover {
+    background: var(--tip-accent-strong);
+    box-shadow: 0 4px 16px rgba(123, 97, 255, 0.3);
+  }
+}
+
+.dev-tipping-play-area .neo-btn:focus-visible {
+  outline-color: var(--tip-accent);
 }

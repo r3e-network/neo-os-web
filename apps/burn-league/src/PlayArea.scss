@@ -1,49 +1,120 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/playarea-base";
 
+// Burn/fire red accent identity, mapped onto the Neo Soft system.
+$burn-accent: var(--ns-danger, #ea3943);
+$burn-accent-strong: var(--ns-danger, #c81e2a);
+$burn-accent-soft: var(--ns-danger-soft, #fde7e9);
+
 .burn-league-play-area {
-  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
+  padding: 16px;
+  max-width: 880px;
+  margin: 0 auto;
+  color: var(--ns-text, #2a2d3d);
 }
 
 .burn-league-loading {
   text-align: center;
-  padding: 3rem 1rem;
-  color: #6b7280;
-  font-size: 0.875rem;
+  padding: 48px 16px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 14px;
 }
 
-/* ── Hero Stats ── */
+/* ── Hero ─────────────────────────────────────────────── */
+.burn-league-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 20px;
+  padding: 20px 24px;
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.burn-league-hero-lead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.burn-league-hero-badge {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  line-height: 1;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: $burn-accent-soft;
+  color: $burn-accent-strong;
+}
+
+.burn-league-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.burn-league-hero-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.burn-league-hero-subtitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ns-text-2, #5b6478);
+}
+
+/* ── Hero stat strip ──────────────────────────────────── */
 .burn-league-hero-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .burn-league-hero-stat {
+  flex: 1 1 auto;
+  min-width: 96px;
   text-align: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #f3f4f6;
+  padding: 12px 14px;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .burn-league-hero-stat-value {
   display: block;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #10b981;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ns-ink, #1e1e2e);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .burn-league-hero-stat-label {
   display: block;
-  font-size: 0.75rem;
-  color: #6b7280;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 0.25rem;
+  color: var(--ns-text-muted, #8a92a6);
+  letter-spacing: 0.1em;
 }
 
 /* ── Rank Card ── */
@@ -54,66 +125,72 @@
 .burn-league-rank-display {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .burn-league-rank-number {
   display: flex;
   align-items: baseline;
-  gap: 0.125rem;
+  gap: 2px;
 }
 
 .burn-league-rank-hash {
-  font-size: 1.25rem;
+  font-size: 20px;
   font-weight: 700;
-  color: #9ca3af;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .burn-league-rank-value {
-  font-size: 2.5rem;
+  font-size: 40px;
   font-weight: 800;
-  color: #fbbf24;
+  color: $burn-accent-strong;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .burn-league-rank-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: 2px;
   flex: 1;
   min-width: 100px;
 }
 
 .burn-league-rank-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #374151;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ns-ink, #1e1e2e);
 }
 
 .burn-league-rank-subtitle {
-  font-size: 0.75rem;
-  color: #9ca3af;
+  font-size: 13px;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .burn-league-estimated-reward {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.125rem;
+  gap: 3px;
+  padding: 8px 14px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: $burn-accent-soft;
 }
 
 .burn-league-reward-label {
-  font-size: 0.7rem;
-  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ns-text-muted, #8a92a6);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 
 .burn-league-reward-value {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #10b981;
+  font-size: 18px;
+  font-weight: 800;
+  color: $burn-accent-strong;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Action Card ── */
@@ -122,18 +199,18 @@
 }
 
 .burn-league-section-title {
-  font-size: 0.875rem;
+  font-size: 11px;
   font-weight: 700;
-  color: #374151;
+  color: var(--ns-text-muted, #8a92a6);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.75rem;
+  letter-spacing: 0.12em;
+  margin: 0 0 12px;
 }
 
 .burn-league-burn-form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 /* ── Leaderboard ── */
@@ -143,48 +220,71 @@
 
 .burn-league-empty {
   text-align: center;
-  padding: 1.5rem;
-  color: #9ca3af;
-  font-size: 0.8125rem;
+  padding: 26px 20px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .burn-league-leaderboard-list {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 6px;
 }
 
 .burn-league-leaderboard-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  background: #f9fafb;
-  transition: background 0.15s;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  transition: background var(--ns-t-fast, 150ms) ease;
 
   &:hover {
-    background: #f9fafb;
+    background: var(--ns-bg-2, #eceef2);
   }
 }
 
 .burn-league-lb-rank {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #fbbf24;
+  font-size: 13px;
+  font-weight: 800;
+  color: $burn-accent-strong;
   min-width: 2rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .burn-league-lb-address {
   flex: 1;
-  font-size: 0.8125rem;
-  color: #374151;
-  font-family: monospace;
+  font-size: 13px;
+  color: var(--ns-text-2, #5b6478);
+  font-family: "JetBrains Mono", "Fira Code", monospace;
 }
 
 .burn-league-lb-amount {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #10b981;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ns-ink, #1e1e2e);
   text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .burn-league-hero {
+    padding: 18px 18px;
+  }
+
+  .burn-league-hero-stats {
+    width: 100%;
+  }
+
+  .burn-league-rank-display {
+    gap: 12px;
+  }
+
+  .burn-league-estimated-reward {
+    align-items: flex-start;
+  }
 }

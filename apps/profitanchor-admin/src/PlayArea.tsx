@@ -52,6 +52,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <main className="anchor-admin-main">
           <section className="anchor-admin-hero">
             <div className="anchor-admin-hero-copy">
+              <span className="anchor-admin-hero-badge" aria-hidden="true">
+                ⛵
+              </span>
               <span className="anchor-admin-kicker">ProfitAnchor Admin</span>
               <h2>{t("adminHeroTitle")}</h2>
               <p>{t("adminHeroSubtitle")}</p>

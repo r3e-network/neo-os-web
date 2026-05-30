@@ -6,8 +6,8 @@
   gap: 16px;
   min-height: 620px;
   padding: 12px;
-  background: #f7f8fb;
-  color: #111827;
+  background: transparent;
+  color: var(--ns-ink, #1e1e2e);
   letter-spacing: 0;
 }
 
@@ -47,26 +47,34 @@
   gap: 10px;
   min-width: 0;
 
-  > span {
-    width: fit-content;
-    padding: 5px 11px;
-    border: none;
-    border-radius: 999px;
+  > .redenv-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    margin-bottom: 4px;
+    border-radius: 14px;
     background: var(--ns-danger-soft, #fde7e9);
     color: #c81e2a;
+  }
+
+  > span {
+    width: fit-content;
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1.2;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
   }
 
   > h2 {
     margin: 0;
     color: var(--ns-ink, #1e1e2e);
-    font-size: 30px;
-    font-weight: 850;
-    line-height: 1.08;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.1;
     letter-spacing: -0.02em;
   }
 
@@ -77,20 +85,6 @@
     font-size: 14px;
     line-height: 1.55;
     letter-spacing: 0;
-  }
-}
-
-.redenv-hero .redenv-hero-copy {
-  > span {
-    color: #c81e2a;
-  }
-
-  > h2 {
-    color: var(--ns-ink, #1e1e2e);
-  }
-
-  > p {
-    color: var(--ns-text-2, #5b6478);
   }
 }
 
@@ -119,21 +113,23 @@
   span {
     color: var(--ns-text-muted, #8a92a6);
     font-size: 11px;
-    font-weight: 750;
+    font-weight: 700;
     line-height: 1.2;
-    letter-spacing: 0;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 
   strong {
     margin-top: 8px;
     overflow-wrap: normal;
     color: var(--ns-ink, #1e1e2e);
-    font-size: 16px;
-    font-weight: 850;
+    font-size: 18px;
+    font-weight: 800;
     line-height: 1.15;
     white-space: nowrap;
     word-break: normal;
-    letter-spacing: 0;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -144,11 +140,11 @@
 
   div {
     min-width: 0;
-    padding: 14px;
-    border: 1px solid #dfe7e2;
+    padding: 16px;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
     border-radius: 16px;
-    background: #ffffff;
-    box-shadow: 0 12px 28px rgba(20, 22, 38, 0.06);
+    background: var(--ns-surface, #ffffff);
+    box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   }
 
   span {
@@ -158,27 +154,29 @@
     width: 28px;
     height: 28px;
     border-radius: 999px;
-    background: #fff1f2;
-    color: #be123c;
+    background: var(--ns-danger-soft, #fde7e9);
+    color: #c81e2a;
     font-size: 12px;
-    font-weight: 850;
+    font-weight: 800;
     letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
   }
 
   strong {
     display: block;
-    margin-top: 10px;
-    color: #111827;
-    font-size: 14px;
-    line-height: 1.2;
-    letter-spacing: 0;
+    margin-top: 12px;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
   }
 
   p {
-    margin: 5px 0 0;
-    color: #66756e;
+    margin: 6px 0 0;
+    color: var(--ns-text-2, #5b6478);
     font-size: 12px;
-    line-height: 1.42;
+    line-height: 1.45;
     letter-spacing: 0;
   }
 }
@@ -195,10 +193,10 @@
 .redenv-safety-panel,
 .redenv-envelope-list,
 .redenv-activity-panel {
-  border-color: rgba(17, 24, 39, 0.1);
-  border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 14px 34px rgba(20, 22, 38, 0.08);
+  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 20px;
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .redenv-claim-panel .neo-card__content,
@@ -218,17 +216,19 @@
   min-width: 0;
 
   span {
-    color: #66756e;
-    font-size: 12px;
-    font-weight: 800;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 11px;
+    font-weight: 700;
     line-height: 1.25;
-    letter-spacing: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   strong {
     max-width: 62%;
-    color: #111827;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 13px;
+    font-weight: 700;
     line-height: 1.25;
     text-align: right;
     word-break: break-word;
@@ -244,14 +244,14 @@
   div {
     min-width: 0;
     padding: 11px;
-    border: 1px solid #e2e8e4;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
     border-radius: 14px;
-    background: #f7faf8;
+    background: var(--ns-surface-subtle, #f7f8fa);
   }
 
   span {
     display: block;
-    color: #66756e;
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 11px;
     font-weight: 700;
     line-height: 1.25;
@@ -263,13 +263,14 @@
     min-width: 0;
     margin-top: 6px;
     overflow: hidden;
-    color: #111827;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 15px;
-    font-weight: 850;
+    font-weight: 800;
     line-height: 1.2;
     text-overflow: ellipsis;
     white-space: nowrap;
     letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -288,7 +289,7 @@
 .redenv-safety-panel {
   p {
     margin: 0;
-    color: #53645c;
+    color: var(--ns-text-2, #5b6478);
     font-size: 13px;
     line-height: 1.52;
     letter-spacing: 0;
@@ -301,10 +302,10 @@
   gap: 12px;
   min-width: 0;
   padding: 9px 0;
-  border-top: 1px solid #edf1ee;
+  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 
   span {
-    color: #66756e;
+    color: var(--ns-text-2, #5b6478);
     font-size: 12px;
     line-height: 1.25;
     letter-spacing: 0;
@@ -312,12 +313,14 @@
 
   strong {
     min-width: 0;
-    color: #111827;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 12px;
+    font-weight: 700;
     line-height: 1.25;
     text-align: right;
     word-break: break-word;
     letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -334,11 +337,11 @@
   width: 100%;
   min-height: 44px;
   min-width: 0;
-  padding: 10px;
-  border: 1px solid #dfe7e2;
+  padding: 10px 12px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 14px;
-  background: #f7faf8;
-  color: #374151;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -346,10 +349,10 @@
   span {
     min-width: 0;
     overflow: hidden;
-    color: #111827;
+    color: var(--ns-ink, #1e1e2e);
     font-family: "SF Mono", "JetBrains Mono", monospace;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1.25;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -357,18 +360,19 @@
   }
 
   strong {
-    color: #be123c;
+    color: #c81e2a;
     font-size: 12px;
-    font-weight: 850;
+    font-weight: 800;
     line-height: 1.25;
     white-space: nowrap;
     letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
   }
 
   &--selected {
-    border-color: rgba(190, 18, 60, 0.28);
-    background: #fff7f8;
-    box-shadow: inset 0 0 0 1px rgba(190, 18, 60, 0.08);
+    border-color: rgba(200, 30, 42, 0.28);
+    background: var(--ns-danger-soft, #fde7e9);
+    box-shadow: inset 0 0 0 1px rgba(200, 30, 42, 0.1);
   }
 
   &--static {
@@ -378,18 +382,18 @@
 
 .redenv-empty-state {
   display: grid;
-  gap: 8px;
-  min-height: 124px;
+  gap: 6px;
   place-content: center;
-  padding: 18px;
-  border: 1px dashed #cfd9d4;
+  padding: 26px 18px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 16px;
-  background: #f7faf8;
+  background: var(--ns-surface-subtle, #f7f8fa);
   text-align: center;
 
   strong {
-    color: #111827;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 14px;
+    font-weight: 700;
     line-height: 1.25;
     letter-spacing: 0;
   }
@@ -397,7 +401,7 @@
   p {
     max-width: 300px;
     margin: 0 auto;
-    color: #66756e;
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 12px;
     line-height: 1.45;
     letter-spacing: 0;
@@ -418,9 +422,9 @@
 
 .redenv-modal {
   width: min(360px, 100%);
-  border: 1px solid #fee2e2;
-  border-radius: 18px;
-  background: #ffffff;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 20px;
+  background: var(--ns-surface, #ffffff);
   box-shadow: 0 24px 70px rgba(20, 22, 38, 0.22);
 }
 
@@ -436,21 +440,23 @@
   width: 58px;
   height: 58px;
   border-radius: 17px;
-  background: #be123c;
-  box-shadow: 0 14px 30px rgba(190, 18, 60, 0.24);
+  background: var(--ns-danger, #ea3943);
+  box-shadow: 0 14px 30px rgba(234, 57, 67, 0.24);
 }
 
 .redenv-modal-title {
   margin: 0;
-  color: #111827;
+  color: var(--ns-ink, #1e1e2e);
   font-size: 22px;
-  letter-spacing: 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .redenv-modal-message {
   margin: 0;
-  color: #4b5563;
+  color: var(--ns-text-2, #5b6478);
   font-size: 14px;
+  line-height: 1.5;
   letter-spacing: 0;
 }
 
@@ -459,7 +465,7 @@
   padding: 0 18px;
   border: 0;
   border-radius: 999px;
-  background: #111827;
+  background: var(--ns-ink, #1e1e2e);
   color: #ffffff;
   font-weight: 800;
   cursor: pointer;

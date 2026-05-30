@@ -124,8 +124,10 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 
 .grave-chamber,
 .grave-records {
-  // NeoCard already supplies white surface + shadow + radius
-  height: 100%;
+  // NeoCard already supplies white surface + shadow + radius.
+  // Cards size to their own content so an empty records list never
+  // stretches into a tall blank void next to the taller chamber.
+  align-self: start;
 }
 
 /* ── Destruction form ─────────────────────────────────── */
@@ -260,8 +262,10 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 
 .empty-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   text-align: center;
   padding: 28px 20px;
   border-radius: var(--ns-radius-md, 16px);
@@ -269,8 +273,22 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  line-height: 1;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: $grave-accent-soft;
+  color: $grave-accent-strong;
+}
+
 .empty-text {
   font-size: 13px;
+  font-weight: 500;
   color: var(--ns-text-muted, #8a92a6);
 }
 

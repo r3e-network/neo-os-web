@@ -40,19 +40,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="gas-sponsor-play-area">
-      {/* Stats Bar */}
-      <div className="gas-stats-bar">
-        <div className="gas-stat">
-          <span className="gas-stat-value">{gasBalanceDisplay}</span>
-          <span className="gas-stat-label">{t("balance") || "Balance"}</span>
+      {/* Hero */}
+      <div className="gas-hero">
+        <div className="gas-hero-lead">
+          <span className="gas-hero-badge" aria-hidden="true">{"⛽"}</span>
+          <div className="gas-hero-copy">
+            <h2 className="gas-hero-title">{t("title")}</h2>
+            <p className="gas-hero-subtitle">{t("subtitle")}</p>
+          </div>
         </div>
-        <div className="gas-stat">
-          <span className="gas-stat-value">{tankLevelDisplay}</span>
-          <span className="gas-stat-label">{t("tankLevel") || "Tank Level"}</span>
-        </div>
-        <div className="gas-stat">
-          <span className="gas-stat-value">{remainingQuotaDisplay}</span>
-          <span className="gas-stat-label">{t("remaining") || "Remaining"}</span>
+        <div className="gas-stats-bar">
+          <div className="gas-stat">
+            <span className="gas-stat-value">{gasBalanceDisplay}</span>
+            <span className="gas-stat-label">{t("gasBalance")}</span>
+          </div>
+          <div className="gas-stat">
+            <span className="gas-stat-value">{tankLevelDisplay}</span>
+            <span className="gas-stat-label">{t("sidebarTankLevel")}</span>
+          </div>
+          <div className="gas-stat">
+            <span className="gas-stat-value">{remainingQuotaDisplay}</span>
+            <span className="gas-stat-label">{t("remaining")}</span>
+          </div>
         </div>
       </div>
 
@@ -60,17 +69,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <GasTank fuelLevelPercent={fuelLevelPercent} gasBalance={gasBalance} isEligible={isEligible} t={t} />
 
       {/* Request Gas */}
-      <RequestGasCard
-        isEligible={isEligible}
-        remainingQuota={remainingQuota}
-        requestAmount={requestAmount}
-        maxRequestAmount={String(maxRequestAmount)}
-        isRequesting={isRequesting}
-        quickAmounts={quickAmounts}
-        onRequestAmountChange={(val: string) => state.requestAmount?.set(val)}
-        onRequest={() => dispatch("requestSponsorship", requestAmount)}
-        t={t}
-      />
+      <NeoCard title={t("requestGas")}>
+        <RequestGasCard
+          isEligible={isEligible}
+          remainingQuota={remainingQuota}
+          requestAmount={requestAmount}
+          maxRequestAmount={String(maxRequestAmount)}
+          isRequesting={isRequesting}
+          quickAmounts={quickAmounts}
+          onRequestAmountChange={(val: string) => state.requestAmount?.set(val)}
+          onRequest={() => dispatch("requestSponsorship", requestAmount)}
+          t={t}
+        />
+      </NeoCard>
 
       {/* Quota Info */}
       <NeoCard title={t("quotaInfo") || "Daily Quota"}>

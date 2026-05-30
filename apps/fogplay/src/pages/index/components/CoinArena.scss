@@ -1,11 +1,17 @@
-.premium-arena { box-sizing: border-box; width: 100%; padding: 24px 20px; position: relative; background: var(--coin-arena-bg); border-radius: 24px; border: 1px solid var(--coin-arena-border); overflow: hidden; backdrop-filter: blur(20px); }
-.arena-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 280px; }
+.premium-arena { box-sizing: border-box; width: 100%; padding: 8px 0 4px; position: relative; background: transparent; border-radius: 24px; border: 0; overflow: hidden; }
+.arena-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 232px; }
 .arena-bg { position: absolute; inset: 0; z-index: -1; }
 .arena-orbit { position: absolute; top: 50%; left: 50%; width: 250px; height: 250px; border: 1px dashed var(--coin-orbit-border); border-radius: 50%; transform: translate(-50%, -50%); animation: rotate 60s linear infinite; }
 .arena-glow { position: absolute; top: 50%; left: 50%; width: 150px; height: 150px; background: radial-gradient(circle, var(--coin-arena-ambient) 0%, transparent 70%); transform: translate(-50%, -50%); transition: all 0.5s ease;
   &.flipping { background: radial-gradient(circle, var(--coin-arena-ambient-flip) 0%, transparent 80%); width: 200px; height: 200px; }
 }
-.status-box { margin-top: 20px; }
+.status-box { margin-top: 18px; }
+.game-status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 999px; background: #e4f8f0; border: 1px solid var(--coin-balance-pill-border); font-size: 13px; font-weight: 700; color: var(--coin-success); letter-spacing: 0.01em; }
+.status-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--coin-success); flex-shrink: 0;
+  &.flipping { animation: status-dot-pulse 1s ease-in-out infinite; }
+}
+@keyframes status-dot-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
+@media (prefers-reduced-motion: reduce) { .status-dot.flipping { animation: none; } }
 .result-banner { position: absolute; top: 20px; right: -50px; background: var(--coin-loss); padding: 8px 60px; transform: rotate(45deg); display: flex; flex-direction: column; align-items: center;
   &.won { background: var(--coin-win); }
 }
@@ -21,7 +27,7 @@
   }
 
   .arena-content {
-    min-height: 248px;
+    min-height: 208px;
   }
 
   .arena-orbit {

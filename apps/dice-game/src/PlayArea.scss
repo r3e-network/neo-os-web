@@ -1,14 +1,17 @@
 .dice-playarea {
   --dice-bg: #f5f7fa;
   --dice-surface: #ffffff;
-  --dice-surface-soft: #f9fafb;
-  --dice-line: #e7edf4;
-  --dice-text: #151823;
-  --dice-muted: #6d7480;
-  --dice-accent: #f6b544;
-  --dice-accent-soft: #fff7ed;
-  --dice-purple: #7c70e8;
-  --dice-green: #37b879;
+  --dice-surface-soft: #f7f8fa;
+  --dice-line: rgba(20, 22, 38, 0.06);
+  --dice-text: #1e1e2e;
+  --dice-text-2: #5b6478;
+  --dice-muted: #8a92a6;
+  --dice-accent: #7b61ff;
+  --dice-accent-strong: #6a4df4;
+  --dice-accent-soft: #eeeaff;
+  --dice-purple: #7b61ff;
+  --dice-green: #16c784;
+  --dice-shadow: 0 8px 24px rgba(20, 22, 38, 0.06);
   display: grid;
   min-height: 100%;
   padding: 18px;
@@ -38,9 +41,9 @@
 .dice-route-panel,
 .dice-history-panel {
   border: 1px solid var(--dice-line);
-  border-radius: 8px;
+  border-radius: 20px;
   background: var(--dice-surface);
-  box-shadow: 0 18px 38px rgba(20, 28, 45, 0.07);
+  box-shadow: var(--dice-shadow);
 }
 
 .dice-stage {
@@ -49,9 +52,9 @@
   grid-template-columns: minmax(260px, 0.54fr) minmax(0, 0.46fr);
   gap: 18px;
   min-height: 398px;
-  padding: 18px;
+  padding: 20px;
   overflow: hidden;
-  background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f4f1ff 100%);
 }
 
 .dice-stage__visual {
@@ -59,11 +62,11 @@
   display: grid;
   place-items: center;
   min-height: 330px;
-  border: 1px solid rgba(124, 112, 232, 0.18);
-  border-radius: 8px;
+  border: 1px solid rgba(123, 97, 255, 0.18);
+  border-radius: 18px;
   background:
-    linear-gradient(135deg, rgba(124, 112, 232, 0.94), rgba(92, 82, 218, 0.94)),
-    #7c70e8;
+    linear-gradient(135deg, rgba(123, 97, 255, 0.96), rgba(106, 77, 244, 0.96)),
+    #7b61ff;
   color: #ffffff;
   isolation: isolate;
 }
@@ -94,12 +97,13 @@
   place-items: center;
   width: min(168px, 42vw);
   aspect-ratio: 1;
-  border-radius: 18px;
+  border-radius: 20px;
   background: #ffffff;
-  color: #151823;
+  color: #1e1e2e;
+  font-variant-numeric: tabular-nums;
   box-shadow:
     0 24px 44px rgba(23, 20, 86, 0.24),
-    inset 0 -12px 20px rgba(124, 112, 232, 0.09);
+    inset 0 -12px 20px rgba(123, 97, 255, 0.1);
 }
 
 .dice-cube span {
@@ -120,7 +124,7 @@
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 8px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.18);
   color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
@@ -130,6 +134,7 @@
 .dice-stage__caption strong {
   color: #ffffff;
   font-size: 15px;
+  font-variant-numeric: tabular-nums;
 }
 
 .dice-stage__details {
@@ -146,23 +151,25 @@
 }
 
 .dice-eyebrow {
-  color: var(--dice-purple);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0;
+  color: var(--dice-accent-strong);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .dice-stage__details h2 {
   max-width: 340px;
   color: var(--dice-text);
-  font-size: 34px;
-  font-weight: 850;
-  line-height: 1.06;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
 }
 
 .dice-stage__details p:not(.dice-eyebrow) {
   max-width: 430px;
-  color: var(--dice-muted);
+  color: var(--dice-text-2);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -178,10 +185,10 @@
   display: grid;
   gap: 5px;
   min-width: 0;
-  padding: 11px;
+  padding: 12px;
   border: 1px solid var(--dice-line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
+  border-radius: 12px;
+  background: var(--dice-surface-soft);
   color: var(--dice-muted);
   font-size: 11px;
   font-weight: 700;
@@ -190,6 +197,7 @@
 .dice-metric-grid strong {
   color: var(--dice-text);
   font-size: 15px;
+  font-variant-numeric: tabular-nums;
 }
 
 .dice-bet-panel {
@@ -205,15 +213,19 @@
   justify-content: space-between;
   gap: 12px;
   color: var(--dice-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .dice-panel-heading strong {
   color: var(--dice-text);
   font-size: 14px;
+  font-weight: 700;
   text-align: right;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .dice-face-grid {
@@ -228,21 +240,22 @@
   min-width: 0;
   min-height: 46px;
   border: 1px solid var(--dice-line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--dice-surface-soft);
-  color: var(--dice-muted);
+  color: var(--dice-text-2);
   font: inherit;
   font-size: 16px;
-  font-weight: 850;
+  font-weight: 800;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
   cursor: default;
 }
 
 .dice-face-grid__item--active {
-  border-color: rgba(246, 181, 68, 0.8);
+  border-color: transparent;
   background: var(--dice-accent);
-  color: #151823;
-  box-shadow: 0 12px 22px rgba(246, 181, 68, 0.22);
+  color: #ffffff;
+  box-shadow: 0 12px 22px rgba(123, 97, 255, 0.24);
 }
 
 .dice-status-bar {
@@ -251,22 +264,23 @@
   gap: 6px 12px;
   align-items: center;
   min-height: 52px;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid var(--dice-line);
-  border-radius: 8px;
+  border-radius: 14px;
   background: var(--dice-surface-soft);
-  color: var(--dice-muted);
+  color: var(--dice-text-2);
   font-size: 13px;
 }
 
 .dice-status-bar strong {
   color: var(--dice-text);
   font-size: 16px;
+  font-variant-numeric: tabular-nums;
 }
 
 .dice-status-bar code {
   grid-column: 1 / -1;
-  color: #13895e;
+  color: var(--dice-green);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
 }
@@ -280,7 +294,7 @@
 
 .dice-route-panel p {
   margin: 0;
-  color: var(--dice-muted);
+  color: var(--dice-text-2);
   font-size: 13px;
   line-height: 1.55;
 }
@@ -294,11 +308,11 @@
   min-height: 38px;
   padding: 10px 12px;
   border: 1px solid var(--dice-line);
-  border-radius: 8px;
-  background: #ffffff;
+  border-radius: 12px;
+  background: var(--dice-surface-soft);
   color: var(--dice-text);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .dice-history-panel {
@@ -315,8 +329,13 @@
 
 .dice-history-list p {
   margin: 0;
+  padding: 24px 12px;
+  border: 1px solid var(--dice-line);
+  border-radius: 14px;
+  background: var(--dice-surface-soft);
   color: var(--dice-muted);
   font-size: 13px;
+  text-align: center;
 }
 
 .dice-history-row {
@@ -327,7 +346,7 @@
   min-height: 42px;
   padding: 8px 10px;
   border: 1px solid var(--dice-line);
-  border-radius: 8px;
+  border-radius: 14px;
   background: var(--dice-surface-soft);
 }
 
@@ -336,24 +355,27 @@
   place-items: center;
   width: 30px;
   aspect-ratio: 1;
-  border-radius: 8px;
-  background: #ffffff;
-  color: var(--dice-purple);
-  font-weight: 850;
+  border-radius: 10px;
+  background: var(--dice-accent-soft);
+  color: var(--dice-accent-strong);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .dice-history-row strong {
   min-width: 0;
   color: var(--dice-text);
   font-size: 13px;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .dice-history-row em {
-  color: var(--dice-muted);
+  color: var(--dice-text-2);
   font-size: 12px;
   font-style: normal;
-  font-weight: 750;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 900px) {
@@ -391,11 +413,12 @@
 
   .dice-stage__visual {
     min-height: 206px;
+    border-radius: 16px;
   }
 
   .dice-cube {
     width: 118px;
-    border-radius: 16px;
+    border-radius: 18px;
   }
 
   .dice-cube span {

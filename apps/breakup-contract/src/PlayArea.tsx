@@ -113,7 +113,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             />
           </div>
           <NeoInput
-            label={t("contractTitle") || "Title"}
+            label={t("titleLabel") || "Contract Title"}
             placeholder={t("contractTitlePlaceholder") || "Our covenant"}
             value={title}
             onChange={setTitle}

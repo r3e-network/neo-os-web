@@ -140,34 +140,44 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
   return (
     <div className="council-play-area">
       <section className="council-hero">
-        <div>
-          <p className="council-eyebrow">{t("liveGovernance")}</p>
-          <h2>{t("title")}</h2>
-          <p className="council-hero-copy">{t("governanceSummary")}</p>
+        <div className="council-hero-head">
+          <div className="council-hero-badge" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 21h18" />
+              <path d="M5 21V9l7-5 7 5v12" />
+              <path d="M9 21v-6h6v6" />
+              <path d="M12 9h.01" />
+            </svg>
+          </div>
+          <div className="council-hero-copy">
+            <p className="council-eyebrow">{t("liveGovernance")}</p>
+            <h2>{t("title")}</h2>
+            <p className="council-hero-sub">{t("governanceSummary")}</p>
+          </div>
+          <NeoButton variant="ghost" size="sm" disabled={isLoading} onClick={() => retryLoad()}>
+            {t("refresh")}
+          </NeoButton>
         </div>
-        <NeoButton variant="ghost" size="sm" disabled={isLoading} onClick={() => retryLoad()}>
-          {t("refresh")}
-        </NeoButton>
-      </section>
 
-      <div className="council-stats" aria-label={t("governanceStats")}>
-        <div className="council-stat">
-          <span>{totalProposals}</span>
-          <label>{t("totalProposals")}</label>
+        <div className="council-stats" aria-label={t("governanceStats")}>
+          <div className="council-stat">
+            <span>{totalProposals}</span>
+            <label>{t("totalProposals")}</label>
+          </div>
+          <div className="council-stat council-stat--accent">
+            <span>{activeCount}</span>
+            <label>{t("activeProposals")}</label>
+          </div>
+          <div className="council-stat">
+            <span>{historyCount}</span>
+            <label>{t("historyProposals")}</label>
+          </div>
+          <div className="council-stat">
+            <span>{votingPower}</span>
+            <label>{t("votingPower")}</label>
+          </div>
         </div>
-        <div className="council-stat council-stat--accent">
-          <span>{activeCount}</span>
-          <label>{t("activeProposals")}</label>
-        </div>
-        <div className="council-stat">
-          <span>{historyCount}</span>
-          <label>{t("historyProposals")}</label>
-        </div>
-        <div className="council-stat">
-          <span>{votingPower}</span>
-          <label>{t("votingPower")}</label>
-        </div>
-      </div>
+      </section>
 
       <div className={`council-access ${canWrite ? "council-access--ok" : ""}`}>
         <span className="council-access-dot" />

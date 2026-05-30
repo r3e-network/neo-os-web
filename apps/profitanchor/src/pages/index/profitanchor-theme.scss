@@ -27,6 +27,16 @@
   --text-primary: var(--anchor-text);
   --text-secondary: var(--anchor-text-muted);
   --border-color: var(--anchor-card-border);
+
+  --ns-brand: #16c784;
+  --ns-brand-strong: #0fb174;
+  --ns-brand-soft: #e4f8f0;
+  --ns-ink: #1e1e2e;
+  --ns-text-2: #5b6478;
+  --ns-text-muted: #8a92a6;
+  --ns-surface: #ffffff;
+  --ns-surface-subtle: #f7f8fa;
+  --ns-border: rgba(20, 22, 38, 0.06);
 }
 
 :global(.theme-light .theme-profitanchor),

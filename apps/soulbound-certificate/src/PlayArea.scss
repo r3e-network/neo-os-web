@@ -1,9 +1,9 @@
 @use "@shared/styles/tokens.scss" as *;
 
-// Blue accent (this app keeps a blue identity hue) on the Neo Soft light system
-$soul-accent: #3e8cff;
-$soul-accent-strong: #2f6fe0;
-$soul-accent-soft: #e6f0ff;
+// Green accent (matches this app's --ns-brand identity hue) on the Neo Soft light system
+$soul-accent: #16c784;
+$soul-accent-strong: #0fb174;
+$soul-accent-soft: #e4f8f0;
 
 .certificate-play-area {
   display: flex;
@@ -167,15 +167,27 @@ $soul-accent-soft: #e6f0ff;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 28px 16px;
+  gap: 10px;
+  padding: 26px 16px;
   text-align: center;
   color: var(--ns-text-muted);
   font-size: 14px;
+
+  .empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--ns-radius-full);
+    background: $soul-accent-soft;
+    font-size: 22px;
+    line-height: 1;
+  }
 }
 
 .empty-note {
-  padding: 28px 16px;
+  padding: 26px 16px;
   text-align: center;
   color: var(--ns-text-muted);
   font-size: 14px;
