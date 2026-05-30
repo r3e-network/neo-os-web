@@ -172,7 +172,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
               <NeoButton
                 block
-                variant="erobo"
+                variant="primary"
                 disabled={!canSyncVote}
                 onClick={() => dispatch("voteAgent", { agentId: voteAgentId })}
               >

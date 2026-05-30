@@ -71,7 +71,7 @@
 
 .wallet-health-hero-intro {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   min-width: 0;
 }
@@ -81,6 +81,7 @@
   flex: 0 0 auto;
   width: 46px;
   height: 46px;
+  margin-top: 2px;
   place-items: center;
   border-radius: 50%;
   background: var(--ns-success-soft, #e4f8f0);

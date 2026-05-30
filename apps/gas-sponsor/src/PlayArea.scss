@@ -144,6 +144,8 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   background: linear-gradient(180deg, $gas-accent 0%, $gas-accent-strong 100%);
   transition: height 0.5s ease;
   min-height: 6px;
+  border-bottom-left-radius: 17px;
+  border-bottom-right-radius: 17px;
 }
 
 .tank-gauge {

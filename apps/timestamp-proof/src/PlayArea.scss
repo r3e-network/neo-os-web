@@ -64,7 +64,8 @@ $accent-soft: #eeeaff;
 .empty-icon {
   font-size: 22px;
   line-height: 1;
-  color: $accent;
+  // override global `.standalone-dapp-root span:not(...)` color reset so the empty-state icon keeps its accent
+  color: $accent !important;
   opacity: 0.7;
 }
 

@@ -206,6 +206,12 @@
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-violet-soft, #eeeaff);
   color: var(--ns-violet-strong, #6a4df4);
+
+  /* Host stylesheet forces plain <span> color to inherit (→ black);
+     paint the accent directly on the icon stroke so the badge keeps the hue. */
+  svg {
+    stroke: var(--ns-violet-strong, #6a4df4);
+  }
 }
 
 .tombstone-body {
