@@ -59,7 +59,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="aa-permissions-play-area">
       <section className="permissions-hero">
         <div className="permissions-hero__copy">
-          <h2>{t("permissionsHeroTitle")}</h2>
+          <div className="permissions-hero__head">
+            <span className="permissions-hero__badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="7.5" cy="15.5" r="4.5" stroke="currentColor" strokeWidth="1.8" />
+                <path d="m10.8 12.2 8.2-8.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="m16 5 3 3M14 7l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <h2>{t("permissionsHeroTitle")}</h2>
+          </div>
           <p>{t("permissionsHeroCopy")}</p>
           <div
             className="permissions-hero__metrics"
