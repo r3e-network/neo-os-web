@@ -41,45 +41,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="neo-ns-play-area">
-      {/* Stats Bar */}
-      <div className="stats-bar">
-        <div className="stat-chip">
-          <span className="stat-value">{domainCount}</span>
-          <span className="stat-label">{t("tabDomains") || "Domains"}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{expiringSoon}</span>
-          <span className="stat-label">{t("expiringSoon") || "Expiring"}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{walletStatus || "--"}</span>
-          <span className="stat-label">{t("walletStatus") || "Wallet"}</span>
-        </div>
-      </div>
-
-      {/* Address Display */}
-      {address && (
-        <div className="address-bar">
-          <span className="address-label">{t("connectedAddress") || "Address"}</span>
-          <span className="address-value">{address}</span>
-        </div>
-      )}
-
-      {/* Hero Section */}
-      <div className="hero-container">
-        <div className="hero-stats">
-          <div className="hero-stat-item">
-            <span className="hero-stat-value">{myDomains.length}</span>
-            <span className="hero-stat-label">{t("tabDomains") || "Domains"}</span>
+      {/* Hero — leads with identity + the primary search action */}
+      <NeoCard variant="erobo" className="search-card nns-hero">
+        <div className="nns-hero__head">
+          <div className="nns-hero__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18" />
+            </svg>
+          </div>
+          <div className="nns-hero__text">
+            <h2 className="nns-hero__title">{t("title") || "Neo Name Service"}</h2>
+            <p className="nns-hero__subtitle">
+              {t("docSubtitle") || "Human-readable .neo domain names for Neo addresses"}
+            </p>
+          </div>
+          <div className="nns-hero__stats" aria-hidden={false}>
+            <div className="nns-stat">
+              <span className="nns-stat__value">{domainCount}</span>
+              <span className="nns-stat__label">{t("tabDomains") || "Domains"}</span>
+            </div>
+            <div className="nns-stat">
+              <span className="nns-stat__value">{expiringSoon}</span>
+              <span className="nns-stat__label">{t("expiringSoon") || "Expiring"}</span>
+            </div>
+            <div className="nns-stat">
+              <span className="nns-stat__value">{walletStatus || "--"}</span>
+              <span className="nns-stat__label">{t("walletStatus") || "Wallet"}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Error Display */}
-      {error && <div className="error-banner">{error}</div>}
-
-      {/* Search Section */}
-      <NeoCard variant="erobo" className="search-card">
         <div className="search-row">
           <NeoInput
             value={searchQuery}
@@ -96,6 +88,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {t("search") || "Search"}
           </NeoButton>
         </div>
+
+        {/* Address Display */}
+        {address && (
+          <div className="address-bar">
+            <span className="address-label">{t("connectedAddress") || "Address"}</span>
+            <span className="address-value">{address}</span>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {error && <div className="error-banner">{error}</div>}
         {Boolean(searchResult) && (
           <div className="search-result">
             <span className="result-status">

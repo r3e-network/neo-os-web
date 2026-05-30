@@ -1,8 +1,10 @@
-.capsule-list-container {}
+.capsule-list-container {
+}
 
 .empty-state {
   text-align: center;
-  padding: 24px;
-  color: rgba(255, 255, 255, 0.4);
+  padding: 28px 24px;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 14px;
+  line-height: 1.5;
 }

@@ -4,7 +4,7 @@
 
 .hero-container {
   margin-bottom: 20px;
-  background: radial-gradient(ellipse at 50% 40%, rgba(255, 222, 89, 0.08) 0%, transparent 55%);
+  background: radial-gradient(ellipse at 50% 40%, rgba(22, 199, 132, 0.06) 0%, transparent 55%);
 }
 
 .hero-stats {
@@ -12,10 +12,10 @@
   gap: 12px;
   justify-content: center;
   flex-wrap: wrap;
-  box-shadow: 0 4px 20px rgba(255, 222, 89, 0.1);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
   transition: box-shadow 0.3s ease, transform 0.3s ease;
   &:hover {
-    box-shadow: 0 6px 28px rgba(255, 222, 89, 0.25);
+    box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
     transform: translateY(-2px);
   }
 }
@@ -23,24 +23,24 @@
 .hero-stat {
   text-align: center;
   padding: 8px 14px;
-  background: linear-gradient(180deg, rgba(255, 222, 89, 0.04), transparent);
+  background: var(--ns-surface-subtle, #f7f8fa);
   border-radius: 8px;
-  border: 1px solid rgba(255, 222, 89, 0.12);
-  box-shadow: inset 0 1px 0 rgba(255, 222, 89, 0.08);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  box-shadow: none;
 }
 
 .hero-stat-value {
   display: block;
   font-size: 16px;
   font-weight: 800;
-  color: var(--treasury-gold, var(--text-primary));
+  color: var(--ns-ink, #1e1e2e);
   font-family: var(--font-family-display, "Cinzel", serif);
-  background: linear-gradient(90deg, var(--treasury-gold), var(--treasury-light-gold, #fff8dc), var(--treasury-gold));
+  background: none;
   background-size: 200% 100%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gold-shimmer 4s linear infinite;
+  -webkit-background-clip: border-box;
+  -webkit-text-fill-color: currentColor;
+  background-clip: border-box;
+  animation: none;
 }
 
 .hero-stat-label {
@@ -48,7 +48,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--ns-text-muted, #8a92a6);
   letter-spacing: 1px;
   margin-top: 2px;
 }

@@ -30,68 +30,86 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="graveyard-play-area">
-      {/* Stats Bar */}
-      <div className="hero-stats">
-        <div className="hero-stat">
-          <span className="hero-stat-value">{totalDestroyed}</span>
-          <span className="hero-stat-label">{t("itemsDestroyed") || "Destroyed"}</span>
+      {/* Hero — purposeful head with icon badge, title, subtitle, stat strip */}
+      <div className="grave-hero">
+        <div className="grave-hero-lead">
+          <span className="grave-hero-badge" aria-hidden="true">{"⚰️"}</span>
+          <div className="grave-hero-copy">
+            <h2 className="grave-hero-title">{t("title")}</h2>
+            <p className="grave-hero-subtitle">{t("subtitle")}</p>
+          </div>
         </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{gasReclaimedDisplay}</span>
-          <span className="hero-stat-label">{t("gasReclaimed") || "GAS Reclaimed"}</span>
-        </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{historyCount}</span>
-          <span className="hero-stat-label">{t("historyCount") || "History"}</span>
+        <div className="hero-stats">
+          <div className="hero-stat">
+            <span className="hero-stat-value">{totalDestroyed}</span>
+            <span className="hero-stat-label">{t("itemsDestroyed")}</span>
+          </div>
+          <div className="hero-stat">
+            <span className="hero-stat-value">{gasReclaimedDisplay}</span>
+            <span className="hero-stat-label">{t("gasReclaimed")}</span>
+          </div>
+          <div className="hero-stat">
+            <span className="hero-stat-value">{historyCount}</span>
+            <span className="hero-stat-label">{t("records")}</span>
+          </div>
         </div>
       </div>
 
-      {/* Destruction Chamber */}
-      <NeoCard title={t("destructionChamber") || "Destruction Chamber"}>
-        <div className="destroy-form">
-          <NeoInput
-            value={assetHash}
-            label={t("assetHash") || "Asset Hash"}
-            placeholder={t("assetHashPlaceholder") || "Enter asset hash to destroy"}
-            onChange={(val) => state.assetHash?.set(val)}
-          />
-          <div className="memory-type-selector">
-            <span className="field-label">{t("memoryType") || "Memory Type"}</span>
-            <div className="type-options">
-              {memoryTypeOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`type-option${memoryType === option.value ? " active" : ""}`}
-                  onClick={() => state.memoryType?.set(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
+      {/* Main grid — burial chamber + records side by side on wide screens */}
+      <div className="grave-grid">
+        {/* Destruction Chamber */}
+        <NeoCard className="grave-chamber" title={t("destroyAsset")}>
+          <div className="destroy-form">
+            <NeoInput
+              value={assetHash}
+              label={t("assetHash") || "Asset Hash"}
+              placeholder={t("assetHashPlaceholder")}
+              onChange={(val) => state.assetHash?.set(val)}
+            />
+            <div className="memory-type-selector">
+              <span className="field-label">{t("memoryType")}</span>
+              <div className="type-options">
+                {memoryTypeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`type-option${memoryType === option.value ? " active" : ""}`}
+                    onClick={() => state.memoryType?.set(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
+            <div className="grave-warning-note">
+              <span className="grave-warning-title">{t("warning")}</span>
+              <span className="grave-warning-text">{t("warningText")}</span>
+            </div>
+            <NeoButton
+              variant="danger"
+              size="lg"
+              block
+              loading={isDestroying}
+              disabled={!assetHash || isLoading}
+              className={showWarningShake ? "shake" : ""}
+              aria-label={t("destroyForever")}
+              onClick={() => dispatch("executeDestroy")}
+            >
+              {isDestroying ? t("destroying") : t("destroyForever")}
+            </NeoButton>
           </div>
-          <NeoButton
-            variant="danger"
-            size="lg"
-            block
-            loading={isDestroying}
-            disabled={!assetHash || isLoading}
-            className={showWarningShake ? "shake" : ""}
-            aria-label={t("executeDestroy") || "Destroy Memory"}
-            onClick={() => dispatch("executeDestroy")}
-          >
-            {isDestroying ? t("destroying") || "Destroying..." : t("executeDestroy") || "Destroy Memory"}
-          </NeoButton>
-        </div>
-      </NeoCard>
+        </NeoCard>
 
-      {/* History */}
-      <HistoryTab
-        history={historyItems}
-        forgettingId={forgettingId || null}
-        onForget={(item: unknown) => dispatch("forgetMemory", item)}
-        t={t}
-      />
+        {/* History */}
+        <NeoCard className="grave-records">
+          <HistoryTab
+            history={historyItems}
+            forgettingId={forgettingId || null}
+            onForget={(item: unknown) => dispatch("forgetMemory", item)}
+            t={t}
+          />
+        </NeoCard>
+      </div>
     </div>
   );
 }

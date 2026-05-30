@@ -10,7 +10,7 @@
   color: var(--treasury-gold);
   border: 1px solid var(--treasury-soft-border);
   border-radius: 99px;
-  box-shadow: 0 0 16px rgba(255, 222, 89, 0.12);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
 }
 
 .soft-loading-text {
