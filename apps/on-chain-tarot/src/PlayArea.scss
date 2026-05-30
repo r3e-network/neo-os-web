@@ -347,6 +347,14 @@
   cursor: default;
 }
 
+.tarot-card-slot:not(.tarot-card-slot--empty):not(.tarot-card-slot--flipped) .tarot-card-frame {
+  transition: transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.tarot-card-slot:not(.tarot-card-slot--empty):not(.tarot-card-slot--flipped):hover .tarot-card-frame {
+  transform: translateY(-4px);
+}
+
 .tarot-card-position {
   display: inline-flex;
   align-items: center;

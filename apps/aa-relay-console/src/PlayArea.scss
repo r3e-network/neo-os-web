@@ -136,6 +136,12 @@
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
+.relay-command__status span,
+.relay-scope-summary strong {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .relay-command__status strong,
 .relay-scope-summary span {
   overflow: hidden;

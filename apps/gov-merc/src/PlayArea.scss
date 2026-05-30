@@ -27,7 +27,7 @@ body {
 
 .gov-merc-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.48fr);
+  grid-template-columns: minmax(0, 1fr) minmax(168px, 0.42fr);
   gap: 18px;
   align-items: stretch;
   min-width: 0;
@@ -96,8 +96,8 @@ body {
 
 .gov-merc-scoreboard {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px;
+  grid-template-columns: 1fr;
+  gap: 8px;
   align-content: center;
   min-width: 0;
   padding: 0;
