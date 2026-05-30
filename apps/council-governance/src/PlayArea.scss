@@ -230,18 +230,114 @@
 
 .council-loading,
 .council-empty {
-  display: grid;
-  place-items: center;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   color: var(--ns-text-2, #5b6478);
+}
+
+.council-empty {
+  display: grid;
+  place-items: center;
   text-align: center;
 }
 
 .council-loading {
-  min-height: 9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.1rem 1.1rem 1.2rem;
+}
+
+.council-skeleton {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.council-skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  background: var(--ns-inset, #f7f8fa);
+}
+
+.council-skeleton-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.council-skeleton-pill,
+.council-skeleton-tag,
+.council-skeleton-line {
+  display: block;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    100deg,
+    rgba(123, 97, 255, 0.1) 30%,
+    rgba(123, 97, 255, 0.2) 50%,
+    rgba(123, 97, 255, 0.1) 70%
+  );
+  background-size: 220% 100%;
+  animation: council-shimmer 1.4s ease-in-out infinite;
+}
+
+.council-skeleton-pill {
+  width: 4.5rem;
+  height: 1.1rem;
+}
+
+.council-skeleton-tag {
+  width: 2.75rem;
+  height: 0.7rem;
+}
+
+.council-skeleton-line {
+  width: 100%;
+
+  &--title {
+    width: 62%;
+    height: 0.95rem;
+  }
+}
+
+.council-loading-note {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0 0.2rem;
+}
+
+.council-loading-note-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  span {
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+}
+
+@keyframes council-shimmer {
+  0% {
+    background-position: 180% 0;
+  }
+  100% {
+    background-position: -40% 0;
+  }
 }
 
 .council-empty {
@@ -275,10 +371,10 @@
 }
 
 .council-loading-spinner {
-  width: 1.75rem;
-  height: 1.75rem;
-  margin: 0 auto 0.7rem;
-  border: 3px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2.5px solid var(--ns-violet-soft, #eeeaff);
   border-top-color: var(--ns-violet-strong, #6a4df4);
   border-radius: 999px;
   animation: council-spin 0.8s linear infinite;

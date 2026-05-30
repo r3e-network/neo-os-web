@@ -29,6 +29,12 @@ const appMessages = {
   recentTips: { en: "Recent Tips", zh: "最近打赏" },
   totalDonated: { en: "Total Donated", zh: "总打赏额" },
   wallet: { en: "Wallet", zh: "钱包" },
+  noDevelopers: { en: "No developers yet", zh: "暂无开发者" },
+  noDevelopersHint: {
+    en: "Once developers register, they'll appear here for you to support.",
+    zh: "开发者注册后将显示在此处，供您支持。",
+  },
+  howItWorks: { en: "How it works", zh: "使用说明" },
   defaultDevName: { en: "Dev #{id}", zh: "开发者 #{id}" },
   defaultDevRole: { en: "Neo Developer", zh: "Neo 开发者" },
 
