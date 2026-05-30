@@ -66,31 +66,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="memorial-play-area">
-      {/* Stats Bar */}
-      <div className="stats-bar">
-        <div className="stat-chip">
-          <span className="stat-value">{memorialCount}</span>
-          <span className="stat-label">{t("memorials") || "Memorials"}</span>
+      {/* Hero: identity + stats strip in one white card */}
+      <div className="shrine-hero">
+        <div className="shrine-hero__head">
+          <span className="shrine-hero__badge" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21s-6.5-4.35-9-8.5C1.5 9.5 3 6 6.5 6 9 6 10.5 7.5 12 9.5 13.5 7.5 15 6 17.5 6 21 6 22.5 9.5 21 12.5 18.5 16.65 12 21 12 21Z" />
+            </svg>
+          </span>
+          <div className="shrine-hero__text">
+            <span className="shrine-hero__title">{t("title") || "Memorial Shrine"}</span>
+            <span className="shrine-hero__subtitle">{t("subtitle") || "On-chain memorials"}</span>
+          </div>
         </div>
-        <div className="stat-chip">
-          <span className="stat-value">{tributeCount}</span>
-          <span className="stat-label">{t("myTributes") || "Tributes"}</span>
+        <div className="shrine-hero__stats">
+          <div className="stat-chip">
+            <span className="stat-value">{memorialCount}</span>
+            <span className="stat-label">{t("memorials") || "Memorials"}</span>
+          </div>
+          <div className="stat-chip">
+            <span className="stat-value">{tributeCount}</span>
+            <span className="stat-label">{t("myTributes") || "Tributes"}</span>
+          </div>
+          <div className="stat-chip">
+            <span className="stat-value">{obituaryCount}</span>
+            <span className="stat-label">{t("obituaries") || "Obituaries"}</span>
+          </div>
+          <div className="stat-chip">
+            <span className="stat-value">{visitedMemorials.length}</span>
+            <span className="stat-label">{t("visited") || "Visited"}</span>
+          </div>
         </div>
-        <div className="stat-chip">
-          <span className="stat-value">{obituaryCount}</span>
-          <span className="stat-label">{t("obituaries") || "Obituaries"}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{visitedMemorials.length}</span>
-          <span className="stat-label">{t("visited") || "Visited"}</span>
-        </div>
-      </div>
-
-      {/* Header */}
-      <div className="header" aria-hidden="true">
-        <span className="title">{t("title") || "Memorial Shrine"}</span>
-        <span className="tagline">{t("tagline") || "Eternal Remembrance"}</span>
-        <span className="subtitle">{t("subtitle") || "On-chain memorials"}</span>
       </div>
 
       {/* Obituary Banner */}

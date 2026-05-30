@@ -54,66 +54,87 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="dev-tipping-play-area">
-      {/* Stats bar */}
-      <div className="tipping-stats">
-        <div className="tipping-stat">
-          <span className="tipping-stat-value">{developerCount || developers.length}</span>
-          <span className="tipping-stat-label">{t("developers") || "Developers"}</span>
+      {/* Hero: identity + stats + wallet */}
+      <NeoCard variant="erobo" className="tipping-hero">
+        <div className="tipping-hero__head">
+          <span className="tipping-hero__badge" aria-hidden="true">♡</span>
+          <div className="tipping-hero__text">
+            <h2 className="tipping-hero__title">{t("title") || "Dev Tipping"}</h2>
+            <p className="tipping-hero__subtitle">{t("docSubtitle") || t("subtitle")}</p>
+          </div>
+          <div className="tipping-hero__stats">
+            <div className="tipping-stat">
+              <span className="tipping-stat-value">{developerCount || developers.length}</span>
+              <span className="tipping-stat-label">{t("developers") || "Developers"}</span>
+            </div>
+            <div className="tipping-stat">
+              <span className="tipping-stat-value">{totalDonatedDisplay || formatNum(totalDonated)}</span>
+              <span className="tipping-stat-label">{t("totalDonated") || "Total Donated"}</span>
+            </div>
+            <div className="tipping-stat">
+              <span className="tipping-stat-value">{recentTipCount || recentTips.length}</span>
+              <span className="tipping-stat-label">{t("recentTips") || "Recent Tips"}</span>
+            </div>
+          </div>
         </div>
-        <div className="tipping-stat">
-          <span className="tipping-stat-value">{totalDonatedDisplay || formatNum(totalDonated)}</span>
-          <span className="tipping-stat-label">{t("totalDonated") || "Total Donated"}</span>
-        </div>
-        <div className="tipping-stat">
-          <span className="tipping-stat-value">{recentTipCount || recentTips.length}</span>
-          <span className="tipping-stat-label">{t("recentTips") || "Recent Tips"}</span>
-        </div>
-      </div>
 
-      {/* Wallet info */}
-      {address && (
-        <NeoCard variant="erobo" className="wallet-card">
+        {address && (
           <div className="wallet-row">
-            <span className="wallet-label">Wallet</span>
+            <span className="wallet-label">{t("wallet") || "Wallet"}</span>
             <span className="wallet-value">{address.slice(0, 8)}...{address.slice(-6)}</span>
           </div>
-        </NeoCard>
-      )}
+        )}
+      </NeoCard>
 
-      {/* Developer list */}
-      <TipList developers={developers} formatNum={formatNum} onSelect={handleSelectDev} t={t} />
+      {/* Two-column body: developer list (main) + tip form (side) */}
+      <div className="tipping-body">
+        <div className="tipping-col">
+          <h3 className="tipping-section-title">{t("topDevelopers") || "Top Developers"}</h3>
+          {developers.length > 0 ? (
+            <TipList developers={developers} formatNum={formatNum} onSelect={handleSelectDev} t={t} />
+          ) : (
+            <div className="tipping-empty">
+              <span className="tipping-empty__icon" aria-hidden="true">♡</span>
+              <span>{t("subtitle") || "Support developers"}</span>
+            </div>
+          )}
 
-      {/* Recent tips */}
-      {recentTips.length > 0 && (
-        <NeoCard title={t("recentTips") || "Recent Tips"} variant="erobo">
-          <div className="recent-tips-list">
-            {recentTips.slice(0, 5).map((tip, idx) => (
-              <div key={idx} className="recent-tip-item">
-                <span className="recent-tip-from">{String(tip.tipperName || t("anonymousOn") || "Anonymous")}</span>
-                <span className="recent-tip-amount">{formatNum(Number(tip.amount || 0))} GAS</span>
+          {recentTips.length > 0 && (
+            <NeoCard title={t("recentTips") || "Recent Tips"} variant="erobo">
+              <div className="recent-tips-list">
+                {recentTips.slice(0, 5).map((tip, idx) => (
+                  <div key={idx} className="recent-tip-item">
+                    <span className="recent-tip-from">{String(tip.tipperName || t("anonymousOn") || "Anonymous")}</span>
+                    <span className="recent-tip-amount">{formatNum(Number(tip.amount || 0))} GAS</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </NeoCard>
-      )}
+            </NeoCard>
+          )}
+        </div>
 
-      {/* Tip form */}
-      <TipForm
-        developers={developers}
-        selectedDevId={selectedDevId}
-        amount={tipAmount}
-        message={tipMessage}
-        tipperName={tipperName}
-        anonymous={anonymous}
-        isLoading={isLoading}
-        onSelectDev={(id: number) => setSelectedDevId(id)}
-        onAmountChange={setTipAmount}
-        onMessageChange={setTipMessage}
-        onTipperNameChange={setTipperName}
-        onAnonymousChange={setAnonymous}
-        onSubmit={handleSendTip}
-        t={t}
-      />
+        <div className="tipping-col">
+          <h3 className="tipping-section-title">{t("sendTip") || "Send Tip"}</h3>
+          <NeoCard variant="erobo">
+            <TipForm
+              developers={developers}
+              selectedDevId={selectedDevId}
+              amount={tipAmount}
+              message={tipMessage}
+              tipperName={tipperName}
+              anonymous={anonymous}
+              isLoading={isLoading}
+              onSelectDev={(id: number) => setSelectedDevId(id)}
+              onAmountChange={setTipAmount}
+              onMessageChange={setTipMessage}
+              onTipperNameChange={setTipperName}
+              onAnonymousChange={setAnonymous}
+              onSubmit={handleSendTip}
+              t={t}
+            />
+          </NeoCard>
+        </div>
+      </div>
     </div>
   );
 }

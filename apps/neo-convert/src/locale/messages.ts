@@ -13,6 +13,18 @@ const appMessages = {
         en: "Securely generate accounts and convert keys client-side.",
         zh: "安全地在本地生成账户并转换密钥格式。"
     },
+    accountsGenerated: {
+        en: "Accounts",
+        zh: "账户"
+    },
+    neoBalance: {
+        en: "NEO Balance",
+        zh: "NEO 余额"
+    },
+    gasBalance: {
+        en: "GAS Balance",
+        zh: "GAS 余额"
+    },
     tabGenerate: {
         en: "Generate",
         zh: "生成"

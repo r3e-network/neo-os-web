@@ -43,22 +43,47 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="neo-convert-play-area">
-      <div className="hero-stats">
-        <div className="hero-stat">
-          <span className="hero-stat-value">{accountsGenerated}</span>
-          <span className="hero-stat-label">{t("accountsGenerated")}</span>
+      {/* Hero — identity + primary generate action in one card */}
+      <NeoCard variant="erobo" className="convert-hero">
+        <div className="convert-hero__head">
+          <div className="convert-hero__badge" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="10" rx="2" />
+              <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+              <circle cx="12" cy="16" r="1.5" />
+            </svg>
+          </div>
+          <div className="convert-hero__text">
+            <h2 className="convert-hero__title">{t("heroTitle") || "Neo N3 Toolset"}</h2>
+            <p className="convert-hero__subtitle">
+              {t("heroSubtitle") || "Securely generate accounts and convert keys client-side."}
+            </p>
+          </div>
+          <div className="convert-hero__stats">
+            <div className="convert-stat">
+              <span className="convert-stat__value">{accountsGenerated}</span>
+              <span className="convert-stat__label">{t("accountsGenerated") || "Accounts"}</span>
+            </div>
+            <div className="convert-stat">
+              <span className="convert-stat__value">{formattedNeoBalance}</span>
+              <span className="convert-stat__label">{t("neoBalance") || "NEO Balance"}</span>
+            </div>
+            <div className="convert-stat">
+              <span className="convert-stat__value">{formattedGasBalance}</span>
+              <span className="convert-stat__label">{t("gasBalance") || "GAS Balance"}</span>
+            </div>
+          </div>
         </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{formattedNeoBalance}</span>
-          <span className="hero-stat-label">NEO</span>
-        </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{formattedGasBalance}</span>
-          <span className="hero-stat-label">GAS</span>
-        </div>
-      </div>
 
-      <NeoCard variant="erobo" title={t("generateAccount") || "Generate Account"}>
         <div className="convert-section">
           <NeoButton
             variant="primary"

@@ -57,27 +57,43 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="coinflip-play-area">
-      <div className="stats-row">
-        <div className="stat-cell win">
-          <span className="stat-count">{wins}</span>
-          <span className="stat-label">{t("wins") || "Wins"}</span>
+      <header className="play-hero">
+        <div className="play-hero__head">
+          <span className="play-hero__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 3v18M8.5 7.5h5a2 2 0 0 1 0 4h-3a2 2 0 0 0 0 4h5" />
+            </svg>
+          </span>
+          <div className="play-hero__text">
+            <h2 className="play-hero__title">{t("title") || "FogPlay"}</h2>
+            <p className="play-hero__subtitle">
+              {t("docSubtitle") || "Oracle-backed coin toss with on-chain escrow"}
+            </p>
+          </div>
         </div>
-        <div className="stat-divider" />
-        <div className="stat-cell loss">
-          <span className="stat-count">{losses}</span>
-          <span className="stat-label">{t("losses") || "Losses"}</span>
+        <div className="stats-row">
+          <div className="stat-cell win">
+            <span className="stat-count">{wins}</span>
+            <span className="stat-label">{t("wins") || "Wins"}</span>
+          </div>
+          <div className="stat-divider" />
+          <div className="stat-cell loss">
+            <span className="stat-count">{losses}</span>
+            <span className="stat-label">{t("losses") || "Losses"}</span>
+          </div>
+          <div className="stat-divider" />
+          <div className="stat-cell total">
+            <span className="stat-count">{totalGames}</span>
+            <span className="stat-label">{t("totalGames") || "Games"}</span>
+          </div>
+          <div className="stat-divider" />
+          <div className="stat-cell won">
+            <span className="stat-count won-amount">{formattedTotalWon}</span>
+            <span className="stat-label">{t("totalWon") || "Won"}</span>
+          </div>
         </div>
-        <div className="stat-divider" />
-        <div className="stat-cell total">
-          <span className="stat-count">{totalGames}</span>
-          <span className="stat-label">{t("totalGames") || "Games"}</span>
-        </div>
-        <div className="stat-divider" />
-        <div className="stat-cell won">
-          <span className="stat-count won-amount">{formattedTotalWon}</span>
-          <span className="stat-label">{t("totalWon") || "Won"}</span>
-        </div>
-      </div>
+      </header>
 
       <ArenaHero
         t={t}

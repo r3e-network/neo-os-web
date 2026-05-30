@@ -1,40 +1,40 @@
 :global(.theme-wallet-health) {
-  --health-bg-start: #101b2f;
-  --health-bg-end: #1c2740;
-  --health-card-bg: rgba(16, 26, 44, 0.84);
-  --health-card-border: rgba(59, 130, 246, 0.28);
-  --health-accent: #3b82f6;
-  --health-accent-strong: #60a5fa;
-  --health-accent-soft: rgba(59, 130, 246, 0.15);
-  --health-accent-soft-strong: rgba(59, 130, 246, 0.25);
-  --health-accent-glow: rgba(59, 130, 246, 0.3);
-  --health-accent-glow-strong: rgba(59, 130, 246, 0.5);
-  --health-text: #e2e8f0;
-  --health-muted: rgba(226, 232, 240, 0.6);
-  --health-success: #22c55e;
-  --health-warning: #fbbf24;
-  --health-danger: #f87171;
-  --bg-card-subtle: rgba(255, 255, 255, 0.04);
-  --border-subtle: rgba(255, 255, 255, 0.08);
+  --health-bg-start: #ffffff;
+  --health-bg-end: #f7f8fa;
+  --health-card-bg: #ffffff;
+  --health-card-border: rgba(22, 199, 132, 0.18);
+  --health-accent: #16c784;
+  --health-accent-strong: #0fb174;
+  --health-accent-soft: rgba(22, 199, 132, 0.12);
+  --health-accent-soft-strong: rgba(22, 199, 132, 0.2);
+  --health-accent-glow: rgba(22, 199, 132, 0.25);
+  --health-accent-glow-strong: rgba(22, 199, 132, 0.4);
+  --health-text: #1e1e2e;
+  --health-muted: rgba(91, 100, 120, 0.85);
+  --health-success: #16a34a;
+  --health-warning: #d97706;
+  --health-danger: #dc2626;
+  --bg-card-subtle: #f7f8fa;
+  --border-subtle: rgba(20, 22, 38, 0.06);
 }
 
 :global(.theme-light .theme-wallet-health),
 :global([data-theme="light"] .theme-wallet-health) {
-  --health-bg-start: #f5f7ff;
-  --health-bg-end: #e6eefc;
-  --health-card-bg: rgba(255, 255, 255, 0.92);
-  --health-card-border: rgba(30, 64, 175, 0.18);
-  --health-accent: #1d4ed8;
-  --health-accent-strong: #2563eb;
-  --health-accent-soft: rgba(29, 78, 216, 0.12);
-  --health-accent-soft-strong: rgba(29, 78, 216, 0.2);
-  --health-accent-glow: rgba(29, 78, 216, 0.25);
-  --health-accent-glow-strong: rgba(29, 78, 216, 0.4);
-  --health-text: #0f172a;
-  --health-muted: rgba(15, 23, 42, 0.6);
+  --health-bg-start: #ffffff;
+  --health-bg-end: #f7f8fa;
+  --health-card-bg: #ffffff;
+  --health-card-border: rgba(22, 199, 132, 0.18);
+  --health-accent: #16c784;
+  --health-accent-strong: #0fb174;
+  --health-accent-soft: rgba(22, 199, 132, 0.12);
+  --health-accent-soft-strong: rgba(22, 199, 132, 0.2);
+  --health-accent-glow: rgba(22, 199, 132, 0.25);
+  --health-accent-glow-strong: rgba(22, 199, 132, 0.4);
+  --health-text: #1e1e2e;
+  --health-muted: rgba(91, 100, 120, 0.85);
   --health-success: #16a34a;
   --health-warning: #d97706;
   --health-danger: #dc2626;
-  --bg-card-subtle: rgba(15, 23, 42, 0.04);
-  --border-subtle: rgba(15, 23, 42, 0.08);
+  --bg-card-subtle: #f7f8fa;
+  --border-subtle: rgba(20, 22, 38, 0.06);
 }

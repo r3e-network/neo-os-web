@@ -28,6 +28,7 @@ const appMessages = {
   minTip: { en: "Minimum tip is 0.001 GAS", zh: "最低打赏为 0.001 GAS" },
   recentTips: { en: "Recent Tips", zh: "最近打赏" },
   totalDonated: { en: "Total Donated", zh: "总打赏额" },
+  wallet: { en: "Wallet", zh: "钱包" },
   defaultDevName: { en: "Dev #{id}", zh: "开发者 #{id}" },
   defaultDevRole: { en: "Neo Developer", zh: "Neo 开发者" },
 
