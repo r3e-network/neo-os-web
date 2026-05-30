@@ -13,19 +13,24 @@
   border-radius: 12px;
   position: relative;
   overflow: hidden;
-  transition: all 0.2s $ease-smooth;
+  transition:
+    transform var(--ns-t-fast, 150ms) $ease-smooth,
+    background-color var(--ns-t-fast, 150ms) $ease-smooth,
+    border-color var(--ns-t-fast, 150ms) $ease-smooth,
+    box-shadow var(--ns-t-fast, 150ms) $ease-smooth,
+    color var(--ns-t-fast, 150ms) $ease-smooth;
 
   &:hover:not(:disabled) { transform: translateY(-1px); }
   &:active:not(:disabled) { transform: translateY(0); }
   &:disabled {
     opacity: 1;
     cursor: not-allowed;
-    background: #e5e7eb;
-    border-color: #d1d5db;
-    color: #6b7280;
+    background: var(--ns-surface-subtle, #f7f8fa);
+    border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
+    color: var(--ns-text-faint, #aeb4c2);
     box-shadow: none;
   }
-  &:focus-visible { outline: 2px solid #16c784; outline-offset: 2px; }
+  &:focus-visible { outline: 2px solid var(--ns-violet, #7b61ff); outline-offset: 2px; }
 
   &--block { width: 100%; display: flex; }
 
