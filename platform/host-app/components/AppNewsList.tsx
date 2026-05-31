@@ -9,6 +9,7 @@ import {
   Megaphone,
   Trophy,
 } from "lucide-react";
+import { EmptyStateArt } from "../../../apps/shared/components-react/illustrations";
 
 const DORA_TX_BASE = "https://dora.coz.io/transaction/neo3";
 
@@ -39,10 +40,9 @@ export function AppNewsList({ notifications, loading }: Props) {
 
   if (notifications.length === 0) {
     return (
-      <div className="flex flex-col gap-4">
-        <p className="text-sm text-gray-500 text-center py-8">
-          No notifications yet
-        </p>
+      <div className="flex flex-col items-center gap-3 py-8">
+        <EmptyStateArt size={120} title="No notifications yet" />
+        <p className="text-sm text-gray-500 text-center">No notifications yet</p>
       </div>
     );
   }
