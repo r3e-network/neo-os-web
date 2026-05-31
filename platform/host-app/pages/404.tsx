@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import { ErrorArt } from "../../../apps/shared/components-react/illustrations";
 
 export default function Custom404() {
   return (
@@ -17,6 +18,7 @@ export default function Custom404() {
           aria-hidden="true"
         />
         <div className="max-w-md text-center">
+          <ErrorArt size={150} title="Page not found" className="mx-auto mb-6" />
           <p className="text-xs font-semibold uppercase tracking-wider text-neo">
             Error 404
           </p>
