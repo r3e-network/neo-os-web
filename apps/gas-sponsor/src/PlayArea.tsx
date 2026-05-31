@@ -1,4 +1,5 @@
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import GasTank from "./pages/index/components/GasTank";
@@ -43,7 +44,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Hero */}
       <div className="gas-hero">
         <div className="gas-hero-lead">
-          <span className="gas-hero-badge" aria-hidden="true">{"⛽"}</span>
+          <span className="gas-hero-badge">
+            <CategoryIcon name="finance" size={40} title={t("title")} />
+          </span>
           <div className="gas-hero-copy">
             <h2 className="gas-hero-title">{t("title")}</h2>
             <p className="gas-hero-subtitle">{t("subtitle")}</p>

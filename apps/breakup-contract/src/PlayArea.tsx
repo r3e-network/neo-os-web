@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ContractList from "./pages/index/components/ContractList";
@@ -52,8 +53,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Hero */}
       <div className="breakup-hero">
         <div className="breakup-hero-head">
-          <div className="breakup-hero-badge" aria-hidden="true">
-            ♥
+          <div className="breakup-hero-badge">
+            <CategoryIcon name="social" size={40} title={t("title") || "Breakup Contract"} />
           </div>
           <div className="breakup-hero-copy">
             <h1 className="breakup-hero-title">{t("title") || "Breakup Contract"}</h1>

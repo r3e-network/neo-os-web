@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { ProfitAnchorStats } from "../../profitanchor/src/hooks/useProfitAnchor";
@@ -52,8 +53,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <main className="anchor-admin-main">
           <section className="anchor-admin-hero">
             <div className="anchor-admin-hero-copy">
-              <span className="anchor-admin-hero-badge" aria-hidden="true">
-                ⛵
+              <span className="anchor-admin-hero-badge">
+                <CategoryIcon name="finance" size={40} title="ProfitAnchor Admin" />
               </span>
               <span className="anchor-admin-kicker">ProfitAnchor Admin</span>
               <h2>{t("adminHeroTitle")}</h2>
