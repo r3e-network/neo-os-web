@@ -41,7 +41,7 @@ export function AppNewsList({ notifications, loading }: Props) {
   if (notifications.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-8">
-        <EmptyStateArt size={120} title="No notifications yet" />
+        <EmptyStateArt size={120} title="Empty inbox" />
         <p className="text-sm text-gray-500 text-center">No notifications yet</p>
       </div>
     );

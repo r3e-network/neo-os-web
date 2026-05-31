@@ -18,7 +18,7 @@ export default function Custom404() {
           aria-hidden="true"
         />
         <div className="max-w-md text-center">
-          <ErrorArt size={150} title="Page not found" className="mx-auto mb-6" />
+          <ErrorArt size={150} title="Lost robot" className="mx-auto mb-6" />
           <p className="text-xs font-semibold uppercase tracking-wider text-neo">
             Error 404
           </p>

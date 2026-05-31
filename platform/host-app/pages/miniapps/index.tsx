@@ -564,7 +564,7 @@ export default function MiniAppsPage({
                 </div>
 
                 <aside
-                  className="flex min-h-[260px] flex-col justify-between rounded-2xl border border-gray-200 bg-gradient-to-br from-emerald-50 via-white to-violet-50 p-5 text-gray-900 shadow-sm sm:min-h-[340px]"
+                  className="flex min-h-[260px] flex-col justify-between rounded-3xl border border-gray-200 bg-gradient-to-br from-emerald-50 via-white to-violet-50 p-5 text-gray-900 shadow-sm sm:min-h-[340px]"
                   data-testid="miniapps-lead-preview"
                 >
                   {hero ? (

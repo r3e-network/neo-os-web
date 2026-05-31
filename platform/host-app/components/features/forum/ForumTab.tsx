@@ -130,7 +130,7 @@ export function ForumTab({ appId, network = "testnet" }: ForumTabProps) {
           </div>
         ) : threads.length === 0 ? (
           <div className="flex flex-col items-center py-8 text-gray-500">
-            <EmptyStateArt size={120} title="No discussions yet" className="mb-3" />
+            <EmptyStateArt size={120} title="Empty discussion" className="mb-3" />
             <p>No discussions yet</p>
           </div>
         ) : threads && threads.length > 0 ? (
@@ -378,7 +378,7 @@ function ThreadDetail({
         </h3>
         {replies.length === 0 ? (
           <div className="flex flex-col items-center py-8 text-gray-500">
-            <EmptyStateArt size={104} title="No replies yet" className="mb-3" />
+            <EmptyStateArt size={104} title="Empty replies" className="mb-3" />
             <p>No replies yet</p>
           </div>
         ) : (
