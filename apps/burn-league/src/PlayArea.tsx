@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import "./PlayArea.scss";
@@ -69,7 +70,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Hero — icon badge + title + subtitle + compact stat strip */}
       <div className="burn-league-hero">
         <div className="burn-league-hero-lead">
-          <span className="burn-league-hero-badge" aria-hidden="true">{"🔥"}</span>
+          <span className="burn-league-hero-badge">
+            <CategoryIcon name="game" size={40} title={t("title")} />
+          </span>
           <div className="burn-league-hero-copy">
             <h2 className="burn-league-hero-title">{t("title")}</h2>
             <p className="burn-league-hero-subtitle">{t("subtitle")}</p>
