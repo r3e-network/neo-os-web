@@ -1,4 +1,5 @@
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import HistoryTab from "./pages/index/components/HistoryTab";
@@ -33,7 +34,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Hero — purposeful head with icon badge, title, subtitle, stat strip */}
       <div className="grave-hero">
         <div className="grave-hero-lead">
-          <span className="grave-hero-badge" aria-hidden="true">{"⚰️"}</span>
+          <span className="grave-hero-badge">
+            <CategoryIcon name="identity" size={40} title={t("title")} />
+          </span>
           <div className="grave-hero-copy">
             <h2 className="grave-hero-title">{t("title")}</h2>
             <p className="grave-hero-subtitle">{t("subtitle")}</p>

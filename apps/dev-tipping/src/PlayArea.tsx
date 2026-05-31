@@ -9,6 +9,7 @@
 
 import { useState } from "react";
 import { NeoCard } from "@shared/components-react";
+import { CategoryIcon, EmptyStateArt } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { formatNumber } from "@shared/utils/format";
@@ -57,7 +58,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Hero: identity + stats + wallet */}
       <NeoCard variant="erobo" className="tipping-hero">
         <div className="tipping-hero__head">
-          <span className="tipping-hero__badge" aria-hidden="true">♡</span>
+          <span className="tipping-hero__badge">
+            <CategoryIcon name="social" size={40} title={t("title") || "Dev Tipping"} />
+          </span>
           <div className="tipping-hero__text">
             <h2 className="tipping-hero__title">{t("title") || "Dev Tipping"}</h2>
             <p className="tipping-hero__subtitle">{t("docSubtitle") || t("subtitle")}</p>
@@ -95,7 +98,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           ) : (
             <>
               <div className="tipping-empty">
-                <span className="tipping-empty__icon" aria-hidden="true">♡</span>
+                <EmptyStateArt size={150} title={t("noDevelopers") || "No developers yet"} />
                 <span className="tipping-empty__title">{t("noDevelopers") || "No developers yet"}</span>
                 <span className="tipping-empty__hint">{t("noDevelopersHint") || t("docSubtitle")}</span>
               </div>

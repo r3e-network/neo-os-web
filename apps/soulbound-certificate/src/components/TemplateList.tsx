@@ -1,4 +1,5 @@
 import { NeoCard, NeoButton } from "@shared/components-react";
+import { EmptyStateArt } from "@shared/components-react/illustrations";
 
 interface TemplateListProps {
   templates: unknown[]; refreshing: boolean; togglingId: string | null; hasAddress: boolean;
@@ -15,14 +16,14 @@ export default function TemplateList({ templates, refreshing, togglingId, hasAdd
       </div>
       {!hasAddress ? (
         <div className="empty-state">
-          <span className="empty-icon" aria-hidden="true">🔑</span>
+          <EmptyStateArt size={150} title={t("walletNotConnected")} />
           <span className="empty-title">{t("walletNotConnected")}</span>
           <span className="empty-hint">{t("walletNotConnectedHint")}</span>
           <NeoButton className="empty-action" size="sm" variant="primary" onClick={onConnect}>{t("connectWallet")}</NeoButton>
         </div>
       ) : templates.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-icon" aria-hidden="true">📋</span>
+          <EmptyStateArt size={150} title={t("emptyTemplates")} />
           <span className="empty-title">{t("emptyTemplates")}</span>
           <span className="empty-hint">{t("emptyTemplatesHint")}</span>
         </div>
