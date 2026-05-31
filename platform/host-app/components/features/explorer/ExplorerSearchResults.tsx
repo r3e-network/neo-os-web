@@ -20,7 +20,7 @@ export function ExplorerSearchResults({
     return (
       <Card>
         <CardContent className="flex flex-col items-center py-8 text-gray-500">
-          <EmptyStateArt size={120} title="No results found" className="mb-3" />
+          <EmptyStateArt size={120} title="Empty results" className="mb-3" />
           No results found for this query
         </CardContent>
       </Card>
