@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code, Cpu, FileCode } from "lucide-react";
+import { EmptyStateArt } from "../../../../../apps/shared/components-react/illustrations";
 import type {
   ExplorerBlockData,
   ExplorerContractCall,
@@ -18,7 +19,8 @@ export function ExplorerSearchResults({
   if (!result.found) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-gray-500">
+        <CardContent className="flex flex-col items-center py-8 text-gray-500">
+          <EmptyStateArt size={120} title="No results found" className="mb-3" />
           No results found for this query
         </CardContent>
       </Card>
