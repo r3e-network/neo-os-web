@@ -1,4 +1,5 @@
 import { NeoButton, NeoCard } from "@shared/components-react";
+import { CategoryIcon, EmptyStateArt } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import TemplateList from "./components/TemplateList";
@@ -28,7 +29,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Hero */}
       <div className="certificate-hero">
         <div className="hero-lead">
-          <div className="hero-badge" aria-hidden="true">🎓</div>
+          <div className="hero-badge">
+            <CategoryIcon name="identity" size={40} title={t("title") || "Soulbound Certificate"} />
+          </div>
           <div className="hero-copy">
             <h2 className="hero-title">{t("title") || "Soulbound Certificate"}</h2>
             <p className="hero-subtitle">{t("docSubtitle") || "On-chain, non-transferable NEP-11 certificates"}</p>
@@ -105,7 +108,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           ) : (
             <div className="empty-state">
-              <span className="empty-icon" aria-hidden="true">📜</span>
+              <EmptyStateArt size={150} title={t("emptyCertificates") || "No certificates yet"} />
               <span className="empty-title">{t("emptyCertificates") || "No certificates yet"}</span>
               <span className="empty-hint">{t("emptyCertificatesHint") || "Certificates issued to this wallet will appear here."}</span>
             </div>
