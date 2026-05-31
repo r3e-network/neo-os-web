@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useForum } from "./useForum";
 import { useWalletStore } from "@/lib/wallet/store";
 import type { ForumThread } from "./types";
+import { EmptyStateArt } from "../../../../../apps/shared/components-react/illustrations";
 
 interface ForumTabProps {
   appId: string;
@@ -128,11 +129,8 @@ export function ForumTab({ appId, network = "testnet" }: ForumTabProps) {
             ))}
           </div>
         ) : threads.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <MessageSquare
-              className="mx-auto mb-2 h-8 w-8 opacity-50"
-              aria-hidden="true"
-            />
+          <div className="flex flex-col items-center py-8 text-gray-500">
+            <EmptyStateArt size={120} title="No discussions yet" className="mb-3" />
             <p>No discussions yet</p>
           </div>
         ) : threads && threads.length > 0 ? (
@@ -379,11 +377,8 @@ function ThreadDetail({
           {replies.length} Replies
         </h3>
         {replies.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <MessageSquare
-              className="mx-auto mb-2 h-8 w-8 opacity-50"
-              aria-hidden="true"
-            />
+          <div className="flex flex-col items-center py-8 text-gray-500">
+            <EmptyStateArt size={104} title="No replies yet" className="mb-3" />
             <p>No replies yet</p>
           </div>
         ) : (
