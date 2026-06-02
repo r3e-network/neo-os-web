@@ -607,6 +607,51 @@ export class WifAdapter implements WalletAdapter {
     }
   }
 
+  // NEP-17 transfer for the embedded-dApp bridge `send` path (e.g. OS check-in /
+  // payment intents). Builds a transfer invocation and reuses invoke()'s
+  // sign+relay pipeline; signers default to this account + CalledByEntry.
+  async send(asset: string, amount: string, to: string, from?: string): Promise<TransactionResult> {
+    if (!this.account) {
+      throw new WalletConnectionError("Developer key wallet is not connected");
+    }
+    const fromAddr = from && from.trim() ? from.trim() : this.account.address;
+    const symbol = String(asset || "").trim();
+    const upper = symbol.toUpperCase();
+    const assetHash = upper === "NEO"
+      ? NEO_CONTRACT
+      : (upper === "GAS" || !symbol)
+        ? GAS_CONTRACT
+        : symbol.startsWith("0x") ? symbol.toLowerCase() : `0x${symbol.toLowerCase()}`;
+    let decimals = assetHash === NEO_CONTRACT ? 0 : 8;
+    if (assetHash !== NEO_CONTRACT && assetHash !== GAS_CONTRACT) {
+      try {
+        const network = getRpcNetwork();
+        const d = await neoRpc<NeoRpcInvokeResult>(network, "invokefunction", [
+          normalizeHash160(assetHash),
+          "decimals",
+          [],
+        ]);
+        const v = (d.stack?.[0] as { value?: unknown } | undefined)?.value;
+        if (v != null) decimals = Number(v);
+      } catch {
+        // fall back to 8 decimals
+      }
+    }
+    const [intPart, fracRaw = ""] = String(amount ?? "0").trim().split(".");
+    const frac = `${fracRaw}${"0".repeat(decimals)}`.slice(0, decimals);
+    const raw = (BigInt(intPart || "0") * 10n ** BigInt(decimals) + BigInt(frac || "0")).toString();
+    return this.invoke({
+      scriptHash: assetHash,
+      operation: "transfer",
+      args: [
+        { type: "Hash160", value: fromAddr },
+        { type: "Hash160", value: to },
+        { type: "Integer", value: raw },
+        { type: "Any", value: null },
+      ],
+    });
+  }
+
   async invokeMultiple(
     params: InvokeParams[],
     signers?: InvokeParams["signers"],
