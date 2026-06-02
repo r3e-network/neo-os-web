@@ -11,6 +11,21 @@ function resolveMorpheusPublicApiUrl(networkInput?: string | null) {
   return (candidates[0] || "").replace(/\/$/, "");
 }
 
+function tryParseJson(text: string) {
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function upstreamErrorMessage(status: number, text: string) {
+  const parsed = tryParseJson(text);
+  const message =
+    parsed?.error || parsed?.message || parsed?.detail || text.trim();
+  return String(message || `Morpheus confidential store returned ${status}`);
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -53,9 +68,22 @@ export default async function handler(
       body: JSON.stringify(body),
     });
 
-    const text = await upstream.text();
-    res.status(upstream.status);
     res.setHeader("Cache-Control", "no-store, private");
+    const text = await upstream.text();
+    const upstreamOk =
+      upstream.ok ?? (upstream.status >= 200 && upstream.status < 300);
+    if (!upstreamOk) {
+      res.status(200).json({
+        status: "inline_fallback",
+        inline_fallback: true,
+        store_available: false,
+        upstream_status: upstream.status,
+        error: upstreamErrorMessage(upstream.status, text),
+      });
+      return;
+    }
+
+    res.status(upstream.status);
     res.setHeader(
       "Content-Type",
       upstream.headers.get("content-type") || "application/json",

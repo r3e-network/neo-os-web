@@ -106,6 +106,92 @@
   },
   "operations": [
     {
+      "name": "Create Stream",
+      "method": "createStream",
+      "description": "Fund GAS and open a payment stream in one wallet transaction.",
+      "button_style": "primary",
+      "priority": "primary",
+      "params": [
+        {
+          "name": "creator",
+          "type": "hash160",
+          "label": "Creator",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "beneficiary",
+          "type": "hash160",
+          "label": "Beneficiary",
+          "required": true,
+          "placeholder": "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu"
+        },
+        {
+          "name": "asset",
+          "type": "hash160",
+          "label": "Asset",
+          "required": true,
+          "default_value": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          "hidden": true
+        },
+        {
+          "name": "totalAmount",
+          "type": "amount",
+          "label": "Total GAS",
+          "required": true,
+          "placeholder": "0.03",
+          "scale": 8,
+          "presets": [
+            {
+              "label": "0.03",
+              "value": "0.03",
+              "helper": "GAS"
+            },
+            {
+              "label": "0.10",
+              "value": "0.10",
+              "helper": "GAS"
+            },
+            {
+              "label": "0.25",
+              "value": "0.25",
+              "helper": "GAS"
+            }
+          ]
+        },
+        {
+          "name": "rateAmount",
+          "type": "amount",
+          "label": "Daily release",
+          "required": true,
+          "placeholder": "0.03",
+          "scale": 8
+        },
+        {
+          "name": "intervalSeconds",
+          "type": "integer",
+          "label": "Interval (seconds)",
+          "required": true,
+          "placeholder": "86400"
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "label": "Title",
+          "required": true,
+          "placeholder": "Testnet payroll stream"
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "label": "Notes",
+          "required": false,
+          "placeholder": "Optional memo"
+        }
+      ]
+    },
+    {
       "name": "Claim Stream",
       "method": "claimStream",
       "button_style": "primary",

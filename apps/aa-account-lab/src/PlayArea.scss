@@ -13,10 +13,8 @@
   align-items: stretch;
   padding: 24px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 20px;
-  background:
-    linear-gradient(135deg, rgba(228, 248, 240, 0.7), rgba(255, 255, 255, 0.4)),
-    var(--ns-surface, #fff);
+  border-radius: 16px;
+  background: var(--ns-surface, #fff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
@@ -56,18 +54,17 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .account-hero__copy h2 {
   max-width: 780px;
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.16;
+  letter-spacing: 0;
+  line-height: 1.12;
 }
 
 .account-hero__copy p {
@@ -102,8 +99,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .account-metric strong {

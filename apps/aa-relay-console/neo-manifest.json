@@ -38,7 +38,8 @@
     "banner": "/miniapps/aa-relay-console/banner.jpg"
   },
   "permissions": [
-    "read:blockchain"
+    "read:blockchain",
+    "invoke:primary"
   ],
   "features": {
     "stateless": true,
@@ -56,7 +57,91 @@
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": false
+    "transactions": true
+  },
+  "operation_panel": {
+    "title": "AA Relay Console",
+    "subtitle": "Check sponsor coverage, request paymaster support, then submit a relay-ready AA payload.",
+    "operations": [
+      {
+        "name": "Check Sponsorship",
+        "method": "checkSponsor",
+        "description": "Check whether this AA address is eligible for the selected paymaster scope.",
+        "button_style": "secondary",
+        "priority": "primary",
+        "params": [
+          {
+            "name": "aaAddress",
+            "type": "address",
+            "label": "AA Address",
+            "required": true
+          },
+          {
+            "name": "dappId",
+            "type": "string",
+            "label": "Paymaster dApp ID",
+            "default_value": "miniapp-aa-relay-console"
+          }
+        ]
+      },
+      {
+        "name": "Request Sponsorship",
+        "method": "requestSponsor",
+        "description": "Request GAS sponsorship from the paymaster for this AA scope.",
+        "button_style": "success",
+        "priority": "primary",
+        "params": [
+          {
+            "name": "aaAddress",
+            "type": "address",
+            "label": "AA Address",
+            "required": true
+          },
+          {
+            "name": "dappId",
+            "type": "string",
+            "label": "Paymaster dApp ID",
+            "default_value": "miniapp-aa-relay-console"
+          },
+          {
+            "name": "sponsorAmount",
+            "type": "amount",
+            "label": "Sponsor Amount",
+            "default_value": "0.1",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "Submit Relay Payload",
+        "method": "submitRelay",
+        "description": "Submit a relay-ready AA payload through the platform relay proxy.",
+        "button_style": "primary",
+        "priority": "primary",
+        "confirm_message": "Submit this payload to the AA relay?",
+        "params": [
+          {
+            "name": "aaAddress",
+            "type": "address",
+            "label": "AA Address",
+            "required": true
+          },
+          {
+            "name": "dappId",
+            "type": "string",
+            "label": "Paymaster dApp ID",
+            "default_value": "miniapp-aa-relay-console"
+          },
+          {
+            "name": "payloadJson",
+            "type": "string",
+            "label": "Relay Payload JSON",
+            "default_value": "{\n  \"metaInvocation\": {\n    \"scriptHash\": \"0x0268a387913b250166ddec032b03332690a1ef78\"\n  }\n}",
+            "required": true
+          }
+        ]
+      }
+    ]
   },
   "createdAt": "2026-03-18T05:10:00Z",
   "updatedAt": "2026-05-08T00:00:00Z"

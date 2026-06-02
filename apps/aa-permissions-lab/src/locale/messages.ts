@@ -9,6 +9,7 @@ const appMessages = {
   updateVerifier: { en: "Update Verifier", zh: "更新 Verifier" },
   updateHook: { en: "Update Hook", zh: "更新 Hook" },
   inspect: { en: "Refresh State", zh: "刷新状态" },
+  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   currentVerifier: { en: "Current Verifier", zh: "当前 Verifier" },
   currentHook: { en: "Current Hook", zh: "当前 Hook" },
   currentBackupOwner: { en: "Current Backup Owner", zh: "当前 Backup Owner" },
@@ -40,6 +41,8 @@ const appMessages = {
   configured: { en: "configured", zh: "已配置" },
   inspectComplete: { en: "Refresh State complete", zh: "刷新状态完成" },
   inspectFailed: { en: "Inspect failed", zh: "查询失败" },
+  walletConnected: { en: "Wallet connected", zh: "钱包已连接" },
+  connectFailed: { en: "Wallet connection failed", zh: "钱包连接失败" },
   updateVerifierFailed: {
     en: "Update verifier failed",
     zh: "更新 Verifier 失败",
@@ -65,6 +68,10 @@ const appMessages = {
   accountIdHint: {
     en: "Required before reading or writing permission bindings.",
     zh: "读取或写入权限绑定前必须填写。",
+  },
+  inspectBlocked: {
+    en: "Enter an AccountId hash before reading live permission state.",
+    zh: "请先填写 AccountId hash，再读取实时权限状态。",
   },
   permissionsFlowLabel: {
     en: "Permission update workflow",

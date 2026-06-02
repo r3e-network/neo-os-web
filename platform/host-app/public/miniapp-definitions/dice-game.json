@@ -73,6 +73,14 @@
       ]
     },
     {
+      "name": "Fund Oracle Fee",
+      "method": "fundOracleRequestFee",
+      "description": "Top up the Morpheus VRF request fee required before rolling.",
+      "button_style": "secondary",
+      "priority": "primary",
+      "params": []
+    },
+    {
       "name": "Roll",
       "method": "placeDiceBet",
       "button_style": "success",

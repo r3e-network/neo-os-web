@@ -13,7 +13,7 @@
   align-items: stretch;
   padding: 24px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
+  border-radius: 16px;
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
@@ -52,10 +52,10 @@
   max-width: 780px;
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.18;
+  letter-spacing: 0;
+  line-height: 1.12;
 }
 
 .relay-hero__copy p {
@@ -91,8 +91,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .relay-metric strong {
@@ -101,7 +100,7 @@
   font-size: 18px;
   font-weight: 800;
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -275,7 +274,7 @@
   color: var(--ns-ink, #1e1e2e);
   font-size: 18px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.2;
 }
 
@@ -392,12 +391,12 @@
 
   .relay-hero {
     padding: 18px;
-    border-radius: var(--ns-radius-md, 16px);
+    border-radius: 14px;
   }
 
   .relay-hero__copy h2 {
-    font-size: 20px;
-    line-height: 1.2;
+    font-size: 28px;
+    line-height: 1.12;
   }
 
   .relay-hero__badge {

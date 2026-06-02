@@ -58,6 +58,7 @@ interface StoredHistoryItem {
   hash: string;
   time: string;
   forgotten: boolean;
+  memoryType?: number;
 }
 
 interface StoredStats {
@@ -100,14 +101,22 @@ export function useGraveyard({
   const gasReclaimedDisplay = createDerived(() => `${gasReclaimed.get()} ${t("tokenGas")}`, []);
   const historyCount = createDerived(() => history.get().length, []);
 
+  const triggerMissingHash = () => {
+    showWarningShake.set(true);
+    if (shakeTimer) clearTimeout(shakeTimer);
+    shakeTimer = setTimeout(() => { showWarningShake.set(false); shakeTimer = null; }, 500);
+  };
+
   const initiateDestroy = () => {
-    if (!assetHash.get()) {
-      showWarningShake.set(true);
-      if (shakeTimer) clearTimeout(shakeTimer);
-      shakeTimer = setTimeout(() => { showWarningShake.set(false); shakeTimer = null; }, 500);
+    if (!assetHash.get().trim()) {
+      triggerMissingHash();
       throw new Error(t("enterAssetHash"));
     }
     showConfirm.set(true);
+  };
+
+  const cancelDestroy = () => {
+    showConfirm.set(false);
   };
 
   // ── Actions (via OS services) ──────────────────────────────────────
@@ -119,20 +128,26 @@ export function useGraveyard({
   const executeDestroy = async () => {
     showConfirm.set(false);
     if (isDestroying.get()) return;
+    const currentHash = assetHash.get().trim();
+    if (!currentHash) {
+      triggerMissingHash();
+      throw new Error(t("enterAssetHash"));
+    }
     isDestroying.set(true);
 
     try {
       // Burn the asset via NFTProxy — the edge function handles
       // the fee transfer and BuryMemory contract call
-      await nftService.burn(assetHash.get());
+      await nftService.burn(currentHash);
 
       // Record the burial in history
       const memoryId = String(Date.now());
       history.set([{
         id: memoryId,
-        hash: assetHash.get(),
+        hash: currentHash,
         time: new Intl.DateTimeFormat(undefined).format(new Date()),
         forgotten: false,
+        memoryType: memoryType.get(),
       }, ...history.get()]);
 
       totalDestroyed.set(totalDestroyed.get() + 1);
@@ -190,6 +205,7 @@ export function useGraveyard({
               hash: String(stored.hash || ""),
               time: String(stored.time || ""),
               forgotten: Boolean(stored.forgotten),
+              memoryType: Number(stored.memoryType || 0) || undefined,
             });
           }
         }
@@ -239,13 +255,13 @@ export function useGraveyard({
   const cleanupTimers = () => {
     if (shakeTimer) { clearTimeout(shakeTimer); shakeTimer = null; }
   };
-  return {
-    totalDestroyed, gasReclaimed, assetHash, memoryType, history,
-    showConfirm, isDestroying, showWarningShake, forgettingId, isLoading,
-    memoryTypeOptions, gasReclaimedDisplay, historyCount,
-    initiateDestroy, executeDestroy, loadStats, loadHistory, forgetMemory,
-    loadAll, cleanupTimers,
-  };
+	  return {
+	    totalDestroyed, gasReclaimed, assetHash, memoryType, history,
+	    showConfirm, isDestroying, showWarningShake, forgettingId, isLoading,
+	    memoryTypeOptions, gasReclaimedDisplay, historyCount,
+	    initiateDestroy, cancelDestroy, executeDestroy, loadStats, loadHistory, forgetMemory,
+	    loadAll, cleanupTimers,
+	  };
 }
 
 export type UseGraveyardReturn = ReturnType<typeof useGraveyard>;

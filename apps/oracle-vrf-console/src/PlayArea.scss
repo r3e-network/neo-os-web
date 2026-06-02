@@ -1,0 +1,111 @@
+/**
+ * Oracle VRF Console — app-scoped Neo Soft refinements.
+ *
+ * This app renders the shared `ConsoleToolPanel`. The overrides below are
+ * intentionally scoped to this app's bundle and only adjust presentation:
+ * they reduce visual density, strip non-business decoration (decorative
+ * sparkline, gradient, non-interactive flow stepper, static request count),
+ * and unify surfaces to the Neo Soft white-card language. No markup, no
+ * business logic, and no i18n keys are changed — display-only elements are
+ * hidden via CSS so the shared component remains untouched.
+ *
+ * Only existing `--ns-*` design tokens are used; no values are invented.
+ */
+
+.console-tool {
+  // More breathing room between the stacked sections (was 16px).
+  gap: 20px;
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────
+   Unify to the Neo Soft white card: soft radius + diffuse navy shadow,
+   pastel icon badge, generous padding. */
+.console-tool__hero {
+  padding: 24px;
+  border: none;
+  border-radius: var(--ns-radius-lg);
+  box-shadow: var(--ns-shadow-md);
+}
+
+.console-tool__hero-badge {
+  // Pastel icon badge per Neo Soft hero recipe (~46px).
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+}
+
+/* The "Requests" metric is a static, read-only counter — not a business
+   metric for end users. De-clutter the hero by hiding it (display-only).
+   The two informative metrics (Network, Mode) remain. */
+.console-tool__hero-metrics .console-tool__metric:nth-child(3) {
+  display: none;
+}
+
+/* ── Asset card ──────────────────────────────────────────────────────────
+   Drop the gaming-style gradient for a clean white oracle-console card and
+   remove the decorative sparkline + duplicate signal block. The essential
+   last-request digest stays. */
+.console-tool__asset-card {
+  gap: 20px;
+  padding: 20px 24px;
+  border: none;
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
+}
+
+/* Decorative sparkline adds visual noise without data value — hide it. */
+.console-tool__sparkline {
+  display: none;
+}
+
+/* The signal badge restates the form-section status hint; keep the card
+   focused on the digest. The status itself still surfaces in the result
+   panel and global status bar, so no information is lost. */
+.console-tool__asset-signal {
+  display: none;
+}
+
+/* Duplicate hint: `consoleRequestHint` also appears in the form section.
+   Hide the asset-card copy to consolidate messaging (key kept in markup). */
+.console-tool__asset-copy p {
+  display: none;
+}
+
+/* ── Workspace / form ────────────────────────────────────────────────────
+   The 3-step "Input › Preview › Verify" badges are non-interactive labels
+   masquerading as a stepper — they imply a wizard flow that does not exist.
+   Hide them; the single-line hint below already orients the user. */
+.console-tool__flow {
+  display: none;
+}
+
+.console-tool__form {
+  gap: 16px;
+  padding: 24px;
+  border: none;
+  border-radius: var(--ns-radius-lg);
+  box-shadow: var(--ns-shadow-md);
+}
+
+.console-tool__result {
+  padding: 24px;
+  border: none;
+  border-radius: var(--ns-radius-lg);
+  box-shadow: var(--ns-shadow-md);
+}
+
+/* Smooth, token-driven hover lift on the result/empty surface. */
+.console-tool__result,
+.console-tool__form,
+.console-tool__hero,
+.console-tool__asset-card {
+  transition: box-shadow var(--ns-t-fast) var(--ns-ease-smooth);
+}
+
+/* Align focus affordance with the Neo Soft violet focus ring. */
+.console-tool__field select:focus {
+  outline: none;
+  border-color: var(--ns-violet);
+  box-shadow: var(--ns-focus-ring);
+}

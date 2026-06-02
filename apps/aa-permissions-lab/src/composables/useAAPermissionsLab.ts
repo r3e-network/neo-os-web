@@ -8,7 +8,7 @@
 import { createObservable } from "@shared/react/context";
 import type { ChainService } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import { normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
+import { normalizeScriptHash } from "@shared/utils/neo";
 import {
   getExternalIntegrationConfig,
   getNetwork,
@@ -39,25 +39,34 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
   const isVerifierBusy = createObservable(false);
   const isHookBusy = createObservable(false);
 
+  const formatPermissionValue = (value: unknown) => {
+    if (value === null || value === undefined || value === "") {
+      return t("notAvailable");
+    }
+    return String(value);
+  };
+
   const refreshState = async () => {
     try {
       isRefreshing.set(true);
       const accountId = normalizeScriptHash(form.accountIdHash).replace(/^0x/, "");
       const [verifier, hook, backup] = await Promise.all([
-        chain.invokeRead(aaCore, "getVerifier", [{ type: "Hash160", value: `0x${accountId}` }]),
-        chain.invokeRead(aaCore, "getHook", [{ type: "Hash160", value: `0x${accountId}` }]),
-        chain.invokeRead(aaCore, "getBackupOwner", [{ type: "Hash160", value: `0x${accountId}` }]),
+        chain.read("getVerifier", [{ type: "Hash160", value: `0x${accountId}` }], { scriptHash: aaCore }),
+        chain.read("getHook", [{ type: "Hash160", value: `0x${accountId}` }], { scriptHash: aaCore }),
+        chain.read("getBackupOwner", [{ type: "Hash160", value: `0x${accountId}` }], { scriptHash: aaCore }),
       ]);
-      currentVerifier.set(String(parseInvokeResult(verifier) || t("notAvailable")));
-      currentHook.set(String(parseInvokeResult(hook) || t("notAvailable")));
-      currentBackupOwner.set(String(parseInvokeResult(backup) || t("notAvailable")));
+      currentVerifier.set(formatPermissionValue(verifier));
+      currentHook.set(formatPermissionValue(hook));
+      currentBackupOwner.set(formatPermissionValue(backup));
 
-      storageService.set(`permissions:${accountId}`, {
-        verifier: currentVerifier.get(),
-        hook: currentHook.get(),
-        backupOwner: currentBackupOwner.get(),
-        inspectedAt: Date.now(),
-      }).catch(() => {});
+      if (chain.isConnected.get()) {
+        storageService.set(`permissions:${accountId}`, {
+          verifier: currentVerifier.get(),
+          hook: currentHook.get(),
+          backupOwner: currentBackupOwner.get(),
+          inspectedAt: Date.now(),
+        }).catch(() => {});
+      }
     } catch (error: unknown) {
       throw error;
     } finally {
@@ -68,12 +77,11 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
   const submitVerifier = async () => {
     try {
       isVerifierBusy.set(true);
-      await chain.ensureWallet();
-      await chain.invokeWrite(aaCore, "updateVerifier", [
+      await chain.invoke("updateVerifier", [
         { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
         { type: "Hash160", value: normalizeScriptHash(form.verifierHash) },
         { type: "ByteArray", value: form.verifierParamsHex.trim().replace(/^0x/, "") },
-      ]);
+      ], { scriptHash: aaCore });
       await refreshState();
     } catch (error: unknown) {
       throw error;
@@ -85,11 +93,10 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
   const submitHook = async () => {
     try {
       isHookBusy.set(true);
-      await chain.ensureWallet();
-      await chain.invokeWrite(aaCore, "updateHook", [
+      await chain.invoke("updateHook", [
         { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
         { type: "Hash160", value: normalizeScriptHash(form.hookHash) },
-      ]);
+      ], { scriptHash: aaCore });
       await refreshState();
     } catch (error: unknown) {
       throw error;

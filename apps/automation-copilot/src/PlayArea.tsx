@@ -1,16 +1,17 @@
-import { NeoButton, NeoCard, NeoInput, NeoSelect } from "@shared/components-react";
+import { Bot, CheckCircle2, Copy, ListChecks, Power, RefreshCw } from "lucide-react";
+import { NeoButton, NeoInput, NeoSelect } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { Observable } from "@shared/react/context";
+import type { PlayAreaProps } from "@shared/react/defineMiniApp";
+import { isLocalAutomationIntent, type AutomationTrigger } from "./automationGateway";
 import "./PlayArea.scss";
 
-interface PlayAreaProps {
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+function shortId(value: string) {
+  if (!value || value.length <= 18) return value;
+  return `${value.slice(0, 10)}...${value.slice(-8)}`;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { str, bool } = useStateBindings(state);
+export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps) {
+  const { str, bool, num, val } = useStateBindings(state);
 
   const asset = str("asset", "NEO");
   const targetPrice = str("targetPrice", "20");
@@ -18,71 +19,88 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const actionName = str("actionName", "auto_repay_self_loan");
   const currentPrice = str("currentPrice");
   const renderedPayload = str("renderedPayload", "{}");
+  const renderedTriggerRequest = str("renderedTriggerRequest", "{}");
   const isRequesting = bool("isRequesting");
+  const isRegistering = bool("isRegistering");
+  const isRefreshing = bool("isRefreshing");
   const oracleHash = str("oracleHash");
-  const networkDisplay = str("networkDisplay", "N3 TestNet");
+  const networkDisplay = str("networkDisplay", "mainnet");
   const datafeedHash = str("datafeedHash");
+  const latestTriggerId = str("latestTriggerId");
+  const latestTriggerState = str("latestTriggerState");
+  const apiStatus = str("apiStatus");
+  const lastError = str("lastError");
+  const triggerCount = num("triggerCount");
+  const latestTrigger = val<AutomationTrigger>("latestTrigger");
 
   const hasPayload = renderedPayload.trim() !== "" && renderedPayload.trim() !== "{}";
+  const hasTriggerRequest =
+    renderedTriggerRequest.trim() !== "" && renderedTriggerRequest.trim() !== "{}";
+  const handoffOnly = isLocalAutomationIntent(latestTrigger);
+  const canToggle = Boolean(latestTrigger?.id) && !handoffOnly;
+  const hasTrigger = Boolean(latestTrigger?.id);
+  const isEnabled = Boolean(latestTrigger?.enabled);
+  const statusTone = !hasTrigger ? "neutral" : isEnabled ? "ok" : "off";
+  const statusLabel = !hasTrigger
+    ? latestTriggerState || apiStatus || (t("apiIdle") || "Ready")
+    : isEnabled
+      ? (t("enabled") || "Enabled")
+      : (t("disabled") || "Disabled");
+
+  async function copyCurrentPayload() {
+    const text = hasPayload ? renderedPayload : renderedTriggerRequest;
+    if (!text.trim() || !services.clipboard) return;
+    await services.clipboard.copy(text, "copied");
+  }
 
   return (
     <div className="automation-play-area">
-      {/* Hero — identity + live snapshot + primary actions in one card */}
-      <NeoCard className="copilot-hero">
-        <div className="copilot-hero__head">
-          <div className="copilot-hero__badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="4" y="4" width="16" height="16" rx="2" />
-              <rect x="9" y="9" width="6" height="6" rx="1" />
-              <path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3" />
-            </svg>
-          </div>
-          <div className="copilot-hero__text">
-            <h2 className="copilot-hero__title">{t("title") || "Automation Copilot"}</h2>
-            <p className="copilot-hero__subtitle">
-              {t("subtitle") || "Recipe console for price-triggered Morpheus workflows"}
-            </p>
-          </div>
-          <div className="copilot-hero__stats">
-            <div className="copilot-stat">
-              <span className="copilot-stat__value">{networkDisplay}</span>
-              <span className="copilot-stat__label">{t("network") || "Network"}</span>
-            </div>
-            <div className="copilot-stat">
-              <span className="copilot-stat__value">{asset}</span>
-              <span className="copilot-stat__label">{t("asset") || "Asset"}</span>
-            </div>
-            <div className="copilot-stat">
-              <span className="copilot-stat__value">{currentPrice || "--"}</span>
-              <span className="copilot-stat__label">{t("currentPrice") || "Price"}</span>
-            </div>
+      <section className="automation-hero" aria-labelledby="automation-title">
+        <div className="automation-hero__copy">
+          <span className="automation-hero__icon" aria-hidden="true">
+            <Bot size={22} />
+          </span>
+          <div>
+            <h2 id="automation-title">{t("title") || "Automation Copilot"}</h2>
+            <p>{t("subtitle") || "Create and manage price-triggered Morpheus automation triggers."}</p>
           </div>
         </div>
 
-        <div className="button-row">
-          <NeoButton
-            variant="primary"
-            loading={isRequesting}
-            aria-label={t("fetchPrice") || "Fetch Price"}
-            onClick={() => dispatch("fetchCurrentPrice")}
-          >
-            {t("fetchPrice") || "Fetch Price"}
-          </NeoButton>
-          <NeoButton
-            variant="secondary"
-            loading={isRequesting}
-            aria-label={t("buildRecipe") || "Build Recipe"}
-            onClick={() => dispatch("buildRecipePayload")}
-          >
-            {t("buildRecipe") || "Build Recipe"}
-          </NeoButton>
+        <div className={`automation-status-badge automation-status-badge--${statusTone}`}>
+          <span className="automation-status-badge__dot" aria-hidden="true" />
+          <span>{statusLabel}</span>
         </div>
-      </NeoCard>
 
-      {/* Body — builder on the left, oracle + payload on the right */}
-      <div className="copilot-body">
-        <NeoCard className="copilot-col" title={t("recipeBuilder") || "Recipe Builder"}>
-          <div className="stack">
+        <div className="automation-hero__metrics" aria-label={t("statistics")}>
+          <div>
+            <span>{t("network") || "Network"}</span>
+            <strong>{networkDisplay}</strong>
+          </div>
+          <div>
+            <span>{t("currentPrice") || "Current Price"}</span>
+            <strong>{currentPrice || "--"}</strong>
+          </div>
+          <div>
+            <span>{t("triggerCount") || "Triggers"}</span>
+            <strong>{triggerCount}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section className="automation-workspace">
+        <form
+          className="automation-panel automation-panel--builder"
+          aria-label={t("recipeBuilder") || "Recipe Builder"}
+          onSubmit={(event) => {
+            event.preventDefault();
+            void dispatch("registerTrigger");
+          }}
+        >
+          <div className="automation-panel__head">
+            <span className="automation-panel__title">{t("recipeBuilder") || "Recipe Builder"}</span>
+          </div>
+
+          <div className="automation-fields">
             <NeoSelect
               value={asset}
               label={t("asset") || "Asset"}
@@ -101,7 +119,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             />
             <NeoInput
               value={schedule}
-              label={t("schedule") || "Schedule (cron)"}
+              label={t("schedule") || "Schedule"}
               placeholder={t("schedulePlaceholder") || "0 */6 * * *"}
               onChange={(val) => { if (state.schedule) state.schedule.set(val); }}
             />
@@ -112,31 +130,120 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               onChange={(val) => { if (state.actionName) state.actionName.set(val); }}
             />
           </div>
-        </NeoCard>
 
-        <div className="copilot-col copilot-col--side">
-          <NeoCard title={t("oracleInfo") || "Oracle Info"}>
-            <div className="info-grid">
-              <div className="info-row">
-                <span className="label">{t("oracleHash") || "Oracle Hash"}</span>
-                <span className="value mono">{oracleHash || "--"}</span>
-              </div>
-              <div className="info-row">
-                <span className="label">{t("datafeedHash") || "Datafeed Hash"}</span>
-                <span className="value mono">{datafeedHash || "--"}</span>
-              </div>
+          <div className="automation-panel__hint">
+            {t("automationGatewayHint") ||
+              "Registration is sent through the host automation gateway. Gateway fallbacks are labeled as handoff intents, not successful triggers."}
+          </div>
+
+          {lastError ? (
+            <div className="automation-panel__alert" role="alert">
+              {lastError}
             </div>
-          </NeoCard>
+          ) : null}
 
-          <NeoCard title={t("payload") || "Payload"}>
-            {hasPayload ? (
-              <pre className="json-box">{renderedPayload}</pre>
-            ) : (
-              <div className="payload-empty">{t("payloadEmpty") || "Fetch a price or build a recipe to preview the payload."}</div>
-            )}
-          </NeoCard>
+          <div className="automation-actions">
+            <NeoButton variant="secondary" loading={isRequesting} onClick={() => dispatch("fetchCurrentPrice")}>
+              <RefreshCw size={17} aria-hidden="true" />
+              <span>{t("fetchPrice") || "Fetch Price"}</span>
+            </NeoButton>
+            <NeoButton variant="secondary" onClick={() => dispatch("buildRecipePayload")}>
+              <ListChecks size={17} aria-hidden="true" />
+              <span>{t("buildRecipe") || "Build Recipe"}</span>
+            </NeoButton>
+            <NeoButton variant="primary" loading={isRegistering} onClick={() => dispatch("registerTrigger")}>
+              <CheckCircle2 size={17} aria-hidden="true" />
+              <span>{t("registerTrigger") || "Register Trigger"}</span>
+            </NeoButton>
+          </div>
+        </form>
+
+        <div className="automation-panel automation-panel--status">
+          <div className="automation-panel__head automation-panel__head--row">
+            <span className="automation-panel__title">{t("triggerStatus") || "Trigger Status"}</span>
+            <NeoButton variant="ghost" size="sm" loading={isRefreshing} onClick={() => dispatch("refreshTriggers")}>
+              <RefreshCw size={15} aria-hidden="true" />
+              <span>{t("refreshTriggers") || "Refresh"}</span>
+            </NeoButton>
+          </div>
+
+          <div className="automation-trigger-card">
+            <div>
+              <span>{t("latestTriggerId") || "Latest Trigger"}</span>
+              <strong>{latestTriggerId ? shortId(latestTriggerId) : "--"}</strong>
+            </div>
+            <div>
+              <span>{t("nextExecution") || "Next Execution"}</span>
+              <strong>{latestTrigger?.next_execution || t("notAvailable")}</strong>
+            </div>
+            <div>
+              <span>{t("datafeedHash") || "Datafeed"}</span>
+              <strong>{shortId(datafeedHash || "--")}</strong>
+            </div>
+            <div>
+              <span>{t("oracleHash") || "Oracle"}</span>
+              <strong>{shortId(oracleHash || "--")}</strong>
+            </div>
+          </div>
+
+          <div className="automation-actions automation-actions--compact">
+            <NeoButton
+              variant="secondary"
+              disabled={!canToggle}
+              loading={isRegistering}
+              onClick={() => dispatch("toggleLatestTrigger")}
+            >
+              <Power size={17} aria-hidden="true" />
+              <span>{latestTrigger?.enabled ? t("disableTrigger") : t("enableTrigger")}</span>
+            </NeoButton>
+            <NeoButton
+              variant="ghost"
+              disabled={!hasPayload && !hasTriggerRequest}
+              onClick={copyCurrentPayload}
+            >
+              <Copy size={17} aria-hidden="true" />
+              <span>{t("copyPayload") || "Copy Payload"}</span>
+            </NeoButton>
+          </div>
+
+          {handoffOnly ? (
+            <div className="automation-panel__note">
+              {t("verifyBeforeOperate") || "Verify a gateway trigger before enabling or disabling it."}
+            </div>
+          ) : null}
         </div>
-      </div>
+      </section>
+
+      <details className="automation-details">
+        <summary className="automation-details__summary">
+          <span>{t("payload") || "Payload"}</span>
+          <span className="automation-details__hint">{t("detailsLabel") || "Details"}</span>
+        </summary>
+        <div className="automation-details__body">
+          <div className="automation-details__block">
+            <span className="automation-details__label">
+              {t("payload") || "Payload"}
+              {" · "}
+              {hasPayload ? t("latestResult") : t("payloadEmpty")}
+            </span>
+            {hasPayload ? (
+              <pre className="automation-json">{renderedPayload}</pre>
+            ) : (
+              <div className="automation-empty">{t("payloadEmpty") || "Fetch a price or build a recipe first."}</div>
+            )}
+          </div>
+          <div className="automation-details__block">
+            <span className="automation-details__label">{t("triggerStatus") || "Trigger Status"}</span>
+            {hasTriggerRequest ? (
+              <pre className="automation-json">{renderedTriggerRequest}</pre>
+            ) : (
+              <div className="automation-empty">
+                {t("triggerRequestEmpty") || "Build or register a trigger to inspect the exact gateway request."}
+              </div>
+            )}
+          </div>
+        </div>
+      </details>
     </div>
   );
 }

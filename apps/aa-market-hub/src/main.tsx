@@ -22,6 +22,8 @@ defineMiniApp({
       eventBus: ctx.services.events,
       t: ctx.t,
     });
+    const toActionString = (value: unknown) =>
+      value === undefined || value === null ? "" : String(value);
 
     ctx.registerAction("connectWallet", async () => {
       const addr = await ctx.services.notify.guard(
@@ -47,32 +49,38 @@ defineMiniApp({
       if (listing) hub.selectListing(listing);
     });
 
-    ctx.registerAction(
-      "createListing",
-      async (
-        aaContractHash: unknown,
-        accountIdHash: unknown,
-        priceGas: unknown,
-        title: unknown,
-        metadataUri: unknown,
-      ) => {
-        hub.aaContractHash.set(String(aaContractHash));
-        hub.accountIdHash.set(String(accountIdHash));
-        hub.priceGas.set(String(priceGas));
-        hub.listingTitle.set(String(title));
-        hub.metadataUri.set(String(metadataUri));
-        const result = await ctx.services.notify.guard(
-          () => hub.submitCreateListing(),
-          undefined,
-          "actionFailed",
+    ctx.registerAction("createListing", async (...args: unknown[]) => {
+      const [
+        marketHashInput,
+        aaContractHash,
+        accountIdHash,
+        priceGas,
+        title,
+        metadataUri,
+      ] =
+        args.length >= 6
+          ? args
+          : [undefined, args[0], args[1], args[2], args[3], args[4]];
+      if (marketHashInput !== undefined) {
+        hub.marketHash.set(toActionString(marketHashInput));
+      }
+      hub.aaContractHash.set(toActionString(aaContractHash));
+      hub.accountIdHash.set(toActionString(accountIdHash));
+      hub.priceGas.set(toActionString(priceGas));
+      hub.listingTitle.set(toActionString(title));
+      hub.metadataUri.set(toActionString(metadataUri));
+      const result = await ctx.services.notify.guard(
+        () => hub.submitCreateListing(),
+        undefined,
+        "actionFailed",
+      );
+      if (result)
+        ctx.setStatus(
+          `${ctx.t("createListingSuccess")}${result?.txid ? `: ${result.txid}` : ""}`,
+          "success",
         );
-        if (result)
-          ctx.setStatus(
-            `${ctx.t("createListingSuccess")}${result?.txid ? `: ${result.txid}` : ""}`,
-            "success",
-          );
-      },
-    );
+      return result;
+    });
 
     ctx.registerAction("updatePrice", async (nextPriceGas: unknown) => {
       hub.nextPriceGas.set(String(nextPriceGas));
@@ -114,6 +122,12 @@ defineMiniApp({
         isLoading: hub.isLoading,
         isSubmitting: hub.isSubmitting,
         isWalletConnecting: hub.isWalletConnecting,
+        marketHash: hub.marketHash,
+        aaContractHash: hub.aaContractHash,
+        accountIdHash: hub.accountIdHash,
+        priceGas: hub.priceGas,
+        listingTitle: hub.listingTitle,
+        metadataUri: hub.metadataUri,
         walletAddress: hub.walletAddress,
         selectedListingId: hub.selectedListingId,
         selectedListing: hub.selectedListing,

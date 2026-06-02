@@ -182,7 +182,8 @@ export function useRedEnvelope({
     const bytes = encoder.encode(data);
     const hash = new Uint8Array(32);
     for (let i = 0; i < bytes.length; i++) {
-      hash[i % 32] ^= bytes[i];
+      const index = i % hash.length;
+      hash[index] = (hash[index] ?? 0) ^ (bytes[i] ?? 0);
     }
     return hash;
   };
@@ -197,7 +198,7 @@ export function useRedEnvelope({
 
     let hash = 0n;
     for (let i = 0; i < combined.length; i++) {
-      hash = (hash * 31n + BigInt(combined[i])) % 2n ** 256n;
+      hash = (hash * 31n + BigInt(combined[i] ?? 0)) % 2n ** 256n;
     }
     return hash < 0n ? -hash : hash;
   };

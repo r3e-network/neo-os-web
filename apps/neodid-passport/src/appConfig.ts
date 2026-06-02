@@ -1,22 +1,22 @@
 import { mergeMessages } from "@shared/locale/base-messages";
-import type { ConsoleToolConfig } from "@shared/components-react";
-import { previewId } from "@shared/components-react";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-neodid-passport";
 
+export const DEFAULT_SUBJECT_DID = "did:morpheus:neo_n3:service:neodid";
+
 export const appMeta = {
-  networkLabel: "NeoDID",
-  endpointLabel: "Credential preview",
+  networkLabel: "Morpheus Testnet",
+  endpointLabel: "NeoDID resolver",
 };
 
 export const manifest: MiniAppManifest = {
   name: "NeoDID Passport",
-  description: "Compose portable NeoDID credential previews for identity flows.",
+  description: "Resolve NeoDID documents and prepare wallet-signable identity passports.",
   icon: "did",
   category: "tool",
   shell: "console",
-  theme: { family: "social", accentColor: "#7dd3fc", density: "comfortable" },
+  theme: { family: "social", accentColor: "#0ea5a3", density: "comfortable" },
   tabs: [{ key: "passport", labelKey: "tabPassport", icon: "did", default: true }],
   stats: [
     { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },
@@ -30,6 +30,7 @@ export const manifest: MiniAppManifest = {
       { labelKey: "statNetwork", valueKey: "networkLabel", format: "text" },
       { labelKey: "lastStatus", valueKey: "lastStatus", format: "text" },
       { labelKey: "statDigest", valueKey: "lastDigest", format: "text" },
+      { labelKey: "proofStatus", valueKey: "proofStatus", format: "text" },
     ],
   },
   features: { walletRequired: false, chainWarning: true },
@@ -41,7 +42,14 @@ export const manifest: MiniAppManifest = {
       actionKey: "runAction",
       actionMethod: "buildPassport",
       fields: [
-        { key: "subject", type: "text", labelKey: "subject", placeholder: "did:neo:n3:...", required: true },
+        {
+          key: "subject",
+          type: "text",
+          labelKey: "subject",
+          placeholder: DEFAULT_SUBJECT_DID,
+          required: true,
+          default: DEFAULT_SUBJECT_DID,
+        },
         {
           key: "provider",
           type: "select",
@@ -53,7 +61,14 @@ export const manifest: MiniAppManifest = {
             { value: "email", labelKey: "emailProvider" },
           ],
         },
-        { key: "claim", type: "text", labelKey: "claim", placeholder: "wallet-ownership", required: true },
+        {
+          key: "claim",
+          type: "text",
+          labelKey: "claim",
+          placeholder: "wallet-ownership",
+          required: true,
+          default: "wallet-ownership",
+        },
         { key: "audience", type: "text", labelKey: "audience", placeholder: "miniapp-id" },
       ],
     },
@@ -64,112 +79,93 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
-  permissions: {},
-};
-
-const clean = (value: string | undefined, fallback: string) => {
-  const text = String(value ?? "").trim();
-  return text.length > 0 ? text : fallback;
-};
-
-export function buildPassportResult(
-  values: Record<string, string>,
-  t: (key: string, params?: Record<string, string | number>) => string,
-) {
-  const subject = clean(values.subject, "");
-  const provider = clean(values.provider, "wallet");
-  const claim = clean(values.claim, "");
-  const audience = clean(values.audience, "");
-  const digest = previewId(`${subject}|${provider}|${claim}|${audience}`);
-
-  return {
-    status: t("passportReady"),
-    summary: t("passportSummary", { provider, claim }),
-    rows: [
-      { label: t("subject"), value: subject },
-      { label: t("provider"), value: provider },
-      { label: t("claim"), value: claim },
-      { label: t("statDigest"), value: digest },
-    ],
-    payload: {
-      kind: "neodid.passport.preview",
-      subject,
-      provider,
-      claim,
-      audience,
-      digest,
-    },
-  };
-}
-
-export const consoleConfig: ConsoleToolConfig = {
-  titleKey: "panelTitle",
-  eyebrowKey: "panelEyebrow",
-  descriptionKey: "panelDescription",
-  primaryActionKey: "runAction",
-  resetActionKey: "reset",
-  copyActionKey: "copy",
-  copiedKey: "copied",
-  fields: [
-    { key: "subject", labelKey: "subject", placeholderKey: "subjectPlaceholder", type: "text", defaultValue: "" },
-    {
-      key: "provider",
-      labelKey: "provider",
-      type: "select",
-      defaultValue: "wallet",
-      options: [
-        { value: "wallet", labelKey: "walletProvider" },
-        { value: "github", label: "GitHub" },
-        { value: "email", labelKey: "emailProvider" },
-      ],
-    },
-    { key: "claim", labelKey: "claim", placeholderKey: "claimPlaceholder", type: "text", defaultValue: "" },
-    { key: "audience", labelKey: "audience", placeholderKey: "audiencePlaceholder", type: "text", defaultValue: "" },
-  ],
-  buildResult: buildPassportResult,
+  permissions: { oracle: true },
 };
 
 const appMessages = {
   appName: { en: "NeoDID Passport", zh: "NeoDID 身份护照" },
   title: { en: "NeoDID Passport", zh: "NeoDID 身份护照" },
   tabPassport: { en: "Passport", zh: "护照" },
-  panelEyebrow: { en: "Identity credential", zh: "身份凭证" },
-  panelTitle: { en: "Credential Passport Builder", zh: "凭证护照构建器" },
+  panelTitle: { en: "NeoDID Passport Builder", zh: "NeoDID 身份护照构建器" },
   panelDescription: {
-    en: "Create a readable NeoDID credential preview for wallet, account, and app access flows.",
-    zh: "为钱包、账户和应用访问流程创建可读的 NeoDID 凭证预览。",
+    en: "Resolve a Morpheus NeoDID document, build a portable credential payload, and optionally bind it to the connected wallet signature.",
+    zh: "解析 Morpheus NeoDID 文档，构建可携带凭证载荷，并可选择绑定已连接钱包签名。",
   },
-  runAction: { en: "Build Passport", zh: "生成护照" },
+  runAction: { en: "Resolve and Build", zh: "解析并生成" },
+  signAction: { en: "Sign Passport", zh: "签名护照" },
+  copyAction: { en: "Copy Payload", zh: "复制载荷" },
+  reset: { en: "Reset", zh: "重置" },
   subject: { en: "Subject DID", zh: "主体 DID" },
-  subjectPlaceholder: { en: "Enter subject DID", zh: "输入主体 DID" },
-  provider: { en: "Provider", zh: "提供方" },
+  subjectPlaceholder: { en: "did:morpheus:neo_n3:service:neodid", zh: "did:morpheus:neo_n3:service:neodid" },
+  provider: { en: "Proof Provider", zh: "证明提供方" },
   walletProvider: { en: "Wallet signature", zh: "钱包签名" },
-  emailProvider: { en: "Email proof", zh: "邮箱证明" },
+  emailProvider: { en: "Email attestation", zh: "邮箱证明" },
+  githubProvider: { en: "GitHub attestation", zh: "GitHub 证明" },
   claim: { en: "Claim", zh: "声明" },
-  claimPlaceholder: { en: "Enter credential claim", zh: "输入凭证声明" },
+  claimPlaceholder: { en: "wallet-ownership", zh: "wallet-ownership" },
   audience: { en: "Audience", zh: "受众" },
-  audiencePlaceholder: { en: "Enter relying party or app ID", zh: "输入依赖方或小程序 ID" },
-  passportReady: { en: "Passport preview ready", zh: "身份护照预览已生成" },
-  passportSummary: { en: "{provider} claim '{claim}' prepared", zh: "{provider} 声明“{claim}”已准备" },
+  audiencePlaceholder: { en: "miniapp-id or relying party", zh: "小程序 ID 或依赖方" },
+  passportReady: { en: "Passport payload ready", zh: "身份护照载荷已生成" },
+  passportSigned: { en: "Wallet proof attached", zh: "钱包证明已附加" },
+  passportInvalidDid: { en: "Enter a valid Morpheus NeoDID.", zh: "请输入有效的 Morpheus NeoDID。" },
+  passportMissingClaim: { en: "Enter the claim to include in the passport.", zh: "请输入要写入护照的声明。" },
+  passportNoPayload: { en: "Build a passport payload before signing.", zh: "请先生成护照载荷再签名。" },
+  passportNoWalletProvider: { en: "Switch provider to wallet signature before signing.", zh: "请先切换为钱包签名提供方。" },
+  resolverFailed: { en: "NeoDID resolver did not return a usable document.", zh: "NeoDID 解析器没有返回可用文档。" },
+  resolverUnavailable: {
+    en: "Resolver unavailable in this standalone preview. Open from the host platform to resolve live NeoDID data.",
+    zh: "当前独立预览无法访问解析器。请从平台宿主打开以解析实时 NeoDID 数据。",
+  },
+  walletSignFailed: { en: "Wallet signature was not completed.", zh: "钱包签名未完成。" },
+  resolvedStatus: { en: "DID resolved", zh: "DID 已解析" },
+  preparedStatus: { en: "Prepared", zh: "已准备" },
+  signedStatus: { en: "Signed", zh: "已签名" },
+  notSignedStatus: { en: "Not signed", zh: "未签名" },
+  resolverStatus: { en: "Resolver", zh: "解析器" },
+  documentId: { en: "Document ID", zh: "文档 ID" },
+  documentVersion: { en: "Version", zh: "版本" },
+  services: { en: "Services", zh: "服务" },
+  payloadDigest: { en: "Payload Digest", zh: "载荷摘要" },
+  signature: { en: "Signature", zh: "签名" },
+  emptyPayloadTitle: { en: "Awaiting DID resolution", zh: "等待 DID 解析" },
+  emptyPayloadCopy: {
+    en: "Resolve a DID to inspect the document, digest, and proof package before handing it to another miniapp.",
+    zh: "解析 DID 后，可在交给其他小程序前复核文档、摘要和证明包。",
+  },
+  identityRoute: { en: "Identity route", zh: "身份路径" },
+  routeResolve: { en: "Resolve DID", zh: "解析 DID" },
+  routeBuild: { en: "Build credential", zh: "构建凭证" },
+  routeSign: { en: "Optional wallet proof", zh: "可选钱包证明" },
+  liveResolver: { en: "Morpheus NeoDID API", zh: "Morpheus NeoDID API" },
+  walletProofHint: {
+    en: "Wallet signatures do not broadcast a transaction. They bind the passport payload to the current wallet address.",
+    zh: "钱包签名不会广播交易，而是把护照载荷绑定到当前钱包地址。",
+  },
+  apiProofHint: {
+    en: "Email and GitHub providers prepare an unsigned attestation package for an external verifier.",
+    zh: "邮箱和 GitHub 提供方会生成供外部验证器使用的未签名证明包。",
+  },
   statNetwork: { en: "Network", zh: "网络" },
-  statEndpoint: { en: "Mode", zh: "模式" },
-  statRequests: { en: "Previews", zh: "预览次数" },
+  statEndpoint: { en: "Resolver", zh: "解析器" },
+  statRequests: { en: "Passports", zh: "护照数" },
   statDigest: { en: "Digest", zh: "摘要" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
+  proofStatus: { en: "Proof", zh: "证明" },
+  copied: { en: "Copied", zh: "已复制" },
   docsSubtitle: {
-    en: "A compact credential planning tool for NeoDID-backed miniapp access.",
-    zh: "面向 NeoDID 小程序访问的轻量凭证规划工具。",
+    en: "A functional NeoDID passport workbench for resolving identity documents and preparing wallet-signable credentials.",
+    zh: "用于解析身份文档并准备可钱包签名凭证的 NeoDID 身份护照工作台。",
   },
   docSubtitle: {
-    en: "A compact credential planning tool for NeoDID-backed miniapp access.",
-    zh: "面向 NeoDID 小程序访问的轻量凭证规划工具。",
+    en: "A functional NeoDID passport workbench for resolving identity documents and preparing wallet-signable credentials.",
+    zh: "用于解析身份文档并准备可钱包签名凭证的 NeoDID 身份护照工作台。",
   },
-  feature1Name: { en: "Portable", zh: "可携带" },
-  feature1Desc: { en: "Credential payloads are shaped for wallet and app handoff.", zh: "凭证载荷适合钱包和应用之间传递。" },
-  feature2Name: { en: "Readable", zh: "可读" },
-  feature2Desc: { en: "Important subject, provider, and claim fields are visible before use.", zh: "使用前即可看到主体、提供方和声明等关键信息。" },
-  feature3Name: { en: "NeoDID Ready", zh: "NeoDID 就绪" },
-  feature3Desc: { en: "The digest gives each preview a stable local reference.", zh: "摘要为每次预览提供稳定的本地引用。" },
+  feature1Name: { en: "Live Resolve", zh: "实时解析" },
+  feature1Desc: { en: "The workbench calls the Morpheus NeoDID resolver instead of fabricating a local preview.", zh: "工作台调用 Morpheus NeoDID 解析器，而不是伪造本地预览。" },
+  feature2Name: { en: "Reviewable Payload", zh: "可复核载荷" },
+  feature2Desc: { en: "Every passport exposes subject, provider, claim, audience, document metadata, and digest.", zh: "每份护照都会展示主体、提供方、声明、受众、文档元数据和摘要。" },
+  feature3Name: { en: "Wallet Proof", zh: "钱包证明" },
+  feature3Desc: { en: "Wallet providers can sign the canonical passport payload without broadcasting a transaction.", zh: "钱包提供方可签名标准护照载荷且不广播交易。" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -36,6 +36,7 @@ export type MiniAppInfo = {
   entry_url: string;
   dapp_url?: string | null;
   contract_hash?: string | null;
+  contracts?: Record<string, unknown> | null;
   news_integration?: boolean | null;
   stats_display?: string[] | null;
   status?: "active" | "disabled" | "pending" | "beta" | null;
@@ -88,6 +89,7 @@ export type OperationParam = {
   options?: string | Array<string | { label: string; value: string }>;
   presets?: Array<{ label: string; value: string; helper?: string }>;
   hidden?: boolean;
+  sensitive?: boolean;
   scale?: number;
 };
 

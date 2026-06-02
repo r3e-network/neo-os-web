@@ -11,7 +11,10 @@ export function LaunchParamsAppliedNotice({
 }) {
   return (
     <div className={className} data-testid={testId}>
-      <p className="m-0 font-semibold">Launch parameters applied</p>
+      <p className="m-0 font-semibold">Workspace parameters applied</p>
+      <p className="m-0">
+        No transaction was sent by this parameter update.
+      </p>
       <p className="m-0 break-words">
         Source: {launchContext.source}
         {launchContext.operation

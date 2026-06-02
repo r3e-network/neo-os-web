@@ -15,12 +15,21 @@ export default function RoundAdminPanel({ round, canManage, canFinalize, canClai
 
   return (
     <NeoCard title={t("adminTools")} className="qf-admin-panel">
-      <NeoInput value={matchingAmount} type="number" label={t("addMatching")} onChange={setMatchingAmount} />
-      <NeoButton size="sm" variant="secondary" loading={isAddingMatching} disabled={!canManage} onClick={() => onAddMatching(matchingAmount)}>{t("addMatching")}</NeoButton>
-      <NeoInput value={projectIds} label={t("finalizeProjectsJson")} onChange={setProjectIds} />
-      <NeoInput value={matchedAmounts} label={t("finalizeMatchesJson")} onChange={setMatchedAmounts} />
-      <NeoButton size="sm" variant="primary" loading={isFinalizing} disabled={!canFinalize} onClick={() => onFinalize(projectIds, matchedAmounts)}>{t("finalizeRound")}</NeoButton>
-      <NeoButton size="sm" variant="secondary" loading={isClaimingUnused} disabled={!canClaimUnused} onClick={onClaimUnused}>{t("claimUnused")}</NeoButton>
+      <div className="qf-admin-group">
+        <p className="qf-admin-group-title">{t("addMatching")}</p>
+        <NeoInput value={matchingAmount} type="number" label={t("addMatching")} onChange={setMatchingAmount} />
+        <NeoButton size="sm" variant="secondary" loading={isAddingMatching} disabled={!canManage} onClick={() => onAddMatching(matchingAmount)}>{t("addMatching")}</NeoButton>
+      </div>
+      <div className="qf-admin-group">
+        <p className="qf-admin-group-title">{t("finalizeRound")}</p>
+        <NeoInput value={projectIds} label={t("finalizeProjectsJson")} onChange={setProjectIds} />
+        <NeoInput value={matchedAmounts} label={t("finalizeMatchesJson")} onChange={setMatchedAmounts} />
+        <NeoButton size="sm" variant="primary" loading={isFinalizing} disabled={!canFinalize} onClick={() => onFinalize(projectIds, matchedAmounts)}>{t("finalizeRound")}</NeoButton>
+      </div>
+      <div className="qf-admin-group">
+        <p className="qf-admin-group-title">{t("claimUnused")}</p>
+        <NeoButton size="sm" variant="secondary" loading={isClaimingUnused} disabled={!canClaimUnused} onClick={onClaimUnused}>{t("claimUnused")}</NeoButton>
+      </div>
     </NeoCard>
   );
 }

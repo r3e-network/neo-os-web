@@ -1,192 +1,405 @@
-@use "@shared/styles/console-common" as console;
-@use "@shared/styles/tokens.scss" as *;
-
-.automation-play-area { @include console.play-area; }
-
-/* ── Hero (identity + live snapshot + primary actions) ── */
-.copilot-hero {
+.automation-play-area {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
+  color: var(--ns-text);
 }
 
-.copilot-hero__head {
+.automation-hero {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "copy badge"
+    "metrics metrics";
+  gap: 20px 18px;
   align-items: center;
-  gap: 16px;
+  padding: 24px;
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
 }
 
-.copilot-hero__badge {
+.automation-hero__copy {
+  grid-area: copy;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.automation-hero__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  width: 46px;
+  height: 46px;
+  border-radius: var(--ns-radius-full);
+  background: var(--ns-brand-soft);
+  color: var(--ns-brand-strong);
 }
 
-.copilot-hero__text {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.copilot-hero__title {
+.automation-hero h2 {
   margin: 0;
+  color: var(--ns-ink);
   font-size: 22px;
   font-weight: 800;
+  line-height: 1.2;
   letter-spacing: -0.02em;
-  line-height: 1.15;
-  color: var(--ns-ink, #1e1e2e);
 }
 
-.copilot-hero__subtitle {
-  margin: 0;
+.automation-hero p {
+  max-width: 760px;
+  margin: 6px 0 0;
+  color: var(--ns-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.automation-status-badge {
+  grid-area: badge;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: start;
+  justify-self: end;
+  padding: 7px 14px;
+  border-radius: var(--ns-radius-full);
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
   font-size: 13px;
-  line-height: 1.5;
-  color: var(--ns-text-2, #5b6478);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.copilot-hero__stats {
-  display: flex;
-  gap: 10px;
-  flex-shrink: 0;
+.automation-status-badge__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--ns-radius-full);
+  background: currentcolor;
 }
 
-.copilot-stat {
+.automation-status-badge--ok {
+  background: var(--ns-brand-soft);
+  color: var(--ns-brand-strong);
+}
+
+.automation-status-badge--off {
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-muted);
+}
+
+.automation-status-badge--neutral {
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+}
+
+.automation-hero__metrics {
+  grid-area: metrics;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.automation-hero__metrics div,
+.automation-trigger-card div {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  min-width: 88px;
-  padding: 10px 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 14px);
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
 }
 
-.copilot-stat__value {
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1.1;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  word-break: break-word;
-}
-
-.copilot-stat__label {
-  font-size: 10px;
+.automation-hero__metrics span,
+.automation-trigger-card span {
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--ns-text-muted, #8a92a6);
 }
 
-/* ── Body: builder (main) + oracle/payload (side) ── */
-.copilot-body {
+.automation-hero__metrics strong,
+.automation-trigger-card strong {
+  overflow-wrap: anywhere;
+  color: var(--ns-ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.automation-workspace {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
   gap: 20px;
-
-  @media (min-width: 860px) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-  }
+  align-items: start;
 }
 
-.copilot-col { min-width: 0; }
-
-.copilot-col--side {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.automation-panel {
+  min-width: 0;
+  padding: 22px;
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
 }
 
-.info-grid {
+.automation-panel--builder,
+.automation-panel--status {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+.automation-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.automation-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.automation-panel__head--row {
+  justify-content: space-between;
+}
+
+.automation-panel__title {
+  color: var(--ns-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.automation-panel__hint,
+.automation-panel__alert,
+.automation-panel__note {
+  border-radius: var(--ns-radius-md);
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.automation-panel__hint {
+  background: var(--ns-brand-soft);
+  color: var(--ns-brand-strong);
+}
+
+.automation-panel__alert {
+  background: var(--ns-danger-soft);
+  color: var(--ns-danger);
+}
+
+.automation-panel__note {
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+}
+
+.automation-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
-.info-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-
-  &:last-child { border-bottom: none; }
+.automation-actions--compact {
+  margin-top: 2px;
 }
 
-.label { @include console.label; }
-.value { @include console.value; }
-.mono { font-family: var(--font-mono, monospace); font-size: 12px; }
+.automation-trigger-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
 
-.stack { @include console.stack; }
-.button-row { @include console.button-grid(2); }
+.automation-details {
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
+}
 
-/* Neutralize the legacy global `.neo-select` decoration that leaks onto the
-   React NeoSelect wrapper (double box + double chevron). The inner
-   `.neo-input__wrapper` is the single visible field — keep this select visually
-   identical to the sibling text inputs. */
-.stack .neo-select {
+.automation-details__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  border-radius: var(--ns-radius-lg);
+  color: var(--ns-ink);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  transition: background var(--ns-t-fast) var(--ns-ease-smooth);
+}
+
+.automation-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.automation-details__summary:hover {
+  background: var(--ns-surface-subtle);
+}
+
+.automation-details__summary:focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring);
+}
+
+.automation-details__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ns-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.automation-details__hint::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transition: transform var(--ns-t-fast) var(--ns-ease-smooth);
+}
+
+.automation-details[open] .automation-details__hint::after {
+  transform: rotate(-135deg);
+}
+
+.automation-details__body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  padding: 0 22px 22px;
+}
+
+.automation-details__block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.automation-details__label {
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.automation-json {
+  min-height: 200px;
+  max-height: 420px;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text);
+  font-family: "JetBrains Mono", "SF Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.automation-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 24px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.automation-play-area .neo-select {
   width: auto;
   padding: 0;
   background: none;
   border: none;
   border-radius: 0;
   appearance: none;
-
-  .neo-select__field {
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: none;
-  }
-
-  /* single chevron, drawn in the wrapper gutter */
-  .neo-select__wrapper::after {
-    content: "";
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    width: 10px;
-    height: 10px;
-    transform: translateY(-60%) rotate(45deg);
-    border-right: 2px solid var(--ns-text-muted, #8a92a6);
-    border-bottom: 2px solid var(--ns-text-muted, #8a92a6);
-    pointer-events: none;
-  }
-
-  .neo-select__field { padding-right: 36px; }
 }
 
-.json-box {
-  @include console.json-box(420px);
-  white-space: pre-wrap;
-  word-break: break-word;
+.automation-play-area .neo-select__field {
+  padding-right: 36px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: none;
 }
 
-/* Graceful empty state for the payload preview */
-.payload-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 28px 16px;
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 13px;
-  line-height: 1.5;
+.automation-play-area .neo-select__wrapper::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateY(-60%) rotate(45deg);
+  border-right: 2px solid var(--ns-text-faint);
+  border-bottom: 2px solid var(--ns-text-faint);
+  pointer-events: none;
+}
+
+@media (max-width: 980px) {
+  .automation-hero {
+    grid-template-columns: 1fr auto;
+  }
+
+  .automation-workspace {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
-  .copilot-hero__head { grid-template-columns: auto minmax(0, 1fr); }
-  .copilot-hero__stats { grid-column: 1 / -1; }
-  .copilot-stat { flex: 1; min-width: 0; }
+  .automation-play-area {
+    gap: 16px;
+  }
+
+  .automation-hero {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "copy"
+      "badge"
+      "metrics";
+    padding: 18px;
+  }
+
+  .automation-status-badge {
+    justify-self: start;
+  }
+
+  .automation-panel {
+    padding: 18px;
+  }
+
+  .automation-hero__copy {
+    grid-template-columns: auto 1fr;
+  }
+
+  .automation-hero__metrics,
+  .automation-trigger-card {
+    grid-template-columns: 1fr;
+  }
+
+  .automation-actions {
+    flex-direction: column;
+  }
+
+  .automation-actions .neo-btn {
+    width: 100%;
+  }
 }

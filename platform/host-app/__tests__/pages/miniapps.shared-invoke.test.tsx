@@ -1,5 +1,11 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import MiniAppDetailPage from "../../pages/miniapps/[id]";
 
 const mockPush = jest.fn();
@@ -260,9 +266,34 @@ describe("MiniAppDetailPage shared invoke", () => {
     );
 
     expect(screen.getByTestId("operation-submit-button")).not.toBeDisabled();
+    expect(screen.getByText("Workspace Preview")).toBeVisible();
+    expect(
+      screen.getByText(
+        "No transaction is sent from this host button. It opens or updates the embedded workspace for Neo N3 Testnet; submit wallet actions inside the MiniApp.",
+      ),
+    ).toBeVisible();
     expect(
       screen.queryByText("Connect wallet before sending transactions."),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Connect wallet from the top navigation to submit on-chain transactions.",
+      ),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("mobile-action-open"));
+    const mobileActionSheet = screen.getByTestId("mobile-action-sheet");
+    expect(within(mobileActionSheet).getByText("Workspace Preview")).toBeVisible();
+    expect(
+      within(mobileActionSheet).getByText(
+        "No transaction is sent from this host button. It opens or updates the embedded workspace for Neo N3 Testnet; submit wallet actions inside the MiniApp.",
+      ),
+    ).toBeVisible();
+    fireEvent.click(
+      within(mobileActionSheet).getAllByRole("button", {
+        name: "Close actions",
+      })[0],
+    );
 
     fireEvent.click(screen.getByTestId("operation-submit-button"));
 
@@ -286,6 +317,82 @@ describe("MiniAppDetailPage shared invoke", () => {
     expect(
       screen.getByText("Connect wallet before sending transactions."),
     ).toBeVisible();
+  });
+
+  it("does not route sensitive Oracle Seal payloads through the URL", async () => {
+    mockWalletState = {
+      connected: false,
+      address: "",
+      network: null,
+    };
+
+    render(
+      <MiniAppDetailPage
+        app={{
+          app_id: "miniapp-oracle-seal-console",
+          name: "Oracle Seal Console",
+          description: "Seal sensitive oracle input.",
+          icon: "lock",
+          category: "data",
+          entry_url: "/miniapps/oracle-seal-console/index.html",
+          dapp_url: "/miniapps/oracle-seal-console/index.html",
+          permissions: { oracle: true, confidential: true },
+          detail_template: {
+            layout: "default",
+            tabs: [
+              {
+                id: "overview",
+                label: "Overview",
+                type: "content",
+                blocks: [],
+              },
+            ],
+            operation_panel: { title: "Seal Console", operations: [] },
+          },
+          operations: [
+            {
+              name: "Seal Payload",
+              method: "sealOracleRequest",
+              button_style: "success",
+              params: [
+                {
+                  name: "endpoint",
+                  type: "string",
+                  label: "Payload",
+                  placeholder: "sensitive oracle input",
+                  required: true,
+                  sensitive: true,
+                },
+              ],
+            },
+          ],
+        }}
+        miniAppNav={[]}
+        notifications={[]}
+        sharedRuntime={null}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Payload"), {
+      target: { value: "{\"secret\":\"do-not-leak\"}" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Seal Payload" }));
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalled();
+    });
+    const query = mockReplace.mock.calls.at(-1)?.[0]?.query;
+
+    expect(query).toMatchObject({
+      operation: "sealOracleRequest",
+      network: "testnet",
+    });
+    expect(query.endpoint).toBeUndefined();
+    expect(query.endpoint_ref).toMatch(/^sensitive:/);
+    expect(JSON.stringify(query)).not.toContain("do-not-leak");
+    await waitFor(() =>
+      expect(screen.getByLabelText("Payload")).toHaveValue(""),
+    );
   });
 
   it("invokes the shared module contract using operation recipes", async () => {

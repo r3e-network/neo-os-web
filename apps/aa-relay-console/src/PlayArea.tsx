@@ -8,19 +8,16 @@ import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
+import { DEFAULT_RELAY_PAYLOAD, getRelayLaunchDefaults } from "./launch";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext: MiniAppLaunchContext;
 }
-
-const DEFAULT_PAYLOAD = `{
-  "metaInvocation": {
-    "scriptHash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"
-  }
-}`;
 
 function isValidJson(value: string) {
   try {
@@ -31,8 +28,14 @@ function isValidJson(value: string) {
   }
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  launchContext,
+}: PlayAreaProps) {
   const { str, bool } = useStateBindings(state);
+  const launchDefaults = getRelayLaunchDefaults(launchContext);
 
   const aaAddressDisplay = str("aaAddressDisplay", t("notAvailable") || "N/A");
   const paymasterDisplay = str("paymasterDisplay", t("unset") || "unset");
@@ -44,14 +47,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isCheckingSponsorship = bool("isCheckingSponsorship");
   const isRelaying = bool("isRelaying");
 
-  const [aaAddress, setAaAddress] = useState("");
-  const [dappIdLocal, setDappIdLocal] = useState("");
-  const [payloadJsonLocal, setPayloadJsonLocal] = useState(DEFAULT_PAYLOAD);
+  const [aaAddress, setAaAddress] = useState(launchDefaults.aaAddress);
+  const [dappIdLocal, setDappIdLocal] = useState(
+    launchDefaults.dappId || str("paymasterDisplay", ""),
+  );
+  const [sponsorAmountLocal, setSponsorAmountLocal] = useState(
+    launchDefaults.sponsorAmount,
+  );
+  const [payloadJsonLocal, setPayloadJsonLocal] = useState(
+    launchDefaults.payloadJson || DEFAULT_RELAY_PAYLOAD,
+  );
 
   const hasAAAddress = Boolean(aaAddress.trim());
   const payloadJsonIsValid = isValidJson(payloadJsonLocal);
+  const hasSponsorAmount = Boolean(sponsorAmountLocal.trim());
   const canCheckSponsor = hasAAAddress && !isCheckingSponsorship;
-  const canRequestSponsor = hasAAAddress && !isCheckingSponsorship;
+  const canRequestSponsor =
+    hasAAAddress && hasSponsorAmount && !isCheckingSponsorship;
   const canSubmitRelay = hasAAAddress && payloadJsonIsValid && !isRelaying;
   const draftAAAddress = aaAddress.trim() || t("notAvailable");
   const dappDisplay = dappIdLocal.trim() || t("unset");
@@ -143,7 +155,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 disabled={!canRequestSponsor}
                 aria-label={t("sponsorRequest") || "Request Sponsorship"}
                 onClick={() =>
-                  dispatch("requestSponsor", aaAddress, dappIdLocal)
+                  dispatch(
+                    "requestSponsor",
+                    aaAddress,
+                    dappIdLocal,
+                    sponsorAmountLocal,
+                  )
                 }
               >
                 {t("sponsorRequest") || "Request Sponsorship"}
@@ -221,6 +238,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 hint={t("dappIdHint")}
                 placeholder={t("dappIdPlaceholder") || "Optional dapp id"}
                 onChange={(val) => setDappIdLocal(val)}
+              />
+              <NeoInput
+                type="number"
+                value={sponsorAmountLocal}
+                label={t("sponsorAmount") || "Sponsor Amount"}
+                hint={t("sponsorAmountHint")}
+                placeholder={t("sponsorAmountPlaceholder") || "0.1"}
+                onChange={(val) => setSponsorAmountLocal(val)}
               />
               <NeoInput
                 type="textarea"

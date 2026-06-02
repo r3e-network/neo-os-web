@@ -9,6 +9,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useAAPermissionsLab } from "./composables/useAAPermissionsLab";
+import { getPermissionsLaunchDefaults } from "./launch";
 
 defineMiniApp({
   appId: "miniapp-aa-permissions-lab",
@@ -22,6 +23,19 @@ defineMiniApp({
       storageService: ctx.os.storage,
       t: ctx.t,
     });
+    const launchDefaults = getPermissionsLaunchDefaults(ctx.launchContext);
+    if (launchDefaults.accountIdHash) {
+      lab.form.accountIdHash = launchDefaults.accountIdHash;
+    }
+    if (launchDefaults.verifierHash) {
+      lab.form.verifierHash = launchDefaults.verifierHash;
+    }
+    if (launchDefaults.verifierParamsHex) {
+      lab.form.verifierParamsHex = launchDefaults.verifierParamsHex;
+    }
+    if (launchDefaults.hookHash) {
+      lab.form.hookHash = launchDefaults.hookHash;
+    }
 
     ctx.registerAction("refresh", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
@@ -61,6 +75,14 @@ defineMiniApp({
           "updateHookFailed",
         );
       },
+    );
+
+    ctx.registerAction("connect", () =>
+      ctx.services.notify.guard(
+        () => ctx.services.chain.ensureWallet(),
+        "walletConnected",
+        "connectFailed",
+      ),
     );
 
     return {

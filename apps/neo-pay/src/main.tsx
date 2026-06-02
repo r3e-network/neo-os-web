@@ -35,7 +35,10 @@ defineMiniApp({
       const recipient = String(form.recipient ?? "").trim();
       const amount = String(form.amount ?? "").trim();
       const durationDays = String(form.duration ?? "").trim();
-      const token = String(form.token ?? "GAS").trim().toUpperCase();
+      const token =
+        String(form.token ?? "GAS").trim().toUpperCase() === "NEO"
+          ? "NEO"
+          : "GAS";
       // Linear vesting: rate = total / durationDays (per interval of 1 day)
       const totalNum = Number.parseFloat(amount);
       const durationNum = Number.parseFloat(durationDays);
@@ -60,7 +63,11 @@ defineMiniApp({
     });
 
     ctx.registerAction("cancelStream", async (...args: unknown[]) => {
-      const id = String(args[0] ?? "");
+      const input = (args[0] ?? {}) as { streamId?: string } | string;
+      const id =
+        typeof input === "string"
+          ? input
+          : String(input.streamId ?? "");
       const stream = findStreamById(id);
       if (!stream) {
         ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
@@ -73,7 +80,11 @@ defineMiniApp({
     });
 
     ctx.registerAction("claimStream", async (...args: unknown[]) => {
-      const id = String(args[0] ?? "");
+      const input = (args[0] ?? {}) as { streamId?: string } | string;
+      const id =
+        typeof input === "string"
+          ? input
+          : String(input.streamId ?? "");
       const stream = findStreamById(id);
       if (!stream) {
         ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
@@ -93,6 +104,7 @@ defineMiniApp({
         // composable doesn't track isCreating separately — surface isLoading + isRefreshing
         isCreating: pay.isLoading,
         isRefreshing: pay.isRefreshing,
+        serviceNotice: pay.serviceNotice,
         allStreams: pay.allStreams,
         activeCount: pay.activeCount,
         createdStreamCount: pay.createdStreamCount,

@@ -14,7 +14,7 @@ defineMiniApp({
         networkLabel: createObservable(appMeta.networkLabel),
         endpointLabel: createObservable(appMeta.endpointLabel),
         lastStatus: createObservable(ctx.t("statusReady")),
-        lastDigest: createObservable(ctx.t("notAvailable")),
+        lastDigest: createObservable(ctx.t("digestPlaceholder")),
         requestCount: createObservable(0),
       },
       loadData: async () => {},

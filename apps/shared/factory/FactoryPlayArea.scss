@@ -177,8 +177,9 @@
 }
 
 .domain-factory-toggle input {
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
   accent-color: var(--ns-brand, #16c784);
 }
 

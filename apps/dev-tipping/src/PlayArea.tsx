@@ -42,6 +42,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [tipMessage, setTipMessage] = useState("");
   const [tipperName, setTipperName] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const staleZeroTotalDisplay =
+    totalDonated > 0 && /^0(?:[.,]0+)?(?:\s+GAS)?$/i.test(totalDonatedDisplay.trim());
+  const totalDonatedValue =
+    totalDonatedDisplay && !staleZeroTotalDisplay ? totalDonatedDisplay : formatNum(totalDonated);
 
   const handleSelectDev = (dev: Developer) => {
     setSelectedDevId(dev.id);
@@ -51,6 +55,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleSendTip = async () => {
     if (!selectedDevId) return;
     await dispatch("sendTip", selectedDevId, tipAmount, tipMessage, tipperName, anonymous);
+  };
+
+  const [addressCopied, setAddressCopied] = useState(false);
+  const handleCopyAddress = () => {
+    if (!address || !navigator.clipboard?.writeText) return;
+    navigator.clipboard
+      .writeText(address)
+      .then(() => {
+        setAddressCopied(true);
+        window.setTimeout(() => setAddressCopied(false), 1500);
+      })
+      .catch(() => {
+        setAddressCopied(false);
+      });
   };
 
   return (
@@ -71,7 +89,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span className="tipping-stat-label">{t("developers") || "Developers"}</span>
             </div>
             <div className="tipping-stat">
-              <span className="tipping-stat-value">{totalDonatedDisplay || formatNum(totalDonated)}</span>
+              <span className="tipping-stat-value">{totalDonatedValue}</span>
               <span className="tipping-stat-label">{t("totalDonated") || "Total Donated"}</span>
             </div>
             <div className="tipping-stat">
@@ -82,10 +100,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
 
         {address && (
-          <div className="wallet-row">
+          <button
+            type="button"
+            className="wallet-row"
+            onClick={handleCopyAddress}
+            aria-label={`${t("wallet") || "Wallet"} ${address}`}
+          >
             <span className="wallet-label">{t("wallet") || "Wallet"}</span>
-            <span className="wallet-value">{address.slice(0, 8)}...{address.slice(-6)}</span>
-          </div>
+            <span className="wallet-value">
+              <span>{address.slice(0, 8)}...{address.slice(-6)}</span>
+              <span className="wallet-copy-hint" aria-hidden="true">{addressCopied ? "✓" : "⧉"}</span>
+            </span>
+          </button>
         )}
       </NeoCard>
 
@@ -103,8 +129,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <span className="tipping-empty__hint">{t("noDevelopersHint") || t("docSubtitle")}</span>
               </div>
 
-              <div className="tipping-guide">
-                <span className="tipping-guide__label">{t("howItWorks") || "How it works"}</span>
+              <details className="tipping-guide">
+                <summary className="tipping-guide__summary">
+                  <span>{t("howItWorks") || "How it works"}</span>
+                  <span className="tipping-guide__chevron" aria-hidden="true">⌄</span>
+                </summary>
                 <ol className="tipping-guide__steps">
                   <li className="tipping-guide__step">
                     <span className="tipping-guide__num">1</span>
@@ -123,12 +152,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <span className="tipping-guide__text">{t("step4")}</span>
                   </li>
                 </ol>
-              </div>
+              </details>
             </>
           )}
 
           {recentTips.length > 0 && (
-            <NeoCard title={t("recentTips") || "Recent Tips"} variant="erobo">
+            <details className="recent-tips">
+              <summary className="recent-tips__summary">
+                <span>{t("recentTips") || "Recent Tips"}</span>
+                <span className="recent-tips__count">{recentTips.length}</span>
+                <span className="recent-tips__chevron" aria-hidden="true">⌄</span>
+              </summary>
               <div className="recent-tips-list">
                 {recentTips.slice(0, 5).map((tip, idx) => (
                   <div key={idx} className="recent-tip-item">
@@ -137,7 +171,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </div>
                 ))}
               </div>
-            </NeoCard>
+            </details>
           )}
         </div>
 
@@ -152,7 +186,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               tipperName={tipperName}
               anonymous={anonymous}
               isLoading={isLoading}
-              onSelectDev={(id: number) => setSelectedDevId(id)}
+              onSelectDev={(id: number | null) => setSelectedDevId(id)}
               onAmountChange={setTipAmount}
               onMessageChange={setTipMessage}
               onTipperNameChange={setTipperName}

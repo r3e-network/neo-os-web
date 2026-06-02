@@ -7,7 +7,7 @@
   @include console.play-area;
   display: grid;
   grid-template-columns: minmax(0, 0.78fr) minmax(320px, 0.42fr);
-  gap: 18px;
+  gap: 20px;
   min-height: 560px;
   align-items: start;
   color: #102019;
@@ -17,24 +17,29 @@
 .wallet-health-main,
 .wallet-health-side {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
+}
+
+.wallet-health-side {
+  position: sticky;
+  top: 12px;
+  align-self: start;
 }
 
 .wallet-health-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.34fr);
-  gap: 16px;
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.3fr);
+  gap: 18px;
+  align-items: center;
   min-width: 0;
-  padding: 20px;
-  border: 1px solid rgba(22, 199, 132, 0.12);
+  padding: 22px;
+  border: 1px solid rgba(6, 95, 70, 0.22);
   border-radius: 18px;
   background:
-    radial-gradient(120% 140% at 100% 0%, #e4f8f0 0%, rgba(228, 248, 240, 0) 60%),
-    var(--ns-surface, #ffffff);
+    linear-gradient(135deg, #073f31 0%, #0a7657 58%, #16c784 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-  color: var(--ns-text, #2a2d3d);
+  color: #f8fffb;
   overflow: hidden;
   letter-spacing: 0;
 }
@@ -48,17 +53,17 @@
 
   h2 {
     margin: 0;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 26px;
-    line-height: 1.1;
+    color: #f8fffb;
+    font-size: 28px;
+    line-height: 1.08;
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 
   > p {
     margin: 0;
     max-width: 520px;
-    color: var(--ns-text-2, #5b6478);
+    color: #dcfce7;
     font-size: 14px;
     line-height: 1.55;
     letter-spacing: 0;
@@ -66,7 +71,7 @@
 }
 
 .wallet-health-hero .wallet-health-hero-copy h2 {
-  color: var(--ns-ink, #1e1e2e);
+  color: #f8fffb;
 }
 
 .wallet-health-hero-intro {
@@ -83,9 +88,11 @@
   height: 46px;
   margin-top: 2px;
   place-items: center;
-  border-radius: 50%;
-  background: var(--ns-success-soft, #e4f8f0);
-  color: #0fb174;
+  border: 1px solid rgba(248, 255, 251, 0.2);
+  border-radius: 16px;
+  background: rgba(248, 255, 251, 0.14);
+  color: #f8fffb;
+  letter-spacing: 0;
 }
 
 .wallet-health-hero-heading {
@@ -96,25 +103,27 @@
 }
 
 .wallet-health-kicker {
-  color: var(--ns-text-muted, #8a92a6);
+  color: #a7f3d0;
   font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
 }
 
 .wallet-health-score-card {
   display: grid;
-  place-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  justify-items: start;
   align-content: center;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
   padding: 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border: 1px solid rgba(248, 255, 251, 0.22);
   border-radius: 16px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  text-align: center;
+  background: rgba(248, 255, 251, 0.12);
+  text-align: left;
+  letter-spacing: 0;
 
   strong,
   small,
@@ -123,7 +132,7 @@
   }
 
   strong {
-    color: var(--ns-ink, #1e1e2e);
+    color: #f8fffb;
     font-size: 15px;
     line-height: 1.2;
     letter-spacing: 0;
@@ -131,7 +140,7 @@
 
   small {
     margin-top: 4px;
-    color: var(--ns-text-2, #5b6478);
+    color: #dcfce7;
     font-size: 12px;
     line-height: 1.3;
     letter-spacing: 0;
@@ -139,7 +148,7 @@
 }
 
 .wallet-health-score-label {
-  color: var(--ns-text-muted, #8a92a6);
+  color: #a7f3d0;
   font-size: 11px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -148,23 +157,24 @@
 .wallet-health-score-ring {
   display: grid;
   place-items: center;
-  width: 92px;
-  height: 92px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background:
-    conic-gradient(#16c784 calc(var(--score, 0) * 1%), rgba(20, 22, 38, 0.07) 0),
-    var(--ns-surface, #ffffff);
-  box-shadow: inset 0 0 0 9px var(--ns-surface, #ffffff);
+    conic-gradient(#f8fffb calc(var(--score, 0) * 1%), rgba(248, 255, 251, 0.24) 0),
+    rgba(248, 255, 251, 0.18);
+  box-shadow: inset 0 0 0 7px rgba(7, 63, 49, 0.34);
+  letter-spacing: 0;
 
   span {
     display: grid;
     place-items: center;
-    width: 68px;
-    height: 68px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     background: var(--ns-surface, #ffffff);
     color: var(--ns-ink, #1e1e2e);
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0;
@@ -176,9 +186,10 @@
 .wallet-health-checklist-panel,
 .wallet-health-recommendations-panel {
   border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  letter-spacing: 0;
 }
 
 .wallet-health-section-heading {
@@ -194,8 +205,7 @@
     font-size: 11px;
     font-weight: 700;
     line-height: 1.3;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0;
   }
 
   strong {
@@ -212,7 +222,7 @@
 
 .wallet-health-balance-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(150px, 1.15fr) repeat(2, minmax(0, 1fr));
   gap: 10px;
 
   div {
@@ -242,7 +252,7 @@
     font-size: 17px;
     line-height: 1.18;
     font-variant-numeric: tabular-nums;
-    word-break: break-word;
+    overflow-wrap: anywhere;
     letter-spacing: 0;
   }
 }
@@ -250,28 +260,58 @@
 .wallet-health-action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
+  letter-spacing: 0;
 
   .neo-btn {
-    min-height: 44px;
+    min-height: 48px;
     border-radius: 14px;
     white-space: normal;
     line-height: 1.2;
   }
 }
 
+.wallet-health-report-actions {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  letter-spacing: 0;
+
+  .neo-btn {
+    min-height: 36px;
+    border-radius: 12px;
+    white-space: normal;
+    line-height: 1.15;
+  }
+
+  span {
+    min-width: 0;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    letter-spacing: 0;
+  }
+}
+
 .wallet-health-insight-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
+  letter-spacing: 0;
 }
 
 .wallet-health-insight {
   min-width: 0;
-  padding: 13px;
+  padding: 14px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 14px;
   background: var(--ns-surface-subtle, #f7f8fa);
+  letter-spacing: 0;
 
   span,
   strong {
@@ -365,19 +405,21 @@
 
 .wallet-health-checklist-list {
   display: grid;
-  gap: 9px;
+  gap: 10px;
+  letter-spacing: 0;
 }
 
 .wallet-health-checklist-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   min-width: 0;
-  padding: 12px;
+  padding: 14px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 14px;
   background: var(--ns-surface-subtle, #f7f8fa);
+  letter-spacing: 0;
 
   strong {
     display: block;
@@ -428,10 +470,11 @@
 .wallet-health-recommendations-panel {
   ul {
     display: grid;
-    gap: 8px;
+    gap: 10px;
     margin: 0;
     padding: 0;
     list-style: none;
+    letter-spacing: 0;
   }
 
   li {
@@ -464,6 +507,10 @@
     min-height: 0;
   }
 
+  .wallet-health-side {
+    position: static;
+  }
+
   .wallet-health-hero {
     grid-template-columns: 1fr;
   }
@@ -492,6 +539,14 @@
 
   .wallet-health-action-grid {
     grid-template-columns: 1fr;
+  }
+
+  .wallet-health-report-actions {
+    grid-template-columns: 1fr;
+
+    .neo-btn {
+      width: 100%;
+    }
   }
 
   .wallet-health-balance-grid,

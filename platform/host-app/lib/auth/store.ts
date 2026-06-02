@@ -26,6 +26,13 @@ interface AuthActions {
 
 type AuthStore = AuthState & AuthActions;
 
+class WalletAuthUnavailableError extends Error {
+  constructor() {
+    super("Wallet authentication service is not configured.");
+    this.name = "WalletAuthUnavailableError";
+  }
+}
+
 function getAuthEdgeBaseUrl(): string {
   return getEdgeFunctionsBaseUrl();
 }
@@ -43,6 +50,9 @@ function getWalletAuthHeaders(): HeadersInit {
 
 async function authenticateWalletSession(address: string, publicKey: string) {
   const edgeBaseUrl = getAuthEdgeBaseUrl();
+  if (!edgeBaseUrl) {
+    throw new WalletAuthUnavailableError();
+  }
   const authHeaders = getWalletAuthHeaders();
 
   const nonceResp = await fetch(`${edgeBaseUrl}/auth-wallet-nonce`, {
@@ -93,6 +103,23 @@ function toWalletLoginError(err: unknown): string {
   return "Could not connect wallet. Please try again or use a different wallet.";
 }
 
+function isWalletAuthUnavailable(err: unknown): boolean {
+  return err instanceof WalletAuthUnavailableError;
+}
+
+function completeWalletOnlyLogin(set: (state: Partial<AuthStore>) => void) {
+  const { address } = useWalletStore.getState();
+  set({
+    authenticated: false,
+    userId: "",
+    method: null,
+    walletAddress: address,
+    walletType: "external",
+    loading: false,
+    error: null,
+  });
+}
+
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   authenticated: false,
   userId: "",
@@ -128,6 +155,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         loading: false,
       });
     } catch (err) {
+      if (isWalletAuthUnavailable(err)) {
+        completeWalletOnlyLogin(set);
+        return;
+      }
       set({ loading: false, error: toWalletLoginError(err) });
     }
   },
@@ -152,6 +183,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         loading: false,
       });
     } catch (err) {
+      if (isWalletAuthUnavailable(err)) {
+        completeWalletOnlyLogin(set);
+        return;
+      }
       set({ loading: false, error: toWalletLoginError(err) });
     }
   },

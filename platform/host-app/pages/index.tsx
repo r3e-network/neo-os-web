@@ -1,6 +1,7 @@
 import Head from "next/head";
 import type { GetStaticProps } from "next";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import React, {
   useDeferredValue,
   useEffect,
@@ -71,6 +72,20 @@ export type LandingPageProps = {
 };
 
 const EMPTY_INITIAL_APPS: MiniAppInfo[] = [];
+type HomeNetwork = "mainnet" | "testnet";
+
+function readNetworkParam(value: string | string[] | undefined): HomeNetwork | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const normalized = String(raw ?? "").trim().toLowerCase();
+  if (normalized === "testnet" || normalized === "neo-n3-testnet") return "testnet";
+  if (normalized === "mainnet" || normalized === "neo-n3-mainnet") return "mainnet";
+  return null;
+}
+
+function withNetworkQuery(href: string, network: HomeNetwork): string {
+  const separator = href.includes("?") ? "&" : "?";
+  return `${href}${separator}network=${network}`;
+}
 
 function toSerializableRecord(
   value: Record<string, unknown> | null | undefined,
@@ -141,6 +156,7 @@ export const getStaticProps: GetStaticProps<LandingPageProps> = async () => {
 export default function LandingPage({
   initialApps = EMPTY_INITIAL_APPS,
 }: LandingPageProps = {}) {
+  const router = useRouter();
   const { locale, t } = useI18n();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState<"featured" | "recent" | "name">(
@@ -160,7 +176,10 @@ export default function LandingPage({
     const partitions = partitionMiniApps(initialApps);
     return partitions.tools;
   });
-  const targetNetwork = getRpcNetwork();
+  const targetNetwork = useMemo(
+    () => readNetworkParam(router.query.network) ?? getRpcNetwork(),
+    [router.query.network],
+  );
   const networkLabel = getNetworkLabel(targetNetwork, t);
 
   useEffect(() => {
@@ -297,7 +316,7 @@ export default function LandingPage({
       </Head>
 
       <section className="border-b border-gray-200 bg-[#f6f8fb] px-4 pb-10 pt-28 sm:px-6">
-        <div className="mx-auto grid max-w-[1500px] gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+        <div className="mx-auto grid max-w-[1500px] items-start gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase text-gray-500">
               <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
@@ -328,13 +347,13 @@ export default function LandingPage({
                   {t("home.hero.body", "host")}
                 </p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                  <Link href="/miniapps">
+                  <Link href={withNetworkQuery("/miniapps", targetNetwork)}>
                     <Button className="h-12 rounded-lg bg-emerald-700 px-5 text-sm font-bold text-white hover:bg-emerald-800">
                       {t("home.hero.catalogCta", "host")}
                       <Rocket className="ml-2 h-4 w-4" aria-hidden="true" />
                     </Button>
                   </Link>
-                  <Link href="/developer">
+                  <Link href={withNetworkQuery("/developer", targetNetwork)}>
                     <Button
                       variant="outline"
                       className="h-12 rounded-lg border-gray-200 bg-white px-5 text-sm font-bold text-gray-900 hover:bg-gray-50"
@@ -498,7 +517,7 @@ export default function LandingPage({
       <FeaturesGridSection t={t} />
 
       {/* Hero CTA Section */}
-      <HomeCtaSection t={t} />
+      <HomeCtaSection t={t} targetNetwork={targetNetwork} />
     </Layout>
   );
 }

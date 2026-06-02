@@ -1,39 +1,79 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 
 interface CreateListingCardProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   isSubmitting: boolean;
   isMarketReady: boolean;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  walletAddress: string;
+  marketHash: string;
+  initialAaContractHash?: string;
+  initialAccountIdHash?: string;
+  initialPriceGas?: string;
+  initialListingTitle?: string;
+  initialMetadataUri?: string;
+  initialSignature?: string;
+  dispatch: (name: string, ...args: unknown[]) => Promise<unknown>;
 }
 
 export function CreateListingCard({
   t,
   isSubmitting,
   isMarketReady,
+  walletAddress,
+  marketHash,
+  initialAaContractHash = "",
+  initialAccountIdHash = "",
+  initialPriceGas = "",
+  initialListingTitle = "",
+  initialMetadataUri = "",
+  initialSignature = "",
   dispatch,
 }: CreateListingCardProps) {
-  const [aaContractHash, setAaContractHash] = useState("");
-  const [accountIdHash, setAccountIdHash] = useState("");
-  const [priceGas, setPriceGas] = useState("");
-  const [listingTitle, setListingTitle] = useState("");
-  const [metadataUri, setMetadataUri] = useState("");
+  const [aaContractHash, setAaContractHash] = useState(initialAaContractHash);
+  const [accountIdHash, setAccountIdHash] = useState(initialAccountIdHash);
+  const [priceGas, setPriceGas] = useState(initialPriceGas);
+  const [listingTitle, setListingTitle] = useState(initialListingTitle);
+  const [metadataUri, setMetadataUri] = useState(initialMetadataUri);
+  const normalizedPriceGas = priceGas.trim();
+  const isValidGasPrice =
+    /^\d+(\.\d{1,8})?$/.test(normalizedPriceGas) &&
+    BigInt(normalizedPriceGas.split(".")[0] || "0") +
+      BigInt((normalizedPriceGas.split(".")[1] ?? "").padEnd(8, "0")) >
+      0n;
   const canSubmit =
     isMarketReady &&
+    Boolean(walletAddress.trim()) &&
     Boolean(aaContractHash.trim()) &&
     Boolean(accountIdHash.trim()) &&
-    Boolean(priceGas.trim());
+    isValidGasPrice;
+
+  useEffect(() => {
+    setAaContractHash(initialAaContractHash);
+    setAccountIdHash(initialAccountIdHash);
+    setPriceGas(initialPriceGas);
+    setListingTitle(initialListingTitle);
+    setMetadataUri(initialMetadataUri);
+  }, [
+    initialAaContractHash,
+    initialAccountIdHash,
+    initialPriceGas,
+    initialListingTitle,
+    initialMetadataUri,
+    initialSignature,
+  ]);
 
   const handleCreate = async () => {
-    await dispatch(
+    const result = await dispatch(
       "createListing",
+      marketHash,
       aaContractHash,
       accountIdHash,
       priceGas,
       listingTitle,
       metadataUri,
     );
+    if (!result) return;
     setAccountIdHash("");
     setPriceGas("");
     setListingTitle("");
@@ -49,6 +89,9 @@ export function CreateListingCard({
       <div className="stack">
         {!isMarketReady && (
           <p className="hint-text">{t("createListingMarketRequired")}</p>
+        )}
+        {isMarketReady && !walletAddress.trim() && (
+          <p className="hint-text">{t("createListingWalletRequired")}</p>
         )}
         <NeoInput
           value={aaContractHash}

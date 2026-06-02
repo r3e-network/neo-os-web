@@ -125,7 +125,7 @@ const T_COINFLIP = gaming(
   [
     op("Place Bet", "placeBet", "primary", [
       sel("side", "Side", ["Heads", "Tails"]),
-      amt(),
+      amt("amount", "Amount (GAS)", "1", 8),
     ]),
   ],
 );
@@ -182,12 +182,29 @@ const T_RED_ENVELOPE: AppTemplate = {
       int("envelopeId", "Envelope ID", ""),
       wallet("claimer", "Claimer"),
     ]),
-    op("Create", "createEnvelope", "secondary", [
-      wallet("creator", "Creator"),
-      amt("amount", "Total GAS", "1"),
-      int("packetCount", "Recipients", "8"),
-      int("expirySeconds", "Expires in seconds", "86400"),
-    ]),
+    {
+      ...op("Fund Oracle Fee", "fundOracleRequestFee", "secondary"),
+      priority: "secondary",
+      description:
+        "Top up the Morpheus Oracle request fee required for lucky envelope randomness.",
+    },
+    {
+      ...op("Create", "createEnvelope", "secondary", [
+        wallet("creator", "Creator"),
+        {
+          ...amt("amount", "Total GAS", "0.10", 8),
+          presets: [
+            { label: "0.10", value: "0.10", helper: "GAS" },
+            { label: "0.25", value: "0.25", helper: "GAS" },
+            { label: "1.00", value: "1.00", helper: "GAS" },
+          ],
+        },
+        int("packetCount", "Recipients", "2"),
+        int("expirySeconds", "Lifetime (seconds)", "86400"),
+      ]),
+      description:
+        "Fund GAS and create a shareable envelope in one wallet transaction.",
+    },
   ],
 };
 
@@ -329,17 +346,78 @@ const T_SELF_LOAN: AppTemplate = {
     },
   },
   operations: [
-    op("Repay Loan", "repayLoan", "primary", [
-      str("appId", "App ID", "miniapp-self-loan", true),
-      int("loanId", "Loan ID", "1"),
-    ]),
-    op("Add Collateral", "addCollateral", "secondary", [
-      str("appId", "App ID", "miniapp-self-loan", true),
-      int("loanId", "Loan ID", "1"),
-    ]),
-    op("Sync Anchor Vote", "syncProfitAnchorVote", "secondary", [
-      str("appId", "App ID", "miniapp-self-loan", true),
-    ]),
+    {
+      name: "Create Loan",
+      method: "createLoan",
+      button_style: "primary",
+      priority: "primary",
+      description:
+        "Locks whole NEO as collateral and calls PlatformDeFi createLoan in the same wallet transaction.",
+      params: [
+        str("appId", "App ID", "miniapp-self-loan", true),
+        wallet("borrower", "Borrower"),
+        {
+          ...int("collateralNeo", "Collateral NEO", "1"),
+          default_value: "1",
+          presets: [
+            { label: "1 NEO", value: "1", helper: "min" },
+            { label: "3 NEO", value: "3" },
+            { label: "5 NEO", value: "5" },
+          ],
+        },
+        {
+          name: "ltvTier",
+          type: "select",
+          label: "LTV Tier",
+          required: true,
+          default_value: "1",
+          options: [
+            { label: "Tier 1 - 20%", value: "1" },
+            { label: "Tier 2 - 30%", value: "2" },
+            { label: "Tier 3 - 40%", value: "3" },
+          ],
+        },
+        {
+          ...amt("poolTopupGas", "Liquidity Top-up GAS", "0.30", 8),
+          required: false,
+          default_value: "0.30",
+        },
+      ],
+    },
+    {
+      ...op("Repay Loan", "repayLoan", "primary", [
+        str("appId", "App ID", "miniapp-self-loan", true),
+        int("loanId", "Loan ID", "1"),
+        {
+          ...amt("repayGas", "Repay GAS", "0.25", 8),
+          default_value: "0.25",
+        },
+      ]),
+      priority: "primary",
+      description:
+        "Prepays GAS to the SelfLoan credit ledger and calls repayLoan for the selected loan.",
+    },
+    {
+      ...op("Add Collateral", "addCollateral", "secondary", [
+        str("appId", "App ID", "miniapp-self-loan", true),
+        int("loanId", "Loan ID", "1"),
+        {
+          ...int("collateralNeo", "Additional NEO", "1"),
+          default_value: "1",
+        },
+      ]),
+      priority: "secondary",
+      description:
+        "Transfers additional whole NEO collateral and applies it to an active loan.",
+    },
+    {
+      ...op("Sync Anchor Vote", "syncProfitAnchorVote", "secondary", [
+        str("appId", "App ID", "miniapp-self-loan", true),
+      ]),
+      priority: "operator",
+      description:
+        "Syncs SelfLoan collateral voting to the ProfitAnchor selected route.",
+    },
   ],
 };
 
@@ -380,6 +458,60 @@ const T_NEOPAY: AppTemplate = {
     },
   },
   operations: [
+    {
+      name: "Create Stream",
+      method: "createStream",
+      button_style: "primary",
+      priority: "primary",
+      description: "Fund GAS and open a payment stream in one wallet transaction.",
+      params: [
+        wallet("creator", "Creator"),
+        {
+          name: "beneficiary",
+          type: "hash160",
+          label: "Beneficiary",
+          required: true,
+          placeholder: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
+        },
+        {
+          name: "asset",
+          type: "hash160",
+          label: "Asset",
+          required: true,
+          default_value: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          hidden: true,
+        },
+        {
+          name: "totalAmount",
+          type: "amount",
+          label: "Total GAS",
+          required: true,
+          placeholder: "0.03",
+          scale: 8,
+          presets: [
+            { label: "0.03", value: "0.03", helper: "GAS" },
+            { label: "0.10", value: "0.10", helper: "GAS" },
+            { label: "0.25", value: "0.25", helper: "GAS" },
+          ],
+        },
+        amt("rateAmount", "Daily release", "0.03", 8),
+        int("intervalSeconds", "Interval (seconds)", "86400"),
+        {
+          name: "title",
+          type: "string",
+          label: "Title",
+          required: true,
+          placeholder: "Testnet payroll stream",
+        },
+        {
+          name: "notes",
+          type: "string",
+          label: "Notes",
+          required: false,
+          placeholder: "Optional memo",
+        },
+      ],
+    },
     op("Claim Stream", "claimStream", "primary", [
       int("streamId", "Stream ID", "1"),
     ]),
@@ -439,15 +571,26 @@ const T_RECOVERY_GUARDIAN: AppTemplate = {
     ],
     operation_panel: {
       title: "Recovery Operations",
-      subtitle: "Open the recovery workspace and manage guardian flows.",
+      subtitle:
+        "Read AA recovery state, request Morpheus recovery tickets, and finalize or cancel verifier-controlled recovery flows.",
       cta_label: "Open Recovery",
       operations: [],
     },
   },
   operations: [
-    op("Open Guardian Setup", "openGuardianSetup", "primary"),
-    op("Request Recovery Ticket", "requestRecoveryTicket", "secondary"),
-    op("Finalize Recovery", "finalizeRecovery", "danger"),
+    op("Request Recovery Ticket", "requestRecoveryTicket", "primary", [
+      str("accountId", "AA account ID or address"),
+      wallet("newOwner", "New owner"),
+      int("expiryMinutes", "Ticket expiry minutes", "30"),
+      str("provider", "Provider", "web3auth"),
+      str("encryptedParams", "Encrypted params", "{}"),
+    ]),
+    op("Cancel Recovery", "cancelRecovery", "secondary", [
+      str("accountId", "AA account ID or address"),
+    ]),
+    op("Finalize Recovery", "finalizeRecovery", "danger", [
+      str("accountId", "AA account ID or address"),
+    ]),
   ],
 };
 

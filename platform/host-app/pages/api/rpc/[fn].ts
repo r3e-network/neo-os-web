@@ -11,6 +11,39 @@ import { standardLimit } from "@/lib/rate-limit";
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_RETRIES = 0;
 const RETRY_DELAY_MS = 1000;
+const RPC_CORS_ALLOW_METHODS = "GET,HEAD,POST,OPTIONS";
+const RPC_CORS_ALLOW_HEADERS =
+  "Content-Type, Authorization, X-API-Key, X-Requested-With";
+
+function resolveCorsOrigin(req: NextApiRequest): string | null {
+  const origin = String(req.headers.origin || "").trim();
+  if (!origin) return null;
+  if (origin === "null") return "null";
+
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+  if (!host) return null;
+
+  try {
+    const parsed = new URL(origin);
+    return parsed.host.toLowerCase() === host ? origin : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyRpcCors(req: NextApiRequest, res: NextApiResponse) {
+  const origin = resolveCorsOrigin(req);
+  if (!origin) return;
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", RPC_CORS_ALLOW_METHODS);
+  res.setHeader("Access-Control-Allow-Headers", RPC_CORS_ALLOW_HEADERS);
+  res.setHeader("Access-Control-Max-Age", "600");
+  res.setHeader("Vary", "Origin");
+}
 
 async function fetchWithTimeout(
   url: string,
@@ -63,6 +96,38 @@ async function fetchWithRetry(
 
 const MAX_BODY_SIZE = 256 * 1024; // 256 KB
 const MAX_RESPONSE_SIZE = 2 * 1024 * 1024; // 2 MB
+const EDGE_BASE_UNCONFIGURED =
+  "EDGE_BASE_URL (or NEXT_PUBLIC_EDGE_URL / NEXT_PUBLIC_SUPABASE_URL) not configured";
+
+function sendLocalSponsorUnavailable(
+  fn: string,
+  res: NextApiResponse,
+): boolean {
+  if (fn === "gas-sponsor-check") {
+    res.status(200).json({
+      eligible: false,
+      gas_balance: "0",
+      daily_limit: "0",
+      used_today: "0",
+      remaining: "0",
+      resets_at: "",
+      status: "unavailable",
+      reason: EDGE_BASE_UNCONFIGURED,
+    });
+    return true;
+  }
+  if (fn === "gas-sponsor-request") {
+    res.status(200).json({
+      request_id: "",
+      amount: "",
+      status: "unavailable",
+      tx_hash: null,
+      reason: EDGE_BASE_UNCONFIGURED,
+    });
+    return true;
+  }
+  return false;
+}
 
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -88,6 +153,12 @@ export default async function handler(
   res: NextApiResponse,
 ) {
   if (standardLimit(req, res)) return;
+  applyRpcCors(req, res);
+  if (req.method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   const fn = String(req.query.fn ?? "").trim();
   if (!fn) {
     apiError.badRequest(res, "function name required");
@@ -100,10 +171,8 @@ export default async function handler(
 
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
-    apiError.internal(
-      res,
-      "EDGE_BASE_URL (or NEXT_PUBLIC_EDGE_URL / NEXT_PUBLIC_SUPABASE_URL) not configured",
-    );
+    if (sendLocalSponsorUnavailable(fn, res)) return;
+    apiError.internal(res, EDGE_BASE_UNCONFIGURED);
     return;
   }
 
@@ -146,6 +215,7 @@ export default async function handler(
       "set-cookie",
       "access-control-allow-origin",
       "cache-control",
+      "vary",
     ]);
     upstream.headers.forEach((value, key) => {
       if (blockedHeaders.has(key)) return;

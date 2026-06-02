@@ -4,6 +4,8 @@ import { previewId } from "@shared/components-react";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-oracle-vrf-console";
+const DEFAULT_CONSUMER = appId;
+const DEFAULT_SALT = "vrf:miniapp-round";
 
 export const appMeta = {
   networkLabel: "Morpheus Testnet",
@@ -16,13 +18,27 @@ export const manifest: MiniAppManifest = {
   icon: "dice",
   category: "oracle",
   shell: "console",
-  theme: { family: "gaming", accentColor: "#fb7185", density: "comfortable" },
+  theme: { family: "default", accentColor: "#7B61FF", density: "comfortable" },
   tabs: [{ key: "vrf", labelKey: "tabVrf", icon: "dice", default: true }],
   stats: [
-    { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },
-    { labelKey: "statEndpoint", valueKey: "endpointLabel", format: "text", icon: "dice" },
-    { labelKey: "statRequests", valueKey: "requestCount", format: "number", icon: "activity" },
-    { labelKey: "statDigest", valueKey: "lastDigest", format: "text", icon: "key" },
+    {
+      labelKey: "statNetwork",
+      valueKey: "networkLabel",
+      format: "text",
+      icon: "globe",
+    },
+    {
+      labelKey: "statEndpoint",
+      valueKey: "endpointLabel",
+      format: "text",
+      icon: "dice",
+    },
+    {
+      labelKey: "statDigest",
+      valueKey: "lastDigest",
+      format: "text",
+      icon: "key",
+    },
   ],
   sidebar: {
     titleKey: "appName",
@@ -56,9 +72,27 @@ export const consoleConfig: ConsoleToolConfig = {
   copyActionKey: "copy",
   copiedKey: "copied",
   fields: [
-    { key: "consumer", labelKey: "consumer", placeholderKey: "consumerPlaceholder", type: "text" },
-    { key: "salt", labelKey: "salt", placeholderKey: "saltPlaceholder", type: "text" },
-    { key: "rounds", labelKey: "rounds", placeholderKey: "roundsPlaceholder", type: "number", defaultValue: "1" },
+    {
+      key: "consumer",
+      labelKey: "consumer",
+      placeholderKey: "consumerPlaceholder",
+      type: "text",
+      defaultValue: DEFAULT_CONSUMER,
+    },
+    {
+      key: "salt",
+      labelKey: "salt",
+      placeholderKey: "saltPlaceholder",
+      type: "text",
+      defaultValue: DEFAULT_SALT,
+    },
+    {
+      key: "rounds",
+      labelKey: "rounds",
+      placeholderKey: "roundsPlaceholder",
+      type: "number",
+      defaultValue: "1",
+    },
     {
       key: "mode",
       labelKey: "mode",
@@ -122,9 +156,15 @@ const appMessages = {
   },
   runAction: { en: "Build VRF Request", zh: "生成 VRF 请求" },
   consumer: { en: "Consumer", zh: "消费者" },
-  consumerPlaceholder: { en: "MiniApp contract hash or app id", zh: "小程序合约哈希或 app id" },
+  consumerPlaceholder: {
+    en: "MiniApp contract hash or app id",
+    zh: "小程序合约哈希或 app id",
+  },
   salt: { en: "Salt", zh: "盐值" },
-  saltPlaceholder: { en: "Unique round or request salt", zh: "唯一回合或请求盐值" },
+  saltPlaceholder: {
+    en: "Unique round or request salt",
+    zh: "唯一回合或请求盐值",
+  },
   rounds: { en: "Rounds", zh: "轮次" },
   roundsPlaceholder: { en: "1", zh: "1" },
   mode: { en: "Proof Mode", zh: "证明模式" },
@@ -133,9 +173,15 @@ const appMessages = {
   requestId: { en: "Request ID", zh: "请求 ID" },
   clientDigest: { en: "Client Digest", zh: "客户端摘要" },
   inputRequired: { en: "Required fields missing", zh: "缺少必填字段" },
-  inputRequiredSummary: { en: "Enter a consumer and salt before building a VRF request.", zh: "请输入消费者和盐值后再生成 VRF 请求。" },
+  inputRequiredSummary: {
+    en: "Enter a consumer and salt before building a VRF request.",
+    zh: "请输入消费者和盐值后再生成 VRF 请求。",
+  },
   vrfReady: { en: "VRF request ready", zh: "VRF 请求已准备" },
-  vrfSummary: { en: "{rounds} randomness round(s) prepared", zh: "{rounds} 轮随机数已准备" },
+  vrfSummary: {
+    en: "{rounds} randomness round(s) prepared",
+    zh: "{rounds} 轮随机数已准备",
+  },
   statNetwork: { en: "Network", zh: "网络" },
   statEndpoint: { en: "Mode", zh: "模式" },
   statRequests: { en: "Requests", zh: "请求数" },
@@ -150,11 +196,20 @@ const appMessages = {
     zh: "面向 Morpheus 随机数请求规划的轻量控制台。",
   },
   feature1Name: { en: "Unambiguous", zh: "无歧义" },
-  feature1Desc: { en: "Consumer, salt, mode, and count are part of the request ID.", zh: "消费者、盐值、模式和轮次都会参与请求 ID。" },
+  feature1Desc: {
+    en: "Consumer, salt, mode, and count are part of the request ID.",
+    zh: "消费者、盐值、模式和轮次都会参与请求 ID。",
+  },
   feature2Name: { en: "Game Ready", zh: "游戏就绪" },
-  feature2Desc: { en: "The form is tuned for game rounds, raffles, and randomized app flows.", zh: "表单适合游戏回合、抽奖和随机化应用流程。" },
+  feature2Desc: {
+    en: "The form is tuned for game rounds, raffles, and randomized app flows.",
+    zh: "表单适合游戏回合、抽奖和随机化应用流程。",
+  },
   feature3Name: { en: "Proof Aware", zh: "证明感知" },
-  feature3Desc: { en: "Proof mode is explicit in the payload before submission.", zh: "提交前即可看到载荷中的证明模式。" },
+  feature3Desc: {
+    en: "Proof mode is explicit in the payload before submission.",
+    zh: "提交前即可看到载荷中的证明模式。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

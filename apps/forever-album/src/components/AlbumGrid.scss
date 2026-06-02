@@ -1,6 +1,6 @@
 .forever-album-grid-card {
   border-color: #e2eaf1;
-  border-radius: 20px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 16px 36px rgba(24, 38, 58, 0.06);
   letter-spacing: 0;
@@ -24,7 +24,7 @@
   min-height: 128px;
   overflow: hidden;
   border: 1px solid #e6edf3;
-  border-radius: 14px;
+  border-radius: 8px;
   background: #f8fbfd;
   color: inherit;
   cursor: pointer;
@@ -73,7 +73,7 @@
   right: 8px;
   bottom: 8px;
   padding: 4px 8px;
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(15, 23, 42, 0.78);
   color: #ffffff;
   font-size: 11px;
@@ -122,7 +122,7 @@
   gap: 10px;
   padding: 32px 24px;
   border: 1px solid #e6edf3;
-  border-radius: 16px;
+  border-radius: 8px;
   background: #f7f8fa;
   text-align: center;
 
@@ -132,7 +132,7 @@
     justify-content: center;
     width: 48px;
     height: 48px;
-    border-radius: 16px;
+    border-radius: 8px;
     background: #e4f8f0;
     color: #0fb174;
   }
@@ -177,7 +177,7 @@
   gap: 10px;
   padding: 18px 18px 20px;
   border: 1px solid #e6edf3;
-  border-radius: 16px;
+  border-radius: 8px;
   background: #f7f8fa;
 }
 
@@ -191,7 +191,7 @@
   width: 44px;
   height: 44px;
   flex-shrink: 0;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .forever-album-skeleton-lines {

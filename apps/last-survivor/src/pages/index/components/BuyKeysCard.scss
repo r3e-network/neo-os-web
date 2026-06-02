@@ -90,13 +90,14 @@
   display: flex;
   gap: 8px;
   justify-content: center;
-  margin-bottom: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 .preset-chip {
-  padding: 6px 16px;
+  padding: 7px 18px;
   border-radius: 999px;
-  background: pm.$bg;
+  background: pm.$surface;
   border: 1px solid pm.$border-strong;
   color: pm.$text-2;
   font-size: 13px;
@@ -162,4 +163,18 @@
   color: pm.$text-muted;
   text-align: center;
   line-height: 1.5;
+}
+
+.buy-keys-error {
+  display: block;
+  margin: -4px 0 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(234, 57, 67, 0.22);
+  background: pm.$red-soft;
+  color: pm.$red-text;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
 }

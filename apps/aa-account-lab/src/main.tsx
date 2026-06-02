@@ -9,6 +9,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useAAAccountLab } from "./composables/useAAAccountLab";
+import { getAccountLabLaunchDefaults } from "./launch";
 
 defineMiniApp({
   appId: "miniapp-aa-account-lab",
@@ -22,6 +23,26 @@ defineMiniApp({
       storageService: ctx.os.storage,
       t: ctx.t,
     });
+    const launchDefaults = getAccountLabLaunchDefaults(ctx.launchContext);
+    if (launchDefaults.accountIdInput) {
+      lab.inspectForm.accountIdInput = launchDefaults.accountIdInput;
+      lab.registerForm.accountIdInput = launchDefaults.accountIdInput;
+    }
+    if (launchDefaults.verifierHash) {
+      lab.registerForm.verifierHash = launchDefaults.verifierHash;
+    }
+    if (launchDefaults.verifierParamsHex) {
+      lab.registerForm.verifierParamsHex = launchDefaults.verifierParamsHex;
+    }
+    if (launchDefaults.hookHash) {
+      lab.registerForm.hookHash = launchDefaults.hookHash;
+    }
+    if (launchDefaults.backupOwner) {
+      lab.registerForm.backupOwner = launchDefaults.backupOwner;
+    }
+    if (launchDefaults.escapeTimelock) {
+      lab.registerForm.escapeTimelock = launchDefaults.escapeTimelock;
+    }
 
     ctx.registerAction("inspect", async (accountIdInput: unknown) => {
       lab.inspectForm.accountIdInput = String(accountIdInput);

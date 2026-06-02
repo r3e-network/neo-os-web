@@ -4,8 +4,8 @@
   "name": "Oracle NeoDID Console",
   "name_zh": "预言机 NeoDID 控制台",
   "version": "1.0.0",
-  "description": "Prepare NeoDID verification requests for Morpheus oracle flows.",
-  "description_zh": "为 Morpheus 预言机流程准备 NeoDID 校验请求。",
+  "description": "Preview NeoDID verification requests for Morpheus oracle flows.",
+  "description_zh": "为 Morpheus 预言机流程预览 NeoDID 校验请求。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -49,29 +49,69 @@
     ]
   },
   "operation_panel": {
-    "title": "NeoDID Oracle",
-    "subtitle": "Build, seal, and verify NeoDID requests.",
+    "title": "NeoDID Preview",
+    "subtitle": "Build or seal NeoDID verification previews with an explicit subject and claim.",
     "operations": [
       {
         "name": "Seal DID Request",
         "method": "sealOracleRequest",
-        "description": "Encrypt the NeoDID subject and verification request for Morpheus handling.",
+        "description": "Encrypt the NeoDID subject and claim for Morpheus confidential handling.",
         "button_style": "success",
         "params": [
           {
             "name": "endpoint",
             "type": "string",
             "label": "DID subject",
-            "placeholder": "did:neo:...",
+            "placeholder": "did:neo:testnet:sample-user",
+            "default_value": "did:neo:testnet:sample-user",
+            "sensitive": true,
             "required": true
+          },
+          {
+            "name": "claim",
+            "type": "string",
+            "label": "Claim",
+            "placeholder": "profile.kyc",
+            "default_value": "profile.kyc",
+            "required": true
+          },
+          {
+            "name": "callback",
+            "type": "hash160",
+            "label": "Callback contract",
+            "placeholder": "0x..."
           }
         ]
       },
       {
         "name": "Build Preview",
         "method": "buildOraclePackage",
-        "description": "Build a visible NeoDID request package.",
-        "button_style": "secondary"
+        "description": "Build a visible NeoDID preview package without sealing.",
+        "button_style": "secondary",
+        "params": [
+          {
+            "name": "endpoint",
+            "type": "string",
+            "label": "DID subject",
+            "placeholder": "did:neo:testnet:sample-user",
+            "default_value": "did:neo:testnet:sample-user",
+            "required": true
+          },
+          {
+            "name": "claim",
+            "type": "string",
+            "label": "Claim",
+            "placeholder": "profile.kyc",
+            "default_value": "profile.kyc",
+            "required": true
+          },
+          {
+            "name": "callback",
+            "type": "hash160",
+            "label": "Callback contract",
+            "placeholder": "0x..."
+          }
+        ]
       }
     ]
   },

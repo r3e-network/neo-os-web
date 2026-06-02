@@ -126,4 +126,23 @@ describe("auth store env access", () => {
     );
     expect(useAuthStore.getState().authenticated).toBe(true);
   });
+
+  it("connects the developer key wallet without probing auth when edge auth is not configured", async () => {
+    const { useAuthStore } = require("../../lib/auth/store") as typeof import("../../lib/auth/store");
+
+    await useAuthStore.getState().loginWif("test-wif");
+
+    expect(mockConnectWif).toHaveBeenCalledWith("test-wif");
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(useAuthStore.getState()).toEqual(
+      expect.objectContaining({
+        authenticated: false,
+        walletAddress: "NUserAddress",
+        walletType: "external",
+        loading: false,
+        error: null,
+      }),
+    );
+    expect(sessionStorage.getItem("sb-access-token")).toBeNull();
+  });
 });

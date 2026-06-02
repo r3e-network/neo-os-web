@@ -8,6 +8,7 @@
 import { createObservable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
+import { getMiniAppContractHash } from "@shared/constants/rpc";
 
 const APP_ID = "miniapp-profitanchor";
 const GAS_DECIMALS = TOKEN_CONSTANTS.GAS_MULTIPLIER;
@@ -116,6 +117,10 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
   const pendingRewards = createObservable(0);
   const pendingWithdraw = createObservable(0);
   const stats = createObservable<ProfitAnchorStats | null>(null);
+  const anchorOptions = <T extends Record<string, unknown>>(options?: T) => {
+    const scriptHash = getMiniAppContractHash(APP_ID);
+    return { ...(options ?? {}), ...(scriptHash ? { scriptHash } : {}) };
+  };
 
   const loadMyStake = async () => {
     const addr = chain.address.get();
@@ -127,7 +132,7 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
       const result = await chain.read("getUserStake", [
         { type: "String", value: APP_ID },
         { type: "Hash160", value: addr },
-      ]);
+      ], anchorOptions());
       myStake.set(asNumber(result));
     } catch (e) {
       console.warn(
@@ -147,7 +152,7 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
       const result = await chain.read("getPendingRewards", [
         { type: "String", value: APP_ID },
         { type: "Hash160", value: addr },
-      ]);
+      ], anchorOptions());
       pendingRewards.set(asNumber(result) / GAS_DECIMALS);
     } catch (e) {
       console.warn(
@@ -167,7 +172,7 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
       const result = await chain.read("getCredit", [
         { type: "Hash160", value: addr },
         { type: "String", value: "NEO" },
-      ]);
+      ], anchorOptions());
       pendingWithdraw.set(asNumber(result));
     } catch (e) {
       console.warn(
@@ -181,7 +186,7 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
     try {
       const result = await chain.read("getAnchorStats", [
         { type: "String", value: APP_ID },
-      ]);
+      ], anchorOptions());
       stats.set({
         totalStaked: asNumber(asMapValue(result, "totalStaked")),
         rewardReserve:
@@ -215,17 +220,17 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
 
   const stakeNeo = async (amountInput: unknown) => {
     const user = await chain.ensureWallet();
-    const contract = chain.contractAddress.get();
+    const contract = getMiniAppContractHash(APP_ID) || chain.contractAddress.get();
     if (!contract)
       throw new Error("PlatformAnchor contract is not configured.");
     const amount = normalizeWholeNeo(amountInput);
-    await chain.invoke(
+    const result = await chain.invoke(
       "transfer",
       [
         { type: "Hash160", value: user },
         { type: "Hash160", value: contract },
         { type: "Integer", value: amount },
-        { type: "String", value: APP_ID },
+        { type: "String", value: `stake:${APP_ID}` },
       ],
       {
         scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH,
@@ -235,12 +240,13 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
     );
     eventBus.emit("anchor:staked", { appId: APP_ID, amount });
     await loadAll();
+    return result;
   };
 
   const withdrawNeo = async (amountInput: unknown) => {
     const user = await chain.ensureWallet();
     const amount = normalizeWholeNeo(amountInput);
-    await chain.invoke(
+    const result = await chain.invoke(
       "withdraw",
       [
         { type: "String", value: APP_ID },
@@ -248,29 +254,33 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
         { type: "Integer", value: amount },
       ],
       {
+        ...anchorOptions(),
         waitForEvent: "AnchorStakeChanged",
         waitTimeoutMs: 30_000,
       },
     );
     eventBus.emit("anchor:withdrawn", { appId: APP_ID, amount });
     await loadAll();
+    return result;
   };
 
   const claimRewards = async () => {
     const user = await chain.ensureWallet();
-    await chain.invoke(
+    const result = await chain.invoke(
       "claimRewards",
       [
         { type: "String", value: APP_ID },
         { type: "Hash160", value: user },
       ],
       {
+        ...anchorOptions(),
         waitForEvent: "AnchorRewardsClaimed",
         waitTimeoutMs: 30_000,
       },
     );
     eventBus.emit("anchor:rewards-claimed", { appId: APP_ID });
     await loadAll();
+    return result;
   };
 
   const transferAgentNeo = async (
@@ -284,12 +294,16 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
     const amount = normalizeWholeNeo(amountInput);
     if (fromAgentId === toAgentId)
       throw new Error("Choose two different agents.");
-    await chain.invoke("transferAgentNeo", [
-      { type: "String", value: APP_ID },
-      { type: "Integer", value: fromAgentId },
-      { type: "Integer", value: toAgentId },
-      { type: "Integer", value: amount },
-    ]);
+    await chain.invoke(
+      "transferAgentNeo",
+      [
+        { type: "String", value: APP_ID },
+        { type: "Integer", value: fromAgentId },
+        { type: "Integer", value: toAgentId },
+        { type: "Integer", value: amount },
+      ],
+      anchorOptions(),
+    );
     eventBus.emit("anchor:agent-transfer", {
       appId: APP_ID,
       fromAgentId,
@@ -306,11 +320,15 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
     await chain.ensureWallet();
     const agentId = normalizeAgentId(agentIdInput);
     const candidate = normalizePublicKey(candidateInput);
-    await chain.invoke("setAgentCandidate", [
-      { type: "String", value: APP_ID },
-      { type: "Integer", value: agentId },
-      { type: "PublicKey", value: candidate },
-    ]);
+    await chain.invoke(
+      "setAgentCandidate",
+      [
+        { type: "String", value: APP_ID },
+        { type: "Integer", value: agentId },
+        { type: "PublicKey", value: candidate },
+      ],
+      anchorOptions(),
+    );
     eventBus.emit("anchor:candidate-updated", {
       appId: APP_ID,
       agentId,
@@ -322,10 +340,14 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
   const voteAgent = async (agentIdInput: unknown) => {
     await chain.ensureWallet();
     const agentId = normalizeAgentId(agentIdInput);
-    await chain.invoke("voteAgent", [
-      { type: "String", value: APP_ID },
-      { type: "Integer", value: agentId },
-    ]);
+    await chain.invoke(
+      "voteAgent",
+      [
+        { type: "String", value: APP_ID },
+        { type: "Integer", value: agentId },
+      ],
+      anchorOptions(),
+    );
     eventBus.emit("anchor:agent-voted", { appId: APP_ID, agentId });
     await loadAll();
   };
@@ -345,12 +367,16 @@ export function useProfitAnchor({ chain, eventBus }: UseProfitAnchorOptions) {
       verificationScriptHashInput,
       "Verification script hash",
     );
-    await chain.invoke("registerAgent", [
-      { type: "String", value: APP_ID },
-      { type: "Hash160", value: agentAccount },
-      { type: "PublicKey", value: candidate },
-      { type: "ByteArray", value: verificationScriptHash },
-    ]);
+    await chain.invoke(
+      "registerAgent",
+      [
+        { type: "String", value: APP_ID },
+        { type: "Hash160", value: agentAccount },
+        { type: "PublicKey", value: candidate },
+        { type: "ByteArray", value: verificationScriptHash },
+      ],
+      anchorOptions(),
+    );
     eventBus.emit("anchor:agent-registered", {
       appId: APP_ID,
       agentAccount,

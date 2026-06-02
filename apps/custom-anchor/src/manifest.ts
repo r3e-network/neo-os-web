@@ -39,7 +39,7 @@ export const manifest: MiniAppManifest = {
       priority: "primary",
       fields: [
         { key: "anchorAppId", type: "text", labelKey: "anchorAppId", placeholder: "custom-anchor:team:nonce", required: true },
-        { key: "amount", type: "amount", labelKey: "neoAmount", placeholder: "10", required: true, validation: { min: 0.00000001 } },
+        { key: "amount", type: "amount", labelKey: "neoAmount", placeholder: "10", required: true, validation: { min: 1 } },
       ],
     },
     {
@@ -62,7 +62,7 @@ export const manifest: MiniAppManifest = {
       priority: "primary",
       fields: [
         { key: "anchorAppId", type: "text", labelKey: "anchorAppId", placeholder: "custom-anchor:team:nonce", required: true },
-        { key: "amount", type: "amount", labelKey: "neoAmount", placeholder: "10", required: true, validation: { min: 0.00000001 } },
+        { key: "amount", type: "amount", labelKey: "neoAmount", placeholder: "10", required: true, validation: { min: 1 } },
       ],
     },
   ],

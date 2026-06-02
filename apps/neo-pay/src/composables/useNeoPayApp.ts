@@ -44,6 +44,11 @@ import type { StreamItem, StreamStatus } from "../types";
 
 const NEO_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.NEO_HASH);
 
+const isOsBoundaryError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+  return /OS service error|os-vesting-|os-payment-|Not Found/i.test(message);
+};
+
 export interface UseNeoPayAppOptions {
   /** OS VestingProxy instance from ctx.os.vesting */
   vestingService: VestingProxy;
@@ -60,6 +65,7 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
   const cancellingId = createObservable<string | null>(null);
   const createdStreams = createObservable<StreamItem[]>([]);
   const beneficiaryStreams = createObservable<StreamItem[]>([]);
+  const serviceNotice = createObservable("");
 
   // -- Computed --
   const allStreams = createDerived(() => [...createdStreams.get(), ...beneficiaryStreams.get()], [createdStreams, beneficiaryStreams]);
@@ -126,6 +132,9 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
     return candidates.find((candidate): candidate is unknown[] => Array.isArray(candidate)) ?? [];
   };
 
+  const normalizeActionError = (error: unknown): Error | unknown =>
+    isOsBoundaryError(error) ? new Error(t("streamActionUnavailable")) : error;
+
   // -- Data Loading (via OS services) --
 
   /**
@@ -157,9 +166,9 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
 
       createdStreams.set(created);
       beneficiaryStreams.set(beneficiary);
+      serviceNotice.set("");
     } catch (e) {
-      console.warn("[useNeoPayApp] refreshStreams failed:", e instanceof Error ? e.message : String(e));
-      throw e;
+      serviceNotice.set(t("streamListUnavailable"));
     } finally {
       isRefreshing.set(false);
     }
@@ -229,7 +238,7 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
 
       await refreshStreams();
     } catch (e) {
-      throw e;
+      throw normalizeActionError(e);
     } finally {
       isLoading.set(false);
     }
@@ -246,7 +255,7 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
       await vestingService.claim(stream.id);
       await refreshStreams();
     } catch (e) {
-      throw e;
+      throw normalizeActionError(e);
     } finally {
       claimingId.set(null);
     }
@@ -264,7 +273,7 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
       await vestingService.cancel(stream.id);
       await refreshStreams();
     } catch (e) {
-      throw e;
+      throw normalizeActionError(e);
     } finally {
       cancellingId.set(null);
     }
@@ -285,6 +294,7 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
     isRefreshing,
     claimingId,
     cancellingId,
+    serviceNotice,
 
     // -- Computed --
     allStreams,

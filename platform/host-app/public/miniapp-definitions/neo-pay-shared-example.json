@@ -177,6 +177,8 @@
       "method": "createSharedStream",
       "description": "Create a shared-runtime payment stream through the stream vesting module.",
       "button_style": "primary",
+      "priority": "primary",
+      "confirm_message": "Create this shared-runtime payment stream on-chain?",
       "params": [
         {
           "name": "beneficiary",
@@ -294,7 +296,69 @@
     "operation_panel": {
       "title": "Shared Stream",
       "subtitle": "Compose a stream vesting call through the shared runtime module binding.",
-      "operations": []
+      "operations": [
+        {
+          "name": "Create Stream",
+          "method": "createSharedStream",
+          "description": "Create a shared-runtime payment stream through the stream vesting module.",
+          "button_style": "primary",
+          "priority": "primary",
+          "confirm_message": "Create this shared-runtime payment stream on-chain?",
+          "params": [
+            {
+              "name": "beneficiary",
+              "type": "address",
+              "label": "Beneficiary Address",
+              "required": true,
+              "placeholder": "N..."
+            },
+            {
+              "name": "asset",
+              "type": "hash160",
+              "label": "Asset",
+              "required": true,
+              "default_value": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+              "hidden": true
+            },
+            {
+              "name": "totalAmount",
+              "type": "amount",
+              "label": "Total Amount",
+              "required": true,
+              "placeholder": "20"
+            },
+            {
+              "name": "rateAmount",
+              "type": "amount",
+              "label": "Release Per Interval",
+              "required": true,
+              "placeholder": "1.5"
+            },
+            {
+              "name": "intervalSeconds",
+              "type": "integer",
+              "label": "Interval Seconds",
+              "required": true,
+              "default_value": "2592000",
+              "hidden": true
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "label": "Stream Name",
+              "required": true,
+              "placeholder": "Monthly payroll stream"
+            },
+            {
+              "name": "notes",
+              "type": "string",
+              "label": "Notes",
+              "required": false,
+              "placeholder": "Optional context"
+            }
+          ]
+        }
+      ]
     }
   },
   "docs_url": "https://docs.r3e.network/neopay"

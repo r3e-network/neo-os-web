@@ -8,7 +8,7 @@ export const handler = createOSHandler(
     const limit = Math.min(Math.max(Number(params.limit) || 50, 1), 200);
     return {
       contract: getKernelHash(),
-      operation: "GetMiniAppState",
+      operation: "getMiniAppState",
       args: [
         { type: "String", value: appId },
         { type: "ByteArray", value: Array.from(new TextEncoder().encode(prefix)).map(b => b.toString(16).padStart(2, "0")).join("") },

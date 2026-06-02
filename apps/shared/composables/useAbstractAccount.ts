@@ -25,9 +25,17 @@ const ERROR_CODE_RELAY_SUBMISSION = "AA_RELAY_SUBMISSION_FAILED";
 
 type TokenResolver = () => string | Promise<string | undefined> | undefined;
 
+export interface GasSponsorScope {
+  aaAddress?: string;
+  dappId?: string;
+}
+
 type GasSponsorClientLike = {
-  check: () => Promise<GasSponsorCheckResponse>;
-  request: (amount: string) => Promise<GasSponsorRequestResponse>;
+  check: (scope?: GasSponsorScope) => Promise<GasSponsorCheckResponse>;
+  request: (
+    amount: string,
+    scope?: GasSponsorScope,
+  ) => Promise<GasSponsorRequestResponse>;
 };
 
 type MiniAppSDKLike = {
@@ -91,6 +99,26 @@ function normalizeUrl(raw: string | undefined, fallback = ""): string {
   const value = String(raw ?? "").trim();
   if (!value) return fallback;
   return value.replace(/\/$/, "");
+}
+
+function cleanSponsorScope(
+  scope?: GasSponsorScope | null,
+): Record<string, string> {
+  const aaAddress = String(scope?.aaAddress ?? "").trim();
+  const dappId = String(scope?.dappId ?? "").trim();
+  return {
+    ...(aaAddress ? { aaAddress } : {}),
+    ...(dappId ? { dappId } : {}),
+  };
+}
+
+function appendQueryParams(
+  url: string,
+  params: Record<string, string>,
+): string {
+  const search = new URLSearchParams(params).toString();
+  if (!search) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}${search}`;
 }
 
 async function resolveToken(resolver?: TokenResolver): Promise<string | undefined> {
@@ -161,17 +189,26 @@ export function useAbstractAccount(config: AAConfig = {}) {
     aaAddress.set(next || null);
   };
 
-  const checkGasSponsorship = async (): Promise<GasSponsorCheckResponse> => {
+  const checkGasSponsorship = async (
+    scope?: GasSponsorScope,
+  ): Promise<GasSponsorCheckResponse> => {
     isCheckingSponsorship.set(true);
     error.set(null);
     try {
+      const scoped = cleanSponsorScope(scope);
       if (sdk?.gasSponsor?.check) {
-        return await sdk.gasSponsor.check();
+        return await sdk.gasSponsor.check(scoped);
       }
-      return await requestJson<GasSponsorCheckResponse>(`${edgeBaseUrl}/gas-sponsor-check`, {
-        method: "GET",
-        getAuthToken: config.getAuthToken,
-      });
+      return await requestJson<GasSponsorCheckResponse>(
+        appendQueryParams(`${edgeBaseUrl}/gas-sponsor-check`, {
+          ...scoped,
+          network,
+        }),
+        {
+          method: "GET",
+          getAuthToken: config.getAuthToken,
+        },
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Gas sponsorship check failed";
       error.set(msg);
@@ -181,16 +218,27 @@ export function useAbstractAccount(config: AAConfig = {}) {
     }
   };
 
-  const requestGasSponsorship = async (amount: string): Promise<GasSponsorRequestResponse> => {
+  const requestGasSponsorship = async (
+    amount: string,
+    scope?: GasSponsorScope,
+  ): Promise<GasSponsorRequestResponse> => {
     isCheckingSponsorship.set(true);
     error.set(null);
     try {
+      const scoped = cleanSponsorScope(scope);
       if (sdk?.gasSponsor?.request) {
-        return await sdk.gasSponsor.request(amount);
+        return await sdk.gasSponsor.request(amount, scoped);
       }
       return await requestJson<GasSponsorRequestResponse>(`${edgeBaseUrl}/gas-sponsor-request`, {
         method: "POST",
-        body: { amount },
+        body: {
+          amount,
+          ...scoped,
+          network,
+          ...(scoped.dappId
+            ? { paymaster: { dapp_id: scoped.dappId, network } }
+            : {}),
+        },
         getAuthToken: config.getAuthToken,
       });
     } catch (e) {

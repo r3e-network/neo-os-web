@@ -18,6 +18,40 @@ type SubmitState =
     }
   | { status: "error"; message: string };
 
+const AMOUNT_PRESETS = ["0.1", "1", "5"];
+const MORPHEUS_ENCRYPTION_ALGORITHM = "X25519-HKDF-SHA256-AES-256-GCM";
+
+const isValidNeoAddress = (value: string) =>
+  /^N[0-9A-Za-z]{33}$/.test(value.trim());
+
+function isPositiveAmount(value: string) {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0;
+}
+
+function userFacingSealError(
+  error: unknown,
+  sealPhase: "key" | "store" | "package" = "package",
+) {
+  const raw = error instanceof Error ? error.message : String(error ?? "");
+  if (
+    sealPhase === "key" ||
+    /public key|contract.*configured|not configured|network|404|not found/i.test(raw)
+  ) {
+    return "Morpheus sealing is unavailable for this network. Your transfer details remain local.";
+  }
+  if (/algorithm|X25519|HKDF|AES/i.test(raw)) {
+    return "The selected Morpheus key cannot be used by this client. Your transfer details remain local.";
+  }
+  if (
+    sealPhase === "store" ||
+    /secret reference|secret_ref|store|inline_fallback/i.test(raw)
+  ) {
+    return "Morpheus confidential storage is temporarily unavailable. Your transfer details remain local.";
+  }
+  return "Private transfer sealing is unavailable right now. Your transfer details remain local.";
+}
+
 function setObservable(state: PlayAreaProps["state"], key: string, value: unknown) {
   const observable = state[key];
   if (observable && typeof observable.set === "function") {
@@ -35,21 +69,48 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
     status: "idle",
     message: "Ready to seal private transfer details locally.",
   });
+  const recipientInvalid =
+    recipient.trim().length > 0 && !isValidNeoAddress(recipient);
+  const amountInvalid = amount.trim().length > 0 && !isPositiveAmount(amount);
+  const canSeal = isValidNeoAddress(recipient) && isPositiveAmount(amount);
 
   const sealTransfer = useCallback(async () => {
+    if (!canSeal) {
+      const message =
+        "Enter a valid Neo N3 recipient and a positive transfer amount before sealing.";
+      setStatus(message, "error");
+      setSubmitState({ status: "error", message });
+      return;
+    }
     setSubmitState({
       status: "sealing",
-      message: "Fetching Morpheus key, encrypting locally, and storing ciphertext.",
+      message:
+        "Fetching Morpheus key, encrypting locally, and storing ciphertext.",
     });
     setStatus("Sealing private transfer", "info");
 
+    let sealPhase: "key" | "store" | "package" = "key";
     try {
-      const keyResponse = await fetch(`/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`);
+      const keyResponse = await fetch(
+        `/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`,
+      );
       const keyMeta = await keyResponse.json().catch(() => ({}));
       if (!keyResponse.ok || !keyMeta?.public_key) {
-        throw new Error(keyMeta?.error || "Morpheus oracle public key is unavailable");
+        throw new Error(
+          keyMeta?.error || "Morpheus oracle public key is unavailable",
+        );
+      }
+      if (
+        keyMeta.algorithm &&
+        keyMeta.algorithm !== MORPHEUS_ENCRYPTION_ALGORITHM
+      ) {
+        sealPhase = "package";
+        throw new Error(
+          `Unsupported Morpheus encryption algorithm: ${keyMeta.algorithm}`,
+        );
       }
 
+      sealPhase = "package";
       const transferPackage = await buildConfidentialTransferPackage({
         appId: "miniapp-private-transfer",
         network,
@@ -63,6 +124,7 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
         transferPackage.confidentialPayload,
       );
 
+      sealPhase = "store";
       const storeResponse = await fetch("/api/morpheus/confidential/store", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,9 +139,15 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
       });
       const stored = await storeResponse.json().catch(() => ({}));
       if (!storeResponse.ok) {
-        throw new Error(stored?.error || stored?.message || "Morpheus confidential store is unavailable");
+        throw new Error(
+          stored?.error ||
+            stored?.message ||
+            "Morpheus confidential store is unavailable",
+        );
       }
-      const secretRef = String(stored.secret_ref || stored.id || stored.ref || "").trim();
+      const secretRef = String(
+        stored.secret_ref || stored.id || stored.ref || "",
+      ).trim();
       if (!secretRef) {
         throw new Error("Morpheus confidential store did not return a secret reference");
       }
@@ -87,40 +155,57 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
       const requestCount = Number(state.requestCount?.get?.() ?? 0) + 1;
       setObservable(state, "requestCount", requestCount);
       setObservable(state, "lastStatus", "Sealed");
-      setObservable(state, "lastDigest", transferPackage.publicEnvelope.note_commitment);
+      setObservable(
+        state,
+        "lastDigest",
+        transferPackage.publicEnvelope.note_commitment,
+      );
       setStatus("Private transfer sealed", "success");
       setSubmitState({
         status: "stored",
-        message: "Ciphertext stored. Morpheus confidential compute can now decrypt and validate the private transfer payload inside the TEE.",
+        message:
+          "Ciphertext stored. Morpheus confidential compute can now decrypt and validate the private transfer payload inside the TEE.",
         secretRef,
         noteCommitment: transferPackage.publicEnvelope.note_commitment,
         nullifier: transferPackage.publicEnvelope.nullifier_hash,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = userFacingSealError(error, sealPhase);
+      console.warn(`[private-transfer] seal failed during ${sealPhase} phase`);
       setStatus(message, "error");
       setSubmitState({ status: "error", message });
     }
-  }, [amount, asset, memo, network, recipient, setStatus, state]);
+  }, [amount, asset, canSeal, memo, network, recipient, setStatus, state]);
 
   return (
     <div className="private-transfer">
       <section className="private-transfer__hero">
         <div className="private-transfer__hero-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="3" y="11" width="18" height="11" rx="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             <circle cx="12" cy="16" r="1" />
           </svg>
         </div>
         <div className="private-transfer__hero-body">
-          <span className="private-transfer__eyebrow">Neo N3 private payments</span>
+          <span className="private-transfer__eyebrow">
+            Neo N3 private payments
+          </span>
           <h2>Confidential transfer desk</h2>
           <p>
             Seal recipient, amount, memo, and note secret before anything leaves
             the browser. Morpheus handles the private compute path.
           </p>
-          <span className="private-transfer__badge">No on-chain zk curve dependency</span>
+          <span className="private-transfer__badge">
+            No on-chain zk curve dependency
+          </span>
         </div>
       </section>
 
@@ -129,45 +214,143 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
           <div className="private-transfer__form-grid">
             <label>
               <span>Network</span>
-              <select value={network} onChange={(event) => setNetwork(event.target.value)}>
+              <select
+                value={network}
+                onChange={(event) => setNetwork(event.target.value)}
+              >
                 <option value="testnet">Testnet</option>
                 <option value="mainnet">Mainnet</option>
               </select>
             </label>
             <label>
               <span>Asset</span>
-              <select value={asset} onChange={(event) => setAsset(event.target.value)}>
+              <select
+                value={asset}
+                onChange={(event) => setAsset(event.target.value)}
+              >
                 <option>GAS</option>
                 <option>NEO</option>
               </select>
             </label>
-            <label>
+            <label className="private-transfer__wide">
               <span>Recipient</span>
-              <input value={recipient} onChange={(event) => setRecipient(event.target.value)} />
+              <input
+                value={recipient}
+                placeholder="N..."
+                aria-invalid={recipientInvalid || undefined}
+                onChange={(event) => setRecipient(event.target.value)}
+              />
+              {recipientInvalid && (
+                <small className="private-transfer__field-error">
+                  Enter a valid Neo N3 address.
+                </small>
+              )}
             </label>
             <label>
               <span>Amount</span>
-              <input type="number" min="0" step="0.00000001" value={amount} onChange={(event) => setAmount(event.target.value)} />
+              <input
+                type="number"
+                min="0"
+                step="0.00000001"
+                value={amount}
+                aria-invalid={amountInvalid || undefined}
+                onChange={(event) => setAmount(event.target.value)}
+              />
+              {amountInvalid && (
+                <small className="private-transfer__field-error">
+                  Enter an amount greater than zero.
+                </small>
+              )}
+              <div
+                className="private-transfer__presets"
+                aria-label="Amount presets"
+              >
+                {AMOUNT_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    className={`private-transfer__preset${
+                      amount === preset ? " is-active" : ""
+                    }`}
+                    onClick={() => setAmount(preset)}
+                  >
+                    {preset} {asset}
+                  </button>
+                ))}
+              </div>
             </label>
             <label className="private-transfer__wide">
               <span>Private memo</span>
-              <input value={memo} onChange={(event) => setMemo(event.target.value)} />
+              <input
+                value={memo}
+                onChange={(event) => setMemo(event.target.value)}
+              />
             </label>
           </div>
-          <button type="button" onClick={sealTransfer} disabled={submitState.status === "sealing"}>
+          <div className="private-transfer__preview-grid">
+            <div>
+              <span>Recipient</span>
+              <strong>
+                {recipient
+                  ? `${recipient.slice(0, 8)}...${recipient.slice(-4)}`
+                  : "--"}
+              </strong>
+            </div>
+            <div>
+              <span>Amount</span>
+              <strong>
+                {isPositiveAmount(amount) ? `${amount} ${asset}` : "--"}
+              </strong>
+            </div>
+            <div>
+              <span>Memo</span>
+              <strong>{memo ? "Included" : "Empty"}</strong>
+            </div>
+          </div>
+          {!canSeal && (
+            <div className="private-transfer__validation" role="status">
+              Add a valid recipient and positive amount to enable local sealing.
+            </div>
+          )}
+          <button
+            type="button"
+            className="private-transfer__seal-button"
+            onClick={sealTransfer}
+            disabled={submitState.status === "sealing" || !canSeal}
+            aria-label={
+              submitState.status === "sealing"
+                ? "Sealing private transfer"
+                : "Seal private transfer"
+            }
+          >
             {submitState.status === "sealing" ? "Sealing..." : "Seal private transfer"}
           </button>
         </div>
 
-        <aside className={`private-transfer__status private-transfer__status--${submitState.status}`}>
+        <aside
+          className={`private-transfer__status private-transfer__status--${submitState.status}`}
+        >
           <div className="private-transfer__status-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M12 2 4 6v6c0 5 3.4 7.7 8 10 4.6-2.3 8-5 8-10V6l-8-4Z" />
               <path d="m9 12 2 2 4-4" />
             </svg>
           </div>
           <span>Morpheus confidential compute</span>
           <strong>{submitState.message}</strong>
+          {submitState.status === "error" && (
+            <p className="private-transfer__safe-copy">
+              Nothing was sent on-chain. Fix the inputs or try again when the
+              Morpheus service is available.
+            </p>
+          )}
           {submitState.status === "stored" && (
             <dl>
               <div>

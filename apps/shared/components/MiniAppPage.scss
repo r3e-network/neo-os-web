@@ -17,16 +17,15 @@
   border: 0;
 }
 
-// -- Fonts --
-@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap");
-
 // -- Tokens --
 $font-display:
   "Satoshi",
+  "Inter",
+  "Segoe UI",
   -apple-system,
+  BlinkMacSystemFont,
   sans-serif;
-$font-mono: "JetBrains Mono", "Fira Code", monospace;
+$font-mono: "JetBrains Mono", "SFMono-Regular", "Fira Code", Consolas, monospace;
 
 $sidebar-w: 240px;
 $panel-w: 360px;

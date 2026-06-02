@@ -12,58 +12,54 @@
 
 .empty-state {
   text-align: center;
-  padding: 26px 16px;
+  padding: 32px 16px;
   font-weight: 600;
   font-size: 13px;
   letter-spacing: 0.02em;
   color: pm.$text-muted;
   background: pm.$surface;
   border: 1px solid pm.$border;
-  border-radius: 14px;
+  border-radius: 16px;
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .history-item-glass {
-  padding: 12px 14px;
+  padding: 16px;
   background: pm.$surface;
   border: 1px solid pm.$border;
-  border-radius: 14px;
+  border-radius: 16px;
 }
 
 .history-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 6px;
 }
 
 .history-title-glass {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: pm.$text;
 }
 
 .history-date-glass {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: pm.$text-muted;
   font-variant-numeric: tabular-nums;
 }
 
 .history-desc-glass {
-  font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
   color: pm.$text-2;
-  background: pm.$bg;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid pm.$border;
+  line-height: 1.5;
   display: block;
   overflow-wrap: anywhere;
 }

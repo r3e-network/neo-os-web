@@ -53,7 +53,7 @@
 }
 
 .meter-track {
-  height: 8px;
+  height: 10px;
   background: pm.$surface-2;
   border-radius: 999px;
   position: relative;
@@ -108,55 +108,6 @@
   transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 2;
   border: 2px solid pm.$border-strong;
-}
-
-.zone-markers {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-
-.zone-mark {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 1px;
-}
-
-.zone-tick {
-  display: block;
-  width: 1px;
-  height: 100%;
-  background: rgba(20, 22, 38, 0.1);
-}
-
-.meter-zone-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 8px;
-  padding: 0 2px;
-}
-
-.zone-label {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  flex: 1;
-  text-align: center;
-
-  &.safe-label {
-    color: pm.$green-text;
-  }
-  &.warn-label {
-    color: pm.$amber;
-  }
-  &.high-label {
-    color: pm.$red;
-  }
-  &.crit-label {
-    color: pm.$red-text;
-  }
 }
 
 @keyframes critical-flash {

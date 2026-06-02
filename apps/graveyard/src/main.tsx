@@ -25,6 +25,12 @@ defineMiniApp({
       t: ctx.t,
     });
 
+    ctx.registerAction("initiateDestroy", async () => {
+      graveyard.initiateDestroy();
+    });
+    ctx.registerAction("cancelDestroy", async () => {
+      graveyard.cancelDestroy();
+    });
     ctx.registerAction("executeDestroy", async () => {
       await notify.guard(() => graveyard.executeDestroy(), "memoryBuried");
     });
@@ -33,6 +39,9 @@ defineMiniApp({
         () => graveyard.forgetMemory(item as { id: string; forgotten: boolean }),
         "forgetSuccess",
       );
+    });
+    ctx.registerAction("refreshRecords", async () => {
+      await graveyard.loadAll();
     });
 
     return {

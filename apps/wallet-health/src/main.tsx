@@ -21,6 +21,7 @@ defineMiniApp({
       balance: ctx.services.balance,
       eventBus: ctx.services.events,
       storage: ctx.os.storage,
+      targetNetwork: ctx.launchContext.network,
       t: ctx.t,
     });
 

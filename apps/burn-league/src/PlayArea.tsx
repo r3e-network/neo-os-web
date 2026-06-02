@@ -4,7 +4,7 @@
  * Full UI: hero stats, rank display, burn input, leaderboard preview.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -23,6 +23,9 @@ interface LeaderboardEntry {
   rank: number;
 }
 
+const MIN_BURN = 1;
+const MAX_BURN = 1000;
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
@@ -35,9 +38,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const leaderboardSize = num("leaderboardSize");
   const estimatedReward = str("estimatedReward", "0");
   const burnAmount = str("burnAmount", "");
+  const projectedTotalBurnedDisplay = str("projectedTotalBurnedDisplay", totalBurnedDisplay);
+  const serviceNotice = str("serviceNotice");
+  const actionNotice = str("actionNotice");
+  const burnValidationError = val<string>("burnValidationError");
+  const lastSubmittedAmount = str("lastSubmittedAmount");
   const leaderboardPreview = val<LeaderboardEntry[]>("leaderboardPreview") ?? [];
 
   const [localBurnAmount, setLocalBurnAmount] = useState("");
+  const currentBurnAmount = localBurnAmount || burnAmount;
+  const currentBurnAmountNumber = Number(currentBurnAmount);
+  const amountIsValid =
+    Number.isFinite(currentBurnAmountNumber) &&
+    currentBurnAmountNumber >= MIN_BURN &&
+    currentBurnAmountNumber <= MAX_BURN;
+  const presets = ["1", "5", "10", "25"];
+  const projectedPosition = useMemo(() => {
+    if (!amountIsValid) return "--";
+    const higherEntries = leaderboardPreview.filter(
+      (entry) => Number(entry.burned) > currentBurnAmountNumber,
+    );
+    return `#${higherEntries.length + 1}`;
+  }, [amountIsValid, currentBurnAmountNumber, leaderboardPreview]);
+  const rangeCopy = t("burnRange", {
+    min: MIN_BURN,
+    max: MAX_BURN,
+  });
 
   const handleBurnAmountChange = (value: string) => {
     setLocalBurnAmount(value);
@@ -47,6 +73,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleBurn = async () => {
     await dispatch("burn", localBurnAmount || burnAmount);
     setLocalBurnAmount("");
+  };
+
+  const handleReset = () => {
+    setLocalBurnAmount("1");
+    dispatch("setBurnAmount", "1");
   };
 
   const truncateAddress = (addr: string) => {
@@ -94,6 +125,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
+      {serviceNotice && (
+        <div className="burn-league-service-notice" role="status">
+          <div className="burn-league-service-notice__copy">
+            <span className="burn-league-service-notice__title">
+              {t("burnServiceUnavailableTitle")}
+            </span>
+            <span>{serviceNotice}</span>
+            <span className="burn-league-service-notice__status">
+              {t("seasonStatus")}: {t("localPreview")}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Rank Display */}
       <NeoCard variant="erobo" className="burn-league-rank-card">
         <div className="burn-league-rank-display">
@@ -106,10 +151,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="burn-league-rank-subtitle">
               {t("outOf", { total: leaderboardSize })}
             </span>
-          </div>
-          <div className="burn-league-estimated-reward">
-            <span className="burn-league-reward-label">{t("estimatedReward")}</span>
-            <span className="burn-league-reward-value">{estimatedReward}</span>
+            <span className="burn-league-rank-reward">
+              {t("estimatedReward")}
+              <strong>{estimatedReward}</strong>
+            </span>
           </div>
         </div>
       </NeoCard>
@@ -120,23 +165,106 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="burn-league-burn-form">
           <NeoInput
             type="number"
-            value={localBurnAmount || burnAmount}
+            value={currentBurnAmount}
             placeholder={t("enterAmount")}
             label={t("amount")}
             suffix="GAS"
-            min={0}
+            min={MIN_BURN}
+            max={MAX_BURN}
+            hint={rangeCopy}
+            error={
+              currentBurnAmount && !amountIsValid
+                ? t("burnRangeError", { min: MIN_BURN, max: MAX_BURN })
+                : ""
+            }
             onChange={handleBurnAmountChange}
           />
-          <NeoButton
-            variant="danger"
-            size="lg"
-            block
-            loading={isBurning}
-            disabled={isBurning || !(localBurnAmount || burnAmount)}
-            onClick={handleBurn}
-          >
-            {t("burn")}
-          </NeoButton>
+          <div className="burn-league-presets" aria-label={t("burnPresets")}>
+            {presets.map((preset) => (
+              <button
+                key={preset}
+                className={`burn-league-preset${currentBurnAmount === preset ? " is-active" : ""}`}
+                type="button"
+                onClick={() => handleBurnAmountChange(preset)}
+              >
+                {preset} GAS
+              </button>
+            ))}
+          </div>
+          <div className="burn-league-impact-grid">
+            <div className="burn-league-impact-card">
+              <span>{t("entryAmount")}</span>
+              <strong>{amountIsValid ? `${currentBurnAmount} GAS` : "--"}</strong>
+            </div>
+            <div className="burn-league-impact-card">
+              <span>{t("estimatedReward")}</span>
+              <strong>{estimatedReward}</strong>
+            </div>
+            <div className="burn-league-impact-card">
+              <span>{t("projectedTotal")}</span>
+              <strong>{projectedTotalBurnedDisplay}</strong>
+            </div>
+            <div className="burn-league-impact-card">
+              <span>{t("projectedRank")}</span>
+              <strong>{projectedPosition}</strong>
+            </div>
+          </div>
+          {burnValidationError && (
+            <div className="burn-league-action-error" role="alert">
+              {burnValidationError}
+            </div>
+          )}
+          {actionNotice && (
+            <div className="burn-league-action-notice" role="status">
+              {actionNotice}
+            </div>
+          )}
+          {lastSubmittedAmount && (
+            <div className="burn-league-last-submit">
+              {t("lastSubmitted", { amount: lastSubmittedAmount })}
+            </div>
+          )}
+          <div className="burn-league-action-buttons">
+            <div className="burn-league-burn-cta">
+              <NeoButton
+                variant="danger"
+                size="lg"
+                block
+                loading={isBurning}
+                disabled={isBurning || !amountIsValid}
+                aria-label={isBurning ? t("burning") : t("burn")}
+                onClick={handleBurn}
+              >
+                {t("burn")}
+              </NeoButton>
+              <span
+                className="burn-league-review-tip"
+                tabIndex={0}
+                role="note"
+                aria-label={t("burnReview")}
+              >
+                <span className="burn-league-review-tip__icon" aria-hidden="true">
+                  i
+                </span>
+                <span className="burn-league-review-tip__popover" role="tooltip">
+                  <span className="burn-league-review-tip__heading">
+                    {t("burnReview")}
+                  </span>
+                  <span>{t("reviewAmount")}</span>
+                  <span>{t("reviewLeaderboard")}</span>
+                  <span>{t("reviewWallet")}</span>
+                </span>
+              </span>
+            </div>
+            <NeoButton
+              variant="secondary"
+              size="lg"
+              disabled={isBurning}
+              onClick={handleReset}
+            >
+              {t("resetBurn")}
+            </NeoButton>
+          </div>
         </div>
       </NeoCard>
 
@@ -144,14 +272,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <NeoCard variant="erobo" className="burn-league-leaderboard-card">
         <h3 className="burn-league-section-title">{t("leaderboard")}</h3>
         {leaderboardPreview.length === 0 ? (
-          <div className="burn-league-empty">{t("noEntries")}</div>
+          <div className="burn-league-empty">
+            <strong>{t("noEntriesTitle")}</strong>
+            <span>{t("noEntries")}</span>
+          </div>
         ) : (
           <div className="burn-league-leaderboard-list">
             {leaderboardPreview.map((entry, i) => (
               <div key={entry.address || i} className="burn-league-leaderboard-row">
                 <span className="burn-league-lb-rank">#{entry.rank}</span>
                 <span className="burn-league-lb-address">{truncateAddress(entry.address)}</span>
-                <span className="burn-league-lb-amount">{entry.burned}</span>
+                <span className="burn-league-lb-amount">
+                  <strong>{entry.burned} GAS</strong>
+                  <small>{t("burned")}</small>
+                </span>
               </div>
             ))}
           </div>

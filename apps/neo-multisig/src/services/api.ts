@@ -82,16 +82,18 @@ export const api = {
     const all = loadAll();
     const index = all.findIndex((r) => r.id === id);
     if (index < 0) throw new Error(`Request ${id} not found`);
+    const request = all[index];
+    if (!request) throw new Error(`Request ${id} not found`);
 
-    all[index].signatures[publicKey] = signature;
+    request.signatures[publicKey] = signature;
 
-    const sigCount = Object.keys(all[index].signatures).length;
-    if (sigCount >= all[index].threshold) {
-      all[index].status = "ready";
+    const sigCount = Object.keys(request.signatures).length;
+    if (sigCount >= request.threshold) {
+      request.status = "ready";
     }
 
     saveAll(all);
-    return all[index];
+    return request;
   },
 
   async updateStatus(
@@ -102,11 +104,13 @@ export const api = {
     const all = loadAll();
     const index = all.findIndex((r) => r.id === id);
     if (index < 0) throw new Error(`Request ${id} not found`);
+    const request = all[index];
+    if (!request) throw new Error(`Request ${id} not found`);
 
-    all[index].status = status;
-    if (broadcastTxId) all[index].broadcast_txid = broadcastTxId;
+    request.status = status;
+    if (broadcastTxId) request.broadcast_txid = broadcastTxId;
 
     saveAll(all);
-    return all[index];
+    return request;
   },
 };

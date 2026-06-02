@@ -7,6 +7,7 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import CapsuleHero from "./components/CapsuleHero";
 import CapsuleList from "./components/CapsuleList";
+import { normalizeUnlockTimeMs } from "./utils/unlockTime";
 import "./PlayArea.scss";
 
 interface CapsuleFormState {
@@ -22,6 +23,14 @@ interface PlayAreaProps {
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
+
+const CATEGORY_OPTIONS = [
+  { value: 1, labelKey: "categoryPersonal" },
+  { value: 2, labelKey: "categoryGift" },
+  { value: 3, labelKey: "categoryMemorial" },
+  { value: 4, labelKey: "categoryAnnouncement" },
+  { value: 5, labelKey: "categorySecret" },
+] as const;
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, bool, val } = useStateBindings(state);
@@ -53,125 +62,155 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         revealedCount={revealedCount}
       />
 
-      {/* New Capsule Form */}
       <NeoCard title={t("createCapsule") || "Create Capsule"}>
         <div className="capsule-form">
           <NeoInput
-            label={t("capsuleTitle") || "Title"}
-            placeholder={t("capsuleTitlePlaceholder") || "A note to your future self"}
+            label={t("titleLabel") || "Capsule Title"}
+            placeholder={t("titlePlaceholder") || "Give your capsule a name"}
             value={newCapsule.title ?? ""}
             onChange={(v) => updateForm({ title: v })}
           />
           <NeoInput
             type="textarea"
-            label={t("capsuleContent") || "Content"}
-            placeholder={t("capsuleContentPlaceholder") || "Anything — text, a memory, advice..."}
+            label={t("secretMessage") || "Secret Message"}
+            placeholder={t("secretMessagePlaceholder") || "Enter your secret message"}
             value={newCapsule.content ?? ""}
             onChange={(v) => updateForm({ content: v })}
           />
           <NeoInput
             type="number"
-            label={t("capsuleDays") || "Lock for (days)"}
-            placeholder="30"
+            label={t("unlockIn") || "Lock Duration"}
+            placeholder={t("daysPlaceholder") || "30"}
             min={1}
             max={3650}
             value={newCapsule.days ?? "30"}
             onChange={(v) => updateForm({ days: v })}
           />
+          <label className="capsule-select-field">
+            <span>{t("categoryLabel") || "Category"}</span>
+            <select
+              value={newCapsule.category ?? 1}
+              onChange={(e) => updateForm({ category: Number(e.target.value) })}
+            >
+              {CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="capsule-public-toggle">
             <input
               type="checkbox"
               checked={Boolean(newCapsule.isPublic)}
               onChange={(e) => updateForm({ isPublic: e.target.checked })}
             />
-            <span>{t("capsulePublic") || "Make publicly fishable"}</span>
+            <span>
+              <strong>{t("visibility") || "Visibility"}</strong>
+              {Boolean(newCapsule.isPublic)
+                ? t("publicHint") || "Anyone can reveal after unlock"
+                : t("privateHint") || "Only you can reveal after unlock"}
+            </span>
           </label>
+          <p className="capsule-storage-note">{t("contentStorageNote")}</p>
           <NeoButton
             variant="primary"
             size="lg"
             block
             loading={isCreating}
             disabled={!canCreate || isBusy}
-            aria-label={t("createCapsule") || "Create Capsule"}
+            aria-label={t("createCapsuleButton") || "Create Capsule"}
             onClick={() => dispatch("createCapsule")}
           >
-            {isCreating ? t("creating") || "Creating..." : t("createCapsule") || "Create Capsule"}
+            {isCreating
+              ? t("creatingCapsule") || "Sealing capsule..."
+              : t("createCapsuleButton") || "Create Capsule"}
           </NeoButton>
         </div>
       </NeoCard>
 
-      {/* Fish action */}
-      <div className="capsule-actions">
-        <NeoButton
-          variant="secondary"
-          size="lg"
-          block
-          loading={isProcessing}
-          disabled={isBusy}
-          aria-label={t("fishCapsule") || "Fish for Capsule"}
-          onClick={() => dispatch("fishCapsule")}
-        >
-          {isProcessing ? t("fishing") || "Fishing..." : t("fishCapsule") || "Fish for Capsule"}
-        </NeoButton>
-      </div>
+      <div className="capsule-side-panel">
+        <div className="capsule-actions">
+          <NeoButton
+            variant="secondary"
+            size="lg"
+            block
+            loading={isProcessing}
+            disabled={isBusy}
+            aria-label={t("fishButton") || "Fish for Capsule"}
+            onClick={() => dispatch("fishCapsule")}
+          >
+            {isProcessing ? t("fishing") || "Fishing..." : t("fishButton") || "Fish for Capsule"}
+          </NeoButton>
+          <p className="capsule-fish-note">{t("fishDescription")}</p>
+        </div>
 
-      {/* Capsule List */}
-      <NeoCard title={t("capsules") || "Capsules"}>
-        {capsules.length === 0 ? (
-          <CapsuleList t={t} totalCapsules={totalCapsules} />
-        ) : (
-          <div className="capsule-grid">
-            {(capsules as Array<Record<string, unknown>>).map((cap) => {
-              const isLocked = !cap.revealed;
-              const unlockTimeRaw = Number(cap.unlockTimestamp ?? cap.unlockTime ?? 0);
-              const isUnlockable =
-                unlockTimeRaw > 0 && Date.now() >= unlockTimeRaw;
-              const unlockDateLabel =
-                unlockTimeRaw > 0
-                  ? new Date(unlockTimeRaw).toLocaleDateString()
-                  : null;
-              return (
-                <div key={String(cap.id)} className={`capsule-item${isLocked ? " locked" : " revealed"}`}>
-                  <div className="capsule-item-header">
-                    <span className="capsule-id">#{String(cap.id)}</span>
-                    <span className={`capsule-badge ${isLocked ? "badge-locked" : "badge-revealed"}`}>
-                      {isLocked ? t("locked") || "Locked" : t("revealed") || "Revealed"}
-                    </span>
-                  </div>
-                  {cap.title ? (
-                    <p className="capsule-title">{String(cap.title)}</p>
-                  ) : null}
-                  {unlockDateLabel && (
-                    <p className="capsule-unlock-meta">
-                      {t("unlocksOn") || "Unlocks"}: {unlockDateLabel}
-                    </p>
-                  )}
-                  {cap.revealed && cap.content ? (
-                    <p className="capsule-content">{String(cap.content)}</p>
-                  ) : null}
-                  {isLocked && (
-                    isUnlockable ? (
-                      <NeoButton
-                        variant="secondary"
-                        size="sm"
-                        loading={isProcessing}
-                        disabled={isBusy}
-                        onClick={() => dispatch("openCapsule", cap)}
-                      >
-                        {t("openCapsule") || "Open"}
-                      </NeoButton>
-                    ) : (
-                      <span className="capsule-locked-hint">
-                        {t("notUnlockedYet") || "Not unlocked yet"}
+        <NeoCard title={t("yourCapsules") || "Capsules"}>
+          {capsules.length === 0 ? (
+            <CapsuleList t={t} totalCapsules={totalCapsules} />
+          ) : (
+            <div className="capsule-grid">
+              {(capsules as Array<Record<string, unknown>>).map((cap) => {
+                const isRevealed = Boolean(cap.revealed);
+                const unlockTimeMs = normalizeUnlockTimeMs(
+                  cap.unlockTimestamp ?? cap.unlockTime,
+                );
+                const isUnlockable =
+                  !isRevealed && unlockTimeMs > 0 && Date.now() >= unlockTimeMs;
+                const isLocked =
+                  Boolean(cap.locked ?? !isRevealed) && !isUnlockable;
+                const unlockDateLabel =
+                  unlockTimeMs > 0
+                    ? new Date(unlockTimeMs).toLocaleDateString()
+                    : null;
+                const itemState = isRevealed ? "revealed" : isLocked ? "locked" : "ready";
+                return (
+                  <div key={String(cap.id)} className={`capsule-item ${itemState}`}>
+                    <div className="capsule-item-header">
+                      <span className="capsule-id">#{String(cap.id)}</span>
+                      <span className={`capsule-badge badge-${itemState}`}>
+                        {isRevealed
+                          ? t("revealed") || "Revealed"
+                          : isLocked
+                            ? t("locked") || "Locked"
+                            : t("unlocked") || "Unlocked"}
                       </span>
-                    )
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </NeoCard>
+                    </div>
+                    {cap.title ? (
+                      <p className="capsule-title">{String(cap.title)}</p>
+                    ) : null}
+                    {unlockDateLabel && (
+                      <p className="capsule-unlock-meta">
+                        {t("unlocks") || "Unlocks:"} {unlockDateLabel}
+                      </p>
+                    )}
+                    {cap.revealed && cap.content ? (
+                      <p className="capsule-content">{String(cap.content)}</p>
+                    ) : null}
+                    {!isRevealed && (
+                      !isLocked ? (
+                        <NeoButton
+                          variant="secondary"
+                          size="sm"
+                          loading={isProcessing}
+                          disabled={isBusy}
+                          onClick={() => dispatch("openCapsule", cap)}
+                        >
+                          {t("open") || "Open Capsule"}
+                        </NeoButton>
+                      ) : (
+                        <span className="capsule-locked-hint">
+                          {t("notUnlockedYet") || "Not unlocked yet"}
+                        </span>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </NeoCard>
+      </div>
     </div>
   );
 }

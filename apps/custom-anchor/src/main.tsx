@@ -1,5 +1,7 @@
 import { defineMiniApp, createObservable } from "@shared/react/defineMiniApp";
 import type { MiniAppSetupContext, MiniAppSetupResult } from "@shared/react/defineMiniApp";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { getMiniAppContractHash } from "@shared/constants/rpc";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -14,12 +16,12 @@ function firstParam(ctx: MiniAppSetupContext, keys: string[]): string {
   return "";
 }
 
-function fixed8(value: unknown): string {
+function wholeNeo(value: unknown): string {
   const amount = Number(value);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("Enter a positive NEO amount.");
+  if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
+    throw new Error("NEO amount must be a positive whole number.");
   }
-  return String(Math.round(amount * 100_000_000));
+  return String(amount);
 }
 
 function targetAnchorId(value: unknown): string {
@@ -62,17 +64,24 @@ defineMiniApp({
     const pendingRewards = createObservable("0");
     const agentCount = createObservable(0);
     const lastTxid = createObservable("");
+    const workflowStatus = createObservable(ctx.t("workflowReady"));
+    const lastError = createObservable("");
     const isLoading = createObservable(false);
+    const anchorOptions = <T extends Record<string, unknown>>(options?: T) => {
+      const scriptHash = getMiniAppContractHash(appId);
+      return { ...(options ?? {}), ...(scriptHash ? { scriptHash } : {}) };
+    };
 
     async function loadData() {
       const target = anchorAppId.get();
       if (!target) return;
+      lastError.set("");
       isLoading.set(true);
       try {
         const [total, reserve, agents] = await Promise.all([
-          ctx.services.chain.read("getTotalStaked", [{ type: "String", value: target }], { cache: true, cacheTtlMs: 15_000 }),
-          ctx.services.chain.read("getRewardReserve", [{ type: "String", value: target }], { cache: true, cacheTtlMs: 15_000 }),
-          ctx.services.chain.read("getAgentCount", [{ type: "String", value: target }], { cache: true, cacheTtlMs: 15_000 }),
+          ctx.services.chain.read("getTotalStaked", [{ type: "String", value: target }], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
+          ctx.services.chain.read("getRewardReserve", [{ type: "String", value: target }], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
+          ctx.services.chain.read("getAgentCount", [{ type: "String", value: target }], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
         ]);
         totalStaked.set(fromFixed8(total));
         rewardReserve.set(fromFixed8(reserve));
@@ -84,15 +93,21 @@ defineMiniApp({
             ctx.services.chain.read("getUserStake", [
               { type: "String", value: target },
               { type: "Hash160", value: address },
-            ], { cache: true, cacheTtlMs: 15_000 }),
+            ], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
             ctx.services.chain.read("getPendingRewards", [
               { type: "String", value: target },
               { type: "Hash160", value: address },
-            ], { cache: true, cacheTtlMs: 15_000 }),
+            ], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
           ]);
           userStake.set(fromFixed8(stake));
           pendingRewards.set(fromFixed8(rewards));
         }
+        workflowStatus.set(ctx.t("statusLoaded"));
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        lastError.set(message);
+        workflowStatus.set(ctx.t("workflowFailed"));
+        throw e;
       } finally {
         isLoading.set(false);
       }
@@ -101,41 +116,69 @@ defineMiniApp({
     ctx.registerAction("stake", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const target = targetAnchorId(form.anchorAppId || anchorAppId.get());
+      const contract = getMiniAppContractHash(appId);
+      if (!contract) throw new Error("PlatformAnchor contract is not configured.");
       const user = await ctx.services.chain.ensureWallet();
-      const result = await ctx.services.chain.invoke("stake", [
-        { type: "String", value: target },
+      const amount = wholeNeo(form.amount);
+      workflowStatus.set(ctx.t("stakeSubmitting"));
+      lastError.set("");
+      const result = await ctx.services.chain.invoke("transfer", [
         { type: "Hash160", value: user },
-        { type: "Integer", value: fixed8(form.amount) },
-      ], { waitForEvent: "AnchorStakeChanged" });
+        { type: "Hash160", value: contract },
+        { type: "Integer", value: amount },
+        { type: "String", value: `stake:${target}` },
+      ], {
+        scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH,
+        waitForEvent: "AnchorStakeChanged",
+        waitTimeoutMs: 1_500,
+      });
       anchorAppId.set(target);
       lastTxid.set(result.txid);
+      workflowStatus.set(ctx.t("stakeSubmitted"));
       await loadData();
+      return result;
     });
 
     ctx.registerAction("withdraw", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const target = targetAnchorId(form.anchorAppId || anchorAppId.get());
       const user = await ctx.services.chain.ensureWallet();
+      workflowStatus.set(ctx.t("withdrawSubmitting"));
+      lastError.set("");
       const result = await ctx.services.chain.invoke("withdraw", [
         { type: "String", value: target },
         { type: "Hash160", value: user },
-        { type: "Integer", value: fixed8(form.amount) },
-      ], { waitForEvent: "AnchorStakeChanged" });
+        { type: "Integer", value: wholeNeo(form.amount) },
+      ], anchorOptions({ waitForEvent: "AnchorStakeChanged", waitTimeoutMs: 1_500 }));
       anchorAppId.set(target);
       lastTxid.set(result.txid);
+      workflowStatus.set(ctx.t("withdrawSubmitted"));
       await loadData();
+      return result;
     });
 
     ctx.registerAction("claimRewards", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const target = targetAnchorId(form.anchorAppId || anchorAppId.get());
       const user = await ctx.services.chain.ensureWallet();
+      workflowStatus.set(ctx.t("claimSubmitting"));
+      lastError.set("");
       const result = await ctx.services.chain.invoke("claimRewards", [
         { type: "String", value: target },
         { type: "Hash160", value: user },
-      ], { waitForEvent: "AnchorRewardsClaimed" });
+      ], anchorOptions({ waitForEvent: "AnchorRewardsClaimed", waitTimeoutMs: 1_500 }));
       anchorAppId.set(target);
       lastTxid.set(result.txid);
+      workflowStatus.set(ctx.t("claimSubmitted"));
+      await loadData();
+      return result;
+    });
+
+    ctx.registerAction("refreshAnchor", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as Record<string, unknown>;
+      const target = String(form.anchorAppId || anchorAppId.get() || "").trim();
+      if (target) anchorAppId.set(targetAnchorId(target));
+      workflowStatus.set(ctx.t("refreshingStatus"));
       await loadData();
     });
 
@@ -148,6 +191,8 @@ defineMiniApp({
         pendingRewards,
         agentCount,
         lastTxid,
+        workflowStatus,
+        lastError,
         isLoading,
       },
       loadData,

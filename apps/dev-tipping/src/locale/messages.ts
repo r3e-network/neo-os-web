@@ -11,6 +11,8 @@ const appMessages = {
   totalTips: { en: "Total Tips", zh: "总打赏" },
   sendTip: { en: "Send Tip", zh: "发送打赏" },
   selectDeveloper: { en: "Select Developer", zh: "选择开发者" },
+  developerId: { en: "Developer ID", zh: "开发者 ID" },
+  developerIdPlaceholder: { en: "Registered developer ID", zh: "已注册开发者 ID" },
   tipAmount: { en: "Tip Amount", zh: "打赏金额" },
   customAmount: { en: "Custom amount...", zh: "自定义金额..." },
   optionalMessage: { en: "Optional Message", zh: "可选消息" },
@@ -31,8 +33,8 @@ const appMessages = {
   wallet: { en: "Wallet", zh: "钱包" },
   noDevelopers: { en: "No developers yet", zh: "暂无开发者" },
   noDevelopersHint: {
-    en: "Once developers register, they'll appear here for you to support.",
-    zh: "开发者注册后将显示在此处，供您支持。",
+    en: "Enter a registered developer ID in the tip form to support them directly.",
+    zh: "可在打赏表单中输入已注册开发者 ID，直接发起支持。",
   },
   howItWorks: { en: "How it works", zh: "使用说明" },
   defaultDevName: { en: "Dev #{id}", zh: "开发者 #{id}" },
@@ -51,8 +53,8 @@ const appMessages = {
     zh: "连接您的 Neo 钱包",
   },
   step2: {
-    en: "Find a developer or project to support",
-    zh: "找到要支持的开发者或项目",
+    en: "Choose a listed developer or enter their registered ID",
+    zh: "选择榜单开发者，或输入已注册开发者 ID",
   },
   step3: {
     en: "Enter tip amount and optional message",

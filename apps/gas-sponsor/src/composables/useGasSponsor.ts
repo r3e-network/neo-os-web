@@ -125,10 +125,14 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
 
     try {
       const result = await apiRequest(requestAmount.get());
-      eventBus.emit("sponsorship:requested", { id: result.request_id });
+      if (!result.success) {
+        throw new Error(gasSponsorSDK.sponsorshipError.value || t("requestFailed"));
+      }
+      const requestId = result.request_id || result.requestId || result.txid || "";
+      eventBus.emit("sponsorship:requested", { id: requestId });
       requestAmount.set("0.01");
       await loadUserData();
-      return result;
+      return { ...result, request_id: requestId };
     } catch (e) {
       eventBus.emit("sponsorship:error", { message: formatErrorMessage(e, t("requestFailed")) });
       throw e;

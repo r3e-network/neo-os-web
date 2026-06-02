@@ -10,6 +10,17 @@ import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { usePriceConsole } from "./hooks/usePriceConsole";
 
+function launchAsset(params: Record<string, string>) {
+  const raw = String(
+    params.asset || params.symbol || params.feed || params.endpoint || "",
+  )
+    .trim()
+    .replace(/^TWELVEDATA:/i, "")
+    .toUpperCase();
+  const asset = raw.split(/[-/]/)[0] || "";
+  return ["NEO", "GAS", "BTC"].includes(asset) ? asset : "";
+}
+
 defineMiniApp({
   appId: "miniapp-oracle-price-console",
   playArea: PlayArea,
@@ -18,6 +29,8 @@ defineMiniApp({
 
   setup(ctx) {
     const price = usePriceConsole({ t: ctx.t });
+    const requestedAsset = launchAsset(ctx.launchContext.params);
+    if (requestedAsset) price.asset.set(requestedAsset);
 
     ctx.registerAction("fetchPrice", async () => {
       await ctx.services.notify.guard(() => price.fetchPrice(), "priceLoaded");

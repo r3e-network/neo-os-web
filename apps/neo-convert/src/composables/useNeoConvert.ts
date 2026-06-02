@@ -228,6 +228,29 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     converter.copy(text);
   };
 
+  /**
+   * Export a paper wallet PDF with address and WIF QR codes.
+   * This is intentionally explicit because the PDF contains private material.
+   */
+  const downloadPaperWallet = async () => {
+    const account = generatedAccount.get();
+    if (!account) {
+      eventBus.emit("convert:error", { message: t("genEmptyState") });
+      return;
+    }
+    const [{ default: QRCode }, { useWalletPdf }] = await Promise.all([
+      import("qrcode"),
+      import("../pages/index/composables/useWalletPdf"),
+    ]);
+    const walletPdf = useWalletPdf(t as (key: string) => string);
+    const [addressQr, wifQr] = await Promise.all([
+      QRCode.toDataURL(account.address, { margin: 1, width: 320 }),
+      QRCode.toDataURL(account.wif, { margin: 1, width: 320 }),
+    ]);
+    walletPdf.generate(account, addressQr, wifQr);
+    eventBus.emit("convert:paper-wallet", { action: t("downloadPdf") });
+  };
+
   // ── Cleanup ─────────────────────────────────────────────────────────
 
   const cleanup = () => {
@@ -286,6 +309,7 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     convertInput,
     toggleSecrets,
     copyToClipboard,
+    downloadPaperWallet,
     loadAll,
     destroy,
   };

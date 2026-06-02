@@ -86,7 +86,12 @@ const DIRECTION_META: Record<
 };
 
 export function normalizeDirection(value: unknown): BridgeDirection {
-  return value === "neox-to-n3" ? "neox-to-n3" : "n3-to-neox";
+  const text = clean(value, "").toLowerCase();
+  return text === "neox-to-n3" ||
+    text === "neo x -> neo n3" ||
+    text === "neo x → neo n3"
+    ? "neox-to-n3"
+    : "n3-to-neox";
 }
 
 export function bridgeRoute(direction: BridgeDirection): string {
@@ -180,7 +185,7 @@ export function buildMessageBridgeIntent(
   const meta = DIRECTION_META[direction];
   const targetContract = clean(form.targetContract, "");
   const method = clean(form.method, "onCrossChainMessage");
-  const payloadBody = clean(form.payload, "");
+  const payloadBody = clean(form.payload || (form as { message?: unknown }).message, "");
   const gasLimit = clean(form.gasLimit, "250000");
 
   if (!targetContract) {
@@ -237,7 +242,7 @@ export function buildMessageBridgeIntent(
 export function buildStatusTimeline(form: StatusProbeForm): TimelineStep[] {
   const kind = form.bridgeKind === "message" ? "message" : "asset";
   const operation = clean(form.operationId, "");
-  const sourceTx = clean(form.sourceTx, "");
+  const sourceTx = clean(form.sourceTx || (form as { txHash?: unknown }).txHash, "");
   const direction = normalizeDirection(form.direction);
   const route = bridgeRoute(direction);
   const object = kind === "message" ? "message batch" : "asset transfer";

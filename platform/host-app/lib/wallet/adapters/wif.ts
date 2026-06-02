@@ -267,10 +267,25 @@ async function accountToScriptHash(
   throw new Error("signer account must be a Neo address or script hash");
 }
 
-function toContractParamJson(arg: { type: string; value: unknown }): ContractParamInput {
+function toContractParamJson(
+  sdk: NeoBrowserSdk,
+  arg: { type: string; value: unknown },
+): ContractParamInput {
   // The runtime SDK validates the concrete Neo parameter type. Miniapp
   // definitions keep this field as a string so catalog data can be parsed first.
   if (arg.value === undefined) return { type: arg.type } as ContractParamInput;
+
+  if (
+    arg.type.toLowerCase() === "hash160" &&
+    typeof arg.value === "string" &&
+    sdk.wallet.isAddress(arg.value)
+  ) {
+    return {
+      type: arg.type,
+      value: normalizeHash160(sdk.wallet.getScriptHashFromAddress(arg.value)),
+    } as ContractParamInput;
+  }
+
   return { type: arg.type, value: arg.value } as ContractParamInput;
 }
 
@@ -279,9 +294,8 @@ async function normalizeInvocation(
   account: NeoAccount,
   params: InvokeParams,
 ): Promise<NormalizedInvocation> {
-  const contractParams = params.args.map((arg) =>
-    sdk.sc.ContractParam.fromJson(toContractParamJson(arg)),
-  );
+  const rpcArgs = params.args.map((arg) => toContractParamJson(sdk, arg));
+  const contractParams = rpcArgs.map((arg) => sdk.sc.ContractParam.fromJson(arg));
   const script = new sdk.sc.ScriptBuilder()
     .emitContractCall(
       normalizeHash160(params.scriptHash),
@@ -315,10 +329,21 @@ async function normalizeInvocation(
 
   return {
     script,
-    rpcArgs: params.args.map(toContractParamJson),
+    rpcArgs,
     rpcSigners,
     txSigners,
   };
+}
+
+function concatByteArrays(parts: Uint8Array[]): Uint8Array {
+  const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+  const combined = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const part of parts) {
+    combined.set(part, offset);
+    offset += part.length;
+  }
+  return combined;
 }
 
 function serializeTransactionBase64(sdk: NeoBrowserSdk, transaction: InstanceType<NeoBrowserSdk["tx"]["Transaction"]>): string {
@@ -347,6 +372,62 @@ function createTransaction(
   });
   transaction.sign(init.wif, init.networkMagic);
   return transaction;
+}
+
+function relayErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error || "");
+}
+
+function isStaleRelayError(message: string): boolean {
+  return /expired transaction|expired/i.test(message);
+}
+
+function isAlreadyAcceptedRelayError(message: string): boolean {
+  return /already\s*exists|alreadyexists|memory pool|mempool|blockchain/i.test(
+    message,
+  );
+}
+
+async function relaySignedTransaction(
+  network: NeoNetwork,
+  txBase64: string,
+  fallbackTxid: string,
+): Promise<string> {
+  const send = () =>
+    neoRpc<NeoRpcSendResult | boolean | string>(network, "sendrawtransaction", [
+      txBase64,
+    ]);
+  const resolveTxid = (relayResult: NeoRpcSendResult | boolean | string) => {
+    const txid =
+      typeof relayResult === "object" && relayResult && "hash" in relayResult
+        ? relayResult.hash
+        : typeof relayResult === "string"
+          ? relayResult
+          : fallbackTxid;
+    return normalizeTxId(String(txid || fallbackTxid));
+  };
+
+  try {
+    return resolveTxid(await send());
+  } catch (error) {
+    const message = relayErrorMessage(error);
+    if (isAlreadyAcceptedRelayError(message)) {
+      return normalizeTxId(fallbackTxid);
+    }
+    if (!isStaleRelayError(message)) {
+      throw error;
+    }
+  }
+
+  try {
+    return resolveTxid(await send());
+  } catch (error) {
+    const message = relayErrorMessage(error);
+    if (isAlreadyAcceptedRelayError(message)) {
+      return normalizeTxId(fallbackTxid);
+    }
+    throw error;
+  }
 }
 
 export class WifAdapter implements WalletAdapter {
@@ -510,15 +591,113 @@ export class WifAdapter implements WalletAdapter {
         wif: this.wif,
       });
       const txBase64 = serializeTransactionBase64(sdk, finalTransaction);
-      const relayResult = await neoRpc<NeoRpcSendResult | boolean | string>(network, "sendrawtransaction", [
+      const txid = await relaySignedTransaction(
+        network,
         txBase64,
-      ]);
-      const txid = typeof relayResult === "object" && relayResult && "hash" in relayResult
-        ? relayResult.hash
-        : finalTransaction.hash();
+        finalTransaction.hash(),
+      );
 
       return {
-        txid: normalizeTxId(String(txid || finalTransaction.hash())),
+        txid,
+      };
+    } catch (error) {
+      throw new WalletTransactionError(
+        error instanceof Error ? error.message : "Developer key transaction failed",
+      );
+    }
+  }
+
+  async invokeMultiple(
+    params: InvokeParams[],
+    signers?: InvokeParams["signers"],
+  ): Promise<TransactionResult> {
+    if (!this.account || !this.wif) {
+      throw new WalletConnectionError("Developer key wallet is not connected");
+    }
+    if (!params.length) {
+      throw new WalletTransactionError("No invocations to submit");
+    }
+
+    try {
+      const sdk = await loadSdk();
+      const network = getRpcNetwork();
+      const [blockCount, version] = await Promise.all([
+        neoRpc<number>(network, "getblockcount"),
+        neoRpc<NeoRpcVersionResult>(network, "getversion"),
+      ]);
+      const networkMagic = getNetworkMagic(sdk, network, version);
+      const commonSigners = signers ?? params[0].signers;
+      const invocations = await Promise.all(
+        params.map((param) =>
+          normalizeInvocation(sdk, this.account as NeoAccount, {
+            ...param,
+            signers: commonSigners,
+          }),
+        ),
+      );
+      const script = concatByteArrays(invocations.map((invocation) => invocation.script));
+      const rpcSigners = invocations[0].rpcSigners;
+      const txSigners = invocations[0].txSigners;
+
+      const preflight = await neoRpc<NeoRpcInvokeResult>(network, "invokescript", [
+        sdk.bytesToBase64(script),
+        rpcSigners,
+      ]);
+      if (preflight.state && preflight.state !== "HALT") {
+        throw new Error(preflight.exception || `contract preflight failed with state=${preflight.state}`);
+      }
+
+      const systemFee = parseFixed8(preflight.gasconsumed || "0");
+      const maxSystemFee = getMaxSystemFee();
+      if (systemFee > maxSystemFee) {
+        throw new Error(
+          `estimated system fee ${formatFixed8(systemFee)} GAS exceeds developer key limit ${formatFixed8(maxSystemFee)} GAS`,
+        );
+      }
+
+      const validUntilBlock = Number(blockCount) + VALID_UNTIL_BLOCK_DELTA;
+      const draft = createTransaction(sdk, {
+        script,
+        signers: txSigners,
+        systemFee,
+        networkFee: 0n,
+        validUntilBlock,
+        networkMagic,
+        wif: this.wif,
+      });
+
+      let networkFee: bigint;
+      try {
+        const fee = await neoRpc<NeoRpcNetworkFeeResult>(network, "calculatenetworkfee", [
+          serializeTransactionBase64(sdk, draft),
+        ]);
+        networkFee = parseFixed8(fee.networkfee || "0");
+      } catch (error) {
+        throw new Error(
+          `network fee estimation failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+
+      const finalTransaction = createTransaction(sdk, {
+        script,
+        signers: txSigners,
+        systemFee,
+        networkFee,
+        validUntilBlock,
+        networkMagic,
+        wif: this.wif,
+      });
+      const txBase64 = serializeTransactionBase64(sdk, finalTransaction);
+      const txid = await relaySignedTransaction(
+        network,
+        txBase64,
+        finalTransaction.hash(),
+      );
+
+      return {
+        txid,
       };
     } catch (error) {
       throw new WalletTransactionError(

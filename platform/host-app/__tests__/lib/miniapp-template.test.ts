@@ -29,7 +29,12 @@ describe("miniapp-template", () => {
           button_style: "primary",
           params: [
             { name: "side", type: "select", options: [{ label: "YES", value: "yes" }] },
-            { name: "stake", type: "amount", required: true },
+            {
+              name: "stake",
+              type: "amount",
+              required: true,
+              presets: [{ label: "0.11", value: "0.11", helper: "GAS" }],
+            },
           ],
         },
         {
@@ -46,6 +51,11 @@ describe("miniapp-template", () => {
         }),
       );
       expect(operations[0].params).toHaveLength(2);
+      expect(operations[0].params?.[1].presets?.[0]).toEqual({
+        label: "0.11",
+        value: "0.11",
+        helper: "GAS",
+      });
     });
 
     it("deduplicates by method", () => {

@@ -38,7 +38,7 @@ function shouldAttachWalletToken(input: RequestInfo | URL): boolean {
   }
 }
 
-function readWalletSessionToken(): string {
+export function getWalletSessionToken(): string {
   if (typeof window === "undefined") return "";
   try {
     return window.sessionStorage.getItem("sb-access-token")?.trim() || "";
@@ -51,7 +51,7 @@ function applyDefaultHeaders(
   input: RequestInfo | URL,
   init?: RequestInit,
 ): RequestInit {
-  const token = shouldAttachWalletToken(input) ? readWalletSessionToken() : "";
+  const token = shouldAttachWalletToken(input) ? getWalletSessionToken() : "";
   const inputIsRequest = isRequest(input);
   if (!inputIsRequest && !token) return init || {};
 

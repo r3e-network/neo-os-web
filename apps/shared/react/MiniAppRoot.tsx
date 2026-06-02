@@ -428,9 +428,11 @@ export function MiniAppRoot({
   // Dispatch
   // --------------------------------------------------------------------------
 
-  const dispatch = useCallback(async (name: string, ...args: unknown[]) => {
+  const dispatch = useCallback(async (name: string, ...args: unknown[]): Promise<void> => {
     const handler = actionHandlersRef.current.get(name);
-    if (handler) await handler(...args);
+    // Preserve the public Promise<void> type while still returning handler
+    // payloads at runtime for components that need success/failure semantics.
+    if (handler) return (await handler(...args)) as void;
   }, []);
 
   // --------------------------------------------------------------------------

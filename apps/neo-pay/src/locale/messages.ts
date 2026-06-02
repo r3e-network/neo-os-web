@@ -19,6 +19,10 @@ const appMessages = {
 
   // Create form
   createStream: { en: "Create Stream", zh: "创建资金流" },
+  createStreamDescription: {
+    en: "Create a funded GAS or NEO payment stream for a Neo N3 recipient.",
+    zh: "为 Neo N3 收款地址创建已注资的 GAS 或 NEO 流式支付。",
+  },
   recipient: { en: "Recipient Address", zh: "收款地址" },
   recipientPlaceholder: { en: "N3 address...", zh: "输入 N3 地址……" },
   amount: { en: "Amount", zh: "金额" },
@@ -34,6 +38,18 @@ const appMessages = {
     zh: "你还没有创建任何资金流",
   },
   noBeneficiaryStreams: { en: "No incoming streams", zh: "暂无收到的资金流" },
+  streamListUnavailableTitle: {
+    en: "Stream index unavailable",
+    zh: "资金流索引暂不可用",
+  },
+  streamListUnavailable: {
+    en: "The payment stream index is not available in this environment yet. You can still prepare a new stream; created and incoming stream lists will refresh once the OS vesting service is configured.",
+    zh: "当前环境尚未启用资金流索引服务。你仍可以准备新的资金流；OS 释放服务配置完成后，已创建和待领取列表会自动恢复刷新。",
+  },
+  streamActionUnavailable: {
+    en: "Payment stream services are not configured in this environment yet. Review the stream details here, then submit once the OS payment and vesting services are available.",
+    zh: "当前环境尚未配置流式支付服务。你可以先在此检查资金流参数；OS 支付与释放服务可用后再提交。",
+  },
   to: { en: "To", zh: "收款方" },
   from: { en: "From", zh: "付款方" },
 
@@ -54,6 +70,17 @@ const appMessages = {
   intervalHint: { en: "Minimum 1 day, maximum 365 days", zh: "最少 1 天，最多 365 天" },
   notes: { en: "Notes (optional)", zh: "备注（可选）" },
   notesPlaceholder: { en: "Add context for the recipient", zh: "补充说明" },
+  streamId: { en: "Stream ID", zh: "资金流 ID" },
+  streamIdPlaceholder: { en: "1", zh: "1" },
+  claimStreamDescription: {
+    en: "Claim vested funds from an incoming stream.",
+    zh: "从收到的资金流中领取已释放资金。",
+  },
+  cancel: { en: "Cancel", zh: "取消" },
+  cancelStreamDescription: {
+    en: "Cancel one of your outgoing streams and recover unreleased funds.",
+    zh: "取消你创建的资金流并取回未释放资金。",
+  },
 
   createVault: { en: "Create Stream", zh: "创建资金流" },
   vaultCreated: { en: "Stream created", zh: "资金流已创建" },

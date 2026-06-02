@@ -123,8 +123,16 @@
       ]
     },
     {
+      "name": "Fund Oracle Fee",
+      "method": "fundOracleRequestFee",
+      "description": "Top up the Morpheus Oracle request fee required for lucky envelope randomness.",
+      "button_style": "secondary",
+      "priority": "secondary"
+    },
+    {
       "name": "Create",
       "method": "createEnvelope",
+      "description": "Fund GAS and create a shareable envelope in one wallet transaction.",
       "button_style": "secondary",
       "priority": "secondary",
       "params": [
@@ -141,19 +149,37 @@
           "type": "amount",
           "label": "Total GAS",
           "required": true,
-          "placeholder": "1"
+          "placeholder": "0.10",
+          "scale": 8,
+          "presets": [
+            {
+              "label": "0.10",
+              "value": "0.10",
+              "helper": "GAS"
+            },
+            {
+              "label": "0.25",
+              "value": "0.25",
+              "helper": "GAS"
+            },
+            {
+              "label": "1.00",
+              "value": "1.00",
+              "helper": "GAS"
+            }
+          ]
         },
         {
           "name": "packetCount",
           "type": "integer",
           "label": "Recipients",
           "required": true,
-          "placeholder": "8"
+          "placeholder": "2"
         },
         {
           "name": "expirySeconds",
           "type": "integer",
-          "label": "Expires in seconds",
+          "label": "Lifetime (seconds)",
           "required": true,
           "placeholder": "86400"
         }

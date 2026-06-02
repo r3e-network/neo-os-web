@@ -45,10 +45,112 @@
     "type": "n3index"
   },
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
   ],
+  "operation_panel": {
+    "title": "Seal Time Capsule",
+    "subtitle": "Prepay the capsule fee and commit a message hash with a future unlock time in one wallet-confirmed batch.",
+    "operations": [
+      {
+        "name": "Seal Capsule",
+        "method": "sealCapsule",
+        "description": "Submit the funded Time Capsule bury transaction from the connected wallet. Only the SHA-256 content hash is stored on-chain.",
+        "button_style": "primary",
+        "priority": "primary",
+        "confirm_message": "Seal this capsule hash on-chain?",
+        "params": [
+          {
+            "name": "owner",
+            "type": "hash160",
+            "label": "Owner",
+            "required": true,
+            "default_value": "$wallet",
+            "hidden": true
+          },
+          {
+            "name": "contentHash",
+            "type": "string",
+            "label": "Content hash",
+            "required": true,
+            "placeholder": "64-character SHA-256 hash"
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "label": "Capsule title",
+            "required": true,
+            "placeholder": "A note to my future self"
+          },
+          {
+            "name": "unlockDays",
+            "type": "integer",
+            "label": "Lock duration in days",
+            "required": true,
+            "default_value": "30",
+            "placeholder": "30"
+          },
+          {
+            "name": "isPublic",
+            "type": "boolean",
+            "label": "Publicly fishable",
+            "default_value": "false"
+          },
+          {
+            "name": "category",
+            "type": "select",
+            "label": "Category",
+            "required": true,
+            "default_value": "1",
+            "options": [
+              {
+                "label": "Personal",
+                "value": "1"
+              },
+              {
+                "label": "Gift",
+                "value": "2"
+              },
+              {
+                "label": "Memorial",
+                "value": "3"
+              },
+              {
+                "label": "Announcement",
+                "value": "4"
+              },
+              {
+                "label": "Secret",
+                "value": "5"
+              }
+            ]
+          },
+          {
+            "name": "sealFeeGas",
+            "type": "amount",
+            "label": "Seal fee",
+            "required": true,
+            "default_value": "0.20",
+            "scale": 8,
+            "presets": [
+              {
+                "label": "0.20",
+                "value": "0.20",
+                "helper": "GAS"
+              },
+              {
+                "label": "0.45",
+                "value": "0.45",
+                "helper": "Lifecycle"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "tags": [],
-  "updatedAt": "2026-01-26T12:00:00Z",
+  "updatedAt": "2026-06-01T00:00:00Z",
   "urls": {
     "banner": "/miniapps/time-capsule/banner.jpg",
     "entry": "/miniapps/time-capsule/index.html",

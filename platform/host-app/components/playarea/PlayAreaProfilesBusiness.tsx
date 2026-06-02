@@ -143,6 +143,7 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Lock project funds, approve completed milestones, and release payments step by step.",
     tone: "amber",
     icon: <Layers3 className="h-5 w-5" />,
+    embeddedHeightClass: "h-[2600px] sm:h-[2200px] lg:h-[1800px]",
     fields: [
       {
         key: "total",
@@ -288,6 +289,7 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Demonstrate the shared-mode NeoPay recipe with funding vault and stream vesting modules.",
     tone: "emerald",
     icon: <CreditCard className="h-5 w-5" />,
+    embeddedHeightClass: "h-[1500px] sm:h-[1300px] lg:h-[1200px]",
     fields: [
       { key: "beneficiary", label: "Beneficiary", defaultValue: "" },
       {
@@ -337,25 +339,27 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     },
   },
   "miniapp-neo-treasury": {
-    title: "Treasury balance monitor",
+    title: "Treasury operations console",
     subtitle:
-      "Track foundation and ecosystem fund balances with asset rows and balance change context.",
-    tone: "slate",
+      "Track public treasury balances, prepare NEO/GAS payouts, and submit connected-wallet transfers with txid proof.",
+    tone: "emerald",
     icon: <Landmark className="h-5 w-5" />,
     fields: [
-      { key: "fund", label: "Fund", defaultValue: "Ecosystem Fund" },
-      { key: "asset", label: "Asset", defaultValue: "NEO / GAS" },
+      { key: "asset", label: "Asset", defaultValue: "GAS" },
+      { key: "amount", label: "Amount", defaultValue: "0.1" },
+      { key: "recipient", label: "Recipient", defaultValue: "" },
+      { key: "memo", label: "Memo", defaultValue: "treasury-disbursement" },
     ],
     cards: [
-      { label: "Balances", value: "chain reads" },
-      { label: "Outflow", value: "tracked" },
-      { label: "Proof", value: "explorer" },
+      { label: "Balances", value: "public RPC" },
+      { label: "Payout", value: "wallet invoke" },
+      { label: "Proof", value: "txid" },
     ],
-    steps: ["Select fund", "Read balances", "Inspect movement", "Export proof"],
-    primaryAction: "Refresh treasury",
+    steps: ["Read balances", "Prepare payout", "Sign transfer", "Verify txid"],
+    primaryAction: "Sign Disbursement",
     visual: {
-      headline: "Treasury ledger",
-      slots: ["NEO", "GAS", "NEP-17", "History"],
+      headline: "Treasury controls",
+      slots: ["NEO", "GAS", "Recipient", "Tx proof"],
     },
   },
   "miniapp-neodid-passport": {
@@ -386,6 +390,7 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Create grant allocations, preview matching pool impact, and keep donor count visible.",
     tone: "emerald",
     icon: <Medal className="h-5 w-5" />,
+    embeddedHeightClass: "h-[2200px] sm:h-[1800px] lg:h-[1600px]",
     fields: [
       { key: "grant", label: "Grant", defaultValue: "Open-source SDK" },
       {
@@ -419,6 +424,7 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Review AA guardian policy, recovery ticket state, timelock, and final execution readiness.",
     tone: "rose",
     icon: <ShieldAlert className="h-5 w-5" />,
+    embeddedHeightClass: "h-[3400px] sm:h-[2400px] lg:h-[1800px]",
     fields: [
       { key: "account", label: "AA account", defaultValue: "" },
       { key: "guardian", label: "Guardian", defaultValue: "did:neo:guardian" },
@@ -446,6 +452,7 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Issue non-transferable NEP-11 certificates with recipient, claim, and metadata preview.",
     tone: "sky",
     icon: <BadgeCheck className="h-5 w-5" />,
+    embeddedHeightClass: "h-[3000px] sm:h-[2200px] lg:h-[1600px]",
     fields: [
       { key: "recipient", label: "Recipient", defaultValue: "" },
       { key: "title", label: "Certificate title", defaultValue: "Neo Builder" },
@@ -492,7 +499,7 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   "miniapp-timestamp-proof": {
     title: "Timestamp proof journal",
     subtitle:
-      "Hash local content, anchor the digest, and keep proof lookup straightforward.",
+      "Hash local content, save device-local proof entries, and verify them without a contract dependency.",
     tone: "slate",
     icon: <Hash className="h-5 w-5" />,
     fields: [
@@ -505,14 +512,14 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     ],
     cards: [
       { label: "Hash", value: "local" },
-      { label: "Anchor", value: "timestamp" },
+      { label: "Store", value: "device" },
       { label: "Lookup", value: "proof" },
     ],
-    steps: ["Hash file", "Anchor digest", "Record block", "Verify proof"],
-    primaryAction: "Anchor timestamp",
+    steps: ["Hash content", "Save entry", "Copy proof", "Verify proof"],
+    primaryAction: "Create local proof",
     visual: {
       headline: "Proof journal",
-      slots: ["File", "SHA-256", "Block", "Verify"],
+      slots: ["Content", "SHA-256", "Local ID", "Verify"],
     },
   },
   "miniapp-unbreakablevault": {
@@ -521,6 +528,7 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Create a bounty vault, lock secret hash conditions, and expose the claim path clearly.",
     tone: "rose",
     icon: <Vault className="h-5 w-5" />,
+    embeddedHeightClass: "h-[1900px] sm:h-[1400px] lg:h-[1120px]",
     fields: [
       {
         key: "bounty",

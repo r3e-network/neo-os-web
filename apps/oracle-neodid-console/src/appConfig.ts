@@ -10,9 +10,12 @@ export const appMeta = {
   endpointLabel: "NeoDID verifier",
 };
 
+const DEFAULT_DID = "did:neo:testnet:sample-user";
+const DEFAULT_CLAIM = "profile.kyc";
+
 export const manifest: MiniAppManifest = {
   name: "Oracle NeoDID Console",
-  description: "Prepare NeoDID verification requests for Morpheus oracle flows.",
+  description: "Preview NeoDID verification requests for Morpheus oracle flows.",
   icon: "did",
   category: "oracle",
   shell: "console",
@@ -39,7 +42,7 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
-  permissions: { datafeed: true },
+  permissions: { oracle: true, confidential: true, datafeed: true },
 };
 
 const clean = (value: string | undefined, fallback: string) => {
@@ -56,7 +59,7 @@ export const consoleConfig: ConsoleToolConfig = {
   copyActionKey: "copy",
   copiedKey: "copied",
   fields: [
-    { key: "did", labelKey: "did", placeholderKey: "didPlaceholder", type: "text", defaultValue: "" },
+    { key: "did", labelKey: "did", placeholderKey: "didPlaceholder", type: "text", defaultValue: DEFAULT_DID },
     {
       key: "provider",
       labelKey: "provider",
@@ -68,7 +71,7 @@ export const consoleConfig: ConsoleToolConfig = {
         { value: "social-attestation", labelKey: "providerSocial" },
       ],
     },
-    { key: "claim", labelKey: "claim", placeholderKey: "claimPlaceholder", type: "text", defaultValue: "" },
+    { key: "claim", labelKey: "claim", placeholderKey: "claimPlaceholder", type: "text", defaultValue: DEFAULT_CLAIM },
     { key: "callback", labelKey: "callback", placeholderKey: "callbackPlaceholder", type: "text", defaultValue: "" },
   ],
   buildResult(values, t) {
@@ -76,6 +79,20 @@ export const consoleConfig: ConsoleToolConfig = {
     const provider = clean(values.provider, "neodid-registry");
     const claim = clean(values.claim, "");
     const callback = clean(values.callback, "");
+    if (!did || !claim) {
+      return {
+        status: t("inputRequired"),
+        summary: t("inputRequiredSummary"),
+        rows: [],
+        payload: {
+          kind: "oracle.neodid.verify",
+          status: "input_required",
+          required: ["did", "claim"],
+          execution: "preview_only",
+          dispatchReady: false,
+        },
+      };
+    }
     const digest = previewId(`${did}|${provider}|${claim}|${callback}`);
 
     return {
@@ -94,6 +111,8 @@ export const consoleConfig: ConsoleToolConfig = {
         claim,
         callback,
         digest,
+        execution: "preview_only",
+        dispatchReady: false,
       },
     };
   },
@@ -104,24 +123,29 @@ const appMessages = {
   title: { en: "Oracle NeoDID", zh: "预言机 NeoDID" },
   tabNeoDid: { en: "NeoDID", zh: "NeoDID" },
   panelEyebrow: { en: "Identity oracle", zh: "身份预言机" },
-  panelTitle: { en: "NeoDID Verification Request", zh: "NeoDID 校验请求" },
+  panelTitle: { en: "NeoDID Verification Preview", zh: "NeoDID 校验预览" },
   panelDescription: {
-    en: "Prepare a NeoDID verification payload that can be dispatched through Morpheus.",
-    zh: "准备可通过 Morpheus 分发的 NeoDID 校验载荷。",
+    en: "Prepare a reviewable NeoDID verification package before Morpheus dispatch.",
+    zh: "在 Morpheus 分发前准备可复核的 NeoDID 校验包。",
   },
   runAction: { en: "Preview Verification", zh: "预览校验" },
   did: { en: "DID", zh: "DID" },
-  didPlaceholder: { en: "Enter the DID to verify", zh: "输入需要校验的 DID" },
+  didPlaceholder: { en: DEFAULT_DID, zh: DEFAULT_DID },
   provider: { en: "Provider", zh: "提供方" },
   providerRegistry: { en: "NeoDID registry", zh: "NeoDID 注册表" },
   providerWallet: { en: "Wallet signature", zh: "钱包签名" },
   providerSocial: { en: "Social attestation", zh: "社交证明" },
   claim: { en: "Claim", zh: "声明" },
-  claimPlaceholder: { en: "Enter the claim key to verify", zh: "输入需要校验的声明字段" },
+  claimPlaceholder: { en: DEFAULT_CLAIM, zh: DEFAULT_CLAIM },
   callback: { en: "Callback Contract", zh: "回调合约" },
-  callbackPlaceholder: { en: "Enter callback contract hash", zh: "输入回调合约哈希" },
-  verifyReady: { en: "Verification request ready", zh: "校验请求已准备" },
-  verifySummary: { en: "Claim '{claim}' queued for verification", zh: "声明“{claim}”已进入校验预览" },
+  callbackPlaceholder: { en: "Optional callback contract hash", zh: "可选回调合约哈希" },
+  inputRequired: { en: "Required fields missing", zh: "缺少必填字段" },
+  inputRequiredSummary: {
+    en: "Enter a DID and claim before building a NeoDID preview.",
+    zh: "请输入 DID 和声明字段后再生成 NeoDID 预览。",
+  },
+  verifyReady: { en: "Verification preview ready", zh: "校验预览已准备" },
+  verifySummary: { en: "Claim '{claim}' prepared for review", zh: "声明“{claim}”已准备复核" },
   statNetwork: { en: "Network", zh: "网络" },
   statEndpoint: { en: "Mode", zh: "模式" },
   statRequests: { en: "Requests", zh: "请求数" },
@@ -137,8 +161,8 @@ const appMessages = {
   },
   feature1Name: { en: "DID Focused", zh: "聚焦 DID" },
   feature1Desc: { en: "DID, provider, claim, and callback fields are grouped together.", zh: "DID、提供方、声明和回调字段集中展示。" },
-  feature2Name: { en: "Morpheus Ready", zh: "Morpheus 就绪" },
-  feature2Desc: { en: "The payload mirrors a verification dispatch request.", zh: "载荷贴近校验分发请求结构。" },
+  feature2Name: { en: "Dispatch Aware", zh: "分发感知" },
+  feature2Desc: { en: "The payload mirrors the subject, claim, provider, and callback fields needed later.", zh: "载荷映射后续所需的 subject、claim、provider 和 callback 字段。" },
   feature3Name: { en: "Reviewable", zh: "可复核" },
   feature3Desc: { en: "A local digest helps catch mismatched identity requests.", zh: "本地摘要有助于发现身份请求不一致。" },
 } as const;

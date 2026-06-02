@@ -3,10 +3,10 @@
 
 .redenv-play-area {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   min-height: 620px;
-  padding: 12px;
-  background: transparent;
+  padding: 14px;
+  background: #f7f8fb;
   color: var(--ns-ink, #1e1e2e);
   letter-spacing: 0;
 }
@@ -14,7 +14,7 @@
 .redenv-shell {
   display: grid;
   grid-template-columns: minmax(0, 0.72fr) minmax(320px, 0.44fr);
-  gap: 16px;
+  gap: 18px;
   align-items: start;
   min-width: 0;
 }
@@ -22,8 +22,13 @@
 .redenv-main,
 .redenv-side {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
+}
+
+.redenv-side {
+  position: sticky;
+  top: 14px;
 }
 
 .redenv-hero {
@@ -33,18 +38,16 @@
   align-items: stretch;
   min-width: 0;
   padding: 24px;
-  border: 1px solid rgba(234, 57, 67, 0.12);
-  border-radius: 20px;
-  background:
-    radial-gradient(120% 140% at 100% 0%, #fff1f2 0%, rgba(255, 241, 242, 0) 60%),
-    #ffffff;
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  border: 1px solid rgba(164, 25, 40, 0.18);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #a41928 0%, #d92f3d 58%, #f05a4f 100%);
+  box-shadow: 0 18px 38px rgba(164, 25, 40, 0.18);
 }
 
-.redenv-hero-copy {
+.redenv-hero .redenv-hero-copy {
   display: grid;
   align-content: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 
   > .redenv-hero-badge {
@@ -55,37 +58,41 @@
     height: 46px;
     margin-bottom: 4px;
     border-radius: 14px;
-    background: var(--ns-danger-soft, #fde7e9);
-    color: #c81e2a;
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
   }
 
   > span {
     width: fit-content;
-    color: var(--ns-text-muted, #8a92a6);
+    color: rgba(255, 255, 255, 0.82);
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    letter-spacing: 0;
   }
 
   > h2 {
     margin: 0;
-    color: var(--ns-ink, #1e1e2e);
+    color: #ffffff;
     font-size: 28px;
     font-weight: 800;
     line-height: 1.1;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 
   > p {
     max-width: 620px;
     margin: 0;
-    color: var(--ns-text-2, #5b6478);
+    color: rgba(255, 255, 255, 0.84);
     font-size: 14px;
     line-height: 1.55;
     letter-spacing: 0;
   }
+}
+
+.standalone-dapp-root .redenv-play-area .redenv-hero .redenv-hero-copy > span:not(.redenv-hero-badge),
+.standalone-dapp-root .redenv-play-area .redenv-hero .redenv-hero-stats div span {
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .redenv-hero-stats {
@@ -105,30 +112,29 @@
     min-width: 0;
     min-height: 82px;
     padding: 14px;
-    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 14px;
-    background: var(--ns-surface-subtle, #f7f8fa);
+    background: rgba(255, 255, 255, 0.14);
   }
 
   span {
-    color: var(--ns-text-muted, #8a92a6);
+    color: rgba(255, 255, 255, 0.78);
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    letter-spacing: 0;
   }
 
   strong {
     margin-top: 8px;
     overflow-wrap: normal;
-    color: var(--ns-ink, #1e1e2e);
+    color: #ffffff;
     font-size: 18px;
     font-weight: 800;
     line-height: 1.15;
     white-space: nowrap;
     word-break: normal;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     font-variant-numeric: tabular-nums;
   }
 }
@@ -169,7 +175,7 @@
     font-size: 15px;
     font-weight: 700;
     line-height: 1.25;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   p {
@@ -183,8 +189,8 @@
 
 .redenv-workspace {
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(0, 0.62fr) minmax(280px, 0.38fr);
+  gap: 14px;
   align-items: stretch;
 }
 
@@ -194,7 +200,7 @@
 .redenv-envelope-list,
 .redenv-activity-panel {
   border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
@@ -205,7 +211,7 @@
 .redenv-envelope-list .neo-card__content,
 .redenv-activity-panel .neo-card__content {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .redenv-section-heading {
@@ -220,8 +226,7 @@
     font-size: 11px;
     font-weight: 700;
     line-height: 1.25;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0;
   }
 
   strong {
@@ -274,9 +279,49 @@
   }
 }
 
+.redenv-claim-panel .redenv-selected-card {
+  grid-template-columns: 1fr;
+}
+
 .redenv-create-grid {
   display: grid;
   gap: 10px;
+}
+
+.redenv-create-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+
+  div {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    border-radius: 14px;
+    background: var(--ns-surface-subtle, #f7f8fa);
+  }
+
+  span,
+  strong {
+    display: block;
+    min-width: 0;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  span {
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  strong {
+    margin-top: 6px;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 14px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .redenv-claim-panel .neo-btn,
@@ -430,7 +475,7 @@
 .redenv-modal {
   width: min(360px, 100%);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--ns-surface, #ffffff);
   box-shadow: 0 24px 70px rgba(20, 22, 38, 0.22);
 }
@@ -456,7 +501,7 @@
   color: var(--ns-ink, #1e1e2e);
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .redenv-modal-message {
@@ -489,6 +534,10 @@
   .redenv-play-area {
     min-height: 0;
   }
+
+  .redenv-side {
+    position: static;
+  }
 }
 
 @media (max-width: 640px) {
@@ -509,7 +558,8 @@
 
   .redenv-hero-stats,
   .redenv-flow-strip,
-  .redenv-selected-card {
+  .redenv-selected-card,
+  .redenv-create-summary {
     grid-template-columns: 1fr;
   }
 

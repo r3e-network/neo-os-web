@@ -21,6 +21,12 @@ function base64ToBytes(value: string): Uint8Array {
   return bytes;
 }
 
+function bytesToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer as ArrayBuffer;
+}
+
 async function deriveKey(password: string, salt: Uint8Array) {
   ensureCrypto();
   const encoder = new TextEncoder();
@@ -32,7 +38,12 @@ async function deriveKey(password: string, salt: Uint8Array) {
     ["deriveKey"],
   );
   return window.crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+    {
+      name: "PBKDF2",
+      salt: bytesToArrayBuffer(salt),
+      iterations: 100000,
+      hash: "SHA-256",
+    },
     keyMaterial,
     { name: "AES-GCM", length: 256 },
     false,
@@ -47,7 +58,7 @@ export async function encryptPayload(payload: string, password: string): Promise
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(password, salt);
   const cipher = await window.crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: bytesToArrayBuffer(iv) },
     key,
     encoder.encode(payload),
   );
@@ -82,7 +93,11 @@ export async function decryptPayload(payload: string, password: string): Promise
   const iv = base64ToBytes(typed.iv);
   const data = base64ToBytes(typed.data);
   const key = await deriveKey(password, salt);
-  const plain = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+  const plain = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: bytesToArrayBuffer(iv) },
+    key,
+    bytesToArrayBuffer(data),
+  );
   const decoder = new TextDecoder();
   return decoder.decode(plain);
 }
