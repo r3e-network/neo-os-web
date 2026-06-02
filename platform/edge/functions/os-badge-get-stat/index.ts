@@ -4,7 +4,7 @@ import { createOSHandler, invokeOSContract } from "../_shared/os-service.ts";
 const CONTRACT_HASH = getKernelHash();
 
 export const handler = createOSHandler(
-  { scopeName: "os-badge-get-stat", permission: "badges" },
+  { scopeName: "os-badge-get-stat", permission: "badges", cacheable: true },
   async ({ appId, userId, params }) => {
     const statKey = String(params.stat_key ?? params.statKey ?? "").trim();
     if (!statKey) throw new Error("stat_key required");
