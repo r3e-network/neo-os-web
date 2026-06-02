@@ -1,10 +1,19 @@
-import { useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { useMemo, useState } from "react";
+import {
+  NeoButton,
+  NeoCard,
+  NeoInput,
+  NeoSelect,
+} from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { useMultisigUI } from "./composables/useMultisigUI";
 import type { HistoryItem } from "./composables/useMultisigHistory";
+import type { MultisigRequest } from "./services/api";
 import "./PlayArea.scss";
+
+type MultisigChain = "neo-n3-mainnet" | "neo-n3-testnet";
+type MultisigAsset = "GAS" | "NEO";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -12,16 +21,71 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+const SIGNER_SLOTS = 3;
+
+function shortId(id: string) {
+  return id.length > 16 ? `${id.slice(0, 8)}...${id.slice(-6)}` : id;
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { num } = useStateBindings(state);
+  const { bool, num, val } = useStateBindings(state);
   const { statusLabel, shorten, formatDate } = useMultisigUI();
   const [idInput, setIdInput] = useState("");
+  const [signers, setSigners] = useState(() =>
+    Array.from({ length: SIGNER_SLOTS }, () => ""),
+  );
+  const [threshold, setThreshold] = useState("2");
+  const [selectedChain, setSelectedChain] =
+    useState<MultisigChain>("neo-n3-testnet");
+  const [asset, setAsset] = useState<MultisigAsset>("GAS");
+  const [toAddress, setToAddress] = useState("");
+  const [amount, setAmount] = useState("");
+  const [memo, setMemo] = useState("");
 
   const history = (state.history?.get() ?? []) as HistoryItem[];
   const pendingCount = num("pendingCount");
   const completedCount = num("completedCount");
   const totalTxs = num("totalTxs");
   const totalCount = totalTxs || history.length;
+  const lastRequest = val<MultisigRequest>("lastRequest");
+  const selectedRequest = val<MultisigRequest>("selectedRequest");
+  const isCreatingRequest = bool("isCreatingRequest");
+  const isLoadingRequest = bool("isLoadingRequest");
+  const normalizedSigners = useMemo(
+    () => signers.map((signer) => signer.trim()).filter(Boolean),
+    [signers],
+  );
+  const thresholdNumber = Math.max(1, Math.floor(Number(threshold) || 0));
+  const createBlockedReason = useMemo(() => {
+    if (normalizedSigners.length < 2) return t("multisigNeedSigners");
+    if (thresholdNumber > normalizedSigners.length) {
+      return t("multisigThresholdBlocked");
+    }
+    if (!toAddress.trim()) return t("multisigRecipientBlocked");
+    if (!amount.trim()) return t("multisigAmountBlocked");
+    return "";
+  }, [amount, normalizedSigners.length, t, thresholdNumber, toAddress]);
+  const canCreateRequest = !createBlockedReason && !isCreatingRequest;
+
+  function updateSigner(index: number, value: string) {
+    setSigners((current) =>
+      current.map((signer, signerIndex) =>
+        signerIndex === index ? value : signer,
+      ),
+    );
+  }
+
+  function createRequest() {
+    return dispatch("createRequest", {
+      signers: normalizedSigners,
+      threshold: thresholdNumber,
+      selectedChain,
+      asset,
+      toAddress: toAddress.trim(),
+      amount: amount.trim(),
+      memo: memo.trim(),
+    });
+  }
 
   return (
     <div className="multisig-play-area">
@@ -70,31 +134,140 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoCard variant="erobo" className="multisig-request-panel">
               <div className="multisig-section-heading">
                 <span>{t("multisigRequestTitle")}</span>
-                <strong>{t("multisigDraftState")}</strong>
+                <strong>
+                  {selectedChain === "neo-n3-testnet"
+                    ? t("chainTestnet")
+                    : t("chainMainnet")}
+                </strong>
               </div>
               <p>{t("multisigRequestCopy")}</p>
               <div className="multisig-quorum-strip" aria-label={t("multisigQuorumTitle")}>
                 <div>
                   <span>{t("multisigQuorumTitle")}</span>
-                  <strong>2 / 3</strong>
+                  <strong>
+                    {thresholdNumber} / {Math.max(normalizedSigners.length, 2)}
+                  </strong>
                 </div>
                 <div>
                   <span>{t("multisigNetworkTitle")}</span>
-                  <strong>{t("multisigNetworkValue")}</strong>
+                  <strong>
+                    {selectedChain === "neo-n3-testnet"
+                      ? t("chainTestnet")
+                      : t("chainMainnet")}
+                  </strong>
                 </div>
                 <div>
                   <span>{t("multisigBroadcastTitle")}</span>
-                  <strong>{t("statusPending")}</strong>
+                  <strong>
+                    {selectedRequest
+                      ? statusLabel(selectedRequest.status)
+                      : t("multisigDraftState")}
+                  </strong>
                 </div>
               </div>
+
+              <div className="multisig-form-grid">
+                <div className="multisig-signer-grid" aria-label={t("ariaSigners")}>
+                  {signers.map((signer, index) => (
+                    <NeoInput
+                      key={index}
+                      value={signer}
+                      label={`${t("signerLabel")} ${index + 1}`}
+                      placeholder={t("signerPlaceholder")}
+                      onChange={(value) => updateSigner(index, value)}
+                    />
+                  ))}
+                </div>
+
+                <div className="multisig-form-row">
+                  <NeoSelect
+                    value={threshold}
+                    label={t("thresholdLabel")}
+                    options={[
+                      { value: "1", label: "1" },
+                      { value: "2", label: "2" },
+                      { value: "3", label: "3" },
+                    ]}
+                    onChange={setThreshold}
+                  />
+                  <NeoSelect
+                    value={selectedChain}
+                    label={t("chainLabel")}
+                    options={[
+                      { value: "neo-n3-testnet", label: t("chainTestnet") },
+                      { value: "neo-n3-mainnet", label: t("chainMainnet") },
+                    ]}
+                    onChange={(value) =>
+                      setSelectedChain(
+                        value === "neo-n3-mainnet"
+                          ? "neo-n3-mainnet"
+                          : "neo-n3-testnet",
+                      )
+                    }
+                  />
+                  <NeoSelect
+                    value={asset}
+                    label={t("assetLabel")}
+                    options={[
+                      { value: "GAS", label: t("assetGas") },
+                      { value: "NEO", label: t("assetNeo") },
+                    ]}
+                    onChange={(value) => setAsset(value === "NEO" ? "NEO" : "GAS")}
+                  />
+                </div>
+
+                <div className="multisig-form-row multisig-form-row--transfer">
+                  <NeoInput
+                    value={toAddress}
+                    label={t("toAddressLabel")}
+                    placeholder={t("toAddressPlaceholder")}
+                    onChange={setToAddress}
+                  />
+                  <NeoInput
+                    value={amount}
+                    label={t("amountLabel")}
+                    placeholder={t("amountPlaceholder")}
+                    suffix={asset}
+                    onChange={setAmount}
+                  />
+                </div>
+
+                <NeoInput
+                  value={memo}
+                  type="textarea"
+                  label={t("memoLabel")}
+                  placeholder={t("memoPlaceholder")}
+                  onChange={setMemo}
+                />
+              </div>
+
+              {createBlockedReason ? (
+                <p className="multisig-request-hint">{createBlockedReason}</p>
+              ) : (
+                <p className="multisig-request-hint is-ready">
+                  {t("multisigCreateReady")}
+                </p>
+              )}
+
               <div className="multisig-primary-actions">
                 <NeoButton
                   variant="primary"
-                  onClick={() => dispatch("navigateToCreate")}
+                  loading={isCreatingRequest}
+                  disabled={!canCreateRequest}
+                  onClick={createRequest}
                 >
-                  {t("createCta")}
+                  {t("buttonCreate")}
                 </NeoButton>
               </div>
+
+              {(lastRequest || selectedRequest) && (
+                <div className="multisig-receipt" aria-live="polite">
+                  <span>{t("detailId")}</span>
+                  <strong>{shortId((selectedRequest || lastRequest)?.id || "")}</strong>
+                  <em>{t("multisigReceiptCopy")}</em>
+                </div>
+              )}
+
               <div className="multisig-load-box">
                 <NeoInput
                   value={idInput}
@@ -104,12 +277,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 />
                 <NeoButton
                   variant="secondary"
-                  disabled={!idInput.trim()}
+                  loading={isLoadingRequest}
+                  disabled={!idInput.trim() || isLoadingRequest}
                   onClick={() => dispatch("loadTransaction", idInput.trim())}
                 >
                   {t("loadButton")}
                 </NeoButton>
               </div>
+
+              {selectedRequest && (
+                <div className="multisig-request-details">
+                  <div>
+                    <span>{t("statusLabel")}</span>
+                    <strong>{statusLabel(selectedRequest.status)}</strong>
+                  </div>
+                  <div>
+                    <span>{t("multisigScriptHashLabel")}</span>
+                    <strong>{shorten(selectedRequest.script_hash)}</strong>
+                  </div>
+                  <div>
+                    <span>{t("reviewSigners")}</span>
+                    <strong>
+                      {Object.keys(selectedRequest.signatures).length} /{" "}
+                      {selectedRequest.threshold}
+                    </strong>
+                  </div>
+                </div>
+              )}
             </NeoCard>
 
             <NeoCard variant="erobo" className="multisig-activity-panel">
@@ -146,16 +340,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard variant="erobo" className="multisig-signer-panel">
             <div className="multisig-section-heading">
               <span>{t("multisigSignerTitle")}</span>
-              <strong>{t("multisigWalletReviewed")}</strong>
+              <strong>{t("multisigSignerList")}</strong>
             </div>
             <p>{t("multisigSignerCopy")}</p>
             <div className="multisig-signal-row">
               <span>{t("reviewSigners")}</span>
-              <strong>3</strong>
+              <strong>{normalizedSigners.length}</strong>
             </div>
             <div className="multisig-signal-row">
               <span>{t("thresholdLabel")}</span>
-              <strong>{t("multisigThreshold")}</strong>
+              <strong>
+                {thresholdNumber} / {Math.max(normalizedSigners.length, 2)}
+              </strong>
             </div>
             <div className="multisig-signal-row">
               <span>{t("reviewFees")}</span>
@@ -166,7 +362,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard variant="erobo" className="multisig-route-panel">
             <div className="multisig-section-heading">
               <span>{t("multisigRouteTitle")}</span>
-              <strong>{t("chainMainnet")}</strong>
+              <strong>
+                {selectedChain === "neo-n3-testnet"
+                  ? t("chainTestnet")
+                  : t("chainMainnet")}
+              </strong>
             </div>
             <p>{t("multisigRouteCopy")}</p>
             <div className="multisig-signal-row">

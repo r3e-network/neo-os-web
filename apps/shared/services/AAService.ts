@@ -19,6 +19,7 @@ import { useAbstractAccount } from "../composables/useAbstractAccount";
 import type {
   AAConfig,
   AARelayPayload,
+  GasSponsorScope,
   GasSponsorCheckResponse,
   GasSponsorRequestResponse,
 } from "../composables/useAbstractAccount";
@@ -46,6 +47,8 @@ export interface SponsorshipResult {
 
 export interface RelayResult {
   txid: string;
+  status?: string;
+  requestId?: string;
   networkFee?: string;
   systemFee?: string;
   raw?: Record<string, unknown>;
@@ -54,6 +57,55 @@ export interface RelayResult {
 export interface SessionKeyConfig {
   permissions: unknown;
   expiresAt: number;
+}
+
+const ACCEPTED_RELAY_STATUSES = new Set(["accepted", "pending", "queued"]);
+
+function cleanRelayString(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function normalizeRelayResult(
+  result: Record<string, unknown>,
+): RelayResult {
+  const txid = cleanRelayString(
+    result.txid ?? result.txHash ?? result.tx_hash,
+  );
+  const status = cleanRelayString(result.status).toLowerCase();
+  const requestId = cleanRelayString(
+    result.request_id ?? result.requestId ?? result.id,
+  );
+  const reason = cleanRelayString(
+    result.reason ?? result.error ?? result.message,
+  );
+
+  if (txid) {
+    return {
+      txid,
+      status: status || undefined,
+      requestId: requestId || undefined,
+      networkFee: cleanRelayString(result.networkFee) || undefined,
+      systemFee: cleanRelayString(result.systemFee) || undefined,
+      raw: result,
+    };
+  }
+
+  if (status && ACCEPTED_RELAY_STATUSES.has(status)) {
+    return {
+      txid: "",
+      status,
+      requestId: requestId || undefined,
+      networkFee: cleanRelayString(result.networkFee) || undefined,
+      systemFee: cleanRelayString(result.systemFee) || undefined,
+      raw: result,
+    };
+  }
+
+  throw new Error(
+    reason
+      ? `AA relay not submitted: ${reason}`
+      : "AA relay response did not include a transaction id or accepted status.",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -79,8 +131,11 @@ export class AAService {
    * Check whether the connected user is eligible for gas sponsorship.
    * Returns eligibility status and remaining daily quota.
    */
-  async checkSponsorship(): Promise<SponsorshipStatus> {
-    const result: GasSponsorCheckResponse = await this.aa.checkGasSponsorship();
+  async checkSponsorship(
+    scope?: GasSponsorScope,
+  ): Promise<SponsorshipStatus> {
+    const result: GasSponsorCheckResponse =
+      await this.aa.checkGasSponsorship(scope);
     const remaining = parseFloat(result.remaining || "0");
 
     return {
@@ -99,8 +154,12 @@ export class AAService {
    *
    * @param amount - GAS amount to sponsor (in display units)
    */
-  async requestSponsorship(amount: string): Promise<SponsorshipResult> {
-    const result: GasSponsorRequestResponse = await this.aa.requestGasSponsorship(amount);
+  async requestSponsorship(
+    amount: string,
+    scope?: GasSponsorScope,
+  ): Promise<SponsorshipResult> {
+    const result: GasSponsorRequestResponse =
+      await this.aa.requestGasSponsorship(amount, scope);
     return {
       approved: result.status === "approved" || result.status === "success",
       txid: result.tx_hash ?? undefined,
@@ -119,12 +178,7 @@ export class AAService {
    */
   async submitRelay(payload: AARelayPayload): Promise<RelayResult> {
     const result = await this.aa.submitRelayTransaction(payload);
-    return {
-      txid: result.txid ?? "",
-      networkFee: result.networkFee,
-      systemFee: result.systemFee,
-      raw: result as Record<string, unknown>,
-    };
+    return normalizeRelayResult(result as Record<string, unknown>);
   }
 
   // -- Session keys (future) ------------------------------------------------

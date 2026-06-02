@@ -1,33 +1,16 @@
 /**
  * useVaultBreaker — Vault break attempts, listing, and claiming
  *
- * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (EscrowProxy, PaymentProxy, StorageProxy, BadgeProxy) via
- * edge functions.
- *
- * Migration from direct chain calls to OS services:
- *
- *   BEFORE (chain):
- *     chain.listEvents("VaultCreated", { limit: 12 })
- *     chain.read("getVaultDetails", [...])
- *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
- *     chain.invoke("attemptBreak", [...], { waitForEvent: "AttemptMade" })
- *     chain.ensureWallet()
- *
- *   AFTER (OS proxy):
- *     storageService.list("recentVaults:", 12)
- *     storageService.get("vault:<id>")
- *     paymentService.deposit(fee, "attempt:<vaultId>")
- *     escrowService.completeMilestone(vaultId, 0)
- *     badgeService.award("vault-breaker", "")
+ * Uses the direct-prepaid MiniApp contract flow:
+ *   GAS.transfer(wallet -> vault, attemptFee, "miniapp-unbreakablevault:attempt")
+ *   attemptBreak(vaultId, attacker, secret)
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
-import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type { ChainService } from "@shared/services/ChainService";
 import { formatGas, toFixed8, toSafeNumber } from "@shared/utils/format";
 
 // ============================================================================
@@ -62,10 +45,8 @@ export interface RecentVault {
 }
 
 export interface UseVaultBreakerOptions {
-  /** OS EscrowProxy instance from ctx.os.escrow */
-  escrowService: EscrowProxy;
-  /** OS PaymentProxy instance from ctx.os.payment */
-  paymentService: PaymentProxy;
+  /** Shared chain service for wallet-signed direct contract calls */
+  chainService: ChainService;
   /** OS StorageProxy instance from ctx.os.storage */
   storageService: StorageProxy;
   /** OS BadgeProxy instance from ctx.os.badge */
@@ -101,13 +82,58 @@ interface StoredRecentVault {
   bounty: number;
 }
 
+function base64FromBytes(bytes: number[]): string {
+  const alphabet =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let output = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i] ?? 0;
+    const b = bytes[i + 1] ?? 0;
+    const c = bytes[i + 2] ?? 0;
+    const triplet = (a << 16) | (b << 8) | c;
+    output += alphabet[(triplet >> 18) & 63];
+    output += alphabet[(triplet >> 12) & 63];
+    output += i + 1 < bytes.length ? alphabet[(triplet >> 6) & 63] : "=";
+    output += i + 2 < bytes.length ? alphabet[triplet & 63] : "=";
+  }
+  return output;
+}
+
+function utf8Bytes(value: string): number[] {
+  const encoded = encodeURIComponent(value);
+  const bytes: number[] = [];
+  for (let i = 0; i < encoded.length; i += 1) {
+    if (encoded[i] === "%" && i + 2 < encoded.length) {
+      bytes.push(parseInt(encoded.slice(i + 1, i + 3), 16));
+      i += 2;
+    } else {
+      bytes.push(encoded.charCodeAt(i));
+    }
+  }
+  return bytes;
+}
+
+function utf8ToBase64(value: string): string {
+  return base64FromBytes(utf8Bytes(value));
+}
+
+function normalizeAttemptFeeFixed8(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return toFixed8(ATTEMPT_FEE);
+  if (raw.includes(".")) return toFixed8(raw);
+  const numeric = Number(raw);
+  if (Number.isFinite(numeric) && numeric > 0 && numeric < 1_000_000) {
+    return toFixed8(numeric);
+  }
+  return raw;
+}
+
 // ============================================================================
 // Composable
 // ============================================================================
 
 export function useVaultBreaker({
-  escrowService,
-  paymentService,
+  chainService,
   storageService,
   badgeService,
   eventBus,
@@ -210,24 +236,27 @@ export function useVaultBreaker({
   // ── Actions (via OS services) ──────────────────────────────────────
 
   /**
-   * Attempt to break a vault via PaymentProxy (fee) + EscrowProxy (attempt).
-   * The edge functions handle wallet connection, fee transfer, and the
-   * attemptBreak contract call.
+   * Attempt to break a vault via the live Vault contract funded transaction flow.
    */
   const attemptBreak = async () => {
     if (!canAttempt.get() || isLoading.get()) return;
     isLoading.set(true);
     try {
       const feeBase = vaultDetails.get()?.attemptFee ?? toFixed8(ATTEMPT_FEE);
+      const attemptFee = normalizeAttemptFeeFixed8(feeBase);
+      const attacker = await chainService.ensureWallet();
 
-      // Step 1: Pay the attempt fee via PaymentProxy
-      await paymentService.deposit(
-        String(feeBase),
+      await chainService.invokeWithPayment(
+        attemptFee,
         `miniapp-unbreakablevault:attempt:${vaultIdInput.get()}`,
+        "attemptBreak",
+        [
+          { type: "Integer", value: vaultIdInput.get() },
+          { type: "Hash160", value: attacker },
+          { type: "ByteArray", value: utf8ToBase64(attemptSecret.get().trim()) },
+        ],
+        { waitForEvent: "AttemptMade" },
       );
-
-      // Step 2: Attempt the break via EscrowProxy
-      await escrowService.completeMilestone(vaultIdInput.get(), 0);
 
       // Check the result from storage
       const result = await storageService.get(`attemptResult:${vaultIdInput.get()}`) as { success?: boolean } | null;

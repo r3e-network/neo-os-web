@@ -7,6 +7,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useForeverAlbum } from "./composables/useForeverAlbum";
+import { getForeverAlbumLaunchDefaults } from "./launch";
 
 defineMiniApp({
   appId: "miniapp-forever-album",
@@ -25,6 +26,8 @@ defineMiniApp({
     });
 
     const { notify } = ctx.services;
+    const launchDefaults = getForeverAlbumLaunchDefaults(ctx.launchContext);
+    album.isEncrypted.set(launchDefaults.isEncrypted);
 
     ctx.registerAction("viewPhoto", async (photo: unknown) => {
       album.viewPhoto(
@@ -37,12 +40,24 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("openUpload", async () => { album.openUpload(); });
-    ctx.registerAction("closeUpload", async () => { album.closeUpload(); });
-    ctx.registerAction("refreshPhotos", async () => { await album.loadPhotos(); });
-    ctx.registerAction("closeViewer", async () => { album.closeViewer(); });
-    ctx.registerAction("openDecrypt", async () => { album.openDecrypt(); });
-    ctx.registerAction("closeDecrypt", async () => { album.closeDecrypt(); });
+    ctx.registerAction("openUpload", async () => {
+      album.openUpload();
+    });
+    ctx.registerAction("closeUpload", async () => {
+      album.closeUpload();
+    });
+    ctx.registerAction("refreshPhotos", async () => {
+      await album.loadPhotos();
+    });
+    ctx.registerAction("closeViewer", async () => {
+      album.closeViewer();
+    });
+    ctx.registerAction("openDecrypt", async () => {
+      album.openDecrypt();
+    });
+    ctx.registerAction("closeDecrypt", async () => {
+      album.closeDecrypt();
+    });
 
     ctx.registerAction("handleDecrypt", async (pwd: unknown) => {
       await notify.guard(
@@ -78,6 +93,7 @@ defineMiniApp({
         publicCount: album.publicCount,
         loadingPhotos: album.loadingPhotos,
         uploading: album.uploading,
+        uploadError: album.uploadError,
         showViewer: album.showViewer,
         viewingPhoto: album.viewingPhoto,
         showDecrypt: album.showDecrypt,
@@ -89,6 +105,7 @@ defineMiniApp({
         isEncrypted: album.isEncrypted,
         password: album.password,
         totalPayloadSize: album.totalPayloadSize,
+        lastTx: album.lastTx,
       },
       loadData: album.loadPhotos,
     };

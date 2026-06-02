@@ -160,6 +160,25 @@ function normalizeTabType(
   return "content";
 }
 
+function coerceParamPresets(raw: unknown): OperationParam["presets"] {
+  if (!Array.isArray(raw)) return undefined;
+  const presets: NonNullable<OperationParam["presets"]> = [];
+
+  for (const item of raw) {
+    const obj = asObject(item);
+    const value = asTrimmedString(obj.value);
+    if (!value) continue;
+    const helper = asOptionalString(obj.helper);
+    presets.push({
+      label: asTrimmedString(obj.label) || value,
+      value,
+      ...(helper ? { helper } : {}),
+    });
+  }
+
+  return presets.length > 0 ? presets : undefined;
+}
+
 function coerceOperationParam(raw: unknown): OperationParam | null {
   const obj = asObject(raw);
   const name = asTrimmedString(obj.name);
@@ -191,7 +210,9 @@ function coerceOperationParam(raw: unknown): OperationParam | null {
     default_value: asOptionalString(obj.default_value),
     placeholder: asOptionalString(obj.placeholder),
     options: options.length > 0 ? options : undefined,
+    presets: coerceParamPresets(obj.presets),
     hidden: asOptionalBoolean(obj.hidden),
+    sensitive: asOptionalBoolean(obj.sensitive),
     scale:
       typeof obj.scale === "number" && Number.isFinite(obj.scale)
         ? obj.scale

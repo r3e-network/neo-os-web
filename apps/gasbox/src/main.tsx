@@ -8,6 +8,7 @@ import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useGasBox } from "./composables/useGasBox";
 import type { MachineData } from "./composables/useGasBox";
+import { resolveGasBoxLaunchMachine } from "./launch";
 
 defineMiniApp({
   appId: "miniapp-gasbox",
@@ -27,6 +28,26 @@ defineMiniApp({
 
     const findMachineById = (id: string) =>
       gasbox.machines.get().find((m) => String(m.id) === id) ?? null;
+
+    const applyLaunchSelection = () => {
+      const selection = resolveGasBoxLaunchMachine(
+        gasbox.machines.get(),
+        ctx.launchContext,
+      );
+      if (selection.source === "none") return;
+
+      if (selection.machine) {
+        gasbox.selectMachine(selection.machine);
+        return;
+      }
+
+      ctx.setStatus(
+        selection.requestedId
+          ? ctx.t("launchMachineNotFound", { machine: selection.requestedId })
+          : ctx.t("launchNoMachines"),
+        "warning",
+      );
+    };
 
     ctx.registerAction("pull", async (...args: unknown[]) => {
       const id = String(args[0] ?? "");
@@ -89,7 +110,10 @@ defineMiniApp({
         selectedMachineName: gasbox.selectedMachineName,
         showResult: gasbox.showResult,
       },
-      loadData: gasbox.loadAll,
+      loadData: async () => {
+        await gasbox.loadAll();
+        applyLaunchSelection();
+      },
     };
   },
 });

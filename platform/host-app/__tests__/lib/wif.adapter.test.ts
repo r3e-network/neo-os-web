@@ -6,7 +6,7 @@ const mockFromWIF = jest.fn(() => ({
   sign: mockAccountSign,
 }));
 const mockGetScriptHashFromAddress = jest.fn(() => "1234567890abcdef1234567890abcdef12345678");
-const mockIsAddress = jest.fn(() => true);
+const mockIsAddress = jest.fn((value: string) => value.startsWith("N"));
 const mockContractParamFromJson = jest.fn((value) => value);
 const mockEmitContractCall = jest.fn(function emitContractCall() {
   return this;
@@ -78,6 +78,13 @@ function rpcResponse(result: unknown) {
   };
 }
 
+function rpcError(message: string) {
+  return {
+    ok: true,
+    json: async () => ({ jsonrpc: "2.0", id: 1, error: { message } }),
+  };
+}
+
 describe("WifAdapter", () => {
   const mockFetch = jest.fn();
 
@@ -146,8 +153,9 @@ describe("WifAdapter", () => {
       "0xd2a4cff31913016155e38e474a2c06d08be276cf",
       "transfer",
       15,
-      [{ type: "Hash160", value: "NDirectWifAddress" }],
+      [{ type: "Hash160", value: "0x1234567890abcdef1234567890abcdef12345678" }],
     );
+    expect(mockGetScriptHashFromAddress).toHaveBeenCalledWith("NDirectWifAddress");
     expect(mockTransactionInstances).toHaveLength(2);
     expect(mockTransactionInstances[0].init).toEqual(
       expect.objectContaining({
@@ -170,6 +178,114 @@ describe("WifAdapter", () => {
       "getversion",
       "invokefunction",
       "calculatenetworkfee",
+      "sendrawtransaction",
+    ]);
+  });
+
+  it("builds, fee-estimates, signs, and relays a batched invoke", async () => {
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      if (body.method === "getblockcount") return rpcResponse(100);
+      if (body.method === "getversion") return rpcResponse({ protocol: { network: 894710606 } });
+      if (body.method === "invokescript") {
+        return rpcResponse({ state: "HALT", gasconsumed: "200", stack: [] });
+      }
+      if (body.method === "calculatenetworkfee") return rpcResponse({ networkfee: "3" });
+      if (body.method === "sendrawtransaction") {
+        return rpcResponse({ hash: `0x${"c".repeat(64)}` });
+      }
+      throw new Error(`unexpected method ${body.method}`);
+    });
+
+    const adapter = new WifAdapter();
+    await adapter.connectWithWif("test-wif");
+
+    const result = await adapter.invokeMultiple(
+      [
+        {
+          scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          operation: "transfer",
+          args: [{ type: "Hash160", value: "NDirectWifAddress" }],
+        },
+        {
+          scriptHash: "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+          operation: "createEnvelope",
+          args: [{ type: "Integer", value: "2" }],
+        },
+      ],
+      [{ account: "NDirectWifAddress", scopes: 1 }],
+    );
+
+    expect(result.txid).toBe(`0x${"c".repeat(64)}`);
+    expect(mockEmitContractCall).toHaveBeenCalledTimes(2);
+    expect(mockEmitContractCall).toHaveBeenNthCalledWith(
+      1,
+      "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      "transfer",
+      15,
+      [{ type: "Hash160", value: "0x1234567890abcdef1234567890abcdef12345678" }],
+    );
+    expect(mockTransactionInstances).toHaveLength(2);
+    expect(mockTransactionInstances[0].init).toEqual(
+      expect.objectContaining({
+        script: new Uint8Array([1, 2, 3, 1, 2, 3]),
+        systemFee: 200n,
+        networkFee: 0n,
+      }),
+    );
+    expect(mockTransactionInstances[1].init).toEqual(
+      expect.objectContaining({
+        script: new Uint8Array([1, 2, 3, 1, 2, 3]),
+        systemFee: 200n,
+        networkFee: 3n,
+      }),
+    );
+    const rpcBodies = mockFetch.mock.calls.map(([, init]) => JSON.parse(String(init.body)));
+    expect(rpcBodies.map((body) => body.method)).toEqual([
+      "getblockcount",
+      "getversion",
+      "invokescript",
+      "calculatenetworkfee",
+      "sendrawtransaction",
+    ]);
+  });
+
+  it("retries a stale expired relay response and returns the accepted txid", async () => {
+    let relayAttempts = 0;
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      if (body.method === "getblockcount") return rpcResponse(100);
+      if (body.method === "getversion") return rpcResponse({ protocol: { network: 894710606 } });
+      if (body.method === "invokefunction") {
+        return rpcResponse({ state: "HALT", gasconsumed: "100", stack: [] });
+      }
+      if (body.method === "calculatenetworkfee") return rpcResponse({ networkfee: "2" });
+      if (body.method === "sendrawtransaction") {
+        relayAttempts += 1;
+        if (relayAttempts === 1) return rpcError("Expired transaction - Expired");
+        return rpcResponse({ hash: `0x${"d".repeat(64)}` });
+      }
+      throw new Error(`unexpected method ${body.method}`);
+    });
+
+    const adapter = new WifAdapter();
+    await adapter.connectWithWif("test-wif");
+
+    const result = await adapter.invoke({
+      scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      operation: "transfer",
+      args: [{ type: "Hash160", value: "NDirectWifAddress" }],
+      signers: [{ account: "NDirectWifAddress", scopes: 1 }],
+    });
+
+    expect(result.txid).toBe(`0x${"d".repeat(64)}`);
+    const rpcBodies = mockFetch.mock.calls.map(([, init]) => JSON.parse(String(init.body)));
+    expect(rpcBodies.map((body) => body.method)).toEqual([
+      "getblockcount",
+      "getversion",
+      "invokefunction",
+      "calculatenetworkfee",
+      "sendrawtransaction",
       "sendrawtransaction",
     ]);
   });

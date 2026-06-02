@@ -1,0 +1,145 @@
+import React from "react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { createObservable, type ObservableState } from "../react/context";
+import PlayArea from "../../dice-game/src/PlayArea";
+
+(globalThis as typeof globalThis & { React: typeof React }).React = React;
+
+afterEach(() => cleanup());
+
+function t(key: string) {
+  const messages: Record<string, string> = {
+    diceCommitStep: "Commit stake",
+    diceHeroSubtitle: "Pick a face and submit the GAS stake.",
+    diceHeroTitle: "VRF game desk",
+    diceHistoryEmpty: "No local roll history yet.",
+    diceHistoryTitle: "Recent rolls",
+    diceOracleStep: "Morpheus VRF",
+    dicePayoutLabel: "Payout",
+    diceBetSummary: "Bet summary",
+    diceRoundSummary: "Round summary",
+    diceRiskCopy: "A matching face pays 5.70x after the platform fee.",
+    diceRiskTitle: "House model",
+    diceRuleCallback: "VRF callback resolves the exact face.",
+    diceRuleCommit: "Wallet signs the GAS-backed roll intent.",
+    diceRuleRefund: "Pending rolls can be refunded by contract rules.",
+    diceSettleStep: "Settle payout",
+    diceStakeDeskTitle: "Selected face",
+    diceVrfRouteCopy: "The oracle settles the pending roll.",
+    diceVrfRouteTitle: "Settlement route",
+    diceWalletLabel: "Current stake",
+    feeLabel: "Platform fee",
+    howItWorks: "How it works",
+    invalidStake: "Enter a GAS stake from 0.05 to 20.",
+    lastTx: "Transaction",
+    netWinLabel: "Net win",
+    oddsLabel: "Chance",
+    pendingBody: "Waiting for oracle callback.",
+    pendingTitle: "VRF request submitted",
+    payoutPreview: "Win payout",
+    rangeLabel: "Stake range",
+    readyTitle: "Choose a face and roll",
+    rollAction: "Roll with VRF",
+    rollDice: "Roll Dice",
+    safetyModel: "Safety model",
+    selectedFace: "Face",
+    stakeAmount: "Stake",
+    stakeHelp: "Potential payout:",
+    stakePresets: "Stake presets",
+    statusFailed: "Roll failed",
+    statusReady: "Ready",
+    statusSubmitting: "Submitting roll...",
+    statusSubmitted: "Roll submitted",
+  };
+  return messages[key] ?? key;
+}
+
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const values = {
+    selectedFace: "6",
+    stakeAmount: "0.10 GAS",
+    payoutPreview: "0.57 GAS",
+    lastTxid: "",
+    lastStatus: "Ready",
+    isSubmitting: false,
+    rollHistory: [],
+    ...overrides,
+  };
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+  );
+}
+
+describe("Dice Game PlayArea", () => {
+  it("submits a selected face and GAS stake from the play area", async () => {
+    const dispatch = vi.fn(async () => undefined);
+
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "3" }));
+    fireEvent.change(screen.getByLabelText("Stake"), {
+      target: { value: "0.5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Roll with VRF" }));
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("placeDiceBet", {
+        chosenNumber: "3",
+        amount: "0.5",
+      });
+    });
+  });
+
+  it("blocks out-of-range stakes before dispatch", async () => {
+    const dispatch = vi.fn(async () => undefined);
+
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.change(screen.getByLabelText("Stake"), {
+      target: { value: "0.01" },
+    });
+
+    const rollButton = screen.getByRole("button", { name: "Roll with VRF" }) as HTMLButtonElement;
+    expect(rollButton.disabled).toBe(true);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("applies stake presets and updates the payout summary", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "1.00 GAS" }));
+
+    expect((screen.getByLabelText("Stake") as HTMLInputElement).value).toBe(
+      "1.00",
+    );
+    expect(screen.getAllByText("5.70 GAS").length).toBeGreaterThan(0);
+    expect(screen.getByText("4.70 GAS")).toBeTruthy();
+  });
+
+  it("renders real local roll history instead of placeholder rows", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          rollHistory: [
+            {
+              face: "4",
+              stake: "0.5 GAS",
+              result: "Roll submitted",
+              payout: "2.85 GAS",
+              txid: "0x1234567890abcdef1234567890abcdef",
+              at: "2026-06-01T00:00:00.000Z",
+            },
+          ],
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(screen.getByText("Roll submitted")).toBeTruthy();
+    expect(screen.getByText("2.85 GAS")).toBeTruthy();
+    expect(screen.queryByText("Refunded")).toBeNull();
+  });
+});

@@ -19,8 +19,7 @@ defineMiniApp({
     const t = ctx.t as (key: string) => string;
 
     const creator = useVaultCreator({
-      escrowService: ctx.os.escrow,
-      paymentService: ctx.os.payment,
+      chainService: ctx.services.chain,
       storageService: ctx.os.storage,
       badgeService: ctx.os.badge,
       eventBus: ctx.services.events,
@@ -28,8 +27,7 @@ defineMiniApp({
     });
 
     const breaker = useVaultBreaker({
-      escrowService: ctx.os.escrow,
-      paymentService: ctx.os.payment,
+      chainService: ctx.services.chain,
       storageService: ctx.os.storage,
       badgeService: ctx.os.badge,
       eventBus: ctx.services.events,

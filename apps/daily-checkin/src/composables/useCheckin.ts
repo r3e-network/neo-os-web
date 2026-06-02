@@ -1,77 +1,134 @@
 /**
- * useCheckin — Domain logic for the Daily Check-in miniapp (OS Services)
+ * useCheckin - Domain logic for the Daily Check-in miniapp.
  *
- * React version: uses createObservable instead of Vue ref/computed.
- *
- * This composable uses OS service proxies instead of direct chain calls.
- * All contract interaction is delegated to CheckinProxy via edge functions,
- * so this file contains zero contract hashes, parameter encoding, or
- * event parsing logic.
+ * The OS check-in proxy returns normalized streak data and wallet intents. This
+ * composable keeps the user-facing workflow honest by recording requests,
+ * results, optimistic local state after wallet submission, and history evidence.
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { CheckinProxy, CheckinData } from "@shared/services/os/CheckinProxy";
-import { formatGas } from "@shared/utils/format";
+import { formatGas, toFixedDecimals } from "@shared/utils/format";
 
-// ============================================================================
-// Constants
-// ============================================================================
-
-/** Milliseconds in one UTC day */
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
+export const FIXED8 = 100_000_000;
 
-/** Reward milestones: day thresholds and their GAS payouts */
 export const MILESTONES = [
   { day: 7, reward: 1, cumulative: 1 },
   { day: 14, reward: 2, cumulative: 3 },
 ] as const;
 
-// ============================================================================
-// Types
-// ============================================================================
-
 export interface CheckinHistoryItem {
   streak: number;
   time: string;
   reward: number;
+  action?: "checkin" | "claim";
+  txid?: string;
+}
+
+export interface WorkflowEvidence {
+  action: string;
+  status: "pending" | "success" | "error";
+  summary: string;
+  at: string;
+  payload?: Record<string, unknown>;
+  result?: Record<string, unknown> | string | null;
+  txid?: string;
 }
 
 export interface UseCheckinOptions {
-  /** OS CheckinProxy instance from ctx.os.checkin */
   checkinService: CheckinProxy;
-  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-// ============================================================================
-// Composable
-// ============================================================================
+interface LoadOptions {
+  record?: boolean;
+}
+
+const nowIso = () => new Date().toISOString();
+
+const toFiniteNumber = (value: unknown, fallback = 0) => {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
+};
+
+const fixed8FromGasValue = (value: unknown): number => {
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  if (/^\d{8,}$/.test(raw)) return toFiniteNumber(raw);
+  const fixed = toFixedDecimals(raw, 8);
+  return toFiniteNumber(fixed);
+};
+
+const fixed8GasReward = (gas: number): number => gas * FIXED8;
+
+const milestoneRewardForStreak = (streak: number): number => {
+  const milestone = MILESTONES.find((item) => item.day === streak);
+  return milestone ? fixed8GasReward(milestone.reward) : 0;
+};
+
+const extractTxid = (value: unknown): string => {
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  const txid = String(record.txid || record.tx || record.hash || "").trim();
+  if (txid) return txid;
+  const invocation = record.invocation;
+  if (invocation && typeof invocation === "object") {
+    const nested = invocation as Record<string, unknown>;
+    return String(nested.txid || nested.tx || "").trim();
+  }
+  return "";
+};
+
+const summarizeResult = (value: unknown): Record<string, unknown> | string | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object") return String(value);
+  const record = value as Record<string, unknown>;
+  const invocation = record.invocation && typeof record.invocation === "object"
+    ? record.invocation as Record<string, unknown>
+    : null;
+  return {
+    intent: record.intent,
+    txid: record.txid || record.tx || invocation?.txid || invocation?.tx,
+    contract: record.contract || record.contractHash || invocation?.contract || invocation?.contract_hash,
+    operation: record.operation || record.method || invocation?.operation || invocation?.method,
+  };
+};
+
+type ExtendedCheckinData = CheckinData & {
+  longestStreak?: number;
+  lastCheckin?: number | string | null;
+  totalGlobalCheckins?: number | string;
+  totalGlobalUsers?: number | string;
+  totalGlobalRewarded?: number | string;
+  checkInFee?: number | string;
+};
 
 export function useCheckin({ checkinService, t }: UseCheckinOptions) {
-  // ── User State ──────────────────────────────────────────────────────
   const currentStreak = createObservable(0);
   const highestStreak = createObservable(0);
   const lastCheckInDay = createObservable(0);
   const unclaimedRewards = createObservable(0);
   const totalClaimed = createObservable(0);
+  const checkInFee = createObservable(100000);
   const totalUserCheckins = createObservable(0);
   const isLoading = createObservable(false);
   const isClaiming = createObservable(false);
 
-  // ── Global Stats ────────────────────────────────────────────────────
   const totalGlobalCheckins = createObservable(0);
   const totalGlobalUsers = createObservable(0);
   const totalGlobalRewarded = createObservable(0);
 
-  // ── History ─────────────────────────────────────────────────────────
   const checkinHistory = createObservable<CheckinHistoryItem[]>([]);
+  const workflowStatus = createObservable(t("workflowReady"));
+  const lastError = createObservable("");
+  const latestRequest = createObservable<WorkflowEvidence | null>(null);
+  const latestResult = createObservable<WorkflowEvidence | null>(null);
 
-  // ── Countdown Timer ─────────────────────────────────────────────────
   const now = createObservable(Date.now());
   let tickerInterval: ReturnType<typeof setInterval> | null = null;
 
-  // ── Derived observables (computed equivalents) ──────────────────────
   const currentUtcDay: Observable<number> = {
     get: () => Math.floor(now.get() / MS_PER_DAY),
     set: () => {},
@@ -85,10 +142,7 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
   };
 
   const canCheckIn: Observable<boolean> = {
-    get: () => {
-      if (lastCheckInDay.get() === 0) return true;
-      return currentUtcDay.get() > lastCheckInDay.get();
-    },
+    get: () => lastCheckInDay.get() === 0 || currentUtcDay.get() > lastCheckInDay.get(),
     set: () => {},
     subscribe: (fn) => {
       const unsub1 = now.subscribe(fn);
@@ -109,7 +163,6 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
     subscribe: (fn) => now.subscribe(fn),
   };
 
-  // ── Formatted display values ────────────────────────────────────────
   const formattedCurrentStreak: Observable<string> = {
     get: () => `${currentStreak.get()} ${t("days")}`,
     set: () => {},
@@ -140,63 +193,239 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
     subscribe: (fn) => totalGlobalRewarded.subscribe(fn),
   };
 
-  // ── Data Loading ────────────────────────────────────────────────────
-
-  const toFiniteNumber = (value: unknown, fallback = 0) => {
-    const next = Number(value);
-    return Number.isFinite(next) ? next : fallback;
+  const recordRequest = (
+    action: string,
+    summary: string,
+    payload?: Record<string, unknown>,
+  ) => {
+    lastError.set("");
+    workflowStatus.set(summary);
+    latestRequest.set({
+      action,
+      status: "pending",
+      summary,
+      at: nowIso(),
+      payload,
+    });
   };
 
-  const applyCheckinData = (data: CheckinData & { longestStreak?: number; lastCheckin?: number | string | null }) => {
+  const recordSuccess = (
+    action: string,
+    summary: string,
+    result?: Record<string, unknown> | string | null,
+  ) => {
+    workflowStatus.set(summary);
+    latestResult.set({
+      action,
+      status: "success",
+      summary,
+      at: nowIso(),
+      result,
+      txid: result && typeof result === "object" ? String((result as Record<string, unknown>).txid || "") : "",
+    });
+  };
+
+  const recordFailure = (action: string, error: unknown) => {
+    const summary = error instanceof Error ? error.message : String(error);
+    lastError.set(summary);
+    workflowStatus.set(t("workflowFailed"));
+    latestResult.set({
+      action,
+      status: "error",
+      summary,
+      at: nowIso(),
+      result: summary,
+    });
+  };
+
+  const applyCheckinData = (data: ExtendedCheckinData) => {
     const normalizedCurrent = toFiniteNumber(data.currentStreak);
-    const normalizedHighest = toFiniteNumber(data.highestStreak, toFiniteNumber(data.longestStreak, normalizedCurrent));
-    const lastCheckinTime = toFiniteNumber(data.lastCheckinTime, toFiniteNumber(data.lastCheckin));
+    const normalizedHighest = toFiniteNumber(
+      data.highestStreak,
+      toFiniteNumber(data.longestStreak, normalizedCurrent),
+    );
+    const lastCheckinTime = toFiniteNumber(
+      data.lastCheckinTime,
+      toFiniteNumber(data.lastCheckin),
+    );
 
     currentStreak.set(normalizedCurrent);
     highestStreak.set(normalizedHighest);
     totalUserCheckins.set(toFiniteNumber(data.totalCheckins));
-    lastCheckInDay.set(
-      lastCheckinTime
-        ? Math.floor(lastCheckinTime / (MS_PER_DAY / 1000))
-        : 0,
-    );
-    unclaimedRewards.set(toFiniteNumber(data.unclaimedRewards));
-    totalClaimed.set(toFiniteNumber(data.totalClaimed));
+    lastCheckInDay.set(lastCheckinTime ? Math.floor(lastCheckinTime / (MS_PER_DAY / 1000)) : 0);
+    unclaimedRewards.set(fixed8FromGasValue(data.unclaimedRewards));
+    totalClaimed.set(fixed8FromGasValue(data.totalClaimed));
+    totalGlobalCheckins.set(toFiniteNumber(data.totalGlobalCheckins));
+    totalGlobalUsers.set(toFiniteNumber(data.totalGlobalUsers));
+    totalGlobalRewarded.set(fixed8FromGasValue(data.totalGlobalRewarded));
+    const fee = fixed8FromGasValue(data.checkInFee);
+    if (fee > 0) checkInFee.set(fee);
   };
 
-  const loadAll = async () => {
+  const addHistory = (entry: CheckinHistoryItem) => {
+    checkinHistory.set([
+      entry,
+      ...checkinHistory.get().filter((item) => item.txid !== entry.txid || !entry.txid),
+    ].slice(0, 10));
+  };
+
+  const applyOptimisticCheckin = (
+    result: unknown,
+    baseline: {
+      currentStreak: number;
+      highestStreak: number;
+      totalUserCheckins: number;
+      totalGlobalCheckins: number;
+      totalGlobalUsers: number;
+      unclaimedRewards: number;
+      totalClaimed: number;
+      totalGlobalRewarded: number;
+    },
+  ) => {
+    const nextStreak = baseline.currentStreak + 1;
+    const reward = milestoneRewardForStreak(nextStreak);
+    const txid = extractTxid(result);
+
+    currentStreak.set(nextStreak);
+    highestStreak.set(Math.max(baseline.highestStreak, nextStreak));
+    totalUserCheckins.set(baseline.totalUserCheckins + 1);
+    totalGlobalCheckins.set(baseline.totalGlobalCheckins + 1);
+    totalGlobalUsers.set(Math.max(baseline.totalGlobalUsers, 1));
+    totalClaimed.set(Math.max(totalClaimed.get(), baseline.totalClaimed));
+    totalGlobalRewarded.set(Math.max(totalGlobalRewarded.get(), baseline.totalGlobalRewarded));
+    lastCheckInDay.set(currentUtcDay.get());
+    unclaimedRewards.set(baseline.unclaimedRewards + reward);
+    addHistory({
+      action: "checkin",
+      streak: nextStreak,
+      time: nowIso(),
+      reward,
+      txid,
+    });
+  };
+
+  const loadAll = async (options: LoadOptions = {}) => {
+    const shouldRecord = options.record === true;
+    if (shouldRecord) {
+      recordRequest("refreshStatus", t("workflowRefreshing"));
+    }
+
     isLoading.set(true);
     try {
       const data = await checkinService.getStreak();
-      applyCheckinData(data);
+      applyCheckinData(data as ExtendedCheckinData);
+      if (shouldRecord) {
+        recordSuccess("refreshStatus", t("statusLoaded"), {
+          currentStreak: currentStreak.get(),
+          unclaimedRewards: formatGas(unclaimedRewards.get()),
+        });
+      }
     } catch (e) {
-      console.warn("[useCheckin] loadAll failed:", e instanceof Error ? e.message : String(e));
+      if (shouldRecord) recordFailure("refreshStatus", e);
+      if (!shouldRecord) {
+        console.warn("[useCheckin] loadAll failed:", e instanceof Error ? e.message : String(e));
+        return;
+      }
+      throw e;
     } finally {
       isLoading.set(false);
     }
   };
 
-  // ── Actions ─────────────────────────────────────────────────────────
+  const refreshStatus = async () => {
+    await loadAll({ record: true });
+  };
 
   const doCheckIn = async () => {
-    if (!canCheckIn.get() || isLoading.get()) return;
+    if (isLoading.get()) return;
+    if (!canCheckIn.get()) {
+      recordSuccess("doCheckIn", t("checkinUnavailable"), null);
+      return;
+    }
+
+    recordRequest("doCheckIn", t("workflowCheckingIn"), {
+      nextStreak: currentStreak.get() + 1,
+      checkInFee: formatGas(checkInFee.get()),
+    });
 
     isLoading.set(true);
     try {
-      await checkinService.checkIn();
-      await loadAll();
+      const baseline = {
+        currentStreak: currentStreak.get(),
+        highestStreak: highestStreak.get(),
+        totalUserCheckins: totalUserCheckins.get(),
+        totalGlobalCheckins: totalGlobalCheckins.get(),
+        totalGlobalUsers: totalGlobalUsers.get(),
+        unclaimedRewards: unclaimedRewards.get(),
+        totalClaimed: totalClaimed.get(),
+        totalGlobalRewarded: totalGlobalRewarded.get(),
+      };
+      const result = await checkinService.checkIn();
+      await loadAll({ record: false }).catch(() => undefined);
+      applyOptimisticCheckin(result, baseline);
+      recordSuccess("doCheckIn", t("checkinRecorded"), {
+        txid: extractTxid(result),
+        result: summarizeResult(result),
+        currentStreak: currentStreak.get(),
+      });
+    } catch (e) {
+      recordFailure("doCheckIn", e);
+      throw e;
     } finally {
       isLoading.set(false);
     }
   };
 
   const claimRewards = async () => {
-    if (unclaimedRewards.get() <= 0 || isClaiming.get()) return;
+    if (isClaiming.get()) return;
+    const claimAmount = unclaimedRewards.get();
+    if (claimAmount <= 0) {
+      recordSuccess("claimRewards", t("rewardsUnavailable"), null);
+      return;
+    }
+
+    recordRequest("claimRewards", t("workflowClaiming"), {
+      amount: formatGas(claimAmount),
+    });
 
     isClaiming.set(true);
     try {
-      await checkinService.claimRewards();
-      await loadAll();
+      const baseline = {
+        currentStreak: currentStreak.get(),
+        highestStreak: highestStreak.get(),
+        lastCheckInDay: lastCheckInDay.get(),
+        totalUserCheckins: totalUserCheckins.get(),
+        totalGlobalCheckins: totalGlobalCheckins.get(),
+        totalGlobalUsers: totalGlobalUsers.get(),
+        totalClaimed: totalClaimed.get(),
+        totalGlobalRewarded: totalGlobalRewarded.get(),
+      };
+      const result = await checkinService.claimRewards();
+      await loadAll({ record: false }).catch(() => undefined);
+      currentStreak.set(Math.max(currentStreak.get(), baseline.currentStreak));
+      highestStreak.set(Math.max(highestStreak.get(), baseline.highestStreak));
+      lastCheckInDay.set(Math.max(lastCheckInDay.get(), baseline.lastCheckInDay));
+      totalUserCheckins.set(Math.max(totalUserCheckins.get(), baseline.totalUserCheckins));
+      totalGlobalCheckins.set(Math.max(totalGlobalCheckins.get(), baseline.totalGlobalCheckins));
+      totalGlobalUsers.set(Math.max(totalGlobalUsers.get(), baseline.totalGlobalUsers));
+      totalClaimed.set(Math.max(totalClaimed.get(), baseline.totalClaimed + claimAmount));
+      totalGlobalRewarded.set(Math.max(totalGlobalRewarded.get(), baseline.totalGlobalRewarded + claimAmount));
+      unclaimedRewards.set(0);
+      addHistory({
+        action: "claim",
+        streak: currentStreak.get(),
+        time: nowIso(),
+        reward: claimAmount,
+        txid: extractTxid(result),
+      });
+      recordSuccess("claimRewards", t("rewardClaimed"), {
+        txid: extractTxid(result),
+        amount: formatGas(claimAmount),
+        result: summarizeResult(result),
+      });
+    } catch (e) {
+      recordFailure("claimRewards", e);
+      throw e;
     } finally {
       isClaiming.set(false);
     }
@@ -209,13 +438,18 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
     }, 1000);
   };
 
+  const stopTimer = () => {
+    if (tickerInterval) clearInterval(tickerInterval);
+    tickerInterval = null;
+  };
+
   return {
-    // ── Raw State ───────────────────────────────────────────────────
     currentStreak,
     highestStreak,
     lastCheckInDay,
     unclaimedRewards,
     totalClaimed,
+    checkInFee,
     totalUserCheckins,
     totalGlobalCheckins,
     totalGlobalUsers,
@@ -223,30 +457,31 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
     checkinHistory,
     isLoading,
     isClaiming,
+    workflowStatus,
+    lastError,
+    latestRequest,
+    latestResult,
 
-    // ── Computed ─────────────────────────────────────────────────────
     canCheckIn,
     utcTimeDisplay,
     nextUtcMidnight,
 
-    // ── Formatted values (for manifest stat/sidebar bindings) ────────
     formattedCurrentStreak,
     formattedHighestStreak,
     formattedUnclaimed,
     formattedTotalClaimed,
     formattedTotalRewarded,
 
-    // ── Constants ───────────────────────────────────────────────────
     milestones: MILESTONES,
     MS_PER_DAY,
 
-    // ── Actions ─────────────────────────────────────────────────────
     doCheckIn,
     claimRewards,
+    refreshStatus,
     loadAll,
     startTimer,
+    stopTimer,
   };
 }
 
-/** Return type of useCheckin for use in typing */
 export type UseCheckinReturn = ReturnType<typeof useCheckin>;

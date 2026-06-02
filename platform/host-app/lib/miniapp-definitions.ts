@@ -62,7 +62,7 @@ const NATIVE_ONLY_MINIAPPS: Record<string, Dict> = {
     app_id: "miniapp-timestamp-proof",
     name: "Timestamp Proof",
     description:
-      "Hash local content, anchor the digest, and keep proof lookup straightforward.",
+      "Hash local content, save device-local proof entries, and verify them by ID, digest, or original content.",
     category: "utility",
     template_type: "utility",
     status: "active",
@@ -85,6 +85,16 @@ const NATIVE_ONLY_MINIAPPS: Record<string, Dict> = {
     description:
       "Create a bounty vault, lock secret hash conditions, and expose the claim path clearly.",
     category: "utility",
+    dapp_url: "/miniapps/unbreakable-vault/index.html",
+    manifest: {
+      contracts: {
+        "neo-n3-mainnet": "0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa",
+        "neo-n3-testnet": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+      },
+      urls: {
+        entry: "/miniapps/unbreakable-vault/index.html",
+      },
+    },
     template_type: "utility",
     status: "active",
     permissions: {

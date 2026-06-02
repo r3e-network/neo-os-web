@@ -45,6 +45,47 @@
     "offlineSupport": false,
     "deeplink": "neomainapp://burn-league"
   },
+  "operation_panel": {
+    "title": "Burn League",
+    "subtitle": "Set a GAS burn amount, open the live desk, then confirm the OS wallet intent inside the MiniApp.",
+    "operations": [
+      {
+        "name": "Prepare Burn Entry",
+        "method": "prepareMiniAppOperation",
+        "description": "Pre-fill the burn amount and open the embedded Burn League desk. Submit Burn Now inside the live dApp after reviewing the rank and reward preview.",
+        "button_style": "danger",
+        "priority": "primary",
+        "params": [
+          {
+            "name": "amount",
+            "type": "amount",
+            "label": "Burn amount",
+            "required": true,
+            "default_value": "1",
+            "placeholder": "1",
+            "scale": 8,
+            "presets": [
+              {
+                "label": "1",
+                "value": "1",
+                "helper": "GAS"
+              },
+              {
+                "label": "5",
+                "value": "5",
+                "helper": "GAS"
+              },
+              {
+                "label": "10",
+                "value": "10",
+                "helper": "GAS"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "stateSource": {
     "type": "n3index",
     "chain": "neo-n3-mainnet",
@@ -59,5 +100,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-06-01T00:00:00Z"
 }

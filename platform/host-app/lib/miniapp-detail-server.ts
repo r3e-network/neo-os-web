@@ -11,6 +11,7 @@ import { isArchivedMiniAppId } from "./archived-miniapps";
 import { logger } from "./logger";
 import { isSharedModeApp, resolveSharedModeRuntime } from "./chain";
 import { getRpcNetwork } from "./rpc-helpers";
+import { normalizeNeoNetwork } from "./neo-network";
 import {
   appendNavItemIfMissing,
   findCatalogAppById,
@@ -22,6 +23,10 @@ import {
   type AppDetailPageProps,
   type RequestLike,
 } from "./miniapp-detail-helpers";
+
+function firstQueryValue(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value[0] || "" : value || "";
+}
 
 // Server-Side Props
 export const getMiniAppDetailServerSideProps: GetServerSideProps<
@@ -59,7 +64,11 @@ export const getMiniAppDetailServerSideProps: GetServerSideProps<
   }
 
   const fallback = await loadBundledMiniAppById(id);
-  const targetNetwork = getRpcNetwork();
+  const targetNetwork =
+    normalizeNeoNetwork(
+      firstQueryValue(context.query.network as string | string[] | undefined) ||
+        firstQueryValue(context.query.chain as string | string[] | undefined),
+    ) || getRpcNetwork();
   const catalogNetwork = resolveCatalogNetwork(targetNetwork);
   const rawMiniAppNav = await loadMiniAppCatalog("active", {
     includeManifest: true,
@@ -131,6 +140,7 @@ export const getMiniAppDetailServerSideProps: GetServerSideProps<
         app: sanitizeForJson(app),
         miniAppNav: sanitizeForJson(miniAppNavItems),
         notifications: notifData.notifications || [],
+        initialTargetNetwork: targetNetwork,
         sharedRuntime: sanitizeForJson(sharedRuntime),
       },
     };
@@ -144,6 +154,7 @@ export const getMiniAppDetailServerSideProps: GetServerSideProps<
             appendNavItemIfMissing(toMiniAppNavItems(rawMiniAppNav), fallback),
           ),
           notifications: [],
+          initialTargetNetwork: targetNetwork,
           sharedRuntime: null,
           error:
             "Using fallback app metadata while live API data is unavailable",
@@ -155,6 +166,7 @@ export const getMiniAppDetailServerSideProps: GetServerSideProps<
         app: null,
         miniAppNav: sanitizeForJson(toMiniAppNavItems(rawMiniAppNav)),
         notifications: [],
+        initialTargetNetwork: targetNetwork,
         sharedRuntime: null,
         error: "Failed to load app details",
       },

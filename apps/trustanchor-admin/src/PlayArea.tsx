@@ -38,7 +38,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canUpdateCandidate =
     Boolean(candidateAgentId.trim()) && Boolean(candidatePublicKey.trim());
   const canSyncVote = Boolean(voteAgentId.trim());
-  const visibleAgents = agentAccounts.slice(0, 21).slice(0, 6);
+  const visibleAgents = agentAccounts.slice(0, 21);
   const routeItems = [
     { label: t("selectedRoute"), value: selectedAgent },
     { label: t("agentCount"), value: agentCount },
@@ -53,9 +53,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <section className="anchor-admin-hero">
             <div className="anchor-admin-hero-top">
               <div className="anchor-admin-hero-badge" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M4 7h12M16 7l-3-3M16 7l-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M20 17H8M8 17l3-3M8 17l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 9-4.1-1.5-7-4.8-7-9V6l7-3z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                 </svg>
               </div>
               <div className="anchor-admin-hero-copy">
@@ -182,23 +181,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("agentDirectoryTitle")}</span>
               <strong>{agentCount}</strong>
             </div>
-            {visibleAgents.length === 0 ? (
-              <div className="anchor-admin-agent-empty">{t("agentDirectoryEmpty")}</div>
-            ) : (
-              visibleAgents.map((agent, idx) => (
-                <div key={idx} className="anchor-admin-agent-row">
-                  <span>#{String(agent.agentId ?? idx + 1)}</span>
-                  <code>
-                    {String(
-                      agent.accountAddress ??
-                        agent.address ??
-                        agent.name ??
-                        `agent-${idx + 1}`,
-                    )}
-                  </code>
-                </div>
-              ))
-            )}
+            <div className="anchor-admin-agent-list">
+              {visibleAgents.length === 0 ? (
+                <div className="anchor-admin-agent-empty">{t("agentDirectoryEmpty")}</div>
+              ) : (
+                visibleAgents.map((agent, idx) => {
+                  const address = String(
+                    agent.accountAddress ??
+                      agent.address ??
+                      agent.name ??
+                      `agent-${idx + 1}`,
+                  );
+                  return (
+                    <div key={idx} className="anchor-admin-agent-row">
+                      <span>#{String(agent.agentId ?? idx + 1)}</span>
+                      <code title={address}>{address}</code>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </section>
 
           <section className="anchor-admin-safety-card" aria-label={t("operatorRule")}>

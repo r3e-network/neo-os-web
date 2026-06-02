@@ -59,6 +59,10 @@ defineMiniApp({
       if (text) convert.copyToClipboard(text);
     });
 
+    ctx.registerAction("downloadPaperWallet", async () => {
+      await convert.downloadPaperWallet();
+    });
+
     return {
       state: {
         activeTab: convert.activeTab,

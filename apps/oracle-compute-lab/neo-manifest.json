@@ -4,8 +4,8 @@
   "name": "Oracle Compute Lab",
   "name_zh": "预言机计算实验室",
   "version": "1.0.0",
-  "description": "Build Morpheus off-chain compute requests with inspectable inputs.",
-  "description_zh": "构建输入可审查的 Morpheus 链下计算请求。",
+  "description": "Build Morpheus compute previews that keep sealed inputs redacted.",
+  "description_zh": "构建不会暴露加密封装输入的 Morpheus 计算预览。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -50,13 +50,13 @@
     ]
   },
   "operation_panel": {
-    "title": "Private Compute",
-    "subtitle": "Build or seal compute inputs and verify the confidential package.",
+    "title": "Compute Preview",
+    "subtitle": "Build sealed-safe compute previews and leave execution to the later Morpheus dispatch step.",
     "operations": [
       {
         "name": "Seal Compute Input",
         "method": "sealOracleRequest",
-        "description": "Encrypt compute input for Morpheus confidential execution.",
+        "description": "Prepare sealed compute input metadata for Morpheus confidential handling.",
         "button_style": "success",
         "params": [
           {
@@ -64,6 +64,7 @@
             "type": "string",
             "label": "Workflow input",
             "placeholder": "private-transfer-or-policy-check",
+            "sensitive": true,
             "required": true
           }
         ]
@@ -71,7 +72,7 @@
       {
         "name": "Build Preview",
         "method": "buildOraclePackage",
-        "description": "Build a non-secret preview package for the same compute workflow.",
+        "description": "Build a deterministic preview package without exposing sealed input.",
         "button_style": "secondary"
       }
     ]

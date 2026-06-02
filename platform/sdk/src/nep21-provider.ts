@@ -93,8 +93,27 @@ type Candidate = {
   key?: string;
 };
 
+type HostBridgeRequestPayload = Record<string, unknown> | unknown[] | string | number | boolean | null | undefined;
+
+type HostBridgeResponse = {
+  type?: string;
+  id?: unknown;
+  ok?: unknown;
+  result?: unknown;
+  error?: { message?: unknown } | string;
+};
+
+const HOST_WALLET_BRIDGE_REQUEST = "neo-miniapp-wallet-bridge:request";
+const HOST_WALLET_BRIDGE_RESPONSE = "neo-miniapp-wallet-bridge:response";
+const HOST_WALLET_BRIDGE_TIMEOUT_MS = 8000;
+const MAINNET_MAGIC = 860833102;
+const TESTNET_MAGIC = 894710606;
+
 let cachedProvider: NeoDapiProvider | null = null;
 let cachedWindow: Nep21Window | null = null;
+let cachedHostBridgeProvider: NeoDapiProvider | null = null;
+let cachedHostBridgeWindow: Nep21Window | null = null;
+let hostBridgeRequestId = 0;
 
 function getTargetWindow(targetWindow?: Window): Nep21Window | null {
   if (targetWindow) return targetWindow as Nep21Window;
@@ -150,6 +169,7 @@ function providerCandidates(win: Nep21Window): Candidate[] {
     { provider: win.Neo?.DapiProvider },
     { provider: win.neoDapiProvider },
     { provider: win.neoDapi },
+    { provider: getHostWalletBridgeProvider(win), key: "yiwu-host" },
   ];
 }
 
@@ -311,4 +331,127 @@ export function waitForNep21Provider(options: {
 export function resetNep21ProviderCacheForTests(): void {
   cachedProvider = null;
   cachedWindow = null;
+  cachedHostBridgeProvider = null;
+  cachedHostBridgeWindow = null;
+  hostBridgeRequestId = 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isEmbeddedHostLaunch(win: Nep21Window): boolean {
+  try {
+    const source = new URLSearchParams(win.location.search).get("source");
+    if (source && source.toLowerCase() === "embed") return true;
+  } catch {
+    // Ignore URL parsing errors and fall back to frame detection.
+  }
+  try {
+    return win.parent !== win;
+  } catch {
+    return false;
+  }
+}
+
+function networkMagicFromLocation(win: Nep21Window): number {
+  try {
+    const raw = String(new URLSearchParams(win.location.search).get("network") || "")
+      .trim()
+      .toLowerCase();
+    if (raw.includes("mainnet")) return MAINNET_MAGIC;
+  } catch {
+    // Default to testnet for local embedded validation.
+  }
+  return TESTNET_MAGIC;
+}
+
+function hostBridgeRequest<T>(
+  win: Nep21Window,
+  method: string,
+  payload?: HostBridgeRequestPayload,
+): Promise<T> {
+  const target = win.parent;
+  if (!target) {
+    return Promise.reject(new Error("MiniApp host wallet bridge is not available."));
+  }
+
+  const id = `host-wallet-${Date.now()}-${hostBridgeRequestId += 1}`;
+  return new Promise<T>((resolve, reject) => {
+    const timeout = win.setTimeout(() => {
+      cleanup();
+      reject(new Error("MiniApp host wallet bridge timed out."));
+    }, HOST_WALLET_BRIDGE_TIMEOUT_MS);
+
+    const cleanup = () => {
+      win.clearTimeout(timeout);
+      win.removeEventListener("message", onMessage);
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as HostBridgeResponse;
+      if (!isRecord(data)) return;
+      if (data.type !== HOST_WALLET_BRIDGE_RESPONSE || data.id !== id) return;
+      cleanup();
+      if (data.ok === true) {
+        resolve(data.result as T);
+        return;
+      }
+      const error = data.error;
+      const message = typeof error === "string"
+        ? error
+        : String(error?.message || "MiniApp host wallet bridge request failed.");
+      reject(new Error(message));
+    };
+
+    win.addEventListener("message", onMessage);
+    target.postMessage(
+      {
+        type: HOST_WALLET_BRIDGE_REQUEST,
+        id,
+        method,
+        payload,
+        version: 1,
+      },
+      "*",
+    );
+  });
+}
+
+function getHostWalletBridgeProvider(win: Nep21Window): NeoDapiProvider | null {
+  if (!isEmbeddedHostLaunch(win)) return null;
+  if (cachedHostBridgeProvider && cachedHostBridgeWindow === win) {
+    return cachedHostBridgeProvider;
+  }
+  const provider: NeoDapiProvider = {
+    name: "Yiwu Host Wallet",
+    dapiVersion: "1.0.0",
+    compatibility: ["NEP-21"],
+    network: networkMagicFromLocation(win),
+    supportedNetworks: [MAINNET_MAGIC, TESTNET_MAGIC],
+    getAccounts: () =>
+      hostBridgeRequest<ReturnType<NeoDapiProvider["getAccounts"]> extends Promise<infer T> ? T : never>(
+        win,
+        "getAccounts",
+      ),
+    authenticate: (payload) =>
+      hostBridgeRequest(win, "authenticate", payload),
+    call: (invocation) =>
+      hostBridgeRequest(win, "call", { invocation }),
+    getBalance: (asset, account) =>
+      hostBridgeRequest(win, "getBalance", { asset, account }),
+    invoke: (invocations, signers, suggestedSystemFee) =>
+      hostBridgeRequest(win, "invoke", {
+        invocations,
+        signers,
+        suggestedSystemFee,
+      }),
+    send: (asset, from, to, amount, data) =>
+      hostBridgeRequest(win, "send", { asset, from, to, amount, data }),
+    signMessage: (message, account) =>
+      hostBridgeRequest(win, "signMessage", { message, account }),
+  };
+  cachedHostBridgeProvider = provider;
+  cachedHostBridgeWindow = win;
+  return provider;
 }

@@ -4,20 +4,32 @@
  * Wallet-style session-key workspace for configuring scoped AA permissions.
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
+import { getSessionKeyLaunchDefaults } from "./launch";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext: MiniAppLaunchContext;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  launchContext,
+}: PlayAreaProps) {
   const { bool, str, val } = useStateBindings(state);
+  const launchDefaults = useMemo(
+    () => getSessionKeyLaunchDefaults(launchContext),
+    [launchContext.signature],
+  );
 
   const isSubmitting = bool("isSubmitting");
   const isCheckingSponsorship = bool("isCheckingSponsorship");
@@ -32,13 +44,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const walletDisplay = str("walletDisplay");
   const sponsorStatusDisplay = str("sponsorStatusDisplay");
 
-  const [accountSeed, setAccountSeed] = useState("");
-  const [sessionPublicKey, setSessionPublicKey] = useState("");
-  const [targetContract, setTargetContract] = useState("");
-  const [allowedMethod, setAllowedMethod] = useState("*");
-  const [expiresAt, setExpiresAt] = useState(() =>
-    String(Math.floor(Date.now() / 1000) + 3600),
+  const [accountSeed, setAccountSeed] = useState(launchDefaults.accountSeed);
+  const [sessionPublicKey, setSessionPublicKey] = useState(
+    launchDefaults.sessionPublicKey,
   );
+  const [targetContract, setTargetContract] = useState(
+    launchDefaults.targetContract,
+  );
+  const [allowedMethod, setAllowedMethod] = useState(
+    launchDefaults.allowedMethod,
+  );
+  const [expiresAt, setExpiresAt] = useState(launchDefaults.expiresAt);
+  const [dappId, setDappId] = useState(launchDefaults.dappId);
+  const [sponsorAmount, setSponsorAmount] = useState(
+    launchDefaults.sponsorAmount,
+  );
+  const [generatedPrivateKey, setGeneratedPrivateKey] = useState("");
+  const [privateKeyCopied, setPrivateKeyCopied] = useState(false);
+
+  useEffect(() => {
+    setAccountSeed(launchDefaults.accountSeed);
+    setSessionPublicKey(launchDefaults.sessionPublicKey);
+    setTargetContract(launchDefaults.targetContract);
+    setAllowedMethod(launchDefaults.allowedMethod);
+    setExpiresAt(launchDefaults.expiresAt);
+    setDappId(launchDefaults.dappId);
+    setSponsorAmount(launchDefaults.sponsorAmount);
+  }, [launchContext.signature, launchDefaults]);
 
   const canConfigure =
     Boolean(accountSeed.trim()) &&
@@ -78,10 +110,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleGenerateKey = async () => {
     const result = (await dispatch("generateKey")) as unknown as {
       publicKey?: string;
+      privateKey?: string;
     };
     if (result?.publicKey) {
       setSessionPublicKey(result.publicKey);
     }
+    if (result?.privateKey) {
+      setGeneratedPrivateKey(result.privateKey);
+      setPrivateKeyCopied(false);
+    }
+  };
+
+  const handleCopyPrivateKey = async () => {
+    if (!generatedPrivateKey) return;
+    await navigator.clipboard?.writeText(generatedPrivateKey);
+    setPrivateKeyCopied(true);
   };
 
   return (
@@ -123,7 +166,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("sessionMetricSponsor")}</span>
               <strong>{sponsorStatusDisplay || "--"}</strong>
             </div>
-            <div className="session-metric">
+            <div className="session-metric session-metric--scope">
               <span>{t("sessionMetricScope")}</span>
               <strong>{methodDisplay}</strong>
             </div>
@@ -143,9 +186,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span>{t("sessionPublicKey")}</span>
             <strong>{sessionKeyState}</strong>
           </div>
+          <div className="session-form session-form--compact">
+            <NeoInput
+              value={dappId}
+              label={t("dappId") || "Paymaster dApp ID"}
+              placeholder={
+                t("dappIdPlaceholder") || "miniapp-aa-session-key-lab"
+              }
+              onChange={(v: string) => setDappId(v)}
+            />
+            <NeoInput
+              type="number"
+              value={sponsorAmount}
+              label={t("sponsorAmount") || "Sponsor Amount"}
+              placeholder={t("sponsorAmountPlaceholder") || "0.1"}
+              onChange={(v: string) => setSponsorAmount(v)}
+            />
+          </div>
           <div className="session-action-grid">
             <NeoButton
-              variant="secondary"
+              variant="primary"
               aria-label={t("generateKey") || "Generate Key"}
               onClick={handleGenerateKey}
             >
@@ -155,7 +215,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               variant="secondary"
               loading={isCheckingSponsorship}
               aria-label={t("checkSponsor") || "Check Sponsor"}
-              onClick={() => dispatch("checkSponsor")}
+              onClick={() => dispatch("checkSponsor", accountSeed, dappId)}
             >
               {t("checkSponsor") || "Check Sponsor"}
             </NeoButton>
@@ -163,30 +223,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               variant="secondary"
               loading={isCheckingSponsorship}
               aria-label={t("requestSponsor") || "Request Sponsor"}
-              onClick={() => dispatch("requestSponsor")}
+              onClick={() =>
+                dispatch("requestSponsor", accountSeed, dappId, sponsorAmount)
+              }
             >
               {t("requestSponsor") || "Request Sponsor"}
             </NeoButton>
           </div>
+          {generatedPrivateKey && (
+            <div className="session-private-export">
+              <span>{t("privateKeyReady")}</span>
+              <NeoButton
+                variant="secondary"
+                aria-label={t("copyPrivateKey") || "Copy Private Key"}
+                onClick={handleCopyPrivateKey}
+              >
+                {privateKeyCopied ? t("copiedPrivateKey") : t("copyPrivateKey")}
+              </NeoButton>
+            </div>
+          )}
         </NeoCard>
-      </section>
-
-      <section className="session-flow" aria-label={t("sessionFlowLabel")}>
-        <div className="session-flow__step">
-          <span>01</span>
-          <strong>{t("sessionFlowKey")}</strong>
-          <p>{t("sessionFlowKeyDesc")}</p>
-        </div>
-        <div className="session-flow__step">
-          <span>02</span>
-          <strong>{t("sessionFlowSponsor")}</strong>
-          <p>{t("sessionFlowSponsorDesc")}</p>
-        </div>
-        <div className="session-flow__step">
-          <span>03</span>
-          <strong>{t("sessionFlowConfigure")}</strong>
-          <p>{t("sessionFlowConfigureDesc")}</p>
-        </div>
       </section>
 
       <section className="session-workspace">
@@ -294,6 +350,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </NeoCard>
         </aside>
+      </section>
+
+      <section className="session-flow" aria-label={t("sessionFlowLabel")}>
+        <span className="session-flow__eyebrow">{t("sessionFlowLabel")}</span>
+        <div className="session-flow__steps">
+          <div className="session-flow__step">
+            <span>01</span>
+            <strong>{t("sessionFlowKey")}</strong>
+            <p>{t("sessionFlowKeyDesc")}</p>
+          </div>
+          <div className="session-flow__step">
+            <span>02</span>
+            <strong>{t("sessionFlowSponsor")}</strong>
+            <p>{t("sessionFlowSponsorDesc")}</p>
+          </div>
+          <div className="session-flow__step">
+            <span>03</span>
+            <strong>{t("sessionFlowConfigure")}</strong>
+            <p>{t("sessionFlowConfigureDesc")}</p>
+          </div>
+        </div>
       </section>
     </div>
   );

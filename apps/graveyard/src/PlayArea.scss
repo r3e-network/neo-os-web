@@ -8,8 +8,8 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 .graveyard-play-area {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  gap: 20px;
+  padding: 24px 16px;
   max-width: 880px;
   margin: 0 auto;
   color: var(--ns-text, #2a2d3d);
@@ -21,10 +21,9 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px 20px;
-  padding: 20px 24px;
+  gap: 16px 24px;
+  padding: 24px;
   background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
@@ -32,14 +31,14 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 .grave-hero-lead {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 
 .grave-hero-badge {
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,7 +52,7 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 .grave-hero-copy {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -74,18 +73,16 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 
 /* ── Stat strip ───────────────────────────────────────── */
 .hero-stats {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
 }
 
 .hero-stat {
-  flex: 1 1 auto;
-  min-width: 88px;
+  min-width: 0;
   text-align: center;
-  padding: 12px 14px;
+  padding: 14px 12px;
   border-radius: var(--ns-radius-md, 16px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
@@ -101,18 +98,16 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 .hero-stat-label {
   display: block;
   margin-top: 4px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
   color: var(--ns-text-muted, #8a92a6);
-  letter-spacing: 0.08em;
 }
 
 /* ── Main grid ────────────────────────────────────────── */
 .grave-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
+  gap: 20px;
   align-items: start;
 }
 
@@ -134,7 +129,18 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 .destroy-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
+}
+
+.grave-hash-actions {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+  margin-top: -6px;
+}
+
+.grave-hash-actions .neo-btn {
+  min-width: 118px;
 }
 
 .memory-type-selector {
@@ -144,10 +150,8 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 }
 
 .field-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--ns-text-2, #5b6478);
 }
 
@@ -158,6 +162,7 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 }
 
 .type-option {
+  min-height: 34px;
   padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
@@ -166,7 +171,9 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 
   &.active {
     border-color: $grave-accent;
@@ -184,21 +191,216 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   }
 }
 
+/* ── Burial review — single consolidated card ─────────── */
+.grave-review-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px;
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.grave-review-header {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.grave-review-header span,
+.grave-review-tile span,
+.grave-check em {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.grave-review-header strong,
+.grave-review-tile strong,
+.grave-check strong {
+  min-width: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.28;
+}
+
+.grave-review-header strong {
+  font-weight: 600;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.grave-review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.grave-review-tile {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  min-height: 112px;
+  padding: 14px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+}
+
+.grave-review-tile-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grave-review-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--ns-radius-full, 9999px);
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+}
+
+.grave-review-tile strong,
+.grave-review-tile p {
+  overflow-wrap: anywhere;
+}
+
+.grave-review-tile p {
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.grave-review-tile.is-ready {
+  background: var(--ns-brand-soft, #e4f8f0);
+
+  .grave-review-mark {
+    background: var(--ns-brand, #16c784);
+    color: #ffffff;
+  }
+}
+
+.grave-review-tile.is-blocked {
+  background: var(--ns-warning-soft, #fff3dd);
+
+  .grave-review-mark {
+    background: var(--ns-warning, #f5a623);
+    color: #ffffff;
+  }
+}
+
+.grave-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.grave-check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+}
+
+.grave-check span {
+  grid-row: span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-bg-2, #eceef2);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.grave-check strong,
+.grave-check em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grave-check em {
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.grave-check.is-ready span {
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.grave-check.is-blocked span {
+  background: var(--ns-warning-soft, #fff3dd);
+  color: var(--ns-warning, #f5a623);
+}
+
+.grave-fee-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.grave-fee-row > div {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+}
+
+.grave-fee-row dt {
+  margin: 0 0 4px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.grave-fee-row dd {
+  margin: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
 .grave-warning-note {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 14px;
-  border-radius: var(--ns-radius-sm, 12px);
-  border: 1px solid var(--ns-danger-soft, #fde7e9);
+  padding: 14px 16px;
+  border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-danger-soft, #fde7e9);
 }
 
 .grave-warning-title {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   color: var(--ns-danger, #ea3943);
 }
 
@@ -208,20 +410,54 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   color: var(--ns-text-2, #5b6478);
 }
 
-.shake {
-  animation: shake 0.4s ease-in-out;
+.grave-confirm-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: $grave-accent-soft;
 }
 
-@keyframes shake {
-  0%,
+.grave-confirm-note > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.grave-confirm-title {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.grave-confirm-text {
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.grave-cta-attention {
+  animation: grave-cta-pulse var(--ns-t-slow, 320ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@keyframes grave-cta-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 57, 67, 0);
+  }
+  40% {
+    box-shadow: 0 0 0 4px rgba(234, 57, 67, 0.18);
+  }
   100% {
-    transform: translateX(0);
+    box-shadow: 0 0 0 0 rgba(234, 57, 67, 0);
   }
-  25% {
-    transform: translateX(-6px);
-  }
-  75% {
-    transform: translateX(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grave-cta-attention {
+    animation: none;
   }
 }
 
@@ -229,7 +465,7 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 .tab-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .history-header {
@@ -237,6 +473,13 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.history-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .history-label {
@@ -265,11 +508,10 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   text-align: center;
-  padding: 28px 20px;
+  padding: 32px 20px;
   border-radius: var(--ns-radius-md, 16px);
-  border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.1));
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
@@ -295,16 +537,15 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .history-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
+  gap: 12px;
+  padding: 12px 14px;
   border-radius: var(--ns-radius-md, 16px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
@@ -315,11 +556,13 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 11px;
+  font-weight: 800;
   line-height: 1;
   border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: $grave-accent-soft;
+  border: 1px solid rgba(123, 97, 255, 0.14);
+  color: $grave-accent-strong;
 }
 
 .history-info {
@@ -347,6 +590,7 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 
 .history-badge {
   flex: 0 0 auto;
+  align-self: center;
   padding: 3px 9px;
   border-radius: var(--ns-radius-full, 9999px);
   background: $grave-accent-soft;
@@ -359,13 +603,53 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 }
 
 .badge-text {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: $grave-accent-strong;
 
   .history-badge.forgotten & {
     color: var(--ns-text-muted, #8a92a6);
+  }
+}
+
+@media (max-width: 560px) {
+  .graveyard-play-area {
+    padding: 14px 12px;
+  }
+
+  .grave-hero {
+    padding: 18px;
+  }
+
+  .grave-review-grid,
+  .grave-checklist,
+  .grave-fee-row {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .type-option {
+    min-height: 40px;
+  }
+
+  .grave-confirm-note,
+  .history-header,
+  .history-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .history-badge {
+    align-self: flex-start;
+  }
+
+  .grave-hash-actions,
+  .history-header-actions {
+    justify-content: stretch;
+  }
+
+  .grave-hash-actions .neo-btn,
+  .history-header-actions .neo-btn {
+    width: 100%;
   }
 }

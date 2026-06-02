@@ -157,9 +157,20 @@ function isOneGateVaultHtmlPath(pathname: string): boolean {
   );
 }
 
-function resolveMiniAppDetailRewriteId(pathname: string): string | null {
+export function resolveMiniAppDetailRewriteId(pathname: string): string | null {
   const match = pathname.match(/^\/miniapps\/([^/.][^/]*)\/?$/);
-  return match?.[1] || null;
+  const slug = match?.[1] || "";
+  if (!slug || slug.includes(".")) return null;
+  return slug;
+}
+
+export function buildMiniAppDetailRewriteUrl(
+  requestUrl: string,
+  detailRewriteId: string,
+): URL {
+  const rewriteUrl = new URL(requestUrl);
+  rewriteUrl.pathname = `/miniapp-detail/${detailRewriteId}`;
+  return rewriteUrl;
 }
 
 export function middleware(req: NextRequest) {
@@ -185,7 +196,7 @@ export function middleware(req: NextRequest) {
   requestHeaders.set("x-csp-nonce", nonce);
   const res = detailRewriteId
     ? NextResponse.rewrite(
-        new URL(`/miniapp-detail/${detailRewriteId}`, req.url),
+        buildMiniAppDetailRewriteUrl(req.url, detailRewriteId),
         {
           request: { headers: requestHeaders },
         },

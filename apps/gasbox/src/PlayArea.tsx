@@ -29,6 +29,12 @@ interface PullResult {
 const formatCount = (value: number, pendingLabel: string) =>
   value > 0 ? value.toLocaleString() : pendingLabel;
 
+const formatPercent = (value: number, pendingLabel: string) => {
+  if (!Number.isFinite(value) || value <= 0) return pendingLabel;
+  const rounded = value >= 10 ? Math.round(value) : Math.round(value * 10) / 10;
+  return `${rounded}%`;
+};
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
@@ -56,7 +62,40 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : selectedMachineReady
       ? t("readyToPlay")
       : t("gasboxLiveStatus");
-
+  const selectedItems = selectedMachine?.items ?? [];
+  const availableItems = selectedItems.filter((item: MachineItem) => item.available);
+  const unavailableItems = selectedItems.filter((item: MachineItem) => !item.available);
+  const oddsCoverage = availableItems.reduce(
+    (sum: number, item: MachineItem) => sum + item.displayProbability,
+    0,
+  );
+  const rarestAvailableItem = availableItems.reduce<MachineItem | undefined>(
+    (candidate, item) => {
+      if (!candidate) return item;
+      if (item.displayProbability <= 0) return candidate;
+      if (candidate.displayProbability <= 0) return item;
+      return item.displayProbability < candidate.displayProbability ? item : candidate;
+    },
+    undefined,
+  );
+  const prizeFocusLabel =
+    selectedMachine?.topPrize ||
+    rarestAvailableItem?.name ||
+    t("gasboxNoAvailablePrize");
+  const prizeFocusOdds = rarestAvailableItem
+    ? formatPercent(rarestAvailableItem.displayProbability, t("gasboxPending"))
+    : t("gasboxPending");
+  const inventoryRatio = selectedMachine
+    ? `${availableItems.length}/${Math.max(selectedItems.length, selectedMachine.itemCount)}`
+    : t("gasboxPending");
+  const pullReadinessTitle = selectedMachineReady
+    ? t("gasboxPullReadyTitle")
+    : t("gasboxPullBlockedTitle");
+  const pullReadinessCopy = selectedMachineReady
+    ? t("gasboxPullReadyCopy")
+    : selectedMachine?.active === false
+      ? t("gasboxPullBlockedInactive")
+      : t("gasboxPullBlockedInventory");
   const handleSelectMachine = async (id: string) => {
     await dispatch("selectMachine", id);
   };
@@ -115,12 +154,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="gasbox-play-area">
       <section className="gasbox-hero" aria-label={t("title")}>
+        <div className="gasbox-hero__badge" aria-hidden="true">G</div>
         <div className="gasbox-hero__copy">
           <span className="gasbox-eyebrow">{t("docSubtitle")}</span>
           <h2>{t("title")}</h2>
           <p>{t("docDescription")}</p>
         </div>
-        <div className="gasbox-hero__metrics" aria-label={t("gasboxLiveStatus")}>
+      </section>
+
+      <section className="gasbox-signal-card" aria-label={t("gasboxLiveStatus")}>
+        <div className="gasbox-token" aria-hidden="true">G</div>
+        <div className="gasbox-signal-card__copy">
+          <span>{t("gasboxLiveStatus")}</span>
+          <strong>{signalLabel}</strong>
+          <p>{t("gasboxEscrowSafetyDesc")}</p>
+        </div>
+        <div className="gasbox-signal-card__metrics" aria-hidden="false">
           <div className="gasbox-metric">
             <span>{t("machines")}</span>
             <strong>{machineCountDisplay}</strong>
@@ -136,47 +185,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </section>
 
-      <section className="gasbox-signal-card" aria-label={t("gasboxLiveStatus")}>
-        <div className="gasbox-token" aria-hidden="true">G</div>
-        <div className="gasbox-signal-card__copy">
-          <span>{t("gasboxLiveStatus")}</span>
-          <strong>{signalLabel}</strong>
-          <p>{t("gasboxEscrowSafetyDesc")}</p>
-        </div>
-        <div className="gasbox-capsule-stack" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <i />
-        </div>
-      </section>
-
-      <section className="gasbox-player-route" aria-label={t("gasboxPlayerRoute")}>
-        <div>
-          <span>01</span>
-          <strong>{t("step1")}</strong>
-        </div>
-        <div>
-          <span>02</span>
-          <strong>{t("step2")}</strong>
-        </div>
-        <div>
-          <span>03</span>
-          <strong>{t("step3")}</strong>
-        </div>
-        <div>
-          <span>04</span>
-          <strong>{t("step4")}</strong>
-        </div>
-      </section>
-
-      <NeoCard variant="erobo" className="gasbox-machines-card">
+      <section className="gasbox-machines-card">
         <div className="gasbox-section-header">
           <span>{t("market")}</span>
           <strong>{t("selectMachine")}</strong>
         </div>
         {machines.length === 0 ? (
-          <NeoCard variant="erobo" className="gasbox-market-empty">
+          <div className="gasbox-market-empty">
             <div className="gasbox-market-empty__copy">
               <span>{t("gasboxMarketEmptyTitle")}</span>
               <strong>{t("gasboxMarketEmptyDesc")}</strong>
@@ -196,7 +211,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <strong>{t("gasboxStudioHint")}</strong>
               </div>
             </div>
-          </NeoCard>
+          </div>
         ) : (
           <div className="gasbox-machine-grid">
             {machines.map((machine) => {
@@ -226,7 +241,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             })}
           </div>
         )}
-      </NeoCard>
+      </section>
 
       {selectedMachine && (
         <NeoCard variant="erobo" className="gasbox-pull-card">
@@ -251,73 +266,65 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             </div>
 
-            <div className="gasbox-machine-detail-stats">
-              <div className="gasbox-detail-stat">
-                <span className="gasbox-detail-stat-value">{selectedMachine.price}</span>
-                <span className="gasbox-detail-stat-label">{t("pullCost")} (GAS)</span>
-              </div>
-              <div className="gasbox-detail-stat">
-                <span className="gasbox-detail-stat-value">{selectedMachine.itemCount}</span>
-                <span className="gasbox-detail-stat-label">{t("totalItems")}</span>
-              </div>
-              <div className="gasbox-detail-stat">
-                <span className="gasbox-detail-stat-value">{selectedMachine.plays}</span>
-                <span className="gasbox-detail-stat-label">{t("totalPlays")}</span>
-              </div>
-              <div className="gasbox-detail-stat">
-                <span className="gasbox-detail-stat-value">{selectedMachine.revenue}</span>
-                <span className="gasbox-detail-stat-label">{t("revenue")}</span>
-              </div>
-            </div>
-
-            {selectedMachine.topPrize && (
-              <div className="gasbox-top-prize">
-                <span className="gasbox-top-prize-label">{t("topPrizeLabel")}</span>
-                <span className="gasbox-top-prize-name">{selectedMachine.topPrize}</span>
-              </div>
-            )}
-
-            {selectedMachine.items && selectedMachine.items.length > 0 && (
-              <div className="gasbox-rarity-distribution">
-                <h4 className="gasbox-rarity-title">{t("rarityDistribution")}</h4>
-                <div className="gasbox-rarity-bars">
-                  {selectedMachine.items
-                    .filter((item: MachineItem) => item.available)
-                    .map((item: MachineItem, idx: number) => (
-                      <div key={idx} className="gasbox-rarity-bar-row">
-                        <span className={`gasbox-rarity-bar-label ${rarityClass(item.rarity)}`}>
-                          {rarityIcon(item.rarity)} {item.name || item.rarity}
-                        </span>
-                        <div className="gasbox-rarity-bar-track">
-                          <div
-                            className={`gasbox-rarity-bar-fill ${rarityClass(item.rarity)}`}
-                            style={{ width: `${Math.min(item.displayProbability, 100)}%` }}
-                          />
-                        </div>
-                        <span className="gasbox-rarity-bar-pct">
-                          {item.displayProbability}%
-                        </span>
-                      </div>
-                    ))}
+            <div className="gasbox-decision-panel" aria-label={t("gasboxDecisionTitle")}>
+              <div className="gasbox-decision-header">
+                <div>
+                  <span>{t("gasboxDecisionTitle")}</span>
+                  <strong>{t("gasboxDecisionSubtitle")}</strong>
+                </div>
+                <div className="gasbox-selected-actions" aria-label={t("gasboxSelectedActions")}>
+                  <NeoButton
+                    variant="secondary"
+                    size="sm"
+                    disabled={isPulling}
+                    onClick={() => dispatch("refreshMachines")}
+                  >
+                    {t("refreshMachines")}
+                  </NeoButton>
+                  <NeoButton
+                    variant="ghost"
+                    size="sm"
+                    disabled={isPulling}
+                    onClick={() => dispatch("openStudio")}
+                  >
+                    {t("openStudio")}
+                  </NeoButton>
                 </div>
               </div>
-            )}
 
-            <div className="gasbox-machine-status-row">
-              {!selectedMachine.active && (
-                <span className="gasbox-status-badge gasbox-status-badge--inactive">
-                  {t("inactive")}
-                </span>
-              )}
-              {!selectedMachine.inventoryReady && (
-                <span className="gasbox-status-badge gasbox-status-badge--empty">
-                  {t("inventoryEmpty")}
-                </span>
-              )}
-              {selectedMachineReady && (
-                <span className="gasbox-status-badge gasbox-status-badge--ready">
-                  {t("readyToPlay")}
-                </span>
+              <div className="gasbox-decision-grid">
+                <div className={`gasbox-decision-tile${selectedMachineReady ? " is-ready" : " is-blocked"}`}>
+                  <span>{t("gasboxReadinessTitle")}</span>
+                  <strong>{pullReadinessTitle}</strong>
+                  <p>{pullReadinessCopy}</p>
+                </div>
+                <div className="gasbox-decision-tile">
+                  <span>{t("pullCost")}</span>
+                  <strong>{selectedMachine.price} GAS</strong>
+                  <p>{t("gasboxWalletIntent")}</p>
+                </div>
+                <div className={`gasbox-decision-tile${selectedMachine.inventoryReady ? " is-ready" : " is-blocked"}`}>
+                  <span>{t("inventoryAndOdds")}</span>
+                  <strong>{inventoryRatio} {t("items")}</strong>
+                  <p>
+                    {selectedMachine.inventoryReady
+                      ? t("gasboxInventoryReady")
+                      : t("gasboxInventoryActionRequired")}
+                  </p>
+                </div>
+                <div className={`gasbox-decision-tile${availableItems.length > 0 ? " is-ready" : " is-blocked"}`}>
+                  <span>{t("gasboxPrizeFocus")}</span>
+                  <strong>{prizeFocusLabel}</strong>
+                  <p>
+                    {t("gasboxPrizeFocusOdds")}: {prizeFocusOdds} | {t("gasboxOddsCoverage")}: {formatPercent(oddsCoverage, t("gasboxPending"))}
+                  </p>
+                </div>
+              </div>
+
+              {unavailableItems.length > 0 && (
+                <p className="gasbox-inventory-note">
+                  {t("gasboxUnavailableInventory", { count: unavailableItems.length })}
+                </p>
               )}
             </div>
 
@@ -341,6 +348,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
               </NeoButton>
             </div>
+
+            {selectedMachine.items && selectedMachine.items.length > 0 && (
+              <details className="gasbox-rarity-distribution">
+                <summary className="gasbox-rarity-title">{t("rarityDistribution")}</summary>
+                <div className="gasbox-rarity-bars">
+                  {selectedMachine.items
+                    .filter((item: MachineItem) => item.available)
+                    .map((item: MachineItem, idx: number) => (
+                      <div key={idx} className="gasbox-rarity-bar-row">
+                        <span className={`gasbox-rarity-bar-label ${rarityClass(item.rarity)}`}>
+                          {rarityIcon(item.rarity)} {item.name || item.rarity}
+                        </span>
+                        <div className="gasbox-rarity-bar-track">
+                          <div
+                            className={`gasbox-rarity-bar-fill ${rarityClass(item.rarity)}`}
+                            style={{ width: `${Math.min(item.displayProbability, 100)}%` }}
+                          />
+                        </div>
+                        <span className="gasbox-rarity-bar-pct">
+                          {item.displayProbability}%
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </details>
+            )}
           </div>
         </NeoCard>
       )}
@@ -348,7 +381,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {!selectedMachine && machines.length > 0 && (
         <NeoCard variant="erobo" className="gasbox-select-prompt">
           <div className="gasbox-prompt-content">
-            <span className="gasbox-prompt-icon" aria-hidden="true">01</span>
+            <span className="gasbox-prompt-icon" aria-hidden="true">G</span>
             <p className="gasbox-prompt-text">
               {t("selectMachinePrompt")}
             </p>

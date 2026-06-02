@@ -48,6 +48,18 @@ describe("OperationPanel", () => {
         label: "Claim key",
         type: "string" as const,
         required: true,
+        sensitive: true,
+      },
+      {
+        name: "poolId",
+        label: "Pool ID",
+        type: "string" as const,
+      },
+      {
+        name: "oneGateAppId",
+        type: "string" as const,
+        default_value: "23",
+        hidden: true,
       },
     ],
   };
@@ -348,10 +360,10 @@ describe("OperationPanel", () => {
     expect(screen.getAllByLabelText("Side")).toHaveLength(2);
   });
 
-  it("treats OneGate Vault claim keys as QR context instead of editable amount controls", async () => {
-    const onInvoke = jest.fn();
+  it("lets users paste OneGate Vault claim keys and clears sensitive values after submit", async () => {
+    const onInvoke = jest.fn().mockResolvedValue(undefined);
 
-    const { rerender } = render(
+    render(
       <OperationPanel
         operations={[oneGateVaultClaimOperation]}
         onInvoke={onInvoke}
@@ -370,43 +382,45 @@ describe("OperationPanel", () => {
       />,
     );
 
-    expect(screen.getByText("OneGate QR required")).toBeVisible();
-    expect(screen.queryByLabelText("Claim key")).not.toBeInTheDocument();
+    expect(screen.getByText("Paste claim key or scan QR")).toBeVisible();
+    expect(screen.getByLabelText("Claim key")).toBeVisible();
+    expect(screen.getByLabelText("Pool ID")).toBeVisible();
     expect(screen.queryByRole("button", { name: "1" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Claim Reward" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Claim Reward" }),
+    ).not.toBeDisabled();
 
-    rerender(
-      <OperationPanel
-        operations={[oneGateVaultClaimOperation]}
-        onInvoke={onInvoke}
-        showTitle={false}
-        launchContext={{
-          appId: "miniapp-gas-lucky-pool",
-          source: "onegate",
-          operation: "claimOneGateVault",
-          tab: null,
-          network: "testnet",
-          params: { claimKey: "ogv_campaign_a_user_42" },
-          keys: ["claimKey"],
-          hasParams: true,
-          signature: "claimKey=ogv_campaign_a_user_42",
-        }}
-      />,
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Claim Reward" }));
+    expect(screen.getByText("Claim key is required.")).toBeVisible();
+    expect(onInvoke).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Claim key"), {
+      target: { value: "ogv_campaign_a_user_42" },
+    });
+    fireEvent.change(screen.getByLabelText("Pool ID"), {
+      target: { value: "pool-042" },
+    });
 
     expect(screen.getByText("Reward ready")).toBeVisible();
-    expect(screen.queryByLabelText("Claim key")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Claim Reward" }));
 
     await waitFor(() =>
       expect(onInvoke).toHaveBeenCalledWith(
         expect.objectContaining({ method: "claimOneGateVault" }),
-        expect.objectContaining({ claimKey: "ogv_campaign_a_user_42" }),
+        expect.objectContaining({
+          claimKey: "ogv_campaign_a_user_42",
+          oneGateAppId: "23",
+          poolId: "pool-042",
+        }),
       ),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Claim key")).toHaveValue(""),
     );
   });
 
-  it("accepts OneGate Vault QR aliases in the primary claim action", async () => {
+  it("prefills OneGate Vault QR aliases in the primary claim action", async () => {
     const onInvoke = jest.fn().mockResolvedValue(undefined);
     render(
       <OperationPanel
@@ -428,12 +442,18 @@ describe("OperationPanel", () => {
     );
 
     expect(screen.getByText("Reward ready")).toBeVisible();
+    expect(screen.getByLabelText("Claim key")).toHaveValue("ogv_alias_key");
+    expect(screen.getByLabelText("Pool ID")).toHaveValue("launch-pool");
     fireEvent.click(screen.getByRole("button", { name: "Claim Reward" }));
 
     await waitFor(() =>
       expect(onInvoke).toHaveBeenCalledWith(
         expect.objectContaining({ method: "claimOneGateVault" }),
-        expect.objectContaining({ claimKey: "ogv_alias_key" }),
+        expect.objectContaining({
+          claimKey: "ogv_alias_key",
+          oneGateAppId: "23",
+          poolId: "launch-pool",
+        }),
       ),
     );
   });
@@ -468,11 +488,81 @@ describe("OperationPanel", () => {
       />,
     );
 
-    expect(screen.queryByTestId("operation-tab-grid")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Claim" })).toBeVisible();
+    expect(screen.getByTestId("operation-tab-grid")).toBeVisible();
+    expect(screen.getAllByRole("button", { name: "Claim" })[0]).toBeVisible();
 
     fireEvent.click(screen.getByText("Advanced / Operator"));
     expect(screen.getByRole("button", { name: "Create" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Move NEO" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(screen.getByTestId("operation-submit-button")).toHaveTextContent(
+      "Create",
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Claim" })[0]);
+    expect(screen.getByTestId("operation-submit-button")).toHaveTextContent(
+      "Claim",
+    );
+  });
+
+  it("labels workspace-preview operations as opening the workspace, not submitting business tx", () => {
+    render(
+      <OperationPanel
+        operations={[
+          {
+            name: "Create listing",
+            method: "prepareMiniAppOperation",
+            params: [],
+          },
+        ]}
+        onInvoke={jest.fn()}
+        showTitle={false}
+      />,
+    );
+
+    expect(screen.getByTestId("operation-submit-button")).toHaveTextContent(
+      "Open workspace",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Create listing" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("can defer submit failures to an external feedback surface", async () => {
+    const onInvoke = jest.fn().mockRejectedValue(new Error("Backend exploded"));
+
+    render(
+      <OperationPanel
+        operations={[
+          {
+            name: "Check Sponsorship",
+            method: "checkSponsor",
+            params: [
+              {
+                name: "aaAddress",
+                label: "AA Address",
+                type: "address" as const,
+                required: true,
+              },
+            ],
+          },
+        ]}
+        onInvoke={onInvoke}
+        showTitle={false}
+        showInvokeError={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check Sponsorship" }));
+    expect(screen.getByText("AA Address is required.")).toBeVisible();
+
+    fireEvent.change(screen.getByLabelText("AA Address"), {
+      target: { value: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Check Sponsorship" }));
+
+    await waitFor(() => expect(onInvoke).toHaveBeenCalled());
+    expect(screen.queryByText("Backend exploded")).not.toBeInTheDocument();
   });
 });

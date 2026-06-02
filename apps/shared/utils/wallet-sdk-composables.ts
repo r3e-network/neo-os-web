@@ -73,6 +73,9 @@ export interface EligibilityResult {
 
 export interface SponsorshipResult {
   success: boolean;
+  request_id?: string;
+  requestId?: string;
+  txid?: string;
 }
 
 export function createGasSponsorComposable(deps: WalletSdkComposableDeps) {

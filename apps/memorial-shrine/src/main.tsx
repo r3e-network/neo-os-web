@@ -16,25 +16,33 @@ defineMiniApp({
 
   setup(ctx) {
     const shrine = useMemorialShrine({
-      nftService: ctx.os.nft,
+      chainService: ctx.services.chain,
+      launchNetwork: ctx.launchContext.network,
       storageService: ctx.os.storage,
       badgeService: ctx.os.badge,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
 
-    ctx.registerAction("openMemorial", async (id: number) => { shrine.openMemorial(id); });
-    ctx.registerAction("createMemorial", async (form: {
-      name: string; photoHash: string; relationship: string;
-      birthYear: number; deathYear: number; biography: string; obituary: string;
-    }) => {
+    ctx.registerAction("openMemorial", async (...args: unknown[]) => {
+      shrine.openMemorial(Number(args[0]));
+    });
+    ctx.registerAction("createMemorial", async (...args: unknown[]) => {
+      const form = args[0] as {
+        name: string; photoHash: string; relationship: string;
+        birthYear: number; deathYear: number; biography: string; obituary: string;
+      };
       await ctx.services.notify.guard(() => shrine.createMemorial(form), "createSuccess");
     });
-    ctx.registerAction("payTribute", async (
-      memorialId: number, offeringType: number, offeringCost: number, message: string,
-    ) => {
+    ctx.registerAction("payTribute", async (...args: unknown[]) => {
+      const [memorialId, offeringType, message, receiptId] = args;
       await ctx.services.notify.guard(
-        () => shrine.payTribute(memorialId, offeringType, offeringCost, message),
+        () => shrine.payTribute(
+          Number(memorialId),
+          Number(offeringType),
+          String(message ?? ""),
+          receiptId == null ? undefined : String(receiptId),
+        ),
         "tributeSuccess",
       );
     });
@@ -50,6 +58,7 @@ defineMiniApp({
         obituaryCount: shrine.obituaryCount,
         isSubmitting: shrine.isSubmitting,
         isPaying: shrine.isPaying,
+        lastTx: shrine.lastTx,
       }),
       loadData: shrine.loadAll,
       cleanup: () => { shrine.cleanupTimers(); },

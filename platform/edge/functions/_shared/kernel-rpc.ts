@@ -2,9 +2,9 @@
  * Morpheus Oracle kernel RPC helpers.
  *
  * The kernel contract provides:
- * - RegisterMiniApp / GetMiniApp / UpdateMiniApp
- * - PutMiniAppState / GetMiniAppState / DeleteMiniAppState
- * - SubmitMiniAppRequest / FulfillRequest
+ * - registerMiniApp / getMiniApp / configureMiniApp
+ * - putMiniAppState / getMiniAppState / deleteMiniAppState
+ * - submitMiniAppRequest / fulfillRequest
  *
  * These helpers build invocation intents that the OS service handler
  * sends to the kernel instead of individual miniapp contracts.
@@ -54,7 +54,7 @@ export function requireKernelHash(): string {
 export function buildKernelStateRead(appId: string, stateKey: string) {
   return {
     contract: getKernelHash(),
-    operation: "GetMiniAppState",
+    operation: "getMiniAppState",
     args: [
       { type: "String", value: appId },
       { type: "ByteArray", value: stringToHex(stateKey) },
@@ -69,7 +69,7 @@ export function buildKernelStateWrite(
 ) {
   return {
     contract: getKernelHash(),
-    operation: "PutMiniAppState",
+    operation: "putMiniAppState",
     args: [
       { type: "String", value: appId },
       { type: "ByteArray", value: stringToHex(stateKey) },
@@ -81,7 +81,7 @@ export function buildKernelStateWrite(
 export function buildKernelStateDelete(appId: string, stateKey: string) {
   return {
     contract: getKernelHash(),
-    operation: "DeleteMiniAppState",
+    operation: "deleteMiniAppState",
     args: [
       { type: "String", value: appId },
       { type: "ByteArray", value: stringToHex(stateKey) },
@@ -96,7 +96,7 @@ export function buildKernelStateBatchWrite(
 ) {
   return {
     contract: getKernelHash(),
-    operation: "PutMiniAppStateBatch",
+    operation: "putMiniAppStateBatch",
     args: [
       { type: "String", value: appId },
       {

@@ -168,6 +168,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           {activeTab === "projects" && (
             <div className="qf-content-grid">
               <NeoCard title={t("registerProject")} className="qf-form-panel">
+                <p className="qf-panel-hint">
+                  {selectedRound ? selectedRoundDisplay : t("qfSelectRoundBeforeProject")}
+                </p>
                 <div className="qf-form-grid">
                   <NeoInput
                     value={projectName}
@@ -189,7 +192,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   />
                 </div>
                 <div className="qf-panel-footer">
-                  <span>{selectedRound ? selectedRoundDisplay : t("qfSelectRoundBeforeProject")}</span>
                   <NeoButton
                     variant="primary"
                     onClick={() =>
@@ -255,6 +257,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <span>{t("sidebarSelectedRound")}</span>
                 <strong>{selectedRound ? selectedRoundDisplay : t("qfNoRoundTitle")}</strong>
               </div>
+              <p className="qf-panel-hint">
+                {selectedRound ? t("qfContributionHint") : t("selectRoundFirst")}
+              </p>
               <div className="qf-form-grid">
                 <NeoInput
                   value={contributeProjectId}
@@ -276,7 +281,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 />
               </div>
               <div className="qf-panel-footer">
-                <span>{selectedRound ? t("qfContributionHint") : t("selectRoundFirst")}</span>
                 <NeoButton
                   variant="primary"
                   disabled={!selectedRound}
@@ -297,17 +301,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
         <aside className="qf-side-column" aria-label={t("qfTrustTitle")}>
           <div className="qf-impact-strip">
-            <div>
-              <strong>{t("qfTrustItemOne")}</strong>
-              <span>{t("step1")}</span>
+            <p className="qf-impact-title">{t("qfTrustTitle")}</p>
+            <div className="qf-impact-step">
+              <span className="qf-impact-num" aria-hidden="true">1</span>
+              <div>
+                <strong>{t("qfTrustItemOne")}</strong>
+                <span>{t("step1")}</span>
+              </div>
             </div>
-            <div>
-              <strong>{t("qfTrustItemTwo")}</strong>
-              <span>{t("step3")}</span>
+            <div className="qf-impact-step">
+              <span className="qf-impact-num" aria-hidden="true">2</span>
+              <div>
+                <strong>{t("qfTrustItemTwo")}</strong>
+                <span>{t("step3")}</span>
+              </div>
             </div>
-            <div>
-              <strong>{t("qfTrustItemThree")}</strong>
-              <span>{t("step4")}</span>
+            <div className="qf-impact-step">
+              <span className="qf-impact-num" aria-hidden="true">3</span>
+              <div>
+                <strong>{t("qfTrustItemThree")}</strong>
+                <span>{t("step4")}</span>
+              </div>
             </div>
           </div>
         </aside>

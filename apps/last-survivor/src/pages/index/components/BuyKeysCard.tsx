@@ -5,13 +5,27 @@ interface BuyKeysCardProps {
   keyCount: string;
   estimatedCost: string;
   isPaying: boolean;
+  disabled?: boolean;
   validationError: string | null;
+  helperText?: string;
+  submitLabel?: string;
   t: (key: string, params?: Record<string, string | number>) => string;
   onKeyCountChange: (value: string) => void;
   onBuy: () => void;
 }
 
-export default function BuyKeysCard({ keyCount, estimatedCost, isPaying, t, onKeyCountChange, onBuy }: BuyKeysCardProps) {
+export default function BuyKeysCard({
+  keyCount,
+  estimatedCost,
+  isPaying,
+  disabled = false,
+  validationError,
+  helperText,
+  submitLabel,
+  t,
+  onKeyCountChange,
+  onBuy,
+}: BuyKeysCardProps) {
   const adjustKeys = (delta: number) => {
     const current = Math.max(1, Number(keyCount) || 1);
     onKeyCountChange(String(Math.max(1, current + delta)));
@@ -46,9 +60,21 @@ export default function BuyKeysCard({ keyCount, estimatedCost, isPaying, t, onKe
           {estimatedCost} {t("tokenGas")}
         </span>
       </div>
-      <span className="hint-text-glass">{t("keyPrice")}</span>
-      <NeoButton variant="primary" size="lg" block disabled={isPaying} aria-label={t("buyKeys")} onClick={onBuy}>
-        {isPaying ? t("buying") : t("buyKeys")}
+      <span className="hint-text-glass">{helperText ?? t("keyPrice")}</span>
+      {validationError && (
+        <span className="buy-keys-error" role="alert">
+          {validationError}
+        </span>
+      )}
+      <NeoButton
+        variant="primary"
+        size="lg"
+        block
+        disabled={isPaying || disabled}
+        aria-label={submitLabel ?? t("buyKeys")}
+        onClick={onBuy}
+      >
+        {isPaying ? t("buying") : (submitLabel ?? t("buyKeys"))}
       </NeoButton>
     </>
   );

@@ -6,13 +6,14 @@ interface CapsuleListProps {
 }
 
 export default function CapsuleList({ t, totalCapsules }: CapsuleListProps) {
+  const emptyText =
+    totalCapsules > 0 ? t("noLocalCapsules") : t("noCapsules");
+
   return (
     <div className="capsule-list-container">
-      {totalCapsules === 0 && (
-        <div className="empty-state">
-          <span>{t("noCapsules")}</span>
-        </div>
-      )}
+      <div className="empty-state">
+        <span>{emptyText}</span>
+      </div>
     </div>
   );
 }

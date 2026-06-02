@@ -105,16 +105,96 @@
     ],
     "operation_panel": {
       "title": "Manage Loan",
-      "subtitle": "Repay debt or top up collateral on an existing loan.",
+      "subtitle": "Create a funded testnet loan, repay debt, or top up collateral.",
       "cta_label": "Open SelfLoan",
       "operations": []
     }
   },
   "operations": [
     {
+      "name": "Create Loan",
+      "method": "createLoan",
+      "button_style": "primary",
+      "priority": "primary",
+      "description": "Locks whole NEO as collateral and calls PlatformDeFi createLoan in the same wallet transaction. Testnet can include a small GAS liquidity top-up so the loan can settle.",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-self-loan",
+          "hidden": true
+        },
+        {
+          "name": "borrower",
+          "type": "hash160",
+          "label": "Borrower",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "collateralNeo",
+          "type": "integer",
+          "label": "Collateral NEO",
+          "required": true,
+          "default_value": "1",
+          "placeholder": "1",
+          "presets": [
+            {
+              "label": "1 NEO",
+              "value": "1",
+              "helper": "min"
+            },
+            {
+              "label": "3 NEO",
+              "value": "3"
+            },
+            {
+              "label": "5 NEO",
+              "value": "5"
+            }
+          ]
+        },
+        {
+          "name": "ltvTier",
+          "type": "select",
+          "label": "LTV Tier",
+          "required": true,
+          "default_value": "1",
+          "options": [
+            {
+              "label": "Tier 1 · 20%",
+              "value": "1"
+            },
+            {
+              "label": "Tier 2 · 30%",
+              "value": "2"
+            },
+            {
+              "label": "Tier 3 · 40%",
+              "value": "3"
+            }
+          ]
+        },
+        {
+          "name": "poolTopupGas",
+          "type": "amount",
+          "label": "Liquidity Top-up GAS",
+          "required": false,
+          "default_value": "0.30",
+          "placeholder": "0.30",
+          "scale": 8
+        }
+      ]
+    },
+    {
       "name": "Repay Loan",
       "method": "repayLoan",
       "button_style": "primary",
+      "priority": "primary",
+      "description": "Prepays GAS to the SelfLoan credit ledger and calls repayLoan for the selected loan.",
       "params": [
         {
           "name": "appId",
@@ -130,6 +210,64 @@
           "label": "Loan ID",
           "required": true,
           "placeholder": "1"
+        },
+        {
+          "name": "repayGas",
+          "type": "amount",
+          "label": "Repay GAS",
+          "required": true,
+          "default_value": "0.25",
+          "placeholder": "0.25",
+          "scale": 8
+        }
+      ]
+    },
+    {
+      "name": "Add Collateral",
+      "method": "addCollateral",
+      "button_style": "secondary",
+      "priority": "secondary",
+      "description": "Transfers additional whole NEO collateral and applies it to an active loan.",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-self-loan",
+          "hidden": true
+        },
+        {
+          "name": "loanId",
+          "type": "integer",
+          "label": "Loan ID",
+          "required": true,
+          "placeholder": "1"
+        },
+        {
+          "name": "collateralNeo",
+          "type": "integer",
+          "label": "Additional NEO",
+          "required": true,
+          "default_value": "1",
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Sync Anchor Vote",
+      "method": "syncProfitAnchorVote",
+      "button_style": "secondary",
+      "priority": "operator",
+      "description": "Syncs SelfLoan collateral voting to the ProfitAnchor selected route when the runtime has been configured.",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-self-loan",
+          "hidden": true
         }
       ]
     }
@@ -157,7 +295,7 @@
   "detail_template": {
     "operation_panel": {
       "title": "Manage Loan",
-      "subtitle": "Repay debt or top up collateral on an existing loan."
+      "subtitle": "Create a funded testnet loan, repay debt, or top up collateral."
     }
   }
 }

@@ -70,6 +70,20 @@ describe("NeoLineAdapter", () => {
       args: [{ type: "Hash160", value: "NNeoLineAddress" }],
       signers: [{ account: "NNeoLineAddress", scopes: 1 }],
     })).resolves.toEqual({ txid: "0xneolinetx" });
+    await expect(adapter.invokeMultiple([
+      {
+        scriptHash: "0xcontract",
+        operation: "ClaimReward",
+        args: [{ type: "Hash160", value: "NNeoLineAddress" }],
+      },
+      {
+        scriptHash: "0xanchor",
+        operation: "RegisterAnchor",
+        args: [{ type: "String", value: "anchor-1" }],
+      },
+    ], [{ account: "NNeoLineAddress", scopes: 1 }])).resolves.toEqual({
+      txid: "0xneolinetx",
+    });
 
     expect(legacyInstance.getAccount).not.toHaveBeenCalled();
     expect(legacyInstance.invoke).not.toHaveBeenCalled();
@@ -79,6 +93,21 @@ describe("NeoLineAdapter", () => {
         operation: "claimReward",
         args: [{ type: "Hash160", value: "0xneolinehash" }],
       }],
+      [{ account: "0xneolinehash", scopes: "CalledByEntry" }],
+    );
+    expect(nep21Provider.invoke).toHaveBeenLastCalledWith(
+      [
+        {
+          hash: "0xcontract",
+          operation: "claimReward",
+          args: [{ type: "Hash160", value: "0xneolinehash" }],
+        },
+        {
+          hash: "0xanchor",
+          operation: "registerAnchor",
+          args: [{ type: "String", value: "anchor-1" }],
+        },
+      ],
       [{ account: "0xneolinehash", scopes: "CalledByEntry" }],
     );
   });

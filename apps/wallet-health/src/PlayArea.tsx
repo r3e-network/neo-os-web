@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -12,8 +12,11 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+type ReportActionState = "idle" | "addressCopied" | "reportCopied" | "reportDownloaded" | "error";
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
+  const [reportActionState, setReportActionState] = useState<ReportActionState>("idle");
 
   const address = str("address");
   const isConnected = bool("isConnected");
@@ -26,7 +29,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const riskLabel = str("riskLabel");
   const riskClass = str("riskClass");
   const riskIcon = str("riskIcon");
-  const healthStats = val<HealthStat[]>("healthStats", []) ?? [];
   const checklistItems = val<ChecklistItem[]>("checklistItems", []) ?? [];
   const recommendations = val<string[]>("recommendations", []) ?? [];
   const completedChecklistCount = num("completedChecklistCount");
@@ -41,10 +43,98 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const visibleRecommendations = recommendations.length > 0
     ? recommendations
     : [t("allSet") || "All checks look good"];
+  const healthReport = useMemo(() => {
+    const lines = [
+      t("reportTitle") || "Wallet Health Report",
+      "",
+      `${t("statNetwork") || "Network"}: ${networkLabel || "Neo N3"}`,
+      `${t("statConnection") || "Connection"}: ${connectionStatus}`,
+      `${t("walletAddress") || "Wallet address"}: ${address || t("notConnected") || "Not connected"}`,
+      `${t("statNeo") || "NEO Balance"}: ${neoDisplay}`,
+      `${t("statGas") || "GAS Balance"}: ${gasDisplay}`,
+      `${t("statScore") || "Safety Score"}: ${safetyScore}`,
+      `${t("riskInsights") || "Risk insights"}: ${riskLabel}`,
+      `${t("sectionChecklist") || "Safety Checklist"}: ${completionText}`,
+      "",
+      t("reportChecklist") || "Checklist",
+    ];
+
+    checklistItems.forEach((item) => {
+      lines.push(`${item.done ? "DONE" : "PENDING"}: ${item.title} - ${item.desc}`);
+    });
+
+    lines.push("", t("recommendationsTitle") || "Next actions");
+    visibleRecommendations.forEach((recommendation) => {
+      lines.push(`- ${recommendation}`);
+    });
+    lines.push("", `${t("reportGeneratedAt") || "Generated at"}: ${new Date().toISOString()}`);
+
+    return lines.join("\n");
+  }, [
+    address,
+    checklistItems,
+    completionText,
+    connectionStatus,
+    gasDisplay,
+    neoDisplay,
+    networkLabel,
+    riskLabel,
+    safetyScore,
+    t,
+    visibleRecommendations,
+  ]);
+  const readinessStats: HealthStat[] = [
+    {
+      label: t("networkReadiness"),
+      value: networkLabel || "Neo N3",
+    },
+    {
+      label: t("statGas"),
+      value: gasDisplay,
+    },
+    {
+      label: t("sectionChecklist"),
+      value: `${completionText} · ${riskLabel}`,
+    },
+  ];
 
   const truncateAddress = (addr: string) => {
     if (!addr || addr.length < 14) return addr;
     return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
+  };
+  const reportStatusLabel = {
+    idle: t("reportReady") || "Report ready",
+    addressCopied: t("addressCopied") || "Address copied",
+    reportCopied: t("reportCopied") || "Report copied",
+    reportDownloaded: t("reportDownloaded") || "Report downloaded",
+    error: t("reportActionError") || "Action failed",
+  }[reportActionState];
+  const copyText = async (text: string, successState: ReportActionState) => {
+    try {
+      if (!globalThis.navigator?.clipboard?.writeText) {
+        throw new Error("Clipboard unavailable");
+      }
+      await globalThis.navigator.clipboard.writeText(text);
+      setReportActionState(successState);
+    } catch (_error) {
+      setReportActionState("error");
+    }
+  };
+  const downloadReport = () => {
+    try {
+      const blob = new Blob([healthReport], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `wallet-health-${address ? address.slice(0, 8) : "report"}.txt`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setReportActionState("reportDownloaded");
+    } catch (_error) {
+      setReportActionState("error");
+    }
   };
 
   return (
@@ -125,10 +215,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           >
             {isRefreshing ? t("loading") : t("refreshBalances")}
           </NeoButton>
+          <NeoButton
+            size="md"
+            variant="secondary"
+            disabled={!address}
+            onClick={() => copyText(address, "addressCopied")}
+          >
+            {t("copyAddress") || "Copy address"}
+          </NeoButton>
+          <NeoButton
+            size="md"
+            variant="secondary"
+            onClick={() => copyText(healthReport, "reportCopied")}
+          >
+            {t("copyReport") || "Copy report"}
+          </NeoButton>
         </div>
 
         <div className="wallet-health-insight-grid">
-          {healthStats.slice(0, 3).map((stat) => (
+          {readinessStats.map((stat) => (
             <div key={stat.label} className="wallet-health-insight">
               <span>{stat.label}</span>
               <strong>{stat.value}</strong>
@@ -191,6 +296,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <li key={recommendation}>{recommendation}</li>
             ))}
           </ul>
+          <div className="wallet-health-report-actions">
+            <NeoButton size="sm" variant="secondary" onClick={downloadReport}>
+              {t("downloadReport") || "Download report"}
+            </NeoButton>
+            <span role="status" aria-live="polite">{reportStatusLabel}</span>
+          </div>
         </NeoCard>
       </aside>
     </div>

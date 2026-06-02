@@ -109,7 +109,7 @@
     {
       "name": "Fund Keys",
       "method": "fundGameCredit",
-      "description": "Send GAS credit to the game contract before buying keys.",
+      "description": "Send GAS credit before buying keys. Use a small buffer above the displayed key price so price drift does not block the purchase.",
       "button_style": "primary",
       "priority": "primary",
       "params": [
@@ -118,17 +118,17 @@
           "type": "amount",
           "label": "GAS credit",
           "required": true,
-          "placeholder": "0.10",
+          "placeholder": "0.11",
           "scale": 8,
           "presets": [
             {
-              "label": "0.10",
-              "value": "0.10",
+              "label": "0.11",
+              "value": "0.11",
               "helper": "GAS"
             },
             {
-              "label": "0.50",
-              "value": "0.50",
+              "label": "0.25",
+              "value": "0.25",
               "helper": "GAS"
             },
             {

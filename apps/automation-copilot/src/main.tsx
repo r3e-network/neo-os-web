@@ -32,6 +32,32 @@ defineMiniApp({
         successKey: "recipeBuilt",
         errorKey: "recipeFailed",
       },
+      refreshTriggers: {
+        handler: () => copilot.refreshTriggers(),
+        successKey: "triggersLoaded",
+        errorKey: "triggerListFailed",
+      },
+      toggleLatestTrigger: {
+        handler: () => copilot.toggleLatestTrigger(),
+        successKey: "triggerStatusUpdated",
+        errorKey: "triggerStatusFailed",
+      },
+    });
+
+    ctx.registerAction("registerTrigger", async () => {
+      try {
+        await copilot.registerTrigger();
+        const status = copilot.apiStatus.get() || ctx.t("triggerRegistered");
+        ctx.setStatus(
+          status,
+          status === ctx.t("handoffPrepared") ? "info" : "success",
+        );
+      } catch (error) {
+        ctx.setStatus(
+          error instanceof Error ? error.message : ctx.t("triggerFailed"),
+          "error",
+        );
+      }
     });
 
     return {
@@ -42,10 +68,19 @@ defineMiniApp({
         actionName: copilot.actionName,
         currentPrice: copilot.priceDisplay,
         renderedPayload: copilot.renderedPayload,
+        renderedTriggerRequest: copilot.renderedTriggerRequest,
         isRequesting: copilot.isRequesting,
+        isRegistering: copilot.isRegistering,
+        isRefreshing: copilot.isRefreshing,
         oracleHash: copilot.oracleHash,
         networkDisplay: copilot.networkDisplay,
         datafeedHash: copilot.datafeedHash,
+        latestTriggerId: copilot.latestTriggerId,
+        latestTriggerState: copilot.latestTriggerState,
+        latestTrigger: copilot.latestTrigger,
+        triggerCount: copilot.triggerCount,
+        apiStatus: copilot.apiStatus,
+        lastError: copilot.lastError,
       },
       loadData: copilot.loadAll,
     };

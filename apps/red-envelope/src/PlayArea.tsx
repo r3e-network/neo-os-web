@@ -67,6 +67,15 @@ function getLaunchEnvelopeId(context: MiniAppLaunchContext): string {
   return String(params.envelopeId || params.poolId || params.id || params.packet || "").trim();
 }
 
+function getLaunchCreateForm(context: MiniAppLaunchContext) {
+  const params = context.params ?? {};
+  return {
+    amount: String(params.amount || "1"),
+    count: String(params.count || params.packetCount || "8"),
+    expiryHours: String(params.expiryHours || params.expiry || "24"),
+  };
+}
+
 export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
   const { bool, val } = useStateBindings(state);
   const isLoading = bool("isLoading");
@@ -80,6 +89,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const totalCreated = val<number>("totalCreated", 0) ?? 0;
   const totalClaimed = val<number>("totalClaimed", 0) ?? 0;
   const launchedEnvelopeId = getLaunchEnvelopeId(launchContext);
+  const launchedCreateForm = getLaunchCreateForm(launchContext);
   const [selectedEnvelopeId, setSelectedEnvelopeId] = useState(launchedEnvelopeId);
   const [createForm, setCreateForm] = useState({
     amount: "1",
@@ -90,6 +100,10 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   useEffect(() => {
     if (launchedEnvelopeId) setSelectedEnvelopeId(launchedEnvelopeId);
   }, [launchedEnvelopeId]);
+
+  useEffect(() => {
+    setCreateForm(launchedCreateForm);
+  }, [launchedCreateForm.amount, launchedCreateForm.count, launchedCreateForm.expiryHours]);
 
   const activeEnvelopes = envelopes.filter((env) => {
     if (env.active === false) return false;
@@ -112,11 +126,22 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const selectedRemaining = Number(
     targetEnvelope?.remainingPackets ?? targetEnvelope?.remaining ?? Math.max(0, selectedTotal - selectedOpened),
   );
+  const createAmount = Number(createForm.amount);
+  const createCount = Number(createForm.count);
+  const createExpiryHours = Number(createForm.expiryHours);
+  const perPacketGas =
+    Number.isFinite(createAmount) && Number.isFinite(createCount) && createCount > 0
+      ? createAmount / createCount
+      : 0;
   const canCreateEnvelope =
-    Number(createForm.amount) >= 0.1 &&
-    Number(createForm.count) >= 1 &&
-    Number(createForm.count) <= 100 &&
-    Number(createForm.expiryHours) > 0;
+    Number.isFinite(createAmount) &&
+    Number.isFinite(createCount) &&
+    Number.isFinite(createExpiryHours) &&
+    createAmount >= 0.1 &&
+    createCount >= 1 &&
+    createCount <= 100 &&
+    perPacketGas >= 0.01 &&
+    createExpiryHours > 0;
 
   const setCreateField = (key: keyof typeof createForm, value: string) => {
     setCreateForm((current) => ({ ...current, [key]: value }));
@@ -186,7 +211,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               <div className="redenv-section-heading">
                 <span>{t("claimPanelTitle")}</span>
                 <strong>
-                  {targetEnvelope ? t("ready") : t("walletNotConnected")}
+                  {targetEnvelope ? t("ready") : selectedEnvelopeId ? t("readyToClaim") : t("needsEnvelopeId")}
                 </strong>
               </div>
               <div className="redenv-selected-card">
@@ -252,6 +277,16 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   placeholder="24"
                   onChange={(value) => setCreateField("expiryHours", value)}
                 />
+              </div>
+              <div className="redenv-create-summary" aria-label={t("createPreviewTitle")}>
+                <div>
+                  <span>{t("perPacketLabel")}</span>
+                  <strong>{formatGas(perPacketGas)}</strong>
+                </div>
+                <div>
+                  <span>{t("expiryHours")}</span>
+                  <strong>{Number.isFinite(createExpiryHours) ? `${createExpiryHours} ${t("hoursSuffix")}` : "--"}</strong>
+                </div>
               </div>
               <NeoButton
                 variant="secondary"

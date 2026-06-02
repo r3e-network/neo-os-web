@@ -1,13 +1,17 @@
+import { useEffect, useMemo } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 import AlbumGrid from "./components/AlbumGrid";
+import { getForeverAlbumLaunchDefaults } from "./launch";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext: MiniAppLaunchContext;
 }
 
 type PhotoView = {
@@ -23,14 +27,33 @@ type SelectedImage = {
   size?: number;
 };
 
+type TxReceipt = {
+  txid?: string;
+  success?: boolean;
+};
+
 function formatBytes(value: number, t: PlayAreaProps["t"]) {
   if (!Number.isFinite(value) || value <= 0) return `0 ${t("sizeUnitByte")}`;
   if (value < 1024) return `${value} ${t("sizeUnitByte")}`;
   return `${(value / 1024).toFixed(1)} ${t("sizeUnitKbyte")}`;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+function compactTxId(txid: string) {
+  if (txid.length <= 18) return txid;
+  return `${txid.slice(0, 10)}...${txid.slice(-8)}`;
+}
+
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  launchContext,
+}: PlayAreaProps) {
   const { num, bool, str, val } = useStateBindings(state);
+  const launchDefaults = useMemo(
+    () => getForeverAlbumLaunchDefaults(launchContext),
+    [launchContext.signature],
+  );
 
   const photosCount = num("photosCount");
   const encryptedCount = num("encryptedCount");
@@ -42,13 +65,40 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const decrypting = bool("decrypting");
   const isEncrypted = bool("isEncrypted");
   const password = str("password", "");
+  const uploadError = str("uploadError", "");
   const decryptedPreview = str("decryptedPreview", "");
   const totalPayloadSize = num("totalPayloadSize");
   const photos = val<PhotoView[]>("photos") ?? [];
   const viewingPhoto = val<PhotoView | null>("viewingPhoto", null);
   const selectedImages = val<SelectedImage[]>("selectedImages") ?? [];
+  const lastTx = val<TxReceipt | null>("lastTx", null);
   const uploadLimit = 60 * 1024;
-  const uploadPct = Math.min(100, Math.round((totalPayloadSize / uploadLimit) * 100));
+  const uploadPct = Math.min(
+    100,
+    Math.round((totalPayloadSize / uploadLimit) * 100),
+  );
+  const passwordMissing = isEncrypted && password.trim().length === 0;
+  const payloadTooLarge = totalPayloadSize > uploadLimit;
+  const uploadDisabled =
+    selectedImages.length === 0 ||
+    uploading ||
+    passwordMissing ||
+    payloadTooLarge;
+  const uploadReadiness = uploading
+    ? t("uploading")
+    : passwordMissing
+      ? t("passwordRequired")
+      : payloadTooLarge
+        ? t("totalTooLarge")
+        : selectedImages.length > 0
+          ? t("readyToSign")
+          : isEncrypted
+            ? t("encryptionNote")
+            : t("vaultPublicNote");
+
+  useEffect(() => {
+    state.isEncrypted?.set(launchDefaults.isEncrypted);
+  }, [launchContext.signature, launchDefaults.isEncrypted, state.isEncrypted]);
 
   const setPassword = (value: string) => {
     state.password?.set(value);
@@ -65,20 +115,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const openFilePicker = () => {
-    document.querySelector<HTMLInputElement>(".forever-album-file-picker input")?.click();
+    document
+      .querySelector<HTMLInputElement>(".forever-album-file-picker input")
+      ?.click();
   };
-
-  const uploadDisabled = selectedImages.length === 0 || uploading;
 
   return (
     <div className="album-play-area">
       <div className="forever-album-shell">
         <main className="forever-album-main">
-          <section className="forever-album-hero" aria-labelledby="forever-album-title">
+          <section
+            className="forever-album-hero"
+            aria-labelledby="forever-album-title"
+          >
             <div className="forever-album-hero-copy">
               <div className="forever-album-hero-badge">
                 <span className="forever-album-hero-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="22"
+                    height="22"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <rect x="3" y="3" width="18" height="18" rx="3" />
                     <circle cx="8.5" cy="8.5" r="1.6" />
                     <path d="m21 15-5-5L5 21" />
@@ -92,18 +154,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <NeoButton variant="primary" onClick={openFilePicker}>
                   {t("emptyAction")}
                 </NeoButton>
-                <NeoButton variant="secondary" disabled={loadingPhotos} onClick={() => dispatch("refreshPhotos")}>
+                <NeoButton
+                  variant="secondary"
+                  disabled={loadingPhotos}
+                  onClick={() => dispatch("refreshPhotos")}
+                >
                   {t("refreshAlbum")}
                 </NeoButton>
               </div>
             </div>
 
-            <div className="forever-album-device" aria-label={t("vaultRouteTitle")}>
+            <div
+              className="forever-album-device"
+              aria-label={t("vaultRouteTitle")}
+            >
               <div className="forever-album-device-head">
                 <span>{t("vaultRouteTitle")}</span>
                 <strong>{formatBytes(totalPayloadSize, t)}</strong>
               </div>
-              <div className="forever-album-progress" aria-label={t("sizeHint", { size: formatBytes(totalPayloadSize, t), max: "60 KB" })}>
+              <div
+                className="forever-album-progress"
+                aria-label={t("sizeHint", {
+                  size: formatBytes(totalPayloadSize, t),
+                  max: "60 KB",
+                })}
+              >
                 <span style={{ width: `${Math.max(4, uploadPct)}%` }} />
               </div>
               <div className="forever-album-device-steps">
@@ -123,7 +198,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </section>
 
-          <div className="forever-album-vault-strip" aria-label={t("vaultStatsTitle")}>
+          <div
+            className="forever-album-vault-strip"
+            aria-label={t("vaultStatsTitle")}
+          >
             <div className="forever-album-vault-item">
               <span>{t("albumTab")}</span>
               <strong>{photosCount}</strong>
@@ -151,7 +229,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               onUpload={openFilePicker}
             />
 
-            <NeoCard title={t("vaultUploadTitle")} className="forever-album-upload-panel">
+            <NeoCard
+              title={t("vaultUploadTitle")}
+              className="forever-album-upload-panel"
+            >
               <label className="forever-album-file-picker">
                 <span>{t("chooseFiles")}</span>
                 <small>{t("tapToSelect")}</small>
@@ -167,13 +248,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </label>
 
               <div className="forever-album-upload-meta">
-                <span>{t("selectedCount")}: {selectedImages.length}</span>
-                <span>{t("payloadSize")}: {formatBytes(totalPayloadSize, t)}</span>
+                <span>
+                  {t("selectedCount")}: {selectedImages.length}
+                </span>
+                <span>
+                  {t("payloadSize")}: {formatBytes(totalPayloadSize, t)}
+                </span>
               </div>
 
               <div className="forever-album-upload-meter">
                 <span style={{ width: `${Math.max(4, uploadPct)}%` }} />
               </div>
+
+              {uploadError && (
+                <div
+                  className="forever-album-upload-error"
+                  role="alert"
+                  aria-live="polite"
+                >
+                  <strong>{t("uploadNeedsAttention")}</strong>
+                  <span>{uploadError}</span>
+                </div>
+              )}
 
               <label className="forever-album-encrypt-toggle">
                 <input
@@ -216,7 +312,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               )}
 
               <div className="forever-album-panel-footer">
-                <span>{isEncrypted ? t("encryptionNote") : t("vaultPublicNote")}</span>
+                <span>{uploadReadiness}</span>
                 <NeoButton
                   variant="primary"
                   disabled={uploadDisabled}
@@ -226,12 +322,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {t("upload")}
                 </NeoButton>
               </div>
+
+              {lastTx?.txid && (
+                <div
+                  className="forever-album-tx-receipt"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span>{t("lastTransaction")}</span>
+                  <strong title={lastTx.txid}>{compactTxId(lastTx.txid)}</strong>
+                  <em>
+                    {lastTx.success === false
+                      ? t("transactionPending")
+                      : t("transactionConfirmed")}
+                  </em>
+                </div>
+              )}
             </NeoCard>
           </div>
         </main>
 
-        <aside className="forever-album-side" aria-label={t("vaultPrivacyTitle")}>
-          <NeoCard title={t("vaultPrivacyTitle")} className="forever-album-timeline">
+        <aside
+          className="forever-album-side"
+          aria-label={t("vaultPrivacyTitle")}
+        >
+          <NeoCard
+            title={t("vaultPrivacyTitle")}
+            className="forever-album-timeline"
+          >
             <div>
               <strong>{t("vaultTimelineOne")}</strong>
               <span>{t("step1")}</span>
@@ -267,23 +385,40 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <NeoCard variant="erobo" className="viewer-card">
           <div className="viewer-header">
             <span className="viewer-title">{t("photoViewer")}</span>
-            <NeoButton variant="secondary" onClick={() => dispatch("closeViewer")} aria-label={t("close")}>
+            <NeoButton
+              variant="secondary"
+              onClick={() => dispatch("closeViewer")}
+              aria-label={t("close")}
+            >
               {t("close")}
             </NeoButton>
           </div>
           {viewingPhoto.encrypted ? (
             <div className="encrypted-notice">
               <span>{t("photoEncrypted")}</span>
-              <NeoButton variant="primary" onClick={() => dispatch("openDecrypt")} aria-label={t("decrypt")}>
+              <NeoButton
+                variant="primary"
+                onClick={() => dispatch("openDecrypt")}
+                aria-label={t("decrypt")}
+              >
                 {t("decrypt")}
               </NeoButton>
             </div>
           ) : (
-            <img src={viewingPhoto.data} className="viewer-img" alt={t("albumPhoto")} />
+            <img
+              src={viewingPhoto.data}
+              className="viewer-img"
+              alt={t("albumPhoto")}
+            />
           )}
           <div className="viewer-meta">
-            <span className="meta-label">{t("photoId")}: {viewingPhoto.id}</span>
-            <span className="meta-label">{t("createdAt")}: {new Date(viewingPhoto.createdAt).toLocaleDateString()}</span>
+            <span className="meta-label">
+              {t("photoId")}: {viewingPhoto.id}
+            </span>
+            <span className="meta-label">
+              {t("createdAt")}:{" "}
+              {new Date(viewingPhoto.createdAt).toLocaleDateString()}
+            </span>
           </div>
         </NeoCard>
       )}
@@ -292,7 +427,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <NeoCard variant="erobo" className="decrypt-card">
           <div className="decrypt-header">
             <span className="decrypt-title">{t("decryptTitle")}</span>
-            <NeoButton variant="secondary" onClick={() => dispatch("closeDecrypt")} aria-label={t("close")}>
+            <NeoButton
+              variant="secondary"
+              onClick={() => dispatch("closeDecrypt")}
+              aria-label={t("close")}
+            >
               {t("close")}
             </NeoButton>
           </div>
@@ -312,7 +451,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {t("decrypt")}
           </NeoButton>
           {decryptedPreview && (
-            <img src={decryptedPreview} className="decrypted-img" alt={t("decryptedPhoto")} />
+            <img
+              src={decryptedPreview}
+              className="decrypted-img"
+              alt={t("decryptedPhoto")}
+            />
           )}
         </NeoCard>
       )}

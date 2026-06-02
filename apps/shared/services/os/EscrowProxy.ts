@@ -14,8 +14,11 @@ export class EscrowProxy extends OSServiceProxy {
     return this.call("create", params);
   }
 
-  async fund(escrowId: string): Promise<void> {
-    await this.call("fund", { escrowId });
+  async fund(escrowId: string, milestoneIndex?: number): Promise<void> {
+    await this.call("fund", {
+      escrowId,
+      ...(typeof milestoneIndex === "number" ? { milestoneIndex } : {}),
+    });
   }
 
   async completeMilestone(escrowId: string, index: number): Promise<void> {

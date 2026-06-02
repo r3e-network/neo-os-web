@@ -19,6 +19,7 @@ import {
   buildEmbeddedDappUrl,
   formatGas,
   getMetric,
+  useEmbeddedWalletBridge,
   useLaunchParamState,
 } from "./PlayAreaShared";
 import type { PlayAreaRegistryProps } from "./PlayAreaShared";
@@ -36,6 +37,9 @@ export function ForeverAlbumPlayArea(props: PlayAreaRegistryProps) {
     onRefresh,
   } = props;
   const dappUrl = buildEmbeddedDappUrl(app, network, launchContext);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEmbeddedWalletBridge({ appId: app.app_id, iframeRef, network });
 
   return (
     <PlayShell
@@ -72,8 +76,10 @@ export function ForeverAlbumPlayArea(props: PlayAreaRegistryProps) {
           </a>
           {/* Audit fix C-4: sandbox the miniapp iframe; see PlayAreaShared.tsx. */}
           <iframe
+            ref={iframeRef}
             title="Forever Album uploader"
             src={dappUrl}
+            data-wallet-bridge="neo-miniapp-host"
             className="block h-[720px] w-full border-0 bg-white"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"

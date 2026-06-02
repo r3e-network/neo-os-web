@@ -1,24 +1,11 @@
-/**
- * PlayArea.tsx -- Daily Check-in
- *
- * Fully interactive PlayArea consuming ALL available state:
- *   currentStreak/currentStreakRaw, highestStreak/highestStreakRaw,
- *   totalUserCheckins, unclaimedRewards, totalClaimed,
- *   totalGlobalCheckins, totalGlobalUsers, totalGlobalRewarded,
- *   canCheckIn, isLoading, isClaiming,
- *   utcTimeDisplay, nextUtcMidnight, checkinHistory
- *
- * Actions: doCheckIn(), claimRewards()
- */
-
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import { formatGas } from "@shared/utils/format";
 import CountdownTimer from "./components/CountdownTimer";
 import { MS_PER_DAY, MILESTONES } from "./composables/useCheckin";
 import type { CheckinHistoryItem } from "./composables/useCheckin";
-import { formatGas } from "@shared/utils/format";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -27,165 +14,157 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+const evidenceText = (value: unknown, empty: string): string => {
+  if (!value) return empty;
+  return JSON.stringify(value, null, 2);
+};
+
+const formatHistoryTime = (value: string): string => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toISOString().replace("T", " ").slice(0, 19);
+};
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
-  // -- User state --
   const currentStreak = num("currentStreakRaw");
   const highestStreak = num("highestStreakRaw");
-  const currentStreakFormatted = str("currentStreak", "0 days");
-  const highestStreakFormatted = str("highestStreak", "0 days");
+  const currentStreakFormatted = str("currentStreak", `0 ${t("days")}`);
+  const highestStreakFormatted = str("highestStreak", `0 ${t("days")}`);
   const totalUserCheckins = num("totalUserCheckins");
   const unclaimedRewards = num("unclaimedRewards");
   const totalClaimed = num("totalClaimed");
+  const checkInFee = num("checkInFee", 100000);
 
-  // -- Global stats --
   const totalGlobalCheckins = num("totalGlobalCheckins");
   const totalGlobalUsers = num("totalGlobalUsers");
   const totalGlobalRewarded = num("totalGlobalRewarded");
 
-  // -- Flags --
   const canCheckIn = bool("canCheckIn");
   const isLoading = bool("isLoading");
   const isClaiming = bool("isClaiming");
+  const workflowStatus = str("workflowStatus", t("workflowReady"));
+  const lastError = str("lastError");
 
-  // -- Time --
   const utcTimeDisplay = str("utcTimeDisplay", "00:00:00");
   const nextUtcMidnight = num("nextUtcMidnight");
-
-  // -- History --
   const checkinHistory = val<CheckinHistoryItem[]>("checkinHistory") ?? [];
+  const latestRequest = val("latestRequest");
+  const latestResult = val("latestResult");
 
-  // -- Streak tier --
-  const streakTier = useMemo(() => {
-    if (currentStreak >= 30) return "inferno";
-    if (currentStreak >= 7) return "blaze";
-    if (currentStreak > 0) return "spark";
-    return "cold";
-  }, [currentStreak]);
+  const nextMilestone = useMemo(
+    () => MILESTONES.find((milestone) => currentStreak < milestone.day) ?? MILESTONES[0],
+    [currentStreak],
+  );
+  const daysToReward = Math.max(nextMilestone.day - currentStreak, 0);
+  const weekSlotFilled = currentStreak >= 7 && currentStreak % 7 === 0 ? 7 : currentStreak % 7;
+  const weekSlotToday = weekSlotFilled === 7 && canCheckIn ? 1 : Math.min(weekSlotFilled + 1, 7);
+  const nextStreak = canCheckIn ? currentStreak + 1 : currentStreak;
+  const upcomingCheckinReward = canCheckIn
+    ? MILESTONES.find((milestone) => milestone.day === nextStreak)?.reward ?? 0
+    : 0;
+  const securedMilestone = !canCheckIn
+    ? MILESTONES.find((milestone) => milestone.day === currentStreak)
+    : undefined;
+  const milestoneTitle = canCheckIn
+    ? upcomingCheckinReward > 0
+      ? `+${upcomingCheckinReward} ${t("tokenGas")}`
+      : t("noImmediateReward")
+    : securedMilestone
+      ? t("milestoneSecured", { day: securedMilestone.day })
+      : t("noImmediateReward");
+  const milestoneCopy = canCheckIn
+    ? upcomingCheckinReward > 0
+      ? t("milestoneImpactReady", { day: nextStreak })
+      : t("milestoneImpactPending", { days: daysToReward })
+    : securedMilestone
+      ? t("milestoneSecuredCopy", { days: daysToReward })
+      : t("milestoneDonePending", { days: daysToReward });
+  const claimAmountLabel = `${formatGas(unclaimedRewards)} ${t("tokenGas")}`;
+  const checkInFeeLabel = `${formatGas(checkInFee)} ${t("tokenGas")}`;
+  const todayPlanTitle = canCheckIn ? t("todayPlanReady") : t("todayPlanDone");
+  const todayPlanCopy = canCheckIn
+    ? t("todayPlanReadyCopy", { streak: nextStreak })
+    : t("todayPlanDoneCopy");
+  const rewardPlanTitle = unclaimedRewards > 0 ? t("rewardPlanReady") : t("rewardPlanEmpty");
+  const rewardPlanCopy = unclaimedRewards > 0
+    ? t("rewardPlanReadyCopy", { amount: claimAmountLabel })
+    : t("rewardPlanEmptyCopy");
+  const windowCheck = {
+    label: t("checkUtcWindow"),
+    done: canCheckIn,
+    value: canCheckIn ? t("checkReady") : t("checkComplete"),
+  };
+  const feeCheck = {
+    label: t("checkFeeVisible"),
+    done: checkInFee > 0,
+    value: checkInFeeLabel,
+  };
+  const claimCheck = {
+    label: t("checkClaimable"),
+    done: unclaimedRewards > 0,
+    value: claimAmountLabel,
+  };
 
-  const streakTierLabel = useMemo(() => {
-    if (currentStreak >= 30) return "INFERNO";
-    if (currentStreak >= 7) return "BLAZE";
-    if (currentStreak > 0) return "SPARK";
-    return "";
-  }, [currentStreak]);
-
-  // -- Reward preview --
-  const nextRewardAmount = useMemo(() => {
-    const streak = currentStreak + 1;
-    if (streak >= 30) return 5;
-    if (streak >= 14) return 3;
-    if (streak >= 7) return 2;
-    return 1;
-  }, [currentStreak]);
-
-  // -- Week calendar --
-  const weekSlotFilled = useMemo(() => {
-    const mod = currentStreak % 7;
-    return currentStreak >= 7 && mod === 0 ? 7 : mod;
-  }, [currentStreak]);
-
-  const weekSlotToday = useMemo(() => {
-    return weekSlotFilled === 7 && canCheckIn ? 1 : weekSlotFilled + 1;
-  }, [weekSlotFilled, canCheckIn]);
-
-  // -- Confetti --
   const [showConfetti, setShowConfetti] = useState(false);
-  const confettiColors = ["#ff6b35", "#fbbf24", "#34d399", "#ff8a5c", "#c41e3a", "#ffd700"];
-
-  const confettiStyle = (i: number) => ({
-    left: `${5 + Math.random() * 90}%`,
-    animationDelay: `${Math.random() * 0.5}s`,
-    animationDuration: `${1.5 + Math.random() * 1.5}s`,
-    backgroundColor: confettiColors[i % confettiColors.length],
-    width: `${6 + Math.random() * 6}px`,
-    height: `${6 + Math.random() * 6}px`,
-    borderRadius: Math.random() > 0.5 ? "50%" : "2px",
-    transform: `rotate(${Math.random() * 360}deg)`,
-  });
-
-  // -- Watch for check-in success to fire confetti --
   const [prevCanCheckIn, setPrevCanCheckIn] = useState(canCheckIn);
   useEffect(() => {
     if (prevCanCheckIn === true && canCheckIn === false) {
       setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 3000);
+      const timer = setTimeout(() => setShowConfetti(false), 2200);
       return () => clearTimeout(timer);
     }
     setPrevCanCheckIn(canCheckIn);
   }, [canCheckIn, prevCanCheckIn]);
 
-  // -- Handlers --
-  const handleCheckIn = async () => {
-    await dispatch("doCheckIn");
-  };
-
-  const handleClaim = async () => {
-    await dispatch("claimRewards");
-  };
+  const streakTier = currentStreak >= 14 ? "blaze" : currentStreak >= 7 ? "spark" : "cold";
+  const checkInDisabled = !canCheckIn || isLoading;
+  const claimDisabled = unclaimedRewards <= 0 || isClaiming;
 
   return (
-    <div className={`checkin-play-area${currentStreak > 0 ? " streak-active" : ""}`}>
-      {/* Floating embers background */}
-      <div className="flame-bg-effects">
-        <div className="ember ember-1" />
-        <div className="ember ember-2" />
-        <div className="ember ember-3" />
-      </div>
-
-      {/* ── 1. Hero — streak identity card ── */}
+    <div className={`checkin-play-area streak-${streakTier}`}>
       <div className="checkin-streak-section">
-        <div className={`checkin-fire-ring ${streakTier}${currentStreak > 0 ? " active" : ""}`}>
-          <div className="checkin-flame-stack" aria-hidden="true">
-            <span className="checkin-flame checkin-flame-core">*</span>
-            {currentStreak >= 7 && <span className="checkin-flame checkin-flame-outer">**</span>}
-            {currentStreak >= 30 && <span className="checkin-flame checkin-flame-inferno">***</span>}
-          </div>
-          <span key={currentStreak} className="checkin-streak-number">{currentStreak}</span>
+        <div className={`checkin-fire-ring ${streakTier}`}>
+          <span className="checkin-streak-number">{currentStreak}</span>
         </div>
         <div className="checkin-hero-body">
-          <span className="checkin-hero-eyebrow">{t("title") || "Daily Check-in"}</span>
-          <span className="checkin-streak-text">{currentStreak} {t("dayStreak") || "Day Streak"}</span>
-          <span className="checkin-hero-subtitle">{t("docSubtitle") || "Earn GAS by checking in daily"}</span>
+          <span className="checkin-hero-eyebrow">{t("title")}</span>
+          <span className="checkin-streak-text">{currentStreak} {t("dayStreak")}</span>
+          <span className="checkin-hero-subtitle">{t("docSubtitle")}</span>
         </div>
-        {streakTierLabel && (
-          <span className={`checkin-tier-badge ${streakTier}`}>{streakTierLabel}</span>
-        )}
-        <span className="checkin-best-text">
-          {t("bestStreak") || "Best"}: {highestStreakFormatted}
+        <span className={`checkin-tier-badge ${streakTier}`}>
+          {canCheckIn ? t("checkInReady") : t("checkedInToday")}
         </span>
+        <span className="checkin-best-text">{t("bestStreak")}: {highestStreakFormatted}</span>
       </div>
 
-      {/* ── 2. Week Progress Calendar ── */}
-      <div className="checkin-week-wrapper">
+      <div className="checkin-week-wrapper" aria-label={t("rewardProgress")}>
         <div className="checkin-week-progress-label">
-          <span className="checkin-progress-text">{weekSlotFilled}/7 days</span>
-          {weekSlotFilled === 7 && <span className="checkin-week-complete-badge">{t("complete") || "COMPLETE"}</span>}
+          <span className="checkin-progress-text">{weekSlotFilled}/7 {t("days")}</span>
+          <span className="checkin-week-complete-badge">
+            {daysToReward === 0 ? t("milestoneReached") : t("daysToReward", { days: daysToReward })}
+          </span>
         </div>
         <div className="checkin-week-row">
           {Array.from({ length: 7 }, (_, i) => {
             const day = i + 1;
-            const classes = [
-              "checkin-week-day-slot",
-              day <= weekSlotFilled ? "checked" : "",
-              day === weekSlotToday ? "today" : "",
-              !canCheckIn && day === weekSlotFilled ? "today-done" : "",
-              canCheckIn && day === weekSlotToday ? "today-ready" : "",
-            ].filter(Boolean).join(" ");
-
+            const checked = day <= weekSlotFilled;
+            const today = day === weekSlotToday;
             return (
-              <div key={day} className={classes}>
-                <span
-                  className="checkin-day-icon"
-                  aria-label={day <= weekSlotFilled ? (t("dayCompleted") || "Completed") : (t("dayPending") || "Pending")}
-                >
-                  {day <= weekSlotFilled ? "\u2714" : "\u25CB"}
+              <div
+                key={day}
+                className={[
+                  "checkin-week-day-slot",
+                  checked ? "checked" : "",
+                  today ? "today" : "",
+                  today && canCheckIn ? "today-ready" : "",
+                ].filter(Boolean).join(" ")}
+              >
+                <span className="checkin-day-icon" aria-label={checked ? t("dayCompleted") : t("dayPending")}>
+                  {checked ? "\u2713" : "\u25CB"}
                 </span>
-                <span className="checkin-day-label">{t("dayPrefix") || "D"}{day}</span>
-                {day === 7 && weekSlotFilled >= 7 && (
-                  <span className="checkin-bonus-star" aria-hidden="true">*</span>
-                )}
+                <span className="checkin-day-label">{t("dayPrefix")}{day}</span>
               </div>
             );
           })}
@@ -195,175 +174,228 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
-      {/* ── 3. UTC Clock + Countdown ── */}
       <div className="countdown-section">
         <div className="utc-clock" role="timer" aria-live="polite">
           <span className="clock-display">{utcTimeDisplay}</span>
-          <span className="clock-utc-label">{t("utcLabel") || "UTC"}</span>
+          <span className="clock-utc-label">{t("utcLabel")}</span>
         </div>
         <CountdownTimer
           targetTime={nextUtcMidnight}
           totalDuration={MS_PER_DAY}
-          label={t("nextCheckin") || "Next Check-in"}
+          label={t("nextCheckin")}
           t={t}
         />
       </div>
 
-      {/* ── 4. Status Pill ── */}
-      <div className={`status-pill${canCheckIn ? " ready" : ""}`}>
-        <span>{canCheckIn ? (t("statusReady") || "Ready to Check In") : (t("statusDone") || "Checked In Today")}</span>
+      <div className={`status-pill${lastError ? " error" : canCheckIn ? " ready" : ""}`}>
+        <span>{lastError || workflowStatus}</span>
       </div>
 
-      {/* ── 5. Reward Preview (visible when can check in) ── */}
-      {canCheckIn && (
-        <div className="reward-preview">
-          <span className="reward-preview-label">{t("checkInNow") || "CHECK IN NOW"}</span>
-          <div className="reward-preview-amount">
-            <span>+{nextRewardAmount} {t("tokenGas") || "GAS"}</span>
-          </div>
-          <span className="reward-preview-hint">{t("dayStreak") || "Day Streak"} {currentStreak + 1}</span>
+      <div className="reward-preview">
+        <div>
+          <span className="reward-preview-label">{t("nextReward")}</span>
+          <span className="reward-preview-hint">{t("day")} {nextMilestone.day}</span>
         </div>
-      )}
+        <div className="reward-preview-amount">+{nextMilestone.reward} {t("tokenGas")}</div>
+        <div>
+          <span className="reward-preview-label">{t("checkInFee")}</span>
+          <span className="reward-preview-hint">{formatGas(checkInFee)} {t("tokenGas")}</span>
+        </div>
+      </div>
 
-      {/* ── 6. Check-In Button ── */}
-      <NeoCard variant="erobo" className="action-card">
-        <NeoButton
-          variant={canCheckIn ? "success" : "secondary"}
-          size="lg"
-          block
-          disabled={!canCheckIn || isLoading}
-          loading={isLoading}
-          className={`checkin-btn${canCheckIn ? " checkin-btn--ready" : ""}`}
-          onClick={handleCheckIn}
-        >
-          <div className="btn-content">
-            <span>{canCheckIn ? (t("checkInNow") || "CHECK IN") : (t("waitForNext") || "COME BACK TOMORROW")}</span>
+      <section className="checkin-decision-panel" aria-label={t("todayPlan")}>
+        <div className="checkin-decision-header">
+          <span>{t("todayPlan")}</span>
+          <strong>{t("todayPlanSubtitle")}</strong>
+        </div>
+        <div className="checkin-decision-grid">
+          <div className={`checkin-decision-tile${windowCheck.done ? " is-ready" : " is-done"}`}>
+            <div className="checkin-decision-tile-top">
+              <span>{t("dailyWindow")}</span>
+              <em
+                className={`checkin-decision-badge${windowCheck.done ? " is-ready" : ""}`}
+                aria-label={`${windowCheck.label}: ${windowCheck.value}`}
+              >
+                {windowCheck.done ? "✓" : "○"} {windowCheck.value}
+              </em>
+            </div>
+            <strong>{todayPlanTitle}</strong>
+            <p>{todayPlanCopy}</p>
           </div>
-        </NeoButton>
+          <div className={`checkin-decision-tile${upcomingCheckinReward > 0 ? " is-ready" : securedMilestone ? " is-done" : ""}`}>
+            <div className="checkin-decision-tile-top">
+              <span>{t("milestoneImpact")}</span>
+              <em
+                className={`checkin-decision-badge${feeCheck.done ? " is-ready" : ""}`}
+                aria-label={`${feeCheck.label}: ${feeCheck.value}`}
+              >
+                {feeCheck.done ? "✓" : "○"} {feeCheck.value}
+              </em>
+            </div>
+            <strong>{milestoneTitle}</strong>
+            <p>{milestoneCopy}</p>
+          </div>
+          <div className={`checkin-decision-tile${unclaimedRewards > 0 ? " is-ready" : ""}`}>
+            <div className="checkin-decision-tile-top">
+              <span>{t("claimPlan")}</span>
+              <em
+                className={`checkin-decision-badge${claimCheck.done ? " is-ready" : ""}`}
+                aria-label={`${claimCheck.label}: ${claimCheck.value}`}
+              >
+                {claimCheck.done ? "✓" : "○"} {claimCheck.value}
+              </em>
+            </div>
+            <strong>{rewardPlanTitle}</strong>
+            <p>{rewardPlanCopy}</p>
+          </div>
+        </div>
+      </section>
+
+      <NeoCard variant="erobo" className="checkin-action-card">
+        <div className="checkin-actions-grid">
+          <NeoButton
+            variant={canCheckIn ? "success" : "secondary"}
+            size="lg"
+            disabled={checkInDisabled}
+            loading={isLoading}
+            className={`checkin-btn${canCheckIn ? " checkin-btn--ready" : ""}`}
+            onClick={() => dispatch("doCheckIn")}
+            aria-label={canCheckIn ? t("checkInNow") : t("waitForNext")}
+          >
+            {canCheckIn ? t("checkInNow") : t("waitForNext")}
+          </NeoButton>
+          <NeoButton
+            variant="primary"
+            size="lg"
+            disabled={claimDisabled}
+            loading={isClaiming}
+            className="checkin-claim-btn"
+            onClick={() => dispatch("claimRewards")}
+            aria-label={t("claimRewards")}
+          >
+            {t("claimRewards")} ({formatGas(unclaimedRewards)} {t("tokenGas")})
+          </NeoButton>
+          <NeoButton
+            variant="secondary"
+            size="lg"
+            disabled={isLoading}
+            onClick={() => dispatch("refreshStatus")}
+            aria-label={t("refreshStatus")}
+          >
+            {t("refreshStatus")}
+          </NeoButton>
+        </div>
       </NeoCard>
 
-      {/* ── 7. Confetti burst on success ── */}
       {showConfetti && (
         <div className="confetti-container" aria-hidden="true">
-          {Array.from({ length: 20 }, (_, i) => (
-            <span key={i} className="confetti-piece" style={confettiStyle(i)} />
+          {Array.from({ length: 18 }, (_, i) => (
+            <span key={i} className={`confetti-piece confetti-piece-${(i % 6) + 1}`} />
           ))}
         </div>
       )}
 
-      {/* ── 8. User Stats ── */}
       <NeoCard variant="erobo" className="checkin-stats-card">
-        <h3 className="checkin-section-title">{t("yourStats") || "Your Stats"}</h3>
+        <h3 className="checkin-section-title">{t("yourStats")}</h3>
         <div className="checkin-stats-grid">
           <div className="checkin-stat-item">
             <span className="checkin-stat-value">{totalUserCheckins}</span>
-            <span className="checkin-stat-label">{t("totalCheckins") || "Total Check-ins"}</span>
+            <span className="checkin-stat-label">{t("totalCheckins")}</span>
           </div>
           <div className="checkin-stat-item">
             <span className="checkin-stat-value">{currentStreakFormatted}</span>
-            <span className="checkin-stat-label">{t("currentStreak") || "Current Streak"}</span>
+            <span className="checkin-stat-label">{t("currentStreak")}</span>
           </div>
           <div className="checkin-stat-item">
             <span className="checkin-stat-value">{highestStreakFormatted}</span>
-            <span className="checkin-stat-label">{t("highestStreak") || "Best Streak"}</span>
+            <span className="checkin-stat-label">{t("highestStreak")}</span>
           </div>
         </div>
       </NeoCard>
 
-      {/* ── 9. Rewards Section ── */}
       <NeoCard variant="erobo" className="checkin-rewards-card">
-        <h3 className="checkin-section-title">{t("rewards") || "Rewards"}</h3>
+        <h3 className="checkin-section-title">{t("yourRewards")}</h3>
         <div className="checkin-rewards-grid">
           <div className="checkin-reward-item">
-            <span className="checkin-reward-value checkin-reward-value--unclaimed">
-              {formatGas(unclaimedRewards)}
-            </span>
-            <span className="checkin-reward-label">{t("unclaimed") || "Unclaimed GAS"}</span>
+            <span className="checkin-reward-value checkin-reward-value--unclaimed">{formatGas(unclaimedRewards)}</span>
+            <span className="checkin-reward-label">{t("unclaimed")}</span>
           </div>
           <div className="checkin-reward-item">
             <span className="checkin-reward-value">{formatGas(totalClaimed)}</span>
-            <span className="checkin-reward-label">{t("totalClaimed") || "Total Claimed"}</span>
+            <span className="checkin-reward-label">{t("totalClaimed")}</span>
           </div>
         </div>
-        {unclaimedRewards > 0 && (
-          <NeoButton
-            variant="success"
-            size="md"
-            block
-            loading={isClaiming}
-            disabled={isClaiming}
-            className="checkin-claim-btn"
-            onClick={handleClaim}
-          >
-            {t("claimRewards") || "Claim Rewards"} ({formatGas(unclaimedRewards)} {t("tokenGas") || "GAS"})
-          </NeoButton>
-        )}
       </NeoCard>
 
-      {/* ── 10. Milestones ── */}
       <NeoCard variant="erobo-neo" className="checkin-milestones-card">
-        <h3 className="checkin-section-title">{t("milestones") || "Milestones"}</h3>
+        <h3 className="checkin-section-title">{t("milestones")}</h3>
         <div className="checkin-milestones-row">
           {MILESTONES.map((milestone) => {
             const reached = currentStreak >= milestone.day;
-            const next = currentStreak < milestone.day && currentStreak >= milestone.day - 7;
-            const classes = [
-              "checkin-milestone",
-              reached ? "reached" : "",
-              next ? "next" : "",
-            ].filter(Boolean).join(" ");
+            const next = !reached && currentStreak < milestone.day;
             return (
-              <div key={milestone.day} className={classes}>
-                <div className="checkin-milestone-icon">
-                  {reached ? "\u2714" : "\u25C9"}
-                </div>
-                <span className="checkin-milestone-day">{t("day") || "Day"} {milestone.day}</span>
-                <span className="checkin-milestone-reward">+{milestone.reward} {t("tokenGas") || "GAS"}</span>
-                <span className="checkin-milestone-cumulative">({milestone.cumulative} {t("total") || "total"})</span>
+              <div key={milestone.day} className={`checkin-milestone${reached ? " reached" : next ? " next" : ""}`}>
+                <div className="checkin-milestone-icon">{reached ? "\u2713" : "\u25C9"}</div>
+                <span className="checkin-milestone-day">{t("day")} {milestone.day}</span>
+                <span className="checkin-milestone-reward">+{milestone.reward} {t("tokenGas")}</span>
+                <span className="checkin-milestone-cumulative">({milestone.cumulative} {t("total")})</span>
               </div>
             );
           })}
         </div>
       </NeoCard>
 
-      {/* ── 11. Platform Stats ── */}
       <NeoCard variant="erobo" className="checkin-global-card">
-        <h3 className="checkin-section-title">{t("platformStats") || "Platform Stats"}</h3>
+        <h3 className="checkin-section-title">{t("globalStats")}</h3>
         <div className="checkin-stats-grid">
           <div className="checkin-stat-item">
             <span className="checkin-stat-value">{totalGlobalCheckins.toLocaleString()}</span>
-            <span className="checkin-stat-label">{t("globalCheckins") || "Global Check-ins"}</span>
+            <span className="checkin-stat-label">{t("totalCheckins")}</span>
           </div>
           <div className="checkin-stat-item">
             <span className="checkin-stat-value">{totalGlobalUsers.toLocaleString()}</span>
-            <span className="checkin-stat-label">{t("globalUsers") || "Active Users"}</span>
+            <span className="checkin-stat-label">{t("totalUsers")}</span>
           </div>
           <div className="checkin-stat-item">
             <span className="checkin-stat-value">{formatGas(totalGlobalRewarded)}</span>
-            <span className="checkin-stat-label">{t("globalRewarded") || "GAS Rewarded"}</span>
+            <span className="checkin-stat-label">{t("totalRewarded")}</span>
           </div>
         </div>
       </NeoCard>
 
-      {/* ── 12. Check-in History ── */}
-      {checkinHistory.length > 0 && (
-        <NeoCard variant="erobo" className="checkin-history-card">
-          <h3 className="checkin-section-title">{t("history") || "Check-in History"}</h3>
+      <NeoCard variant="erobo" className="checkin-history-card">
+        <h3 className="checkin-section-title">{t("recentCheckins")}</h3>
+        {checkinHistory.length > 0 ? (
           <div className="checkin-history-list">
             {checkinHistory.slice(0, 10).map((entry, idx) => (
-              <div key={idx} className="checkin-history-row">
-                <span className="checkin-history-date">{entry.time}</span>
-                <span className="checkin-history-streak">
-                  {entry.streak} {t("dayStreak") || "day streak"}
-                </span>
-                <span className="checkin-history-reward">
-                  +{entry.reward} {t("tokenGas") || "GAS"}
-                </span>
+              <div key={`${entry.time}-${idx}`} className="checkin-history-row">
+                <span className="checkin-history-date">{formatHistoryTime(entry.time)}</span>
+                <span className="checkin-history-streak">{entry.action === "claim" ? t("claimRewards") : `${entry.streak} ${t("dayStreak")}`}</span>
+                <span className="checkin-history-reward">{formatGas(entry.reward)} {t("tokenGas")}</span>
               </div>
             ))}
           </div>
-        </NeoCard>
-      )}
+        ) : (
+          <div className="checkin-history-empty">{t("noCheckins")}</div>
+        )}
+      </NeoCard>
+
+      <details className="checkin-evidence-card" aria-label={t("evidence")}>
+        <summary className="checkin-evidence-summary">
+          <span className="checkin-section-title">{t("evidence")}</span>
+          <span className="checkin-evidence-chevron" aria-hidden="true">⌄</span>
+        </summary>
+        <div className="checkin-evidence-grid">
+          <div className="checkin-evidence-box">
+            <span>{t("latestRequest")}</span>
+            <pre>{evidenceText(latestRequest, t("requestEmpty"))}</pre>
+          </div>
+          <div className="checkin-evidence-box">
+            <span>{t("latestResult")}</span>
+            <pre>{evidenceText(latestResult, t("resultEmpty"))}</pre>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }

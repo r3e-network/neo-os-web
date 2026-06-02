@@ -3,4 +3,5 @@ export interface HistoryItem {
   hash: string;
   time: string;
   forgotten?: boolean;
+  memoryType?: number;
 }

@@ -43,9 +43,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const routeItems = [
     { label: t("selectedRoute"), value: selectedAgent },
     { label: t("agentCount"), value: agentCount },
-    { label: t("trackedNeo"), value: totalNeoDisplay },
     { label: t("reserve"), value: reserveDisplay },
   ];
+
+  const shortAddress = (raw: string) =>
+    raw.length > 14 ? `${raw.slice(0, 12)}…` : raw;
 
   return (
     <div className="anchor-admin-playarea anchor-admin-playarea--profit">
@@ -67,18 +69,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </section>
 
           <section className="anchor-admin-route-map" aria-label={t("routeMapTitle")}>
-            <div className="anchor-admin-section-heading">
-              <span>{t("routeMapTitle")}</span>
-              <strong>{selectedAgent}</strong>
-            </div>
-            <div className="anchor-admin-route-grid">
-              {routeItems.map((item) => (
-                <div key={item.label} className="anchor-admin-route-tile">
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
-            </div>
+            {routeItems.map((item) => (
+              <div key={item.label} className="anchor-admin-route-tile">
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
           </section>
 
           <section className="anchor-admin-command-grid" aria-label={t("adminCommandCenter")}>
@@ -159,10 +155,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
             <NeoCard title={t("syncVote")} className="anchor-admin-workflow-card">
               <p>{t("syncVoteDesc")}</p>
-              <div className="anchor-admin-vote-preview">
-                <span>{t("currentVoteRoute")}</span>
+              <p className="anchor-admin-vote-preview">
+                {t("currentVoteRoute")}
                 <strong>{selectedAgent}</strong>
-              </div>
+              </p>
               <NeoInput
                 type="number"
                 min={1}
@@ -187,33 +183,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <section className="anchor-admin-agent-strip" aria-label={t("agentDirectoryTitle")}>
             <div className="anchor-admin-section-heading">
               <span>{t("agentDirectoryTitle")}</span>
-              <strong>{agentCount}</strong>
+              <strong className="anchor-admin-count-pill">{agentCount}</strong>
             </div>
-            {visibleAgents.map((agent, idx) => (
-              <div key={idx} className="anchor-admin-agent-row">
-                <span>#{String(agent.agentId ?? idx + 1)}</span>
-                <code>
-                  {String(
-                    agent.accountAddress ??
-                      agent.address ??
-                      agent.name ??
-                      `agent-${idx + 1}`,
-                  )}
-                </code>
-              </div>
-            ))}
-          </section>
-
-          <section className="anchor-admin-safety-card" aria-label={t("operatorRule")}>
-            <div className="anchor-admin-section-heading">
-              <span>{t("operatorRule")}</span>
-              <strong>{t("manualOnly")}</strong>
-            </div>
-            <p>{t("operatorRuleDesc")}</p>
-            <div className="anchor-admin-safety-list">
-              <span>{t("safetyMove")}</span>
-              <span>{t("safetyTarget")}</span>
-              <span>{t("safetyVote")}</span>
+            <div className="anchor-admin-agent-list">
+              {visibleAgents.map((agent, idx) => (
+                <div key={idx} className="anchor-admin-agent-row">
+                  <span>#{String(agent.agentId ?? idx + 1)}</span>
+                  <code>
+                    {shortAddress(
+                      String(
+                        agent.accountAddress ??
+                          agent.address ??
+                          agent.name ??
+                          `agent-${idx + 1}`,
+                      ),
+                    )}
+                  </code>
+                </div>
+              ))}
             </div>
           </section>
         </aside>

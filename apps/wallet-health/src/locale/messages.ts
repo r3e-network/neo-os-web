@@ -6,7 +6,7 @@ const appMessages = {
   tabChecklist: { en: "Checklist", zh: "清单" },
 
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
-  walletHeroTitle: { en: "Wallet Health Command Center", zh: "钱包健康指挥台" },
+  walletHeroTitle: { en: "Wallet Health", zh: "钱包健康" },
   walletHeroSubtitle: {
     en: "Review balances, network readiness, and signing hygiene before moving assets or approving app requests.",
     zh: "转账或授权前，集中检查余额、网络状态与签名安全习惯。",
@@ -22,6 +22,19 @@ const appMessages = {
   networkReadiness: { en: "Network readiness", zh: "网络就绪" },
   refreshBalances: { en: "Refresh balances", zh: "刷新余额" },
   refresh: { en: "Refresh", zh: "刷新" },
+  copyAddress: { en: "Copy address", zh: "复制地址" },
+  copyReport: { en: "Copy report", zh: "复制报告" },
+  downloadReport: { en: "Download report", zh: "下载报告" },
+  reportReady: { en: "Report ready", zh: "报告已就绪" },
+  addressCopied: { en: "Address copied", zh: "地址已复制" },
+  reportCopied: { en: "Report copied", zh: "报告已复制" },
+  reportDownloaded: { en: "Report downloaded", zh: "报告已下载" },
+  reportActionError: { en: "Action failed", zh: "操作失败" },
+  reportTitle: { en: "Wallet Health Report", zh: "钱包健康报告" },
+  reportChecklist: { en: "Checklist", zh: "清单" },
+  reportGeneratedAt: { en: "Generated at", zh: "生成时间" },
+  walletAddress: { en: "Wallet address", zh: "钱包地址" },
+  notConnected: { en: "Not connected", zh: "未连接" },
 
   statusConnected: { en: "Connected", zh: "已连接" },
   statusDisconnected: { en: "Disconnected", zh: "未连接" },

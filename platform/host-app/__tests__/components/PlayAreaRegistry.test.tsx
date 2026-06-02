@@ -16,6 +16,10 @@ import {
   getNativePlayAreaOperationFallback,
   hasNativePlayArea,
 } from "../../components/playarea/PlayAreaRegistry";
+import {
+  buildEmbeddedDappUrl,
+  buildEmbeddedWalletBridgeResultDetail,
+} from "../../components/playarea/PlayAreaShared";
 import { clearCouncilGovernanceClientCache } from "../../lib/council-governance-client";
 import type { MiniAppCategory, MiniAppInfo } from "../../components/types";
 
@@ -38,9 +42,13 @@ const MINIAPP_CATEGORIES = new Set<MiniAppCategory>([
   "other",
 ]);
 
-function normalizeMiniAppCategory(category: string | undefined): MiniAppCategory {
+function normalizeMiniAppCategory(
+  category: string | undefined,
+): MiniAppCategory {
   const normalized = category?.trim() as MiniAppCategory | undefined;
-  return normalized && MINIAPP_CATEGORIES.has(normalized) ? normalized : "utility";
+  return normalized && MINIAPP_CATEGORIES.has(normalized)
+    ? normalized
+    : "utility";
 }
 
 function loadActiveMiniAppManifests() {
@@ -72,9 +80,7 @@ function loadActiveMiniAppManifests() {
         entryUrl: manifest.urls?.entry || `/miniapps/${slug}/index.html`,
       } satisfies LocalMiniAppManifest;
     })
-    .filter(
-      (manifest): manifest is LocalMiniAppManifest => Boolean(manifest),
-    )
+    .filter((manifest): manifest is LocalMiniAppManifest => Boolean(manifest))
     .sort((left, right) => left.appId.localeCompare(right.appId));
 }
 
@@ -95,8 +101,13 @@ const baseApp: MiniAppInfo = {
   entry_url: "mf://manifest?app=miniapp-last-survivor",
   permissions: {},
 };
+const PRIVATE_TRANSFER_VALID_NEO_ADDRESS =
+  "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
 
-function renderPlayarea(app: Partial<MiniAppInfo>) {
+function renderPlayarea(
+  app: Partial<MiniAppInfo>,
+  launchContext?: React.ComponentProps<typeof PlayAreaRegistry>["launchContext"],
+) {
   return render(
     <PlayAreaRegistry
       app={{ ...baseApp, ...app }}
@@ -129,17 +140,19 @@ function renderPlayarea(app: Partial<MiniAppInfo>) {
       error={null}
       contractHash="0x1234567890abcdef1234567890abcdef12345678"
       network="testnet"
-      launchContext={{
-        appId: app.app_id ?? baseApp.app_id,
-        source: "url",
-        operation: null,
-        tab: null,
-        network: null,
-        params: {},
-        keys: [],
-        hasParams: false,
-        signature: "",
-      }}
+      launchContext={
+        launchContext ?? {
+          appId: app.app_id ?? baseApp.app_id,
+          source: "url",
+          operation: null,
+          tab: null,
+          network: null,
+          params: {},
+          keys: [],
+          hasParams: false,
+          signature: "",
+        }
+      }
       onRefresh={jest.fn()}
     />,
   );
@@ -151,7 +164,62 @@ describe("PlayAreaRegistry", () => {
   afterEach(() => {
     global.fetch = originalFetch;
     clearCouncilGovernanceClientCache();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
+  it("uses canonical dApp slugs when profiled apps only provide manifest entry URLs", () => {
+    expect(
+      buildEmbeddedDappUrl(
+        {
+          ...baseApp,
+          app_id: "miniapp-unbreakablevault",
+          name: "Unbreakable Vault",
+          entry_url: "mf://manifest?app=miniapp-unbreakablevault",
+          dapp_url: null,
+        },
+        "testnet",
+        null,
+      ),
+    ).toBe(
+      "/miniapps/unbreakable-vault/index.html?network=testnet&source=embed",
+    );
+  });
+
+  it("summarizes embedded wallet bridge transactions without exposing full payloads", () => {
+    expect(
+      buildEmbeddedWalletBridgeResultDetail({
+        appId: "miniapp-dailycheckin",
+        network: "testnet",
+        requestMethod: "invoke",
+        payload: {
+          invocations: [
+            {
+              hash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+              operation: "transfer",
+              args: [
+                { type: "Hash160", value: "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32" },
+                { type: "Hash160", value: "0xaba84da240a55410d284a656fc8dae044e6ec1a5" },
+                { type: "Integer", value: "100000" },
+                { type: "String", value: "miniapp-dailycheckin:checkin" },
+              ],
+            },
+          ],
+        },
+        result: {
+          txid:
+            "0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4",
+        },
+      }),
+    ).toMatchObject({
+      appId: "miniapp-dailycheckin",
+      network: "testnet",
+      requestMethod: "invoke",
+      txid:
+        "0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4",
+      operation: "transfer",
+      contractHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      memo: "miniapp-dailycheckin:checkin",
+    });
   });
 
   it.each([
@@ -256,9 +324,7 @@ describe("PlayAreaRegistry", () => {
     });
 
     expect(screen.getByTestId("council-governance-loading")).toBeVisible();
-    expect(
-      screen.getByText("Loading live governance proposals"),
-    ).toBeVisible();
+    expect(screen.getByText("Loading live governance proposals")).toBeVisible();
     expect(
       screen.queryByText("No proposals on this network yet"),
     ).not.toBeInTheDocument();
@@ -326,8 +392,7 @@ describe("PlayAreaRegistry", () => {
             candidates: [
               {
                 id: "candidate-raw",
-                candidate:
-                  "0x8b915b5abcb81841face2afc42982c08a7e72b81",
+                candidate: "0x8b915b5abcb81841face2afc42982c08a7e72b81",
                 displayName: "Council node #1",
                 profileSource: "unverified",
                 rank: 1,
@@ -355,9 +420,7 @@ describe("PlayAreaRegistry", () => {
     expect(
       await screen.findAllByText("Unverified consensus node #1"),
     ).toHaveLength(2);
-    expect(
-      screen.getByText(/profile names or logos/i),
-    ).toBeVisible();
+    expect(screen.getByText(/profile names or logos/i)).toBeVisible();
     expect(
       screen.queryByText(/Node names and logos are resolved/i),
     ).not.toBeInTheDocument();
@@ -380,6 +443,80 @@ describe("PlayAreaRegistry", () => {
     expect(screen.queryByText("TWELVEDATA:NEO-USD")).not.toBeInTheDocument();
   });
 
+  it("builds Oracle VRF packages from consumer, salt, rounds, and proof mode launch params", async () => {
+    render(
+      <PlayAreaRegistry
+        app={{
+          ...baseApp,
+          app_id: "miniapp-oracle-vrf-console",
+          name: "Oracle VRF Console",
+          category: "utility",
+          description: "Prepare randomness requests",
+        }}
+        stats={[]}
+        statsMap={{}}
+        activity={null}
+        loading={false}
+        error={null}
+        contractHash={null}
+        network="testnet"
+        launchContext={{
+          appId: "miniapp-oracle-vrf-console",
+          source: "onegate",
+          operation: "buildOraclePackage",
+          tab: null,
+          network: "testnet",
+          params: {
+            consumer: "miniapp-fogplay",
+            salt: "round-42",
+            rounds: "3",
+            mode: "batch-proof",
+          },
+          keys: ["consumer", "salt", "rounds", "mode"],
+          hasParams: true,
+          signature: "consumer=miniapp-fogplay&salt=round-42&rounds=3",
+        }}
+        onRefresh={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "VRF Request Console" }),
+    ).toBeVisible();
+    expect(screen.getByText("Consumer")).toBeVisible();
+    expect(screen.getAllByText("miniapp-fogplay").length).toBeGreaterThan(0);
+    expect(screen.getByText("Request salt")).toBeVisible();
+    expect(screen.getAllByText("round-42").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("batch-proof").length).toBeGreaterThan(0);
+    expect(
+      screen.queryByText("https://oracle.meshmini.app/testnet/health"),
+    ).not.toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(screen.getByText(/oracle.vrf.request/)).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/"rounds": "3"/)).toBeInTheDocument();
+  });
+
+  it("presents confidential Oracle consoles as network-key-backed local actions", () => {
+    renderPlayarea({
+      app_id: "miniapp-oracle-seal-console",
+      name: "Oracle Seal Console",
+      category: "utility",
+      description: "Seal sensitive oracle payloads",
+    });
+
+    expect(screen.getByText("Privacy")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Morpheus public key is fetched from the selected network",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("Morpheus public key required"),
+    ).not.toBeInTheDocument();
+  });
+
   it("renders Forever Album as an actual uploader/gallery dApp, not a staged metadata preview", () => {
     renderPlayarea({
       app_id: "miniapp-forever-album",
@@ -396,17 +533,116 @@ describe("PlayAreaRegistry", () => {
     ).toBeVisible();
     expect(screen.getByText("Upload photos")).toBeVisible();
     expect(screen.getByText("View gallery")).toBeVisible();
-    expect(
-      screen.getByTitle("Forever Album uploader"),
-    ).toHaveAttribute(
+    expect(screen.getByTitle("Forever Album uploader")).toHaveAttribute(
       "src",
       expect.stringContaining("/miniapps/forever-album/index.html?"),
     );
-    expect(getNativePlayAreaOperationFallback("miniapp-forever-album")).toEqual(
-      [],
-    );
+    expect(
+      getNativePlayAreaOperationFallback("miniapp-forever-album")[0],
+    ).toMatchObject({
+      name: "Open upload workspace",
+      method: "prepareMiniAppOperation",
+    });
     expect(screen.queryByText("Stage album entry")).not.toBeInTheDocument();
     expect(screen.queryByText("Wallet album preview")).not.toBeInTheDocument();
+  });
+
+  it("opens Burn League through the embedded burn desk with amount presets", () => {
+    const [operation] = getNativePlayAreaOperationFallback(
+      "miniapp-burn-league",
+      "testnet",
+    );
+
+    expect(operation).toMatchObject({
+      name: "Prepare Burn Entry",
+      method: "prepareMiniAppOperation",
+      button_style: "danger",
+      priority: "primary",
+    });
+    expect(operation.params).toEqual([
+      expect.objectContaining({
+        name: "amount",
+        type: "amount",
+        label: "Burn amount",
+        default_value: "1",
+        required: true,
+        scale: 8,
+      }),
+    ]);
+    expect(
+      operation.params?.[0]?.presets?.map((preset) => preset.value),
+    ).toEqual(["1", "5", "10"]);
+  });
+
+  it("builds the AA Market Hub action panel from the real create-listing inputs", () => {
+    const [operation] = getNativePlayAreaOperationFallback(
+      "miniapp-aa-market-hub",
+      "testnet",
+    );
+
+    expect(operation).toEqual(
+      expect.objectContaining({
+        name: "Create listing",
+        method: "prepareMiniAppOperation",
+      }),
+    );
+    expect(operation.params).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "marketHash",
+          type: "hash160",
+          default_value: "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf",
+          required: true,
+        }),
+        expect.objectContaining({
+          name: "aaContractHash",
+          type: "hash160",
+          default_value: "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
+          required: true,
+        }),
+        expect.objectContaining({
+          name: "accountIdHash",
+          type: "hash160",
+          required: true,
+        }),
+        expect.objectContaining({
+          name: "priceGas",
+          type: "amount",
+          default_value: "18",
+          required: true,
+        }),
+        expect.objectContaining({
+          name: "listingTitle",
+          default_value: "AA service package",
+        }),
+      ]),
+    );
+  });
+
+  it("opens GasBox's real dApp draw console instead of advertising a fake host draw", () => {
+    const [operation] = getNativePlayAreaOperationFallback(
+      "miniapp-gasbox",
+      "testnet",
+    );
+
+    expect(operation).toEqual(
+      expect.objectContaining({
+        name: "Open Draw Console",
+        method: "prepareMiniAppOperation",
+        description: expect.stringContaining("embedded GasBox draw surface"),
+        button_style: "success",
+      }),
+    );
+    expect(operation.params).toEqual([
+      expect.objectContaining({
+        name: "machineId",
+        type: "string",
+        label: "Machine ID",
+      }),
+    ]);
+    expect(operation.params).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "draws" })]),
+    );
   });
 
   it("keeps TrustAnchor focused on the user dApp iframe", () => {
@@ -489,10 +725,9 @@ describe("PlayAreaRegistry", () => {
   });
 
   it.each(
-    PROFILED_MINIAPP_MANIFESTS.map((manifest) => [
-      manifest.appId,
-      manifest,
-    ] as const),
+    PROFILED_MINIAPP_MANIFESTS.map(
+      (manifest) => [manifest.appId, manifest] as const,
+    ),
   )(
     "renders %s as a real dApp iframe instead of a status-only profile",
     (_appId, manifest) => {
@@ -551,6 +786,151 @@ describe("PlayAreaRegistry", () => {
     jest.useRealTimers();
   });
 
+  it("gives Recovery Guardian enough embedded height for its full business workspace", () => {
+    renderPlayarea({
+      app_id: "miniapp-recovery-guardian",
+      name: "Recovery Guardian",
+      category: "utility",
+      description:
+        "Operator surface for AA guardian policy, recovery ticket flow, timelock review, and final recovery execution.",
+    });
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-recovery-guardian"),
+    ).toHaveClass("h-[3400px]", "sm:h-[2400px]", "lg:h-[1800px]");
+  });
+
+  it("gives Event Ticket Pass enough embedded height for organizer workflows", () => {
+    renderPlayarea({
+      app_id: "miniapp-event-ticket-pass",
+      name: "Event Ticket Pass",
+      category: "social",
+      description:
+        "Create events, issue attendee NEP-11 ticket passes, and operate door check-in through the platform OS services.",
+    });
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-event-ticket-pass"),
+    ).toHaveClass("h-[3300px]", "sm:h-[2300px]", "lg:h-[1800px]");
+  });
+
+  it("gives Quadratic Funding enough embedded height for round, project, and contribution workflows", () => {
+    renderPlayarea({
+      app_id: "miniapp-quadratic-funding",
+      name: "Quadratic Funding",
+      category: "defi",
+      description:
+        "Run public goods rounds with matching pools, project registration, and contributor funding flows.",
+    });
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-quadratic-funding"),
+    ).toHaveClass("h-[2200px]", "sm:h-[1800px]", "lg:h-[1600px]");
+  });
+
+  it("gives Soulbound Certificate enough embedded height for issuer and verifier workflows", () => {
+    renderPlayarea({
+      app_id: "miniapp-soulbound-certificate",
+      name: "Soulbound Certificate",
+      category: "social",
+      description:
+        "Issue non-transferable NEP-11 certificates, verify token IDs, and review issued credential state.",
+    });
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-soulbound-certificate"),
+    ).toHaveClass("h-[3000px]", "sm:h-[2200px]", "lg:h-[1600px]");
+  });
+
+  it("gives Unbreakable Vault enough embedded height for create, break, and recent vault workflows", () => {
+    renderPlayarea({
+      app_id: "miniapp-unbreakablevault",
+      name: "Unbreakable Vault",
+      category: "utility",
+      description:
+        "Create bounty vaults, test preimage claims, and review recent hash-locked vault state.",
+    });
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-unbreakablevault"),
+    ).toHaveClass("h-[1900px]", "sm:h-[1400px]", "lg:h-[1120px]");
+  });
+
+  it("gives Milestone Escrow enough embedded height for create, release, and evidence workflows", () => {
+    renderPlayarea({
+      app_id: "miniapp-milestone-escrow",
+      name: "Milestone Escrow",
+      category: "defi",
+      description:
+        "Create funded milestone escrows, approve work, claim released tranches, and inspect request/result evidence.",
+    });
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-milestone-escrow"),
+    ).toHaveClass("h-[2600px]", "sm:h-[2200px]", "lg:h-[1800px]");
+  });
+
+  it("gives NeoPay Shared Example enough embedded height for stream setup and lists", () => {
+    renderPlayarea({
+      app_id: "miniapp-neo-pay-shared-example",
+      name: "NeoPay Shared Runtime",
+      category: "defi",
+      description:
+        "Compose funding vault and payment stream modules through the shared MiniApp runtime.",
+    });
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-neo-pay-shared-example"),
+    ).toHaveClass("h-[1500px]", "sm:h-[1300px]", "lg:h-[1200px]");
+  });
+
+  it("gives LastSurvivor enough embedded height for countdown, buy, rules, and history", () => {
+    renderPlayarea({
+      app_id: "miniapp-last-survivor",
+      name: "LastSurvivor",
+      category: "gaming",
+      description:
+        "Buy keys, extend the countdown, and settle the prize pool through the live game surface.",
+    });
+
+    expect(
+      screen.getByTestId("native-dapp-frame-miniapp-last-survivor"),
+    ).toHaveClass("h-[2100px]", "sm:h-[1800px]", "lg:h-[1640px]");
+  });
+
+  it("gives Burn League enough embedded height for burn preview and leaderboard", () => {
+    renderPlayarea({
+      app_id: "miniapp-burn-league",
+      name: "Burn League",
+      category: "gaming",
+      description:
+        "Prepare a burn entry, review leaderboard impact, and submit the wallet intent.",
+    });
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-burn-league"),
+    ).toHaveClass("h-[1500px]", "sm:h-[1300px]", "lg:h-[1100px]");
+  });
+
+  it("uses the real stake-backed agreement profile for Breakup Contract", () => {
+    renderPlayarea({
+      app_id: "miniapp-breakupcontract",
+      name: "Breakup Contract",
+      category: "social",
+      description:
+        "Create stake-backed relationship agreements with partner signatures.",
+    });
+
+    expect(
+      screen.getByText("Stake-backed agreement desk"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Stake")).toBeInTheDocument();
+    expect(screen.queryByText("Party A share")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-breakupcontract"),
+    ).toHaveClass("h-[1700px]", "sm:h-[1450px]", "lg:h-[1180px]");
+  });
+
   it("renders the confidential transfer miniapp as a Morpheus-backed private payment desk", () => {
     expect(hasNativePlayArea("miniapp-private-transfer")).toBe(true);
 
@@ -587,6 +967,64 @@ describe("PlayAreaRegistry", () => {
     expect(
       screen.queryByDisplayValue("private payment"),
     ).not.toBeInTheDocument();
+  });
+
+  it("normalizes Morpheus sealing errors in the native confidential transfer playarea", async () => {
+    const warnSpy = jest
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({
+        error: "DATABASE_PASSWORD=secret raw Morpheus stack trace",
+      }),
+    }) as unknown as typeof fetch;
+
+    const { container } = renderPlayarea(
+      {
+        app_id: "miniapp-private-transfer",
+        name: "Confidential Transfer",
+        category: "defi",
+        description:
+          "Private transfer powered by Morpheus confidential compute",
+        permissions: {
+          confidential: true,
+          datafeed: false,
+          governance: false,
+          payments: true,
+          randomness: false,
+          aa: false,
+        },
+      },
+      {
+        appId: "miniapp-private-transfer",
+        source: "url",
+        operation: "sealPrivateTransfer",
+        tab: null,
+        network: "testnet",
+        params: {
+          recipient: PRIVATE_TRANSFER_VALID_NEO_ADDRESS,
+          amount: "1",
+          asset: "GAS",
+          memo: "browser validation",
+        },
+        keys: ["amount", "asset", "memo", "recipient"],
+        hasParams: true,
+        signature: "amount=1&asset=GAS&memo=browser&recipient=valid",
+      },
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(
+          "Morpheus sealing is unavailable for this network. Your transfer details remain local.",
+        ).length,
+      ).toBeGreaterThan(0);
+    });
+
+    expect(container.textContent).not.toContain("DATABASE_PASSWORD");
+    expect(container.textContent).not.toContain("raw Morpheus stack trace");
+    expect(warnSpy).toHaveBeenCalled();
   });
 
   it("renders OneGate Vault as a QR claim desk prefilled from OneGate launch params", () => {
@@ -697,6 +1135,321 @@ describe("PlayAreaRegistry", () => {
     expect(screen.queryByText("Ready to submit")).not.toBeInTheDocument();
   });
 
+  it("uses scoped AA relay params in the profiled host fallback", () => {
+    const [operation] = getNativePlayAreaOperationFallback(
+      "miniapp-aa-relay-console",
+      "testnet",
+    );
+
+    expect(operation?.name).toBe("Open relay workspace");
+    expect(operation?.method).toBe("prepareMiniAppOperation");
+    expect(operation?.params?.map((param) => param.name)).toEqual([
+      "aaAddress",
+      "dappId",
+      "sponsorAmount",
+      "payloadJson",
+    ]);
+    expect(
+      operation?.params?.find((param) => param.name === "aaAddress"),
+    ).toMatchObject({
+      type: "address",
+      required: true,
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "payloadJson")
+        ?.default_value,
+    ).toContain("0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2");
+
+    const [mainnetOperation] = getNativePlayAreaOperationFallback(
+      "miniapp-aa-relay-console",
+      "mainnet",
+    );
+    expect(
+      mainnetOperation?.params?.find((param) => param.name === "payloadJson")
+        ?.default_value,
+    ).toContain("0x0268a387913b250166ddec032b03332690a1ef78");
+  });
+
+  it("uses real AA account registration params in the profiled host fallback", () => {
+    const [operation] = getNativePlayAreaOperationFallback(
+      "miniapp-aa-account-lab",
+      "testnet",
+    );
+
+    expect(operation?.name).toBe("Prepare account registration");
+    expect(operation?.method).toBe("prepareMiniAppOperation");
+    expect(operation?.params?.map((param) => param.name)).toEqual([
+      "accountIdInput",
+      "verifierHash",
+      "verifierParamsHex",
+      "hookHash",
+      "backupOwner",
+      "escapeTimelock",
+    ]);
+    expect(
+      operation?.params?.find((param) => param.name === "accountIdInput"),
+    ).toMatchObject({
+      required: true,
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "verifierHash"),
+    ).toMatchObject({
+      type: "hash160",
+      required: true,
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "backupOwner"),
+    ).toMatchObject({
+      type: "address",
+      required: true,
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "escapeTimelock")
+        ?.default_value,
+    ).toBe("2592000");
+  });
+
+  it("uses real AA permission binding params in the profiled host fallback", () => {
+    const [operation] = getNativePlayAreaOperationFallback(
+      "miniapp-aa-permissions-lab",
+      "testnet",
+    );
+
+    expect(operation?.name).toBe("Prepare permission update");
+    expect(operation?.method).toBe("prepareMiniAppOperation");
+    expect(operation?.params?.map((param) => param.name)).toEqual([
+      "accountIdHash",
+      "verifierHash",
+      "verifierParamsHex",
+      "hookHash",
+    ]);
+    expect(
+      operation?.params?.find((param) => param.name === "accountIdHash"),
+    ).toMatchObject({
+      type: "hash160",
+      required: true,
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "verifierHash"),
+    ).toMatchObject({
+      type: "hash160",
+      default_value: "0x7147f9a508594a7656a25f45d0a7a7dede7c227f",
+      required: true,
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "hookHash"),
+    ).toMatchObject({
+      type: "hash160",
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "hookHash")
+        ?.default_value,
+    ).not.toBe("spend-limit");
+  });
+
+  it("uses real AA session key params in the profiled host fallback", () => {
+    const [operation] = getNativePlayAreaOperationFallback(
+      "miniapp-aa-session-key-lab",
+      "testnet",
+    );
+
+    expect(operation?.name).toBe("Open session key workspace");
+    expect(operation?.method).toBe("prepareMiniAppOperation");
+    expect(operation?.description).toContain("embedded MiniApp");
+    expect(operation?.params?.map((param) => param.name)).toEqual([
+      "accountSeed",
+      "sessionPublicKey",
+      "targetContract",
+      "allowedMethod",
+      "expiresAt",
+      "dappId",
+      "sponsorAmount",
+    ]);
+    expect(
+      operation?.params?.find((param) => param.name === "accountSeed"),
+    ).toMatchObject({
+      default_value: "neo-aa-001",
+      required: true,
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "targetContract"),
+    ).toMatchObject({
+      type: "hash160",
+      default_value: "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+      required: true,
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "allowedMethod"),
+    ).toMatchObject({
+      default_value: "claimRewards",
+      required: true,
+    });
+    expect(
+      Number(
+        operation?.params?.find((param) => param.name === "expiresAt")
+          ?.default_value,
+      ),
+    ).toBeGreaterThan(Math.floor(Date.now() / 1000));
+    expect(
+      operation?.params?.find((param) => param.name === "sponsorAmount"),
+    ).toMatchObject({
+      type: "amount",
+      default_value: "0.1",
+    });
+    expect(
+      operation?.params?.find((param) => param.name === "sessionPublicKey")
+        ?.required,
+    ).toBeUndefined();
+  });
+
+  it("exposes a host action for the Forever Album embedded upload workspace", () => {
+    const [operation] = getNativePlayAreaOperationFallback(
+      "miniapp-forever-album",
+      "testnet",
+    );
+
+    expect(operation?.name).toBe("Open upload workspace");
+    expect(operation?.method).toBe("prepareMiniAppOperation");
+    expect(operation?.description).toContain("embedded Forever Album uploader");
+    expect(operation?.params?.map((param) => param.name)).toEqual(["privacy"]);
+    expect(operation?.params?.[0]).toMatchObject({
+      type: "select",
+      default_value: "public",
+      options: [
+        { label: "Public album record", value: "public" },
+        { label: "Encrypted local privacy", value: "encrypted" },
+      ],
+    });
+  });
+
+  it("exposes NeoPay stream actions as real wallet operations", () => {
+    const operations = getNativePlayAreaOperationFallback(
+      "miniapp-neo-pay",
+      "testnet",
+    );
+
+    expect(operations.map((operation) => operation.name)).toEqual([
+      "Create Stream",
+      "Claim Stream",
+      "Cancel Stream",
+    ]);
+    expect(operations.map((operation) => operation.method)).toEqual([
+      "createStream",
+      "claimStream",
+      "cancelStream",
+    ]);
+    expect(operations[0]).toMatchObject({
+      button_style: "primary",
+      priority: "primary",
+      confirm_message: "Create this payment stream on-chain?",
+    });
+    expect(operations[0]?.params?.map((param) => param.name)).toEqual([
+      "creator",
+      "beneficiary",
+      "asset",
+      "totalAmount",
+      "rateAmount",
+      "intervalSeconds",
+      "title",
+      "notes",
+    ]);
+    expect(
+      operations[0]?.params?.find((param) => param.name === "creator"),
+    ).toMatchObject({
+      type: "hash160",
+      default_value: "$wallet",
+      hidden: true,
+      required: true,
+    });
+    expect(
+      operations[0]?.params?.find((param) => param.name === "beneficiary"),
+    ).toMatchObject({
+      type: "hash160",
+      required: true,
+    });
+    expect(
+      operations[0]?.params?.find((param) => param.name === "asset"),
+    ).toMatchObject({
+      type: "hash160",
+      default_value: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      hidden: true,
+      required: true,
+    });
+    expect(
+      operations[0]?.params?.find((param) => param.name === "totalAmount"),
+    ).toMatchObject({
+      type: "amount",
+      scale: 8,
+      required: true,
+      presets: [
+        { label: "0.03", value: "0.03", helper: "GAS" },
+        { label: "0.10", value: "0.10", helper: "GAS" },
+        { label: "0.25", value: "0.25", helper: "GAS" },
+      ],
+    });
+    expect(
+      operations[0]?.params?.find((param) => param.name === "intervalSeconds"),
+    ).toMatchObject({
+      type: "integer",
+      default_value: "86400",
+      required: true,
+    });
+    expect(
+      operations[1]?.params?.find((param) => param.name === "beneficiary"),
+    ).toMatchObject({
+      default_value: "$wallet",
+      hidden: true,
+      required: true,
+    });
+    expect(
+      operations[2]?.params?.find((param) => param.name === "creator"),
+    ).toMatchObject({
+      default_value: "$wallet",
+      hidden: true,
+      required: true,
+    });
+  });
+
+  it("exposes NeoPay Shared Runtime creation as a shared-module wallet operation", () => {
+    const operations = getNativePlayAreaOperationFallback(
+      "miniapp-neo-pay-shared-example",
+      "testnet",
+    );
+
+    expect(operations.map((operation) => operation.method)).toEqual([
+      "createSharedStream",
+    ]);
+    expect(operations[0]).toMatchObject({
+      button_style: "primary",
+      priority: "primary",
+      confirm_message: "Create this shared-runtime payment stream on-chain?",
+    });
+    expect(operations[0]?.params?.map((param) => param.name)).toEqual([
+      "beneficiary",
+      "asset",
+      "totalAmount",
+      "rateAmount",
+      "intervalSeconds",
+      "title",
+      "notes",
+    ]);
+    expect(
+      operations[0]?.params?.find((param) => param.name === "asset"),
+    ).toMatchObject({
+      type: "hash160",
+      default_value: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      hidden: true,
+      required: true,
+    });
+    expect(
+      operations[0]?.params?.find((param) => param.name === "totalAmount"),
+    ).toMatchObject({
+      type: "amount",
+      scale: 8,
+      required: true,
+    });
+  });
+
   it("renders On-chain Tarot as a draw and flip table using the 78-card deck index", async () => {
     global.fetch = jest.fn(() =>
       Promise.resolve({
@@ -774,8 +1527,6 @@ describe("PlayAreaRegistry", () => {
     expect(
       screen.getByRole("heading", { name: "HTTP Oracle Console" }),
     ).toBeVisible();
-    expect(screen.getByText("Result verifier")).not.toBeVisible();
-    fireEvent.click(screen.getByText("Activity and details"));
     expect(screen.getByText("Result verifier")).toBeVisible();
   });
 

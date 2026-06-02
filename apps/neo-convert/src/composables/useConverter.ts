@@ -1,4 +1,4 @@
-import { createObservable, refToObservable } from "@shared/react/context";
+import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import {
   validateWif,
@@ -34,8 +34,11 @@ const EMPTY_RESULT: ConversionResult = {
 /** Converts between Neo key formats (WIF, private key, public key) and disassembles scripts. */
 export function useConverter(t: (key: string) => string, clipboard?: ClipboardService) {
   const sm = useStatusMessage(3000);
-  const copyStatus = refToObservable(sm.status);
   const { setStatus: setCopyStatus } = sm;
+  const copyStatus = createDerived(
+    () => sm.status.get()?.msg ?? "",
+    [sm.status],
+  );
 
   const inputKey = createObservable("");
   const statusMsg = createObservable("");
@@ -46,6 +49,7 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
   async function copy(text: string) {
     if (clipboard) {
       await clipboard.copy(text, "copied");
+      setCopyStatus(t("copied"), "success");
       return;
     }
     try {

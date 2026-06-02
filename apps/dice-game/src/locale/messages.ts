@@ -36,6 +36,14 @@ const appMessages = {
   diceWalletLabel: { en: "Current stake", zh: "当前筹码" },
   diceStakeDeskTitle: { en: "Selected face", zh: "已选点数" },
   dicePayoutLabel: { en: "Payout", zh: "赔付" },
+  diceBetSummary: { en: "Bet summary", zh: "下注摘要" },
+  diceRoundSummary: { en: "Round summary", zh: "回合摘要" },
+  stakePresets: { en: "Stake presets", zh: "筹码预设" },
+  netWinLabel: { en: "Net win", zh: "净收益" },
+  stakeHelp: {
+    en: "Potential payout:",
+    zh: "预计赔付：",
+  },
   diceVrfRouteTitle: { en: "Settlement route", zh: "结算路径" },
   diceVrfRouteCopy: {
     en: "The contract records player, face, stake, and request id before the oracle callback resolves or refunds the pending roll.",
@@ -46,6 +54,23 @@ const appMessages = {
   diceCommitStep: { en: "Commit stake", zh: "提交筹码" },
   diceOracleStep: { en: "Morpheus VRF", zh: "Morpheus VRF" },
   diceSettleStep: { en: "Settle payout", zh: "结算赔付" },
+  diceRuleCommit: {
+    en: "Wallet signs the GAS-backed roll intent.",
+    zh: "钱包签名带 GAS 筹码的掷骰意图。",
+  },
+  diceRuleCallback: {
+    en: "VRF callback resolves the exact face.",
+    zh: "VRF 回调解析最终点数。",
+  },
+  diceRuleRefund: {
+    en: "Pending rolls can be refunded by contract rules.",
+    zh: "待处理掷骰可按合约规则退款。",
+  },
+  diceRiskTitle: { en: "House model", zh: "庄家模型" },
+  diceRiskCopy: {
+    en: "A matching face pays 5.70x after the platform fee. Only stake what you intend to lock for this roll.",
+    zh: "命中点数按扣除平台费后的 5.70 倍赔付。请只下注你愿意为本次掷骰锁定的金额。",
+  },
   diceHistoryRefunded: { en: "Refunded", zh: "已退款" },
   diceHistorySettled: { en: "Settled", zh: "已结算" },
   pendingTitle: { en: "VRF request submitted", zh: "VRF 请求已提交" },
@@ -57,6 +82,10 @@ const appMessages = {
   oddsLabel: { en: "Chance", zh: "胜率" },
   feeLabel: { en: "Platform fee", zh: "平台费" },
   rangeLabel: { en: "Stake range", zh: "下注范围" },
+  invalidStake: {
+    en: "Enter a GAS stake from 0.05 to 20, using up to 8 decimals.",
+    zh: "请输入 0.05 到 20 GAS 的筹码，最多 8 位小数。",
+  },
   statusReady: { en: "Ready", zh: "就绪" },
   statusSubmitting: { en: "Submitting roll...", zh: "正在提交掷骰..." },
   statusSubmitted: { en: "Roll submitted", zh: "掷骰已提交" },

@@ -5,7 +5,14 @@ import { ChevronUp, Wallet, X } from "lucide-react";
 import { AppDetailHeader, OperationPanel } from "../../components";
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
 import type { OperationEntry } from "../../components/types";
-import { getNativePlayAreaOperationFallback } from "../../components/playarea/PlayAreaRegistry";
+import {
+  getNativePlayAreaOperationFallback,
+  resolvePlayAreaOperationNetworkDefaults,
+} from "../../components/playarea/PlayAreaOperationFallbacks";
+import {
+  HOST_WALLET_BRIDGE_RESULT,
+  type EmbeddedWalletBridgeResultDetail,
+} from "../../components/playarea/PlayAreaShared";
 import {
   MiniAppStatusBoard,
   OneGateLaunchCard,
@@ -22,6 +29,7 @@ import {
   buildDetailTabs,
   buildOneGateVaultLaunchUrl,
   isFrontendLocalOperation,
+  isHostManagedApiOperation,
   isOneGateVaultPayoutOperation,
   oneGateNetworkParam,
   resolveCustomAnchorOperations,
@@ -55,8 +63,33 @@ import {
   buildOneGateLaunchUrl,
 } from "../../../../apps/shared/utils/onegate-launch";
 
+const DAILY_CHECKIN_APP_ID = "miniapp-dailycheckin";
+const DAILY_CHECKIN_MEMO = "miniapp-dailycheckin:checkin";
+
+function shortTxId(value: string) {
+  return value.length > 18
+    ? `${value.slice(0, 10)}...${value.slice(-8)}`
+    : value;
+}
+
+function isEmbeddedSubmittedOperation(
+  appId: string | undefined,
+  operation: OperationEntry | null | undefined,
+  result: EmbeddedWalletBridgeResultDetail | null,
+) {
+  if (!appId || !operation || !result) return false;
+  if (result.appId !== appId) return false;
+  return (
+    appId === DAILY_CHECKIN_APP_ID &&
+    operation.method === "checkIn" &&
+    result.memo === DAILY_CHECKIN_MEMO &&
+    Boolean(result.txid)
+  );
+}
+
 export default function MiniAppDetailPage({
   app,
+  initialTargetNetwork,
   miniAppNav: _miniAppNav,
   notifications,
   sharedRuntime,
@@ -69,6 +102,9 @@ export default function MiniAppDetailPage({
     message: string;
   } | null>(null);
   const [mobileActionOpen, setMobileActionOpen] = useState(false);
+  const [activeOperationKey, setActiveOperationKey] = useState("");
+  const [embeddedWalletResult, setEmbeddedWalletResult] =
+    useState<EmbeddedWalletBridgeResultDetail | null>(null);
 
   const walletConnected = useWalletStore((state) => state.connected);
   const walletAddress = useWalletStore((state) => state.address);
@@ -78,7 +114,8 @@ export default function MiniAppDetailPage({
     () => parseMiniAppLaunchContext(routerPath, app?.app_id),
     [app?.app_id, routerPath],
   );
-  const targetNetwork = launchContext.network ?? getRpcNetwork();
+  const targetNetwork =
+    launchContext.network ?? initialTargetNetwork ?? getRpcNetwork();
   const targetNetworkLabel = neoNetworkLabel(targetNetwork);
   const targetCatalogNetwork = useMemo(
     () => resolvePageCatalogNetwork(targetNetwork),
@@ -189,6 +226,31 @@ export default function MiniAppDetailPage({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mobileActionOpen]);
+  useEffect(() => {
+    const handleEmbeddedWalletResult = (event: Event) => {
+      const detail = (event as CustomEvent<EmbeddedWalletBridgeResultDetail>)
+        .detail;
+      if (!detail || detail.appId !== app?.app_id) return;
+      if (detail.network !== targetNetwork) return;
+      setEmbeddedWalletResult(detail);
+      setInvokeFeedback({
+        type: "success",
+        message: detail.txid
+          ? `Embedded workspace submitted transaction: ${detail.txid}`
+          : "Embedded workspace submitted transaction.",
+      });
+    };
+
+    window.addEventListener(
+      HOST_WALLET_BRIDGE_RESULT,
+      handleEmbeddedWalletResult,
+    );
+    return () =>
+      window.removeEventListener(
+        HOST_WALLET_BRIDGE_RESULT,
+        handleEmbeddedWalletResult,
+      );
+  }, [app?.app_id, targetNetwork]);
   const runtimeDisabledReason =
     resolvedRuntime?.mode === "platform"
       ? resolvedRuntime.disabledReason
@@ -202,13 +264,32 @@ export default function MiniAppDetailPage({
     runtimeDisabledReason ||
     walletRequiredReason;
   const getOperationDisabledReason = useCallback(
-    (operation: OperationEntry) =>
-      isFrontendLocalOperation(operation.method)
-        ? null
-        : operationDisabledReason,
-    [operationDisabledReason],
+    (operation: OperationEntry) => {
+      if (isFrontendLocalOperation(operation.method)) return null;
+      if (isHostManagedApiOperation(app?.app_id, operation.method)) {
+        return networkAvailabilityReason;
+      }
+      if (
+        embeddedWalletResult &&
+        isEmbeddedSubmittedOperation(
+          app?.app_id,
+          operation,
+          embeddedWalletResult,
+        )
+      ) {
+        return `Already submitted from the embedded workspace: ${shortTxId(
+          embeddedWalletResult.txid,
+        )}. Refresh after confirmation before submitting again.`;
+      }
+      return operationDisabledReason;
+    },
+    [
+      app?.app_id,
+      embeddedWalletResult,
+      networkAvailabilityReason,
+      operationDisabledReason,
+    ],
   );
-
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
 
@@ -258,15 +339,22 @@ export default function MiniAppDetailPage({
       sourceOps.length > 0
         ? sourceOps
         : app?.app_id
-          ? getNativePlayAreaOperationFallback(app.app_id)
+          ? getNativePlayAreaOperationFallback(app.app_id, targetNetwork)
           : [];
+    const networkDefaultedOps = app?.app_id
+      ? resolvePlayAreaOperationNetworkDefaults(
+          app.app_id,
+          targetNetwork,
+          resolvedOps,
+        )
+      : resolvedOps;
     if (app?.app_id === "miniapp-custom-anchor") {
-      return resolveCustomAnchorOperations(resolvedOps, launchContext);
+      return resolveCustomAnchorOperations(networkDefaultedOps, launchContext);
     }
     if (resolvedRuntime?.mode !== "platform") {
-      return resolvedOps;
+      return networkDefaultedOps;
     }
-    return resolvedOps.map((operation) =>
+    return networkDefaultedOps.map((operation) =>
       injectRuntimeAppIdParam(operation, resolvedRuntime),
     );
   }, [
@@ -275,7 +363,73 @@ export default function MiniAppDetailPage({
     app?.operations,
     launchContext,
     resolvedRuntime,
+    targetNetwork,
   ]);
+  const operationsAreLocalOnly =
+    operations.length > 0 &&
+    operations.every((operation) =>
+      isFrontendLocalOperation(operation.method),
+    );
+  const activeOperation =
+    operations.find(
+      (operation) =>
+        `${operation.method || ""}:${operation.name || ""}` ===
+        activeOperationKey,
+    ) ??
+    operations[0] ??
+    null;
+  const activeOperationIsLocal =
+    activeOperation && isFrontendLocalOperation(activeOperation.method);
+  const operationsAreHostApiOnly =
+    operations.length > 0 &&
+    app?.app_id &&
+    operations.every((operation) =>
+      isHostManagedApiOperation(app.app_id, operation.method),
+    );
+  const activeOperationUsesHostApi =
+    activeOperation &&
+    isHostManagedApiOperation(app?.app_id, activeOperation.method);
+  const actionConsoleUsesLocalContext =
+    operationsAreLocalOnly || Boolean(activeOperationIsLocal);
+  const actionConsoleUsesHostApi =
+    Boolean(operationsAreHostApiOnly) || Boolean(activeOperationUsesHostApi);
+  const actionConsoleRequiresWallet =
+    !actionConsoleUsesLocalContext && !actionConsoleUsesHostApi;
+  const handleActiveOperationChange = useCallback((operation: OperationEntry) => {
+    setActiveOperationKey(`${operation.method || ""}:${operation.name || ""}`);
+  }, []);
+  const activeOperationSubmittedFromEmbed = isEmbeddedSubmittedOperation(
+    app?.app_id,
+    activeOperation,
+    embeddedWalletResult,
+  );
+  const actionConsoleStatusLabel = actionConsoleUsesLocalContext
+    ? "Workspace Preview"
+    : actionConsoleUsesHostApi
+      ? "API Ready"
+      : activeOperationSubmittedFromEmbed
+      ? "Synced"
+      : walletConnected
+      ? "Wallet Ready"
+      : "Wallet Required";
+  const actionConsoleStatusClass = actionConsoleUsesLocalContext
+    ? "border-sky-200 bg-sky-50 text-sky-700"
+    : actionConsoleUsesHostApi
+      ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+      : activeOperationSubmittedFromEmbed
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : walletConnected
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : "border-gray-200 bg-gray-50 text-gray-500";
+  const actionConsoleWalletText = actionConsoleUsesLocalContext
+    ? `No transaction is sent from this host button. It opens or updates the embedded workspace for ${targetNetworkLabel}; submit wallet actions inside the MiniApp.`
+    : actionConsoleUsesHostApi
+      ? `This action is handled by the platform API for ${targetNetworkLabel}. It checks sponsorship or submits the relay payload without opening a browser wallet prompt.`
+      : activeOperationSubmittedFromEmbed && embeddedWalletResult?.txid
+      ? `Embedded workspace submitted ${shortTxId(embeddedWalletResult.txid)}. Refresh after confirmation before submitting again.`
+      : walletConnected && walletAddress
+      ? walletAddress
+      : "Connect wallet from the top navigation to submit on-chain transactions.";
 
   useEffect(() => {
     if (!tabs.length) return;
@@ -329,7 +483,10 @@ export default function MiniAppDetailPage({
     operationPanel?.title ||
     (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
   const operationSubtitle = operationPanel?.subtitle;
-  const primaryOperationLabel = operations[0]?.name || operationTitle;
+  const primaryOperationLabel =
+    operations[0]?.method === "prepareMiniAppOperation"
+      ? "Open workspace"
+      : operations[0]?.name || operationTitle;
   const mobileActionVerb = /^claim\b/i.test(primaryOperationLabel)
     ? "Claim"
     : "Open";
@@ -372,7 +529,11 @@ export default function MiniAppDetailPage({
                 aria-label="MiniApp play area"
                 data-testid="miniapp-playarea"
               >
-                <MiniAppPlayfield app={app} launchContext={launchContext} />
+                <MiniAppPlayfield
+                  app={app}
+                  launchContext={launchContext}
+                  targetNetwork={targetNetwork}
+                />
               </section>
 
               <MiniAppStatusBoard
@@ -421,12 +582,10 @@ export default function MiniAppDetailPage({
                   </div>
                   <span
                     className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                      walletConnected
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-gray-200 bg-gray-50 text-gray-500"
+                      actionConsoleStatusClass
                     }`}
                   >
-                    {walletConnected ? "Wallet Ready" : "Wallet Required"}
+                    {actionConsoleStatusLabel}
                   </span>
                 </div>
                 {operationSubtitle && (
@@ -443,7 +602,9 @@ export default function MiniAppDetailPage({
                     className="mt-3 border-0 shadow-none"
                     variant="embedded"
                     getDisabledReason={getOperationDisabledReason}
+                    onActiveOperationChange={handleActiveOperationChange}
                     launchContext={launchContext}
+                    showInvokeError={false}
                   />
                 )}
 
@@ -461,24 +622,33 @@ export default function MiniAppDetailPage({
                   />
                 )}
 
-                <div className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                <div
+                  className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600"
+                  data-testid="action-console-wallet-status"
+                >
                   <Wallet
                     className="h-4 w-4 text-gray-400"
                     aria-hidden="true"
                   />
-                  <span className="min-w-0 flex-1 truncate">
-                    {walletConnected && walletAddress
-                      ? walletAddress
-                      : "Connect wallet from the top navigation to submit on-chain transactions."}
+                  <span
+                    className={`min-w-0 flex-1 ${
+                      !actionConsoleRequiresWallet
+                        ? "break-words leading-5"
+                        : "truncate"
+                    }`}
+                  >
+                    {actionConsoleWalletText}
                   </span>
                 </div>
 
-                <NetworkSafetyBadge
-                  networkSafetyOk={networkSafetyOk}
-                  targetNetworkLabel={targetNetworkLabel}
-                  walletNetworkLabel={walletNetworkLabel}
-                  testId="network-safety-status"
-                />
+                {actionConsoleRequiresWallet && (
+                  <NetworkSafetyBadge
+                    networkSafetyOk={networkSafetyOk}
+                    targetNetworkLabel={targetNetworkLabel}
+                    walletNetworkLabel={walletNetworkLabel}
+                    testId="network-safety-status"
+                  />
+                )}
 
                 {networkAvailabilityReason && (
                   <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
@@ -496,13 +666,6 @@ export default function MiniAppDetailPage({
                   >
                     {invokeFeedback.message}
                   </div>
-                )}
-
-                {!walletConnected && (
-                  <p className="mt-3 text-xs leading-5 text-gray-500">
-                    Connect wallet from the top navigation to submit on-chain
-                    transactions.
-                  </p>
                 )}
 
                 {isSharedModeApp(app) && !app.contract_hash && (
@@ -584,14 +747,23 @@ export default function MiniAppDetailPage({
                           </p>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-                        onClick={() => setMobileActionOpen(false)}
-                        aria-label="Close actions"
-                      >
-                        <X className="h-5 w-5" aria-hidden="true" />
-                      </button>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                            actionConsoleStatusClass
+                          }`}
+                        >
+                          {actionConsoleStatusLabel}
+                        </span>
+                        <button
+                          type="button"
+                          className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                          onClick={() => setMobileActionOpen(false)}
+                          aria-label="Close actions"
+                        >
+                          <X className="h-5 w-5" aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
 
                     <OperationPanel
@@ -601,7 +773,9 @@ export default function MiniAppDetailPage({
                       className="border-0 shadow-none"
                       variant="embedded"
                       getDisabledReason={getOperationDisabledReason}
+                      onActiveOperationChange={handleActiveOperationChange}
                       launchContext={launchContext}
+                      showInvokeError={false}
                     />
 
                     <OneGateLaunchCard
@@ -618,23 +792,32 @@ export default function MiniAppDetailPage({
                       />
                     )}
 
-                    <div className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                    <div
+                      className="mt-3 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600"
+                      data-testid="action-console-wallet-status"
+                    >
                       <Wallet
                         className="h-4 w-4 text-gray-400"
                         aria-hidden="true"
                       />
-                      <span className="min-w-0 flex-1 truncate">
-                        {walletConnected && walletAddress
-                          ? walletAddress
-                          : "Connect wallet from the top navigation to submit on-chain transactions."}
+                      <span
+                        className={`min-w-0 flex-1 ${
+                          !actionConsoleRequiresWallet
+                            ? "break-words leading-5"
+                            : "truncate"
+                        }`}
+                      >
+                        {actionConsoleWalletText}
                       </span>
                     </div>
 
-                    <NetworkSafetyBadge
-                      networkSafetyOk={networkSafetyOk}
-                      targetNetworkLabel={targetNetworkLabel}
-                      walletNetworkLabel={walletNetworkLabel}
-                    />
+                    {actionConsoleRequiresWallet && (
+                      <NetworkSafetyBadge
+                        networkSafetyOk={networkSafetyOk}
+                        targetNetworkLabel={targetNetworkLabel}
+                        walletNetworkLabel={walletNetworkLabel}
+                      />
+                    )}
 
                     {invokeFeedback && (
                       <div

@@ -28,11 +28,19 @@ const appMessages = {
 
   createEvent: { en: "Create Event", zh: "创建活动" },
   eventCreated: { en: "Event created", zh: "活动已创建" },
+  eventSelected: { en: "Event selected", zh: "已选择活动" },
 
   yourEvents: { en: "Your Events", zh: "我的活动" },
   refresh: { en: "Refresh", zh: "刷新" },
+  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
+  wallet: { en: "Wallet", zh: "钱包" },
+  walletConnected: { en: "Wallet connected", zh: "钱包已连接" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
   emptyEvents: { en: "No events yet", zh: "暂无活动" },
+  emptyEventsHint: {
+    en: "Create an event to open the organizer workflow: issue attendee tickets, pause sales, and check people in at the door.",
+    zh: "创建活动后即可进入主办方流程：签发门票、暂停售票并在现场核验入场。",
+  },
   venueFallback: { en: "Venue TBD", zh: "场地待定" },
 
   statusActive: { en: "Active", zh: "进行中" },
@@ -41,10 +49,16 @@ const appMessages = {
   minted: { en: "Minted", zh: "已签发" },
   soldOut: { en: "Sold out", zh: "已售罄" },
   issueTicket: { en: "Issue Ticket", zh: "签发门票" },
+  selectEventFirst: { en: "Select an event first", zh: "请先选择活动" },
+  eventInactive: { en: "Selected event is inactive", zh: "所选活动已停用" },
   deactivate: { en: "Deactivate", zh: "停用" },
   activate: { en: "Activate", zh: "启用" },
 
   emptyTickets: { en: "No tickets yet", zh: "暂无门票" },
+  emptyTicketsHint: {
+    en: "Issued attendee tickets appear here with token id, seat, and check-in state.",
+    zh: "已签发的参与者门票会显示在这里，包括 Token ID、座位和核验状态。",
+  },
   ticketUsed: { en: "Used", zh: "已使用" },
   ticketValid: { en: "Valid", zh: "有效" },
   ticketSeat: { en: "Seat", zh: "座位" },
@@ -67,7 +81,13 @@ const appMessages = {
   checkIn: { en: "Check-in", zh: "核验" },
   checkingIn: { en: "Checking in...", zh: "核验中..." },
   checkinSuccess: { en: "Ticket checked in", zh: "门票已核验" },
+  checkinHint: {
+    en: "Scan or paste a ticket token id to verify seat, owner, and usage before marking it used.",
+    zh: "扫描或粘贴门票 Token ID，先核对座位、持有人和使用状态，再标记为已入场。",
+  },
+  ticketFound: { en: "Ticket found", zh: "已找到门票" },
   ticketNotFound: { en: "Ticket not found", zh: "未找到门票" },
+  ticketAlreadyUsed: { en: "Ticket is already used", zh: "门票已使用" },
 
   issueTicketTitle: { en: "Issue Ticket", zh: "签发门票" },
   issueRecipient: { en: "Recipient address", zh: "接收地址" },
@@ -85,6 +105,7 @@ const appMessages = {
   invalidSupply: { en: "Invalid ticket supply", zh: "票量无效" },
   invalidRecipient: { en: "Recipient address required", zh: "接收地址必填" },
   invalidTokenId: { en: "Token ID required", zh: "需要填写 Token ID" },
+  loadFailed: { en: "Failed to load ticket data", zh: "加载门票数据失败" },
 
   dateUnknown: { en: "Schedule TBD", zh: "时间待定" },
 
@@ -107,6 +128,26 @@ const appMessages = {
   sidebarTickets: { en: "Tickets", zh: "门票" },
   sidebarActive: { en: "Active", zh: "进行中" },
   eventPass: { en: "EVENT PASS", zh: "活动通行证" },
+  ready: { en: "Ready", zh: "就绪" },
+  eventsLoaded: { en: "Events loaded", zh: "活动已加载" },
+  ticketsLoaded: { en: "Tickets loaded", zh: "门票已加载" },
+  workflow: { en: "Ticket workflow", zh: "门票工作流" },
+  flowCreate: { en: "Create event", zh: "创建活动" },
+  flowIssue: { en: "Issue attendee ticket", zh: "签发参与者门票" },
+  flowCheckin: { en: "Lookup and check in", zh: "查询并核验" },
+  serviceStatus: { en: "Service Status", zh: "服务状态" },
+  evidence: { en: "Request and result evidence", zh: "请求与结果证据" },
+  latestRequest: { en: "Latest Request", zh: "最新请求" },
+  latestResult: { en: "Latest Result", zh: "最新结果" },
+  payloadEmpty: { en: "No action submitted yet", zh: "尚未提交操作" },
+  requestEmpty: {
+    en: "Create an event, issue a ticket, or check in a token to inspect the exact OS service request.",
+    zh: "创建活动、签发门票或核验 Token 后，可查看准确的 OS 服务请求。",
+  },
+  resultEmpty: {
+    en: "The latest OS service response or wallet intent will appear here.",
+    zh: "最新 OS 服务响应或钱包意图会显示在这里。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

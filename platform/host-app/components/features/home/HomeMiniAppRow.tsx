@@ -35,6 +35,7 @@ export function HomeMiniAppRow({
   );
   const theme = getCategoryTheme(app.category);
   const isLive = availability.tone === "live";
+  const detailHref = `/miniapps/${app.app_id}?network=${encodeURIComponent(targetNetwork)}`;
   const statusClass =
     availability.tone === "live"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -45,7 +46,7 @@ export function HomeMiniAppRow({
           : "border-gray-200 bg-gray-50 text-gray-500";
   return (
     <Link
-      href={`/miniapps/${app.app_id}`}
+      href={detailHref}
       className={cn(
         "group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-gray-200 bg-white p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
         spacious && "p-4",

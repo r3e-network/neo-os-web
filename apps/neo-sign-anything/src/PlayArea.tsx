@@ -41,15 +41,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="sign-shell">
         <section className="sign-main" aria-label={t("signHeroTitle")}>
           <div className="sign-hero">
+            <span className="sign-hero-accent" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 19l7-7 3 3-7 7-3-3z" />
+                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                <path d="M2 2l7.586 7.586" />
+                <circle cx="11" cy="11" r="2" />
+              </svg>
+            </span>
             <div className="sign-hero-copy">
-              <span className="sign-hero-accent" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 19l7-7 3 3-7 7-3-3z" />
-                  <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-                  <path d="M2 2l7.586 7.586" />
-                  <circle cx="11" cy="11" r="2" />
-                </svg>
-              </span>
               <h2>{t("signHeroTitle")}</h2>
               <p>{t("signHeroSubtitle")}</p>
             </div>
@@ -62,30 +62,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <span>{t("broadcastCount")}</span>
                 <strong>{broadcastCount}</strong>
               </div>
-              <div>
-                <span>{t("walletAddress")}</span>
-                <strong>{address ? shortValue(address) : t("walletPrompt")}</strong>
-              </div>
             </div>
           </div>
 
-          <div className="sign-flow-strip" aria-label={t("signFlowTitle")}>
-            <div>
-              <span>01</span>
-              <strong>{t("signFlowStepOne")}</strong>
-              <p>{t("signFlowStepOneCopy")}</p>
+          <details className="sign-flow-disclosure">
+            <summary>
+              <span className="sign-flow-disclosure__label">{t("signFlowTitle")}</span>
+              <svg className="sign-flow-disclosure__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </summary>
+            <div className="sign-flow-strip">
+              <div>
+                <span>01</span>
+                <strong>{t("signFlowStepOne")}</strong>
+                <p>{t("signFlowStepOneCopy")}</p>
+              </div>
+              <div>
+                <span>02</span>
+                <strong>{t("signFlowStepTwo")}</strong>
+                <p>{t("signFlowStepTwoCopy")}</p>
+              </div>
+              <div>
+                <span>03</span>
+                <strong>{t("signFlowStepThree")}</strong>
+                <p>{t("signFlowStepThreeCopy")}</p>
+              </div>
             </div>
-            <div>
-              <span>02</span>
-              <strong>{t("signFlowStepTwo")}</strong>
-              <p>{t("signFlowStepTwoCopy")}</p>
-            </div>
-            <div>
-              <span>03</span>
-              <strong>{t("signFlowStepThree")}</strong>
-              <p>{t("signFlowStepThreeCopy")}</p>
-            </div>
-          </div>
+          </details>
 
           <div className="sign-workspace">
             <NeoCard variant="erobo" className="sign-message-panel">
@@ -162,37 +166,43 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard variant="erobo" className="sign-safety-panel">
             <div className="sign-section-heading">
               <span>{t("safetyPanelTitle")}</span>
-              <strong>{address ? t("connected") : t("disconnected")}</strong>
+              <strong className={`sign-status-pill${address ? " is-on" : ""}`}>
+                {address ? t("connected") : t("disconnected")}
+              </strong>
             </div>
             <p>{t("safetyPanelCopy")}</p>
-            <div className="sign-signal-row">
-              <span>{t("signRouteLabel")}</span>
-              <strong>{t("signContractRoute")}</strong>
-            </div>
-            <div className="sign-signal-row">
-              <span>{t("broadcastRouteLabel")}</span>
-              <strong>{t("broadcastContractRoute")}</strong>
-            </div>
-            <div className="sign-signal-row">
-              <span>{t("privacyLabel")}</span>
-              <strong>{t("privacyValue")}</strong>
-            </div>
-          </NeoCard>
 
-          <NeoCard variant="erobo" className="sign-broadcast-panel">
-            <div className="sign-section-heading">
-              <span>{t("broadcastPanelTitle")}</span>
-              <strong>{t("walletReviewed")}</strong>
-            </div>
-            <p>{t("broadcastPanelCopy")}</p>
-            <div className="sign-signal-row">
-              <span>{t("gasAmountLabel")}</span>
-              <strong>0 GAS</strong>
-            </div>
-            <div className="sign-signal-row">
-              <span>{t("messageBytesLabel")}</span>
-              <strong>{messageBytes}/1024</strong>
-            </div>
+            <details className="sign-details">
+              <summary>
+                <span>{t("broadcastPanelTitle")}</span>
+                <svg className="sign-details__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </summary>
+              <div className="sign-details__body">
+                <p>{t("broadcastPanelCopy")}</p>
+                <div className="sign-signal-row">
+                  <span>{t("signRouteLabel")}</span>
+                  <strong>{t("signContractRoute")}</strong>
+                </div>
+                <div className="sign-signal-row">
+                  <span>{t("broadcastRouteLabel")}</span>
+                  <strong>{t("broadcastContractRoute")}</strong>
+                </div>
+                <div className="sign-signal-row">
+                  <span>{t("gasAmountLabel")}</span>
+                  <strong>0 GAS</strong>
+                </div>
+                <div className="sign-signal-row">
+                  <span>{t("messageBytesLabel")}</span>
+                  <strong>{messageBytes}/1024</strong>
+                </div>
+                <div className="sign-signal-row">
+                  <span>{t("privacyLabel")}</span>
+                  <strong>{t("privacyValue")}</strong>
+                </div>
+              </div>
+            </details>
           </NeoCard>
         </aside>
       </div>

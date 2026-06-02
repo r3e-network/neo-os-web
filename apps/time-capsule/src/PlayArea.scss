@@ -1,7 +1,6 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-// Violet accent (this app's identity hue)
 $accent: #7b61ff;
 $accent-strong: #6a4df4;
 $accent-soft: #eeeaff;
@@ -10,14 +9,13 @@ $accent-soft: #eeeaff;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  max-width: 720px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 4px;
   font-family: $font-family;
   color: var(--ns-text, #2a2d3d);
   position: relative;
 
-  // Tie the primary CTA to this app's violet identity hue
   .neo-btn--primary:not(:disabled) {
     background: $accent;
     box-shadow: 0 2px 10px rgba(123, 97, 255, 0.28);
@@ -35,32 +33,92 @@ $accent-soft: #eeeaff;
   gap: 14px;
 }
 
+.capsule-select-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ns-text, #2a2d3d);
+
+  select {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.1));
+    border-radius: 8px;
+    background: var(--ns-surface, #ffffff);
+    color: var(--ns-text, #2a2d3d);
+    font: inherit;
+    font-weight: 600;
+    padding: 0 12px;
+    outline: none;
+
+    &:focus {
+      border-color: rgba(123, 97, 255, 0.7);
+      box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.14);
+    }
+  }
+}
+
 .capsule-public-toggle {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 13px;
   color: var(--ns-text, #2a2d3d);
   cursor: pointer;
 
   input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
     accent-color: $accent;
     cursor: pointer;
   }
+
+  span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+    line-height: 1.35;
+  }
+
+  strong {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+}
+
+.capsule-storage-note,
+.capsule-fish-note {
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.capsule-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .capsule-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-direction: column;
   position: relative;
   z-index: 1;
+  padding: 14px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.08));
+  border-radius: 8px;
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-sm, 0 4px 16px rgba(20, 22, 38, 0.05));
 }
 
 .capsule-grid {
@@ -71,7 +129,7 @@ $accent-soft: #eeeaff;
 
 .capsule-item {
   padding: 14px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   background: var(--ns-surface-subtle, #f7f8fa);
   display: flex;
@@ -79,6 +137,7 @@ $accent-soft: #eeeaff;
   gap: 8px;
 
   &.locked { border-left: 3px solid $accent; }
+  &.ready { border-left: 3px solid var(--ns-success, #18a058); }
   &.revealed { border-left: 3px solid var(--ns-text-faint, #aeb4c2); }
 }
 
@@ -95,10 +154,9 @@ $accent-soft: #eeeaff;
 }
 
 .capsule-badge {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   padding: 3px 8px;
   border-radius: 6px;
 }
@@ -106,6 +164,11 @@ $accent-soft: #eeeaff;
 .badge-locked {
   background: $accent-soft;
   color: $accent-strong;
+}
+
+.badge-ready {
+  background: rgba(24, 160, 88, 0.1);
+  color: var(--ns-success, #127a43);
 }
 
 .badge-revealed {
@@ -137,4 +200,42 @@ $accent-soft: #eeeaff;
 .capsule-locked-hint {
   font-size: 12px;
   color: var(--ns-text-muted, #8a92a6);
+}
+
+@media (min-width: 960px) {
+  .capsule-play-area {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    align-items: start;
+  }
+
+  .hero-container {
+    grid-column: 1 / -1;
+  }
+
+  .capsule-play-area > .neo-card:first-of-type {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .capsule-side-panel {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+  }
+}
+
+@media (max-width: 560px) {
+  .capsule-play-area {
+    gap: 14px;
+    padding: 0;
+  }
+
+  .capsule-form {
+    gap: 12px;
+  }
+
+  .capsule-actions {
+    padding: 12px;
+  }
 }

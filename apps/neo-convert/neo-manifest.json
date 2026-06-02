@@ -4,8 +4,8 @@
   "name": "Neo Convert",
   "name_zh": "Neo 转换器",
   "version": "1.0.0",
-  "description": "Convert Neo addresses, private keys, and script hashes",
-  "description_zh": "Neo 转换器 — 一键在 NEO、GAS 和 NEP-17 代币之间转换",
+  "description": "Generate Neo N3 accounts locally, convert WIF/private/public keys, derive addresses, and disassemble NeoVM scripts.",
+  "description_zh": "Neo 转换器 — 在本地生成 Neo N3 账户，转换 WIF/私钥/公钥，派生地址并反汇编 NeoVM 脚本。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -20,7 +20,8 @@
   },
   "contracts": {},
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
   ],
   "default_network": "neo-n3-mainnet",
   "urls": {
@@ -29,7 +30,6 @@
     "banner": "/miniapps/neo-convert/banner.jpg"
   },
   "permissions": [
-    "invoke:primary",
     "read:blockchain"
   ],
   "features": {
@@ -47,8 +47,8 @@
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-06-01T00:00:00Z"
 }

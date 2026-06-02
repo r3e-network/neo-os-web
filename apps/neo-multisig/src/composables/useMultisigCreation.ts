@@ -158,14 +158,16 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
 
     isPreparing.set(true);
     try {
+      const account = multisigAccount.get();
+      if (!account) return;
       const prepared = await buildTransferTransaction({
         chainId: form.get().selectedChain,
-        fromAddress: multisigAccount.get().address,
+        fromAddress: account.address,
         toAddress: form.get().toAddress,
         amount: form.get().amount,
         assetSymbol: form.get().asset,
         threshold: form.get().threshold,
-        publicKeys: multisigAccount.get().publicKeys,
+        publicKeys: account.publicKeys,
       });
       preparedTx.set(prepared.tx);
       feeSummary.set({
@@ -185,12 +187,15 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
     if (!preparedTx.get() || !multisigAccount.get()) return;
     isSubmitting.set(true);
     try {
+      const account = multisigAccount.get();
+      const transaction = preparedTx.get();
+      if (!account || !transaction) return;
       const result = await api.create({
         chainId: form.get().selectedChain,
-        scriptHash: multisigAccount.get().scriptHash,
+        scriptHash: account.scriptHash,
         threshold: form.get().threshold,
-        signers: multisigAccount.get().publicKeys,
-        transactionHex: (preparedTx.get() as { serialize: (unsigned: boolean) => string }).serialize(false),
+        signers: account.publicKeys,
+        transactionHex: (transaction as { serialize: (unsigned: boolean) => string }).serialize(false),
         memo: form.get().memo || undefined,
       });
 
@@ -199,7 +204,7 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
         : [];
       history.unshift({
         id: result.id,
-        scriptHash: multisigAccount.get().scriptHash,
+        scriptHash: account.scriptHash,
         status: result.status || "pending",
         createdAt: result.created_at || new Date().toISOString(),
       });

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import type { OperationParam } from "@/components/types";
 import type { PlayTone } from "./PlayAreaShared";
 
 export const ORACLE_APP_LABELS: Record<
@@ -32,6 +33,9 @@ export type ProfileField = {
   defaultValue: string;
   suffix?: string;
   type?: "text" | "number";
+  paramType?: OperationParam["type"];
+  required?: boolean;
+  presets?: OperationParam["presets"];
 };
 
 export type ProfileCard = {
@@ -50,6 +54,7 @@ export type PlayAreaProfile = {
   subtitle: string;
   tone: PlayTone;
   icon: ReactNode;
+  embeddedHeightClass?: string;
   fields: ProfileField[];
   cards: ProfileCard[];
   steps: string[];

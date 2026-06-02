@@ -12,6 +12,7 @@ import type {
 } from "../components/types";
 import { addressToScriptHash, type SharedModeRuntimeInfo } from "./chain";
 import type { CatalogNetwork } from "./miniapp-catalog";
+import type { NeoNetwork } from "./neo-network";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 export function sanitizeForJson<T>(obj: T): T {
@@ -45,6 +46,7 @@ export type AppDetailPageProps = {
   app: MiniAppInfo | null;
   miniAppNav: MiniAppNavItem[];
   notifications: MiniAppNotification[];
+  initialTargetNetwork?: NeoNetwork;
   sharedRuntime?: SharedModeRuntimeInfo | null;
   error?: string;
 };
@@ -395,6 +397,23 @@ function getString(value: unknown): string {
   return value === undefined || value === null ? "" : String(value).trim();
 }
 
+type SensitiveFrontendOperationStore = Record<
+  string,
+  {
+    appId: string;
+    method: string;
+    paramName: string;
+    value: string;
+    createdAt: number;
+  }
+>;
+
+declare global {
+  interface Window {
+    __neoMiniAppSensitiveOperationStore?: SensitiveFrontendOperationStore;
+  }
+}
+
 export function resolvePageCatalogNetwork(
   value: unknown,
 ): CatalogNetwork | null {
@@ -421,10 +440,28 @@ const FRONTEND_LOCAL_OPERATION_METHODS = new Set([
   "bridgeMessage",
   "trackBridgeOperation",
   "prepareMiniAppOperation",
+  "submitDisbursement",
 ]);
+
+const HOST_MANAGED_API_OPERATIONS: Record<string, Set<string>> = {
+  "miniapp-aa-relay-console": new Set([
+    "checkSponsor",
+    "requestSponsor",
+    "submitRelay",
+  ]),
+};
 
 export function isFrontendLocalOperation(method?: string | null): boolean {
   return FRONTEND_LOCAL_OPERATION_METHODS.has(String(method || ""));
+}
+
+export function isHostManagedApiOperation(
+  appId?: string | null,
+  method?: string | null,
+): boolean {
+  return Boolean(
+    appId && HOST_MANAGED_API_OPERATIONS[appId]?.has(String(method || "")),
+  );
 }
 
 export function isOneGateVaultPayoutOperation(
@@ -438,6 +475,88 @@ export function isOneGateVaultPayoutOperation(
   });
 }
 
+export function isSensitiveFrontendOperationParam(
+  operation: OperationEntry,
+  paramName: string,
+): boolean {
+  const param = (operation.params ?? []).find((entry) => entry.name === paramName);
+  if (param?.sensitive) return true;
+  const text = `${operation.method} ${paramName} ${param?.label || ""}`.toLowerCase();
+  return operation.method === "sealOracleRequest" && /payload|secret|subject|endpoint/.test(text);
+}
+
+function sensitiveOperationRefParam(name: string) {
+  return `${name}_ref`;
+}
+
+function getSensitiveFrontendOperationStore() {
+  if (typeof window === "undefined") return null;
+  window.__neoMiniAppSensitiveOperationStore ??= {};
+  return window.__neoMiniAppSensitiveOperationStore;
+}
+
+export function storeSensitiveFrontendOperationValue(
+  appId: string,
+  method: string,
+  paramName: string,
+  value: string,
+): string {
+  const store = getSensitiveFrontendOperationStore();
+  if (!store) return "";
+  const random =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const ref = `sensitive:${random}`;
+  store[ref] = {
+    appId,
+    method,
+    paramName,
+    value,
+    createdAt: Date.now(),
+  };
+  return ref;
+}
+
+export function readSensitiveFrontendOperationValue(
+  ref: string | undefined,
+  expected: { appId?: string; method?: string; paramName?: string } = {},
+): string {
+  const key = getString(ref);
+  if (!key) return "";
+  const store = getSensitiveFrontendOperationStore();
+  const entry = store?.[key];
+  if (!entry) return "";
+  if (expected.appId && entry.appId !== expected.appId) return "";
+  if (expected.method && entry.method !== expected.method) return "";
+  if (expected.paramName && entry.paramName !== expected.paramName) return "";
+  return entry.value;
+}
+
+export function prepareFrontendOperationQueryValues(
+  appId: string,
+  operation: OperationEntry,
+  values: Record<string, string>,
+): Record<string, string> {
+  const next: Record<string, string> = {};
+  for (const [key, value] of Object.entries(values)) {
+    const trimmed = String(value ?? "").trim();
+    if (!trimmed) continue;
+    if (isSensitiveFrontendOperationParam(operation, key)) {
+      const ref = storeSensitiveFrontendOperationValue(
+        appId,
+        operation.method,
+        key,
+        trimmed,
+      );
+      if (ref) next[sensitiveOperationRefParam(key)] = ref;
+      continue;
+    }
+    next[key] = trimmed;
+  }
+  return next;
+}
+
 export function buildFrontendOperationQuery(
   currentQuery: Record<string, unknown>,
   method: string,
@@ -445,8 +564,14 @@ export function buildFrontendOperationQuery(
   targetNetwork: CatalogNetwork | null,
 ): Record<string, string | string[]> {
   const next: Record<string, string | string[]> = {};
+  const sensitiveValueParamNames = new Set(
+    Object.keys(values)
+      .filter((key) => key.endsWith("_ref"))
+      .map((key) => key.slice(0, -"_ref".length)),
+  );
   for (const [key, value] of Object.entries(currentQuery)) {
     if (key === "operation") continue;
+    if (sensitiveValueParamNames.has(key)) continue;
     if (Array.isArray(value)) {
       next[key] = value.map((item) => String(item));
     } else if (value !== undefined && value !== null) {
@@ -481,7 +606,10 @@ export function frontendOperationFeedback(method: string): string {
     return "Bridge operation parameters applied.";
   }
   if (method === "prepareMiniAppOperation") {
-    return "MiniApp operation parameters applied to the playarea preview.";
+    return "Workspace opened. No transaction was sent from the host action; submit inside the embedded MiniApp when ready.";
+  }
+  if (method === "submitDisbursement") {
+    return "Treasury disbursement parameters applied. Submit inside the embedded MiniApp when ready.";
   }
   return "Operation parameters applied.";
 }
@@ -574,7 +702,7 @@ export function supportsPageCatalogNetwork(
   });
   if (supportsPlatformRuntime) return true;
 
-  const contracts = getRecord(manifest.contracts);
+  const contracts = getMiniAppContracts(app);
   const hasNetworkedContracts = Object.values(contracts).some((value) =>
     Boolean(getString(value)),
   );
@@ -589,12 +717,27 @@ export function supportsPageCatalogNetwork(
   return Boolean(resolveNetworkContractHash(app, network));
 }
 
+function getMiniAppContracts(app: MiniAppInfo): Record<string, unknown> {
+  return {
+    ...getRecord(getRecord(app.manifest).contracts),
+    ...getRecord(app.contracts),
+  };
+}
+
 export function resolveNetworkContractHash(
   app: MiniAppInfo,
   network: CatalogNetwork | null,
 ): string | null {
-  if (!network) return app.contract_hash || null;
-  const contracts = getRecord(getRecord(app.manifest).contracts);
+  const contracts = getMiniAppContracts(app);
+  if (!network) {
+    return (
+      app.contract_hash ||
+      Object.values(contracts)
+        .map((value) => getString(value))
+        .find(Boolean) ||
+      null
+    );
+  }
   const shortKey = network === "neo-n3-mainnet" ? "mainnet" : "testnet";
   const networkHash = getString(contracts[network] ?? contracts[shortKey]);
   if (networkHash) return networkHash;
@@ -616,7 +759,9 @@ export function withBundledAuthoritativeFields(
     description: bundled.description || remote.description,
     category: bundled.category || remote.category,
     contract_hash: bundled.contract_hash ?? remote.contract_hash,
+    contracts: bundled.contracts ?? remote.contracts,
     entry_url: bundled.entry_url || remote.entry_url,
+    dapp_url: bundled.dapp_url ?? remote.dapp_url,
     permissions: bundled.permissions ?? remote.permissions,
     operations: bundled.operations ?? remote.operations,
     detail_template: bundled.detail_template ?? remote.detail_template,

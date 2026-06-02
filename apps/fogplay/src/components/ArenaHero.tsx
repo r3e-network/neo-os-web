@@ -23,7 +23,7 @@ export default function ArenaHero({ t, isFlipping, displayOutcome, result }: Are
       {result && !isFlipping && (
         <div className={`result-flash ${result.won ? "win" : "lose"}`}>
           <span className="result-flash-icon" aria-hidden="true">{result.won ? "W" : "L"}</span>
-          <span className="result-flash-text">{result.won ? "WIN" : "LOSE"}</span>
+          <span className="result-flash-text">{result.won ? t("youWon") : t("youLost")}</span>
         </div>
       )}
       <div className="side-labels">

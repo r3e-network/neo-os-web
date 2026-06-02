@@ -7,20 +7,24 @@ export interface CheckinData {
   lastCheckinTime: number;
   unclaimedRewards: string;
   totalClaimed: string;
+  totalGlobalCheckins?: number | string;
+  totalGlobalUsers?: number | string;
+  totalGlobalRewarded?: number | string;
+  checkInFee?: number | string;
 }
 
 export class CheckinProxy extends OSServiceProxy {
   protected readonly servicePrefix = "os-checkin";
 
-  async checkIn(): Promise<void> {
-    await this.call("checkin", {});
+  async checkIn(): Promise<unknown> {
+    return this.call("checkin", {});
   }
 
   async getStreak(): Promise<CheckinData> {
     return this.call("streak", {});
   }
 
-  async claimRewards(): Promise<void> {
-    await this.call("claim", {});
+  async claimRewards(): Promise<unknown> {
+    return this.call("claim", {});
   }
 }

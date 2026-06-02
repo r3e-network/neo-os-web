@@ -15,6 +15,7 @@ export default function RoundForm({ onSubmit, t }: RoundFormProps) {
 
   return (
     <NeoCard title={t("createRound")} className="qf-form-panel">
+      <p className="qf-panel-hint">{t("matchingPoolHint")}</p>
       <div className="qf-form-grid">
         <NeoInput
           value={title}
@@ -50,7 +51,6 @@ export default function RoundForm({ onSubmit, t }: RoundFormProps) {
         onChange={setDescription}
       />
       <div className="qf-panel-footer">
-        <span>{t("matchingPoolHint")}</span>
         <NeoButton
           variant="primary"
           onClick={() =>

@@ -11,9 +11,8 @@
  *     number floating in empty space.
  *   - The page is fleshed out with real data cards (stats, rewards,
  *     milestones, platform, history) instead of a thin column.
- *   - The platform Action Console (outside the iframe) owns the primary
- *     "Check In" / "Claim" CTA — the dApp surface is data only, so the
- *     in-app buttons stay hidden.
+ *   - The dApp surface owns the visible check-in, claim, and refresh actions,
+ *     with a compact decision panel explaining the UTC window and reward route.
  */
 
 @use "@shared/styles/variables.scss" as *;
@@ -52,9 +51,9 @@ $amber: #f59e0b;
 
 .checkin-play-area {
   display: grid;
-  gap: 16px;
-  padding: 18px 20px 26px;
-  max-width: 760px;
+  gap: 20px;
+  padding: 20px 24px 32px;
+  max-width: 880px;
   margin: 0 auto;
   min-height: 100vh;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -67,16 +66,21 @@ $amber: #f59e0b;
 /* Hide the legacy fire/ember chrome + in-app CTA (Action Console owns it). */
 .flame-bg-effects,
 .ember,
-.checkin-best-text,
 .checkin-flame-stack,
-.confetti-container,
-.action-card,
-.status-pill,
-.reward-preview,
-.checkin-btn,
-.checkin-btn--ready,
-.checkin-claim-btn {
+.confetti-container {
   display: none !important;
+}
+
+.action-card {
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.checkin-btn,
+.checkin-claim-btn {
+  min-height: 48px;
 }
 
 /* ============================================================
@@ -141,6 +145,7 @@ $amber: #f59e0b;
   display: flex;
   flex-direction: column;
   gap: 3px;
+  padding-right: 150px;
 }
 
 .checkin-hero-eyebrow {
@@ -175,6 +180,8 @@ $amber: #f59e0b;
 /* Best-streak chip — top-right of the hero */
 .checkin-best-text {
   display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
   position: absolute;
   top: 18px;
   right: 22px;
@@ -182,7 +189,10 @@ $amber: #f59e0b;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+  line-height: 1;
+  min-width: max-content;
+  white-space: nowrap;
   background: $ns-bg;
   color: $ns-text-muted;
   border: 1px solid $ns-border;
@@ -191,14 +201,20 @@ $amber: #f59e0b;
 
 /* Tier chip — sits just under the best chip when present */
 .checkin-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: absolute;
   top: 18px;
   right: 22px;
   padding: 5px 11px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
+  line-height: 1;
+  min-width: max-content;
+  white-space: nowrap;
   background: $ac-soft;
   color: $ac-strong;
   border: 1px solid $ac-border;
@@ -242,11 +258,14 @@ $amber: #f59e0b;
  * ============================================================ */
 
 .checkin-week-wrapper,
+.checkin-decision-panel,
+.checkin-action-card,
 .checkin-stats-card,
 .checkin-rewards-card,
 .checkin-milestones-card,
 .checkin-global-card,
-.checkin-history-card {
+.checkin-history-card,
+.checkin-evidence-card {
   padding: 20px 22px !important;
   border-radius: $ns-radius !important;
   background: $ns-bg !important;
@@ -300,14 +319,14 @@ $amber: #f59e0b;
 .checkin-week-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: 12px;
 }
 
 .checkin-week-day-slot {
   display: grid;
   place-items: center;
   gap: 6px;
-  padding: 14px 0 12px;
+  padding: 16px 0 14px;
   border-radius: 12px;
   background: $ns-subtle;
   border: 1px solid $ns-border;
@@ -335,7 +354,7 @@ $amber: #f59e0b;
 }
 
 .checkin-day-icon {
-  font-size: 18px;
+  font-size: 21px;
   line-height: 1;
 }
 
@@ -454,6 +473,208 @@ $amber: #f59e0b;
   color: $ac-strong;
 }
 
+.status-pill {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: $ns-bg;
+  border: 1px solid $ns-border;
+  color: $ns-text-2;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: $ns-shadow;
+  overflow-wrap: anywhere;
+
+  &.ready {
+    background: $ac-soft;
+    border-color: $ac-border;
+    color: $ac-strong;
+  }
+
+  &.error {
+    background: #fde7e9;
+    border-color: rgba(200, 30, 42, 0.18);
+    color: #c81e2a;
+  }
+}
+
+.reward-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: $ns-radius;
+  background: linear-gradient(135deg, $ns-bg 0%, $ac-soft 100%);
+  border: 1px solid $ac-border;
+  box-shadow: $ns-shadow;
+}
+
+.reward-preview > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.reward-preview > div:last-child {
+  text-align: right;
+}
+
+.reward-preview-label {
+  color: $ns-text-muted;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.reward-preview-hint {
+  color: $ns-ink;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.reward-preview-amount {
+  padding: 8px 14px;
+  border-radius: 999px;
+  color: $ac-strong;
+  background: $ns-bg;
+  border: 1px solid $ac-border;
+  font-size: 16px;
+  font-weight: 900;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkin-decision-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.checkin-decision-header {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.checkin-decision-header span,
+.checkin-decision-tile span {
+  color: $ns-text-muted;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.checkin-decision-header strong,
+.checkin-decision-tile strong {
+  min-width: 0;
+  color: $ns-ink;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.28;
+}
+
+.checkin-decision-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.checkin-decision-tile {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  min-height: 128px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid $ns-border;
+  background: $ns-subtle;
+}
+
+.checkin-decision-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.checkin-decision-tile-top span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Inline status badge — replaces the separate readiness checklist */
+.checkin-decision-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 60%;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+
+  &.is-ready {
+    background: #dcfce7;
+    color: #047857;
+  }
+}
+
+.checkin-decision-tile strong,
+.checkin-decision-tile p {
+  overflow-wrap: anywhere;
+}
+
+.checkin-decision-tile p {
+  margin: 0;
+  color: $ns-text-2;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.checkin-decision-tile.is-ready {
+  border-color: $ac-border;
+  background: $ac-soft;
+}
+
+.checkin-decision-tile.is-done {
+  background: #f8fafc;
+}
+
+.checkin-action-card {
+  padding: 14px !important;
+}
+
+.checkin-actions-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.checkin-actions-grid .neo-btn {
+  min-height: 48px;
+}
+
 /* ============================================================
  *  4. Stat tiles (shared by Your Stats + Platform Stats)
  * ============================================================ */
@@ -461,13 +682,13 @@ $amber: #f59e0b;
 .checkin-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
 }
 
 .checkin-stat-item {
   display: grid;
   gap: 6px;
-  padding: 14px 16px;
+  padding: 16px;
   border-radius: 12px;
   background: $ns-subtle;
   border: 1px solid $ns-border;
@@ -497,7 +718,7 @@ $amber: #f59e0b;
 .checkin-rewards-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  gap: 12px;
 }
 
 .checkin-reward-item {
@@ -631,6 +852,92 @@ $amber: #f59e0b;
   font-variant-numeric: tabular-nums;
 }
 
+.checkin-history-empty {
+  padding: 14px;
+  border-radius: 12px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
+  color: $ns-text-muted;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Evidence — collapsible debug block (closed by default) */
+.checkin-evidence-card {
+  &[open] .checkin-evidence-chevron {
+    transform: rotate(180deg);
+  }
+}
+
+.checkin-evidence-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  border-radius: var(--ns-radius-xs, 8px);
+  transition: color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  .checkin-section-title {
+    margin: 0;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  }
+}
+
+.checkin-evidence-chevron {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: $ns-text-muted;
+  transition: transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.checkin-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.checkin-evidence-box {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
+}
+
+.checkin-evidence-box > span {
+  color: $ns-text-muted;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.checkin-evidence-box pre {
+  max-height: 220px;
+  margin: 8px 0 0;
+  overflow: auto;
+  color: $ns-ink;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* ============================================================
  *  Status toast (StandaloneDappSurface)
  * ============================================================ */
@@ -656,13 +963,24 @@ $amber: #f59e0b;
  * ============================================================ */
 
 @media (max-width: 520px) {
-  .checkin-stats-grid {
+  .checkin-stats-grid,
+  .checkin-actions-grid,
+  .checkin-evidence-grid,
+  .reward-preview {
     grid-template-columns: 1fr;
+  }
+
+  .reward-preview > div:last-child {
+    text-align: left;
   }
 
   .checkin-streak-section {
     gap: 14px;
     padding: 20px 18px;
+  }
+
+  .checkin-hero-body {
+    padding-right: 0;
   }
 
   .checkin-fire-ring {

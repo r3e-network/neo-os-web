@@ -54,6 +54,16 @@ export interface HistoryEvent {
 const BASE_KEY_PRICE = 10000000n;
 const KEY_PRICE_INCREMENT_BPS = 10n;
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error ?? "");
+}
+
+function isOsBoundaryError(error: unknown) {
+  return /OS service error|os-game-|os-payment-|os-storage-|os-leaderboard-|Not Found/i.test(
+    errorMessage(error),
+  );
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -132,6 +142,8 @@ export function useLastSurvivor({
   const isBuyingKeys = createObservable(false);
   const isLoading = createObservable(false);
   const totalKeysInRound = createObservable(0n);
+  const roundDataAvailable = createObservable(false);
+  const serviceNotice = createObservable("");
 
   // ── Timer State ─────────────────────────────────────────────────────
   const endTime = createObservable(0);
@@ -222,14 +234,27 @@ export function useLastSurvivor({
       if (state && typeof state === "object") {
         roundId.set(Number(state.roundId ?? 0));
         totalPot.set(Number(state.totalBets ?? state.pot ?? 0));
-        isRoundActive.set(state.status === "active" || Boolean(state.active));
+        isRoundActive.set(
+          state.status === "open" ||
+            state.status === "active" ||
+            Boolean(state.active),
+        );
         lastBuyer.set(String(state.lastBuyer ?? ""));
         totalKeysInRound.set(BigInt(Number(state.totalKeys) || 0));
+        roundDataAvailable.set(true);
+        serviceNotice.set("");
         return Number(state.remainingTime ?? 0);
       }
+      roundDataAvailable.set(false);
+      serviceNotice.set(t("roundStateUnavailable"));
       return 0;
     } catch (e) {
-      console.warn("[useLastSurvivor] loadRoundData failed:", e instanceof Error ? e.message : String(e));
+      roundDataAvailable.set(false);
+      if (isOsBoundaryError(e)) {
+        serviceNotice.set(t("roundStateUnavailable"));
+        return 0;
+      }
+      console.warn("[useLastSurvivor] loadRoundData failed:", errorMessage(e));
       throw e;
     }
   };
@@ -247,7 +272,9 @@ export function useLastSurvivor({
       const keys = await storageService.get(`playerKeys:${roundId.get()}`);
       userKeys.set(Number(keys || 0));
     } catch (e) {
-      console.warn("[useLastSurvivor] loadUserKeys failed:", e instanceof Error ? e.message : String(e));
+      if (!isOsBoundaryError(e)) {
+        console.warn("[useLastSurvivor] loadUserKeys failed:", errorMessage(e));
+      }
       userKeys.set(0);
     }
   };
@@ -304,7 +331,9 @@ export function useLastSurvivor({
 
       history.set(items.sort((a, b) => Number(b.id) - Number(a.id)));
     } catch (e) {
-      console.warn("[useLastSurvivor] loadHistory failed:", e instanceof Error ? e.message : String(e));
+      if (!isOsBoundaryError(e)) {
+        console.warn("[useLastSurvivor] loadHistory failed:", errorMessage(e));
+      }
       history.set([]);
     }
   };
@@ -372,6 +401,9 @@ export function useLastSurvivor({
       await loadAll();
       return numKeys;
     } catch (e) {
+      if (isOsBoundaryError(e)) {
+        throw new Error(t("keyPurchaseUnavailable"));
+      }
       throw e;
     } finally {
       isBuyingKeys.set(false);
@@ -390,6 +422,8 @@ export function useLastSurvivor({
     history,
     isBuyingKeys,
     isLoading,
+    roundDataAvailable,
+    serviceNotice,
 
     // ── Timer State ─────────────────────────────────────────────────
     countdown,

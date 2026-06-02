@@ -24,6 +24,18 @@ interface ActivityFeedState {
 const DEFAULT_POLL_INTERVAL = 5000;
 const DEFAULT_MAX_ITEMS = 100;
 
+function isExpectedFetchAbort(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const name = err.name.toLowerCase();
+  const message = err.message.toLowerCase();
+  return (
+    name === "aborterror" ||
+    name === "timeouterror" ||
+    message.includes("signal timed out") ||
+    message.includes("operation was aborted")
+  );
+}
+
 export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityFeedState {
   const {
     appId,
@@ -61,7 +73,9 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
           try {
             return await fetchJSON<T>(url);
           } catch (_e: unknown) {
-            console.warn("[useActivityFeed] fetch failed:", _e instanceof Error ? _e.message : String(_e));
+            if (!isExpectedFetchAbort(_e)) {
+              console.warn("[useActivityFeed] fetch failed:", _e instanceof Error ? _e.message : String(_e));
+            }
             return null;
           }
         };

@@ -7,7 +7,7 @@ const appMessages = {
   createTab: { en: "Create", zh: "创建" },
   claimTab: { en: "Claim", zh: "领取" },
   claimRedEnvelope: { en: "Claim red envelope", zh: "领取红包" },
-  redEnvelopeHeroTitle: { en: "Red Envelope Claim Desk", zh: "红包领取工作台" },
+  redEnvelopeHeroTitle: { en: "Red Envelope", zh: "Neo 红包" },
   redEnvelopeHeroSubtitle: {
     en: "Scan, paste, or select an active Neo N3 GAS envelope, then review the wallet request before claiming.",
     zh: "扫描、粘贴或选择可领取的 Neo N3 GAS 红包，并在领取前核对钱包请求。",
@@ -16,6 +16,10 @@ const appMessages = {
   claimPanelTitle: { en: "Recipient claim path", zh: "领取路径" },
   createPanelTitle: { en: "Send a lucky envelope", zh: "发送拼手气红包" },
   creatorMode: { en: "Creator mode", zh: "发起者模式" },
+  readyToClaim: { en: "Claim request prepared", zh: "领取请求已准备" },
+  needsEnvelopeId: { en: "Needs envelope ID", zh: "需要红包 ID" },
+  createPreviewTitle: { en: "Envelope preview", zh: "红包预览" },
+  perPacketLabel: { en: "Average packet", zh: "平均红包" },
   claimFlowTitle: { en: "Claim flow", zh: "领取流程" },
   claimRouteOne: { en: "Select envelope", zh: "选择红包" },
   claimRouteOneCopy: {

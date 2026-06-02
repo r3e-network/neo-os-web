@@ -144,6 +144,7 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-aa-relay-console': '0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2',
     'miniapp-aa-market-hub': '0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf',
     'miniapp-aa-session-key-lab': '0xed44c88535650b4dd6b8d59776e6ed045462cab6',
+    'miniapp-recovery-guardian': '0x198b3a9cec9bccc2110d19bd929b10374a9d034d',
   },
 };
 

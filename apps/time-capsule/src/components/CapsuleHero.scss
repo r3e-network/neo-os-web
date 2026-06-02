@@ -1,7 +1,6 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-// Violet accent (this app's identity hue)
 $accent: #7b61ff;
 $accent-strong: #6a4df4;
 $accent-soft: #eeeaff;
@@ -14,7 +13,7 @@ $accent-soft: #eeeaff;
   padding: 22px;
   background: var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
+  border-radius: 8px;
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
@@ -28,7 +27,7 @@ $accent-soft: #eeeaff;
   flex-shrink: 0;
   width: 56px;
   height: 56px;
-  border-radius: 16px;
+  border-radius: 8px;
   background: $accent-soft;
   display: flex;
   align-items: center;
@@ -75,7 +74,7 @@ $accent-soft: #eeeaff;
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.15;
   color: var(--ns-ink, #1e1e2e);
 }
@@ -101,14 +100,14 @@ $accent-soft: #eeeaff;
   padding: 12px 8px;
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .hero-stat-value {
   display: block;
   font-size: 20px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
   font-variant-numeric: tabular-nums;
 }
@@ -117,12 +116,28 @@ $accent-soft: #eeeaff;
   display: block;
   font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
   color: var(--ns-text-muted, #8a92a6);
 }
 
 @media (max-width: 480px) {
+  .hero-container {
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .hero-head {
+    gap: 14px;
+  }
+
+  .hero-badge {
+    width: 54px;
+    height: 54px;
+  }
+
   .hero-title {
     font-size: 19px;
   }

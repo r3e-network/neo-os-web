@@ -140,6 +140,7 @@ export const disassembleScript = (script: string): string[] => {
 
     for (let cursor = 0; cursor < bytes.length; cursor += 1) {
       const opcode = bytes[cursor];
+      if (opcode === undefined) break;
       const opcodeName = OPCODE_NAME_BY_VALUE[opcode];
 
       if (opcode >= 0x01 && opcode <= 0x4b) {

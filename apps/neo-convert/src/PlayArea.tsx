@@ -23,6 +23,28 @@ interface NeoAccountSummary {
   wif?: string;
 }
 
+interface ConversionView {
+  address?: string;
+  publicKey?: string;
+  privateKey?: string;
+  wif?: string;
+  opcodes?: string[];
+}
+
+type ResultRow = {
+  key: string;
+  label: string;
+  value: string;
+  sensitive?: boolean;
+  multiline?: boolean;
+};
+
+function maskSecret(value: string) {
+  if (!value) return "";
+  if (value.length <= 12) return "********";
+  return `${value.slice(0, 6)}********${value.slice(-6)}`;
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
   const [keyInput, setKeyInput] = useState("");
@@ -35,11 +57,108 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const showSecrets = bool("showSecrets");
   const accountsGenerated = str("accountsGenerated", "0");
   const conversionResult = str("conversionResult");
+  const conversionView = val<ConversionView | null>("conversionResult", null);
   const conversionStatus = str("conversionStatus");
   const conversionStatusType = str("conversionStatusType");
   const copyStatus = str("copyStatus");
   const formattedNeoBalance = str("formattedNeoBalance", "0");
   const formattedGasBalance = str("formattedGasBalance", "0");
+  const generatedRows: ResultRow[] =
+    hasGeneratedAccount && generatedAccount
+      ? [
+          {
+            key: "address",
+            label: t("address") || "Address",
+            value: generatedAccount.address ?? "",
+          },
+          {
+            key: "publicKey",
+            label: t("pubKey") || "Public key",
+            value: generatedAccount.publicKey ?? "",
+          },
+          {
+            key: "privateKey",
+            label: t("privKeyLabel") || "Private key",
+            value: generatedAccount.privateKey ?? "",
+            sensitive: true,
+          },
+          {
+            key: "wif",
+            label: t("wifLabel") || "WIF",
+            value: generatedAccount.wif ?? "",
+            sensitive: true,
+          },
+        ].filter((row) => row.value)
+      : [];
+  const conversionRows: ResultRow[] = conversionView
+    ? [
+        {
+          key: "address",
+          label: t("address") || "Address",
+          value: conversionView.address ?? "",
+        },
+        {
+          key: "publicKey",
+          label: t("pubKey") || "Public key",
+          value: conversionView.publicKey ?? "",
+        },
+        {
+          key: "privateKey",
+          label: t("privKeyLabel") || "Private key",
+          value: conversionView.privateKey ?? "",
+          sensitive: true,
+        },
+        {
+          key: "wif",
+          label: t("wifLabel") || "WIF",
+          value: conversionView.wif ?? "",
+          sensitive: true,
+        },
+        {
+          key: "opcodes",
+          label: t("disassembledOpcodes") || "Disassembled opcodes",
+          value: conversionView.opcodes?.join("\n") ?? "",
+          multiline: true,
+        },
+      ].filter((row) => row.value)
+    : [];
+  const hasSensitiveConversion = conversionRows.some((row) => row.sensitive);
+  const statusLabel = conversionStatus
+    ? t(conversionStatus) || conversionStatus
+    : "";
+
+  const renderResultRows = (rows: ResultRow[]) => (
+    <div className="convert-result-list">
+      {rows.map((row) => {
+        const hidden = Boolean(row.sensitive && !showSecrets);
+        const displayValue = hidden ? maskSecret(row.value) : row.value;
+        return (
+          <div
+            key={row.key}
+            className={`result-row ${row.multiline ? "result-row--multiline" : ""}`}
+          >
+            <span className="result-label">{row.label}</span>
+            {row.multiline ? (
+              <pre className="result-value result-value--pre mono">
+                {displayValue}
+              </pre>
+            ) : (
+              <code className="result-value mono">{displayValue}</code>
+            )}
+            {!hidden && (
+              <NeoButton
+                size="sm"
+                variant="ghost"
+                onClick={() => dispatch("copy", row.value)}
+              >
+                {t("copy") || "Copy"}
+              </NeoButton>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="neo-convert-play-area">
@@ -95,17 +214,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </NeoButton>
           {hasGeneratedAccount && generatedAccount && (
             <div className="generated-result">
-              <div className="result-row">
-                <span className="result-label">{t("address") || "Address"}</span>
-                <code className="result-value mono">{generatedAccount.address ?? ""}</code>
-                <NeoButton
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => dispatch("copy", generatedAccount.address ?? "")}
-                >
-                  {copyStatus || t("copy") || "Copy"}
-                </NeoButton>
-              </div>
+              {renderResultRows(generatedRows)}
               <NeoButton
                 size="sm"
                 variant="secondary"
@@ -113,6 +222,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               >
                 {showSecrets ? t("hideSecrets") || "Hide" : t("showSecrets") || "Show Secrets"}
               </NeoButton>
+              <NeoButton
+                size="sm"
+                variant="secondary"
+                disabled={!showSecrets}
+                onClick={() => dispatch("downloadPaperWallet")}
+              >
+                {t("downloadPdf") || "Download Paper Wallet (PDF)"}
+              </NeoButton>
+              {!showSecrets && (
+                <span className="convert-secret-note">
+                  {t("paperWalletRequiresReveal") ||
+                    "Reveal secrets before exporting the WIF-backed paper wallet."}
+                </span>
+              )}
+              {copyStatus && <span className="convert-copy-status">{copyStatus}</span>}
             </div>
           )}
         </div>
@@ -140,8 +264,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </NeoButton>
           {hasConversionResult && (
             <div className={`conversion-status conversion-status--${conversionStatusType}`}>
-              <span>{conversionStatus}</span>
-              <pre className="conversion-result">{conversionResult}</pre>
+              <div className="conversion-status__head">
+                <span>{statusLabel}</span>
+                {hasSensitiveConversion && (
+                  <NeoButton
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => dispatch("toggleSecrets")}
+                  >
+                    {showSecrets ? t("hideSecrets") || "Hide" : t("showSecrets") || "Show Secrets"}
+                  </NeoButton>
+                )}
+              </div>
+              {conversionRows.length > 0 ? (
+                renderResultRows(conversionRows)
+              ) : (
+                <pre className="conversion-result">{conversionResult}</pre>
+              )}
             </div>
           )}
         </div>
