@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, Copy, Database, FileSearch, Play, RotateCcw, ShieldCheck } from "lucide-react";
+import { Copy, Database, FileSearch, Play, RotateCcw, ShieldCheck } from "lucide-react";
 import type { ObservableState } from "../react/context";
 import type { PlatformServices } from "../services";
 import type { MiniAppLaunchContext } from "../utils/launch-params";
@@ -153,18 +153,18 @@ export function ConsoleToolPanel({
           </div>
         </div>
         <div className="console-tool__hero-metrics" aria-label={t("statistics")}>
-          <div className="console-tool__metric">
+          <span className="console-tool__metric">
             <span>{t("statNetwork")}</span>
             <strong>{networkLabel}</strong>
-          </div>
-          <div className="console-tool__metric">
+          </span>
+          <span className="console-tool__metric">
             <span>{t("statEndpoint")}</span>
             <strong>{endpointLabel}</strong>
-          </div>
-          <div className="console-tool__metric">
+          </span>
+          <span className="console-tool__metric">
             <span>{t("statRequests")}</span>
             <strong>{requestCount}</strong>
-          </div>
+          </span>
         </div>
       </section>
 
@@ -177,29 +177,18 @@ export function ConsoleToolPanel({
           <strong>{lastDigest}</strong>
           <p>{t("consoleRequestHint")}</p>
         </div>
-        <div className="console-tool__asset-signal" aria-label={t("consoleSignal")}>
+        <span className="console-tool__asset-signal" aria-label={t("consoleSignal")}>
           <span>{t("consoleSignal")}</span>
-          <div className="console-tool__sparkline" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
           <strong>{signalLabel}</strong>
-        </div>
+        </span>
       </section>
 
       <section className="console-tool__workspace">
         <div className="console-tool__form" aria-label={t(config.titleKey)}>
           <div className="console-tool__flow" aria-label={t("consoleFlow")}>
-            <span>{t("consoleFlowInput")}</span>
-            <span>{t("consoleFlowPreview")}</span>
-            <span>{t("consoleFlowVerify")}</span>
-          </div>
-          <div className="console-tool__hint">
-            <Activity size={16} aria-hidden="true" />
-            <span>{t("consoleRequestHint")}</span>
+            <span className={result ? "" : "is-active"}>{t("consoleFlowInput")}</span>
+            <span className={result ? "is-active" : ""}>{t("consoleFlowPreview")}</span>
+            <span className={result ? "is-active" : ""}>{t("consoleFlowVerify")}</span>
           </div>
           {config.fields.map((field) => {
             if (field.type === "select") {
@@ -248,8 +237,8 @@ export function ConsoleToolPanel({
           {result ? (
             <>
               <div className="console-tool__result-head">
-                <div>
-                  <span>{result.status}</span>
+                <div className="console-tool__result-status">
+                  <span className="console-tool__status-badge">{result.status}</span>
                   <strong>{result.summary}</strong>
                 </div>
                 <NeoButton variant="secondary" size="sm" onClick={copyPayload}>

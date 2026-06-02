@@ -9,7 +9,7 @@ $accent-soft: #eeeaff;
 .proof-play-area {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   padding: 4px;
   color: var(--ns-text-2, #5b6478);
   position: relative;
@@ -19,11 +19,11 @@ $accent-soft: #eeeaff;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-  border-radius: var(--ns-radius-md, 14px);
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .latest-label {
@@ -45,7 +45,7 @@ $accent-soft: #eeeaff;
 .proof-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
 .empty-state {
@@ -53,16 +53,15 @@ $accent-soft: #eeeaff;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
   text-align: center;
-  padding: 26px 24px;
+  padding: 40px 28px;
   background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
 }
 
 .empty-icon {
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
   // override global `.standalone-dapp-root span:not(...)` color reset so the empty-state icon keeps its accent
   color: $accent !important;
@@ -71,5 +70,6 @@ $accent-soft: #eeeaff;
 
 .empty-text {
   font-size: 14px;
+  font-weight: 600;
   color: var(--ns-text-muted, #8a92a6);
 }

@@ -1061,7 +1061,10 @@ export function EmbeddedDappSurface({
         loading="eager"
         onLoad={() => setFrameLoaded(true)}
         referrerPolicy="no-referrer-when-downgrade"
-        sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+        /* allow-same-origin: these are first-party miniapps served from the host's
+           own origin; the OS SDK reads the wallet session (neo_miniapp_auth_jwt)
+           from shared storage, which is inaccessible at an opaque sandbox origin. */
+        sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin"
       />
       {showLoading && (
         <div

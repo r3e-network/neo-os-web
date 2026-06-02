@@ -13,10 +13,9 @@ $accent-soft: #eeeaff;
   justify-content: flex-start;
   min-height: 0;
   text-align: left;
-  gap: 18px;
-  padding: 22px;
+  gap: 20px;
+  padding: 24px;
   background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
@@ -29,9 +28,9 @@ $accent-soft: #eeeaff;
 
 .hero-badge {
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--ns-radius-full, 9999px);
   background: $accent-soft;
   display: flex;
   align-items: center;
@@ -75,7 +74,7 @@ $accent-soft: #eeeaff;
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.15;
   color: var(--ns-ink, #1e1e2e);
 }
@@ -107,17 +106,16 @@ $accent-soft: #eeeaff;
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 14px 8px;
+  padding: 16px 8px;
   background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 12px;
+  border-radius: var(--ns-radius-md, 16px);
 }
 
 .hero-stat-value {
   display: block;
   font-size: 20px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
   font-variant-numeric: tabular-nums;
 }
@@ -127,7 +125,7 @@ $accent-soft: #eeeaff;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   color: var(--ns-text-muted, #8a92a6);
   margin-top: 2px;
 }
