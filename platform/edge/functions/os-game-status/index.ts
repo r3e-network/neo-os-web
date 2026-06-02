@@ -1,11 +1,13 @@
-import { getKernelHash } from "../_shared/kernel-rpc.ts";
+import { requireKernelHash } from "../_shared/kernel-rpc.ts";
 import {
   createOSHandler,
   invokeOSContractCached,
   parseInvokeResultValue,
 } from "../_shared/os-service.ts";
 
-const CONTRACT_HASH = getKernelHash();
+// Fail-fast on a missing kernel hash in production rather than masking a
+// misconfiguration behind the generic empty-state fallback below.
+const CONTRACT_HASH = requireKernelHash();
 
 export const handler = createOSHandler(
   { scopeName: "os-game-status", permission: "games", cacheable: true },
