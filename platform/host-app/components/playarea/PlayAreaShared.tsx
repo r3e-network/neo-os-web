@@ -288,6 +288,30 @@ function normalizeBridgeArgs(value: unknown): InvokeParams["args"] {
   }));
 }
 
+// OS service intents encode the caller as a "SENDER" placeholder (or a zero
+// hash) since the edge function doesn't know the connected address. Resolve it
+// to the wallet address before signing so the transfer/invoke is valid.
+const SENDER_PLACEHOLDERS = new Set([
+  "sender",
+  "{{sender}}",
+  "{sender}",
+  "0x0000000000000000000000000000000000000000",
+  "",
+]);
+function resolveSenderArgs(params: InvokeParams, address: string): InvokeParams {
+  if (!address) return params;
+  return {
+    ...params,
+    args: params.args.map((a) =>
+      String(a.type).toLowerCase() === "hash160" &&
+      typeof a.value === "string" &&
+      SENDER_PLACEHOLDERS.has(a.value.trim().toLowerCase())
+        ? { ...a, value: address }
+        : a,
+    ),
+  };
+}
+
 function normalizeBridgeOperation(value: unknown): string {
   const operation = asBridgeString(value);
   const canonicalKernelMethods: Record<string, string> = {
@@ -435,7 +459,7 @@ async function handleEmbeddedWalletBridgeRequest(
       isBridgeRecord(payload) ? payload.signers : undefined,
     );
     const params = invocations.map((invocation) =>
-      bridgeInvocationToParams(invocation, signers),
+      resolveSenderArgs(bridgeInvocationToParams(invocation, signers), walletState.address),
     );
     if (params.length > 1) {
       if (!adapter.invokeMultiple) {
