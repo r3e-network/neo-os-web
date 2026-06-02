@@ -77,6 +77,23 @@ function resolveManifestContractHash(manifest: Record<string, unknown>): string 
   return "";
 }
 
+function resolveContractMap(
+  obj: Record<string, unknown>,
+  manifest: Record<string, unknown>,
+  fallback?: MiniAppInfo,
+): Record<string, unknown> {
+  const rawContracts = asObject(obj.contracts);
+  if (Object.keys(rawContracts).length > 0) return rawContracts;
+
+  const manifestContracts = asObject(manifest.contracts);
+  if (Object.keys(manifestContracts).length > 0) return manifestContracts;
+
+  const fallbackContracts = asObject(
+    fallback?.contracts ?? asObject(fallback?.manifest).contracts,
+  );
+  return Object.keys(fallbackContracts).length > 0 ? fallbackContracts : {};
+}
+
 function normalizeEntryUrl(raw: unknown, appId: string): string {
   return resolveMiniAppEntryUrlOrManifest(raw, appId);
 }
@@ -275,7 +292,12 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
   const description = toString(obj.description ?? manifestCandidate.description ?? fallback?.description ?? "").trim();
   const icon = toString(obj.icon ?? manifestCandidate.icon ?? fallback?.icon ?? "app-window").trim() || "app-window";
   const category = normalizeCategory(obj.category ?? manifestCandidate.category ?? fallback?.category);
-  const manifestContractHash = resolveManifestContractHash(manifestCandidate);
+  const contracts = resolveContractMap(obj, manifestCandidate, fallback);
+  const manifestForContracts =
+    Object.keys(contracts).length > 0
+      ? { ...manifestCandidate, contracts }
+      : manifestCandidate;
+  const manifestContractHash = resolveManifestContractHash(manifestForContracts);
   const contractHash = toString(
     manifestContractHash || (obj.contract_hash ?? manifestCandidate.contract_hash ?? fallback?.contract_hash ?? ""),
   ).trim();
@@ -321,6 +343,7 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     entry_url: entryUrl,
     dapp_url: dappUrl,
     contract_hash: contractHash || null,
+    contracts: Object.keys(contracts).length > 0 ? contracts : null,
     status: status ?? null,
     source,
     developer,
@@ -330,7 +353,10 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     stats_display: statsDisplay ?? null,
     operations: detailConfig.operations.length > 0 ? detailConfig.operations : null,
     detail_template: detailConfig.detailTemplate,
-    manifest: detailConfig.manifest,
+    manifest:
+      Object.keys(contracts).length > 0
+        ? { ...(detailConfig.manifest || {}), contracts }
+        : detailConfig.manifest,
   };
 
   return withMiniAppCardAssets(app);

@@ -81,4 +81,40 @@ describe("/api/morpheus/confidential/store", () => {
     expect(res._getStatusCode()).toBe(200);
     expect(JSON.parse(res._getData())).toEqual({ secret_ref: "abc-123", target_chain: "neo_n3" });
   });
+
+  it("returns an inline fallback envelope when upstream storage rejects the request", async () => {
+    process.env.MORPHEUS_TESTNET_PUBLIC_API_URL = "https://oracle.example";
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+      headers: new Headers({ "content-type": "application/json" }),
+      text: async () => JSON.stringify({ error: "missing store token" }),
+    });
+
+    const handler = require("@/pages/api/morpheus/confidential/store").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      body: {
+        ciphertext: "sealed-ciphertext",
+        network: "testnet",
+        target_chain: "neo_n3",
+        name: "demo",
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    expect(JSON.parse(res._getData())).toEqual({
+      status: "inline_fallback",
+      inline_fallback: true,
+      store_available: false,
+      upstream_status: 401,
+      error: "missing store token",
+    });
+  });
 });

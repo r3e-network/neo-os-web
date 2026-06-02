@@ -8,16 +8,25 @@ import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
+import { DEFAULT_ESCAPE_TIMELOCK, getAccountLabLaunchDefaults } from "./launch";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext: MiniAppLaunchContext;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  launchContext,
+}: PlayAreaProps) {
   const { str, bool } = useStateBindings(state);
+  const launchDefaults = getAccountLabLaunchDefaults(launchContext);
 
   const isInspecting = bool("isInspecting");
   const isSubmitting = bool("isSubmitting");
@@ -31,15 +40,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const defaultVerifierDisplay = str("defaultVerifierDisplay");
   const networkDisplay = str("networkDisplay");
 
-  const [inspectAccountId, setInspectAccountId] = useState("");
-  const [registerAccountId, setRegisterAccountId] = useState("");
-  const [verifierHash, setVerifierHash] = useState(
-    defaultVerifierDisplay || "",
+  const [inspectAccountId, setInspectAccountId] = useState(
+    launchDefaults.accountIdInput,
   );
-  const [verifierParamsHex, setVerifierParamsHex] = useState("");
-  const [hookHash, setHookHash] = useState("");
-  const [backupOwner, setBackupOwner] = useState("");
-  const [escapeTimelock, setEscapeTimelock] = useState("2592000");
+  const [registerAccountId, setRegisterAccountId] = useState(
+    launchDefaults.accountIdInput,
+  );
+  const [verifierHash, setVerifierHash] = useState(
+    launchDefaults.verifierHash || defaultVerifierDisplay || "",
+  );
+  const [verifierParamsHex, setVerifierParamsHex] = useState(
+    launchDefaults.verifierParamsHex,
+  );
+  const [hookHash, setHookHash] = useState(launchDefaults.hookHash);
+  const [backupOwner, setBackupOwner] = useState(launchDefaults.backupOwner);
+  const [escapeTimelock, setEscapeTimelock] = useState(
+    launchDefaults.escapeTimelock || DEFAULT_ESCAPE_TIMELOCK,
+  );
 
   const canInspect = Boolean(inspectAccountId.trim()) && !isInspecting;
   const canRegister =

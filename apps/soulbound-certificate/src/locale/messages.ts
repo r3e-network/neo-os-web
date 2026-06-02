@@ -7,6 +7,9 @@ const appMessages = {
   verifyTab: { en: "Verify", zh: "核验" },
 
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
+  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
+  walletConnected: { en: "Wallet connected", zh: "钱包已连接" },
+  issuerWorkspaceTitle: { en: "Issuer workspace", zh: "发行方工作台" },
 
   templateName: { en: "Certificate name", zh: "证书名称" },
   templateNamePlaceholder: { en: "Neo Course Completion", zh: "Neo 课程完成证书" },
@@ -20,8 +23,15 @@ const appMessages = {
   descriptionPlaceholder: { en: "Issued to graduates of the Neo course", zh: "颁发给完成 Neo 课程的学员" },
 
   createTemplate: { en: "Create Template", zh: "创建模板" },
+  creating: { en: "Creating...", zh: "创建中..." },
   templateCreated: { en: "Template created", zh: "模板已创建" },
   templateUpdated: { en: "Template updated", zh: "模板已更新" },
+  templateUpdateFailed: { en: "Template update failed", zh: "模板更新失败" },
+  createTemplateFailed: { en: "Template creation failed", zh: "模板创建失败" },
+  createTemplateHelp: {
+    en: "Define the issuer, category, supply cap, and certificate description before signing the template on-chain.",
+    zh: "先定义发行方、分类、供应上限与证书描述，然后链上签名创建模板。",
+  },
 
   yourTemplates: { en: "Your Templates", zh: "我的模板" },
   refresh: { en: "Refresh", zh: "刷新" },
@@ -41,6 +51,15 @@ const appMessages = {
   issued: { en: "Issued", zh: "已发放" },
   supply: { en: "Supply", zh: "上限" },
   issueCertificate: { en: "Issue Certificate", zh: "签发证书" },
+  selectedTemplate: { en: "Selected template", zh: "已选模板" },
+  noTemplateSelected: { en: "Choose a template or enter an ID", zh: "选择模板或输入 ID" },
+  templateId: { en: "Template ID", zh: "模板 ID" },
+  templateIdPlaceholder: { en: "1", zh: "1" },
+  templateIdRequired: { en: "Template ID required", zh: "需要模板 ID" },
+  issueHelp: {
+    en: "Mint a non-transferable NEP-11 certificate to a recipient wallet with recipient and achievement metadata.",
+    zh: "向接收钱包铸造不可转让的 NEP-11 证书，并写入受证人与成就信息。",
+  },
   copyIssueLink: { en: "Copy Issue Link", zh: "复制签发链接" },
   shareIssueLink: { en: "Share Issue Link", zh: "分享签发链接" },
   issueLinkCopied: { en: "Issue link copied", zh: "签发链接已复制" },
@@ -48,6 +67,8 @@ const appMessages = {
   soldOut: { en: "Sold out", zh: "已发放完" },
   deactivate: { en: "Deactivate", zh: "停用" },
   activate: { en: "Activate", zh: "启用" },
+  updating: { en: "Updating...", zh: "更新中..." },
+  emptyTemplateDescription: { en: "No description provided.", zh: "未填写描述。" },
 
   issueTitle: { en: "Issue Certificate", zh: "签发证书" },
   registryTitle: { en: "Credential Registry", zh: "凭证注册表" },
@@ -88,6 +109,7 @@ const appMessages = {
   issue: { en: "Issue", zh: "签发" },
   issuing: { en: "Issuing...", zh: "签发中..." },
   issuedSuccess: { en: "Certificate issued", zh: "证书已签发" },
+  issueFailed: { en: "Certificate issue failed", zh: "证书签发失败" },
 
   emptyCertificates: { en: "No certificates yet", zh: "暂无证书" },
   emptyCertificatesHint: {
@@ -104,15 +126,30 @@ const appMessages = {
   verifyTokenIdPlaceholder: { en: "Enter token ID", zh: "输入 Token ID" },
   lookup: { en: "Lookup", zh: "查询" },
   lookingUp: { en: "Looking up...", zh: "查询中..." },
+  verifyHelp: {
+    en: "Look up a token ID to inspect its owner, achievement, and revocation status before trusting it.",
+    zh: "输入 Token ID 查看持有人、成就与撤销状态，再决定是否信任该证书。",
+  },
+  verifyFailed: { en: "Certificate lookup failed", zh: "证书查询失败" },
   revoke: { en: "Revoke", zh: "撤销" },
   revoking: { en: "Revoking...", zh: "撤销中..." },
   revokeSuccess: { en: "Certificate revoked", zh: "证书已撤销" },
+  revokeFailed: { en: "Certificate revoke failed", zh: "证书撤销失败" },
   certificateNotFound: { en: "Certificate not found", zh: "未找到证书" },
+  certificateNotFoundHint: {
+    en: "Enter a token ID to verify the certificate details and status.",
+    zh: "输入 Token ID 即可核验证书详情与状态。",
+  },
 
   nameRequired: { en: "Certificate name is required", zh: "证书名称必填" },
+  issuerNameRequired: { en: "Issuer name is required", zh: "发行方名称必填" },
+  categoryRequired: { en: "Category is required", zh: "分类必填" },
   invalidSupply: { en: "Invalid supply", zh: "发放上限无效" },
   invalidRecipient: { en: "Recipient address required", zh: "接收地址必填" },
+  recipientNameRequired: { en: "Recipient name is required", zh: "受证人姓名必填" },
+  achievementRequired: { en: "Achievement is required", zh: "成就/等级必填" },
   invalidTokenId: { en: "Token ID required", zh: "需要填写 Token ID" },
+  loadFailed: { en: "Failed to load certificate data", zh: "证书数据加载失败" },
 
   docSubtitle: { en: "On-chain, non-transferable NEP-11 certificates", zh: "链上不可转让的 NEP-11 证书" },
   docDescription: {

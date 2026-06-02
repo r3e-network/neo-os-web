@@ -16,8 +16,7 @@ defineMiniApp({
 
   setup(ctx) {
     const flash = useFlashloanCore({
-      paymentService: ctx.os.payment,
-      storageService: ctx.os.storage,
+      chainService: ctx.services.chain,
       badgeService: ctx.os.badge,
       t: ctx.t,
     });
@@ -40,8 +39,15 @@ defineMiniApp({
             callbackContract: String(data.callbackContract ?? ""),
             callbackMethod: "onFlashLoan",
           }),
-        "loanRequested",
+        "loanSubmitted",
       );
+    });
+
+    ctx.registerAction("connectWallet", async () => {
+      await ctx.services.notify.guard(async () => {
+        const addr = await flash.connect();
+        flash.setAddress(addr);
+      }, "walletConnected");
     });
 
     ctx.registerAction("lookupLoan", async (...args: unknown[]) => {
@@ -63,6 +69,17 @@ defineMiniApp({
       () => flash.stats.get().totalFees,
       [flash.stats],
     );
+    const avgLoanSize = createDerived(
+      () => {
+        const snapshot = flash.stats.get();
+        return snapshot.totalLoans ? snapshot.totalVolume / snapshot.totalLoans : 0;
+      },
+      [flash.stats],
+    );
+    const recentLoansCount = createDerived(
+      () => flash.recentLoans.get().length,
+      [flash.recentLoans],
+    );
 
     return {
       state: {
@@ -70,10 +87,14 @@ defineMiniApp({
         poolBalance: flash.poolBalance,
         loanDetails: flash.loanDetails,
         stats: flash.stats,
+        contractStats: flash.contractStats,
         totalLoans,
         totalVolume,
         totalFees,
+        avgLoanSize,
+        recentLoansCount,
         recentLoans: flash.recentLoans,
+        lastRequest: flash.lastRequest,
         isLoading: flash.isLoading,
         validationError: flash.validationError,
       },

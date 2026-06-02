@@ -33,6 +33,7 @@ import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { sha256Hex } from "@shared/utils/hash";
+import { normalizeUnlockTimeMs } from "../utils/unlockTime";
 // ============================================================================
 // Constants
 // ============================================================================
@@ -86,7 +87,8 @@ interface StoredCapsule {
   id: string;
   title: string;
   contentHash: string;
-  unlockTime: number;
+  unlockTime?: number;
+  unlockTimestamp?: number;
   isPublic: boolean;
   isRevealed: boolean;
   owner: string;
@@ -197,11 +199,13 @@ export function useTimeCapsule({
 
   const buildCapsuleFromStored = (data: StoredCapsule): Capsule => {
     const contentHash = String(data.contentHash || "");
-    const unlockTime = Number(data.unlockTime || 0);
+    const unlockTime = normalizeUnlockTimeMs(
+      data.unlockTime ?? data.unlockTimestamp,
+    );
     const isPublic = Boolean(data.isPublic);
     const revealed = Boolean(data.isRevealed);
     const title = String(data.title || "");
-    const unlockDate = unlockTime ? new Date(unlockTime * 1000).toISOString().split("T")[0] : t("notAvailable");
+    const unlockDate = unlockTime ? new Date(unlockTime).toISOString().split("T")[0] : t("notAvailable");
     const content = contentHash ? localContent.get()[contentHash] : "";
 
     return {
@@ -210,7 +214,7 @@ export function useTimeCapsule({
       contentHash,
       unlockDate,
       unlockTime,
-      locked: !revealed && Date.now() < unlockTime * 1000,
+      locked: !revealed && Date.now() < unlockTime,
       revealed,
       isPublic,
       content,
@@ -260,7 +264,7 @@ export function useTimeCapsule({
 
       const unlockDate = new Date();
       unlockDate.setDate(unlockDate.getDate() + daysValue);
-      const unlockTimestamp = Math.floor(unlockDate.getTime() / 1000);
+      const unlockTime = unlockDate.getTime();
       const content = newCapsule.get().content.trim();
       const contentHash = await sha256Hex(content);
 
@@ -273,7 +277,7 @@ export function useTimeCapsule({
           name: "bury",
           amount: "0.2",
         }],
-        expiry: unlockTimestamp,
+        expiry: unlockTime,
       });
 
       // Store content mapping locally and in StorageProxy
@@ -281,7 +285,7 @@ export function useTimeCapsule({
       await storageService.set(`content:${contentHash}`, {
         title: newCapsule.get().title.trim().slice(0, 100),
         contentHash,
-        unlockTimestamp,
+        unlockTime,
         isPublic: newCapsule.get().isPublic,
         category: newCapsule.get().category,
       });

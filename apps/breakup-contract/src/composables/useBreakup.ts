@@ -37,6 +37,23 @@ import type { ContractStatus, RelationshipContractView } from "../types";
 // ============================================================================
 
 const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
+const STORAGE_PREFIX = "contracts:";
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error ?? "");
+}
+
+function isOsBoundaryError(error: unknown) {
+  return /OS service error|os-storage-|os-escrow-|os-badge-|Not Found|function not allowed|not configured|Unsupported method/i.test(
+    errorMessage(error),
+  );
+}
+
+function isWalletBoundaryError(error: unknown) {
+  return /Wallet adapter|invokeWithConfirmation|Wallet address|required to submit|connect wallet|No wallet/i.test(
+    errorMessage(error),
+  );
+}
 
 export interface UseBreakupOptions {
   /** OS EscrowProxy instance from ctx.os.escrow */
@@ -99,6 +116,10 @@ export function useBreakup({
   // -- Data state -----------------------------------------------------------
   const contracts = createObservable<RelationshipContractView[]>([]);
   const isLoading = createObservable(false);
+  const serviceNotice = createObservable("");
+  const actionNotice = createObservable("");
+  const validationNotice = createObservable("");
+  const lastSubmittedTitle = createObservable("");
 
   // -- Derived state --------------------------------------------------------
   const address = createObservable("");
@@ -174,7 +195,7 @@ export function useBreakup({
   const loadContracts = async () => {
     isLoading.set(true);
     try {
-      const contractMap = await storageService.list("contracts:", 50);
+      const contractMap = await storageService.list(STORAGE_PREFIX, 50);
       const contractViews: RelationshipContractView[] = [];
       if (contractMap && typeof contractMap === "object") {
         for (const [, value] of Object.entries(contractMap)) {
@@ -186,9 +207,15 @@ export function useBreakup({
         }
       }
       contracts.set(contractViews.sort((a, b) => b.id - a.id));
+      serviceNotice.set("");
     } catch (e) {
-      eventBus.emit("breakup:error", { message: e instanceof Error ? e.message : t("loadFailed") });
-      throw e;
+      contracts.set([]);
+      if (isOsBoundaryError(e)) {
+        serviceNotice.set(t("contractIndexUnavailable"));
+        return;
+      }
+      serviceNotice.set(t("loadFailed"));
+      eventBus.emit("breakup:error", { message: t("loadFailed") });
     } finally {
       isLoading.set(false);
     }
@@ -206,7 +233,7 @@ export function useBreakup({
     const partnerValue = partnerAddress.get().trim();
     if (!partnerValue) throw new Error(t("partnerRequired"));
     if (!isValidNeoAddress(partnerValue)) throw new Error(t("partnerInvalid"));
-    if (!stakeAmount.get()) throw new Error(t("error"));
+    if (!stakeAmount.get()) throw new Error(t("stakeRequired"));
 
     const stake = parseFloat(stakeAmount.get());
     const durationDays = parseInt(duration.get(), 10);
@@ -214,44 +241,65 @@ export function useBreakup({
     const termsValue = contractTerms.get().trim();
 
     if (!Number.isFinite(stake) || stake < 1 || !Number.isFinite(durationDays) || durationDays < 30) {
-      throw new Error(t("error"));
+      throw new Error(t("stakeOrDurationInvalid"));
     }
     if (!titleValue) throw new Error(t("titleRequired"));
     if (titleValue.length > 100) throw new Error(t("titleTooLong"));
     if (termsValue.length > 2000) throw new Error(t("termsTooLong"));
 
-    // Create escrow with partner as beneficiary, stake as amount
-    const expirySeconds = Math.floor(Date.now() / 1000) + durationDays * 86400;
-    await escrowService.create({
-      beneficiary: partnerValue,
-      amount: stakeAmount.get(),
-      milestones: [
-        { name: "relationship", amount: stakeAmount.get() },
-      ],
-      expiry: expirySeconds,
-    });
+    validationNotice.set("");
+    actionNotice.set(t("contractPreparing", { title: titleValue, amount: `${stakeAmount.get()} GAS` }));
+    isLoading.set(true);
+    try {
+      // Create escrow with partner as beneficiary, stake as amount
+      const expirySeconds = Math.floor(Date.now() / 1000) + durationDays * 86400;
+      await escrowService.create({
+        beneficiary: partnerValue,
+        amount: stakeAmount.get(),
+        milestones: [
+          { name: "relationship", amount: stakeAmount.get() },
+        ],
+        expiry: expirySeconds,
+      });
 
-    // Store contract metadata
-    await storageService.set(`contract-meta:${Date.now()}`, {
-      partner: partnerValue,
-      title: titleValue,
-      terms: termsValue,
-      durationDays,
-    });
+      // Store contract metadata
+      await storageService.set(`contract-meta:${Date.now()}`, {
+        partner: partnerValue,
+        title: titleValue,
+        terms: termsValue,
+        durationDays,
+      });
 
-    eventBus.emit("breakup:created", { action: t("contractCreated") });
+      eventBus.emit("breakup:created", { action: t("contractCreated") });
 
-    // Hint badge for relationship contract (fire-and-forget)
-    badgeService.award("relationship-contract", "").catch(() => {});
+      // Hint badge for relationship contract (fire-and-forget)
+      badgeService.award("relationship-contract", "").catch(() => {});
 
-    // Reset form
-    partnerAddress.set("");
-    stakeAmount.set("");
-    duration.set("");
-    contractTitle.set("");
-    contractTerms.set("");
+      // Reset form
+      partnerAddress.set("");
+      stakeAmount.set("");
+      duration.set("");
+      contractTitle.set("");
+      contractTerms.set("");
+      lastSubmittedTitle.set(titleValue);
+      actionNotice.set(t("contractSubmitted", { title: titleValue }));
 
-    await loadContracts();
+      await loadContracts();
+    } catch (e) {
+      if (isOsBoundaryError(e)) {
+        const normalized = new Error(t("contractActionUnavailable"));
+        actionNotice.set(normalized.message);
+        throw normalized;
+      }
+      if (isWalletBoundaryError(e)) {
+        const normalized = new Error(t("contractWalletUnavailable"));
+        actionNotice.set(normalized.message);
+        throw normalized;
+      }
+      throw e;
+    } finally {
+      isLoading.set(false);
+    }
   };
 
   /**
@@ -261,10 +309,29 @@ export function useBreakup({
   const signContract = async (contract: { id: number; stake: number }) => {
     if (isLoading.get()) return;
 
-    await escrowService.fund(String(contract.id));
+    actionNotice.set(t("contractSigning", { id: contract.id }));
+    isLoading.set(true);
+    try {
+      await escrowService.fund(String(contract.id));
 
-    eventBus.emit("breakup:signed", { action: t("contractSigned") });
-    await loadContracts();
+      eventBus.emit("breakup:signed", { action: t("contractSigned") });
+      actionNotice.set(t("contractSigned"));
+      await loadContracts();
+    } catch (e) {
+      if (isOsBoundaryError(e)) {
+        const normalized = new Error(t("contractActionUnavailable"));
+        actionNotice.set(normalized.message);
+        throw normalized;
+      }
+      if (isWalletBoundaryError(e)) {
+        const normalized = new Error(t("contractWalletUnavailable"));
+        actionNotice.set(normalized.message);
+        throw normalized;
+      }
+      throw e;
+    } finally {
+      isLoading.set(false);
+    }
   };
 
   /**
@@ -272,10 +339,29 @@ export function useBreakup({
    * The edge function handles the triggerBreakup contract call.
    */
   const breakContract = async (contract: { id: number }) => {
-    await escrowService.completeMilestone(String(contract.id), 0);
+    actionNotice.set(t("contractBreaking", { id: contract.id }));
+    isLoading.set(true);
+    try {
+      await escrowService.completeMilestone(String(contract.id), 0);
 
-    eventBus.emit("breakup:broken", { action: t("contractBroken") });
-    await loadContracts();
+      eventBus.emit("breakup:broken", { action: t("contractBroken") });
+      actionNotice.set(t("contractBroken"));
+      await loadContracts();
+    } catch (e) {
+      if (isOsBoundaryError(e)) {
+        const normalized = new Error(t("contractActionUnavailable"));
+        actionNotice.set(normalized.message);
+        throw normalized;
+      }
+      if (isWalletBoundaryError(e)) {
+        const normalized = new Error(t("contractWalletUnavailable"));
+        actionNotice.set(normalized.message);
+        throw normalized;
+      }
+      throw e;
+    } finally {
+      isLoading.set(false);
+    }
   };
 
   return {
@@ -292,6 +378,10 @@ export function useBreakup({
     // Data state
     contracts,
     isLoading,
+    serviceNotice,
+    actionNotice,
+    validationNotice,
+    lastSubmittedTitle,
 
     // Derived state
     contractCount,

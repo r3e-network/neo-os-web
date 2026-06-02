@@ -59,6 +59,20 @@ describe("OneGateAdapter", () => {
       args: [{ type: "Hash160", value: "NOneGateAddress" }],
       signers: [{ account: "NOneGateAddress", scopes: 1 }],
     })).resolves.toEqual({ txid: "0xonegatetx" });
+    await expect(adapter.invokeMultiple([
+      {
+        scriptHash: "0xcontract",
+        operation: "ClaimReward",
+        args: [{ type: "Hash160", value: "NOneGateAddress" }],
+      },
+      {
+        scriptHash: "0xanchor",
+        operation: "RegisterAnchor",
+        args: [{ type: "String", value: "anchor-1" }],
+      },
+    ], [{ account: "NOneGateAddress", scopes: 1 }])).resolves.toEqual({
+      txid: "0xonegatetx",
+    });
 
     expect(legacyApi.getAccount).not.toHaveBeenCalled();
     expect(legacyApi.invoke).not.toHaveBeenCalled();
@@ -68,6 +82,21 @@ describe("OneGateAdapter", () => {
         operation: "claimReward",
         args: [{ type: "Hash160", value: "0xonegatehash" }],
       }],
+      [{ account: "0xonegatehash", scopes: "CalledByEntry" }],
+    );
+    expect(nep21Provider.invoke).toHaveBeenLastCalledWith(
+      [
+        {
+          hash: "0xcontract",
+          operation: "claimReward",
+          args: [{ type: "Hash160", value: "0xonegatehash" }],
+        },
+        {
+          hash: "0xanchor",
+          operation: "registerAnchor",
+          args: [{ type: "String", value: "anchor-1" }],
+        },
+      ],
       [{ account: "0xonegatehash", scopes: "CalledByEntry" }],
     );
   });

@@ -23,6 +23,9 @@ const appMessages = {
   secretMismatch: { en: "Secrets do not match", zh: "两次密钥不一致" },
   hashPreview: { en: "On-chain Hash", zh: "链上哈希" },
   createVault: { en: "Create Vault", zh: "创建保险库" },
+  createVaultButton: { en: "Create Vault (bounty + hash)", zh: "创建保险库（悬赏 + 哈希）" },
+  creatingVault: { en: "Creating vault...", zh: "正在创建保险库..." },
+  breakVault: { en: "Break a Vault", zh: "破解保险库" },
   secretNote: {
     en: "Secret is hashed locally; only the hash is stored on-chain. Keep it safe to claim your bounty.",
     zh: "密钥在本地哈希，链上仅保存哈希。请妥善保管以领取悬赏。",

@@ -1,32 +1,39 @@
 @use "@shared/styles/tokens.scss" as *;
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap');
-
 .memorial-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px 16px;
+  gap: 16px;
+  padding: 18px;
   min-height: 300px;
-  max-width: 760px;
+  max-width: 1120px;
   margin: 0 auto;
-  font-family: 'Lora', Georgia, serif;
-  background: var(--ns-surface, #ffffff);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(255, 255, 255, 0) 34%),
+    linear-gradient(315deg, rgba(14, 165, 233, 0.08), rgba(255, 255, 255, 0) 40%),
+    #f8fafc;
   color: var(--ns-text, #2a2d3d);
-  border-radius: var(--ns-radius-lg, 20px);
   position: relative;
   overflow: hidden;
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    letter-spacing: 0;
+  }
 }
 
 /* ── Hero: identity + stats in one white card ── */
 .shrine-hero {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 22px;
+  gap: 16px;
+  padding: 20px;
   background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
 }
 
 .shrine-hero__head {
@@ -39,7 +46,7 @@
   margin-left: auto;
   flex-shrink: 0;
   align-self: center;
-  border-radius: var(--ns-radius-full, 9999px);
+  border-radius: 8px;
 }
 
 .shrine-hero__badge {
@@ -49,9 +56,9 @@
   width: 48px;
   height: 48px;
   flex-shrink: 0;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-violet-soft, #eeeaff);
-  color: var(--ns-violet-strong, #6a4df4);
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #be123c;
 }
 
 .shrine-hero__text {
@@ -64,7 +71,6 @@
 .shrine-hero__title {
   font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.01em;
   line-height: 1.2;
   color: var(--ns-ink, #1e1e2e);
 }
@@ -90,7 +96,7 @@
   gap: 2px;
   padding: 12px 10px;
   background: var(--ns-surface-subtle, #f7f8fa);
-  border-radius: var(--ns-radius-md, 16px);
+  border-radius: 8px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
@@ -105,28 +111,71 @@
 .stat-label {
   font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
   color: var(--ns-text-muted, #8a92a6);
-  letter-spacing: 0.06em;
 }
 
 /* ── Primary buttons follow the app's violet accent ── */
 .memorial-play-area .neo-btn--primary {
-  background: var(--ns-violet, #7b61ff);
-  box-shadow: 0 2px 10px rgba(123, 97, 255, 0.28);
+  background: #be123c;
+  box-shadow: 0 2px 10px rgba(190, 18, 60, 0.22);
 
   &:hover:not(:disabled) {
-    background: var(--ns-violet-strong, #6a4df4);
-    box-shadow: 0 4px 16px rgba(123, 97, 255, 0.34);
+    background: #9f1239;
+    box-shadow: 0 4px 16px rgba(190, 18, 60, 0.28);
   }
 }
 
 /* ── Obituary banner ── */
-.obituary-banner { background: var(--ns-surface-subtle, #f7f8fa); border-radius: var(--ns-radius-md, 16px); padding: 16px 18px; border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06)); min-width: 0; }
-.obituary-banner .banner-title { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ns-text-muted, #8a92a6); margin-bottom: 10px; font-weight: 700; }
-.obituary-banner .banner-scroll { display: flex; gap: 18px; max-width: 100%; white-space: nowrap; overflow-x: auto; }
-.obituary-item { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; margin-right: 0; font-size: 12px; color: var(--ns-text-muted, #8a92a6); background: none; border: none; cursor: pointer; font-family: 'Lora', Georgia, serif; }
-.obituary-item .name { color: var(--ns-text, #2a2d3d); margin-right: 8px; font-weight: 600; }
+.chain-receipt {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  background: #f0f9ff;
+  color: #0c4a6e;
+
+  span {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  strong {
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.obituary-banner { background: #ffffff; border-radius: 8px; padding: 14px 16px; border: 1px solid rgba(15, 23, 42, 0.08); min-width: 0; }
+.obituary-banner .banner-title { display: block; font-size: 12px; color: #64748b; margin-bottom: 10px; font-weight: 700; }
+.obituary-banner .banner-scroll { display: flex; gap: 10px; max-width: 100%; white-space: nowrap; overflow-x: auto; }
+.obituary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 40px;
+  margin-right: 0;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ns-text-muted, #8a92a6);
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.obituary-item:hover {
+  background: var(--ns-surface, #ffffff);
+  border-color: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+}
+.obituary-item .name { flex: 0 0 auto; color: var(--ns-text, #2a2d3d); font-weight: 600; }
 .obituary-item .text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .obituary-item:focus-visible { outline: none; border-radius: 6px; box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18)); }
 
@@ -138,14 +187,55 @@
 .detail-bio { font-size: 14px; color: var(--ns-text-2, #5b6478); line-height: 1.6; margin-bottom: 16px; }
 
 .tribute-form { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06)); }
-.tribute-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--ns-violet-strong, #6a4df4); font-weight: 600; }
+.tribute-title { font-size: 12px; color: #be123c; font-weight: 700; }
 .tribute-row { display: flex; gap: 10px; }
 .tribute-row > * { flex: 1; }
 
 .create-form-card { margin-bottom: 4px; }
 .create-form { display: flex; flex-direction: column; gap: 10px; }
+.create-form__head {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 4px;
+
+  span {
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 750;
+  }
+
+  p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+}
 .year-row { display: flex; gap: 10px; }
 .year-row > * { flex: 1; }
+
+.offering-cost-card {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+
+  span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  strong {
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 750;
+  }
+}
 
 /* ── Memorial grid + tombstone cards ── */
 .memorials-section {
@@ -158,14 +248,12 @@
   display: block;
   font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
   color: var(--ns-text-muted, #8a92a6);
 }
 
 .memorials-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 14px;
 }
 
@@ -177,11 +265,11 @@
   padding: 18px 14px;
   text-align: center;
   cursor: pointer;
-  font-family: 'Lora', Georgia, serif;
+  font-family: inherit;
   background: var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-top: 3px solid var(--ns-violet, #7b61ff);
-  border-radius: 16px 16px var(--ns-radius-lg, 20px) var(--ns-radius-lg, 20px);
+  border-top: 3px solid #be123c;
+  border-radius: 8px;
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
@@ -203,14 +291,14 @@
   width: 40px;
   height: 40px;
   flex-shrink: 0;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-violet-soft, #eeeaff);
-  color: var(--ns-violet-strong, #6a4df4);
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #be123c;
 
   /* Host stylesheet forces plain <span> color to inherit (→ black);
      paint the accent directly on the icon stroke so the badge keeps the hue. */
   svg {
-    stroke: var(--ns-violet-strong, #6a4df4);
+    stroke: #be123c;
   }
 }
 
@@ -240,7 +328,7 @@
   display: inline-flex;
   align-items: center;
   padding: 3px 12px;
-  border-radius: var(--ns-radius-full, 9999px);
+  border-radius: 8px;
   background: var(--ns-surface-subtle, #f7f8fa);
   font-size: 11px;
   font-weight: 600;
@@ -262,7 +350,7 @@
 
 @media (max-width: 520px) {
   .memorial-play-area {
-    padding: 18px 12px;
+    padding: 14px 10px;
   }
 
   .shrine-hero {
@@ -296,11 +384,18 @@
 
   .obituary-item {
     width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
     justify-content: flex-start;
     text-align: left;
   }
 
   .obituary-item .text {
-    white-space: nowrap;
+    white-space: normal;
+  }
+
+  .tribute-row,
+  .year-row {
+    flex-direction: column;
   }
 }

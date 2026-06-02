@@ -16,15 +16,17 @@ interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext?: { network?: "mainnet" | "testnet" | null };
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
   const { num, bool } = useStateBindings(state);
 
   const memorials = (state.memorials?.get() ?? []) as Array<{ id: number; name?: string; [key: string]: unknown }>;
   const visitedMemorials = (state.visitedMemorials?.get() ?? []) as Array<{ id: number; [key: string]: unknown }>;
   const recentObituaries = (state.recentObituaries?.get() ?? []) as Array<{ id: number; name: string; text: string }>;
   const selectedMemorial = state.selectedMemorial?.get() as { id: number; name?: string; [key: string]: unknown } | null;
+  const lastTx = state.lastTx?.get() as { txid?: string } | null;
   const memorialCount = num("memorialCount");
   const tributeCount = num("tributeCount");
   const obituaryCount = num("obituaryCount");
@@ -41,10 +43,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [formObituary, setFormObituary] = useState("");
 
   const [tributeMessage, setTributeMessage] = useState("");
-  const [tributeOfferingType, setTributeOfferingType] = useState("0");
-  const [tributeOfferingCost, setTributeOfferingCost] = useState("1");
+  const [tributeOfferingType, setTributeOfferingType] = useState("1");
+  const [tributeReceiptId, setTributeReceiptId] = useState("");
+  const isMainnet = launchContext?.network === "mainnet";
+
+  const offeringOptions = [
+    { value: "1", label: `${t("incense") || "Incense"} · 0.01 GAS` },
+    { value: "2", label: `${t("candle") || "Candle"} · 0.02 GAS` },
+    { value: "3", label: `${t("flower") || "Flowers"} · 0.03 GAS` },
+    { value: "4", label: `${t("fruit") || "Fruit"} · 0.05 GAS` },
+    { value: "5", label: `${t("wine") || "Wine"} · 0.10 GAS` },
+    { value: "6", label: `${t("feast") || "Feast"} · 0.50 GAS` },
+  ];
+  const selectedOffering =
+    offeringOptions.find((item) => item.value === tributeOfferingType) ??
+    { value: "1", label: `${t("incense") || "Incense"} · 0.01 GAS` };
+  const canCreateMemorial = formName.trim().length > 0 && formDeathYear.trim().length > 0;
+  const selectedMemorialName = selectedMemorial?.name ? String(selectedMemorial.name) : (t("unnamed") || "Unnamed");
+  const selectedMemorialYears =
+    selectedMemorial?.birthYear && selectedMemorial?.deathYear
+      ? `${String(selectedMemorial.birthYear)}-${String(selectedMemorial.deathYear)}`
+      : "";
+  const selectedMemorialBio = selectedMemorial?.biography ? String(selectedMemorial.biography) : "";
 
   const handleCreate = async () => {
+    if (!canCreateMemorial) return;
     await dispatch("createMemorial", {
       name: formName,
       photoHash: formPhotoHash,
@@ -60,7 +83,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const handlePayTribute = async (memorialId: number) => {
-    await dispatch("payTribute", memorialId, parseInt(tributeOfferingType, 10), parseInt(tributeOfferingCost, 10), tributeMessage);
+    await dispatch("payTribute", memorialId, parseInt(tributeOfferingType, 10), tributeMessage, tributeReceiptId);
     setTributeMessage("");
   };
 
@@ -78,7 +101,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="shrine-hero__title">{t("title") || "Memorial Shrine"}</span>
             <span className="shrine-hero__subtitle">{t("subtitle") || "On-chain memorials"}</span>
           </div>
-          <NeoButton variant="primary" className="shrine-hero__cta" onClick={() => setShowCreateForm(!showCreateForm)} aria-label={t("createMemorial") || "Create Memorial"}>
+          <NeoButton
+            variant="primary"
+            className="shrine-hero__cta"
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            aria-label={showCreateForm ? (t("cancel") || "Cancel") : (t("createMemorial") || "Create Memorial")}
+          >
             {showCreateForm ? (t("cancel") || "Cancel") : (t("createMemorial") || "Create Memorial")}
           </NeoButton>
         </div>
@@ -100,6 +128,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="stat-label">{t("visited") || "Visited"}</span>
           </div>
         </div>
+        {lastTx?.txid && (
+          <div className="chain-receipt" aria-live="polite">
+            <span>{t("lastTransaction") || "Last transaction"}</span>
+            <strong>{lastTx.txid}</strong>
+          </div>
+        )}
       </div>
 
       {/* Obituary Banner */}
@@ -122,13 +156,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {selectedMemorial && (
         <NeoCard variant="erobo" className="detail-card">
           <div className="detail-header">
-            <span className="detail-name">{selectedMemorial.name || t("unnamed") || "Unnamed"}</span>
-            {selectedMemorial.birthYear && selectedMemorial.deathYear && (
-              <span className="detail-years">{String(selectedMemorial.birthYear)}-{String(selectedMemorial.deathYear)}</span>
+            <span className="detail-name">{selectedMemorialName}</span>
+            {selectedMemorialYears && (
+              <span className="detail-years">{selectedMemorialYears}</span>
             )}
           </div>
-          {selectedMemorial.biography && (
-            <p className="detail-bio">{String(selectedMemorial.biography)}</p>
+          {selectedMemorialBio && (
+            <p className="detail-bio">{selectedMemorialBio}</p>
           )}
           <div className="tribute-form">
             <span className="tribute-title">{t("payTribute") || "Pay Tribute"}</span>
@@ -137,18 +171,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoSelect
                 value={tributeOfferingType}
                 label={t("offeringType") || "Offering Type"}
-                options={[
-                  { value: "0", label: t("incense") || "Incense" },
-                  { value: "1", label: t("candle") || "Candle" },
-                  { value: "2", label: t("flower") || "Flowers" },
-                  { value: "3", label: t("fruit") || "Fruit" },
-                  { value: "4", label: t("wine") || "Wine" },
-                  { value: "5", label: t("feast") || "Feast" },
-                ]}
+                options={offeringOptions}
                 onChange={setTributeOfferingType}
               />
-              <NeoInput value={tributeOfferingCost} label={t("offeringCost") || "Cost"} placeholder="1" onChange={setTributeOfferingCost} />
+              <div className="offering-cost-card" aria-label={t("offeringCost") || "Offering cost"}>
+                <span>{t("offeringCost") || "Offering cost"}</span>
+                <strong>{selectedOffering.label.split("·")[1]?.trim() ?? "0.01 GAS"}</strong>
+              </div>
             </div>
+            {isMainnet && (
+              <NeoInput
+                value={tributeReceiptId}
+                label={t("receiptId") || "Receipt ID"}
+                placeholder={t("receiptIdPlaceholder") || "Payment receipt ID"}
+                onChange={setTributeReceiptId}
+              />
+            )}
             <NeoButton variant="primary" loading={isPaying} onClick={() => handlePayTribute(selectedMemorial.id)} aria-label={t("payTribute") || "Pay Tribute"}>
               {t("payTribute") || "Pay Tribute"}
             </NeoButton>
@@ -160,17 +198,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {showCreateForm && (
         <NeoCard variant="erobo" className="create-form-card">
           <div className="create-form">
-            <NeoInput value={formName} label={t("memorialName") || "Name"} placeholder={t("namePlaceholder") || "Full name"} onChange={setFormName} />
-            <NeoInput value={formPhotoHash} label={t("photoHash") || "Photo Hash"} placeholder={t("photoHashPlaceholder") || "IPFS hash"} onChange={setFormPhotoHash} />
-            <NeoInput value={formRelationship} label={t("relationship") || "Relationship"} placeholder={t("relationshipPlaceholder") || "e.g. Father, Friend"} onChange={setFormRelationship} />
-            <div className="year-row">
-              <NeoInput value={formBirthYear} label={t("birthYear") || "Birth Year"} placeholder="1940" onChange={setFormBirthYear} />
-              <NeoInput value={formDeathYear} label={t("deathYear") || "Death Year"} placeholder="2024" onChange={setFormDeathYear} />
+            <div className="create-form__head">
+              <span>{t("createTitle") || "Create a Memorial"}</span>
+              <p>{t("createDesc") || "Memorial will be permanently stored on blockchain"}</p>
             </div>
-            <NeoInput value={formBiography} type="textarea" label={t("biography") || "Biography"} placeholder={t("biographyPlaceholder") || "Life story..."} onChange={setFormBiography} />
-            <NeoInput value={formObituary} type="textarea" label={t("obituary") || "Obituary"} placeholder={t("obituaryPlaceholder") || "Obituary text..."} onChange={setFormObituary} />
-            <NeoButton variant="primary" loading={isSubmitting} onClick={handleCreate} aria-label={t("submit") || "Submit"}>
-              {t("submit") || "Submit"}
+            <NeoInput value={formName} label={t("labelName") || "Name"} placeholder={t("placeholderName") || "Full name"} onChange={setFormName} />
+            <NeoInput value={formPhotoHash} label={t("labelPhoto") || "Photo Hash"} placeholder={t("photoHashPlaceholder") || "IPFS hash or HTTPS URL"} onChange={setFormPhotoHash} />
+            <NeoInput value={formRelationship} label={t("labelRelation") || "Relationship"} placeholder={t("placeholderRelation") || "e.g. Father, Friend"} onChange={setFormRelationship} />
+            <div className="year-row">
+              <NeoInput value={formBirthYear} label={t("labelBirth") || "Birth Year"} placeholder={t("placeholderBirthYear") || "1940"} onChange={setFormBirthYear} />
+              <NeoInput value={formDeathYear} label={t("labelDeath") || "Death Year"} placeholder={t("placeholderDeathYear") || "2024"} onChange={setFormDeathYear} />
+            </div>
+            <NeoInput value={formBiography} type="textarea" label={t("labelBio") || "Biography"} placeholder={t("placeholderBio") || "Life story..."} onChange={setFormBiography} />
+            <NeoInput value={formObituary} type="textarea" label={t("labelObituary") || "Obituary"} placeholder={t("placeholderObituary") || "Obituary text..."} onChange={setFormObituary} />
+            <NeoButton variant="primary" loading={isSubmitting} disabled={!canCreateMemorial} onClick={handleCreate} aria-label={t("createMemorial") || "Create Memorial"}>
+              {t("createMemorial") || "Create Memorial"}
             </NeoButton>
           </div>
         </NeoCard>

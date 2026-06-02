@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRightLeft,
   ChevronDown,
@@ -9,6 +9,9 @@ import {
 
 import type { MiniAppInfo, MiniAppLaunchContext } from "@/components/types";
 import { getLaunchParam } from "@/lib/miniapp-launch-params";
+import { resolveMiniAppSlug } from "@/lib/miniapp-media";
+import { getWalletAdapter, useWalletStore } from "@/lib/wallet/store";
+import type { InvokeParams, WalletAdapter } from "@/lib/wallet/adapters";
 
 export type PlayMetric = { label: string; value: string; accent?: boolean };
 export type ActivityRow = {
@@ -41,6 +44,14 @@ export type PlayAreaComponent = (props: PlayAreaRegistryProps) => JSX.Element;
 export type NativePlayAreaKind = "custom" | "oracle" | "profiled";
 
 const EMBEDDED_DAPP_SETTLE_MS = 800;
+const HOST_WALLET_BRIDGE_REQUEST = "neo-miniapp-wallet-bridge:request";
+const HOST_WALLET_BRIDGE_RESPONSE = "neo-miniapp-wallet-bridge:response";
+export const HOST_WALLET_BRIDGE_RESULT =
+  "neo-miniapp-wallet-bridge:result";
+const MAINNET_MAGIC = 860833102;
+const TESTNET_MAGIC = 894710606;
+const NEO_ASSET_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+const GAS_ASSET_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
 export type PlayTone =
   | "emerald"
@@ -63,7 +74,7 @@ export function buildEmbeddedDappUrl(
   network: "mainnet" | "testnet",
   launchContext?: MiniAppLaunchContext | null,
 ) {
-  const slug = app.app_id.replace(/^miniapp-/, "");
+  const slug = resolveMiniAppSlug(app.app_id, app.dapp_url || app.entry_url);
   const base =
     app.dapp_url ||
     (app.entry_url && app.entry_url.startsWith("/")
@@ -83,6 +94,435 @@ export function buildEmbeddedDappUrl(
   }
   const joiner = base.includes("?") ? "&" : "?";
   return `${base}${joiner}${params.toString()}`;
+}
+
+type BridgeRecord = Record<string, unknown>;
+type BridgeRequest = {
+  type?: unknown;
+  id?: unknown;
+  method?: unknown;
+  payload?: unknown;
+};
+export type EmbeddedWalletBridgeResultDetail = {
+  appId: string;
+  network: "mainnet" | "testnet";
+  requestMethod: string;
+  txid: string;
+  operation: string;
+  contractHash: string;
+  memo: string;
+  at: string;
+};
+type BridgeInvocation = {
+  hash?: unknown;
+  scriptHash?: unknown;
+  contractHash?: unknown;
+  operation?: unknown;
+  method?: unknown;
+  args?: unknown;
+};
+type BridgeSigner = {
+  account?: unknown;
+  scopes?: unknown;
+  allowedContracts?: unknown;
+  allowedcontracts?: unknown;
+  allowedGroups?: unknown;
+  rules?: unknown;
+};
+type SendCapableWalletAdapter = WalletAdapter & {
+  send?: (
+    asset: string,
+    amount: string | number,
+    to: string,
+    from?: string,
+  ) => Promise<{ txid?: string; hash?: string; tx?: string }>;
+};
+
+function isBridgeRecord(value: unknown): value is BridgeRecord {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function asBridgeString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function bridgeNetworkMagic(network: "mainnet" | "testnet") {
+  return network === "mainnet" ? MAINNET_MAGIC : TESTNET_MAGIC;
+}
+
+function networkFromEmbeddedUrl(
+  url: string,
+  fallback: "mainnet" | "testnet" = "testnet",
+) {
+  try {
+    const parsed = new URL(url, "http://localhost");
+    const raw = (parsed.searchParams.get("network") || "").toLowerCase();
+    if (raw.includes("mainnet")) return "mainnet";
+    if (raw.includes("testnet")) return "testnet";
+  } catch {
+    // Keep the explicit fallback.
+  }
+  return fallback;
+}
+
+function normalizeBridgeScope(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const raw = String(value ?? "CalledByEntry").trim();
+  if (/^\d+$/.test(raw)) return Number.parseInt(raw, 10);
+  const scopeMap: Record<string, number> = {
+    none: 0,
+    calledbyentry: 1,
+    customcontracts: 16,
+    customgroups: 32,
+    rules: 64,
+    witnessrules: 64,
+    global: 128,
+  };
+  const parts = raw
+    .split(",")
+    .map((part) => scopeMap[part.trim().toLowerCase()])
+    .filter((scope): scope is number => typeof scope === "number");
+  return parts.length ? parts.reduce((acc, scope) => acc | scope, 0) : 1;
+}
+
+function stringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const entries = value.map((entry) => asBridgeString(entry)).filter(Boolean);
+  return entries.length ? entries : undefined;
+}
+
+function normalizeBridgeSigners(value: unknown): InvokeParams["signers"] {
+  if (!Array.isArray(value)) return undefined;
+  const signers = value
+    .filter(isBridgeRecord)
+    .map((entry: BridgeSigner) => {
+      const account = asBridgeString(entry.account);
+      if (!account) return null;
+      const allowedContracts = stringArray(
+        entry.allowedContracts ?? entry.allowedcontracts,
+      );
+      const allowedGroups = stringArray(entry.allowedGroups);
+      return {
+        account,
+        scopes: normalizeBridgeScope(entry.scopes),
+        ...(allowedContracts ? { allowedContracts } : {}),
+        ...(allowedGroups ? { allowedGroups } : {}),
+      };
+    })
+    .filter(
+      (
+        signer,
+      ): signer is NonNullable<InvokeParams["signers"]>[number] =>
+        Boolean(signer),
+    );
+  return signers.length ? signers : undefined;
+}
+
+function firstBridgeInvocation(payload: unknown): BridgeInvocation | null {
+  if (!isBridgeRecord(payload)) return null;
+  const invocations = Array.isArray(payload.invocations)
+    ? payload.invocations.filter(isBridgeRecord)
+    : [];
+  if (isBridgeRecord(invocations[0])) {
+    return invocations[0] as BridgeInvocation;
+  }
+  const invocation = payload.invocation;
+  return isBridgeRecord(invocation) ? (invocation as BridgeInvocation) : null;
+}
+
+function bridgeResultTxId(result: unknown): string {
+  if (!isBridgeRecord(result)) return "";
+  return asBridgeString(result.txid) ||
+    asBridgeString(result.hash) ||
+    asBridgeString(result.tx);
+}
+
+function bridgeInvocationMemo(invocation: BridgeInvocation | null): string {
+  const args = Array.isArray(invocation?.args) ? invocation.args : [];
+  const stringArgs = args
+    .filter(isBridgeRecord)
+    .map((arg) => asBridgeString(arg.value))
+    .filter(Boolean);
+  return (
+    stringArgs.find((value) => value.includes("miniapp-")) ||
+    stringArgs[stringArgs.length - 1] ||
+    ""
+  );
+}
+
+export function buildEmbeddedWalletBridgeResultDetail({
+  appId,
+  network,
+  requestMethod,
+  payload,
+  result,
+}: {
+  appId: string;
+  network: "mainnet" | "testnet";
+  requestMethod: string;
+  payload: unknown;
+  result: unknown;
+}): EmbeddedWalletBridgeResultDetail {
+  const invocation = firstBridgeInvocation(payload);
+  return {
+    appId,
+    network,
+    requestMethod,
+    txid: bridgeResultTxId(result),
+    operation: normalizeBridgeOperation(
+      invocation?.operation ?? invocation?.method,
+    ),
+    contractHash: asBridgeString(
+      invocation?.hash ?? invocation?.scriptHash ?? invocation?.contractHash,
+    ),
+    memo: bridgeInvocationMemo(invocation),
+    at: new Date().toISOString(),
+  };
+}
+
+function normalizeBridgeArgs(value: unknown): InvokeParams["args"] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isBridgeRecord).map((entry) => ({
+    type: asBridgeString(entry.type) || "String",
+    value: entry.value,
+  }));
+}
+
+function normalizeBridgeOperation(value: unknown): string {
+  const operation = asBridgeString(value);
+  const canonicalKernelMethods: Record<string, string> = {
+    ConfigureMiniApp: "configureMiniApp",
+    DeleteMiniAppState: "deleteMiniAppState",
+    FulfillRequest: "fulfillRequest",
+    GetMiniApp: "getMiniApp",
+    GetMiniAppState: "getMiniAppState",
+    GrantModuleToMiniApp: "grantModuleToMiniApp",
+    PutMiniAppState: "putMiniAppState",
+    PutMiniAppStateBatch: "putMiniAppStateBatch",
+    RegisterMiniApp: "registerMiniApp",
+    RevokeModuleFromMiniApp: "revokeModuleFromMiniApp",
+    SubmitMiniAppRequest: "submitMiniAppRequest",
+    configureMiniApp: "configureMiniApp",
+    deleteMiniAppState: "deleteMiniAppState",
+    fulfillRequest: "fulfillRequest",
+    getMiniApp: "getMiniApp",
+    getMiniAppState: "getMiniAppState",
+    grantModuleToMiniApp: "grantModuleToMiniApp",
+    putMiniAppState: "putMiniAppState",
+    putMiniAppStateBatch: "putMiniAppStateBatch",
+    registerMiniApp: "registerMiniApp",
+    revokeModuleFromMiniApp: "revokeModuleFromMiniApp",
+    submitMiniAppRequest: "submitMiniAppRequest",
+    updateMiniApp: "configureMiniApp",
+  };
+  return canonicalKernelMethods[operation] ?? operation;
+}
+
+function bridgeInvocationToParams(
+  invocation: BridgeInvocation,
+  signers?: InvokeParams["signers"],
+): InvokeParams {
+  const scriptHash = asBridgeString(
+    invocation.hash ?? invocation.scriptHash ?? invocation.contractHash,
+  );
+  const operation = normalizeBridgeOperation(
+    invocation.operation ?? invocation.method,
+  );
+  if (!scriptHash) throw new Error("Embedded wallet request is missing script hash.");
+  if (!operation) throw new Error("Embedded wallet request is missing operation.");
+  return {
+    scriptHash,
+    operation,
+    args: normalizeBridgeArgs(invocation.args),
+    ...(signers ? { signers } : {}),
+  };
+}
+
+function requireBridgeWallet(targetNetwork: "mainnet" | "testnet") {
+  const walletState = useWalletStore.getState();
+  const adapter = getWalletAdapter();
+  if (!walletState.connected || !walletState.address || !adapter) {
+    throw new Error(
+      "Connect wallet from the top navigation before submitting embedded dApp actions.",
+    );
+  }
+  if (walletState.network && walletState.network !== targetNetwork) {
+    throw new Error(
+      `Wallet is on ${walletState.network} but this embedded dApp targets ${targetNetwork}.`,
+    );
+  }
+  return { walletState, adapter };
+}
+
+async function invokeBridgeRead(
+  invocation: BridgeInvocation,
+  targetNetwork: "mainnet" | "testnet",
+) {
+  const params = bridgeInvocationToParams(invocation);
+  const response = await fetch("/api/rpc/neo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      network: targetNetwork,
+      method: "invokefunction",
+      params: [params.scriptHash, params.operation, params.args],
+    }),
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { result?: unknown; error?: unknown }
+    | null;
+  if (!response.ok || payload?.error) {
+    const message = isBridgeRecord(payload?.error)
+      ? asBridgeString(payload?.error.message)
+      : asBridgeString(payload?.error);
+    throw new Error(message || "Embedded dApp read failed.");
+  }
+  return payload?.result ?? payload;
+}
+
+async function handleEmbeddedWalletBridgeRequest(
+  method: string,
+  payload: unknown,
+  targetNetwork: "mainnet" | "testnet",
+) {
+  if (method === "call") {
+    const invocation = isBridgeRecord(payload)
+      ? (payload.invocation as BridgeInvocation)
+      : null;
+    if (!isBridgeRecord(invocation)) {
+      throw new Error("Embedded dApp read request is missing invocation.");
+    }
+    return invokeBridgeRead(invocation, targetNetwork);
+  }
+
+  const { walletState, adapter } = requireBridgeWallet(targetNetwork);
+  if (method === "getAccounts") {
+    return [
+      {
+        hash: walletState.address,
+        address: walletState.address,
+        label: "Host wallet",
+        isDefault: true,
+      },
+    ];
+  }
+  if (method === "authenticate") {
+    return {
+      network: bridgeNetworkMagic(targetNetwork),
+      address: walletState.address,
+      pubkey: walletState.publicKey || undefined,
+    };
+  }
+  if (method === "getBalance") {
+    const balance = await adapter.getBalance(walletState.address);
+    const asset = asBridgeString(isBridgeRecord(payload) ? payload.asset : "");
+    if (asset === "NEO" || asset.toLowerCase() === NEO_ASSET_HASH) return balance.neo;
+    if (asset === "GAS" || asset.toLowerCase() === GAS_ASSET_HASH) return balance.gas;
+    return { [NEO_ASSET_HASH]: balance.neo, [GAS_ASSET_HASH]: balance.gas };
+  }
+  if (method === "signMessage") {
+    const message = asBridgeString(isBridgeRecord(payload) ? payload.message : "");
+    return adapter.signMessage(message);
+  }
+  if (method === "invoke") {
+    const invocations = isBridgeRecord(payload) && Array.isArray(payload.invocations)
+      ? payload.invocations.filter(isBridgeRecord)
+      : [];
+    if (!invocations.length) {
+      throw new Error("Embedded dApp wallet request has no invocations.");
+    }
+    const signers = normalizeBridgeSigners(
+      isBridgeRecord(payload) ? payload.signers : undefined,
+    );
+    const params = invocations.map((invocation) =>
+      bridgeInvocationToParams(invocation, signers),
+    );
+    if (params.length > 1) {
+      if (!adapter.invokeMultiple) {
+        throw new Error("Connected wallet does not support batched embedded dApp invokes.");
+      }
+      return adapter.invokeMultiple(params, signers);
+    }
+    return adapter.invoke(params[0]!);
+  }
+  if (method === "send") {
+    const sendAdapter = adapter as SendCapableWalletAdapter;
+    if (!sendAdapter.send || !isBridgeRecord(payload)) {
+      throw new Error("Connected wallet does not support embedded dApp transfers.");
+    }
+    const asset = asBridgeString(payload.asset);
+    const amount = asBridgeString(payload.amount);
+    const to = asBridgeString(payload.to);
+    const from = asBridgeString(payload.from) || undefined;
+    if (!asset || !amount || !to) {
+      throw new Error("Embedded dApp transfer request is incomplete.");
+    }
+    return sendAdapter.send(asset, amount, to, from);
+  }
+  throw new Error(`Unsupported embedded wallet method: ${method}`);
+}
+
+export function useEmbeddedWalletBridge({
+  appId,
+  iframeRef,
+  network,
+}: {
+  appId: string;
+  iframeRef: React.RefObject<HTMLIFrameElement>;
+  network: "mainnet" | "testnet";
+}) {
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const frameWindow = iframeRef.current?.contentWindow;
+      if (!frameWindow || event.source !== frameWindow) return;
+      const data = event.data as BridgeRequest;
+      if (!isBridgeRecord(data) || data.type !== HOST_WALLET_BRIDGE_REQUEST) return;
+      const id = asBridgeString(data.id);
+      const method = asBridgeString(data.method);
+      if (!id || !method) return;
+
+      const reply = (response: BridgeRecord) => {
+        frameWindow.postMessage(
+          {
+            type: HOST_WALLET_BRIDGE_RESPONSE,
+            id,
+            appId,
+            ...response,
+          },
+          "*",
+        );
+      };
+
+      void handleEmbeddedWalletBridgeRequest(method, data.payload, network)
+        .then((result) => {
+          const detail = buildEmbeddedWalletBridgeResultDetail({
+            appId,
+            network,
+            requestMethod: method,
+            payload: data.payload,
+            result,
+          });
+          if (detail.txid) {
+            window.dispatchEvent(
+              new CustomEvent(HOST_WALLET_BRIDGE_RESULT, { detail }),
+            );
+          }
+          reply({ ok: true, result });
+        })
+        .catch((error: unknown) =>
+          reply({
+            ok: false,
+            error: {
+              message:
+                error instanceof Error ? error.message : String(error),
+            },
+          }),
+        );
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [appId, iframeRef, network]);
 }
 
 export function statsMapFromStats(stats: PlayMetric[]): Record<string, string> {
@@ -551,6 +991,8 @@ export function EmbeddedDappSurface({
   tone = "emerald",
   frameTitle,
   testId,
+  appId = testId.replace(/^native-dapp-frame-/, ""),
+  network = networkFromEmbeddedUrl(url),
   // Default to a viewport-driven height with a sensible minimum so the
   // dApp's core UI fits above the fold on common screen sizes without
   // collapsing to nothing on short windows. The Polymarket-style compact
@@ -564,6 +1006,8 @@ export function EmbeddedDappSurface({
   tone?: PlayTone;
   frameTitle: string;
   testId: string;
+  appId?: string;
+  network?: "mainnet" | "testnet";
   heightClass?: string;
 }) {
   void title;
@@ -572,6 +1016,9 @@ export function EmbeddedDappSurface({
   const [frameLoaded, setFrameLoaded] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
   const loadingTitle = frameTitle.replace(/\s+dApp$/i, "");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEmbeddedWalletBridge({ appId, iframeRef, network });
 
   useEffect(() => {
     setFrameLoaded(false);
@@ -595,19 +1042,21 @@ export function EmbeddedDappSurface({
         rel="noreferrer"
         aria-label="Open dApp in a new window"
         title="Open in a new window"
-        className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white/95 px-2 py-1 text-[11px] font-semibold text-gray-600 opacity-0 shadow-sm backdrop-blur transition hover:text-gray-900 group-hover:opacity-100 focus:opacity-100"
+        className="absolute right-1.5 top-1.5 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white/95 p-0 text-[11px] font-semibold text-gray-600 opacity-0 shadow-sm backdrop-blur transition hover:text-gray-900 group-hover:opacity-100 focus:opacity-100 sm:right-2 sm:top-2 sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1"
       >
         <ArrowRightLeft className="h-3 w-3" aria-hidden="true" />
-        New window
+        <span className="hidden sm:inline">New window</span>
       </a>
       {/* Audit fix C-4: miniapps run in the host's origin and must be sandboxed.
           allow-scripts is required for the dApp to function; allow-same-origin is
           intentionally omitted so a malicious miniapp cannot read window.parent.* or
           lift sb-access-token from sessionStorage. */}
       <iframe
+        ref={iframeRef}
         title={frameTitle}
         src={url}
         data-testid={testId}
+        data-wallet-bridge="neo-miniapp-host"
         className={`block ${heightClass} w-full border-0 bg-white transition-opacity duration-300 ${showLoading ? "opacity-0" : "opacity-100"}`}
         loading="eager"
         onLoad={() => setFrameLoaded(true)}

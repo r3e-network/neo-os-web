@@ -25,6 +25,8 @@ test("Neo Multisig renders a complete light wallet-style approval workspace", ()
   const playArea = read("apps/neo-multisig/src/PlayArea.tsx");
   const styles = read("apps/neo-multisig/src/PlayArea.scss");
   const messages = read("apps/neo-multisig/src/locale/messages.ts");
+  const manifest = JSON.parse(read("apps/neo-multisig/neo-manifest.json"));
+  const viteConfig = read("apps/neo-multisig/vite.config.ts");
 
   for (const className of [
     "multisig-shell",
@@ -34,6 +36,9 @@ test("Neo Multisig renders a complete light wallet-style approval workspace", ()
     "multisig-stat-grid",
     "multisig-workspace",
     "multisig-request-panel",
+    "multisig-form-grid",
+    "multisig-signer-grid",
+    "multisig-form-row",
     "multisig-activity-panel",
     "multisig-side",
     "multisig-signer-panel",
@@ -43,13 +48,36 @@ test("Neo Multisig renders a complete light wallet-style approval workspace", ()
   }
 
   assert.match(playArea, /useState\(""\)/);
-  assert.match(playArea, /dispatch\("navigateToCreate"\)/);
+  assert.match(playArea, /dispatch\("createRequest",\s*\{/);
+  assert.match(playArea, /signers:\s*normalizedSigners/);
+  assert.match(playArea, /threshold:\s*thresholdNumber/);
+  assert.match(playArea, /toAddress:\s*toAddress\.trim\(\)/);
+  assert.match(playArea, /amount:\s*amount\.trim\(\)/);
   assert.match(playArea, /dispatch\("loadTransaction",\s*idInput\.trim\(\)\)/);
-  assert.match(playArea, /disabled=\{!idInput\.trim\(\)\}/);
+  assert.match(playArea, /disabled=\{!canCreateRequest\}/);
+  assert.match(playArea, /disabled=\{!idInput\.trim\(\)\s*\|\|\s*isLoadingRequest\}/);
+  assert.match(playArea, /selectedRequest/);
+  assert.match(playArea, /multisig-receipt/);
+  assert.match(playArea, /multisig-request-details/);
+  assert.match(playArea, /normalizedSigners\.length/);
+  assert.match(playArea, /t\("multisigSignerList"\)/);
+  assert.match(playArea, /thresholdNumber\}\s*\/\s*\{Math\.max\(normalizedSigners\.length,\s*2\)\}/);
+  assert.match(playArea, /selectedChain === "neo-n3-testnet"[\s\S]*t\("chainTestnet"\)/);
   assert.match(playArea, /history\.map/);
   assert.match(playArea, /history\.length === 0/);
   assert.match(playArea, /statusLabel\(item\.status\)/);
   assert.match(playArea, /formatDate\(item\.createdAt\)/);
+  assert.ok(
+    manifest.supported_networks.includes("neo-n3-mainnet"),
+    "Neo Multisig must remain available on mainnet",
+  );
+  assert.ok(
+    manifest.supported_networks.includes("neo-n3-testnet"),
+    "Neo Multisig must be available on testnet for browser validation",
+  );
+  assert.match(viteConfig, /nodePolyfills/);
+  assert.match(viteConfig, /Buffer:\s*true/);
+  assert.match(viteConfig, /@r3e\/neo-js-sdk\/browser/);
 
   for (const key of [
     "multisigHeroTitle",
@@ -60,10 +88,16 @@ test("Neo Multisig renders a complete light wallet-style approval workspace", ()
     "multisigRequestTitle",
     "multisigRouteTitle",
     "multisigSignerTitle",
+    "multisigSignerList",
     "multisigQuorumTitle",
     "multisigNetworkTitle",
     "multisigNetworkValue",
     "multisigBroadcastTitle",
+    "multisigNeedSigners",
+    "multisigCreateReady",
+    "multisigReceiptCopy",
+    "toastRequestCreated",
+    "toastRequestLoaded",
   ]) {
     assert.match(messages, new RegExp(`${key}:`), key);
   }
@@ -87,6 +121,9 @@ test("Neo Multisig renders a complete light wallet-style approval workspace", ()
     styles,
     /\.multisig-workspace\s*\{[^}]*grid-template-columns:\s*minmax\(320px,\s*0\.48fr\)\s+minmax\(0,\s*0\.52fr\)/s,
   );
+  assert.match(styles, /\.multisig-side,\s*\.multisig-activity-panel\s*\{[^}]*position:\s*sticky/s);
+  assert.match(styles, /@media \(max-width: 1080px\)[\s\S]*\.multisig-activity-panel[\s\S]*position:\s*static/s);
+  assert.match(styles, /@media \(max-width: 900px\)[\s\S]*\.multisig-side[\s\S]*position:\s*static/s);
   assert.match(
     styles,
     /\.multisig-primary-actions\s*\{[^}]*grid-template-columns:\s*1fr/s,

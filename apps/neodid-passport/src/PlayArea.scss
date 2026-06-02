@@ -1,0 +1,343 @@
+.neodid-passport {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--ns-text);
+}
+
+/* ── Hero ───────────────────────────────────────────────── */
+.neodid-passport__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+  padding: 24px;
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
+}
+
+.neodid-passport__hero-copy {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.neodid-passport__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--ns-radius-full);
+  color: var(--ns-brand-strong);
+  background: var(--ns-brand-soft);
+}
+
+.neodid-passport__hero h2 {
+  margin: 0;
+  color: var(--ns-ink);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.neodid-passport__hero p {
+  max-width: 720px;
+  margin: 6px 0 0;
+  color: var(--ns-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.neodid-passport__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(108px, 1fr));
+  gap: 12px;
+  min-width: min(420px, 100%);
+}
+
+.neodid-passport__metrics div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+}
+
+.neodid-passport__summary div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+}
+
+.neodid-passport__metrics span,
+.neodid-passport__summary span,
+.neodid-passport__form-head span,
+.neodid-passport__result-head span {
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.neodid-passport__metrics strong,
+.neodid-passport__summary strong {
+  overflow-wrap: anywhere;
+  color: var(--ns-ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Route indicator (display-only flow) ────────────────── */
+.neodid-passport__route {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.neodid-passport__route div {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-sm);
+  color: var(--ns-brand-strong);
+}
+
+.neodid-passport__route span {
+  min-width: 0;
+  color: var(--ns-text);
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* ── Workspace (form + result) ──────────────────────────── */
+.neodid-passport__workspace {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.neodid-passport__form,
+.neodid-passport__result {
+  min-width: 0;
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
+}
+
+.neodid-passport__form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+
+.neodid-passport__form-head,
+.neodid-passport__result-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.neodid-passport__form-head strong {
+  padding: 6px 12px;
+  border-radius: var(--ns-radius-full);
+  background: var(--ns-brand-soft);
+  color: var(--ns-brand-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.neodid-passport__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.neodid-passport__field span {
+  color: var(--ns-text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.neodid-passport__field select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--ns-border-strong);
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface);
+  color: var(--ns-ink);
+  font: inherit;
+  outline: none;
+  transition:
+    border-color var(--ns-t-fast) var(--ns-ease-smooth),
+    box-shadow var(--ns-t-fast) var(--ns-ease-smooth);
+}
+
+.neodid-passport__field select:focus {
+  border-color: var(--ns-violet);
+  box-shadow: var(--ns-focus-ring);
+}
+
+.neodid-passport__hint,
+.neodid-passport__alert {
+  border-radius: var(--ns-radius-md);
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.neodid-passport__hint {
+  background: var(--ns-brand-soft);
+  color: var(--ns-brand-strong);
+}
+
+.neodid-passport__alert {
+  background: var(--ns-danger-soft);
+  color: var(--ns-danger);
+}
+
+.neodid-passport__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ── Result ─────────────────────────────────────────────── */
+.neodid-passport__result {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+
+.neodid-passport__result-head strong {
+  display: block;
+  max-width: 430px;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+  color: var(--ns-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.neodid-passport__summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.neodid-passport__payload {
+  min-height: 320px;
+  max-height: 520px;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-ink);
+  color: #e2e8f0;
+  font-family: "JetBrains Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.neodid-passport__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  gap: 12px;
+  padding: 32px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+  text-align: center;
+}
+
+.neodid-passport__empty svg {
+  color: var(--ns-text-muted);
+}
+
+.neodid-passport__empty span {
+  color: var(--ns-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.neodid-passport__empty strong {
+  max-width: 420px;
+  color: var(--ns-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+@media (max-width: 980px) {
+  .neodid-passport__hero,
+  .neodid-passport__workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .neodid-passport__metrics {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .neodid-passport {
+    gap: 18px;
+  }
+
+  .neodid-passport__hero,
+  .neodid-passport__form,
+  .neodid-passport__result {
+    padding: 18px;
+  }
+
+  .neodid-passport__hero-copy {
+    grid-template-columns: auto 1fr;
+  }
+
+  .neodid-passport__metrics,
+  .neodid-passport__route,
+  .neodid-passport__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .neodid-passport__actions {
+    flex-direction: column;
+  }
+
+  .neodid-passport__actions .neo-btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neodid-passport__field select {
+    transition: none;
+  }
+}

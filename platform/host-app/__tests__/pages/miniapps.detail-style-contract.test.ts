@@ -50,6 +50,13 @@ describe("MiniApp detail style contract", () => {
     expect(detailSource).not.toContain("rounded-[14px]");
   });
 
+  it("uses one consistent wallet status strip across desktop and mobile action surfaces", () => {
+    expect(
+      detailSource.match(/data-testid="action-console-wallet-status"/g) ?? [],
+    ).toHaveLength(2);
+    expect(detailSource).not.toContain("!walletConnected && (");
+  });
+
   it("keeps embedded dApp loading chrome neutral and production-like", () => {
     expect(sharedSource).not.toContain("bg-[#9F9DF3]");
     expect(sharedSource).not.toContain("f5f2ff");

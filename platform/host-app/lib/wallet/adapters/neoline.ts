@@ -68,4 +68,14 @@ export class NeoLineAdapter implements WalletAdapter {
     }
     return this.nep21.invoke(params);
   }
+
+  async invokeMultiple(
+    params: InvokeParams[],
+    signers?: InvokeParams["signers"],
+  ): Promise<TransactionResult> {
+    if (!this.nep21.isInstalled()) {
+      throw new WalletNotInstalledError("NeoLine NEP-21 dAPI");
+    }
+    return this.nep21.invokeMultiple(params, signers);
+  }
 }

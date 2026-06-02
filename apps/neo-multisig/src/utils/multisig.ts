@@ -6,15 +6,18 @@
  */
 
 import {
-  wallet,
-  tx,
-  sc,
-  u,
+  bytesToHex,
+  hash160,
+  hexToBytes,
+  reverseBytes,
   RpcClient,
+  ScriptBuilder,
+  sc,
+  tx,
+  wallet,
+  PublicKey,
   Witness,
   WitnessScope,
-  ScriptBuilder,
-  PublicKey,
 } from "@r3e/neo-js-sdk/browser";
 
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
@@ -49,8 +52,7 @@ export function normalizePublicKeys(keys: string[]): string[] {
 }
 
 export function getPublicKeyAddress(publicKey: string): string {
-  const account = new wallet.Account(PublicKey.fromHex(normalizePublicKey(publicKey)));
-  return account.address;
+  return new PublicKey(normalizePublicKey(publicKey)).getAddress();
 }
 
 // ---------------------------------------------------------------------------
@@ -63,8 +65,8 @@ export function createMultisigAccount(
 ): { address: string; scriptHash: string; publicKeys: string[] } {
   const sorted = normalizePublicKeys(publicKeys);
   const verificationScript = buildVerificationScriptHex(threshold, sorted);
-  const scriptHash = u.reverseHex(wallet.getScriptHashFromScript(verificationScript));
-  const address = wallet.getAddressFromScriptHash(scriptHash.replace(/^0x/, ""));
+  const scriptHash = bytesToHex(reverseBytes(hexToBytes(hash160(verificationScript))));
+  const address = wallet.getAddressFromScriptHash(scriptHash);
   return { address, scriptHash, publicKeys: sorted };
 }
 
@@ -76,11 +78,11 @@ function buildVerificationScriptHex(threshold: number, sortedKeys: string[]): st
   const sb = new ScriptBuilder();
   sb.emitPush(threshold);
   for (const key of sortedKeys) {
-    sb.emitPush(u.hexToBytes(key));
+    sb.emitPush(hexToBytes(key));
   }
   sb.emitPush(sortedKeys.length);
-  sb.emitSysCall("System.Crypto.CheckMultisig");
-  return u.bytesToHex(sb.build());
+  sb.emitSyscall("System.Crypto.CheckMultisig");
+  return sb.toHex();
 }
 
 export function buildVerificationScript(
@@ -95,12 +97,9 @@ export function buildVerificationScript(
 export function buildWitness(verificationScript: string, orderedSignatures: string[]): Witness {
   const sb = new ScriptBuilder();
   for (const sig of orderedSignatures) {
-    sb.emitPush(u.hexToBytes(sig));
+    sb.emitPush(hexToBytes(sig));
   }
-  return new Witness({
-    invocationScript: u.bytesToHex(sb.build()),
-    verificationScript,
-  });
+  return new Witness(sb.toBytes(), hexToBytes(verificationScript));
 }
 
 // ---------------------------------------------------------------------------
@@ -108,11 +107,11 @@ export function buildWitness(verificationScript: string, orderedSignatures: stri
 // ---------------------------------------------------------------------------
 
 export function getNetworkMagic(chainId: string): number {
-  return NETWORK_MAGICS[chainId] ?? NETWORK_MAGICS["neo-n3-testnet"];
+  return NETWORK_MAGICS[chainId] ?? 894710606;
 }
 
 export function getRpcClient(chainId: string): RpcClient {
-  const url = RPC_URLS[chainId] ?? RPC_URLS["neo-n3-testnet"];
+  const url = RPC_URLS[chainId] ?? "https://testnet1.neo.coz.io:443";
   return new RpcClient(url);
 }
 
@@ -151,12 +150,8 @@ export function verifySignature(
   publicKey: string,
 ): boolean {
   try {
-    const pk = PublicKey.fromHex(normalizePublicKey(publicKey));
-    return wallet.verify(
-      u.hexToBytes(message),
-      u.hexToBytes(signature),
-      pk,
-    );
+    const pk = new PublicKey(normalizePublicKey(publicKey));
+    return pk.verify(hexToBytes(message), hexToBytes(signature));
   } catch {
     return false;
   }
@@ -191,7 +186,7 @@ export async function buildTransferTransaction(params: {
 
   const fromScriptHash = wallet.getScriptHashFromAddress(fromAddress);
 
-  const sb = new ScriptBuilder();
+  const sb = new sc.ScriptBuilder();
   sb.emitContractCall({
     scriptHash: assetHash,
     operation: "transfer",
@@ -206,6 +201,7 @@ export async function buildTransferTransaction(params: {
   const currentHeight = await client.getBlockCount();
   const validUntilBlock = currentHeight + 5760; // ~24 hours
 
+  const script = sb.build();
   const transaction = new tx.Transaction({
     signers: [
       {
@@ -214,14 +210,14 @@ export async function buildTransferTransaction(params: {
       },
     ],
     validUntilBlock,
-    script: u.bytesToHex(sb.build()),
+    script,
   });
 
   // Estimate fees via RPC
-  const invokeResult = await client.invokeScript(
-    u.bytesToHex(sb.build()),
-    [{ account: fromScriptHash, scopes: "CalledByEntry" }],
-  );
+  const invokeResult = await client.invokeScript({
+    script,
+    signers: [{ account: fromScriptHash, scopes: "CalledByEntry" }],
+  });
 
   const systemFee = invokeResult.gasconsumed
     ? (Number(invokeResult.gasconsumed) / FIXED8).toFixed(8)

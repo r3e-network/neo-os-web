@@ -72,6 +72,7 @@ export function ProfiledPlayArea(props: PlayAreaRegistryProps) {
           tone={profile.tone}
           frameTitle={`${app.name} dApp`}
           testId={`profiled-dapp-frame-${app.app_id}`}
+          heightClass={profile.embeddedHeightClass}
         />
         <SecondaryInfo
           title="Activity and details"

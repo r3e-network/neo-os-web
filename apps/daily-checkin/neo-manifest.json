@@ -4,8 +4,8 @@
   "name": "Daily Check-in",
   "name_zh": "每日签到",
   "version": "2.0.0",
-  "description": "Check in every day to earn GAS rewards with streak bonuses. 7-day streak earns 1 GAS, 14-day streak earns 2 GAS. Streak resets and restarts with escalating NFT badges as proof of loyalty.",
-  "description_zh": "每日签到 — 连续签到赢取 GAS 奖励：7天连续获1 GAS，14天获2 GAS。连续记录重置后重新开始，同时铸造逐级升级的 NFT 徽章作为忠诚证明。",
+  "description": "Check in from the miniapp, track UTC streak progress, and claim milestone GAS rewards through platform OS services.",
+  "description_zh": "在小程序内完成每日签到、查看 UTC 连续进度，并通过平台 OS 服务领取里程碑 GAS 奖励。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
@@ -41,7 +41,8 @@
   "permissions": [
     "invoke:primary",
     "read:blockchain",
-    "checkin"
+    "checkin",
+    "invoke:shared-runtime"
   ],
   "features": {
     "stateless": true,
@@ -49,10 +50,13 @@
     "deeplink": "neomainapp://daily-checkin"
   },
   "stateSource": {
-    "type": "n3index",
+    "type": "platform-storage",
     "chain": "neo-n3-mainnet",
     "endpoints": [
-      "https://api.n3index.dev"
+      "https://api.n3index.dev",
+      "/api/edge/os-checkin-streak",
+      "/api/edge/os-checkin-checkin",
+      "/api/edge/os-checkin-claim"
     ]
   },
   "platform": {
@@ -62,7 +66,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-16T00:00:00Z",
+  "updatedAt": "2026-06-01T00:00:00Z",
   "featured": true,
   "featured_order": 4,
   "technologies": {

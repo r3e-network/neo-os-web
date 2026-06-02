@@ -12,7 +12,7 @@ export const appMeta = {
 
 export const manifest: MiniAppManifest = {
   name: "Oracle Compute Lab",
-  description: "Build Morpheus off-chain compute requests with inspectable inputs.",
+  description: "Build Morpheus compute previews that keep sealed inputs redacted.",
   icon: "brain",
   category: "oracle",
   shell: "console",
@@ -39,13 +39,15 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
-  permissions: { compute: true, datafeed: true },
+  permissions: { compute: true, confidential: true, datafeed: true, oracle: true },
 };
 
 const clean = (value: string | undefined, fallback: string) => {
   const text = String(value ?? "").trim();
   return text.length > 0 ? text : fallback;
 };
+
+const sealedInputPreview = "[sealed input redacted]";
 
 export const consoleConfig: ConsoleToolConfig = {
   titleKey: "panelTitle",
@@ -87,10 +89,34 @@ export const consoleConfig: ConsoleToolConfig = {
   ],
   buildResult(values, t) {
     const workflow = clean(values.workflow, "risk-score");
-    const privacy = clean(values.privacy, "sealed");
+    const selectedPrivacy = clean(values.privacy, "sealed");
+    const privacy = selectedPrivacy === "public" ? "public" : "sealed";
     const input = clean(values.input, "{}");
     const inputDigest = previewId(input);
     const digest = previewId(`${workflow}|${privacy}|${inputDigest}`);
+    const basePayload = {
+      kind: "oracle.compute.request",
+      workflow,
+      privacy,
+      inputDigest,
+      inputLength: input.length,
+      digest,
+      execution: "preview_only",
+      dispatchReady: false,
+    };
+    const payload =
+      privacy === "public"
+        ? {
+            ...basePayload,
+            input,
+            inputVisibility: "public",
+          }
+        : {
+            ...basePayload,
+            inputPreview: sealedInputPreview,
+            inputVisibility: "redacted",
+            sealedInputRequired: true,
+          };
 
     return {
       status: t("computeReady"),
@@ -101,14 +127,7 @@ export const consoleConfig: ConsoleToolConfig = {
         { label: t("inputDigest"), value: inputDigest },
         { label: t("statDigest"), value: digest },
       ],
-      payload: {
-        kind: "oracle.compute.request",
-        workflow,
-        privacy,
-        input,
-        inputDigest,
-        digest,
-      },
+      payload,
     };
   },
 };
@@ -118,12 +137,12 @@ const appMessages = {
   title: { en: "Oracle Compute Lab", zh: "预言机计算实验室" },
   tabCompute: { en: "Compute", zh: "计算" },
   panelEyebrow: { en: "Morpheus compute", zh: "Morpheus 计算" },
-  panelTitle: { en: "Compute Request Builder", zh: "计算请求构建器" },
+  panelTitle: { en: "Compute Preview Builder", zh: "计算预览构建器" },
   panelDescription: {
-    en: "Shape off-chain compute work into a deterministic request preview before dispatch.",
-    zh: "把链下计算任务整理为可审查的确定性请求预览。",
+    en: "Shape compute work into a deterministic preview. Sealed mode keeps raw input out of visible payloads.",
+    zh: "把计算任务整理为确定性预览；加密封装模式不会在可见载荷中暴露原始输入。",
   },
-  runAction: { en: "Build Request", zh: "生成请求" },
+  runAction: { en: "Build Preview", zh: "生成预览" },
   workflow: { en: "Workflow", zh: "工作流" },
   workflowRisk: { en: "Risk score", zh: "风险评分" },
   workflowProof: { en: "Proof check", zh: "证明校验" },
@@ -134,27 +153,27 @@ const appMessages = {
   input: { en: "Input Payload", zh: "输入载荷" },
   inputPlaceholder: { en: "{\"asset\":\"GAS\"}", zh: "{\"asset\":\"GAS\"}" },
   inputDigest: { en: "Input Digest", zh: "输入摘要" },
-  computeReady: { en: "Compute request ready", zh: "计算请求已准备" },
-  computeSummary: { en: "{workflow} using {privacy} input", zh: "{workflow} 使用 {privacy} 输入" },
+  computeReady: { en: "Compute preview ready", zh: "计算预览已准备" },
+  computeSummary: { en: "{workflow} {privacy} preview prepared", zh: "{workflow} {privacy} 预览已准备" },
   statNetwork: { en: "Network", zh: "网络" },
   statEndpoint: { en: "Mode", zh: "模式" },
   statRequests: { en: "Requests", zh: "请求数" },
   statDigest: { en: "Digest", zh: "摘要" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   docsSubtitle: {
-    en: "A safer planning surface for Morpheus compute workflows.",
+    en: "A safe preview surface for Morpheus compute workflows.",
     zh: "面向 Morpheus 计算工作流的安全规划界面。",
   },
   docSubtitle: {
-    en: "A safer planning surface for Morpheus compute workflows.",
+    en: "A safe preview surface for Morpheus compute workflows.",
     zh: "面向 Morpheus 计算工作流的安全规划界面。",
   },
   feature1Name: { en: "Inspectable", zh: "可审查" },
-  feature1Desc: { en: "Workflow, privacy mode, and input digest are visible before execution.", zh: "执行前可看到工作流、隐私模式和输入摘要。" },
+  feature1Desc: { en: "Workflow, privacy mode, and input digest are visible without revealing sealed inputs.", zh: "可查看工作流、隐私模式和输入摘要，同时不暴露加密封装输入。" },
   feature2Name: { en: "Deterministic", zh: "确定性" },
   feature2Desc: { en: "The same request produces the same local digest.", zh: "同一请求会产生相同的本地摘要。" },
-  feature3Name: { en: "Oracle Ready", zh: "预言机就绪" },
-  feature3Desc: { en: "Payloads match the shape expected by Morpheus compute dispatchers.", zh: "载荷结构贴合 Morpheus 计算分发流程。" },
+  feature3Name: { en: "Dispatch Aware", zh: "分发感知" },
+  feature3Desc: { en: "The preview package is ready for a later Morpheus dispatch flow.", zh: "预览包可用于后续 Morpheus 分发流程。" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

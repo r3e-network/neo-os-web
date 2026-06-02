@@ -5,6 +5,9 @@ const appMessages = {
   title: { en: "Flash Loan", zh: "闪电贷" },
   appName: { en: "Flash Loan", zh: "闪电贷" },
   connectWalletToUse: { en: "Connect wallet to use Flash Loan", zh: "连接钱包使用闪电贷" },
+  connectAndSign: { en: "Connect and Sign", zh: "连接并签名" },
+  signRequestFlashLoan: { en: "Sign requestFlashLoan", zh: "签名 requestFlashLoan" },
+  walletRequired: { en: "Wallet required", zh: "需要钱包" },
   instructionMode: { en: "INSTRUCTIONAL MODE", zh: "教学模式" },
   instructionNote: {
     en: "Flash loans remain a power-user flow. This miniapp helps you inspect pool state and submit callback-based executions.",
@@ -56,6 +59,7 @@ const appMessages = {
   requestLoanTitle: { en: "Request Flash Loan", zh: "请求闪电贷" },
   loanAmount: { en: "Loan Amount", zh: "贷款金额" },
   amountPlaceholder: { en: "Enter amount in GAS", zh: "输入 GAS 金额" },
+  amountPresets: { en: "Amount presets", zh: "金额预设" },
   callbackContractPlaceholder: { en: "Enter callback contract address", zh: "输入回调合约地址" },
   callbackMethodPlaceholder: { en: "onFlashLoan", zh: "onFlashLoan" },
   callbackMethodFixed: {
@@ -73,7 +77,14 @@ const appMessages = {
   },
   requestLoan: { en: "Request Loan", zh: "请求贷款" },
   requesting: { en: "Requesting...", zh: "请求中..." },
-  loanRequested: { en: "Flash loan requested successfully!", zh: "闪电贷请求成功！" },
+  loanRequested: { en: "Flash loan transaction submitted.", zh: "闪电贷交易已提交。" },
+  loanSubmitted: { en: "Flash loan transaction submitted.", zh: "闪电贷交易已提交。" },
+  flashloanFormIncomplete: { en: "Enter amount and callback contract.", zh: "请输入金额和回调合约。" },
+  latestTx: { en: "Latest Tx", zh: "最新交易" },
+  noRequestYet: {
+    en: "No flash-loan transaction has been submitted in this session.",
+    zh: "本次会话尚未提交闪电贷交易。",
+  },
   docSubtitle: { en: "Understanding Flash Loans", zh: "理解闪电贷" },
   docDescription: {
     en: "Flash loans enable uncollateralized borrowing with instant repayment in one transaction. The live testnet contract is self-contained: pool funding, callback execution, and repayment checks all happen on-chain.",

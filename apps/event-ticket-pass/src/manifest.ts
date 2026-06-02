@@ -2,7 +2,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Event Ticket Pass",
-  description: "Create events and issue NFT tickets",
+  description: "Create events, issue attendee tickets, and run door check-in.",
   icon: "ticket",
   category: "social",
   shell: "launcher",
@@ -34,7 +34,7 @@ export const manifest: MiniAppManifest = {
     { titleKey: "title", contentKey: "subtitle", type: "text" },
   ],
 
-  permissions: { payments: true },
+  permissions: { payments: true, storage: true },
 
   contract: { mode: "custom" },
 };

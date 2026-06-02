@@ -130,6 +130,7 @@ const appMessages = {
   statEndpoint: { en: "Mode", zh: "模式" },
   statRequests: { en: "Envelopes", zh: "封装数" },
   statDigest: { en: "Digest", zh: "摘要" },
+  digestPlaceholder: { en: "—", zh: "—" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   docsSubtitle: {
     en: "A focused surface for sealing sensitive oracle inputs before dispatch.",

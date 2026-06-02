@@ -5,6 +5,39 @@ import { logger } from "@/lib/logger";
 
 const MAX_BODY_SIZE = 256 * 1024;
 const AA_RELAY_TIMEOUT_MS = 10_000;
+const AA_RELAY_CORS_ALLOW_METHODS = "POST,OPTIONS";
+const AA_RELAY_CORS_ALLOW_HEADERS =
+  "Content-Type, Authorization, X-API-Key, X-Requested-With";
+
+function resolveCorsOrigin(req: NextApiRequest): string | null {
+  const origin = String(req.headers.origin || "").trim();
+  if (!origin) return null;
+  if (origin === "null") return "null";
+
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+  if (!host) return null;
+
+  try {
+    const parsed = new URL(origin);
+    return parsed.host.toLowerCase() === host ? origin : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyAaRelayCors(req: NextApiRequest, res: NextApiResponse) {
+  const origin = resolveCorsOrigin(req);
+  if (!origin) return;
+  res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", AA_RELAY_CORS_ALLOW_METHODS);
+  res.setHeader("Access-Control-Allow-Headers", AA_RELAY_CORS_ALLOW_HEADERS);
+  res.setHeader("Access-Control-Max-Age", "600");
+  res.setHeader("Vary", "Origin");
+}
 
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -38,6 +71,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  applyAaRelayCors(req, res);
+
+  if (String(req.method || "").toUpperCase() === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   if (standardLimit(req, res)) return;
 
   if (String(req.method || "").toUpperCase() !== "POST") {

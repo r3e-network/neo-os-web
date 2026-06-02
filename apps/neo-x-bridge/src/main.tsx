@@ -7,6 +7,8 @@ import {
   buildMessageBridgeIntent,
   buildStatusTimeline,
   bridgeRoute,
+  normalizeDirection,
+  stableDigest,
   stringifyPayload,
   type BridgeOperation,
   type TimelineStep,
@@ -59,23 +61,42 @@ defineMiniApp({
 
     ctx.registerAction("trackBridgeOperation", async (formData) => {
       const form = formData as Record<string, unknown>;
+      const bridgeKind = form.bridgeKind === "message" ? "message" : "asset";
+      const direction = normalizeDirection(form.direction);
       const nextTimeline = buildStatusTimeline(form);
-      const route = bridgeRoute(form.direction === "neox-to-n3" ? "neox-to-n3" : "n3-to-neox");
+      const route = bridgeRoute(direction);
+      const operationId = String(form.operationId ?? "").trim();
+      const sourceTx = String(form.sourceTx ?? "").trim();
+      const digest = stableDigest(["status", bridgeKind, direction, operationId, sourceTx]);
+      const payload = {
+        kind: "axlabs.bridge.statusProbe",
+        bridgeKind,
+        direction,
+        operationId,
+        sourceTx,
+        route,
+        digest,
+      };
+      const operation: BridgeOperation = {
+        id: operationId || `N3X-TRACK-${digest.slice(2, 10).toUpperCase()}`,
+        kind: bridgeKind,
+        direction,
+        route,
+        title: `${bridgeKind === "message" ? "Message" : "Asset"} status ${route}`,
+        digest,
+        createdAt: new Date().toISOString(),
+        status: ctx.t("statusTrackingReady"),
+        sourceTx: sourceTx || undefined,
+        payload,
+      };
+      operationsLog.set([operation, ...operationsLog.get()].slice(0, 5));
       timeline.set(nextTimeline);
       lastRoute.set(route);
-      lastKind.set(form.bridgeKind === "message" ? "message" : "asset");
+      lastKind.set(bridgeKind);
+      lastDigest.set(digest);
       lastStatus.set(ctx.t("statusTrackingReady"));
       requestCount.set(requestCount.get() + 1);
-      lastPayload.set(
-        stringifyPayload({
-          kind: "axlabs.bridge.statusProbe",
-          bridgeKind: form.bridgeKind ?? "asset",
-          direction: form.direction ?? "n3-to-neox",
-          operationId: form.operationId ?? "",
-          sourceTx: form.sourceTx ?? "",
-          route,
-        }),
-      );
+      lastPayload.set(stringifyPayload(payload));
       ctx.setStatus(ctx.t("statusTrackingReady"), "success");
     });
 

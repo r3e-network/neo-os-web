@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import {
+  getLaunchParam,
+  type MiniAppLaunchContext,
+} from "@shared/utils/launch-params";
 import type { MarketListing } from "./utils/aa-market";
 import { ListingCard } from "./components/ListingCard";
 import { WalletConnectCard } from "./components/WalletConnectCard";
@@ -12,9 +16,15 @@ interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext: MiniAppLaunchContext;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  launchContext,
+}: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
   const listings = val<MarketListing[]>("listings") ?? [];
@@ -31,16 +41,64 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canBuySelectedListing = bool("canBuySelectedListing");
   const totalListings = num("totalListingsDisplay", listings.length);
   const activeListings = num("activeListingsDisplay", 0);
+  const stateMarketHash = str("marketHash");
+  const stateAaContractHash = str("aaContractHash");
+  const stateAccountIdHash = str("accountIdHash");
+  const statePriceGas = str("priceGas");
+  const stateListingTitle = str("listingTitle");
+  const stateMetadataUri = str("metadataUri");
   const selectedListingDisplay = str(
     "selectedListingDisplay",
     t("notAvailable"),
   );
 
-  const [marketHash, setMarketHash] = useState("");
+  const launchValues = useMemo(
+    () => ({
+      marketHash: getLaunchParam(launchContext, [
+        "marketHash",
+        "market",
+        "marketContract",
+        "marketContractHash",
+      ]),
+      aaContractHash: getLaunchParam(launchContext, [
+        "aaContractHash",
+        "aaContract",
+        "aaCore",
+        "aaCoreHash",
+      ]),
+      accountIdHash: getLaunchParam(launchContext, [
+        "accountIdHash",
+        "accountId",
+        "account",
+      ]),
+      priceGas: getLaunchParam(launchContext, [
+        "priceGas",
+        "price",
+        "amount",
+      ]),
+      listingTitle: getLaunchParam(launchContext, [
+        "listingTitle",
+        "title",
+        "item",
+      ]),
+      metadataUri: getLaunchParam(launchContext, [
+        "metadataUri",
+        "metadata",
+        "uri",
+      ]),
+    }),
+    [launchContext],
+  );
+  const resolvedMarketHash = launchValues.marketHash || stateMarketHash;
+  const [marketHash, setMarketHash] = useState(resolvedMarketHash);
   const canLoadListings = Boolean(marketHash.trim());
   const isMarketReady = canLoadListings;
   const listingCountLabel = String(totalListings || listings.length);
   const activeCountLabel = String(activeListings);
+
+  useEffect(() => {
+    setMarketHash(resolvedMarketHash);
+  }, [launchContext.signature, resolvedMarketHash]);
 
   return (
     <div className="market-play-area">
@@ -152,6 +210,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             t={t}
             isSubmitting={isSubmitting}
             isMarketReady={isMarketReady}
+            walletAddress={walletAddress}
+            marketHash={marketHash}
+            initialAaContractHash={
+              launchValues.aaContractHash || stateAaContractHash
+            }
+            initialAccountIdHash={
+              launchValues.accountIdHash || stateAccountIdHash
+            }
+            initialPriceGas={launchValues.priceGas || statePriceGas}
+            initialListingTitle={
+              launchValues.listingTitle || stateListingTitle
+            }
+            initialMetadataUri={launchValues.metadataUri || stateMetadataUri}
+            initialSignature={launchContext.signature}
             dispatch={dispatch}
           />
 

@@ -46,6 +46,25 @@ describe("neo-x bridge console intent builders", () => {
     expect(intent.payloadText).toContain("\"orderingModel\": \"per-direction nonce/root hash chain\"");
   });
 
+  it("normalizes display route labels and legacy message params", () => {
+    const assetIntent = buildAssetBridgeIntent({
+      direction: "Neo X -> Neo N3",
+      asset: "GAS",
+      amount: "1",
+      recipient: "0x1111111111111111111111111111111111111111",
+    });
+    const messageIntent = buildMessageBridgeIntent({
+      direction: "Neo X → Neo N3",
+      targetContract: "0x2222222222222222222222222222222222222222",
+      message: "legacy payload",
+    } as Parameters<typeof buildMessageBridgeIntent>[0] & { message: string });
+
+    expect(assetIntent.operation.route).toBe("Neo X -> Neo N3");
+    expect(assetIntent.payloadText).toContain("\"action\": \"withdrawGas\"");
+    expect(messageIntent.operation.route).toBe("Neo X -> Neo N3");
+    expect(messageIntent.payloadText).toContain("\"body\": \"legacy payload\"");
+  });
+
   it("advances status tracking once a source transaction is supplied", () => {
     const timeline = buildStatusTimeline({
       bridgeKind: "message",
@@ -61,6 +80,16 @@ describe("neo-x bridge console intent builders", () => {
       "waiting",
       "waiting",
     ]);
+  });
+
+  it("accepts txHash as a status tracking alias", () => {
+    const timeline = buildStatusTimeline({
+      bridgeKind: "asset",
+      txHash: "0xabcdef0123456789abcdef0123456789abcdef0123456789",
+    } as Parameters<typeof buildStatusTimeline>[0] & { txHash: string });
+
+    expect(timeline[1]?.state).toBe("done");
+    expect(timeline[2]?.state).toBe("active");
   });
 
   it("keeps digests deterministic for the same payload", () => {

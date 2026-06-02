@@ -47,19 +47,20 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
   const gasDisplay = createDerived(() => formatFixed8(balances.gas, 4), [balanceRevision]);
 
   const refreshBalances = async () => {
-    if (!chain.address.get()) return;
+    const address = chain.address.get();
+    if (!address) return;
     if (isRefreshing.get()) return;
 
     try {
       isRefreshing.set(true);
       balances.neo = parseBigInt(await chain.read(
         "balanceOf",
-        [{ type: "Hash160", value: chain.address.get() }],
+        [{ type: "Hash160", value: address }],
         { scriptHash: NEO_HASH },
       ));
       balances.gas = parseBigInt(await chain.read(
         "balanceOf",
-        [{ type: "Hash160", value: chain.address.get() }],
+        [{ type: "Hash160", value: address }],
         { scriptHash: GAS_HASH },
       ));
       balanceRevision.set(balanceRevision.get() + 1);

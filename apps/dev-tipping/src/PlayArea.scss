@@ -3,8 +3,8 @@
 .dev-tipping-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
+  gap: 24px;
+  padding: 24px 16px;
   min-height: 300px;
 
   /* Accent identity for this app: violet */
@@ -17,22 +17,22 @@
 .tipping-hero.neo-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .tipping-hero__head {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .tipping-hero__badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   flex-shrink: 0;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--tip-accent-soft);
@@ -51,7 +51,7 @@
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
   line-height: 1.15;
 }
@@ -65,7 +65,7 @@
 
 .tipping-hero__stats {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -73,11 +73,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  min-width: 76px;
-  padding: 10px 14px;
+  gap: 4px;
+  min-width: 84px;
+  padding: 14px 16px;
   background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-md, 16px);
 }
 
@@ -92,10 +91,10 @@
 
 .tipping-stat-label {
   display: block;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
   color: var(--ns-text-muted, #8a92a6);
 }
 
@@ -113,43 +112,73 @@
   }
 }
 
-/* Wallet row inside hero */
+/* Wallet row inside hero — interactive (click to copy) */
 .wallet-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: var(--ns-radius-sm, 12px);
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  cursor: pointer;
+  border: none;
+  border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  transition:
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
+    box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
+
+  &:hover {
+    background: var(--tip-accent-soft);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  }
 }
 
 .wallet-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--ns-text-muted, #8a92a6);
 }
 
 .wallet-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-family: "JetBrains Mono", monospace;
   font-size: 12px;
   color: var(--ns-text-2, #5b6478);
+}
+
+.wallet-copy-hint {
+  font-family: var(--ns-font-sans, "Inter", sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--tip-accent-strong);
 }
 
 /* ── Two-column body: developer list (main) + tip form (side) ── */
 .tipping-body {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 20px;
+  gap: 24px;
   align-items: start;
 }
 
 @media (max-width: 720px) {
   .tipping-body {
     grid-template-columns: 1fr;
+  }
+
+  .tipping-col:nth-child(2) {
+    order: -1;
   }
 }
 
@@ -162,32 +191,32 @@
 
 .tipping-section-title {
   margin: 0;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ns-text-2, #5b6478);
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 /* ── Developer list ── */
 .tip-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .dev-card-glass {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 14px 16px;
+  padding: 18px 20px;
   text-align: left;
   cursor: pointer;
   background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-md, 16px);
-  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  border: 1px solid transparent;
+  border-radius: var(--ns-radius-lg, 20px);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   transition:
     border-color var(--ns-t, 220ms) var(--ns-ease-smooth, ease),
     box-shadow var(--ns-t, 220ms) var(--ns-ease-smooth, ease),
@@ -195,8 +224,8 @@
 
   &:hover {
     border-color: var(--tip-accent);
-    box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-    transform: translateY(-1px);
+    box-shadow: var(--ns-shadow-lg, 0 16px 40px rgba(20, 22, 38, 0.1));
+    transform: translateY(-2px);
   }
 
   &:focus-visible {
@@ -247,8 +276,7 @@
 
 .tip-label-glass {
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   color: var(--ns-text-muted, #8a92a6);
 }
 
@@ -263,13 +291,13 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
 .dev-selector {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .dev-select-item-glass {
@@ -277,15 +305,15 @@
   flex-direction: column;
   gap: 2px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 16px;
   text-align: left;
   cursor: pointer;
   background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-sm, 12px);
+  border: 1px solid transparent;
+  border-radius: var(--ns-radius-md, 16px);
   transition:
-    border-color var(--ns-t, 220ms) var(--ns-ease-smooth, ease),
-    background var(--ns-t, 220ms) var(--ns-ease-smooth, ease);
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
 
   &:hover {
     border-color: var(--tip-accent);
@@ -313,20 +341,94 @@
   color: var(--ns-text-muted, #8a92a6);
 }
 
+.toggle-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toggle-field__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
 .toggle-row {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .toggle-row > * {
   flex: 1;
 }
 
-/* ── Recent tips ── */
+/* ── Recent tips (collapsible disclosure) ── */
+.recent-tips {
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  overflow: hidden;
+}
+
+.recent-tips__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 20px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ns-ink, #1e1e2e);
+  transition: background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:hover {
+    background: var(--ns-surface-subtle, #f7f8fa);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  }
+}
+
+.recent-tips__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--tip-accent-soft);
+  color: var(--tip-accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.recent-tips__chevron {
+  margin-left: auto;
+  color: var(--ns-text-muted, #8a92a6);
+  transition: transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
+}
+
+.recent-tips[open] .recent-tips__chevron {
+  transform: rotate(180deg);
+}
+
 .recent-tips-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  padding: 0 20px 16px;
 }
 
 .recent-tip-item {
@@ -334,7 +436,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 
   &:last-child {
@@ -360,16 +462,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 28px 20px;
+  gap: 10px;
+  padding: 36px 24px;
   text-align: center;
   color: var(--ns-text-muted, #8a92a6);
   font-size: 13px;
   line-height: 1.5;
   background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
-  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .tipping-empty__title {
@@ -396,33 +497,57 @@
   line-height: 1;
 }
 
-/* ── "How it works" guide panel (shown alongside empty state) ── */
+/* ── "How it works" guide (collapsible disclosure, secondary to the flow) ── */
 .tipping-guide {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px 18px 20px;
   background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
-  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  overflow: hidden;
 }
 
-.tipping-guide__label {
-  font-size: 11px;
+.tipping-guide__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--ns-ink, #1e1e2e);
+  transition: background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:hover {
+    background: var(--ns-surface-subtle, #f7f8fa);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  }
+}
+
+.tipping-guide__chevron {
+  margin-left: auto;
   color: var(--ns-text-muted, #8a92a6);
+  transition: transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
+}
+
+.tipping-guide[open] .tipping-guide__chevron {
+  transform: rotate(180deg);
 }
 
 .tipping-guide__steps {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 20px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .tipping-guide__step {

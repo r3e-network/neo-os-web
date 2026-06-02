@@ -29,7 +29,7 @@ defineMiniApp({
     });
 
     const developerCount = createObservable(0);
-    const totalDonatedDisplay = createObservable("0");
+    const totalDonatedDisplay = createObservable("0 GAS");
     const recentTipCount = createObservable(0);
 
     const { notify } = ctx.services;
@@ -64,6 +64,9 @@ defineMiniApp({
       loadData: async () => {
         await stats.loadDevelopers();
         await stats.loadRecentTips();
+        developerCount.set(stats.developers.get().length);
+        totalDonatedDisplay.set(`${stats.formatNum(stats.totalDonated.get())} GAS`);
+        recentTipCount.set(stats.recentTips.get().length);
       },
     };
   },

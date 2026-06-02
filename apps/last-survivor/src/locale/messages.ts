@@ -11,11 +11,17 @@ const appMessages = {
   totalPot: { en: "Total Pot", zh: "奖池总额" },
   yourKeys: { en: "Your Keys", zh: "你的钥匙" },
   round: { en: "Round", zh: "轮次" },
+  status: { en: "Status", zh: "状态" },
   lastBuyer: { en: "Last Buyer", zh: "最后购买者" },
   roundStatus: { en: "Round Status", zh: "轮次状态" },
   activeRound: { en: "Active", zh: "进行中" },
   inactiveRound: { en: "Rollover ready", zh: "可开启下一轮" },
   buyKeys: { en: "Buy Keys", zh: "购买钥匙" },
+  buyKeysAndRollover: { en: "Buy Keys and Roll Forward", zh: "购买钥匙并推进轮次" },
+  buyKeysRolloverHint: {
+    en: "The next key purchase rolls the expired round forward before applying your bid.",
+    zh: "下一次购钥匙会先推进已过期轮次，再提交你的出价。",
+  },
   buying: { en: "Buying...", zh: "购买中..." },
   keyCountPlaceholder: { en: "1", zh: "1" },
   estimatedCost: { en: "Estimated Cost", zh: "预估花费" },
@@ -26,10 +32,25 @@ const appMessages = {
   totalStaked: { en: "Total Staked", zh: "总质押" },
   yourStake: { en: "Your Stake", zh: "您的质押" },
   players: { en: "Players", zh: "参与者" },
+  totalKeys: { en: "Total Keys", zh: "钥匙总数" },
+  share: { en: "Share", zh: "占比" },
   eventHistory: { en: "Event History", zh: "事件历史" },
   noHistory: { en: "No events yet", zh: "暂无事件记录" },
   failedToLoad: { en: "Failed to load data", zh: "加载数据失败" },
   missingContract: { en: "Contract not configured", zh: "合约未配置" },
+  roundStateUnavailableTitle: { en: "Round state unavailable", zh: "轮次状态暂不可用" },
+  roundStateUnavailable: {
+    en: "The countdown service is not available in this environment yet. You can review the game workspace, but key purchase submission waits for the round service to come online.",
+    zh: "当前环境暂未接通倒计时服务。你仍可查看游戏工作区，但购钥匙提交需要等待轮次服务恢复。",
+  },
+  roundStateRequired: {
+    en: "Refresh the round state before submitting a key purchase.",
+    zh: "提交购钥匙前需要先刷新轮次状态。",
+  },
+  keyPurchaseUnavailable: {
+    en: "Key purchase services are not configured in this environment yet.",
+    zh: "当前环境暂未配置购钥匙服务。",
+  },
   keysPurchased: { en: "Keys purchased", zh: "钥匙购买成功" },
   roundStarted: { en: "Round started", zh: "新一轮开始" },
   winnerDeclared: { en: "Winner declared", zh: "赢家已揭晓" },
@@ -79,6 +100,11 @@ const appMessages = {
   dangerHigh: { en: "HIGH ALERT", zh: "高度警戒" },
   dangerCritical: { en: "CRITICAL", zh: "危急" },
   tabStats: { en: "Stats", zh: "统计" },
+  refreshRound: { en: "Refresh Round", zh: "刷新轮次" },
+  refreshRoundHint: {
+    en: "Refresh the game state before buying keys.",
+    zh: "购买钥匙前请刷新游戏状态。",
+  },
   roundEnded: {
     en: "Timer expired. The settlement transaction pays the winner and opens the next live round.",
     zh: "倒计时结束。结算交易会支付赢家，并立即开启下一轮。",
@@ -93,6 +119,24 @@ const appMessages = {
   sidebarYourKeys: { en: "Your Keys", zh: "你的钥匙" },
   sidebarTimeLeft: { en: "Time Left", zh: "剩余时间" },
   keysSuffix: { en: "Keys", zh: "把钥匙" },
+  tokenGas: { en: "GAS", zh: "GAS" },
+  howItWorks: { en: "How It Works", zh: "玩法说明" },
+  ruleDeposit: { en: "Buy keys", zh: "购买钥匙" },
+  ruleDepositDesc: {
+    en: "Each purchase adds GAS to the prize pool and extends the live countdown.",
+    zh: "每次购买都会向奖池加入 GAS，并延长实时倒计时。",
+  },
+  ruleTimer: { en: "Timer pressure increases", zh: "倒计时压力递增" },
+  ruleTimerDesc: {
+    en: "Later bids add less time, so the ending gets more tense as the pool grows.",
+    zh: "越到后期，每次出价增加的时间越少，奖池越大，压力越高。",
+  },
+  ruleWin: { en: "Last buyer wins", zh: "最后购买者获胜" },
+  ruleWinDesc: {
+    en: "When the timer reaches zero, the last buyer receives the settled prize pool after platform fees.",
+    zh: "倒计时归零时，最后购买钥匙的人获得扣除平台费用后的结算奖池。",
+  },
+  recentHistory: { en: "Recent Rounds", zh: "最近轮次" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NeoCard } from "@shared/components-react";
+import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import { formatNumber } from "@shared/utils/format";
 import type { Observable } from "@shared/react/context";
@@ -47,6 +47,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const estimatedCost = str("estimatedCost", "0.00");
   const keyValidationError = val<string>("keyValidationError");
   const isBuyingKeys = bool("isBuyingKeys");
+  const roundDataAvailable = bool("roundDataAvailable");
+  const serviceNotice = str("serviceNotice");
 
   const needsLifecycleSync = bool("needsLifecycleSync");
 
@@ -58,6 +60,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const [localKeyCount, setLocalKeyCount] = useState("1");
   const formatNum = (n: number) => formatNumber(n, 2);
+  const canBuyKeys =
+    roundDataAvailable && (isRoundActive || needsLifecycleSync);
+  const showBuyKeysPanel =
+    isRoundActive ||
+    needsLifecycleSync ||
+    roundDataAvailable ||
+    Boolean(serviceNotice);
+  const buyKeysHelper = !roundDataAvailable
+    ? t("roundStateRequired")
+    : needsLifecycleSync
+      ? t("buyKeysRolloverHint")
+      : t("keyPrice");
+  const buyKeysLabel = needsLifecycleSync
+    ? t("buyKeysAndRollover")
+    : t("buyKeys");
 
   const formatBuyerAddress = (addr: string) => {
     if (!addr || addr.length < 10) return addr || "---";
@@ -67,6 +84,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleBuyKeys = async () => {
     await dispatch("buyKeys", localKeyCount);
     setLocalKeyCount("1");
+  };
+
+  const handleRefreshRound = async () => {
+    await dispatch("refreshRound");
   };
 
   return (
@@ -81,6 +102,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="round-info-item">
           <span className="round-info-label">{t("status") || "STATUS"}</span>
           <span className={`round-info-value status-${isRoundActive ? "active" : "ended"}`}>
+            <span className="status-dot" aria-hidden="true" />
             {roundStatusDisplay}
           </span>
         </div>
@@ -91,8 +113,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
+      {serviceNotice && (
+        <div className="survivor-service-notice" role="status">
+          <div className="survivor-service-notice__copy">
+            <span className="survivor-service-notice__title">
+              {t("roundStateUnavailableTitle")}
+            </span>
+            <span>{serviceNotice}</span>
+          </div>
+          <NeoButton
+            size="sm"
+            variant="secondary"
+            loading={isLoading}
+            onClick={handleRefreshRound}
+            aria-label={t("refreshRound")}
+          >
+            {t("refreshRound")}
+          </NeoButton>
+        </div>
+      )}
+
       {/* Hero: countdown ring + danger meter */}
       <div className="hero-container">
+        <div className="hero-heading">
+          <span className="hero-badge" aria-hidden="true">&#9201;</span>
+          <span className="hero-eyebrow">{t("roundStatus") || "Round Status"}</span>
+        </div>
         <DangerRingHero
           t={t}
           countdown={countdown}
@@ -149,14 +195,45 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
+      {!isRoundActive && (
+        <NeoCard variant="erobo" className="round-control-card">
+          <div className="round-control-card__body">
+            <div className="round-control-card__copy">
+              <span className="round-control-card__title">
+                {needsLifecycleSync
+                  ? (t("roundEnded") || "Round needs settlement")
+                  : (t("inactiveRound") || "Rollover ready")}
+              </span>
+              <span className="round-control-card__text">
+                {needsLifecycleSync
+                  ? (t("lifecycleManaged") || "The lifecycle keeper will settle the expired round.")
+                  : (t("refreshRoundHint") || "Refresh the game state before buying keys.")}
+              </span>
+            </div>
+            <NeoButton
+              size="sm"
+              variant="secondary"
+              loading={isLoading}
+              onClick={handleRefreshRound}
+              aria-label={t("refreshRound") || "Refresh round"}
+            >
+              {t("refreshRound") || "Refresh Round"}
+            </NeoButton>
+          </div>
+        </NeoCard>
+      )}
+
       {/* Buy keys form */}
-      {isRoundActive && !needsLifecycleSync && (
+      {showBuyKeysPanel && (
         <NeoCard variant="erobo" className="buy-keys-card">
           <BuyKeysCard
             keyCount={localKeyCount}
             estimatedCost={estimatedCost}
             isPaying={isBuyingKeys}
+            disabled={!canBuyKeys}
             validationError={keyValidationError}
+            helperText={buyKeysHelper}
+            submitLabel={buyKeysLabel}
             t={t}
             onKeyCountChange={setLocalKeyCount}
             onBuy={handleBuyKeys}
@@ -175,9 +252,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {/* Game rules */}
-      <NeoCard className="rules-card">
-        <h4 className="rules-title">{t("howItWorks") || "How It Works"}</h4>
+      {/* Game rules — collapsed tutorial, out of the primary flow */}
+      <details className="rules-card">
+        <summary className="rules-summary">
+          <span className="rules-title">{t("howItWorks") || "How It Works"}</span>
+          <span className="rules-chevron" aria-hidden="true" />
+        </summary>
         <div className="rules-grid">
           <div className="rule-item">
             <span className="rule-number">1</span>
@@ -201,7 +281,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
         </div>
-      </NeoCard>
+      </details>
 
       {/* Recent winners / history section */}
       <div className="history-section">

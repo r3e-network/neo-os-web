@@ -31,6 +31,20 @@ const navLinks = [
   { href: "/developer", labelKey: "navigation.developer" },
 ];
 
+function readNetworkQuery(value: string | string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const normalized = String(raw ?? "").trim().toLowerCase();
+  if (normalized === "testnet" || normalized === "neo-n3-testnet") return "testnet";
+  if (normalized === "mainnet" || normalized === "neo-n3-mainnet") return "mainnet";
+  return "";
+}
+
+function withNetworkQuery(href: string, network: string): string {
+  if (!network) return href;
+  const separator = href.includes("?") ? "&" : "?";
+  return `${href}${separator}network=${encodeURIComponent(network)}`;
+}
+
 export function Navbar() {
   const router = useRouter();
   const { locale, setLocale, t } = useI18n();
@@ -60,10 +74,14 @@ export function Navbar() {
     setSearchQuery(nextQuery);
   }, [router.query.q]);
 
+  const networkQuery = readNetworkQuery(router.query.network);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/miniapps?q=${encodeURIComponent(searchQuery)}`);
+      router.push(
+        withNetworkQuery(`/miniapps?q=${encodeURIComponent(searchQuery)}`, networkQuery),
+      );
     }
   };
 
@@ -81,7 +99,7 @@ export function Navbar() {
         {/* Logo */}
         <div className="flex min-w-0 items-center gap-3 xl:gap-8">
           <Link
-            href="/"
+            href={withNetworkQuery("/", networkQuery)}
             prefetch={false}
             aria-label={t("navigation.home")}
             className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 transition-transform hover:scale-105"
@@ -105,7 +123,7 @@ export function Navbar() {
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link
-                  href={link.href}
+                  href={withNetworkQuery(link.href, networkQuery)}
                   prefetch={false}
                   aria-current={
                     router.pathname.startsWith(link.href) ? "page" : undefined
@@ -213,7 +231,7 @@ export function Navbar() {
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link
-                  href={link.href}
+                  href={withNetworkQuery(link.href, networkQuery)}
                   prefetch={false}
                   onClick={() => setMobileMenuOpen(false)}
                   aria-current={

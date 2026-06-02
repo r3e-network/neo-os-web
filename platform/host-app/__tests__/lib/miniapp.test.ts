@@ -83,6 +83,28 @@ describe("miniapp coercion", () => {
     expect(app.contract_hash).toBe("0x2222222222222222222222222222222222222222");
   });
 
+  it("preserves generated catalog top-level network contracts", () => {
+    process.env.NEO_TARGET_NETWORK = "testnet";
+
+    const app = coerceMiniAppInfo({
+      app_id: "miniapp-unbreakablevault",
+      entry_url: "mf://manifest?app=miniapp-unbreakablevault",
+      contracts: {
+        "neo-n3-mainnet": "0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa",
+        "neo-n3-testnet": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+      },
+      permissions: {},
+    });
+
+    expect(app?.contracts?.["neo-n3-testnet"]).toBe(
+      "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+    );
+    expect(app?.manifest?.contracts).toEqual(app?.contracts);
+    expect(app?.contract_hash).toBe(
+      "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+    );
+  });
+
   it("normalizes bare .matrix entry urls and preserves aa permissions", () => {
     const app = coerceMiniAppInfo({
       app_id: "miniapp-matrix-aa",

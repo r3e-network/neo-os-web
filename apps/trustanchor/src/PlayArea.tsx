@@ -4,6 +4,7 @@
  * User-facing TrustAnchor staking surface.
  */
 
+import { useMemo, useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { TrustAnchorStats } from "./hooks/useTrustAnchor";
@@ -15,22 +16,95 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export default function PlayArea({ state }: PlayAreaProps) {
+type AnchorActionHistoryItem = {
+  action: string;
+  amount?: string;
+  status: string;
+  txid?: string;
+  at?: string;
+};
+
+function normalizeNeoAmount(value: string): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return value.trim();
+  return String(Math.trunc(numeric));
+}
+
+function isWholeNeo(value: string): boolean {
+  return /^[1-9]\d*$/.test(value.trim());
+}
+
+function formatTx(txid: string): string {
+  if (!txid) return "";
+  if (txid.length <= 20) return txid;
+  return `${txid.slice(0, 10)}...${txid.slice(-8)}`;
+}
+
+function formatAddress(value: string): string {
+  if (!value) return "";
+  if (value.length <= 20) return value;
+  return `${value.slice(0, 10)}...${value.slice(-6)}`;
+}
+
+export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, num, str } = useStateBindings(state);
 
   const stats = val<TrustAnchorStats | null>("stats", null);
   const agentAccounts =
     val<Array<Record<string, unknown>>>("agentAccounts", []) ?? [];
+  const actionHistory =
+    val<AnchorActionHistoryItem[]>("actionHistory", []) ?? [];
   const agentCount = num("agentCount");
   const myStakeDisplay = str("myStakeDisplay", "0 NEO");
   const pendingRewardsDisplay = str("pendingRewardsDisplay", "0 GAS");
   const rewardReserveDisplay = str("rewardReserveDisplay", "0 GAS");
   const totalNeoDisplay = str("totalNeoDisplay", "0 NEO");
+  const workflowStatus = str("workflowStatus", t("workflowReady"));
+  const lastError = str("lastError");
+  const lastTxid = str("lastTxid");
+  const [amountInput, setAmountInput] = useState("1");
+  const [localError, setLocalError] = useState("");
+  const [busyAction, setBusyAction] = useState("");
   const selectedAgent = stats?.selectedAgentId
     ? `#${stats.selectedAgentId}`
     : "None";
   const agentTotal = agentCount || agentAccounts.length || 21;
   const routeStatus = stats?.selectedAgentId ? "Route selected" : "Awaiting route";
+  const amountIsValid = useMemo(() => isWholeNeo(amountInput), [amountInput]);
+  const normalizedAmount = useMemo(
+    () => normalizeNeoAmount(amountInput),
+    [amountInput],
+  );
+  const statusText = localError || lastError || workflowStatus;
+  const isBusy = Boolean(busyAction);
+
+  const runAmountAction = async (action: "stakeNeo" | "withdrawNeo") => {
+    if (!amountIsValid) {
+      setLocalError(t("invalidAmount"));
+      return;
+    }
+    setLocalError("");
+    setBusyAction(action);
+    try {
+      await dispatch(action, { amount: normalizedAmount });
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : t("workflowFailed"));
+    } finally {
+      setBusyAction("");
+    }
+  };
+
+  const runSimpleAction = async (action: "claimRewards" | "refreshAnchor") => {
+    setLocalError("");
+    setBusyAction(action);
+    try {
+      await dispatch(action);
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : t("workflowFailed"));
+    } finally {
+      setBusyAction("");
+    }
+  };
 
   return (
     <div className="trustanchor-play-area">
@@ -43,80 +117,114 @@ export default function PlayArea({ state }: PlayAreaProps) {
             </svg>
           </span>
           <div className="anchor-primary-card__copy">
-            <span className="anchor-kicker">TrustAnchor</span>
-            <h2>Stake. Redeem. Claim.</h2>
-            <p>
-              NEO-backed rewards with manual AA agent voting handled in the
-              admin console.
-            </p>
+            <span className="anchor-kicker">{t("appName")}</span>
+            <h2>{t("heroTitle")}</h2>
+            <p>{t("heroDescription")}</p>
           </div>
         </div>
         <div className="anchor-score">
           <span>{myStakeDisplay}</span>
-          <small>your stake</small>
+          <small>{t("myStake")}</small>
         </div>
       </section>
 
       <div className="anchor-stat-grid">
         <div className="stat-chip">
           <span className="stat-value">{pendingRewardsDisplay}</span>
-          <span className="stat-label">Claimable</span>
+          <span className="stat-label">{t("pendingRewards")}</span>
         </div>
         <div className="stat-chip">
           <span className="stat-value">
             {totalNeoDisplay || `${stats?.totalStaked ?? 0} NEO`}
           </span>
-          <span className="stat-label">Total staked</span>
+          <span className="stat-label">{t("totalNeoTracked")}</span>
         </div>
         <div className="stat-chip">
           <span className="stat-value">{rewardReserveDisplay}</span>
-          <span className="stat-label">Reward reserve</span>
+          <span className="stat-label">{t("rewardReserve")}</span>
         </div>
       </div>
 
       <section className="anchor-workspace" aria-label="TrustAnchor staking workspace">
         <div className="anchor-status-card">
           <div className="anchor-section-head">
-            <span>Transaction route</span>
-            <h3>Stake routing workspace</h3>
-            <p>
-              Stake, redeem, and claim stay in the wallet flow while AA agent
-              routing remains visible for every reward cycle.
-            </p>
+            <span>{t("actionPanelLabel")}</span>
+            <h3>{t("actionPanelTitle")}</h3>
+            <p>{t("actionPanelBody")}</p>
           </div>
 
-          <div className="anchor-flow" aria-label="TrustAnchor transaction flow">
-            <div>
-              <span className="anchor-flow__number">01</span>
-              <strong>Choose amount</strong>
-            </div>
-            <div>
-              <span className="anchor-flow__number">02</span>
-              <strong>Sign wallet tx</strong>
-            </div>
-            <div>
-              <span className="anchor-flow__number">03</span>
-              <strong>Track rewards</strong>
+          <div className="anchor-action-panel">
+            <label className="anchor-amount-field">
+              <span>{t("neoAmount")}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                value={amountInput}
+                aria-invalid={!amountIsValid}
+                disabled={isBusy}
+                onChange={(event) => setAmountInput(event.currentTarget.value)}
+              />
+            </label>
+
+            <div className="anchor-action-buttons" aria-label={t("actionPanelTitle")}>
+              <button
+                type="button"
+                className="anchor-action-button anchor-action-button--primary"
+                disabled={isBusy || !amountIsValid}
+                onClick={() => void runAmountAction("stakeNeo")}
+              >
+                {busyAction === "stakeNeo" ? t("workflowSubmitting") : t("submitStake")}
+              </button>
+              <button
+                type="button"
+                className="anchor-action-button"
+                disabled={isBusy || !amountIsValid}
+                onClick={() => void runAmountAction("withdrawNeo")}
+              >
+                {busyAction === "withdrawNeo" ? t("workflowSubmitting") : t("submitWithdraw")}
+              </button>
+              <button
+                type="button"
+                className="anchor-action-button"
+                disabled={isBusy}
+                onClick={() => void runSimpleAction("claimRewards")}
+              >
+                {busyAction === "claimRewards" ? t("workflowSubmitting") : t("submitClaim")}
+              </button>
+              <button
+                type="button"
+                className="anchor-action-button anchor-action-button--ghost"
+                disabled={isBusy}
+                onClick={() => void runSimpleAction("refreshAnchor")}
+              >
+                {busyAction === "refreshAnchor" ? t("workflowSubmitting") : t("refreshStatus")}
+              </button>
             </div>
           </div>
 
-          <div className="anchor-guidance-grid">
-            <div>
-              <span>User flow</span>
-              <strong>Stake, redeem, or claim without leaving TrustAnchor.</strong>
+          <div className={`anchor-status-strip${localError || lastError ? " anchor-status-strip--error" : ""}`} aria-live="polite">
+            <span>{statusText}</span>
+            {lastTxid && <code>{t("lastTxid")}: {formatTx(lastTxid)}</code>}
+          </div>
+
+          <div className="anchor-action-history" aria-label={t("actionHistory")}>
+            <div className="anchor-action-history__head">
+              <span>{t("actionHistory")}</span>
+              <strong>{selectedAgent}</strong>
             </div>
-            <div>
-              <span>Agent route</span>
-              <strong>
-                {selectedAgent === "None"
-                  ? "No active route selected yet."
-                  : `Current route ${selectedAgent}.`}
-              </strong>
-            </div>
-            <div>
-              <span>Safety rail</span>
-              <strong>Admin-only agent movement stays outside the user tx.</strong>
-            </div>
+            {actionHistory.length === 0 ? (
+              <p>{t("actionHistoryEmpty")}</p>
+            ) : (
+              actionHistory.slice(0, 4).map((item) => (
+                <div className="anchor-history-row" key={`${item.action}-${item.at ?? item.txid ?? item.amount ?? "local"}`}>
+                  <span>{item.action}</span>
+                  <strong>{item.amount ? `${item.amount} NEO` : item.status}</strong>
+                  {item.txid && <code>{formatTx(item.txid)}</code>}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -140,8 +248,11 @@ export default function PlayArea({ state }: PlayAreaProps) {
         </aside>
       </section>
 
-      <details className="neo-card anchor-routing-model" open>
-        <summary className="section-title">How routing is protected</summary>
+      <details className="neo-card anchor-routing-model">
+        <summary className="anchor-routing-model__summary">
+          <span className="section-title">How routing is protected</span>
+          <span className="anchor-routing-model__hint">{agentTotal}/21 agents</span>
+        </summary>
         <div className="anchor-flow-list">
           <span>Current route: {selectedAgent}.</span>
           <span>
@@ -154,21 +265,24 @@ export default function PlayArea({ state }: PlayAreaProps) {
           </span>
         </div>
         <div className="agent-list">
-          {agentAccounts.slice(0, 21).map((agent, idx) => (
-            <div key={idx} className="agent-row">
-              <span className="agent-address">
-                {String(
-                  agent.accountAddress ??
-                    agent.address ??
-                    agent.name ??
-                    `agent-${idx + 1}`,
-                )}
-              </span>
-              <span className="agent-status">
-                candidate {String(agent.agentId ?? idx + 1)}
-              </span>
-            </div>
-          ))}
+          {agentAccounts.slice(0, 21).map((agent, idx) => {
+            const address = String(
+              agent.accountAddress ??
+                agent.address ??
+                agent.name ??
+                `agent-${idx + 1}`,
+            );
+            return (
+              <div key={idx} className="agent-row">
+                <span className="agent-address" title={address}>
+                  {formatAddress(address)}
+                </span>
+                <span className="agent-status">
+                  candidate {String(agent.agentId ?? idx + 1)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </details>
     </div>

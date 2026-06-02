@@ -9,6 +9,7 @@
   --anchor-surface: #ffffff;
   --anchor-surface-subtle: #f7f8fa;
   --anchor-page: transparent;
+  --anchor-radius-lg: 16px;
 
   min-height: 100%;
   padding: 16px;
@@ -35,7 +36,7 @@
 .anchor-admin-agent-strip,
 .anchor-admin-safety-card {
   border: 1px solid var(--anchor-border);
-  border-radius: 20px;
+  border-radius: var(--anchor-radius-lg);
   background: var(--anchor-surface);
   box-shadow: 0 8px 24px rgba(20, 22, 38, 0.06);
 }
@@ -73,18 +74,17 @@
   color: var(--anchor-muted);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .anchor-admin-hero h2 {
   max-width: 620px;
   margin: 0;
   color: var(--anchor-ink);
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 800;
-  line-height: 1.18;
-  letter-spacing: -0.02em;
+  line-height: 1.12;
+  letter-spacing: 0;
 }
 
 .anchor-admin-hero p {
@@ -115,7 +115,7 @@
   font-size: 24px;
   font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 
@@ -124,8 +124,7 @@
   opacity: 0.72;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .anchor-admin-route-map,
@@ -148,7 +147,7 @@
   color: var(--anchor-ink);
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .anchor-admin-section-heading strong {
@@ -195,7 +194,7 @@
   font-size: 18px;
   font-weight: 800;
   line-height: 1.1;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -210,7 +209,7 @@
 
 .anchor-admin-workflow-card {
   min-width: 0;
-  border-radius: 20px;
+  border-radius: var(--anchor-radius-lg);
 }
 
 .anchor-admin-workflow-card .neo-card__body {

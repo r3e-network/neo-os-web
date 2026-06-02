@@ -153,6 +153,244 @@ describe("miniapp-definitions loader", () => {
     );
   });
 
+  it("keeps manifest-only dapp_url for app ids whose slug is not app_id without prefix", async () => {
+    delete process.env.MINIAPP_DEFINITIONS_DIR;
+
+    const app = await loadBundledMiniAppById("miniapp-unbreakablevault");
+
+    expect(app).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-unbreakablevault",
+        entry_url: "mf://manifest?app=miniapp-unbreakablevault",
+        dapp_url: "/miniapps/unbreakable-vault/index.html",
+        manifest: expect.objectContaining({
+          contracts: expect.objectContaining({
+            "neo-n3-testnet": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("exposes Memorial Shrine create and tribute wallet operations", async () => {
+    delete process.env.MINIAPP_DEFINITIONS_DIR;
+
+    const app = await loadBundledMiniAppById("miniapp-memorial-shrine");
+    const operations = app?.operations ?? [];
+    const byMethod = new Map(operations.map((operation) => [operation.method, operation] as const));
+
+    expect(byMethod.get("createMemorial")?.params?.map((param) => [param.name, param.type])).toEqual([
+      ["creator", "hash160"],
+      ["name", "string"],
+      ["photoHash", "string"],
+      ["relationship", "string"],
+      ["birthYear", "integer"],
+      ["deathYear", "integer"],
+      ["biography", "string"],
+      ["obituary", "string"],
+    ]);
+    expect(byMethod.get("payTribute")?.params?.map((param) => [param.name, param.type])).toEqual([
+      ["visitor", "hash160"],
+      ["memorialId", "integer"],
+      ["offeringType", "select"],
+      ["message", "string"],
+      ["receiptId", "integer"],
+    ]);
+  });
+
+  it("keeps human GAS amount operations scaled to fixed8 units", async () => {
+    process.env.MINIAPP_DEFINITIONS_DIR = path.resolve(
+      __dirname,
+      "../../public/miniapp-definitions",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    const fogPlay = getApp(apps, "miniapp-fogplay");
+    const flipAmount = fogPlay?.operations
+      ?.find((operation) => operation.method === "placeCoinFlipBet")
+      ?.params?.find((param) => param.name === "amount");
+    expect(flipAmount).toEqual(
+      expect.objectContaining({
+        type: "amount",
+        scale: 8,
+      }),
+    );
+
+    const redEnvelope = getApp(apps, "miniapp-redenvelope");
+    const createAmount = redEnvelope?.operations
+      ?.find((operation) => operation.method === "createEnvelope")
+      ?.params?.find((param) => param.name === "amount");
+    expect(createAmount).toEqual(
+      expect.objectContaining({
+        type: "amount",
+        placeholder: "0.10",
+        scale: 8,
+      }),
+    );
+    expect(createAmount?.presets?.[0]).toEqual(
+      expect.objectContaining({
+        label: "0.10",
+        value: "0.10",
+      }),
+    );
+
+    const neoPay = getApp(apps, "miniapp-neo-pay");
+    const createStream = neoPay?.operations?.find(
+      (operation) => operation.method === "createStream",
+    );
+    expect(createStream).toEqual(
+      expect.objectContaining({
+        name: "Create Stream",
+        priority: "primary",
+      }),
+    );
+    expect(
+      createStream?.params?.find((param) => param.name === "totalAmount"),
+    ).toEqual(
+      expect.objectContaining({
+        type: "amount",
+        placeholder: "0.03",
+        scale: 8,
+      }),
+    );
+    expect(
+      createStream?.params?.find((param) => param.name === "rateAmount"),
+    ).toEqual(
+      expect.objectContaining({
+        type: "amount",
+        scale: 8,
+      }),
+    );
+
+    const aaRelay = getApp(apps, "miniapp-aa-relay-console");
+    expect(aaRelay?.operations?.map((operation) => operation.method)).toEqual([
+      "checkSponsor",
+      "requestSponsor",
+      "submitRelay",
+    ]);
+    expect(
+      aaRelay?.operations
+        ?.find((operation) => operation.method === "submitRelay")
+        ?.params?.find((param) => param.name === "payloadJson"),
+    ).toEqual(
+      expect.objectContaining({
+        type: "string",
+        required: true,
+      }),
+    );
+
+    const devTipping = getApp(apps, "miniapp-dev-tipping");
+    const sendTip = devTipping?.operations?.find(
+      (operation) => operation.method === "sendTip",
+    );
+    expect(devTipping?.manifest?.supported_networks).toContain(
+      "neo-n3-testnet",
+    );
+    expect(sendTip).toEqual(
+      expect.objectContaining({
+        name: "Send Tip",
+        priority: "primary",
+      }),
+    );
+    expect(sendTip?.params?.find((param) => param.name === "amount")).toEqual(
+      expect.objectContaining({
+        type: "amount",
+        placeholder: "0.05",
+        scale: 8,
+      }),
+    );
+
+    const timeCapsule = getApp(apps, "miniapp-time-capsule");
+    const sealCapsule = timeCapsule?.operations?.find(
+      (operation) => operation.method === "sealCapsule",
+    );
+    expect(timeCapsule?.manifest?.supported_networks).toContain(
+      "neo-n3-testnet",
+    );
+    expect(sealCapsule).toEqual(
+      expect.objectContaining({
+        name: "Seal Capsule",
+        priority: "primary",
+      }),
+    );
+    expect(
+      sealCapsule?.params?.find((param) => param.name === "contentHash"),
+    ).toEqual(
+      expect.objectContaining({
+        type: "string",
+        required: true,
+      }),
+    );
+    expect(
+      sealCapsule?.params?.find((param) => param.name === "sealFeeGas"),
+    ).toEqual(
+      expect.objectContaining({
+        type: "amount",
+        default_value: "0.20",
+        scale: 8,
+      }),
+    );
+
+    const vault = getApp(apps, "miniapp-unbreakablevault");
+    const vaultMethods = vault?.operations?.map((operation) => operation.method);
+    expect(vault?.manifest?.supported_networks).toContain("neo-n3-testnet");
+    expect(vaultMethods).toEqual([
+      "createVault",
+      "attemptBreak",
+      "increaseBounty",
+      "claimExpiredVault",
+    ]);
+    expect(
+      vault?.operations
+        ?.find((operation) => operation.method === "createVault")
+        ?.params?.find((param) => param.name === "bountyGas"),
+    ).toEqual(
+      expect.objectContaining({
+        type: "amount",
+        default_value: "1.00",
+        scale: 8,
+      }),
+    );
+    expect(
+      vault?.operations
+        ?.find((operation) => operation.method === "attemptBreak")
+        ?.params?.find((param) => param.name === "attemptFeeGas"),
+    ).toEqual(
+      expect.objectContaining({
+        type: "amount",
+        default_value: "0.10",
+        scale: 8,
+      }),
+    );
+  });
+
+  it("exposes oracle fee funding before VRF game actions", async () => {
+    process.env.MINIAPP_DEFINITIONS_DIR = path.resolve(
+      __dirname,
+      "../../public/miniapp-definitions",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    const vrfActionByAppId = {
+      "miniapp-fogplay": "placeCoinFlipBet",
+      "miniapp-dice-game": "placeDiceBet",
+      "miniapp-redenvelope": "createEnvelope",
+    } as const;
+
+    for (const [appId, actionMethod] of Object.entries(vrfActionByAppId)) {
+      const app = getApp(apps, appId);
+      const methods = app?.operations?.map((operation) => operation.method);
+      if (appId !== "miniapp-redenvelope") {
+        expect(methods).toContain("fundGameCredit");
+      }
+      expect(methods).toContain("fundOracleRequestFee");
+      const oracleIndex = methods?.indexOf("fundOracleRequestFee") ?? -1;
+      const playIndex = methods?.indexOf(actionMethod) ?? -1;
+      expect(oracleIndex).toBeGreaterThan(-1);
+      expect(playIndex).toBeGreaterThan(oracleIndex);
+    }
+  });
+
   it("preserves modular contract composition metadata in bundled definitions", async () => {
     const definitionsDir = path.join(tempRoot, "defs-composition");
     fs.mkdirSync(definitionsDir, { recursive: true });
@@ -282,7 +520,7 @@ describe("miniapp-definitions loader", () => {
     process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
 
     fs.writeFileSync(
-      path.join(definitionsDir, "neo-pay.modular-fixture.json"),
+      path.join(definitionsDir, "neo-pay-shared-example.json"),
       JSON.stringify(
         {
           app_id: "miniapp-neo-pay-shared-example",
@@ -313,6 +551,21 @@ describe("miniapp-definitions loader", () => {
         }),
       }),
     );
+    expect(app?.operations?.map((operation) => operation.method)).toEqual([
+      "createSharedStream",
+    ]);
+    expect(
+      app?.detail_template?.operation_panel?.operations.map(
+        (operation) => operation.method,
+      ),
+    ).toEqual(["createSharedStream"]);
+    expect(
+      (
+        app?.manifest?.frontend_composition as {
+          operation_recipes?: Array<{ operation?: string }>;
+        }
+      )?.operation_recipes?.[0]?.operation,
+    ).toBe("createSharedStream");
   });
 
   it("publishes the supported Neo Swap manifest from the active bundled catalog", async () => {
@@ -506,19 +759,28 @@ describe("miniapp-definitions loader", () => {
     expect(byId.has("miniapp-sample-example")).toBe(false);
   });
 
-  it("keeps bundled SelfLoan host operations aligned with the PlatformDeFi ABI", async () => {
+  it("keeps bundled SelfLoan host operations aligned with funded PlatformDeFi flows", async () => {
     const app = await loadBundledMiniAppById("miniapp-self-loan");
     const operations = app?.operations ?? [];
     const byMethod = new Map(operations.map((operation) => [operation.method, operation] as const));
 
     expect(byMethod.has("repayDebt")).toBe(false);
+    expect(byMethod.get("createLoan")?.params?.map((param) => [param.name, param.type])).toEqual([
+      ["appId", "string"],
+      ["borrower", "hash160"],
+      ["collateralNeo", "integer"],
+      ["ltvTier", "select"],
+      ["poolTopupGas", "amount"],
+    ]);
     expect(byMethod.get("repayLoan")?.params?.map((param) => [param.name, param.type])).toEqual([
       ["appId", "string"],
       ["loanId", "integer"],
+      ["repayGas", "amount"],
     ]);
     expect(byMethod.get("addCollateral")?.params?.map((param) => [param.name, param.type])).toEqual([
       ["appId", "string"],
       ["loanId", "integer"],
+      ["collateralNeo", "integer"],
     ]);
     expect(byMethod.get("syncProfitAnchorVote")?.params?.map((param) => [param.name, param.type])).toEqual([
       ["appId", "string"],
@@ -549,6 +811,32 @@ describe("miniapp-definitions loader", () => {
       ["player", "hash160"],
       ["keyCount", "integer"],
     ]);
+  });
+
+  it("uses a buffered LastSurvivor funding preset in public definitions", async () => {
+    process.env.MINIAPP_DEFINITIONS_DIR = path.resolve(
+      __dirname,
+      "../../public/miniapp-definitions",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    const app = getApp(apps, "miniapp-last-survivor");
+    const fundAmount = app?.operations
+      ?.find((operation) => operation.method === "fundGameCredit")
+      ?.params?.find((param) => param.name === "amount");
+
+    expect(fundAmount).toEqual(
+      expect.objectContaining({
+        placeholder: "0.11",
+        scale: 8,
+      }),
+    );
+    expect(fundAmount?.presets?.[0]).toEqual(
+      expect.objectContaining({
+        label: "0.11",
+        value: "0.11",
+      }),
+    );
   });
 
   it("does not expose LastSurvivor lifecycle settlement as a standalone DApp action", () => {

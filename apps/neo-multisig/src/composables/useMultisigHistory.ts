@@ -48,7 +48,9 @@ export function useMultisigHistory() {
     const index = items.findIndex((h) => h.id === id);
     if (index !== -1) {
       const updated = [...items];
-      updated[index] = { ...updated[index], ...updates };
+      const current = updated[index];
+      if (!current) return;
+      updated[index] = { ...current, ...updates };
       history.set(updated);
       saveHistory();
     }

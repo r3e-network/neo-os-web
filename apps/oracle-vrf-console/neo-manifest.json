@@ -9,30 +9,21 @@
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": [
-    "oracle",
-    "morpheus",
-    "vrf",
-    "randomness"
-  ],
+  "tags": ["oracle", "morpheus", "vrf", "randomness"],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
   "contracts": {},
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
+  "supported_networks": ["neo-n3-testnet"],
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/oracle-vrf-console/index.html",
     "icon": "/miniapps/oracle-vrf-console/logo.jpg",
     "banner": "/miniapps/oracle-vrf-console/banner.jpg"
   },
-  "permissions": [
-    "read:blockchain"
-  ],
+  "permissions": ["read:blockchain"],
   "features": {
     "stateless": true,
     "offlineSupport": false,
@@ -41,9 +32,7 @@
   "stateSource": {
     "type": "api",
     "chain": "neo-n3-testnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
+    "endpoints": ["https://api.n3index.dev"]
   },
   "operation_panel": {
     "title": "VRF Request",
@@ -56,11 +45,43 @@
         "button_style": "secondary",
         "params": [
           {
-            "name": "endpoint",
+            "name": "consumer",
             "type": "string",
-            "label": "Seed / request tag",
+            "label": "Consumer",
+            "placeholder": "MiniApp contract hash or app id",
+            "default_value": "miniapp-oracle-vrf-console",
+            "required": true
+          },
+          {
+            "name": "salt",
+            "type": "string",
+            "label": "Salt",
             "placeholder": "vrf:campaign-or-game-round",
             "default_value": "vrf:miniapp-round",
+            "required": true
+          },
+          {
+            "name": "rounds",
+            "type": "integer",
+            "label": "Rounds",
+            "default_value": "1",
+            "required": true
+          },
+          {
+            "name": "mode",
+            "type": "select",
+            "label": "Proof mode",
+            "default_value": "single-proof",
+            "options": [
+              {
+                "label": "Single proof",
+                "value": "single-proof"
+              },
+              {
+                "label": "Batch proof",
+                "value": "batch-proof"
+              }
+            ],
             "required": true
           }
         ]

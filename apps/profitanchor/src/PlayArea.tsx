@@ -4,6 +4,7 @@
  * User-facing ProfitAnchor staking surface.
  */
 
+import { useMemo, useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { ProfitAnchorStats } from "./hooks/useProfitAnchor";
@@ -15,22 +16,119 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export default function PlayArea({ t, state }: PlayAreaProps) {
+type AnchorActionHistoryItem = {
+  action: string;
+  amount?: string;
+  status: string;
+  txid?: string;
+  at?: string;
+};
+
+function normalizeNeoAmount(value: string): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return value.trim();
+  return String(Math.trunc(numeric));
+}
+
+function isWholeNeo(value: string): boolean {
+  return /^[1-9]\d*$/.test(value.trim());
+}
+
+function formatTx(txid: string): string {
+  if (!txid) return "";
+  if (txid.length <= 20) return txid;
+  return `${txid.slice(0, 10)}...${txid.slice(-8)}`;
+}
+
+export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, num, str } = useStateBindings(state);
 
   const stats = val<ProfitAnchorStats | null>("stats", null);
   const agentAccounts =
     val<Array<Record<string, unknown>>>("agentAccounts", []) ?? [];
+  const actionHistory =
+    val<AnchorActionHistoryItem[]>("actionHistory", []) ?? [];
   const agentCount = num("agentCount");
+  const pendingRewards = num("pendingRewards");
   const myStakeDisplay = str("myStakeDisplay", "0 NEO");
   const pendingRewardsDisplay = str("pendingRewardsDisplay", "0 GAS");
   const rewardReserveDisplay = str("rewardReserveDisplay", "0 GAS");
   const totalNeoDisplay = str("totalNeoDisplay", "0 NEO");
+  const workflowStatus = str("workflowStatus", t("workflowReady"));
+  const lastError = str("lastError");
+  const lastTxid = str("lastTxid");
+  const [amountInput, setAmountInput] = useState("1");
+  const [localError, setLocalError] = useState("");
+  const [busyAction, setBusyAction] = useState("");
   const selectedAgent = stats?.selectedAgentId
     ? `#${stats.selectedAgentId}`
     : "None";
   const agentTotal = agentCount || agentAccounts.length || 21;
-  const routeStatus = stats?.selectedAgentId ? "Route selected" : "Awaiting route";
+  const routeStatus = stats?.selectedAgentId ? t("routeSelected") : t("routeAwaiting");
+  const amountIsValid = useMemo(() => isWholeNeo(amountInput), [amountInput]);
+  const normalizedAmount = useMemo(
+    () => normalizeNeoAmount(amountInput),
+    [amountInput],
+  );
+  const plannedAmountLabel = amountIsValid
+    ? `${normalizedAmount} ${t("tokenNeo")}`
+    : t("amountNeedsWholeNeo");
+  const claimReady =
+    pendingRewards > 0 ||
+    !/^0(?:\.0+)?\s*GAS$/i.test(pendingRewardsDisplay.trim());
+  const stakeMemo = "stake:miniapp-profitanchor";
+  const isError = Boolean(localError || lastError);
+  const statusText = localError || lastError || workflowStatus;
+  const isBusy = Boolean(busyAction);
+  const preflightChecks = [
+    {
+      key: "amount",
+      label: t("preflightAmount"),
+      done: amountIsValid,
+      value: amountIsValid ? plannedAmountLabel : t("blocked"),
+    },
+    {
+      key: "route",
+      label: t("preflightRoute"),
+      done: Boolean(stats?.selectedAgentId),
+      value: selectedAgent,
+    },
+    {
+      key: "claim",
+      label: t("preflightClaim"),
+      done: claimReady,
+      value: pendingRewardsDisplay,
+    },
+  ];
+  const readyToSubmit = amountIsValid;
+
+  const runAmountAction = async (action: "stakeNeo" | "withdrawNeo") => {
+    if (!amountIsValid) {
+      setLocalError(t("invalidAmount"));
+      return;
+    }
+    setLocalError("");
+    setBusyAction(action);
+    try {
+      await dispatch(action, { amount: normalizedAmount });
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : t("workflowFailed"));
+    } finally {
+      setBusyAction("");
+    }
+  };
+
+  const runSimpleAction = async (action: "claimRewards" | "refreshAnchor") => {
+    setLocalError("");
+    setBusyAction(action);
+    try {
+      await dispatch(action);
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : t("workflowFailed"));
+    } finally {
+      setBusyAction("");
+    }
+  };
 
   return (
     <div className="profitanchor-play-area">
@@ -77,81 +175,148 @@ export default function PlayArea({ t, state }: PlayAreaProps) {
       <section className="anchor-workspace" aria-label="ProfitAnchor staking workspace">
         <div className="anchor-status-card">
           <div className="anchor-section-head">
-            <span>Transaction route</span>
-            <h3>Stake routing workspace</h3>
-            <p>
-              Stake, redeem, and claim stay in the wallet flow while AA agent
-              routing remains visible for every reward cycle.
-            </p>
+            <span>{t("actionPanelLabel")}</span>
+            <h3>{t("actionPanelTitle")}</h3>
+            <p>{t("actionPanelBody")}</p>
           </div>
 
-          <div className="anchor-flow" aria-label="ProfitAnchor transaction flow">
-            <div>
-              <span className="anchor-flow__number">01</span>
-              <strong>Choose amount</strong>
-            </div>
-            <div>
-              <span className="anchor-flow__number">02</span>
-              <strong>Sign wallet tx</strong>
-            </div>
-            <div>
-              <span className="anchor-flow__number">03</span>
-              <strong>Track rewards</strong>
+          <div className="anchor-action-panel">
+            <label className="anchor-amount-field">
+              <span>{t("neoAmount")}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                value={amountInput}
+                aria-invalid={!amountIsValid}
+                disabled={isBusy}
+                onChange={(event) => setAmountInput(event.currentTarget.value)}
+              />
+            </label>
+
+            <section
+              className={`anchor-preflight-panel${readyToSubmit ? " is-ready" : " is-blocked"}`}
+              aria-label={t("preflightTitle")}
+            >
+              <div className="anchor-preflight-head">
+                <div className="anchor-preflight-head__text">
+                  <span>{t("preflightEyebrow")}</span>
+                  <strong>{t("preflightTitle")}</strong>
+                </div>
+                <span
+                  className={`anchor-ready-pill${readyToSubmit ? " is-ready" : ""}`}
+                >
+                  {readyToSubmit ? plannedAmountLabel : t("amountNeedsWholeNeo")}
+                </span>
+              </div>
+
+              <div className="anchor-preflight-summary" aria-label={t("preflightChecklist")}>
+                {preflightChecks.map((check) => (
+                  <div
+                    key={check.key}
+                    className={`anchor-preflight-row${check.done ? " is-ready" : ""}`}
+                  >
+                    <span className="anchor-preflight-row__label">{check.label}</span>
+                    <em className="anchor-preflight-row__value">{check.value}</em>
+                  </div>
+                ))}
+              </div>
+
+              <p className="anchor-preflight-note">
+                {readyToSubmit ? t("amountPlanReady") : t("amountPlanBlocked")}
+              </p>
+              <p className="anchor-preflight-note">
+                {t("stakePathCopy")} <code>{stakeMemo}</code>
+              </p>
+            </section>
+
+            <div className="anchor-action-buttons" aria-label={t("actionPanelTitle")}>
+              <button
+                type="button"
+                className="anchor-action-button anchor-action-button--primary"
+                disabled={isBusy || !amountIsValid}
+                onClick={() => void runAmountAction("stakeNeo")}
+              >
+                {busyAction === "stakeNeo" ? t("workflowSubmitting") : t("submitStake")}
+              </button>
+              <button
+                type="button"
+                className="anchor-action-button anchor-action-button--secondary"
+                disabled={isBusy || !amountIsValid}
+                onClick={() => void runAmountAction("withdrawNeo")}
+              >
+                {busyAction === "withdrawNeo" ? t("workflowSubmitting") : t("submitWithdraw")}
+              </button>
+              <button
+                type="button"
+                className="anchor-action-button anchor-action-button--success"
+                disabled={isBusy}
+                onClick={() => void runSimpleAction("claimRewards")}
+              >
+                {busyAction === "claimRewards" ? t("workflowSubmitting") : t("submitClaim")}
+              </button>
+              <button
+                type="button"
+                className="anchor-action-button anchor-action-button--ghost"
+                disabled={isBusy}
+                onClick={() => void runSimpleAction("refreshAnchor")}
+              >
+                {busyAction === "refreshAnchor" ? t("workflowSubmitting") : t("refreshStatus")}
+              </button>
             </div>
           </div>
 
-          <div className="anchor-guidance-grid">
-            <div>
-              <span>User flow</span>
-              <strong>Stake, redeem, or claim without leaving ProfitAnchor.</strong>
+          <div className={`anchor-status-strip${isError ? " anchor-status-strip--error" : ""}`} aria-live="polite">
+            <span>{statusText}</span>
+            {lastTxid && <code>{t("lastTxid")}: {formatTx(lastTxid)}</code>}
+          </div>
+
+          <div className="anchor-action-history" aria-label={t("actionHistory")}>
+            <div className="anchor-action-history__head">
+              <span>{t("actionHistory")}</span>
+              <strong>{selectedAgent}</strong>
             </div>
-            <div>
-              <span>Agent route</span>
-              <strong>
-                {selectedAgent === "None"
-                  ? "No active route selected yet."
-                  : `Current route ${selectedAgent}.`}
-              </strong>
-            </div>
-            <div>
-              <span>Safety rail</span>
-              <strong>Admin-only agent movement stays outside the user tx.</strong>
-            </div>
+            {actionHistory.length === 0 ? (
+              <p>{t("actionHistoryEmpty")}</p>
+            ) : (
+              actionHistory.slice(0, 4).map((item) => (
+                <div className="anchor-history-row" key={`${item.action}-${item.at ?? item.txid ?? item.amount ?? "local"}`}>
+                  <span>{item.action}</span>
+                  <strong>{item.amount ? `${item.amount} NEO` : item.status}</strong>
+                  {item.txid && <code>{formatTx(item.txid)}</code>}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         <aside className="anchor-route-card" aria-label="ProfitAnchor route state">
-          <span>Route state</span>
+          <span>{t("routeState")}</span>
           <strong>{selectedAgent}</strong>
           <dl>
             <div>
-              <dt>Status</dt>
+              <dt>{t("routeStatus")}</dt>
               <dd>{routeStatus}</dd>
             </div>
             <div>
-              <dt>Agents</dt>
+              <dt>{t("routeAgents")}</dt>
               <dd>{agentTotal}/21</dd>
             </div>
             <div>
-              <dt>Reward pool</dt>
+              <dt>{t("routeRewardPool")}</dt>
               <dd>{rewardReserveDisplay}</dd>
             </div>
           </dl>
         </aside>
       </section>
 
-      <details className="neo-card anchor-routing-model" open>
-        <summary className="section-title">How routing is protected</summary>
+      <details className="neo-card anchor-routing-model">
+        <summary className="section-title">{t("routingProtectionTitle")}</summary>
         <div className="anchor-flow-list">
-          <span>Current route: {selectedAgent}.</span>
-          <span>
-            {agentTotal}/21 AA agents registered for
-            ProfitAnchor.
-          </span>
-          <span>
-            Operators move NEO between candidate agents and update vote targets
-            when the council set changes.
-          </span>
+          <span>{t("currentRoute")}: {selectedAgent}.</span>
+          <span>{t("registeredAgentsCopy", { count: agentTotal })}</span>
+          <span>{t("operatorRouteCopy")}</span>
         </div>
         <div className="agent-list">
           {agentAccounts.slice(0, 21).map((agent, idx) => (

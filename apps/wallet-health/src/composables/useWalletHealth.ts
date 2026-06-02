@@ -17,6 +17,7 @@ import type { ChainService, BalanceService, EventBus } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { useWalletAnalysis } from "./useWalletAnalysis";
 import { useHealthScore } from "./useHealthScore";
+import type { MiniAppLaunchNetwork } from "@shared/utils/launch-params";
 
 export interface HealthStat {
   label: string;
@@ -28,10 +29,11 @@ export interface UseWalletHealthOptions {
   balance: BalanceService;
   eventBus: EventBus;
   storage: StorageProxy;
+  targetNetwork?: MiniAppLaunchNetwork | null;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useWalletHealth({ chain, balance, eventBus, storage, t }: UseWalletHealthOptions) {
+export function useWalletHealth({ chain, balance, eventBus, storage, targetNetwork, t }: UseWalletHealthOptions) {
   const analysis = useWalletAnalysis({ chain, balance, eventBus, t });
   const health = useHealthScore(analysis.gasOk, storage);
 
@@ -40,7 +42,11 @@ export function useWalletHealth({ chain, balance, eventBus, storage, t }: UseWal
     () => analysis.address.get() ? t("statusConnected") : t("statusDisconnected"),
     [analysis.address],
   );
-  const networkLabel = createDerived(() => "Neo N3", []);
+  const networkLabel = createDerived(() => {
+    if (targetNetwork === "testnet") return "Neo N3 TestNet";
+    if (targetNetwork === "mainnet") return "Neo N3 MainNet";
+    return "Neo N3";
+  }, []);
   const isConnected = createDerived(() => Boolean(analysis.address.get()), [analysis.address]);
 
   // ── Health stats array for the dashboard grid ────────────────────────

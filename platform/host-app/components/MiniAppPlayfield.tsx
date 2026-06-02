@@ -5,6 +5,7 @@ import {
   getRpcNetwork,
   getRpcUrl,
 } from "@/lib/rpc-helpers";
+import type { NeoNetwork } from "@/lib/neo-network";
 import { PlayAreaRegistry } from "./playarea/PlayAreaRegistry";
 import {
   fetchAppActivity,
@@ -15,19 +16,29 @@ import {
 export function MiniAppPlayfield({
   app,
   launchContext = null,
+  targetNetwork = null,
 }: {
   app: MiniAppInfo;
   launchContext?: MiniAppLaunchContext | null;
+  targetNetwork?: NeoNetwork | null;
 }) {
-  return <LiveContractView app={app} launchContext={launchContext} />;
+  return (
+    <LiveContractView
+      app={app}
+      launchContext={launchContext}
+      targetNetwork={targetNetwork}
+    />
+  );
 }
 
 function LiveContractView({
   app,
   launchContext,
+  targetNetwork,
 }: {
   app: MiniAppInfo;
   launchContext?: MiniAppLaunchContext | null;
+  targetNetwork?: NeoNetwork | null;
 }) {
   const [stats, setStats] = useState<
     Array<{ label: string; value: string; accent?: boolean }>
@@ -36,7 +47,7 @@ function LiveContractView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const requestedNetwork = launchContext?.network ?? getRpcNetwork();
+  const requestedNetwork = launchContext?.network ?? targetNetwork ?? getRpcNetwork();
   const contractHash =
     getMiniAppContractHash(app.app_id, requestedNetwork) ||
     app.contract_hash ||

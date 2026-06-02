@@ -30,7 +30,7 @@ export function OperatorToolsSection({
               {t("home.tools.description", "host")}
             </p>
           </div>
-          <Link href="/miniapps">
+          <Link href={`/miniapps?network=${encodeURIComponent(targetNetwork)}`}>
             <Button
               variant="outline"
               className="rounded-full border-emerald-200 text-emerald-800 hover:bg-emerald-50"

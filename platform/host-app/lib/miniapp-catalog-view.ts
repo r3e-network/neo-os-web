@@ -54,6 +54,13 @@ function platformRuntimeSupportsNetwork(app: MiniAppInfo, network: CatalogNetwor
   });
 }
 
+function getMiniAppContracts(app: MiniAppInfo): Dict {
+  return {
+    ...asObject(asObject(app.manifest).contracts),
+    ...asObject(app.contracts),
+  };
+}
+
 function miniAppSupportsNetwork(app: MiniAppInfo, network: CatalogNetwork | null): boolean {
   if (!network) return true;
 
@@ -62,7 +69,7 @@ function miniAppSupportsNetwork(app: MiniAppInfo, network: CatalogNetwork | null
   if (platformRuntimeSupportsNetwork(app, network)) return true;
 
   const manifest = asObject(app.manifest);
-  const contracts = asObject(manifest.contracts);
+  const contracts = getMiniAppContracts(app);
   const manifestHasAnyContract = Object.values(contracts).some((value) => Boolean(asString(value)));
   const topLevelContractHash = asString(app.contract_hash);
   if (!manifestHasAnyContract) return Boolean(topLevelContractHash) || supportedNetworks.length > 0 || !manifest.supported_networks;
@@ -74,8 +81,7 @@ function getNetworkContractHash(
   app: MiniAppInfo,
   network: CatalogNetwork | null,
 ): string {
-  const manifest = asObject(app.manifest);
-  const contracts = asObject(manifest.contracts);
+  const contracts = getMiniAppContracts(app);
   const topLevelContractHash = asString(app.contract_hash);
   if (!network) {
     return topLevelContractHash || Object.values(contracts).map(asString).find(Boolean) || "";

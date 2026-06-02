@@ -31,8 +31,25 @@ describe("OneGate Vault copy", () => {
 
   it("exposes the server-backed claim as the first-class OneGate operation", () => {
     const operations = gasPoolNeoManifest.operation_panel.operations.map((operation) => operation.method);
+    const hostClaimOperation = gasPoolNeoManifest.operation_panel.operations[0];
+    const hostClaimKey = hostClaimOperation.params.find((param) => param.name === "claimKey");
+    const hostPoolId = hostClaimOperation.params.find((param) => param.name === "poolId");
+    const localClaimOperation = manifest.operations[0];
+    const localClaimKey = localClaimOperation.fields?.find((field) => field.key === "claimKey");
+    const localPoolId = localClaimOperation.fields?.find((field) => field.key === "poolId");
 
     expect(operations).toEqual(["claimOneGateVault"]);
+    expect(hostClaimKey?.hidden).not.toBe(true);
+    expect(hostClaimKey).toEqual(
+      expect.objectContaining({
+        required: true,
+        sensitive: true,
+      }),
+    );
+    expect(hostPoolId).toEqual(expect.objectContaining({ label: "Pool ID" }));
+    expect(localClaimKey?.hidden).not.toBe(true);
+    expect(localClaimKey?.required).toBe(true);
+    expect(localPoolId).toEqual(expect.objectContaining({ labelKey: "poolId" }));
     expect(gasPoolMessages.claimKey.en).toBe("Claim key");
     expect(gasPoolMessages.claimCongratsTitle.zh).toBe("恭喜，奖励已到账");
   });

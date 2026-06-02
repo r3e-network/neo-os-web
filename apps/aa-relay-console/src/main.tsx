@@ -9,6 +9,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useAARelayConsole } from "./composables/useAARelayConsole";
+import { getRelayLaunchDefaults } from "./launch";
 
 defineMiniApp({
   appId: "miniapp-aa-relay-console",
@@ -22,6 +23,15 @@ defineMiniApp({
       eventBus: ctx.services.events,
       t: ctx.t,
     });
+    const launchDefaults = getRelayLaunchDefaults(ctx.launchContext);
+    if (launchDefaults.aaAddress) relay.aaAddress.set(launchDefaults.aaAddress);
+    if (launchDefaults.dappId) relay.dappId.set(launchDefaults.dappId);
+    if (launchDefaults.sponsorAmount) {
+      relay.sponsorAmount.set(launchDefaults.sponsorAmount);
+    }
+    if (launchDefaults.payloadJson) {
+      relay.payloadJson.set(launchDefaults.payloadJson);
+    }
 
     ctx.registerAction(
       "checkSponsor",
@@ -38,9 +48,10 @@ defineMiniApp({
 
     ctx.registerAction(
       "requestSponsor",
-      async (aaAddress: unknown, dappId: unknown) => {
+      async (aaAddress: unknown, dappId: unknown, amount: unknown) => {
         relay.aaAddress.set(String(aaAddress));
         relay.dappId.set(String(dappId));
+        relay.sponsorAmount.set(String(amount || "0.1"));
         await ctx.services.notify.guard(
           () => relay.requestSponsor(),
           "sponsorRequestComplete",

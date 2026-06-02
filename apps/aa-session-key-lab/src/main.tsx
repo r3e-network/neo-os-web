@@ -9,6 +9,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useAASessionKeyLab } from "./composables/useAASessionKeyLab";
+import { getSessionKeyLaunchDefaults } from "./launch";
 
 defineMiniApp({
   appId: "miniapp-aa-session-key-lab",
@@ -23,12 +24,23 @@ defineMiniApp({
       eventBus: ctx.services.events,
       t: ctx.t,
     });
+    const launchDefaults = getSessionKeyLaunchDefaults(ctx.launchContext);
+    lab.form.accountSeed = launchDefaults.accountSeed;
+    lab.form.sessionPublicKey = launchDefaults.sessionPublicKey;
+    lab.form.targetContract = launchDefaults.targetContract;
+    lab.form.allowedMethod = launchDefaults.allowedMethod;
+    lab.form.expiresAt = launchDefaults.expiresAt;
+    lab.form.dappId = launchDefaults.dappId;
+    lab.form.sponsorAmount = launchDefaults.sponsorAmount;
 
     ctx.registerAction("generateKey", async () => {
       const result = await ctx.services.notify.guard(
         async () => {
           lab.generateSessionKey();
-          return { publicKey: lab.form.sessionPublicKey };
+          return {
+            publicKey: lab.form.sessionPublicKey,
+            privateKey: lab.generatedPrivateKey.get(),
+          };
         },
         "sessionKeyGenerated",
         "sessionKeyGenerateFailed",
@@ -36,20 +48,31 @@ defineMiniApp({
       return result;
     });
 
-    ctx.registerAction("checkSponsor", () =>
-      ctx.services.notify.guard(
-        () => lab.checkSponsor(),
-        "sponsorCheckComplete",
-        "sponsorCheckFailed",
-      ),
+    ctx.registerAction(
+      "checkSponsor",
+      (accountSeed: unknown, dappId: unknown) => {
+        lab.form.accountSeed = String(accountSeed);
+        lab.form.dappId = String(dappId);
+        return ctx.services.notify.guard(
+          () => lab.checkSponsor(),
+          "sponsorCheckComplete",
+          "sponsorCheckFailed",
+        );
+      },
     );
 
-    ctx.registerAction("requestSponsor", () =>
-      ctx.services.notify.guard(
-        () => lab.requestSponsor(),
-        "sponsorRequestComplete",
-        "sponsorRequestFailed",
-      ),
+    ctx.registerAction(
+      "requestSponsor",
+      (accountSeed: unknown, dappId: unknown, sponsorAmount: unknown) => {
+        lab.form.accountSeed = String(accountSeed);
+        lab.form.dappId = String(dappId);
+        lab.form.sponsorAmount = String(sponsorAmount);
+        return ctx.services.notify.guard(
+          () => lab.requestSponsor(),
+          "sponsorRequestComplete",
+          "sponsorRequestFailed",
+        );
+      },
     );
 
     ctx.registerAction(

@@ -4,8 +4,8 @@
   "name": "NeoDID Passport",
   "name_zh": "NeoDID 身份护照",
   "version": "1.0.0",
-  "description": "Compose portable NeoDID credential previews for identity flows.",
-  "description_zh": "为身份流程生成可携带的 NeoDID 凭证预览。",
+  "description": "Resolve NeoDID documents and prepare wallet-signable identity passports.",
+  "description_zh": "解析 NeoDID 文档并生成可钱包签名的身份护照。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -31,7 +31,8 @@
     "banner": "/miniapps/neodid-passport/banner.jpg"
   },
   "permissions": [
-    "read:blockchain"
+    "read:blockchain",
+    "wallet:sign-message"
   ],
   "features": {
     "stateless": true,
@@ -42,7 +43,8 @@
     "type": "api",
     "chain": "neo-n3-testnet",
     "endpoints": [
-      "https://api.n3index.dev"
+      "/api/morpheus/neodid/resolve",
+      "https://oracle.meshmini.app/testnet"
     ]
   },
   "platform": {
@@ -52,5 +54,5 @@
     "transactions": false
   },
   "createdAt": "2026-05-01T00:00:00Z",
-  "updatedAt": "2026-05-01T00:00:00Z"
+  "updatedAt": "2026-06-01T00:00:00Z"
 }

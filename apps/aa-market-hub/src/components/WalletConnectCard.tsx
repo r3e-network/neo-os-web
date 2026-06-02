@@ -45,6 +45,7 @@ export function WalletConnectCard({
           <NeoButton
             variant="secondary"
             loading={isWalletConnecting}
+            disabled={Boolean(walletAddress.trim())}
             aria-label={
               walletAddress ? t("walletConnected") : t("connectWallet")
             }

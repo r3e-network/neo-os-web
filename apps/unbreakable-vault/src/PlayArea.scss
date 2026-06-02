@@ -1,6 +1,5 @@
 @use "@shared/styles/tokens.scss" as *;
 
-// ── Neo Soft local accent (blue) ──
 .vault-play-area {
   --vault-accent: #3e8cff;
   --vault-accent-strong: #2f6fe0;
@@ -8,12 +7,11 @@
 
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 20px 12px;
+  gap: 18px;
+  padding: 12px;
   min-height: 300px;
 }
 
-// ── Hero (purposeful head in one white card) ──
 .vault-hero {
   display: flex;
   align-items: center;
@@ -23,7 +21,7 @@
   padding: 22px 24px;
   background: linear-gradient(135deg, #ffffff 0%, var(--vault-accent-soft) 140%);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
+  border-radius: 8px;
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
@@ -41,7 +39,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 8px;
   background: var(--vault-accent-soft);
   color: var(--vault-accent-strong);
 }
@@ -56,7 +54,7 @@
 .vault-hero-title {
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
   line-height: 1.2;
 }
@@ -67,7 +65,6 @@
   line-height: 1.45;
 }
 
-// ── Hero stats strip (compact tiles) ──
 .hero-stats {
   display: flex;
   align-items: stretch;
@@ -85,14 +82,14 @@
   padding: 12px 16px;
   background: var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
+  border-radius: 8px;
   box-shadow: 0 1px 3px rgba(20, 22, 38, 0.04);
 }
 
 .hero-stat-value {
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--vault-accent-strong);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
@@ -101,8 +98,7 @@
 .hero-stat-label {
   font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   color: var(--ns-text-muted, #8a92a6);
 }
 
@@ -110,11 +106,10 @@
   display: none;
 }
 
-// ── Two-column layout for the primary forms ──
 .vault-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: 18px;
   align-items: start;
 }
 
@@ -124,7 +119,40 @@
   gap: 14px;
 }
 
-// ── Vault detail row (Neo Soft inset) ──
+.vault-select-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ns-text, #2a2d3d);
+
+  select {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.1));
+    border-radius: 8px;
+    background: var(--ns-surface, #ffffff);
+    color: var(--ns-text, #2a2d3d);
+    font: inherit;
+    font-weight: 600;
+    padding: 0 12px;
+    outline: none;
+
+    &:focus {
+      border-color: rgba(62, 140, 255, 0.7);
+      box-shadow: 0 0 0 3px rgba(62, 140, 255, 0.14);
+    }
+  }
+}
+
+.vault-secret-note {
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .vault-detail-row {
   display: flex;
   justify-content: space-between;
@@ -132,14 +160,13 @@
   padding: 10px 14px;
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .detail-label {
   font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   color: var(--ns-text-muted, #8a92a6);
 }
 
@@ -149,11 +176,10 @@
   color: var(--ns-ink, #1e1e2e);
 }
 
-// ── Vault lists ──
 .vault-list-container {
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 16px;
 }
 
@@ -168,7 +194,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   background: var(--ns-surface, #ffffff);
   cursor: pointer;
@@ -191,12 +217,10 @@
 .vault-status {
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   color: var(--ns-text-muted, #8a92a6);
 }
 
-// ── Vault created confirmation banner ──
 .vault-created {
   display: flex;
   align-items: center;
@@ -205,15 +229,14 @@
   padding: 16px 20px;
   background: var(--vault-accent-soft);
   border: 1px solid var(--vault-accent);
-  border-radius: var(--ns-radius-lg, 20px);
+  border-radius: 8px;
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .vault-created-label {
   font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   color: var(--vault-accent-strong);
 }
 
@@ -224,7 +247,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-// ── Empty / zero-data state ──
 .empty-state {
   display: flex;
   align-items: center;
@@ -235,10 +257,15 @@
   font-size: 14px;
 }
 
-// ── Responsive ──
 @media (max-width: 720px) {
+  .vault-play-area {
+    gap: 14px;
+    padding: 0;
+  }
+
   .vault-grid {
     grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
 
   .vault-hero {

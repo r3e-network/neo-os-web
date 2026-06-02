@@ -56,6 +56,10 @@ const appMessages = {
   selectedListingLabel: { en: "Selected", zh: "当前选择" },
   createListingTitle: { en: "Create Listing", zh: "创建 Listing" },
   createListingCta: { en: "Create Listing", zh: "创建 Listing" },
+  createListingWalletRequired: {
+    en: "Connect a wallet before creating a listing.",
+    zh: "创建 Listing 前请先连接钱包。",
+  },
   createListingSuccess: { en: "Listing submitted", zh: "Listing 已提交" },
   manageListingTitle: { en: "Manage Selected Listing", zh: "管理当前 Listing" },
   aaContractInput: { en: "AA Contract Hash", zh: "AA 合约哈希" },

@@ -74,83 +74,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="price-balance-card__content">
           <span className="result-symbol">{displayPair}</span>
           <span className="result-price">{priceDisplay}</span>
-          <span className="price-status">
-            {priceLoaded ? t("priceStatusLive") : t("priceStatusReady")}
-          </span>
         </div>
-        <div className="price-balance-card__signal" aria-label={t("priceSignalTitle")}>
-          <span>{t("priceSignalTitle")}</span>
-          <div className="price-sparkline" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-          <strong>{priceLoaded ? t("priceSignalSynced") : t("priceSignalIdle")}</strong>
-        </div>
+        <span
+          className={`price-status${priceLoaded ? " price-status--live" : ""}`}
+          aria-label={t("priceSignalTitle")}
+        >
+          <i className="price-status__dot" aria-hidden="true" />
+          {priceLoaded ? t("priceStatusLive") : t("priceStatusReady")}
+        </span>
       </section>
 
-      <div className="price-oracle-grid">
-        <NeoCard variant="erobo" className="price-info-card">
-          <div className="infra-grid">
-            {networkDisplay && (
-              <div className="infra-row">
-                <span className="infra-label">{t("network") || "Network"}</span>
-                <span className="infra-value">{networkDisplay}</span>
-              </div>
-            )}
-            {datafeedShort && (
-              <div className="infra-row">
-                <span className="infra-label">
-                  {t("overviewDataFeed") || "DataFeed"}
-                </span>
-                <span className="infra-value mono">{datafeedShort}</span>
-              </div>
-            )}
-            {sourceLabel && (
-              <div className="infra-row">
-                <span className="infra-label">{t("priceOracleSource")}</span>
-                <span className="infra-value mono">{sourceLabel}</span>
-              </div>
-            )}
-          </div>
-        </NeoCard>
-
-        <NeoCard
-          variant="erobo"
-          className="price-action-panel"
-          title={t("priceActionTitle")}
-        >
-          <div className="price-flow" aria-label={t("priceFlowTitle")}>
-            <span>{t("priceFlowAsset")}</span>
-            <span>{t("priceFlowFetch")}</span>
-            <span>{t("priceFlowVerify")}</span>
-          </div>
-          <div className="price-hint">{t("priceActionHint")}</div>
-          <div className="stack">
-            <NeoSelect
-              value={asset}
-              label={t("asset") || "Asset"}
-              options={[
-                { value: "NEO", label: "NEO" },
-                { value: "GAS", label: "GAS" },
-                { value: "BTC", label: "BTC" },
-              ]}
-              onChange={(val) => dispatch("updateAsset", val)}
-            />
-            <NeoButton
-              variant="primary"
-              loading={isRequesting}
-              disabled={!canFetchPrice || isRequesting}
-              aria-label={t("fetchPrice") || "Fetch Price"}
-              onClick={() => dispatch("fetchPrice")}
-            >
-              {t("fetchPrice") || "Fetch Price"}
-            </NeoButton>
-          </div>
-        </NeoCard>
-      </div>
+      <NeoCard
+        variant="erobo"
+        className="price-action-panel"
+        title={t("priceActionTitle")}
+      >
+        <div className="price-hint">{t("priceActionHint")}</div>
+        <div className="stack">
+          <NeoSelect
+            value={asset}
+            label={t("asset") || "Asset"}
+            options={[
+              { value: "NEO", label: "NEO" },
+              { value: "GAS", label: "GAS" },
+              { value: "BTC", label: "BTC" },
+            ]}
+            onChange={(val) => dispatch("updateAsset", val)}
+          />
+          <NeoButton
+            variant="primary"
+            loading={isRequesting}
+            disabled={!canFetchPrice || isRequesting}
+            aria-label={t("fetchPrice") || "Fetch Price"}
+            onClick={() => dispatch("fetchPrice")}
+          >
+            {t("fetchPrice") || "Fetch Price"}
+          </NeoButton>
+        </div>
+      </NeoCard>
 
       {errorMsg && <div className="error-banner mono">{errorMsg}</div>}
     </div>

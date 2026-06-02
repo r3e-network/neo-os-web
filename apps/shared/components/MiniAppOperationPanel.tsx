@@ -770,11 +770,11 @@ export function MiniAppOperationPanel({
 function isOneGateClaimOperation(operation: OperationDefinition): boolean {
   const text =
     `${operation.key} ${operation.actionMethod ?? ""} ${operation.actionKey ?? ""}`.toLowerCase();
-  const hiddenClaimKey = operation.fields?.some((field) => {
+  const claimKeyField = operation.fields?.some((field) => {
     const normalized = field.key.replace(/[-_.:]/g, "").toLowerCase();
-    return field.hidden && (normalized === "claimkey" || normalized === "key");
+    return normalized === "claimkey" || normalized === "key";
   });
-  return Boolean(hiddenClaimKey && /claim/.test(text));
+  return Boolean(claimKeyField && /claim/.test(text));
 }
 
 function submittingActionLabel(

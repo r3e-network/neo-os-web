@@ -117,11 +117,12 @@ export function useEventTicketContract(
   };
 
   const refreshEvents = async () => {
-    if (!address.get()) return;
+    const currentAddress = address.get();
+    if (!currentAddress) return;
     if (isRefreshing.get()) return;
     try {
       isRefreshing.set(true);
-      const ids = await loadEventIds(address.get());
+      const ids = await loadEventIds(currentAddress);
       const details = await Promise.all(ids.map(loadEventDetails));
       events.set(details.filter(Boolean) as EventItem[]);
     } catch (e) {
@@ -132,7 +133,8 @@ export function useEventTicketContract(
   };
 
   const refreshTickets = async () => {
-    if (!address.get()) return;
+    const currentAddress = address.get();
+    if (!currentAddress) return;
     if (isRefreshingTickets.get()) return;
     try {
       isRefreshingTickets.set(true);
@@ -140,7 +142,7 @@ export function useEventTicketContract(
       const tokenResult = await invokeRead({
         scriptHash: contract,
         operation: "TokensOf",
-        args: [{ type: "Hash160", value: address.get() }],
+        args: [{ type: "Hash160", value: currentAddress }],
       });
       const parsed = parseInvokeResult(tokenResult);
       if (!Array.isArray(parsed)) {

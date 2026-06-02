@@ -15,7 +15,7 @@
   width: 100%;
   min-height: 100%;
   padding: 16px;
-  background: transparent;
+  background: #f5f7fa;
   color: var(--multisig-ink);
   letter-spacing: 0;
 }
@@ -38,9 +38,16 @@
   letter-spacing: 0;
 }
 
+.multisig-side,
+.multisig-activity-panel {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+}
+
 .multisig-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.58fr);
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.62fr);
   gap: 20px;
   align-items: center;
   min-width: 0;
@@ -48,7 +55,8 @@
   border: 1px solid var(--multisig-border);
   border-radius: var(--ns-radius-lg, 20px);
   overflow: hidden;
-  background: var(--ns-surface, #ffffff);
+  background:
+    linear-gradient(135deg, #ffffff 0%, #ffffff 56%, #fff7ed 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   letter-spacing: 0;
 }
@@ -84,8 +92,7 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
 }
 
 .multisig-hero h2 {
@@ -94,7 +101,7 @@
   font-size: 22px;
   font-weight: 800;
   line-height: 1.18;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .multisig-hero p {
@@ -133,8 +140,7 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
 }
 
 .multisig-stat-grid strong {
@@ -147,7 +153,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .multisig-workspace {
@@ -184,7 +190,7 @@
   font-size: 18px;
   font-weight: 700;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .multisig-section-heading > strong {
@@ -239,8 +245,89 @@
   font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
+}
+
+.multisig-form-grid,
+.multisig-signer-grid {
+  display: grid;
+  gap: 12px;
+  letter-spacing: 0;
+}
+
+.multisig-form-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+  letter-spacing: 0;
+}
+
+.multisig-form-row--transfer {
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.36fr);
+}
+
+.multisig-request-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(240, 160, 32, 0.22);
+  border-radius: var(--ns-radius-sm, 14px);
+  background: #fff7ed;
+  color: #9a4b10;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+.multisig-request-hint.is-ready {
+  border-color: rgba(22, 199, 132, 0.24);
+  background: #e4f8f0;
+  color: var(--multisig-green-strong);
+}
+
+.multisig-receipt,
+.multisig-request-details {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(22, 199, 132, 0.24);
+  border-radius: var(--ns-radius-sm, 14px);
+  background: #effbf5;
+  letter-spacing: 0;
+}
+
+.multisig-receipt span,
+.multisig-request-details span {
+  color: var(--multisig-muted);
+  font-size: 12px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.multisig-receipt strong,
+.multisig-request-details strong {
+  min-width: 0;
+  color: var(--multisig-ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  word-break: break-word;
+  letter-spacing: 0;
+}
+
+.multisig-receipt em {
+  color: var(--multisig-body);
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.multisig-request-details {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-color: var(--multisig-border);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .multisig-quorum-strip strong {
@@ -410,6 +497,10 @@
   .multisig-workspace {
     grid-template-columns: 1fr;
   }
+
+  .multisig-activity-panel {
+    position: static;
+  }
 }
 
 @media (max-width: 900px) {
@@ -419,6 +510,10 @@
 
   .multisig-hero {
     grid-template-columns: 1fr;
+  }
+
+  .multisig-side {
+    position: static;
   }
 }
 
@@ -437,6 +532,10 @@
     padding: 12px;
   }
 
+  .multisig-stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .multisig-stat-grid strong {
     font-size: 22px;
   }
@@ -446,6 +545,12 @@
   }
 
   .multisig-quorum-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .multisig-form-row,
+  .multisig-form-row--transfer,
+  .multisig-request-details {
     grid-template-columns: 1fr;
   }
 

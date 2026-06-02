@@ -31,7 +31,11 @@ defineMiniApp({
       const recipient = String(form.recipient ?? "").trim();
       const amount = String(form.amount ?? "").trim();
       const durationDays = String(form.duration ?? "").trim();
-      const token = String(form.token ?? "GAS").trim().toUpperCase();
+      const title = String(form.title ?? "").trim();
+      const token =
+        String(form.token ?? "GAS").trim().toUpperCase() === "NEO"
+          ? "NEO"
+          : "GAS";
       const totalNum = Number.parseFloat(amount);
       const durationNum = Number.parseFloat(durationDays);
       const rate =
@@ -42,7 +46,7 @@ defineMiniApp({
       await ctx.services.notify.guard(
         () =>
           pay.handleCreateVault({
-            name: `Shared stream to ${recipient.slice(0, 8)}...`,
+            name: title || `Shared stream to ${recipient.slice(0, 8)}...`,
             beneficiary: recipient,
             asset: token,
             total: amount,
@@ -55,7 +59,12 @@ defineMiniApp({
     });
 
     ctx.registerAction("cancelStream", async (...args: unknown[]) => {
-      const stream = findStreamById(String(args[0] ?? ""));
+      const input = (args[0] ?? {}) as { streamId?: string } | string;
+      const id =
+        typeof input === "string"
+          ? input
+          : String(input.streamId ?? "");
+      const stream = findStreamById(id);
       if (!stream) {
         ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
         return;
@@ -67,7 +76,12 @@ defineMiniApp({
     });
 
     ctx.registerAction("claimStream", async (...args: unknown[]) => {
-      const stream = findStreamById(String(args[0] ?? ""));
+      const input = (args[0] ?? {}) as { streamId?: string } | string;
+      const id =
+        typeof input === "string"
+          ? input
+          : String(input.streamId ?? "");
+      const stream = findStreamById(id);
       if (!stream) {
         ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
         return;
@@ -85,6 +99,7 @@ defineMiniApp({
         isLoading: pay.isLoading,
         isCreating: pay.isLoading,
         isRefreshing: pay.isRefreshing,
+        serviceNotice: pay.serviceNotice,
         allStreams: pay.allStreams,
         activeCount: pay.activeCount,
         createdStreamCount: pay.createdStreamCount,

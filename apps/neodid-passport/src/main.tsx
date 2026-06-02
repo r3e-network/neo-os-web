@@ -1,7 +1,41 @@
 import { defineMiniApp } from "@shared/react/defineMiniApp";
 import { createObservable } from "@shared/react/context";
 import PlayArea from "./PlayArea";
-import { appId, appMeta, buildPassportResult, manifest, messages } from "./appConfig";
+import { appId, appMeta, manifest, messages } from "./appConfig";
+import {
+  attachWalletSignature,
+  buildPassportPayload,
+  canonicalize,
+  normalizeNetwork,
+  normalizePassportForm,
+  resolveDidDocument,
+  shortHash,
+  validatePassportForm,
+  type PassportPayload,
+} from "./passport";
+
+function translateKnownError(
+  error: unknown,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  const raw = error instanceof Error ? error.message : String(error || "");
+  const key = raw || "resolverFailed";
+  if (
+    [
+      "passportInvalidDid",
+      "passportMissingClaim",
+      "resolverFailed",
+      "resolverUnavailable",
+      "walletSignFailed",
+    ].includes(key)
+  ) {
+    return t(key);
+  }
+  if (/failed to fetch|networkerror|load failed|404|not found/i.test(key)) {
+    return t("resolverUnavailable");
+  }
+  return key;
+}
 
 defineMiniApp({
   appId,
@@ -9,28 +43,123 @@ defineMiniApp({
   manifest,
   messages,
   setup(ctx) {
+    const network = normalizeNetwork(ctx.launchContext.network);
     const state = {
-      networkLabel: createObservable(appMeta.networkLabel),
+      networkLabel: createObservable(network === "mainnet" ? "Morpheus Mainnet" : appMeta.networkLabel),
       endpointLabel: createObservable(appMeta.endpointLabel),
       lastStatus: createObservable(ctx.t("statusReady")),
       lastDigest: createObservable(ctx.t("notAvailable")),
       requestCount: createObservable(0),
+      proofStatus: createObservable(ctx.t("notSignedStatus")),
+      resolverStatus: createObservable(ctx.t("statusReady")),
+      documentId: createObservable(ctx.t("notAvailable")),
+      documentVersion: createObservable(ctx.t("notAvailable")),
+      serviceCount: createObservable(0),
+      passportPayload: createObservable<PassportPayload | null>(null),
+      lastError: createObservable(""),
+      isResolving: createObservable(false),
+      isSigning: createObservable(false),
     };
 
+    function resetState() {
+      state.lastStatus.set(ctx.t("statusReady"));
+      state.lastDigest.set(ctx.t("notAvailable"));
+      state.proofStatus.set(ctx.t("notSignedStatus"));
+      state.resolverStatus.set(ctx.t("statusReady"));
+      state.documentId.set(ctx.t("notAvailable"));
+      state.documentVersion.set(ctx.t("notAvailable"));
+      state.serviceCount.set(0);
+      state.passportPayload.set(null);
+      state.lastError.set("");
+    }
+
+    ctx.registerAction("resetPassport", async () => {
+      resetState();
+      ctx.setStatus(ctx.t("statusReady"), "info");
+    });
+
     ctx.registerAction("buildPassport", async (formData: unknown) => {
-      const values = formData && typeof formData === "object"
-        ? Object.fromEntries(
-            Object.entries(formData as Record<string, unknown>).map(([key, value]) => [
-              key,
-              String(value ?? ""),
-            ]),
-          )
-        : {};
-      const result = buildPassportResult(values, ctx.t);
-      state.lastStatus.set(result.status);
-      state.lastDigest.set(String(result.payload.digest ?? ""));
-      state.requestCount.set(Number(state.requestCount.get() ?? 0) + 1);
-      ctx.setStatus(result.status, "success");
+      const form = normalizePassportForm(formData, ctx.launchContext.params);
+      const validationKey = validatePassportForm(form);
+      if (validationKey) {
+        const message = ctx.t(validationKey);
+        state.lastError.set(message);
+        state.lastStatus.set(message);
+        ctx.setStatus(message, "error");
+        return null;
+      }
+
+      state.isResolving.set(true);
+      state.lastError.set("");
+      state.proofStatus.set(ctx.t("preparedStatus"));
+      state.resolverStatus.set(ctx.t("statusReady"));
+
+      try {
+        const resolution = await resolveDidDocument(form, network);
+        const payload = await buildPassportPayload(form, resolution, network);
+        state.passportPayload.set(payload);
+        state.lastStatus.set(ctx.t("passportReady"));
+        state.lastDigest.set(shortHash(payload.digest));
+        state.resolverStatus.set(ctx.t("resolvedStatus"));
+        state.documentId.set(resolution.id);
+        state.documentVersion.set(resolution.versionId);
+        state.serviceCount.set(resolution.serviceTypes.length);
+        state.requestCount.set(Number(state.requestCount.get() ?? 0) + 1);
+        ctx.setStatus(ctx.t("passportReady"), "success");
+        return payload;
+      } catch (error) {
+        const message = translateKnownError(error, ctx.t);
+        state.lastError.set(message);
+        state.lastStatus.set(message);
+        state.resolverStatus.set(message);
+        state.passportPayload.set(null);
+        ctx.setStatus(message, "error");
+        return null;
+      } finally {
+        state.isResolving.set(false);
+      }
+    });
+
+    ctx.registerAction("signPassport", async () => {
+      const payload = state.passportPayload.get();
+      if (!payload) {
+        const message = ctx.t("passportNoPayload");
+        state.lastError.set(message);
+        ctx.setStatus(message, "error");
+        return null;
+      }
+      if (payload.provider !== "wallet") {
+        const message = ctx.t("passportNoWalletProvider");
+        state.lastError.set(message);
+        ctx.setStatus(message, "warning");
+        return null;
+      }
+
+      state.isSigning.set(true);
+      state.lastError.set("");
+
+      try {
+        const signed = await ctx.services.chain.signMessage(canonicalize(payload));
+        const signedPayload = await attachWalletSignature(
+          payload,
+          signed,
+          String(ctx.services.chain.address.get() ?? ""),
+        );
+        state.passportPayload.set(signedPayload);
+        state.proofStatus.set(ctx.t("signedStatus"));
+        state.lastStatus.set(ctx.t("passportSigned"));
+        state.lastDigest.set(shortHash(signedPayload.digest));
+        ctx.setStatus(ctx.t("passportSigned"), "success");
+        return signedPayload;
+      } catch (error) {
+        const message = translateKnownError(error, ctx.t) || ctx.t("walletSignFailed");
+        state.lastError.set(message);
+        state.lastStatus.set(message);
+        ctx.setStatus(message, "error");
+        return null;
+      } finally {
+        state.isSigning.set(false);
+      }
     });
 
     return {

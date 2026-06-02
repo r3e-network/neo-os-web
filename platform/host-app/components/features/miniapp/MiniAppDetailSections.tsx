@@ -22,7 +22,7 @@ import type { ResolvedMiniAppContractDomain } from "../../../lib/miniapp-runtime
 import { DetailContentBlocks } from "./DetailContentBlocks";
 import { MiniAppLogo } from "./MiniAppLogo";
 
-const ONEGATE_QR_LOGO_SRC = "/miniapp-assets/gas-lucky-pool/onegate-logo.png";
+const ONEGATE_QR_LOGO_SRC = "/brand/onegate-mark.svg";
 
 export function OneGateLaunchCard({
   app,

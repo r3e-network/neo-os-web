@@ -2,8 +2,8 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Graveyard",
-  description: "Destroy digital assets and reclaim GAS",
-  icon: "skull",
+  description: "Anchor encrypted memory hashes with paid on-chain forgetting records",
+  icon: "history",
   category: "tool",
   shell: "launcher",
 

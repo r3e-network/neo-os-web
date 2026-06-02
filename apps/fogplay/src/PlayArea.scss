@@ -49,7 +49,7 @@
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.15;
   color: pm.$ink;
 }
@@ -100,6 +100,9 @@
 
 .stat-label {
   @include pm.section-eyebrow;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 @media (max-width: 480px) {
@@ -150,6 +153,9 @@
 
 .history-title {
   @include pm.section-eyebrow;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .history-empty {
@@ -187,6 +193,9 @@
     padding: 8px 12px;
     border-bottom: 1px solid pm.$border;
     background: pm.$surface;
+    font-size: 11px;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   td {
@@ -228,7 +237,6 @@
   color: pm.$text-2;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.05em;
   text-transform: capitalize;
 }
 
@@ -239,7 +247,6 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.05em;
   text-transform: capitalize;
 
   &.won {
@@ -249,6 +256,22 @@
   &.lost {
     background: pm.$red-soft;
     color: pm.$red-text;
+  }
+}
+
+@media (max-width: 520px) {
+  .play-hero {
+    padding: 18px;
+  }
+
+  .play-hero__head {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+
+  .coinflip-play-area .arena-hero,
+  .coinflip-play-area .custom-bet-section {
+    padding: 16px;
   }
 }
 

@@ -37,7 +37,8 @@
   "name_zh": "灵魂绑定证书",
   "permissions": [
     "invoke:primary",
-    "read:blockchain"
+    "read:blockchain",
+    "write:blockchain"
   ],
   "platform": {
     "analytics": true,

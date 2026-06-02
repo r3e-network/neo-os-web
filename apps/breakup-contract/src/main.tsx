@@ -63,6 +63,9 @@ defineMiniApp({
         pendingCount: breakup.pendingCount,
         brokenCount: breakup.brokenCount,
         isLoading: breakup.isLoading,
+        serviceNotice: breakup.serviceNotice,
+        actionNotice: breakup.actionNotice,
+        lastSubmittedTitle: breakup.lastSubmittedTitle,
       }),
       loadData: breakup.loadContracts,
     };

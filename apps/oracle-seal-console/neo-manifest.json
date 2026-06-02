@@ -63,6 +63,7 @@
             "type": "string",
             "label": "Payload",
             "placeholder": "sensitive oracle input",
+            "sensitive": true,
             "required": true
           }
         ]

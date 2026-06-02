@@ -36,6 +36,10 @@ defineMiniApp({
       );
     });
 
+    ctx.registerAction("refreshRound", async () => {
+      await game.loadAll();
+    });
+
     return {
       state: {
         roundId: game.roundId,
@@ -48,6 +52,8 @@ defineMiniApp({
         history: game.history,
         isBuyingKeys: game.isBuyingKeys,
         isLoading: game.isLoading,
+        roundDataAvailable: game.roundDataAvailable,
+        serviceNotice: game.serviceNotice,
         countdown: game.countdown,
         dangerLevel: game.dangerLevel,
         dangerLevelText: game.dangerLevelText,

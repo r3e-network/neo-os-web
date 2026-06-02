@@ -370,9 +370,24 @@ export function useQuadraticRounds() {
     return `${new Intl.DateTimeFormat(undefined).format(start)} - ${new Intl.DateTimeFormat(undefined).format(end)}`;
   };
 
-  const formatAmount = (assetSymbol: string, amount: bigint) => {
-    if (assetSymbol === "NEO") return amount.toString();
-    const str = amount.toString().padStart(9, "0");
+  const formatAmount = (assetSymbolOrAmount: string | bigint | number | null | undefined, maybeAmount?: bigint | number | string | null) => {
+    const assetSymbol =
+      typeof maybeAmount === "undefined" || maybeAmount === null
+        ? "GAS"
+        : String(assetSymbolOrAmount || "GAS");
+    const amountValue =
+      typeof maybeAmount === "undefined" || maybeAmount === null
+        ? assetSymbolOrAmount
+        : maybeAmount;
+
+    if (amountValue === null || amountValue === undefined || amountValue === "") return "0";
+    if (assetSymbol === "NEO") return amountValue.toString();
+    let str: string;
+    try {
+      str = BigInt(amountValue).toString().padStart(9, "0");
+    } catch (_error) {
+      return amountValue.toString();
+    }
     const intPart = str.slice(0, -8) || "0";
     const fracPart = str.slice(-8);
     const normalized = fracPart.replace(/0+$/, "");

@@ -1,5 +1,7 @@
 describe("middleware CSP", () => {
   let buildCSP: typeof import("../middleware").buildCSP;
+  let buildMiniAppDetailRewriteUrl: typeof import("../middleware").buildMiniAppDetailRewriteUrl;
+  let resolveMiniAppDetailRewriteId: typeof import("../middleware").resolveMiniAppDetailRewriteId;
 
   beforeAll(() => {
     if (typeof globalThis.Request === "undefined") {
@@ -10,7 +12,7 @@ describe("middleware CSP", () => {
       (globalThis as unknown as { Response: typeof Response }).Response =
         class Response {} as typeof Response;
     }
-    ({ buildCSP } = require("../middleware"));
+    ({ buildCSP, buildMiniAppDetailRewriteUrl, resolveMiniAppDetailRewriteId } = require("../middleware"));
   });
 
   const scriptDirective = (csp: string) =>
@@ -81,5 +83,24 @@ describe("middleware CSP", () => {
     expect(scriptSrc).not.toContain("'unsafe-inline'");
     expect(csp).toContain("frame-src 'self' blob:");
     expect(csp).toContain("frame-ancestors 'none'");
+  });
+
+  it("only rewrites extensionless miniapp detail slugs", () => {
+    expect(resolveMiniAppDetailRewriteId("/miniapps/fogplay")).toBe("fogplay");
+    expect(resolveMiniAppDetailRewriteId("/miniapps/fogplay/")).toBe("fogplay");
+    expect(resolveMiniAppDetailRewriteId("/miniapps/catalog.json")).toBeNull();
+    expect(resolveMiniAppDetailRewriteId("/miniapps/onegate-catalog.json")).toBeNull();
+    expect(resolveMiniAppDetailRewriteId("/miniapps/fogplay/index.html")).toBeNull();
+  });
+
+  it("preserves query parameters when rewriting miniapp detail pages", () => {
+    const rewriteUrl = buildMiniAppDetailRewriteUrl(
+      "https://neomini.app/miniapps/fogplay?network=testnet&operation=Flip",
+      "fogplay",
+    );
+
+    expect(rewriteUrl.pathname).toBe("/miniapp-detail/fogplay");
+    expect(rewriteUrl.searchParams.get("network")).toBe("testnet");
+    expect(rewriteUrl.searchParams.get("operation")).toBe("Flip");
   });
 });

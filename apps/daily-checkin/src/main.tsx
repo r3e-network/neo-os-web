@@ -32,6 +32,10 @@ defineMiniApp({
       await ctx.services.notify.guard(() => checkin.claimRewards(), "claimSuccess");
     });
 
+    ctx.registerAction("refreshStatus", async () => {
+      await ctx.services.notify.guard(() => checkin.refreshStatus(), "statusLoaded");
+    });
+
     return {
       state: {
         currentStreak: checkin.formattedCurrentStreak,
@@ -39,6 +43,7 @@ defineMiniApp({
         totalUserCheckins: checkin.totalUserCheckins,
         unclaimedRewards: checkin.unclaimedRewards,
         totalClaimed: checkin.totalClaimed,
+        checkInFee: checkin.checkInFee,
         totalGlobalCheckins: checkin.totalGlobalCheckins,
         totalGlobalUsers: checkin.totalGlobalUsers,
         totalGlobalRewarded: checkin.totalGlobalRewarded,
@@ -47,11 +52,16 @@ defineMiniApp({
         canCheckIn: checkin.canCheckIn,
         isLoading: checkin.isLoading,
         isClaiming: checkin.isClaiming,
+        workflowStatus: checkin.workflowStatus,
+        lastError: checkin.lastError,
+        latestRequest: checkin.latestRequest,
+        latestResult: checkin.latestResult,
         utcTimeDisplay: checkin.utcTimeDisplay,
         nextUtcMidnight: checkin.nextUtcMidnight,
         checkinHistory: checkin.checkinHistory,
       },
       loadData: checkin.loadAll,
+      cleanup: checkin.stopTimer,
     };
   },
 });

@@ -20,6 +20,12 @@ import {
   getExternalIntegrationConfig,
   getNetwork,
 } from "@shared/constants/rpc";
+import {
+  DEFAULT_SESSION_ALLOWED_METHOD,
+  DEFAULT_SESSION_DAPP_ID,
+  DEFAULT_SESSION_SPONSOR_AMOUNT,
+  getDefaultSessionExpiryTimestamp,
+} from "../launch";
 
 type SessionConfiguration = {
   txid: string;
@@ -54,8 +60,10 @@ export function useAASessionKeyLab({
     accountSeed: "",
     sessionPublicKey: "",
     targetContract: "",
-    allowedMethod: "*",
-    expiresAt: String(Math.floor(Date.now() / 1000) + 3600),
+    allowedMethod: DEFAULT_SESSION_ALLOWED_METHOD,
+    expiresAt: getDefaultSessionExpiryTimestamp(),
+    dappId: DEFAULT_SESSION_DAPP_ID,
+    sponsorAmount: DEFAULT_SESSION_SPONSOR_AMOUNT,
   };
 
   const sponsorState = createObservable<Record<string, unknown> | null>(null);
@@ -90,6 +98,59 @@ export function useAASessionKeyLab({
     if (!Number.isFinite(parsed) || parsed <= Math.floor(Date.now() / 1000))
       throw new Error(t("invalidExpiry"));
     return parsed;
+  }
+
+  function sponsorStatusText(state: Record<string, unknown> | null): string {
+    if (!state) return t("sponsorNotChecked");
+    if (typeof state.approved === "boolean") {
+      return state.approved ? t("sponsorApproved") : t("sponsorNotApproved");
+    }
+    if (typeof state.eligible === "boolean") {
+      return state.eligible ? t("sponsorEligible") : t("sponsorNotEligible");
+    }
+    return t("checked");
+  }
+
+  function pickSponsorValue(
+    state: Record<string, unknown>,
+    keys: string[],
+  ): string {
+    for (const key of keys) {
+      const value = state[key];
+      if (value === undefined || value === null || value === "") continue;
+      return String(value);
+    }
+    return "";
+  }
+
+  function sponsorDetailItems(
+    state: Record<string, unknown> | null,
+  ): Array<{ label: string; value: string }> {
+    if (!state) {
+      return [{ label: t("sponsorship"), value: t("sponsorNotChecked") }];
+    }
+
+    const items = [{ label: t("sponsorship"), value: sponsorStatusText(state) }];
+    const amount = pickSponsorValue(state, [
+      "amount",
+      "sponsorAmount",
+      "sponsoredAmount",
+      "gas",
+      "budget",
+    ]);
+    const requestId = pickSponsorValue(state, [
+      "requestId",
+      "id",
+      "sponsorRequestId",
+      "txid",
+    ]);
+
+    if (amount) items.push({ label: t("sponsorAmount"), value: amount });
+    if (requestId) {
+      items.push({ label: t("sponsorRequestId"), value: requestId });
+    }
+
+    return items;
   }
 
   // Derived values
@@ -153,7 +214,7 @@ export function useAASessionKeyLab({
   };
 
   const sponsorStatusDisplay: Observable<string> = {
-    get: () => (sponsorState.get() ? t("checked") : t("idle")),
+    get: () => sponsorStatusText(sponsorState.get()),
     set: () => {},
     subscribe: (fn) => sponsorState.subscribe(fn),
   };
@@ -168,11 +229,6 @@ export function useAASessionKeyLab({
   const detailItems: Observable<Array<{ label: string; value: string }>> = {
     get: () => {
       const lc = lastConfigured.get();
-      const sponsorStateText = JSON.stringify(
-        sponsorState.get() ?? {},
-        null,
-        2,
-      );
       return [
         {
           label: t("accountIdHash"),
@@ -204,11 +260,7 @@ export function useAASessionKeyLab({
           value: String(lc?.expiresAt || form.expiresAt || t("notAvailable")),
         },
         { label: t("lastTx"), value: lc?.txid || t("notAvailable") },
-        {
-          label: t("generatedPrivateKey"),
-          value: generatedPrivateKey.get() || t("notAvailable"),
-        },
-        { label: t("sponsorship"), value: sponsorStateText },
+        ...sponsorDetailItems(sponsorState.get()),
       ];
     },
     set: () => {},
@@ -234,7 +286,9 @@ export function useAASessionKeyLab({
 
   async function checkSponsor() {
     try {
-      const result = await aa.checkSponsorship();
+      const result = await aa.checkSponsorship({
+        dappId: form.dappId,
+      });
       sponsorState.set(result as unknown as Record<string, unknown>);
       eventBus.emit("sponsor:checked", {});
     } catch (error: unknown) {
@@ -247,8 +301,16 @@ export function useAASessionKeyLab({
 
   async function requestSponsor() {
     try {
-      const result = await aa.requestSponsorship("0.1");
+      const result = await aa.requestSponsorship(
+        form.sponsorAmount || DEFAULT_SESSION_SPONSOR_AMOUNT,
+        {
+          dappId: form.dappId,
+        },
+      );
       sponsorState.set(result as unknown as Record<string, unknown>);
+      if (!result.approved) {
+        throw new Error(t("sponsorRequestUnavailable"));
+      }
       eventBus.emit("sponsor:requested", {});
     } catch (error: unknown) {
       eventBus.emit("sponsor:error", {

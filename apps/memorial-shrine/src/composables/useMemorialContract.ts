@@ -1,5 +1,4 @@
-import { createObservable, refToObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import { createObservable } from "@shared/react/context";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -8,7 +7,7 @@ const APP_ID = "miniapp-memorial-shrine";
 
 export function useMemorialContract(t: (key: string) => string) {
   const ci = useContractInteraction({ appId: APP_ID, t });
-  const address = refToObservable(ci.address);
+  const address = ci.address;
   const { ensureWallet, invokeDirectly, ensureContractAddress } = ci;
 
   const isSubmitting = createObservable(false);
