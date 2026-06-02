@@ -146,6 +146,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       const { access_token, user } = await authenticateWalletSession(address, publicKey);
 
       sessionStorage.setItem("sb-access-token", access_token);
+      // Also persist to localStorage so same-origin miniapp iframes (whose
+      // EdgeClient reads `neo_miniapp_auth_jwt`) can attach the wallet session
+      // to their OS calls. sessionStorage is not reliably shared into iframes.
+      try { localStorage.setItem("neo_miniapp_auth_jwt", access_token); } catch (e) { console.warn("[auth] localStorage write failed (SSR?):", e instanceof Error ? e.message : String(e)); }
       set({
         authenticated: true,
         userId: user.id,
@@ -174,6 +178,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       const { access_token, user } = await authenticateWalletSession(address, publicKey);
 
       sessionStorage.setItem("sb-access-token", access_token);
+      // Also persist to localStorage so same-origin miniapp iframes (whose
+      // EdgeClient reads `neo_miniapp_auth_jwt`) can attach the wallet session
+      // to their OS calls. sessionStorage is not reliably shared into iframes.
+      try { localStorage.setItem("neo_miniapp_auth_jwt", access_token); } catch (e) { console.warn("[auth] localStorage write failed (SSR?):", e instanceof Error ? e.message : String(e)); }
       set({
         authenticated: true,
         userId: user.id,

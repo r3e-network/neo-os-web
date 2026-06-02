@@ -21,9 +21,9 @@
   align-items: stretch;
   padding: 18px;
   border: 1px solid var(--ns-border);
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-md);
 }
 
 .console-tool__intro {
@@ -77,28 +77,24 @@
 }
 
 .console-tool__hero-metrics {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
   align-content: center;
+  align-items: center;
+  gap: 8px 18px;
 }
 
 .console-tool__metric {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   min-width: 0;
-  padding: 11px 14px;
-  border: 1px solid var(--ns-border);
-  border-radius: var(--ns-radius-sm);
-  background: var(--ns-surface-subtle);
 }
 
 .console-tool__metric span {
   color: var(--ns-text-muted);
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -106,10 +102,9 @@
   min-width: 0;
   overflow: hidden;
   color: var(--ns-ink);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -121,8 +116,8 @@
   min-width: 0;
   padding: 20px 24px;
   border: 1px solid var(--ns-border);
-  border-radius: 16px;
-  background: linear-gradient(135deg, #ffffff 0%, #eefcf7 52%, #f7f3ff 100%);
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
   box-shadow: var(--ns-shadow-md);
 }
 
@@ -169,14 +164,14 @@
 }
 
 .console-tool__asset-signal {
-  display: grid;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  min-width: 168px;
+  min-width: 0;
   margin-left: auto;
-  padding: 14px;
-  border: 1px solid var(--ns-border);
-  border-radius: var(--ns-radius-sm);
-  background: var(--ns-surface-subtle);
+  padding: 6px 12px;
+  border-radius: var(--ns-radius-full);
+  background: var(--ns-violet-soft);
 }
 
 .console-tool__asset-signal span {
@@ -188,44 +183,9 @@
 
 .console-tool__asset-signal strong {
   overflow-wrap: anywhere;
-  color: var(--ns-ink);
+  color: var(--ns-violet-strong);
   font-size: 0.8125rem;
   font-weight: 700;
-}
-
-.console-tool__sparkline {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
-  align-items: end;
-  height: 36px;
-}
-
-.console-tool__sparkline i {
-  display: block;
-  min-width: 0;
-  border-radius: 4px;
-  background: linear-gradient(180deg, var(--ns-violet) 0%, rgba(123, 97, 255, 0.4) 100%);
-}
-
-.console-tool__sparkline i:nth-child(1) {
-  height: 42%;
-}
-
-.console-tool__sparkline i:nth-child(2) {
-  height: 74%;
-}
-
-.console-tool__sparkline i:nth-child(3) {
-  height: 56%;
-}
-
-.console-tool__sparkline i:nth-child(4) {
-  height: 90%;
-}
-
-.console-tool__sparkline i:nth-child(5) {
-  height: 66%;
 }
 
 .console-tool__workspace {
@@ -262,30 +222,15 @@
   justify-content: center;
   min-height: 34px;
   border-radius: var(--ns-radius-full);
-  color: var(--ns-violet-strong);
-  background: var(--ns-violet-soft);
+  color: var(--ns-text-muted);
+  background: var(--ns-surface-subtle);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
-.console-tool__hint {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  padding: 11px 13px;
-  border: 1px solid var(--ns-border);
-  border-radius: var(--ns-radius-sm);
-  background: #f8fafc;
-  color: var(--ns-text-2);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-.console-tool__hint svg {
-  flex: 0 0 auto;
-  color: var(--ns-brand-strong);
-  margin-top: 1px;
+.console-tool__flow span.is-active {
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
 }
 
 .console-tool__field {
@@ -346,13 +291,30 @@
   justify-content: space-between;
 }
 
-.console-tool__result-head div,
+.console-tool__result-status,
 .console-tool__empty {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  justify-items: start;
 }
 
-.console-tool__result-head span,
+.console-tool__empty {
+  justify-items: center;
+}
+
+.console-tool__status-badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: start;
+  padding: 4px 12px;
+  border-radius: var(--ns-radius-full);
+  color: var(--ns-violet-strong);
+  background: var(--ns-violet-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .console-tool__empty span,
 .console-tool__payload-card span {
   color: var(--ns-text-muted);
@@ -488,8 +450,6 @@
   }
 
   .console-tool__asset-signal {
-    width: 100%;
-    min-width: 0;
     margin-left: 0;
   }
 
