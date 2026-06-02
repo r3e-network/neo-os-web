@@ -63,10 +63,10 @@
             "name": "direction",
             "type": "select",
             "label": "Direction",
-            "default_value": "Neo N3 -> Neo X",
+            "default_value": "n3-to-neox",
             "options": [
-              { "label": "Neo N3 → Neo X", "value": "Neo N3 -> Neo X" },
-              { "label": "Neo X → Neo N3", "value": "Neo X -> Neo N3" }
+              { "label": "Neo N3 → Neo X", "value": "n3-to-neox" },
+              { "label": "Neo X → Neo N3", "value": "neox-to-n3" }
             ]
           },
           {
@@ -74,6 +74,13 @@
             "type": "amount",
             "label": "Amount",
             "placeholder": "0.00",
+            "required": true
+          },
+          {
+            "name": "recipient",
+            "type": "string",
+            "label": "Destination address",
+            "placeholder": "Neo N3 or Neo X address",
             "required": true
           }
         ]

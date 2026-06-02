@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
 import type { NotificationEvent } from "@/lib/notifications/types";
-import { fetchJSON, fetchOK } from "@/lib/fetch-client";
+import { fetchJSON, fetchOK, getWalletSessionToken } from "@/lib/fetch-client";
 import { useAuthStore } from "@/lib/auth/store";
 
 interface NotificationDropdownProps {
@@ -57,6 +57,7 @@ export function NotificationDropdown({
   const [loading, setLoading] = useState(false);
   const [notifError, setNotifError] = useState<string | null>(null);
   const authenticated = useAuthStore((state) => state.authenticated);
+  const hasWalletSession = authenticated && Boolean(getWalletSessionToken());
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -82,7 +83,7 @@ export function NotificationDropdown({
 
   // Fetch notifications
   useEffect(() => {
-    if (!walletAddress || !authenticated) {
+    if (!walletAddress || !hasWalletSession) {
       setNotifications([]);
       setUnreadCount(0);
       setNotifError(null);
@@ -110,10 +111,10 @@ export function NotificationDropdown({
     return () => {
       active = false;
     };
-  }, [walletAddress, authenticated]);
+  }, [walletAddress, hasWalletSession]);
 
   const markAsRead = async (id: string) => {
-    if (!walletAddress || !authenticated) return;
+    if (!walletAddress || !hasWalletSession) return;
     setNotifError(null);
     try {
       await fetchOK(`/api/notifications/events/${id}/read`, { method: "POST" });
@@ -128,7 +129,7 @@ export function NotificationDropdown({
   };
 
   const markAllAsRead = async () => {
-    if (!walletAddress || !authenticated) return;
+    if (!walletAddress || !hasWalletSession) return;
     setNotifError(null);
     try {
       await fetchOK(
@@ -180,7 +181,7 @@ export function NotificationDropdown({
       {/* Dropdown Panel */}
       <div
         className={cn(
-          "absolute right-0 top-[calc(100%+12px)] z-[90] w-80 sm:w-96 rounded-2xl border border-gray-200/50 bg-white/90 backdrop-blur-2xl shadow-2xl transform origin-top-right transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "absolute right-0 top-[calc(100%+12px)] z-[90] w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-gray-200/50 bg-white/90 backdrop-blur-2xl shadow-2xl transform origin-top-right transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] max-sm:fixed max-sm:left-3 max-sm:right-3 max-sm:top-16 max-sm:w-auto max-sm:origin-top sm:w-96 sm:max-w-none",
           isOpen
             ? "scale-100 opacity-100 pointer-events-auto"
             : "scale-95 opacity-0 pointer-events-none",

@@ -27,6 +27,146 @@
     "neo-n3-testnet"
   ],
   "default_network": "neo-n3-mainnet",
+  "operation_panel": {
+    "title": "Memorial Shrine Operations",
+    "subtitle": "Create permanent memorial records and offer prepaid GAS tributes from the connected wallet.",
+    "operations": [
+      {
+        "name": "Create Memorial",
+        "method": "createMemorial",
+        "description": "Create an on-chain memorial record with the connected wallet as creator.",
+        "button_style": "primary",
+        "priority": "primary",
+        "confirm_message": "Create this memorial on-chain?",
+        "params": [
+          {
+            "name": "creator",
+            "type": "hash160",
+            "label": "Creator",
+            "required": true,
+            "default_value": "$wallet",
+            "hidden": true
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "label": "Memorial name",
+            "required": true,
+            "placeholder": "Loved one"
+          },
+          {
+            "name": "photoHash",
+            "type": "string",
+            "label": "Photo hash",
+            "placeholder": "IPFS hash or HTTPS image URL"
+          },
+          {
+            "name": "relationship",
+            "type": "string",
+            "label": "Relationship",
+            "placeholder": "Parent, mentor, friend"
+          },
+          {
+            "name": "birthYear",
+            "type": "integer",
+            "label": "Birth year",
+            "default_value": "1950",
+            "placeholder": "1950"
+          },
+          {
+            "name": "deathYear",
+            "type": "integer",
+            "label": "Death year",
+            "required": true,
+            "default_value": "2024",
+            "placeholder": "2024"
+          },
+          {
+            "name": "biography",
+            "type": "string",
+            "label": "Biography",
+            "placeholder": "A short life story"
+          },
+          {
+            "name": "obituary",
+            "type": "string",
+            "label": "Obituary",
+            "placeholder": "A public remembrance"
+          }
+        ]
+      },
+      {
+        "name": "Pay Tribute",
+        "method": "payTribute",
+        "description": "Prepay the selected offering cost and record a tribute message on-chain.",
+        "button_style": "success",
+        "priority": "secondary",
+        "confirm_message": "Prepay this offering and submit the tribute?",
+        "params": [
+          {
+            "name": "visitor",
+            "type": "hash160",
+            "label": "Visitor",
+            "required": true,
+            "default_value": "$wallet",
+            "hidden": true
+          },
+          {
+            "name": "memorialId",
+            "type": "integer",
+            "label": "Memorial ID",
+            "required": true,
+            "placeholder": "1"
+          },
+          {
+            "name": "offeringType",
+            "type": "select",
+            "label": "Offering",
+            "required": true,
+            "default_value": "1",
+            "options": [
+              {
+                "label": "Incense · 0.01 GAS",
+                "value": "1"
+              },
+              {
+                "label": "Candle · 0.02 GAS",
+                "value": "2"
+              },
+              {
+                "label": "Flowers · 0.03 GAS",
+                "value": "3"
+              },
+              {
+                "label": "Fruit · 0.05 GAS",
+                "value": "4"
+              },
+              {
+                "label": "Wine · 0.10 GAS",
+                "value": "5"
+              },
+              {
+                "label": "Feast · 0.50 GAS",
+                "value": "6"
+              }
+            ]
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "label": "Tribute message",
+            "placeholder": "Always remembered"
+          },
+          {
+            "name": "receiptId",
+            "type": "integer",
+            "label": "Payment receipt ID",
+            "placeholder": "Required only for mainnet receipt flows"
+          }
+        ]
+      }
+    ]
+  },
   "urls": {
     "entry": "/miniapps/memorial-shrine/index.html",
     "icon": "/miniapps/memorial-shrine/logo.jpg",
@@ -55,5 +195,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T00:00:00Z"
+  "updatedAt": "2026-06-01T00:00:00Z"
 }

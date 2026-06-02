@@ -1,6 +1,7 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import MiniAppDetailPage, { getServerSideProps } from "../../pages/miniapps/[id]";
+import { HOST_WALLET_BRIDGE_RESULT } from "../../components/playarea/PlayAreaShared";
 
 jest.mock("../../components/layout", () => ({
   Layout: ({ children }: { children: React.ReactNode }) => (
@@ -25,8 +26,31 @@ jest.mock("../../components/ActivityTicker", () => ({
 }));
 
 jest.mock("../../components/OperationPanel", () => ({
-  OperationPanel: ({ launchContext }: { launchContext?: { params?: Record<string, string> } }) => (
-    <div data-testid="operation-panel">{launchContext?.params?.amount || ""}</div>
+  OperationPanel: ({
+    launchContext,
+    operations = [],
+    getDisabledReason,
+  }: {
+    launchContext?: { params?: Record<string, string> };
+    operations?: Array<{ name?: string; method?: string }>;
+    getDisabledReason?: (operation: { name?: string; method?: string }) => string | null;
+  }) => (
+    <div data-testid="operation-panel">
+      {launchContext?.params?.amount || ""}
+      {operations.map((operation) => {
+        const disabledReason = getDisabledReason?.(operation);
+        return (
+          <div key={`${operation.method}:${operation.name}`}>
+            <span>{operation.name}</span>
+            {disabledReason && (
+              <span data-testid="operation-disabled-reason">
+                {disabledReason}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
   ),
 }));
 
@@ -257,7 +281,10 @@ describe("MiniAppDetailPage shared runtime", () => {
     ).toBeTruthy();
     expect(screen.getByTestId("onegate-qr-logo")).toBeInTheDocument();
     expect(screen.getByTestId("launch-params-status")).toHaveTextContent(
-      "Launch parameters applied",
+      "Workspace parameters applied",
+    );
+    expect(screen.getByTestId("launch-params-status")).toHaveTextContent(
+      "No transaction was sent by this parameter update.",
     );
     expect(screen.getByTestId("onegate-launch-url")).toHaveTextContent(
       "https://onegate.space/app/",
@@ -328,5 +355,74 @@ describe("MiniAppDetailPage shared runtime", () => {
     expect(screen.getByTestId("onegate-launch-url")).not.toHaveTextContent(
       "/miniapps/miniapp-gas-lucky-pool",
     );
+  });
+
+  it("syncs embedded Daily Check-in wallet submissions into the host action console", async () => {
+    mockAsPath = "/miniapps/daily-checkin?network=testnet";
+    const txid =
+      "0x4b53a363fa1f0536b5112c31ad28295799319984730477432c6d6e63f0c7c7c4";
+
+    render(
+      <MiniAppDetailPage
+        app={{
+          app_id: "miniapp-dailycheckin",
+          name: "Daily Check-in",
+          description: "Daily streak board",
+          icon: "D",
+          category: "gaming",
+          entry_url: "/miniapps/daily-checkin/index.html",
+          permissions: { payments: true },
+          contracts: {
+            "neo-n3-testnet": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+          },
+          detail_template: {
+            layout: "default",
+            tabs: [
+              { id: "overview", label: "Overview", type: "content", blocks: [] },
+            ],
+            operation_panel: {
+              title: "Daily Check-in",
+              operations: [
+                { name: "Check In", method: "checkIn", params: [] },
+                { name: "Claim Rewards", method: "claimRewards", params: [] },
+              ],
+            },
+          },
+        }}
+        initialTargetNetwork="testnet"
+        miniAppNav={[]}
+        notifications={[]}
+        sharedRuntime={null}
+      />,
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(HOST_WALLET_BRIDGE_RESULT, {
+          detail: {
+            appId: "miniapp-dailycheckin",
+            network: "testnet",
+            requestMethod: "invoke",
+            txid,
+            operation: "transfer",
+            contractHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            memo: "miniapp-dailycheckin:checkin",
+            at: "2026-06-01T18:41:16.022Z",
+          },
+        }),
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getAllByText("Synced").length).toBeGreaterThan(0),
+    );
+    expect(
+      screen.getAllByTestId("operation-disabled-reason")[0],
+    ).toHaveTextContent(
+      "Already submitted from the embedded workspace: 0x4b53a363...f0c7c7c4",
+    );
+    expect(
+      screen.getByText(`Embedded workspace submitted transaction: ${txid}`),
+    ).toBeInTheDocument();
   });
 });

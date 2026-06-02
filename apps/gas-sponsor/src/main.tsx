@@ -32,8 +32,9 @@ defineMiniApp({
         "requestFailed",
       );
       if (result) {
+        const requestId = result.request_id || result.requestId || result.txid || "";
         notify.success("requestSubmitted", {
-          id: `${result.request_id.slice(0, 8)}...`,
+          id: requestId ? `${requestId.slice(0, 8)}...` : "pending",
         });
       }
     });

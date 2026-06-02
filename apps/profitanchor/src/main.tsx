@@ -17,6 +17,18 @@ import { messages } from "./locale/messages";
 import { useProfitAnchor } from "./hooks/useProfitAnchor";
 import { PROFITANCHOR_AGENT_ACCOUNTS } from "./pages/index/data/agentAccounts";
 
+type AnchorActionHistoryItem = {
+  action: string;
+  amount?: string;
+  status: string;
+  txid?: string;
+  at: string;
+};
+
+type AnchorTxResult = {
+  txid?: string;
+};
+
 defineMiniApp({
   appId: "miniapp-profitanchor",
   playArea: PlayArea,
@@ -26,6 +38,10 @@ defineMiniApp({
   setup(ctx) {
     const { notify } = ctx.services;
     const formatNum = (n: number | string) => formatNumber(n, 2);
+    const workflowStatus = createObservable(ctx.t("workflowReady"));
+    const lastTxid = createObservable("");
+    const lastError = createObservable("");
+    const actionHistory = createObservable<AnchorActionHistoryItem[]>([]);
 
     const anchor = useProfitAnchor({
       chain: ctx.services.chain,
@@ -59,20 +75,88 @@ defineMiniApp({
       [anchor.stats],
     );
     const ingressCount = createObservable(21);
+    const recordAction = (item: Omit<AnchorActionHistoryItem, "at">) => {
+      actionHistory.set([
+        { ...item, at: new Date().toISOString() },
+        ...actionHistory.get(),
+      ].slice(0, 6));
+    };
+
+    const runAnchorAction = async (
+      actionLabelKey: string,
+      successKey: string,
+      run: () => Promise<AnchorTxResult | undefined>,
+      amount?: string,
+    ) => {
+      workflowStatus.set(ctx.t("workflowSubmitting"));
+      lastError.set("");
+      try {
+        const result = await run();
+        const txid = result?.txid ?? "";
+        lastTxid.set(txid);
+        workflowStatus.set(ctx.t(successKey));
+        recordAction({
+          action: ctx.t(actionLabelKey),
+          amount,
+          status: ctx.t(successKey),
+          txid,
+        });
+        notify.success(successKey);
+        return result;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : ctx.t("workflowFailed");
+        lastError.set(message);
+        workflowStatus.set(ctx.t("workflowFailed"));
+        notify.error(error, "anchorActionFailed");
+        throw error;
+      }
+    };
 
     ctx.registerAction("stakeNeo", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
-      await notify.guard(() => anchor.stakeNeo(form.amount), "stakeSubmitted");
+      const amount = String(form.amount ?? "");
+      return runAnchorAction(
+        "submitStake",
+        "stakeSubmitted",
+        () => anchor.stakeNeo(amount),
+        amount,
+      );
     });
     ctx.registerAction("withdrawNeo", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
-      await notify.guard(
-        () => anchor.withdrawNeo(form.amount),
+      const amount = String(form.amount ?? "");
+      return runAnchorAction(
+        "submitWithdraw",
         "withdrawSubmitted",
+        () => anchor.withdrawNeo(amount),
+        amount,
       );
     });
     ctx.registerAction("claimRewards", async () => {
-      await notify.guard(() => anchor.claimRewards(), "rewardsClaimSubmitted");
+      return runAnchorAction(
+        "submitClaim",
+        "rewardsClaimSubmitted",
+        () => anchor.claimRewards(),
+      );
+    });
+    ctx.registerAction("refreshAnchor", async () => {
+      workflowStatus.set(ctx.t("workflowSubmitting"));
+      lastError.set("");
+      try {
+        await anchor.loadAll();
+        workflowStatus.set(ctx.t("workflowRefreshed"));
+        recordAction({
+          action: ctx.t("refreshStatus"),
+          status: ctx.t("workflowRefreshed"),
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : ctx.t("workflowFailed");
+        lastError.set(message);
+        workflowStatus.set(ctx.t("workflowFailed"));
+        throw error;
+      }
     });
 
     return {
@@ -88,6 +172,10 @@ defineMiniApp({
         rewardReserveDisplay,
         agentCount,
         ingressCount,
+        workflowStatus,
+        lastTxid,
+        lastError,
+        actionHistory,
       },
       loadData: anchor.loadAll,
     };

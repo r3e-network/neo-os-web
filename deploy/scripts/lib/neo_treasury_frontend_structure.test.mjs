@@ -31,6 +31,8 @@ test("Neo Treasury renders a complete wallet-style dashboard even before live ba
   assert.match(playArea, /className="treasury-hero"/);
   assert.match(playArea, /className="treasury-signal-card"/);
   assert.match(playArea, /className="treasury-watchlist"/);
+  assert.match(playArea, /className="treasury-wallet-list"/);
+  assert.match(playArea, /className="treasury-wallet-row"/);
   assert.match(playArea, /className="treasury-group-header"/);
   assert.match(playArea, /className="treasury-route"/);
   assert.match(playArea, /className="treasury-readonly-note"/);
@@ -44,7 +46,8 @@ test("Neo Treasury renders a complete wallet-style dashboard even before live ba
 
   assert.match(styles, /\.treasury-play-area\s*\{[^}]*#f7f8fb/s);
   assert.match(styles, /\.treasury-hero\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(260px,\s*0\.72fr\)/s);
-  assert.match(styles, /\.treasury-hero\s*\{[^}]*border-radius:\s*16px/s);
+  assert.match(styles, /\.treasury-hero\s*\{[^}]*border-radius:\s*8px/s);
+  assert.match(styles, /\.treasury-wallet-list\s*\{[^}]*max-height:\s*248px/s);
   assert.match(styles, /\.treasury-signal-card\s*\{[^}]*linear-gradient\(135deg,\s*#ffffff 0%,\s*#eefcf7 52%,\s*#fff7ed 100%\)/s);
   assert.match(styles, /\.treasury-watchlist\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
   assert.match(styles, /\.treasury-route\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);

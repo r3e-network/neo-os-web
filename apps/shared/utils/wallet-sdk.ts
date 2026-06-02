@@ -49,6 +49,7 @@ import type {
   NeoDapiProvider,
   StackItem,
   WalletSDK,
+  WalletIntentConfirmationContext,
   WalletSigner,
 } from "./wallet-sdk-types";
 import type { NeoDapiAccount } from "./nep21-provider";
@@ -89,6 +90,8 @@ const ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE =
 const ERROR_CODE_PAYMENT_INVALID_AMOUNT = "WALLET_PAYMENT_INVALID_AMOUNT";
 const ERROR_CODE_WALLET_NETWORK_UNVERIFIED = "WALLET_NETWORK_UNVERIFIED";
 const ERROR_CODE_WALLET_NETWORK_MISMATCH = "WALLET_NETWORK_MISMATCH";
+const ERROR_CODE_WALLET_CONFIRMATION_REJECTED =
+  "WALLET_CONFIRMATION_REJECTED";
 
 const PLATFORM_API = import.meta.env?.VITE_PLATFORM_API || "";
 let walletInstance: WalletSDK | null = null;
@@ -125,6 +128,282 @@ function createNonce(): string {
 function getAuthenticationDomain(): string {
   if (typeof window === "undefined") return "localhost";
   return window.location.host || window.location.hostname || "localhost";
+}
+
+function stringifyIntentValue(value: unknown): string {
+  if (value === null) return "null";
+  if (value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean")
+    return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch (_e) {
+    return String(value);
+  }
+}
+
+function buildWalletIntentSummary(
+  params: InvokeParams,
+  context?: WalletIntentConfirmationContext,
+): string {
+  const lines = [
+    context?.title || "Confirm Neo transaction",
+    context?.appId ? `MiniApp: ${context.appId}` : "",
+    context?.endpoint ? `Source: ${context.endpoint}` : "",
+    `Contract: ${params.scriptHash}`,
+    `Method: ${params.operation}`,
+  ].filter(Boolean);
+  const args = params.args ?? [];
+  if (args.length) {
+    lines.push(
+      "Arguments:",
+      ...args.map(
+        (arg, index) =>
+          `${index + 1}. ${arg.type}: ${stringifyIntentValue(arg.value)}`,
+      ),
+    );
+  }
+  if (params.signers?.length) {
+    lines.push(
+      "Signers:",
+      ...params.signers.map(
+        (signer, index) =>
+          `${index + 1}. ${signer.account} (${signer.scopes})`,
+      ),
+    );
+  }
+  return lines.join("\n");
+}
+
+function applyStyles(
+  element: HTMLElement,
+  styles: Partial<CSSStyleDeclaration>,
+): void {
+  Object.assign(element.style, styles);
+}
+
+function createIntentLine(label: string, value: string): HTMLElement {
+  const row = document.createElement("div");
+  applyStyles(row, {
+    display: "grid",
+    gridTemplateColumns: "96px minmax(0, 1fr)",
+    gap: "12px",
+    alignItems: "start",
+    padding: "10px 0",
+    borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
+  });
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+  applyStyles(labelEl, {
+    color: "#64748b",
+    fontSize: "12px",
+    fontWeight: "700",
+    textTransform: "uppercase",
+  });
+  const valueEl = document.createElement("code");
+  valueEl.textContent = value;
+  applyStyles(valueEl, {
+    color: "#0f172a",
+    fontFamily:
+      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+    fontSize: "12px",
+    lineHeight: "1.5",
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+  });
+  row.append(labelEl, valueEl);
+  return row;
+}
+
+function confirmWalletIntentInModal(
+  params: InvokeParams,
+  context?: WalletIntentConfirmationContext,
+): Promise<boolean> {
+  if (typeof document === "undefined" || !document.body) {
+    if (typeof window !== "undefined" && typeof window.confirm === "function") {
+      return Promise.resolve(window.confirm(buildWalletIntentSummary(params, context)));
+    }
+    return Promise.reject(
+      new Error("Wallet intent confirmation UI is not available."),
+    );
+  }
+
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", "Confirm Neo transaction");
+    applyStyles(overlay, {
+      position: "fixed",
+      inset: "0",
+      zIndex: "2147483647",
+      display: "grid",
+      placeItems: "center",
+      padding: "20px",
+      background: "rgba(15, 23, 42, 0.52)",
+      backdropFilter: "blur(8px)",
+      fontFamily:
+        "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    });
+
+    const panel = document.createElement("section");
+    applyStyles(panel, {
+      width: "min(560px, 100%)",
+      maxHeight: "min(720px, 92vh)",
+      overflow: "auto",
+      borderRadius: "8px",
+      background: "#ffffff",
+      boxShadow: "0 24px 70px rgba(15, 23, 42, 0.28)",
+      border: "1px solid rgba(15, 23, 42, 0.10)",
+    });
+
+    const header = document.createElement("div");
+    applyStyles(header, {
+      padding: "22px 24px 16px",
+      borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
+    });
+    const eyebrow = document.createElement("div");
+    eyebrow.textContent = context?.endpoint
+      ? String(context.endpoint)
+      : "Wallet confirmation";
+    applyStyles(eyebrow, {
+      color: "#0f766e",
+      fontSize: "12px",
+      fontWeight: "800",
+      letterSpacing: "0",
+      textTransform: "uppercase",
+      marginBottom: "8px",
+    });
+    const title = document.createElement("h2");
+    title.textContent = context?.title || "Confirm Neo transaction";
+    applyStyles(title, {
+      margin: "0",
+      color: "#0f172a",
+      fontSize: "22px",
+      lineHeight: "1.2",
+      letterSpacing: "0",
+    });
+    const copy = document.createElement("p");
+    copy.textContent =
+      "Review the contract, method, arguments, and signer before opening your wallet approval.";
+    applyStyles(copy, {
+      margin: "10px 0 0",
+      color: "#475569",
+      fontSize: "14px",
+      lineHeight: "1.55",
+    });
+    header.append(eyebrow, title, copy);
+
+    const body = document.createElement("div");
+    applyStyles(body, { padding: "8px 24px 4px" });
+    if (context?.appId) body.append(createIntentLine("MiniApp", context.appId));
+    body.append(
+      createIntentLine("Contract", params.scriptHash),
+      createIntentLine("Method", params.operation),
+    );
+    if (params.args?.length) {
+      body.append(
+        createIntentLine(
+          "Arguments",
+          params.args
+            .map(
+              (arg, index) =>
+                `${index + 1}. ${arg.type}: ${stringifyIntentValue(arg.value)}`,
+            )
+            .join("\n"),
+        ),
+      );
+    }
+    if (params.signers?.length) {
+      body.append(
+        createIntentLine(
+          "Signers",
+          params.signers
+            .map(
+              (signer, index) =>
+                `${index + 1}. ${signer.account} (${signer.scopes})`,
+            )
+            .join("\n"),
+        ),
+      );
+    }
+
+    const footer = document.createElement("div");
+    applyStyles(footer, {
+      display: "flex",
+      gap: "12px",
+      justifyContent: "flex-end",
+      padding: "18px 24px 24px",
+    });
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    applyStyles(cancel, {
+      minHeight: "40px",
+      padding: "0 16px",
+      borderRadius: "6px",
+      border: "1px solid rgba(15, 23, 42, 0.18)",
+      background: "#ffffff",
+      color: "#0f172a",
+      fontWeight: "700",
+      cursor: "pointer",
+    });
+    const confirm = document.createElement("button");
+    confirm.type = "button";
+    confirm.textContent = "Open wallet";
+    applyStyles(confirm, {
+      minHeight: "40px",
+      padding: "0 18px",
+      borderRadius: "6px",
+      border: "1px solid #0f766e",
+      background: "#0f766e",
+      color: "#ffffff",
+      fontWeight: "800",
+      cursor: "pointer",
+    });
+    footer.append(cancel, confirm);
+    panel.append(header, body, footer);
+    overlay.append(panel);
+
+    const cleanup = (decision: boolean) => {
+      document.removeEventListener("keydown", onKeyDown);
+      overlay.remove();
+      resolve(decision);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") cleanup(false);
+    };
+    cancel.addEventListener("click", () => cleanup(false));
+    confirm.addEventListener("click", () => cleanup(true));
+    document.addEventListener("keydown", onKeyDown);
+    document.body.append(overlay);
+    confirm.focus();
+  });
+}
+
+async function confirmWalletIntent(
+  params: InvokeParams,
+  context?: WalletIntentConfirmationContext,
+): Promise<void> {
+  const hook =
+    typeof window !== "undefined"
+      ? window.NeoMiniAppWalletConfirmIntent
+      : undefined;
+  const accepted =
+    typeof hook === "function"
+      ? await hook(params, context)
+      : await confirmWalletIntentInModal(params, context);
+  if (!accepted) {
+    throw new MiniAppError(
+      "Wallet request canceled before submission.",
+      ERROR_CODE_WALLET_CONFIRMATION_REJECTED,
+      undefined,
+      undefined,
+      undefined,
+      ERROR_CODE_WALLET_CONFIRMATION_REJECTED,
+    );
+  }
 }
 
 let cachedManifest: MiniAppManifest | null | undefined;
@@ -342,6 +621,14 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     return normalizeTxResult(result);
   };
 
+  const invokeWithConfirmation = async (
+    params: InvokeParams,
+    context?: WalletIntentConfirmationContext,
+  ): Promise<InvokeResult> => {
+    await confirmWalletIntent(params, context);
+    return invokeContract(params);
+  };
+
   const invokeMultiple = async (
     params: BatchInvokeParams,
   ): Promise<InvokeResult> => {
@@ -370,7 +657,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
 
   const invokeRead = async (params: InvokeParams): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
-    if (!address.value) await connect();
+    updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
     if (!wallet.provider.call) {
       throw new MiniAppError(
@@ -509,6 +796,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     chainType,
     chainId,
     connect,
+    invokeWithConfirmation,
     invokeContract,
     invokeMultiple,
     invokeRead,

@@ -20,12 +20,18 @@ export default function WagerControls({ t, choice, betAmount, canBet, isFlipping
     <div className="bet-section">
       <div className="choice-grid">
         {(["heads", "tails"] as const).map((side) => (
-          <div key={side} className={`choice-card ${choice === side ? side : "inactive"}`} onClick={() => updateChoice(side)}>
+          <button
+            key={side}
+            type="button"
+            className={`choice-card ${choice === side ? side : "inactive"}`}
+            onClick={() => updateChoice(side)}
+            aria-pressed={choice === side}
+          >
             <div className="card-inner">
               <div className="symbol-ring">{side === "heads" ? <div className="neo-symbol">N</div> : <div className="gas-symbol">G</div>}</div>
               <span className="choice-name">{t(side)}</span>
             </div>
-          </div>
+          </button>
         ))}
       </div>
       <NeoCard variant="erobo" className="wager-panel">
@@ -35,9 +41,15 @@ export default function WagerControls({ t, choice, betAmount, canBet, isFlipping
         </div>
         <div className="wager-grid">
           {BET_PRESETS.map((amount) => (
-            <div key={amount} className={`wager-option${betAmount === amount ? " selected" : ""}`} onClick={() => updateBetAmount(amount)}>
+            <button
+              key={amount}
+              type="button"
+              className={`wager-option${betAmount === amount ? " selected" : ""}`}
+              onClick={() => updateBetAmount(amount)}
+              aria-pressed={betAmount === amount}
+            >
               <span className="amount-val">{amount}</span><span className="amount-unit">{t("tokenGas")}</span>
-            </div>
+            </button>
           ))}
         </div>
         <NeoButton variant="primary" size="lg" block disabled={!canBet} loading={isFlipping} className="flip-btn" aria-label={isFlipping ? t("flipping") : t("flipCoin")} onClick={handleFlip}>

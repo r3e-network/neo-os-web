@@ -41,6 +41,7 @@ export const handler = createOSHandler(
       totalGlobalCheckins: toNumber(platformStats?.totalCheckins),
       totalGlobalUsers: toNumber(platformStats?.totalUsers),
       totalGlobalRewarded: toGas(platformStats?.totalRewarded),
+      checkInFee: toGas(platformStats?.checkInFee),
     };
   },
 );

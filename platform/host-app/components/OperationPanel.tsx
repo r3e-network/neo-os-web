@@ -3,6 +3,7 @@ import { ChevronDown, Edit3 } from "lucide-react";
 import { MiniAppLaunchContext, OperationEntry, OperationParam } from "./types";
 import { cn } from "@/lib/utils";
 import { buildLaunchParamValues } from "@/lib/miniapp-launch-params";
+import { isSensitiveFrontendOperationParam } from "@/lib/miniapp-detail-helpers";
 
 type Props = {
   operations: OperationEntry[];
@@ -16,7 +17,9 @@ type Props = {
   variant?: "card" | "embedded";
   disabledReason?: string | null;
   getDisabledReason?: (operation: OperationEntry) => string | null;
+  onActiveOperationChange?: (operation: OperationEntry) => void;
   launchContext?: MiniAppLaunchContext | null;
+  showInvokeError?: boolean;
 };
 
 export function OperationPanel({
@@ -28,7 +31,9 @@ export function OperationPanel({
   variant = "card",
   disabledReason = null,
   getDisabledReason,
+  onActiveOperationChange,
   launchContext = null,
+  showInvokeError = true,
 }: Props) {
   const panelIdPrefix = useFieldIdPrefix("operation-panel");
   const requestedOperationIndex = useMemo(
@@ -45,11 +50,21 @@ export function OperationPanel({
     () => splitOperationTabs(operations, requestedOperationIndex),
     [operations, requestedOperationIndex],
   );
-
-  if (!operations.length) return null;
+  const showPrimaryTabs =
+    tabGroups.primary.length > 0 &&
+    (tabGroups.primary.length > 1 || tabGroups.secondary.length > 0);
 
   const activeOp =
-    operations[Math.min(activeTabIdx, operations.length - 1)] ?? operations[0];
+    operations[Math.min(activeTabIdx, operations.length - 1)] ??
+    operations[0] ??
+    null;
+
+  useEffect(() => {
+    if (activeOp) onActiveOperationChange?.(activeOp);
+  }, [activeOp, onActiveOperationChange]);
+
+  if (!operations.length || !activeOp) return null;
+
   const embedded = variant === "embedded";
   const shellClass = embedded
     ? "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
@@ -70,7 +85,7 @@ export function OperationPanel({
 
       {operations.length > 1 && (
         <div className="border-b border-gray-100 px-3 py-2.5">
-          {tabGroups.primary.length > 1 && (
+          {showPrimaryTabs && (
             <div
               className={cn(
                 "grid gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1",
@@ -146,6 +161,7 @@ export function OperationPanel({
           launchContext={launchContext}
           compact={embedded}
           fieldIdPrefix={panelIdPrefix}
+          showInvokeError={showInvokeError}
         />
       </div>
     </div>
@@ -287,6 +303,7 @@ function OperationForm({
   launchContext,
   compact,
   fieldIdPrefix,
+  showInvokeError,
 }: {
   op: OperationEntry;
   onInvoke: Props["onInvoke"];
@@ -295,6 +312,7 @@ function OperationForm({
   launchContext?: MiniAppLaunchContext | null;
   compact?: boolean;
   fieldIdPrefix: string;
+  showInvokeError: boolean;
 }) {
   const initialValues = useMemo(
     () => buildLaunchParamValues(op.params ?? [], launchContext?.params),
@@ -309,12 +327,8 @@ function OperationForm({
     : operationSubmitLabel(op);
   const visibleParams = useMemo(
     () =>
-      (op.params ?? []).filter(
-        (param) =>
-          !param.hidden &&
-          !(serverPayoutOperation && isOneGateClaimKeyParam(param)),
-      ),
-    [op.params, serverPayoutOperation],
+      (op.params ?? []).filter((param) => !param.hidden),
+    [op.params],
   );
   const firstChoiceParam = visibleParams.find(
     (param) =>
@@ -362,10 +376,23 @@ function OperationForm({
       setSubmitting(true);
       setError(null);
       await onInvoke(op, values);
+      setValues((current) => {
+        let changed = false;
+        const next = { ...current };
+        for (const param of op.params ?? []) {
+          if (isSensitiveFrontendOperationParam(op, param.name) && next[param.name]) {
+            next[param.name] = "";
+            changed = true;
+          }
+        }
+        return changed ? next : current;
+      });
     } catch (invokeError) {
-      setError(
-        invokeError instanceof Error ? invokeError.message : "Operation failed",
-      );
+      if (showInvokeError) {
+        setError(
+          invokeError instanceof Error ? invokeError.message : "Operation failed",
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -373,11 +400,7 @@ function OperationForm({
 
   const tone = operationTone(op);
   const claimKeyValue = String(values.claimKey || values.key || "").trim();
-  const submitDisabledReason =
-    effectiveDisabledReason ||
-    (serverPayoutOperation && !claimKeyValue
-      ? "Open this reward from a OneGate QR code."
-      : null);
+  const submitDisabledReason = effectiveDisabledReason;
 
   return (
     <div
@@ -415,9 +438,15 @@ function OperationForm({
               aria-hidden="true"
             />
             <span>
-              {claimKeyValue ? "Reward ready" : "OneGate QR required"}
+              {claimKeyValue ? "Reward ready" : "Paste claim key or scan QR"}
             </span>
           </div>
+        ) : null}
+
+        {serverPayoutOperation && op.description ? (
+          <p className="mb-0 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold leading-5 text-gray-600">
+            {op.description}
+          </p>
         ) : (
           op.description && (
             <p className="mb-0 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold leading-5 text-gray-600">
@@ -491,15 +520,6 @@ function OperationForm({
           </div>
         )}
 
-        {submitDisabledReason && !effectiveDisabledReason && !error && (
-          <div
-            aria-live="polite"
-            className="break-words rounded-lg bg-amber-50 p-3 text-sm text-amber-700"
-          >
-            {submitDisabledReason}
-          </div>
-        )}
-
         <button
           type="button"
           className={cn(
@@ -534,10 +554,12 @@ function isServerPayoutOperation(op: OperationEntry) {
 }
 
 function operationSubmittingLabel(op: OperationEntry) {
+  if (op.method === "prepareMiniAppOperation") return "Opening workspace...";
   return isServerPayoutOperation(op) ? "Claiming reward..." : "Processing...";
 }
 
 function operationSubmitLabel(op: OperationEntry) {
+  if (op.method === "prepareMiniAppOperation") return "Open workspace";
   return isServerPayoutOperation(op) ? "Claim Reward" : op.name;
 }
 
@@ -777,7 +799,9 @@ function ParamInput({
   const inputId = buildFieldId(fieldIdPrefix, param.name || label);
   const multiline =
     param.type === "string" &&
-    /candidate|public\s*keys|keys|list/i.test(`${param.name} ${label}`);
+    /candidate|public\s*keys|keys|list|payload|json|calldata/i.test(
+      `${param.name} ${label}`,
+    );
 
   return (
     <div className="flex flex-col space-y-1.5">

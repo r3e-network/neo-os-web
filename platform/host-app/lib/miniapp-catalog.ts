@@ -82,6 +82,13 @@ function getContractHashForNetwork(contracts: Record<string, unknown>, network: 
   return asString(contracts[network] ?? contracts[shortKey]);
 }
 
+function getMiniAppContracts(app: MiniAppInfo): Record<string, unknown> {
+  return {
+    ...asObject(asObject(app.manifest).contracts),
+    ...asObject(app.contracts),
+  };
+}
+
 export function supportsCatalogNetwork(app: MiniAppInfo, network: CatalogNetwork | null): boolean {
   if (!network) return true;
 
@@ -94,7 +101,7 @@ export function supportsCatalogNetwork(app: MiniAppInfo, network: CatalogNetwork
   const hasPlatformRuntime = getPlatformRuntimeModules(app).length > 0;
   if (supportsRuntimeNetwork(app, network)) return true;
 
-  const contracts = asObject(manifest.contracts);
+  const contracts = getMiniAppContracts(app);
   const manifestHasAnyContract = Object.values(contracts).some((value) => Boolean(asString(value)));
   const topLevelContractHash = asString(app.contract_hash);
   if (hasPlatformRuntime && !manifestHasAnyContract && !topLevelContractHash) return false;

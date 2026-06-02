@@ -1,43 +1,192 @@
 @use "@shared/styles/tokens.scss" as *;
-@use "@shared/styles/variables.scss" as *;
 
-.arena-hero { display: flex; flex-direction: column; align-items: center; gap: 18px; position: relative; width: 100%; }
-.hero-arena-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.arena-ring { position: absolute; top: 50%; left: 50%; width: 280px; height: 280px; border: 1px dashed var(--coin-arena-ring); border-radius: 50%; transform: translate(-50%, -50%); animation: arena-spin 40s linear infinite; }
-.arena-ring-2 { width: 220px; height: 220px; border-color: var(--coin-arena-ring-2); animation-direction: reverse; animation-duration: 30s; }
-.arena-ambient { position: absolute; top: 50%; left: 50%; width: 180px; height: 180px; background: radial-gradient(circle, var(--coin-arena-ambient) 0%, transparent 70%); transform: translate(-50%, -50%); transition: all 0.5s ease;
-  &.flipping { width: 250px; height: 250px; background: radial-gradient(circle, var(--coin-arena-ambient-flip) 0%, transparent 70%); }
+.arena-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
 }
-.coin-stage { position: relative; z-index: 2; }
-.side-labels { display: flex; align-items: center; gap: 12px; z-index: 2; }
-.side-badge { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 18px; border-radius: 999px; background: #f7f8fa; border: 1px solid rgba(20, 22, 38, 0.06); transition: all 0.3s ease; color: #8a92a6;
-  &.active { background: var(--coin-side-active-bg); border-color: var(--coin-side-active-border); color: var(--coin-success); }
+
+.hero-arena-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
 }
-.side-text { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: inherit; }
-.side-vs { font-size: 11px; font-weight: 800; color: #aeb4c2; letter-spacing: 0.12em; }
-.result-flash { display: flex; align-items: center; gap: 10px; padding: 10px 24px; border-radius: 14px; z-index: 10; animation: flash-entrance 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  &.win { background: rgba(52, 211, 153, 0.15); border: 2px solid rgba(52, 211, 153, 0.4); box-shadow: 0 0 30px rgba(52, 211, 153, 0.25); }
-  &.lose { background: rgba(239, 68, 68, 0.15); border: 2px solid rgba(239, 68, 68, 0.4); box-shadow: 0 0 30px rgba(239, 68, 68, 0.25); }
+
+.arena-ring,
+.arena-ring-2 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
 }
-.result-flash-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; font-size: 12px; font-weight: 900; .win & { color: #047857; background: #d1fae5; } .lose & { color: #b91c1c; background: #fee2e2; } }
-.result-flash-text { font-size: 22px; font-weight: 900; letter-spacing: 0.15em; .win & { color: #34d399; } .lose & { color: #f87171; } }
-@keyframes flash-entrance { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-@keyframes arena-spin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .arena-ring, .arena-ring-2, .side-badge { animation: none; transition: none; } }
+
+.arena-ring {
+  width: 252px;
+  height: 252px;
+}
+
+.arena-ring-2 {
+  width: 188px;
+  height: 188px;
+  border-color: rgba(22, 199, 132, 0.12);
+}
+
+.arena-ambient {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 164px;
+  height: 164px;
+  border-radius: 999px;
+  background: rgba(22, 199, 132, 0.08);
+  transform: translate(-50%, -50%);
+  transition: transform 0.35s ease, background 0.35s ease;
+
+  &.flipping {
+    background: rgba(251, 191, 36, 0.12);
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+.coin-stage {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.side-labels {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.side-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 82px;
+  padding: 8px 16px;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: 999px;
+  background: #f7f8fa;
+  color: #8a92a6;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+
+  &.active {
+    border-color: var(--coin-side-active-border);
+    background: var(--coin-side-active-bg);
+    color: var(--coin-success);
+  }
+}
+
+.side-text,
+.side-vs {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.side-vs {
+  color: #aeb4c2;
+}
+
+.result-flash {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  animation: flash-entrance 0.35s ease-out;
+
+  &.win {
+    border-color: rgba(52, 211, 153, 0.28);
+    background: rgba(52, 211, 153, 0.12);
+  }
+
+  &.lose {
+    border-color: rgba(239, 68, 68, 0.26);
+    background: rgba(239, 68, 68, 0.1);
+  }
+}
+
+.result-flash-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+
+  .win & {
+    color: #047857;
+    background: #d1fae5;
+  }
+
+  .lose & {
+    color: #b91c1c;
+    background: #fee2e2;
+  }
+}
+
+.result-flash-text {
+  font-size: 18px;
+  font-weight: 900;
+
+  .win & {
+    color: #047857;
+  }
+
+  .lose & {
+    color: #b91c1c;
+  }
+}
+
+@keyframes flash-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-ambient,
+  .result-flash {
+    animation: none;
+    transition: none;
+  }
+}
 
 @media (max-width: 520px) {
   .arena-ring {
-    width: 230px;
-    height: 230px;
+    width: 220px;
+    height: 220px;
   }
 
   .arena-ring-2 {
-    width: 184px;
-    height: 184px;
+    width: 164px;
+    height: 164px;
   }
 
   .arena-ambient {
-    width: 148px;
-    height: 148px;
+    width: 136px;
+    height: 136px;
   }
 }

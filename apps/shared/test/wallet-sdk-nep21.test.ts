@@ -15,6 +15,7 @@ function resetInjectedWallets() {
     neo3Dapi?: unknown;
     NEOLineN3?: unknown;
     OneGate?: unknown;
+    NeoMiniAppWalletConfirmIntent?: unknown;
   };
   delete target.NEP21Provider;
   delete target.NEP21Providers;
@@ -25,6 +26,7 @@ function resetInjectedWallets() {
   delete target.neo3Dapi;
   delete target.NEOLineN3;
   delete target.OneGate;
+  delete target.NeoMiniAppWalletConfirmIntent;
 }
 
 function createNep21Provider(overrides: Record<string, unknown> = {}) {
@@ -113,6 +115,134 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(wallet.address.value).toBe("NTestAddress");
   });
 
+  it("uses the host wallet bridge when a sandboxed miniapp is embedded", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/miniapps/forever-album/index.html?network=testnet&source=embed",
+    );
+    const bridgeRequests: Array<Record<string, any>> = [];
+    const onBridgeMessage = (event: MessageEvent) => {
+      const data = event.data as Record<string, any>;
+      if (data?.type !== "neo-miniapp-wallet-bridge:request") return;
+      bridgeRequests.push(data);
+      const result = data.method === "getAccounts"
+        ? [
+            {
+              hash: "0x1111111111111111111111111111111111111111",
+              address: "NHostWallet",
+              isDefault: true,
+            },
+          ]
+        : { txid: "0xhostbridge" };
+      window.postMessage(
+        {
+          type: "neo-miniapp-wallet-bridge:response",
+          id: data.id,
+          ok: true,
+          result,
+        },
+        "*",
+      );
+    };
+    window.addEventListener("message", onBridgeMessage);
+
+    try {
+      const wallet = useWallet();
+      await wallet.connect();
+      expect(wallet.address.value).toBe("NHostWallet");
+      expect(wallet.chainId?.value).toBe("neo-n3-testnet");
+
+      await expect(wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "StorePhoto",
+        args: [{ type: "Hash160", value: "NHostWallet" }],
+        signers: [{ account: "NHostWallet", scopes: 1 }],
+      })).resolves.toMatchObject({ txid: "0xhostbridge" });
+
+      const invokeRequest = bridgeRequests.find((entry) => entry.method === "invoke");
+      expect(invokeRequest?.payload).toMatchObject({
+        invocations: [
+          {
+            hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            operation: "storePhoto",
+            args: [
+              {
+                type: "Hash160",
+                value: "0x1111111111111111111111111111111111111111",
+              },
+            ],
+          },
+        ],
+        signers: [
+          {
+            account: "0x1111111111111111111111111111111111111111",
+            scopes: "CalledByEntry",
+          },
+        ],
+      });
+    } finally {
+      window.removeEventListener("message", onBridgeMessage);
+    }
+  });
+
+  it("performs embedded host bridge read calls without requesting accounts", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/miniapps/trustanchor/index.html?network=testnet&source=embed",
+    );
+    const bridgeRequests: Array<Record<string, any>> = [];
+    const onBridgeMessage = (event: MessageEvent) => {
+      const data = event.data as Record<string, any>;
+      if (data?.type !== "neo-miniapp-wallet-bridge:request") return;
+      bridgeRequests.push(data);
+      if (data.method !== "call") {
+        window.postMessage(
+          {
+            type: "neo-miniapp-wallet-bridge:response",
+            id: data.id,
+            ok: false,
+            error: { message: `Unexpected ${data.method} request.` },
+          },
+          "*",
+        );
+        return;
+      }
+      window.postMessage(
+        {
+          type: "neo-miniapp-wallet-bridge:response",
+          id: data.id,
+          ok: true,
+          result: { state: "HALT", stack: [{ type: "Integer", value: "7" }] },
+        },
+        "*",
+      );
+    };
+    window.addEventListener("message", onBridgeMessage);
+
+    try {
+      const wallet = useWallet();
+      await expect(wallet.invokeRead({
+        scriptHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        operation: "GetStats",
+        args: [],
+      })).resolves.toMatchObject({ state: "HALT" });
+
+      expect(wallet.address.value).toBeNull();
+      expect(bridgeRequests.map((entry) => entry.method)).toEqual(["call"]);
+      expect(bridgeRequests[0]?.payload).toMatchObject({
+        invocation: {
+          hash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          operation: "getStats",
+          args: [],
+        },
+      });
+    } finally {
+      window.removeEventListener("message", onBridgeMessage);
+    }
+  });
+
   it("rejects the legacy OneGate host wallet when NEP-21 is not injected", async () => {
     window.history.replaceState({}, "", "/?network=testnet");
     const oneGate = {
@@ -172,6 +302,19 @@ describe("wallet-sdk NEP-21 support", () => {
       args: [{ type: "Hash160", value: "0x1111111111111111111111111111111111111111" }],
     });
 
+    provider.getAccounts.mockClear();
+    await expect(wallet.invokeRead({
+      scriptHash: "0xcccccccccccccccccccccccccccccccccccccccc",
+      operation: "TotalSupply",
+      args: [],
+    })).resolves.toMatchObject({ state: "HALT" });
+    expect(provider.getAccounts).not.toHaveBeenCalled();
+    expect(provider.call).toHaveBeenLastCalledWith({
+      hash: "0xcccccccccccccccccccccccccccccccccccccccc",
+      operation: "totalSupply",
+      args: [],
+    });
+
     await expect(wallet.getBalance("GAS")).resolves.toBe("42");
     expect(provider.getBalance).toHaveBeenCalledWith(
       "0xd2a4cff31913016155e38e474a2c06d08be276cf",
@@ -225,6 +368,63 @@ describe("wallet-sdk NEP-21 support", () => {
       }],
       [{ account: "0x1111111111111111111111111111111111111111", scopes: "CalledByEntry" }],
     );
+  });
+
+  it("confirms OS-binder invocation intents before submitting through the wallet", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider();
+    window.neoDapiProvider = provider;
+    const confirmIntent = vi.fn(async () => true);
+    window.NeoMiniAppWalletConfirmIntent = confirmIntent;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    await expect(wallet.invokeWithConfirmation?.({
+      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      operation: "RegisterAnchor",
+      args: [{ type: "Hash160", value: "NTestAddress" }],
+      signers: [{ account: "NTestAddress", scopes: 1 }],
+    }, {
+      endpoint: "os-binder",
+      appId: "miniapp-aa-market-hub",
+    })).resolves.toMatchObject({ txid: "0xtxid" });
+
+    expect(confirmIntent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "RegisterAnchor",
+      }),
+      expect.objectContaining({
+        endpoint: "os-binder",
+        appId: "miniapp-aa-market-hub",
+      }),
+    );
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [{
+        hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "registerAnchor",
+        args: [{ type: "Hash160", value: "0x1111111111111111111111111111111111111111" }],
+      }],
+      [{ account: "0x1111111111111111111111111111111111111111", scopes: "CalledByEntry" }],
+    );
+  });
+
+  it("does not submit wallet intents when the confirmation is rejected", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider();
+    window.neoDapiProvider = provider;
+    window.NeoMiniAppWalletConfirmIntent = vi.fn(async () => false);
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    await expect(wallet.invokeWithConfirmation?.({
+      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      operation: "RegisterAnchor",
+      args: [],
+    })).rejects.toThrow(/canceled/i);
+    expect(provider.invoke).not.toHaveBeenCalled();
   });
 
   it("blocks transaction calls when the wallet network differs from the DApp network", async () => {

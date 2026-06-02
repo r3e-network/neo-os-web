@@ -50,6 +50,30 @@ const POLICY_METHODS = [
 const DEFAULT_POLICY_METHOD = POLICY_METHODS[0]?.key ?? "FeePerByte";
 const DEFAULT_DURATION_MS = DURATION_OPTIONS[1]?.value ?? 7 * 24 * 60 * 60 * 1000;
 
+const TAB_ICONS: Record<"active" | "create" | "history", JSX.Element> = {
+  active: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 21h18" />
+      <path d="M5 21V9l7-5 7 5v12" />
+      <path d="M9 21v-6h6v6" />
+    </svg>
+  ),
+  create: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  ),
+  history: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M15 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+      <path d="M15 3v5h5" />
+      <path d="M8 13h8" />
+      <path d="M8 17h6" />
+    </svg>
+  ),
+};
+
 function shortAddress(value?: string) {
   if (!value) return "-";
   if (value.length <= 14) return value;
@@ -201,9 +225,12 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             className={tab === entry ? "is-active" : ""}
             onClick={() => setTab(entry)}
           >
-            {entry === "active" && t("active")}
-            {entry === "create" && t("createProposal")}
-            {entry === "history" && t("history")}
+            <span className="council-tab-icon" aria-hidden="true">{TAB_ICONS[entry]}</span>
+            <span className="council-tab-label">
+              {entry === "active" && t("active")}
+              {entry === "create" && t("createProposal")}
+              {entry === "history" && t("history")}
+            </span>
           </button>
         ))}
       </div>
@@ -250,24 +277,27 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
           />
 
           {showPolicyFields && (
-            <div className="council-form-grid">
-              <label className="council-field">
-                <span>{t("policyMethod")}</span>
-                <select value={policyMethod} onChange={(event) => setPolicyMethod(event.target.value)}>
-                  {POLICY_METHODS.map((method) => (
-                    <option key={method.key} value={method.key}>
-                      {t(method.labelKey)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <NeoInput
-                type="number"
-                value={policyValue}
-                placeholder={t("policyValuePlaceholder")}
-                label={t("policyValue")}
-                onChange={setPolicyValue}
-              />
+            <div className="council-policy-group">
+              <p className="council-policy-legend">{t("policyDetails")}</p>
+              <div className="council-form-grid">
+                <label className="council-field">
+                  <span>{t("policyMethod")}</span>
+                  <select value={policyMethod} onChange={(event) => setPolicyMethod(event.target.value)}>
+                    {POLICY_METHODS.map((method) => (
+                      <option key={method.key} value={method.key}>
+                        {t(method.labelKey)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <NeoInput
+                  type="number"
+                  value={policyValue}
+                  placeholder={t("policyValuePlaceholder")}
+                  label={t("policyValue")}
+                  onChange={setPolicyValue}
+                />
+              </div>
             </div>
           )}
 
@@ -356,14 +386,15 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                     </div>
 
                     <div className="council-proposal-actions">
-                      <NeoButton variant="secondary" size="sm" onClick={() => openDetails(proposal)}>
+                      <NeoButton variant="secondary" size="md" block onClick={() => openDetails(proposal)}>
                         {t("viewDetails")}
                       </NeoButton>
                       {proposal.statusKey === "active" && !isExternalProposal && (
-                        <>
+                        <div className="council-vote-actions">
                           <NeoButton
                             variant="success"
                             size="sm"
+                            block
                             loading={isVoting}
                             disabled={isVoting || !canWrite || alreadyVoted}
                             onClick={() => handleVote(proposal.id, "for")}
@@ -373,13 +404,14 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                           <NeoButton
                             variant="danger"
                             size="sm"
+                            block
                             loading={isVoting}
                             disabled={isVoting || !canWrite || alreadyVoted}
                             onClick={() => handleVote(proposal.id, "against")}
                           >
                             {t("voteAgainst")}
                           </NeoButton>
-                        </>
+                        </div>
                       )}
                       {proposal.statusKey === "active" && isExternalProposal && (
                         <span className="council-readonly-note">{t("externalProposalReadOnly")}</span>
@@ -408,22 +440,31 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
           </div>
           <p>{selectedProposal.description || t("noDescription")}</p>
           <dl className="council-details-grid">
-            <div>
-              <dt>{t("proposalId")}</dt>
-              <dd>{selectedProposal.externalId ? `#${selectedProposal.id} · ${selectedProposal.externalId}` : `#${selectedProposal.id}`}</dd>
-            </div>
             <div><dt>{t("proposalType")}</dt><dd>{selectedProposal.type === 1 ? t("policyType") : t("textType")}</dd></div>
-            <div><dt>{t("creator")}</dt><dd>{shortAddress(selectedProposal.creator)}</dd></div>
-            <div><dt>{t("proposalCreated")}</dt><dd>{formatDate(selectedProposal.createTime)}</dd></div>
             <div><dt>{t("votingEnds")}</dt><dd>{formatDate(selectedProposal.expiryTime)}</dd></div>
-            <div><dt>{t("quorum")}</dt><dd>{selectedProposal.totalVotes}/{selectedProposal.quorumRequired || "-"}</dd></div>
-            {selectedProposal.policyMethod && (
-              <div><dt>{t("policyMethod")}</dt><dd>{selectedProposal.policyMethod}</dd></div>
-            )}
-            {selectedProposal.policyValue && (
-              <div><dt>{t("policyValue")}</dt><dd>{selectedProposal.policyValue}</dd></div>
-            )}
+            <div><dt>{t("proposalCreated")}</dt><dd>{formatDate(selectedProposal.createTime)}</dd></div>
+            <div>
+              <dt>{t("quorum")}</dt>
+              <dd>{selectedProposal.totalVotes}/{selectedProposal.quorumRequired || "-"}</dd>
+            </div>
           </dl>
+
+          <details className="council-more-details">
+            <summary>{t("proposalDetails")}</summary>
+            <dl className="council-details-grid">
+              <div>
+                <dt>{t("proposalId")}</dt>
+                <dd>{selectedProposal.externalId ? `#${selectedProposal.id} · ${selectedProposal.externalId}` : `#${selectedProposal.id}`}</dd>
+              </div>
+              <div><dt>{t("creator")}</dt><dd>{shortAddress(selectedProposal.creator)}</dd></div>
+              {selectedProposal.policyMethod && (
+                <div><dt>{t("policyMethod")}</dt><dd>{selectedProposal.policyMethod}</dd></div>
+              )}
+              {selectedProposal.policyValue && (
+                <div><dt>{t("policyValue")}</dt><dd>{selectedProposal.policyValue}</dd></div>
+              )}
+            </dl>
+          </details>
         </aside>
       )}
     </div>

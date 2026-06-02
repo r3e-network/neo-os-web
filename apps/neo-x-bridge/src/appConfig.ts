@@ -97,7 +97,7 @@ export const manifest: MiniAppManifest = {
           default: "onCrossChainMessage",
         },
         {
-          key: "payload",
+          key: "message",
           type: "text",
           labelKey: "messagePayload",
           placeholder: "{\"type\":\"signal\",\"value\":\"...\"}",

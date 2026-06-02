@@ -52,6 +52,39 @@ export const manifest: MiniAppManifest = {
   // ── Operations ────────────────────────────────────────────────────────
   operations: [
     {
+      key: "requestLoan",
+      titleKey: "requestLoanTitle",
+      descriptionKey: "requestLoanDesc",
+      actionKey: "signRequestFlashLoan",
+      actionMethod: "requestLoan",
+      priority: "primary",
+      fields: [
+        {
+          key: "amount",
+          type: "amount",
+          labelKey: "loanAmount",
+          placeholder: "amountPlaceholder",
+          required: true,
+          validation: { min: 1 },
+        },
+        {
+          key: "callbackContract",
+          type: "text",
+          labelKey: "callbackContract",
+          placeholder: "callbackContractPlaceholder",
+          required: true,
+          validation: { pattern: "^(0x)?[0-9a-fA-F]{40}$|^N[A-Za-z0-9]{20,60}$" },
+        },
+        {
+          key: "callbackMethod",
+          type: "text",
+          labelKey: "callbackMethod",
+          default: "onFlashLoan",
+          hidden: true,
+        },
+      ],
+    },
+    {
       key: "lookupLoan",
       titleKey: "statusLookup",
       actionKey: "checkStatus",

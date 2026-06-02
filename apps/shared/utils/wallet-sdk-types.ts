@@ -11,6 +11,10 @@ export interface WalletSDK {
   /** App-specific chain ID override (e.g. for AA-based apps) */
   appChainId?: Ref<string>;
   connect: () => Promise<void>;
+  invokeWithConfirmation?: (
+    params: InvokeParams,
+    context?: WalletIntentConfirmationContext,
+  ) => Promise<InvokeResult>;
   invokeContract: (params: InvokeParams) => Promise<InvokeResult>;
   invokeMultiple: (params: BatchInvokeParams) => Promise<InvokeResult>;
   invokeRead: (params: InvokeParams) => Promise<InvokeResult>;
@@ -40,6 +44,18 @@ export interface InvokeParams {
   args?: ContractArg[];
   signers?: WalletSigner[];
 }
+
+export interface WalletIntentConfirmationContext {
+  endpoint?: string;
+  appId?: string;
+  title?: string;
+  [key: string]: unknown;
+}
+
+export type WalletIntentConfirmationHook = (
+  params: InvokeParams,
+  context?: WalletIntentConfirmationContext,
+) => boolean | Promise<boolean>;
 
 export interface BatchInvokeParams {
   invokeArgs: InvokeParams[];
@@ -122,5 +138,6 @@ declare global {
     Neo?: { DapiProvider?: NeoDapiProvider };
     neoDapiProvider?: NeoDapiProvider;
     neoDapi?: NeoDapiProvider;
+    NeoMiniAppWalletConfirmIntent?: WalletIntentConfirmationHook;
   }
 }

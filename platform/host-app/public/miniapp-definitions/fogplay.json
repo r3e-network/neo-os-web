@@ -141,6 +141,14 @@
       ]
     },
     {
+      "name": "Fund Oracle Fee",
+      "method": "fundOracleRequestFee",
+      "description": "Top up the Morpheus VRF request fee required before the game can settle randomness.",
+      "button_style": "secondary",
+      "priority": "primary",
+      "params": []
+    },
+    {
       "name": "Flip",
       "method": "placeCoinFlipBet",
       "button_style": "primary",
@@ -173,7 +181,8 @@
           "type": "amount",
           "label": "Wager (GAS)",
           "required": true,
-          "placeholder": "1"
+          "placeholder": "1",
+          "scale": 8
         }
       ]
     }

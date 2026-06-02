@@ -26,6 +26,101 @@ export const manifest: MiniAppManifest = {
     ],
   },
 
+  operations: [
+    {
+      key: "createStream",
+      titleKey: "createStream",
+      descriptionKey: "createStreamDescription",
+      actionKey: "createStream",
+      actionMethod: "createStream",
+      priority: "primary",
+      fields: [
+        {
+          key: "title",
+          type: "text",
+          labelKey: "vaultName",
+          placeholder: "Monthly payroll stream",
+        },
+        {
+          key: "recipient",
+          type: "address",
+          labelKey: "recipient",
+          placeholder: "N...",
+          required: true,
+        },
+        {
+          key: "amount",
+          type: "amount",
+          labelKey: "amount",
+          placeholder: "0.03",
+          required: true,
+          validation: { min: 0.00000001 },
+        },
+        {
+          key: "duration",
+          type: "number",
+          labelKey: "duration",
+          placeholder: "7",
+          required: true,
+          validation: { min: 1, max: 365 },
+        },
+        {
+          key: "token",
+          type: "select",
+          labelKey: "token",
+          default: "GAS",
+          required: true,
+          options: [
+            { value: "GAS", label: "GAS" },
+            { value: "NEO", label: "NEO" },
+          ],
+        },
+        {
+          key: "notes",
+          type: "text",
+          labelKey: "notes",
+          placeholder: "Optional context",
+        },
+      ],
+    },
+    {
+      key: "claimStream",
+      titleKey: "claim",
+      descriptionKey: "claimStreamDescription",
+      actionKey: "claim",
+      actionMethod: "claimStream",
+      priority: "secondary",
+      fields: [
+        {
+          key: "streamId",
+          type: "number",
+          labelKey: "streamId",
+          placeholder: "1",
+          required: true,
+          validation: { min: 1 },
+        },
+      ],
+    },
+    {
+      key: "cancelStream",
+      titleKey: "cancel",
+      descriptionKey: "cancelStreamDescription",
+      actionKey: "cancel",
+      actionMethod: "cancelStream",
+      priority: "operator",
+      fields: [
+        {
+          key: "streamId",
+          type: "number",
+          labelKey: "streamId",
+          placeholder: "1",
+          required: true,
+          validation: { min: 1 },
+        },
+      ],
+    },
+  ],
+
   features: { walletRequired: true, chainWarning: true },
 
   docs: [

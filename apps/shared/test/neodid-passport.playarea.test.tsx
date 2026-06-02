@@ -1,0 +1,187 @@
+import React from "react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { createObservable, type ObservableState } from "../react/context";
+import { parseMiniAppLaunchContext } from "../utils/launch-params";
+import PlayArea from "../../neodid-passport/src/PlayArea";
+import type { PassportPayload } from "../../neodid-passport/src/passport";
+
+(globalThis as typeof globalThis & { React: typeof React }).React = React;
+
+afterEach(() => cleanup());
+
+function t(key: string) {
+  const messages: Record<string, string> = {
+    apiProofHint: "External providers prepare an unsigned package.",
+    audience: "Audience",
+    audiencePlaceholder: "miniapp-id or relying party",
+    claim: "Claim",
+    claimPlaceholder: "wallet-ownership",
+    copyAction: "Copy Payload",
+    documentVersion: "Version",
+    emptyPayloadCopy: "Resolve a DID before handoff.",
+    emptyPayloadTitle: "Awaiting DID resolution",
+    githubProvider: "GitHub attestation",
+    identityRoute: "Identity route",
+    liveResolver: "Morpheus NeoDID API",
+    notSignedStatus: "Not signed",
+    panelDescription: "Resolve, build, and optionally sign a passport.",
+    panelTitle: "NeoDID Passport Builder",
+    passportReady: "Passport payload ready",
+    payloadDigest: "Payload Digest",
+    provider: "Proof Provider",
+    reset: "Reset",
+    routeBuild: "Build credential",
+    routeResolve: "Resolve DID",
+    routeSign: "Optional wallet proof",
+    runAction: "Resolve and Build",
+    services: "Services",
+    signAction: "Sign Passport",
+    signature: "Signature",
+    statEndpoint: "Resolver",
+    statNetwork: "Network",
+    statRequests: "Passports",
+    subject: "Subject DID",
+    subjectPlaceholder: "did:morpheus:neo_n3:service:neodid",
+    walletProvider: "Wallet signature",
+    walletProofHint: "Wallet signatures do not broadcast.",
+  };
+  return messages[key] ?? key;
+}
+
+function payload(overrides: Partial<PassportPayload> = {}): PassportPayload {
+  return {
+    kind: "neodid.passport.credential",
+    schema: "https://schemas.r3e.network/neodid/passport/v1",
+    network: "testnet",
+    subject: "did:morpheus:neo_n3:service:neodid",
+    provider: "wallet",
+    claim: "wallet-ownership",
+    audience: "miniapp-neodid-passport",
+    issuedAt: "2026-06-01T00:00:00.000Z",
+    resolver: {
+      endpoint: "/api/morpheus/neodid/resolve?did=did%3Amorpheus%3Aneo_n3%3Aservice%3Aneodid&network=testnet",
+      status: "resolved",
+      contentType: "application/json",
+    },
+    didDocument: {
+      id: "did:morpheus:neo_n3:service:neodid",
+      controller: ["did:morpheus:neo_n3:service:neodid"],
+      versionId: "compose-testnet-123",
+      anchorContract: "0xabc",
+      serviceTypes: ["DIDResolutionService", "MorpheusNeoDIDRuntime"],
+      serviceCount: 2,
+    },
+    proof: {
+      provider: "wallet",
+      type: "NeoWalletSignature2026",
+      status: "prepared",
+    },
+    digest: "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    ...overrides,
+  };
+}
+
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const values: Record<string, unknown> = {
+    networkLabel: "Morpheus Testnet",
+    endpointLabel: "NeoDID resolver",
+    requestCount: 0,
+    proofStatus: "Not signed",
+    lastError: "",
+    isResolving: false,
+    isSigning: false,
+    passportPayload: null,
+    ...overrides,
+  };
+
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [
+      key,
+      createObservable(value),
+    ]),
+  );
+}
+
+function props(overrides: Partial<React.ComponentProps<typeof PlayArea>> = {}) {
+  return {
+    t,
+    state: state(),
+    dispatch: vi.fn(async () => undefined),
+    services: { clipboard: { copy: vi.fn(async () => undefined) } },
+    status: null,
+    setStatus: vi.fn(),
+    clearStatus: vi.fn(),
+    loadError: null,
+    retryLoad: vi.fn(async () => undefined),
+    launchContext: parseMiniAppLaunchContext(
+      "https://neomini.app/miniapps/neodid-passport",
+      "miniapp-neodid-passport",
+    ),
+    ...overrides,
+  } as React.ComponentProps<typeof PlayArea>;
+}
+
+describe("NeoDID Passport PlayArea", () => {
+  it("dispatches a real passport build request from the visible form", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea {...props({ dispatch })} />);
+
+    fireEvent.change(screen.getByLabelText("Claim"), {
+      target: { value: "dao-member" },
+    });
+    fireEvent.change(screen.getByLabelText("Audience"), {
+      target: { value: "miniapp-aa-market-hub" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Resolve and Build/i }));
+
+    expect(dispatch).toHaveBeenCalledWith("buildPassport", {
+      subject: "did:morpheus:neo_n3:service:neodid",
+      provider: "wallet",
+      claim: "dao-member",
+      audience: "miniapp-aa-market-hub",
+    });
+  });
+
+  it("renders resolved document metadata and a copyable payload", () => {
+    const copy = vi.fn(async () => undefined);
+    const currentState = state({
+      requestCount: 1,
+      passportPayload: payload(),
+      proofStatus: "Prepared",
+    });
+    const { container } = render(
+      <PlayArea
+        {...props({
+          state: currentState,
+          services: { clipboard: { copy } } as never,
+        })}
+      />,
+    );
+
+    expect(screen.getByText("did:morpheus:neo_n3:service:neodid")).toBeTruthy();
+    expect(screen.getByText("compose-testnet-123")).toBeTruthy();
+    expect(screen.getByText("1234567890...90abcdef")).toBeTruthy();
+    expect(container.textContent).not.toContain("[object Object]");
+
+    fireEvent.click(screen.getByRole("button", { name: /Copy Payload/i }));
+    expect(copy).toHaveBeenCalledWith(expect.stringContaining('"kind": "neodid.passport.credential"'), "copied");
+  });
+
+  it("keeps wallet signing disabled until a payload exists", () => {
+    const { rerender } = render(<PlayArea {...props()} />);
+
+    expect(screen.getByRole("button", { name: /Sign Passport/i }).hasAttribute("disabled")).toBe(true);
+
+    rerender(
+      <PlayArea
+        {...props({
+          state: state({ passportPayload: payload(), proofStatus: "Prepared" }),
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /Sign Passport/i }).hasAttribute("disabled")).toBe(false);
+  });
+});

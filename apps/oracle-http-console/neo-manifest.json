@@ -9,30 +9,21 @@
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": [
-    "oracle",
-    "morpheus",
-    "http",
-    "datafeed"
-  ],
+  "tags": ["oracle", "morpheus", "http", "datafeed"],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
   "contracts": {},
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
+  "supported_networks": ["neo-n3-testnet"],
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/oracle-http-console/index.html",
     "icon": "/miniapps/oracle-http-console/logo.jpg",
     "banner": "/miniapps/oracle-http-console/banner.jpg"
   },
-  "permissions": [
-    "read:blockchain"
-  ],
+  "permissions": ["read:blockchain"],
   "features": {
     "stateless": true,
     "offlineSupport": false,
@@ -41,9 +32,7 @@
   "stateSource": {
     "type": "api",
     "chain": "neo-n3-testnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
+    "endpoints": ["https://api.n3index.dev"]
   },
   "operation_panel": {
     "title": "Oracle Request",
@@ -60,6 +49,7 @@
             "type": "string",
             "label": "Endpoint",
             "placeholder": "https://api.example.com/data",
+            "default_value": "https://oracle.meshmini.app/testnet/health",
             "required": true
           }
         ]

@@ -65,8 +65,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const formatNumber = (n: number) =>
     n > 0 ? n.toLocaleString() : t("explorerDataPending");
 
-  const activeHeight = selectedNetwork === "mainnet" ? mainnetHeight : testnetHeight;
-  const activeTxCount = selectedNetwork === "mainnet" ? mainnetTxCount : testnetTxCount;
   const activeNetworkLabel = selectedNetwork === "mainnet" ? t("mainnet") : t("testnet");
   const activeNetworkHint = selectedNetwork === "mainnet"
     ? t("explorerMainnetHint")
@@ -89,80 +87,59 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="explorer-eyebrow">{t("docSubtitle")}</span>
             <h2>{t("title")}</h2>
             <p>{t("docDescription")}</p>
-          </div>
-        </div>
-        <div className="explorer-hero__metrics" aria-label={t("sidebarNetwork")}>
-          <div className="explorer-metric">
-            <span>{activeNetworkLabel}</span>
-            <strong>{activeNetworkHint}</strong>
-          </div>
-          <div className="explorer-metric">
-            <span>{t("blockHeight")}</span>
-            <strong className="mono">{formatNumber(activeHeight)}</strong>
-          </div>
-          <div className="explorer-metric">
-            <span>{t("transactions")}</span>
-            <strong className="mono">{formatNumber(activeTxCount)}</strong>
+            <span className="explorer-hero__tag">
+              {t("explorerReadOnly")} · {activeNetworkLabel}
+            </span>
           </div>
         </div>
       </section>
 
-      <div className="network-stats">
-        {[
-          { label: t("mainnet"), height: mainnetHeight, txCount: mainnetTxCount },
-          { label: t("testnet"), height: testnetHeight, txCount: testnetTxCount },
-        ].map((network) => (
-          <NeoCard variant="erobo" className="stat-card" key={network.label}>
-            <div className="stat-block">
-              <span className="stat-network-label">{network.label}</span>
-              <div className="stat-row">
-                <span className="stat-label">{t("blockHeight")}</span>
-                <span className="stat-value mono">{formatNumber(network.height)}</span>
+      <section className="explorer-network-overview" aria-label={t("sidebarNetwork")}>
+        <header className="explorer-section-head">
+          <span className="explorer-eyebrow">{t("sidebarNetwork")}</span>
+          <strong>{activeNetworkHint}</strong>
+        </header>
+        <div className="network-stats">
+          {[
+            { label: t("mainnet"), height: mainnetHeight, txCount: mainnetTxCount },
+            { label: t("testnet"), height: testnetHeight, txCount: testnetTxCount },
+          ].map((network) => (
+            <NeoCard variant="erobo" className="stat-card" key={network.label}>
+              <div className="stat-block">
+                <span className="stat-network-label">{network.label}</span>
+                <div className="stat-row">
+                  <span className="stat-label">{t("blockHeight")}</span>
+                  <span className="stat-value mono">{formatNumber(network.height)}</span>
+                </div>
+                <div className="stat-row">
+                  <span className="stat-label">{t("transactions")}</span>
+                  <span className="stat-value mono">{formatNumber(network.txCount)}</span>
+                </div>
               </div>
-              <div className="stat-row">
-                <span className="stat-label">{t("transactions")}</span>
-                <span className="stat-value mono">{formatNumber(network.txCount)}</span>
-              </div>
-            </div>
-          </NeoCard>
-        ))}
-      </div>
+            </NeoCard>
+          ))}
+        </div>
+      </section>
 
-      <section className="explorer-search-primer" aria-label={t("explorerSearchScope")}>
-        <div>
-          <span>{t("feature3Name")}</span>
+      <section className="explorer-search-section" aria-label={t("explorerSearchScope")}>
+        <SearchPanel
+          t={t}
+          searchQuery={searchQuery}
+          selectedNetwork={selectedNetwork}
+          isSearching={isSearching}
+          onUpdateSearchQuery={(v) => state.searchQuery?.set(v)}
+          onUpdateSelectedNetwork={(v) => state.selectedNetwork?.set(v)}
+          onSearch={handleSearch}
+        />
+        <div className="explorer-search-primer">
+          <span className="explorer-eyebrow">{t("feature3Name")}</span>
           <strong>{t("explorerSearchHint")}</strong>
-        </div>
-        <ul>
-          <li>{t("explorerTipTx")}</li>
-          <li>{t("explorerTipAddress")}</li>
-          <li>{t("explorerTipContract")}</li>
-          <li>{t("explorerTipBlock")}</li>
-        </ul>
-      </section>
-
-      <SearchPanel
-        t={t}
-        searchQuery={searchQuery}
-        selectedNetwork={selectedNetwork}
-        isSearching={isSearching}
-        onUpdateSearchQuery={(v) => state.searchQuery?.set(v)}
-        onUpdateSelectedNetwork={(v) => state.selectedNetwork?.set(v)}
-        onSearch={handleSearch}
-      />
-
-      <section className="explorer-workflow" aria-label={t("explorerWorkflowTitle")}>
-        <div>
-          <span>01</span>
-          <strong>{t("step1")}</strong>
-        </div>
-        <div>
-          <span>02</span>
-          <strong>{t("step2")}</strong>
-        </div>
-        <div>
-          <span>03</span>
-          <strong>{t("step3")}</strong>
+          <ul>
+            <li>{t("explorerTipTx")}</li>
+            <li>{t("explorerTipAddress")}</li>
+            <li>{t("explorerTipContract")}</li>
+            <li>{t("explorerTipBlock")}</li>
+          </ul>
         </div>
       </section>
 
@@ -170,7 +147,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="explorer-readonly-note__summary">
           <span>{t("explorerSafetyTitle")}</span>
           <strong>{t("explorerReadOnly")}</strong>
-          <p>{t("feature1Desc")}</p>
+          <p>{t("explorerSafetyDesc")}</p>
         </div>
         <div className="explorer-readonly-note__stats">
           <div>

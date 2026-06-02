@@ -4,8 +4,8 @@
   "name": "Automation Copilot",
   "name_zh": "自动化副驾驶",
   "version": "1.0.0",
-  "description": "User-facing recipe console for price alerts, private oracle jobs, and datafeed-backed runbooks.",
-  "description_zh": "围绕价格提醒、隐私预言机任务和数据驱动 runbook 的用户侧配方控制台。",
+  "description": "User-facing console for creating and operating datafeed-backed automation triggers.",
+  "description_zh": "用于创建并操作数据驱动自动化触发器的用户侧控制台。",
   "category": "data",
   "category_name": "Data",
   "category_name_zh": "数据",
@@ -32,7 +32,8 @@
     "banner": "/miniapps/automation-copilot/banner.jpg"
   },
   "permissions": [
-    "read:blockchain"
+    "read:blockchain",
+    "automation:trigger"
   ],
   "features": {
     "stateless": true,
@@ -43,6 +44,7 @@
     "type": "api",
     "chain": "neo-n3-mainnet",
     "endpoints": [
+      "/api/edge/automation-triggers",
       "https://api.n3index.dev"
     ]
   },
@@ -53,5 +55,5 @@
     "transactions": false
   },
   "createdAt": "2026-03-27T00:00:00Z",
-  "updatedAt": "2026-03-27T00:00:00Z"
+  "updatedAt": "2026-06-01T00:00:00Z"
 }

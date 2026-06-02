@@ -52,6 +52,49 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Flash Loan Console",
+    "subtitle": "Prepare requestFlashLoan inputs, submit through the embedded wallet flow, and query on-chain loan status.",
+    "operations": [
+      {
+        "name": "Request Flash Loan",
+        "method": "requestLoan",
+        "description": "Invoke requestFlashLoan with a GAS amount and callback contract implementing onFlashLoan.",
+        "button_style": "success",
+        "params": [
+          {
+            "name": "amount",
+            "type": "amount",
+            "label": "Loan amount",
+            "placeholder": "1",
+            "required": true
+          },
+          {
+            "name": "callbackContract",
+            "type": "hash160",
+            "label": "Callback contract",
+            "placeholder": "0x...",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "Lookup Loan",
+        "method": "lookupLoan",
+        "description": "Read getFlashLoan(appId, loanId) for a previously executed loan.",
+        "button_style": "secondary",
+        "params": [
+          {
+            "name": "loanId",
+            "type": "integer",
+            "label": "Loan ID",
+            "placeholder": "1",
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

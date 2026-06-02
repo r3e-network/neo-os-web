@@ -65,6 +65,81 @@ describe("/api/rpc/neo", () => {
     });
   });
 
+  it("allows invokescript for local batched transaction preflight", async () => {
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      body: {
+        network: "testnet",
+        method: "invokescript",
+        params: ["base64-script", []],
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "invokescript",
+      params: ["base64-script", []],
+    });
+  });
+
+  it("retries stale sendrawtransaction relay errors against a fallback RPC", async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        text: async () =>
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            error: { code: -510, message: "Expired transaction - Expired" },
+          }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        text: async () =>
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: { hash: "0xabc" },
+          }),
+      });
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      body: {
+        network: "testnet",
+        method: "sendrawtransaction",
+        params: ["signed-tx"],
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    expect(JSON.parse(res._getData())).toEqual({
+      jsonrpc: "2.0",
+      id: 1,
+      result: { hash: "0xabc" },
+    });
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      "https://testnet.example",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      "https://api.n3index.dev/testnet",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
   it("uses Neo3Fura public RPC gateways as the safe default when env overrides are absent", async () => {
     delete process.env.NEO_TESTNET_RPC_URL;
     delete process.env.NEO_MAINNET_RPC_URL;

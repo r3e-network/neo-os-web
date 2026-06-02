@@ -7,6 +7,15 @@ import { messages } from "./locale/messages";
 const appId = "miniapp-dice-game";
 const PAYOUT_MULTIPLIER = 5.7;
 
+type RollHistoryItem = {
+  face: string;
+  stake: string;
+  result: string;
+  payout: string;
+  txid?: string;
+  at: string;
+};
+
 function sanitizeFace(value: unknown): string {
   const face = Number(value);
   if (!Number.isInteger(face) || face < 1 || face > 6) return "6";
@@ -15,6 +24,7 @@ function sanitizeFace(value: unknown): string {
 
 function sanitizeAmount(value: unknown): string {
   const raw = String(value ?? "").trim();
+  if (raw.length === 0) return "0.10";
   const amount = Number(raw);
   if (!Number.isFinite(amount)) return "0.10";
   if (amount < 0.05) return "0.05";
@@ -48,6 +58,7 @@ defineMiniApp({
     const lastTxid = createObservable("");
     const lastStatus = createObservable(ctx.t("statusReady"));
     const isSubmitting = createObservable(false);
+    const rollHistory = createObservable<RollHistoryItem[]>([]);
 
     const syncSelection = (face: unknown, amount: unknown) => {
       const nextFace = sanitizeFace(face);
@@ -87,10 +98,22 @@ defineMiniApp({
         );
         lastTxid.set(result.txid ?? "");
         lastStatus.set(ctx.t("statusSubmitted"));
+        rollHistory.set([
+          {
+            face: nextFace,
+            stake: `${nextAmount} GAS`,
+            result: ctx.t("statusSubmitted"),
+            payout: payoutFor(nextAmount),
+            txid: result.txid ?? "",
+            at: new Date().toISOString(),
+          },
+          ...rollHistory.get(),
+        ].slice(0, 6));
         ctx.setStatus(
           `${ctx.t("statusSubmitted")}${result.txid ? `: ${formatHash(result.txid, 10, 8)}` : ""}`,
           "success",
         );
+        return result;
       } catch (error) {
         const message =
           error instanceof Error ? error.message : ctx.t("statusFailed");
@@ -110,6 +133,7 @@ defineMiniApp({
         lastTxid,
         lastStatus,
         isSubmitting,
+        rollHistory,
       },
       loadData: async () => {},
     };

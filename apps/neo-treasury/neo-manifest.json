@@ -4,8 +4,8 @@
   "name": "Neo Treasury",
   "name_zh": "Neo 财库",
   "version": "1.0.0",
-  "description": "Track Neo Foundation and Ecosystem Fund balances",
-  "description_zh": "Neo 国库 — 社区资金管理与透明财务报告",
+  "description": "Track public Neo treasury balances and submit controlled connected-wallet NEO/GAS disbursements.",
+  "description_zh": "追踪 Neo 国库公开余额，并从已连接钱包提交受控 NEO/GAS 支出。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -17,7 +17,8 @@
   },
   "contracts": {},
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
   ],
   "default_network": "neo-n3-mainnet",
   "urls": {
@@ -26,6 +27,7 @@
     "banner": "/miniapps/neo-treasury/banner.jpg"
   },
   "permissions": [
+    "invoke:primary",
     "read:blockchain"
   ],
   "features": {
@@ -34,9 +36,88 @@
     "deeplink": "neomainapp://neo-treasury"
   },
   "stateSource": {
-    "type": "api",
+    "type": "chain",
+    "chain": "neo-n3-mainnet",
     "endpoints": [
-      "https://api.n3index.dev"
+      "https://mainnet2.neo.coz.io:443",
+      "https://mainnet3.neo.coz.io:443",
+      "https://mainnet4.neo.coz.io:443",
+      "https://mainnet5.neo.coz.io:443",
+      "https://rpc10.n3.nspcc.ru:10331"
+    ]
+  },
+  "operation_panel": {
+    "title": "Treasury Operations",
+    "subtitle": "Review public balances, then submit a connected-wallet NEP-17 disbursement without claiming control over watched foundation wallets.",
+    "operations": [
+      {
+        "name": "Sign Disbursement",
+        "method": "submitDisbursement",
+        "description": "Transfer NEO or GAS from the connected wallet to a treasury recipient with a memo.",
+        "button_style": "success",
+        "priority": "primary",
+        "confirm_message": "Submit this treasury disbursement from your connected wallet?",
+        "params": [
+          {
+            "name": "asset",
+            "type": "select",
+            "label": "Asset",
+            "required": true,
+            "default_value": "GAS",
+            "options": [
+              "GAS",
+              "NEO"
+            ]
+          },
+          {
+            "name": "amount",
+            "type": "amount",
+            "label": "Amount",
+            "placeholder": "1",
+            "required": true,
+            "scale": 8,
+            "presets": [
+              {
+                "label": "0.1",
+                "value": "0.1",
+                "helper": "GAS"
+              },
+              {
+                "label": "1",
+                "value": "1",
+                "helper": "GAS"
+              },
+              {
+                "label": "5",
+                "value": "5",
+                "helper": "GAS"
+              }
+            ]
+          },
+          {
+            "name": "recipient",
+            "type": "address",
+            "label": "Recipient",
+            "placeholder": "N...",
+            "required": true
+          },
+          {
+            "name": "memo",
+            "type": "string",
+            "label": "Memo",
+            "placeholder": "treasury-disbursement",
+            "default_value": "treasury-disbursement"
+          }
+        ]
+      },
+      {
+        "name": "Refresh Treasury",
+        "method": "refresh",
+        "description": "Reload public watched-wallet balances from Neo N3 RPC.",
+        "button_style": "secondary",
+        "priority": "secondary",
+        "params": []
+      }
     ]
   },
   "platform": {
@@ -46,5 +127,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-06-01T00:00:00Z"
 }

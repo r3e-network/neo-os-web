@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { Github, Twitter } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 
@@ -22,7 +23,24 @@ const footerLinks = {
   ],
 };
 
+function readNetworkQuery(value: string | string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const normalized = String(raw ?? "").trim().toLowerCase();
+  if (normalized === "testnet" || normalized === "neo-n3-testnet") return "testnet";
+  if (normalized === "mainnet" || normalized === "neo-n3-mainnet") return "mainnet";
+  return "";
+}
+
+function withNetworkQuery(href: string, network: string): string {
+  if (!network) return href;
+  const separator = href.includes("?") ? "&" : "?";
+  return `${href}${separator}network=${encodeURIComponent(network)}`;
+}
+
 export function Footer() {
+  const router = useRouter();
+  const networkQuery = readNetworkQuery(router.query.network);
+
   return (
     <footer
       aria-label="Site footer"
@@ -33,7 +51,7 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2 flex flex-col items-start pr-0 lg:pr-10">
             <Link
-              href="/"
+              href={withNetworkQuery("/", networkQuery)}
               className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 transition-transform hover:scale-105 inline-block"
             >
               <img
@@ -61,7 +79,7 @@ export function Footer() {
               {footerLinks.platform.map((link) => (
                 <li key={link.href}>
                   <Link
-                    href={link.href}
+                    href={withNetworkQuery(link.href, networkQuery)}
                     className="text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-md inline-block"
                   >
                     {link.label}
@@ -80,7 +98,7 @@ export function Footer() {
               {footerLinks.resources.map((link) => (
                 <li key={link.href}>
                   <Link
-                    href={link.href}
+                    href={withNetworkQuery(link.href, networkQuery)}
                     className="text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-md inline-block"
                   >
                     {link.label}

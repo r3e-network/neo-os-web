@@ -18,7 +18,7 @@ export function FeaturedAppsAside({
 }) {
   return (
     <aside
-      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+      className="self-start rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
       data-testid="homepage-featured-apps"
     >
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -31,7 +31,7 @@ export function FeaturedAppsAside({
           </h2>
         </div>
         <Link
-          href="/miniapps"
+          href={`/miniapps?network=${encodeURIComponent(targetNetwork)}`}
           className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:border-neo/40 hover:text-emerald-700"
         >
           {t("actions.viewAll")}

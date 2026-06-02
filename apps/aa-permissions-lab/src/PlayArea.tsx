@@ -4,20 +4,32 @@
  * Wallet-style control room for inspecting and rotating AA verifier/hook policy.
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
+import { getPermissionsLaunchDefaults } from "./launch";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext: MiniAppLaunchContext;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  launchContext,
+}: PlayAreaProps) {
   const { str, bool } = useStateBindings(state);
+  const launchDefaults = useMemo(
+    () => getPermissionsLaunchDefaults(launchContext),
+    [launchContext.signature],
+  );
 
   const isRefreshing = bool("isRefreshing");
   const isVerifierBusy = bool("isVerifierBusy");
@@ -29,10 +41,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     t("notAvailable") || "N/A",
   );
 
-  const [accountIdHash, setAccountIdHash] = useState("");
-  const [verifierHash, setVerifierHash] = useState("");
-  const [verifierParamsHex, setVerifierParamsHex] = useState("");
-  const [hookHash, setHookHash] = useState("");
+  const [accountIdHash, setAccountIdHash] = useState(
+    launchDefaults.accountIdHash,
+  );
+  const [verifierHash, setVerifierHash] = useState(launchDefaults.verifierHash);
+  const [verifierParamsHex, setVerifierParamsHex] = useState(
+    launchDefaults.verifierParamsHex,
+  );
+  const [hookHash, setHookHash] = useState(launchDefaults.hookHash);
+
+  useEffect(() => {
+    setAccountIdHash(launchDefaults.accountIdHash);
+    setVerifierHash(launchDefaults.verifierHash);
+    setVerifierParamsHex(launchDefaults.verifierParamsHex);
+    setHookHash(launchDefaults.hookHash);
+  }, [launchContext.signature, launchDefaults]);
 
   const accountReady = Boolean(accountIdHash.trim());
   const canRefresh = accountReady && !isRefreshing;
@@ -61,10 +84,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="permissions-hero__copy">
           <div className="permissions-hero__head">
             <span className="permissions-hero__badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="7.5" cy="15.5" r="4.5" stroke="currentColor" strokeWidth="1.8" />
-                <path d="m10.8 12.2 8.2-8.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="m16 5 3 3M14 7l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="7.5"
+                  cy="15.5"
+                  r="4.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="m10.8 12.2 8.2-8.2"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="m16 5 3 3M14 7l3 3"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </span>
             <h2>{t("permissionsHeroTitle")}</h2>
@@ -104,15 +148,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               }
               onChange={(v) => setAccountIdHash(v)}
             />
-            <NeoButton
-              variant="primary"
-              loading={isRefreshing}
-              disabled={!canRefresh}
-              aria-label={t("inspect") || "Inspect"}
-              onClick={() => dispatch("refresh", accountIdHash)}
-            >
-              {t("inspect") || "Inspect"}
-            </NeoButton>
+            {!canRefresh && (
+              <p className="permissions-hint">{t("inspectBlocked")}</p>
+            )}
+            <div className="permissions-action-grid">
+              <NeoButton
+                variant="primary"
+                loading={isRefreshing}
+                disabled={!canRefresh}
+                aria-label={t("inspect") || "Inspect"}
+                onClick={() => dispatch("refresh", accountIdHash)}
+              >
+                {t("inspect") || "Inspect"}
+              </NeoButton>
+              <NeoButton
+                variant="secondary"
+                aria-label={t("connectWallet") || "Connect Wallet"}
+                onClick={() => dispatch("connect")}
+              >
+                {t("connectWallet") || "Connect Wallet"}
+              </NeoButton>
+            </div>
           </div>
         </NeoCard>
       </section>

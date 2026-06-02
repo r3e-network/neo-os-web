@@ -519,7 +519,21 @@ export async function fetchAppStats(
         return [{ label: "Live data", value: "No binding" }];
     }
   } catch (err) {
-    console.warn("[LiveContractView] fetchAppStats failed for", appId, err);
+    if (!isExpectedStatsAbort(err)) {
+      console.warn("[LiveContractView] fetchAppStats failed for", appId, err);
+    }
     return [{ label: "Live stats", value: "Unavailable" }];
   }
+}
+
+function isExpectedStatsAbort(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const name = err.name.toLowerCase();
+  const message = err.message.toLowerCase();
+  return (
+    name === "aborterror" ||
+    name === "timeouterror" ||
+    message.includes("signal timed out") ||
+    message.includes("operation was aborted")
+  );
 }

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { LockKeyhole, ShieldCheck } from "lucide-react";
+import { AlertTriangle, LockKeyhole, ShieldCheck } from "lucide-react";
 
 import {
   buildConfidentialTransferPackage,
@@ -24,6 +24,41 @@ type PrivateTransferResult = {
   secretRef?: string;
   contract?: string;
 };
+
+type SealPhase = "key" | "package" | "store";
+
+const MORPHEUS_ENCRYPTION_ALGORITHM = "X25519-HKDF-SHA256-AES-256-GCM";
+const PRIVATE_TRANSFER_FORM_MESSAGE =
+  "Add a valid Neo N3 recipient and a positive transfer amount in the action console before sealing.";
+
+function isValidNeoAddress(value: string) {
+  return /^N[0-9A-Za-z]{33}$/.test(value.trim());
+}
+
+function isPositiveAmount(value: string) {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount > 0;
+}
+
+function normalizePrivateTransferError(error: unknown, sealPhase: SealPhase) {
+  const raw = error instanceof Error ? error.message : String(error ?? "");
+  if (
+    sealPhase === "key" ||
+    /public key|contract.*configured|not configured|network|404|not found/i.test(raw)
+  ) {
+    return "Morpheus sealing is unavailable for this network. Your transfer details remain local.";
+  }
+  if (/algorithm|X25519|HKDF|AES/i.test(raw)) {
+    return "The selected Morpheus key cannot be used by this client. Your transfer details remain local.";
+  }
+  if (
+    sealPhase === "store" ||
+    /secret reference|secret_ref|store|inline_fallback/i.test(raw)
+  ) {
+    return "Morpheus confidential storage is temporarily unavailable. Your transfer details remain local.";
+  }
+  return "Private transfer sealing is unavailable right now. Your transfer details remain local.";
+}
 
 export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
   const {
@@ -53,13 +88,23 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
     message: "Ready to seal transfer instructions locally.",
   });
   const handledSealRef = useRef("");
+  const formReady = isValidNeoAddress(recipient) && isPositiveAmount(amount);
 
   const sealTransfer = useCallback(async () => {
+    if (!formReady) {
+      setResult({
+        status: "error",
+        message: PRIVATE_TRANSFER_FORM_MESSAGE,
+      });
+      return;
+    }
+
     setResult({
       status: "sealing",
       message:
         "Fetching Morpheus public key and building a local X25519 envelope.",
     });
+    let sealPhase: SealPhase = "key";
     try {
       const keyResponse = await fetch(
         `/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`,
@@ -72,13 +117,15 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
       }
       if (
         keyMeta.algorithm &&
-        keyMeta.algorithm !== "X25519-HKDF-SHA256-AES-256-GCM"
+        keyMeta.algorithm !== MORPHEUS_ENCRYPTION_ALGORITHM
       ) {
+        sealPhase = "package";
         throw new Error(
           `Unsupported Morpheus encryption algorithm: ${keyMeta.algorithm}`,
         );
       }
 
+      sealPhase = "package";
       const transferPackage = await buildConfidentialTransferPackage({
         appId: app.app_id,
         network,
@@ -91,6 +138,7 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
         String(keyMeta.public_key),
         transferPackage.confidentialPayload,
       );
+      sealPhase = "store";
       const storeResponse = await fetch("/api/morpheus/confidential/store", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,6 +157,11 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
           stored?.error ||
             stored?.message ||
             "Morpheus confidential store is unavailable",
+        );
+      }
+      if (stored?.inline_fallback) {
+        throw new Error(
+          stored?.error || "Morpheus confidential store is unavailable",
         );
       }
       const storedRef = String(
@@ -132,16 +185,16 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
     } catch (sealError) {
       setResult({
         status: "error",
-        message:
-          sealError instanceof Error ? sealError.message : String(sealError),
+        message: normalizePrivateTransferError(sealError, sealPhase),
       });
+      console.warn(`[private-transfer] seal failed during ${sealPhase} phase`);
     }
-  }, [amount, app.app_id, asset, memo, network, recipient]);
+  }, [amount, app.app_id, asset, formReady, memo, network, recipient]);
 
   useEffect(() => {
     if (launchContext?.operation !== "sealPrivateTransfer") return;
     const signature = `${launchContext.signature}:${recipient}:${amount}:${asset}:${memo}`;
-    if (!recipient || !amount || handledSealRef.current === signature) return;
+    if (!formReady || handledSealRef.current === signature) return;
     handledSealRef.current = signature;
     void sealTransfer();
   }, [
@@ -151,6 +204,7 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
     launchContext?.signature,
     memo,
     recipient,
+    formReady,
     sealTransfer,
   ]);
 
@@ -179,16 +233,27 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
           rows={[
             {
               label: "Recipient",
-              detail: recipient || "Recipient pending",
-              value: recipient ? shortHash(recipient) : "waiting",
+              detail: recipient
+                ? isValidNeoAddress(recipient)
+                  ? recipient
+                  : "Recipient must be a Neo N3 address"
+                : "Recipient pending",
+              value:
+                recipient && isValidNeoAddress(recipient)
+                  ? shortHash(recipient)
+                  : "waiting",
               valueLabel: "address",
-              active: Boolean(recipient),
+              active: Boolean(recipient && isValidNeoAddress(recipient)),
               icon: <LockKeyhole className="h-4 w-4" />,
             },
             {
               label: "Amount",
-              detail: "Asset and amount remain private inside the envelope",
-              value: amount ? `${amount} ${asset}` : `0 ${asset}`,
+              detail: isPositiveAmount(amount)
+                ? "Asset and amount remain private inside the envelope"
+                : "Enter an amount greater than zero",
+              value: isPositiveAmount(amount)
+                ? `${amount} ${asset}`
+                : `0 ${asset}`,
               valueLabel: "sealed",
             },
             {
@@ -199,32 +264,48 @@ export function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
             },
             {
               label: "Result",
-              detail: result.message,
-              value: result.status,
+              detail: formReady
+                ? result.message
+                : PRIVATE_TRANSFER_FORM_MESSAGE,
+              value: formReady ? result.status : "draft",
               valueLabel: "state",
             },
           ]}
         />
 
-        <div className="rounded-lg border border-violet-100 bg-violet-50 p-4 text-slate-900">
-          <h3 className="m-0 flex items-center gap-2 text-sm font-black">
-            <ShieldCheck className="h-4 w-4 text-violet-700" />
-            Privacy flow
-          </h3>
-          <div className="mt-4 space-y-3">
-            {[
-              "Deposit asset into a public escrow or wallet-signed intent.",
-              "Encrypt recipient, amount, memo, and note secret in the browser.",
-              "Morpheus TEE decrypts, checks policy, and signs a settlement envelope.",
-              "Wallet submits release or refund with the signed result.",
-            ].map((step, index) => (
-              <div key={step} className="flex gap-3 text-sm text-slate-700">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-violet-700 shadow-sm shadow-violet-950/5">
-                  {index + 1}
-                </span>
-                <span>{step}</span>
-              </div>
-            ))}
+        <div className="space-y-3">
+          {!formReady && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950">
+              <h3 className="m-0 flex items-center gap-2 text-sm font-black">
+                <AlertTriangle className="h-4 w-4 text-amber-700" />
+                Input needed
+              </h3>
+              <p className="mt-2 text-sm leading-6">
+                {PRIVATE_TRANSFER_FORM_MESSAGE}
+              </p>
+            </div>
+          )}
+
+          <div className="rounded-lg border border-teal-100 bg-teal-50 p-4 text-slate-900">
+            <h3 className="m-0 flex items-center gap-2 text-sm font-black">
+              <ShieldCheck className="h-4 w-4 text-teal-700" />
+              Privacy flow
+            </h3>
+            <div className="mt-4 space-y-3">
+              {[
+                "Deposit asset into a public escrow or wallet-signed intent.",
+                "Encrypt recipient, amount, memo, and note secret in the browser.",
+                "Morpheus TEE decrypts, checks policy, and signs a settlement envelope.",
+                "Wallet submits release or refund with the signed result.",
+              ].map((step, index) => (
+                <div key={step} className="flex gap-3 text-sm text-slate-700">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white text-xs font-black text-teal-700 shadow-sm shadow-teal-950/5">
+                    {index + 1}
+                  </span>
+                  <span>{step}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -248,6 +329,12 @@ function PrivateTransferStatusPanel({
     <div className={`rounded-lg border p-4 ${tone}`}>
       <h3 className="m-0 text-sm font-black">Morpheus confidential compute</h3>
       <p className="mt-2 text-sm leading-6">{result.message}</p>
+      {result.status === "error" && (
+        <p className="mt-3 rounded-lg border border-red-200 bg-white/70 px-3 py-2 text-xs font-bold leading-5 text-red-900">
+          Nothing was sent on-chain. Fix the inputs or try again when the
+          Morpheus service is available.
+        </p>
+      )}
       <div className="mt-3 space-y-2">
         {result.secretRef && (
           <PreviewStat label="Secret ref" value={result.secretRef} />

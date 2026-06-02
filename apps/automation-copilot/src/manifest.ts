@@ -9,7 +9,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Automation Copilot",
-  description: "Build oracle-driven automation recipes from live Morpheus data",
+  description: "Create and operate oracle-driven automation triggers from live Morpheus data",
   icon: "cpu",
   category: "console",
   shell: "console",
@@ -21,7 +21,7 @@ export const manifest: MiniAppManifest = {
   stats: [
     { labelKey: "asset", valueKey: "asset", format: "text", icon: "dollar-sign" },
     { labelKey: "currentPrice", valueKey: "currentPrice", format: "text", icon: "trending-up" },
-    { labelKey: "targetPrice", valueKey: "targetPrice", format: "text", icon: "target" },
+    { labelKey: "triggerCount", valueKey: "triggerCount", format: "number", icon: "activity" },
   ],
 
   sidebar: {
@@ -31,6 +31,7 @@ export const manifest: MiniAppManifest = {
       { labelKey: "currentPrice", valueKey: "currentPrice", format: "text" },
       { labelKey: "targetPrice", valueKey: "targetPrice", format: "text" },
       { labelKey: "schedule", valueKey: "schedule", format: "text" },
+      { labelKey: "triggerStatus", valueKey: "latestTriggerState", format: "text" },
     ],
   },
 

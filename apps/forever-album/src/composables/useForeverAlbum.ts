@@ -148,6 +148,7 @@ export function useForeverAlbum({
   // ── Upload state ─────────────────────────────────────────────────────
   const showUpload = createObservable(false);
   const uploading = createObservable(false);
+  const uploadError = createObservable<string | null>(null);
   const selectedImages = createObservable<UploadItem[]>([]);
   const isEncrypted = createObservable(false);
   const password = createObservable("");
@@ -255,13 +256,14 @@ export function useForeverAlbum({
   };
 
   const handleDecrypt = async (pwd: string) => {
-    if (!decryptTarget.get() || !pwd) {
+    const target = decryptTarget.get();
+    if (!target || !pwd) {
       eventBus.emit("album:error", { message: t("passwordRequired") });
       return;
     }
     decrypting.set(true);
     try {
-      const result = await decryptPayload(decryptTarget.get().data, pwd);
+      const result = await decryptPayload(target.data, pwd);
       if (!result.startsWith("data:image")) throw new Error(t("invalidPayload"));
       decryptedPreview.set(result);
     } catch (e) {
@@ -284,9 +286,11 @@ export function useForeverAlbum({
 
   const closeUpload = () => {
     showUpload.set(false);
+    uploadError.set(null);
   };
 
   const removeImage = (id: string) => {
+    uploadError.set(null);
     selectedImages.set(selectedImages.get().filter((item) => item.id !== id));
   };
 
@@ -305,6 +309,7 @@ export function useForeverAlbum({
   const addFiles = async (files: File[] | FileList) => {
     const list = Array.from(files);
     if (list.length === 0) return [];
+    uploadError.set(null);
     const availableSlots = Math.max(0, MAX_PHOTOS_PER_UPLOAD - selectedImages.get().length);
     if (availableSlots === 0) {
       eventBus.emit("album:error", { message: t("maxPhotosReached") });
@@ -341,11 +346,14 @@ export function useForeverAlbum({
   const uploadPhotos = async () => {
     if (uploading.get() || selectedImages.get().length === 0) return;
     if (isEncrypted.get() && !password.get()) {
-      eventBus.emit("album:error", { message: t("passwordRequired") });
+      const message = t("passwordRequired");
+      uploadError.set(message);
+      eventBus.emit("album:error", { message });
       return;
     }
 
     uploading.set(true);
+    uploadError.set(null);
     try {
       const walletAddress = await chainService.ensureWallet();
       const records: StoredPhoto[] = [];
@@ -389,6 +397,7 @@ export function useForeverAlbum({
         .catch(() => {});
 
       eventBus.emit("album:uploaded", { action: t("uploadSuccess") });
+      uploadError.set(null);
 
       // Hint badge for album creator (fire-and-forget)
       badgeService.award("album-creator", "").catch(() => {});
@@ -397,8 +406,13 @@ export function useForeverAlbum({
       selectedImages.set([]);
       await loadPhotos();
     } catch (e) {
+      const rawMessage = e instanceof Error ? e.message : t("uploadFailed");
+      const message = /putMiniAppState|deleteMiniAppState|getMiniAppState|doesn'?t exist in the contract/i.test(rawMessage)
+        ? t("storageKernelUnavailable")
+        : rawMessage;
+      uploadError.set(message);
       eventBus.emit("album:error", {
-        message: e instanceof Error ? e.message : t("uploadFailed"),
+        message,
       });
       throw e;
     } finally {
@@ -427,6 +441,7 @@ export function useForeverAlbum({
     // ── Upload state ─────────────────────────────────────────────────
     showUpload,
     uploading,
+    uploadError,
     selectedImages,
     isEncrypted,
     password,

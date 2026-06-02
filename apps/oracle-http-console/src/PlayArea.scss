@@ -1,0 +1,146 @@
+/**
+ * Oracle HTTP Console — app-scoped Neo Soft refinements.
+ *
+ * These rules override the shared ConsoleToolPanel layout (global class
+ * selectors) for THIS app only. No shared files are modified. Goals:
+ *   - reduce visual density / add breathing room
+ *   - remove decorative non-business clutter (fake sparkline, flow-step badges)
+ *   - unify cards to Neo Soft (radius-lg, soft shadow, navy ink, no hairline)
+ *   - keep the app's single accent hue (brand green) on icon badges & accents
+ * Only existing --ns-* tokens are used; no invented values.
+ */
+
+.console-tool {
+  gap: 20px;
+}
+
+/* --- Cards: Neo Soft surface (radius-lg, soft shadow, no border) --- */
+.console-tool__hero,
+.console-tool__form,
+.console-tool__result {
+  border: none;
+  border-radius: var(--ns-radius-lg);
+  box-shadow: var(--ns-shadow-md);
+}
+
+.console-tool__hero {
+  gap: 24px;
+  padding: 24px;
+  background: var(--ns-surface);
+}
+
+.console-tool__asset-card {
+  border: none;
+  border-radius: var(--ns-radius-lg);
+  box-shadow: var(--ns-shadow-md);
+  padding: 22px 24px;
+}
+
+/* --- Hero / asset / empty icon badges: keep the app's brand-green accent --- */
+.console-tool__hero-badge,
+.console-tool__asset-token,
+.console-tool__empty-icon {
+  width: 46px;
+  height: 46px;
+  flex-basis: 46px;
+  color: var(--ns-brand-strong);
+  background: var(--ns-brand-soft);
+}
+
+.console-tool__empty span:not(.console-tool__empty-icon) {
+  color: var(--ns-brand-strong);
+  background: var(--ns-brand-soft);
+}
+
+.console-tool__hint svg {
+  color: var(--ns-brand-strong);
+}
+
+/* --- Hero metrics: a touch more breathing room --- */
+.console-tool__hero-metrics {
+  gap: 10px;
+}
+
+.console-tool__metric {
+  border: none;
+  border-radius: var(--ns-radius-md);
+  padding: 13px 16px;
+}
+
+/* --- Remove non-business clutter: fake sparkline + redundant signal label --- */
+.console-tool__sparkline {
+  display: none;
+}
+
+.console-tool__asset-signal {
+  min-width: 0;
+  width: auto;
+  border: none;
+  border-radius: var(--ns-radius-md);
+  padding: 12px 16px;
+  align-content: center;
+}
+
+/* --- Remove decorative flow-step badges (steps are implicit in the form) --- */
+.console-tool__flow {
+  display: none;
+}
+
+/* --- Workspace: loosen grid + add breathing room --- */
+.console-tool__workspace {
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 20px;
+}
+
+.console-tool__form {
+  gap: 16px;
+  padding: 24px;
+}
+
+.console-tool__result {
+  gap: 16px;
+  padding: 24px;
+}
+
+.console-tool__hint {
+  border: none;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+}
+
+/* --- Inputs: Neo Soft radius + brand-tinted focus ring --- */
+.console-tool__field select {
+  border-radius: var(--ns-radius-md);
+  transition: border-color var(--ns-t-fast) var(--ns-ease-smooth),
+    box-shadow var(--ns-t-fast) var(--ns-ease-smooth);
+}
+
+.console-tool__field select:focus {
+  outline: none;
+  border-color: var(--ns-brand-strong);
+  box-shadow: var(--ns-focus-ring);
+}
+
+/* --- Result rows: single column to reduce density / improve readability --- */
+.console-tool__rows {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.console-tool__rows div {
+  border: none;
+  border-radius: var(--ns-radius-md);
+  padding: 13px 16px;
+}
+
+.console-tool__payload-card pre {
+  border: none;
+  border-radius: var(--ns-radius-md);
+}
+
+/* --- Keep the loosened workspace responsive (shared collapses at 860px) --- */
+@media (max-width: 860px) {
+  .console-tool__workspace {
+    grid-template-columns: 1fr;
+  }
+}

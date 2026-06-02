@@ -70,6 +70,7 @@ export function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
           tone="rose"
           frameTitle={`${app.name} dApp`}
           testId={`native-dapp-frame-${app.app_id}`}
+          heightClass="h-[2100px] sm:h-[1800px] lg:h-[1640px]"
         />
       </div>
     </PlayShell>

@@ -28,6 +28,12 @@ const appMessages = {
     zh: "可选 paymaster 作用域，由 relayer 策略使用。",
   },
   dappIdPlaceholder: { en: "Optional dapp id", zh: "可选的 dapp id" },
+  sponsorAmount: { en: "Sponsor Amount", zh: "赞助额度" },
+  sponsorAmountHint: {
+    en: "GAS amount requested from the paymaster for this AA scope.",
+    zh: "为当前 AA 作用域向 paymaster 请求的 GAS 额度。",
+  },
+  sponsorAmountPlaceholder: { en: "0.1", zh: "0.1" },
   payloadJson: { en: "Relay Payload JSON", zh: "Relay Payload JSON" },
   payloadJsonHint: {
     en: "Must be valid JSON before Submit Relay Payload is enabled.",

@@ -2,7 +2,7 @@
  * useBurnLeague — Domain logic for the Burn League miniapp (OS Services)
  *
  * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (GameProxy, NFTProxy, LeaderboardProxy, BadgeProxy) via
+ * OS services (GameProxy, LeaderboardProxy, BadgeProxy) via
  * edge functions, so this file contains zero contract hashes, parameter
  * encoding, or event parsing logic.
  *
@@ -19,7 +19,7 @@
  *   AFTER (OS proxy):
  *     gameService.getPoolState("burn-league")       — load burn stats
  *     leaderboardService.get(100)                   — load leaderboard
- *     nftService.burn(tokenId)                      — burn tokens
+ *     gameService.placeBet("burn-league", amount)  — submit burn entry intent
  *     badgeService.updateStat(user, "burned", ...)  — track burn amounts
  *     badgeService.award(badgeId, user)             — award achievements
  *
@@ -31,9 +31,7 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
 import type { GameProxy } from "@shared/services/os/GameProxy";
-import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { LeaderboardProxy, LeaderboardEntry } from "@shared/services/os/LeaderboardProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { formatNumber } from "@shared/utils/format";
@@ -44,6 +42,24 @@ import { formatNumber } from "@shared/utils/format";
 
 /** Minimum burn amount in GAS */
 export const MIN_BURN = 1;
+const MAX_BURN = 1_000;
+const BURN_POOL_ID = "burn-league";
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error ?? "");
+}
+
+function isOsBoundaryError(error: unknown) {
+  return /OS service error|os-game-|os-leaderboard-|os-badge-|Not Found|function not allowed|not configured/i.test(
+    errorMessage(error),
+  );
+}
+
+function isWalletBoundaryError(error: unknown) {
+  return /Wallet adapter|invokeWithConfirmation|Wallet address|required to submit|connect wallet|No wallet/i.test(
+    errorMessage(error),
+  );
+}
 
 // ============================================================================
 // Types
@@ -76,8 +92,6 @@ interface BurnLeaguePoolState {
 export interface UseBurnLeagueOptions {
   /** OS GameProxy instance from ctx.os.game */
   gameService: GameProxy;
-  /** OS NFTProxy instance from ctx.os.nft */
-  nftService: NFTProxy;
   /** OS LeaderboardProxy instance from ctx.os.leaderboard */
   leaderboardService: LeaderboardProxy;
   /** OS BadgeProxy instance from ctx.os.badge */
@@ -92,7 +106,6 @@ export interface UseBurnLeagueOptions {
 
 export function useBurnLeague({
   gameService,
-  nftService,
   leaderboardService,
   badgeService,
   t,
@@ -106,6 +119,11 @@ export function useBurnLeague({
   const leaderboard = createObservable<LeaderEntry[]>([]);
   const isBurning = createObservable(false);
   const isLoading = createObservable(false);
+  const leagueDataAvailable = createObservable(false);
+  const serviceNotice = createObservable("");
+  const actionNotice = createObservable("");
+  const burnValidationError = createObservable<string | null>(null);
+  const lastSubmittedAmount = createObservable("");
 
   // ── Local UI state managed by the composable ─────────────────────────
   const burnAmount = createObservable("1");
@@ -123,7 +141,14 @@ export function useBurnLeague({
   /** Estimated reward based on current burn amount (0.1x multiplier) */
   const estimatedReward = createDerived(() => {
     const amount = parseFloat(burnAmount.get());
-    return Number.isFinite(amount) && amount > 0 ? amount * 0.1 : 0;
+    const reward = Number.isFinite(amount) && amount > 0 ? amount * 0.1 : 0;
+    return `${formatNumber(reward, 2)} ${t("tokenGas")}`;
+  }, []);
+
+  const projectedTotalBurnedDisplay = createDerived(() => {
+    const amount = parseFloat(burnAmount.get());
+    const projected = totalBurned.get() + (Number.isFinite(amount) ? Math.max(0, amount) : 0);
+    return `${formatNumber(projected, 2)} ${t("tokenGas")}`;
   }, []);
 
   /** Top 10 entries for the leaderboard preview */
@@ -144,9 +169,16 @@ export function useBurnLeague({
         rewardPool.set(Number(state.rewardPool ?? 0));
         userBurned.set(Number(state.userBurned ?? 0));
         burnCount.set(Number(state.burnCount ?? state.playerCount ?? 0));
+        leagueDataAvailable.set(true);
+        serviceNotice.set("");
       }
     } catch (e) {
-      console.warn("[useBurnLeague] loadStats failed:", e instanceof Error ? e.message : String(e));
+      leagueDataAvailable.set(false);
+      if (isOsBoundaryError(e)) {
+        serviceNotice.set(t("burnServiceUnavailable"));
+        return;
+      }
+      console.warn("[useBurnLeague] loadStats failed:", errorMessage(e));
     }
   };
 
@@ -173,7 +205,9 @@ export function useBurnLeague({
         rank.set(userEntry ? userEntry.rank : 0);
       }
     } catch (e) {
-      console.warn("[useBurnLeague] loadLeaderboard failed:", e instanceof Error ? e.message : String(e));
+      if (!isOsBoundaryError(e)) {
+        console.warn("[useBurnLeague] loadLeaderboard failed:", errorMessage(e));
+      }
     }
   };
 
@@ -197,8 +231,7 @@ export function useBurnLeague({
    *
    * Flow:
    * 1. Validate the burn amount (minimum 1 GAS)
-   * 2. Burn via NFTProxy (the edge function handles wallet connection,
-   *    GAS transfer to the contract, and burnGas invocation)
+   * 2. Submit an OS game-entry wallet intent for explicit confirmation
    * 3. Update burn stats via BadgeProxy
    * 4. Reload all data
    *
@@ -206,20 +239,38 @@ export function useBurnLeague({
    *   If omitted, uses the composable's reactive burnAmount ref.
    * @returns The validated burn amount (for UI reset on success)
    */
-  const burnTokens = async (burnAmountInput?: string) => {
+  const validateBurnAmount = (burnAmountInput?: string) => {
     const amountStr = burnAmountInput ?? burnAmount.get();
     const amount = parseFloat(amountStr);
     if (!Number.isFinite(amount) || amount < MIN_BURN) {
-      throw new Error(t("minBurn", { amount: MIN_BURN, tokenGas: t("tokenGas") }));
+      return t("minBurn", { amount: MIN_BURN, tokenGas: t("tokenGas") });
     }
+    if (amount > MAX_BURN) {
+      return t("maxBurn", { amount: MAX_BURN, tokenGas: t("tokenGas") });
+    }
+    return null;
+  };
+
+  const burnTokens = async (burnAmountInput?: string) => {
+    const amountStr = burnAmountInput ?? burnAmount.get();
+    const amount = parseFloat(amountStr);
+    const validation = validateBurnAmount(amountStr);
+    if (validation) {
+      burnValidationError.set(validation);
+      throw new Error(validation);
+    }
+    burnValidationError.set(null);
 
     if (isBurning.get()) return;
 
+    actionNotice.set(t("burnPreparing", {
+      amount: `${formatNumber(amount, 2)} ${t("tokenGas")}`,
+    }));
     isBurning.set(true);
     try {
-      // Step 1: Burn via NFTProxy — the edge function handles wallet
-      // connection, GAS transfer to contract, and burnGas invocation
-      await nftService.burn(amountStr);
+      // Step 1: Submit the burn entry via the OS game service. The service
+      // returns a wallet intent for explicit user confirmation.
+      await gameService.placeBet(BURN_POOL_ID, amountStr);
 
       // Step 2: Update burn stat via BadgeProxy (fire-and-forget)
       badgeService.updateStat("", "totalBurned", amountStr).catch(() => {});
@@ -236,9 +287,21 @@ export function useBurnLeague({
 
       // Reset the burn amount input on success
       burnAmount.set("1");
+      lastSubmittedAmount.set(`${formatNumber(amount, 2)} ${t("tokenGas")}`);
+      actionNotice.set(t("burnSubmitted"));
 
       return amount;
     } catch (e) {
+      if (isOsBoundaryError(e)) {
+        const normalized = new Error(t("burnActionUnavailable"));
+        actionNotice.set(normalized.message);
+        throw normalized;
+      }
+      if (isWalletBoundaryError(e)) {
+        const normalized = new Error(t("burnWalletUnavailable"));
+        actionNotice.set(normalized.message);
+        throw normalized;
+      }
       throw e;
     } finally {
       isBurning.set(false);
@@ -255,6 +318,11 @@ export function useBurnLeague({
     leaderboard,
     isBurning,
     isLoading,
+    leagueDataAvailable,
+    serviceNotice,
+    actionNotice,
+    burnValidationError,
+    lastSubmittedAmount,
 
     // ── Local UI state ──────────────────────────────────────────────
     burnAmount,
@@ -265,6 +333,7 @@ export function useBurnLeague({
     rewardPoolDisplay,
     formattedRank,
     leaderboardSize,
+    projectedTotalBurnedDisplay,
 
     // ── Derived values (for PlayArea presentation) ──────────────────
     estimatedReward,
@@ -273,6 +342,7 @@ export function useBurnLeague({
     // ── Actions ─────────────────────────────────────────────────────
     burnTokens,
     loadAll,
+    validateBurnAmount,
   };
 }
 

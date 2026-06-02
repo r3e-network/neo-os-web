@@ -10,15 +10,30 @@
   --ns-accent-strong: #0fb174;
 }
 
+// Unify shared NeoCard radius/shadow to Neo Soft default card
+.session-play-area .neo-card {
+  --card-radius: var(--ns-radius-lg, 20px);
+  border: none;
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.session-play-area .neo-card__header {
+  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  padding: 18px 24px;
+}
+
+.session-play-area .neo-card__body {
+  padding: 24px;
+}
+
 .session-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
   gap: 24px;
-  align-items: stretch;
-  padding: 24px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #fff);
+  align-items: start;
+  padding: 28px;
+  border-radius: var(--ns-radius-xl, 24px);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
@@ -62,10 +77,10 @@
   max-width: 760px;
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  letter-spacing: 0;
+  line-height: 1.12;
 }
 
 .session-hero__copy p {
@@ -73,12 +88,12 @@
   margin: 0;
   color: var(--ns-text-2, #5b6478);
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .session-hero__metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -86,11 +101,29 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+// Scope reads as a wide trailing status row beneath Session + Sponsor
+.session-metric--scope {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--ns-accent-soft, #e4f8f0);
+}
+
+.session-metric--scope span {
+  color: var(--ns-accent-strong, #0fb174) !important;
+}
+
+.session-metric--scope strong {
+  font-size: 15px;
+  text-align: right;
 }
 
 .session-metric span,
@@ -101,8 +134,7 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 .session-metric strong {
@@ -116,15 +148,10 @@
   white-space: nowrap;
 }
 
-.session-command {
-  height: 100%;
-  border-radius: var(--ns-radius-lg, 20px);
-}
-
 .session-command .neo-card__content {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .session-command__status,
@@ -134,14 +161,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 12px;
+  padding: 14px 16px;
+  border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.session-command__status strong,
-.session-config-copy span {
+.session-command__status strong {
   overflow: hidden;
   color: var(--ns-ink, #1e1e2e);
   font-size: 13px;
@@ -152,14 +177,56 @@
 
 .session-action-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
+.session-action-grid > :first-child {
+  grid-column: 1 / -1;
+}
+
+.session-private-export {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-accent-soft, #e4f8f0);
+}
+
+.session-private-export span {
+  overflow: hidden;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// De-emphasized guidance footer (moved below the primary flow)
 .session-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.session-flow__eyebrow {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.session-flow__steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 20px;
 }
 
 .session-flow__step {
@@ -168,30 +235,25 @@
   gap: 4px 14px;
   min-width: 0;
   align-items: center;
-  padding: 18px 20px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #fff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .session-flow__step > span {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   place-items: center;
   grid-row: span 2;
-  border-radius: 14px;
+  border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-accent-soft, #e4f8f0);
   color: var(--ns-accent-strong, #0fb174);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
 .session-flow__step strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 15px;
+  color: var(--ns-text, #2a2d3d);
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -204,9 +266,14 @@
 
 .session-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
+  grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+}
+
+// Configuration (side rail) reads first; live-state panel follows
+.session-side-rail {
+  order: -1;
 }
 
 .session-main-panel,
@@ -219,7 +286,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .session-section-heading h3 {
@@ -244,22 +311,23 @@
   text-transform: capitalize;
 }
 
+// Resolved-values strip: display-only mirror of live form input, kept quiet
 .session-env-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
+  padding: 16px;
   margin-bottom: 16px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .session-env-item {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  gap: 4px;
+  padding: 6px 0;
 }
 
 .session-env-item strong,
@@ -270,10 +338,6 @@
   font-size: 12px;
   font-weight: 600;
   line-height: 1.45;
-}
-
-.session-result-card {
-  border-radius: var(--ns-radius-lg, 20px);
 }
 
 .session-detail-list {
@@ -297,18 +361,18 @@
 .session-empty-state {
   display: grid;
   place-items: center;
-  gap: 10px;
-  padding: 28px 24px;
+  gap: 12px;
+  padding: 32px 24px;
   color: var(--ns-text-muted, #8a92a6);
   text-align: center;
 }
 
 .session-empty-state span {
   display: grid;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   place-items: center;
-  border-radius: 16px;
+  border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-accent-soft, #e4f8f0);
   color: var(--ns-accent-strong, #0fb174);
   font-size: 15px;
@@ -332,7 +396,7 @@
 .session-config-card .neo-card__content {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .session-config-copy strong {
@@ -341,12 +405,23 @@
   font-weight: 700;
 }
 
+.session-config-copy span {
+  min-width: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-align: right;
+  white-space: normal;
+}
+
 .session-hint {
   margin: 0;
-  padding: 11px 13px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 12px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  padding: 12px 14px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-warning-soft, #fff3dd);
   color: var(--ns-text-2, #5b6478);
   font-size: 12px;
   font-weight: 600;
@@ -356,7 +431,13 @@
 .session-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+}
+
+.session-form--compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.45fr);
+  gap: 12px;
 }
 
 .session-play-area button:disabled {
@@ -377,7 +458,7 @@
 
 @media (max-width: 720px) {
   .session-play-area {
-    gap: 16px;
+    gap: 14px;
   }
 
   .session-hero {
@@ -390,19 +471,79 @@
   }
 
   .session-hero__badge {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
 
-  .session-hero__metrics,
-  .session-flow,
+  .session-hero__badge svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .session-hero__heading {
+    gap: 6px;
+  }
+
+  .session-hero__metrics {
+    gap: 8px;
+  }
+
+  .session-metric {
+    gap: 4px;
+    padding: 12px;
+  }
+
+  .session-metric span {
+    font-size: 10px;
+  }
+
+  .session-metric strong {
+    font-size: 14px;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .session-flow__steps,
   .session-env-grid {
     grid-template-columns: 1fr;
   }
 
+  .session-flow {
+    padding: 18px;
+  }
+
   .session-hero__copy h2 {
-    font-size: 20px;
-    line-height: 1.2;
+    font-size: 24px;
+    line-height: 1.08;
+  }
+
+  .session-hero__copy p {
+    font-size: 13px;
+    line-height: 1.38;
+  }
+
+  .session-play-area .neo-card__header {
+    padding: 16px 18px;
+  }
+
+  .session-play-area .neo-card__body {
+    padding: 18px;
+  }
+
+  .session-command .neo-card__content {
+    gap: 12px;
+  }
+
+  .session-command__status,
+  .session-config-copy,
+  .session-private-export {
+    padding: 12px 14px;
+  }
+
+  .session-form--compact,
+  .session-action-grid {
+    grid-template-columns: 1fr;
   }
 
   .session-section-heading {

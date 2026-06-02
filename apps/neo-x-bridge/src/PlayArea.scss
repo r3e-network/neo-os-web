@@ -54,10 +54,10 @@
 
 .bridge-hero-copy h2 {
   max-width: 620px;
-  font-size: clamp(20px, 2.4vw, 24px);
+  font-size: 24px;
   line-height: 1.15;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .bridge-hero-copy p,
@@ -175,6 +175,179 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.bridge-action-card .neo-card__body {
+  display: grid;
+  gap: 16px;
+}
+
+.bridge-action-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.bridge-action-head h3 {
+  margin: 4px 0 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.bridge-mode-tabs {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 8px;
+  padding: 4px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.bridge-mode-tab,
+.bridge-preset {
+  border: 0;
+  color: var(--ns-text-2, #5b6478);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bridge-mode-tab {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: transparent;
+}
+
+.bridge-mode-tab--active {
+  background: var(--ns-surface, #ffffff);
+  color: #0b6f69;
+  box-shadow: 0 1px 4px rgba(20, 22, 38, 0.08);
+}
+
+.bridge-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.bridge-field-wide,
+.bridge-action-preview,
+.bridge-action-feedback,
+.bridge-form-grid > .neo-btn {
+  grid-column: 1 / -1;
+}
+
+.bridge-select-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bridge-select-field span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bridge-select-field select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-ink, #1e1e2e);
+  font: inherit;
+  font-weight: 700;
+  outline: none;
+}
+
+.bridge-select-field select:focus {
+  border-color: rgba(15, 177, 116, 0.35);
+  box-shadow: 0 0 0 3px rgba(15, 177, 116, 0.12);
+}
+
+.bridge-amount-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-self: center;
+}
+
+.bridge-preset {
+  min-height: 34px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 999px;
+  padding: 0 12px;
+  background: var(--ns-surface, #ffffff);
+}
+
+.bridge-preset:hover,
+.bridge-preset--active {
+  border-color: rgba(15, 177, 116, 0.28);
+  background: #e4f8f0;
+  color: #0b6f69;
+}
+
+.bridge-action-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bridge-action-preview div {
+  min-width: 0;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.bridge-action-preview span,
+.bridge-action-preview strong {
+  display: block;
+}
+
+.bridge-action-preview span {
+  margin-bottom: 5px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.bridge-action-preview strong {
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bridge-action-feedback {
+  border: 1px solid rgba(15, 177, 116, 0.22);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #e4f8f0;
+  color: #0b6f69;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.bridge-action-feedback--error {
+  border-color: #fecaca;
+  background: #fff7f7;
+  color: #991b1b;
 }
 
 .bridge-module-card .neo-card__body {
@@ -512,8 +685,22 @@
     padding: 16px;
   }
 
+  .bridge-action-head {
+    flex-direction: column;
+  }
+
+  .bridge-mode-tabs {
+    width: 100%;
+  }
+
+  .bridge-mode-tab {
+    flex: 1 1 0;
+  }
+
   .bridge-route-card,
-  .bridge-health-grid {
+  .bridge-health-grid,
+  .bridge-form-grid,
+  .bridge-action-preview {
     grid-template-columns: 1fr;
   }
 

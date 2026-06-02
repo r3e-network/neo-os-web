@@ -1,29 +1,152 @@
-.premium-arena { box-sizing: border-box; width: 100%; padding: 8px 0 4px; position: relative; background: transparent; border-radius: 24px; border: 0; overflow: hidden; }
-.arena-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 232px; }
-.arena-bg { position: absolute; inset: 0; z-index: -1; }
-.arena-orbit { position: absolute; top: 50%; left: 50%; width: 250px; height: 250px; border: 1px dashed var(--coin-orbit-border); border-radius: 50%; transform: translate(-50%, -50%); animation: rotate 60s linear infinite; }
-.arena-glow { position: absolute; top: 50%; left: 50%; width: 150px; height: 150px; background: radial-gradient(circle, var(--coin-arena-ambient) 0%, transparent 70%); transform: translate(-50%, -50%); transition: all 0.5s ease;
-  &.flipping { background: radial-gradient(circle, var(--coin-arena-ambient-flip) 0%, transparent 80%); width: 200px; height: 200px; }
+.premium-arena {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 0 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
 }
-.status-box { margin-top: 18px; }
-.game-status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 999px; background: #e4f8f0; border: 1px solid var(--coin-balance-pill-border); font-size: 13px; font-weight: 700; color: var(--coin-success); letter-spacing: 0.01em; }
-.status-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--coin-success); flex-shrink: 0;
-  &.flipping { animation: status-dot-pulse 1s ease-in-out infinite; }
+
+.arena-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 232px;
 }
-@keyframes status-dot-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
-@media (prefers-reduced-motion: reduce) { .status-dot.flipping { animation: none; } }
-.result-banner { position: absolute; top: 20px; right: -50px; background: var(--coin-loss); padding: 8px 60px; transform: rotate(45deg); display: flex; flex-direction: column; align-items: center;
-  &.won { background: var(--coin-win); }
+
+.arena-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
 }
-.result-text { font-size: 10px; font-weight: 900; letter-spacing: 2px; color: var(--coin-white); }
-.outcome-tag { font-size: 8px; font-weight: 700; opacity: 0.8; color: var(--coin-white); }
-@keyframes rotate { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .arena-orbit { animation: none; } }
+
+.arena-orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 232px;
+  height: 232px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.arena-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 144px;
+  height: 144px;
+  border-radius: 999px;
+  background: var(--coin-arena-ambient);
+  transform: translate(-50%, -50%);
+  transition: transform 0.35s ease, background 0.35s ease;
+
+  &.flipping {
+    background: var(--coin-arena-ambient-flip);
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+}
+
+.coin-wrapper {
+  position: relative;
+  z-index: 2;
+}
+
+.status-box {
+  margin-top: 18px;
+}
+
+.game-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border: 1px solid var(--coin-balance-pill-border);
+  border-radius: 999px;
+  background: #e4f8f0;
+  color: var(--coin-success);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--coin-success);
+
+  &.flipping {
+    animation: status-dot-pulse 1s ease-in-out infinite;
+  }
+}
+
+.result-banner {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.1);
+
+  &.won {
+    border-color: rgba(16, 185, 129, 0.28);
+    background: rgba(16, 185, 129, 0.12);
+  }
+}
+
+.result-text {
+  color: var(--coin-loss);
+  font-size: 12px;
+  font-weight: 900;
+
+  .result-banner.won & {
+    color: var(--coin-win);
+  }
+}
+
+.outcome-tag {
+  color: var(--coin-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@keyframes status-dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-glow,
+  .status-dot.flipping {
+    animation: none;
+    transition: none;
+  }
+}
 
 @media (max-width: 520px) {
   .premium-arena {
-    padding: 30px 10px;
-    border-radius: 24px;
+    padding: 24px 10px;
+    border-radius: 18px;
   }
 
   .arena-content {
@@ -31,12 +154,12 @@
   }
 
   .arena-orbit {
-    width: 212px;
-    height: 212px;
+    width: 204px;
+    height: 204px;
   }
 
   .arena-glow {
-    width: 126px;
-    height: 126px;
+    width: 124px;
+    height: 124px;
   }
 }

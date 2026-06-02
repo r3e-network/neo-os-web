@@ -31,8 +31,8 @@ const appMessages = {
   multisigTotalMetric: { en: "Total", zh: "总数" },
   multisigRequestTitle: { en: "Request workspace", zh: "请求工作区" },
   multisigRequestCopy: {
-    en: "Create a signer-reviewed transfer or load an existing request ID to continue approval from the same desk.",
-    zh: "创建需要签名人确认的转账，或加载已有请求 ID 继续审批。",
+    en: "Enter signer keys, transfer details, and quorum rules to create a stored unsigned request that other signers can review.",
+    zh: "输入签名人公钥、转账信息与阈值规则，创建可供其他签名人审阅的未签名请求。",
   },
   multisigDraftState: { en: "Draft safe", zh: "草稿安全" },
   multisigRouteTitle: { en: "Execution route", zh: "执行路径" },
@@ -45,6 +45,7 @@ const appMessages = {
     en: "Only listed public keys can approve the request. The final witness is produced by the wallet layer.",
     zh: "只有列表中的公钥可审批请求；最终见证由钱包层生成。",
   },
+  multisigSignerList: { en: "Signer list", zh: "签名人列表" },
   multisigQuorumTitle: { en: "Quorum", zh: "签名阈值" },
   multisigNetworkTitle: { en: "Network", zh: "网络" },
   multisigNetworkValue: { en: "Neo N3", zh: "Neo N3" },
@@ -56,6 +57,30 @@ const appMessages = {
   multisigRouteBroadcast: { en: "Submit tx", zh: "提交交易" },
   createCta: { en: "Create New Multisig", zh: "创建多重签名" },
   createDesc: { en: "Start a new multi-signature transaction", zh: "开始新的多重签名交易" },
+  multisigNeedSigners: {
+    en: "Add at least two signer public keys before creating a request.",
+    zh: "至少添加两个签名人公钥后才能创建请求。",
+  },
+  multisigThresholdBlocked: {
+    en: "Threshold cannot be greater than the number of signer keys.",
+    zh: "签名阈值不能大于签名人数量。",
+  },
+  multisigRecipientBlocked: {
+    en: "Enter a recipient address for the transfer.",
+    zh: "请输入转账接收地址。",
+  },
+  multisigAmountBlocked: {
+    en: "Enter the transfer amount before creating the request.",
+    zh: "请输入转账金额后再创建请求。",
+  },
+  multisigCreateReady: {
+    en: "Ready to prepare an unsigned Neo N3 transfer request.",
+    zh: "已准备好生成 Neo N3 未签名转账请求。",
+  },
+  multisigReceiptCopy: {
+    en: "Share this request ID with signers, then load it here to inspect approval status.",
+    zh: "将此请求 ID 分享给签名人，然后在这里加载查看审批状态。",
+  },
   dividerOr: { en: "OR", zh: "或" },
   statPending: { en: "Pending", zh: "待处理" },
   statCompleted: { en: "Completed", zh: "已完成" },
@@ -151,13 +176,22 @@ const appMessages = {
 
   toastNoId: { en: "Missing request ID.", zh: "缺少请求 ID。" },
   toastInvalidSigners: { en: "Invalid signer list.", zh: "签名人列表无效。" },
+  toastNotEnoughSigners: { en: "Add at least two signer public keys.", zh: "至少添加两个签名人公钥。" },
   toastDuplicateSigners: { en: "Duplicate public keys found.", zh: "存在重复公钥。" },
   toastInvalidThreshold: { en: "Invalid threshold.", zh: "阈值无效。" },
   toastInvalidAddress: { en: "Invalid address.", zh: "地址无效。" },
   toastInvalidAmount: { en: "Invalid amount.", zh: "数量无效。" },
   toastPrepareFailed: { en: "Failed to prepare transaction.", zh: "交易准备失败。" },
   toastCreateFailed: { en: "Failed to create request.", zh: "创建请求失败。" },
+  toastRequestCreated: {
+    en: "Request {id} created.",
+    zh: "请求 {id} 已创建。",
+  },
   toastLoadFailed: { en: "Failed to load request.", zh: "加载请求失败。" },
+  toastRequestLoaded: {
+    en: "Request {id} loaded.",
+    zh: "请求 {id} 已加载。",
+  },
   toastSignFailed: { en: "Failed to sign.", zh: "签名失败。" },
   toastSignSuccess: { en: "Signature added.", zh: "签名已提交。" },
   toastNotSigner: { en: "Your wallet is not an authorized signer.", zh: "当前钱包不是签名人。" },
