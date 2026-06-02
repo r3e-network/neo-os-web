@@ -1,11 +1,9 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
-import { supabaseServiceClient } from "../_shared/supabase.ts";
+import { supabaseServiceClient, supabaseClient } from "../_shared/supabase.ts";
 import { verifyNeoSignature } from "../_shared/neo.ts";
 import { verifyEvmSignature } from "../_shared/evm.ts";
-import { signJwt } from "../_shared/jwt.ts";
-import { getEnv } from "../_shared/env.ts";
 
 function stringField(row: unknown, key: string): string | undefined {
   if (!row || typeof row !== "object") return undefined;
@@ -77,38 +75,61 @@ export async function handler(req: Request): Promise<Response> {
     return error(401, "address not present in signed message", "AUTH_INVALID", req);
   }
 
-  // Clear nonce
-  const { error: nonceClearError } = await supabase.from("users").update({ nonce: null }).eq("id", accountId);
-  if (nonceClearError) {
-    console.warn("[auth-wallet] failed to clear nonce for user", accountId, nonceClearError.message);
+  // Clear the consumed nonce on the row that carried it.
+  await supabase.from("users").update({ nonce: null }).eq("id", accountId);
+
+  // Issue a REAL Supabase (GoTrue) session for the wallet. The previous path
+  // self-signed an HS256 JWT, which the OS edge functions reject because
+  // supabase.auth.getUser() validates against GoTrue/auth.users — and the
+  // wallet account is not an auth.users row. Deterministically map the wallet
+  // to a GoTrue user, then mint a session that getUser() accepts.
+  const email = `wallet-${address.toLowerCase()}@wallet.neo`;
+  const createdUser = await supabase.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: { wallet_address: address },
+  });
+  if (createdUser.error && !/already|exist|registered/i.test(createdUser.error.message)) {
+    console.warn("[auth-wallet] createUser:", createdUser.error.message);
+  }
+  const link = await supabase.auth.admin.generateLink({ type: "magiclink", email });
+  if (link.error || !link.data?.properties?.email_otp) {
+    return error(500, "failed to mint wallet session link", "AUTH_SESSION", req);
+  }
+  const authUserId = createdUser.data?.user?.id || link.data.user?.id;
+  if (!authUserId) {
+    return error(500, "failed to resolve wallet session user", "AUTH_SESSION", req);
   }
 
-  // Generate a standard Supabase-compatible JWT
-  const payload = {
-    role: "authenticated",
-    aud: "authenticated",
-    sub: accountId,
-    address,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
-  };
+  // Keep public.users.id == the GoTrue user id (user_wallets.user_id -> public.users.id),
+  // removing any stale row that mapped this address to a different id.
+  await supabase.from("users").delete().eq("address", address).neq("id", authUserId);
+  await supabase.from("users").upsert(
+    { id: authUserId, address, wallet_type: "external" },
+    { onConflict: "id" },
+  );
+  // Bind the verified primary wallet (requirePrimaryWallet needs this for OS calls).
+  await supabase.from("user_wallets").upsert(
+    { user_id: authUserId, address, is_primary: true, verified: true, wallet_type: "external" },
+    { onConflict: "address" },
+  );
 
-  // Audit fix H-5: drop the NEXTAUTH_SECRET fallback. The Supabase JWT secret
-  // and the NextAuth signing secret have different rotation policies and
-  // different blast radii; sharing material between them widens the
-  // forgery surface for no real benefit. If SUPABASE_JWT_SECRET is missing
-  // we fail closed.
-  const jwtSecret = getEnv("SUPABASE_JWT_SECRET");
-  if (!jwtSecret) {
-    return error(500, "JWT signing not configured", "CONFIG_ERROR", req);
+  // Exchange the magic-link OTP for a real session access_token.
+  const anon = supabaseClient();
+  const session = await anon.auth.verifyOtp({
+    email,
+    token: link.data.properties.email_otp,
+    type: "email",
+  });
+  if (session.error || !session.data?.session?.access_token) {
+    return error(500, "failed to mint wallet session", "AUTH_SESSION", req);
   }
-  const token = await signJwt(payload, jwtSecret);
 
   return json({
-    access_token: token,
-    user: {
-      id: accountId,
-      address,
-    }
+    access_token: session.data.session.access_token,
+    refresh_token: session.data.session.refresh_token,
+    expires_in: session.data.session.expires_in,
+    user: { id: authUserId, address },
   }, {}, req);
 }
 

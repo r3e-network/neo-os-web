@@ -2,16 +2,16 @@
 
 .guardian-play-area {
   @include console.play-area;
-  gap: 22px;
+  gap: 28px;
   color: var(--ns-text, #1e1e2e);
 }
 
 .guardian-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.24fr) minmax(340px, 0.76fr);
-  gap: 20px;
+  gap: 24px;
   align-items: stretch;
-  padding: 24px;
+  padding: 28px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   background:
@@ -168,7 +168,7 @@
 .guardian-flow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .guardian-flow__step {
@@ -180,21 +180,21 @@
   padding: 18px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-sm, 14px);
-  background: var(--ns-surface, #fff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  background: var(--ns-surface-subtle, #f7f8fa);
+  box-shadow: none;
 }
 
 .guardian-flow__step > span {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   place-items: center;
   grid-row: span 2;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-badge-seafoam-bg, #def5e9);
   color: var(--ns-badge-seafoam-fg, #16c784);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .guardian-flow__step:nth-child(2) > span {
@@ -208,22 +208,22 @@
 }
 
 .guardian-flow__step strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 15px;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 14px;
   font-weight: 700;
 }
 
 .guardian-flow__step p {
   margin: 0;
-  color: var(--ns-text-2, #5b6478);
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .guardian-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
-  gap: 20px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -233,7 +233,7 @@
 }
 
 .guardian-state-panel {
-  padding: 24px;
+  padding: 28px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface, #fff);
@@ -245,7 +245,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
 }
 
 .guardian-section-heading h3 {
@@ -404,7 +404,7 @@
 .guardian-side-rail {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 22px;
 }
 
 .guardian-scope-summary {

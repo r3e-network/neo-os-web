@@ -87,6 +87,17 @@ export function forwardEdgeRpcHeaders(req: NextApiRequest): Headers {
   if (contentType) headers.set("Content-Type", joinHeaderValues(contentType));
   const accept = req.headers["accept"];
   if (accept) headers.set("Accept", joinHeaderValues(accept));
+  // Supabase's edge gateway (Kong) requires an `apikey` header to route the
+  // request to the function. The browser EdgeClient only sends the user's
+  // wallet session as Authorization, so inject the project anon key here; the
+  // function still reads Authorization (the session) to resolve the user.
+  if (!headers.has("apikey")) {
+    const anon =
+      process.env.SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      "";
+    if (anon) headers.set("apikey", sanitizeHeaderValue(anon));
+  }
   return headers;
 }
 
