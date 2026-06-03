@@ -67,44 +67,31 @@
   color: var(--ns-text-2, #5b6478);
 }
 
-// ---------- Stats Strip ----------
-.neopay-hero-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.625rem;
-}
-
-.neopay-hero-stat {
-  text-align: center;
-  padding: 0.75rem 0.5rem;
+// ---------- Compact Metrics Strip ----------
+.neopay-hero-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding: 0.625rem 0.875rem;
   background: var(--ns-surface-subtle, #f7f8fa);
   border-radius: var(--ns-radius-sm, 12px);
-}
-
-.neopay-hero-stat-value {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 800;
+  font-size: 0.8125rem;
+  color: var(--ns-text-2, #5b6478);
   font-variant-numeric: tabular-nums;
-  color: var(--ns-ink, #1e1e2e);
-  line-height: 1.1;
 }
 
-.neopay-hero-stat-label {
-  display: block;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-top: 0.375rem;
-  line-height: 1.25;
-}
+.neopay-hero-metric {
+  white-space: nowrap;
 
-@media (max-width: 520px) {
-  .neopay-hero-stats {
-    grid-template-columns: repeat(2, 1fr);
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-weight: 800;
   }
+}
+
+.neopay-hero-metric-sep {
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .neopay-service-notice {

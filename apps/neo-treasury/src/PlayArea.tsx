@@ -202,6 +202,17 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
             </div>
           </div>
           <p>{t("docDescription")}</p>
+          <p className="treasury-hero__signal">
+            <span
+              className={[
+                "treasury-hero__dot",
+                hasLiveData ? "treasury-hero__dot--live" : "",
+              ].filter(Boolean).join(" ")}
+              aria-hidden="true"
+            />
+            {signalLabel}
+            {lastUpdated ? ` · ${t("lastUpdated")} ${lastUpdated}` : ""}
+          </p>
         </div>
         <div className="treasury-hero__metrics" aria-label={t("treasuryInfo")}>
           <div className="treasury-metric">
@@ -219,22 +230,7 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
         </div>
       </section>
 
-      <section className="treasury-signal-card" aria-label={t("treasuryLiveStatus")}>
-        <div className="treasury-token" aria-hidden="true">
-          N
-        </div>
-        <div className="treasury-signal-card__copy">
-          <span>{t("treasuryLiveStatus")}</span>
-          <strong>{signalLabel}</strong>
-          <p>
-            {hasLiveData
-              ? t("treasurySyncedHint")
-              : t("treasuryPendingHint")}
-          </p>
-        </div>
-      </section>
-
-      <section className="treasury-ops-grid" aria-label={t("operationsTitle")}>
+      <section className="treasury-ops" aria-label={t("operationsTitle")}>
         <NeoCard variant="erobo" className="treasury-operation-card">
           <div className="treasury-section-heading">
             <span>{t("operationsEyebrow")}</span>
@@ -417,28 +413,6 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
             </div>
           )}
         </NeoCard>
-
-        <NeoCard variant="erobo" className="treasury-policy-card">
-          <div className="treasury-section-heading">
-            <span>{t("operationsGuardrail")}</span>
-            <strong>{t("policyTitle")}</strong>
-            <p>{t("policyCopy")}</p>
-          </div>
-          <div className="treasury-policy-steps">
-            <div>
-              <span>01</span>
-              <strong>{t("policyStep1")}</strong>
-            </div>
-            <div>
-              <span>02</span>
-              <strong>{t("policyStep2")}</strong>
-            </div>
-            <div>
-              <span>03</span>
-              <strong>{t("policyStep3")}</strong>
-            </div>
-          </div>
-        </NeoCard>
       </section>
 
       <section className="treasury-watchlist" aria-label={t("treasuryWatchlist")}>
@@ -488,32 +462,12 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
         ))}
       </section>
 
-      <section className="treasury-route" aria-label={t("treasuryReadOnlyRoute")}>
-        <div>
-          <span>01</span>
-          <strong>{t("step1")}</strong>
-        </div>
-        <div>
-          <span>02</span>
-          <strong>{t("step2")}</strong>
-        </div>
-        <div>
-          <span>03</span>
-          <strong>{t("step4")}</strong>
-        </div>
-      </section>
-
       <NeoCard variant="erobo" className="treasury-action-card">
         <div className="treasury-readonly-note">
           <span>{t("treasuryReadOnlyRoute")}</span>
           <strong>{watchedAddressCount} {t("addresses")}</strong>
           <p>{t("feature3Desc")}</p>
           {error && <p className="treasury-error">{error}</p>}
-          {lastUpdated && (
-            <p className="treasury-updated">
-              {t("lastUpdated")}: {lastUpdated}
-            </p>
-          )}
         </div>
         <NeoButton
           size="lg"

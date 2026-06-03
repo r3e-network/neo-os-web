@@ -1,16 +1,12 @@
 import {
-  Activity,
   ArrowLeftRight,
   CheckCircle2,
   CircleDashed,
   Clock3,
   Copy,
   ExternalLink,
-  RadioTower,
-  Route,
-  ShieldCheck,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
@@ -310,11 +306,23 @@ export default function PlayArea({
         </div>
       </section>
 
-      <div className="bridge-health-grid" aria-label="Bridge console status">
-        <Metric icon={<Route size={17} />} label="Route" value={lastRoute} />
-        <Metric icon={<RadioTower size={17} />} label="Bridge Type" value={lastKind} />
-        <Metric icon={<Activity size={17} />} label="Status" value={lastStatus} />
-        <Metric icon={<ShieldCheck size={17} />} label="Digest" value={compactHash(lastDigest)} mono />
+      <div className="bridge-metrics-strip" aria-label="Bridge console status">
+        <span className="strip-metric">
+          <small>Route</small>
+          <strong>{lastRoute}</strong>
+        </span>
+        <span className="strip-metric">
+          <small>Bridge Type</small>
+          <strong>{lastKind}</strong>
+        </span>
+        <span className="strip-metric">
+          <small>Status</small>
+          <strong>{lastStatus}</strong>
+        </span>
+        <span className="strip-metric">
+          <small>Digest</small>
+          <strong className="strip-metric--mono">{compactHash(lastDigest)}</strong>
+        </span>
       </div>
 
       <NeoCard variant="erobo" className="bridge-action-card">
@@ -547,45 +555,8 @@ export default function PlayArea({
         )}
       </NeoCard>
 
-      <div className="bridge-workbench">
-        <NeoCard variant="erobo" className="bridge-module-card">
-          <div className="module-heading">
-            <span className="module-kicker">Asset Bridge</span>
-          <h3>GAS deposit and withdrawal handoff</h3>
-          </div>
-          <p>
-            The asset panel prepares the official Neo X bridge flow around GAS.
-            Direction, amount, recipient, and BaneLabs testnet handoff details
-            are captured in one auditable payload before the user signs in the bridge app.
-          </p>
-          <div className="module-steps" aria-label="Asset bridge flow">
-            <FlowPill label="Prepare" active />
-            <FlowPill label="Sign source tx" />
-            <FlowPill label="Relayer observes" />
-            <FlowPill label="Finalize" />
-          </div>
-        </NeoCard>
-
-        <NeoCard variant="erobo" className="bridge-module-card">
-          <div className="module-heading">
-            <span className="module-kicker">Message Bridge</span>
-            <h3>Contract message payloads</h3>
-          </div>
-          <p>
-            Message intents include target contract, method, payload digest, gas limit,
-            and SDK metadata for the BaneLabs MessageBridge path. This keeps data
-            relay separate from token movement.
-          </p>
-          <div className="module-steps" aria-label="Message bridge flow">
-            <FlowPill label="Encode" active={lastKind === "message"} />
-            <FlowPill label="Nonce/root" />
-            <FlowPill label="Attest" />
-            <FlowPill label="Deliver" />
-          </div>
-        </NeoCard>
-      </div>
-
-      <div className="bridge-output-grid">
+      {activeOperation && (
+        <div className="bridge-output-grid">
         <NeoCard
           variant="erobo"
           title="Generated bridge handoff"
@@ -597,30 +568,11 @@ export default function PlayArea({
             </NeoButton>
           }
         >
-          {activeOperation ? (
-            <>
-              <div className="operation-summary">
-                <span>{activeOperation.id}</span>
-                <strong>{activeOperation.title}</strong>
-              </div>
-              <pre className="payload-preview">{payload}</pre>
-            </>
-          ) : (
-            <div className="bridge-empty" role="status">
-              <span className="bridge-empty-icon" aria-hidden="true">
-                <ArrowLeftRight size={20} />
-              </span>
-              <div className="bridge-empty-copy">
-                <strong>{t("emptyPayload")}</strong>
-                <p>{t("emptyPayloadHint")}</p>
-              </div>
-              <div className="bridge-empty-skeleton" aria-hidden="true">
-                <span className="skeleton-row skeleton-row--lg" />
-                <span className="skeleton-row" />
-                <span className="skeleton-row skeleton-row--sm" />
-              </div>
-            </div>
-          )}
+          <div className="operation-summary">
+            <span>{activeOperation.id}</span>
+            <strong>{activeOperation.title}</strong>
+          </div>
+          <pre className="payload-preview">{payload}</pre>
         </NeoCard>
 
         <NeoCard variant="erobo" title="Operation status" className="bridge-status-card">
@@ -644,7 +596,8 @@ export default function PlayArea({
             ))}
           </div>
         </NeoCard>
-      </div>
+        </div>
+      )}
 
       <div className="bridge-resource-row" aria-label="Bridge resources">
         <ResourceLink label="Testnet Bridge" href={BRIDGE_RESOURCES.bridgeAppTestnet} />
@@ -668,32 +621,6 @@ export default function PlayArea({
       )}
     </div>
   );
-}
-
-function Metric({
-  icon,
-  label,
-  value,
-  mono = false,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="bridge-metric">
-      <span className="metric-icon" aria-hidden="true">{icon}</span>
-      <span className="metric-copy">
-        <small>{label}</small>
-        <strong className={mono ? "metric-value--mono" : undefined}>{value}</strong>
-      </span>
-    </div>
-  );
-}
-
-function FlowPill({ label, active = false }: { label: string; active?: boolean }) {
-  return <span className={`flow-pill${active ? " flow-pill--active" : ""}`}>{label}</span>;
 }
 
 function bridgeRouteLabel(direction: DirectionValue) {

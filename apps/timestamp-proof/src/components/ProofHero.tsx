@@ -4,9 +4,12 @@ interface ProofHeroProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   totalProofs: number;
   yourProofs: number;
+  latestId: string;
 }
 
-export default function ProofHero({ t, totalProofs, yourProofs }: ProofHeroProps) {
+export default function ProofHero({ t, totalProofs, yourProofs, latestId }: ProofHeroProps) {
+  const hasProofs = totalProofs > 0;
+
   return (
     <div className="hero-container">
       <div className="hero-head">
@@ -22,16 +25,21 @@ export default function ProofHero({ t, totalProofs, yourProofs }: ProofHeroProps
         </div>
       </div>
 
-      <div className="hero-stats">
-        <div className="hero-stat">
-          <span className="hero-stat-value">{totalProofs}</span>
-          <span className="hero-stat-label">{t("totalProofs")}</span>
+      {hasProofs && (
+        <div className="hero-facts">
+          <span className="hero-fact">
+            <strong>{totalProofs}</strong> {t("totalProofs")}
+          </span>
+          <span className="hero-fact-divider" aria-hidden="true">&middot;</span>
+          <span className="hero-fact">
+            <strong>{yourProofs}</strong> {t("yourProofs")}
+          </span>
+          <span className="hero-fact-divider" aria-hidden="true">&middot;</span>
+          <span className="hero-fact">
+            {t("latestId")} <strong className="hero-fact-mono">{latestId}</strong>
+          </span>
         </div>
-        <div className="hero-stat">
-          <span className="hero-stat-value">{yourProofs}</span>
-          <span className="hero-stat-label">{t("yourProofs")}</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
