@@ -24,7 +24,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isCreating = bool("isCreating");
   const isVerifying = bool("isVerifying");
   const verifyError = bool("verifyError");
-  const latestId = str("latestId", t("notAvailable") || "N/A");
+  const latestId = str("latestId", "—");
   const proofList = val<TimestampProof[]>("proofs", []) ?? [];
   const verifiedProof = val<TimestampProof>("verifiedProof", null);
 
@@ -65,7 +65,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Recent proofs / empty state */}
       {totalProofs === 0 ? (
         <div className="empty-state">
-          <span className="empty-icon" aria-hidden="true">&#x2726;</span>
+          <span className="empty-badge" aria-hidden="true">
+            <span className="empty-icon">&#x2726;</span>
+          </span>
           <span className="empty-text">{t("noProofs") || "No proofs created yet"}</span>
         </div>
       ) : (

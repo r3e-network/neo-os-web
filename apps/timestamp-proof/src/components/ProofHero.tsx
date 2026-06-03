@@ -20,6 +20,7 @@ export default function ProofHero({ t, totalProofs, yourProofs, latestId }: Proo
           </div>
         </div>
         <div className="hero-copy">
+          <span className="hero-eyebrow">{t("proofs")}</span>
           <h2 className="hero-title">{t("title")}</h2>
           <p className="hero-subtitle">{t("docSubtitle")}</p>
         </div>

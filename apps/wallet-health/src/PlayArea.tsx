@@ -22,8 +22,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isRefreshing = bool("isRefreshing");
   const connectionStatus = str("connectionStatus");
   const networkLabel = str("networkLabel");
-  const neoDisplay = str("neoDisplay", t("notAvailable") || "N/A");
-  const gasDisplay = str("gasDisplay", t("notAvailable") || "N/A");
+  const neoDisplay = str("neoDisplay", t("notAvailable") || "—");
+  const gasDisplay = str("gasDisplay", t("notAvailable") || "—");
   const safetyScore = num("safetyScore");
   const riskLabel = str("riskLabel");
   const riskClass = str("riskClass");
