@@ -220,6 +220,12 @@
     white-space: normal;
     line-height: 1.2;
   }
+
+  .neo-btn:disabled {
+    background: var(--ns-success-soft, #e4f8f0);
+    border-color: rgba(22, 199, 132, 0.28);
+    color: var(--ns-success-strong, #0fb174);
+  }
 }
 
 .wallet-health-connect-hint {
@@ -245,6 +251,12 @@
     border-radius: var(--ns-radius-sm, 12px);
     white-space: normal;
     line-height: 1.15;
+  }
+
+  .neo-btn:disabled {
+    background: var(--ns-success-soft, #e4f8f0);
+    border-color: rgba(22, 199, 132, 0.28);
+    color: var(--ns-success-strong, #0fb174);
   }
 }
 
@@ -327,16 +339,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 64px;
+  gap: 6px;
+  min-width: 96px;
   min-height: 32px;
-  padding: 0 10px;
+  padding: 0 14px;
   border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-success-soft, #e4f8f0);
-  color: var(--ns-success, #16c784);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-text-2, #5b6478);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.2;
   letter-spacing: 0;
+
+  &::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ns-success, #16c784);
+  }
 }
 
 .wallet-health-recommendations-panel {

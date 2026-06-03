@@ -309,7 +309,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
           <NeoCard variant="erobo" className="redenv-activity-panel">
             <div className="redenv-section-heading">
-              <span>{t("recentActivity")}</span>
+              <span>{t("availablePools")}</span>
               <strong>{poolCount || recentClaims.length}</strong>
             </div>
             {!hasActivity ? (
@@ -350,8 +350,26 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
           <details className="redenv-details">
             <summary>
-              <span>{t("safetyPanelTitle")}</span>
-              <strong>{t("osGuarded")}</strong>
+              <span className="redenv-summary-label">
+                <span className="redenv-summary-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                    <path
+                      d="M12 3l7 3v5c0 4.2-2.9 7.3-7 8.5C7.9 18.3 5 15.2 5 11V6l7-3z"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinejoin="round"
+                    />
+                    <path d="M9.2 11.7l1.9 1.9 3.7-3.9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                {t("safetyPanelTitle")}
+              </span>
+              <span className="redenv-summary-value">
+                <strong>{t("osGuarded")}</strong>
+                <svg className="redenv-summary-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
             </summary>
             <div className="redenv-details-body">
               <p>{t("safetyPanelCopy")}</p>

@@ -181,6 +181,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <p className="wallet-health-connect-hint">{t("connectHint")}</p>
         </NeoCard>
+
+        <NeoCard variant="erobo" className="wallet-health-recommendations-panel">
+          <div className="wallet-health-section-heading">
+            <span>{t("recommendationsTitle")}</span>
+            <strong>{recommendations.length}</strong>
+          </div>
+          <ul>
+            {visibleRecommendations.map((recommendation) => (
+              <li key={recommendation}>{recommendation}</li>
+            ))}
+          </ul>
+          <div className="wallet-health-report-actions">
+            <NeoButton
+              size="sm"
+              variant="primary"
+              disabled={!address}
+              onClick={() => copyText(address, "addressCopied")}
+            >
+              {t("copyAddress") || "Copy address"}
+            </NeoButton>
+            <NeoButton
+              size="sm"
+              variant="secondary"
+              onClick={() => copyText(healthReport, "reportCopied")}
+            >
+              {t("copyReport") || "Copy report"}
+            </NeoButton>
+            <NeoButton size="sm" variant="secondary" onClick={downloadReport}>
+              {t("downloadReport") || "Download report"}
+            </NeoButton>
+          </div>
+          <span className="wallet-health-report-status" role="status" aria-live="polite">
+            {reportStatusLabel}
+          </span>
+        </NeoCard>
       </section>
 
       <aside className="wallet-health-side" aria-label={t("riskInsights")}>
@@ -210,41 +245,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             ))}
           </div>
-        </NeoCard>
-
-        <NeoCard variant="erobo" className="wallet-health-recommendations-panel">
-          <div className="wallet-health-section-heading">
-            <span>{t("recommendationsTitle")}</span>
-            <strong>{recommendations.length}</strong>
-          </div>
-          <ul>
-            {visibleRecommendations.map((recommendation) => (
-              <li key={recommendation}>{recommendation}</li>
-            ))}
-          </ul>
-          <div className="wallet-health-report-actions">
-            <NeoButton
-              size="sm"
-              variant="secondary"
-              disabled={!address}
-              onClick={() => copyText(address, "addressCopied")}
-            >
-              {t("copyAddress") || "Copy address"}
-            </NeoButton>
-            <NeoButton
-              size="sm"
-              variant="secondary"
-              onClick={() => copyText(healthReport, "reportCopied")}
-            >
-              {t("copyReport") || "Copy report"}
-            </NeoButton>
-            <NeoButton size="sm" variant="secondary" onClick={downloadReport}>
-              {t("downloadReport") || "Download report"}
-            </NeoButton>
-          </div>
-          <span className="wallet-health-report-status" role="status" aria-live="polite">
-            {reportStatusLabel}
-          </span>
         </NeoCard>
       </aside>
     </div>

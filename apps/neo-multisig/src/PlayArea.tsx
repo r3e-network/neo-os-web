@@ -126,18 +126,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <h2>{t("multisigHeroTitle")}</h2>
             <p>{t("multisigHeroSubtitle")}</p>
             <div className="multisig-hero-facts">
-              <span>
-                {t("multisigQuorumTitle")}
+              <span className="multisig-hero-tile">
+                <small>{t("multisigQuorumTitle")}</small>
                 <strong>
                   {thresholdNumber} / {signerDenominator}
                 </strong>
               </span>
-              <span>
-                {t("multisigNetworkTitle")}
+              <span className="multisig-hero-tile">
+                <small>{t("multisigNetworkTitle")}</small>
                 <strong>{networkLabel}</strong>
               </span>
-              <span>
-                {t("multisigBroadcastTitle")}
+              <span className="multisig-hero-tile">
+                <small>{t("multisigBroadcastTitle")}</small>
                 <strong>
                   {selectedRequest
                     ? statusLabel(selectedRequest.status)
