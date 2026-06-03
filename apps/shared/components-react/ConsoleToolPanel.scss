@@ -4,6 +4,11 @@
   padding: 0;
   border-radius: 0;
   background: #f7f8fb;
+  /* Focused-tool width so the form + result don't sprawl edge-to-edge on wide
+     desktops (the console dead-space the review flagged). */
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
 }
 
 .console-tool .neo-btn:disabled {
