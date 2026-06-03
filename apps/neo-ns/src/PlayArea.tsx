@@ -68,7 +68,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className={`nns-stat nns-stat--status${address ? " is-connected" : ""}`}>
               <span className="nns-stat__status">
                 <span className="nns-stat__dot" aria-hidden="true" />
-                <span className="nns-stat__statusText">{walletStatus || "--"}</span>
+                <span className="nns-stat__statusText">{walletStatus || "—"}</span>
               </span>
               <span className="nns-stat__label">{t("walletStatus") || "Wallet"}</span>
             </div>
@@ -104,7 +104,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         {error && <div className="error-banner">{error}</div>}
         {Boolean(searchResult) && (
           <div className="search-result">
-            <span className="result-status">
+            <span
+              className={`result-status${
+                (searchResult as { available?: boolean })?.available
+                  ? " result-status--available"
+                  : " result-status--taken"
+              }`}
+            >
+              <span className="result-status__dot" aria-hidden="true" />
               {(searchResult as { available?: boolean })?.available
                 ? t("domainAvailable") || "Available"
                 : t("domainTaken") || "Taken"}

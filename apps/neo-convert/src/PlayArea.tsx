@@ -182,6 +182,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </svg>
           </div>
           <div className="convert-hero__text">
+            <span className="convert-hero__eyebrow">{t("appTitle") || "Neo N3 Converter"}</span>
             <h2 className="convert-hero__title">{t("heroTitle") || "Neo N3 Toolset"}</h2>
             <p className="convert-hero__subtitle">
               {t("heroSubtitle") || "Securely generate accounts and convert keys client-side."}

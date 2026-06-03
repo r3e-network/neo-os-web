@@ -36,14 +36,14 @@ export default function BuyKeysCard({
       <span className="card-title-glass">{t("buyKeys")}</span>
       <div className="key-selector">
         <button className="key-adjust-btn minus" type="button" onClick={() => adjustKeys(-1)} disabled={Number(keyCount) <= 1} aria-label="Decrease">
-          <span className="adjust-icon">&minus;</span>
+          <span className="adjust-icon">{"−"}</span>
         </button>
         <div className="key-display">
           <span className="key-count-value">{keyCount}</span>
           <span className="key-count-unit">{t("keysSuffix")}</span>
         </div>
         <button className="key-adjust-btn plus" type="button" onClick={() => adjustKeys(1)} aria-label="Increase">
-          <span className="adjust-icon">&plus;</span>
+          <span className="adjust-icon">{"+"}</span>
         </button>
       </div>
       <div className="key-presets">

@@ -6,11 +6,17 @@
   display: grid;
   gap: 12px;
   min-width: 0;
-  padding: 14px;
+  padding: 16px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+
+  &:hover {
+    border-color: rgba(15, 177, 116, 0.22);
+    box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  }
 
   > div:first-child {
     display: grid;
@@ -23,7 +29,7 @@
     font-size: 14px;
     font-weight: 800;
     line-height: 1.2;
-    letter-spacing: 0;
+    letter-spacing: -0.01em;
   }
 
   p {

@@ -43,7 +43,12 @@ export default function HistoryTab({
       </div>
       {history.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-icon" aria-hidden="true">0</span>
+          <span className="empty-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 4c-3.3 0-6 2.7-6 6v9h12v-9c0-3.3-2.7-6-6-6Z" />
+              <path d="M9.5 10h5M12 10v4" />
+            </svg>
+          </span>
           <span className="empty-text">{t("noDestructions")}</span>
         </div>
       ) : (
