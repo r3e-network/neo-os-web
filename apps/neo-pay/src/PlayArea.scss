@@ -28,14 +28,15 @@
 
 .neopay-hero-badge {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--ns-brand-soft, #e4f8f0);
   color: var(--ns-brand, #16c784);
+  box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.08);
 }
 
 .neopay-hero-text {
@@ -47,15 +48,15 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0;
-  color: var(--ns-text-muted, #8a92a6);
+  letter-spacing: 0.12em;
+  color: var(--ns-brand, #16c784);
 }
 
 .neopay-hero-title {
-  margin: 0.125rem 0 0;
+  margin: 0.1875rem 0 0;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   color: var(--ns-ink, #1e1e2e);
   line-height: 1.2;
 }
@@ -128,10 +129,11 @@
 }
 
 .neopay-token-label {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
   color: var(--ns-text-muted, #8a92a6);
   text-transform: uppercase;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
 }
 
 .neopay-token-options {

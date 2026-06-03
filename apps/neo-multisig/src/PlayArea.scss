@@ -43,7 +43,7 @@
   border-radius: var(--ns-radius-lg, 20px);
   overflow: hidden;
   background:
-    linear-gradient(135deg, #ffffff 0%, #ffffff 56%, #fff7ed 100%);
+    linear-gradient(135deg, #ffffff 0%, #ffffff 54%, var(--ns-brand-soft, #e4f8f0) 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   letter-spacing: 0;
 }
@@ -66,20 +66,21 @@
 }
 
 .multisig-hero-eyebrow {
-  color: var(--multisig-muted);
+  color: var(--multisig-green-strong);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .multisig-hero h2 {
-  margin: 0;
+  margin: 2px 0 0;
   color: var(--multisig-ink);
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 800;
   line-height: 1.18;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 
 .multisig-hero p {
@@ -177,7 +178,7 @@
 }
 
 .multisig-request-panel > p {
-  margin: -2px 0 0;
+  margin: -2px 0 2px;
   color: var(--multisig-body);
   font-size: 14px;
   line-height: 1.55;
@@ -338,7 +339,7 @@
 
   &:focus-visible {
     outline: none;
-    border-color: var(--multisig-blue);
+    border-color: var(--multisig-green);
     box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
   }
 }

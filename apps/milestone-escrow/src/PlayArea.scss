@@ -64,9 +64,9 @@
 
 .hero-eyebrow {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   color: var(--me-muted);
 }
 
@@ -123,10 +123,10 @@
 }
 
 .hero-progress-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   color: var(--me-muted);
 }
 
@@ -201,8 +201,9 @@
 
 .section-title {
   font-size: 16px;
-  font-weight: 700;
-  color: var(--me-text-2);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--me-ink);
 }
 
 .escrow-list {
@@ -221,10 +222,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   color: var(--me-muted);
 }
 
@@ -318,11 +319,16 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition: background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
 .escrow-action:hover:not(:disabled) {
   background: var(--me-line);
+}
+
+.escrow-action:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.28);
 }
 
 .escrow-action:disabled {
@@ -334,6 +340,10 @@
   background: var(--me-accent-soft);
   border-color: transparent;
   color: var(--me-accent-strong);
+}
+
+.escrow-action--approve:hover:not(:disabled) {
+  background: #d4f3e6;
 }
 
 .escrow-action--cancel {
@@ -348,7 +358,7 @@
   align-items: center;
   gap: 14px;
   text-align: center;
-  padding: 32px 24px;
+  padding: 40px 24px;
   background: var(--me-surface);
   border: 1px solid var(--me-line);
   border-radius: var(--me-radius);
@@ -359,30 +369,34 @@
 .escrow-empty__icon {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: var(--me-accent-soft);
   color: var(--me-accent-strong);
+  box-shadow: 0 0 0 6px rgba(22, 199, 132, 0.08);
 }
 
 .escrow-notice__title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   color: var(--me-ink);
 }
 
 .escrow-notice__desc {
   margin: 0;
-  max-width: 46ch;
+  max-width: 44ch;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--me-text-2);
 }
 
 .escrow-empty__text {
+  max-width: 40ch;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1.6;
   color: var(--me-muted);
 }
 
@@ -407,9 +421,20 @@
 
   .hero-container {
     padding: 20px;
+    gap: 20px;
   }
 
   .hero-title {
     font-size: 20px;
+  }
+
+  .escrow-notice,
+  .escrow-empty {
+    padding: 32px 20px;
+  }
+
+  /* Stack actions only if they would otherwise crowd, but keep them tappable. */
+  .escrow-action {
+    padding: 10px 12px;
   }
 }
