@@ -47,10 +47,6 @@ export default function PlayArea({
   const statePriceGas = str("priceGas");
   const stateListingTitle = str("listingTitle");
   const stateMetadataUri = str("metadataUri");
-  const selectedListingDisplay = str(
-    "selectedListingDisplay",
-    t("notAvailable"),
-  );
 
   const launchValues = useMemo(
     () => ({
@@ -103,67 +99,46 @@ export default function PlayArea({
   return (
     <div className="market-play-area">
       <section className="market-hero">
-        <div className="market-hero__copy">
-          <div className="market-hero__head">
-            <span className="market-hero__badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-                <path d="M3 6h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </span>
+        <div className="market-hero__head">
+          <span className="market-hero__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              <path d="M3 6h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </span>
+          <div className="market-hero__title">
             <h2>{t("marketHeroTitle")}</h2>
+            <p>{t("docsSubtitle")}</p>
           </div>
-          <p>{t("hubSummary")}</p>
           <div
             className="market-hero__metrics"
             aria-label={t("marketMetricsLabel")}
           >
-            <div className="market-metric">
-              <span>{t("marketMetricListings")}</span>
+            <div className="market-hero__metric">
               <strong>{listingCountLabel}</strong>
+              <span>{t("marketMetricListings")}</span>
             </div>
-            <div className="market-metric">
-              <span>{t("marketMetricActive")}</span>
+            <div className="market-hero__metric">
               <strong>{activeCountLabel}</strong>
-            </div>
-            <div className="market-metric">
-              <span>{t("selectedListingLabel")}</span>
-              <strong>{selectedListingDisplay}</strong>
+              <span>{t("marketMetricActive")}</span>
             </div>
           </div>
         </div>
-        <div className="market-command">
-          <WalletConnectCard
-            t={t}
-            marketHash={marketHash}
-            walletAddress={walletAddress}
-            isWalletConnecting={isWalletConnecting}
-            isLoading={isLoading}
-            canLoadListings={canLoadListings}
-            onMarketHashChange={setMarketHash}
-            onConnect={() => dispatch("connectWallet")}
-            onLoadListings={() => dispatch("loadListings", marketHash)}
-          />
-        </div>
       </section>
 
-      <section className="market-steps" aria-label={t("marketStepsLabel")}>
-        <div className="market-step">
-          <span className="market-step__icon">01</span>
-          <strong>{t("marketStepConnect")}</strong>
-          <span>{t("marketStepConnectDesc")}</span>
-        </div>
-        <div className="market-step">
-          <span className="market-step__icon">02</span>
-          <strong>{t("marketStepLoad")}</strong>
-          <span>{t("marketStepLoadDesc")}</span>
-        </div>
-        <div className="market-step">
-          <span className="market-step__icon">03</span>
-          <strong>{t("marketStepSettlement")}</strong>
-          <span>{t("marketStepSettlementDesc")}</span>
-        </div>
+      <section className="market-gate">
+        <WalletConnectCard
+          t={t}
+          marketHash={marketHash}
+          walletAddress={walletAddress}
+          isWalletConnecting={isWalletConnecting}
+          isLoading={isLoading}
+          canLoadListings={canLoadListings}
+          onMarketHashChange={setMarketHash}
+          onConnect={() => dispatch("connectWallet")}
+          onLoadListings={() => dispatch("loadListings", marketHash)}
+        />
       </section>
 
       <section className="market-workspace">
@@ -203,6 +178,12 @@ export default function PlayArea({
               />
             ))}
           </div>
+
+          {!selectedListing && listings.length > 0 && (
+            <p className="hint-text market-list-panel__hint">
+              {t("selectListingHint")}
+            </p>
+          )}
         </div>
 
         <aside className="market-side-rail">
@@ -227,16 +208,23 @@ export default function PlayArea({
             dispatch={dispatch}
           />
 
-          <ManageListingCard
-            t={t}
-            selectedListing={selectedListing}
-            isSubmitting={isSubmitting}
-            canManage={canManageSelectedListing}
-            canBuy={canBuySelectedListing}
-            hasPendingRefund={selectedListingHasPendingRefund}
-            walletAddress={walletAddress}
-            dispatch={dispatch}
-          />
+          <details className="market-caveat">
+            <summary>{t("feature2Name")}</summary>
+            <p>{t("hubSummary")}</p>
+          </details>
+
+          {selectedListing && (
+            <ManageListingCard
+              t={t}
+              selectedListing={selectedListing}
+              isSubmitting={isSubmitting}
+              canManage={canManageSelectedListing}
+              canBuy={canBuySelectedListing}
+              hasPendingRefund={selectedListingHasPendingRefund}
+              walletAddress={walletAddress}
+              dispatch={dispatch}
+            />
+          )}
         </aside>
       </section>
     </div>

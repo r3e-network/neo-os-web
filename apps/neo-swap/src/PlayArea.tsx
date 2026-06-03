@@ -1,15 +1,14 @@
 /**
  * PlayArea.tsx -- Neo Swap
  *
- * Host-native NEO/GAS swap console with route preview, wallet balances,
- * token selection, and wallet-submitted execution.
+ * Host-native NEO/GAS swap console. The swap form is the single primary
+ * focal card; quote detail (rate / slippage / min received) appears once,
+ * with popular pairs as a slim secondary column.
  */
 
 import {
-  Activity,
   ArrowDownUp,
   RefreshCw,
-  ShieldCheck,
   Wallet,
   X,
 } from "lucide-react";
@@ -34,8 +33,8 @@ interface Token {
 }
 
 const popularPairs = [
-  { id: "neo-gas", name: "NEO/GAS", rate: "1:45.2" },
-  { id: "gas-neo", name: "GAS/NEO", rate: "1:0.0221" },
+  { id: "neo-gas", name: "NEO/GAS" },
+  { id: "gas-neo", name: "GAS/NEO" },
 ];
 
 const formatBalance = (token: Token | null) =>
@@ -65,74 +64,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : exchangeRate
       ? t("swapRouteReady")
       : t("swapRouteUnavailable");
+  const routeReady = !rateLoading && !!exchangeRate;
   const rateDisplay = rateLoading ? t("loadingRate") : exchangeRate || t("rateUnavailable");
   const formattedMinReceived = minReceived || "0.0000";
   const selectorTitle = selectorTarget === "to" ? t("to") : t("from");
   const fromSymbol = fromToken?.symbol || t("selectToken");
   const toSymbol = toToken?.symbol || t("selectToken");
 
+  const fromBalance = fromToken?.balance ?? 0;
+  const toBalance = toToken?.balance ?? 0;
+  const walletEmpty = fromBalance === 0 && toBalance === 0;
+
   return (
     <div className="neo-swap-play-area">
-      <div className="neo-swap-shell">
-        <section className="neo-swap-hero-panel" aria-label={t("title")}>
-          <SwapHero
-            t={t}
-            currentRate={rateDisplay}
-            fromSymbol={fromSymbol}
-            toSymbol={toSymbol}
-          />
-          <div className="neo-swap-balance-grid" aria-label={t("swapPortfolioLabel")}>
-            <div className="neo-swap-balance-card">
-              <span>{t("from")}</span>
-              <strong>{formatBalance(fromToken)} {fromToken?.symbol || ""}</strong>
-            </div>
-            <div className="neo-swap-balance-card">
-              <span>{t("to")}</span>
-              <strong>{formatBalance(toToken)} {toToken?.symbol || ""}</strong>
-            </div>
-            <div className="neo-swap-balance-card">
-              <span>{t("quoteHealth")}</span>
-              <strong>{routeHealth}</strong>
-            </div>
-          </div>
-        </section>
-
-        <NeoCard variant="erobo" className="neo-swap-route-card">
-          <div className="neo-swap-section-header">
-            <div>
-              <span>{t("swapRouteStatus")}</span>
-              <strong>{routeHealth}</strong>
-            </div>
-            <NeoButton
-              size="sm"
-              variant="secondary"
-              onClick={() => dispatch("refreshRate")}
-              aria-label={t("refreshRate")}
-            >
-              <RefreshCw size={15} aria-hidden="true" />
-              {t("refreshRate")}
-            </NeoButton>
-          </div>
-
-          <div className="neo-swap-route-steps" aria-label={t("tabPool")}>
-            <div>
-              <Activity size={17} aria-hidden="true" />
-              <span>{t("exchangeRate")}</span>
-              <strong>{rateDisplay}</strong>
-            </div>
-            <div>
-              <ShieldCheck size={17} aria-hidden="true" />
-              <span>{t("slippage")}</span>
-              <strong>{slippage}</strong>
-            </div>
-            <div>
-              <Wallet size={17} aria-hidden="true" />
-              <span>{t("minReceived")}</span>
-              <strong>{formattedMinReceived}</strong>
-            </div>
-          </div>
-        </NeoCard>
-      </div>
+      <section className="neo-swap-hero-panel" aria-label={t("title")}>
+        <SwapHero
+          t={t}
+          currentRate={rateDisplay}
+          fromSymbol={fromSymbol}
+          toSymbol={toSymbol}
+        />
+      </section>
 
       <div className="neo-swap-main-grid">
         <NeoCard variant="erobo" className="neo-swap-swap-card">
@@ -141,7 +93,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("tabSwap")}</span>
               <strong>{fromSymbol} {t("swapArrow")} {toSymbol}</strong>
             </div>
+            <span
+              className={`neo-swap-route-badge${routeReady ? " is-ready" : ""}`}
+              aria-label={t("swapRouteStatus")}
+            >
+              {routeHealth}
+            </span>
           </div>
+
+          {walletEmpty && (
+            <div className="neo-swap-wallet-empty">
+              <Wallet size={18} aria-hidden="true" />
+              <span>{t("step1")}</span>
+            </div>
+          )}
 
           <div className="neo-swap-token-field">
             <div className="neo-swap-token-header">
@@ -231,15 +196,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           >
             {isSwapping ? (t("swapping") || "Swapping...") : swapButtonText}
           </NeoButton>
+          <p className="neo-swap-execute-note">
+            {t("minReceived")}: {formattedMinReceived} {toSymbol} · {t("slippage")} {slippage}
+          </p>
         </NeoCard>
 
         <aside className="neo-swap-side-stack" aria-label={t("tabPool")}>
-          <div className="neo-swap-trust-strip">
-            <ShieldCheck size={19} aria-hidden="true" />
-            <div>
-              <span>{t("swapSafetyTitle")}</span>
-              <strong>{t("swapSafetyCopy")}</strong>
-            </div>
+          <div className="neo-swap-side-actions">
+            <NeoButton
+              size="sm"
+              variant="secondary"
+              block
+              onClick={() => dispatch("refreshRate")}
+              aria-label={t("refreshRate")}
+            >
+              <RefreshCw size={15} aria-hidden="true" />
+              {t("refreshRate")}
+            </NeoButton>
           </div>
 
           <PopularPairs

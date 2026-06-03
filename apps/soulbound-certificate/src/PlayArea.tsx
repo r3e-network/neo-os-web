@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
-import {
-  CategoryIcon,
-  EmptyStateArt,
-} from "@shared/components-react/illustrations";
+import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable, ObservableState } from "@shared/react/context";
 import { formatHash } from "@shared/utils/format";
@@ -17,9 +14,7 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-function formatCount(value: bigint | number) {
-  return value.toLocaleString("en-US");
-}
+type TabKey = "issue" | "templates" | "verify";
 
 function tokenLabel(tokenId: string) {
   if (!tokenId) return "";
@@ -50,12 +45,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const lastError = str("lastError", "");
   const lastSuccess = str("lastSuccess", "");
 
+  const [activeTab, setActiveTab] = useState<TabKey>("issue");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [confirmRevokeId, setConfirmRevokeId] = useState("");
+
   const [createForm, setCreateForm] = useState({
-    name: "Neo Course Completion",
-    issuerName: "Neo Academy",
-    category: "Course",
-    maxSupply: "1000",
-    description: "Issued to graduates who completed the Neo builder track.",
+    name: "",
+    issuerName: "",
+    category: "",
+    maxSupply: "",
+    description: "",
   });
   const [issueForm, setIssueForm] = useState({
     templateId: "",
@@ -70,6 +69,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     () => templates.find((template) => template.id === issueForm.templateId),
     [issueForm.templateId, templates],
   );
+  const issuableTemplates = useMemo(
+    () => templates.filter((template) => template.active),
+    [templates],
+  );
   const createFormValid =
     createForm.name.trim() &&
     createForm.issuerName.trim() &&
@@ -83,6 +86,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     issueForm.achievement.trim();
   const verifyFormValid = verifyTokenId.trim().length > 0;
   const hasAddress = Boolean(address);
+  const hasMetrics =
+    templatesCount > 0 || certificatesCount > 0 || activeTemplatesCount > 0;
 
   const updateCreateForm = (key: keyof typeof createForm, value: string) => {
     setCreateForm((current) => ({ ...current, [key]: value }));
@@ -96,6 +101,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       templateId: template.id,
       achievement: current.achievement || template.name,
     }));
+    setActiveTab("issue");
   };
   const submitCreateTemplate = () => {
     if (!createFormValid || isCreatingTemplate) return;
@@ -109,10 +115,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     if (!verifyFormValid || isVerifying) return;
     void dispatch("verifyCertificate", { tokenId: verifyTokenId });
   };
-  const submitRevoke = (tokenId = verifyTokenId) => {
+  const submitRevoke = (tokenId: string) => {
     if (!tokenId || isRevoking) return;
+    setConfirmRevokeId("");
     void dispatch("revokeCertificate", { tokenId });
   };
+
+  const tabs: { key: TabKey; label: string }[] = [
+    { key: "issue", label: t("issueTitle") },
+    { key: "templates", label: t("templatesTab") },
+    { key: "verify", label: t("verifyTab") },
+  ];
 
   return (
     <div className="certificate-play-area">
@@ -128,21 +141,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="hero-copy">
             <h2 className="hero-title">{t("title")}</h2>
             <p className="hero-subtitle">{t("docSubtitle")}</p>
-          </div>
-        </div>
-
-        <div className="hero-stats">
-          <div className="hero-stat">
-            <span className="hero-stat-value">{templatesCount}</span>
-            <span className="hero-stat-label">{t("templatesTab")}</span>
-          </div>
-          <div className="hero-stat">
-            <span className="hero-stat-value">{certificatesCount}</span>
-            <span className="hero-stat-label">{t("certificatesTab")}</span>
-          </div>
-          <div className="hero-stat">
-            <span className="hero-stat-value">{activeTemplatesCount}</span>
-            <span className="hero-stat-label">{t("sidebarActive")}</span>
+            {hasMetrics && (
+              <p className="hero-metrics">
+                <span>
+                  <strong>{templatesCount}</strong> {t("templatesTab")}
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  <strong>{activeTemplatesCount}</strong> {t("sidebarActive")}
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  <strong>{certificatesCount}</strong> {t("certificatesTab")}
+                </span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -159,15 +172,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </section>
 
-      {isLoading && (
-        <NeoCard variant="default" className="loading-card">
-          <div className="loading-content">
-            <div className="loading-spinner" />
-            <span className="loading-text">{t("lookingUp")}</span>
-          </div>
-        </NeoCard>
-      )}
-
       {(lastSuccess || lastError || lastTxid) && (
         <div
           className={`certificate-status-strip${
@@ -180,80 +184,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       )}
 
-      <section
-        className="certificate-workspace"
-        aria-label={t("issuerWorkspaceTitle")}
-      >
-        <NeoCard title={t("createTemplate")} className="certificate-panel">
-          <p className="panel-copy">{t("createTemplateHelp")}</p>
-          <div className="certificate-form-grid">
-            <label className="certificate-field">
-              <span>{t("templateName")}</span>
-              <input
-                value={createForm.name}
-                placeholder={t("templateNamePlaceholder")}
-                onChange={(event) =>
-                  updateCreateForm("name", event.currentTarget.value)
-                }
-              />
-            </label>
-            <label className="certificate-field">
-              <span>{t("issuerName")}</span>
-              <input
-                value={createForm.issuerName}
-                placeholder={t("issuerNamePlaceholder")}
-                onChange={(event) =>
-                  updateCreateForm("issuerName", event.currentTarget.value)
-                }
-              />
-            </label>
-            <label className="certificate-field">
-              <span>{t("category")}</span>
-              <input
-                value={createForm.category}
-                placeholder={t("categoryPlaceholder")}
-                onChange={(event) =>
-                  updateCreateForm("category", event.currentTarget.value)
-                }
-              />
-            </label>
-            <label className="certificate-field">
-              <span>{t("maxSupply")}</span>
-              <input
-                type="number"
-                min="1"
-                max="100000"
-                step="1"
-                value={createForm.maxSupply}
-                aria-invalid={!Number.isInteger(Number(createForm.maxSupply))}
-                onChange={(event) =>
-                  updateCreateForm("maxSupply", event.currentTarget.value)
-                }
-              />
-            </label>
-            <label className="certificate-field certificate-field--wide">
-              <span>{t("description")}</span>
-              <textarea
-                value={createForm.description}
-                placeholder={t("descriptionPlaceholder")}
-                onChange={(event) =>
-                  updateCreateForm("description", event.currentTarget.value)
-                }
-              />
-            </label>
-          </div>
+      <nav className="certificate-tabs" aria-label={t("issuerWorkspaceTitle")}>
+        {tabs.map((tab) => (
           <button
+            key={tab.key}
             type="button"
-            className="certificate-button certificate-button--primary"
-            disabled={!createFormValid || isCreatingTemplate}
-            onClick={submitCreateTemplate}
+            className={`certificate-tab${
+              activeTab === tab.key ? " is-active" : ""
+            }`}
+            aria-pressed={activeTab === tab.key}
+            onClick={() => setActiveTab(tab.key)}
           >
-            {isCreatingTemplate ? t("creating") : t("createTemplate")}
+            {tab.label}
           </button>
-        </NeoCard>
+        ))}
+      </nav>
 
+      {activeTab === "issue" && (
         <NeoCard title={t("issueCertificate")} className="certificate-panel">
           <p className="panel-copy">{t("issueHelp")}</p>
+
           <div className="selected-template">
             <span>{t("selectedTemplate")}</span>
             <strong>
@@ -262,17 +212,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 : t("noTemplateSelected")}
             </strong>
           </div>
+
+          {!selectedTemplate && (
+            issuableTemplates.length > 0 ? (
+              <div className="template-picker" role="list">
+                {issuableTemplates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    role="listitem"
+                    className="template-chip"
+                    onClick={() => selectTemplateForIssue(template)}
+                  >
+                    <span className="template-chip__name">
+                      {template.name || `#${template.id}`}
+                    </span>
+                    <span className="template-chip__meta">#{template.id}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-note">
+                {hasAddress ? t("emptyTemplatesHint") : t("walletNotConnectedHint")}
+              </div>
+            )
+          )}
+
           <div className="certificate-form-grid">
-            <label className="certificate-field">
-              <span>{t("templateId")}</span>
-              <input
-                value={issueForm.templateId}
-                placeholder={t("templateIdPlaceholder")}
-                onChange={(event) =>
-                  updateIssueForm("templateId", event.currentTarget.value)
-                }
-              />
-            </label>
             <label className="certificate-field">
               <span>{t("issueRecipient")}</span>
               <input
@@ -303,9 +269,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 }
               />
             </label>
-            <label className="certificate-field certificate-field--wide">
+            <label className="certificate-field">
               <span>{t("memo")}</span>
-              <textarea
+              <input
                 value={issueForm.memo}
                 placeholder={t("memoPlaceholder")}
                 onChange={(event) =>
@@ -314,155 +280,275 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
             </label>
           </div>
-          <button
-            type="button"
-            className="certificate-button certificate-button--primary"
+          <NeoButton
+            variant="primary"
+            block
+            loading={isIssuing}
             disabled={!issueFormValid || isIssuing}
             onClick={submitIssueCertificate}
           >
             {isIssuing ? t("issuing") : t("issue")}
-          </button>
+          </NeoButton>
         </NeoCard>
-      </section>
+      )}
 
-      <div className="certificate-grid">
-        <TemplateList
-          templates={templates}
-          refreshing={isRefreshing}
-          togglingId={togglingId || null}
-          hasAddress={hasAddress}
-          onRefresh={() => dispatch("refreshTemplates")}
-          onConnect={() => dispatch("connectWallet")}
-          onIssue={selectTemplateForIssue}
-          onToggle={(template) => dispatch("toggleTemplate", template)}
-          onCopyIssueLink={(template) => dispatch("copyIssueLink", template)}
-          onShareIssueLink={(template) => dispatch("shareIssueLink", template)}
-          t={t}
-        />
+      {activeTab === "templates" && (
+        <div className="certificate-stack">
+          <TemplateList
+            templates={templates}
+            refreshing={isRefreshing}
+            togglingId={togglingId || null}
+            hasAddress={hasAddress}
+            onRefresh={() => dispatch("refreshTemplates")}
+            onConnect={() => dispatch("connectWallet")}
+            onIssue={selectTemplateForIssue}
+            onToggle={(template) => dispatch("toggleTemplate", template)}
+            onCopyIssueLink={(template) => dispatch("copyIssueLink", template)}
+            onShareIssueLink={(template) => dispatch("shareIssueLink", template)}
+            t={t}
+          />
 
-        <NeoCard title={t("verifyTab")} variant="default" className="verify-card">
-          <p className="panel-copy">{t("verifyHelp")}</p>
-          <label className="certificate-field">
-            <span>{t("verifyTokenId")}</span>
-            <input
-              value={verifyTokenId}
-              placeholder={t("verifyTokenIdPlaceholder")}
-              onChange={(event) => setVerifyTokenId(event.currentTarget.value)}
-            />
-          </label>
-          <div className="certificate-inline-actions">
-            <button
-              type="button"
-              className="certificate-button certificate-button--primary"
-              disabled={!verifyFormValid || isVerifying}
-              onClick={submitVerify}
-            >
-              {isVerifying ? t("lookingUp") : t("lookup")}
-            </button>
-            <button
-              type="button"
-              className="certificate-button certificate-button--danger"
-              disabled={!verifyFormValid || isRevoking}
-              onClick={() => submitRevoke()}
-            >
-              {isRevoking ? t("revoking") : t("revoke")}
-            </button>
-          </div>
-          {verifiedCertificate ? (
-            <div className="certificate-detail">
-              <div className="certificate-detail__top">
-                <strong>
-                  {verifiedCertificate.templateName ||
-                    tokenLabel(verifiedCertificate.tokenId)}
-                </strong>
-                <span
-                  className={`cert-badge ${
-                    verifiedCertificate.revoked ? "revoked" : "valid"
-                  }`}
-                >
-                  {verifiedCertificate.revoked
-                    ? t("certificateRevoked")
-                    : t("certificateValid")}
-                </span>
-              </div>
-              <dl>
-                <div>
-                  <dt>{t("tokenId")}</dt>
-                  <dd>{tokenLabel(verifiedCertificate.tokenId)}</dd>
-                </div>
-                <div>
-                  <dt>{t("recipientName")}</dt>
-                  <dd>{verifiedCertificate.recipientName || "-"}</dd>
-                </div>
-                <div>
-                  <dt>{t("achievement")}</dt>
-                  <dd>{verifiedCertificate.achievement || "-"}</dd>
-                </div>
-                <div>
-                  <dt>{t("issueRecipient")}</dt>
-                  <dd>{formatHash(verifiedCertificate.owner, 8, 6)}</dd>
-                </div>
-              </dl>
+          <NeoCard title={t("createTemplate")} className="certificate-panel">
+            <div className="panel-head">
+              <p className="panel-copy">{t("createTemplateHelp")}</p>
+              <NeoButton
+                size="sm"
+                variant="secondary"
+                onClick={() => setShowCreateForm((open) => !open)}
+              >
+                {showCreateForm ? t("statusInactive") : t("createTemplate")}
+              </NeoButton>
             </div>
-          ) : (
-            <div className="empty-note">{t("certificateNotFoundHint")}</div>
-          )}
-        </NeoCard>
-      </div>
+            {showCreateForm && (
+              <>
+                <div className="certificate-form-grid">
+                  <label className="certificate-field">
+                    <span>{t("templateName")}</span>
+                    <input
+                      value={createForm.name}
+                      placeholder={t("templateNamePlaceholder")}
+                      onChange={(event) =>
+                        updateCreateForm("name", event.currentTarget.value)
+                      }
+                    />
+                  </label>
+                  <label className="certificate-field">
+                    <span>{t("issuerName")}</span>
+                    <input
+                      value={createForm.issuerName}
+                      placeholder={t("issuerNamePlaceholder")}
+                      onChange={(event) =>
+                        updateCreateForm("issuerName", event.currentTarget.value)
+                      }
+                    />
+                  </label>
+                  <label className="certificate-field">
+                    <span>{t("category")}</span>
+                    <input
+                      value={createForm.category}
+                      placeholder={t("categoryPlaceholder")}
+                      onChange={(event) =>
+                        updateCreateForm("category", event.currentTarget.value)
+                      }
+                    />
+                  </label>
+                  <label className="certificate-field">
+                    <span>{t("maxSupply")}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100000"
+                      step="1"
+                      value={createForm.maxSupply}
+                      placeholder={t("maxSupplyPlaceholder")}
+                      aria-invalid={
+                        createForm.maxSupply !== "" &&
+                        !Number.isInteger(Number(createForm.maxSupply))
+                      }
+                      onChange={(event) =>
+                        updateCreateForm("maxSupply", event.currentTarget.value)
+                      }
+                    />
+                  </label>
+                  <label className="certificate-field certificate-field--wide">
+                    <span>{t("description")}</span>
+                    <textarea
+                      value={createForm.description}
+                      placeholder={t("descriptionPlaceholder")}
+                      onChange={(event) =>
+                        updateCreateForm("description", event.currentTarget.value)
+                      }
+                    />
+                  </label>
+                </div>
+                <NeoButton
+                  variant="primary"
+                  block
+                  loading={isCreatingTemplate}
+                  disabled={!createFormValid || isCreatingTemplate}
+                  onClick={submitCreateTemplate}
+                >
+                  {isCreatingTemplate ? t("creating") : t("createTemplate")}
+                </NeoButton>
+              </>
+            )}
+          </NeoCard>
+        </div>
+      )}
 
-      <NeoCard
-        title={t("certificatesTab")}
-        variant="default"
-        className="certificates-card"
-      >
-        {certificates.length > 0 ? (
-          <div className="certificates-grid">
-            {certificates.map((cert, idx) => (
-              <div key={cert.tokenId || String(idx)} className="cert-item">
-                <div className="cert-info">
-                  <span className="cert-name">
-                    {cert.templateName || `#${idx + 1}`}
-                  </span>
-                  <span className="cert-recipient">
-                    {cert.recipientName || tokenLabel(cert.tokenId)}
-                  </span>
-                </div>
-                <div className="cert-row-actions">
-                  <span className={`cert-badge ${cert.revoked ? "revoked" : "valid"}`}>
-                    {cert.revoked ? t("certificateRevoked") : t("certificateValid")}
-                  </span>
-                  <button
-                    type="button"
-                    className="certificate-button"
-                    onClick={() => {
-                      setVerifyTokenId(cert.tokenId);
-                      void dispatch("verifyCertificate", { tokenId: cert.tokenId });
-                    }}
-                  >
-                    {t("lookup")}
-                  </button>
-                  {!cert.revoked && (
-                    <button
-                      type="button"
-                      className="certificate-button certificate-button--danger"
-                      disabled={isRevoking}
-                      onClick={() => submitRevoke(cert.tokenId)}
-                    >
-                      {t("revoke")}
-                    </button>
-                  )}
-                </div>
+      {activeTab === "verify" && (
+        <div className="certificate-stack">
+          <NeoCard title={t("verifyTab")} variant="default" className="verify-card">
+            <p className="panel-copy">{t("verifyHelp")}</p>
+            <div className="verify-row">
+              <label className="certificate-field certificate-field--grow">
+                <span>{t("verifyTokenId")}</span>
+                <input
+                  value={verifyTokenId}
+                  placeholder={t("verifyTokenIdPlaceholder")}
+                  onChange={(event) => setVerifyTokenId(event.currentTarget.value)}
+                />
+              </label>
+              <NeoButton
+                variant="primary"
+                loading={isVerifying}
+                disabled={!verifyFormValid || isVerifying}
+                onClick={submitVerify}
+              >
+                {isVerifying ? t("lookingUp") : t("lookup")}
+              </NeoButton>
+            </div>
+
+            {isLoading && (
+              <div className="loading-content">
+                <div className="loading-spinner" />
+                <span className="loading-text">{t("lookingUp")}</span>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <EmptyStateArt size={150} title={t("emptyCertificates")} />
-            <span className="empty-title">{t("emptyCertificates")}</span>
-            <span className="empty-hint">{t("emptyCertificatesHint")}</span>
-          </div>
-        )}
-      </NeoCard>
+            )}
+
+            {verifiedCertificate ? (
+              <div className="certificate-detail">
+                <div className="certificate-detail__top">
+                  <strong>
+                    {verifiedCertificate.templateName ||
+                      tokenLabel(verifiedCertificate.tokenId)}
+                  </strong>
+                  <span
+                    className={`cert-badge ${
+                      verifiedCertificate.revoked ? "revoked" : "valid"
+                    }`}
+                  >
+                    {verifiedCertificate.revoked
+                      ? t("certificateRevoked")
+                      : t("certificateValid")}
+                  </span>
+                </div>
+                <dl>
+                  <div>
+                    <dt>{t("tokenId")}</dt>
+                    <dd>{tokenLabel(verifiedCertificate.tokenId)}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("recipientName")}</dt>
+                    <dd>{verifiedCertificate.recipientName || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("achievement")}</dt>
+                    <dd>{verifiedCertificate.achievement || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("issueRecipient")}</dt>
+                    <dd>{formatHash(verifiedCertificate.owner, 8, 6)}</dd>
+                  </div>
+                </dl>
+                {!verifiedCertificate.revoked && (
+                  <div className="certificate-detail__revoke">
+                    {confirmRevokeId === verifiedCertificate.tokenId ? (
+                      <>
+                        <NeoButton
+                          size="sm"
+                          variant="danger"
+                          loading={isRevoking}
+                          disabled={isRevoking}
+                          onClick={() => submitRevoke(verifiedCertificate.tokenId)}
+                        >
+                          {isRevoking ? t("revoking") : t("revoke")}
+                        </NeoButton>
+                        <NeoButton
+                          size="sm"
+                          variant="ghost"
+                          disabled={isRevoking}
+                          onClick={() => setConfirmRevokeId("")}
+                        >
+                          {t("statusInactive")}
+                        </NeoButton>
+                      </>
+                    ) : (
+                      <NeoButton
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          setConfirmRevokeId(verifiedCertificate.tokenId)
+                        }
+                      >
+                        {t("revoke")}
+                      </NeoButton>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="empty-note">{t("certificateNotFoundHint")}</div>
+            )}
+          </NeoCard>
+
+          <NeoCard
+            title={t("certificatesTab")}
+            variant="default"
+            className="certificates-card"
+          >
+            {certificates.length > 0 ? (
+              <div className="certificates-grid">
+                {certificates.map((cert, idx) => (
+                  <div key={cert.tokenId || String(idx)} className="cert-item">
+                    <div className="cert-info">
+                      <span className="cert-name">
+                        {cert.templateName || `#${idx + 1}`}
+                      </span>
+                      <span className="cert-recipient">
+                        {cert.recipientName || tokenLabel(cert.tokenId)}
+                      </span>
+                    </div>
+                    <div className="cert-row-actions">
+                      <span
+                        className={`cert-badge ${cert.revoked ? "revoked" : "valid"}`}
+                      >
+                        {cert.revoked
+                          ? t("certificateRevoked")
+                          : t("certificateValid")}
+                      </span>
+                      <button
+                        type="button"
+                        className="certificate-button"
+                        onClick={() => {
+                          setVerifyTokenId(cert.tokenId);
+                          void dispatch("verifyCertificate", {
+                            tokenId: cert.tokenId,
+                          });
+                        }}
+                      >
+                        {t("lookup")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-note">{t("emptyCertificatesHint")}</div>
+            )}
+          </NeoCard>
+        </div>
+      )}
     </div>
   );
 }

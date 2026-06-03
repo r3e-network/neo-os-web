@@ -6,24 +6,16 @@
   color: var(--ns-ink, #1e1e2e);
 }
 
+/* ---- Hero: one tight header + single compact meta line ---- */
 .account-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.26fr) minmax(340px, 0.74fr);
-  gap: 20px;
-  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   padding: 24px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 16px;
   background: var(--ns-surface, #fff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-}
-
-.account-hero__copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 20px;
 }
 
 .account-hero__intro {
@@ -57,69 +49,76 @@
   letter-spacing: 0;
 }
 
-.account-hero__copy h2 {
-  max-width: 780px;
+.account-hero__heading h2 {
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: 0;
-  line-height: 1.12;
+  line-height: 1.15;
 }
 
-.account-hero__copy p {
+.account-hero p {
   max-width: 820px;
   margin: 0;
   color: var(--ns-text-2, #5b6478);
   font-size: 15px;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 
-.account-hero__metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.account-metric {
+.account-hero__meta {
   display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.account-metric span,
-.account-section-heading span,
-.account-detail-card span,
-.account-scope-summary strong {
+.account-hero__fact {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0;
+  text-transform: uppercase;
 }
 
-.account-metric strong {
+.account-hero__fact strong {
   overflow: hidden;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 20px;
+  font-size: 13px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
+  letter-spacing: 0;
   text-overflow: ellipsis;
+  text-transform: none;
   white-space: nowrap;
+}
+
+.account-hero__divider {
+  width: 1px;
+  height: 18px;
+  flex: 0 0 auto;
+  background: var(--ns-border, rgba(20, 22, 38, 0.12));
+}
+
+/* ---- Workspace: Inspect (left) + Register (right), one shared AccountId ---- */
+.account-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
 }
 
 .account-command,
 .account-register-card {
   border-radius: 20px;
-}
-
-.account-command {
-  height: 100%;
 }
 
 .account-command .neo-card__content,
@@ -162,106 +161,27 @@
   line-height: 1.45;
 }
 
-.account-flow {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.account-flow__step {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 14px;
-  align-items: center;
-  min-width: 0;
-  padding: 18px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 20px;
-  background: var(--ns-surface, #fff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-}
-
-.account-flow__step > span {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  grid-row: span 2;
-  border-radius: 50%;
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-  font-size: 13px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.account-flow__step strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.account-flow__step p {
+.account-inline-note {
   margin: 0;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 13px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  font-weight: 500;
   line-height: 1.5;
 }
 
-.account-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
-  gap: 20px;
-  align-items: start;
+.account-empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--ns-border, rgba(20, 22, 38, 0.12));
+  border-radius: 16px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
 }
 
-.account-state-panel,
-.account-side-rail {
-  min-width: 0;
-}
-
-.account-state-panel {
-  padding: 24px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 20px;
-  background: var(--ns-surface, #fff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-}
-
-.account-section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.account-section-heading h3 {
-  margin: 4px 0 0;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.account-section-heading strong {
-  display: grid;
-  min-width: 96px;
-  min-height: 40px;
-  max-width: 220px;
-  place-items: center;
-  padding: 0 14px;
-  overflow: hidden;
-  border-radius: 14px;
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-  font-family: var(--font-mono, "SF Mono", "Fira Code", monospace);
-  font-size: 12px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+/* ---- Account state grid (only after Inspect returns) ---- */
 .account-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -279,6 +199,13 @@
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
+.account-detail-card span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .account-detail-card strong {
   overflow-wrap: anywhere;
   color: var(--ns-text, #2a2d3d);
@@ -288,79 +215,8 @@
   line-height: 1.5;
 }
 
-.account-risk-note {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 16px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.account-risk-note > span {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-}
-
-.account-risk-note strong {
-  display: block;
-  margin-bottom: 4px;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.account-risk-note p {
-  margin: 0;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-.account-side-rail {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.account-scope-summary {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.account-scope-summary span {
-  overflow: hidden;
-  color: var(--ns-text, #2a2d3d);
-  font-family: var(--font-mono, "SF Mono", "Fira Code", monospace);
-  font-size: 12px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 @media (max-width: 960px) {
-  .account-hero,
   .account-workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .account-hero__metrics,
-  .account-flow {
     grid-template-columns: 1fr;
   }
 }
@@ -375,31 +231,13 @@
     border-radius: 14px;
   }
 
-  .account-hero__copy h2 {
-    font-size: 28px;
-    line-height: 1.12;
+  .account-hero__heading h2 {
+    font-size: 23px;
+    line-height: 1.15;
   }
 
   .account-action-grid,
   .account-detail-grid {
     grid-template-columns: 1fr;
-  }
-
-  .account-section-heading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .account-section-heading strong {
-    max-width: none;
-  }
-
-  .account-state-panel {
-    padding: 16px;
-    border-radius: 14px;
-  }
-
-  .account-risk-note {
-    flex-direction: column;
   }
 }

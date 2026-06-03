@@ -109,6 +109,38 @@
   white-space: nowrap;
 }
 
+/* IA refactor (2026-06): compact inline context line — replaces the 3-tile N/A
+   hero-metrics strip + the redundant asset card across all 6 oracle consoles. */
+.console-tool__hero-meta {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 7px 18px;
+
+  span {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    color: var(--ns-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ns-ink);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .console-tool__asset-card {
   display: flex;
   align-items: center;
@@ -369,6 +401,30 @@
   gap: 8px;
 }
 
+/* IA refactor: raw payload JSON is now collapsed behind a disclosure (P6). */
+.console-tool__payload-card > summary {
+  cursor: pointer;
+  width: fit-content;
+  color: var(--ns-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  list-style: none;
+}
+
+.console-tool__payload-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.console-tool__payload-card > summary::after {
+  content: " ⌄";
+  color: var(--ns-text-faint);
+}
+
+.console-tool__payload-card[open] > summary::after {
+  content: " ⌃";
+}
+
 .console-tool__payload-card pre {
   overflow: auto;
   max-height: 280px;
@@ -385,11 +441,11 @@
 }
 
 .console-tool__empty {
-  min-height: 160px;
+  min-height: 72px;
   place-content: center;
   justify-items: center;
   gap: 12px;
-  padding: 28px 24px;
+  padding: 18px 20px;
   text-align: center;
 }
 

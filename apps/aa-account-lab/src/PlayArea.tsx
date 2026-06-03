@@ -19,6 +19,8 @@ interface PlayAreaProps {
   launchContext: MiniAppLaunchContext;
 }
 
+const DASH = "—";
+
 export default function PlayArea({
   t,
   state,
@@ -28,24 +30,19 @@ export default function PlayArea({
   const { str, bool } = useStateBindings(state);
   const launchDefaults = getAccountLabLaunchDefaults(launchContext);
 
+  const notAvailable = t("notAvailable") || "N/A";
+
   const isInspecting = bool("isInspecting");
   const isSubmitting = bool("isSubmitting");
-  const currentVerifier = str("currentVerifier", t("notAvailable") || "N/A");
-  const currentHook = str("currentHook", t("notAvailable") || "N/A");
-  const currentBackupOwner = str(
-    "currentBackupOwner",
-    t("notAvailable") || "N/A",
-  );
+  const currentVerifier = str("currentVerifier", notAvailable);
+  const currentHook = str("currentHook", notAvailable);
+  const currentBackupOwner = str("currentBackupOwner", notAvailable);
   const aaCoreDisplay = str("aaCoreDisplay");
   const defaultVerifierDisplay = str("defaultVerifierDisplay");
   const networkDisplay = str("networkDisplay");
 
-  const [inspectAccountId, setInspectAccountId] = useState(
-    launchDefaults.accountIdInput,
-  );
-  const [registerAccountId, setRegisterAccountId] = useState(
-    launchDefaults.accountIdInput,
-  );
+  // Single shared AccountId drives both Inspect (read) and Register (write).
+  const [accountId, setAccountId] = useState(launchDefaults.accountIdInput);
   const [verifierHash, setVerifierHash] = useState(
     launchDefaults.verifierHash || defaultVerifierDisplay || "",
   );
@@ -58,73 +55,74 @@ export default function PlayArea({
     launchDefaults.escapeTimelock || DEFAULT_ESCAPE_TIMELOCK,
   );
 
-  const canInspect = Boolean(inspectAccountId.trim()) && !isInspecting;
+  const canInspect = Boolean(accountId.trim()) && !isInspecting;
   const canRegister =
-    Boolean(registerAccountId.trim()) &&
+    Boolean(accountId.trim()) &&
     Boolean(verifierHash.trim()) &&
     Boolean(backupOwner.trim()) &&
     Boolean(escapeTimelock.trim()) &&
     !isSubmitting;
-  const inspectedAccountDisplay = inspectAccountId.trim() || t("notAvailable");
-  const registerAccountDisplay = registerAccountId.trim() || t("notAvailable");
+
+  const accountDisplay = accountId.trim() || DASH;
+  const hasInspected = currentVerifier !== notAvailable;
+
+  const fmt = (value: string) =>
+    !value || value === notAvailable ? DASH : value;
 
   const detailItems = [
-    { label: t("currentVerifier") || "Verifier", value: currentVerifier },
-    { label: t("currentHook") || "Hook", value: currentHook },
+    { label: t("currentVerifier") || "Verifier", value: fmt(currentVerifier) },
+    { label: t("currentHook") || "Hook", value: fmt(currentHook) },
     {
       label: t("currentBackupOwner") || "Backup Owner",
-      value: currentBackupOwner,
+      value: fmt(currentBackupOwner),
     },
-    { label: t("aaCore") || "AA Core", value: aaCoreDisplay },
+    { label: t("aaCore") || "AA Core", value: fmt(aaCoreDisplay) },
   ];
 
   return (
     <div className="aa-account-play-area">
       <section className="account-hero">
-        <div className="account-hero__copy">
-          <div className="account-hero__intro">
-            <span className="account-hero__badge" aria-hidden="true">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
+        <div className="account-hero__intro">
+          <span className="account-hero__badge" aria-hidden="true">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+          </span>
+          <div className="account-hero__heading">
+            <span className="account-hero__eyebrow">
+              {t("accountHeroEyebrow")}
             </span>
-            <div className="account-hero__heading">
-              <span className="account-hero__eyebrow">
-                {t("accountHeroEyebrow")}
-              </span>
-              <h2>{t("accountHeroTitle")}</h2>
-            </div>
-          </div>
-          <p>{t("accountHeroCopy")}</p>
-          <div
-            className="account-hero__metrics"
-            aria-label={t("accountMetricsLabel")}
-          >
-            <div className="account-metric">
-              <span>{t("network") || "Network"}</span>
-              <strong>{networkDisplay || "--"}</strong>
-            </div>
-            <div className="account-metric">
-              <span>{t("defaultVerifier") || "Default Verifier"}</span>
-              <strong>{defaultVerifierDisplay || t("notAvailable")}</strong>
-            </div>
-            <div className="account-metric">
-              <span>{t("accountMetricAccount")}</span>
-              <strong>{registerAccountDisplay}</strong>
-            </div>
+            <h2>{t("accountHeroTitle")}</h2>
           </div>
         </div>
+        <p>{t("accountHeroCopy")}</p>
+        <div
+          className="account-hero__meta"
+          aria-label={t("accountMetricsLabel")}
+        >
+          <span className="account-hero__fact">
+            {t("network") || "Network"}
+            <strong>{networkDisplay || DASH}</strong>
+          </span>
+          <span className="account-hero__divider" aria-hidden="true" />
+          <span className="account-hero__fact">
+            {t("defaultVerifier") || "Default Verifier"}
+            <strong>{defaultVerifierDisplay || DASH}</strong>
+          </span>
+        </div>
+      </section>
 
+      <section className="account-workspace">
         <NeoCard
           variant="erobo"
           title={
@@ -136,22 +134,20 @@ export default function PlayArea({
         >
           <div className="account-form">
             <NeoInput
-              value={inspectAccountId}
+              value={accountId}
               label={t("accountId") || "Account ID"}
               hint={t("accountIdHint")}
               placeholder={t("accountIdPlaceholder") || "Enter account ID hash"}
-              onChange={(v) => setInspectAccountId(v)}
+              onChange={(v) => setAccountId(v)}
             />
-            {!canInspect && (
-              <p className="account-hint">{t("inspectBlocked")}</p>
-            )}
+            {!canInspect && <p className="account-hint">{t("inspectBlocked")}</p>}
             <div className="account-action-grid">
               <NeoButton
                 variant="primary"
                 loading={isInspecting}
                 disabled={!canInspect}
                 aria-label={t("inspect") || "Inspect"}
-                onClick={() => dispatch("inspect", inspectAccountId)}
+                onClick={() => dispatch("inspect", accountId)}
               >
                 {t("inspect") || "Inspect"}
               </NeoButton>
@@ -163,149 +159,88 @@ export default function PlayArea({
                 {t("connectWallet") || "Connect Wallet"}
               </NeoButton>
             </div>
+
+            {hasInspected ? (
+              <div className="account-detail-grid">
+                {detailItems.map((item) => (
+                  <div key={item.label} className="account-detail-card">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="account-empty">{t("accountStateTitle")} {DASH}</p>
+            )}
           </div>
         </NeoCard>
-      </section>
 
-      <section className="account-flow" aria-label={t("accountFlowLabel")}>
-        <div className="account-flow__step">
-          <span>01</span>
-          <strong>{t("accountFlowInspect")}</strong>
-          <p>{t("accountFlowInspectDesc")}</p>
-        </div>
-        <div className="account-flow__step">
-          <span>02</span>
-          <strong>{t("accountFlowRegister")}</strong>
-          <p>{t("accountFlowRegisterDesc")}</p>
-        </div>
-        <div className="account-flow__step">
-          <span>03</span>
-          <strong>{t("accountFlowRecovery")}</strong>
-          <p>{t("accountFlowRecoveryDesc")}</p>
-        </div>
-      </section>
-
-      <section className="account-workspace">
-        <div className="account-state-panel">
-          <div className="account-section-heading">
-            <div>
-              <span>{t("accountStateLabel")}</span>
-              <h3>{t("accountStateTitle")}</h3>
-            </div>
-            <strong>{inspectedAccountDisplay}</strong>
-          </div>
-
-          <div className="account-detail-grid">
-            {detailItems.map((item) => (
-              <div key={item.label} className="account-detail-card">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
-
-          <div className="account-risk-note">
-            <span aria-hidden="true">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z" />
-              </svg>
-            </span>
-            <div>
-              <strong>{t("accountRiskTitle")}</strong>
-              <p>{t("accountRiskCopy")}</p>
-            </div>
-          </div>
-        </div>
-
-        <aside className="account-side-rail">
-          <NeoCard
-            variant="erobo"
-            title={t("registerTitle") || "Register Account"}
-            className="account-register-card"
-          >
-            <div className="account-scope-summary">
-              <strong>{t("accountShellLabel")}</strong>
-              <span>{registerAccountDisplay}</span>
-            </div>
+        <NeoCard
+          variant="erobo"
+          title={t("registerTitle") || "Register Account"}
+          className="account-register-card"
+        >
+          <div className="account-form">
             {!canRegister && (
               <p className="account-hint">{t("registerBlocked")}</p>
             )}
-            <div className="account-form">
-              <NeoInput
-                value={registerAccountId}
-                label={t("accountId") || "Account ID"}
-                hint={t("accountIdHint")}
-                placeholder={
-                  t("accountIdPlaceholder") || "Enter account ID hash"
-                }
-                onChange={(v) => setRegisterAccountId(v)}
-              />
-              <NeoInput
-                value={verifierHash}
-                label={t("verifier") || "Verifier Hash"}
-                hint={t("verifierHint")}
-                placeholder={t("verifierPlaceholder") || "0x..."}
-                onChange={(v) => setVerifierHash(v)}
-              />
-              <NeoInput
-                value={verifierParamsHex}
-                label={t("verifierParams") || "Verifier Params (hex)"}
-                hint={t("verifierParamsHint")}
-                placeholder={t("verifierParamsPlaceholder") || "0x..."}
-                onChange={(v) => setVerifierParamsHex(v)}
-              />
-              <NeoInput
-                value={hookHash}
-                label={t("hook") || "Hook Hash"}
-                hint={t("hookHint")}
-                placeholder={t("hookPlaceholder") || "0x..."}
-                onChange={(v) => setHookHash(v)}
-              />
-              <NeoInput
-                value={backupOwner}
-                label={t("backupOwner") || "Backup Owner"}
-                hint={t("backupOwnerHint")}
-                placeholder={t("backupOwnerPlaceholder") || "NeoAddress..."}
-                onChange={(v) => setBackupOwner(v)}
-              />
-              <NeoInput
-                value={escapeTimelock}
-                label={t("timelock") || "Escape Timelock"}
-                hint={t("timelockHint")}
-                placeholder={t("timelockPlaceholder") || "2592000"}
-                onChange={(v) => setEscapeTimelock(v)}
-              />
-              <NeoButton
-                variant="primary"
-                loading={isSubmitting}
-                disabled={!canRegister}
-                aria-label={t("register") || "Register"}
-                onClick={() =>
-                  dispatch(
-                    "register",
-                    registerAccountId,
-                    verifierHash,
-                    verifierParamsHex,
-                    hookHash,
-                    backupOwner,
-                    escapeTimelock,
-                  )
-                }
-              >
-                {t("register") || "Register"}
-              </NeoButton>
-            </div>
-          </NeoCard>
-        </aside>
+            <NeoInput
+              value={verifierHash}
+              label={t("verifier") || "Verifier Hash"}
+              hint={t("verifierHint")}
+              placeholder={t("verifierPlaceholder") || "0x..."}
+              onChange={(v) => setVerifierHash(v)}
+            />
+            <NeoInput
+              value={verifierParamsHex}
+              label={t("verifierParams") || "Verifier Params (hex)"}
+              hint={t("verifierParamsHint")}
+              placeholder={t("verifierParamsPlaceholder") || "0x..."}
+              onChange={(v) => setVerifierParamsHex(v)}
+            />
+            <NeoInput
+              value={hookHash}
+              label={t("hook") || "Hook Hash"}
+              hint={t("hookHint")}
+              placeholder={t("hookPlaceholder") || "0x..."}
+              onChange={(v) => setHookHash(v)}
+            />
+            <NeoInput
+              value={backupOwner}
+              label={t("backupOwner") || "Backup Owner"}
+              hint={t("backupOwnerHint")}
+              placeholder={t("backupOwnerPlaceholder") || "NeoAddress..."}
+              onChange={(v) => setBackupOwner(v)}
+            />
+            <NeoInput
+              value={escapeTimelock}
+              label={t("timelock") || "Escape Timelock"}
+              hint={t("timelockHint")}
+              placeholder={t("timelockPlaceholder") || "2592000"}
+              onChange={(v) => setEscapeTimelock(v)}
+            />
+            <p className="account-inline-note">{t("accountRiskCopy")}</p>
+            <NeoButton
+              variant="primary"
+              loading={isSubmitting}
+              disabled={!canRegister}
+              aria-label={t("register") || "Register"}
+              onClick={() =>
+                dispatch(
+                  "register",
+                  accountId,
+                  verifierHash,
+                  verifierParamsHex,
+                  hookHash,
+                  backupOwner,
+                  escapeTimelock,
+                )
+              }
+            >
+              {t("register") || "Register"}
+            </NeoButton>
+          </div>
+        </NeoCard>
       </section>
     </div>
   );
