@@ -152,18 +152,27 @@
 .domain-factory-select select {
   width: 100%;
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 38px 0 12px;
   border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  border-radius: var(--ns-radius-md, 12px);
-  background: var(--ns-surface, #fff);
+  border-radius: var(--ns-radius-md, 14px);
+  background-color: var(--ns-surface, #fff);
+  /* custom chevron so it doesn't render the raw OS dropdown control */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   color: var(--ns-ink, #1e1e2e);
   font: inherit;
+  transition: border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
+    box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
 }
 
 .domain-factory-select select:focus-visible {
   outline: none;
-  border-color: var(--ns-brand, #16c784);
-  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.16);
+  border-color: var(--ns-violet, #7b61ff);
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
 }
 
 .domain-factory-toggle {
@@ -407,6 +416,11 @@
   font-family: $font-mono;
   font-size: 12px;
   color: var(--ns-text-2, #5b6478);
+  /* Keep the long launch URL on one line (Copy button carries the full value)
+     so it doesn't sprawl into a tall wrapped block. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 860px) {
