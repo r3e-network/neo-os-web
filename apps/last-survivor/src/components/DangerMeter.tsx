@@ -5,20 +5,32 @@ interface DangerMeterProps {
   level: string;
   levelText: string;
   progress: number;
+  /**
+   * Whether a live round is driving the gauge. While idle the derived level is
+   * "critical" with 0% progress, which reads as a buggy red state — fall back
+   * to the calm default tier instead.
+   */
+  active?: boolean;
 }
 
-export default function DangerMeter({ t, level, levelText, progress }: DangerMeterProps) {
+export default function DangerMeter({ t, level, levelText, progress, active = true }: DangerMeterProps) {
+  // Idle (no live round): the derived level is "critical" with 0% progress,
+  // which renders an alarming red pill echoing the CRITICAL endpoint. Show a
+  // neutral placeholder tier instead so the gauge reads SAFE — · — CRITICAL.
+  const effectiveLevel = active ? level : "idle";
+  const effectiveText = active ? levelText : "—";
+
   return (
     <div className="danger-meter">
       <div className="meter-header">
         <span className="meter-label-left">{t("safe")}</span>
-        <div className={`danger-badge ${level}`}><span>{levelText}</span></div>
+        <div className={`danger-badge ${effectiveLevel}`}><span>{effectiveText}</span></div>
         <span className="meter-label-right">{t("critical")}</span>
       </div>
       <div className="meter-track">
         <div className="meter-gradient-bg" />
-        <div className={`meter-fill ${level}`} style={{ width: `${progress}%` }} />
-        <div className="meter-glow-point" style={{ left: `${progress}%` }} />
+        <div className={`meter-fill ${effectiveLevel}`} style={{ width: `${active ? progress : 0}%` }} />
+        <div className="meter-glow-point" style={{ left: `${active ? progress : 0}%` }} />
       </div>
     </div>
   );

@@ -39,42 +39,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canUpdateCandidate =
     Boolean(candidateAgentId.trim()) && Boolean(candidatePublicKey.trim());
   const canSyncVote = Boolean(voteAgentId.trim());
-  const visibleAgents = agentAccounts.slice(0, 21).slice(0, 6);
+  const visibleAgents = agentAccounts.slice(0, 21);
   const routeItems = [
     { label: t("selectedRoute"), value: selectedAgent },
     { label: t("agentCount"), value: agentCount },
+    { label: t("trackedNeo"), value: totalNeoDisplay },
     { label: t("reserve"), value: reserveDisplay },
   ];
-
-  const shortAddress = (raw: string) =>
-    raw.length > 14 ? `${raw.slice(0, 12)}…` : raw;
 
   return (
     <div className="anchor-admin-playarea anchor-admin-playarea--profit">
       <div className="anchor-admin-shell">
         <main className="anchor-admin-main">
           <section className="anchor-admin-hero">
-            <div className="anchor-admin-hero-copy">
+            <div className="anchor-admin-hero-top">
               <span className="anchor-admin-hero-badge">
-                <CategoryIcon name="finance" size={40} title="ProfitAnchor Admin" />
+                <CategoryIcon
+                  name="finance"
+                  size={40}
+                  title="ProfitAnchor Admin"
+                />
               </span>
-              <span className="anchor-admin-kicker">ProfitAnchor Admin</span>
-              <h2>{t("adminHeroTitle")}</h2>
-              <p>{t("adminHeroSubtitle")}</p>
-            </div>
-            <div className="anchor-admin-meter" aria-label={t("trackedNeo")}>
-              <strong>{totalNeoDisplay}</strong>
-              <span>{t("trackedNeo")}</span>
-            </div>
-          </section>
-
-          <section className="anchor-admin-route-map" aria-label={t("routeMapTitle")}>
-            {routeItems.map((item) => (
-              <div key={item.label} className="anchor-admin-route-tile">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
+              <div className="anchor-admin-hero-copy">
+                <span className="anchor-admin-kicker">ProfitAnchor Admin</span>
+                <h2>{t("adminHeroTitle")}</h2>
+                <p>{t("adminHeroSubtitle")}</p>
               </div>
-            ))}
+            </div>
+            <div className="anchor-admin-hero-stats">
+              {routeItems.map((item) => (
+                <div key={item.label} className="anchor-admin-hero-stat">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
           </section>
 
           <section className="anchor-admin-command-grid" aria-label={t("adminCommandCenter")}>
@@ -155,10 +154,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
             <NeoCard title={t("syncVote")} className="anchor-admin-workflow-card">
               <p>{t("syncVoteDesc")}</p>
-              <p className="anchor-admin-vote-preview">
-                {t("currentVoteRoute")}
+              <div className="anchor-admin-vote-preview">
+                <span>{t("currentVoteRoute")}</span>
                 <strong>{selectedAgent}</strong>
-              </p>
+              </div>
               <NeoInput
                 type="number"
                 min={1}
@@ -186,21 +185,39 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <strong className="anchor-admin-count-pill">{agentCount}</strong>
             </div>
             <div className="anchor-admin-agent-list">
-              {visibleAgents.map((agent, idx) => (
-                <div key={idx} className="anchor-admin-agent-row">
-                  <span>#{String(agent.agentId ?? idx + 1)}</span>
-                  <code>
-                    {shortAddress(
-                      String(
-                        agent.accountAddress ??
-                          agent.address ??
-                          agent.name ??
-                          `agent-${idx + 1}`,
-                      ),
-                    )}
-                  </code>
+              {visibleAgents.length === 0 ? (
+                <div className="anchor-admin-agent-empty">
+                  {t("agentDirectoryEmpty")}
                 </div>
-              ))}
+              ) : (
+                visibleAgents.map((agent, idx) => {
+                  const address = String(
+                    agent.accountAddress ??
+                      agent.address ??
+                      agent.name ??
+                      `agent-${idx + 1}`,
+                  );
+                  return (
+                    <div key={idx} className="anchor-admin-agent-row">
+                      <span>#{String(agent.agentId ?? idx + 1)}</span>
+                      <code title={address}>{address}</code>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+
+          <section className="anchor-admin-safety-card" aria-label={t("operatorRule")}>
+            <div className="anchor-admin-section-heading">
+              <span>{t("operatorRule")}</span>
+              <strong>{t("manualOnly")}</strong>
+            </div>
+            <p>{t("operatorRuleDesc")}</p>
+            <div className="anchor-admin-safety-list">
+              <span>{t("safetyMove")}</span>
+              <span>{t("safetyTarget")}</span>
+              <span>{t("safetyVote")}</span>
             </div>
           </section>
         </aside>

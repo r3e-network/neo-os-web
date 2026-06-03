@@ -34,12 +34,16 @@ export default function RoundForm({ onSubmit, t }: RoundFormProps) {
           value={startTime}
           label={t("roundStart")}
           placeholder={t("roundStartPlaceholder")}
+          hint={t("roundStartPlaceholder")}
+          className="qf-datetime-field"
           onChange={setStartTime}
         />
         <NeoInput
           value={endTime}
           label={t("roundEnd")}
           placeholder={t("roundEndPlaceholder")}
+          hint={t("roundEndPlaceholder")}
+          className="qf-datetime-field"
           onChange={setEndTime}
         />
       </div>
