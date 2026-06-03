@@ -70,6 +70,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     ? t("explorerMainnetHint")
     : t("explorerTestnetHint");
 
+  // Surface the active network's live figures inline in the hero / metrics strip.
+  const activeHeight = selectedNetwork === "mainnet" ? mainnetHeight : testnetHeight;
+  const activeTxCount = selectedNetwork === "mainnet" ? mainnetTxCount : testnetTxCount;
+
+  const hasSearched = Boolean(searchResult) || recentTxs.length > 0;
+
   const handleSearch = async () => {
     await dispatch("search");
   };
@@ -80,6 +86,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="explorer-play-area">
+      {/* ── Hero: headline state + the few relevant facts folded inline ── */}
       <section className="explorer-hero" aria-label={t("title")}>
         <div className="explorer-hero__intro">
           <div className="explorer-hero__badge" aria-hidden="true">N3</div>
@@ -87,40 +94,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="explorer-eyebrow">{t("docSubtitle")}</span>
             <h2>{t("title")}</h2>
             <p>{t("docDescription")}</p>
-            <span className="explorer-hero__tag">
-              {t("explorerReadOnly")} · {activeNetworkLabel}
-            </span>
+            <div className="explorer-hero__facts">
+              <span className="explorer-hero__tag">
+                {t("explorerReadOnly")} · {activeNetworkLabel}
+              </span>
+              <span className="explorer-hero__fact">{activeNetworkHint}</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="explorer-network-overview" aria-label={t("sidebarNetwork")}>
-        <header className="explorer-section-head">
-          <span className="explorer-eyebrow">{t("sidebarNetwork")}</span>
-          <strong>{activeNetworkHint}</strong>
-        </header>
-        <div className="network-stats">
-          {[
-            { label: t("mainnet"), height: mainnetHeight, txCount: mainnetTxCount },
-            { label: t("testnet"), height: testnetHeight, txCount: testnetTxCount },
-          ].map((network) => (
-            <NeoCard variant="erobo" className="stat-card" key={network.label}>
-              <div className="stat-block">
-                <span className="stat-network-label">{network.label}</span>
-                <div className="stat-row">
-                  <span className="stat-label">{t("blockHeight")}</span>
-                  <span className="stat-value mono">{formatNumber(network.height)}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">{t("transactions")}</span>
-                  <span className="stat-value mono">{formatNumber(network.txCount)}</span>
-                </div>
-              </div>
-            </NeoCard>
-          ))}
-        </div>
-      </section>
-
+      {/* ── Primary action: search (surfaced immediately after the hero) ── */}
       <section className="explorer-search-section" aria-label={t("explorerSearchScope")}>
         <SearchPanel
           t={t}
@@ -131,35 +115,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           onUpdateSelectedNetwork={(v) => state.selectedNetwork?.set(v)}
           onSearch={handleSearch}
         />
-        <div className="explorer-search-primer">
-          <span className="explorer-eyebrow">{t("feature3Name")}</span>
-          <strong>{t("explorerSearchHint")}</strong>
-          <ul>
-            <li>{t("explorerTipTx")}</li>
-            <li>{t("explorerTipAddress")}</li>
-            <li>{t("explorerTipContract")}</li>
-            <li>{t("explorerTipBlock")}</li>
-          </ul>
-        </div>
       </section>
 
-      <NeoCard variant="erobo" className="explorer-readonly-note">
-        <div className="explorer-readonly-note__summary">
-          <span>{t("explorerSafetyTitle")}</span>
-          <strong>{t("explorerReadOnly")}</strong>
-          <p>{t("explorerSafetyDesc")}</p>
+      {/* ── One compact metrics strip (replaces the two duplicated network cards) ── */}
+      <section className="explorer-metrics" aria-label={t("sidebarNetwork")}>
+        <div className="explorer-metric">
+          <span className="explorer-metric__label">{t("blockHeight")}</span>
+          <span className="explorer-metric__value mono">{formatNumber(activeHeight)}</span>
         </div>
-        <div className="explorer-readonly-note__stats">
-          <div>
-            <span>{t("sidebarRecentTxs")}</span>
-            <strong>{recentTxCount > 0 ? recentTxCount.toLocaleString() : t("explorerDataPending")}</strong>
-          </div>
-          <div>
-            <span>{t("searchResult")}</span>
-            <strong>{searchResult ? t("explorerResultReady") : t("explorerDataPending")}</strong>
-          </div>
+        <div className="explorer-metric">
+          <span className="explorer-metric__label">{t("transactions")}</span>
+          <span className="explorer-metric__value mono">{formatNumber(activeTxCount)}</span>
         </div>
-      </NeoCard>
+        <div className="explorer-metric">
+          <span className="explorer-metric__label">{t("sidebarRecentTxs")}</span>
+          <span className="explorer-metric__value mono">
+            {recentTxCount > 0 ? recentTxCount.toLocaleString() : t("explorerDataPending")}
+          </span>
+        </div>
+        <div className="explorer-metric">
+          <span className="explorer-metric__label">{t("searchResult")}</span>
+          <span className="explorer-metric__value">
+            {searchResult ? t("explorerResultReady") : t("explorerDataPending")}
+          </span>
+        </div>
+      </section>
 
       {(isSearching || isLoading) && (
         <div className="loading" role="status" aria-live="polite">
@@ -174,13 +154,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         formatTime={formatTime}
       />
 
-      <RecentTransactions
-        t={t}
-        transactions={recentTxs}
-        formatTime={formatTime}
-        truncateHash={truncateHash}
-        onViewTx={handleViewTx}
-      />
+      {/* Recent transactions appear once data has loaded; otherwise stay hidden. */}
+      {hasSearched && (
+        <RecentTransactions
+          t={t}
+          transactions={recentTxs}
+          formatTime={formatTime}
+          truncateHash={truncateHash}
+          onViewTx={handleViewTx}
+        />
+      )}
     </div>
   );
 }

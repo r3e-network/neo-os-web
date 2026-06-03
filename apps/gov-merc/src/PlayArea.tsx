@@ -17,12 +17,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const totalPool = val<number>("totalPool", 0) ?? 0;
   const currentEpoch = val<number>("currentEpoch", 0) ?? 0;
-  const userDeposits = val<number>("userDeposits", 0) ?? 0;
   const bids = val<Array<{ address: string; amount: number }>>("bids", []) ?? [];
   const isBusy = bool("isBusy");
   const dataLoading = bool("dataLoading");
   const address = str("address", "");
-  const totalPoolDisplay = str("totalPoolDisplay", "0 NEO");
   const userDepositsDisplay = str("userDepositsDisplay", "0 NEO");
   const depositAmount = str("depositAmount");
   const withdrawAmount = str("withdrawAmount");
@@ -45,6 +43,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span>{t("marketSignalTitle")}</span>
             <h2>{t("govHeroTitle")}</h2>
             <p>{t("govHeroSubtitle")}</p>
+            <div className="gov-merc-hero-meta">
+              <span>
+                {t("yourDeposits")}: <strong>{userDepositsDisplay}</strong>
+              </span>
+              <span className="gov-merc-hero-dot" aria-hidden="true" />
+              <span>{dataLoading ? t("loading") : t("marketReady")}</span>
+            </div>
           </div>
           <div className="gov-merc-scoreboard">
             <MercHeroStats
@@ -55,6 +60,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             />
           </div>
         </div>
+
+        <NeoCard variant="erobo" className="gov-merc-action-panel">
+          <div className="gov-merc-section-heading">
+            <span>{t("poolStats")}</span>
+            <strong>{shortAddress}</strong>
+          </div>
+          <div className="gov-merc-action-grid">
+            <MercActionCards
+              t={t}
+              isBusy={isBusy}
+              depositAmount={depositAmount}
+              withdrawAmount={withdrawAmount}
+              bidAmount={bidAmount}
+              onAmountChange={setAmountValue}
+              dispatch={dispatch}
+            />
+          </div>
+        </NeoCard>
 
         <div className="gov-merc-flow" aria-label={t("flowTitle")}>
           <div>
@@ -73,46 +96,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <p>{t("flowInfluenceCopy")}</p>
           </div>
         </div>
-
-        <NeoCard variant="erobo" className="gov-merc-pool-panel">
-          <div className="gov-merc-section-heading">
-            <span>{t("poolStats")}</span>
-            <strong>{dataLoading ? t("loading") : t("marketReady")}</strong>
-          </div>
-          <div className="gov-merc-pool-grid">
-            <div>
-              <span>{t("totalPool")}</span>
-              <strong>{totalPoolDisplay}</strong>
-            </div>
-            <div>
-              <span>{t("yourDeposits")}</span>
-              <strong>{userDepositsDisplay}</strong>
-            </div>
-            <div>
-              <span>{t("currentEpoch")}</span>
-              <strong>{currentEpoch}</strong>
-            </div>
-            <div>
-              <span>{t("activeBids")}</span>
-              <strong>{bidCount}</strong>
-            </div>
-          </div>
-        </NeoCard>
-
-        <div className="gov-merc-action-grid">
-          <MercActionCards
-            t={t}
-            isBusy={isBusy}
-            depositAmount={depositAmount}
-            withdrawAmount={withdrawAmount}
-            bidAmount={bidAmount}
-            onAmountChange={setAmountValue}
-            dispatch={dispatch}
-          />
-        </div>
       </section>
 
       <aside className="gov-merc-side" aria-label={t("bidLeaderboard")}>
+        <NeoCard variant="erobo" className="gov-merc-bid-panel">
+          <div className="gov-merc-section-heading">
+            <span>{t("bidLeaderboard")}</span>
+            <strong>{bidCount}</strong>
+          </div>
+          <MercBidsList t={t} bids={bids} />
+        </NeoCard>
+
         <NeoCard variant="erobo" className="gov-merc-risk-panel">
           <div className="gov-merc-section-heading">
             <span>{t("riskNoteTitle")}</span>
@@ -127,14 +121,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span>{t("executionPath")}</span>
             <strong>{t("executionPathCopy")}</strong>
           </div>
-        </NeoCard>
-
-        <NeoCard variant="erobo" className="gov-merc-bid-panel">
-          <div className="gov-merc-section-heading">
-            <span>{t("bidLeaderboard")}</span>
-            <strong>{bidCount}</strong>
-          </div>
-          <MercBidsList t={t} bids={bids} />
         </NeoCard>
       </aside>
     </div>

@@ -130,16 +130,7 @@
 }
 
 /* ============================================================
- *  3. Custom bet section
- * ============================================================ */
-
-.custom-bet-section {
-  padding: 16px 18px;
-  @include pm.card;
-}
-
-/* ============================================================
- *  4. History section
+ *  3. History section
  * ============================================================ */
 
 .history-section {
@@ -269,8 +260,7 @@
     justify-items: start;
   }
 
-  .coinflip-play-area .arena-hero,
-  .coinflip-play-area .custom-bet-section {
+  .coinflip-play-area .arena-hero {
     padding: 16px;
   }
 }

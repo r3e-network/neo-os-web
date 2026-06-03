@@ -86,6 +86,29 @@
   color: var(--me-text-2);
 }
 
+/* compact inline metrics folded into the hero (replaces the old stats bar) */
+.hero-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--me-text-2);
+}
+
+.hero-summary__num {
+  font-weight: 800;
+  color: var(--me-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-summary__sep {
+  color: var(--me-muted);
+  padding: 0 2px;
+}
+
 /* progress */
 .hero-progress {
   display: flex;
@@ -165,83 +188,6 @@
 
 .hero-checkpoint--done .checkpoint-label {
   color: var(--me-accent-strong);
-}
-
-/* hero stats */
-.hero-stats-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: var(--me-surface-subtle);
-}
-
-.hero-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  flex: 1;
-}
-
-.hero-stat-value {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--me-ink);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.hero-stat-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--me-muted);
-}
-
-.hero-stat-divider {
-  width: 1px;
-  align-self: stretch;
-  margin: 2px 0;
-  background: var(--me-line);
-}
-
-/* ---------- Stats bar (top quick counts) ---------- */
-.stats-bar {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.stat-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 6px;
-  padding: 18px 12px;
-  background: var(--me-surface);
-  border: 1px solid var(--me-line);
-  border-radius: var(--me-radius-inner);
-  box-shadow: var(--me-shadow);
-}
-
-.stat-chip .stat-value {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--me-accent-strong);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.stat-chip .stat-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--me-muted);
-  letter-spacing: 0.06em;
 }
 
 /* ---------- Escrows section ---------- */
@@ -457,10 +403,6 @@
   .milestone-escrow-play-area {
     padding: 16px;
     gap: 16px;
-  }
-
-  .stats-bar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hero-container {

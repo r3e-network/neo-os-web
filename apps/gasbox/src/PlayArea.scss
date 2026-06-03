@@ -14,13 +14,44 @@
 }
 
 .gasbox-hero {
-  display: flex;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.5fr);
+  gap: 20px;
   align-items: center;
   padding: 24px;
   border-radius: var(--ns-radius-lg, 20px);
   background: linear-gradient(135deg, #ffffff 0%, #eefcf7 52%, #fff7ed 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.gasbox-hero__main {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  min-width: 0;
+}
+
+.gasbox-hero__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.gasbox-hero__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ns-brand-strong, #0fb174) !important;
+  font-weight: 800 !important;
+}
+
+.gasbox-hero__dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand, #16c784);
 }
 
 .gasbox-hero__badge {
@@ -46,14 +77,9 @@
 
 .gasbox-eyebrow,
 .gasbox-metric span,
-.gasbox-signal-card__copy span,
 .gasbox-section-header span,
-.gasbox-decision-header span,
-.gasbox-decision-tile span,
 .gasbox-market-empty__copy span,
 .gasbox-empty-actions span,
-.gasbox-safety-copy span,
-.gasbox-safety-stats span,
 .gasbox-rarity-title {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
@@ -77,11 +103,8 @@
 }
 
 .gasbox-hero p,
-.gasbox-signal-card__copy p,
 .gasbox-market-empty__copy p,
-.gasbox-safety-copy p,
 .gasbox-selected-desc,
-.gasbox-decision-tile p,
 .gasbox-inventory-note,
 .gasbox-prompt-text,
 .gasbox-result-desc {
@@ -90,12 +113,6 @@
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.5;
-}
-
-.gasbox-safety-stats {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
 }
 
 .gasbox-metric {
@@ -108,26 +125,11 @@
   box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
 }
 
-.gasbox-safety-stats div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-  padding: 12px 16px;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
 .gasbox-metric strong,
 .gasbox-section-header strong,
 .gasbox-market-empty__copy strong,
 .gasbox-empty-actions strong,
-.gasbox-safety-copy strong,
-.gasbox-safety-stats strong,
 .gasbox-selected-name,
-.gasbox-decision-header strong,
-.gasbox-decision-tile strong,
 .gasbox-result-item {
   min-width: 0;
   color: var(--ns-ink, #1e1e2e);
@@ -147,26 +149,6 @@
   white-space: nowrap;
 }
 
-.gasbox-safety-stats strong {
-  overflow: hidden;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gasbox-signal-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(220px, 0.5fr);
-  gap: 16px;
-  align-items: center;
-  min-width: 0;
-  padding: 20px;
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-}
-
-.gasbox-token,
 .gasbox-machine-icon,
 .gasbox-selected-icon {
   display: inline-flex;
@@ -180,26 +162,6 @@
   color: var(--ns-brand-strong, #0fb174);
   font-size: 1.2rem;
   font-weight: 800;
-}
-
-.gasbox-signal-card__copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.gasbox-signal-card__copy strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 1.05rem;
-  font-weight: 800;
-  line-height: 1.24;
-}
-
-.gasbox-signal-card__metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  min-width: 0;
 }
 
 .gasbox-machines-card {
@@ -239,7 +201,6 @@
 .gasbox-market-empty__copy,
 .gasbox-empty-actions,
 .gasbox-empty-actions div,
-.gasbox-safety-copy,
 .gasbox-selected-info,
 .gasbox-prompt-content,
 .gasbox-result-content {
@@ -355,71 +316,88 @@
   font-weight: 700;
 }
 
-.gasbox-decision-panel {
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-  padding: 16px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.gasbox-decision-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-
-.gasbox-decision-header > div:first-child {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
 .gasbox-selected-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: center;
   min-width: 0;
 }
 
 .gasbox-selected-actions .neo-btn {
+  flex: 1 1 140px;
   min-width: 124px;
 }
 
-.gasbox-decision-grid {
+.gasbox-status-banner {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border-left: 4px solid var(--ns-border, #e4e7ee);
+}
+
+.gasbox-status-banner.is-ready {
+  background: var(--ns-success-soft, #e4f8f0);
+  border-left-color: var(--ns-brand, #16c784);
+}
+
+.gasbox-status-banner.is-blocked {
+  background: var(--ns-warning-soft, #fff3dd);
+  border-left-color: var(--ns-warning, #f5a623);
+}
+
+.gasbox-status-banner strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.28;
+}
+
+.gasbox-status-banner p {
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.gasbox-decision-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  min-width: 0;
-}
-
-.gasbox-decision-tile {
-  display: grid;
   gap: 8px;
   min-width: 0;
-  min-height: 118px;
-  align-content: start;
-  padding: 16px;
+}
+
+.gasbox-decision-cell {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
   border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.gasbox-decision-tile strong,
-.gasbox-decision-tile p {
+.gasbox-decision-cell span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gasbox-decision-cell strong {
+  min-width: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.25;
   overflow-wrap: anywhere;
-}
-
-.gasbox-decision-tile.is-ready {
-  background: var(--ns-success-soft, #e4f8f0);
-}
-
-.gasbox-decision-tile.is-blocked {
-  background: var(--ns-warning-soft, #fff3dd);
 }
 
 .gasbox-inventory-note {
@@ -496,6 +474,12 @@
 .gasbox-rarity-bar-fill.gasbox-rarity--epic { background: var(--ns-violet, #7b61ff); }
 .gasbox-rarity-bar-fill.gasbox-rarity--legendary { background: var(--ns-warning, #f5a623); }
 
+.gasbox-lever-container {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
 .gasbox-lever-container.gasbox-lever--pulled {
   animation: gasbox-lever-pull 0.42s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 }
@@ -549,13 +533,6 @@
 .gasbox-prompt-content {
   justify-items: center;
   text-align: center;
-}
-
-.gasbox-safety-card .neo-card__content {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
-  gap: 16px;
-  align-items: center;
 }
 
 .gasbox-loading {
@@ -617,22 +594,16 @@
 }
 
 @media (max-width: 900px) {
-  .gasbox-signal-card {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .gasbox-signal-card__metrics {
-    grid-column: 1 / -1;
+  .gasbox-hero {
+    grid-template-columns: 1fr;
   }
 
   .gasbox-market-empty,
-  .gasbox-decision-grid,
-  .gasbox-safety-card .neo-card__content {
+  .gasbox-decision-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .gasbox-market-empty,
-  .gasbox-safety-card .neo-card__content {
+  .gasbox-market-empty {
     grid-template-columns: 1fr;
   }
 }
@@ -651,13 +622,8 @@
     font-size: 1.35rem;
   }
 
-  .gasbox-decision-header,
   .gasbox-selected-actions {
     justify-content: stretch;
-  }
-
-  .gasbox-decision-header {
-    display: grid;
   }
 
   .gasbox-selected-actions .neo-btn {
@@ -670,7 +636,7 @@
 }
 
 @media (max-width: 480px) {
-  .gasbox-signal-card,
+  .gasbox-hero__metrics,
   .gasbox-selected-header {
     grid-template-columns: 1fr;
   }
@@ -683,7 +649,7 @@
     width: 100%;
   }
 
-  .gasbox-decision-grid {
+  .gasbox-decision-strip {
     grid-template-columns: 1fr;
   }
 }

@@ -29,8 +29,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const approvingId = str("approvingId");
   const cancellingId = str("cancellingId");
   const claimingId = str("claimingId");
-  const creatorEscrowCount = num("creatorEscrowCount");
-  const beneficiaryEscrowCount = num("beneficiaryEscrowCount");
   const activeCount = num("activeCount");
   const completedCount = num("completedCount");
 
@@ -76,34 +74,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="milestone-escrow-play-area">
-      {/* Hero */}
+      {/* Hero — headline state, inline metrics, and milestone progress (progress
+          band + metrics only appear once at least one escrow exists). */}
       <MilestoneHero
         t={t}
         progressPercent={progressPercent}
         checkpoints={milestoneCheckpoints}
+        hasEscrows={totalEscrows > 0}
+        activeCount={activeCount}
+        completedCount={completedCount}
+        totalEscrows={totalEscrows}
       />
 
-      {/* Stats Bar */}
-      <div className="stats-bar">
-        <div className="stat-chip">
-          <span className="stat-value">{activeCount}</span>
-          <span className="stat-label">{t("statusActive") || "Active"}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{completedCount}</span>
-          <span className="stat-label">{t("statusCompleted") || "Completed"}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{creatorEscrowCount}</span>
-          <span className="stat-label">{t("createdByYou")}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{beneficiaryEscrowCount}</span>
-          <span className="stat-label">{t("forYou")}</span>
-        </div>
-      </div>
-
-      {/* Create Escrow */}
+      {/* Primary action — surfaced immediately after the hero. */}
       {hasAddress && contractReady && (
         <>
           <NeoButton variant="secondary" onClick={() => setShowCreateForm(!showCreateForm)} aria-label={t("createEscrow") || "Create Escrow"}>

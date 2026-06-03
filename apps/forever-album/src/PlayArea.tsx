@@ -84,6 +84,7 @@ export default function PlayArea({
     uploading ||
     passwordMissing ||
     payloadTooLarge;
+  const hasSelection = selectedImages.length > 0;
   const uploadReadiness = uploading
     ? t("uploading")
     : passwordMissing
@@ -123,262 +124,237 @@ export default function PlayArea({
   return (
     <div className="album-play-area">
       <div className="forever-album-shell">
-        <main className="forever-album-main">
-          <section
-            className="forever-album-hero"
-            aria-labelledby="forever-album-title"
-          >
-            <div className="forever-album-hero-copy">
-              <div className="forever-album-hero-badge">
-                <span className="forever-album-hero-icon" aria-hidden="true">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="22"
-                    height="22"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="3" />
-                    <circle cx="8.5" cy="8.5" r="1.6" />
-                    <path d="m21 15-5-5L5 21" />
-                  </svg>
-                </span>
-                <span className="forever-album-kicker">{t("title")}</span>
-              </div>
-              <h1 id="forever-album-title">{t("vaultHeroTitle")}</h1>
-              <p>{t("vaultHeroSubtitle")}</p>
-              <div className="forever-album-actions">
-                <NeoButton variant="primary" onClick={openFilePicker}>
-                  {t("emptyAction")}
-                </NeoButton>
-                <NeoButton
-                  variant="secondary"
-                  disabled={loadingPhotos}
-                  onClick={() => dispatch("refreshPhotos")}
-                >
-                  {t("refreshAlbum")}
-                </NeoButton>
-              </div>
-            </div>
-
-            <div
-              className="forever-album-device"
-              aria-label={t("vaultRouteTitle")}
-            >
-              <div className="forever-album-device-head">
-                <span>{t("vaultRouteTitle")}</span>
-                <strong>{formatBytes(totalPayloadSize, t)}</strong>
-              </div>
-              <div
-                className="forever-album-progress"
-                aria-label={t("sizeHint", {
-                  size: formatBytes(totalPayloadSize, t),
-                  max: "60 KB",
-                })}
-              >
-                <span style={{ width: `${Math.max(4, uploadPct)}%` }} />
-              </div>
-              <div className="forever-album-device-steps">
-                <span className="forever-album-device-step">
-                  <em>1</em>
-                  {t("vaultTimelineOne")}
-                </span>
-                <span className="forever-album-device-step">
-                  <em>2</em>
-                  {t("vaultTimelineTwo")}
-                </span>
-                <span className="forever-album-device-step">
-                  <em>3</em>
-                  {t("vaultTimelineThree")}
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <div
-            className="forever-album-vault-strip"
-            aria-label={t("vaultStatsTitle")}
-          >
-            <div className="forever-album-vault-item">
-              <span>{t("albumTab")}</span>
-              <strong>{photosCount}</strong>
-            </div>
-            <div className="forever-album-vault-item">
-              <span>{t("sidebarEncrypted")}</span>
-              <strong>{encryptedCount}</strong>
-            </div>
-            <div className="forever-album-vault-item">
-              <span>{t("sidebarPublic")}</span>
-              <strong>{publicCount}</strong>
-            </div>
-            <div className="forever-album-vault-item">
-              <span>{t("payloadSize")}</span>
-              <strong>{formatBytes(totalPayloadSize, t)}</strong>
-            </div>
-          </div>
-
-          <div className="forever-album-content-grid">
-            <AlbumGrid
-              t={t}
-              photos={photos}
-              loading={loadingPhotos}
-              onView={(photo) => dispatch("viewPhoto", photo)}
-              onUpload={openFilePicker}
-            />
-
-            <NeoCard
-              title={t("vaultUploadTitle")}
-              className="forever-album-upload-panel"
-            >
-              <label className="forever-album-file-picker">
-                <span>{t("chooseFiles")}</span>
-                <small>{t("tapToSelect")}</small>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(event) => {
-                    selectFiles(event.target.files);
-                    event.target.value = "";
-                  }}
-                />
-              </label>
-
-              <div className="forever-album-upload-meta">
-                <span>
-                  {t("selectedCount")}: {selectedImages.length}
-                </span>
-                <span>
-                  {t("payloadSize")}: {formatBytes(totalPayloadSize, t)}
-                </span>
-              </div>
-
-              <div className="forever-album-upload-meter">
-                <span style={{ width: `${Math.max(4, uploadPct)}%` }} />
-              </div>
-
-              {uploadError && (
-                <div
-                  className="forever-album-upload-error"
-                  role="alert"
-                  aria-live="polite"
-                >
-                  <strong>{t("uploadNeedsAttention")}</strong>
-                  <span>{uploadError}</span>
-                </div>
-              )}
-
-              <label className="forever-album-encrypt-toggle">
-                <input
-                  type="checkbox"
-                  checked={isEncrypted}
-                  onChange={(event) => setIsEncrypted(event.target.checked)}
-                />
-                <span>{t("encryptPhotos")}</span>
-              </label>
-
-              {isEncrypted && (
-                <NeoInput
-                  value={password}
-                  type="password"
-                  label={t("password")}
-                  placeholder={t("encryptionPassword")}
-                  onChange={setPassword}
-                />
-              )}
-
-              {selectedImages.length > 0 && (
-                <div className="forever-album-selected-preview">
-                  {selectedImages.map((image) => (
-                    <div key={image.id} className="forever-album-preview-thumb">
-                      {image.dataUrl ? (
-                        <img src={image.dataUrl} alt={t("albumPhoto")} />
-                      ) : (
-                        <span>{formatBytes(image.size ?? 0, t)}</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => dispatch("removeImage", image.id)}
-                        aria-label={t("remove")}
-                      >
-                        {t("remove")}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="forever-album-panel-footer">
-                <span>{uploadReadiness}</span>
-                <NeoButton
-                  variant="primary"
-                  disabled={uploadDisabled}
-                  loading={uploading}
-                  onClick={() => dispatch("uploadPhotos")}
-                >
-                  {t("upload")}
-                </NeoButton>
-              </div>
-
-              {lastTx?.txid && (
-                <div
-                  className="forever-album-tx-receipt"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <span>{t("lastTransaction")}</span>
-                  <strong title={lastTx.txid}>{compactTxId(lastTx.txid)}</strong>
-                  <em>
-                    {lastTx.success === false
-                      ? t("transactionPending")
-                      : t("transactionConfirmed")}
-                  </em>
-                </div>
-              )}
-            </NeoCard>
-          </div>
-        </main>
-
-        <aside
-          className="forever-album-side"
-          aria-label={t("vaultPrivacyTitle")}
+        <section
+          className="forever-album-hero"
+          aria-labelledby="forever-album-title"
         >
-          <NeoCard
-            title={t("vaultPrivacyTitle")}
-            className="forever-album-timeline"
-          >
-            <div>
-              <strong>{t("vaultTimelineOne")}</strong>
-              <span>{t("step1")}</span>
-            </div>
-            <div>
-              <strong>{t("vaultTimelineTwo")}</strong>
-              <span>{t("step2")}</span>
-            </div>
-            <div>
-              <strong>{t("vaultTimelineThree")}</strong>
-              <span>{t("step3")}</span>
-            </div>
-          </NeoCard>
+          <div className="forever-album-hero-badge">
+            <span className="forever-album-hero-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.6" />
+                <path d="m21 15-5-5L5 21" />
+              </svg>
+            </span>
+            <span className="forever-album-kicker">{t("title")}</span>
+          </div>
+          <h1 id="forever-album-title">{t("vaultHeroTitle")}</h1>
+          <p>{t("vaultHeroSubtitle")}</p>
+          <div className="forever-album-hero-facts">
+            <span>
+              {t("vaultTimelineOne")} » {t("vaultTimelineTwo")} »{" "}
+              {t("vaultTimelineThree")}
+            </span>
+            <span className="forever-album-hero-cap">
+              {t("sizeHint", {
+                size: formatBytes(totalPayloadSize, t),
+                max: "60 KB",
+              })}
+            </span>
+          </div>
+          <div className="forever-album-actions">
+            <NeoButton variant="primary" onClick={openFilePicker}>
+              {t("emptyAction")}
+            </NeoButton>
+            <NeoButton
+              variant="secondary"
+              disabled={loadingPhotos}
+              onClick={() => dispatch("refreshPhotos")}
+            >
+              {t("refreshAlbum")}
+            </NeoButton>
+          </div>
+        </section>
 
-          <div className="forever-album-safety-strip">
-            <div>
-              <strong>{t("vaultSafetyOne")}</strong>
-              <span>{t("feature1Desc")}</span>
+        <div
+          className="forever-album-vault-strip"
+          aria-label={t("vaultStatsTitle")}
+        >
+          <div className="forever-album-vault-item">
+            <span>{t("albumTab")}</span>
+            <strong>{photosCount}</strong>
+          </div>
+          <div className="forever-album-vault-item">
+            <span>{t("sidebarEncrypted")}</span>
+            <strong>{encryptedCount}</strong>
+          </div>
+          <div className="forever-album-vault-item">
+            <span>{t("sidebarPublic")}</span>
+            <strong>{publicCount}</strong>
+          </div>
+          <div className="forever-album-vault-item">
+            <span>{t("payloadSize")}</span>
+            <strong>{formatBytes(totalPayloadSize, t)}</strong>
+          </div>
+        </div>
+
+        <NeoCard
+          title={t("vaultUploadTitle")}
+          className="forever-album-workspace"
+        >
+          <AlbumGrid
+            t={t}
+            photos={photos}
+            loading={loadingPhotos}
+            onView={(photo) => dispatch("viewPhoto", photo)}
+            onUpload={openFilePicker}
+          />
+
+          <div className="forever-album-uploader">
+            <label className="forever-album-file-picker">
+              <span>{t("chooseFiles")}</span>
+              <small>{t("tapToSelect")}</small>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) => {
+                  selectFiles(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+
+            {(hasSelection || totalPayloadSize > 0) && (
+              <>
+                <div className="forever-album-upload-meta">
+                  <span>
+                    {t("selectedCount")}: {selectedImages.length}
+                  </span>
+                  <span>
+                    {t("payloadSize")}: {formatBytes(totalPayloadSize, t)}
+                  </span>
+                </div>
+
+                <div className="forever-album-upload-meter">
+                  <span style={{ width: `${Math.max(4, uploadPct)}%` }} />
+                </div>
+              </>
+            )}
+
+            {uploadError && (
+              <div
+                className="forever-album-upload-error"
+                role="alert"
+                aria-live="polite"
+              >
+                <strong>{t("uploadNeedsAttention")}</strong>
+                <span>{uploadError}</span>
+              </div>
+            )}
+
+            <label className="forever-album-encrypt-toggle">
+              <input
+                type="checkbox"
+                checked={isEncrypted}
+                onChange={(event) => setIsEncrypted(event.target.checked)}
+              />
+              <span>{t("encryptPhotos")}</span>
+            </label>
+
+            {isEncrypted && (
+              <NeoInput
+                value={password}
+                type="password"
+                label={t("password")}
+                placeholder={t("encryptionPassword")}
+                onChange={setPassword}
+              />
+            )}
+
+            {hasSelection && (
+              <div className="forever-album-selected-preview">
+                {selectedImages.map((image) => (
+                  <div key={image.id} className="forever-album-preview-thumb">
+                    {image.dataUrl ? (
+                      <img src={image.dataUrl} alt={t("albumPhoto")} />
+                    ) : (
+                      <span>{formatBytes(image.size ?? 0, t)}</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => dispatch("removeImage", image.id)}
+                      aria-label={t("remove")}
+                    >
+                      {t("remove")}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="forever-album-panel-footer">
+              <span>{uploadReadiness}</span>
+              <NeoButton
+                variant="primary"
+                disabled={uploadDisabled}
+                loading={uploading}
+                onClick={() => dispatch("uploadPhotos")}
+              >
+                {t("upload")}
+              </NeoButton>
             </div>
-            <div>
-              <strong>{t("vaultSafetyTwo")}</strong>
-              <span>{t("feature2Desc")}</span>
+
+            {lastTx?.txid && (
+              <div
+                className="forever-album-tx-receipt"
+                role="status"
+                aria-live="polite"
+              >
+                <span>{t("lastTransaction")}</span>
+                <strong title={lastTx.txid}>{compactTxId(lastTx.txid)}</strong>
+                <em>
+                  {lastTx.success === false
+                    ? t("transactionPending")
+                    : t("transactionConfirmed")}
+                </em>
+              </div>
+            )}
+          </div>
+        </NeoCard>
+
+        <details className="forever-album-howto">
+          <summary>{t("vaultPrivacyTitle")}</summary>
+          <div className="forever-album-howto-body">
+            <div className="forever-album-howto-steps">
+              <div>
+                <strong>{t("vaultTimelineOne")}</strong>
+                <span>{t("step1")}</span>
+              </div>
+              <div>
+                <strong>{t("vaultTimelineTwo")}</strong>
+                <span>{t("step2")}</span>
+              </div>
+              <div>
+                <strong>{t("vaultTimelineThree")}</strong>
+                <span>{t("step3")}</span>
+              </div>
             </div>
-            <div>
-              <strong>{t("vaultSafetyThree")}</strong>
-              <span>{t("feature3Desc")}</span>
+            <div className="forever-album-safety-strip">
+              <div>
+                <strong>{t("vaultSafetyOne")}</strong>
+                <span>{t("feature1Desc")}</span>
+              </div>
+              <div>
+                <strong>{t("vaultSafetyTwo")}</strong>
+                <span>{t("feature2Desc")}</span>
+              </div>
+              <div>
+                <strong>{t("vaultSafetyThree")}</strong>
+                <span>{t("feature3Desc")}</span>
+              </div>
             </div>
           </div>
-        </aside>
+        </details>
       </div>
 
       {showViewer && viewingPhoto && (

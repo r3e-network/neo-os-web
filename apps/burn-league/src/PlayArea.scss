@@ -81,6 +81,35 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
   color: var(--ns-text-2, #5b6478);
 }
 
+/* Rank fact folded inline into the hero (shown only when ranked) */
+.burn-league-hero-rank {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.burn-league-hero-rank-label {
+  letter-spacing: 0;
+}
+
+.burn-league-hero-rank-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: $burn-accent-strong;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.burn-league-hero-rank-of {
+  font-weight: 600;
+  color: var(--ns-text-2, #5b6478);
+}
+
 /* ── Hero stat strip ──────────────────────────────────── */
 .burn-league-hero-stats {
   display: flex;
@@ -146,74 +175,6 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
   color: var(--ns-text-muted, #8a92a6);
 }
 
-/* ── Rank Card ── */
-.burn-league-rank-card {
-  width: 100%;
-}
-
-.burn-league-rank-display {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.burn-league-rank-number {
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
-}
-
-.burn-league-rank-hash {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
-}
-
-.burn-league-rank-value {
-  font-size: 40px;
-  font-weight: 800;
-  color: $burn-accent-strong;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.burn-league-rank-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 120px;
-}
-
-.burn-league-rank-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--ns-ink, #1e1e2e);
-}
-
-.burn-league-rank-subtitle {
-  font-size: 13px;
-  color: var(--ns-text-muted, #8a92a6);
-}
-
-.burn-league-rank-reward {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ns-text-2, #5b6478);
-
-  strong {
-    font-size: 14px;
-    font-weight: 800;
-    color: $burn-accent-strong;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
 /* ── Action Card ── */
 .burn-league-action-card {
   width: 100%;
@@ -267,35 +228,46 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
   }
 }
 
-.burn-league-impact-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.burn-league-impact-card {
-  min-width: 0;
-  padding: 14px 16px;
+/* Compact metrics strip — replaces the 4-tile projection grid.
+   Shows only the two live facts not already in the hero. */
+.burn-league-impact-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 12px 16px;
   border-radius: var(--ns-radius-md, 8px);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   background: var(--ns-surface-subtle, #f7f8fa);
+}
 
-  span {
-    display: block;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--ns-text-muted, #8a92a6);
-  }
+.burn-league-impact-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
 
-  strong {
-    display: block;
-    margin-top: 6px;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 15px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    overflow-wrap: anywhere;
-  }
+.burn-league-impact-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.burn-league-impact-value {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.burn-league-impact-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  margin: 2px 16px;
+  background: var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
 .burn-league-action-buttons {
@@ -444,26 +416,14 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
   width: 100%;
 }
 
-.burn-league-empty {
-  display: grid;
-  gap: 6px;
-  text-align: left;
-  padding: 22px 20px;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 13px;
+/* Graceful empty state — a single muted line, no full card */
+.burn-league-empty-line {
+  margin: 0;
+  padding: 12px 4px 4px;
+  font-size: 12px;
+  font-weight: 600;
   line-height: 1.5;
-  border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.12));
-  border-radius: var(--ns-radius-md, 8px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-
-  strong {
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 13px;
-  }
-
-  span {
-    color: var(--ns-text-2, #5b6478);
-  }
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .burn-league-leaderboard-list {
@@ -530,10 +490,6 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
 
 /* ── Mobile ── */
 @media (max-width: 720px) {
-  .burn-league-impact-grid {
-    grid-template-columns: 1fr;
-  }
-
   .burn-league-action-buttons {
     grid-template-columns: 1fr;
   }
@@ -546,10 +502,6 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
 
   .burn-league-hero-stats {
     width: 100%;
-  }
-
-  .burn-league-rank-display {
-    gap: 12px;
   }
 
   .burn-league-preset {
