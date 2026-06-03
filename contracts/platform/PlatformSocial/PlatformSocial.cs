@@ -76,7 +76,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_ENVELOPE_ID     = new byte[] { 0x10 };
         private static readonly byte[] PREFIX_ENVELOPES       = new byte[] { 0x11 };
         private static readonly byte[] PREFIX_GRABBER         = new byte[] { 0x12 };
-        private static readonly byte[] PREFIX_AMOUNTS         = new byte[] { 0x14 };
+        // 0x14 (PREFIX_AMOUNTS) retired: envelope packet amounts are no longer pre-stored
+        // in plaintext — they are drawn at claim time (audit fix M-4, NextEnvelopePacketAmount).
         private static readonly byte[] PREFIX_RANGE_POOL_ID   = new byte[] { 0x15 };
         private static readonly byte[] PREFIX_RANGE_POOLS     = new byte[] { 0x16 };
         private static readonly byte[] PREFIX_RANGE_CLAIMER   = new byte[] { 0x17 };

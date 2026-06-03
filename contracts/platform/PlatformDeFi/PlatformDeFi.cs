@@ -18,6 +18,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void LoanRepaidHandler(string appId, BigInteger loanId, BigInteger repaid, BigInteger remaining);
     public delegate void LoanClosedHandler(string appId, BigInteger loanId, UInt160 borrower);
     public delegate void CollateralAddedHandler(string appId, BigInteger loanId, BigInteger amount, BigInteger newTotal);
+    public delegate void LoanLiquidatedHandler(string appId, BigInteger loanId, UInt160 borrower, UInt160 liquidator, BigInteger debtRepaid, BigInteger collateralSeized);
+    public delegate void NeoGasPriceUpdatedHandler(string appId, BigInteger price);
     public delegate void ProfitAnchorConfiguredHandler(string appId, UInt160 profitAnchorContract, string profitAnchorAppId);
     public delegate void ProfitAnchorVoteSyncedHandler(string appId, UInt160 profitAnchorContract, string profitAnchorAppId, ByteString candidate);
 
@@ -90,6 +92,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         // loanAmount). Without an accumulator + sweep these GAS units would
         // accumulate untracked in the contract balance forever.
         private static readonly byte[] PREFIX_TOTAL_LENDING_FEES = new byte[] { 0x2B };
+        // Audit fix H-3: per-app NEO price expressed as GAS (FIXED8) per 1 NEO, used to value
+        // collateral for loan sizing, health factor, and liquidation. A keeper/oracle updater
+        // pushes the live price; unset defaults to 1 NEO = 1 GAS to preserve legacy behavior.
+        private static readonly byte[] PREFIX_NEO_GAS_PRICE = new byte[] { 0x2C };
         #endregion
 
         #region FlashLoan Prefixes (0x30-0x3F)
@@ -244,6 +250,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         [DisplayName("CollateralAdded")]
         public static event CollateralAddedHandler OnCollateralAdded;
+
+        [DisplayName("LoanLiquidated")]
+        public static event LoanLiquidatedHandler OnLoanLiquidated;
+
+        [DisplayName("NeoGasPriceUpdated")]
+        public static event NeoGasPriceUpdatedHandler OnNeoGasPriceUpdated;
 
         public delegate void LoanAbandonedHandler(string appId, BigInteger loanId, UInt160 borrower, BigInteger collateral);
         [DisplayName("LoanAbandoned")]
