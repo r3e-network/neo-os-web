@@ -8,8 +8,8 @@
 
 .guardian-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.24fr) minmax(340px, 0.76fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 28px;
   align-items: stretch;
   padding: 28px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -36,6 +36,21 @@
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.guardian-hero__heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guardian-hero__eyebrow {
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .guardian-hero__badge {
@@ -69,6 +84,7 @@
 
 .guardian-hero__metrics {
   display: grid;
+  width: 100%;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
@@ -76,12 +92,19 @@
 .guardian-metric {
   display: flex;
   min-width: 0;
+  overflow: hidden;
   flex-direction: column;
   gap: 6px;
   padding: 14px 16px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-surface, #fff);
+}
+
+.guardian-metric span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .guardian-metric span,
@@ -213,8 +236,8 @@
 
 .guardian-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+  gap: 32px;
   align-items: start;
 }
 
