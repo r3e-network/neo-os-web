@@ -173,7 +173,10 @@
   border-radius: 999px;
   background: pm.$neo-soft;
   color: pm.$neo-strong;
+  font-size: 17px;
   font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .last-buyer-info {
@@ -228,13 +231,15 @@
 .participation-icon {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
-  background: pm.$surface;
+  background: pm.$neo-soft;
   color: pm.$neo-strong;
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 700;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .participation-detail {
@@ -307,13 +312,14 @@
 .claim-card-trophy {
   display: inline-grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
   background: pm.$amber-soft;
   color: pm.$amber;
   font-size: 16px;
   font-weight: 700;
+  line-height: 1;
 }
 
 .claim-card-text {
@@ -438,9 +444,11 @@
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: pm.$surface;
+  background: pm.$neo-soft;
   color: pm.$neo-strong;
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .history-section-title {

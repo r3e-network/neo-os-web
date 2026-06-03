@@ -60,6 +60,7 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   margin: 0;
   font-size: 22px;
   font-weight: 800;
+  letter-spacing: -0.02em;
   line-height: 1.15;
   color: var(--ns-ink, #1e1e2e);
 }
@@ -99,6 +100,8 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
     font-style: normal;
     font-size: 11px;
     font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--ns-text-muted, #8a92a6);
   }
 }
@@ -470,9 +473,9 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   text-align: center;
-  padding: 32px 20px;
+  padding: 40px 24px;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
 }
@@ -481,13 +484,16 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  font-size: 22px;
+  width: 48px;
+  height: 48px;
   line-height: 1;
   border-radius: var(--ns-radius-full, 9999px);
   background: $grave-accent-soft;
   color: $grave-accent-strong;
+}
+
+.empty-icon svg {
+  display: block;
 }
 
 .empty-text {
@@ -522,9 +528,10 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   font-weight: 800;
   line-height: 1;
   border-radius: var(--ns-radius-full, 9999px);
-  background: $grave-accent-soft;
-  border: 1px solid rgba(123, 97, 255, 0.14);
-  color: $grave-accent-strong;
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  color: var(--ns-text-muted, #8a92a6);
+  font-variant-numeric: tabular-nums;
 }
 
 .history-info {

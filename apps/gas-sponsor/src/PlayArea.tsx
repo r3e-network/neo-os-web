@@ -90,8 +90,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="quota-bar" style={{ width: `${Math.min(quotaPercent, 100)}%` }} />
           </div>
           <div className="quota-details">
-            <span className="quota-text">{t("used") || "Used"}: {usedQuota} / {dailyLimit}</span>
-            {resetTime && <span className="quota-reset">{t("resetsAt") || "Resets at"}: {resetTime}</span>}
+            <span className="quota-text">
+              <span className="quota-text-label">{t("used") || "Used"}</span>
+              <span className="quota-text-value">{usedQuota} / {dailyLimit}</span>
+            </span>
+            <span className="quota-reset">
+              <span className="quota-reset-label">{t("resetsAt") || "Resets at"}</span>
+              <span className="quota-reset-value">{resetTime && resetTime !== "N/A" ? resetTime : "—"}</span>
+            </span>
           </div>
         </div>
       </NeoCard>
@@ -99,6 +105,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Donate */}
       <NeoCard title={t("donate") || "Donate GAS"}>
         <div className="donate-form">
+          <p className="form-hint">{t("donateSubtitle")}</p>
           <NeoInput
             value={donateAmount}
             type="number"
@@ -122,6 +129,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Send GAS */}
       <NeoCard title={t("sendGas") || "Send GAS"}>
         <div className="send-form">
+          <p className="form-hint">{t("sendSubtitle")}</p>
           <NeoInput
             value={recipientAddress}
             label={t("recipient") || "Recipient Address"}

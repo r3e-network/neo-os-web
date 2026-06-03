@@ -15,10 +15,10 @@
 
 .gasbox-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.5fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.62fr);
+  gap: 24px;
   align-items: center;
-  padding: 24px;
+  padding: 26px 28px;
   border-radius: var(--ns-radius-lg, 20px);
   background: linear-gradient(135deg, #ffffff 0%, #eefcf7 52%, #fff7ed 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
@@ -34,7 +34,7 @@
 .gasbox-hero__metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -117,9 +117,9 @@
 
 .gasbox-metric {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
-  padding: 12px;
+  padding: 14px 14px 15px;
   border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
@@ -128,7 +128,6 @@
 .gasbox-metric strong,
 .gasbox-section-header strong,
 .gasbox-market-empty__copy strong,
-.gasbox-empty-actions strong,
 .gasbox-selected-name,
 .gasbox-result-item {
   min-width: 0;
@@ -138,8 +137,16 @@
   line-height: 1.28;
 }
 
+.gasbox-market-empty__copy strong {
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  line-height: 1.32;
+}
+
 .gasbox-metric strong {
   font-size: 1.1rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -184,11 +191,11 @@
 
 .gasbox-market-empty {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(260px, 0.7fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.78fr);
+  gap: 24px;
   align-items: center;
   min-width: 0;
-  padding: 20px;
+  padding: 24px;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
 }
@@ -199,8 +206,6 @@
 }
 
 .gasbox-market-empty__copy,
-.gasbox-empty-actions,
-.gasbox-empty-actions div,
 .gasbox-selected-info,
 .gasbox-prompt-content,
 .gasbox-result-content {
@@ -209,19 +214,39 @@
   min-width: 0;
 }
 
-.gasbox-empty-actions .neo-btn {
-  justify-self: start;
+.gasbox-market-empty__copy {
+  gap: 10px;
 }
 
-.gasbox-empty-button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+.gasbox-empty-actions {
+  display: grid;
+  gap: 16px;
   min-width: 0;
 }
 
-.gasbox-empty-button-row .neo-btn {
-  min-width: 148px;
+.gasbox-empty-actions .neo-btn {
+  justify-self: stretch;
+}
+
+.gasbox-empty-button-row {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gasbox-studio-note {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--ns-border, #e4e7ee);
+}
+
+.gasbox-studio-note strong {
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .gasbox-machine-grid {
@@ -693,10 +718,10 @@
 }
 
 .gasbox-studio-header__copy span {
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-brand-strong, #0fb174);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -731,7 +756,7 @@
 .gasbox-field > span {
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ns-text-muted, #8a92a6);
 }
@@ -751,12 +776,23 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.gasbox-field input:hover,
+.gasbox-field select:hover,
+.gasbox-field textarea:hover {
+  border-color: var(--ns-border-strong, #d4d8e2);
+}
+
 .gasbox-field input:focus,
 .gasbox-field select:focus,
 .gasbox-field textarea:focus {
   outline: none;
-  border-color: var(--ns-brand-strong, #0fb174);
-  box-shadow: 0 0 0 3px var(--ns-brand-soft, #e4f8f0);
+  border-color: var(--ns-brand, #16c784);
+  box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.16);
+}
+
+.gasbox-field input::placeholder,
+.gasbox-field textarea::placeholder {
+  color: var(--ns-text-faint, #aeb4c2);
 }
 
 .gasbox-field textarea {
@@ -778,7 +814,7 @@
 .gasbox-studio-items__header span {
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ns-text-muted, #8a92a6);
 }

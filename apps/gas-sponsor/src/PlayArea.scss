@@ -76,10 +76,10 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
 /* ── Hero gauge + inline facts ────────────────────────── */
 .gas-hero-gauge {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 24px;
   flex-wrap: wrap;
-  padding: 16px 18px;
+  padding: 20px;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -89,6 +89,7 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   flex: 1 1 220px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 12px;
   margin: 0;
 }
@@ -131,21 +132,37 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .gas-tank {
-  width: 140px;
+  width: 132px;
 }
 
 .tank-body {
   position: relative;
-  width: 140px;
-  height: 160px;
-  border-radius: 18px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  width: 132px;
+  height: 132px;
+  border-radius: 16px;
+  background: var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  box-shadow: inset 0 1px 3px rgba(20, 22, 38, 0.05);
   overflow: hidden;
+
+  /* Subtle fuel-tick guides so an empty tank still reads as a gauge */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 31px,
+      rgba(20, 22, 38, 0.05) 31px,
+      rgba(20, 22, 38, 0.05) 32px
+    );
+  }
 }
 
 .fuel-level {
@@ -154,10 +171,10 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   bottom: 0;
   width: 100%;
   background: linear-gradient(180deg, $gas-accent 0%, $gas-accent-strong 100%);
-  transition: height 0.5s ease;
-  min-height: 6px;
-  border-bottom-left-radius: 17px;
-  border-bottom-right-radius: 17px;
+  transition: height 0.5s var(--ns-ease-smooth, ease);
+  min-height: 5px;
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
 }
 
 .tank-gauge {
@@ -193,19 +210,34 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
 }
 
 .status-indicator {
-  padding: 6px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
   border-radius: var(--ns-radius-full, 9999px);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  &::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
 
   &.eligible {
     background: $gas-accent-soft;
     color: $gas-accent-strong;
+    border: 1px solid rgba(15, 177, 116, 0.18);
   }
 
   &.full {
     background: var(--ns-surface-subtle, #f7f8fa);
     color: var(--ns-text-muted, #8a92a6);
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   }
 }
 
@@ -284,7 +316,7 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   flex: 1 1 auto;
   min-width: 64px;
   padding: 10px 12px;
-  border-radius: var(--ns-radius-md, 16px);
+  border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   color: var(--ns-text-2, #5b6478);
@@ -292,12 +324,22 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
 
   &:hover {
-    background: var(--ns-surface, #ffffff);
-    border-color: rgba(22, 199, 132, 0.35);
+    background: $gas-accent-soft;
+    border-color: rgba(15, 177, 116, 0.35);
     color: $gas-accent-strong;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: $gas-accent-strong;
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.18);
   }
 }
 
@@ -351,21 +393,38 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
 .quota-details {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
   flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.quota-text,
+.quota-reset {
+  display: inline-flex;
+  align-items: baseline;
   gap: 8px;
 }
 
-.quota-text {
+.quota-text-label,
+.quota-reset-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.quota-text-value {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--ns-text-2, #5b6478);
+  font-weight: 700;
+  color: var(--ns-text, #2a2d3d);
   font-variant-numeric: tabular-nums;
 }
 
-.quota-reset {
-  font-size: 12px;
-  color: var(--ns-text-muted, #8a92a6);
+.quota-reset-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ns-text-2, #5b6478);
   font-variant-numeric: tabular-nums;
 }
 
@@ -377,18 +436,56 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   gap: 12px;
 }
 
+.form-hint {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
 /* ── Mobile ───────────────────────────────────────────── */
-@media (max-width: 420px) {
+@media (max-width: 480px) {
+  .gas-sponsor-play-area {
+    padding: 16px 12px 24px;
+  }
+
   .gas-hero {
-    padding: 18px 18px;
+    padding: 18px 16px;
   }
 
-  .gas-stat {
-    min-width: 0;
-    padding: 10px 8px;
+  .gas-hero-gauge {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    padding: 18px 16px;
   }
 
-  .gas-stat-value {
+  /* Tank stretches full width and centers so it doesn't look orphaned */
+  .gas-tank-container {
+    width: 100%;
+  }
+
+  /* Facts gain a top divider once stacked under the tank */
+  .gas-hero-facts {
+    flex: 1 1 auto;
+    width: 100%;
+    padding-top: 18px;
+    border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  }
+
+  .gas-hero-fact dd {
     font-size: 16px;
+  }
+
+  .quota-details {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .quota-text,
+  .quota-reset {
+    justify-content: space-between;
   }
 }
