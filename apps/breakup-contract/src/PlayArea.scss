@@ -116,7 +116,7 @@ $tone-warning-soft: #fff3dd;
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   color: $ns-ink;
   line-height: 1.15;
 }
@@ -124,6 +124,14 @@ $tone-warning-soft: #fff3dd;
 .breakup-create-card,
 .breakup-list-card {
   min-width: 0;
+
+  // Tighten the shared card title to match the premium type scale
+  .neo-card__title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: $ns-ink;
+  }
 }
 
 .breakup-hero-subtitle {
@@ -231,7 +239,8 @@ $tone-warning-soft: #fff3dd;
 
   &:focus-visible {
     outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    border-color: $ac-border;
+    box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.18);
   }
 
   &.is-active {
@@ -345,7 +354,7 @@ $tone-warning-soft: #fff3dd;
   font-size: 15px;
   font-weight: 700;
   color: $ns-ink;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
@@ -355,7 +364,7 @@ $tone-warning-soft: #fff3dd;
   border-radius: 9999px;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   background: $ns-bg;
   color: $ns-text-2;
@@ -399,7 +408,7 @@ $tone-warning-soft: #fff3dd;
 .contract-label {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: $ns-text-muted;
 }

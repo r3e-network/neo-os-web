@@ -121,21 +121,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section className="explorer-metrics" aria-label={t("sidebarNetwork")}>
         <div className="explorer-metric">
           <span className="explorer-metric__label">{t("blockHeight")}</span>
-          <span className="explorer-metric__value mono">{formatNumber(activeHeight)}</span>
+          <span className={`explorer-metric__value mono${activeHeight > 0 ? "" : " is-pending"}`}>
+            {formatNumber(activeHeight)}
+          </span>
         </div>
         <div className="explorer-metric">
           <span className="explorer-metric__label">{t("transactions")}</span>
-          <span className="explorer-metric__value mono">{formatNumber(activeTxCount)}</span>
+          <span className={`explorer-metric__value mono${activeTxCount > 0 ? "" : " is-pending"}`}>
+            {formatNumber(activeTxCount)}
+          </span>
         </div>
         <div className="explorer-metric">
           <span className="explorer-metric__label">{t("sidebarRecentTxs")}</span>
-          <span className="explorer-metric__value mono">
+          <span className={`explorer-metric__value mono${recentTxCount > 0 ? "" : " is-pending"}`}>
             {recentTxCount > 0 ? recentTxCount.toLocaleString() : t("explorerDataPending")}
           </span>
         </div>
         <div className="explorer-metric">
           <span className="explorer-metric__label">{t("searchResult")}</span>
-          <span className="explorer-metric__value">
+          <span className={`explorer-metric__value${searchResult ? " is-ready" : " is-pending"}`}>
             {searchResult ? t("explorerResultReady") : t("explorerDataPending")}
           </span>
         </div>

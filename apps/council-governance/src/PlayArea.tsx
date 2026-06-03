@@ -75,13 +75,13 @@ const TAB_ICONS: Record<"active" | "create" | "history", JSX.Element> = {
 };
 
 function shortAddress(value?: string) {
-  if (!value) return "-";
+  if (!value) return "—";
   if (value.length <= 14) return value;
-  return `${value.slice(0, 8)}...${value.slice(-6)}`;
+  return `${value.slice(0, 8)}…${value.slice(-6)}`;
 }
 
 function formatDate(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return "-";
+  if (!Number.isFinite(value) || value <= 0) return "—";
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "2-digit",
@@ -380,7 +380,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                     </div>
 
                     <div className="council-proposal-meta">
-                      <span>{t("quorum")}: {proposal.totalVotes}/{proposal.quorumRequired || "-"}</span>
+                      <span>{t("quorum")}: {proposal.totalVotes}/{proposal.quorumRequired || "—"}</span>
                       <span>{t("creator")}: {shortAddress(proposal.creator)}</span>
                       <span>{t("votingEnds")}: {formatDate(proposal.expiryTime)}</span>
                     </div>
@@ -435,7 +435,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
               <h3>{selectedProposal.title}</h3>
             </div>
             <button type="button" onClick={() => setSelectedId(null)} aria-label={t("close")}>
-              x
+              <span aria-hidden="true">×</span>
             </button>
           </div>
           <p>{selectedProposal.description || t("noDescription")}</p>
@@ -445,7 +445,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <div><dt>{t("proposalCreated")}</dt><dd>{formatDate(selectedProposal.createTime)}</dd></div>
             <div>
               <dt>{t("quorum")}</dt>
-              <dd>{selectedProposal.totalVotes}/{selectedProposal.quorumRequired || "-"}</dd>
+              <dd>{selectedProposal.totalVotes}/{selectedProposal.quorumRequired || "—"}</dd>
             </div>
           </dl>
 
