@@ -301,7 +301,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "title status"
-    "subtitle status";
+    "subtitle status"
+    "actions actions";
   gap: 4px 12px;
   align-items: center;
   padding: 18px 20px;
@@ -351,6 +352,45 @@
 
 .escrow-status--cancelled {
   background: #fde7e9;
+  color: #c81e2a;
+}
+
+.escrow-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.escrow-action {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: var(--me-radius-sm);
+  border: 1px solid var(--me-line);
+  background: var(--me-surface-subtle);
+  color: var(--me-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.escrow-action:hover:not(:disabled) {
+  background: var(--me-line);
+}
+
+.escrow-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.escrow-action--approve {
+  background: var(--me-accent-soft);
+  border-color: transparent;
+  color: var(--me-accent-strong);
+}
+
+.escrow-action--cancel {
   color: #c81e2a;
 }
 

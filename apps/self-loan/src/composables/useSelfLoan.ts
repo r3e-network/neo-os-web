@@ -112,7 +112,6 @@ export function useSelfLoan({
   const isLoading = createObservable(false);
   const isBorrowing = createObservable(false);
   const isRepaying = createObservable(false);
-  const borrowAmount = createObservable<string>("");
   const neoBalance = createObservable(0);
   const neoPrice = createObservable(0);
   const platformStats = createObservable<PlatformStats>({
@@ -471,9 +470,7 @@ export function useSelfLoan({
 
   const borrow = async (formData: Record<string, unknown>) => {
     const nextCollateral = String(formData.collateralAmount ?? "").trim();
-    const nextBorrow = String(formData.borrowAmount ?? "").trim();
     if (nextCollateral) collateralAmount.set(nextCollateral);
-    if (nextBorrow) borrowAmount.set(nextBorrow);
 
     try {
       isBorrowing.set(true);
@@ -525,7 +522,6 @@ export function useSelfLoan({
     neoPrice,
     platformStats,
     loan,
-    borrowAmount,
     collateralAmount,
     selectedTier,
     selectedLtv: selectedTier,

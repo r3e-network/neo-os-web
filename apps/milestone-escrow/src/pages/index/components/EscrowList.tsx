@@ -20,7 +20,7 @@ interface EscrowListProps {
   onClaim: (escrow: unknown) => void;
 }
 
-export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, statusLabelFunc, formatAddressFunc }: EscrowListProps) {
+export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, approvingId, cancellingId, claimingId, statusLabelFunc, formatAddressFunc, onApprove, onCancel, onClaim }: EscrowListProps) {
   const tr = t ?? ((k: string) => k);
   const created = creatorEscrows as EscrowItem[];
   const incoming = beneficiaryEscrows as EscrowItem[];
@@ -49,6 +49,16 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, stat
               <span className="escrow-title">{escrow.title || `#${escrow.id}`}</span>
               <span className="escrow-subtitle">{formatAddressFunc(escrow.beneficiary)}</span>
               <span className={`escrow-status escrow-status--${escrow.status}`}>{statusLabelFunc(escrow.status)}</span>
+              {escrow.status === "active" && (
+                <div className="escrow-actions">
+                  <button type="button" className="escrow-action escrow-action--approve" disabled={Boolean(approvingId)} onClick={() => onApprove(escrow)}>
+                    {approvingId?.startsWith(escrow.id) ? tr("approving") : tr("approve")}
+                  </button>
+                  <button type="button" className="escrow-action escrow-action--cancel" disabled={cancellingId === escrow.id} onClick={() => onCancel(escrow)}>
+                    {cancellingId === escrow.id ? tr("cancelling") : tr("cancel")}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -61,6 +71,13 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, stat
               <span className="escrow-title">{escrow.title || `#${escrow.id}`}</span>
               <span className="escrow-subtitle">{formatAddressFunc(escrow.creator)}</span>
               <span className={`escrow-status escrow-status--${escrow.status}`}>{statusLabelFunc(escrow.status)}</span>
+              {escrow.status === "active" && (
+                <div className="escrow-actions">
+                  <button type="button" className="escrow-action escrow-action--approve" disabled={Boolean(claimingId)} onClick={() => onClaim(escrow)}>
+                    {claimingId?.startsWith(escrow.id) ? tr("claiming") : tr("claim")}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -41,6 +41,13 @@ interface StatsData {
   activeLoans?: number;
 }
 
+interface LtvOptionData {
+  tier: number;
+  percent: number;
+  label: string;
+  desc?: string;
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
@@ -51,7 +58,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isConnected = bool("isConnected");
 
   const neoBalance = num("neoBalance");
-  const neoPrice = num("neoPrice");
   const selectedLtvPercent = num("selectedLtvPercent");
   const healthFactor = num("healthFactor");
   const currentLTV = num("currentLTV");
@@ -65,29 +71,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const borrowedDisplay = str("borrowedDisplay");
   const totalBorrowedDisplay = str("totalBorrowedDisplay");
   const totalRepaidDisplay = str("totalRepaidDisplay");
-  const borrowAmount = str("borrowAmount");
   const collateralAmount = str("collateralAmount");
 
   const loan = val<LoanData>("loan");
   const platformStats = val<PlatformStatsData>("platformStats");
   const stats = val<StatsData>("stats");
-  const selectedLtv = val("selectedLtv");
+  const selectedTier = num("selectedLtv", 1);
+  const ltvOptions = val<LtvOptionData[]>("ltvOptions") ?? [];
 
   /* ---------- Local form state ---------- */
-  const [localBorrowAmt, setLocalBorrowAmt] = useState("");
   const [localCollateralAmt, setLocalCollateralAmt] = useState("");
   const [localRepayAmt, setLocalRepayAmt] = useState("");
   const [localAddCollateral, setLocalAddCollateral] = useState("");
 
   /* ---------- Handlers ---------- */
   const handleBorrow = async () => {
-    if (!localBorrowAmt || !localCollateralAmt) return;
+    if (!localCollateralAmt) return;
     await dispatch("borrow", {
-      borrowAmount: localBorrowAmt,
       collateralAmount: localCollateralAmt,
     });
-    setLocalBorrowAmt("");
     setLocalCollateralAmt("");
+  };
+
+  const handleSelectTier = (tier: number) => {
+    dispatch("setLtvTier", tier);
   };
 
   const handleRepay = async () => {
@@ -100,11 +107,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     if (!localAddCollateral) return;
     await dispatch("addCollateral", localAddCollateral);
     setLocalAddCollateral("");
-  };
-
-  const handleSetBorrowAmount = (v: string) => {
-    setLocalBorrowAmt(v);
-    dispatch("setBorrowAmount", v);
   };
 
   const handleSetCollateralAmount = (v: string) => {
@@ -128,6 +130,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const ltvPct = selectedLtvPercent > 0 ? selectedLtvPercent : currentLTV;
   const ltvColor =
     ltvPct <= 50 ? "#16c784" : ltvPct <= 75 ? "#f59e0b" : "#ef4444";
+
+  /* ---------- Expected borrow (collateral × LTV) ---------- */
+  const collateralNum = parseFloat(localCollateralAmt || collateralAmount);
+  const expectedBorrow =
+    Number.isFinite(collateralNum) && collateralNum > 0
+      ? (collateralNum * selectedLtvPercent) / 100
+      : 0;
 
   /* ---------- Display helpers ---------- */
   const displayNeoBalance =
@@ -178,14 +187,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
         <div className="selfloan-hero-stats">
-          <div className="selfloan-hero-stat">
-            <span className="selfloan-hero-stat-value">
-              ${neoPrice > 0 ? neoPrice.toFixed(2) : "--"}
-            </span>
-            <span className="selfloan-hero-stat-label">
-              {t("neoPrice") || "NEO Price"}
-            </span>
-          </div>
           <div className="selfloan-hero-stat">
             <span className="selfloan-hero-stat-value">
               {displayTotalLoans}
@@ -318,14 +319,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             suffix="NEO"
             onChange={handleSetCollateralAmount}
           />
-          <NeoInput
-            label={t("borrowAmount") || "Borrow Amount (GAS)"}
-            placeholder="0.00"
-            type="number"
-            value={localBorrowAmt || borrowAmount}
-            suffix="GAS"
-            onChange={handleSetBorrowAmount}
-          />
+          {/* LTV Tier Selector */}
+          <div className="selfloan-ltv-tiers" role="group" aria-label={t("ltvTier") || "LTV Tier"}>
+            {ltvOptions.map((option) => (
+              <button
+                key={option.tier}
+                type="button"
+                className={
+                  "selfloan-ltv-tier" +
+                  (option.tier === selectedTier ? " is-active" : "")
+                }
+                aria-pressed={option.tier === selectedTier}
+                onClick={() => handleSelectTier(option.tier)}
+              >
+                <span className="selfloan-ltv-tier-label">{option.label}</span>
+                <span className="selfloan-ltv-tier-percent">{option.percent}%</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Expected borrow (collateral × LTV) */}
+          <div className="selfloan-balance-hint">
+            {t("estimatedBorrow") || "Estimated Borrow"}:{" "}
+            <strong>
+              {expectedBorrow > 0 ? expectedBorrow.toFixed(2) : "0.00"} GAS
+            </strong>
+          </div>
 
           {/* LTV Selector / Indicator */}
           <div className="selfloan-ltv-indicator">
@@ -357,9 +376,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             variant="primary"
             block
             loading={isBorrowing}
-            disabled={
-              !localCollateralAmt || !localBorrowAmt || isBorrowing || !isConnected
-            }
+            disabled={!localCollateralAmt || isBorrowing || !isConnected}
             onClick={handleBorrow}
           >
             {isConnected

@@ -26,23 +26,22 @@
  *     chain.invoke("depositItem", [...])
  *     chain.invoke("withdrawItem", [...])
  *
- *   AFTER (OS proxy):
- *     ctx.os.game.getPoolState("machines")          — load all machines
- *     ctx.os.storage.get(`machine:${id}`)            — load single machine
- *     ctx.os.storage.get(`machine:${id}:items`)      — load machine items
- *     ctx.os.payment.deposit(amount, memo)            — pay for play/purchase
- *     ctx.os.game.placeBet("play", machineId)         — initiate + settle play
- *     ctx.os.game.placeBet("buy", machineId)          — buy a machine
- *     ctx.os.game.createPool(config)                  — create machine
- *     ctx.os.storage.set(`machine:${id}:item`, data)  — add machine item
- *     ctx.os.storage.set(`machine:${id}:config`, ...)  — update machine config
- *     ctx.os.storage.set(`machine:${id}:active`, ...)  — toggle active
- *     ctx.os.storage.set(`machine:${id}:listed`, ...)  — toggle listed
- *     ctx.os.escrow.create(...)                       — list machine for sale
- *     ctx.os.escrow.refund(machineId)                 — cancel sale
- *     ctx.os.payment.deposit(amount, "deposit:...")    — deposit inventory
- *     ctx.os.payment.withdraw(amount)                 — withdraw inventory
+ *   AFTER (OS proxy / os-storage catalog):
+ *     The kernel game contract exposes no machine/escrow enumeration, so the
+ *     machine catalog is app data kept in os-storage. The core publish → list →
+ *     play loop runs entirely over StorageProxy + PaymentProxy:
+ *
+ *     ctx.os.storage.list("machine:")                 — enumerate the catalog
+ *     ctx.os.storage.get(`machine:${id}`)             — load single machine record
+ *     ctx.os.storage.set(`machine:${id}`, record)     — publish / update a machine
+ *     ctx.os.payment.deposit(amount, "play:${id}")     — charge the pull price
+ *     (prize resolved client-side from the published odds — no game pool exists)
  *     ctx.os.badge.award(badgeId, "")                 — achievement hints
+ *
+ *     Marketplace side-actions still use the generic primitives:
+ *     ctx.os.game.placeBet("buy", machineId)          — buy a listed machine
+ *     ctx.os.escrow.create(...) / refund(machineId)   — list / cancel sale
+ *     ctx.os.payment.deposit / withdraw(...)           — inventory deposit/withdraw
  *
  * The composable still owns:
  *   - Reactive state (refs + computed) for manifest bindings
@@ -59,7 +58,7 @@ import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
-import { formatGas, toSafeNumber } from "@shared/utils/format";
+import { formatGas, toFixed8, toSafeNumber } from "@shared/utils/format";
 import type { Machine, MachineItem } from "../types";
 
 // ============================================================================
@@ -79,16 +78,6 @@ export interface UseGasBoxOptions {
   escrowService: EscrowProxy;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
-}
-
-/** Shape returned by GameProxy.getPoolState("machines") for GasBox. */
-interface GasBoxPoolState {
-  poolId: string;
-  appId: string;
-  status: string;
-  playerCount: number;
-  totalBets: string;
-  machines?: MachineRaw[];
 }
 
 /** Raw machine data from the edge function. */
@@ -132,15 +121,17 @@ interface MachineItemRaw {
 }
 
 /** Machine item data for publish action. */
-interface MachineItemData {
+export interface MachineItemData {
   name: string;
   probability: number;
-  icon: string;
+  icon?: string;
   rarity: string;
   assetType: string;
   assetHash: string;
   amount: string;
   tokenId: string;
+  /** Initial inventory units (NEP-17 stock or NEP-11 token count). */
+  stock?: string;
 }
 
 /** Machine data for publish action. */
@@ -220,6 +211,7 @@ export function useGasBox({
 
   // ── Publish State ──────────────────────────────────────────────────
   const isPublishing = createObservable(false);
+  const studioOpen = createObservable(false);
 
   // ── Address State ──────────────────────────────────────────────────
   const address = createObservable<string | null>(null);
@@ -325,20 +317,36 @@ export function useGasBox({
   // ── Data Loading (via OS services) ─────────────────────────────────
 
   /**
-   * Load all machines via GameProxy + StorageProxy.
-   * The edge function translates getPoolState("machines") into the
-   * contract's TotalMachines + GetMachine + GetMachineItem calls and
-   * returns normalized data.
+   * Load all machines from os-storage.
+   *
+   * The kernel game contract has no escrow/game enumeration, so the machine
+   * catalog is maintained as app data in os-storage: each machine is published
+   * under the `machine:<id>` key (see publishMachine), and the catalog is
+   * rebuilt by enumerating that prefix via StorageProxy.list and normalizing
+   * every record. Item/prize data is embedded in the stored record, so a single
+   * list call rebuilds the full grid (no per-item fetch needed).
    */
   const loadMachines = async () => {
     isLoadingMachines.set(true);
     try {
-      const state = (await gameService.getPoolState("machines")) as GasBoxPoolState;
-      if (state && Array.isArray(state.machines)) {
-        machines.set(state.machines.map(normalizeMachine));
-      } else {
-        machines.set([]);
+      const records = await storageService.list("machine:");
+      const collected: Machine[] = [];
+
+      if (records && typeof records === "object") {
+        for (const [key, value] of Object.entries(records)) {
+          // Only top-level machine records (`machine:<id>`). Skip any nested
+          // sub-keys such as `machine:<id>:item:*` written by legacy paths.
+          const suffix = key.startsWith("machine:") ? key.slice("machine:".length) : key;
+          if (suffix.includes(":")) continue;
+          if (!value || typeof value !== "object") continue;
+          const raw = value as MachineRaw;
+          if (raw.id === undefined || raw.id === null || raw.id === "") continue;
+          collected.push(normalizeMachine(raw));
+        }
       }
+
+      collected.sort((a, b) => b.createdAt - a.createdAt);
+      machines.set(collected);
 
       // Load wallet hash from storage (set by platform on wallet connect)
       try {
@@ -374,14 +382,53 @@ export function useGasBox({
     selectedMachine.set(null);
   };
 
+  // ── Studio (publish) panel routing ─────────────────────────────────
+
+  const openStudio = () => {
+    studioOpen.set(true);
+  };
+
+  const closeStudio = () => {
+    studioOpen.set(false);
+  };
+
   // ── Play Action (via OS services) ──────────────────────────────────
 
   /**
-   * Play a gacha machine via PaymentProxy + GameProxy.
-   *
-   * The OS payment service handles the GAS transfer.
-   * The OS game service handles initiatePlay + settlePlay via edge function,
-   * including RNG seed generation and item selection.
+   * Weighted random selection over the machine's available prize items.
+   * Pure frontend RNG: the kernel game contract has no per-machine prize
+   * pool, so the prize is resolved client-side against the published odds
+   * (the same weights rendered as readable odds in the UI).
+   */
+  const selectPrizeIndex = (items: MachineItem[]): number => {
+    const availableEntries = items
+      .map((item, index) => ({ item, index }))
+      .filter((entry) => entry.item.available && entry.item.probability > 0);
+    const firstEntry = availableEntries[0];
+    if (!firstEntry) return -1;
+
+    const totalWeight = availableEntries.reduce(
+      (sum, entry) => sum + entry.item.probability,
+      0,
+    );
+    if (totalWeight <= 0) return firstEntry.index;
+
+    let roll = Math.random() * totalWeight;
+    let lastIndex = firstEntry.index;
+    for (const entry of availableEntries) {
+      lastIndex = entry.index;
+      roll -= entry.item.probability;
+      if (roll <= 0) return entry.index;
+    }
+    return lastIndex;
+  };
+
+  /**
+   * Play a gacha machine: charge GAS via PaymentProxy, then resolve the prize
+   * client-side from the published odds. The kernel exposes no game/prize pool
+   * to enumerate, so the catalog + prize table live in os-storage and the draw
+   * is settled locally against those weights. The winning NEP-17 item's stock
+   * is decremented and the play count is persisted back to the machine record.
    */
   const playMachine = async () => {
     const machine = selectedMachine.get();
@@ -396,23 +443,49 @@ export function useGasBox({
       playError.set(null);
       resetResult();
 
-      // Step 1: Deposit GAS payment via PaymentProxy
-      await paymentService.deposit(
-        machine.price,
-        `play:${machine.id}`,
-      );
+      // Step 1: Charge the play price via PaymentProxy (GAS deposit).
+      // machine.priceRaw is base units (fixed8); deposit takes a base-unit string.
+      const depositAmount = machine.priceRaw > 0
+        ? String(Math.trunc(machine.priceRaw))
+        : toFixed8(machine.price);
+      await paymentService.deposit(depositAmount, `play:${machine.id}`);
 
-      // Step 2: Place bet (initiate + settle play) via GameProxy
-      // The edge function handles initiatePlay, seed generation,
-      // item selection, and settlePlay as an atomic operation.
-      const result = (await gameService.placeBet(
-        "play",
-        machine.id,
-      )) as { selectedIndex?: number; item?: MachineItemRaw } | void;
+      // Step 2: Resolve the prize client-side from published odds.
+      const prizeIndex = selectPrizeIndex(machine.items);
+      const wonItem = prizeIndex >= 0 ? machine.items[prizeIndex] : null;
 
-      // Step 3: Display result
-      if (result && typeof result === "object" && result.item) {
-        resultItem.set(normalizeItem(result.item, t("rarityCommon")));
+      // Step 3: Persist play count + stock decrement back to storage so the
+      // catalog reflects the draw on the next load (and odds stay honest).
+      try {
+        const stored = (await storageService.get(`machine:${machine.id}`)) as MachineRaw | null;
+        if (stored && typeof stored === "object") {
+          const updated: MachineRaw = {
+            ...stored,
+            plays: numberFrom(stored.plays) + 1,
+            lastPlayedAt: Date.now(),
+          };
+          if (wonItem && Array.isArray(updated.items) && prizeIndex < updated.items.length) {
+            const storedItem = updated.items[prizeIndex];
+            if (storedItem && numberFrom(storedItem.assetType) === 1) {
+              const remaining = numberFrom(storedItem.stock) - numberFrom(storedItem.amount);
+              storedItem.stock = remaining > 0 ? remaining : 0;
+            } else if (storedItem && numberFrom(storedItem.assetType) === 2) {
+              const remaining = numberFrom(storedItem.tokenCount) - 1;
+              storedItem.tokenCount = remaining > 0 ? remaining : 0;
+            }
+          }
+          await storageService.set(`machine:${machine.id}`, updated);
+        }
+      } catch (persistErr) {
+        console.warn(
+          "[useGasBox] play persistence failed:",
+          persistErr instanceof Error ? persistErr.message : String(persistErr),
+        );
+      }
+
+      // Step 4: Display result
+      if (wonItem) {
+        resultItem.set({ ...wonItem });
       } else {
         resultItem.set({
           name: t("unknownPrize"),
@@ -435,7 +508,7 @@ export function useGasBox({
       showResult.set(true);
       showFireworks.set(true);
 
-      // Step 4: Hint badge for first play (fire-and-forget)
+      // Step 5: Hint badge for first play (fire-and-forget)
       badgeService.award("first-play", "").catch(() => {});
 
       await loadMachines();
@@ -477,13 +550,59 @@ export function useGasBox({
     }
   };
 
-  // ── Publish Machine (via OS services) ──────────────────────────────
+  // ── Publish Machine (via OS storage catalog) ───────────────────────
 
   /**
-   * Create a new machine + add items via GameProxy + StorageProxy.
+   * Build the raw item record persisted to os-storage from a publish-form item.
+   * Probability is kept as the weight; NEP-17 items get a base-unit per-win
+   * amount + seeded stock; NEP-11 items get a token count. These map 1:1 onto
+   * the fields normalizeItem/isItemAvailable consume on read.
+   */
+  const buildItemRaw = (item: MachineItemData): MachineItemRaw => {
+    const assetType = numberFrom(item.assetType) || 1;
+    const weight = Math.max(0, Number(item.probability) || 0);
+    if (assetType === 2) {
+      const tokenCount = Math.max(0, Math.trunc(numberFrom(item.stock) || 1));
+      return {
+        name: item.name,
+        weight,
+        rarity: item.rarity,
+        assetType: 2,
+        assetHash: item.assetHash,
+        amount: 1,
+        tokenId: item.tokenId,
+        stock: 0,
+        tokenCount,
+        decimals: 0,
+      };
+    }
+    // NEP-17: amount is the per-win payout (display GAS → base units).
+    const amountBase = numberFrom(toFixed8(item.amount || "0"));
+    const stockUnits = Math.max(1, Math.trunc(numberFrom(item.stock) || 10));
+    return {
+      name: item.name,
+      weight,
+      rarity: item.rarity,
+      assetType: 1,
+      assetHash: item.assetHash,
+      amount: amountBase,
+      tokenId: "",
+      // Seed enough stock to cover the configured units so the machine is
+      // immediately playable (inventoryReady) after publish.
+      stock: amountBase * stockUnits,
+      tokenCount: 0,
+      decimals: 8,
+    };
+  };
+
+  /**
+   * Publish a new machine into the os-storage catalog.
    *
-   * The edge function handles CreateMachine and AddMachineItem contract
-   * calls, event parsing, and returns the new machine ID.
+   * The kernel game contract has no machine/escrow enumeration, so a machine is
+   * app data: a single self-contained record (metadata + embedded prize table)
+   * written to `machine:<id>`. loadMachines rebuilds the grid by enumerating
+   * that prefix, so the publish → list → play loop closes entirely over
+   * os-storage without any new edge endpoint.
    */
   const publishMachine = async (
     machineData: MachineData,
@@ -495,35 +614,39 @@ export function useGasBox({
       isPublishing.set(true);
       setStatus(t("publishing"), "loading");
 
-      // Create machine via GameProxy
-      const machineId = await gameService.createPool({
-        poolType: 2, // lottery/gacha type
-        maxPlayers: 0, // unlimited
-        entryFee: machineData.price,
-        duration: 0, // perpetual
-      });
+      const id = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
+      const owner = walletHash.get();
+      const items = machineData.items
+        .filter((item) => item.name.trim().length > 0)
+        .map(buildItemRaw);
+      const priceBase = numberFrom(toFixed8(machineData.price || "0"));
 
-      // Store machine metadata via StorageProxy
-      await storageService.set(`machine:${machineId}:meta`, {
+      const record: MachineRaw = {
+        id,
         name: machineData.name,
         description: machineData.description,
         category: machineData.category,
         tags: machineData.tags,
-        price: machineData.price,
-      });
+        creator: owner,
+        owner,
+        price: priceBase,
+        itemCount: items.length,
+        plays: 0,
+        revenue: 0,
+        sales: 0,
+        salesVolume: 0,
+        createdAt: Date.now(),
+        lastPlayedAt: 0,
+        active: true,
+        listed: true,
+        banned: false,
+        locked: false,
+        salePrice: 0,
+        items,
+      };
 
-      // Add items via StorageProxy
-      for (const item of machineData.items) {
-        await storageService.set(`machine:${machineId}:item:${item.name}`, {
-          name: item.name,
-          probability: item.probability,
-          rarity: item.rarity,
-          assetType: item.assetType,
-          assetHash: item.assetHash,
-          amount: item.amount,
-          tokenId: item.tokenId,
-        });
-      }
+      // Persist the catalog record (machine:<id>) — the index loadMachines reads.
+      await storageService.set(`machine:${id}`, record);
 
       // Hint badge for first machine creation (fire-and-forget)
       badgeService.award("first-creation", "").catch(() => {});
@@ -739,6 +862,7 @@ export function useGasBox({
     playError,
     showFireworks,
     isPublishing,
+    studioOpen,
     address,
 
     // ── Formatted values (for manifest stat/sidebar bindings) ────────
@@ -749,6 +873,8 @@ export function useGasBox({
     // ── Actions ─────────────────────────────────────────────────────
     selectMachine,
     deselectMachine,
+    openStudio,
+    closeStudio,
     resetResult,
     playMachine,
     buyMachine,
