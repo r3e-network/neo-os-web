@@ -165,7 +165,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
               <NeoButton
                 block
-                variant="erobo"
+                variant="primary"
                 disabled={!canSyncVote}
                 onClick={() => dispatch("voteAgent", { agentId: voteAgentId })}
               >
@@ -181,25 +181,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("agentDirectoryTitle")}</span>
               <strong>{agentCount}</strong>
             </div>
-            <div className="anchor-admin-agent-list">
-              {visibleAgents.length === 0 ? (
-                <div className="anchor-admin-agent-empty">{t("agentDirectoryEmpty")}</div>
-              ) : (
-                visibleAgents.map((agent, idx) => {
-                  const address = String(
-                    agent.accountAddress ??
-                      agent.address ??
-                      agent.name ??
-                      `agent-${idx + 1}`,
-                  );
-                  return (
-                    <div key={idx} className="anchor-admin-agent-row">
-                      <span>#{String(agent.agentId ?? idx + 1)}</span>
-                      <code title={address}>{address}</code>
-                    </div>
-                  );
-                })
-              )}
+            <div className="anchor-admin-agent-scroll">
+              <div className="anchor-admin-agent-list">
+                {visibleAgents.length === 0 ? (
+                  <div className="anchor-admin-agent-empty">{t("agentDirectoryEmpty")}</div>
+                ) : (
+                  visibleAgents.map((agent, idx) => {
+                    const address = String(
+                      agent.accountAddress ??
+                        agent.address ??
+                        agent.name ??
+                        `agent-${idx + 1}`,
+                    );
+                    return (
+                      <div key={idx} className="anchor-admin-agent-row">
+                        <span>#{String(agent.agentId ?? idx + 1)}</span>
+                        <code title={address}>{address}</code>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </section>
 

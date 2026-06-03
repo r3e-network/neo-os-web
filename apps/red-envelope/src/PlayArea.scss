@@ -3,8 +3,9 @@
 
 .redenv-play-area {
   display: grid;
+  align-content: center;
   gap: 18px;
-  min-height: 620px;
+  min-height: 100%;
   padding: 14px;
   background: #f7f8fb;
   color: var(--ns-ink, #1e1e2e);
@@ -19,22 +20,23 @@
 .redenv-main {
   display: grid;
   gap: 16px;
-  width: min(720px, 100%);
+  width: min(680px, 100%);
   margin: 0 auto;
   min-width: 0;
+  align-content: start;
 }
 
-/* Slim hero banner -- headline state shown once, no per-fact cards */
+/* Split white-card hero with a system-accent icon badge -- matches north-star shape */
 .redenv-hero {
   display: flex;
   align-items: center;
   gap: 16px;
   min-width: 0;
   padding: 18px 22px;
-  border: 1px solid rgba(164, 25, 40, 0.18);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 18px;
-  background: linear-gradient(135deg, #c22633 0%, #d92f3d 60%, #ef5a50 100%);
-  box-shadow: 0 14px 30px rgba(164, 25, 40, 0.16);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .redenv-hero .redenv-hero-badge {
@@ -42,11 +44,11 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.16);
-  color: #ffffff;
+  background: var(--ns-violet-soft, #eeeaff);
+  color: var(--ns-violet-strong, #6a4df4);
 }
 
 .redenv-hero .redenv-hero-copy {
@@ -56,7 +58,7 @@
 
   > span {
     width: fit-content;
-    color: rgba(255, 255, 255, 0.82);
+    color: var(--ns-violet-strong, #6a4df4);
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
@@ -66,7 +68,7 @@
 
   > h2 {
     margin: 0;
-    color: #ffffff;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 22px;
     font-weight: 800;
     line-height: 1.12;
@@ -76,15 +78,11 @@
   > p {
     margin: 2px 0 0;
     max-width: 46ch;
-    color: rgba(255, 255, 255, 0.86);
+    color: var(--ns-text-2, #5b6478);
     font-size: 13px;
     line-height: 1.5;
     letter-spacing: 0;
   }
-}
-
-.standalone-dapp-root .redenv-play-area .redenv-hero .redenv-hero-copy > span {
-  color: rgba(255, 255, 255, 0.82);
 }
 
 /* One compact metrics strip (replaces the duplicated hero stats + side counters) */
@@ -167,13 +165,13 @@
     color var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
 
   &:focus-visible {
-    outline: 2px solid rgba(200, 30, 42, 0.5);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
   }
 
   &--active {
     background: var(--ns-surface, #ffffff);
-    color: #c81e2a;
+    color: var(--ns-violet-strong, #6a4df4);
     box-shadow: var(--ns-shadow-sm, 0 4px 14px rgba(20, 22, 38, 0.05));
   }
 }
@@ -311,6 +309,16 @@
   letter-spacing: 0;
 }
 
+/* Soft-tinted disabled CTA -- awaiting input, not broken */
+.redenv-action-panel .neo-btn--primary:disabled,
+.redenv-action-panel .neo-btn--secondary:disabled {
+  background: var(--ns-violet-soft, #eeeaff);
+  border-color: rgba(123, 97, 255, 0.18);
+  color: var(--ns-violet-strong, #6a4df4);
+  opacity: 0.85;
+  box-shadow: none;
+}
+
 /* Activity: one panel, two lists when there is data, slim line when empty */
 .redenv-activity-grid {
   display: grid;
@@ -369,7 +377,7 @@
   }
 
   strong {
-    color: #c81e2a;
+    color: var(--ns-violet-strong, #6a4df4);
     font-size: 12px;
     font-weight: 800;
     line-height: 1.25;
@@ -379,19 +387,19 @@
   }
 
   &:hover:not(.redenv-row--static):not(.redenv-row--selected) {
-    border-color: rgba(200, 30, 42, 0.22);
+    border-color: rgba(123, 97, 255, 0.28);
     background: var(--ns-surface, #ffffff);
   }
 
   &:focus-visible {
-    outline: 2px solid rgba(200, 30, 42, 0.5);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
   }
 
   &--selected {
-    border-color: rgba(200, 30, 42, 0.28);
-    background: var(--ns-danger-soft, #fde7e9);
-    box-shadow: inset 0 0 0 1px rgba(200, 30, 42, 0.1);
+    border-color: rgba(123, 97, 255, 0.32);
+    background: var(--ns-violet-soft, #eeeaff);
+    box-shadow: inset 0 0 0 1px rgba(123, 97, 255, 0.12);
   }
 
   &--static {
@@ -421,8 +429,8 @@
     }
 
     &:focus-visible {
-      outline: 2px solid rgba(200, 30, 42, 0.5);
-      outline-offset: 2px;
+      outline: none;
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
     }
 
     span {
@@ -441,8 +449,44 @@
     }
   }
 
+  .redenv-summary-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .redenv-summary-badge {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: var(--ns-violet-soft, #eeeaff);
+    color: var(--ns-violet-strong, #6a4df4);
+  }
+
+  .redenv-summary-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .redenv-summary-chevron {
+    flex: 0 0 auto;
+    color: var(--ns-text-muted, #8a92a6);
+    transition: transform var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
+  }
+
   &[open] > summary {
     border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  }
+
+  &[open] > summary .redenv-summary-chevron {
+    transform: rotate(180deg);
   }
 }
 
@@ -520,8 +564,8 @@
   width: 58px;
   height: 58px;
   border-radius: 17px;
-  background: var(--ns-danger, #ea3943);
-  box-shadow: 0 14px 30px rgba(234, 57, 67, 0.24);
+  background: var(--ns-violet, #7b61ff);
+  box-shadow: 0 14px 30px rgba(123, 97, 255, 0.28);
 }
 
 .redenv-modal-title {

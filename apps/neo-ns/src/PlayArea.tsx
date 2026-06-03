@@ -51,6 +51,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </svg>
           </div>
           <div className="nns-hero__text">
+            <span className="nns-hero__eyebrow">NAME SERVICE</span>
             <h2 className="nns-hero__title">{t("title") || "Neo Name Service"}</h2>
             <p className="nns-hero__subtitle">
               {t("docSubtitle") || "Human-readable .neo domain names for Neo addresses"}

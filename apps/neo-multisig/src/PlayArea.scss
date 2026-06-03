@@ -93,31 +93,46 @@
 }
 
 .multisig-hero-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  margin-top: 12px;
-  padding-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 16px;
   border-top: 1px solid var(--multisig-border);
   letter-spacing: 0;
 }
 
-.multisig-hero-facts > span {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  color: var(--multisig-muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.3;
+.multisig-hero-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--multisig-border);
+  border-radius: var(--ns-radius-sm, 14px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
   letter-spacing: 0;
 }
 
-.multisig-hero-facts strong {
+.multisig-hero-tile small {
+  color: var(--multisig-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.multisig-hero-tile strong {
   color: var(--multisig-ink);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   letter-spacing: 0;
 }
 
@@ -185,7 +200,13 @@
   letter-spacing: 0;
 }
 
-.multisig-form-grid,
+.multisig-form-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 6px;
+  letter-spacing: 0;
+}
+
 .multisig-signer-grid {
   display: grid;
   gap: 12px;
@@ -202,6 +223,40 @@
 
 .multisig-form-row--transfer {
   grid-template-columns: minmax(0, 1fr) minmax(140px, 0.36fr);
+}
+
+// Normalize NeoSelect to match NeoInput and remove the duplicate native arrow.
+// A legacy global `.neo-select` rule paints a background-image chevron while the
+// native <select> arrow also shows; scope here to keep a single custom chevron.
+.multisig-play-area .neo-select {
+  width: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  appearance: none;
+}
+
+.multisig-play-area .neo-select__field {
+  padding-right: 38px;
+  background-image: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.multisig-play-area .neo-select__wrapper::after {
+  content: "";
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateY(-65%) rotate(45deg);
+  border-right: 2px solid var(--multisig-muted);
+  border-bottom: 2px solid var(--multisig-muted);
+  pointer-events: none;
 }
 
 .multisig-request-hint {
@@ -284,6 +339,16 @@
   font-weight: 700;
   white-space: nowrap;
   letter-spacing: 0;
+}
+
+// Soft-tinted disabled primary CTA so the brand affordance is preserved
+// instead of collapsing into flat grey that blends into the form.
+.multisig-primary-actions .neo-btn--primary:disabled {
+  background: var(--multisig-green-soft);
+  border: 1px solid rgba(22, 199, 132, 0.3);
+  color: var(--multisig-green-strong);
+  box-shadow: none;
+  opacity: 0.85;
 }
 
 .multisig-load-box {
@@ -392,6 +457,14 @@
 
   .multisig-hero {
     padding: 20px;
+  }
+
+  .multisig-hero-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .multisig-hero-tile strong {
+    white-space: normal;
   }
 
   .multisig-form-row,

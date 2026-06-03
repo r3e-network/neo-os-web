@@ -236,6 +236,14 @@
   grid-column: 1 / -1;
 }
 
+// Keep the gated primary CTA recognizable as the brand pill — soft-tinted
+// instead of the shared flat-grey disabled treatment.
+.bridge-form-grid > .neo-btn--primary:disabled {
+  background: rgba(15, 177, 116, 0.42);
+  border-color: transparent;
+  color: #ffffff;
+}
+
 .bridge-select-field {
   display: grid;
   gap: 6px;
@@ -254,13 +262,23 @@
   width: 100%;
   min-height: 44px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 8px;
-  padding: 0 12px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  border-radius: 12px;
+  padding: 0 40px 0 12px;
+  background-color: var(--ns-surface-subtle, #f7f8fa);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230fb174' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
   color: var(--ns-ink, #1e1e2e);
   font: inherit;
   font-weight: 700;
   outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.bridge-select-field select::-ms-expand {
+  display: none;
 }
 
 .bridge-select-field select:focus {

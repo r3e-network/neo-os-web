@@ -24,16 +24,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isCreating = bool("isCreating");
   const isVerifying = bool("isVerifying");
   const verifyError = bool("verifyError");
-  const latestId = str("latestId", "—");
+  const rawLatestId = str("latestId", "—");
+  const latestId = !rawLatestId || rawLatestId === "N/A" ? "—" : rawLatestId;
   const proofList = val<TimestampProof[]>("proofs", []) ?? [];
   const verifiedProof = val<TimestampProof>("verifiedProof", null);
 
   const [content, setContent] = useState("");
   const [verifyId, setVerifyId] = useState("");
 
+  const canCreate = content.trim().length > 0;
+
   return (
     <div className="proof-play-area">
       <ProofHero t={t} totalProofs={totalProofs} yourProofs={yourProofs} latestId={latestId} />
+
+      {/* Stat tiles — boxed family rhythm (shows 0 / — when empty) */}
+      <div className="proof-stats" role="group" aria-label={t("proofStats") || "Proof Stats"}>
+        <div className="proof-stat">
+          <span className="proof-stat__label">{t("totalProofs") || "Total Proofs"}</span>
+          <span className="proof-stat__value">{totalProofs}</span>
+        </div>
+        <div className="proof-stat">
+          <span className="proof-stat__label">{t("yourProofs") || "Your Proofs"}</span>
+          <span className="proof-stat__value">{yourProofs}</span>
+        </div>
+        <div className="proof-stat">
+          <span className="proof-stat__label">{t("latestId") || "Latest ID"}</span>
+          <span className="proof-stat__value proof-stat__value--mono">{latestId}</span>
+        </div>
+      </div>
 
       {/* Primary action — create a proof */}
       <NeoCard title={t("createProof") || "Create Proof"}>
@@ -49,8 +68,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             variant="primary"
             size="lg"
             block
+            className="proof-cta"
             loading={isCreating}
-            disabled={!content.trim()}
+            disabled={!canCreate}
             aria-label={t("createProof") || "Create Proof"}
             onClick={() => {
               dispatch("createProof", content);
@@ -59,6 +79,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           >
             {isCreating ? t("creating") || "Creating..." : t("createProof") || "Create Proof"}
           </NeoButton>
+          {!canCreate && !isCreating && (
+            <p className="proof-cta-hint">{t("enterContent") || "Enter content to timestamp"}</p>
+          )}
         </div>
       </NeoCard>
 

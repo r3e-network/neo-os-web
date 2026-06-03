@@ -30,6 +30,15 @@
     }
   }
 
+  // Soft-tinted disabled state so a not-yet-ready CTA reads as "waiting on input",
+  // keeping the violet affordance instead of looking flat/broken grey
+  .neo-btn--primary:disabled {
+    background: var(--anchor-accent-soft);
+    border-color: transparent;
+    color: var(--anchor-accent-strong);
+    opacity: 0.78;
+  }
+
   // Violet focus ring on inputs to match the app identity hue
   .neo-input input:focus,
   .neo-input input:focus-visible {
@@ -190,6 +199,20 @@
   white-space: nowrap;
 }
 
+// "Manual only" is a status label, not a count — render it as a neutral pill
+// rather than accent link-style text so it stops reading as another accent application
+.anchor-admin-safety-card .anchor-admin-section-heading strong {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .anchor-admin-vote-preview > span {
   display: block;
   color: var(--ns-text-muted);
@@ -252,7 +275,8 @@
   gap: 5px;
   padding: 14px 16px;
   border-radius: var(--ns-radius-md);
-  background: var(--anchor-accent-soft);
+  // Neutral surface so this isn't a third competing accent block; accent stays on the value only
+  background: var(--ns-surface-subtle);
 }
 
 .anchor-admin-vote-preview strong {
@@ -260,13 +284,32 @@
 }
 
 /* ── Agent directory ──────────────────────────────────── */
+.anchor-admin-agent-scroll {
+  position: relative;
+  min-width: 0;
+
+  // Bottom fade so the scroll region reads as a contained, scrollable list
+  // instead of a hard-clipped row cut off mid-card
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 4px;
+    bottom: 0;
+    height: 36px;
+    border-radius: 0 0 var(--ns-radius-md) var(--ns-radius-md);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0), var(--ns-surface) 88%);
+    pointer-events: none;
+  }
+}
+
 .anchor-admin-agent-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   max-height: 416px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 0 4px 10px 0;
   scrollbar-width: thin;
   scrollbar-color: rgba(123, 97, 255, 0.32) transparent;
 }
@@ -370,6 +413,10 @@
   .anchor-admin-agent-list {
     max-height: none;
     overflow-y: visible;
+  }
+
+  .anchor-admin-agent-scroll::after {
+    display: none;
   }
 }
 

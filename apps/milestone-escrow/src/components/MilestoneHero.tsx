@@ -1,3 +1,5 @@
+import { type CSSProperties } from "react";
+
 interface Checkpoint { position: number; done: boolean; label: string; }
 interface MilestoneHeroProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -23,15 +25,25 @@ export default function MilestoneHero({ t, progressPercent, checkpoints, hasEscr
           <span className="hero-eyebrow">{t("escrowsTab")}</span>
           <h2 className="hero-title">{t("title")}</h2>
           <p className="hero-subtitle">{t("docSubtitle")}</p>
-          {hasEscrows && (
-            <p className="hero-summary">
-              <span className="hero-summary__num">{totalEscrows}</span> {t("escrowsTab")}
-              <span className="hero-summary__sep">·</span>
-              <span className="hero-summary__num">{activeCount}</span> {t("statusActive")}
-              <span className="hero-summary__sep">·</span>
-              <span className="hero-summary__num">{completedCount}</span> {t("statusCompleted")}
-            </p>
-          )}
+        </div>
+      </div>
+
+      {/* Boxed stat tiles — always present so the hero carries weight even
+          before any escrow exists ("—" placeholders avoid an error-like 0). */}
+      <div className="hero-stats" role="group" aria-label={t("escrowsTab")}>
+        <div className="hero-stat" style={{ "--i": "0" } as CSSProperties}>
+          <span className="hero-stat-value">{hasEscrows ? totalEscrows : "—"}</span>
+          <span className="hero-stat-label">{t("escrowsTab")}</span>
+        </div>
+        <span className="hero-stat-divider" aria-hidden="true" />
+        <div className="hero-stat" style={{ "--i": "1" } as CSSProperties}>
+          <span className="hero-stat-value">{hasEscrows ? activeCount : "—"}</span>
+          <span className="hero-stat-label">{t("statusActive")}</span>
+        </div>
+        <span className="hero-stat-divider" aria-hidden="true" />
+        <div className="hero-stat" style={{ "--i": "2" } as CSSProperties}>
+          <span className="hero-stat-value">{hasEscrows ? completedCount : "—"}</span>
+          <span className="hero-stat-label">{t("statusCompleted")}</span>
         </div>
       </div>
 
