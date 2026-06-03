@@ -9,8 +9,14 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts
 {
+    // Audit fix H-1: emitted when a payer reclaims unconsumed prepaid GAS credit.
+    public delegate void GasCreditWithdrawnHandler(string appId, UInt160 payer, BigInteger amount);
+
     public partial class PlatformGameContract
     {
+        [DisplayName("GasCreditWithdrawn")]
+        public static event GasCreditWithdrawnHandler OnGasCreditWithdrawn;
+
         #region Direct GAS Credit Flow
 
         /// <summary>Read the payment memo from OnNEP17Payment data.</summary>
@@ -75,6 +81,42 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 Storage.Put(Storage.CurrentContext, key, next);
             }
+        }
+
+        /// <summary>
+        /// Audit fix H-1: reclaim unconsumed prepaid GAS credit for an appId.
+        /// Witness-gated to the credit owner (the original payer). Intentionally
+        /// does NOT call RequireNotPaused so funds are never permanently locked
+        /// when an app is paused or deregistered. Checks-effects-interactions:
+        /// the ledger is debited before the GAS is sent, so a recipient contract's
+        /// onNEP17Payment callback cannot re-withdraw.
+        /// </summary>
+        public static void WithdrawGasCredit(string appId, BigInteger amount)
+        {
+            ExecutionEngine.Assert(appId != null && appId.Length > 0, "appId required");
+            UInt160 payer = Runtime.Transaction.Sender;
+            ValidateAddress(payer);
+            ExecutionEngine.Assert(Runtime.CheckWitness(payer), "unauthorized");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            byte[] key = AppKey(appId, PREFIX_DIRECT_GAS_CREDIT, payer);
+            BigInteger balance = (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid gas");
+
+            BigInteger next = balance - amount;
+            if (next == 0)
+            {
+                Storage.Delete(Storage.CurrentContext, key);
+            }
+            else
+            {
+                Storage.Put(Storage.CurrentContext, key, next);
+            }
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, payer, amount),
+                "gas withdrawal failed");
+            OnGasCreditWithdrawn(appId, payer, amount);
         }
 
         #endregion
