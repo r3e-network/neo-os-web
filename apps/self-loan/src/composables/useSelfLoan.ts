@@ -45,6 +45,7 @@ import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { formatNumber, toFixedDecimals, toSafeNumber } from "@shared/utils/format";
+import { useWallet } from "@shared/utils/wallet-sdk";
 
 // ============================================================================
 // Types
@@ -506,6 +507,9 @@ export function useSelfLoan({
    * Load all data. Called by defineMiniApp on mount and wallet reconnect.
    */
   const loadAll = async () => {
+    // The host wallet bridge owns the connection; reflect it so the Borrow action
+    // is reachable (previously isConnected was never set -> Borrow stayed disabled).
+    isConnected.set(Boolean(useWallet().address.value));
     await loadPlatformStats();
     await loadBalance();
     await loadHistory();
