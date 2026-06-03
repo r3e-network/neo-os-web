@@ -244,8 +244,8 @@
 }
 
 .automation-actions--secondary {
-  gap: 8px;
-  margin-top: -4px;
+  gap: 6px;
+  margin-top: -2px;
 }
 
 .automation-actions--compact {
@@ -381,11 +381,29 @@
   text-align: center;
 }
 
-.automation-empty--inline {
-  min-height: 0;
-  padding: 16px 18px;
-  text-align: left;
-  justify-content: flex-start;
+.automation-empty--status {
+  flex-direction: column;
+  gap: 14px;
+  min-height: 180px;
+  border: 1px dashed var(--ns-border-strong);
+  background: var(--ns-surface-subtle);
+}
+
+.automation-empty--status p {
+  max-width: 280px;
+  margin: 0;
+}
+
+.automation-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ns-radius-full);
+  background: var(--ns-surface);
+  color: var(--ns-text-faint);
+  box-shadow: var(--ns-shadow-xs);
 }
 
 .automation-play-area .neo-select {

@@ -72,7 +72,7 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
             <div className="automation-hero__facts">
               <span className="automation-hero__fact">
                 <span className="automation-hero__fact-label">{t("currentPrice") || "Current Price"}</span>
-                <strong>{hasPrice ? currentPrice : "--"}</strong>
+                <strong>{hasPrice ? currentPrice : "—"}</strong>
               </span>
             </div>
           </div>
@@ -177,11 +177,11 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
               <div className="automation-trigger-card">
                 <div>
                   <span>{t("latestTriggerId") || "Latest Trigger"}</span>
-                  <strong>{latestTriggerId ? shortId(latestTriggerId) : "--"}</strong>
+                  <strong>{latestTriggerId ? shortId(latestTriggerId) : "—"}</strong>
                 </div>
                 <div>
                   <span>{t("nextExecution") || "Next Execution"}</span>
-                  <strong>{hasNextExecution ? nextExecution : "--"}</strong>
+                  <strong>{hasNextExecution ? nextExecution : "—"}</strong>
                 </div>
               </div>
 
@@ -212,8 +212,11 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
               ) : null}
             </>
           ) : (
-            <div className="automation-empty automation-empty--inline">
-              {t("noTriggerSelected") || "Register or refresh a trigger to see its status."}
+            <div className="automation-empty automation-empty--status">
+              <span className="automation-empty__icon" aria-hidden="true">
+                <Power size={20} />
+              </span>
+              <p>{t("noTriggerSelected") || "Register or refresh a trigger to see its status."}</p>
             </div>
           )}
         </div>
@@ -233,11 +236,11 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
               </div>
               <div>
                 <span>{t("datafeedHash") || "Datafeed Hash"}</span>
-                <strong>{shortId(datafeedHash || "--")}</strong>
+                <strong>{datafeedHash ? shortId(datafeedHash) : "—"}</strong>
               </div>
               <div>
                 <span>{t("oracleHash") || "Oracle Hash"}</span>
-                <strong>{shortId(oracleHash || "--")}</strong>
+                <strong>{oracleHash ? shortId(oracleHash) : "—"}</strong>
               </div>
             </div>
             {hasDetails ? (

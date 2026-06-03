@@ -184,18 +184,19 @@ export default function PlayArea({
             </svg>
           </div>
           <div className="flashloan-hero__text">
+            <p className="flashloan-hero__eyebrow">{t("eyebrow") || "Atomic liquidity"}</p>
             <h2 className="flashloan-hero__title">{t("title") || "Flash Loan"}</h2>
             <p className="flashloan-hero__subtitle">
               {t("flashloanInfo") ||
                 "The callback contract receives principal and must repay principal plus fee in the same transaction."}
             </p>
           </div>
-          <div className="flashloan-wallet">
+          <div className={`flashloan-wallet ${address ? "flashloan-wallet--connected" : ""}`}>
             <span className="flashloan-wallet__label">
               {address ? t("walletConnected") || "Wallet connected" : t("walletRequired") || "Wallet required"}
             </span>
             <span className="flashloan-wallet__value">
-              {address || t("notAvailable") || "Unavailable"}
+              {address || t("notAvailable") || "—"}
             </span>
           </div>
         </div>
@@ -303,14 +304,16 @@ export default function PlayArea({
               <span>{t("estimatedFee") || "Estimated Fee"}</span>
               <strong>{feePreview} GAS</strong>
             </div>
-            <div className="flashloan-preview-item">
+            <div className="flashloan-preview-item flashloan-preview-item--total">
               <span>{t("totalRepayment") || "Total Repayment"}</span>
               <strong>{repaymentPreview} GAS</strong>
             </div>
           </div>
           <div className="flashloan-flow">
             <span>{t("borrow") || "Borrow"}</span>
+            <span className="flashloan-flow-arrow" aria-hidden="true">→</span>
             <span>{t("execute") || "Execute"}</span>
+            <span className="flashloan-flow-arrow" aria-hidden="true">→</span>
             <span>{t("repay") || "Repay"}</span>
           </div>
           <div className="flashloan-request-summary" aria-live="polite">
@@ -364,7 +367,7 @@ export default function PlayArea({
                 </span>
               </div>
               <p className="flashloan-loan-callback">
-                <strong>{t("callbackContract") || "Callback"}:</strong> {loanDetails.callbackContract} {"->"} {loanDetails.callbackMethod}
+                <strong>{t("callbackContract") || "Callback"}:</strong> {loanDetails.callbackContract} {"→"} {loanDetails.callbackMethod}
               </p>
             </div>
           )}

@@ -22,9 +22,9 @@ interface PlayAreaProps {
 }
 
 function short(value: string) {
-  if (!value) return "N/A";
+  if (!value) return "—";
   if (value.length <= 18) return value;
-  return `${value.slice(0, 8)}...${value.slice(-8)}`;
+  return `${value.slice(0, 8)}…${value.slice(-8)}`;
 }
 
 function formatDate(seconds: number, fallback: string) {

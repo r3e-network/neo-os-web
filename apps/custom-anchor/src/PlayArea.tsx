@@ -27,7 +27,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   const lastError = str("lastError");
   const anchorStatus = anchorAppId ? t("anchorLinked") : t("anchorMissing");
   const displayedAnchor = anchorAppId ? truncate(anchorAppId) : t("anchorAwaitingLaunch");
-  const displayedTx = lastTxid ? truncate(lastTxid) : t("notAvailable");
+  const displayedTx = lastTxid ? truncate(lastTxid) : "—";
 
   const [anchorInput, setAnchorInput] = useState(anchorAppId || "custom-anchor:team:nonce");
   const [amountInput, setAmountInput] = useState("1");
@@ -96,7 +96,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
           </div>
         </div>
         <div className="custom-anchor-orbit" aria-hidden="true">
-          <span>21</span>
+          <span>{agentCount || 21}</span>
           <small>AA</small>
         </div>
       </section>

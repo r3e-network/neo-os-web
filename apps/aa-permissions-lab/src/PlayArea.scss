@@ -13,11 +13,11 @@
 .permissions-hero {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  padding: 26px 28px;
+  gap: 18px;
+  padding: 28px 30px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 18px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: linear-gradient(135deg, #ffffff 0%, #f6f4ff 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
@@ -28,8 +28,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 14px;
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  background: var(--ns-violet-soft, #eeeaff);
+  color: var(--ns-violet-strong, #6a4df4);
 
   svg {
     width: 24px;
@@ -41,7 +41,15 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+
+.permissions-hero__eyebrow {
+  color: var(--ns-violet-strong, #6a4df4);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .permissions-hero__copy h2 {
@@ -49,12 +57,13 @@
   color: var(--ns-ink, #1e1e2e);
   font-size: 26px;
   font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.18;
+  letter-spacing: -0.02em;
+  line-height: 1.16;
 }
 
 .permissions-hero__copy p {
   margin: 0;
+  max-width: 56ch;
   color: var(--ns-text-2, #5b6478);
   font-size: 15px;
   line-height: 1.55;
@@ -62,20 +71,29 @@
 
 .permissions-command,
 .permissions-operation-card {
-  border-radius: 16px;
+  border-radius: var(--ns-radius-lg, 20px);
+}
+
+.permissions-command .neo-card__title,
+.permissions-operation-card .neo-card__title {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .permissions-command .neo-card__content,
 .permissions-operation-card .neo-card__content {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .permissions-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .permissions-action-grid {
@@ -96,14 +114,14 @@
   padding: 11px 13px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-sm, 12px);
-  background: #f8fafc;
+  background: var(--ns-surface-subtle, #f7f8fa);
   color: var(--ns-text-2, #5b6478);
 }
 
 .permissions-state-panel {
-  padding: 20px;
+  padding: 22px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 16px;
+  border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface, #fff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
@@ -113,40 +131,55 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .permissions-section-heading span {
-  color: #8a92a6;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .permissions-section-heading h3 {
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   color: var(--ns-ink, #1e1e2e);
   font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
-.permissions-section-heading strong {
+.permissions-status {
   display: grid;
-  min-width: 96px;
-  min-height: 40px;
+  min-width: 88px;
+  min-height: 36px;
   max-width: 220px;
   place-items: center;
-  padding: 0 14px;
+  padding: 0 16px;
   overflow: hidden;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-  font-size: 13px;
-  font-weight: 800;
+  border-radius: var(--ns-radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+
+.permissions-status--active {
+  background: var(--ns-violet-soft, #eeeaff);
+  color: var(--ns-violet-strong, #6a4df4);
+}
+
+.permissions-status--idle {
+  min-width: 44px;
+  padding: 0;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 15px;
+  letter-spacing: 0;
 }
 
 .permissions-detail-list {
@@ -164,7 +197,7 @@
   gap: 14px;
   align-items: center;
   padding: 14px 0;
-  border-bottom: 1px solid rgba(20, 22, 38, 0.06);
+  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
 .permissions-detail-row:last-child {
@@ -172,10 +205,11 @@
 }
 
 .permissions-detail-row span {
-  color: #8a92a6;
+  color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .permissions-detail-row strong {
@@ -183,16 +217,17 @@
   color: var(--ns-text, #2a2d3d);
   font-family: var(--font-mono, "SF Mono", "Fira Code", monospace);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
   line-height: 1.45;
 }
 
 .permissions-empty-line {
   margin: 0;
-  padding: 18px;
+  padding: 22px;
   border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.1));
   border-radius: var(--ns-radius-md, 16px);
-  background: #f8fafc;
+  background: var(--ns-surface-subtle, #f7f8fa);
   color: var(--ns-text-muted, #8a92a6);
   font-size: 14px;
   line-height: 1.55;
@@ -201,7 +236,7 @@
 
 .aa-permissions-play-area button:disabled {
   border-color: var(--ns-border-strong, rgba(20, 22, 38, 0.1)) !important;
-  background: #f8fafc !important;
+  background: var(--ns-surface-subtle, #f7f8fa) !important;
   box-shadow: none !important;
   color: var(--ns-text-muted, #8a92a6) !important;
   cursor: not-allowed;
@@ -214,18 +249,33 @@
   }
 
   .permissions-hero {
-    padding: 18px 20px;
-    border-radius: 14px;
+    gap: 14px;
+    padding: 20px 20px;
+    border-radius: var(--ns-radius-md, 16px);
   }
 
   .permissions-hero__copy h2 {
-    font-size: 23px;
+    font-size: 22px;
     line-height: 1.18;
+  }
+
+  .permissions-hero__copy p {
+    font-size: 14px;
+  }
+
+  .permissions-state-panel {
+    padding: 18px;
+    border-radius: var(--ns-radius-md, 16px);
   }
 
   .permissions-section-heading {
     align-items: stretch;
     flex-direction: column;
+    gap: 10px;
+  }
+
+  .permissions-status {
+    justify-self: start;
   }
 
   .permissions-action-grid {
@@ -236,5 +286,6 @@
     grid-template-columns: 1fr;
     gap: 6px;
     align-items: start;
+    padding: 12px 0;
   }
 }
