@@ -71,26 +71,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isError = Boolean(localError || lastError);
   const statusText = localError || lastError || workflowStatus;
   const isBusy = Boolean(busyAction);
-  // Wallet-linked data drives whether per-user tiles are surfaced.
-  const hasWalletData = myStake > 0 || pendingRewards > 0;
+  // Hero surfaces the three core metrics; "—" placeholder before wallet data lands.
+  const placeholder = "—";
   const hasReserve = Boolean(stats);
-  const metrics = [
-    hasWalletData && {
+  const metrics: Array<{ key: string; value: string; label: string }> = [
+    {
       key: "stake",
-      value: myStakeDisplay,
+      value: myStake > 0 ? myStakeDisplay : placeholder,
       label: t("myStake"),
     },
-    hasWalletData && {
+    {
       key: "pending",
-      value: pendingRewardsDisplay,
+      value: pendingRewards > 0 ? pendingRewardsDisplay : placeholder,
       label: t("pendingRewards"),
     },
-    hasReserve && {
+    {
       key: "reserve",
-      value: rewardReserveDisplay,
+      value: hasReserve ? rewardReserveDisplay : placeholder,
       label: t("rewardReserve"),
     },
-  ].filter(Boolean) as Array<{ key: string; value: string; label: string }>;
+  ];
 
   const runAmountAction = async (action: "stakeNeo" | "withdrawNeo") => {
     if (!amountIsValid) {
@@ -154,7 +154,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="anchor-stat-grid">
           {metrics.map((metric) => (
             <div className="stat-chip" key={metric.key}>
-              <span className="stat-value">{metric.value}</span>
+              <span
+                className={`stat-value${metric.value === placeholder ? " stat-value--placeholder" : ""}`}
+              >
+                {metric.value}
+              </span>
               <span className="stat-label">{metric.label}</span>
             </div>
           ))}

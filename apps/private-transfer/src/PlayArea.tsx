@@ -363,7 +363,7 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
         )}
       </section>
 
-      <details className="private-transfer__steps">
+      <details className="private-transfer__steps" open>
         <summary>
           <span>How a confidential transfer settles</span>
           <span className="private-transfer__steps-chevron" aria-hidden="true">

@@ -11,8 +11,86 @@ $accent-soft: #eeeaff;
   flex-direction: column;
   gap: 20px;
   padding: 4px;
+  // constrain content width so the desktop canvas reads balanced rather than empty
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
   color: var(--ns-text-2, #5b6478);
   position: relative;
+}
+
+// Stat tiles — boxed token style, shared hero→stats rhythm
+.proof-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.proof-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+
+  &__label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    color: var(--ns-text-muted, #8a92a6);
+  }
+
+  &__value {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.05;
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__value--mono {
+    font-family: var(--ns-font-mono, "JetBrains Mono", "SF Mono", monospace);
+    font-size: 18px;
+    color: $accent-strong;
+  }
+}
+
+@media (max-width: 520px) {
+  .proof-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// Primary CTA — recolor shared (green) primary to this app's violet identity,
+// and give the disabled state a soft violet tint instead of a flat-grey "broken" bar.
+.proof-cta.neo-btn--primary {
+  background: $accent;
+  box-shadow: 0 2px 8px rgba(123, 97, 255, 0.25);
+
+  &:hover:not(:disabled) {
+    background: $accent-strong;
+    box-shadow: 0 4px 16px rgba(123, 97, 255, 0.3);
+  }
+
+  &:disabled {
+    background: $accent-soft;
+    border-color: transparent;
+    color: $accent-strong;
+    box-shadow: none;
+    opacity: 0.85;
+  }
+}
+
+.proof-cta-hint {
+  margin: -6px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ns-text-muted, #8a92a6);
+  text-align: center;
 }
 
 .verify-panel {

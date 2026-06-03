@@ -111,7 +111,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <path d="m9 12 2 2 4-4" />
               </svg>
             </span>
-            <h2>{t("guardianHeroTitle")}</h2>
+            <div className="guardian-hero__heading">
+              <span className="guardian-hero__eyebrow">{t("title")}</span>
+              <h2>{t("guardianHeroTitle")}</h2>
+            </div>
           </div>
           <p>{t("guardianHeroCopy")}</p>
           <div
