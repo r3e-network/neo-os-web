@@ -33,9 +33,9 @@
   gap: 18px;
   align-items: center;
   min-width: 0;
-  padding: 22px;
+  padding: 22px 24px;
   border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 18px;
+  border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   letter-spacing: 0;
@@ -59,7 +59,7 @@
 }
 
 .wallet-health-kicker {
-  color: #0fb174;
+  color: var(--ns-success, #16c784);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
@@ -102,26 +102,29 @@
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 76px;
-  height: 76px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background:
-    conic-gradient(#16c784 calc(var(--score, 0) * 1%), var(--ns-surface-subtle, #f7f8fa) 0);
-  box-shadow: 0 6px 16px -8px rgba(22, 199, 132, 0.45);
+    conic-gradient(
+      var(--ns-success, #16c784) calc(var(--score, 0) * 1%),
+      var(--ns-success-soft, #e4f8f0) 0
+    );
+  box-shadow: 0 8px 20px -10px rgba(22, 199, 132, 0.5);
   letter-spacing: 0;
 
   span {
     display: grid;
     place-items: center;
-    width: 58px;
-    height: 58px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     background: var(--ns-surface, #ffffff);
     color: var(--ns-ink, #1e1e2e);
-    font-size: 22px;
+    font-size: 23px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0;
+    letter-spacing: -0.01em;
   }
 }
 
@@ -129,7 +132,7 @@
 .wallet-health-checklist-panel,
 .wallet-health-recommendations-panel {
   border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 18px;
+  border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   letter-spacing: 0;
@@ -148,7 +151,8 @@
     font-size: 11px;
     font-weight: 700;
     line-height: 1.3;
-    letter-spacing: 0;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 
   strong {
@@ -158,6 +162,7 @@
     font-weight: 700;
     line-height: 1.3;
     text-align: right;
+    font-variant-numeric: tabular-nums;
     word-break: break-word;
     letter-spacing: 0;
   }
@@ -170,9 +175,9 @@
 
   div {
     min-width: 0;
-    padding: 12px;
+    padding: 12px 14px;
     border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-    border-radius: 14px;
+    border-radius: var(--ns-radius-md, 16px);
     background: var(--ns-surface-subtle, #f7f8fa);
   }
 
@@ -184,19 +189,21 @@
 
   span {
     color: var(--ns-text-muted, #8a92a6);
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 700;
     line-height: 1.25;
-    letter-spacing: 0;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
   strong {
     margin-top: 6px;
     color: var(--ns-ink, #1e1e2e);
-    font-size: 17px;
+    font-size: 18px;
     line-height: 1.18;
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
-    letter-spacing: 0;
+    letter-spacing: -0.01em;
   }
 }
 
@@ -209,7 +216,7 @@
 
   .neo-btn {
     min-height: 48px;
-    border-radius: 14px;
+    border-radius: var(--ns-radius-md, 16px);
     white-space: normal;
     line-height: 1.2;
   }
@@ -235,7 +242,7 @@
 
   .neo-btn {
     min-height: 36px;
-    border-radius: 12px;
+    border-radius: var(--ns-radius-sm, 12px);
     white-space: normal;
     line-height: 1.15;
   }
@@ -256,15 +263,15 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #ea3943;
+  background: var(--ns-danger, #ea3943);
 }
 
 .wallet-health-risk-chip.risk-medium .wallet-health-risk-dot {
-  background: #f0a020;
+  background: var(--ns-warning, #f5a623);
 }
 
 .wallet-health-risk-chip.risk-low .wallet-health-risk-dot {
-  background: #16c784;
+  background: var(--ns-success, #16c784);
 }
 
 .wallet-health-checklist-list {
@@ -281,9 +288,10 @@
   min-width: 0;
   padding: 14px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
+  border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
   letter-spacing: 0;
+  transition: border-color 0.15s ease, background 0.15s ease;
 
   strong {
     display: block;
@@ -304,7 +312,7 @@
 
   .neo-btn {
     min-width: 96px;
-    border-radius: 12px;
+    border-radius: var(--ns-radius-sm, 12px);
     white-space: normal;
     line-height: 1.15;
   }
@@ -312,7 +320,7 @@
 
 .wallet-health-checklist-item.is-done {
   border-color: rgba(22, 199, 132, 0.32);
-  background: #effbf5;
+  background: var(--ns-success-soft, #e4f8f0);
 }
 
 .wallet-health-auto {
@@ -322,9 +330,9 @@
   min-width: 64px;
   min-height: 32px;
   padding: 0 10px;
-  border-radius: 12px;
+  border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-success-soft, #e4f8f0);
-  color: #0fb174;
+  color: var(--ns-success, #16c784);
   font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
@@ -344,8 +352,8 @@
   li {
     position: relative;
     min-width: 0;
-    padding: 10px 12px 10px 28px;
-    border-radius: 12px;
+    padding: 11px 14px 11px 30px;
+    border-radius: var(--ns-radius-sm, 12px);
     background: var(--ns-surface-subtle, #f7f8fa);
     color: var(--ns-text-2, #5b6478);
     font-size: 13px;
@@ -355,12 +363,12 @@
     &::before {
       content: "";
       position: absolute;
-      left: 12px;
-      top: 15px;
+      left: 13px;
+      top: 16px;
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #16c784;
+      background: var(--ns-success, #16c784);
     }
   }
 }
@@ -386,13 +394,25 @@
   }
 
   .wallet-health-hero {
-    padding: 16px;
-    border-radius: 16px;
+    padding: 18px;
+    gap: 14px;
+    border-radius: var(--ns-radius-md, 16px);
   }
 
   .wallet-health-hero-copy h2 {
-    font-size: 24px;
-    line-height: 1.08;
+    font-size: 21px;
+    line-height: 1.1;
+  }
+
+  .wallet-health-score-ring {
+    width: 64px;
+    height: 64px;
+
+    span {
+      width: 48px;
+      height: 48px;
+      font-size: 19px;
+    }
   }
 
   .wallet-health-primary-actions {
