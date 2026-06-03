@@ -191,7 +191,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger platformFee = cost - potContribution;
             if (platformFee > 0)
             {
-                ByteString feeKey = AppKey(appId, CD_PREFIX_PLATFORM_FEES);
+                ByteString feeKey = (ByteString)AppKey(appId, CD_PREFIX_PLATFORM_FEES);
                 BigInteger accumulated = (BigInteger)Storage.Get(Storage.CurrentContext, feeKey);
                 Storage.Put(Storage.CurrentContext, feeKey, accumulated + platformFee);
             }
@@ -235,7 +235,7 @@ namespace NeoMiniAppPlatform.Contracts
             RequireAppAdminOrPlatformAdmin(appId);
             ValidateAddress(to);
 
-            ByteString feeKey = AppKey(appId, CD_PREFIX_PLATFORM_FEES);
+            ByteString feeKey = (ByteString)AppKey(appId, CD_PREFIX_PLATFORM_FEES);
             BigInteger amount = (BigInteger)Storage.Get(Storage.CurrentContext, feeKey);
             ExecutionEngine.Assert(amount > 0, "no platform fees");
 

@@ -45,54 +45,37 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static BigInteger Max(BigInteger a, BigInteger b) => a > b ? a : b;
 
-        private static BigInteger GetPacketAmount(string appId, BigInteger envelopeId, BigInteger index)
-        {
-            ByteString data = GetRaw(AppKey(appId, PREFIX_AMOUNTS, envelopeId, index));
-            return data == null ? 0 : (BigInteger)data;
-        }
-
-        private static void StorePacketAmount(string appId, BigInteger envelopeId, BigInteger index, BigInteger amount)
-        {
-            Put(AppKey(appId, PREFIX_AMOUNTS, envelopeId, index), amount);
-        }
-
         /// <summary>
-        /// Deterministically split totalAmount into packetCount packets using
-        /// randomBytes as entropy source. Same algorithm as original
-        /// MiniAppRedEnvelope.StoreGeneratedAmounts.
+        /// Draws this claim's packet amount at CLAIM time (audit fix M-4) so packet sizes are
+        /// never stored or observable in advance. Mirrors the range-gas-pool algorithm: the last
+        /// packet takes the exact remainder; earlier packets draw a bounded random amount that
+        /// always leaves MIN_PER_PACKET for every still-unclaimed packet. Entropy combines the
+        /// per-block consensus beacon (Runtime.GetRandom(), unknown until the tx mines) with the
+        /// claimer address, so the result cannot be predicted or front-run and differs per claimer
+        /// within the same block. `envelope` is the pre-claim state (ClaimedCount/RemainingAmount
+        /// not yet updated); claimIndex == ClaimedCount + 1.
         /// </summary>
-        private static void StoreGeneratedAmounts(
-            string appId,
-            BigInteger envelopeId,
-            BigInteger totalAmount,
-            BigInteger packetCount,
-            byte[] randomBytes)
+        private static BigInteger NextEnvelopePacketAmount(EnvelopeData envelope, BigInteger claimIndex, BigInteger envelopeId, UInt160 claimer)
         {
-            ExecutionEngine.Assert(randomBytes != null && randomBytes.Length > 0, "seed bytes required");
-            ExecutionEngine.Assert(packetCount > 0, "packet count required");
-
-            BigInteger remaining = totalAmount;
-
-            for (BigInteger i = 1; i < packetCount; i++)
+            // Final packet: exact remainder keeps the pool perfectly distributed.
+            if (claimIndex >= envelope.PacketCount)
             {
-                BigInteger packetsLeft = packetCount - i + 1;
-                BigInteger minRemaining = (packetsLeft - 1) * MIN_PER_PACKET;
-                BigInteger maxForThis = remaining - minRemaining;
-                ExecutionEngine.Assert(maxForThis >= MIN_PER_PACKET, "invalid packet bounds");
-
-                BigInteger amount = MIN_PER_PACKET;
-                BigInteger range = maxForThis - MIN_PER_PACKET;
-                if (range > 0)
-                {
-                    amount += RandomChunk(randomBytes, i) % (range + 1);
-                }
-
-                StorePacketAmount(appId, envelopeId, i, amount);
-                remaining -= amount;
+                return envelope.RemainingAmount;
             }
 
-            // Last packet gets the remainder
-            StorePacketAmount(appId, envelopeId, packetCount, remaining);
+            BigInteger packetsLeftAfterThis = envelope.PacketCount - claimIndex; // >= 1
+            BigInteger minReserve = packetsLeftAfterThis * MIN_PER_PACKET;
+            BigInteger maxForThis = envelope.RemainingAmount - minReserve;
+            ExecutionEngine.Assert(maxForThis >= MIN_PER_PACKET, "invalid packet bounds");
+
+            BigInteger lowerBound = MIN_PER_PACKET;
+            BigInteger range = maxForThis - lowerBound;
+            if (range <= 0) return lowerBound;
+
+            BigInteger entropy = Runtime.GetRandom();
+            if (entropy < 0) entropy = -entropy;
+            entropy += RandomChunk((byte[])claimer, envelopeId + envelope.ClaimedCount + Runtime.Time);
+            return lowerBound + (entropy % (range + 1));
         }
 
         private static BigInteger RandomChunk(byte[] randomBytes, BigInteger index)

@@ -64,22 +64,13 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             };
             StoreEnvelope(appId, envelopeId, envelope);
 
-            // Audit fix H-9 (partial): mix in `Runtime.GetRandom()` so the seed cannot
-            // be fully pre-computed from public inputs (envelopeId, creator, Runtime.Time)
-            // by a mempool observer. `Runtime.GetRandom()` is the consensus-derived
-            // beacon for the block and is unknown until the create tx mines. This is
-            // still weaker than a Morpheus VRF callback (which would make the split
-            // entirely unpredictable to the block producer too) — see open work to
-            // route envelope amounts through the same VRF callback flow the games use.
-            BigInteger beacon = Runtime.GetRandom();
-            if (beacon < 0) beacon = -beacon;
-            ByteString seed = CryptoLib.Sha256(
-                Helper.Concat(
-                    Helper.Concat(
-                        Helper.Concat((ByteString)envelopeId.ToByteArray(), (ByteString)(byte[])creator),
-                        (ByteString)Runtime.Time.ToString()),
-                    (ByteString)beacon.ToByteArray()));
-            StoreGeneratedAmounts(appId, envelopeId, totalAmount, packetCount, (byte[])seed);
+            // Audit fix M-4: packet amounts are NO LONGER pre-computed and stored in plaintext.
+            // Doing so let claimers read the upcoming packet sizes and race/front-run the large
+            // ones, defeating the random split. Each packet is now drawn at CLAIM time from a
+            // bounded distribution seeded by the consensus beacon (unknown until the claim tx
+            // mines) and bound to the claimer (see NextEnvelopePacketAmount), so amounts are
+            // unpredictable and not observable in advance. The split still guarantees every
+            // packet >= MIN_PER_PACKET and distributes the pool exactly.
 
             OnEnvelopeCreated(appId, envelopeId, creator, totalAmount, packetCount);
             return envelopeId;
@@ -105,7 +96,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(GetRaw(grabberKey) == null, "already claimed");
 
             BigInteger claimIndex = envelope.ClaimedCount + 1;
-            BigInteger amount = GetPacketAmount(appId, envelopeId, claimIndex);
+            BigInteger amount = NextEnvelopePacketAmount(envelope, claimIndex, envelopeId, claimer);
             ExecutionEngine.Assert(amount > 0, "invalid packet amount");
 
             // Mark claimed

@@ -90,7 +90,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         {
             Loan loan = GetLoan(appId, loanId);
             if (loan.Debt == 0) return 10000;
-            return loan.Collateral * GAS_FIXED8 * 100 / loan.Debt;
+            // Audit fix H-3: health factor now reflects the oracle/keeper collateral price
+            // (GAS per NEO) rather than assuming 1 NEO = 1 GAS. Scaled by 100 (100 == 1.0).
+            return CollateralValueGas(appId, loan.Collateral) * 100 / loan.Debt;
         }
 
         [Safe]

@@ -66,7 +66,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(idKey, loanId);
 
             BigInteger ltvBps = GetLtvForTier(ltvTier);
-            BigInteger loanAmount = neoAmount * GAS_FIXED8 * ltvBps / 10000;
+            // Audit fix H-3: size the loan against the oracle/keeper-priced collateral value
+            // (GAS per NEO) instead of the hardcoded 1 NEO = 1 GAS assumption that left loans
+            // structurally under-backed whenever NEO traded below GAS.
+            BigInteger loanAmount = CollateralValueGas(appId, neoAmount) * ltvBps / 10000;
             BigInteger fee = loanAmount * LENDING_FEE_BPS / 10000;
             BigInteger netLoan = loanAmount - fee;
 
