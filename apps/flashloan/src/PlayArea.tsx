@@ -223,7 +223,10 @@ export default function PlayArea({
       <div className="flashloan-workspace">
         <NeoCard variant="erobo" className="flashloan-request-card">
           <div className="flashloan-card-head">
-            <h3 className="flashloan-section-title">{t("requestLoanTitle") || "Request Flash Loan"}</h3>
+            <div className="flashloan-card-heading">
+              <p className="flashloan-card-eyebrow">{t("requestLoanEyebrow") || "Atomic liquidity"}</p>
+              <h3 className="flashloan-section-title">{t("requestLoanTitle") || "Request Flash Loan"}</h3>
+            </div>
             <span className="flashloan-method-pill">requestFlashLoan</span>
           </div>
           <div className="flashloan-loan-form">
@@ -288,8 +291,11 @@ export default function PlayArea({
 
         <NeoCard variant="erobo" className="flashloan-preview-card">
           <div className="flashloan-card-head">
-            <h3 className="flashloan-section-title">{t("loanCalculator") || "Loan Calculator"}</h3>
-            <span className="flashloan-method-pill">{contractStats.feeBasisPoints / 100}%</span>
+            <div className="flashloan-card-heading">
+              <p className="flashloan-card-eyebrow">{t("loanCalculatorEyebrow") || "Calculator"}</p>
+              <h3 className="flashloan-section-title">{t("loanCalculator") || "Loan Calculator"}</h3>
+            </div>
+            <span className="flashloan-method-pill flashloan-method-pill--rate">{contractStats.feeBasisPoints / 100}%</span>
           </div>
           <div className="flashloan-preview-grid">
             <div className="flashloan-preview-item">
@@ -342,7 +348,10 @@ export default function PlayArea({
       <div className="flashloan-workspace flashloan-workspace--secondary">
         <NeoCard variant="erobo" className="flashloan-lookup-card">
           <div className="flashloan-card-head">
-            <h3 className="flashloan-section-title">{t("statusLookup") || "Loan Status Lookup"}</h3>
+            <div className="flashloan-card-heading">
+              <p className="flashloan-card-eyebrow">{t("statusLookupEyebrow") || "On-chain lookup"}</p>
+              <h3 className="flashloan-section-title">{t("statusLookup") || "Loan Status Lookup"}</h3>
+            </div>
             <span className="flashloan-method-pill">getFlashLoan</span>
           </div>
           <div className="flashloan-lookup-row">
@@ -374,7 +383,10 @@ export default function PlayArea({
         </NeoCard>
 
         <NeoCard variant="erobo" className="flashloan-recent-card">
-          <h3 className="flashloan-section-title">{t("recentLoans") || "Recent Executions"}</h3>
+          <div className="flashloan-card-heading flashloan-card-heading--solo">
+            <p className="flashloan-card-eyebrow">{t("recentLoansEyebrow") || "History"}</p>
+            <h3 className="flashloan-section-title">{t("recentLoans") || "Recent Executions"}</h3>
+          </div>
           {recentLoans.length > 0 ? (
             <div className="flashloan-table">
               <div className="flashloan-table-header">

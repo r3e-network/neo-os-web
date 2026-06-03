@@ -49,7 +49,7 @@
   transition: transform 0.35s ease, background 0.35s ease;
 
   &.flipping {
-    background: rgba(251, 191, 36, 0.12);
+    background: rgba(22, 199, 132, 0.16);
     transform: translate(-50%, -50%) scale(1.08);
   }
 }
@@ -58,45 +58,6 @@
   position: relative;
   z-index: 2;
   width: 100%;
-}
-
-.side-labels {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.side-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 82px;
-  padding: 8px 16px;
-  border: 1px solid rgba(20, 22, 38, 0.06);
-  border-radius: 999px;
-  background: #f7f8fa;
-  color: #8a92a6;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-
-  &.active {
-    border-color: var(--coin-side-active-border);
-    background: var(--coin-side-active-bg);
-    color: var(--coin-success);
-  }
-}
-
-.side-text,
-.side-vs {
-  color: inherit;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.side-vs {
-  color: #aeb4c2;
 }
 
 .result-flash {

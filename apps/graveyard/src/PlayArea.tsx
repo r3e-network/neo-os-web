@@ -1,5 +1,4 @@
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { HistoryItem } from "./types";
@@ -52,32 +51,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : t("hashTooShortCopy");
   return (
     <div className="graveyard-play-area">
-      {/* Hero — purposeful head with icon badge, title, subtitle, stat strip */}
+      {/* Hero — purposeful head with icon badge, title, subtitle, stat tiles */}
       <div className="grave-hero">
         <div className="grave-hero-lead">
-          <span className="grave-hero-badge">
-            <CategoryIcon name="identity" size={40} title={t("title")} />
+          <span className="grave-hero-badge" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3c-3.3 0-6 2.7-6 6v11h12V9c0-3.3-2.7-6-6-6Z" />
+              <path d="M9.5 9h5M12 9v5" />
+            </svg>
           </span>
           <div className="grave-hero-copy">
+            <span className="grave-hero-eyebrow">{t("rip")}</span>
             <h2 className="grave-hero-title">{t("title")}</h2>
             <p className="grave-hero-subtitle">{t("subtitle")}</p>
           </div>
         </div>
         <div className="hero-metrics" aria-label={t("burialReview")}>
-          <span className="hero-metric">
+          <div className="hero-metric">
             <strong>{totalDestroyed}</strong>
             <em>{t("itemsDestroyed")}</em>
-          </span>
-          <span className="hero-metric-sep" aria-hidden="true" />
-          <span className="hero-metric">
+          </div>
+          <div className="hero-metric">
             <strong>{gasReclaimedDisplay}</strong>
             <em>{t("gasReclaimed")}</em>
-          </span>
-          <span className="hero-metric-sep" aria-hidden="true" />
-          <span className="hero-metric">
+          </div>
+          <div className="hero-metric">
             <strong>{historyCount}</strong>
             <em>{t("records")}</em>
-          </span>
+          </div>
         </div>
       </div>
 

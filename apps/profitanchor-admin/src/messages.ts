@@ -10,6 +10,10 @@ const appMessages = {
   adminCommandCenter: { en: "Operator command center", zh: "运营指令台" },
   routeMapTitle: { en: "Live route map", zh: "实时路由图" },
   agentDirectoryTitle: { en: "Agent directory", zh: "Agent 目录" },
+  agentDirectoryEmpty: {
+    en: "No AA agents provisioned yet.",
+    zh: "尚未配置 AA agent。",
+  },
   adminScope: { en: "Admin scope", zh: "管理范围" },
   trackedNeo: { en: "Tracked NEO", zh: "跟踪 NEO" },
   agentCount: { en: "Agents", zh: "Agent 数" },

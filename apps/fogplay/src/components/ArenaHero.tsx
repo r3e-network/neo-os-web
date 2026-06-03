@@ -26,15 +26,6 @@ export default function ArenaHero({ t, isFlipping, displayOutcome, result }: Are
           <span className="result-flash-text">{result.won ? t("youWon") : t("youLost")}</span>
         </div>
       )}
-      <div className="side-labels">
-        <div className={`side-badge${displayOutcome === "heads" || (!displayOutcome && !isFlipping) ? " active" : ""}`}>
-          <span className="side-text">{t("heads")}</span>
-        </div>
-        <div className="side-vs">{t("vs")}</div>
-        <div className={`side-badge${displayOutcome === "tails" ? " active" : ""}`}>
-          <span className="side-text">{t("tails")}</span>
-        </div>
-      </div>
     </div>
   );
 }
