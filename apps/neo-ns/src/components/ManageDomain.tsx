@@ -32,7 +32,7 @@ export default function ManageDomain({ t, domain, loading, dispatch }: ManageDom
           </div>
           <div className="info-row">
             <span className="info-label">{t("currentExpiry")}</span>
-            <span className="info-value">{domain.expiry > 0 ? new Date(domain.expiry).toLocaleDateString() : "--"}</span>
+            <span className="info-value">{domain.expiry > 0 ? new Date(domain.expiry).toLocaleDateString() : "—"}</span>
           </div>
         </div>
 

@@ -37,7 +37,7 @@ export default function DomainManagement({ t, domains, dispatch }: DomainManagem
             <div className="domain-info">
               <span className="domain-name">{domain.name}</span>
               <span className="domain-expiry">
-                {t("expires")}: {domain.expiry > 0 ? new Date(domain.expiry).toLocaleDateString() : "--"}
+                {t("expires")}: {domain.expiry > 0 ? new Date(domain.expiry).toLocaleDateString() : "—"}
               </span>
             </div>
             <div className="domain-actions">

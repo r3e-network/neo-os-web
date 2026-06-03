@@ -16,6 +16,9 @@
 .play-hero {
   display: grid;
   gap: 16px;
+  width: 100%;
+  max-width: 520px;
+  margin-inline: auto;
   padding: 20px 20px 18px;
   @include pm.card;
 }
@@ -87,6 +90,9 @@
   }
   &.won .won-amount {
     color: pm.$neo-strong;
+    font-size: 17px;
+    line-height: 1.25;
+    word-break: break-word;
   }
 }
 
@@ -100,9 +106,9 @@
 
 .stat-label {
   @include pm.section-eyebrow;
-  font-size: 11px;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
 @media (max-width: 480px) {
@@ -116,7 +122,10 @@
  * ============================================================ */
 
 .coinflip-play-area .arena-hero {
-  padding: 20px;
+  width: 100%;
+  max-width: 520px;
+  margin-inline: auto;
+  padding: 24px 20px;
   @include pm.card;
 }
 
@@ -126,6 +135,7 @@
 
 /* Center the constrained bet column so it reads balanced, not left-stranded */
 .coinflip-play-area .bet-section {
+  max-width: 520px;
   margin-inline: auto;
 }
 
@@ -136,6 +146,9 @@
 .history-section {
   display: grid;
   gap: 10px;
+  width: 100%;
+  max-width: 520px;
+  margin-inline: auto;
 }
 
 .history-header {
@@ -144,15 +157,33 @@
 
 .history-title {
   @include pm.section-eyebrow;
-  font-size: 12px;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 11px;
+  letter-spacing: 0.12em;
 }
 
 .history-empty {
-  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 18px;
   text-align: center;
+}
+
+.history-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: pm.$surface;
+  color: pm.$text-faint;
+}
+
+.history-empty__text {
   font-size: 13px;
+  line-height: 1.5;
   color: pm.$text-muted;
 }
 
@@ -181,12 +212,11 @@
   th {
     @include pm.section-eyebrow;
     text-align: left;
-    padding: 8px 12px;
+    padding: 9px 12px;
     border-bottom: 1px solid pm.$border;
     background: pm.$surface;
-    font-size: 11px;
-    letter-spacing: 0;
-    text-transform: none;
+    font-size: 10px;
+    letter-spacing: 0.1em;
   }
 
   td {

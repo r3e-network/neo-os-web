@@ -14,6 +14,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
@@ -23,16 +24,19 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: pm.$text-muted;
+  color: pm.$text-faint;
+  flex-shrink: 0;
 }
 
 .danger-badge {
-  padding: 3px 12px;
+  padding: 4px 14px;
   border-radius: 999px;
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  white-space: nowrap;
 
   &.low {
     background: pm.$green-soft;

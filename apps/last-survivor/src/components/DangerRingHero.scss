@@ -23,25 +23,44 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  // Default halo is the calm brand-green; level modifiers shift the hue so the
+  // ring only reads as "alarming" when the round is genuinely in danger.
   background: conic-gradient(
     from 0deg,
-    rgba(22, 199, 132, 0.18),
-    rgba(245, 166, 35, 0.18),
-    rgba(234, 57, 67, 0.18),
-    rgba(22, 199, 132, 0.18)
+    rgba(22, 199, 132, 0.16),
+    rgba(22, 199, 132, 0.06),
+    rgba(22, 199, 132, 0.16)
   );
-  transition: box-shadow 0.5s ease;
+  transition: box-shadow 0.5s ease, background 0.5s ease;
 
   &.low {
-    box-shadow: 0 0 0 1px rgba(22, 199, 132, 0.18), 0 8px 24px rgba(22, 199, 132, 0.16);
+    box-shadow: 0 0 0 1px rgba(22, 199, 132, 0.16), 0 8px 24px rgba(22, 199, 132, 0.14);
   }
   &.medium {
+    background: conic-gradient(
+      from 0deg,
+      rgba(245, 166, 35, 0.16),
+      rgba(245, 166, 35, 0.06),
+      rgba(245, 166, 35, 0.16)
+    );
     box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.2), 0 8px 24px rgba(245, 166, 35, 0.18);
   }
   &.high {
+    background: conic-gradient(
+      from 0deg,
+      rgba(234, 57, 67, 0.16),
+      rgba(234, 57, 67, 0.06),
+      rgba(234, 57, 67, 0.16)
+    );
     box-shadow: 0 0 0 1px rgba(234, 57, 67, 0.22), 0 8px 26px rgba(234, 57, 67, 0.2);
   }
   &.critical {
+    background: conic-gradient(
+      from 0deg,
+      rgba(234, 57, 67, 0.2),
+      rgba(234, 57, 67, 0.08),
+      rgba(234, 57, 67, 0.2)
+    );
     box-shadow: 0 0 0 1px rgba(234, 57, 67, 0.32), 0 10px 30px rgba(234, 57, 67, 0.26);
   }
 }
@@ -75,10 +94,10 @@
 }
 
 .countdown-digits {
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 800;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1;
   color: pm.$ink;
   font-variant-numeric: tabular-nums;
@@ -132,7 +151,7 @@
 }
 
 .prize-amount {
-  font-size: 36px;
+  font-size: 30px;
   font-weight: 800;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: -0.01em;
@@ -162,9 +181,9 @@
     height: 166px;
   }
   .countdown-digits {
-    font-size: 30px;
+    font-size: 28px;
   }
   .prize-amount {
-    font-size: 30px;
+    font-size: 27px;
   }
 }

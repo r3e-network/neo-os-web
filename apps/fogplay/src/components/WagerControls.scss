@@ -8,7 +8,7 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: 420px;
+  max-width: 520px;
 }
 
 .wager-panel .panel-step {
@@ -24,9 +24,11 @@
 }
 
 .step-label {
-  color: #5b6478;
-  font-size: 12px;
-  font-weight: 800;
+  color: #8a92a6;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .choice-grid {
@@ -82,13 +84,13 @@
   }
 
   &.tails {
-    border-color: var(--coin-blue);
-    background: var(--coin-blue-active-bg-light);
-    box-shadow: 0 8px 18px rgba(59, 130, 246, 0.12);
+    border-color: #1e1e2e;
+    background: rgba(30, 30, 46, 0.05);
+    box-shadow: 0 8px 18px rgba(20, 22, 38, 0.1);
 
     .symbol-ring {
-      border-color: var(--coin-blue);
-      color: var(--coin-blue);
+      border-color: #1e1e2e;
+      color: #1e1e2e;
     }
   }
 
@@ -121,9 +123,11 @@
   margin-bottom: 14px;
 
   .label {
-    color: #5b6478;
-    font-size: 12px;
-    font-weight: 800;
+    color: #8a92a6;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 }
 
