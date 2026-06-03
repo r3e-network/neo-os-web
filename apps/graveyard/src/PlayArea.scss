@@ -71,36 +71,56 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   color: var(--ns-text-2, #5b6478);
 }
 
-/* ── Stat strip ───────────────────────────────────────── */
-.hero-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.hero-stat {
-  min-width: 0;
-  text-align: center;
-  padding: 14px 12px;
-  border-radius: var(--ns-radius-md, 16px);
+/* ── Compact metrics strip ────────────────────────────── */
+.hero-metrics {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.hero-stat-value {
-  display: block;
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+.hero-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+
+  strong {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  em {
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ns-text-muted, #8a92a6);
+  }
 }
 
-.hero-stat-label {
-  display: block;
-  margin-top: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
+.hero-metric-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 18px;
+  background: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+}
+
+@media (max-width: 560px) {
+  .hero-metrics {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px 14px;
+    border-radius: var(--ns-radius-md, 16px);
+  }
+
+  .hero-metric-sep {
+    display: none;
+  }
 }
 
 /* ── Main grid ────────────────────────────────────────── */
@@ -208,8 +228,7 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 }
 
 .grave-review-header span,
-.grave-review-tile span,
-.grave-check em {
+.grave-review-tile span {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
@@ -218,8 +237,7 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 }
 
 .grave-review-header strong,
-.grave-review-tile strong,
-.grave-check strong {
+.grave-review-tile strong {
   min-width: 0;
   color: var(--ns-ink, #1e1e2e);
   font-size: 13px;
@@ -298,62 +316,6 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
     background: var(--ns-warning, #f5a623);
     color: #ffffff;
   }
-}
-
-.grave-checklist {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  min-width: 0;
-}
-
-.grave-check {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 2px 10px;
-  align-items: center;
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
-}
-
-.grave-check span {
-  grid-row: span 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-bg-2, #eceef2);
-  color: var(--ns-text-2, #5b6478);
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.grave-check strong,
-.grave-check em {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.grave-check em {
-  font-style: normal;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.grave-check.is-ready span {
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-}
-
-.grave-check.is-blocked span {
-  background: var(--ns-warning-soft, #fff3dd);
-  color: var(--ns-warning, #f5a623);
 }
 
 .grave-fee-row {
@@ -622,7 +584,6 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   }
 
   .grave-review-grid,
-  .grave-checklist,
   .grave-fee-row {
     width: 100%;
     grid-template-columns: minmax(0, 1fr);

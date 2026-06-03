@@ -24,9 +24,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const roundStatusDisplay = str("roundStatusDisplay", "---");
   const isRoundActive = bool("isRoundActive");
 
-  // Prize pool
+  // Prize pool — rendered once inside the hero ring
   const totalPot = num("totalPot");
-  const totalPotDisplay = str("totalPotDisplay", "0.00 GAS");
 
   // Timer / danger
   const countdown = str("countdown", "00:00:00");
@@ -92,27 +91,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="survivor-play-area">
-      {/* Round info bar */}
-      <div className="round-info-bar">
-        <div className="round-info-item">
-          <span className="round-info-label">{t("round") || "ROUND"}</span>
-          <span className="round-info-value">{formattedRound}</span>
-        </div>
-        <div className="round-info-divider" />
-        <div className="round-info-item">
-          <span className="round-info-label">{t("status") || "STATUS"}</span>
-          <span className={`round-info-value status-${isRoundActive ? "active" : "ended"}`}>
-            <span className="status-dot" aria-hidden="true" />
-            {roundStatusDisplay}
-          </span>
-        </div>
-        <div className="round-info-divider" />
-        <div className="round-info-item">
-          <span className="round-info-label">{t("totalPot") || "PRIZE POOL"}</span>
-          <span className="round-info-value pot-value">{totalPotDisplay}</span>
-        </div>
-      </div>
-
       {serviceNotice && (
         <div className="survivor-service-notice" role="status">
           <div className="survivor-service-notice__copy">
@@ -133,11 +111,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       )}
 
-      {/* Hero: countdown ring + danger meter */}
+      {/* Hero: round headline + countdown ring + pot + danger meter.
+          Round # and live Status fold into the heading as inline facts. */}
       <div className="hero-container">
         <div className="hero-heading">
           <span className="hero-badge" aria-hidden="true">&#9201;</span>
-          <span className="hero-eyebrow">{t("roundStatus") || "Round Status"}</span>
+          <div className="hero-heading-copy">
+            <span className="hero-eyebrow">{t("roundStatus") || "Round Status"}</span>
+            <span className="hero-facts">
+              <span className="hero-fact-round">{formattedRound}</span>
+              <span className="hero-fact-sep" aria-hidden="true">&middot;</span>
+              <span className={`hero-fact-status status-${isRoundActive ? "active" : "ended"}`}>
+                <span className="status-dot" aria-hidden="true" />
+                {roundStatusDisplay}
+              </span>
+            </span>
+          </div>
         </div>
         <DangerRingHero
           t={t}
@@ -166,34 +155,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       )}
 
-      {/* User participation stats */}
-      <div className="participation-bar">
-        <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">&bull;</span>
-          <div className="participation-detail">
-            <span className="participation-label">{t("yourKeys") || "YOUR KEYS"}</span>
-            <span className="participation-value">{userKeys}</span>
-          </div>
-        </div>
-        <div className="participation-divider" />
-        <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">&bull;</span>
-          <div className="participation-detail">
-            <span className="participation-label">{t("totalKeys") || "TOTAL KEYS"}</span>
-            <span className="participation-value">{keyCount}</span>
-          </div>
-        </div>
-        <div className="participation-divider" />
-        <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">&bull;</span>
-          <div className="participation-detail">
-            <span className="participation-label">{t("share") || "YOUR SHARE"}</span>
-            <span className="participation-value">
-              {keyCount > 0 ? `${((userKeys / keyCount) * 100).toFixed(1)}%` : "0%"}
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* Primary action — Buy Keys, surfaced right after the hero */}
+      {showBuyKeysPanel && (
+        <NeoCard variant="erobo" className="buy-keys-card">
+          <BuyKeysCard
+            keyCount={localKeyCount}
+            estimatedCost={estimatedCost}
+            isPaying={isBuyingKeys}
+            disabled={!canBuyKeys}
+            validationError={keyValidationError}
+            helperText={buyKeysHelper}
+            submitLabel={buyKeysLabel}
+            t={t}
+            onKeyCountChange={setLocalKeyCount}
+            onBuy={handleBuyKeys}
+          />
+        </NeoCard>
+      )}
 
       {!isRoundActive && (
         <NeoCard variant="erobo" className="round-control-card">
@@ -223,24 +201,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {/* Buy keys form */}
-      {showBuyKeysPanel && (
-        <NeoCard variant="erobo" className="buy-keys-card">
-          <BuyKeysCard
-            keyCount={localKeyCount}
-            estimatedCost={estimatedCost}
-            isPaying={isBuyingKeys}
-            disabled={!canBuyKeys}
-            validationError={keyValidationError}
-            helperText={buyKeysHelper}
-            submitLabel={buyKeysLabel}
-            t={t}
-            onKeyCountChange={setLocalKeyCount}
-            onBuy={handleBuyKeys}
-          />
-        </NeoCard>
-      )}
-
       {/* Expired rounds are maintained by the lifecycle keeper. */}
       {needsLifecycleSync && (
         <NeoCard variant="erobo" className="claim-card">
@@ -251,6 +211,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </NeoCard>
       )}
+
+      {/* Your participation — single compact metrics strip */}
+      <div className="participation-bar">
+        <div className="participation-item">
+          <span className="participation-icon" aria-hidden="true">&bull;</span>
+          <div className="participation-detail">
+            <span className="participation-label">{t("yourKeys") || "YOUR KEYS"}</span>
+            <span className="participation-value">{userKeys}</span>
+          </div>
+        </div>
+        <div className="participation-divider" />
+        <div className="participation-item">
+          <span className="participation-icon" aria-hidden="true">&bull;</span>
+          <div className="participation-detail">
+            <span className="participation-label">{t("totalKeys") || "TOTAL KEYS"}</span>
+            <span className="participation-value">{keyCount}</span>
+          </div>
+        </div>
+        <div className="participation-divider" />
+        <div className="participation-item">
+          <span className="participation-icon" aria-hidden="true">&bull;</span>
+          <div className="participation-detail">
+            <span className="participation-label">{t("share") || "YOUR SHARE"}</span>
+            <span className="participation-value">
+              {keyCount > 0 ? `${((userKeys / keyCount) * 100).toFixed(1)}%` : "0%"}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Game rules — collapsed tutorial, out of the primary flow */}
       <details className="rules-card">

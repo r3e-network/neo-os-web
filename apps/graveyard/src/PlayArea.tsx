@@ -50,24 +50,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : hashReady
       ? t("hashReadyCopy")
       : t("hashTooShortCopy");
-  const reviewChecks = [
-    {
-      key: "hash",
-      label: t("checkHash"),
-      done: hashReady,
-    },
-    {
-      key: "type",
-      label: t("checkMemoryType"),
-      done: memoryType > 0,
-    },
-    {
-      key: "fees",
-      label: t("checkFees"),
-      done: true,
-    },
-  ];
-
   return (
     <div className="graveyard-play-area">
       {/* Hero — purposeful head with icon badge, title, subtitle, stat strip */}
@@ -81,19 +63,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <p className="grave-hero-subtitle">{t("subtitle")}</p>
           </div>
         </div>
-        <div className="hero-stats">
-          <div className="hero-stat">
-            <span className="hero-stat-value">{totalDestroyed}</span>
-            <span className="hero-stat-label">{t("itemsDestroyed")}</span>
-          </div>
-          <div className="hero-stat">
-            <span className="hero-stat-value">{gasReclaimedDisplay}</span>
-            <span className="hero-stat-label">{t("gasReclaimed")}</span>
-          </div>
-          <div className="hero-stat">
-            <span className="hero-stat-value">{historyCount}</span>
-            <span className="hero-stat-label">{t("records")}</span>
-          </div>
+        <div className="hero-metrics" aria-label={t("burialReview")}>
+          <span className="hero-metric">
+            <strong>{totalDestroyed}</strong>
+            <em>{t("itemsDestroyed")}</em>
+          </span>
+          <span className="hero-metric-sep" aria-hidden="true" />
+          <span className="hero-metric">
+            <strong>{gasReclaimedDisplay}</strong>
+            <em>{t("gasReclaimed")}</em>
+          </span>
+          <span className="hero-metric-sep" aria-hidden="true" />
+          <span className="hero-metric">
+            <strong>{historyCount}</strong>
+            <em>{t("records")}</em>
+          </span>
         </div>
       </div>
 
@@ -138,51 +122,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 ))}
               </div>
             </div>
-            <section className="grave-review-panel" aria-label={t("burialReview")}>
-              <div className="grave-review-header">
-                <span>{t("burialReview")}</span>
-                <strong>{t("burialReviewSubtitle")}</strong>
-              </div>
-              <div className="grave-review-grid">
-                <div className={`grave-review-tile${hashReady ? " is-ready" : " is-blocked"}`}>
-                  <span className="grave-review-tile-head">
-                    <i className="grave-review-mark" aria-hidden="true">{hashReady ? "✓" : "⚠"}</i>
-                    {t("hashQuality")}
-                  </span>
-                  <strong>{readinessTitle}</strong>
-                  <p>{readinessCopy}</p>
+            {trimmedAssetHash.length > 0 && (
+              <section className="grave-review-panel" aria-label={t("burialReview")}>
+                <div className="grave-review-header">
+                  <span>{t("burialReview")}</span>
+                  <strong>{t("burialReviewSubtitle")}</strong>
                 </div>
-                <div className="grave-review-tile">
-                  <span>{t("hashPreview")}</span>
-                  <strong>{hashPreview}</strong>
-                  <p>{t("hashPreviewCopy")}</p>
-                </div>
-                <div className="grave-review-tile">
-                  <span>{t("walletAction")}</span>
-                  <strong>{t("buryWalletIntent")}</strong>
-                  <p>{t("walletActionCopy")}</p>
-                </div>
-              </div>
-              <div className="grave-checklist" aria-label={t("burialChecklist")}>
-                {reviewChecks.map((check) => (
-                  <div key={check.key} className={`grave-check${check.done ? " is-ready" : " is-blocked"}`}>
-                    <span aria-hidden="true">{check.done ? "✓" : "⚠"}</span>
-                    <strong>{check.label}</strong>
-                    <em>{check.done ? t("checkPassed") : t("checkNeedsAction")}</em>
+                <div className="grave-review-grid">
+                  <div className={`grave-review-tile${hashReady ? " is-ready" : " is-blocked"}`}>
+                    <span className="grave-review-tile-head">
+                      <i className="grave-review-mark" aria-hidden="true">{hashReady ? "✓" : "⚠"}</i>
+                      {t("hashQuality")}
+                    </span>
+                    <strong>{readinessTitle}</strong>
+                    <p>{readinessCopy}</p>
                   </div>
-                ))}
-              </div>
-              <dl className="grave-fee-row" aria-label={t("transactionPath")}>
-                <div>
-                  <dt>{t("selectedType")}</dt>
-                  <dd>{selectedMemoryTypeLabel}</dd>
+                  <div className="grave-review-tile">
+                    <span>{t("hashPreview")}</span>
+                    <strong>{hashPreview}</strong>
+                    <p>{t("hashPreviewCopy")}</p>
+                  </div>
+                  <div className="grave-review-tile">
+                    <span>{t("walletAction")}</span>
+                    <strong>{t("buryWalletIntent")}</strong>
+                    <p>{t("walletActionCopy")}</p>
+                  </div>
                 </div>
-                <div>
-                  <dt>{t("burialFee")}</dt>
-                  <dd>0.10 GAS</dd>
-                </div>
-              </dl>
-            </section>
+                <dl className="grave-fee-row" aria-label={t("transactionPath")}>
+                  <div>
+                    <dt>{t("selectedType")}</dt>
+                    <dd>{selectedMemoryTypeLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("burialFee")}</dt>
+                    <dd>0.10 GAS</dd>
+                  </div>
+                </dl>
+              </section>
+            )}
             <div className="grave-warning-note">
               <span className="grave-warning-title">{t("warning")}</span>
               <span className="grave-warning-text">{t("warningText")}</span>

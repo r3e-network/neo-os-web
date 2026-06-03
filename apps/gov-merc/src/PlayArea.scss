@@ -77,6 +77,45 @@ body {
   }
 }
 
+.gov-merc-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  color: #eafaf3;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #eafaf3;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  strong {
+    color: #f8fffb;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.gov-merc-hero-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(248, 255, 251, 0.6);
+}
+
 .gov-merc-hero .gov-merc-hero-copy {
   > span {
     color: var(--ns-brand-strong, #0fb174);
@@ -149,7 +188,7 @@ body {
   }
 }
 
-.gov-merc-pool-panel,
+.gov-merc-action-panel,
 .gov-merc-risk-panel,
 .gov-merc-bid-panel {
   border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -181,44 +220,6 @@ body {
     font-weight: 700;
     line-height: 1.25;
     text-align: right;
-    word-break: break-word;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.gov-merc-pool-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-
-  div {
-    min-width: 0;
-    padding: 12px;
-    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-    border-radius: var(--ns-radius-sm, 12px);
-    background: var(--ns-surface-subtle, #f7f8fa);
-  }
-
-  span,
-  strong {
-    display: block;
-    min-width: 0;
-  }
-
-  span {
-    color: #66756e;
-    font-size: 12px;
-    line-height: 1.25;
-    letter-spacing: 0;
-  }
-
-  strong {
-    margin-top: 7px;
-    color: #102019;
-    font-size: 17px;
-    font-weight: 800;
-    line-height: 1.18;
     word-break: break-word;
     letter-spacing: 0;
     font-variant-numeric: tabular-nums;
@@ -278,8 +279,7 @@ body {
 
 @media (max-width: 720px) {
   .gov-merc-scoreboard,
-  .gov-merc-flow,
-  .gov-merc-pool-grid {
+  .gov-merc-flow {
     grid-template-columns: 1fr;
   }
 }

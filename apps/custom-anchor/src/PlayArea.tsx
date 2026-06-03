@@ -77,11 +77,23 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
 
   return (
     <div className="custom-anchor-playarea">
+      {/* Hero — headline state plus the few facts that matter (anchor id, status, agents, last tx) folded inline */}
       <section className="custom-anchor-hero">
-        <div>
+        <div className="custom-anchor-hero__body">
           <span className="custom-anchor-kicker">{t("title")}</span>
           <h2>{anchorAppId ? t("readyForAnchor") : t("noAnchorTitle")}</h2>
           <p>{anchorAppId ? truncate(anchorAppId) : t("noAnchorBody")}</p>
+          <div className="custom-anchor-hero__facts">
+            <span>
+              {t("anchorStatus")}: <strong>{anchorStatus}</strong>
+            </span>
+            <span>
+              {t("agentCount")}: <strong>{agentCount || 21}</strong>
+            </span>
+            <span>
+              {t("lastTxid")}: <strong>{displayedTx}</strong>
+            </span>
+          </div>
         </div>
         <div className="custom-anchor-orbit" aria-hidden="true">
           <span>21</span>
@@ -89,21 +101,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
         </div>
       </section>
 
-      <div className="custom-anchor-metrics" aria-live="polite">
-        <div>
-          <span>{t("userStake")}</span>
-          <strong>{str("userStake")} NEO</strong>
-        </div>
-        <div>
-          <span>{t("pendingRewards")}</span>
-          <strong>{str("pendingRewards")} GAS</strong>
-        </div>
-        <div>
-          <span>{t("rewardReserve")}</span>
-          <strong>{str("rewardReserve")} GAS</strong>
-        </div>
-      </div>
-
+      {/* Primary action — surfaced immediately after the hero */}
       <section className="custom-anchor-action-panel" aria-label={t("actionPanelTitle")}>
         <div className="custom-anchor-section-head">
           <span>{t("actionPanelLabel")}</span>
@@ -172,80 +170,36 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
         </div>
       </section>
 
-      <section className="custom-anchor-workspace" aria-label={t("anchorWorkspaceTitle")}>
-        <div className="custom-anchor-status-card">
-          <div className="custom-anchor-section-head">
-            <span>{t("anchorWorkspaceLabel")}</span>
-            <h3>{t("anchorWorkspaceTitle")}</h3>
-            <p>{t("anchorWorkspaceBody")}</p>
-          </div>
-
-          <div className="custom-anchor-flow" aria-label={t("anchorFlowTitle")}>
-            <div>
-              <span className="custom-anchor-flow__number">01</span>
-              <strong>{t("anchorFlowOpen")}</strong>
-            </div>
-            <div>
-              <span className="custom-anchor-flow__number">02</span>
-              <strong>{t("anchorFlowAction")}</strong>
-            </div>
-            <div>
-              <span className="custom-anchor-flow__number">03</span>
-              <strong>{t("anchorFlowSign")}</strong>
-            </div>
-          </div>
-
-          <div className="custom-anchor-guidance-grid">
-            <div>
-              <span>{t("userRoute")}</span>
-              <strong>{t("userRouteBody")}</strong>
-            </div>
-            <div>
-              <span>{t("adminRoute")}</span>
-              <strong>{t("adminRouteBody")}</strong>
-            </div>
-            <div>
-              <span>{t("safetyRail")}</span>
-              <strong>{t("safetyRailBody")}</strong>
-            </div>
-          </div>
+      {/* One compact metrics strip (replaces the separate stat-tile grid; folds in total staked + launch source) */}
+      <div className="custom-anchor-metrics" aria-live="polite">
+        <div>
+          <span>{t("userStake")}</span>
+          <strong>{str("userStake")} NEO</strong>
         </div>
+        <div>
+          <span>{t("pendingRewards")}</span>
+          <strong>{str("pendingRewards")} GAS</strong>
+        </div>
+        <div>
+          <span>{t("rewardReserve")}</span>
+          <strong>{str("rewardReserve")} GAS</strong>
+        </div>
+        <div>
+          <span>{t("totalStaked")}</span>
+          <strong>{str("totalStaked")} NEO</strong>
+        </div>
+      </div>
 
-        <aside className="custom-anchor-id-card" aria-label={t("anchorStatus")}>
-          <span>{t("launchSource")}</span>
-          <strong>{displayedAnchor}</strong>
-          <dl>
-            <div>
-              <dt>{t("anchorStatus")}</dt>
-              <dd>{anchorStatus}</dd>
-            </div>
-            <div>
-              <dt>{t("agentCount")}</dt>
-              <dd>{agentCount || 21}</dd>
-            </div>
-            <div>
-              <dt>{t("lastTxid")}</dt>
-              <dd>{displayedTx}</dd>
-            </div>
-          </dl>
-        </aside>
-      </section>
+      <p className="custom-anchor-source-line">
+        {t("launchSource")}: <strong>{displayedAnchor}</strong>
+      </p>
 
-      <details className="custom-anchor-model" open>
+      {/* Routing model — explanatory reference kept collapsed */}
+      <details className="custom-anchor-model">
         <summary>{t("routingDetails")}</summary>
         <div className="custom-anchor-model__body">
           <p>{t("agentModelBody")}</p>
         </div>
-        <dl>
-          <div>
-            <dt>{t("totalStaked")}</dt>
-            <dd>{str("totalStaked")} NEO</dd>
-          </div>
-          <div>
-            <dt>{t("agentCount")}</dt>
-            <dd>{agentCount || 21}</dd>
-          </div>
-        </dl>
       </details>
     </div>
   );

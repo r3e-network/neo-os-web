@@ -41,7 +41,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="gas-sponsor-play-area">
-      {/* Hero */}
+      {/* Hero — headline gauge folds balance, tank level, eligibility & quota into one block */}
       <div className="gas-hero">
         <div className="gas-hero-lead">
           <span className="gas-hero-badge">
@@ -52,26 +52,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <p className="gas-hero-subtitle">{t("subtitle")}</p>
           </div>
         </div>
-        <div className="gas-stats-bar">
-          <div className="gas-stat">
-            <span className="gas-stat-value">{gasBalanceDisplay}</span>
-            <span className="gas-stat-label">{t("gasBalance")}</span>
-          </div>
-          <div className="gas-stat">
-            <span className="gas-stat-value">{tankLevelDisplay}</span>
-            <span className="gas-stat-label">{t("sidebarTankLevel")}</span>
-          </div>
-          <div className="gas-stat">
-            <span className="gas-stat-value">{remainingQuotaDisplay}</span>
-            <span className="gas-stat-label">{t("remaining")}</span>
-          </div>
+
+        <div className="gas-hero-gauge">
+          <GasTank fuelLevelPercent={fuelLevelPercent} gasBalance={gasBalance} isEligible={isEligible} t={t} />
+          <dl className="gas-hero-facts">
+            <div className="gas-hero-fact">
+              <dt>{t("gasBalance")}</dt>
+              <dd>{gasBalanceDisplay}</dd>
+            </div>
+            <div className="gas-hero-fact">
+              <dt>{t("sidebarTankLevel")}</dt>
+              <dd>{tankLevelDisplay}</dd>
+            </div>
+            <div className="gas-hero-fact">
+              <dt>{t("remaining")}</dt>
+              <dd>{remainingQuotaDisplay}</dd>
+            </div>
+          </dl>
         </div>
       </div>
 
-      {/* Gas Tank Visualization */}
-      <GasTank fuelLevelPercent={fuelLevelPercent} gasBalance={gasBalance} isEligible={isEligible} t={t} />
-
-      {/* Request Gas */}
+      {/* Primary action — request sponsored GAS */}
       <NeoCard title={t("requestGas")}>
         <RequestGasCard
           isEligible={isEligible}
@@ -84,10 +85,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           onRequest={() => dispatch("requestSponsorship", requestAmount)}
           t={t}
         />
-      </NeoCard>
-
-      {/* Quota Info */}
-      <NeoCard title={t("quotaInfo") || "Daily Quota"}>
         <div className="quota-info">
           <div className="quota-bar-container">
             <div className="quota-bar" style={{ width: `${Math.min(quotaPercent, 100)}%` }} />
