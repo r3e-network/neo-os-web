@@ -288,11 +288,18 @@
   font-weight: 600;
   padding: 0 14px;
   box-shadow: var(--ns-shadow-xs);
+  transition: border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.console-tool__field select:hover {
+  border-color: var(--ns-border-strong);
 }
 
 .console-tool__field select:focus {
-  outline: 2px solid rgba(123, 97, 255, 0.28);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--ns-violet, #7b61ff);
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
 }
 
 .console-tool__actions {
