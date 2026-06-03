@@ -305,7 +305,10 @@ export function FactoryPlayArea({
                 </div>
               </div>
 
-              <pre className="domain-factory-json">{packageJson}</pre>
+              <details className="domain-factory-json-disclosure">
+                <summary>{t("viewPackagePayload")}</summary>
+                <pre className="domain-factory-json">{packageJson}</pre>
+              </details>
 
               <div className="domain-factory-actions">
                 <NeoButton variant="secondary" onClick={() => copyText(packageJson, "package")}>

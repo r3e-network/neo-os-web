@@ -2,7 +2,6 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import type { HealthStat } from "./composables/useWalletHealth";
 import type { ChecklistItem } from "./composables/useHealthScore";
 import "./PlayArea.scss";
 
@@ -83,21 +82,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     t,
     visibleRecommendations,
   ]);
-  const readinessStats: HealthStat[] = [
-    {
-      label: t("networkReadiness"),
-      value: networkLabel || "Neo N3",
-    },
-    {
-      label: t("statGas"),
-      value: gasDisplay,
-    },
-    {
-      label: t("sectionChecklist"),
-      value: `${completionText} · ${riskLabel}`,
-    },
-  ];
-
   const truncateAddress = (addr: string) => {
     if (!addr || addr.length < 14) return addr;
     return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
@@ -140,42 +124,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="wallet-health-shell">
       <section className="wallet-health-main" aria-label={t("walletHeroTitle")}>
-        <div className="wallet-health-hero">
+        <NeoCard variant="erobo" className="wallet-health-hero">
+          <div className="wallet-health-score-ring" style={scoreStyle} aria-hidden="true">
+            <span>{safetyScore}</span>
+          </div>
           <div className="wallet-health-hero-copy">
-            <div className="wallet-health-hero-intro">
-              <span className="wallet-health-hero-badge" aria-hidden="true">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z" />
-                  <path d="m9 12 2 2 4-4" />
-                </svg>
-              </span>
-              <div className="wallet-health-hero-heading">
-                <span className="wallet-health-kicker">{networkLabel || "Neo N3"}</span>
-                <h2>{t("walletHeroTitle")}</h2>
-              </div>
-            </div>
-            <p>{t("walletHeroSubtitle")}</p>
+            <span className="wallet-health-kicker">{networkLabel || "Neo N3"}</span>
+            <h2>{t("walletHeroTitle")}</h2>
+            <p className="wallet-health-hero-facts">
+              <strong className={`wallet-health-risk-chip ${riskClass}`}>
+                <span className="wallet-health-risk-dot" aria-label={riskIconLabel} />
+                {riskLabel}
+              </strong>
+              <span className="wallet-health-fact-sep" aria-hidden="true">·</span>
+              <span>{completionText}</span>
+            </p>
           </div>
-          <div className="wallet-health-score-card">
-            <div className="wallet-health-score-ring" style={scoreStyle}>
-              <span>{safetyScore}</span>
-            </div>
-            <div>
-              <span className="wallet-health-score-label">{t("statScore")}</span>
-              <strong>{riskLabel}</strong>
-              <small>{completionText}</small>
-            </div>
-          </div>
-        </div>
+        </NeoCard>
 
         <NeoCard variant="erobo" className="wallet-health-balance-strip">
           <div className="wallet-health-section-heading">
@@ -196,68 +161,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <strong>{gasDisplay}</strong>
             </div>
           </div>
+          <div className="wallet-health-primary-actions">
+            <NeoButton
+              size="md"
+              variant="primary"
+              disabled={isConnected}
+              onClick={() => dispatch("connectWallet")}
+            >
+              {isConnected ? t("statusConnected") : t("connectWallet")}
+            </NeoButton>
+            <NeoButton
+              size="md"
+              variant="secondary"
+              disabled={!isConnected || isRefreshing}
+              onClick={() => dispatch("refreshBalances")}
+            >
+              {isRefreshing ? t("loading") : t("refreshBalances")}
+            </NeoButton>
+          </div>
+          <p className="wallet-health-connect-hint">{t("connectHint")}</p>
         </NeoCard>
-
-        <div className="wallet-health-action-grid">
-          <NeoButton
-            size="md"
-            variant="primary"
-            disabled={isConnected}
-            onClick={() => dispatch("connectWallet")}
-          >
-            {isConnected ? t("statusConnected") : t("connectWallet")}
-          </NeoButton>
-          <NeoButton
-            size="md"
-            variant="secondary"
-            disabled={!isConnected || isRefreshing}
-            onClick={() => dispatch("refreshBalances")}
-          >
-            {isRefreshing ? t("loading") : t("refreshBalances")}
-          </NeoButton>
-          <NeoButton
-            size="md"
-            variant="secondary"
-            disabled={!address}
-            onClick={() => copyText(address, "addressCopied")}
-          >
-            {t("copyAddress") || "Copy address"}
-          </NeoButton>
-          <NeoButton
-            size="md"
-            variant="secondary"
-            onClick={() => copyText(healthReport, "reportCopied")}
-          >
-            {t("copyReport") || "Copy report"}
-          </NeoButton>
-        </div>
-
-        <div className="wallet-health-insight-grid">
-          {readinessStats.map((stat) => (
-            <div key={stat.label} className="wallet-health-insight">
-              <span>{stat.label}</span>
-              <strong>{stat.value}</strong>
-            </div>
-          ))}
-        </div>
       </section>
 
       <aside className="wallet-health-side" aria-label={t("riskInsights")}>
-        <NeoCard variant="erobo" className="wallet-health-connect-panel">
-          <div className="wallet-health-section-heading">
-            <span>{t("networkReadiness")}</span>
-            <strong>{networkLabel || "Neo N3"}</strong>
-          </div>
-          <p>{t("connectHint")}</p>
-          <div className={`wallet-health-risk-row ${riskClass}`}>
-            <span className="wallet-health-risk-dot" aria-label={riskIconLabel} />
-            <div>
-              <span>{t("riskInsights")}</span>
-              <strong>{riskLabel}</strong>
-            </div>
-          </div>
-        </NeoCard>
-
         <NeoCard variant="erobo" className="wallet-health-checklist-panel">
           <div className="wallet-health-section-heading">
             <span>{t("sectionChecklist")}</span>
@@ -297,11 +223,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             ))}
           </ul>
           <div className="wallet-health-report-actions">
+            <NeoButton
+              size="sm"
+              variant="secondary"
+              disabled={!address}
+              onClick={() => copyText(address, "addressCopied")}
+            >
+              {t("copyAddress") || "Copy address"}
+            </NeoButton>
+            <NeoButton
+              size="sm"
+              variant="secondary"
+              onClick={() => copyText(healthReport, "reportCopied")}
+            >
+              {t("copyReport") || "Copy report"}
+            </NeoButton>
             <NeoButton size="sm" variant="secondary" onClick={downloadReport}>
               {t("downloadReport") || "Download report"}
             </NeoButton>
-            <span role="status" aria-live="polite">{reportStatusLabel}</span>
           </div>
+          <span className="wallet-health-report-status" role="status" aria-live="polite">
+            {reportStatusLabel}
+          </span>
         </NeoCard>
       </aside>
     </div>

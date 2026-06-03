@@ -177,6 +177,8 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
     }
   }, [amount, asset, canSeal, memo, network, recipient, setStatus, state]);
 
+  const sealed = submitState.status !== "idle";
+
   return (
     <div className="private-transfer">
       <section className="private-transfer__hero">
@@ -200,16 +202,25 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
           </span>
           <h2>Confidential transfer desk</h2>
           <p>
-            Seal recipient, amount, memo, and note secret before anything leaves
-            the browser. Morpheus handles the private compute path.
+            Seal recipient, amount, memo, and note secret in the browser, then
+            Morpheus runs the private compute path.
           </p>
-          <span className="private-transfer__badge">
-            No on-chain zk curve dependency
-          </span>
+          <div className="private-transfer__hero-facts">
+            <span>
+              {network === "mainnet" ? "Mainnet" : "Testnet"} · {asset}
+            </span>
+            <span className="private-transfer__badge">
+              No on-chain zk curve dependency
+            </span>
+          </div>
         </div>
       </section>
 
-      <section className="private-transfer__grid">
+      <section
+        className={`private-transfer__grid${
+          sealed ? "" : " private-transfer__grid--solo"
+        }`}
+      >
         <div className="private-transfer__panel">
           <div className="private-transfer__form-grid">
             <label>
@@ -287,26 +298,6 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
               />
             </label>
           </div>
-          <div className="private-transfer__preview-grid">
-            <div>
-              <span>Recipient</span>
-              <strong>
-                {recipient
-                  ? `${recipient.slice(0, 8)}...${recipient.slice(-4)}`
-                  : "--"}
-              </strong>
-            </div>
-            <div>
-              <span>Amount</span>
-              <strong>
-                {isPositiveAmount(amount) ? `${amount} ${asset}` : "--"}
-              </strong>
-            </div>
-            <div>
-              <span>Memo</span>
-              <strong>{memo ? "Included" : "Empty"}</strong>
-            </div>
-          </div>
           {!canSeal && (
             <div className="private-transfer__validation" role="status">
               Add a valid recipient and positive amount to enable local sealing.
@@ -327,6 +318,7 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
           </button>
         </div>
 
+        {sealed && (
         <aside
           className={`private-transfer__status private-transfer__status--${submitState.status}`}
         >
@@ -368,22 +360,31 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
             </dl>
           )}
         </aside>
+        )}
       </section>
 
-      <section className="private-transfer__steps">
-        {[
-          ["1", "Deposit or wallet intent", "The public side only needs an asset lock or signed payment intent."],
-          ["2", "Local encryption", "The private fields are sealed with X25519-HKDF-SHA256-AES-256-GCM."],
-          ["3", "TEE validation", "Morpheus decrypts, checks nullifier reuse, and signs the settlement envelope."],
-          ["4", "Release or refund", "The user submits the returned settlement intent through the wallet."],
-        ].map(([index, title, body]) => (
-          <article key={title}>
-            <span>{index}</span>
-            <strong>{title}</strong>
-            <p>{body}</p>
-          </article>
-        ))}
-      </section>
+      <details className="private-transfer__steps">
+        <summary>
+          <span>How a confidential transfer settles</span>
+          <span className="private-transfer__steps-chevron" aria-hidden="true">
+            ⌄
+          </span>
+        </summary>
+        <div className="private-transfer__steps-grid">
+          {[
+            ["1", "Deposit or wallet intent", "The public side only needs an asset lock or signed payment intent."],
+            ["2", "Local encryption", "The private fields are sealed with X25519-HKDF-SHA256-AES-256-GCM."],
+            ["3", "TEE validation", "Morpheus decrypts, checks nullifier reuse, and signs the settlement envelope."],
+            ["4", "Release or refund", "The user submits the returned settlement intent through the wallet."],
+          ].map(([index, title, body]) => (
+            <article key={title}>
+              <span>{index}</span>
+              <strong>{title}</strong>
+              <p>{body}</p>
+            </article>
+          ))}
+        </div>
+      </details>
     </div>
   );
 }
