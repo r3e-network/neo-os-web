@@ -88,11 +88,11 @@ export default function TemplateList({
                   <dl className="template-metrics">
                     <div>
                       <dt>{t("issuerName")}</dt>
-                      <dd>{template.issuerName || template.issuer || "-"}</dd>
+                      <dd>{template.issuerName || template.issuer || "—"}</dd>
                     </div>
                     <div>
                       <dt>{t("category")}</dt>
-                      <dd>{template.category || "-"}</dd>
+                      <dd>{template.category || "—"}</dd>
                     </div>
                     <div>
                       <dt>{t("issued")}</dt>

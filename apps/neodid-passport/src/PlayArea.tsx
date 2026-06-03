@@ -47,6 +47,7 @@ export default function PlayArea({
   const isSigning = bool("isSigning");
   const lastError = str("lastError");
   const proofStatus = str("proofStatus", t("notSignedStatus"));
+  const isSigned = Boolean(payload?.proof?.signature);
   const providerHint = form.provider === "wallet" ? t("walletProofHint") : t("apiProofHint");
 
   function updateForm(key: keyof PassportForm, value: string) {
@@ -126,7 +127,9 @@ export default function PlayArea({
             void resolveAndBuild();
           }}
         >
-          <div className="neodid-passport__form-head">
+          <div
+            className={`neodid-passport__form-head${isSigned ? " neodid-passport__form-head--signed" : ""}`}
+          >
             <span>{t("liveResolver")}</span>
             <strong>{proofStatus}</strong>
           </div>

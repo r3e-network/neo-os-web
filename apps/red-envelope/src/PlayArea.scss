@@ -51,7 +51,7 @@
 
 .redenv-hero .redenv-hero-copy {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 
   > span {
@@ -60,7 +60,8 @@
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
-    letter-spacing: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
 
   > h2 {
@@ -69,11 +70,12 @@
     font-size: 22px;
     font-weight: 800;
     line-height: 1.12;
-    letter-spacing: 0;
+    letter-spacing: -0.02em;
   }
 
   > p {
     margin: 2px 0 0;
+    max-width: 46ch;
     color: rgba(255, 255, 255, 0.86);
     font-size: 13px;
     line-height: 1.5;
@@ -95,9 +97,9 @@
   div {
     display: grid;
     align-content: center;
-    gap: 4px;
+    gap: 6px;
     min-width: 0;
-    padding: 12px 14px;
+    padding: 14px 16px;
     border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
     border-radius: 14px;
     background: var(--ns-surface, #ffffff);
@@ -109,16 +111,17 @@
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
-    letter-spacing: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
 
   strong {
     color: var(--ns-ink, #1e1e2e);
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 800;
     line-height: 1.15;
     white-space: nowrap;
-    letter-spacing: 0;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
 }
@@ -163,6 +166,11 @@
   transition: background var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease),
     color var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
 
+  &:focus-visible {
+    outline: 2px solid rgba(200, 30, 42, 0.5);
+    outline-offset: 2px;
+  }
+
   &--active {
     background: var(--ns-surface, #ffffff);
     color: #c81e2a;
@@ -196,7 +204,8 @@
     font-size: 11px;
     font-weight: 700;
     line-height: 1.25;
-    letter-spacing: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
 
   strong {
@@ -208,6 +217,7 @@
     text-align: right;
     word-break: break-word;
     letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -231,7 +241,8 @@
     font-size: 11px;
     font-weight: 700;
     line-height: 1.25;
-    letter-spacing: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
 
   strong {
@@ -245,7 +256,7 @@
     line-height: 1.2;
     text-overflow: ellipsis;
     white-space: nowrap;
-    letter-spacing: 0;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
 }
@@ -280,6 +291,8 @@
     color: var(--ns-text-muted, #8a92a6);
     font-size: 11px;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
 
   strong {
@@ -287,6 +300,7 @@
     color: var(--ns-ink, #1e1e2e);
     font-size: 14px;
     font-weight: 800;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
 }
@@ -369,6 +383,11 @@
     background: var(--ns-surface, #ffffff);
   }
 
+  &:focus-visible {
+    outline: 2px solid rgba(200, 30, 42, 0.5);
+    outline-offset: 2px;
+  }
+
   &--selected {
     border-color: rgba(200, 30, 42, 0.28);
     background: var(--ns-danger-soft, #fde7e9);
@@ -395,16 +414,23 @@
     padding: 14px 16px;
     list-style: none;
     cursor: pointer;
+    border-radius: 16px;
 
     &::-webkit-details-marker {
       display: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid rgba(200, 30, 42, 0.5);
+      outline-offset: 2px;
     }
 
     span {
       color: var(--ns-text-muted, #8a92a6);
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
     }
 
     strong {

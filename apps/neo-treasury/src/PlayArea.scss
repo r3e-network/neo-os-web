@@ -73,7 +73,8 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .treasury-hero h2 {
@@ -82,7 +83,7 @@
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1.15;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -138,7 +139,8 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .treasury-metric strong {
@@ -180,7 +182,8 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 750;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .treasury-section-heading strong {
@@ -188,6 +191,7 @@
   font-size: 1.125rem;
   font-weight: 800;
   line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .treasury-section-heading p {
@@ -272,7 +276,8 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .treasury-intent-panel__head strong {
@@ -330,7 +335,8 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .treasury-intent-panel dd {
@@ -429,6 +435,14 @@
   min-width: 0;
 }
 
+.treasury-group-header > span {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
 .treasury-group-header strong {
   text-align: right;
 }
@@ -468,7 +482,8 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .treasury-group-card dd {
@@ -497,8 +512,17 @@
   align-items: center;
   min-width: 0;
   padding: 12px 14px;
+  border: 1px solid transparent;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
+  transition:
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.treasury-wallet-row:hover {
+  border-color: var(--ns-border, #e4e7ec);
+  background: var(--ns-surface, #ffffff);
 }
 
 .treasury-wallet-row div {

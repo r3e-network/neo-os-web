@@ -221,11 +221,11 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
           </div>
           <div className="treasury-metric">
             <span>{t("tokenNeo")}</span>
-            <strong>{hasLiveData ? totalNeoDisplay : "--"}</strong>
+            <strong>{hasLiveData ? totalNeoDisplay : "—"}</strong>
           </div>
           <div className="treasury-metric">
             <span>{t("tokenGas")}</span>
-            <strong>{hasLiveData ? totalGasDisplay : "--"}</strong>
+            <strong>{hasLiveData ? totalGasDisplay : "—"}</strong>
           </div>
         </div>
       </section>
@@ -309,11 +309,11 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
             </div>
             <div>
               <span>{t("reviewAmount")}</span>
-              <strong>{amount || "--"}</strong>
+              <strong>{amount || "—"}</strong>
             </div>
             <div>
               <span>{t("reviewRecipient")}</span>
-              <strong title={recipient}>{recipient ? compactAddress(recipient) : "--"}</strong>
+              <strong title={recipient}>{recipient ? compactAddress(recipient) : "—"}</strong>
             </div>
           </div>
 

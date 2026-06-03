@@ -36,16 +36,17 @@
   color: #0fb174;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .swap-hero-title {
   margin: 0;
   color: #1e1e2e;
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   line-height: 1.1;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 
 .swap-hero-subtitle {
@@ -101,11 +102,11 @@
 
 .swap-hero-quote {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
-  padding: 14px 16px;
+  padding: 16px 18px;
   border: 1px solid rgba(20, 22, 38, 0.06);
-  border-radius: 14px;
+  border-radius: 16px;
   background: #f7f8fa;
 }
 
@@ -113,7 +114,8 @@
   color: #8a92a6;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .swap-hero-quote strong {
@@ -121,7 +123,7 @@
   font-size: 1.85rem;
   font-weight: 800;
   line-height: 1.05;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
