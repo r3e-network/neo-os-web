@@ -108,6 +108,7 @@ export default function PlayArea({
             </svg>
           </span>
           <div className="market-hero__title">
+            <span className="market-hero__eyebrow">{t("appName")}</span>
             <h2>{t("marketHeroTitle")}</h2>
             <p>{t("docsSubtitle")}</p>
           </div>
@@ -142,13 +143,57 @@ export default function PlayArea({
       </section>
 
       <section className="market-workspace">
+        <aside className="market-side-rail">
+          <div className="market-side-rail__primary">
+            <CreateListingCard
+              t={t}
+              isSubmitting={isSubmitting}
+              isMarketReady={isMarketReady}
+              walletAddress={walletAddress}
+              marketHash={marketHash}
+              initialAaContractHash={
+                launchValues.aaContractHash || stateAaContractHash
+              }
+              initialAccountIdHash={
+                launchValues.accountIdHash || stateAccountIdHash
+              }
+              initialPriceGas={launchValues.priceGas || statePriceGas}
+              initialListingTitle={
+                launchValues.listingTitle || stateListingTitle
+              }
+              initialMetadataUri={launchValues.metadataUri || stateMetadataUri}
+              initialSignature={launchContext.signature}
+              dispatch={dispatch}
+            />
+          </div>
+
+          <div className="market-side-rail__aux">
+            {selectedListing && (
+              <ManageListingCard
+                t={t}
+                selectedListing={selectedListing}
+                isSubmitting={isSubmitting}
+                canManage={canManageSelectedListing}
+                canBuy={canBuySelectedListing}
+                hasPendingRefund={selectedListingHasPendingRefund}
+                walletAddress={walletAddress}
+                dispatch={dispatch}
+              />
+            )}
+
+            <details className="market-caveat">
+              <summary>{t("feature2Name")}</summary>
+              <p>{t("hubSummary")}</p>
+            </details>
+          </div>
+        </aside>
+
         <div className="market-list-panel">
           <div className="market-section-heading">
             <div>
               <span>{t("marketBoardLabel")}</span>
               <h3>{t("marketBoardTitle")}</h3>
             </div>
-            <strong>{listingCountLabel}</strong>
           </div>
 
           {!marketHash.trim() && (
@@ -185,47 +230,6 @@ export default function PlayArea({
             </p>
           )}
         </div>
-
-        <aside className="market-side-rail">
-          <CreateListingCard
-            t={t}
-            isSubmitting={isSubmitting}
-            isMarketReady={isMarketReady}
-            walletAddress={walletAddress}
-            marketHash={marketHash}
-            initialAaContractHash={
-              launchValues.aaContractHash || stateAaContractHash
-            }
-            initialAccountIdHash={
-              launchValues.accountIdHash || stateAccountIdHash
-            }
-            initialPriceGas={launchValues.priceGas || statePriceGas}
-            initialListingTitle={
-              launchValues.listingTitle || stateListingTitle
-            }
-            initialMetadataUri={launchValues.metadataUri || stateMetadataUri}
-            initialSignature={launchContext.signature}
-            dispatch={dispatch}
-          />
-
-          <details className="market-caveat">
-            <summary>{t("feature2Name")}</summary>
-            <p>{t("hubSummary")}</p>
-          </details>
-
-          {selectedListing && (
-            <ManageListingCard
-              t={t}
-              selectedListing={selectedListing}
-              isSubmitting={isSubmitting}
-              canManage={canManageSelectedListing}
-              canBuy={canBuySelectedListing}
-              hasPendingRefund={selectedListingHasPendingRefund}
-              walletAddress={walletAddress}
-              dispatch={dispatch}
-            />
-          )}
-        </aside>
       </section>
     </div>
   );

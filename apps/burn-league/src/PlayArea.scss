@@ -1,10 +1,11 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/playarea-base";
 
-// Burn/fire red accent identity, mapped onto the Neo Soft system.
-$burn-accent: var(--ns-danger, #ea3943);
-$burn-accent-strong: var(--ns-danger, #c81e2a);
-$burn-accent-soft: var(--ns-danger-soft, #fde7e9);
+// Anchored on the system VIOLET accent (matches the violet category icon
+// and platform focus ring). Red is reserved for genuine danger only.
+$burn-accent: var(--ns-violet, #7b61ff);
+$burn-accent-strong: var(--ns-violet-strong, #6a4df4);
+$burn-accent-soft: var(--ns-violet-soft, #eeeaff);
 
 .burn-league-play-area {
   display: flex;
@@ -63,6 +64,16 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
   flex-direction: column;
   gap: 3px;
   min-width: 0;
+}
+
+.burn-league-hero-eyebrow {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: $burn-accent-strong;
 }
 
 .burn-league-hero-title {
@@ -223,14 +234,14 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
 
   &:hover,
   &.is-active {
-    border-color: rgba(234, 57, 67, 0.34);
+    border-color: rgba(123, 97, 255, 0.34);
     background: $burn-accent-soft;
     color: $burn-accent-strong;
   }
 
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(234, 57, 67, 0.18);
+    box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.2);
   }
 }
 
@@ -297,6 +308,26 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
     flex: 1 1 auto;
     min-width: 0;
   }
+
+  /* Skin the primary CTA to the app's violet anchor (the shared
+     primary variant is brand-green) so icon, chips and CTA share one hue. */
+  .neo-btn--primary {
+    background: $burn-accent;
+    box-shadow: 0 2px 8px rgba(123, 97, 255, 0.26);
+
+    &:hover:not(:disabled) {
+      background: $burn-accent-strong;
+      box-shadow: 0 4px 16px rgba(123, 97, 255, 0.32);
+    }
+
+    /* Soft-tinted disabled — keeps affordance instead of flat grey. */
+    &:disabled {
+      background: $burn-accent-soft;
+      color: $burn-accent-strong;
+      box-shadow: none;
+      opacity: 1;
+    }
+  }
 }
 
 .burn-league-review-tip {
@@ -304,7 +335,7 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
   flex: 0 0 auto;
   display: inline-flex;
   cursor: help;
-  border-radius: var(--ns-radius-full, 9999px);
+  border-radius: var(--ns-radius-sm, 12px);
 
   &:focus-visible {
     outline: none;
@@ -313,15 +344,16 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
 }
 
 .burn-league-review-tip__icon {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--ns-radius-full, 9999px);
+  border-radius: var(--ns-radius-sm, 12px);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   background: $burn-accent-soft;
   color: $burn-accent-strong;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   font-style: normal;
   line-height: 1;
@@ -409,8 +441,8 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
 
 .burn-league-action-error {
   border: 1px solid rgba(234, 57, 67, 0.24);
-  background: $burn-accent-soft;
-  color: $burn-accent-strong;
+  background: var(--ns-danger-soft, #fde7e9);
+  color: var(--ns-danger, #c81e2a);
 }
 
 .burn-league-action-notice,
@@ -425,14 +457,42 @@ $burn-accent-soft: var(--ns-danger-soft, #fde7e9);
   width: 100%;
 }
 
-/* Graceful empty state — a single centered muted line, no full card */
-.burn-league-empty-line {
-  margin: 0;
-  padding: 16px;
+/* Graceful empty state — boxed, centered, fills the lower viewport
+   instead of leaving a bare orphaned line of text. */
+.burn-league-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
+  gap: 6px;
+  padding: 28px 20px 8px;
+}
+
+.burn-league-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: $burn-accent-soft;
+}
+
+.burn-league-empty-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.burn-league-empty-body {
+  margin: 0;
+  max-width: 420px;
   font-size: 12px;
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: 500;
+  line-height: 1.55;
   color: var(--ns-text-muted, #8a92a6);
 }
 

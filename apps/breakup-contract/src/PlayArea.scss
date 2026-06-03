@@ -77,26 +77,26 @@ $tone-warning-soft: #fff3dd;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 22px 24px 24px;
+  padding: 24px 26px 26px;
   border-radius: $ns-radius;
-  background: linear-gradient(135deg, $ac-soft 0%, $ns-bg 60%);
-  border: 1px solid $ac-border;
+  background: linear-gradient(135deg, rgba(228, 248, 240, 0.55) 0%, $ns-bg 58%);
+  border: 1px solid $ns-border;
   box-shadow: $ns-shadow;
 }
 
 .breakup-hero-head {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
 }
 
 .breakup-hero-badge {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
+  width: 60px;
+  height: 60px;
   flex-shrink: 0;
-  border-radius: var(--ns-radius-full, 9999px);
+  border-radius: var(--ns-radius-lg, 20px);
   background: $ac-soft;
   color: $ac-strong;
   border: 1px solid $ac-border;
@@ -108,8 +108,17 @@ $tone-warning-soft: #fff3dd;
 .breakup-hero-copy {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
+}
+
+.breakup-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $ac-strong;
+  line-height: 1;
 }
 
 .breakup-hero-title {
@@ -171,13 +180,6 @@ $tone-warning-soft: #fff3dd;
   width: 1px;
   height: 14px;
   background: $ns-border-strong;
-}
-
-.breakup-hero-empty {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: $ns-text-muted;
 }
 
 /* ============================================================

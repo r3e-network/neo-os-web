@@ -250,7 +250,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               })}
             </div>
           ) : (
-            <div className="ticket-empty ticket-empty--line">{t("emptyEventsHint")}</div>
+            <div className="ticket-empty">
+              <CalendarDays size={28} aria-hidden="true" />
+              <span>{t("emptyEventsHint")}</span>
+            </div>
           )}
         </section>
       </section>
@@ -392,7 +395,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             ))}
           </div>
         ) : (
-          <div className="ticket-empty ticket-empty--line">{t("emptyTicketsHint")}</div>
+          <div className="ticket-empty">
+            <Ticket size={28} aria-hidden="true" />
+            <span>{t("emptyTicketsHint")}</span>
+          </div>
         )}
       </section>
 

@@ -62,6 +62,16 @@
   min-width: 0;
 }
 
+.selfloan-hero-eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--sl-accent-strong);
+}
+
 .selfloan-hero-title {
   margin: 0;
   font-size: 26px;
@@ -397,6 +407,19 @@
   color: var(--ns-text-muted, #8a92a6);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+// ---------- Primary CTA ----------
+// Keep the primary action unmistakable even while disabled: a soft-tinted
+// green affordance instead of the flat grey shared-disabled bar.
+.selfloan-cta {
+  .neo-btn--primary:disabled {
+    background: var(--sl-accent-soft);
+    border-color: var(--sl-accent-line);
+    color: var(--sl-accent-strong);
+    box-shadow: none;
+    opacity: 1;
+  }
 }
 
 // ---------- Loading Overlay ----------

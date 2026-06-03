@@ -11,7 +11,7 @@
   padding: 22px 24px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
-  background: linear-gradient(135deg, #ffffff 0%, #f3fbf7 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f6f4ff 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
@@ -28,8 +28,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 14px;
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  background: var(--ns-violet-soft, #eeeaff);
+  color: var(--ns-violet-strong, #6a4df4);
 
   svg {
     width: 22px;
@@ -42,7 +42,15 @@
   min-width: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+}
+
+.market-hero__eyebrow {
+  color: var(--ns-violet-strong, #6a4df4);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .market-hero__title h2 {
@@ -143,19 +151,28 @@
 }
 
 .market-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: start;
 }
 
 .market-list-panel,
 .market-side-rail {
   min-width: 0;
+  width: 100%;
 }
 
 .market-side-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.market-side-rail__primary,
+.market-side-rail__aux {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 16px;
 }
@@ -183,21 +200,6 @@
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.01em;
-}
-
-.market-section-heading strong {
-  display: grid;
-  min-width: 44px;
-  min-height: 44px;
-  place-items: center;
-  padding: 0 12px;
-  border: 1px solid rgba(15, 177, 116, 0.18);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-  font-size: 16px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
 }
 
 .empty-state {
@@ -232,8 +234,8 @@
   height: 48px;
   place-items: center;
   border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  background: var(--ns-violet-soft, #eeeaff);
+  color: var(--ns-violet-strong, #6a4df4);
   font-size: 16px;
   font-weight: 800;
 }
@@ -313,7 +315,7 @@
 }
 
 @media (max-width: 1080px) {
-  .market-workspace {
+  .market-side-rail {
     grid-template-columns: 1fr;
   }
 }
