@@ -212,9 +212,9 @@ export default function PlayArea({
             <div className="gas-pool-claim-only__top">
               <div className="gas-pool-congrats__badge">GAS</div>
               <div>
-                <div className="gas-pool-claim-only__badge">
+                <span className="gas-pool-claim-only__eyebrow">
                   {claimKey ? t("scanClaimReady") : t("oneGateReady")}
-                </div>
+                </span>
                 <h2>
                   {claimKey ? t("claimReward") : "OneGate Vault"}
                 </h2>
@@ -245,7 +245,15 @@ export default function PlayArea({
             </p>
             {!claimKey && (
               <div className="gas-pool-claim-only__action-hint">
-                {t("noPoolSelected")}
+                <span className="gas-pool-claim-only__action-hint-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <path d="M14 14h3v3M21 14v7M14 21h3" />
+                  </svg>
+                </span>
+                <span>{t("noPoolSelected")}</span>
               </div>
             )}
             {claimKey && !claimSucceeded && (

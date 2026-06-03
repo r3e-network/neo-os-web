@@ -56,6 +56,14 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   min-width: 0;
 }
 
+.grave-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-violet-strong, #6a4df4);
+}
+
 .grave-hero-title {
   margin: 0;
   font-size: 22px;
@@ -72,24 +80,26 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   color: var(--ns-text-2, #5b6478);
 }
 
-/* ── Compact metrics strip ────────────────────────────── */
+/* ── Stat tiles ───────────────────────────────────────── */
 .hero-metrics {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(96px, max-content);
+  gap: 10px;
 }
 
 .hero-metric {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
+  padding: 12px 16px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 
   strong {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 800;
     color: var(--ns-ink, #1e1e2e);
     font-variant-numeric: tabular-nums;
@@ -106,23 +116,12 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   }
 }
 
-.hero-metric-sep {
-  flex: 0 0 auto;
-  width: 1px;
-  height: 18px;
-  background: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-}
-
 @media (max-width: 560px) {
   .hero-metrics {
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 10px 14px;
-    border-radius: var(--ns-radius-md, 16px);
-  }
-
-  .hero-metric-sep {
-    display: none;
+    width: 100%;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -402,6 +401,15 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   color: var(--ns-text-2, #5b6478);
   font-size: 12px;
   line-height: 1.45;
+}
+
+/* Soft-tinted disabled primary so the burial CTA keeps affordance
+   (waiting on a hash) instead of reading as a broken flat-grey control. */
+.destroy-form .neo-btn--danger:disabled {
+  background: var(--ns-danger-soft, #fde7e9);
+  border-color: transparent;
+  color: var(--ns-danger, #ea3943);
+  opacity: 0.85;
 }
 
 .grave-cta-attention {

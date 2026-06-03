@@ -41,11 +41,17 @@ $soul-accent-soft: #e4f8f0;
   width: 48px;
   height: 48px;
   flex-shrink: 0;
-  border-radius: var(--ns-radius-full);
-  background: $soul-accent-soft;
-  color: $soul-accent-strong;
+  border-radius: var(--ns-radius-lg);
+  background: linear-gradient(135deg, $soul-accent 0%, $soul-accent-strong 100%);
+  color: #fff;
   font-size: 24px;
   line-height: 1;
+  box-shadow: 0 8px 18px rgba($soul-accent, 0.28);
+}
+
+.hero-badge__glyph {
+  display: block;
+  color: #fff;
 }
 
 .hero-copy { min-width: 0; }
@@ -386,12 +392,12 @@ $soul-accent-soft: #e4f8f0;
   gap: 12px;
   margin-bottom: 14px;
   padding: 12px 14px;
-  border: 1px solid rgba($soul-accent, 0.22);
+  border: 1px solid var(--ns-border);
   border-radius: var(--ns-radius-sm);
-  background: $soul-accent-soft;
+  background: var(--ns-surface-subtle);
 
   span {
-    color: $soul-accent-strong;
+    color: var(--ns-text-muted);
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.12em;
@@ -399,10 +405,16 @@ $soul-accent-soft: #e4f8f0;
   }
 
   strong {
-    color: var(--ns-ink);
+    color: $soul-accent-strong;
     font-size: 13px;
     font-weight: 800;
     text-align: right;
+  }
+
+  // No template chosen yet — keep the value neutral, not accent-colored
+  &.is-empty strong {
+    color: var(--ns-text-muted);
+    font-weight: 700;
   }
 }
 
@@ -460,6 +472,20 @@ $soul-accent-soft: #e4f8f0;
   border-color: rgba(220, 38, 38, 0.22);
   background: var(--ns-danger-soft);
   color: var(--ns-danger);
+}
+
+/* Soft-tinted disabled primary CTA — keeps the accent affordance instead of
+   collapsing to a flat grey bar that reads as an inactive page. Scoped to the
+   issue/create panels so only the form submit buttons are affected. */
+.certificate-panel,
+.verify-card {
+  .neo-btn--primary:disabled {
+    background: $soul-accent-soft;
+    border-color: rgba($soul-accent, 0.28);
+    color: $soul-accent-strong;
+    opacity: 0.85;
+    box-shadow: none;
+  }
 }
 
 .certificate-detail__revoke {

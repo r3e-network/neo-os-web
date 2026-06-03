@@ -134,12 +134,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           dangerLevel={dangerLevel}
           shouldPulse={shouldPulse}
           formattedPot={formatNum(totalPot)}
+          active={isRoundActive && roundDataAvailable}
         />
         <DangerMeter
           t={t}
           level={dangerLevel}
           levelText={dangerLevelText}
           progress={dangerProgress}
+          active={isRoundActive && roundDataAvailable}
         />
       </div>
 
