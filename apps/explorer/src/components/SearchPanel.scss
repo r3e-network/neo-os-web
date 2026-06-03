@@ -47,15 +47,22 @@
 .network-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 6px;
+  gap: 6px;
+  padding: 5px;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
 .network-toggle .toggle-btn {
+  width: 100%;
   border-radius: var(--ns-radius-full, 9999px);
+}
+
+/* Keep the active pill inset within the track so its rounded edge never
+   collides with the container border. */
+.network-toggle .toggle-btn.is-active {
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(15, 177, 116, 0.18));
 }
 
 @media (max-width: 480px) {

@@ -148,7 +148,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
             </button>
             <button
               type="button"
-              className="custom-anchor-button custom-anchor-button--success"
+              className="custom-anchor-button"
               disabled={actionDisabled}
               onClick={(event) => runAction(event, "claimRewards")}
             >
@@ -156,7 +156,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
             </button>
             <button
               type="button"
-              className="custom-anchor-button custom-anchor-button--ghost"
+              className="custom-anchor-button"
               disabled={actionDisabled}
               onClick={(event) => runAction(event, "refreshAnchor")}
             >
@@ -170,8 +170,9 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
         </div>
       </section>
 
-      {/* One compact metrics strip (replaces the separate stat-tile grid; folds in total staked + launch source) */}
-      <div className="custom-anchor-metrics" aria-live="polite">
+      {/* Carded metrics group — tiles wrapped so they stay off the viewport edge, consistent with the rest of the suite */}
+      <section className="custom-anchor-metrics-card" aria-label={t("totalStaked")}>
+        <div className="custom-anchor-metrics" aria-live="polite">
         <div>
           <span>{t("userStake")}</span>
           <strong>{str("userStake")} NEO</strong>
@@ -188,17 +189,17 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
           <span>{t("totalStaked")}</span>
           <strong>{str("totalStaked")} NEO</strong>
         </div>
-      </div>
+        </div>
+      </section>
 
-      <p className="custom-anchor-source-line">
-        {t("launchSource")}: <strong>{displayedAnchor}</strong>
-      </p>
-
-      {/* Routing model — explanatory reference kept collapsed */}
-      <details className="custom-anchor-model">
+      {/* Routing model — expanded by default; launch source folded into the metadata row */}
+      <details className="custom-anchor-model" open>
         <summary>{t("routingDetails")}</summary>
         <div className="custom-anchor-model__body">
           <p>{t("agentModelBody")}</p>
+          <p className="custom-anchor-source-line">
+            {t("launchSource")}: <strong>{displayedAnchor}</strong>
+          </p>
         </div>
       </details>
     </div>
