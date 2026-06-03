@@ -8,8 +8,8 @@
 .automation-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
-  align-items: start;
+  gap: 18px 28px;
+  align-items: center;
   padding: 24px;
   border-radius: var(--ns-radius-lg);
   background: var(--ns-surface);
@@ -23,18 +23,34 @@
   align-items: start;
 }
 
+.automation-hero__eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ns-brand-strong);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .automation-hero__facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-self: stretch;
+  justify-self: end;
+  min-width: 240px;
 }
 
 .automation-hero__fact {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
 }
 
 .automation-hero__fact-label {
@@ -46,10 +62,29 @@
 }
 
 .automation-hero__fact strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--ns-ink);
   font-size: 16px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+.automation-hero__fact--status strong {
+  font-size: 14px;
+}
+
+.automation-hero__fact--status .automation-status-badge__dot {
+  color: var(--ns-text-muted);
+}
+
+.automation-hero__fact--ok strong {
+  color: var(--ns-brand-strong);
+}
+
+.automation-hero__fact--off strong {
+  color: var(--ns-text-muted);
 }
 
 .automation-hero__icon {
@@ -80,41 +115,12 @@
   line-height: 1.6;
 }
 
-.automation-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  align-self: start;
-  justify-self: end;
-  padding: 7px 14px;
-  border-radius: var(--ns-radius-full);
-  background: var(--ns-surface-subtle);
-  color: var(--ns-text-2);
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 .automation-status-badge__dot {
+  flex: none;
   width: 8px;
   height: 8px;
   border-radius: var(--ns-radius-full);
   background: currentcolor;
-}
-
-.automation-status-badge--ok {
-  background: var(--ns-brand-soft);
-  color: var(--ns-brand-strong);
-}
-
-.automation-status-badge--off {
-  background: var(--ns-surface-subtle);
-  color: var(--ns-text-muted);
-}
-
-.automation-status-badge--neutral {
-  background: var(--ns-surface-subtle);
-  color: var(--ns-text-2);
 }
 
 .automation-trigger-card div,
@@ -149,9 +155,9 @@
 
 .automation-workspace {
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .automation-panel {
@@ -223,6 +229,11 @@
   color: var(--ns-brand-strong);
 }
 
+.automation-panel__hint--info {
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+}
+
 .automation-panel__alert {
   background: var(--ns-danger-soft);
   color: var(--ns-danger);
@@ -244,8 +255,11 @@
 }
 
 .automation-actions--secondary {
-  gap: 6px;
-  margin-top: -2px;
+  gap: 10px;
+}
+
+.automation-actions--secondary .neo-btn {
+  flex: 1 1 0;
 }
 
 .automation-actions--compact {
@@ -394,6 +408,57 @@
   margin: 0;
 }
 
+.automation-route {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.automation-route__label {
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.automation-route__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: route;
+}
+
+.automation-route__steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.automation-route__steps li span {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--ns-radius-full);
+  background: var(--ns-brand-soft);
+  color: var(--ns-brand-strong);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .automation-empty__icon {
   display: inline-flex;
   align-items: center;
@@ -437,7 +502,13 @@
 
 @media (max-width: 980px) {
   .automation-hero {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .automation-hero__facts {
+    justify-self: stretch;
+    min-width: 0;
   }
 
   .automation-workspace {
@@ -451,12 +522,7 @@
   }
 
   .automation-hero {
-    grid-template-columns: 1fr;
     padding: 18px;
-  }
-
-  .automation-status-badge {
-    justify-self: start;
   }
 
   .automation-panel {

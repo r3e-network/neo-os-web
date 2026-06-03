@@ -121,141 +121,150 @@ export default function PlayArea({
         </div>
       </section>
 
-      <NeoCard
-        variant="erobo"
-        title={t("permissionsCommandTitle")}
-        className="permissions-command"
-      >
-        <div className="permissions-form">
-          <NeoInput
-            value={accountIdHash}
-            label={t("accountId") || "Account ID Hash"}
-            hint={t("accountIdHint")}
-            placeholder={
-              t("accountIdHashPlaceholder") || "Enter account ID hash"
-            }
-            onChange={(v) => setAccountIdHash(v)}
-          />
-          <div className="permissions-action-grid">
-            <NeoButton
-              variant="primary"
-              loading={isRefreshing}
-              disabled={!canRefresh}
-              aria-label={t("inspect") || "Inspect"}
-              onClick={() => dispatch("refresh", accountIdHash)}
-            >
-              {t("inspect") || "Inspect"}
-            </NeoButton>
-            <NeoButton
-              variant="secondary"
-              aria-label={t("connectWallet") || "Connect Wallet"}
-              onClick={() => dispatch("connect")}
-            >
-              {t("connectWallet") || "Connect Wallet"}
-            </NeoButton>
-          </div>
-          {!canRefresh ? (
-            <p className="permissions-caption permissions-caption--warn">
-              {t("inspectBlocked")}
-            </p>
-          ) : (
-            <p className="permissions-caption">{t("permissionsRiskCopy")}</p>
-          )}
-        </div>
-      </NeoCard>
-
-      <section className="permissions-state-panel">
-        <div className="permissions-section-heading">
-          <div>
-            <span>{t("permissionsStateLabel")}</span>
-            <h3>{t("permissionsStateTitle")}</h3>
-          </div>
-          <strong
-            className={
-              accountReady
-                ? "permissions-status permissions-status--active"
-                : "permissions-status permissions-status--idle"
-            }
+      <div className="permissions-grid">
+        <div className="permissions-column">
+          <NeoCard
+            variant="erobo"
+            title={t("permissionsCommandTitle")}
+            className="permissions-command"
           >
-            {accountReady ? t("configured") : PLACEHOLDER}
-          </strong>
-        </div>
-
-        {accountReady ? (
-          <div className="permissions-detail-list">
-            {detailItems.map((item) => (
-              <div key={item.label} className="permissions-detail-row">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
+            <div className="permissions-form">
+              <NeoInput
+                value={accountIdHash}
+                label={t("accountId") || "Account ID Hash"}
+                hint={t("accountIdHint")}
+                placeholder={
+                  t("accountIdHashPlaceholder") || "Enter account ID hash"
+                }
+                onChange={(v) => setAccountIdHash(v)}
+              />
+              <div className="permissions-action-grid">
+                <NeoButton
+                  variant="primary"
+                  loading={isRefreshing}
+                  disabled={!canRefresh}
+                  aria-label={t("inspect") || "Inspect"}
+                  onClick={() => dispatch("refresh", accountIdHash)}
+                >
+                  {t("inspect") || "Inspect"}
+                </NeoButton>
+                <NeoButton
+                  variant="secondary"
+                  aria-label={t("connectWallet") || "Connect Wallet"}
+                  onClick={() => dispatch("connect")}
+                >
+                  {t("connectWallet") || "Connect Wallet"}
+                </NeoButton>
               </div>
-            ))}
+              {!canRefresh ? (
+                <p className="permissions-caption permissions-caption--warn">
+                  {t("inspectBlocked")}
+                </p>
+              ) : (
+                <p className="permissions-caption">{t("permissionsRiskCopy")}</p>
+              )}
+            </div>
+          </NeoCard>
+
+          <section className="permissions-state-panel">
+            <div className="permissions-section-heading">
+              <div>
+                <span>{t("permissionsStateLabel")}</span>
+                <h3>{t("permissionsStateTitle")}</h3>
+              </div>
+              {accountReady ? (
+                <strong className="permissions-status permissions-status--active">
+                  {t("configured")}
+                </strong>
+              ) : null}
+            </div>
+
+            {accountReady ? (
+              <div className="permissions-detail-list">
+                {detailItems.map((item) => (
+                  <div key={item.label} className="permissions-detail-row">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="permissions-empty-line">
+                {t("permissionsStateEmpty")}
+              </p>
+            )}
+          </section>
+        </div>
+
+        <div className="permissions-column permissions-column--write">
+          <div className="permissions-write-heading">
+            <span>{t("permissionsFlowLabel")}</span>
+            <h3>{t("permissionsRiskTitle")}</h3>
           </div>
-        ) : (
-          <p className="permissions-empty-line">{t("permissionsStateEmpty")}</p>
-        )}
-      </section>
 
-      <NeoCard
-        variant="erobo"
-        title={t("updateVerifier") || "Update Verifier"}
-        className="permissions-operation-card"
-      >
-        <div className="permissions-form">
-          <NeoInput
-            value={verifierHash}
-            label={t("verifier") || "Verifier Hash"}
-            placeholder={t("verifierHashPlaceholder") || "0x..."}
-            onChange={(v) => setVerifierHash(v)}
-          />
-          <NeoInput
-            value={verifierParamsHex}
-            label={t("verifierParams") || "Verifier Params (hex)"}
-            hint={t("verifierParamsHint")}
-            placeholder={t("verifierParamsPlaceholder") || "0x..."}
-            onChange={(v) => setVerifierParamsHex(v)}
-          />
-          <NeoButton
-            variant="primary"
-            loading={isVerifierBusy}
-            disabled={!canUpdateVerifier}
-            aria-label={t("updateVerifier") || "Update Verifier"}
-            onClick={() =>
-              dispatch(
-                "submitVerifier",
-                accountIdHash,
-                verifierHash,
-                verifierParamsHex,
-              )
-            }
+          <NeoCard
+            variant="erobo"
+            title={t("updateVerifier") || "Update Verifier"}
+            className="permissions-operation-card"
           >
-            {t("updateVerifier") || "Update Verifier"}
-          </NeoButton>
-        </div>
-      </NeoCard>
+            <div className="permissions-form">
+              <NeoInput
+                value={verifierHash}
+                label={t("verifier") || "Verifier Hash"}
+                placeholder={t("verifierHashPlaceholder") || "0x..."}
+                onChange={(v) => setVerifierHash(v)}
+              />
+              <NeoInput
+                value={verifierParamsHex}
+                label={t("verifierParams") || "Verifier Params (hex)"}
+                hint={t("verifierParamsHint")}
+                placeholder={t("verifierParamsPlaceholder") || "0x..."}
+                onChange={(v) => setVerifierParamsHex(v)}
+              />
+              <NeoButton
+                variant="primary"
+                loading={isVerifierBusy}
+                disabled={!canUpdateVerifier}
+                aria-label={t("updateVerifier") || "Update Verifier"}
+                onClick={() =>
+                  dispatch(
+                    "submitVerifier",
+                    accountIdHash,
+                    verifierHash,
+                    verifierParamsHex,
+                  )
+                }
+              >
+                {t("updateVerifier") || "Update Verifier"}
+              </NeoButton>
+            </div>
+          </NeoCard>
 
-      <NeoCard
-        variant="erobo"
-        title={t("updateHook") || "Update Hook"}
-        className="permissions-operation-card"
-      >
-        <div className="permissions-form">
-          <NeoInput
-            value={hookHash}
-            label={t("hook") || "Hook Hash"}
-            placeholder={t("hookHashPlaceholder") || "0x..."}
-            onChange={(v) => setHookHash(v)}
-          />
-          <NeoButton
-            variant="secondary"
-            loading={isHookBusy}
-            disabled={!canUpdateHook}
-            aria-label={t("updateHook") || "Update Hook"}
-            onClick={() => dispatch("submitHook", accountIdHash, hookHash)}
+          <NeoCard
+            variant="erobo"
+            title={t("updateHook") || "Update Hook"}
+            className="permissions-operation-card"
           >
-            {t("updateHook") || "Update Hook"}
-          </NeoButton>
+            <div className="permissions-form">
+              <NeoInput
+                value={hookHash}
+                label={t("hook") || "Hook Hash"}
+                placeholder={t("hookHashPlaceholder") || "0x..."}
+                onChange={(v) => setHookHash(v)}
+              />
+              <NeoButton
+                variant="secondary"
+                loading={isHookBusy}
+                disabled={!canUpdateHook}
+                aria-label={t("updateHook") || "Update Hook"}
+                onClick={() => dispatch("submitHook", accountIdHash, hookHash)}
+              >
+                {t("updateHook") || "Update Hook"}
+              </NeoButton>
+            </div>
+          </NeoCard>
         </div>
-      </NeoCard>
+      </div>
     </div>
   );
 }

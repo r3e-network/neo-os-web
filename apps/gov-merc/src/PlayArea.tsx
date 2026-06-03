@@ -44,11 +44,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <h2>{t("govHeroTitle")}</h2>
             <p>{t("govHeroSubtitle")}</p>
             <div className="gov-merc-hero-meta">
-              <span>
-                {t("yourDeposits")}: <strong>{userDepositsDisplay}</strong>
+              <div className="gov-merc-hero-deposits">
+                <span>{t("yourDeposits")}</span>
+                <strong>{userDepositsDisplay}</strong>
+              </div>
+              <span
+                className={`gov-merc-hero-badge${dataLoading ? " is-loading" : ""}`}
+              >
+                <span className="gov-merc-hero-dot" aria-hidden="true" />
+                {dataLoading ? t("loading") : t("marketReady")}
               </span>
-              <span className="gov-merc-hero-dot" aria-hidden="true" />
-              <span>{dataLoading ? t("loading") : t("marketReady")}</span>
             </div>
           </div>
           <div className="gov-merc-scoreboard">

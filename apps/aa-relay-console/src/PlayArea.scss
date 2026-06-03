@@ -33,9 +33,9 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-  box-shadow: 0 4px 12px rgba(15, 177, 116, 0.15);
+  background: var(--ns-violet-soft, #eeeaff);
+  color: var(--ns-violet-strong, #6a4df4);
+  box-shadow: 0 4px 12px rgba(123, 97, 255, 0.15);
 
   svg {
     width: 23px;
@@ -51,7 +51,7 @@
 }
 
 .relay-hero__eyebrow {
-  color: var(--ns-brand-strong, #0fb174);
+  color: var(--ns-violet-strong, #6a4df4);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -77,53 +77,51 @@
 
 .relay-hero__facts {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
+  align-items: center;
   gap: 12px 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  padding: 12px 16px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .relay-fact {
   display: flex;
+  min-width: 0;
   align-items: baseline;
   gap: 8px;
-  padding: 7px 14px;
-  border: 1px solid var(--ns-brand-soft, #e4f8f0);
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-brand-soft, #e4f8f0);
-}
-
-.relay-fact span {
-  color: var(--ns-brand-strong, #0fb174);
-  font-size: 10px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .relay-fact strong {
+  overflow: hidden;
+  max-width: 240px;
   color: var(--ns-ink, #1e1e2e);
   font-size: 13px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-}
-
-.relay-hero__caption {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 12px;
-  line-height: 1.4;
+  letter-spacing: 0;
   text-overflow: ellipsis;
+  text-transform: none;
   white-space: nowrap;
 
   code {
     font-family: var(--font-mono, "JetBrains Mono", monospace);
-    font-size: 11px;
-    color: var(--ns-text-2, #5b6478);
+    font-size: 12px;
+    font-weight: 700;
   }
+}
+
+.relay-hero__divider {
+  width: 1px;
+  height: 18px;
+  flex: 0 0 auto;
+  background: var(--ns-border, rgba(20, 22, 38, 0.12));
 }
 
 /* ── Command card (single flow) ───────────────────────── */

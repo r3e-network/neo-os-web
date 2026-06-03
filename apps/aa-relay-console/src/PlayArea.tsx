@@ -142,18 +142,24 @@ export default function PlayArea({
         </div>
 
         <div className="relay-hero__facts" aria-label={t("relayMetricsLabel")}>
-          <div className="relay-fact">
-            <span>{t("network") || "Network"}</span>
+          <span className="relay-fact">
+            {t("network") || "Network"}
             <strong>{networkDisplay || "—"}</strong>
-          </div>
-          <p
-            className="relay-hero__caption"
-            title={`${t("relayEndpointMetric")}: ${relayUrlDisplay || "—"} · ${t("aaCoreLabel")}: ${aaCoreDisplay || "—"}`}
-          >
-            {t("relayEndpointMetric")}: <code>{relayUrlDisplay || "—"}</code>
-            <span aria-hidden="true"> · </span>
-            {t("aaCoreLabel")}: <code>{aaCoreDisplay || "—"}</code>
-          </p>
+          </span>
+          <span className="relay-hero__divider" aria-hidden="true" />
+          <span className="relay-fact">
+            {t("relayEndpointMetric")}
+            <strong title={relayUrlDisplay || "—"}>
+              <code>{relayUrlDisplay || "—"}</code>
+            </strong>
+          </span>
+          <span className="relay-hero__divider" aria-hidden="true" />
+          <span className="relay-fact">
+            {t("aaCoreLabel")}
+            <strong title={aaCoreDisplay || "—"}>
+              <code>{aaCoreDisplay || "—"}</code>
+            </strong>
+          </span>
         </div>
       </section>
 

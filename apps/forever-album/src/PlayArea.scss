@@ -84,30 +84,38 @@
   color: var(--fa-text-2);
   font-size: 12.5px;
   font-weight: 600;
-
-  .forever-album-hero-cap {
-    padding: 4px 11px;
-    border-radius: var(--ns-radius-full, 9999px);
-    background: var(--fa-accent-soft);
-    color: var(--fa-accent-strong);
-    font-variant-numeric: tabular-nums;
-  }
 }
 
-.forever-album-hero-badge {
+.forever-album-uploader-cap {
+  margin: -4px 2px 0;
+  color: var(--fa-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.forever-album-hero-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.forever-album-hero-copy {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  min-width: 0;
 }
 
 .forever-album-hero-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
-  border-radius: var(--ns-radius-sm, 12px);
+  border-radius: var(--ns-radius-md, 16px);
   background: var(--fa-accent-soft);
   color: var(--fa-accent-strong);
   box-shadow: inset 0 0 0 1px rgba(var(--fa-accent-rgb), 0.16);
@@ -186,11 +194,10 @@
   flex-direction: column;
   gap: 5px;
   min-width: 0;
-  padding: 14px 16px;
-  border: 1px solid var(--fa-line);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--fa-surface);
-  box-shadow: var(--fa-shadow);
+  padding: 16px;
+  border: 0;
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--fa-surface-soft);
 
   span {
     color: var(--fa-muted);
@@ -247,12 +254,10 @@
   justify-content: center;
   flex-direction: column;
   gap: 6px;
-  border: 1px dashed rgba(var(--fa-accent-rgb), 0.4);
+  border: 1.5px dashed var(--fa-line-strong);
   border-radius: var(--ns-radius-md, 16px);
-  background:
-    radial-gradient(120% 120% at 50% 0%, var(--fa-accent-soft) 0%, transparent 70%),
-    var(--fa-surface);
-  color: var(--fa-accent-strong);
+  background: var(--fa-surface);
+  color: var(--fa-text);
   text-align: center;
   transition:
     border-color 0.18s ease,
@@ -261,19 +266,20 @@
 
   &:hover,
   &:focus-within {
-    border-color: rgba(var(--fa-accent-rgb), 0.7);
-    box-shadow: 0 12px 32px rgba(var(--fa-accent-rgb), 0.14);
+    border-color: rgba(var(--fa-accent-rgb), 0.55);
+    box-shadow: 0 12px 32px rgba(20, 22, 38, 0.07);
     transform: translateY(-1px);
   }
 
   span {
     font-size: 15px;
     font-weight: 800;
+    color: var(--fa-ink);
   }
 
   small {
     max-width: 260px;
-    color: var(--fa-text-2);
+    color: var(--fa-muted);
     font-size: 12px;
     line-height: 1.4;
   }

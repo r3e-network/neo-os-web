@@ -64,6 +64,25 @@
   text-transform: uppercase;
 }
 
+.council-refresh.neo-btn {
+  flex-shrink: 0;
+  border: 1px solid rgba(123, 97, 255, 0.4);
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-violet-strong, #6a4df4);
+
+  &:hover:not(:disabled) {
+    border-color: var(--ns-violet, #7b61ff);
+    background: var(--ns-violet-soft, #eeeaff);
+    color: var(--ns-violet-strong, #6a4df4);
+  }
+
+  &:disabled {
+    border-color: rgba(123, 97, 255, 0.22);
+    background: var(--ns-violet-soft, #eeeaff);
+    color: rgba(106, 77, 244, 0.55);
+  }
+}
+
 .council-hero-sub {
   margin: 0.4rem 0 0;
   color: var(--ns-text-2, #5b6478);
@@ -104,27 +123,18 @@
   }
 }
 
-.council-stat--accent {
-  border-color: rgba(123, 97, 255, 0.28);
-  background: var(--ns-violet-soft, #eeeaff);
-
-  span {
-    color: var(--ns-violet-strong, #6a4df4);
-  }
-}
-
 .council-access {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 0.55rem;
-  padding: 0.8rem 1rem;
-  border: 1px solid rgba(245, 166, 35, 0.32);
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-md, 14px);
-  background: var(--ns-warning-soft, #fff3dd);
-  color: #8a5a00;
-  font-size: 0.82rem;
-  font-weight: 700;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8rem;
+  font-weight: 650;
 
   strong {
     color: var(--ns-ink, #1e1e2e);
@@ -147,10 +157,14 @@
 
 .council-access-dot {
   flex-shrink: 0;
-  width: 0.55rem;
-  height: 0.55rem;
-  margin-top: 0.32rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.36rem;
   border-radius: 999px;
+  background: var(--ns-text-muted, #8a92a6);
+}
+
+.council-access--ok .council-access-dot {
   background: currentColor;
 }
 
@@ -267,16 +281,26 @@
   select {
     min-height: 2.75rem;
     width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
     border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
     border-radius: 12px;
-    background: var(--ns-surface, #ffffff);
+    background-color: var(--ns-surface, #ffffff);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
     color: var(--ns-ink, #1e1e2e);
-    padding: 0 0.75rem;
+    padding: 0 2.2rem 0 0.75rem;
     font-size: 0.92rem;
     font-weight: 600;
     cursor: pointer;
     transition: border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
       box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+
+    &::-ms-expand {
+      display: none;
+    }
 
     &:hover {
       border-color: rgba(123, 97, 255, 0.4);
@@ -314,16 +338,16 @@
 
 .council-skeleton {
   display: grid;
-  gap: 0.6rem;
+  gap: 0.45rem;
 }
 
 .council-skeleton-row {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: 14px;
-  background: var(--ns-inset, #f7f8fa);
+  gap: 0.5rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
 .council-skeleton-head {
@@ -336,34 +360,34 @@
 .council-skeleton-tag,
 .council-skeleton-line {
   display: block;
-  height: 0.7rem;
+  height: 0.6rem;
   border-radius: 999px;
   background: linear-gradient(
     100deg,
-    rgba(123, 97, 255, 0.1) 30%,
-    rgba(123, 97, 255, 0.2) 50%,
-    rgba(123, 97, 255, 0.1) 70%
+    rgba(123, 97, 255, 0.06) 30%,
+    rgba(123, 97, 255, 0.13) 50%,
+    rgba(123, 97, 255, 0.06) 70%
   );
   background-size: 220% 100%;
-  animation: council-shimmer 1.4s ease-in-out infinite;
+  animation: council-shimmer 1.6s ease-in-out infinite;
 }
 
 .council-skeleton-pill {
-  width: 4.5rem;
-  height: 1.1rem;
+  width: 4rem;
+  height: 0.95rem;
 }
 
 .council-skeleton-tag {
-  width: 2.75rem;
-  height: 0.7rem;
+  width: 2.5rem;
+  height: 0.6rem;
 }
 
 .council-skeleton-line {
   width: 100%;
 
   &--title {
-    width: 62%;
-    height: 0.95rem;
+    width: 55%;
+    height: 0.8rem;
   }
 }
 
