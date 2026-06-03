@@ -7,6 +7,7 @@ import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ProofHero from "./components/ProofHero";
+import type { TimestampProof } from "./composables/useTimestampProof";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -16,14 +17,19 @@ interface PlayAreaProps {
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { num, str, bool } = useStateBindings(state);
+  const { num, str, bool, val } = useStateBindings(state);
 
   const totalProofs = num("totalProofs");
   const yourProofs = num("yourProofs");
   const isCreating = bool("isCreating");
+  const isVerifying = bool("isVerifying");
+  const verifyError = bool("verifyError");
   const latestId = str("latestId", t("notAvailable") || "N/A");
+  const proofList = val<TimestampProof[]>("proofs", []) ?? [];
+  const verifiedProof = val<TimestampProof>("verifiedProof", null);
 
   const [content, setContent] = useState("");
+  const [verifyId, setVerifyId] = useState("");
 
   return (
     <div className="proof-play-area">
@@ -62,12 +68,66 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </NeoCard>
 
+      {/* Verify Proof Form */}
+      <NeoCard title={t("verifyProof") || "Verify Proof"}>
+        <div className="proof-form">
+          <NeoInput
+            value={verifyId}
+            type="number"
+            label={t("enterProofId") || "Enter Proof ID"}
+            placeholder="1"
+            error={verifyError ? t("invalidProof") || "Invalid Proof" : ""}
+            onChange={(val) => setVerifyId(val)}
+          />
+          <NeoButton
+            variant="secondary"
+            size="lg"
+            block
+            loading={isVerifying}
+            disabled={!verifyId.trim()}
+            aria-label={t("verifyProof") || "Verify Proof"}
+            onClick={() => dispatch("verifyProof", verifyId)}
+          >
+            {t("verifyProof") || "Verify Proof"}
+          </NeoButton>
+          {verifiedProof && (
+            <div className="verify-result">
+              <span className="verify-result__label">{t("validProof") || "Proof Found"}</span>
+              <div className="verify-result__row">
+                <span>{t("proofId") || "Proof ID"}</span>
+                <span className="mono">#{verifiedProof.id}</span>
+              </div>
+              <div className="verify-result__row">
+                <span>{t("timestamp") || "Timestamp"}</span>
+                <span className="mono">{new Date(verifiedProof.timestamp).toLocaleString()}</span>
+              </div>
+              <div className="verify-result__row">
+                <span>{t("verifiedContent") || "Verified Content"}</span>
+                <span className="mono verify-result__hash">{verifiedProof.contentHash}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </NeoCard>
+
       {/* Proof List */}
-      {totalProofs === 0 && (
+      {totalProofs === 0 ? (
         <div className="empty-state">
           <span className="empty-icon" aria-hidden="true">&#x2726;</span>
           <span className="empty-text">{t("noProofs") || "No proofs created yet"}</span>
         </div>
+      ) : (
+        <NeoCard title={t("recentProofs") || "Recent Proofs"}>
+          <ul className="proof-list">
+            {proofList.map((proof) => (
+              <li key={proof.id} className="proof-list__item">
+                <span className="proof-list__id mono">#{proof.id}</span>
+                <span className="proof-list__hash mono">{proof.contentHash}</span>
+                <span className="proof-list__time">{new Date(proof.timestamp).toLocaleString()}</span>
+              </li>
+            ))}
+          </ul>
+        </NeoCard>
       )}
     </div>
   );

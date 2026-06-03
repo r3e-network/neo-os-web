@@ -69,7 +69,7 @@ const appMessages = {
     zh: "小程序将签名交给平台 OS 服务处理，不在 play area 内静默构造原始交易。",
   },
   contractRouteLabel: { en: "Contract route", zh: "合约路径" },
-  tarotContractRoute: { en: "game.placeBet -> reading:*", zh: "game.placeBet -> reading:*" },
+  tarotContractRoute: { en: "payment.deposit -> reading:*", zh: "payment.deposit -> reading:*" },
   feeLabel: { en: "Reading fee", zh: "读牌费用" },
   tarotFee: { en: "Wallet reviewed", zh: "钱包确认" },
   readingStateLabel: { en: "Reading state", zh: "读牌状态" },

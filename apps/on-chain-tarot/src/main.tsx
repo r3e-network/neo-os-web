@@ -16,7 +16,7 @@ defineMiniApp({
 
   setup(ctx) {
     const tarot = useTarot({
-      gameService: ctx.os.game,
+      paymentService: ctx.os.payment,
       storageService: ctx.os.storage,
       badgeService: ctx.os.badge,
       t: ctx.t,

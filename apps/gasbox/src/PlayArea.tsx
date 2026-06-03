@@ -26,6 +26,31 @@ interface PullResult {
   icon?: string;
 }
 
+/** Local create-form prize item (string-typed for controlled inputs). */
+interface StudioItem {
+  name: string;
+  probability: string;
+  rarity: string;
+  assetType: string;
+  assetHash: string;
+  amount: string;
+  tokenId: string;
+  stock: string;
+}
+
+const RARITY_OPTIONS = ["COMMON", "RARE", "EPIC", "LEGENDARY"] as const;
+
+const emptyStudioItem = (): StudioItem => ({
+  name: "",
+  probability: "10",
+  rarity: "COMMON",
+  assetType: "1",
+  assetHash: "",
+  amount: "0.1",
+  tokenId: "",
+  stock: "10",
+});
+
 const formatCount = (value: number, pendingLabel: string) =>
   value > 0 ? value.toLocaleString() : pendingLabel;
 
@@ -49,9 +74,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const machines = val<Machine[]>("machines") ?? [];
   const selectedMachine = val<Machine>("selectedMachine");
   const pullResult = val<PullResult>("pullResult");
+  const studioOpen = bool("studioOpen");
 
   const [showResult, setShowResult] = useState(false);
   const [leverPulled, setLeverPulled] = useState(false);
+
+  const [machineName, setMachineName] = useState("");
+  const [machineDescription, setMachineDescription] = useState("");
+  const [machineCategory, setMachineCategory] = useState("");
+  const [machineTags, setMachineTags] = useState("");
+  const [machinePrice, setMachinePrice] = useState("");
+  const [studioItems, setStudioItems] = useState<StudioItem[]>([
+    { name: "", probability: "50", rarity: "COMMON", assetType: "1", assetHash: "", amount: "0.1", tokenId: "", stock: "10" },
+  ]);
+  const [studioError, setStudioError] = useState<string | null>(null);
 
   const selectedMachineReady = Boolean(selectedMachine?.active && selectedMachine?.inventoryReady);
   const machineCountDisplay = machineCount > 0 ? machineCount.toLocaleString() : t("gasboxPending");
@@ -111,6 +147,76 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const dismissResult = () => {
     setShowResult(false);
+  };
+
+  const updateStudioItem = (index: number, patch: Partial<StudioItem>) => {
+    setStudioItems((items) =>
+      items.map((item, i) => (i === index ? { ...item, ...patch } : item)),
+    );
+  };
+
+  const addStudioItem = () => {
+    setStudioItems((items) => [...items, emptyStudioItem()]);
+  };
+
+  const removeStudioItem = (index: number) => {
+    setStudioItems((items) =>
+      items.length > 1 ? items.filter((_, i) => i !== index) : items,
+    );
+  };
+
+  const studioTotalProbability = studioItems.reduce(
+    (sum, item) => sum + (Number(item.probability) || 0),
+    0,
+  );
+
+  const resetStudioForm = () => {
+    setMachineName("");
+    setMachineDescription("");
+    setMachineCategory("");
+    setMachineTags("");
+    setMachinePrice("");
+    setStudioItems([emptyStudioItem()]);
+    setStudioError(null);
+  };
+
+  const handleCloseStudio = async () => {
+    setStudioError(null);
+    await dispatch("closeStudio");
+  };
+
+  const handlePublishMachine = async () => {
+    if (!machineName.trim()) {
+      setStudioError(t("createNameRequired"));
+      return;
+    }
+    const validItems = studioItems.filter(
+      (item) => item.name.trim().length > 0 && (Number(item.probability) || 0) > 0,
+    );
+    if (validItems.length === 0) {
+      setStudioError(t("createNeedsItem"));
+      return;
+    }
+    setStudioError(null);
+
+    await dispatch("publishMachine", {
+      name: machineName.trim(),
+      description: machineDescription.trim(),
+      category: machineCategory.trim(),
+      tags: machineTags.trim(),
+      price: machinePrice.trim() || "0",
+      items: validItems.map((item) => ({
+        name: item.name.trim(),
+        probability: Number(item.probability) || 0,
+        rarity: item.rarity,
+        assetType: item.assetType,
+        assetHash: item.assetHash.trim(),
+        amount: item.amount.trim() || "0",
+        tokenId: item.tokenId.trim(),
+        stock: item.stock.trim() || "1",
+      })),
+    });
+    resetStudioForm();
   };
 
   const rarityClass = (rarity: string | undefined) => {
@@ -186,9 +292,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </section>
 
       <section className="gasbox-machines-card">
-        <div className="gasbox-section-header">
-          <span>{t("market")}</span>
-          <strong>{t("selectMachine")}</strong>
+        <div className="gasbox-section-header gasbox-section-header--with-action">
+          <div className="gasbox-section-header__copy">
+            <span>{t("market")}</span>
+            <strong>{t("selectMachine")}</strong>
+          </div>
+          <NeoButton
+            variant={studioOpen ? "secondary" : "primary"}
+            size="sm"
+            onClick={() => dispatch(studioOpen ? "closeStudio" : "openStudio")}
+          >
+            {studioOpen ? t("studioCloseAction") : t("createMachineAction")}
+          </NeoButton>
         </div>
         {machines.length === 0 ? (
           <div className="gasbox-market-empty">
@@ -242,6 +357,204 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         )}
       </section>
+
+      {studioOpen && (
+        <NeoCard variant="erobo" className="gasbox-studio-card">
+          <div className="gasbox-studio-header">
+            <div className="gasbox-studio-header__copy">
+              <span>{t("studioTitle")}</span>
+              <strong>{t("studioSubtitle")}</strong>
+              <p>{t("createPanelHint")}</p>
+            </div>
+            <NeoButton variant="ghost" size="sm" onClick={handleCloseStudio}>
+              {t("backToMarket")}
+            </NeoButton>
+          </div>
+
+          <div className="gasbox-studio-grid">
+            <label className="gasbox-field">
+              <span>{t("machineNameLabel")}</span>
+              <input
+                type="text"
+                value={machineName}
+                placeholder={t("machineNamePlaceholder")}
+                onChange={(e) => setMachineName(e.target.value)}
+              />
+            </label>
+            <label className="gasbox-field">
+              <span>{t("pricePerPlayLabel")}</span>
+              <input
+                type="number"
+                min="0"
+                step="0.0001"
+                value={machinePrice}
+                placeholder={t("pricePlaceholder")}
+                onChange={(e) => setMachinePrice(e.target.value)}
+              />
+            </label>
+            <label className="gasbox-field gasbox-field--wide">
+              <span>{t("descriptionLabel")}</span>
+              <textarea
+                rows={2}
+                value={machineDescription}
+                placeholder={t("descriptionPlaceholder")}
+                onChange={(e) => setMachineDescription(e.target.value)}
+              />
+            </label>
+            <label className="gasbox-field">
+              <span>{t("categoryLabel")}</span>
+              <input
+                type="text"
+                value={machineCategory}
+                placeholder={t("categoryPlaceholder")}
+                onChange={(e) => setMachineCategory(e.target.value)}
+              />
+            </label>
+            <label className="gasbox-field">
+              <span>{t("tagsLabel")}</span>
+              <input
+                type="text"
+                value={machineTags}
+                placeholder={t("tagsPlaceholder")}
+                onChange={(e) => setMachineTags(e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="gasbox-studio-items">
+            <div className="gasbox-studio-items__header">
+              <span>{t("inventoryAndOdds")}</span>
+              <strong>
+                {t("totalProbabilityLabel")}: {studioTotalProbability}
+              </strong>
+            </div>
+
+            {studioItems.map((item, index) => (
+              <div key={index} className="gasbox-studio-item">
+                <div className="gasbox-studio-item__row">
+                  <label className="gasbox-field">
+                    <span>{t("itemNamePlaceholder")}</span>
+                    <input
+                      type="text"
+                      value={item.name}
+                      placeholder={t("itemNamePlaceholder")}
+                      onChange={(e) => updateStudioItem(index, { name: e.target.value })}
+                    />
+                  </label>
+                  <label className="gasbox-field gasbox-field--narrow">
+                    <span>{t("probPlaceholder")}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={item.probability}
+                      placeholder={t("probPlaceholder")}
+                      onChange={(e) => updateStudioItem(index, { probability: e.target.value })}
+                    />
+                  </label>
+                  <label className="gasbox-field gasbox-field--narrow">
+                    <span>{t("rarityLabel")}</span>
+                    <select
+                      value={item.rarity}
+                      onChange={(e) => updateStudioItem(index, { rarity: e.target.value })}
+                    >
+                      {RARITY_OPTIONS.map((rarity) => (
+                        <option key={rarity} value={rarity}>
+                          {t(`rarity${rarity.charAt(0)}${rarity.slice(1).toLowerCase()}`) || rarity}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="gasbox-studio-item__row">
+                  <label className="gasbox-field gasbox-field--narrow">
+                    <span>{t("assetTypeLabel")}</span>
+                    <select
+                      value={item.assetType}
+                      onChange={(e) => updateStudioItem(index, { assetType: e.target.value })}
+                    >
+                      <option value="1">{t("nep17Label")}</option>
+                      <option value="2">{t("nep11Label")}</option>
+                    </select>
+                  </label>
+                  {item.assetType === "2" ? (
+                    <label className="gasbox-field">
+                      <span>{t("tokenIdPlaceholder")}</span>
+                      <input
+                        type="text"
+                        value={item.tokenId}
+                        placeholder={t("tokenIdPlaceholder")}
+                        onChange={(e) => updateStudioItem(index, { tokenId: e.target.value })}
+                      />
+                    </label>
+                  ) : (
+                    <label className="gasbox-field gasbox-field--narrow">
+                      <span>{t("prizePerWinLabel")}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.0001"
+                        value={item.amount}
+                        placeholder={t("tokenAmountPlaceholder")}
+                        onChange={(e) => updateStudioItem(index, { amount: e.target.value })}
+                      />
+                    </label>
+                  )}
+                  <label className="gasbox-field gasbox-field--narrow">
+                    <span>{t("stockLabelInput")}</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={item.stock}
+                      placeholder={t("stockPlaceholder")}
+                      onChange={(e) => updateStudioItem(index, { stock: e.target.value })}
+                    />
+                  </label>
+                  <label className="gasbox-field">
+                    <span>{t("tokenContractPlaceholder")}</span>
+                    <input
+                      type="text"
+                      value={item.assetHash}
+                      placeholder={t("tokenContractPlaceholder")}
+                      onChange={(e) => updateStudioItem(index, { assetHash: e.target.value })}
+                    />
+                  </label>
+                  <NeoButton
+                    variant="ghost"
+                    size="sm"
+                    disabled={studioItems.length <= 1}
+                    onClick={() => removeStudioItem(index)}
+                  >
+                    {t("removeItem", { index: index + 1 })}
+                  </NeoButton>
+                </div>
+              </div>
+            ))}
+
+            <NeoButton variant="secondary" size="sm" onClick={addStudioItem}>
+              {t("addItem")}
+            </NeoButton>
+          </div>
+
+          <p className="gasbox-inventory-note">{t("inventoryNote")}</p>
+
+          {studioError && (
+            <p className="gasbox-studio-error" role="alert">{studioError}</p>
+          )}
+
+          <NeoButton
+            variant="primary"
+            size="lg"
+            block
+            loading={isCreating}
+            disabled={isCreating}
+            onClick={handlePublishMachine}
+          >
+            {isCreating ? t("publishing") : t("createMachineAction")}
+          </NeoButton>
+        </NeoCard>
+      )}
 
       {selectedMachine && (
         <NeoCard variant="erobo" className="gasbox-pull-card">

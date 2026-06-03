@@ -24,20 +24,30 @@
  *     escrowService.completeMilestone(escrowId, index)   — approve milestone
  *     escrowService.fund(escrowId)                       — claim milestone
  *     escrowService.refund(escrowId)                     — cancel escrow
- *     escrowService.get(escrowId)                        — get escrow details
+ *     escrowService.get(escrowId)                        — get a single escrow
  *     paymentService.deposit(amount, memo)               — fund escrow
+ *     storageService.set / list / get                    — per-user escrow index
+ *
+ * Listing model: the OS kernel exposes only a single-record GetEscrow and has
+ * no escrow enumeration, and CreateEscrow does not return the kernel-assigned
+ * id to the client. So this composable maintains its own per-user index in
+ * os-storage (key `escrow:<addr>:<escrowId>` → minimal metadata) on create,
+ * and rebuilds the creator/beneficiary lists from that index on refresh,
+ * enriching each entry with a best-effort GetEscrow read. State is therefore
+ * client-derived from the os-storage index.
  *
  * The composable still owns:
  *   - Reactive state (refs + computed) for manifest bindings
  *   - Loading/creating/approving/claiming/cancelling UI flags
  *   - Display helper functions
- *   - Escrow list management
+ *   - The os-storage escrow index and list reconstruction
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { formatGas, formatAddress } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import type { EscrowItem } from "../pages/index/components/EscrowList";
@@ -66,8 +76,34 @@ export interface UseMilestoneEscrowOptions {
   escrowService: EscrowProxy;
   /** OS PaymentProxy instance from ctx.os.payment */
   paymentService: PaymentProxy;
+  /** OS StorageProxy instance from ctx.os.storage (escrow index) */
+  storageService: StorageProxy;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+/**
+ * Minimal escrow metadata persisted to the os-storage index at create time.
+ *
+ * The OS kernel assigns the on-chain escrow id asynchronously and does not
+ * return it to the client (CreateEscrow is an invocation intent signed by the
+ * wallet, see os-escrow-create). The kernel also exposes no escrow enumeration
+ * — only a single-record GetEscrow(appId, escrowId). To list a user's escrows
+ * we therefore maintain a per-user index in os-storage, keyed by a stable
+ * client-generated escrow id, and reconstruct the UI list from it. Any record
+ * the kernel knows about is enriched via escrowService.get(id) on refresh.
+ */
+interface StoredEscrowMeta {
+  id: string;
+  creator: string;
+  beneficiary: string;
+  assetSymbol: "NEO" | "GAS";
+  totalAmount: string;
+  milestoneAmounts: string[];
+  title: string;
+  notes: string;
+  status: "active" | "completed" | "cancelled";
+  createdAt: number;
 }
 
 // ============================================================================
@@ -82,6 +118,70 @@ const parseBoolArray = (value: unknown, count: number): boolean[] => {
 const parseBigIntArray = (value: unknown, count: number): bigint[] => {
   if (!Array.isArray(value)) return new Array(count).fill(0n);
   return value.map((item) => parseBigInt(item));
+};
+
+/** os-storage index key prefix for a given user address. */
+const indexPrefix = (addr: string): string => `escrow:${addr}:`;
+
+/** Full index key for a single escrow under a user address. */
+const indexKey = (addr: string, escrowId: string): string => `${indexPrefix(addr)}${escrowId}`;
+
+/**
+ * Generate a stable client-side escrow id. The kernel assigns its own id, but
+ * never returns it to the client, so we mint a deterministic-enough id here to
+ * key the os-storage index and to use as the GetEscrow lookup key on refresh.
+ */
+const generateEscrowId = (): string =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+/** Narrow an unknown index value into a StoredEscrowMeta, or null if invalid. */
+const asStoredMeta = (value: unknown): StoredEscrowMeta | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const v = value as Record<string, unknown>;
+  if (!v.id) return null;
+  const assetSymbol: "NEO" | "GAS" = String(v.assetSymbol || "") === "NEO" ? "NEO" : "GAS";
+  const milestoneAmounts = Array.isArray(v.milestoneAmounts)
+    ? v.milestoneAmounts.map((m) => String(m))
+    : [];
+  const status = ((s: string): "active" | "completed" | "cancelled" =>
+    s === "completed" || s === "cancelled" ? s : "active")(String(v.status || "active"));
+  return {
+    id: String(v.id),
+    creator: String(v.creator || ""),
+    beneficiary: String(v.beneficiary || ""),
+    assetSymbol,
+    totalAmount: String(v.totalAmount || "0"),
+    milestoneAmounts,
+    title: String(v.title || ""),
+    notes: String(v.notes || ""),
+    status,
+    createdAt: Number(v.createdAt || 0),
+  };
+};
+
+/**
+ * Build an EscrowItem purely from stored index metadata. Used as the baseline
+ * UI record; kernel data (when GetEscrow succeeds) is merged on top in
+ * refreshEscrows so released/approved/claimed reflect on-chain truth.
+ */
+const escrowItemFromMeta = (meta: StoredEscrowMeta): EscrowItem => {
+  const milestoneAmounts = meta.milestoneAmounts.map((m) => parseBigInt(m));
+  const count = milestoneAmounts.length;
+  return {
+    id: meta.id,
+    creator: meta.creator,
+    beneficiary: meta.beneficiary,
+    assetSymbol: meta.assetSymbol,
+    totalAmount: parseBigInt(meta.totalAmount),
+    releasedAmount: 0n,
+    status: meta.status,
+    milestoneAmounts,
+    milestoneApproved: new Array(count).fill(false),
+    milestoneClaimed: new Array(count).fill(false),
+    title: meta.title,
+    notes: meta.notes,
+    active: meta.status === "active",
+  };
 };
 
 const parseEscrow = (raw: Record<string, unknown> | null, id: string): EscrowItem | null => {
@@ -114,6 +214,7 @@ const parseEscrow = (raw: Record<string, unknown> | null, id: string): EscrowIte
 export function useMilestoneEscrow({
   escrowService,
   paymentService,
+  storageService,
   t,
 }: UseMilestoneEscrowOptions) {
   // ── Reactive State ────────────────────────────────────────────────────
@@ -164,40 +265,92 @@ export function useMilestoneEscrow({
   // ── Data Loading (via OS services) ──────────────────────────────────
 
   /**
-   * Fetch escrow details via EscrowProxy.
-   * The edge function reads GetEscrowDetails from the contract.
+   * Resolve a single escrow into an EscrowItem.
+   *
+   * The stored index metadata is the source of truth for identity (id,
+   * parties, amounts, title) and the baseline UI record. We then attempt a
+   * single-record GetEscrow via EscrowProxy and merge any on-chain fields
+   * (released amount, per-milestone approved/claimed, status) on top. The
+   * kernel read is best-effort: it may 404 / fail for an id the kernel does
+   * not know (e.g. before the create tx is mined), so a failure simply keeps
+   * the metadata-derived baseline rather than dropping the escrow.
    */
-  const fetchEscrowDetails = async (escrowId: string): Promise<EscrowItem | null> => {
-    const raw = await escrowService.get(escrowId);
-    return parseEscrow((raw as Record<string, unknown>) || null, escrowId);
+  const resolveEscrow = async (meta: StoredEscrowMeta): Promise<EscrowItem> => {
+    const baseline = escrowItemFromMeta(meta);
+    try {
+      const raw = await escrowService.get(meta.id);
+      const onChain = parseEscrow((raw as Record<string, unknown>) || null, meta.id);
+      if (!onChain) return baseline;
+      // Merge: keep stored title/notes/parties, overlay on-chain progress.
+      return {
+        ...baseline,
+        creator: onChain.creator || baseline.creator,
+        beneficiary: onChain.beneficiary || baseline.beneficiary,
+        totalAmount: onChain.totalAmount > 0n ? onChain.totalAmount : baseline.totalAmount,
+        releasedAmount: onChain.releasedAmount,
+        status: onChain.status,
+        milestoneAmounts:
+          onChain.milestoneAmounts.length > 0 ? onChain.milestoneAmounts : baseline.milestoneAmounts,
+        milestoneApproved:
+          onChain.milestoneApproved.length > 0 ? onChain.milestoneApproved : baseline.milestoneApproved,
+        milestoneClaimed:
+          onChain.milestoneClaimed.length > 0 ? onChain.milestoneClaimed : baseline.milestoneClaimed,
+        active: onChain.status === "active",
+      };
+    } catch (e) {
+      // Best-effort enrichment only — fall back to stored metadata.
+      console.warn(
+        "[useMilestoneEscrow] GetEscrow enrichment failed for",
+        meta.id,
+        ":",
+        e instanceof Error ? e.message : String(e),
+      );
+      return baseline;
+    }
   };
 
   /**
-   * Refresh all escrows for the current user.
-   * The edge function handles listing creator and beneficiary escrows.
+   * Refresh all escrows for the current user from the os-storage index.
+   *
+   * The OS kernel has no escrow enumeration, so we list the per-user index
+   * (escrow:<addr>:*) that createEscrow maintains, then resolve each id into an
+   * EscrowItem (stored metadata + best-effort GetEscrow enrichment). Records
+   * are split into creator/beneficiary buckets based on the user's role.
    */
   const refreshEscrows = async () => {
-    if (!address.get()) return;
+    const addr = address.get();
+    if (!addr) return;
     if (isRefreshing.get()) return;
 
     try {
       isRefreshing.set(true);
 
-      // Fetch escrow list from the edge function via a get call
-      // that returns both creator and beneficiary escrow IDs
-      const creatorRaw = await escrowService.get(`creator:${address.get()}`);
-      const beneficiaryRaw = await escrowService.get(`beneficiary:${address.get()}`);
+      // Enumerate the user's escrow ids from the os-storage index.
+      const indexMap = await storageService.list(indexPrefix(addr), 200);
 
-      const creatorIds = Array.isArray(creatorRaw) ? creatorRaw.map(String) : [];
-      const beneficiaryIds = Array.isArray(beneficiaryRaw) ? beneficiaryRaw.map(String) : [];
+      const metas: StoredEscrowMeta[] = [];
+      if (indexMap && typeof indexMap === "object") {
+        for (const value of Object.values(indexMap)) {
+          const meta = asStoredMeta(value);
+          if (meta) metas.push(meta);
+        }
+      }
 
-      const [creator, beneficiary] = await Promise.all([
-        Promise.all(creatorIds.map(fetchEscrowDetails)),
-        Promise.all(beneficiaryIds.map(fetchEscrowDetails)),
-      ]);
+      // Newest first.
+      metas.sort((a, b) => b.createdAt - a.createdAt);
 
-      creatorEscrows.set(creator.filter(Boolean) as EscrowItem[]);
-      beneficiaryEscrows.set(beneficiary.filter(Boolean) as EscrowItem[]);
+      const resolved = await Promise.all(metas.map(resolveEscrow));
+
+      const lowerAddr = addr.toLowerCase();
+      const creator = resolved.filter((item) => item.creator.toLowerCase() === lowerAddr);
+      const beneficiary = resolved.filter(
+        (item) =>
+          item.beneficiary.toLowerCase() === lowerAddr &&
+          item.creator.toLowerCase() !== lowerAddr,
+      );
+
+      creatorEscrows.set(creator);
+      beneficiaryEscrows.set(beneficiary);
     } catch (e) {
       console.warn("[useMilestoneEscrow] refreshEscrows failed:", e instanceof Error ? e.message : String(e));
       throw e;
@@ -254,6 +407,10 @@ export function useMilestoneEscrow({
       throw new Error(t("invalidAmount"));
     }
 
+    const creatorAddr = address.get();
+    const beneficiaryAddr = data.beneficiary.trim();
+    const assetSymbol = data.asset;
+
     isCreating.set(true);
     try {
       // Step 1: Fund the escrow via PaymentProxy
@@ -264,15 +421,82 @@ export function useMilestoneEscrow({
 
       // Step 2: Create the escrow via EscrowProxy
       await escrowService.create({
-        beneficiary: data.beneficiary.trim(),
+        beneficiary: beneficiaryAddr,
         amount: totalAmount.toString(),
         milestones: milestoneEntries,
       });
+
+      // Step 3: Maintain the os-storage index. The kernel does not return its
+      // assigned escrow id and exposes no enumeration, so we mint a stable id
+      // and record minimal metadata under per-user index keys. refreshEscrows
+      // reads these back to rebuild the list (and enriches via GetEscrow).
+      const escrowId = generateEscrowId();
+      const meta: StoredEscrowMeta = {
+        id: escrowId,
+        creator: creatorAddr,
+        beneficiary: beneficiaryAddr,
+        assetSymbol,
+        totalAmount: totalAmount.toString(),
+        milestoneAmounts: milestoneEntries.map((m) => m.amount),
+        title: data.name.trim(),
+        notes: data.notes,
+        status: "active",
+        createdAt: Date.now(),
+      };
+
+      // Creator index entry (always). Beneficiary index entry too, so the
+      // counterparty sees the incoming escrow from their own session — skip if
+      // it equals the creator or is empty.
+      const writes: Array<Promise<unknown>> = [
+        storageService.set(indexKey(creatorAddr, escrowId), meta),
+      ];
+      if (beneficiaryAddr && beneficiaryAddr.toLowerCase() !== creatorAddr.toLowerCase()) {
+        writes.push(storageService.set(indexKey(beneficiaryAddr, escrowId), meta));
+      }
+      await Promise.all(writes);
 
       await refreshEscrows();
     } finally {
       isCreating.set(false);
     }
+  };
+
+  /**
+   * Patch the stored index metadata for an escrow after a successful action,
+   * for both the creator and beneficiary index entries (when distinct). Keeps
+   * the client-derived list/stats coherent even when GetEscrow enrichment is
+   * unavailable (e.g. build-verified-only environments). Best-effort: storage
+   * write failures are swallowed so they never mask a successful kernel action.
+   */
+  const patchIndexMeta = async (
+    escrow: EscrowItem,
+    patch: Partial<Pick<StoredEscrowMeta, "status">>,
+  ) => {
+    const targets = Array.from(
+      new Set(
+        [escrow.creator, escrow.beneficiary]
+          .map((a) => a.trim())
+          .filter((a) => a.length > 0),
+      ),
+    );
+
+    await Promise.all(
+      targets.map(async (addr) => {
+        try {
+          const raw = await storageService.get(indexKey(addr, escrow.id));
+          const meta = asStoredMeta(raw);
+          if (!meta) return;
+          await storageService.set(indexKey(addr, escrow.id), { ...meta, ...patch });
+        } catch (e) {
+          console.warn(
+            "[useMilestoneEscrow] index meta patch failed for",
+            escrow.id,
+            ":",
+            e instanceof Error ? e.message : String(e),
+          );
+        }
+      }),
+    );
   };
 
   /**
@@ -289,6 +513,11 @@ export function useMilestoneEscrow({
       approvingId.set(`${escrow.id}-${idx}`);
 
       await escrowService.completeMilestone(escrow.id, idx);
+
+      // Mark completed once the final milestone has been approved.
+      if (idx >= escrow.milestoneApproved.length - 1) {
+        await patchIndexMeta(escrow, { status: "completed" });
+      }
 
       await refreshEscrows();
     } finally {
@@ -330,6 +559,8 @@ export function useMilestoneEscrow({
       cancellingId.set(escrow.id);
 
       await escrowService.refund(escrow.id);
+
+      await patchIndexMeta(escrow, { status: "cancelled" });
 
       await refreshEscrows();
     } finally {
