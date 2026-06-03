@@ -54,11 +54,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="price-hero__metrics" aria-label={t("priceMetrics")}>
           <div className="price-metric">
             <span>{t("priceMetricFeed")}</span>
-            <strong>{datafeedShort || "--"}</strong>
+            <strong>{datafeedShort || "—"}</strong>
           </div>
           <div className="price-metric">
             <span>{t("priceMetricNetwork")}</span>
-            <strong>{networkDisplay || "--"}</strong>
+            <strong>{networkDisplay || "—"}</strong>
           </div>
           <div className="price-metric">
             <span>{t("priceMetricSource")}</span>
@@ -73,7 +73,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="price-balance-card__content">
           <span className="result-symbol">{displayPair}</span>
-          <span className="result-price">{priceDisplay}</span>
+          <span className={`result-price${priceLoaded ? "" : " result-price--empty"}`}>
+            {priceLoaded ? priceDisplay : "—"}
+          </span>
         </div>
         <span
           className={`price-status${priceLoaded ? " price-status--live" : ""}`}

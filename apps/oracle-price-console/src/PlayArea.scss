@@ -9,10 +9,15 @@
 
 .price-play-area button:disabled {
   opacity: 1;
-  background: #e5e7eb;
-  border-color: #d1d5db;
-  color: #6b7280;
+  background: var(--ns-surface-subtle);
+  border-color: var(--ns-border-strong);
+  color: var(--ns-text-muted);
   cursor: not-allowed;
+}
+
+.price-play-area :is(button, select, input):focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring);
 }
 
 .stack {
@@ -66,7 +71,7 @@
   font-size: 32px;
   line-height: 1.12;
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -122,7 +127,7 @@
   gap: 18px;
   padding: 22px 24px;
   border-radius: var(--ns-radius-lg);
-  background: linear-gradient(135deg, #ffffff 0%, #eefcf7 52%, #fff7ed 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f6f4ff 100%);
   box-shadow: var(--ns-shadow-md);
 }
 
@@ -175,7 +180,13 @@
   font-size: 34px;
   font-weight: 800;
   line-height: 1;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
+}
+
+.result-price--empty {
+  color: var(--ns-text-faint);
+  font-weight: 700;
 }
 
 .price-status {
@@ -264,15 +275,32 @@
   }
 
   .price-balance-card {
-    align-items: flex-start;
+    align-items: center;
     flex-wrap: wrap;
+    gap: 14px;
+    padding: 20px;
   }
 
   .price-status {
     margin-left: 0;
+    flex-basis: 100%;
+    justify-content: center;
   }
 
   .result-price {
     font-size: 30px;
+  }
+}
+
+@media (max-width: 440px) {
+  .price-balance-card .asset-token {
+    width: 50px;
+    height: 50px;
+    flex-basis: 50px;
+    font-size: 21px;
+  }
+
+  .result-price {
+    font-size: 27px;
   }
 }

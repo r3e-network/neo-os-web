@@ -212,7 +212,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="anchor-action-history" aria-label={t("actionHistory")}>
             <div className="anchor-action-history__head">
               <span>{t("actionHistory")}</span>
-              <strong>{selectedAgent}</strong>
+              <strong>{stats?.selectedAgentId ? selectedAgent : "—"}</strong>
             </div>
             {actionHistory.length === 0 ? (
               <p>{t("actionHistoryEmpty")}</p>
@@ -230,7 +230,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
         <aside className="anchor-route-card" aria-label="TrustAnchor route state">
           <span>Route state</span>
-          <strong>{selectedAgent}</strong>
+          <strong
+            className={
+              stats?.selectedAgentId ? undefined : "anchor-route-card__placeholder"
+            }
+          >
+            {stats?.selectedAgentId ? selectedAgent : "—"}
+          </strong>
           <dl>
             <div>
               <dt>Status</dt>
