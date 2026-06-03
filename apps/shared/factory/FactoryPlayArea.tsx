@@ -136,7 +136,11 @@ export function FactoryPlayArea({
   const { val, bool, str } = useStateBindings(state);
   const currentPlan =
     val<FactoryPlan>("currentPlan") ??
-    buildFactoryPlan(kind, kind === "nep17" ? nep17 : kind === "nep11" ? nep11 : miniapp, { appId });
+    buildFactoryPlan(
+      kind,
+      (kind === "nep17" ? nep17 : kind === "nep11" ? nep11 : miniapp) as unknown as Record<string, unknown>,
+      { appId },
+    );
   const isSigning = bool("isSigning");
   const walletSignature = str("walletSignature");
   const lastError = str("lastError");
