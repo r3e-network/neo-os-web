@@ -46,11 +46,11 @@
   min-width: 0;
 
   h2 {
-    margin: 0.15rem 0 0;
+    margin: 0.2rem 0 0;
     color: var(--ns-ink, #1e1e2e);
-    font-size: 1.4rem;
+    font-size: 1.55rem;
     font-weight: 800;
-    line-height: 1.15;
+    line-height: 1.12;
     letter-spacing: -0.02em;
   }
 }
@@ -99,7 +99,7 @@
     color: var(--ns-text-muted, #8a92a6);
     font-size: 0.66rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
   }
 }
@@ -119,10 +119,10 @@
   align-items: flex-start;
   gap: 0.55rem;
   padding: 0.8rem 1rem;
-  border: 1px solid #f0d58a;
+  border: 1px solid rgba(245, 166, 35, 0.32);
   border-radius: var(--ns-radius-md, 14px);
-  background: #fff8e6;
-  color: #7a5200;
+  background: var(--ns-warning-soft, #fff3dd);
+  color: #8a5a00;
   font-size: 0.82rem;
   font-weight: 700;
 
@@ -212,12 +212,15 @@
 
   h3 {
     margin: 0;
-    font-size: 1rem;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 1.13rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
 
   p {
     margin: 0.35rem 0 0;
-    color: #607087;
+    color: var(--ns-text-2, #5b6478);
     font-size: 0.84rem;
     line-height: 1.45;
   }
@@ -256,7 +259,7 @@
   gap: 0.35rem;
 
   span {
-    color: #4b5563;
+    color: var(--ns-text-2, #5b6478);
     font-size: 0.78rem;
     font-weight: 750;
   }
@@ -271,6 +274,19 @@
     padding: 0 0.75rem;
     font-size: 0.92rem;
     font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+      box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+
+    &:hover {
+      border-color: rgba(123, 97, 255, 0.4);
+    }
+
+    &:focus-visible {
+      outline: none;
+      border-color: var(--ns-violet, #7b61ff);
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    }
   }
 }
 
@@ -504,7 +520,7 @@
 }
 
 .council-proposal-id {
-  color: #7b8794;
+  color: var(--ns-text-muted, #8a92a6);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.76rem;
   font-weight: 750;
@@ -512,14 +528,16 @@
 
 .council-proposal-title {
   margin: 0;
-  color: #172033;
-  font-size: 1.03rem;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1.05rem;
+  font-weight: 700;
   line-height: 1.28;
+  letter-spacing: -0.01em;
 }
 
 .council-proposal-desc {
   margin: 0.5rem 0 0;
-  color: #607087;
+  color: var(--ns-text-2, #5b6478);
   font-size: 0.87rem;
   line-height: 1.5;
 }
@@ -532,14 +550,14 @@
   height: 0.5rem;
   overflow: hidden;
   border-radius: 999px;
-  background: #fee2e2;
+  background: var(--ns-danger-soft, #fde7e9);
 }
 
 .council-vote-bar-fill {
   height: 100%;
   border-radius: inherit;
-  background: #10b981;
-  transition: width 0.2s ease;
+  background: var(--ns-success, #16c784);
+  transition: width var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .council-vote-counts,
@@ -551,6 +569,7 @@
   margin-top: 0.55rem;
   font-size: 0.76rem;
   font-weight: 750;
+  font-variant-numeric: tabular-nums;
 }
 
 .council-vote-for {
@@ -564,7 +583,7 @@
 .council-proposal-meta {
   justify-content: flex-start;
   gap: 0.5rem 1.1rem;
-  color: #6b7280;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .council-proposal-actions {
@@ -583,7 +602,7 @@
 }
 
 .council-readonly-note {
-  color: #4b5563;
+  color: var(--ns-text-2, #5b6478);
   font-size: 0.78rem;
   font-weight: 750;
   line-height: 1.4;
@@ -599,7 +618,7 @@
 
   p {
     margin: 0.7rem 0 0;
-    color: #4b5563;
+    color: var(--ns-text-2, #5b6478);
     line-height: 1.5;
   }
 }
@@ -612,19 +631,40 @@
 
   h3 {
     margin: 0.5rem 0 0;
-    color: #172033;
-    font-size: 1.05rem;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 1.13rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
 
   button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
     width: 2rem;
     height: 2rem;
-    border: 1px solid #d7dee8;
+    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
     border-radius: 999px;
-    background: #ffffff;
-    color: #607087;
+    background: var(--ns-surface, #ffffff);
+    color: var(--ns-text-2, #5b6478);
     cursor: pointer;
-    font-weight: 900;
+    font-size: 1.15rem;
+    line-height: 1;
+    transition: background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+      color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+      border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+
+    &:hover {
+      border-color: rgba(123, 97, 255, 0.4);
+      background: var(--ns-violet-soft, #eeeaff);
+      color: var(--ns-violet-strong, #6a4df4);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    }
   }
 }
 
@@ -639,19 +679,20 @@
   }
 
   dt {
-    color: #7b8794;
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 0.72rem;
     font-weight: 800;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
 
   dd {
     margin: 0.25rem 0 0;
     overflow-wrap: anywhere;
-    color: #172033;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 0.86rem;
     font-weight: 750;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -723,10 +764,20 @@
 
   .council-tabs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.25rem;
   }
 
   .council-tabs button {
-    font-size: 0.78rem;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-height: 3rem;
+    padding: 0 0.25rem;
+    font-size: 0.74rem;
+    line-height: 1.1;
+  }
+
+  .council-tab-label {
+    text-align: center;
   }
 
   .council-stat {

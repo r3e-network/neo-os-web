@@ -9,7 +9,8 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   text-shadow: none;
 }
 
@@ -34,7 +35,8 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .recent-empty-state strong {
@@ -66,6 +68,15 @@
 
 .tx-card {
   cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.tx-card:hover {
+  transform: translateY(-1px);
+}
+
+.tx-card:hover .tx-hash {
+  color: var(--xp-accent-strong, #0fb174);
 }
 
 .tx-content {

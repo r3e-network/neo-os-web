@@ -78,7 +78,7 @@ export default function PlayArea({
   const canRequestSponsor =
     hasAAAddress && hasSponsorAmount && !isCheckingSponsorship;
   const canSubmitRelay = hasAAAddress && payloadJsonIsValid && !isRelaying;
-  const draftAAAddress = aaAddress.trim() || t("notAvailable");
+  const draftAAAddress = aaAddress.trim() || "—";
 
   // Single human-readable result line: show only after an action has populated state.
   const relayResult = parseStateJson(relayResponse);
@@ -135,6 +135,7 @@ export default function PlayArea({
             </svg>
           </span>
           <div className="relay-hero__copy">
+            <span className="relay-hero__eyebrow">{t("relayLabel") || "Relay"}</span>
             <h2>{t("relayHeroTitle")}</h2>
             <p>{t("relayHeroCopy")}</p>
           </div>
@@ -143,15 +144,15 @@ export default function PlayArea({
         <div className="relay-hero__facts" aria-label={t("relayMetricsLabel")}>
           <div className="relay-fact">
             <span>{t("network") || "Network"}</span>
-            <strong>{networkDisplay || "--"}</strong>
+            <strong>{networkDisplay || "—"}</strong>
           </div>
           <p
             className="relay-hero__caption"
-            title={`${t("relayEndpointMetric")}: ${relayUrlDisplay || "--"} · ${t("aaCoreLabel")}: ${aaCoreDisplay || "--"}`}
+            title={`${t("relayEndpointMetric")}: ${relayUrlDisplay || "—"} · ${t("aaCoreLabel")}: ${aaCoreDisplay || "—"}`}
           >
-            {t("relayEndpointMetric")}: <code>{relayUrlDisplay || "--"}</code>
+            {t("relayEndpointMetric")}: <code>{relayUrlDisplay || "—"}</code>
             <span aria-hidden="true"> · </span>
-            {t("aaCoreLabel")}: <code>{aaCoreDisplay || "--"}</code>
+            {t("aaCoreLabel")}: <code>{aaCoreDisplay || "—"}</code>
           </p>
         </div>
       </section>

@@ -304,6 +304,7 @@ export default function PlayArea({
           single muted empty-state line. */}
       <section className="session-summary">
         <div className="session-section-heading">
+          <span>{t("sessionMetricStatus")}</span>
           <h3>{t("latestState")}</h3>
         </div>
 
