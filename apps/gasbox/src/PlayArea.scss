@@ -20,7 +20,7 @@
   align-items: center;
   padding: 26px 28px;
   border-radius: var(--ns-radius-lg, 20px);
-  background: linear-gradient(135deg, #ffffff 0%, #eefcf7 52%, #fff7ed 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--ns-brand-soft, #e4f8f0) 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
@@ -121,8 +121,8 @@
   min-width: 0;
   padding: 14px 14px 15px;
   border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, #e4e7ee);
 }
 
 .gasbox-metric strong,
@@ -191,18 +191,26 @@
 
 .gasbox-market-empty {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.78fr);
-  gap: 24px;
-  align-items: center;
+  justify-items: center;
+  gap: 16px;
   min-width: 0;
-  padding: 24px;
+  padding: 40px 24px;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
+  text-align: center;
 }
 
-.gasbox-market-empty .neo-card__content {
-  display: grid;
-  gap: 12px;
+.gasbox-market-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 1.2rem;
+  font-weight: 800;
 }
 
 .gasbox-market-empty__copy,
@@ -215,38 +223,17 @@
 }
 
 .gasbox-market-empty__copy {
-  gap: 10px;
-}
-
-.gasbox-empty-actions {
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-}
-
-.gasbox-empty-actions .neo-btn {
-  justify-self: stretch;
+  gap: 6px;
+  justify-items: center;
+  max-width: 420px;
 }
 
 .gasbox-empty-button-row {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
   min-width: 0;
-}
-
-.gasbox-studio-note {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--ns-border, #e4e7ee);
-}
-
-.gasbox-studio-note strong {
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  line-height: 1.45;
 }
 
 .gasbox-machine-grid {
@@ -623,13 +610,8 @@
     grid-template-columns: 1fr;
   }
 
-  .gasbox-market-empty,
   .gasbox-decision-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .gasbox-market-empty {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -774,6 +756,17 @@
   font-size: 0.875rem;
   font-family: inherit;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gasbox-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%238a92a6' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  cursor: pointer;
 }
 
 .gasbox-field input:hover,

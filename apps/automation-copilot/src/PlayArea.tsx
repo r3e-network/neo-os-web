@@ -67,20 +67,24 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
             <Bot size={22} />
           </span>
           <div>
+            <span className="automation-hero__eyebrow">{t("automationRoute") || "Price Automation"}</span>
             <h2 id="automation-title">{t("title") || "Automation Copilot"}</h2>
             <p>{t("subtitle") || "Create and manage price-triggered Morpheus automation triggers."}</p>
-            <div className="automation-hero__facts">
-              <span className="automation-hero__fact">
-                <span className="automation-hero__fact-label">{t("currentPrice") || "Current Price"}</span>
-                <strong>{hasPrice ? currentPrice : "—"}</strong>
-              </span>
-            </div>
           </div>
         </div>
 
-        <div className={`automation-status-badge automation-status-badge--${statusTone}`}>
-          <span className="automation-status-badge__dot" aria-hidden="true" />
-          <span>{statusLabel}</span>
+        <div className="automation-hero__facts">
+          <span className="automation-hero__fact">
+            <span className="automation-hero__fact-label">{t("currentPrice") || "Current Price"}</span>
+            <strong>{hasPrice ? currentPrice : "—"}</strong>
+          </span>
+          <span className={`automation-hero__fact automation-hero__fact--status automation-hero__fact--${statusTone}`}>
+            <span className="automation-hero__fact-label">{t("triggerStatus") || "Trigger Status"}</span>
+            <strong>
+              <span className="automation-status-badge__dot" aria-hidden="true" />
+              {statusLabel}
+            </strong>
+          </span>
         </div>
       </section>
 
@@ -142,17 +146,17 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
           </div>
 
           <div className="automation-actions automation-actions--secondary">
-            <NeoButton variant="ghost" size="sm" loading={isRequesting} onClick={() => dispatch("fetchCurrentPrice")}>
+            <NeoButton variant="secondary" size="sm" loading={isRequesting} onClick={() => dispatch("fetchCurrentPrice")}>
               <RefreshCw size={15} aria-hidden="true" />
               <span>{t("fetchPrice") || "Fetch Price"}</span>
             </NeoButton>
-            <NeoButton variant="ghost" size="sm" onClick={() => dispatch("buildRecipePayload")}>
+            <NeoButton variant="secondary" size="sm" onClick={() => dispatch("buildRecipePayload")}>
               <ListChecks size={15} aria-hidden="true" />
               <span>{t("buildRecipe") || "Build Recipe"}</span>
             </NeoButton>
           </div>
 
-          <div className="automation-panel__hint">
+          <div className="automation-panel__hint automation-panel__hint--info">
             {t("automationGatewayHint") ||
               "Registration is sent through the host automation gateway. Gateway fallbacks are labeled as handoff intents, not successful triggers."}
           </div>
@@ -212,12 +216,23 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
               ) : null}
             </>
           ) : (
-            <div className="automation-empty automation-empty--status">
-              <span className="automation-empty__icon" aria-hidden="true">
-                <Power size={20} />
-              </span>
-              <p>{t("noTriggerSelected") || "Register or refresh a trigger to see its status."}</p>
-            </div>
+            <>
+              <div className="automation-empty automation-empty--status">
+                <span className="automation-empty__icon" aria-hidden="true">
+                  <Power size={20} />
+                </span>
+                <p>{t("noTriggerSelected") || "Register or refresh a trigger to see its status."}</p>
+              </div>
+
+              <div className="automation-route">
+                <span className="automation-route__label">{t("automationRoute") || "Automation route"}</span>
+                <ol className="automation-route__steps">
+                  <li><span aria-hidden="true">1</span>{t("routePrice") || "Read pricefeed"}</li>
+                  <li><span aria-hidden="true">2</span>{t("routeRegister") || "Register trigger"}</li>
+                  <li><span aria-hidden="true">3</span>{t("routeOperate") || "Enable or disable"}</li>
+                </ol>
+              </div>
+            </>
           )}
         </div>
       </section>

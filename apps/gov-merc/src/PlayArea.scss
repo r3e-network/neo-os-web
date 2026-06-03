@@ -32,9 +32,9 @@ body {
   align-items: stretch;
   min-width: 0;
   padding: 28px;
-  border: 1px solid rgba(15, 177, 116, 0.16);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
-  background: linear-gradient(135deg, #f1fdf8 0%, #e4f8f0 48%, #d6f2e6 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--ns-brand-soft, #e4f8f0) 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   letter-spacing: 0;
 }
@@ -47,10 +47,10 @@ body {
 
   span {
     width: fit-content;
-    padding: 5px 11px;
-    border: 1px solid rgba(15, 177, 116, 0.2);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.7);
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
     color: var(--ns-brand-strong, #0fb174);
     font-size: 11px;
     font-weight: 700;
@@ -83,38 +83,64 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
-  color: #4a6357;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.3;
+  margin-top: 6px;
   letter-spacing: 0;
+}
+
+.gov-merc-hero-deposits {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
 
   span {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    background: transparent;
-    color: #4a6357;
-    font-size: 12px;
-    font-weight: 600;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
 
   strong {
-    color: var(--ns-brand-strong, #0fb174);
+    color: var(--ns-ink, #102019);
+    font-size: 14px;
     font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
 }
 
+.gov-merc-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+
+  &.is-loading {
+    background: var(--ns-surface-subtle, #f7f8fa);
+    color: var(--ns-text-muted, #8a92a6);
+  }
+}
+
 .gov-merc-hero-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(15, 177, 116, 0.45);
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand, #16c784);
+
+  .is-loading & {
+    background: var(--ns-text-muted, #8a92a6);
+  }
 }
 
 .gov-merc-scoreboard {
@@ -196,6 +222,13 @@ body {
   .neo-btn:focus-visible {
     outline: none;
     box-shadow: 0 0 0 4px rgba(15, 177, 116, 0.2);
+  }
+
+  .neo-btn--primary:disabled {
+    background: var(--ns-brand-soft, #e4f8f0);
+    border-color: rgba(15, 177, 116, 0.18);
+    color: var(--ns-brand-strong, #0fb174);
+    opacity: 0.65;
   }
 }
 

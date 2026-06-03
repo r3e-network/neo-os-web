@@ -70,30 +70,37 @@
 .account-hero__meta {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.account-hero__stat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
   padding: 12px 16px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
+  border-radius: var(--ns-radius-md, 14px);
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.account-hero__fact {
-  display: flex;
-  min-width: 0;
-  align-items: baseline;
-  gap: 8px;
+.account-hero__stat--wide {
+  flex: 1 1 220px;
+}
+
+.account-hero__stat span {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.account-hero__fact strong {
+.account-hero__stat strong {
   overflow: hidden;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
@@ -102,11 +109,9 @@
   white-space: nowrap;
 }
 
-.account-hero__divider {
-  width: 1px;
-  height: 18px;
-  flex: 0 0 auto;
-  background: var(--ns-border, rgba(20, 22, 38, 0.12));
+.account-hero__stat--wide strong {
+  font-family: var(--font-mono, "SF Mono", "Fira Code", monospace);
+  font-size: 13px;
 }
 
 /* ---- Workspace: Inspect (left) + Register (right), one shared AccountId ---- */
@@ -114,7 +119,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .account-command,
@@ -122,11 +127,22 @@
   border-radius: 20px;
 }
 
+.account-command,
+.account-register-card,
 .account-command .neo-card__content,
 .account-register-card .neo-card__content {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Left card fills the taller right column instead of leaving dead space. */
+.account-command .neo-card__content {
+  height: 100%;
+}
+
+.account-command .account-form {
+  flex: 1 1 auto;
 }
 
 .account-form {
@@ -150,6 +166,14 @@
   opacity: 1;
 }
 
+/* Disabled primary CTA keeps an accent affordance (faded violet) so it
+   stays distinct from neutral secondary/status controls. */
+.aa-account-play-area .neo-btn--primary:disabled {
+  border-color: transparent !important;
+  background: var(--ns-violet-soft, #eeeaff) !important;
+  color: var(--ns-violet-strong, #6a4df4) !important;
+}
+
 .account-hint {
   margin: 0;
   padding: 11px 13px;
@@ -162,15 +186,12 @@
   line-height: 1.45;
 }
 
-.account-inline-note {
-  margin: 0;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.5;
-}
-
 .account-empty {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
   margin: 0;
   padding: 16px;
   border: 1px dashed var(--ns-border, rgba(20, 22, 38, 0.12));
@@ -180,6 +201,11 @@
   font-size: 13px;
   font-weight: 600;
   text-align: center;
+}
+
+/* Inspected results should also fill the left column height. */
+.account-detail-grid {
+  flex: 1 1 auto;
 }
 
 /* ---- Account state grid (only after Inspect returns) ---- */

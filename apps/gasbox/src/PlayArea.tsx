@@ -90,7 +90,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [studioError, setStudioError] = useState<string | null>(null);
 
   const selectedMachineReady = Boolean(selectedMachine?.active && selectedMachine?.inventoryReady);
-  const machineCountDisplay = machineCount > 0 ? machineCount.toLocaleString() : t("gasboxPending");
+  const machineCountDisplay = machineCount > 0 ? machineCount.toLocaleString() : "—";
   const userPullsDisplay = formatCount(userPulls, "0");
   const totalPullsDisplay = formatCount(totalPulls, "0");
   const signalLabel = isCreating
@@ -301,24 +301,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         {machines.length === 0 ? (
           <div className="gasbox-market-empty">
+            <span className="gasbox-market-empty__icon" aria-hidden="true">G</span>
             <div className="gasbox-market-empty__copy">
               <span>{t("gasboxMarketEmptyTitle")}</span>
               <strong>{t("gasboxMarketEmptyDesc")}</strong>
-              <p>{t("gasboxMarketEmptyHint")}</p>
             </div>
-            <div className="gasbox-empty-actions">
-              <div className="gasbox-empty-button-row">
-                <NeoButton variant="primary" size="md" onClick={() => dispatch("refreshMachines")}>
-                  {t("refreshMachines")}
-                </NeoButton>
-                <NeoButton variant="secondary" size="md" onClick={() => dispatch("openStudio")}>
-                  {t("openStudio")}
-                </NeoButton>
-              </div>
-              <div className="gasbox-studio-note">
-                <span>{t("studioTitle")}</span>
-                <strong>{t("gasboxStudioHint")}</strong>
-              </div>
+            <div className="gasbox-empty-button-row">
+              <NeoButton variant="primary" size="md" onClick={() => dispatch("refreshMachines")}>
+                {t("refreshMachines")}
+              </NeoButton>
+              <NeoButton variant="secondary" size="md" onClick={() => dispatch("openStudio")}>
+                {t("openStudio")}
+              </NeoButton>
             </div>
           </div>
         ) : (

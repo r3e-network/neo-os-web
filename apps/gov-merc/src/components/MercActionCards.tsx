@@ -92,7 +92,7 @@ export default function MercActionCards({
           onChange={(value) => onAmountChange("bidAmount", value)}
         />
         <NeoButton
-          variant="primary"
+          variant="secondary"
           loading={isBusy}
           disabled={isBusy || !isPositiveAmount(bidAmount)}
           onClick={() => dispatch("placeBid")}
