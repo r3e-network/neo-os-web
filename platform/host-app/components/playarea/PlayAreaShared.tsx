@@ -404,6 +404,54 @@ async function invokeBridgeRead(
   return payload?.result ?? payload;
 }
 
+// Audit fix (frontend bridge hardening): wallet methods that sign or move funds must not run
+// silently on a miniapp's request. These require an explicit user confirmation in the host.
+const SENSITIVE_BRIDGE_METHODS = new Set(["signMessage", "invoke", "send"]);
+
+function describeSensitiveBridgeOperation(method: string, payload: unknown): string {
+  const rec = isBridgeRecord(payload) ? payload : {};
+  if (method === "send") {
+    const amount = asBridgeString(rec.amount) || "?";
+    const asset = asBridgeString(rec.asset) || "?";
+    const to = asBridgeString(rec.to) || "?";
+    return `send ${amount} ${asset} to ${to}`;
+  }
+  if (method === "signMessage") {
+    const msg = asBridgeString(rec.message);
+    const preview = msg.length > 120 ? `${msg.slice(0, 120)}…` : msg;
+    return `sign a message:\n\n"${preview}"`;
+  }
+  if (method === "invoke") {
+    const invocations = Array.isArray(rec.invocations)
+      ? rec.invocations.filter(isBridgeRecord)
+      : [];
+    const ops = invocations
+      .map((inv) => {
+        const scriptHash =
+          asBridgeString(inv.scriptHash) || asBridgeString(inv.contract) || "?";
+        const op = asBridgeString(inv.operation) || asBridgeString(inv.method) || "?";
+        return `${op} @ ${scriptHash}`;
+      })
+      .join(", ");
+    return `submit a transaction (${ops || "no operations"})`;
+  }
+  return method;
+}
+
+function confirmSensitiveBridgeOperation(
+  appId: string,
+  method: string,
+  payload: unknown,
+): boolean {
+  // Runs only client-side (invoked from a message handler), but fail closed if no
+  // confirmation primitive is available rather than approving a fund-moving op silently.
+  if (typeof window === "undefined" || typeof window.confirm !== "function") return false;
+  const description = describeSensitiveBridgeOperation(method, payload);
+  return window.confirm(
+    `"${appId}" is asking your wallet to ${description}.\n\nApprove this request?`,
+  );
+}
+
 async function handleEmbeddedWalletBridgeRequest(
   method: string,
   payload: unknown,
@@ -497,8 +545,22 @@ export function useEmbeddedWalletBridge({
 }) {
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      const frameWindow = iframeRef.current?.contentWindow;
+      const frame = iframeRef.current;
+      const frameWindow = frame?.contentWindow;
+      // Identity check: the message must originate from this exact embedded frame's window.
       if (!frameWindow || event.source !== frameWindow) return;
+
+      // Audit fix (origin hardening): additionally allowlist the sender origin against the
+      // frame's own src origin. Miniapps are first-party (served same-origin), so a legitimate
+      // message's origin equals the frame origin; anything else is rejected.
+      let expectedOrigin = window.location.origin;
+      try {
+        expectedOrigin = new URL(frame!.src, window.location.href).origin;
+      } catch {
+        expectedOrigin = window.location.origin;
+      }
+      if (event.origin !== expectedOrigin) return;
+
       const data = event.data as BridgeRequest;
       if (!isBridgeRecord(data) || data.type !== HOST_WALLET_BRIDGE_REQUEST) return;
       const id = asBridgeString(data.id);
@@ -506,6 +568,8 @@ export function useEmbeddedWalletBridge({
       if (!id || !method) return;
 
       const reply = (response: BridgeRecord) => {
+        // Reply only to the expected origin (was "*"), so a response carrying a signature/txid
+        // cannot leak if the frame is ever navigated cross-origin.
         frameWindow.postMessage(
           {
             type: HOST_WALLET_BRIDGE_RESPONSE,
@@ -513,9 +577,19 @@ export function useEmbeddedWalletBridge({
             appId,
             ...response,
           },
-          "*",
+          expectedOrigin,
         );
       };
+
+      // Audit fix (confirmation hardening): require explicit user approval before any signing
+      // or fund-moving wallet operation requested by the embedded miniapp.
+      if (
+        SENSITIVE_BRIDGE_METHODS.has(method) &&
+        !confirmSensitiveBridgeOperation(appId, method, data.payload)
+      ) {
+        reply({ ok: false, error: { message: "User rejected the request." } });
+        return;
+      }
 
       void handleEmbeddedWalletBridgeRequest(method, data.payload, network)
         .then((result) => {
