@@ -22,46 +22,29 @@
 }
 
 .forever-album-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.38fr);
-  gap: 18px;
-  max-width: 1180px;
-  margin: 0 auto;
-  align-items: start;
-}
-
-.forever-album-main,
-.forever-album-side {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-width: 0;
+  gap: 16px;
+  max-width: 880px;
+  margin: 0 auto;
 }
 
 .forever-album-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 0.82fr) minmax(280px, 0.42fr);
-  gap: 16px;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
   border: 1px solid rgba(24, 38, 58, 0.08);
   border-radius: 8px;
   background: linear-gradient(135deg, #ffffff 0%, #eefaf5 52%, #fff7e9 100%);
   box-shadow: 0 18px 42px rgba(24, 38, 58, 0.08);
-}
-
-.forever-album-hero-copy {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 10px;
-  min-width: 0;
 
   h1 {
     margin: 0;
     max-width: 660px;
     color: #0d1b2a;
-    font-size: 32px;
-    line-height: 1.08;
+    font-size: 30px;
+    line-height: 1.1;
     font-weight: 800;
     letter-spacing: 0;
   }
@@ -72,6 +55,25 @@
     color: #53616f;
     font-size: 14px;
     line-height: 1.6;
+  }
+}
+
+.forever-album-hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 2px;
+  color: #4a5666;
+  font-size: 12.5px;
+  font-weight: 600;
+
+  .forever-album-hero-cap {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(0, 168, 107, 0.1);
+    color: #047857;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -110,36 +112,10 @@
   flex-wrap: wrap;
 }
 
-.forever-album-device {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid rgba(24, 38, 58, 0.08);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+.forever-album-actions {
+  margin-top: 4px;
 }
 
-.forever-album-device-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-
-  span {
-    color: #657383;
-    font-size: 12px;
-    font-weight: 650;
-  }
-
-  strong {
-    color: #111827;
-    font-size: 18px;
-  }
-}
-
-.forever-album-progress,
 .forever-album-upload-meter {
   height: 10px;
   overflow: hidden;
@@ -177,42 +153,6 @@
   }
 }
 
-.forever-album-device-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.forever-album-device-step {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
-  border: 1px solid #e2eaf1;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #3c4757;
-  font-size: 12.5px;
-  font-weight: 650;
-  line-height: 1.3;
-
-  em {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    flex-shrink: 0;
-    border-radius: 8px;
-    background: #e4f8f0;
-    color: #0fb174;
-    font-size: 11px;
-    font-style: normal;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
 .forever-album-vault-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -245,26 +185,29 @@
   }
 }
 
-.forever-album-content-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.76fr) minmax(300px, 0.44fr);
-  gap: 14px;
-  align-items: start;
-}
-
-.forever-album-upload-panel,
-.forever-album-timeline {
+.forever-album-workspace {
   border-color: #e2eaf1;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 16px 36px rgba(24, 38, 58, 0.06);
 }
 
-.forever-album-upload-panel .neo-card__content,
-.forever-album-timeline .neo-card__content {
+.forever-album-workspace .neo-card__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.62fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.forever-album-uploader {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #eef2f6;
+  border-radius: 8px;
+  background: #fbfdff;
 }
 
 .forever-album-file-picker {
@@ -443,17 +386,58 @@
   }
 }
 
-.forever-album-timeline {
+.forever-album-howto {
+  border: 1px solid #e4ebf2;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16px 36px rgba(24, 38, 58, 0.06);
+
+  > summary {
+    padding: 14px 16px;
+    color: #152238;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 700;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::after {
+      content: "+";
+      float: right;
+      color: #8a92a6;
+      font-weight: 700;
+    }
+  }
+
+  &[open] > summary::after {
+    content: "−";
+  }
+}
+
+.forever-album-howto-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 16px 16px;
+}
+
+.forever-album-howto-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+
   div {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 12px 0;
-    border-bottom: 1px solid #eef2f6;
-
-    &:last-child {
-      border-bottom: 0;
-    }
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #eef2f6;
+    border-radius: 8px;
+    background: #f8fbfd;
   }
 
   strong {
@@ -473,11 +457,6 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  padding: 16px;
-  border: 1px solid #e4ebf2;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16px 36px rgba(24, 38, 58, 0.06);
 
   div {
     display: flex;
@@ -485,6 +464,7 @@
     gap: 6px;
     min-width: 0;
     padding: 12px;
+    border: 1px solid #eef2f6;
     border-radius: 8px;
     background: #f8fbfd;
   }
@@ -569,9 +549,7 @@
 }
 
 @media (max-width: 980px) {
-  .forever-album-shell,
-  .forever-album-content-grid,
-  .forever-album-hero {
+  .forever-album-workspace .neo-card__content {
     grid-template-columns: 1fr;
   }
 }
@@ -581,31 +559,24 @@
     padding: 12px;
   }
 
-  .forever-album-shell {
-    grid-template-columns: 1fr;
-  }
-
   .forever-album-hero {
-    gap: 12px;
+    gap: 10px;
     padding: 14px;
   }
 
-  .forever-album-hero-copy h1 {
+  .forever-album-hero h1 {
     font-size: 24px;
   }
 
-  .forever-album-hero-copy p {
+  .forever-album-hero p {
     font-size: 13px;
-  }
-
-  .forever-album-device {
-    padding: 12px;
   }
 
   .forever-album-vault-strip {
     grid-template-columns: 1fr 1fr;
   }
 
+  .forever-album-howto-steps,
   .forever-album-safety-strip,
   .forever-album-upload-meta {
     grid-template-columns: 1fr;

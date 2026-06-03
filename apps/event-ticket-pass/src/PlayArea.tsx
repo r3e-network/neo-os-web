@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -43,6 +44,7 @@ function json(value: unknown) {
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
+  const [deskTab, setDeskTab] = useState<"issue" | "checkin">("issue");
 
   const events = val<EventItem[]>("events", []) ?? [];
   const tickets = val<TicketItem[]>("tickets", []) ?? [];
@@ -80,6 +82,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const requestJson = json(latestRequest);
   const resultJson = json(latestResult);
 
+  const hasMetrics = eventsCount > 0 || ticketsCount > 0 || activeEventsCount > 0;
+  const hasEvidence = Boolean(requestJson || resultJson);
+
   return (
     <div className="ticket-play-area">
       <section className="ticket-hero" aria-labelledby="event-ticket-title">
@@ -91,9 +96,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="ticket-hero__eyebrow">{t("eventPass")}</span>
             <h2 id="event-ticket-title">{t("title")}</h2>
             <p>{t("docSubtitle")}</p>
+            <div className="ticket-hero__flow" aria-label={t("workflow")}>
+              <span><CalendarDays size={14} aria-hidden="true" />{t("flowCreate")}</span>
+              <span><UserPlus size={14} aria-hidden="true" />{t("flowIssue")}</span>
+              <span><ScanLine size={14} aria-hidden="true" />{t("flowCheckin")}</span>
+            </div>
           </div>
         </div>
-        <div className="ticket-hero__stats">
+        <div className="ticket-hero__side">
+          <div className="ticket-hero__wallet">
+            <span>{t("wallet")}</span>
+            <strong>{address ? short(address) : t("walletNotConnected")}</strong>
+            <small>{isLoading ? t("lookingUp") : workflowStatus}</small>
+          </div>
+          <NeoButton variant="secondary" onClick={() => dispatch("connectWallet")}>
+            <CheckCircle2 size={17} aria-hidden="true" />
+            <span>{address ? t("refresh") : t("connectWallet")}</span>
+          </NeoButton>
+        </div>
+      </section>
+
+      {hasMetrics ? (
+        <section className="ticket-metrics" aria-label={t("serviceStatus")}>
           <div>
             <span>{t("sidebarEvents")}</span>
             <strong>{eventsCount}</strong>
@@ -106,29 +130,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span>{t("sidebarActive")}</span>
             <strong>{activeEventsCount}</strong>
           </div>
-        </div>
-      </section>
-
-      <section className="ticket-flow" aria-label={t("workflow")}>
-        <div><CalendarDays size={18} aria-hidden="true" /><span>{t("flowCreate")}</span></div>
-        <div><UserPlus size={18} aria-hidden="true" /><span>{t("flowIssue")}</span></div>
-        <div><ScanLine size={18} aria-hidden="true" /><span>{t("flowCheckin")}</span></div>
-      </section>
-
-      <section className="ticket-status" aria-label={t("serviceStatus")}>
-        <div>
-          <span>{t("wallet")}</span>
-          <strong>{address ? short(address) : t("walletNotConnected")}</strong>
-        </div>
-        <div>
-          <span>{t("serviceStatus")}</span>
-          <strong>{isLoading ? t("lookingUp") : workflowStatus}</strong>
-        </div>
-        <NeoButton variant="secondary" onClick={() => dispatch("connectWallet")}>
-          <CheckCircle2 size={17} aria-hidden="true" />
-          <span>{address ? t("refresh") : t("connectWallet")}</span>
-        </NeoButton>
-      </section>
+        </section>
+      ) : null}
 
       {lastError ? <div className="ticket-alert" role="alert">{lastError}</div> : null}
 
@@ -247,110 +250,119 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               })}
             </div>
           ) : (
-            <div className="ticket-empty">
-              {t("emptyEventsHint")}
-            </div>
+            <div className="ticket-empty ticket-empty--line">{t("emptyEventsHint")}</div>
           )}
         </section>
       </section>
 
-      <section className="ticket-workspace ticket-workspace--lower">
-        <form
-          className="ticket-panel ticket-panel--issue"
-          aria-label={t("issueTicketTitle")}
-          onSubmit={(event) => {
-            event.preventDefault();
-            void dispatch("issueTicket");
-          }}
-        >
-          <div className="ticket-panel__head">
-            <div>
-              <span>{t("issueTicketTitle")}</span>
-              <strong>{selectedEvent?.name || t("selectEventFirst")}</strong>
-            </div>
-            <UserPlus size={20} aria-hidden="true" />
-          </div>
-          <NeoSelect
-            value={selectedEventId}
-            label={t("eventName")}
-            placeholder={t("selectEventFirst")}
-            options={events.map((event) => ({ value: event.id, label: event.name || event.id }))}
-            onChange={(value) => dispatch("selectEvent", value)}
-          />
-          <NeoInput
-            value={issueRecipient}
-            label={t("issueRecipient")}
-            placeholder={t("issueRecipientPlaceholder")}
-            onChange={(value) => state.issueRecipient?.set(value)}
-          />
-          <div className="ticket-form-grid">
-            <NeoInput
-              value={issueSeat}
-              label={t("issueSeat")}
-              placeholder={t("issueSeatPlaceholder")}
-              onChange={(value) => state.issueSeat?.set(value)}
-            />
-            <NeoInput
-              value={issueMemo}
-              label={t("issueMemo")}
-              placeholder={t("issueMemoPlaceholder")}
-              onChange={(value) => state.issueMemo?.set(value)}
-            />
-          </div>
-          <NeoButton variant="primary" loading={isIssuing} disabled={!canIssueTicket} onClick={() => dispatch("issueTicket")}>
-            <Ticket size={17} aria-hidden="true" />
-            <span>{t("issue")}</span>
-          </NeoButton>
-        </form>
+      <section className="ticket-panel ticket-desk" aria-label={t("issueTicketTitle")}>
+        <div className="ticket-tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={deskTab === "issue"}
+            className={`ticket-tab${deskTab === "issue" ? " is-active" : ""}`}
+            onClick={() => setDeskTab("issue")}
+          >
+            <UserPlus size={16} aria-hidden="true" />
+            <span>{t("issueTicketTitle")}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={deskTab === "checkin"}
+            className={`ticket-tab${deskTab === "checkin" ? " is-active" : ""}`}
+            onClick={() => setDeskTab("checkin")}
+          >
+            <ClipboardCheck size={16} aria-hidden="true" />
+            <span>{t("checkinTab")}</span>
+          </button>
+        </div>
 
-        <form
-          className="ticket-panel ticket-panel--checkin"
-          aria-label={t("checkinTab")}
-          onSubmit={(event) => {
-            event.preventDefault();
-            void dispatch("lookupTicket");
-          }}
-        >
-          <div className="ticket-panel__head">
-            <div>
-              <span>{t("checkinTab")}</span>
-              <strong>{lookup ? t("ticketFound") : t("lookup")}</strong>
+        {deskTab === "issue" ? (
+          <form
+            className="ticket-desk__panel"
+            aria-label={t("issueTicketTitle")}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void dispatch("issueTicket");
+            }}
+          >
+            <NeoSelect
+              value={selectedEventId}
+              label={t("eventName")}
+              placeholder={selectedEvent?.name || t("selectEventFirst")}
+              options={events.map((event) => ({ value: event.id, label: event.name || event.id }))}
+              onChange={(value) => dispatch("selectEvent", value)}
+            />
+            <NeoInput
+              value={issueRecipient}
+              label={t("issueRecipient")}
+              placeholder={t("issueRecipientPlaceholder")}
+              onChange={(value) => state.issueRecipient?.set(value)}
+            />
+            <div className="ticket-form-grid">
+              <NeoInput
+                value={issueSeat}
+                label={t("issueSeat")}
+                placeholder={t("issueSeatPlaceholder")}
+                onChange={(value) => state.issueSeat?.set(value)}
+              />
+              <NeoInput
+                value={issueMemo}
+                label={t("issueMemo")}
+                placeholder={t("issueMemoPlaceholder")}
+                onChange={(value) => state.issueMemo?.set(value)}
+              />
             </div>
-            <ClipboardCheck size={20} aria-hidden="true" />
-          </div>
-          <NeoInput
-            value={checkinTokenId}
-            label={t("checkinTokenId")}
-            placeholder={t("checkinTokenIdPlaceholder")}
-            onChange={(value) => state.checkinTokenId?.set(value)}
-          />
-          {lookup ? (
-            <div className="ticket-lookup">
-              <div><span>{t("ticketTokenId")}</span><strong>{short(lookup.tokenId)}</strong></div>
-              <div><span>{t("eventName")}</span><strong>{lookup.eventName || lookup.eventId}</strong></div>
-              <div><span>{t("ticketSeat")}</span><strong>{lookup.seat || t("seatFallback")}</strong></div>
-              <div><span>{t("ticketOwner")}</span><strong>{short(lookup.owner)}</strong></div>
-              <span className={`ticket-badge ${lookup.used ? "used" : "valid"}`}>
-                {lookup.used ? t("ticketUsed") : t("ticketValid")}
-              </span>
-            </div>
-          ) : (
-            <div className="ticket-empty ticket-empty--compact">
-              <QrCode size={28} aria-hidden="true" />
-              <span>{t("checkinHint")}</span>
-            </div>
-          )}
-          <div className="ticket-actions">
-            <NeoButton variant="secondary" loading={isLookingUp} disabled={!canCheckInTicket} onClick={() => dispatch("lookupTicket")}>
-              <ScanLine size={17} aria-hidden="true" />
-              <span>{t("lookup")}</span>
+            <NeoButton variant="primary" loading={isIssuing} disabled={!canIssueTicket} onClick={() => dispatch("issueTicket")}>
+              <Ticket size={17} aria-hidden="true" />
+              <span>{t("issue")}</span>
             </NeoButton>
-            <NeoButton variant="primary" loading={isCheckingIn} disabled={!lookup || lookup.used} onClick={() => dispatch("checkInTicket")}>
-              <CheckCircle2 size={17} aria-hidden="true" />
-              <span>{t("checkIn")}</span>
-            </NeoButton>
-          </div>
-        </form>
+          </form>
+        ) : (
+          <form
+            className="ticket-desk__panel"
+            aria-label={t("checkinTab")}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void dispatch("lookupTicket");
+            }}
+          >
+            <NeoInput
+              value={checkinTokenId}
+              label={t("checkinTokenId")}
+              placeholder={t("checkinTokenIdPlaceholder")}
+              onChange={(value) => state.checkinTokenId?.set(value)}
+            />
+            {lookup ? (
+              <div className="ticket-lookup">
+                <div><span>{t("ticketTokenId")}</span><strong>{short(lookup.tokenId)}</strong></div>
+                <div><span>{t("eventName")}</span><strong>{lookup.eventName || lookup.eventId}</strong></div>
+                <div><span>{t("ticketSeat")}</span><strong>{lookup.seat || t("seatFallback")}</strong></div>
+                <div><span>{t("ticketOwner")}</span><strong>{short(lookup.owner)}</strong></div>
+                <span className={`ticket-badge ${lookup.used ? "used" : "valid"}`}>
+                  {lookup.used ? t("ticketUsed") : t("ticketValid")}
+                </span>
+              </div>
+            ) : (
+              <div className="ticket-empty ticket-empty--compact">
+                <QrCode size={28} aria-hidden="true" />
+                <span>{t("checkinHint")}</span>
+              </div>
+            )}
+            <div className="ticket-actions">
+              <NeoButton variant="secondary" loading={isLookingUp} disabled={!canCheckInTicket} onClick={() => dispatch("lookupTicket")}>
+                <ScanLine size={17} aria-hidden="true" />
+                <span>{t("lookup")}</span>
+              </NeoButton>
+              <NeoButton variant="primary" loading={isCheckingIn} disabled={!lookup || lookup.used} onClick={() => dispatch("checkInTicket")}>
+                <CheckCircle2 size={17} aria-hidden="true" />
+                <span>{t("checkIn")}</span>
+              </NeoButton>
+            </div>
+          </form>
+        )}
       </section>
 
       <section className="ticket-panel ticket-panel--tickets" aria-label={t("ticketsTab")}>
@@ -380,26 +392,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             ))}
           </div>
         ) : (
-          <div className="ticket-empty">{t("emptyTicketsHint")}</div>
+          <div className="ticket-empty ticket-empty--line">{t("emptyTicketsHint")}</div>
         )}
       </section>
 
-      <section className="ticket-evidence" aria-label={t("evidence")}>
-        <div className="ticket-panel">
-          <div className="ticket-panel__head">
-            <span>{t("latestRequest")}</span>
-            <strong>{requestJson ? t("latestResult") : t("payloadEmpty")}</strong>
+      <details className="ticket-evidence" open={hasEvidence}>
+        <summary>{t("evidence")}</summary>
+        <div className="ticket-evidence__grid">
+          <div className="ticket-evidence__col">
+            <div className="ticket-evidence__head">
+              <span>{t("latestRequest")}</span>
+              <strong>{requestJson ? t("latestResult") : t("payloadEmpty")}</strong>
+            </div>
+            {requestJson ? <pre>{requestJson}</pre> : <div className="ticket-empty ticket-empty--line">{t("requestEmpty")}</div>}
           </div>
-          {requestJson ? <pre>{requestJson}</pre> : <div className="ticket-empty ticket-empty--compact">{t("requestEmpty")}</div>}
-        </div>
-        <div className="ticket-panel">
-          <div className="ticket-panel__head">
-            <span>{t("latestResult")}</span>
-            <strong>{resultJson ? t("serviceStatus") : t("payloadEmpty")}</strong>
+          <div className="ticket-evidence__col">
+            <div className="ticket-evidence__head">
+              <span>{t("latestResult")}</span>
+              <strong>{resultJson ? t("serviceStatus") : t("payloadEmpty")}</strong>
+            </div>
+            {resultJson ? <pre>{resultJson}</pre> : <div className="ticket-empty ticket-empty--line">{t("resultEmpty")}</div>}
           </div>
-          {resultJson ? <pre>{resultJson}</pre> : <div className="ticket-empty ticket-empty--compact">{t("resultEmpty")}</div>}
         </div>
-      </section>
+      </details>
     </div>
   );
 }

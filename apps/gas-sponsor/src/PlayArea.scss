@@ -73,53 +73,65 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   color: var(--ns-text-2, #5b6478);
 }
 
-/* ── Hero stat strip ──────────────────────────────────── */
-.gas-stats-bar {
+/* ── Hero gauge + inline facts ────────────────────────── */
+.gas-hero-gauge {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 24px;
   flex-wrap: wrap;
-}
-
-.gas-stat {
-  flex: 1 1 auto;
-  min-width: 96px;
-  text-align: center;
-  padding: 12px 14px;
+  padding: 16px 18px;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
-.gas-stat-value {
-  display: block;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+.gas-hero-facts {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
 }
 
-.gas-stat-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ns-text-muted, #8a92a6);
-  margin-top: 4px;
+.gas-hero-fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  dt {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ns-text-muted, #8a92a6);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
 }
 
-/* ── Gas Tank visualization ───────────────────────────── */
+/* ── Gas Tank visualization (renders inside hero gauge) ── */
 .gas-tank-container {
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  padding: 24px 20px;
-  background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
 .gas-tank {
@@ -311,11 +323,14 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   color: var(--ns-text-muted, #8a92a6);
 }
 
-/* ── Quota info ───────────────────────────────────────── */
+/* ── Quota info (compact strip below the request form) ── */
 .quota-info {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
 .quota-bar-container {

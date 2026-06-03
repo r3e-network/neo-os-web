@@ -37,12 +37,32 @@
   letter-spacing: 0;
 }
 
+.custom-anchor-hero__body {
+  min-width: 0;
+}
+
 .custom-anchor-hero p {
   max-width: 560px;
   margin: 10px 0 0;
   color: var(--ns-text-2, #5b6478);
   font-size: 14px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.custom-anchor-hero__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 14px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.custom-anchor-hero__facts strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -75,7 +95,7 @@
 
 .custom-anchor-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -87,13 +107,13 @@
 }
 
 .custom-anchor-model {
+  padding: 20px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface, #fff);
 }
 
-.custom-anchor-metrics span,
-.custom-anchor-model dt {
+.custom-anchor-metrics span {
   display: block;
   margin-bottom: 8px;
   color: var(--ns-text-muted, #8a92a6);
@@ -102,8 +122,7 @@
   letter-spacing: 0;
 }
 
-.custom-anchor-metrics strong,
-.custom-anchor-model dd {
+.custom-anchor-metrics strong {
   color: var(--ns-ink, #1e1e2e);
   font-size: 18px;
   font-weight: 700;
@@ -220,34 +239,12 @@
   color: #c81e2a;
 }
 
-.custom-anchor-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
-  gap: 12px;
-  align-items: stretch;
-}
-
-.custom-anchor-status-card,
-.custom-anchor-id-card {
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-lg, 20px);
-  background: #fff;
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-}
-
-.custom-anchor-status-card {
-  min-height: 100%;
-  padding: 20px;
-}
-
 .custom-anchor-section-head {
   display: grid;
   gap: 6px;
 }
 
-.custom-anchor-section-head span,
-.custom-anchor-id-card > span,
-.custom-anchor-guidance-grid span {
+.custom-anchor-section-head span {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
@@ -270,131 +267,17 @@
   line-height: 1.55;
 }
 
-.custom-anchor-flow {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.custom-anchor-flow div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-brand-soft, #e4f8f0);
-}
-
-.custom-anchor-flow__number {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: var(--ns-brand, #16c784);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.standalone-dapp-root .custom-anchor-flow span.custom-anchor-flow__number {
-  color: #fff !important;
-}
-
-.custom-anchor-flow strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.custom-anchor-guidance-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.custom-anchor-guidance-grid div {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.custom-anchor-guidance-grid strong {
-  color: var(--ns-text-2, #5b6478);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.custom-anchor-id-card {
-  display: grid;
-  grid-template-rows: auto auto 1fr;
-  align-content: start;
-  gap: 14px;
-  min-height: 100%;
-  padding: 20px;
-  background:
-    linear-gradient(135deg, var(--ns-brand-soft, #e4f8f0) 0%, rgba(228, 248, 240, 0) 58%),
-    var(--ns-surface, #fff);
-  color: var(--ns-text, #2a2d3d);
-}
-
-.custom-anchor-id-card > span {
+.custom-anchor-source-line {
+  margin: 0;
   color: var(--ns-text-muted, #8a92a6);
-}
-
-.custom-anchor-id-card > strong {
-  margin-top: -2px;
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: 0;
-  overflow-wrap: anywhere;
-}
-
-.custom-anchor-id-card dl {
-  display: grid;
-  align-content: space-between;
-  gap: 8px;
-  margin: 0;
-}
-
-.custom-anchor-id-card dl div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-}
-
-.custom-anchor-id-card dt,
-.custom-anchor-id-card dd {
-  margin: 0;
-  color: var(--ns-text-2, #5b6478);
   font-size: 12px;
-  font-weight: 700;
-}
-
-.custom-anchor-id-card dd {
-  max-width: 56%;
-  color: var(--ns-ink, #1e1e2e);
-  text-align: right;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
-.custom-anchor-model {
-  padding: 20px;
+.custom-anchor-source-line strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-weight: 700;
 }
 
 .custom-anchor-model summary {
@@ -433,48 +316,12 @@
   line-height: 1.5;
 }
 
-.custom-anchor-model dl {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0 0;
-}
-
-.custom-anchor-model dl > div {
-  padding: 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.custom-anchor-model dd {
-  margin: 0;
-  font-weight: 700;
-}
-
-.custom-anchor-footnote {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 12px;
-}
-
-.custom-anchor-footnote span {
-  padding: 6px 12px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 999px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
 @media (max-width: 860px) {
-  .custom-anchor-workspace {
-    grid-template-columns: 1fr;
+  .custom-anchor-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .custom-anchor-form,
-  .custom-anchor-flow,
-  .custom-anchor-guidance-grid {
+  .custom-anchor-form {
     grid-template-columns: 1fr;
   }
 
@@ -506,8 +353,7 @@
   }
 
   .custom-anchor-metrics,
-  .custom-anchor-action-grid,
-  .custom-anchor-model dl {
+  .custom-anchor-action-grid {
     grid-template-columns: 1fr;
   }
 }

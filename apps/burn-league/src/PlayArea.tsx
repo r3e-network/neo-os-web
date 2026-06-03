@@ -38,12 +38,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const leaderboardSize = num("leaderboardSize");
   const estimatedReward = str("estimatedReward", "0");
   const burnAmount = str("burnAmount", "");
-  const projectedTotalBurnedDisplay = str("projectedTotalBurnedDisplay", totalBurnedDisplay);
   const serviceNotice = str("serviceNotice");
   const actionNotice = str("actionNotice");
   const burnValidationError = val<string>("burnValidationError");
   const lastSubmittedAmount = str("lastSubmittedAmount");
   const leaderboardPreview = val<LeaderboardEntry[]>("leaderboardPreview") ?? [];
+  const hasRank = formattedRank !== "--" && formattedRank !== "";
+  const hasLeaderboard = leaderboardPreview.length > 0;
 
   const [localBurnAmount, setLocalBurnAmount] = useState("");
   const currentBurnAmount = localBurnAmount || burnAmount;
@@ -107,6 +108,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="burn-league-hero-copy">
             <h2 className="burn-league-hero-title">{t("title")}</h2>
             <p className="burn-league-hero-subtitle">{t("subtitle")}</p>
+            {hasRank && (
+              <p className="burn-league-hero-rank">
+                <span className="burn-league-hero-rank-label">{t("yourRank")}</span>
+                <strong className="burn-league-hero-rank-value">{formattedRank}</strong>
+                <span className="burn-league-hero-rank-of">
+                  {t("outOf", { total: leaderboardSize })}
+                </span>
+              </p>
+            )}
           </div>
         </div>
         <div className="burn-league-hero-stats">
@@ -139,27 +149,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       )}
 
-      {/* Rank Display */}
-      <NeoCard variant="erobo" className="burn-league-rank-card">
-        <div className="burn-league-rank-display">
-          <div className="burn-league-rank-number">
-            <span className="burn-league-rank-hash">#</span>
-            <span className="burn-league-rank-value">{formattedRank}</span>
-          </div>
-          <div className="burn-league-rank-meta">
-            <span className="burn-league-rank-title">{t("yourRank")}</span>
-            <span className="burn-league-rank-subtitle">
-              {t("outOf", { total: leaderboardSize })}
-            </span>
-            <span className="burn-league-rank-reward">
-              {t("estimatedReward")}
-              <strong>{estimatedReward}</strong>
-            </span>
-          </div>
-        </div>
-      </NeoCard>
-
-      {/* Burn Action */}
+      {/* Burn Action — primary business action, surfaced high */}
       <NeoCard variant="erobo" className="burn-league-action-card">
         <h3 className="burn-league-section-title">{t("burnTokens")}</h3>
         <div className="burn-league-burn-form">
@@ -191,22 +181,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </button>
             ))}
           </div>
-          <div className="burn-league-impact-grid">
-            <div className="burn-league-impact-card">
-              <span>{t("entryAmount")}</span>
-              <strong>{amountIsValid ? `${currentBurnAmount} GAS` : "--"}</strong>
+          <div className="burn-league-impact-strip" aria-hidden={!amountIsValid}>
+            <div className="burn-league-impact-item">
+              <span className="burn-league-impact-label">{t("estimatedReward")}</span>
+              <strong className="burn-league-impact-value">
+                {amountIsValid ? estimatedReward : "--"}
+              </strong>
             </div>
-            <div className="burn-league-impact-card">
-              <span>{t("estimatedReward")}</span>
-              <strong>{estimatedReward}</strong>
-            </div>
-            <div className="burn-league-impact-card">
-              <span>{t("projectedTotal")}</span>
-              <strong>{projectedTotalBurnedDisplay}</strong>
-            </div>
-            <div className="burn-league-impact-card">
-              <span>{t("projectedRank")}</span>
-              <strong>{projectedPosition}</strong>
+            <div className="burn-league-impact-divider" aria-hidden="true" />
+            <div className="burn-league-impact-item">
+              <span className="burn-league-impact-label">{t("projectedRank")}</span>
+              <strong className="burn-league-impact-value">{projectedPosition}</strong>
             </div>
           </div>
           {burnValidationError && (
@@ -268,15 +253,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </NeoCard>
 
-      {/* Leaderboard Preview */}
-      <NeoCard variant="erobo" className="burn-league-leaderboard-card">
-        <h3 className="burn-league-section-title">{t("leaderboard")}</h3>
-        {leaderboardPreview.length === 0 ? (
-          <div className="burn-league-empty">
-            <strong>{t("noEntriesTitle")}</strong>
-            <span>{t("noEntries")}</span>
-          </div>
-        ) : (
+      {/* Leaderboard — only a full card once real entries exist;
+          otherwise a single muted empty-state line. */}
+      {hasLeaderboard ? (
+        <NeoCard variant="erobo" className="burn-league-leaderboard-card">
+          <h3 className="burn-league-section-title">{t("leaderboard")}</h3>
           <div className="burn-league-leaderboard-list">
             {leaderboardPreview.map((entry, i) => (
               <div key={entry.address || i} className="burn-league-leaderboard-row">
@@ -289,8 +270,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             ))}
           </div>
-        )}
-      </NeoCard>
+        </NeoCard>
+      ) : (
+        <p className="burn-league-empty-line">
+          {t("leaderboard")}: {t("noEntriesTitle")}
+        </p>
+      )}
     </div>
   );
 }

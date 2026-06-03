@@ -15,76 +15,9 @@
 }
 
 /* ============================================================
- *  1. Round info bar — Round · Status · Prize Pool
- * ============================================================ */
-
-.round-info-bar {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-  padding: 18px 22px;
-  @include pm.card;
-}
-
-.round-info-item {
-  display: grid;
-  gap: 6px;
-}
-
-.round-info-divider {
-  display: none;
-}
-
-.round-info-label {
-  @include pm.section-eyebrow;
-}
-
-.round-info-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: pm.$text;
-  font-variant-numeric: tabular-nums;
-
-  &.pot-value {
-    color: pm.$neo-strong;
-  }
-
-  &.status-active,
-  &.status-ended {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-  }
-
-  &.status-active {
-    color: pm.$green-text;
-  }
-
-  &.status-ended {
-    color: pm.$text-muted;
-  }
-}
-
-/* Non-color status cue (shape + ring) for colorblind accessibility */
-.status-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-
-.status-active .status-dot {
-  background: pm.$green;
-  box-shadow: 0 0 0 3px pm.$green-soft;
-}
-
-.status-ended .status-dot {
-  background: transparent;
-  border: 2px solid pm.$text-faint;
-}
-
-/* ============================================================
- *  2. Hero card — wraps DangerRingHero + DangerMeter
+ *  1. Hero card — round headline + DangerRingHero + DangerMeter
+ *     Round # and live Status fold into the heading as inline
+ *     facts, so the pot is shown exactly once (in the ring).
  * ============================================================ */
 
 .hero-container {
@@ -117,9 +50,64 @@
   flex-shrink: 0;
 }
 
+.hero-heading-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
 .hero-eyebrow {
   @include pm.section-eyebrow;
   font-size: 12px;
+}
+
+/* Inline facts: Round #00 · Active */
+.hero-facts {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: pm.$text;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-fact-sep {
+  color: pm.$text-faint;
+  font-weight: 400;
+}
+
+.hero-fact-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+
+  &.status-active {
+    color: pm.$green-text;
+  }
+
+  &.status-ended {
+    color: pm.$text-muted;
+  }
+}
+
+/* Non-color status cue (shape + ring) for colorblind accessibility */
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.status-active .status-dot {
+  background: pm.$green;
+  box-shadow: 0 0 0 3px pm.$green-soft;
+}
+
+.status-ended .status-dot {
+  background: transparent;
+  border: 2px solid pm.$text-faint;
 }
 
 /* ============================================================
@@ -481,13 +469,11 @@
 }
 
 @media (max-width: 640px) {
-  .round-info-bar,
   .participation-bar {
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
-  .round-info-item,
   .participation-item {
     min-width: 0;
   }

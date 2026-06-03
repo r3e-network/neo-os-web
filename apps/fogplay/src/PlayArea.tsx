@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { NeoCard, NeoInput } from "@shared/components-react";
+import { NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ArenaHero from "./components/ArenaHero";
@@ -50,10 +50,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     await dispatch("dismissOverlay");
   };
 
-  const handleBetAmountChange = (amount: string) => {
-    dispatch("setBetAmount", amount);
-  };
-
   return (
     <div className="coinflip-play-area">
       <header className="play-hero">
@@ -101,28 +97,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         result={result}
       />
 
-      <div className="custom-bet-section">
-        <NeoInput
-          type="number"
-          label={t("customBet") || "Custom Bet Amount"}
-          value={betAmount}
-          placeholder="1"
-          suffix={t("tokenGas") || "GAS"}
-          min={0.05}
-          max={100}
-          error={validationError ?? undefined}
-          hint={t("wagerRange") || "Min 0.05 - Max 100 GAS"}
-          onChange={handleBetAmountChange}
-          aria-label={t("betAmount") || "Bet amount"}
-        />
-      </div>
-
       <WagerControls
         t={t}
         choice={choice}
         betAmount={betAmount}
         canBet={canBet}
         isFlipping={isFlipping}
+        validationError={validationError ?? undefined}
         dispatch={dispatch}
       />
 

@@ -118,9 +118,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     selectedMachine?.topPrize ||
     rarestAvailableItem?.name ||
     t("gasboxNoAvailablePrize");
-  const prizeFocusOdds = rarestAvailableItem
-    ? formatPercent(rarestAvailableItem.displayProbability, t("gasboxPending"))
-    : t("gasboxPending");
   const inventoryRatio = selectedMachine
     ? `${availableItems.length}/${Math.max(selectedItems.length, selectedMachine.itemCount)}`
     : t("gasboxPending");
@@ -260,22 +257,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="gasbox-play-area">
       <section className="gasbox-hero" aria-label={t("title")}>
-        <div className="gasbox-hero__badge" aria-hidden="true">G</div>
-        <div className="gasbox-hero__copy">
-          <span className="gasbox-eyebrow">{t("docSubtitle")}</span>
-          <h2>{t("title")}</h2>
-          <p>{t("docDescription")}</p>
+        <div className="gasbox-hero__main">
+          <div className="gasbox-hero__badge" aria-hidden="true">G</div>
+          <div className="gasbox-hero__copy">
+            <span className="gasbox-eyebrow">{t("docSubtitle")}</span>
+            <h2>{t("title")}</h2>
+            <p className="gasbox-hero__status">
+              <span className="gasbox-hero__dot" aria-hidden="true" />
+              {signalLabel}
+            </p>
+            <p>{t("gasboxEscrowSafetyDesc")}</p>
+          </div>
         </div>
-      </section>
-
-      <section className="gasbox-signal-card" aria-label={t("gasboxLiveStatus")}>
-        <div className="gasbox-token" aria-hidden="true">G</div>
-        <div className="gasbox-signal-card__copy">
-          <span>{t("gasboxLiveStatus")}</span>
-          <strong>{signalLabel}</strong>
-          <p>{t("gasboxEscrowSafetyDesc")}</p>
-        </div>
-        <div className="gasbox-signal-card__metrics" aria-hidden="false">
+        <div className="gasbox-hero__metrics" aria-label={t("gasboxLiveStatus")}>
           <div className="gasbox-metric">
             <span>{t("machines")}</span>
             <strong>{machineCountDisplay}</strong>
@@ -579,66 +573,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             </div>
 
-            <div className="gasbox-decision-panel" aria-label={t("gasboxDecisionTitle")}>
-              <div className="gasbox-decision-header">
-                <div>
-                  <span>{t("gasboxDecisionTitle")}</span>
-                  <strong>{t("gasboxDecisionSubtitle")}</strong>
-                </div>
-                <div className="gasbox-selected-actions" aria-label={t("gasboxSelectedActions")}>
-                  <NeoButton
-                    variant="secondary"
-                    size="sm"
-                    disabled={isPulling}
-                    onClick={() => dispatch("refreshMachines")}
-                  >
-                    {t("refreshMachines")}
-                  </NeoButton>
-                  <NeoButton
-                    variant="ghost"
-                    size="sm"
-                    disabled={isPulling}
-                    onClick={() => dispatch("openStudio")}
-                  >
-                    {t("openStudio")}
-                  </NeoButton>
-                </div>
-              </div>
-
-              <div className="gasbox-decision-grid">
-                <div className={`gasbox-decision-tile${selectedMachineReady ? " is-ready" : " is-blocked"}`}>
-                  <span>{t("gasboxReadinessTitle")}</span>
-                  <strong>{pullReadinessTitle}</strong>
-                  <p>{pullReadinessCopy}</p>
-                </div>
-                <div className="gasbox-decision-tile">
-                  <span>{t("pullCost")}</span>
-                  <strong>{selectedMachine.price} GAS</strong>
-                  <p>{t("gasboxWalletIntent")}</p>
-                </div>
-                <div className={`gasbox-decision-tile${selectedMachine.inventoryReady ? " is-ready" : " is-blocked"}`}>
-                  <span>{t("inventoryAndOdds")}</span>
-                  <strong>{inventoryRatio} {t("items")}</strong>
-                  <p>
-                    {selectedMachine.inventoryReady
-                      ? t("gasboxInventoryReady")
-                      : t("gasboxInventoryActionRequired")}
-                  </p>
-                </div>
-                <div className={`gasbox-decision-tile${availableItems.length > 0 ? " is-ready" : " is-blocked"}`}>
-                  <span>{t("gasboxPrizeFocus")}</span>
-                  <strong>{prizeFocusLabel}</strong>
-                  <p>
-                    {t("gasboxPrizeFocusOdds")}: {prizeFocusOdds} | {t("gasboxOddsCoverage")}: {formatPercent(oddsCoverage, t("gasboxPending"))}
-                  </p>
-                </div>
-              </div>
-
-              {unavailableItems.length > 0 && (
-                <p className="gasbox-inventory-note">
-                  {t("gasboxUnavailableInventory", { count: unavailableItems.length })}
-                </p>
-              )}
+            <div className={`gasbox-status-banner${selectedMachineReady ? " is-ready" : " is-blocked"}`} aria-label={t("gasboxReadinessTitle")}>
+              <strong>{pullReadinessTitle}</strong>
+              <p>{pullReadinessCopy}</p>
             </div>
 
             <div className={`gasbox-lever-container${leverPulled ? " gasbox-lever--pulled" : ""}${isPulling ? " gasbox-lever--spinning" : ""}`}>
@@ -660,7 +597,50 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </span>
                 </div>
               </NeoButton>
+              <div className="gasbox-selected-actions" aria-label={t("gasboxSelectedActions")}>
+                <NeoButton
+                  variant="secondary"
+                  size="sm"
+                  disabled={isPulling}
+                  onClick={() => dispatch("refreshMachines")}
+                >
+                  {t("refreshMachines")}
+                </NeoButton>
+                <NeoButton
+                  variant="ghost"
+                  size="sm"
+                  disabled={isPulling}
+                  onClick={() => dispatch("openStudio")}
+                >
+                  {t("openStudio")}
+                </NeoButton>
+              </div>
             </div>
+
+            <div className="gasbox-decision-strip" aria-label={t("gasboxDecisionTitle")}>
+              <div className="gasbox-decision-cell">
+                <span>{t("pullCost")}</span>
+                <strong>{selectedMachine.price} GAS</strong>
+              </div>
+              <div className="gasbox-decision-cell">
+                <span>{t("inventoryAndOdds")}</span>
+                <strong>{inventoryRatio} {t("items")}</strong>
+              </div>
+              <div className="gasbox-decision-cell">
+                <span>{t("gasboxPrizeFocus")}</span>
+                <strong>{prizeFocusLabel}</strong>
+              </div>
+              <div className="gasbox-decision-cell">
+                <span>{t("gasboxOddsCoverage")}</span>
+                <strong>{formatPercent(oddsCoverage, t("gasboxPending"))}</strong>
+              </div>
+            </div>
+
+            {unavailableItems.length > 0 && (
+              <p className="gasbox-inventory-note">
+                {t("gasboxUnavailableInventory", { count: unavailableItems.length })}
+              </p>
+            )}
 
             {selectedMachine.items && selectedMachine.items.length > 0 && (
               <details className="gasbox-rarity-distribution">
@@ -701,24 +681,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </NeoCard>
       )}
-
-      <NeoCard variant="erobo" className="gasbox-safety-card">
-        <div className="gasbox-safety-copy">
-          <span>{t("gasboxEscrowSafetyTitle")}</span>
-          <strong>{t("feature2Name")}</strong>
-          <p>{t("gasboxEscrowSafetyDesc")}</p>
-        </div>
-        <div className="gasbox-safety-stats">
-          <div>
-            <span>{t("inventoryAndOdds")}</span>
-            <strong>{machines.length > 0 ? t("statusActive") : t("gasboxPending")}</strong>
-          </div>
-          <div>
-            <span>{t("gasboxPlayerRoute")}</span>
-            <strong>{selectedMachineReady ? t("readyToPlay") : t("gasboxPending")}</strong>
-          </div>
-        </div>
-      </NeoCard>
 
       {(showResult || isPlayingDisplay) && pullResult && (
         <div className="gasbox-result-overlay" onClick={dismissResult} role="dialog" aria-modal="true">
