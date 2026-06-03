@@ -286,12 +286,19 @@
   min-height: 44px;
   border: 1px solid var(--ns-border-strong);
   border-radius: var(--ns-radius-sm);
-  background: var(--ns-surface);
+  background-color: var(--ns-surface);
+  /* custom chevron + appearance:none so it doesn't render the raw OS dropdown */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   color: var(--ns-ink);
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
-  padding: 0 14px;
+  padding: 0 38px 0 14px;
   box-shadow: var(--ns-shadow-xs);
   transition: border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
     box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
