@@ -31,25 +31,6 @@
   text-transform: uppercase;
 }
 
-.explorer-section-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-}
-
-.explorer-section-head strong {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* ─────────────── Hero ─────────────── */
 .explorer-hero {
   display: grid;
@@ -106,9 +87,17 @@
   line-height: 1.55;
 }
 
-.explorer-hero__tag {
-  justify-self: start;
+/* Relevant facts folded inline beneath the headline */
+.explorer-hero__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
   margin-top: 2px;
+  min-width: 0;
+}
+
+.explorer-hero__tag {
   padding: 5px 12px;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--xp-accent-soft);
@@ -116,54 +105,54 @@
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-/* ─────────────── Network overview ─────────────── */
-.explorer-network-overview {
+.explorer-hero__fact {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─────────────── Compact metrics strip ─────────────── */
+.explorer-metrics {
   display: grid;
-  gap: 14px;
-  min-width: 0;
-}
-
-.explorer-network-overview .stat-network-label,
-.explorer-search-primer .explorer-eyebrow {
-  color: var(--xp-accent-strong);
-  letter-spacing: 0.08em;
-}
-
-/* Shared inset rows */
-.stat-row,
-.explorer-readonly-note__stats div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  padding: 16px;
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.explorer-metric {
+  display: grid;
+  gap: 6px;
   min-width: 0;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-/* Eyebrow-style labels */
-.stat-network-label,
-.stat-label,
-.explorer-readonly-note__summary span,
-.explorer-readonly-note__stats span {
+.explorer-metric__label {
   color: var(--ns-text-muted, #8a92a6);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.stat-value,
-.explorer-readonly-note__stats strong {
+.explorer-metric__value {
   min-width: 0;
   overflow: hidden;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 800;
   line-height: 1.3;
-  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -174,126 +163,9 @@
   font-size: 0.82rem;
 }
 
-/* ─────────────── Network stat cards ─────────────── */
-.network-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.stat-card {
-  min-width: 0;
-}
-
-.stat-block {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-
-.stat-network-label {
-  color: var(--xp-accent-strong);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.stat-value {
-  font-size: 0.82rem;
-}
-
 /* ─────────────── Search section ─────────────── */
 .explorer-search-section {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.7fr);
-  gap: 20px;
-  align-items: stretch;
-}
-
-.explorer-search-primer {
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  padding: 22px;
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-}
-
-.explorer-search-primer > strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.explorer-search-primer ul {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.explorer-search-primer li {
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text, #2a2d3d);
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-align: center;
-}
-
-/* ─────────────── Read-only / safety note ─────────────── */
-.explorer-readonly-note {
-  min-width: 0;
-}
-
-.explorer-readonly-note .neo-card__content {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
-  gap: 20px;
-  align-items: center;
-}
-
-.explorer-readonly-note__summary {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.explorer-readonly-note__summary span {
-  color: var(--xp-accent-strong);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.explorer-readonly-note__summary strong {
-  color: var(--ns-ink, #1e1e2e);
-  font-size: 1.05rem;
-  font-weight: 800;
-  line-height: 1.25;
-  text-align: left;
-  white-space: normal;
-}
-
-.explorer-readonly-note__summary p {
-  margin: 0;
-  color: var(--ns-text-2, #5b6478);
-  font-size: 0.85rem;
-  font-weight: 500;
-  line-height: 1.5;
-}
-
-.explorer-readonly-note__stats {
-  display: grid;
-  gap: 10px;
   min-width: 0;
 }
 
@@ -329,9 +201,8 @@
 
 /* ─────────────── Responsive ─────────────── */
 @media (max-width: 900px) {
-  .explorer-search-section,
-  .explorer-readonly-note .neo-card__content {
-    grid-template-columns: 1fr;
+  .explorer-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -347,14 +218,10 @@
   .explorer-hero h2 {
     font-size: 1.375rem;
   }
-
-  .network-stats {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 480px) {
-  .explorer-search-primer ul {
+  .explorer-metrics {
     grid-template-columns: 1fr;
   }
 }
