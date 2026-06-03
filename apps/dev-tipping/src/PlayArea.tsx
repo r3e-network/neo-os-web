@@ -80,6 +80,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <CategoryIcon name="social" size={40} title={t("title") || "Dev Tipping"} />
           </span>
           <div className="tipping-hero__text">
+            <span className="tipping-hero__eyebrow">{t("subtitle") || "Support developers"}</span>
             <h2 className="tipping-hero__title">{t("title") || "Dev Tipping"}</h2>
             <p className="tipping-hero__subtitle">{t("docSubtitle") || t("subtitle")}</p>
           </div>

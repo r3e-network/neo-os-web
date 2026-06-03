@@ -79,6 +79,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <CategoryIcon name="social" size={40} title={t("title") || "Breakup Contract"} />
           </div>
           <div className="breakup-hero-copy">
+            <span className="breakup-hero-eyebrow">{t("contractTitle") || "RELATIONSHIP STAKE"}</span>
             <h1 className="breakup-hero-title">{t("title") || "Breakup Contract"}</h1>
             <p className="breakup-hero-subtitle">
               {t("subtitle") || "Relationship stakes on-chain"}
@@ -86,7 +87,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
 
-        {hasContracts ? (
+        {hasContracts && (
           <div className="breakup-hero-metrics" role="group">
             <span className="breakup-metric">
               <strong>{activeCount}</strong> {t("active") || "Active"}
@@ -104,8 +105,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <strong>{contractCount}</strong> {t("total") || "Total"}
             </span>
           </div>
-        ) : (
-          <p className="breakup-hero-empty">{t("noContracts") || "No contracts yet"}</p>
         )}
       </div>
 

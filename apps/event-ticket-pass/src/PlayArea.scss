@@ -28,9 +28,7 @@
   padding: 28px;
   border: 1px solid var(--tk-line);
   border-radius: var(--tk-radius);
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgba(123, 97, 255, 0.1), transparent 58%),
-    linear-gradient(135deg, #f6f3ff 0%, #ffffff 60%);
+  background: var(--tk-surface);
   box-shadow: var(--tk-shadow);
 }
 
@@ -96,8 +94,8 @@
   gap: 6px;
   padding: 6px 12px;
   border-radius: var(--ns-radius-full, 9999px);
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: inset 0 0 0 1px var(--tk-line-strong);
+  background: var(--tk-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--tk-line);
   color: var(--tk-accent-strong);
   font-size: 12px;
   font-weight: 650;
@@ -119,8 +117,8 @@
   gap: 4px;
   padding: 16px;
   border-radius: var(--tk-radius-sm);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: inset 0 0 0 1px var(--tk-line-strong);
+  background: var(--tk-surface-soft);
+  box-shadow: inset 0 0 0 1px var(--tk-line);
 }
 
 .ticket-hero__wallet small {
@@ -220,9 +218,9 @@
 }
 
 .ticket-tab.is-active {
-  background: var(--tk-surface);
+  background: var(--tk-accent-soft);
   color: var(--tk-accent-strong);
-  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(123, 97, 255, 0.28);
 }
 
 .ticket-tab:focus-visible {
@@ -552,6 +550,19 @@
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+// Single accent: align the shared primary CTA with this app's violet anchor
+// (icon, eyebrow, hero, tabs and selected event are all violet) so the
+// workspace reads as one hue instead of clashing violet + green.
+.ticket-play-area .neo-btn--primary {
+  background: var(--tk-accent);
+  box-shadow: 0 2px 8px rgba(123, 97, 255, 0.25);
+
+  &:hover:not(:disabled) {
+    background: var(--tk-accent-strong);
+    box-shadow: 0 4px 16px rgba(123, 97, 255, 0.3);
+  }
 }
 
 .ticket-play-area .neo-select {

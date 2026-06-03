@@ -98,6 +98,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             </svg>
           </span>
           <div className="shrine-hero__text">
+            <span className="shrine-hero__eyebrow">{t("memorials") || "Memorial"}</span>
             <span className="shrine-hero__title">{t("title") || "Memorial Shrine"}</span>
             <span className="shrine-hero__subtitle">{t("subtitle") || "On-chain memorials"}</span>
           </div>
