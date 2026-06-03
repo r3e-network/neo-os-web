@@ -197,20 +197,11 @@
   font-weight: 800;
 }
 
-.guardian-flow__step:nth-child(2) > span {
-  background: var(--ns-badge-sky-bg, #dff0ff);
-  color: var(--ns-badge-sky-fg, #3e8cff);
-}
-
-.guardian-flow__step:nth-child(3) > span {
-  background: var(--ns-badge-rose-bg, #ffebe4);
-  color: var(--ns-badge-rose-fg, #f0795b);
-}
-
 .guardian-flow__step strong {
-  color: var(--ns-text-2, #5b6478);
+  color: var(--ns-ink, #1e1e2e);
   font-size: 14px;
   font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .guardian-flow__step p {
@@ -293,6 +284,7 @@
   font-family: "SF Mono", "Fira Code", monospace;
   font-size: 12px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   line-height: 1.45;
 }
 
@@ -321,8 +313,8 @@
 }
 
 .guardian-state-pill--idle {
-  background: var(--ns-violet-soft, #eeeaff) !important;
-  color: var(--ns-violet, #7b61ff) !important;
+  background: var(--ns-surface-subtle, #f1f3f7) !important;
+  color: var(--ns-text-muted, #8a92a6) !important;
 }
 
 .guardian-state-empty {
@@ -343,8 +335,8 @@
   height: 38px;
   place-items: center;
   border-radius: 999px;
-  background: var(--ns-violet-soft, #eeeaff);
-  color: var(--ns-violet, #7b61ff);
+  background: var(--ns-badge-seafoam-bg, #def5e9);
+  color: var(--ns-badge-seafoam-fg, #16c784);
 }
 
 .guardian-state-empty strong {

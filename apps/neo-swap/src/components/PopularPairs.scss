@@ -12,7 +12,8 @@
   color: #8a92a6;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .pair-header strong {
@@ -51,17 +52,16 @@
   background: #e4f8f0;
 }
 
+.pair-item:focus-visible {
+  outline: none;
+  border-color: #16c784;
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);
+}
+
 .pair-name {
   color: #1e1e2e;
   font-size: 0.9rem;
   font-weight: 700;
-}
-
-.pair-rate {
-  color: #5b6478;
-  font-size: 0.82rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-reduced-motion: reduce) {

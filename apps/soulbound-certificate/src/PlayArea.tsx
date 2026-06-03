@@ -139,6 +139,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             />
           </div>
           <div className="hero-copy">
+            <span className="hero-eyebrow">{t("issuerWorkspaceTitle")}</span>
             <h2 className="hero-title">{t("title")}</h2>
             <p className="hero-subtitle">{t("docSubtitle")}</p>
             {hasMetrics && (
@@ -450,11 +451,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </div>
                   <div>
                     <dt>{t("recipientName")}</dt>
-                    <dd>{verifiedCertificate.recipientName || "-"}</dd>
+                    <dd>{verifiedCertificate.recipientName || "—"}</dd>
                   </div>
                   <div>
                     <dt>{t("achievement")}</dt>
-                    <dd>{verifiedCertificate.achievement || "-"}</dd>
+                    <dd>{verifiedCertificate.achievement || "—"}</dd>
                   </div>
                   <div>
                     <dt>{t("issueRecipient")}</dt>

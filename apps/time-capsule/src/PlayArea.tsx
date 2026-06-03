@@ -131,6 +131,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <div className="capsule-side-panel">
         <div className="capsule-actions">
+          <p className="capsule-actions-eyebrow">{t("fish") || "Fish a capsule"}</p>
           <NeoButton
             variant="secondary"
             size="lg"

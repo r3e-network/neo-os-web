@@ -49,8 +49,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const projects = val<Array<Record<string, unknown>>>("projects") ?? [];
   const isRefreshingProjects = bool("isRefreshingProjects");
   const activeTab = str("activeTab", "rounds");
-  const matchingPoolDisplay = str("matchingPoolDisplay", t("notAvailable") || "N/A");
-  const selectedRoundDisplay = str("selectedRoundDisplay", t("notAvailable") || "N/A");
+  const matchingPoolDisplay = str("matchingPoolDisplay", "—");
+  const selectedRoundDisplay = str("selectedRoundDisplay", "—");
   const roundCount = num("roundCount", rounds.length);
   const projectCount = num("projectCount", projects.length);
   const activeRoundCount = num("activeRoundCount", rounds.filter((r) => r.status === "active").length);

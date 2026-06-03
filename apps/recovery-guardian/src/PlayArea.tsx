@@ -26,12 +26,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hasPayload = bool("hasPayload");
   const isLoading = bool("isLoading");
   const isQuerying = bool("isQuerying");
-  const renderedPayload = str("renderedPayload", t("notAvailable") || "N/A");
+  const renderedPayload = str("renderedPayload", t("notAvailable") || "—");
 
-  const accountId = str("accountId", t("notAvailable") || "N/A");
-  const verifierHash = str("verifierHash", t("notAvailable") || "N/A");
-  const threshold = str("threshold", t("notAvailable") || "N/A");
-  const timelock = str("timelock", t("notAvailable") || "N/A");
+  const accountId = str("accountId", t("notAvailable") || "—");
+  const verifierHash = str("verifierHash", t("notAvailable") || "—");
+  const threshold = str("threshold", t("notAvailable") || "—");
+  const timelock = str("timelock", t("notAvailable") || "—");
 
   const previewUrl = str("previewUrl");
   const credentialUrl = str("credentialUrl");
@@ -49,8 +49,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canQueryState = accountReady && !isQuerying;
   const canPrepareRecovery =
     accountReady && ownerReady && expiryReady && verifierReady && !isLoading;
-  const accountDisplay = accountAddress.trim() || t("notAvailable");
-  const expiryDisplay = expiryReady ? recoveryExpiryMinutes : t("notAvailable");
+  const accountDisplay = accountAddress.trim() || "—";
+  const expiryDisplay = expiryReady ? recoveryExpiryMinutes : "—";
 
   const setField = (field: string, value: string) => {
     dispatch("setField", field, value);
@@ -124,7 +124,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <div className="guardian-metric">
               <span>{t("guardianMetricOwner")}</span>
-              <strong>{recoveryNewOwner.trim() || t("notAvailable")}</strong>
+              <strong>{recoveryNewOwner.trim() || "—"}</strong>
             </div>
             <div className="guardian-metric">
               <span>{t("guardianMetricExpiry")}</span>

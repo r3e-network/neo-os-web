@@ -20,6 +20,7 @@ export default function CapsuleHero({ t, totalCapsules, lockedCount, revealedCou
           </div>
         </div>
         <div className="hero-copy">
+          <span className="hero-eyebrow">{t("onChainStatus") || "ON-CHAIN VAULT"}</span>
           <h2 className="hero-title">{t("title")}</h2>
           <p className="hero-subtitle">{t("subtitle")}</p>
         </div>
