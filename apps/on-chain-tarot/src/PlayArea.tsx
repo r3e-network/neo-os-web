@@ -54,38 +54,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
               </div>
               <p>{t("tarotHeroSubtitle")}</p>
+              <div className="tarot-hero-meta">
+                <span>
+                  {t("feeLabel")} · <strong>{t("tarotFee")}</strong>
+                </span>
+                <span>
+                  {t("contractRouteLabel")} · <strong>{t("tarotContractRoute")}</strong>
+                </span>
+                <span>
+                  {hasDrawn ? `${revealCount}/3 ${t("revealed")}` : t("requestReady")}
+                </span>
+              </div>
             </div>
-            <div className="tarot-oracle-stats">
+            <div className="tarot-hero-metrics" aria-label={t("readings")}>
               <div>
-                <span>{t("readings")}</span>
                 <strong>{readingsCount}</strong>
+                <span>{t("readings")}</span>
               </div>
               <div>
-                <span>{t("cardsDrawnCount")}</span>
                 <strong>{cardsDrawnCount}</strong>
+                <span>{t("cardsDrawnCount")}</span>
               </div>
-              <div>
-                <span>{t("revealProgress")}</span>
-                <strong>{revealCount}/3</strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="tarot-flow-strip" aria-label={t("readingFlowTitle")}>
-            <div>
-              <span>01</span>
-              <strong>{t("readingStepOne")}</strong>
-              <p>{t("readingStepOneCopy")}</p>
-            </div>
-            <div>
-              <span>02</span>
-              <strong>{t("readingStepTwo")}</strong>
-              <p>{t("readingStepTwoCopy")}</p>
-            </div>
-            <div>
-              <span>03</span>
-              <strong>{t("readingStepThree")}</strong>
-              <p>{t("readingStepThreeCopy")}</p>
             </div>
           </div>
 
@@ -207,31 +196,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <strong>{oracleReady ? t("oracleVerifiedShort") : t("oraclePendingShort")}</strong>
             </div>
             <p>{t("verificationPanelCopy")}</p>
-            <div className="tarot-signal-row">
-              <span>{t("contractRouteLabel")}</span>
-              <strong>{t("tarotContractRoute")}</strong>
-            </div>
-            <div className="tarot-signal-row">
-              <span>{t("feeLabel")}</span>
-              <strong>{t("tarotFee")}</strong>
-            </div>
-            <div className="tarot-signal-row">
-              <span>{t("readingStateLabel")}</span>
-              <strong>{hasDrawn ? `${revealCount}/3 ${t("revealed")}` : t("ready")}</strong>
-            </div>
-          </NeoCard>
-
-          <NeoCard variant="erobo" className="tarot-deck-panel">
-            <div className="tarot-section-heading">
-              <span>{t("deckPanelTitle")}</span>
-              <strong>{t("fullDeck")}</strong>
-            </div>
-            <div className="tarot-deck-fan" aria-hidden="true">
-              {[0, 1, 2, 3, 4].map((offset) => (
-                <img key={offset} src={TAROT_CARD_BACK} className={`tarot-fan-card tarot-fan-card--${offset}`} alt="" />
-              ))}
-            </div>
-            <p>{t("deckHint")}</p>
           </NeoCard>
         </aside>
       </div>

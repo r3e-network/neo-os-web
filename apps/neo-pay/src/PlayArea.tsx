@@ -97,14 +97,11 @@ export default function PlayArea({
   const isLoading = bool("isLoading");
   const isCreating = bool("isCreating");
   const activeCount = num("activeCount");
-  const createdStreamCount = num("createdStreamCount");
-  const beneficiaryStreamCount = num("beneficiaryStreamCount");
   const totalStreamCount = num("totalStreamCount");
   const serviceNotice = str("serviceNotice");
 
   const createdStreams = (val("createdStreams") ?? []) as Stream[];
   const beneficiaryStreams = (val("beneficiaryStreams") ?? []) as Stream[];
-  const allStreams = (val("allStreams") ?? []) as Stream[];
 
   /* ---------- Local form state ---------- */
   const launchDefaults = useMemo(() => {
@@ -287,34 +284,20 @@ export default function PlayArea({
           </div>
         </div>
 
-        <div className="neopay-hero-stats">
-          <div className="neopay-hero-stat">
-            <span className="neopay-hero-stat-value">{totalStreamCount}</span>
-            <span className="neopay-hero-stat-label">
+        {totalStreamCount > 0 && (
+          <div className="neopay-hero-summary">
+            <span className="neopay-hero-metric">
+              <strong>{totalStreamCount}</strong>{" "}
               {t("totalStreams") || "Total Streams"}
             </span>
-          </div>
-          <div className="neopay-hero-stat">
-            <span className="neopay-hero-stat-value">{activeCount}</span>
-            <span className="neopay-hero-stat-label">
-              {t("active") || "Active"}
+            <span className="neopay-hero-metric-sep" aria-hidden="true">
+              ·
+            </span>
+            <span className="neopay-hero-metric">
+              <strong>{activeCount}</strong> {t("active") || "Active"}
             </span>
           </div>
-          <div className="neopay-hero-stat">
-            <span className="neopay-hero-stat-value">{createdStreamCount}</span>
-            <span className="neopay-hero-stat-label">
-              {t("createdByYou") || "Created by You"}
-            </span>
-          </div>
-          <div className="neopay-hero-stat">
-            <span className="neopay-hero-stat-value">
-              {beneficiaryStreamCount}
-            </span>
-            <span className="neopay-hero-stat-label">
-              {t("youAreBeneficiary") || "You're Beneficiary"}
-            </span>
-          </div>
-        </div>
+        )}
       </div>
 
       {serviceNotice && (

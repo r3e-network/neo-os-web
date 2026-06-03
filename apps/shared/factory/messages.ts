@@ -67,6 +67,7 @@ export const factoryMessages = {
   noWarnings: { en: "No warnings.", zh: "没有提醒。" },
   packageDigestFull: { en: "Plan digest", zh: "计划摘要" },
   packageId: { en: "Plan ID", zh: "计划 ID" },
+  viewPackagePayload: { en: "View plan payload (JSON)", zh: "查看计划载荷 (JSON)" },
   walletSignature: { en: "Wallet signature", zh: "钱包签名" },
   deployHonesty: {
     en: "This console never uploads external NEF or manifest files. It submits a preloaded template ID and initialization parameters to the configured Factory contract, and blocks execution until that contract is configured.",

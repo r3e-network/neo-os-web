@@ -15,31 +15,47 @@ $accent-soft: #eeeaff;
   position: relative;
 }
 
-.latest-proof-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 20px;
+.verify-panel {
   border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-}
 
-.latest-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ns-text-muted, #8a92a6);
-}
+  &[open] {
+    padding-bottom: 20px;
+  }
 
-.latest-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: $accent-strong;
-  font-family: var(--ns-font-mono, "JetBrains Mono", "SF Mono", monospace);
-  font-variant-numeric: tabular-nums;
+  &__summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 20px;
+    cursor: pointer;
+    list-style: none;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ns-ink, #1e1e2e);
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::after {
+      content: "+";
+      margin-left: auto;
+      font-size: 18px;
+      font-weight: 700;
+      color: $accent-strong;
+      line-height: 1;
+    }
+  }
+
+  &[open] &__summary::after {
+    content: "\2212"; // minus sign
+  }
+
+  &__body {
+    padding: 0 20px;
+  }
 }
 
 .proof-form {
