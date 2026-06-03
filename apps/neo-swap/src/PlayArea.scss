@@ -35,20 +35,12 @@
   gap: 7px;
 }
 
-.neo-swap-shell,
 .neo-swap-main-grid {
   display: grid;
   gap: 16px;
   min-width: 0;
-}
-
-.neo-swap-shell {
-  grid-template-columns: minmax(0, 0.72fr) minmax(320px, 0.38fr);
-  align-items: stretch;
-}
-
-.neo-swap-main-grid {
   grid-template-columns: minmax(0, 0.66fr) minmax(310px, 0.34fr);
+  align-items: start;
 }
 
 .neo-swap-hero-panel {
@@ -63,19 +55,6 @@
   box-shadow: var(--ns-shadow);
 }
 
-.neo-swap-balance-grid,
-.neo-swap-route-steps {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-
-.neo-swap-balance-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.neo-swap-balance-card,
-.neo-swap-route-steps div,
 .neo-swap-detail-panel div {
   display: grid;
   gap: 6px;
@@ -86,8 +65,6 @@
   background: var(--ns-surface-subtle);
 }
 
-.neo-swap-balance-card span,
-.neo-swap-route-steps span,
 .neo-swap-detail-panel span,
 .neo-swap-token-option small {
   color: var(--ns-muted);
@@ -98,8 +75,7 @@
 }
 
 .neo-swap-section-header span,
-.neo-swap-token-header span,
-.neo-swap-trust-strip span {
+.neo-swap-token-header span {
   color: var(--ns-muted);
   font-size: 11px;
   font-weight: 700;
@@ -115,8 +91,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.neo-swap-balance-card strong,
-.neo-swap-route-steps strong,
 .neo-swap-detail-panel strong,
 .neo-swap-token-option strong {
   min-width: 0;
@@ -128,8 +102,7 @@
   overflow-wrap: anywhere;
 }
 
-.neo-swap-section-header strong,
-.neo-swap-trust-strip strong {
+.neo-swap-section-header strong {
   min-width: 0;
   color: var(--ns-ink);
   font-size: 1rem;
@@ -138,14 +111,8 @@
   overflow-wrap: anywhere;
 }
 
-.neo-swap-route-card .neo-card__content,
 .neo-swap-swap-card .neo-card__content,
 .neo-swap-pairs-card .neo-card__content {
-  display: grid;
-  gap: 16px;
-}
-
-.neo-swap-swap-card .neo-card__content {
   display: grid;
   gap: 16px;
 }
@@ -164,17 +131,59 @@
   min-width: 0;
 }
 
-.neo-swap-route-steps {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.neo-swap-route-badge {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 5px 11px;
+  border: 1px solid var(--ns-line);
+  border-radius: 999px;
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
-.neo-swap-route-steps div {
-  align-content: start;
-}
-
-.neo-swap-route-steps svg,
-.neo-swap-trust-strip svg {
+.neo-swap-route-badge.is-ready {
+  border-color: rgba(22, 199, 132, 0.28);
+  background: var(--ns-green-soft);
   color: var(--ns-green-strong);
+}
+
+.neo-swap-wallet-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--ns-line);
+  border-radius: 14px;
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.neo-swap-wallet-empty svg {
+  flex: 0 0 auto;
+  color: var(--ns-green-strong);
+}
+
+.neo-swap-execute-note {
+  margin: 0;
+  color: var(--ns-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.neo-swap-side-actions {
+  display: grid;
+  min-width: 0;
 }
 
 .neo-swap-token-field {
@@ -270,34 +279,6 @@
   min-width: 0;
 }
 
-.neo-swap-trust-strip {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  min-width: 0;
-  padding: 16px;
-  border: 1px solid rgba(22, 199, 132, 0.18);
-  border-radius: 16px;
-  background: var(--ns-green-soft);
-}
-
-.neo-swap-trust-strip > svg {
-  flex: 0 0 auto;
-  margin-top: 1px;
-}
-
-.neo-swap-trust-strip div {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.neo-swap-trust-strip strong {
-  font-size: 0.9rem;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
 .neo-swap-token-modal {
   position: fixed;
   inset: 0;
@@ -350,7 +331,6 @@
 }
 
 @media (max-width: 980px) {
-  .neo-swap-shell,
   .neo-swap-main-grid {
     grid-template-columns: 1fr;
   }
@@ -362,16 +342,10 @@
     padding: 14px 10px 18px;
   }
 
-  .neo-swap-shell {
-    grid-template-columns: 1fr;
-  }
-
   .neo-swap-hero-panel {
     padding: 18px;
   }
 
-  .neo-swap-balance-grid,
-  .neo-swap-route-steps,
   .neo-swap-detail-panel {
     grid-template-columns: 1fr;
   }

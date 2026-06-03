@@ -44,26 +44,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, num, str } = useStateBindings(state);
 
   const stats = val<ProfitAnchorStats | null>("stats", null);
-  const agentAccounts =
-    val<Array<Record<string, unknown>>>("agentAccounts", []) ?? [];
   const actionHistory =
     val<AnchorActionHistoryItem[]>("actionHistory", []) ?? [];
   const agentCount = num("agentCount");
   const pendingRewards = num("pendingRewards");
+  const myStake = num("myStake");
   const myStakeDisplay = str("myStakeDisplay", "0 NEO");
   const pendingRewardsDisplay = str("pendingRewardsDisplay", "0 GAS");
   const rewardReserveDisplay = str("rewardReserveDisplay", "0 GAS");
-  const totalNeoDisplay = str("totalNeoDisplay", "0 NEO");
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
   const lastTxid = str("lastTxid");
   const [amountInput, setAmountInput] = useState("1");
   const [localError, setLocalError] = useState("");
   const [busyAction, setBusyAction] = useState("");
-  const selectedAgent = stats?.selectedAgentId
-    ? `#${stats.selectedAgentId}`
-    : "None";
-  const agentTotal = agentCount || agentAccounts.length || 21;
+  const agentTotal = agentCount || 21;
   const routeStatus = stats?.selectedAgentId ? t("routeSelected") : t("routeAwaiting");
   const amountIsValid = useMemo(() => isWholeNeo(amountInput), [amountInput]);
   const normalizedAmount = useMemo(
@@ -73,34 +68,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const plannedAmountLabel = amountIsValid
     ? `${normalizedAmount} ${t("tokenNeo")}`
     : t("amountNeedsWholeNeo");
-  const claimReady =
-    pendingRewards > 0 ||
-    !/^0(?:\.0+)?\s*GAS$/i.test(pendingRewardsDisplay.trim());
-  const stakeMemo = "stake:miniapp-profitanchor";
   const isError = Boolean(localError || lastError);
   const statusText = localError || lastError || workflowStatus;
   const isBusy = Boolean(busyAction);
-  const preflightChecks = [
-    {
-      key: "amount",
-      label: t("preflightAmount"),
-      done: amountIsValid,
-      value: amountIsValid ? plannedAmountLabel : t("blocked"),
+  // Wallet-linked data drives whether per-user tiles are surfaced.
+  const hasWalletData = myStake > 0 || pendingRewards > 0;
+  const hasReserve = Boolean(stats);
+  const metrics = [
+    hasWalletData && {
+      key: "stake",
+      value: myStakeDisplay,
+      label: t("myStake"),
     },
-    {
-      key: "route",
-      label: t("preflightRoute"),
-      done: Boolean(stats?.selectedAgentId),
-      value: selectedAgent,
-    },
-    {
-      key: "claim",
-      label: t("preflightClaim"),
-      done: claimReady,
+    hasWalletData && {
+      key: "pending",
       value: pendingRewardsDisplay,
+      label: t("pendingRewards"),
     },
-  ];
-  const readyToSubmit = amountIsValid;
+    hasReserve && {
+      key: "reserve",
+      value: rewardReserveDisplay,
+      label: t("rewardReserve"),
+    },
+  ].filter(Boolean) as Array<{ key: string; value: string; label: string }>;
 
   const runAmountAction = async (action: "stakeNeo" | "withdrawNeo") => {
     if (!amountIsValid) {
@@ -147,195 +137,119 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="anchor-kicker">{t("appName")}</span>
             <h2>{t("heroTitle")}</h2>
             <p>{t("heroDescription")}</p>
+            <div className="anchor-hero-facts">
+              <span>{routeStatus}</span>
+              <span aria-hidden="true">·</span>
+              <span>{t("registeredAgentsCopy", { count: agentTotal })}</span>
+            </div>
           </div>
-        </div>
-        <div className="anchor-score">
-          <span>{myStakeDisplay}</span>
-          <small>{t("myStake")}</small>
         </div>
       </section>
 
-      <div className="anchor-stat-grid">
-        <div className="stat-chip">
-          <span className="stat-value">{pendingRewardsDisplay}</span>
-          <span className="stat-label">{t("pendingRewards")}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">
-            {totalNeoDisplay || `${stats?.totalStaked ?? 0} NEO`}
-          </span>
-          <span className="stat-label">{t("totalNeoTracked")}</span>
-        </div>
-        <div className="stat-chip">
-          <span className="stat-value">{rewardReserveDisplay}</span>
-          <span className="stat-label">{t("rewardReserve")}</span>
-        </div>
-      </div>
-
-      <section className="anchor-workspace" aria-label="ProfitAnchor staking workspace">
-        <div className="anchor-status-card">
-          <div className="anchor-section-head">
-            <span>{t("actionPanelLabel")}</span>
-            <h3>{t("actionPanelTitle")}</h3>
-            <p>{t("actionPanelBody")}</p>
-          </div>
-
-          <div className="anchor-action-panel">
-            <label className="anchor-amount-field">
-              <span>{t("neoAmount")}</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min="1"
-                step="1"
-                value={amountInput}
-                aria-invalid={!amountIsValid}
-                disabled={isBusy}
-                onChange={(event) => setAmountInput(event.currentTarget.value)}
-              />
-            </label>
-
-            <section
-              className={`anchor-preflight-panel${readyToSubmit ? " is-ready" : " is-blocked"}`}
-              aria-label={t("preflightTitle")}
-            >
-              <div className="anchor-preflight-head">
-                <div className="anchor-preflight-head__text">
-                  <span>{t("preflightEyebrow")}</span>
-                  <strong>{t("preflightTitle")}</strong>
-                </div>
-                <span
-                  className={`anchor-ready-pill${readyToSubmit ? " is-ready" : ""}`}
-                >
-                  {readyToSubmit ? plannedAmountLabel : t("amountNeedsWholeNeo")}
-                </span>
-              </div>
-
-              <div className="anchor-preflight-summary" aria-label={t("preflightChecklist")}>
-                {preflightChecks.map((check) => (
-                  <div
-                    key={check.key}
-                    className={`anchor-preflight-row${check.done ? " is-ready" : ""}`}
-                  >
-                    <span className="anchor-preflight-row__label">{check.label}</span>
-                    <em className="anchor-preflight-row__value">{check.value}</em>
-                  </div>
-                ))}
-              </div>
-
-              <p className="anchor-preflight-note">
-                {readyToSubmit ? t("amountPlanReady") : t("amountPlanBlocked")}
-              </p>
-              <p className="anchor-preflight-note">
-                {t("stakePathCopy")} <code>{stakeMemo}</code>
-              </p>
-            </section>
-
-            <div className="anchor-action-buttons" aria-label={t("actionPanelTitle")}>
-              <button
-                type="button"
-                className="anchor-action-button anchor-action-button--primary"
-                disabled={isBusy || !amountIsValid}
-                onClick={() => void runAmountAction("stakeNeo")}
-              >
-                {busyAction === "stakeNeo" ? t("workflowSubmitting") : t("submitStake")}
-              </button>
-              <button
-                type="button"
-                className="anchor-action-button anchor-action-button--secondary"
-                disabled={isBusy || !amountIsValid}
-                onClick={() => void runAmountAction("withdrawNeo")}
-              >
-                {busyAction === "withdrawNeo" ? t("workflowSubmitting") : t("submitWithdraw")}
-              </button>
-              <button
-                type="button"
-                className="anchor-action-button anchor-action-button--success"
-                disabled={isBusy}
-                onClick={() => void runSimpleAction("claimRewards")}
-              >
-                {busyAction === "claimRewards" ? t("workflowSubmitting") : t("submitClaim")}
-              </button>
-              <button
-                type="button"
-                className="anchor-action-button anchor-action-button--ghost"
-                disabled={isBusy}
-                onClick={() => void runSimpleAction("refreshAnchor")}
-              >
-                {busyAction === "refreshAnchor" ? t("workflowSubmitting") : t("refreshStatus")}
-              </button>
-            </div>
-          </div>
-
-          <div className={`anchor-status-strip${isError ? " anchor-status-strip--error" : ""}`} aria-live="polite">
-            <span>{statusText}</span>
-            {lastTxid && <code>{t("lastTxid")}: {formatTx(lastTxid)}</code>}
-          </div>
-
-          <div className="anchor-action-history" aria-label={t("actionHistory")}>
-            <div className="anchor-action-history__head">
-              <span>{t("actionHistory")}</span>
-              <strong>{selectedAgent}</strong>
-            </div>
-            {actionHistory.length === 0 ? (
-              <p>{t("actionHistoryEmpty")}</p>
-            ) : (
-              actionHistory.slice(0, 4).map((item) => (
-                <div className="anchor-history-row" key={`${item.action}-${item.at ?? item.txid ?? item.amount ?? "local"}`}>
-                  <span>{item.action}</span>
-                  <strong>{item.amount ? `${item.amount} NEO` : item.status}</strong>
-                  {item.txid && <code>{formatTx(item.txid)}</code>}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <aside className="anchor-route-card" aria-label="ProfitAnchor route state">
-          <span>{t("routeState")}</span>
-          <strong>{selectedAgent}</strong>
-          <dl>
-            <div>
-              <dt>{t("routeStatus")}</dt>
-              <dd>{routeStatus}</dd>
-            </div>
-            <div>
-              <dt>{t("routeAgents")}</dt>
-              <dd>{agentTotal}/21</dd>
-            </div>
-            <div>
-              <dt>{t("routeRewardPool")}</dt>
-              <dd>{rewardReserveDisplay}</dd>
-            </div>
-          </dl>
-        </aside>
-      </section>
-
-      <details className="neo-card anchor-routing-model">
-        <summary className="section-title">{t("routingProtectionTitle")}</summary>
-        <div className="anchor-flow-list">
-          <span>{t("currentRoute")}: {selectedAgent}.</span>
-          <span>{t("registeredAgentsCopy", { count: agentTotal })}</span>
-          <span>{t("operatorRouteCopy")}</span>
-        </div>
-        <div className="agent-list">
-          {agentAccounts.slice(0, 21).map((agent, idx) => (
-            <div key={idx} className="agent-row">
-              <span className="agent-address">
-                {String(
-                  agent.accountAddress ??
-                    agent.address ??
-                    agent.name ??
-                    `agent-${idx + 1}`,
-                )}
-              </span>
-              <span className="agent-status">
-                candidate {String(agent.agentId ?? idx + 1)}
-              </span>
+      {metrics.length > 0 && (
+        <div className="anchor-stat-grid">
+          {metrics.map((metric) => (
+            <div className="stat-chip" key={metric.key}>
+              <span className="stat-value">{metric.value}</span>
+              <span className="stat-label">{metric.label}</span>
             </div>
           ))}
         </div>
-      </details>
+      )}
+
+      <section className="anchor-status-card" aria-label="ProfitAnchor staking workspace">
+        <div className="anchor-section-head">
+          <div className="anchor-section-head__text">
+            <span>{t("actionPanelLabel")}</span>
+            <h3>{t("actionPanelTitle")}</h3>
+          </div>
+          <button
+            type="button"
+            className="anchor-refresh-button"
+            aria-label={t("refreshStatus")}
+            title={t("refreshStatus")}
+            disabled={isBusy}
+            onClick={() => void runSimpleAction("refreshAnchor")}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v6h-6" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="anchor-action-panel">
+          <label className="anchor-amount-field">
+            <span>{t("neoAmount")}</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              value={amountInput}
+              aria-invalid={!amountIsValid}
+              disabled={isBusy}
+              onChange={(event) => setAmountInput(event.currentTarget.value)}
+            />
+          </label>
+
+          <p
+            className={`anchor-inline-status${amountIsValid ? " is-ready" : " is-blocked"}`}
+            aria-live="polite"
+          >
+            {amountIsValid ? plannedAmountLabel : t("amountNeedsWholeNeo")}
+            <em>{amountIsValid ? t("amountPlanReady") : t("amountPlanBlocked")}</em>
+          </p>
+
+          <button
+            type="button"
+            className="anchor-action-button anchor-action-button--primary"
+            disabled={isBusy || !amountIsValid}
+            onClick={() => void runAmountAction("stakeNeo")}
+          >
+            {busyAction === "stakeNeo" ? t("workflowSubmitting") : t("submitStake")}
+          </button>
+
+          <div className="anchor-action-secondary" aria-label={t("actionPanelTitle")}>
+            <button
+              type="button"
+              className="anchor-action-link"
+              disabled={isBusy || !amountIsValid}
+              onClick={() => void runAmountAction("withdrawNeo")}
+            >
+              {busyAction === "withdrawNeo" ? t("workflowSubmitting") : t("submitWithdraw")}
+            </button>
+            <button
+              type="button"
+              className="anchor-action-link"
+              disabled={isBusy}
+              onClick={() => void runSimpleAction("claimRewards")}
+            >
+              {busyAction === "claimRewards" ? t("workflowSubmitting") : t("submitClaim")}
+            </button>
+          </div>
+        </div>
+
+        <div className={`anchor-status-strip${isError ? " anchor-status-strip--error" : ""}`} aria-live="polite">
+          <span>{statusText}</span>
+          {lastTxid && <code>{t("lastTxid")}: {formatTx(lastTxid)}</code>}
+        </div>
+
+        {actionHistory.length > 0 && (
+          <div className="anchor-action-history" aria-label={t("actionHistory")}>
+            <div className="anchor-action-history__head">
+              <span>{t("actionHistory")}</span>
+            </div>
+            {actionHistory.slice(0, 4).map((item) => (
+              <div className="anchor-history-row" key={`${item.action}-${item.at ?? item.txid ?? item.amount ?? "local"}`}>
+                <span>{item.action}</span>
+                <strong>{item.amount ? `${item.amount} NEO` : item.status}</strong>
+                {item.txid && <code>{formatTx(item.txid)}</code>}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

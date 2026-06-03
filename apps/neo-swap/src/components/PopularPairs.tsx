@@ -8,7 +8,7 @@ import "./PopularPairs.scss";
 interface PopularPairsProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   selectedPair: string;
-  popularPairs: Array<{ id: string; name: string; rate: string }>;
+  popularPairs: Array<{ id: string; name: string }>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
@@ -37,7 +37,6 @@ export default function PopularPairs({
             onClick={() => handleSelectPair(pair.id)}
           >
             <span className="pair-name">{pair.name}</span>
-            <span className="pair-rate">{pair.rate}</span>
           </button>
         ))}
       </div>
