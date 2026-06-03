@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, Database, FileSearch, Play, RotateCcw, ShieldCheck } from "lucide-react";
+import { Copy, Play, RotateCcw, ShieldCheck } from "lucide-react";
 import type { ObservableState } from "../react/context";
 import type { PlatformServices } from "../services";
 import type { MiniAppLaunchContext } from "../utils/launch-params";
@@ -110,8 +110,6 @@ export function ConsoleToolPanel({
   const networkLabel = readObservable(state, "networkLabel", t("notAvailable"));
   const endpointLabel = readObservable(state, "endpointLabel", t("notAvailable"));
   const requestCount = readObservable(state, "requestCount", "0");
-  const lastDigest = readObservable(state, "lastDigest", t("notAvailable"));
-  const signalLabel = result?.status ?? t("statusReady");
 
   function updateValue(key: string, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -152,44 +150,15 @@ export function ConsoleToolPanel({
             <p>{t(config.descriptionKey)}</p>
           </div>
         </div>
-        <div className="console-tool__hero-metrics" aria-label={t("statistics")}>
-          <span className="console-tool__metric">
-            <span>{t("statNetwork")}</span>
-            <strong>{networkLabel}</strong>
-          </span>
-          <span className="console-tool__metric">
-            <span>{t("statEndpoint")}</span>
-            <strong>{endpointLabel}</strong>
-          </span>
-          <span className="console-tool__metric">
-            <span>{t("statRequests")}</span>
-            <strong>{requestCount}</strong>
-          </span>
+        <div className="console-tool__hero-meta" aria-label={t("statistics")}>
+          <span>{t("statNetwork")} <strong>{networkLabel}</strong></span>
+          <span>{t("statEndpoint")} <strong>{endpointLabel}</strong></span>
+          <span>{t("statRequests")} <strong>{requestCount}</strong></span>
         </div>
-      </section>
-
-      <section className="console-tool__asset-card" aria-label={t(config.titleKey)}>
-        <div className="console-tool__asset-token" aria-hidden="true">
-          <Database size={24} />
-        </div>
-        <div className="console-tool__asset-copy">
-          <span>{endpointLabel}</span>
-          <strong>{lastDigest}</strong>
-          <p>{t("consoleRequestHint")}</p>
-        </div>
-        <span className="console-tool__asset-signal" aria-label={t("consoleSignal")}>
-          <span>{t("consoleSignal")}</span>
-          <strong>{signalLabel}</strong>
-        </span>
       </section>
 
       <section className="console-tool__workspace">
         <div className="console-tool__form" aria-label={t(config.titleKey)}>
-          <div className="console-tool__flow" aria-label={t("consoleFlow")}>
-            <span className={result ? "" : "is-active"}>{t("consoleFlowInput")}</span>
-            <span className={result ? "is-active" : ""}>{t("consoleFlowPreview")}</span>
-            <span className={result ? "is-active" : ""}>{t("consoleFlowVerify")}</span>
-          </div>
           {config.fields.map((field) => {
             if (field.type === "select") {
               return (
@@ -254,18 +223,14 @@ export function ConsoleToolPanel({
                   </div>
                 ))}
               </div>
-              <div className="console-tool__payload-card">
-                <span>{t("consolePayload")}</span>
+              <details className="console-tool__payload-card">
+                <summary>{t("consolePayload")}</summary>
                 <pre>{payloadText}</pre>
-              </div>
+              </details>
             </>
           ) : (
             <div className="console-tool__empty">
-              <span className="console-tool__empty-icon" aria-hidden="true">
-                <FileSearch size={22} />
-              </span>
-              <span>{t("statusReady")}</span>
-              <strong>{t("previewWaiting")}</strong>
+              <span>{t("previewWaiting")}</span>
             </div>
           )}
         </div>

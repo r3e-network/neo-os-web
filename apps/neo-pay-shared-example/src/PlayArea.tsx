@@ -265,6 +265,8 @@ export default function PlayArea({
   const [title, setTitle] = useState(launchDefaults.title);
   const [notes, setNotes] = useState(launchDefaults.notes);
   const [token, setToken] = useState<StreamToken>(launchDefaults.token);
+  const [amountTouched, setAmountTouched] = useState(false);
+  const [durationTouched, setDurationTouched] = useState(false);
 
   useEffect(() => {
     setRecipient(launchDefaults.recipient);
@@ -273,6 +275,8 @@ export default function PlayArea({
     setTitle(launchDefaults.title);
     setNotes(launchDefaults.notes);
     setToken(launchDefaults.token);
+    setAmountTouched(Boolean(launchDefaults.amount));
+    setDurationTouched(Boolean(launchDefaults.duration));
   }, [launchDefaults]);
 
   const amountValue = parseAmount(amount);
@@ -304,6 +308,11 @@ export default function PlayArea({
   const buttonLabel = canSubmit
     ? copy("createStream", "Create Stream")
     : copy("reviewStream", "Complete stream details");
+  const hasStreams =
+    createdStreams.length > 0 ||
+    beneficiaryStreams.length > 0 ||
+    totalStreamCount > 0 ||
+    activeCount > 0;
 
   async function createStream() {
     if (!canSubmit) return;
@@ -327,8 +336,14 @@ export default function PlayArea({
 
   function applyPreset(next: Partial<LaunchDefaults>) {
     if (next.title !== undefined) setTitle(next.title);
-    if (next.amount !== undefined) setAmount(next.amount);
-    if (next.duration !== undefined) setDuration(next.duration);
+    if (next.amount !== undefined) {
+      setAmount(next.amount);
+      setAmountTouched(true);
+    }
+    if (next.duration !== undefined) {
+      setDuration(next.duration);
+      setDurationTouched(true);
+    }
     if (next.notes !== undefined) setNotes(next.notes);
     if (next.token !== undefined) setToken(next.token);
   }
@@ -340,6 +355,8 @@ export default function PlayArea({
     setTitle("");
     setNotes("");
     setToken("GAS");
+    setAmountTouched(false);
+    setDurationTouched(false);
   }
 
   function renderStreamList(
@@ -451,38 +468,38 @@ export default function PlayArea({
   return (
     <div className="shared-pay-play-area">
       <section className="shared-pay-hero" aria-labelledby="shared-pay-title">
-        <div className="shared-pay-hero__copy">
-          <span className="shared-pay-eyebrow">
-            {copy("sharedRuntime", "Shared runtime")}
-          </span>
-          <h2 id="shared-pay-title">
-            {copy("sharedRuntimeTitle", "NeoPay shared streams")}
-          </h2>
-          <p>
-            {copy(
-              "sharedRuntimeSubtitle",
-              "Create a funded payment stream through the shared vault and vesting modules.",
-            )}
-          </p>
-        </div>
-        <div className="shared-pay-metrics" aria-label="Stream totals">
-          <div>
-            <strong>{totalStreamCount}</strong>
-            <span>{copy("totalStreams", "Total Streams")}</span>
+        <span className="shared-pay-eyebrow">
+          {copy("sharedRuntime", "Shared runtime")}
+        </span>
+        <h2 id="shared-pay-title">
+          {copy("sharedRuntimeTitle", "NeoPay shared streams")}
+        </h2>
+        <p>
+          {copy(
+            "sharedRuntimeSubtitle",
+            "Create a funded payment stream through the shared vault and vesting modules.",
+          )}
+        </p>
+        {hasStreams && (
+          <div className="shared-pay-hero__stats" aria-label="Stream totals">
+            <span>
+              <strong>{totalStreamCount}</strong>
+              {copy("totalStreams", "Total Streams")}
+            </span>
+            <span>
+              <strong>{activeCount}</strong>
+              {copy("active", "Active")}
+            </span>
+            <span>
+              <strong>{createdStreamCount}</strong>
+              {copy("createdByYou", "Created by You")}
+            </span>
+            <span>
+              <strong>{beneficiaryStreamCount}</strong>
+              {copy("youAreBeneficiary", "You're Beneficiary")}
+            </span>
           </div>
-          <div>
-            <strong>{activeCount}</strong>
-            <span>{copy("active", "Active")}</span>
-          </div>
-          <div>
-            <strong>{createdStreamCount}</strong>
-            <span>{copy("createdByYou", "Created by You")}</span>
-          </div>
-          <div>
-            <strong>{beneficiaryStreamCount}</strong>
-            <span>{copy("youAreBeneficiary", "You're Beneficiary")}</span>
-          </div>
-        </div>
+        )}
       </section>
 
       {serviceNotice && (
@@ -492,7 +509,7 @@ export default function PlayArea({
         </div>
       )}
 
-      <div className="shared-pay-grid">
+      <div className="shared-pay-primary">
         <NeoCard
           variant="erobo"
           title={copy("createStream", "Create Stream")}
@@ -524,9 +541,16 @@ export default function PlayArea({
               type="number"
               min={0}
               value={amount}
-              error={amount || amountReady ? "" : copy("invalidAmount", "Enter an amount")}
+              error={
+                !amountTouched || amountReady
+                  ? ""
+                  : copy("invalidAmount", "Enter an amount")
+              }
               required
-              onChange={setAmount}
+              onChange={(value) => {
+                setAmount(value);
+                setAmountTouched(true);
+              }}
             />
             <NeoInput
               label={copy("duration", "Duration")}
@@ -537,12 +561,15 @@ export default function PlayArea({
               max={365}
               value={duration}
               error={
-                duration || durationReady
+                !durationTouched || durationReady
                   ? ""
                   : copy("intervalInvalid", "Use 1 to 365 days")
               }
               required
-              onChange={setDuration}
+              onChange={(value) => {
+                setDuration(value);
+                setDurationTouched(true);
+              }}
             />
             <NeoSelect
               label={copy("token", "Token")}
@@ -622,78 +649,52 @@ export default function PlayArea({
               {copy("clear", "Clear")}
             </NeoButton>
           </div>
-        </NeoCard>
 
-        <NeoCard
-          variant="default"
-          title={copy("transactionPreview", "Transaction preview")}
-          className="shared-pay-card shared-pay-card--preview"
-        >
-          <div className="shared-pay-summary">
-            <div>
-              <span>{copy("recipient", "Recipient Address")}</span>
-              <strong>{recipientLabel}</strong>
-            </div>
-            <div>
-              <span>{copy("totalAmount", "Total amount")}</span>
+          <details className="shared-pay-review" open={canSubmit}>
+            <summary>
+              <span>{copy("transactionPreview", "Transaction preview")}</span>
               <strong>{totalLabel}</strong>
+            </summary>
+            <div className="shared-pay-summary">
+              <div>
+                <span>{copy("recipient", "Recipient Address")}</span>
+                <strong>{recipientLabel}</strong>
+              </div>
+              <div>
+                <span>{copy("totalAmount", "Total amount")}</span>
+                <strong>{totalLabel}</strong>
+              </div>
+              <div>
+                <span>{copy("rateAmount", "Release per interval")}</span>
+                <strong>{releaseLabel}</strong>
+              </div>
+              <div>
+                <span>{copy("intervalLabel", "Interval")}</span>
+                <strong>{scheduleLabel}</strong>
+              </div>
             </div>
-            <div>
-              <span>{copy("rateAmount", "Release per interval")}</span>
-              <strong>{releaseLabel}</strong>
-            </div>
-            <div>
-              <span>{copy("intervalLabel", "Interval")}</span>
-              <strong>{scheduleLabel}</strong>
-            </div>
-          </div>
+          </details>
+        </NeoCard>
+      </div>
 
-          <div className="shared-pay-route" aria-label="Shared runtime route">
-            <div>
-              <span>1</span>
-              <strong>funding_vault</strong>
-              <small>0x958b...1537</small>
-            </div>
-            <div>
-              <span>2</span>
-              <strong>stream_vesting</strong>
-              <small>0x4fa6...33cf</small>
-            </div>
-            <div>
-              <span>3</span>
-              <strong>{copy("createStream", "Create Stream")}</strong>
-              <small>neo-n3-testnet</small>
-            </div>
-          </div>
-
-          <div
-            className={`shared-pay-readiness ${
-              canSubmit ? "shared-pay-readiness--ready" : ""
-            }`}
+      {hasStreams && (
+        <div className="shared-pay-stream-grid">
+          <NeoCard
+            variant="default"
+            title={`${copy("yourCreatedStreams", "Your Created Streams")} (${createdStreams.length})`}
+            className="shared-pay-card"
           >
-            {canSubmit
-              ? copy("readyForWallet", "Ready for wallet signing")
-              : copy("missingStreamFields", "Complete stream details")}
-          </div>
-        </NeoCard>
-      </div>
-
-      <div className="shared-pay-stream-grid">
-        <NeoCard
-          variant="default"
-          title={`${copy("yourCreatedStreams", "Your Created Streams")} (${createdStreams.length})`}
-          className="shared-pay-card"
-        >
-          {renderStreamList(createdStreams, "outgoing")}
-        </NeoCard>
-        <NeoCard
-          variant="default"
-          title={`${copy("streamsYouReceive", "Streams You Receive")} (${beneficiaryStreams.length})`}
-          className="shared-pay-card"
-        >
-          {renderStreamList(beneficiaryStreams, "incoming")}
-        </NeoCard>
-      </div>
+            {renderStreamList(createdStreams, "outgoing")}
+          </NeoCard>
+          <NeoCard
+            variant="default"
+            title={`${copy("streamsYouReceive", "Streams You Receive")} (${beneficiaryStreams.length})`}
+            className="shared-pay-card"
+          >
+            {renderStreamList(beneficiaryStreams, "incoming")}
+          </NeoCard>
+        </div>
+      )}
     </div>
   );
 }
