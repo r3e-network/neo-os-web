@@ -8,11 +8,8 @@
 .automation-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "copy badge"
-    "metrics metrics";
-  gap: 20px 18px;
-  align-items: center;
+  gap: 18px;
+  align-items: start;
   padding: 24px;
   border-radius: var(--ns-radius-lg);
   background: var(--ns-surface);
@@ -20,11 +17,39 @@
 }
 
 .automation-hero__copy {
-  grid-area: copy;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+}
+
+.automation-hero__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 12px;
+}
+
+.automation-hero__fact {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.automation-hero__fact-label {
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.automation-hero__fact strong {
+  color: var(--ns-ink);
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .automation-hero__icon {
@@ -56,7 +81,6 @@
 }
 
 .automation-status-badge {
-  grid-area: badge;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -93,15 +117,8 @@
   color: var(--ns-text-2);
 }
 
-.automation-hero__metrics {
-  grid-area: metrics;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.automation-hero__metrics div,
-.automation-trigger-card div {
+.automation-trigger-card div,
+.automation-details__config div {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -111,8 +128,8 @@
   background: var(--ns-surface-subtle);
 }
 
-.automation-hero__metrics span,
-.automation-trigger-card span {
+.automation-trigger-card span,
+.automation-details__config span {
   color: var(--ns-text-muted);
   font-size: 11px;
   font-weight: 700;
@@ -120,8 +137,8 @@
   letter-spacing: 0.08em;
 }
 
-.automation-hero__metrics strong,
-.automation-trigger-card strong {
+.automation-trigger-card strong,
+.automation-details__config strong {
   overflow-wrap: anywhere;
   color: var(--ns-ink);
   font-size: 15px;
@@ -169,9 +186,27 @@
 }
 
 .automation-panel__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--ns-ink);
   font-size: 16px;
   font-weight: 700;
+}
+
+.automation-panel__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--ns-radius-full);
+  background: var(--ns-brand-soft);
+  color: var(--ns-brand-strong);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .automation-panel__hint,
@@ -204,6 +239,15 @@
   gap: 10px;
 }
 
+.automation-actions--primary .neo-btn {
+  flex: 1 1 auto;
+}
+
+.automation-actions--secondary {
+  gap: 8px;
+  margin-top: -4px;
+}
+
 .automation-actions--compact {
   margin-top: 2px;
 }
@@ -211,6 +255,12 @@
 .automation-trigger-card {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.automation-details__config {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -274,10 +324,16 @@
 }
 
 .automation-details__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 22px 22px;
+}
+
+.automation-details__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
-  padding: 0 22px 22px;
 }
 
 .automation-details__block {
@@ -323,6 +379,13 @@
   font-size: 13px;
   line-height: 1.55;
   text-align: center;
+}
+
+.automation-empty--inline {
+  min-height: 0;
+  padding: 16px 18px;
+  text-align: left;
+  justify-content: flex-start;
 }
 
 .automation-play-area .neo-select {
@@ -371,10 +434,6 @@
 
   .automation-hero {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "copy"
-      "badge"
-      "metrics";
     padding: 18px;
   }
 
@@ -390,16 +449,15 @@
     grid-template-columns: auto 1fr;
   }
 
-  .automation-hero__metrics,
   .automation-trigger-card {
     grid-template-columns: 1fr;
   }
 
-  .automation-actions {
+  .automation-actions:not(.automation-actions--secondary) {
     flex-direction: column;
   }
 
-  .automation-actions .neo-btn {
+  .automation-actions:not(.automation-actions--secondary) .neo-btn {
     width: 100%;
   }
 }

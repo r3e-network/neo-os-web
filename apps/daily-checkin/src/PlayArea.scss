@@ -1000,3 +1000,84 @@ $amber: #f59e0b;
     display: none !important;
   }
 }
+
+/* ============================================================
+ *  IA refactor (2026-06): consolidated hero facts, week timing,
+ *  and a single compact personal-metrics strip.
+ * ============================================================ */
+
+.checkin-hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: $ns-text-muted;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkin-week-timing {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid $ns-border;
+}
+
+.checkin-week-utc {
+  font-size: 12px;
+  font-weight: 700;
+  color: $ns-text-2;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkin-action-card .status-pill {
+  margin-bottom: 12px;
+}
+
+.checkin-meta-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.checkin-meta-item {
+  display: grid;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
+  text-align: left;
+}
+
+.checkin-meta-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: $ns-ink;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkin-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $ns-text-muted;
+}
+
+@media (max-width: 560px) {
+  .checkin-week-timing {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .checkin-meta-strip {
+    grid-template-columns: 1fr;
+  }
+}

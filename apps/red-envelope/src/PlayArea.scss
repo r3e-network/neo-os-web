@@ -13,54 +13,46 @@
 
 .redenv-shell {
   display: grid;
-  grid-template-columns: minmax(0, 0.72fr) minmax(320px, 0.44fr);
-  gap: 18px;
-  align-items: start;
   min-width: 0;
 }
 
-.redenv-main,
-.redenv-side {
+.redenv-main {
   display: grid;
   gap: 16px;
+  width: min(720px, 100%);
+  margin: 0 auto;
   min-width: 0;
 }
 
-.redenv-side {
-  position: sticky;
-  top: 14px;
-}
-
+/* Slim hero banner -- headline state shown once, no per-fact cards */
 .redenv-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.54fr);
+  display: flex;
+  align-items: center;
   gap: 16px;
-  align-items: stretch;
   min-width: 0;
-  padding: 24px;
+  padding: 18px 22px;
   border: 1px solid rgba(164, 25, 40, 0.18);
   border-radius: 18px;
-  background: linear-gradient(135deg, #a41928 0%, #d92f3d 58%, #f05a4f 100%);
-  box-shadow: 0 18px 38px rgba(164, 25, 40, 0.18);
+  background: linear-gradient(135deg, #c22633 0%, #d92f3d 60%, #ef5a50 100%);
+  box-shadow: 0 14px 30px rgba(164, 25, 40, 0.16);
+}
+
+.redenv-hero .redenv-hero-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
 }
 
 .redenv-hero .redenv-hero-copy {
   display: grid;
-  align-content: center;
-  gap: 12px;
+  gap: 4px;
   min-width: 0;
-
-  > .redenv-hero-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 46px;
-    margin-bottom: 4px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-  }
 
   > span {
     width: fit-content;
@@ -74,51 +66,46 @@
   > h2 {
     margin: 0;
     color: #ffffff;
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 800;
-    line-height: 1.1;
+    line-height: 1.12;
     letter-spacing: 0;
   }
 
   > p {
-    max-width: 620px;
-    margin: 0;
-    color: rgba(255, 255, 255, 0.84);
-    font-size: 14px;
-    line-height: 1.55;
+    margin: 2px 0 0;
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 13px;
+    line-height: 1.5;
     letter-spacing: 0;
   }
 }
 
-.standalone-dapp-root .redenv-play-area .redenv-hero .redenv-hero-copy > span:not(.redenv-hero-badge),
-.standalone-dapp-root .redenv-play-area .redenv-hero .redenv-hero-stats div span {
+.standalone-dapp-root .redenv-play-area .redenv-hero .redenv-hero-copy > span {
   color: rgba(255, 255, 255, 0.82);
 }
 
-.redenv-hero-stats {
+/* One compact metrics strip (replaces the duplicated hero stats + side counters) */
+.redenv-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  align-content: center;
   min-width: 0;
-  padding: 0;
-  border: none;
-  border-radius: 16px;
-  background: transparent;
 
   div {
     display: grid;
     align-content: center;
+    gap: 4px;
     min-width: 0;
-    min-height: 82px;
-    padding: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 12px 14px;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.14);
+    background: var(--ns-surface, #ffffff);
+    box-shadow: var(--ns-shadow-sm, 0 4px 14px rgba(20, 22, 38, 0.05));
   }
 
   span {
-    color: rgba(255, 255, 255, 0.78);
+    color: var(--ns-text-muted, #8a92a6);
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
@@ -126,78 +113,17 @@
   }
 
   strong {
-    margin-top: 8px;
-    overflow-wrap: normal;
-    color: #ffffff;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 18px;
     font-weight: 800;
     line-height: 1.15;
     white-space: nowrap;
-    word-break: normal;
     letter-spacing: 0;
     font-variant-numeric: tabular-nums;
   }
 }
 
-.redenv-flow-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-
-  div {
-    min-width: 0;
-    padding: 16px;
-    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-    border-radius: 16px;
-    background: var(--ns-surface, #ffffff);
-    box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-  }
-
-  span {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 999px;
-    background: var(--ns-danger-soft, #fde7e9);
-    color: #c81e2a;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-  }
-
-  strong {
-    display: block;
-    margin-top: 12px;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.25;
-    letter-spacing: 0;
-  }
-
-  p {
-    margin: 6px 0 0;
-    color: var(--ns-text-2, #5b6478);
-    font-size: 12px;
-    line-height: 1.45;
-    letter-spacing: 0;
-  }
-}
-
-.redenv-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 0.62fr) minmax(280px, 0.38fr);
-  gap: 14px;
-  align-items: stretch;
-}
-
-.redenv-claim-panel,
-.redenv-create-panel,
-.redenv-safety-panel,
-.redenv-envelope-list,
+.redenv-action-panel,
 .redenv-activity-panel {
   border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 18px;
@@ -205,13 +131,57 @@
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
-.redenv-claim-panel .neo-card__content,
-.redenv-create-panel .neo-card__content,
-.redenv-safety-panel .neo-card__content,
-.redenv-envelope-list .neo-card__content,
+.redenv-action-panel .neo-card__content,
 .redenv-activity-panel .neo-card__content {
   display: grid;
   gap: 14px;
+}
+
+/* Tabs: Claim is primary, Create demoted behind a secondary tab */
+.redenv-tabs {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.redenv-tab {
+  min-height: 36px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ns-text-2, #5b6478);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: background var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease),
+    color var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
+
+  &--active {
+    background: var(--ns-surface, #ffffff);
+    color: #c81e2a;
+    box-shadow: var(--ns-shadow-sm, 0 4px 14px rgba(20, 22, 38, 0.05));
+  }
+}
+
+.redenv-claim-body,
+.redenv-create-body {
+  display: grid;
+  gap: 14px;
+}
+
+.redenv-helper {
+  margin: -4px 0 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0;
 }
 
 .redenv-section-heading {
@@ -241,6 +211,7 @@
   }
 }
 
+/* Collapsed read-only card -- only rendered once a real envelope resolves */
 .redenv-selected-card {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -277,10 +248,6 @@
     letter-spacing: 0;
     font-variant-numeric: tabular-nums;
   }
-}
-
-.redenv-claim-panel .redenv-selected-card {
-  grid-template-columns: 1fr;
 }
 
 .redenv-create-grid {
@@ -324,49 +291,30 @@
   }
 }
 
-.redenv-claim-panel .neo-btn,
-.redenv-create-panel .neo-btn {
+.redenv-action-panel .neo-btn {
   min-height: 42px;
   border-radius: 14px;
   letter-spacing: 0;
 }
 
-.redenv-safety-panel {
-  p {
-    margin: 0;
-    color: var(--ns-text-2, #5b6478);
-    font-size: 13px;
-    line-height: 1.52;
-    letter-spacing: 0;
-  }
+/* Activity: one panel, two lists when there is data, slim line when empty */
+.redenv-activity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 
-.redenv-signal-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-  padding: 9px 0;
-  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-
-  span {
-    color: var(--ns-text-2, #5b6478);
-    font-size: 12px;
-    line-height: 1.25;
-    letter-spacing: 0;
-  }
-
-  strong {
-    min-width: 0;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.25;
-    text-align: right;
-    word-break: break-word;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-  }
+.redenv-empty-line {
+  padding: 14px 16px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-align: center;
 }
 
 .redenv-list {
@@ -432,31 +380,85 @@
   }
 }
 
-.redenv-empty-state {
-  display: grid;
-  gap: 6px;
-  place-content: center;
-  padding: 26px 18px;
+/* Diagnostics collapsed behind a Details disclosure -- internal telemetry */
+.redenv-details {
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 16px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  text-align: center;
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-sm, 0 4px 14px rgba(20, 22, 38, 0.05));
 
-  strong {
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 14px;
-    font-weight: 700;
+  > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    span {
+      color: var(--ns-text-muted, #8a92a6);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    strong {
+      color: var(--ns-ink, #1e1e2e);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+  }
+
+  &[open] > summary {
+    border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  }
+}
+
+.redenv-details-body {
+  display: grid;
+  gap: 0;
+  padding: 14px 16px;
+
+  > p {
+    margin: 0 0 6px;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 13px;
+    line-height: 1.52;
+    letter-spacing: 0;
+  }
+}
+
+.redenv-signal-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 9px 0;
+  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+
+  span {
+    color: var(--ns-text-2, #5b6478);
+    font-size: 12px;
     line-height: 1.25;
     letter-spacing: 0;
   }
 
-  p {
-    max-width: 300px;
-    margin: 0 auto;
-    color: var(--ns-text-muted, #8a92a6);
+  strong {
+    min-width: 0;
+    color: var(--ns-ink, #1e1e2e);
     font-size: 12px;
-    line-height: 1.45;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: right;
+    word-break: break-word;
     letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -524,22 +526,6 @@
   letter-spacing: 0;
 }
 
-@media (max-width: 900px) {
-  .redenv-shell,
-  .redenv-hero,
-  .redenv-workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .redenv-play-area {
-    min-height: 0;
-  }
-
-  .redenv-side {
-    position: static;
-  }
-}
-
 @media (max-width: 640px) {
   .redenv-play-area {
     gap: 12px;
@@ -552,14 +538,14 @@
   }
 
   .redenv-hero-copy > h2 {
-    font-size: 24px;
-    line-height: 1.08;
+    font-size: 20px;
+    line-height: 1.1;
   }
 
-  .redenv-hero-stats,
-  .redenv-flow-strip,
+  .redenv-metrics,
   .redenv-selected-card,
-  .redenv-create-summary {
+  .redenv-create-summary,
+  .redenv-activity-grid {
     grid-template-columns: 1fr;
   }
 

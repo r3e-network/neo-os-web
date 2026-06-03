@@ -29,8 +29,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
   const currentStreak = num("currentStreakRaw");
-  const highestStreak = num("highestStreakRaw");
-  const currentStreakFormatted = str("currentStreak", `0 ${t("days")}`);
   const highestStreakFormatted = str("highestStreak", `0 ${t("days")}`);
   const totalUserCheckins = num("totalUserCheckins");
   const unclaimedRewards = num("unclaimedRewards");
@@ -60,52 +58,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const daysToReward = Math.max(nextMilestone.day - currentStreak, 0);
   const weekSlotFilled = currentStreak >= 7 && currentStreak % 7 === 0 ? 7 : currentStreak % 7;
   const weekSlotToday = weekSlotFilled === 7 && canCheckIn ? 1 : Math.min(weekSlotFilled + 1, 7);
-  const nextStreak = canCheckIn ? currentStreak + 1 : currentStreak;
-  const upcomingCheckinReward = canCheckIn
-    ? MILESTONES.find((milestone) => milestone.day === nextStreak)?.reward ?? 0
-    : 0;
-  const securedMilestone = !canCheckIn
-    ? MILESTONES.find((milestone) => milestone.day === currentStreak)
-    : undefined;
-  const milestoneTitle = canCheckIn
-    ? upcomingCheckinReward > 0
-      ? `+${upcomingCheckinReward} ${t("tokenGas")}`
-      : t("noImmediateReward")
-    : securedMilestone
-      ? t("milestoneSecured", { day: securedMilestone.day })
-      : t("noImmediateReward");
-  const milestoneCopy = canCheckIn
-    ? upcomingCheckinReward > 0
-      ? t("milestoneImpactReady", { day: nextStreak })
-      : t("milestoneImpactPending", { days: daysToReward })
-    : securedMilestone
-      ? t("milestoneSecuredCopy", { days: daysToReward })
-      : t("milestoneDonePending", { days: daysToReward });
-  const claimAmountLabel = `${formatGas(unclaimedRewards)} ${t("tokenGas")}`;
-  const checkInFeeLabel = `${formatGas(checkInFee)} ${t("tokenGas")}`;
-  const todayPlanTitle = canCheckIn ? t("todayPlanReady") : t("todayPlanDone");
-  const todayPlanCopy = canCheckIn
-    ? t("todayPlanReadyCopy", { streak: nextStreak })
-    : t("todayPlanDoneCopy");
-  const rewardPlanTitle = unclaimedRewards > 0 ? t("rewardPlanReady") : t("rewardPlanEmpty");
-  const rewardPlanCopy = unclaimedRewards > 0
-    ? t("rewardPlanReadyCopy", { amount: claimAmountLabel })
-    : t("rewardPlanEmptyCopy");
-  const windowCheck = {
-    label: t("checkUtcWindow"),
-    done: canCheckIn,
-    value: canCheckIn ? t("checkReady") : t("checkComplete"),
-  };
-  const feeCheck = {
-    label: t("checkFeeVisible"),
-    done: checkInFee > 0,
-    value: checkInFeeLabel,
-  };
-  const claimCheck = {
-    label: t("checkClaimable"),
-    done: unclaimedRewards > 0,
-    value: claimAmountLabel,
-  };
 
   const [showConfetti, setShowConfetti] = useState(false);
   const [prevCanCheckIn, setPrevCanCheckIn] = useState(canCheckIn);
@@ -124,6 +76,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className={`checkin-play-area streak-${streakTier}`}>
+      {/* Hero — streak, status, and the only timing/fee facts that matter, in one block */}
       <div className="checkin-streak-section">
         <div className={`checkin-fire-ring ${streakTier}`}>
           <span className="checkin-streak-number">{currentStreak}</span>
@@ -132,6 +85,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <span className="checkin-hero-eyebrow">{t("title")}</span>
           <span className="checkin-streak-text">{currentStreak} {t("dayStreak")}</span>
           <span className="checkin-hero-subtitle">{t("docSubtitle")}</span>
+          <div className="checkin-hero-facts">
+            <span>{t("nextReward")}: {t("day")} {nextMilestone.day} · +{nextMilestone.reward} {t("tokenGas")}</span>
+            <span>{t("checkInFee")}: {formatGas(checkInFee)} {t("tokenGas")}</span>
+          </div>
         </div>
         <span className={`checkin-tier-badge ${streakTier}`}>
           {canCheckIn ? t("checkInReady") : t("checkedInToday")}
@@ -139,6 +96,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <span className="checkin-best-text">{t("bestStreak")}: {highestStreakFormatted}</span>
       </div>
 
+      {/* Week progress + next check-in countdown together (one timing context) */}
       <div className="checkin-week-wrapper" aria-label={t("rewardProgress")}>
         <div className="checkin-week-progress-label">
           <span className="checkin-progress-text">{weekSlotFilled}/7 {t("days")}</span>
@@ -162,7 +120,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 ].filter(Boolean).join(" ")}
               >
                 <span className="checkin-day-icon" aria-label={checked ? t("dayCompleted") : t("dayPending")}>
-                  {checked ? "\u2713" : "\u25CB"}
+                  {checked ? "✓" : "○"}
                 </span>
                 <span className="checkin-day-label">{t("dayPrefix")}{day}</span>
               </div>
@@ -172,86 +130,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="checkin-week-connector">
           <div className="checkin-connector-fill" style={{ width: `${(weekSlotFilled / 7) * 100}%` }} />
         </div>
-      </div>
-
-      <div className="countdown-section">
-        <div className="utc-clock" role="timer" aria-live="polite">
-          <span className="clock-display">{utcTimeDisplay}</span>
-          <span className="clock-utc-label">{t("utcLabel")}</span>
-        </div>
-        <CountdownTimer
-          targetTime={nextUtcMidnight}
-          totalDuration={MS_PER_DAY}
-          label={t("nextCheckin")}
-          t={t}
-        />
-      </div>
-
-      <div className={`status-pill${lastError ? " error" : canCheckIn ? " ready" : ""}`}>
-        <span>{lastError || workflowStatus}</span>
-      </div>
-
-      <div className="reward-preview">
-        <div>
-          <span className="reward-preview-label">{t("nextReward")}</span>
-          <span className="reward-preview-hint">{t("day")} {nextMilestone.day}</span>
-        </div>
-        <div className="reward-preview-amount">+{nextMilestone.reward} {t("tokenGas")}</div>
-        <div>
-          <span className="reward-preview-label">{t("checkInFee")}</span>
-          <span className="reward-preview-hint">{formatGas(checkInFee)} {t("tokenGas")}</span>
+        <div className="checkin-week-timing">
+          <span className="checkin-week-utc">{utcTimeDisplay} {t("utcLabel")}</span>
+          <CountdownTimer
+            targetTime={nextUtcMidnight}
+            totalDuration={MS_PER_DAY}
+            label={t("nextCheckin")}
+            t={t}
+          />
         </div>
       </div>
 
-      <section className="checkin-decision-panel" aria-label={t("todayPlan")}>
-        <div className="checkin-decision-header">
-          <span>{t("todayPlan")}</span>
-          <strong>{t("todayPlanSubtitle")}</strong>
-        </div>
-        <div className="checkin-decision-grid">
-          <div className={`checkin-decision-tile${windowCheck.done ? " is-ready" : " is-done"}`}>
-            <div className="checkin-decision-tile-top">
-              <span>{t("dailyWindow")}</span>
-              <em
-                className={`checkin-decision-badge${windowCheck.done ? " is-ready" : ""}`}
-                aria-label={`${windowCheck.label}: ${windowCheck.value}`}
-              >
-                {windowCheck.done ? "✓" : "○"} {windowCheck.value}
-              </em>
-            </div>
-            <strong>{todayPlanTitle}</strong>
-            <p>{todayPlanCopy}</p>
-          </div>
-          <div className={`checkin-decision-tile${upcomingCheckinReward > 0 ? " is-ready" : securedMilestone ? " is-done" : ""}`}>
-            <div className="checkin-decision-tile-top">
-              <span>{t("milestoneImpact")}</span>
-              <em
-                className={`checkin-decision-badge${feeCheck.done ? " is-ready" : ""}`}
-                aria-label={`${feeCheck.label}: ${feeCheck.value}`}
-              >
-                {feeCheck.done ? "✓" : "○"} {feeCheck.value}
-              </em>
-            </div>
-            <strong>{milestoneTitle}</strong>
-            <p>{milestoneCopy}</p>
-          </div>
-          <div className={`checkin-decision-tile${unclaimedRewards > 0 ? " is-ready" : ""}`}>
-            <div className="checkin-decision-tile-top">
-              <span>{t("claimPlan")}</span>
-              <em
-                className={`checkin-decision-badge${claimCheck.done ? " is-ready" : ""}`}
-                aria-label={`${claimCheck.label}: ${claimCheck.value}`}
-              >
-                {claimCheck.done ? "✓" : "○"} {claimCheck.value}
-              </em>
-            </div>
-            <strong>{rewardPlanTitle}</strong>
-            <p>{rewardPlanCopy}</p>
-          </div>
-        </div>
-      </section>
-
+      {/* Primary action — surfaced right after the hero, with inline status */}
       <NeoCard variant="erobo" className="checkin-action-card">
+        <div className={`status-pill${lastError ? " error" : canCheckIn ? " ready" : ""}`}>
+          <span>{lastError || workflowStatus}</span>
+        </div>
         <div className="checkin-actions-grid">
           <NeoButton
             variant={canCheckIn ? "success" : "secondary"}
@@ -295,38 +189,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       )}
 
-      <NeoCard variant="erobo" className="checkin-stats-card">
-        <h3 className="checkin-section-title">{t("yourStats")}</h3>
-        <div className="checkin-stats-grid">
-          <div className="checkin-stat-item">
-            <span className="checkin-stat-value">{totalUserCheckins}</span>
-            <span className="checkin-stat-label">{t("totalCheckins")}</span>
-          </div>
-          <div className="checkin-stat-item">
-            <span className="checkin-stat-value">{currentStreakFormatted}</span>
-            <span className="checkin-stat-label">{t("currentStreak")}</span>
-          </div>
-          <div className="checkin-stat-item">
-            <span className="checkin-stat-value">{highestStreakFormatted}</span>
-            <span className="checkin-stat-label">{t("highestStreak")}</span>
-          </div>
+      {/* One compact personal-metrics strip (replaces the separate Your Stats + Your Rewards cards) */}
+      <div className="checkin-meta-strip">
+        <div className="checkin-meta-item">
+          <span className="checkin-meta-value">{totalUserCheckins}</span>
+          <span className="checkin-meta-label">{t("totalCheckins")}</span>
         </div>
-      </NeoCard>
-
-      <NeoCard variant="erobo" className="checkin-rewards-card">
-        <h3 className="checkin-section-title">{t("yourRewards")}</h3>
-        <div className="checkin-rewards-grid">
-          <div className="checkin-reward-item">
-            <span className="checkin-reward-value checkin-reward-value--unclaimed">{formatGas(unclaimedRewards)}</span>
-            <span className="checkin-reward-label">{t("unclaimed")}</span>
-          </div>
-          <div className="checkin-reward-item">
-            <span className="checkin-reward-value">{formatGas(totalClaimed)}</span>
-            <span className="checkin-reward-label">{t("totalClaimed")}</span>
-          </div>
+        <div className="checkin-meta-item">
+          <span className="checkin-meta-value">{formatGas(unclaimedRewards)}</span>
+          <span className="checkin-meta-label">{t("unclaimed")}</span>
         </div>
-      </NeoCard>
+        <div className="checkin-meta-item">
+          <span className="checkin-meta-value">{formatGas(totalClaimed)}</span>
+          <span className="checkin-meta-label">{t("totalClaimed")}</span>
+        </div>
+      </div>
 
+      {/* Milestone ladder — the reward schedule, kept as useful reference */}
       <NeoCard variant="erobo-neo" className="checkin-milestones-card">
         <h3 className="checkin-section-title">{t("milestones")}</h3>
         <div className="checkin-milestones-row">
@@ -335,7 +214,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             const next = !reached && currentStreak < milestone.day;
             return (
               <div key={milestone.day} className={`checkin-milestone${reached ? " reached" : next ? " next" : ""}`}>
-                <div className="checkin-milestone-icon">{reached ? "\u2713" : "\u25C9"}</div>
+                <div className="checkin-milestone-icon">{reached ? "✓" : "◉"}</div>
                 <span className="checkin-milestone-day">{t("day")} {milestone.day}</span>
                 <span className="checkin-milestone-reward">+{milestone.reward} {t("tokenGas")}</span>
                 <span className="checkin-milestone-cumulative">({milestone.cumulative} {t("total")})</span>
@@ -345,6 +224,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </NeoCard>
 
+      {/* Your recent activity */}
+      <NeoCard variant="erobo" className="checkin-history-card">
+        <h3 className="checkin-section-title">{t("recentCheckins")}</h3>
+        {checkinHistory.length > 0 ? (
+          <div className="checkin-history-list">
+            {checkinHistory.slice(0, 10).map((entry, idx) => (
+              <div key={`${entry.time}-${idx}`} className="checkin-history-row">
+                <span className="checkin-history-date">{formatHistoryTime(entry.time)}</span>
+                <span className="checkin-history-streak">{entry.action === "claim" ? t("claimRewards") : `${entry.streak} ${t("dayStreak")}`}</span>
+                <span className="checkin-history-reward">{formatGas(entry.reward)} {t("tokenGas")}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="checkin-history-empty">{t("noCheckins")}</div>
+        )}
+      </NeoCard>
+
+      {/* Secondary: network-wide stats + raw evidence, de-emphasised at the bottom */}
       <NeoCard variant="erobo" className="checkin-global-card">
         <h3 className="checkin-section-title">{t("globalStats")}</h3>
         <div className="checkin-stats-grid">
@@ -361,23 +259,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="checkin-stat-label">{t("totalRewarded")}</span>
           </div>
         </div>
-      </NeoCard>
-
-      <NeoCard variant="erobo" className="checkin-history-card">
-        <h3 className="checkin-section-title">{t("recentCheckins")}</h3>
-        {checkinHistory.length > 0 ? (
-          <div className="checkin-history-list">
-            {checkinHistory.slice(0, 10).map((entry, idx) => (
-              <div key={`${entry.time}-${idx}`} className="checkin-history-row">
-                <span className="checkin-history-date">{formatHistoryTime(entry.time)}</span>
-                <span className="checkin-history-streak">{entry.action === "claim" ? t("claimRewards") : `${entry.streak} ${t("dayStreak")}`}</span>
-                <span className="checkin-history-reward">{formatGas(entry.reward)} {t("tokenGas")}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="checkin-history-empty">{t("noCheckins")}</div>
-        )}
       </NeoCard>
 
       <details className="checkin-evidence-card" aria-label={t("evidence")}>

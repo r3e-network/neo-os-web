@@ -91,6 +91,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const launchedEnvelopeId = getLaunchEnvelopeId(launchContext);
   const launchedCreateForm = getLaunchCreateForm(launchContext);
   const [selectedEnvelopeId, setSelectedEnvelopeId] = useState(launchedEnvelopeId);
+  const [activeTab, setActiveTab] = useState<"claim" | "create">("claim");
   const [createForm, setCreateForm] = useState({
     amount: "1",
     count: "8",
@@ -154,222 +155,221 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
   const createEnvelope = () => dispatch("createEnvelope", createForm);
 
+  const hasActivity = activeEnvelopes.length > 0 || recentClaims.length > 0;
+
   return (
     <div className="redenv-play-area">
       <div className="redenv-shell">
         <section className="redenv-main" aria-label={t("redEnvelopeHeroTitle")}>
           <div className="redenv-hero">
+            <div className="redenv-hero-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+                <rect x="4" y="3" width="16" height="18" rx="3" fill="currentColor" opacity="0.16" />
+                <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M9 3l3 5 3-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="13" r="2.6" fill="currentColor" />
+              </svg>
+            </div>
             <div className="redenv-hero-copy">
-              <div className="redenv-hero-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-                  <rect x="4" y="3" width="16" height="18" rx="3" fill="currentColor" opacity="0.16" />
-                  <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
-                  <path d="M9 3l3 5 3-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="12" cy="13" r="2.6" fill="currentColor" />
-                </svg>
-              </div>
               <span>{t("shareReadyTitle")}</span>
               <h2>{t("redEnvelopeHeroTitle")}</h2>
               <p>{t("redEnvelopeHeroSubtitle")}</p>
             </div>
-            <div className="redenv-hero-stats">
-              <div>
-                <span>{t("availableEnvelopes")}</span>
-                <strong>{activeEnvelopes.length}</strong>
-              </div>
-              <div>
-                <span>{t("claimablePool")}</span>
-                <strong>{formatGas(claimableGas)}</strong>
-              </div>
-              <div>
-                <span>{t("recentClaimsTitle")}</span>
-                <strong>{claimCount}</strong>
-              </div>
-            </div>
           </div>
 
-          <div className="redenv-flow-strip" aria-label={t("claimFlowTitle")}>
+          <div className="redenv-metrics" aria-label={t("claimablePool")}>
             <div>
-              <span>01</span>
-              <strong>{t("claimRouteOne")}</strong>
-              <p>{t("claimRouteOneCopy")}</p>
-            </div>
-            <div>
-              <span>02</span>
-              <strong>{t("claimRouteTwo")}</strong>
-              <p>{t("claimRouteTwoCopy")}</p>
-            </div>
-            <div>
-              <span>03</span>
-              <strong>{t("claimRouteThree")}</strong>
-              <p>{t("claimRouteThreeCopy")}</p>
-            </div>
-          </div>
-
-          <div className="redenv-workspace">
-            <NeoCard variant="erobo" className="redenv-claim-panel">
-              <div className="redenv-section-heading">
-                <span>{t("claimPanelTitle")}</span>
-                <strong>
-                  {targetEnvelope ? t("ready") : selectedEnvelopeId ? t("readyToClaim") : t("needsEnvelopeId")}
-                </strong>
-              </div>
-              <div className="redenv-selected-card">
-                <div>
-                  <span>{t("envelopeId")}</span>
-                  <strong>{selectedEnvelopeId ? `#${shortId(selectedEnvelopeId)}` : t("enterPoolId")}</strong>
-                </div>
-                <div>
-                  <span>{t("remainingPacketsLabel")}</span>
-                  <strong>{targetEnvelope ? `${selectedRemaining}/${selectedTotal || "?"}` : "--"}</strong>
-                </div>
-                <div>
-                  <span>{t("poolProgress")}</span>
-                  <strong>{completionRate}%</strong>
-                </div>
-              </div>
-              <NeoInput
-                value={selectedEnvelopeId}
-                label={t("envelopeId")}
-                placeholder={t("enterPoolId")}
-                onChange={(value) => setSelectedEnvelopeId(value)}
-              />
-              <NeoButton
-                variant="primary"
-                loading={Boolean(openingId)}
-                disabled={isLoading || !selectedEnvelopeId.trim()}
-                onClick={claimSelectedEnvelope}
-              >
-                {t("claimNow")}
-              </NeoButton>
-            </NeoCard>
-
-            <NeoCard variant="erobo" className="redenv-create-panel">
-              <div className="redenv-section-heading">
-                <span>{t("createPanelTitle")}</span>
-                <strong>{t("creatorMode")}</strong>
-              </div>
-              <div className="redenv-create-grid">
-                <NeoInput
-                  value={createForm.amount}
-                  type="number"
-                  min={0.1}
-                  suffix="GAS"
-                  label={t("totalGas")}
-                  placeholder="1"
-                  onChange={(value) => setCreateField("amount", value)}
-                />
-                <NeoInput
-                  value={createForm.count}
-                  type="number"
-                  min={1}
-                  max={100}
-                  label={t("packetCount")}
-                  placeholder="8"
-                  onChange={(value) => setCreateField("count", value)}
-                />
-                <NeoInput
-                  value={createForm.expiryHours}
-                  type="number"
-                  min={1}
-                  suffix={t("hoursSuffix")}
-                  label={t("expiryHours")}
-                  placeholder="24"
-                  onChange={(value) => setCreateField("expiryHours", value)}
-                />
-              </div>
-              <div className="redenv-create-summary" aria-label={t("createPreviewTitle")}>
-                <div>
-                  <span>{t("perPacketLabel")}</span>
-                  <strong>{formatGas(perPacketGas)}</strong>
-                </div>
-                <div>
-                  <span>{t("expiryHours")}</span>
-                  <strong>{Number.isFinite(createExpiryHours) ? `${createExpiryHours} ${t("hoursSuffix")}` : "--"}</strong>
-                </div>
-              </div>
-              <NeoButton
-                variant="secondary"
-                loading={isLoading}
-                disabled={isLoading || !canCreateEnvelope}
-                onClick={createEnvelope}
-              >
-                {t("sendRedEnvelope")}
-              </NeoButton>
-            </NeoCard>
-          </div>
-        </section>
-
-        <aside className="redenv-side" aria-label={t("safetyPanelTitle")}>
-          <NeoCard variant="erobo" className="redenv-safety-panel">
-            <div className="redenv-section-heading">
-              <span>{t("safetyPanelTitle")}</span>
-              <strong>{t("osGuarded")}</strong>
-            </div>
-            <p>{t("safetyPanelCopy")}</p>
-            <div className="redenv-signal-row">
-              <span>{t("contractRoute")}</span>
-              <strong>{t("claimContractRoute")}</strong>
-            </div>
-            <div className="redenv-signal-row">
-              <span>{t("createdGasLabel")}</span>
-              <strong>{formatGas(totalCreated)}</strong>
-            </div>
-            <div className="redenv-signal-row">
-              <span>{t("claimedGasLabel")}</span>
-              <strong>{formatGas(totalClaimed)}</strong>
-            </div>
-          </NeoCard>
-
-          <NeoCard variant="erobo" className="redenv-envelope-list">
-            <div className="redenv-section-heading">
               <span>{t("availableEnvelopes")}</span>
-              <strong>{poolCount}</strong>
+              <strong>{activeEnvelopes.length}</strong>
             </div>
-            {activeEnvelopes.length === 0 ? (
-              <div className="redenv-empty-state">
-                <strong>{t("noPools")}</strong>
-                <p>{t("noPoolsCopy")}</p>
+            <div>
+              <span>{t("claimablePool")}</span>
+              <strong>{formatGas(claimableGas)}</strong>
+            </div>
+            <div>
+              <span>{t("recentClaimsTitle")}</span>
+              <strong>{claimCount}</strong>
+            </div>
+          </div>
+
+          <NeoCard variant="erobo" className="redenv-action-panel">
+            <div className="redenv-tabs" role="tablist" aria-label={t("claimFlowTitle")}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "claim"}
+                className={`redenv-tab${activeTab === "claim" ? " redenv-tab--active" : ""}`}
+                onClick={() => setActiveTab("claim")}
+              >
+                {t("claimTab")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "create"}
+                className={`redenv-tab${activeTab === "create" ? " redenv-tab--active" : ""}`}
+                onClick={() => setActiveTab("create")}
+              >
+                {t("createTab")}
+              </button>
+            </div>
+
+            {activeTab === "claim" ? (
+              <div className="redenv-claim-body">
+                {targetEnvelope && (
+                  <div className="redenv-selected-card">
+                    <div>
+                      <span>{t("envelopeId")}</span>
+                      <strong>{`#${shortId(selectedEnvelopeId)}`}</strong>
+                    </div>
+                    <div>
+                      <span>{t("remainingPacketsLabel")}</span>
+                      <strong>{`${selectedRemaining}/${selectedTotal || "?"}`}</strong>
+                    </div>
+                    <div>
+                      <span>{t("poolProgress")}</span>
+                      <strong>{completionRate}%</strong>
+                    </div>
+                  </div>
+                )}
+                <NeoInput
+                  value={selectedEnvelopeId}
+                  label={t("envelopeId")}
+                  placeholder={t("enterPoolId")}
+                  onChange={(value) => setSelectedEnvelopeId(value)}
+                />
+                <p className="redenv-helper">
+                  {targetEnvelope
+                    ? t("claimReadyDesc")
+                    : selectedEnvelopeId
+                    ? t("claimOperationDesc")
+                    : t("claimNeedIdDesc")}
+                </p>
+                <NeoButton
+                  variant="primary"
+                  loading={Boolean(openingId)}
+                  disabled={isLoading || !selectedEnvelopeId.trim()}
+                  onClick={claimSelectedEnvelope}
+                >
+                  {t("claimNow")}
+                </NeoButton>
               </div>
             ) : (
-              <div className="redenv-list">
-                {activeEnvelopes.slice(0, 6).map((env) => (
-                  <button
-                    key={env.id}
-                    type="button"
-                    className={`redenv-row${selectedEnvelopeId === String(env.id) ? " redenv-row--selected" : ""}`}
-                    onClick={() => setSelectedEnvelopeId(String(env.id))}
-                  >
-                    <span>#{shortId(String(env.id))}</span>
-                    <strong>{env.remainingPackets ?? env.remaining ?? "?"}/{env.packetCount ?? env.count ?? "?"}</strong>
-                  </button>
-                ))}
+              <div className="redenv-create-body">
+                <div className="redenv-create-grid">
+                  <NeoInput
+                    value={createForm.amount}
+                    type="number"
+                    min={0.1}
+                    suffix="GAS"
+                    label={t("totalGas")}
+                    placeholder="1"
+                    onChange={(value) => setCreateField("amount", value)}
+                  />
+                  <NeoInput
+                    value={createForm.count}
+                    type="number"
+                    min={1}
+                    max={100}
+                    label={t("packetCount")}
+                    placeholder="8"
+                    onChange={(value) => setCreateField("count", value)}
+                  />
+                  <NeoInput
+                    value={createForm.expiryHours}
+                    type="number"
+                    min={1}
+                    suffix={t("hoursSuffix")}
+                    label={t("expiryHours")}
+                    placeholder="24"
+                    onChange={(value) => setCreateField("expiryHours", value)}
+                  />
+                </div>
+                <div className="redenv-create-summary" aria-label={t("createPreviewTitle")}>
+                  <div>
+                    <span>{t("perPacketLabel")}</span>
+                    <strong>{formatGas(perPacketGas)}</strong>
+                  </div>
+                  <div>
+                    <span>{t("expiryHours")}</span>
+                    <strong>{Number.isFinite(createExpiryHours) ? `${createExpiryHours} ${t("hoursSuffix")}` : "--"}</strong>
+                  </div>
+                </div>
+                <NeoButton
+                  variant="secondary"
+                  loading={isLoading}
+                  disabled={isLoading || !canCreateEnvelope}
+                  onClick={createEnvelope}
+                >
+                  {t("sendRedEnvelope")}
+                </NeoButton>
               </div>
             )}
           </NeoCard>
 
           <NeoCard variant="erobo" className="redenv-activity-panel">
             <div className="redenv-section-heading">
-              <span>{t("recentClaimsTitle")}</span>
-              <strong>{recentClaims.length}</strong>
+              <span>{t("recentActivity")}</span>
+              <strong>{poolCount || recentClaims.length}</strong>
             </div>
-            {recentClaims.length === 0 ? (
-              <div className="redenv-empty-state">
-                <strong>{t("noActivity")}</strong>
-                <p>{t("noActivityCopy")}</p>
-              </div>
+            {!hasActivity ? (
+              <div className="redenv-empty-line">{t("noPools")}</div>
             ) : (
-              <div className="redenv-list">
-                {recentClaims.map((claim) => (
-                  <div key={claim.id} className="redenv-row redenv-row--static">
-                    <span>{claim.holder || claim.claimer ? shortId(String(claim.holder || claim.claimer)) : "Wallet"}</span>
-                    <strong>{formatGas(claim.amount)}</strong>
+              <div className="redenv-activity-grid">
+                {activeEnvelopes.length > 0 && (
+                  <div className="redenv-list">
+                    {activeEnvelopes.slice(0, 6).map((env) => (
+                      <button
+                        key={env.id}
+                        type="button"
+                        className={`redenv-row${selectedEnvelopeId === String(env.id) ? " redenv-row--selected" : ""}`}
+                        onClick={() => {
+                          setSelectedEnvelopeId(String(env.id));
+                          setActiveTab("claim");
+                        }}
+                      >
+                        <span>#{shortId(String(env.id))}</span>
+                        <strong>{env.remainingPackets ?? env.remaining ?? "?"}/{env.packetCount ?? env.count ?? "?"}</strong>
+                      </button>
+                    ))}
                   </div>
-                ))}
+                )}
+                {recentClaims.length > 0 && (
+                  <div className="redenv-list">
+                    {recentClaims.map((claim) => (
+                      <div key={claim.id} className="redenv-row redenv-row--static">
+                        <span>{claim.holder || claim.claimer ? shortId(String(claim.holder || claim.claimer)) : "Wallet"}</span>
+                        <strong>{formatGas(claim.amount)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </NeoCard>
-        </aside>
+
+          <details className="redenv-details">
+            <summary>
+              <span>{t("safetyPanelTitle")}</span>
+              <strong>{t("osGuarded")}</strong>
+            </summary>
+            <div className="redenv-details-body">
+              <p>{t("safetyPanelCopy")}</p>
+              <div className="redenv-signal-row">
+                <span>{t("contractRoute")}</span>
+                <strong>{t("claimContractRoute")}</strong>
+              </div>
+              <div className="redenv-signal-row">
+                <span>{t("createdGasLabel")}</span>
+                <strong>{formatGas(totalCreated)}</strong>
+              </div>
+              <div className="redenv-signal-row">
+                <span>{t("claimedGasLabel")}</span>
+                <strong>{formatGas(totalClaimed)}</strong>
+              </div>
+            </div>
+          </details>
+        </section>
       </div>
 
       {luckyMessage && (

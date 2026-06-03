@@ -19,6 +19,8 @@ interface PlayAreaProps {
   launchContext: MiniAppLaunchContext;
 }
 
+const DASH = "—";
+
 export default function PlayArea({
   t,
   state,
@@ -78,32 +80,25 @@ export default function PlayArea({
     Boolean(targetContract.trim()) &&
     Boolean(expiresAt.trim()) &&
     !isSubmitting;
-  const sessionKeyState = sessionPublicKey.trim()
-    ? t("sessionKeyReady")
-    : t("sessionKeyMissing");
-  const scopeDisplay =
-    normalizedTargetContract ||
-    (targetContract.trim() ? targetContract.trim() : t("notAvailable"));
   const methodDisplay =
     normalizedAllowedMethod || allowedMethod.trim() || t("anyMethod");
 
+  // A session is only truly configured once the on-chain submit succeeds; the
+  // composable reflects that through sessionStatusDisplay === t("configured").
+  const isConfigured = sessionStatusDisplay === t("configured");
+
   const environmentItems = [
-    { label: t("aaCore") || "AA Core", value: aaCoreDisplay || "--" },
+    {
+      label: t("aaCore") || "AA Core",
+      value: aaCoreDisplay || DASH,
+    },
     {
       label: t("sessionVerifier") || "Session Verifier",
-      value: sessionVerifierDisplay || "--",
+      value: sessionVerifierDisplay || DASH,
     },
     {
       label: t("derivedAccountId") || "Account ID Hash",
-      value: derivedAccountIdHash || "--",
-    },
-    {
-      label: t("normalizedTarget") || "Target Contract",
-      value: normalizedTargetContract || "--",
-    },
-    {
-      label: t("normalizedMethod") || "Allowed Method",
-      value: normalizedAllowedMethod || "--",
+      value: derivedAccountIdHash || DASH,
     },
   ];
 
@@ -129,50 +124,53 @@ export default function PlayArea({
 
   return (
     <div className="session-play-area">
+      {/* Hero — the single status surface (Session / Sponsor / Scope) */}
       <section className="session-hero">
-        <div className="session-hero__copy">
-          <div className="session-hero__head">
-            <div className="session-hero__badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle
-                  cx="7.5"
-                  cy="15.5"
-                  r="4.5"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M10.5 12.5 19 4m-2 2 2.5 2.5M15 6l2.5 2.5"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <div className="session-hero__heading">
-              <h2>{t("sessionHeroTitle")}</h2>
-              <p>{t("sessionHeroCopy")}</p>
-            </div>
+        <div className="session-hero__head">
+          <div className="session-hero__badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle
+                cx="7.5"
+                cy="15.5"
+                r="4.5"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M10.5 12.5 19 4m-2 2 2.5 2.5M15 6l2.5 2.5"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
-          <div
-            className="session-hero__metrics"
-            aria-label={t("sessionMetricsLabel")}
-          >
-            <div className="session-metric">
-              <span>{t("sessionMetricStatus")}</span>
-              <strong>{sessionStatusDisplay || "--"}</strong>
-            </div>
-            <div className="session-metric">
-              <span>{t("sessionMetricSponsor")}</span>
-              <strong>{sponsorStatusDisplay || "--"}</strong>
-            </div>
-            <div className="session-metric session-metric--scope">
-              <span>{t("sessionMetricScope")}</span>
-              <strong>{methodDisplay}</strong>
-            </div>
+          <div className="session-hero__heading">
+            <h2>{t("sessionHeroTitle")}</h2>
+            <p>{t("sessionHeroCopy")}</p>
           </div>
         </div>
+        <div
+          className="session-hero__metrics"
+          aria-label={t("sessionMetricsLabel")}
+        >
+          <div className="session-metric">
+            <span>{t("sessionMetricStatus")}</span>
+            <strong>{sessionStatusDisplay || DASH}</strong>
+          </div>
+          <div className="session-metric">
+            <span>{t("sessionMetricSponsor")}</span>
+            <strong>{sponsorStatusDisplay || DASH}</strong>
+          </div>
+          <div className="session-metric session-metric--scope">
+            <span>{t("sessionMetricScope")}</span>
+            <strong>{methodDisplay}</strong>
+          </div>
+        </div>
+      </section>
 
+      {/* Linear flow: 1) Generate key + sponsorship  2) Configure scope */}
+      <section className="session-flow-stack">
+        {/* Step 1 — Generate key & check/request sponsorship */}
         <NeoCard
           variant="erobo"
           title={t("sessionCommandTitle")}
@@ -181,27 +179,6 @@ export default function PlayArea({
           <div className="session-command__status">
             <span>{t("wallet") || "Wallet"}</span>
             <strong>{walletDisplay || t("notConnected")}</strong>
-          </div>
-          <div className="session-command__status">
-            <span>{t("sessionPublicKey")}</span>
-            <strong>{sessionKeyState}</strong>
-          </div>
-          <div className="session-form session-form--compact">
-            <NeoInput
-              value={dappId}
-              label={t("dappId") || "Paymaster dApp ID"}
-              placeholder={
-                t("dappIdPlaceholder") || "miniapp-aa-session-key-lab"
-              }
-              onChange={(v: string) => setDappId(v)}
-            />
-            <NeoInput
-              type="number"
-              value={sponsorAmount}
-              label={t("sponsorAmount") || "Sponsor Amount"}
-              placeholder={t("sponsorAmountPlaceholder") || "0.1"}
-              onChange={(v: string) => setSponsorAmount(v)}
-            />
           </div>
           <div className="session-action-grid">
             <NeoButton
@@ -230,6 +207,23 @@ export default function PlayArea({
               {t("requestSponsor") || "Request Sponsor"}
             </NeoButton>
           </div>
+          <div className="session-form session-form--compact">
+            <NeoInput
+              value={dappId}
+              label={t("dappId") || "Paymaster dApp ID"}
+              placeholder={
+                t("dappIdPlaceholder") || "miniapp-aa-session-key-lab"
+              }
+              onChange={(v: string) => setDappId(v)}
+            />
+            <NeoInput
+              type="number"
+              value={sponsorAmount}
+              label={t("sponsorAmount") || "Sponsor Amount"}
+              placeholder={t("sponsorAmountPlaceholder") || "0.1"}
+              onChange={(v: string) => setSponsorAmount(v)}
+            />
+          </div>
           {generatedPrivateKey && (
             <div className="session-private-export">
               <span>{t("privateKeyReady")}</span>
@@ -243,18 +237,114 @@ export default function PlayArea({
             </div>
           )}
         </NeoCard>
+
+        {/* Step 2 — Configure scope + submit (the primary business action) */}
+        <NeoCard
+          variant="erobo"
+          title={t("configureSession")}
+          className="session-config-card"
+        >
+          {!canConfigure && (
+            <p className="session-hint">{t("configureSessionBlocked")}</p>
+          )}
+          <div className="session-form">
+            <NeoInput
+              value={accountSeed}
+              label={t("accountSeed") || "Account Seed"}
+              placeholder={t("accountSeedPlaceholder") || "Enter seed"}
+              onChange={(v: string) => setAccountSeed(v)}
+            />
+            <NeoInput
+              value={sessionPublicKey}
+              label={t("sessionPublicKey") || "Session Public Key"}
+              placeholder={t("sessionPublicKeyPlaceholder") || "Public key"}
+              onChange={(v: string) => setSessionPublicKey(v)}
+            />
+            <NeoInput
+              value={targetContract}
+              label={t("targetContract") || "Target Contract"}
+              placeholder={t("targetContractPlaceholder") || "Contract hash"}
+              onChange={(v: string) => setTargetContract(v)}
+            />
+            <NeoInput
+              value={allowedMethod}
+              label={t("allowedMethod") || "Allowed Method"}
+              placeholder={t("allowedMethodPlaceholder") || "*"}
+              onChange={(v: string) => setAllowedMethod(v)}
+            />
+            <NeoInput
+              value={expiresAt}
+              label={t("expiresAt") || "Expires At"}
+              placeholder={t("expiresAtPlaceholder") || "Unix timestamp"}
+              onChange={(v: string) => setExpiresAt(v)}
+            />
+            <NeoButton
+              variant="primary"
+              loading={isSubmitting}
+              disabled={!canConfigure}
+              aria-label={t("configureSession") || "Configure"}
+              onClick={() =>
+                dispatch(
+                  "configureSessionKey",
+                  accountSeed,
+                  sessionPublicKey,
+                  targetContract,
+                  allowedMethod,
+                  expiresAt,
+                )
+              }
+            >
+              {t("configureSession") || "Configure Session"}
+            </NeoButton>
+          </div>
+        </NeoCard>
       </section>
 
-      <section className="session-workspace">
-        <div className="session-main-panel">
-          <div className="session-section-heading">
-            <div>
-              <span>{t("sessionStateLabel")}</span>
-              <h3>{t("latestState")}</h3>
-            </div>
-            <strong>{sessionStatusDisplay || "--"}</strong>
-          </div>
+      {/* Configured summary — only after a successful submit; otherwise a
+          single muted empty-state line. */}
+      <section className="session-summary">
+        <div className="session-section-heading">
+          <h3>{t("latestState")}</h3>
+        </div>
 
+        {isConfigured ? (
+          <NeoCard variant="erobo" className="session-result-card">
+            <div className="session-detail-list">
+              {detailItems.map((item) => (
+                <div key={item.label} className="session-detail-row">
+                  <span>{item.label}</span>
+                  <strong>{String(item.value ?? DASH)}</strong>
+                </div>
+              ))}
+            </div>
+          </NeoCard>
+        ) : (
+          <NeoCard variant="erobo" className="session-result-card">
+            <div className="session-empty-state">
+              <span className="session-empty-state__badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle
+                    cx="7.5"
+                    cy="15.5"
+                    r="4.5"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M10.5 12.5 19 4m-2 2 2.5 2.5M15 6l2.5 2.5"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <p>{t("sessionEmptyCopy")}</p>
+            </div>
+          </NeoCard>
+        )}
+
+        <details className="session-environment">
+          <summary>{t("sessionStateLabel")}</summary>
           <div className="session-env-grid">
             {environmentItems.map((item) => (
               <div key={item.label} className="session-env-item">
@@ -263,114 +353,7 @@ export default function PlayArea({
               </div>
             ))}
           </div>
-
-          <NeoCard variant="erobo" className="session-result-card">
-            <div className="session-detail-list">
-              {detailItems.map((item) => (
-                <div key={item.label} className="session-detail-row">
-                  <span>{item.label}</span>
-                  <strong>
-                    {String(item.value ?? (t("notAvailable") || "N/A"))}
-                  </strong>
-                </div>
-              ))}
-              {detailItems.length === 0 && (
-                <div className="session-empty-state">
-                  <span>SK</span>
-                  <strong>{t("noDetails")}</strong>
-                  <p>{t("sessionEmptyCopy")}</p>
-                </div>
-              )}
-            </div>
-          </NeoCard>
-        </div>
-
-        <aside className="session-side-rail">
-          <NeoCard
-            variant="erobo"
-            title={t("configureSession")}
-            className="session-config-card"
-          >
-            <div className="session-config-copy">
-              <strong>{t("sessionScopeTitle")}</strong>
-              <span>{scopeDisplay}</span>
-            </div>
-            {!canConfigure && (
-              <p className="session-hint">{t("configureSessionBlocked")}</p>
-            )}
-            <div className="session-form">
-              <NeoInput
-                value={accountSeed}
-                label={t("accountSeed") || "Account Seed"}
-                placeholder={t("accountSeedPlaceholder") || "Enter seed"}
-                onChange={(v: string) => setAccountSeed(v)}
-              />
-              <NeoInput
-                value={sessionPublicKey}
-                label={t("sessionPublicKey") || "Session Public Key"}
-                placeholder={t("sessionPublicKeyPlaceholder") || "Public key"}
-                onChange={(v: string) => setSessionPublicKey(v)}
-              />
-              <NeoInput
-                value={targetContract}
-                label={t("targetContract") || "Target Contract"}
-                placeholder={t("targetContractPlaceholder") || "Contract hash"}
-                onChange={(v: string) => setTargetContract(v)}
-              />
-              <NeoInput
-                value={allowedMethod}
-                label={t("allowedMethod") || "Allowed Method"}
-                placeholder={t("allowedMethodPlaceholder") || "*"}
-                onChange={(v: string) => setAllowedMethod(v)}
-              />
-              <NeoInput
-                value={expiresAt}
-                label={t("expiresAt") || "Expires At"}
-                placeholder={t("expiresAtPlaceholder") || "Unix timestamp"}
-                onChange={(v: string) => setExpiresAt(v)}
-              />
-              <NeoButton
-                variant="primary"
-                loading={isSubmitting}
-                disabled={!canConfigure}
-                aria-label={t("configureSession") || "Configure"}
-                onClick={() =>
-                  dispatch(
-                    "configureSessionKey",
-                    accountSeed,
-                    sessionPublicKey,
-                    targetContract,
-                    allowedMethod,
-                    expiresAt,
-                  )
-                }
-              >
-                {t("configureSession") || "Configure Session"}
-              </NeoButton>
-            </div>
-          </NeoCard>
-        </aside>
-      </section>
-
-      <section className="session-flow" aria-label={t("sessionFlowLabel")}>
-        <span className="session-flow__eyebrow">{t("sessionFlowLabel")}</span>
-        <div className="session-flow__steps">
-          <div className="session-flow__step">
-            <span>01</span>
-            <strong>{t("sessionFlowKey")}</strong>
-            <p>{t("sessionFlowKeyDesc")}</p>
-          </div>
-          <div className="session-flow__step">
-            <span>02</span>
-            <strong>{t("sessionFlowSponsor")}</strong>
-            <p>{t("sessionFlowSponsorDesc")}</p>
-          </div>
-          <div className="session-flow__step">
-            <span>03</span>
-            <strong>{t("sessionFlowConfigure")}</strong>
-            <p>{t("sessionFlowConfigureDesc")}</p>
-          </div>
-        </div>
+        </details>
       </section>
     </div>
   );
