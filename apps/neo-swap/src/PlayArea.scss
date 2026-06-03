@@ -26,7 +26,7 @@
 .neo-swap-play-area .neo-card {
   min-width: 0;
   border: 1px solid var(--ns-line);
-  border-radius: 16px;
+  border-radius: 20px;
   background: var(--ns-surface);
   box-shadow: var(--ns-shadow);
 }
@@ -50,7 +50,7 @@
   min-width: 0;
   padding: 22px;
   border: 1px solid var(--ns-line);
-  border-radius: 16px;
+  border-radius: 20px;
   background: linear-gradient(135deg, #ffffff 0%, #f1fbf6 100%);
   box-shadow: var(--ns-shadow);
 }
@@ -65,7 +65,15 @@
   background: var(--ns-surface-subtle);
 }
 
-.neo-swap-detail-panel span,
+.neo-swap-detail-panel span {
+  color: var(--ns-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
 .neo-swap-token-option small {
   color: var(--ns-muted);
   font-size: 11px;
@@ -79,7 +87,8 @@
   color: var(--ns-muted);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   line-height: 1.3;
 }
 
@@ -105,9 +114,10 @@
 .neo-swap-section-header strong {
   min-width: 0;
   color: var(--ns-ink);
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.1rem;
+  font-weight: 800;
   line-height: 1.3;
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 
@@ -236,7 +246,22 @@
   font-weight: 700;
   transition:
     border-color 0.15s ease,
-    background 0.15s ease;
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.neo-swap-token-button:focus-visible,
+.neo-swap-token-option:focus-visible {
+  outline: none;
+  border-color: var(--ns-green);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);
+}
+
+.neo-swap-play-area .neo-input__field:focus-visible,
+.neo-swap-play-area .neo-input:focus-within .neo-input__field {
+  outline: none;
+  border-color: var(--ns-green);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.18);
 }
 
 .neo-swap-token-button span,
@@ -256,14 +281,34 @@
 .neo-swap-direction {
   display: grid;
   place-items: center;
-  margin: -4px 0;
+  margin: -10px 0;
+  z-index: 1;
 }
 
 .neo-swap-direction .neo-btn {
   width: 40px;
   height: 40px;
   padding: 0;
+  border: 1px solid var(--ns-line);
   border-radius: 999px;
+  background: var(--ns-surface);
+  color: var(--ns-green-strong);
+  box-shadow: 0 4px 12px rgba(20, 22, 38, 0.08);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.neo-swap-direction .neo-btn:hover {
+  border-color: var(--ns-green);
+  background: var(--ns-green-soft);
+}
+
+.neo-swap-direction .neo-btn:focus-visible {
+  outline: none;
+  border-color: var(--ns-green);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);
 }
 
 .neo-swap-detail-panel {

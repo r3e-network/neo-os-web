@@ -55,7 +55,12 @@ export default function PlayArea({
   const { str, val } = useStateBindings(state);
   const lastRoute = str("lastRoute", "Neo N3 -> Neo X");
   const lastKind = str("lastKind", "asset");
-  const lastDigest = str("lastDigest", t("notAvailable"));
+  const rawDigest = str("lastDigest", "—");
+  const notAvailableLabel = t("notAvailable");
+  const lastDigest =
+    rawDigest && rawDigest !== notAvailableLabel && rawDigest !== "N/A"
+      ? rawDigest
+      : "—";
   const lastStatus = str("lastStatus", t("statusReady"));
   const payload = str("lastPayload", t("emptyPayload"));
   const operations = val<BridgeOperation[]>("operationsLog", EMPTY_OPERATIONS) ?? EMPTY_OPERATIONS;

@@ -138,9 +138,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <h2>{t("heroTitle")}</h2>
             <p>{t("heroDescription")}</p>
             <div className="anchor-hero-facts">
-              <span>{routeStatus}</span>
-              <span aria-hidden="true">·</span>
-              <span>{t("registeredAgentsCopy", { count: agentTotal })}</span>
+              <span className="anchor-hero-fact">
+                <span className="anchor-hero-dot" aria-hidden="true" />
+                {routeStatus}
+              </span>
+              <span className="anchor-hero-fact">
+                {t("registeredAgentsCopy", { count: agentTotal })}
+              </span>
             </div>
           </div>
         </div>
@@ -231,7 +235,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
 
         <div className={`anchor-status-strip${isError ? " anchor-status-strip--error" : ""}`} aria-live="polite">
-          <span>{statusText}</span>
+          <span className="anchor-status-strip__line">
+            <span className="anchor-status-dot" aria-hidden="true" />
+            {statusText}
+          </span>
           {lastTxid && <code>{t("lastTxid")}: {formatTx(lastTxid)}</code>}
         </div>
 

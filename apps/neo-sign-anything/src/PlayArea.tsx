@@ -50,6 +50,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </svg>
             </span>
             <div className="sign-hero-copy">
+              <span className="sign-hero-eyebrow">{t("signHeroKicker")}</span>
               <h2>{t("signHeroTitle")}</h2>
               <p>{t("signHeroSubtitle")}</p>
             </div>
@@ -135,7 +136,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <strong>{signature || txHash ? t("ready") : t("awaitingSignature")}</strong>
               </div>
               <div className="sign-result-stack">
-                <div className="sign-result-box">
+                <div className={`sign-result-box${signature ? "" : " is-empty"}`}>
                   <span>{t("signatureResult")}</span>
                   <strong>{signaturePreview}</strong>
                   <button
@@ -146,7 +147,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     {t("copySignature")}
                   </button>
                 </div>
-                <div className="sign-result-box">
+                <div className={`sign-result-box${txHash ? "" : " is-empty"}`}>
                   <span>{t("broadcastResult")}</span>
                   <strong>{txHashPreview}</strong>
                   <button
