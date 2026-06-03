@@ -78,6 +78,7 @@ export function useQuadraticRounds() {
         ? parseBigInt(raw.matchingRemaining)
         : matchingPool - matchingAllocated - matchingWithdrawn;
 
+    const status = String(raw.status || "");
     return {
       id,
       creator: String(raw.creator || ""),
@@ -88,7 +89,9 @@ export function useQuadraticRounds() {
       projectCount: parseBigInt(raw.projectCount),
       startTime: Number.parseInt(String(raw.startTime || "0"), 10) || 0,
       endTime: Number.parseInt(String(raw.endTime || "0"), 10) || 0,
-      status: String(raw.status || ""),
+      status,
+      finalized: status === "finalized",
+      cancelled: status === "cancelled",
       title: String(raw.title || ""),
       description: String(raw.description || ""),
     };

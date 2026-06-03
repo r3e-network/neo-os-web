@@ -23,6 +23,14 @@ defineMiniApp({
       t: ctx.t,
     });
 
+    // Wire the connected wallet address into the composable so per-contract
+    // Sign / Break controls (gated on ContractList.isParty) render for the
+    // live user. Seed the initial value and keep it in sync on wallet change.
+    breakup.address.set(ctx.services.chain.address?.get?.() ?? "");
+    ctx.services.chain.address.subscribe(() => {
+      breakup.address.set(ctx.services.chain.address?.get?.() ?? "");
+    });
+
     ctx.registerAction("createContract", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as {
         partnerAddress?: string;

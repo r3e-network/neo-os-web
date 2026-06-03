@@ -84,7 +84,12 @@ defineMiniApp({
     });
 
     ctx.registerAction("openStudio", async () => {
+      gasbox.openStudio();
       ctx.setStatus(ctx.t("studioGuidance") || "Open Studio to create, fund, or activate machines.", "info");
+    });
+
+    ctx.registerAction("closeStudio", async () => {
+      gasbox.closeStudio();
     });
 
     // Synthetic counters for manifest stats — Machine type doesn't track per-machine pulls,
@@ -109,6 +114,7 @@ defineMiniApp({
         isPlayingDisplay: gasbox.isPlayingDisplay,
         selectedMachineName: gasbox.selectedMachineName,
         showResult: gasbox.showResult,
+        studioOpen: gasbox.studioOpen,
       },
       loadData: async () => {
         await gasbox.loadAll();

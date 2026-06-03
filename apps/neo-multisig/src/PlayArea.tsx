@@ -51,6 +51,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const selectedRequest = val<MultisigRequest>("selectedRequest");
   const isCreatingRequest = bool("isCreatingRequest");
   const isLoadingRequest = bool("isLoadingRequest");
+  const isSigningRequest = bool("isSigningRequest");
+  const isBroadcastingRequest = bool("isBroadcastingRequest");
+
+  const collectedSignatures = selectedRequest
+    ? Object.keys(selectedRequest.signatures ?? {}).length
+    : 0;
+  const requiredSignatures = selectedRequest?.threshold ?? 0;
+  const hasThreshold =
+    !!selectedRequest && collectedSignatures >= requiredSignatures;
+  const isBroadcasted = selectedRequest?.status === "broadcasted";
+  const canSign =
+    !!selectedRequest && !isBroadcasted && !isSigningRequest;
+  const canBroadcast =
+    !!selectedRequest && hasThreshold && !isBroadcasted && !isBroadcastingRequest;
   const normalizedSigners = useMemo(
     () => signers.map((signer) => signer.trim()).filter(Boolean),
     [signers],
@@ -298,11 +312,56 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <div>
                     <span>{t("reviewSigners")}</span>
                     <strong>
-                      {Object.keys(selectedRequest.signatures).length} /{" "}
-                      {selectedRequest.threshold}
+                      {collectedSignatures} / {requiredSignatures}
                     </strong>
                   </div>
+                  {selectedRequest.broadcast_txid && (
+                    <div>
+                      <span>{t("broadcastedTxid")}</span>
+                      <strong>{shorten(selectedRequest.broadcast_txid)}</strong>
+                    </div>
+                  )}
                 </div>
+              )}
+
+              {selectedRequest && (
+                <>
+                  <p
+                    className="multisig-request-hint"
+                    aria-live="polite"
+                  >
+                    {t("signatureProgress", {
+                      count: collectedSignatures,
+                      total: requiredSignatures,
+                    })}
+                  </p>
+                  <div className="multisig-primary-actions">
+                    <NeoButton
+                      variant="primary"
+                      loading={isSigningRequest}
+                      disabled={!canSign}
+                      onClick={() =>
+                        dispatch("signRequest", selectedRequest.id)
+                      }
+                    >
+                      {isSigningRequest
+                        ? t("buttonSigning")
+                        : t("buttonSign")}
+                    </NeoButton>
+                    <NeoButton
+                      variant="secondary"
+                      loading={isBroadcastingRequest}
+                      disabled={!canBroadcast}
+                      onClick={() =>
+                        dispatch("broadcastRequest", selectedRequest.id)
+                      }
+                    >
+                      {isBroadcastingRequest
+                        ? t("buttonBroadcasting")
+                        : t("buttonBroadcast")}
+                    </NeoButton>
+                  </div>
+                </>
               )}
             </NeoCard>
 

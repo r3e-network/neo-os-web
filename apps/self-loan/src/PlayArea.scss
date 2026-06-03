@@ -272,6 +272,46 @@ $sl-accent-soft: #e4f8f0;
 }
 
 // ---------- LTV Indicator ----------
+.selfloan-ltv-tiers {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.selfloan-ltv-tier {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 10px 8px;
+  cursor: pointer;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  color: var(--ns-text-2, #5b6478);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+
+  &.is-active {
+    border-color: var(--ns-accent, #16c784);
+    background: var(--ns-accent-soft, rgba(22, 199, 132, 0.1));
+    color: var(--ns-ink, #1e1e2e);
+  }
+}
+
+.selfloan-ltv-tier-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.selfloan-ltv-tier-percent {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .selfloan-ltv-indicator {
   display: flex;
   flex-wrap: wrap;

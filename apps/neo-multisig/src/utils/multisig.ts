@@ -6,6 +6,7 @@
  */
 
 import {
+  BinaryReader,
   bytesToHex,
   hash160,
   hexToBytes,
@@ -14,6 +15,7 @@ import {
   ScriptBuilder,
   sc,
   tx,
+  Tx,
   wallet,
   PublicKey,
   Witness,
@@ -237,4 +239,133 @@ export async function buildTransferTransaction(params: {
     networkFee,
     validUntilBlock,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Signing lifecycle: sign-data, witness assembly, broadcast
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse an unsigned transaction hex (as produced by `serialize(false)`) into a
+ * core Tx. The unsigned form omits the witness var-array, so it must be read
+ * with `unmarshalUnsignedFrom` rather than the full `unmarshalFrom`.
+ */
+function parseUnsignedCoreTx(transactionHex: string): InstanceType<typeof Tx> {
+  const reader = new BinaryReader(hexToBytes(transactionHex));
+  return Tx.unmarshalUnsignedFrom(reader) as InstanceType<typeof Tx>;
+}
+
+/**
+ * Compute the canonical sign-data for an unsigned multisig transaction.
+ *
+ * Every signer must sign exactly these bytes (the transaction's unsigned
+ * hash combined with the network magic) for their signature to be valid in
+ * the multisig witness. The hex returned here is deterministic for a given
+ * transaction + network, so it can be shared with other signers and
+ * re-derived on load.
+ */
+export function getRequestSignData(
+  transactionHex: string,
+  chainId: string,
+): string {
+  const core = parseUnsignedCoreTx(transactionHex);
+  const signData = core.getSignData(getNetworkMagic(chainId));
+  return bytesToHex(signData);
+}
+
+/**
+ * Order collected signatures to match the sorted signer public keys.
+ *
+ * A Neo multisig witness requires the invocation script to push signatures in
+ * the same order as the public keys appear in the verification script, using
+ * exactly `threshold` of them. Signers whose public key is unknown to the
+ * account are ignored.
+ *
+ * @returns The first `threshold` signatures in public-key order, or null when
+ *          not enough valid signatures have been collected yet.
+ */
+export function orderSignatures(
+  signers: string[],
+  signatures: Record<string, string>,
+  threshold: number,
+): string[] | null {
+  const normalizedSigs = new Map<string, string>();
+  for (const [pubKey, sig] of Object.entries(signatures)) {
+    normalizedSigs.set(normalizePublicKey(pubKey), sig);
+  }
+
+  const ordered: string[] = [];
+  for (const key of normalizePublicKeys(signers)) {
+    const sig = normalizedSigs.get(key);
+    if (sig) ordered.push(sig);
+    if (ordered.length >= threshold) break;
+  }
+
+  return ordered.length >= threshold ? ordered : null;
+}
+
+/**
+ * Assemble a fully-signed multisig transaction hex from collected signatures.
+ *
+ * Rebuilds the verification script from the signer set + threshold, orders the
+ * collected signatures, attaches the resulting witness, and returns the signed
+ * serialized transaction ready for `broadcastTransaction`.
+ *
+ * @throws when fewer than `threshold` signatures are available.
+ */
+export function assembleSignedTransaction(params: {
+  transactionHex: string;
+  signers: string[];
+  threshold: number;
+  signatures: Record<string, string>;
+}): string {
+  const { transactionHex, signers, threshold, signatures } = params;
+  const ordered = orderSignatures(signers, signatures, threshold);
+  if (!ordered) {
+    throw new Error("Not enough signatures to assemble the transaction");
+  }
+
+  const { script: verificationScript } = buildVerificationScript(
+    threshold,
+    signers,
+  );
+  const witness = buildWitness(verificationScript, ordered);
+
+  // Rebuild a compat Transaction from the unsigned core tx so we can attach
+  // the assembled multisig witness and emit a fully-signed serialization.
+  const core = parseUnsignedCoreTx(transactionHex);
+  const transaction = new tx.Transaction({
+    nonce: core.nonce,
+    systemFee: core.systemFee,
+    networkFee: core.networkFee,
+    validUntilBlock: core.validUntilBlock,
+    script: core.script,
+    signers: core.signers.map((signer) => signer.toJSON()),
+    attributes: core.attributes,
+    witnesses: [
+      new tx.Witness({
+        invocationScript: witness.invocation,
+        verificationScript: witness.verification,
+      }),
+    ],
+  });
+
+  return transaction.serialize(true);
+}
+
+/**
+ * Relay a signed transaction to the network. Returns the transaction id.
+ */
+export async function broadcastTransaction(
+  chainId: string,
+  signedTxHex: string,
+): Promise<string> {
+  const client = getRpcClient(chainId);
+  const result = (await client.sendRawTransaction({
+    tx: signedTxHex,
+  })) as { hash?: string } | string;
+
+  if (typeof result === "string") return result;
+  if (result && typeof result.hash === "string") return result.hash;
+  throw new Error("Broadcast did not return a transaction hash");
 }

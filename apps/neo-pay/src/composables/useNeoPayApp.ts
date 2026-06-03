@@ -37,7 +37,8 @@ import type { Observable } from "@shared/react/context";
 import type { VestingProxy } from "@shared/services/os/VestingProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
+import { addressToScriptHash, normalizeScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
+import { useWallet } from "@shared/utils/wallet-sdk";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { StreamItem, StreamStatus } from "../types";
@@ -147,22 +148,21 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
     try {
       isRefreshing.set(true);
 
-      const [creatorRaw, beneficiaryRaw] = await Promise.all([
-        vestingService.listStreams("creator"),
-        vestingService.listStreams("beneficiary"),
-      ]);
+      // os-vesting-list ignores the role argument and returns the same full
+      // list (every stream involving the user) for both calls. Fetch once and
+      // split client-side by comparing the wallet address to each stream's
+      // creator (created-by-you) vs beneficiary (received) field.
+      const listRaw = await vestingService.listStreams("creator");
+      const walletAddress = useWallet().address.value ?? "";
 
-      const created = normalizeStreamList(creatorRaw).map((entry: unknown) => {
+      const allParsed = normalizeStreamList(listRaw).map((entry: unknown) => {
         const record = entry as Record<string, unknown>;
         const id = String(record.id ?? record.streamId ?? "");
         return parseStream(record, id);
       }).filter(Boolean) as StreamItem[];
 
-      const beneficiary = normalizeStreamList(beneficiaryRaw).map((entry: unknown) => {
-        const record = entry as Record<string, unknown>;
-        const id = String(record.id ?? record.streamId ?? "");
-        return parseStream(record, id);
-      }).filter(Boolean) as StreamItem[];
+      const created = allParsed.filter((s) => ownerMatchesAddress(s.creator, walletAddress));
+      const beneficiary = allParsed.filter((s) => ownerMatchesAddress(s.beneficiary, walletAddress));
 
       createdStreams.set(created);
       beneficiaryStreams.set(beneficiary);
@@ -226,15 +226,29 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
       // Step 1: Deposit funds via PaymentProxy
       await paymentService.deposit(totalFixed, `stream:${formData.asset}:${totalFixed}`);
 
-      // Step 2: Create the stream via VestingProxy
-      await vestingService.createStream({
+      // Step 2: Create the stream via VestingProxy.
+      // os-vesting-create expects { beneficiary, amount (decimal), start_time, duration }.
+      // amount is a decimal string (edge scales it); start_time is unix seconds (now);
+      // duration is the full stream length in seconds, derived from the per-interval
+      // rate: intervalCount = total / rate, duration = intervalCount * intervalSeconds.
+      const intervalSeconds = intervalDays * 86400;
+      const intervalCount = rateAmount > 0n ? totalAmount / rateAmount : 1n;
+      const durationSeconds = (intervalCount > 0n ? intervalCount : 1n) * BigInt(intervalSeconds);
+      const startTime = Math.floor(Date.now() / 1000);
+      // The os-vesting-create edge reads these snake_case fields; the shared
+      // StreamParams type does not declare them, so build the payload explicitly
+      // and pass it through (createStream forwards params verbatim to the edge).
+      const createStreamPayload = {
         beneficiary,
-        totalAmount: totalFixed,
-        rateAmount: rateFixed,
-        intervalSeconds: intervalDays * 86400,
+        amount: formData.total.trim(),
+        start_time: String(startTime),
+        duration: durationSeconds.toString(),
         title,
         notes,
-      });
+      };
+      await vestingService.createStream(
+        createStreamPayload as unknown as Parameters<typeof vestingService.createStream>[0],
+      );
 
       await refreshStreams();
     } catch (e) {

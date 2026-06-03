@@ -12,12 +12,17 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useMultisigHistory } from "./composables/useMultisigHistory";
-import { api, type MultisigRequest } from "./services/api";
+import { api, configureStorage, type MultisigRequest } from "./services/api";
 import {
+  assembleSignedTransaction,
+  broadcastTransaction,
   buildTransferTransaction,
   createMultisigAccount,
+  getRequestSignData,
   isValidAddress,
+  normalizePublicKey,
   normalizePublicKeys,
+  orderSignatures,
   validateAmount,
 } from "./utils/multisig";
 
@@ -76,15 +81,69 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const { history, pendingCount, completedCount, loadHistory, addToHistory } =
-      useMultisigHistory();
+    const chain = ctx.services.chain;
+    // Persist requests to shared OS storage so other signers can load + sign
+    // them from their own device, replacing the local-only runtime cache.
+    configureStorage(ctx.os.storage);
+
+    const {
+      history,
+      pendingCount,
+      completedCount,
+      loadHistory,
+      addToHistory,
+      updateHistoryItem,
+    } = useMultisigHistory();
     const totalTxs = createDerived(() => history.get().length, [history]);
     const lastRequest = createObservable<MultisigRequest | null>(null);
     const selectedRequest = createObservable<MultisigRequest | null>(null);
     const isCreatingRequest = createObservable(false);
     const isLoadingRequest = createObservable(false);
+    const isSigningRequest = createObservable(false);
+    const isBroadcastingRequest = createObservable(false);
 
     loadHistory();
+
+    // Rebuild history from the shared index so requests created on other
+    // devices show up in the activity feed (client-derived state).
+    const syncHistoryFromStorage = async () => {
+      try {
+        const requests = await api.list();
+        for (const request of requests) {
+          addToHistory({
+            id: request.id,
+            scriptHash: request.script_hash,
+            status: request.status,
+            createdAt: request.created_at,
+          });
+          updateHistoryItem(request.id, { status: request.status });
+        }
+      } catch {
+        // Storage may be unavailable (e.g. offline); keep local history.
+      }
+    };
+
+    /** Extract the witness signature + signer pubkey from a wallet result. */
+    const extractSignature = (
+      result: unknown,
+    ): { publicKey: string; signature: string } | null => {
+      if (!result || typeof result !== "object") return null;
+      const record = result as Record<string, unknown>;
+      const signature =
+        typeof record.data === "string"
+          ? record.data
+          : typeof record.signature === "string"
+            ? record.signature
+            : "";
+      const publicKey =
+        typeof record.publicKey === "string"
+          ? record.publicKey
+          : typeof record.pubkey === "string"
+            ? record.pubkey
+            : "";
+      if (!signature || !publicKey) return null;
+      return { publicKey, signature };
+    };
 
     ctx.registerAction("createRequest", async (rawPayload: unknown) => {
       const payload = parseCreateRequestPayload(rawPayload);
@@ -164,6 +223,13 @@ defineMiniApp({
       try {
         const request = await api.get(id.trim());
         selectedRequest.set(request);
+        addToHistory({
+          id: request.id,
+          scriptHash: request.script_hash,
+          status: request.status,
+          createdAt: request.created_at,
+        });
+        updateHistoryItem(request.id, { status: request.status });
         ctx.setStatus(
           ctx.t("toastRequestLoaded", { id: request.id.slice(0, 8) }),
           "success",
@@ -179,6 +245,123 @@ defineMiniApp({
       }
     });
 
+    // Sign the currently-loaded request with the connected wallet and append
+    // the signature to the shared record so other signers can see progress.
+    ctx.registerAction("signRequest", async (...args: unknown[]) => {
+      const id = (args[0] as string) || selectedRequest.get()?.id || "";
+      if (!id) {
+        ctx.setStatus(ctx.t("toastNoId"), "error");
+        return null;
+      }
+
+      isSigningRequest.set(true);
+      try {
+        const request = await api.get(id.trim());
+        if (request.status === "broadcasted") {
+          ctx.setStatus(ctx.t("toastBroadcastSuccess"), "info");
+          selectedRequest.set(request);
+          return request;
+        }
+
+        // Each signer signs the canonical transaction sign-data so the
+        // signature is valid inside the multisig witness.
+        const signData = getRequestSignData(
+          request.transaction_hex,
+          request.chain_id,
+        );
+        const signed = await chain.signMessage(signData);
+        const extracted = extractSignature(signed);
+        if (!extracted) {
+          ctx.setStatus(ctx.t("toastSignFailed"), "error");
+          return null;
+        }
+
+        // Only listed public keys may approve the request.
+        const signerKey = normalizePublicKey(extracted.publicKey);
+        const isAuthorized = request.signers
+          .map(normalizePublicKey)
+          .includes(signerKey);
+        if (!isAuthorized) {
+          ctx.setStatus(ctx.t("toastNotSigner"), "error");
+          return null;
+        }
+
+        const updated = await api.addSignature(
+          request.id,
+          signerKey,
+          extracted.signature,
+        );
+        selectedRequest.set(updated);
+        updateHistoryItem(updated.id, { status: updated.status });
+        if (lastRequest.get()?.id === updated.id) lastRequest.set(updated);
+        ctx.setStatus(ctx.t("toastSignSuccess"), "success");
+        return updated;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : ctx.t("toastSignFailed");
+        ctx.setStatus(`${ctx.t("toastSignFailed")} ${message}`, "error");
+        return null;
+      } finally {
+        isSigningRequest.set(false);
+      }
+    });
+
+    // Assemble the multisig witness from collected signatures and relay the
+    // transaction once the threshold is met.
+    ctx.registerAction("broadcastRequest", async (...args: unknown[]) => {
+      const id = (args[0] as string) || selectedRequest.get()?.id || "";
+      if (!id) {
+        ctx.setStatus(ctx.t("toastNoId"), "error");
+        return null;
+      }
+
+      isBroadcastingRequest.set(true);
+      try {
+        const request = await api.get(id.trim());
+        if (request.broadcast_txid) {
+          ctx.setStatus(ctx.t("toastBroadcastSuccess"), "info");
+          selectedRequest.set(request);
+          return request;
+        }
+
+        const ordered = orderSignatures(
+          request.signers,
+          request.signatures,
+          request.threshold,
+        );
+        if (!ordered) {
+          ctx.setStatus(ctx.t("toastNotEnoughSignatures"), "error");
+          return null;
+        }
+
+        const signedTxHex = assembleSignedTransaction({
+          transactionHex: request.transaction_hex,
+          signers: request.signers,
+          threshold: request.threshold,
+          signatures: request.signatures,
+        });
+        const txid = await broadcastTransaction(request.chain_id, signedTxHex);
+
+        const updated = await api.updateStatus(
+          request.id,
+          "broadcasted",
+          txid,
+        );
+        selectedRequest.set(updated);
+        updateHistoryItem(updated.id, { status: updated.status });
+        if (lastRequest.get()?.id === updated.id) lastRequest.set(updated);
+        ctx.setStatus(ctx.t("toastBroadcastSuccess"), "success");
+        return updated;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : ctx.t("toastBroadcastFailed");
+        ctx.setStatus(`${ctx.t("toastBroadcastFailed")} ${message}`, "error");
+        return null;
+      } finally {
+        isBroadcastingRequest.set(false);
+      }
+    });
+
     return {
       state: refsToObservables({
         history,
@@ -189,8 +372,12 @@ defineMiniApp({
         selectedRequest,
         isCreatingRequest,
         isLoadingRequest,
+        isSigningRequest,
+        isBroadcastingRequest,
       }),
-      loadData: async () => {},
+      loadData: async () => {
+        await syncHistoryFromStorage();
+      },
     };
   },
 });
