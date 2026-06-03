@@ -48,6 +48,13 @@
   gap: 3px;
 }
 
+.play-hero__eyebrow {
+  @include pm.section-eyebrow;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: pm.$neo-strong;
+}
+
 .play-hero__title {
   margin: 0;
   font-size: 22px;

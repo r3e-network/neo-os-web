@@ -61,6 +61,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </svg>
           </span>
           <div className="play-hero__text">
+            <span className="play-hero__eyebrow">{t("eyebrow") || "ORACLE COIN TOSS"}</span>
             <h2 className="play-hero__title">{t("title") || "FogPlay"}</h2>
             <p className="play-hero__subtitle">
               {t("docSubtitle") || "Oracle-backed coin toss with on-chain escrow"}

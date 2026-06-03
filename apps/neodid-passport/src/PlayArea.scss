@@ -13,7 +13,9 @@
   align-items: center;
   padding: 24px;
   border-radius: var(--ns-radius-lg);
-  background: var(--ns-surface);
+  background:
+    linear-gradient(135deg, var(--ns-brand-soft) 0%, transparent 55%),
+    var(--ns-surface);
   box-shadow: var(--ns-shadow-md);
 }
 
@@ -33,6 +35,16 @@
   border-radius: var(--ns-radius-full);
   color: var(--ns-brand-strong);
   background: var(--ns-brand-soft);
+}
+
+.neodid-passport__eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ns-brand-strong);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .neodid-passport__hero h2 {
@@ -234,24 +246,50 @@
   font-weight: 600;
 }
 
+.neodid-passport__select {
+  position: relative;
+}
+
+.neodid-passport__select::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateY(-65%) rotate(45deg);
+  border-right: 2px solid var(--ns-text-faint);
+  border-bottom: 2px solid var(--ns-text-faint);
+  pointer-events: none;
+}
+
 .neodid-passport__field select {
   width: 100%;
   min-height: 46px;
-  padding: 0 14px;
+  padding: 0 38px 0 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   border: 1px solid var(--ns-border-strong);
   border-radius: var(--ns-radius-md);
   background: var(--ns-surface);
+  background-image: none;
   color: var(--ns-ink);
   font: inherit;
   outline: none;
+  cursor: pointer;
   transition:
     border-color var(--ns-t-fast) var(--ns-ease-smooth),
     box-shadow var(--ns-t-fast) var(--ns-ease-smooth);
 }
 
 .neodid-passport__field select:focus {
-  border-color: var(--ns-violet);
-  box-shadow: var(--ns-focus-ring);
+  border-color: var(--ns-brand);
+  box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.18);
+}
+
+.neodid-passport__select:focus-within::after {
+  border-color: var(--ns-brand-strong);
 }
 
 .neodid-passport__hint,

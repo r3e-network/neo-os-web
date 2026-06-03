@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
-import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable, ObservableState } from "@shared/react/context";
 import { formatHash } from "@shared/utils/format";
@@ -19,6 +18,45 @@ type TabKey = "issue" | "templates" | "verify";
 function tokenLabel(tokenId: string) {
   if (!tokenId) return "";
   return tokenId.length > 18 ? `${tokenId.slice(0, 10)}...${tokenId.slice(-6)}` : tokenId;
+}
+
+/**
+ * Identity badge glyph rendered in the app's own accent (inherits currentColor
+ * from the hero badge), so the header stays monochromatic with the green
+ * platform accent instead of the shared coral identity tile.
+ */
+function IdentityGlyph({ title }: { title: string }) {
+  return (
+    <svg
+      className="hero-badge__glyph"
+      width={26}
+      height={26}
+      viewBox="0 0 48 48"
+      fill="none"
+      role="img"
+      aria-label={title}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <title>{title}</title>
+      <rect
+        x="11"
+        y="13"
+        width="26"
+        height="22"
+        rx="6"
+        fill="currentColor"
+        fillOpacity="0.22"
+      />
+      <circle cx="24" cy="22" r="4.4" fill="currentColor" />
+      <path
+        d="M16.5 32c1.6-4 13.4-4 15 0"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        fill="none"
+      />
+    </svg>
+  );
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
@@ -132,11 +170,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section className="certificate-hero" aria-label={t("title")}>
         <div className="hero-lead">
           <div className="hero-badge">
-            <CategoryIcon
-              name="identity"
-              size={40}
-              title={t("title") || "Soulbound Certificate"}
-            />
+            <IdentityGlyph title={t("title") || "Soulbound Certificate"} />
           </div>
           <div className="hero-copy">
             <span className="hero-eyebrow">{t("issuerWorkspaceTitle")}</span>
@@ -205,7 +239,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <NeoCard title={t("issueCertificate")} className="certificate-panel">
           <p className="panel-copy">{t("issueHelp")}</p>
 
-          <div className="selected-template">
+          <div
+            className={`selected-template${selectedTemplate ? "" : " is-empty"}`}
+          >
             <span>{t("selectedTemplate")}</span>
             <strong>
               {selectedTemplate

@@ -83,6 +83,7 @@ export default function PlayArea({
             <Fingerprint size={24} />
           </span>
           <div>
+            <span className="neodid-passport__eyebrow">{t("identityRoute")}</span>
             <h2 id="neodid-passport-title">{t("panelTitle")}</h2>
             <p>{t("panelDescription")}</p>
           </div>
@@ -144,14 +145,16 @@ export default function PlayArea({
 
           <label className="neodid-passport__field">
             <span>{t("provider")}</span>
-            <select
-              value={form.provider}
-              onChange={(event) => updateForm("provider", event.target.value)}
-            >
-              <option value="wallet">{t("walletProvider")}</option>
-              <option value="github">{t("githubProvider")}</option>
-              <option value="email">{t("emailProvider")}</option>
-            </select>
+            <div className="neodid-passport__select">
+              <select
+                value={form.provider}
+                onChange={(event) => updateForm("provider", event.target.value)}
+              >
+                <option value="wallet">{t("walletProvider")}</option>
+                <option value="github">{t("githubProvider")}</option>
+                <option value="email">{t("emailProvider")}</option>
+              </select>
+            </div>
           </label>
 
           <NeoInput

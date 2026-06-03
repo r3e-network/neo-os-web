@@ -8,12 +8,12 @@
   --sign-panel: var(--ns-surface, #ffffff);
   --sign-border: var(--ns-border, rgba(20, 22, 38, 0.06));
   --sign-green: var(--ns-brand, #16c784);
-  --sign-amber: var(--ns-warning, #f5a623);
-  --sign-amber-soft: var(--ns-warning-soft, #fff3dd);
-  --sign-badge-bg: var(--ns-badge-peach-bg, #ffe4c3);
-  --sign-badge-fg: var(--ns-badge-peach-fg, #e8923b);
+  --sign-accent: var(--ns-brand, #16c784);
+  --sign-accent-strong: var(--ns-brand-strong, #0fb174);
+  --sign-accent-soft: var(--ns-brand-soft, #e4f8f0);
+  --sign-badge-bg: var(--ns-brand-soft, #e4f8f0);
+  --sign-badge-fg: var(--ns-brand-strong, #0fb174);
   --sign-purple: var(--ns-violet, #7b61ff);
-  --sign-blue: var(--ns-info, #3e8cff);
   --sign-danger: var(--ns-down, #ea3943);
   --sign-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   --sign-shadow-sm: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
@@ -368,14 +368,33 @@
   letter-spacing: 0;
 }
 
+// Keep the primary CTA visibly primary even while disabled: soft-tinted
+// green instead of a flat grey pill so the affordance is preserved and it
+// is clearly the lead action over the outlined secondary.
+.sign-action-grid .neo-btn--primary:disabled {
+  background: var(--sign-accent-soft);
+  border-color: var(--ns-brand-border, rgba(22, 199, 132, 0.28));
+  color: var(--sign-accent-strong);
+  box-shadow: none;
+}
+
+// Demote the secondary action: quiet outline pill while disabled so the two
+// stacked buttons read as primary + secondary, not two competing primaries.
+.sign-action-grid .neo-btn--secondary:disabled {
+  background: var(--sign-panel);
+  border-color: var(--sign-border);
+  color: var(--sign-label);
+  box-shadow: none;
+}
+
 .sign-wallet-note {
   position: relative;
   margin: 0;
   padding: 12px 14px 12px 36px;
-  border: 1px solid var(--ns-warning-border, rgba(245, 166, 35, 0.32));
+  border: 1px solid var(--ns-brand-border, rgba(22, 199, 132, 0.28));
   border-radius: var(--sign-radius-sm);
   color: var(--sign-muted);
-  background: var(--sign-amber-soft);
+  background: var(--sign-accent-soft);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.5;
@@ -453,9 +472,9 @@
 }
 
 .sign-result-box button:not(:disabled):hover {
-  border-color: var(--sign-amber);
-  color: var(--sign-badge-fg);
-  background: var(--sign-amber-soft);
+  border-color: var(--sign-accent);
+  color: var(--sign-accent-strong);
+  background: var(--sign-accent-soft);
 }
 
 .sign-result-box button:focus-visible {
