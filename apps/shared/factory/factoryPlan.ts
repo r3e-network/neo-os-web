@@ -96,9 +96,24 @@ const HASH160 = /^0x[a-fA-F0-9]{40}$/;
 const SYMBOL = /^[A-Z][A-Z0-9]{1,11}$/;
 const MINIAPP_ID = /^miniapp-[a-z0-9][a-z0-9-]{2,62}$/;
 
+// NOTE: each var is read via STATIC `import.meta.env.VITE_*` access so Vite can
+// replace it at build time. A previous dynamic `import.meta.env[key]` lookup was
+// never substituted by Vite (this config injects no runtime env object), so the
+// factory contract hashes always resolved to "" and every plan was blocked with
+// `factory_contract_not_configured`.
+const FACTORY_ENV: Record<string, string> = {
+  VITE_NEO_FACTORY_MAINNET_CONTRACT: import.meta.env.VITE_NEO_FACTORY_MAINNET_CONTRACT as string,
+  VITE_NEO_FACTORY_TESTNET_CONTRACT: import.meta.env.VITE_NEO_FACTORY_TESTNET_CONTRACT as string,
+  VITE_ASSET_FACTORY_MAINNET_CONTRACT: import.meta.env.VITE_ASSET_FACTORY_MAINNET_CONTRACT as string,
+  VITE_ASSET_FACTORY_TESTNET_CONTRACT: import.meta.env.VITE_ASSET_FACTORY_TESTNET_CONTRACT as string,
+  VITE_NFT_FACTORY_MAINNET_CONTRACT: import.meta.env.VITE_NFT_FACTORY_MAINNET_CONTRACT as string,
+  VITE_NFT_FACTORY_TESTNET_CONTRACT: import.meta.env.VITE_NFT_FACTORY_TESTNET_CONTRACT as string,
+  VITE_MINIAPP_FACTORY_MAINNET_CONTRACT: import.meta.env.VITE_MINIAPP_FACTORY_MAINNET_CONTRACT as string,
+  VITE_MINIAPP_FACTORY_TESTNET_CONTRACT: import.meta.env.VITE_MINIAPP_FACTORY_TESTNET_CONTRACT as string,
+};
+
 function readBuildEnv(key: string): string {
-  const meta = import.meta as unknown as { env?: Record<string, unknown> };
-  return String(meta.env?.[key] ?? "").trim();
+  return String(FACTORY_ENV[key] ?? "").trim();
 }
 
 const FACTORY_CONTRACTS: Record<FactoryNetwork, string> = {
