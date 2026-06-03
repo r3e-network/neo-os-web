@@ -29,18 +29,15 @@
 
 .wallet-health-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.3fr);
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 18px;
   align-items: center;
   min-width: 0;
   padding: 22px;
-  border: 1px solid rgba(6, 95, 70, 0.22);
+  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 18px;
-  background:
-    linear-gradient(135deg, #073f31 0%, #0a7657 58%, #16c784 100%);
+  background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-  color: #f8fffb;
-  overflow: hidden;
   letter-spacing: 0;
 }
 
@@ -48,129 +45,76 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 12px;
+  gap: 6px;
   min-width: 0;
 
   h2 {
     margin: 0;
-    color: #f8fffb;
-    font-size: 28px;
-    line-height: 1.08;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 22px;
+    line-height: 1.12;
     font-weight: 800;
-    letter-spacing: 0;
+    letter-spacing: -0.02em;
   }
-
-  > p {
-    margin: 0;
-    max-width: 520px;
-    color: #dcfce7;
-    font-size: 14px;
-    line-height: 1.55;
-    letter-spacing: 0;
-  }
-}
-
-.wallet-health-hero .wallet-health-hero-copy h2 {
-  color: #f8fffb;
-}
-
-.wallet-health-hero-intro {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  min-width: 0;
-}
-
-.wallet-health-hero-badge {
-  display: grid;
-  flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
-  margin-top: 2px;
-  place-items: center;
-  border: 1px solid rgba(248, 255, 251, 0.2);
-  border-radius: 16px;
-  background: rgba(248, 255, 251, 0.14);
-  color: #f8fffb;
-  letter-spacing: 0;
-}
-
-.wallet-health-hero-heading {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
 }
 
 .wallet-health-kicker {
-  color: #a7f3d0;
+  color: #0fb174;
   font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.wallet-health-score-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+.wallet-health-hero-facts {
+  display: flex;
   align-items: center;
-  justify-items: start;
-  align-content: center;
-  gap: 14px;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid rgba(248, 255, 251, 0.22);
-  border-radius: 16px;
-  background: rgba(248, 255, 251, 0.12);
-  text-align: left;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 13px;
+  line-height: 1.3;
   letter-spacing: 0;
-
-  strong,
-  small,
-  span {
-    display: block;
-  }
-
-  strong {
-    color: #f8fffb;
-    font-size: 15px;
-    line-height: 1.2;
-    letter-spacing: 0;
-  }
-
-  small {
-    margin-top: 4px;
-    color: #dcfce7;
-    font-size: 12px;
-    line-height: 1.3;
-    letter-spacing: 0;
-  }
 }
 
-.wallet-health-score-label {
-  color: #a7f3d0;
-  font-size: 11px;
+.wallet-health-fact-sep {
+  color: var(--ns-text-faint, #aeb4c2);
+}
+
+.wallet-health-risk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 12px;
+  font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0;
 }
 
 .wallet-health-score-ring {
   display: grid;
+  flex: 0 0 auto;
   place-items: center;
-  width: 72px;
-  height: 72px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   background:
-    conic-gradient(#f8fffb calc(var(--score, 0) * 1%), rgba(248, 255, 251, 0.24) 0),
-    rgba(248, 255, 251, 0.18);
-  box-shadow: inset 0 0 0 7px rgba(7, 63, 49, 0.34);
+    conic-gradient(#16c784 calc(var(--score, 0) * 1%), var(--ns-surface-subtle, #f7f8fa) 0);
+  box-shadow: 0 6px 16px -8px rgba(22, 199, 132, 0.45);
   letter-spacing: 0;
 
   span {
     display: grid;
     place-items: center;
-    width: 52px;
-    height: 52px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
     background: var(--ns-surface, #ffffff);
     color: var(--ns-ink, #1e1e2e);
@@ -182,7 +126,6 @@
 }
 
 .wallet-health-balance-strip,
-.wallet-health-connect-panel,
 .wallet-health-checklist-panel,
 .wallet-health-recommendations-panel {
   border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -257,10 +200,11 @@
   }
 }
 
-.wallet-health-action-grid {
+.wallet-health-primary-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  margin-top: 16px;
   letter-spacing: 0;
 
   .neo-btn {
@@ -271,9 +215,17 @@
   }
 }
 
+.wallet-health-connect-hint {
+  margin: 12px 0 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
 .wallet-health-report-actions {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   margin-top: 14px;
@@ -287,120 +239,32 @@
     white-space: normal;
     line-height: 1.15;
   }
-
-  span {
-    min-width: 0;
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 12px;
-    line-height: 1.35;
-    overflow-wrap: anywhere;
-    letter-spacing: 0;
-  }
 }
 
-.wallet-health-insight-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+.wallet-health-report-status {
+  display: block;
+  margin-top: 10px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
   letter-spacing: 0;
-}
-
-.wallet-health-insight {
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  letter-spacing: 0;
-
-  span,
-  strong {
-    display: block;
-  }
-
-  span {
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 12px;
-    line-height: 1.25;
-    letter-spacing: 0;
-  }
-
-  strong {
-    margin-top: 7px;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 15px;
-    line-height: 1.2;
-    font-variant-numeric: tabular-nums;
-    word-break: break-word;
-    letter-spacing: 0;
-  }
-}
-
-.wallet-health-connect-panel {
-  p {
-    margin: 0 0 12px;
-    color: var(--ns-text-2, #5b6478);
-    font-size: 13px;
-    line-height: 1.5;
-    letter-spacing: 0;
-  }
-}
-
-.wallet-health-risk-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 12px;
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-
-  div {
-    min-width: 0;
-  }
-
-  span,
-  strong {
-    display: block;
-  }
-
-  span {
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 12px;
-    line-height: 1.25;
-    letter-spacing: 0;
-  }
-
-  strong {
-    margin-top: 3px;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: 0;
-  }
 }
 
 .wallet-health-risk-dot {
   flex: 0 0 auto;
-  width: 12px;
-  height: 12px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #ea3943;
-  box-shadow: 0 0 0 5px rgba(234, 57, 67, 0.12);
 }
 
-.risk-medium .wallet-health-risk-dot,
-.wallet-health-risk-row.risk-medium .wallet-health-risk-dot {
+.wallet-health-risk-chip.risk-medium .wallet-health-risk-dot {
   background: #f0a020;
-  box-shadow: 0 0 0 5px rgba(240, 160, 32, 0.16);
 }
 
-.risk-low .wallet-health-risk-dot,
-.wallet-health-risk-row.risk-low .wallet-health-risk-dot {
+.wallet-health-risk-chip.risk-low .wallet-health-risk-dot {
   background: #16c784;
-  box-shadow: 0 0 0 5px rgba(22, 199, 132, 0.16);
 }
 
 .wallet-health-checklist-list {
@@ -512,13 +376,7 @@
   }
 
   .wallet-health-hero {
-    grid-template-columns: 1fr;
-  }
-
-  .wallet-health-score-card {
     grid-template-columns: auto minmax(0, 1fr);
-    justify-items: start;
-    text-align: left;
   }
 }
 
@@ -537,20 +395,16 @@
     line-height: 1.08;
   }
 
-  .wallet-health-action-grid {
+  .wallet-health-primary-actions {
     grid-template-columns: 1fr;
   }
 
-  .wallet-health-report-actions {
-    grid-template-columns: 1fr;
-
-    .neo-btn {
-      width: 100%;
-    }
+  .wallet-health-report-actions .neo-btn {
+    flex: 1 1 100%;
+    width: 100%;
   }
 
-  .wallet-health-balance-grid,
-  .wallet-health-insight-grid {
+  .wallet-health-balance-grid {
     grid-template-columns: 1fr;
   }
 

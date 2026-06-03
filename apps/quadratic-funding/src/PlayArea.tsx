@@ -100,10 +100,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             t={t}
             progressPct={roundProgressPct}
             matchingPoolDisplay={matchingPoolDisplay}
-            projectCount={projectCount}
             roundCount={roundCount}
             activeRoundCount={activeRoundCount}
             selectedRoundDisplay={selectedRoundDisplay}
+            hasSelectedRound={Boolean(selectedRound)}
             isRefreshing={isRefreshingRounds}
             onRefresh={() => dispatch("refreshRounds")}
             onContribute={() => switchTab("contribute")}
@@ -298,33 +298,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </NeoCard>
           )}
         </div>
-
-        <aside className="qf-side-column" aria-label={t("qfTrustTitle")}>
-          <div className="qf-impact-strip">
-            <p className="qf-impact-title">{t("qfTrustTitle")}</p>
-            <div className="qf-impact-step">
-              <span className="qf-impact-num" aria-hidden="true">1</span>
-              <div>
-                <strong>{t("qfTrustItemOne")}</strong>
-                <span>{t("step1")}</span>
-              </div>
-            </div>
-            <div className="qf-impact-step">
-              <span className="qf-impact-num" aria-hidden="true">2</span>
-              <div>
-                <strong>{t("qfTrustItemTwo")}</strong>
-                <span>{t("step3")}</span>
-              </div>
-            </div>
-            <div className="qf-impact-step">
-              <span className="qf-impact-num" aria-hidden="true">3</span>
-              <div>
-                <strong>{t("qfTrustItemThree")}</strong>
-                <span>{t("step4")}</span>
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
     </div>
   );

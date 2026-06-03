@@ -272,6 +272,22 @@
 }
 
 /* ── JSON / code viewer (intentional dark code surface, navy ink) ── */
+.domain-factory-json-disclosure {
+  > summary {
+    cursor: pointer;
+    width: fit-content;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    list-style: none;
+  }
+  > summary::-webkit-details-marker { display: none; }
+  > summary::after { content: " ⌄"; color: var(--ns-text-faint, #aeb4c2); }
+  &[open] > summary::after { content: " ⌃"; }
+  .domain-factory-json { margin-top: 8px; }
+}
+
 .domain-factory-json {
   max-height: 310px;
   overflow: auto;

@@ -33,15 +33,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="proof-play-area">
-      <ProofHero t={t} totalProofs={totalProofs} yourProofs={yourProofs} />
+      <ProofHero t={t} totalProofs={totalProofs} yourProofs={yourProofs} latestId={latestId} />
 
-      {/* Latest Proof Info */}
-      <div className="latest-proof-bar">
-        <span className="latest-label">{t("latestId") || "Latest ID"}</span>
-        <span className="latest-value">{latestId}</span>
-      </div>
-
-      {/* Create Proof Form */}
+      {/* Primary action — create a proof */}
       <NeoCard title={t("createProof") || "Create Proof"}>
         <div className="proof-form">
           <NeoInput
@@ -68,9 +62,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </NeoCard>
 
-      {/* Verify Proof Form */}
-      <NeoCard title={t("verifyProof") || "Verify Proof"}>
-        <div className="proof-form">
+      {/* Recent proofs / empty state */}
+      {totalProofs === 0 ? (
+        <div className="empty-state">
+          <span className="empty-icon" aria-hidden="true">&#x2726;</span>
+          <span className="empty-text">{t("noProofs") || "No proofs created yet"}</span>
+        </div>
+      ) : (
+        <NeoCard title={t("recentProofs") || "Recent Proofs"}>
+          <ul className="proof-list">
+            {proofList.map((proof) => (
+              <li key={proof.id} className="proof-list__item">
+                <span className="proof-list__id mono">#{proof.id}</span>
+                <span className="proof-list__hash mono">{proof.contentHash}</span>
+                <span className="proof-list__time">{new Date(proof.timestamp).toLocaleString()}</span>
+              </li>
+            ))}
+          </ul>
+        </NeoCard>
+      )}
+
+      {/* Secondary action — verify by ID (demoted into a collapsible panel) */}
+      <details className="verify-panel">
+        <summary className="verify-panel__summary">{t("verifyProof") || "Verify Proof"}</summary>
+        <div className="proof-form verify-panel__body">
           <NeoInput
             value={verifyId}
             type="number"
@@ -81,7 +96,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           />
           <NeoButton
             variant="secondary"
-            size="lg"
             block
             loading={isVerifying}
             disabled={!verifyId.trim()}
@@ -108,27 +122,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           )}
         </div>
-      </NeoCard>
-
-      {/* Proof List */}
-      {totalProofs === 0 ? (
-        <div className="empty-state">
-          <span className="empty-icon" aria-hidden="true">&#x2726;</span>
-          <span className="empty-text">{t("noProofs") || "No proofs created yet"}</span>
-        </div>
-      ) : (
-        <NeoCard title={t("recentProofs") || "Recent Proofs"}>
-          <ul className="proof-list">
-            {proofList.map((proof) => (
-              <li key={proof.id} className="proof-list__item">
-                <span className="proof-list__id mono">#{proof.id}</span>
-                <span className="proof-list__hash mono">{proof.contentHash}</span>
-                <span className="proof-list__time">{new Date(proof.timestamp).toLocaleString()}</span>
-              </li>
-            ))}
-          </ul>
-        </NeoCard>
-      )}
+      </details>
     </div>
   );
 }
