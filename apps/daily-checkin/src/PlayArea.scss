@@ -650,6 +650,17 @@ $amber: #f59e0b;
   min-height: 48px;
 }
 
+/* Disabled "Claim Rewards" — keep it as a soft accent-tinted affordance rather
+   than a flat grey slab wedged between the two active buttons. The action is
+   still clearly inert (no shadow, muted text) but reads as part of the green
+   reward flow it belongs to. */
+.checkin-claim-btn:disabled {
+  background: $ac-soft !important;
+  border-color: $ac-border !important;
+  color: rgba(15, 177, 116, 0.55) !important;
+  box-shadow: none !important;
+}
+
 /* ============================================================
  *  4. Stat tiles (shared by Your Stats + Platform Stats)
  * ============================================================ */
@@ -1014,6 +1025,21 @@ $amber: #f59e0b;
   margin-bottom: 12px;
 }
 
+/* Two-column reference/activity region — uses horizontal space on desktop so
+   the page is not an endless single stack. Children stretch to equal height. */
+.checkin-two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.checkin-two-col > .checkin-milestones-card,
+.checkin-two-col > .checkin-history-card {
+  margin: 0;
+  height: 100%;
+}
+
 .checkin-meta-strip {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1044,6 +1070,15 @@ $amber: #f59e0b;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: $ns-text-muted;
+}
+
+/* Collapse the two-column region to a single stack on narrow viewports so the
+   milestone tiles and history rows keep comfortable width. */
+@media (max-width: 720px) {
+  .checkin-two-col {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
 }
 
 @media (max-width: 560px) {

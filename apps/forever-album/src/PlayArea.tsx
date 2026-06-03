@@ -128,12 +128,12 @@ export default function PlayArea({
           className="forever-album-hero"
           aria-labelledby="forever-album-title"
         >
-          <div className="forever-album-hero-badge">
+          <div className="forever-album-hero-head">
             <span className="forever-album-hero-icon" aria-hidden="true">
               <svg
                 viewBox="0 0 24 24"
-                width="22"
-                height="22"
+                width="24"
+                height="24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.8"
@@ -145,21 +145,17 @@ export default function PlayArea({
                 <path d="m21 15-5-5L5 21" />
               </svg>
             </span>
-            <span className="forever-album-kicker">{t("title")}</span>
-          </div>
-          <h1 id="forever-album-title">{t("vaultHeroTitle")}</h1>
-          <p>{t("vaultHeroSubtitle")}</p>
-          <div className="forever-album-hero-facts">
-            <span>
-              {t("vaultTimelineOne")} » {t("vaultTimelineTwo")} »{" "}
-              {t("vaultTimelineThree")}
-            </span>
-            <span className="forever-album-hero-cap">
-              {t("sizeHint", {
-                size: formatBytes(totalPayloadSize, t),
-                max: "60 KB",
-              })}
-            </span>
+            <div className="forever-album-hero-copy">
+              <span className="forever-album-kicker">{t("title")}</span>
+              <h1 id="forever-album-title">{t("vaultHeroTitle")}</h1>
+              <p>{t("vaultHeroSubtitle")}</p>
+              <div className="forever-album-hero-facts">
+                <span>
+                  {t("vaultTimelineOne")} » {t("vaultTimelineTwo")} »{" "}
+                  {t("vaultTimelineThree")}
+                </span>
+              </div>
+            </div>
           </div>
           <div className="forever-album-actions">
             <NeoButton variant="primary" onClick={openFilePicker}>
@@ -223,6 +219,13 @@ export default function PlayArea({
                 }}
               />
             </label>
+
+            <p className="forever-album-uploader-cap">
+              {t("sizeHint", {
+                size: formatBytes(totalPayloadSize, t),
+                max: "60 KB",
+              })}
+            </p>
 
             {(hasSelection || totalPayloadSize > 0) && (
               <>

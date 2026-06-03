@@ -5,10 +5,11 @@
 .explorer-play-area {
   @include console.play-area;
 
-  // Neo green accent (this app's hue) mapped onto local tokens
-  --xp-accent: #16c784;
-  --xp-accent-strong: #0fb174;
-  --xp-accent-soft: #e4f8f0;
+  // Neo green accent (this app's hue) bound to the canonical system tokens
+  // so the explorer green tracks --ns-brand exactly instead of a local hex.
+  --xp-accent: var(--ns-brand, #16c784);
+  --xp-accent-strong: var(--ns-brand-strong, #0fb174);
+  --xp-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   display: grid;
   gap: 24px;
@@ -87,8 +88,8 @@
   max-width: 44rem;
   margin: 0;
   color: var(--ns-text-2, #5b6478);
-  font-size: 0.9375rem;
-  line-height: 1.55;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 /* Relevant facts folded inline beneath the headline */

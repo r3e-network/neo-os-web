@@ -5,9 +5,48 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  max-width: 720px;
+  width: 100%;
+  max-width: 1080px;
   margin: 0 auto;
   color: var(--ns-ink, #1e1e2e);
+}
+
+.permissions-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.permissions-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.permissions-write-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 0 4px 2px;
+
+  span {
+    color: var(--ns-violet-strong, #6a4df4);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  h3 {
+    margin: 0;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
 }
 
 .permissions-hero {
@@ -173,15 +212,6 @@
   color: var(--ns-violet-strong, #6a4df4);
 }
 
-.permissions-status--idle {
-  min-width: 44px;
-  padding: 0;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 15px;
-  letter-spacing: 0;
-}
-
 .permissions-detail-list {
   display: grid;
   gap: 0;
@@ -241,6 +271,16 @@
   color: var(--ns-text-muted, #8a92a6) !important;
   cursor: not-allowed;
   opacity: 1;
+}
+
+@media (max-width: 980px) {
+  .permissions-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .permissions-write-heading {
+    padding-top: 2px;
+  }
 }
 
 @media (max-width: 720px) {

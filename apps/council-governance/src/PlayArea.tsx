@@ -178,7 +178,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <h2>{t("title")}</h2>
             <p className="council-hero-sub">{t("governanceSummary")}</p>
           </div>
-          <NeoButton variant="ghost" size="sm" disabled={isLoading} onClick={() => retryLoad()}>
+          <NeoButton variant="ghost" size="sm" className="council-refresh" disabled={isLoading} onClick={() => retryLoad()}>
             {t("refresh")}
           </NeoButton>
         </div>
@@ -188,7 +188,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <span>{totalProposals}</span>
             <label>{t("totalProposals")}</label>
           </div>
-          <div className="council-stat council-stat--accent">
+          <div className="council-stat">
             <span>{activeCount}</span>
             <label>{t("activeProposals")}</label>
           </div>

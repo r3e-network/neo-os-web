@@ -110,15 +110,16 @@ export default function PlayArea({
           className="account-hero__meta"
           aria-label={t("accountMetricsLabel")}
         >
-          <span className="account-hero__fact">
-            {t("network") || "Network"}
+          <div className="account-hero__stat">
+            <span>{t("network") || "Network"}</span>
             <strong>{networkDisplay || DASH}</strong>
-          </span>
-          <span className="account-hero__divider" aria-hidden="true" />
-          <span className="account-hero__fact">
-            {t("defaultVerifier") || "Default Verifier"}
-            <strong>{defaultVerifierDisplay || DASH}</strong>
-          </span>
+          </div>
+          <div className="account-hero__stat account-hero__stat--wide">
+            <span>{t("defaultVerifier") || "Default Verifier"}</span>
+            <strong title={defaultVerifierDisplay || undefined}>
+              {defaultVerifierDisplay || DASH}
+            </strong>
+          </div>
         </div>
       </section>
 
@@ -219,7 +220,7 @@ export default function PlayArea({
               placeholder={t("timelockPlaceholder") || "2592000"}
               onChange={(v) => setEscapeTimelock(v)}
             />
-            <p className="account-inline-note">{t("accountRiskCopy")}</p>
+            <p className="account-hint">{t("accountRiskCopy")}</p>
             <NeoButton
               variant="primary"
               loading={isSubmitting}

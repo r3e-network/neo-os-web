@@ -74,6 +74,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const checkInDisabled = !canCheckIn || isLoading;
   const claimDisabled = unclaimedRewards <= 0 || isClaiming;
 
+  // The hero badge already conveys the idle "Ready" state, so only surface the
+  // inline status pill when it carries new information (an error or an active
+  // workflow message) — avoids duplicating the hero "Ready" pill.
+  const showStatusPill = Boolean(lastError) || (workflowStatus !== t("workflowReady") && workflowStatus.trim().length > 0);
+
   return (
     <div className={`checkin-play-area streak-${streakTier}`}>
       {/* Hero — streak, status, and the only timing/fee facts that matter, in one block */}
@@ -143,9 +148,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       {/* Primary action — surfaced right after the hero, with inline status */}
       <NeoCard variant="erobo" className="checkin-action-card">
-        <div className={`status-pill${lastError ? " error" : canCheckIn ? " ready" : ""}`}>
-          <span>{lastError || workflowStatus}</span>
-        </div>
+        {showStatusPill && (
+          <div className={`status-pill${lastError ? " error" : ""}`}>
+            <span>{lastError || workflowStatus}</span>
+          </div>
+        )}
         <div className="checkin-actions-grid">
           <NeoButton
             variant={canCheckIn ? "success" : "secondary"}
@@ -205,42 +212,46 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
-      {/* Milestone ladder — the reward schedule, kept as useful reference */}
-      <NeoCard variant="erobo-neo" className="checkin-milestones-card">
-        <h3 className="checkin-section-title">{t("milestones")}</h3>
-        <div className="checkin-milestones-row">
-          {MILESTONES.map((milestone) => {
-            const reached = currentStreak >= milestone.day;
-            const next = !reached && currentStreak < milestone.day;
-            return (
-              <div key={milestone.day} className={`checkin-milestone${reached ? " reached" : next ? " next" : ""}`}>
-                <div className="checkin-milestone-icon">{reached ? "✓" : "◉"}</div>
-                <span className="checkin-milestone-day">{t("day")} {milestone.day}</span>
-                <span className="checkin-milestone-reward">+{milestone.reward} {t("tokenGas")}</span>
-                <span className="checkin-milestone-cumulative">({milestone.cumulative} {t("total")})</span>
-              </div>
-            );
-          })}
-        </div>
-      </NeoCard>
-
-      {/* Your recent activity */}
-      <NeoCard variant="erobo" className="checkin-history-card">
-        <h3 className="checkin-section-title">{t("recentCheckins")}</h3>
-        {checkinHistory.length > 0 ? (
-          <div className="checkin-history-list">
-            {checkinHistory.slice(0, 10).map((entry, idx) => (
-              <div key={`${entry.time}-${idx}`} className="checkin-history-row">
-                <span className="checkin-history-date">{formatHistoryTime(entry.time)}</span>
-                <span className="checkin-history-streak">{entry.action === "claim" ? t("claimRewards") : `${entry.streak} ${t("dayStreak")}`}</span>
-                <span className="checkin-history-reward">{formatGas(entry.reward)} {t("tokenGas")}</span>
-              </div>
-            ))}
+      {/* Reference + activity, paired into two columns on desktop to use width
+          and shorten the page. Collapses to a single column on narrow screens. */}
+      <div className="checkin-two-col">
+        {/* Milestone ladder — the reward schedule, kept as useful reference */}
+        <NeoCard variant="erobo-neo" className="checkin-milestones-card">
+          <h3 className="checkin-section-title">{t("milestones")}</h3>
+          <div className="checkin-milestones-row">
+            {MILESTONES.map((milestone) => {
+              const reached = currentStreak >= milestone.day;
+              const next = !reached && currentStreak < milestone.day;
+              return (
+                <div key={milestone.day} className={`checkin-milestone${reached ? " reached" : next ? " next" : ""}`}>
+                  <div className="checkin-milestone-icon" aria-hidden="true">{reached ? "✓" : "🔒"}</div>
+                  <span className="checkin-milestone-day">{t("day")} {milestone.day}</span>
+                  <span className="checkin-milestone-reward">+{milestone.reward} {t("tokenGas")}</span>
+                  <span className="checkin-milestone-cumulative">({milestone.cumulative} {t("total")})</span>
+                </div>
+              );
+            })}
           </div>
-        ) : (
-          <div className="checkin-history-empty">{t("noCheckins")}</div>
-        )}
-      </NeoCard>
+        </NeoCard>
+
+        {/* Your recent activity */}
+        <NeoCard variant="erobo" className="checkin-history-card">
+          <h3 className="checkin-section-title">{t("recentCheckins")}</h3>
+          {checkinHistory.length > 0 ? (
+            <div className="checkin-history-list">
+              {checkinHistory.slice(0, 10).map((entry, idx) => (
+                <div key={`${entry.time}-${idx}`} className="checkin-history-row">
+                  <span className="checkin-history-date">{formatHistoryTime(entry.time)}</span>
+                  <span className="checkin-history-streak">{entry.action === "claim" ? t("claimRewards") : `${entry.streak} ${t("dayStreak")}`}</span>
+                  <span className="checkin-history-reward">{formatGas(entry.reward)} {t("tokenGas")}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="checkin-history-empty">{t("noCheckins")}</div>
+          )}
+        </NeoCard>
+      </div>
 
       {/* Secondary: network-wide stats + raw evidence, de-emphasised at the bottom */}
       <NeoCard variant="erobo" className="checkin-global-card">

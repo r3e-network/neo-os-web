@@ -62,8 +62,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     return `${s.slice(0, 10)}...${s.slice(-8)}`;
   };
 
+  // Unloaded figures use the calm "—" placeholder convention rather than
+  // repeating "Sync pending" across every tile (which reads error-ish).
+  const PENDING_PLACEHOLDER = "—";
   const formatNumber = (n: number) =>
-    n > 0 ? n.toLocaleString() : t("explorerDataPending");
+    n > 0 ? n.toLocaleString() : PENDING_PLACEHOLDER;
 
   const activeNetworkLabel = selectedNetwork === "mainnet" ? t("mainnet") : t("testnet");
   const activeNetworkHint = selectedNetwork === "mainnet"
@@ -134,13 +137,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="explorer-metric">
           <span className="explorer-metric__label">{t("sidebarRecentTxs")}</span>
           <span className={`explorer-metric__value mono${recentTxCount > 0 ? "" : " is-pending"}`}>
-            {recentTxCount > 0 ? recentTxCount.toLocaleString() : t("explorerDataPending")}
+            {recentTxCount > 0 ? recentTxCount.toLocaleString() : PENDING_PLACEHOLDER}
           </span>
         </div>
         <div className="explorer-metric">
           <span className="explorer-metric__label">{t("searchResult")}</span>
           <span className={`explorer-metric__value${searchResult ? " is-ready" : " is-pending"}`}>
-            {searchResult ? t("explorerResultReady") : t("explorerDataPending")}
+            {searchResult ? t("explorerResultReady") : PENDING_PLACEHOLDER}
           </span>
         </div>
       </section>
