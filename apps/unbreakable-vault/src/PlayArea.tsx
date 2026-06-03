@@ -191,6 +191,10 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
         <div className="vault-list-container">
           {recentVaults.length === 0 ? (
             <div className="empty-state">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="11" width="18" height="10" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
               <span>{t("noRecentVaults") || "No recent vaults"}</span>
             </div>
           ) : (

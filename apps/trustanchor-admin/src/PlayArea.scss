@@ -29,6 +29,14 @@
       box-shadow: 0 4px 16px rgba(123, 97, 255, 0.32);
     }
   }
+
+  // Violet focus ring on inputs to match the app identity hue
+  .neo-input input:focus,
+  .neo-input input:focus-visible {
+    border-color: var(--anchor-accent);
+    box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.16);
+    outline: none;
+  }
 }
 
 .anchor-admin-shell {
@@ -89,7 +97,8 @@
 .anchor-admin-kicker {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--ns-text-muted);
 }
 
@@ -99,7 +108,7 @@
   font-size: 32px;
   font-weight: 800;
   line-height: 1.12;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
 }
 
 .anchor-admin-hero p {
@@ -129,7 +138,8 @@
 .anchor-admin-hero-stat span {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ns-text-muted);
 }
 
@@ -164,9 +174,9 @@
 
 .anchor-admin-section-heading span {
   color: var(--ns-ink);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 
 .anchor-admin-section-heading strong {
@@ -180,12 +190,13 @@
   white-space: nowrap;
 }
 
-.anchor-admin-vote-preview span,
-.anchor-admin-safety-list span {
+.anchor-admin-vote-preview > span {
+  display: block;
   color: var(--ns-text-muted);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .anchor-admin-vote-preview strong {
@@ -253,9 +264,20 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  max-height: 420px;
+  max-height: 416px;
   overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(123, 97, 255, 0.32) transparent;
+}
+
+.anchor-admin-agent-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.anchor-admin-agent-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(123, 97, 255, 0.28);
 }
 
 .anchor-admin-agent-row {
@@ -266,11 +288,15 @@
   padding: 12px 14px;
   border-radius: var(--ns-radius-md);
   background: var(--ns-surface-subtle);
-  transition: background var(--ns-t-fast) var(--ns-ease-smooth);
+  transition: background var(--ns-t-fast, 0.16s) var(--ns-ease-smooth, ease);
 }
 
 .anchor-admin-agent-row:hover {
-  background: var(--ns-bg-2, #eceef2);
+  background: var(--anchor-accent-soft);
+}
+
+.anchor-admin-agent-row:hover code {
+  color: var(--ns-ink);
 }
 
 .anchor-admin-agent-row span {

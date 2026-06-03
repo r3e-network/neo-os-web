@@ -393,50 +393,23 @@ $amber: #f59e0b;
 }
 
 /* ============================================================
- *  3. UTC + countdown row
+ *  3. Next-check-in countdown (inside .checkin-week-timing)
+ *     The CountdownTimer renders a 180px SVG ring by default; in this
+ *     compact row we suppress the ring and present a tidy accent pill so
+ *     the timing reads as one balanced line with the UTC clock.
  * ============================================================ */
 
-.countdown-section {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 20px;
-  border-radius: $ns-radius;
-  background: $ns-bg;
-  border: 1px solid $ns-border;
-  box-shadow: $ns-shadow;
-}
-
-.utc-clock {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  color: $ns-text-2;
-  font-variant-numeric: tabular-nums;
-}
-
-.clock-display {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: $ns-ink;
-}
-
-.clock-utc-label {
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: $ns-text-faint;
-}
-
-/* Suppress the SVG ring — compact text pill instead */
-.countdown-section .countdown-timer__ring,
-.countdown-section .countdown-timer__urgency-hint {
+/* Suppress the SVG ring + urgency hint — compact text pill instead */
+.checkin-week-timing .countdown-timer__ring,
+.checkin-week-timing .countdown-timer__urgency-hint {
   display: none !important;
 }
 
-.countdown-section .countdown-timer__circle {
+.checkin-week-timing .countdown-timer {
+  flex: 0 0 auto;
+}
+
+.checkin-week-timing .countdown-timer__circle {
   position: relative;
   width: auto;
   height: auto;
@@ -444,19 +417,20 @@ $amber: #f59e0b;
   align-items: center;
 }
 
-.countdown-section .countdown-timer__display {
+.checkin-week-timing .countdown-timer__display {
   position: static;
-  display: inline-flex;
+  inset: auto;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
+  padding: 7px 14px;
   border-radius: 999px;
   background: $ac-soft;
   border: 1px solid $ac-border;
   transform: none;
 }
 
-.countdown-section .countdown-timer__time {
+.checkin-week-timing .countdown-timer__time {
   font-size: 14px;
   font-weight: 700;
   color: $ac-strong;
@@ -465,7 +439,8 @@ $amber: #f59e0b;
   text-shadow: none !important;
 }
 
-.countdown-section .countdown-timer__label {
+.checkin-week-timing .countdown-timer__label {
+  margin-top: 0;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
