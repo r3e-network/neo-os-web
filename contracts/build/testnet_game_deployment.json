@@ -4,12 +4,26 @@
   "network_magic": 894710606,
   "signer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
   "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-  "platform_game": "0x6a82458577e8379b9532f9780dbba82505a2567a",
+  "platform_game": "0xc311d55e161b8e761de46782c30c91ced94f957c",
   "predicted_hash": "0x6a82458577e8379b9532f9780dbba82505a2567a",
-  "dry_run": true,
-  "skipped_reason": "dry run: PlatformGame deployment is eligible",
-  "transactions": [],
+  "dry_run": false,
+  "skipped_reason": null,
+  "transactions": [
+    {
+      "action": "deploy",
+      "contract": "PlatformGame",
+      "txid": "0xdbab3f4a70762a8b8abad89ec08fb64a9b9a2a0bbf7015d13212e0342e56e259",
+      "deployed_hash": "0xc311d55e161b8e761de46782c30c91ced94f957c",
+      "nef_checksum": 765928785,
+      "method_count": 46,
+      "vmstate": "HALT"
+    }
+  ],
   "registrations": [],
-  "validation": {},
-  "generated_at_utc": "2026-05-11T00:16:14Z"
+  "validation": {
+    "deployed": true,
+    "predicted_matched": false,
+    "predicted_mismatch_reason": "PlatformGame.nef recompiled after the 2026-05-11 dry run (checksum 765928785); deterministic contract hash therefore differs from the stale predicted hash. Registry updated to the actual deployed hash."
+  },
+  "generated_at_utc": "2026-06-03T02:10:00Z"
 }
