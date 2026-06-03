@@ -5,9 +5,11 @@
   gap: 20px;
   color: var(--ns-ink, #1e1e2e);
 
-  // App accent: Neo green
+  // App accent: Neo green — single hue across surfaces, focus, and inputs
   --ns-accent-soft: #e4f8f0;
   --ns-accent-strong: #0fb174;
+  --ns-violet: #0fb174;
+  --ns-focus-ring: 0 0 0 4px rgba(15, 177, 116, 0.18);
 }
 
 // Unify shared NeoCard radius/shadow to Neo Soft default card
@@ -20,6 +22,15 @@
 .session-play-area .neo-card__header {
   border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   padding: 18px 24px;
+}
+
+// Card titles read as section eyebrows — consistent with the rest of the page
+.session-play-area .neo-card__title {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .session-play-area .neo-card__body {
@@ -70,10 +81,10 @@
   max-width: 760px;
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
-  font-size: 32px;
+  font-size: 30px;
   font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.12;
+  letter-spacing: -0.02em;
+  line-height: 1.14;
 }
 
 .session-hero__heading p {
@@ -121,7 +132,13 @@
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+// Detail-row keys read as inline field labels, not eyebrows — keep them tight
+.session-detail-row span {
+  letter-spacing: 0.04em;
 }
 
 .session-metric strong {
@@ -130,6 +147,7 @@
   font-size: 20px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -213,7 +231,7 @@
 .session-section-heading {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .session-section-heading h3 {
@@ -221,6 +239,7 @@
   color: var(--ns-ink, #1e1e2e);
   font-size: 18px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
@@ -342,6 +361,7 @@
 .session-hint {
   margin: 0;
   padding: 12px 14px;
+  border: 1px solid rgba(214, 158, 46, 0.18);
   border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-warning-soft, #fff3dd);
   color: var(--ns-text-2, #5b6478);

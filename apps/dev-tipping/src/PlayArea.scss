@@ -31,14 +31,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
   flex-shrink: 0;
-  border-radius: var(--ns-radius-full, 9999px);
-  background: var(--tip-accent-soft);
-  color: var(--tip-accent-strong);
-  font-size: 24px;
   line-height: 1;
+
+  /* The CategoryIcon already renders its own rounded tile + border + sheen,
+     so no competing circle behind it — just let the tile read as the badge. */
+  svg {
+    display: block;
+  }
 }
 
 .tipping-hero__text {
@@ -51,7 +51,7 @@
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
   color: var(--ns-ink, #1e1e2e);
   line-height: 1.15;
 }
@@ -73,7 +73,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   min-width: 84px;
   padding: 14px 16px;
   background: var(--ns-surface-subtle, #f7f8fa);
@@ -84,17 +84,20 @@
   display: block;
   font-size: 18px;
   font-weight: 800;
+  letter-spacing: -0.01em;
   line-height: 1.1;
+  white-space: nowrap;
   color: var(--ns-ink, #1e1e2e);
   font-variant-numeric: tabular-nums;
 }
 
 .tipping-stat-label {
   display: block;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  line-height: 1.2;
   color: var(--ns-text-muted, #8a92a6);
 }
 
@@ -105,10 +108,22 @@
 
   .tipping-hero__stats {
     grid-column: 1 / -1;
+    gap: 8px;
   }
 
   .tipping-stat {
     flex: 1;
+    min-width: 0;
+    padding: 12px 8px;
+  }
+
+  .tipping-stat-value {
+    font-size: 16px;
+  }
+
+  .tipping-stat-label {
+    font-size: 10px;
+    letter-spacing: 0.04em;
   }
 }
 
@@ -355,13 +370,42 @@
   color: var(--ns-text-muted, #8a92a6);
 }
 
+/* Segmented control: clearer on/off than two competing buttons */
 .toggle-row {
   display: flex;
-  gap: 10px;
+  gap: 4px;
+  padding: 4px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border-radius: var(--ns-radius-md, 16px);
 }
 
 .toggle-row > * {
   flex: 1;
+}
+
+/* Selected segment: solid violet but lighter than the main CTA (no glow) */
+.toggle-row .neo-btn--primary:not(:disabled) {
+  background: var(--tip-accent);
+  box-shadow: none;
+
+  &:hover {
+    background: var(--tip-accent-strong);
+    box-shadow: none;
+  }
+}
+
+/* Unselected segment: quiet ghost inside the track */
+.toggle-row .neo-btn--secondary {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ns-text-2, #5b6478);
+
+  &:hover {
+    background: var(--ns-surface, #ffffff);
+    border-color: transparent;
+    color: var(--ns-ink, #1e1e2e);
+  }
 }
 
 /* ── Recent tips (collapsible disclosure) ── */

@@ -44,19 +44,19 @@ export default function SearchPanel({
         </NeoButton>
       </div>
 
-      <div className="network-toggle">
+      <div className="network-toggle" role="group" aria-label={t("sidebarNetwork")}>
         <NeoButton
           variant={selectedNetwork === "mainnet" ? "success" : "secondary"}
           size="sm"
-          className="toggle-btn"
+          className={`toggle-btn${selectedNetwork === "mainnet" ? " is-active" : ""}`}
           onClick={() => onUpdateSelectedNetwork("mainnet")}
         >
           {t("mainnet")}
         </NeoButton>
         <NeoButton
-          variant={selectedNetwork === "testnet" ? "warning" : "secondary"}
+          variant={selectedNetwork === "testnet" ? "success" : "secondary"}
           size="sm"
-          className="toggle-btn"
+          className={`toggle-btn${selectedNetwork === "testnet" ? " is-active" : ""}`}
           onClick={() => onUpdateSelectedNetwork("testnet")}
         >
           {t("testnet")}

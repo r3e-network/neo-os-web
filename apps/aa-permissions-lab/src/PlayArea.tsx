@@ -31,15 +31,13 @@ export default function PlayArea({
     [launchContext.signature],
   );
 
+  const PLACEHOLDER = "—";
   const isRefreshing = bool("isRefreshing");
   const isVerifierBusy = bool("isVerifierBusy");
   const isHookBusy = bool("isHookBusy");
-  const currentVerifier = str("currentVerifier", t("notAvailable") || "N/A");
-  const currentHook = str("currentHook", t("notAvailable") || "N/A");
-  const currentBackupOwner = str(
-    "currentBackupOwner",
-    t("notAvailable") || "N/A",
-  );
+  const currentVerifier = str("currentVerifier", PLACEHOLDER);
+  const currentHook = str("currentHook", PLACEHOLDER);
+  const currentBackupOwner = str("currentBackupOwner", PLACEHOLDER);
 
   const [accountIdHash, setAccountIdHash] = useState(
     launchDefaults.accountIdHash,
@@ -63,15 +61,23 @@ export default function PlayArea({
     accountReady && Boolean(verifierHash.trim()) && !isVerifierBusy;
   const canUpdateHook = accountReady && Boolean(hookHash.trim()) && !isHookBusy;
 
+  const normalize = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === "N/A" || trimmed === "notAvailable") {
+      return PLACEHOLDER;
+    }
+    return trimmed;
+  };
+
   const detailItems = [
     {
       label: t("currentVerifier") || "Current Verifier",
-      value: currentVerifier,
+      value: normalize(currentVerifier),
     },
-    { label: t("currentHook") || "Current Hook", value: currentHook },
+    { label: t("currentHook") || "Current Hook", value: normalize(currentHook) },
     {
       label: t("currentBackupOwner") || "Backup Owner",
-      value: currentBackupOwner,
+      value: normalize(currentBackupOwner),
     },
   ];
 
@@ -107,6 +113,9 @@ export default function PlayArea({
           {lockGlyph}
         </span>
         <div className="permissions-hero__copy">
+          <span className="permissions-hero__eyebrow">
+            {t("permissionsMetricsLabel")}
+          </span>
           <h2>{t("permissionsHeroTitle")}</h2>
           <p>{t("permissionsHeroCopy")}</p>
         </div>
@@ -161,7 +170,15 @@ export default function PlayArea({
             <span>{t("permissionsStateLabel")}</span>
             <h3>{t("permissionsStateTitle")}</h3>
           </div>
-          <strong>{accountReady ? t("configured") : t("notAvailable")}</strong>
+          <strong
+            className={
+              accountReady
+                ? "permissions-status permissions-status--active"
+                : "permissions-status permissions-status--idle"
+            }
+          >
+            {accountReady ? t("configured") : PLACEHOLDER}
+          </strong>
         </div>
 
         {accountReady ? (
