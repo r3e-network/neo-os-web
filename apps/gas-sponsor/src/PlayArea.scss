@@ -173,8 +173,9 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   background: linear-gradient(180deg, $gas-accent 0%, $gas-accent-strong 100%);
   transition: height 0.5s var(--ns-ease-smooth, ease);
   min-height: 5px;
-  border-bottom-left-radius: 15px;
-  border-bottom-right-radius: 15px;
+  /* No own radius: the tank-body's overflow:hidden + 16px radius clips the fill
+     cleanly. A self-radius larger than the fill height rendered as a cut-off bar
+     at low levels (the "clipped gauge" defect). */
 }
 
 .tank-gauge {
