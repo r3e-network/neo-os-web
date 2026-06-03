@@ -105,7 +105,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               checked={Boolean(newCapsule.isPublic)}
               onChange={(e) => updateForm({ isPublic: e.target.checked })}
             />
-            <span>
+            <span className="capsule-checkbox-box" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </span>
+            <span className="capsule-checkbox-copy">
               <strong>{t("visibility") || "Visibility"}</strong>
               {Boolean(newCapsule.isPublic)
                 ? t("publicHint") || "Anyone can reveal after unlock"

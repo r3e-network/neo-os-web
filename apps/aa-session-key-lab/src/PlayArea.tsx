@@ -145,6 +145,7 @@ export default function PlayArea({
             </svg>
           </div>
           <div className="session-hero__heading">
+            <span className="session-hero__eyebrow">Session Keys</span>
             <h2>{t("sessionHeroTitle")}</h2>
             <p>{t("sessionHeroCopy")}</p>
           </div>
@@ -182,7 +183,7 @@ export default function PlayArea({
           </div>
           <div className="session-action-grid">
             <NeoButton
-              variant="primary"
+              variant="secondary"
               aria-label={t("generateKey") || "Generate Key"}
               onClick={handleGenerateKey}
             >

@@ -77,7 +77,18 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
 
   return (
     <div className="vault-play-area">
-      <VaultHero t={t} myVaultCount={myVaultCount} recentVaultCount={recentVaultCount} />
+      <VaultHero t={t} />
+
+      <div className="vault-stats">
+        <div className="vault-stat">
+          <span className="vault-stat-value">{myVaultCount}</span>
+          <span className="vault-stat-label">{t("create")}</span>
+        </div>
+        <div className="vault-stat">
+          <span className="vault-stat-value">{recentVaultCount}</span>
+          <span className="vault-stat-label">{t("break")}</span>
+        </div>
+      </div>
 
       <div className="vault-grid">
       <NeoCard title={t("createVault") || "Create Vault"}>
@@ -105,16 +116,21 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
           />
           <label className="vault-select-field">
             <span>{t("difficultyLabel") || "Difficulty"}</span>
-            <select
-              value={vaultDifficulty}
-              onChange={(e) => state.vaultDifficulty?.set(e.target.value)}
-            >
-              {DIFFICULTY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {t(option.labelKey)} · {option.fee}
-                </option>
-              ))}
-            </select>
+            <div className="vault-select-control">
+              <select
+                value={vaultDifficulty}
+                onChange={(e) => state.vaultDifficulty?.set(e.target.value)}
+              >
+                {DIFFICULTY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {t(option.labelKey)} · {option.fee}
+                  </option>
+                ))}
+              </select>
+              <svg className="vault-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
           </label>
           <NeoInput
             label={t("secretLabel") || "Vault Secret"}
@@ -140,6 +156,7 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
         </div>
       </NeoCard>
 
+      <div className="vault-col">
       <NeoCard title={t("breakVault") || "Break a Vault"}>
         <div className="vault-form">
           <NeoInput
@@ -184,7 +201,6 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
           </NeoButton>
         </div>
       </NeoCard>
-      </div>
 
       {/* Recent Vaults */}
       <NeoCard title={t("recentVaults") || "Recent Vaults"}>
@@ -216,6 +232,8 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
           )}
         </div>
       </NeoCard>
+      </div>
+      </div>
 
       {/* My Vaults */}
       {myVaults.length > 0 && (

@@ -106,6 +106,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <CategoryIcon name="game" size={40} title={t("title")} />
           </span>
           <div className="burn-league-hero-copy">
+            <span className="burn-league-hero-eyebrow">{t("liveLeague")}</span>
             <h2 className="burn-league-hero-title">{t("title")}</h2>
             <p className="burn-league-hero-subtitle">{t("subtitle")}</p>
             {hasRank && (
@@ -212,7 +213,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="burn-league-action-buttons">
             <div className="burn-league-burn-cta">
               <NeoButton
-                variant="danger"
+                variant="primary"
                 size="lg"
                 block
                 loading={isBurning}
@@ -272,9 +273,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </NeoCard>
       ) : (
-        <p className="burn-league-empty-line">
-          {t("leaderboard")}: {t("noEntriesTitle")}
-        </p>
+        <NeoCard variant="erobo" className="burn-league-leaderboard-card">
+          <h3 className="burn-league-section-title">{t("leaderboard")}</h3>
+          <div className="burn-league-empty-state">
+            <span className="burn-league-empty-icon" aria-hidden="true">
+              <CategoryIcon name="game" size={36} title={t("leaderboard")} />
+            </span>
+            <p className="burn-league-empty-title">{t("noEntriesTitle")}</p>
+            <p className="burn-league-empty-body">{t("noEntries")}</p>
+          </div>
+        </NeoCard>
       )}
     </div>
   );

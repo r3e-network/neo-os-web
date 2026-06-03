@@ -7,10 +7,10 @@
   padding: 24px 16px;
   min-height: 300px;
 
-  /* Accent identity for this app: violet */
-  --tip-accent: var(--ns-violet, #7b61ff);
-  --tip-accent-strong: var(--ns-violet-strong, #6a4df4);
-  --tip-accent-soft: var(--ns-violet-soft, #eeeaff);
+  /* Accent identity for this app: green (matches the green social icon) */
+  --tip-accent: var(--ns-brand, #16c784);
+  --tip-accent-strong: var(--ns-brand-strong, #0fb174);
+  --tip-accent-soft: var(--ns-brand-soft, #e4f8f0);
 }
 
 /* ── Hero (identity + stats + wallet) ── */
@@ -45,6 +45,16 @@
   min-width: 0;
   display: grid;
   gap: 4px;
+}
+
+.tipping-hero__eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .tipping-hero__title {
@@ -623,17 +633,32 @@
   padding-top: 3px;
 }
 
-/* ── Accent alignment: primary buttons follow this app's violet identity ── */
+/* ── Accent alignment: primary buttons follow this app's green identity ── */
 .dev-tipping-play-area .neo-btn--primary:not(:disabled) {
   background: var(--tip-accent);
-  box-shadow: 0 2px 8px rgba(123, 97, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(22, 199, 132, 0.25);
 
   &:hover {
     background: var(--tip-accent-strong);
-    box-shadow: 0 4px 16px rgba(123, 97, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(22, 199, 132, 0.3);
   }
 }
 
 .dev-tipping-play-area .neo-btn:focus-visible {
   outline-color: var(--tip-accent);
+}
+
+/* ── Send Tip disabled: soft-tinted (not flat grey), affordance preserved ── */
+.dev-tipping-play-area .neo-btn--primary:disabled {
+  background: var(--tip-accent-soft);
+  border-color: transparent;
+  color: var(--tip-accent-strong);
+  box-shadow: none;
+  opacity: 0.85;
+}
+
+/* Keep the segmented toggle's unselected (secondary) button quiet, not tinted */
+.dev-tipping-play-area .toggle-row .neo-btn--primary:disabled {
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-faint, #aeb4c2);
 }

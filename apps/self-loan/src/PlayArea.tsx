@@ -180,6 +180,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {"$"}
           </span>
           <div className="selfloan-hero-copy">
+            <span className="selfloan-hero-eyebrow">
+              {t("eyebrow") || "SELF LOAN"}
+            </span>
             <h2 className="selfloan-hero-title">{t("title") || "SelfLoan"}</h2>
             <p className="selfloan-hero-subtitle">
               {t("docSubtitle") || "Tiered LTV self-loans with auto-repayment"}
@@ -372,17 +375,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
 
-          <NeoButton
-            variant="primary"
-            block
-            loading={isBorrowing}
-            disabled={!localCollateralAmt || isBorrowing || !isConnected}
-            onClick={handleBorrow}
-          >
-            {isConnected
-              ? t("borrow") || "Borrow"
-              : t("connectWallet") || "Connect Wallet"}
-          </NeoButton>
+          <div className="selfloan-cta">
+            <NeoButton
+              variant="primary"
+              block
+              loading={isBorrowing}
+              disabled={!localCollateralAmt || isBorrowing || !isConnected}
+              onClick={handleBorrow}
+            >
+              {isConnected
+                ? t("borrow") || "Borrow"
+                : t("connectWallet") || "Connect Wallet"}
+            </NeoButton>
+          </div>
         </div>
       </NeoCard>
 

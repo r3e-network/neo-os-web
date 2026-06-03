@@ -5,11 +5,11 @@
   gap: 20px;
   color: var(--ns-ink, #1e1e2e);
 
-  // App accent: Neo green — single hue across surfaces, focus, and inputs
-  --ns-accent-soft: #e4f8f0;
-  --ns-accent-strong: #0fb174;
-  --ns-violet: #0fb174;
-  --ns-focus-ring: 0 0 0 4px rgba(15, 177, 116, 0.18);
+  // App accent: AA-family violet — single hue across surfaces, focus, and inputs
+  --ns-accent-soft: var(--ns-violet-soft, #eeeaff);
+  --ns-accent-strong: var(--ns-violet-strong, #6a4df4);
+  --ns-violet: #7b61ff;
+  --ns-focus-ring: 0 0 0 4px rgba(123, 97, 255, 0.18);
 }
 
 // Unify shared NeoCard radius/shadow to Neo Soft default card
@@ -61,8 +61,8 @@
   height: 46px;
   place-items: center;
   border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  background: var(--ns-accent-soft, #eeeaff);
+  color: var(--ns-accent-strong, #6a4df4);
 }
 
 .session-hero__badge svg {
@@ -75,6 +75,14 @@
   min-width: 0;
   flex-direction: column;
   gap: 8px;
+}
+
+.session-hero__eyebrow {
+  color: var(--ns-violet-strong, #6a4df4);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .session-hero__heading h2 {
@@ -111,15 +119,8 @@
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-// Scope is the green-accented third tile in the status strip
-.session-metric--scope {
-  background: var(--ns-accent-soft, #e4f8f0);
-}
-
-.session-metric--scope span {
-  color: var(--ns-accent-strong, #0fb174) !important;
-}
-
+// All three status tiles share uniform neutral styling — Scope is not an
+// interactive/selected state, so it must not read as a highlighted tile.
 .session-metric--scope strong {
   font-size: 16px;
 }
@@ -209,16 +210,32 @@
   white-space: nowrap;
 }
 
-// Linear setup flow: step 1 (key + sponsorship) → step 2 (configure scope)
+// Linear setup flow: step 1 (key + sponsorship) → step 2 (configure scope).
+// Stretch both columns to equal height so the shorter left card fills the
+// available space instead of leaving a large dead gap beneath it.
 .session-flow-stack {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .session-flow-stack > .neo-card {
+  display: flex;
   min-width: 0;
+  flex-direction: column;
+}
+
+// Let the card body grow to fill the stretched column height (body and content
+// are the same element on NeoCard).
+.session-flow-stack > .neo-card .neo-card__body {
+  flex: 1 1 auto;
+}
+
+// Push the sponsorship form to the bottom so the left card distributes its
+// content across the full height rather than clustering at the top.
+.session-command .session-form--compact {
+  margin-top: auto;
 }
 
 // Configured summary block (header + result/empty + environment disclosure)
@@ -382,13 +399,15 @@
   gap: 12px;
 }
 
+// Disabled primary CTA keeps a soft violet affordance rather than reading as a
+// broken flat-grey button — it still signals "this is the action to complete".
 .session-play-area button:disabled {
-  border-color: var(--ns-border, rgba(20, 22, 38, 0.06)) !important;
-  background: var(--ns-surface-subtle, #f7f8fa) !important;
+  border-color: transparent !important;
+  background: var(--ns-accent-soft, #eeeaff) !important;
   box-shadow: none !important;
-  color: var(--ns-text-muted, #8a92a6) !important;
+  color: var(--ns-accent-strong, #6a4df4) !important;
   cursor: not-allowed;
-  opacity: 1;
+  opacity: 0.7;
 }
 
 @media (max-width: 1080px) {
