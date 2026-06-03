@@ -1,9 +1,9 @@
 @use "@shared/styles/tokens.scss" as *;
 
 .vault-play-area {
-  --vault-accent: var(--ns-info, #3e8cff);
-  --vault-accent-strong: #2f6fe0;
-  --vault-accent-soft: var(--ns-info-soft, #e6f0ff);
+  --vault-accent: var(--ns-brand, #16c784);
+  --vault-accent-strong: var(--ns-brand-strong, #0fb174);
+  --vault-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   display: flex;
   flex-direction: column;
@@ -15,21 +15,12 @@
 .vault-hero {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 20px;
+  gap: 16px;
   padding: 24px 28px;
   background: linear-gradient(135deg, #ffffff 0%, var(--vault-accent-soft) 150%);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
-}
-
-.vault-hero-head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
 }
 
 .vault-hero-badge {
@@ -42,7 +33,7 @@
   border-radius: var(--ns-radius-sm, 12px);
   background: var(--vault-accent-soft);
   color: var(--vault-accent-strong);
-  box-shadow: inset 0 0 0 1px rgba(62, 140, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.16);
 }
 
 .vault-hero-text {
@@ -50,6 +41,14 @@
   flex-direction: column;
   gap: 5px;
   min-width: 0;
+}
+
+.vault-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--vault-accent-strong);
 }
 
 .vault-hero-title {
@@ -66,28 +65,25 @@
   line-height: 1.45;
 }
 
-.hero-stats {
-  display: flex;
-  align-items: stretch;
+/* Separate boxed stat-tile row below the hero */
+.vault-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  flex-shrink: 0;
 }
 
-.hero-stat {
+.vault-stat {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   gap: 4px;
-  min-width: 82px;
-  padding: 14px 18px;
+  padding: 16px 18px;
   background: var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-sm, 12px);
   box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
 }
 
-.hero-stat-value {
+.vault-stat-value {
   font-size: 24px;
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -96,16 +92,12 @@
   line-height: 1.05;
 }
 
-.hero-stat-label {
+.vault-stat-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ns-text-muted, #8a92a6);
-}
-
-.hero-stat-divider {
-  display: none;
 }
 
 .vault-grid {
@@ -115,10 +107,34 @@
   align-items: start;
 }
 
+/* Right column stacks the shorter panels so the tall Create form is balanced */
+.vault-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
 .vault-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
+
+  /* Soft-tinted disabled primary CTAs so they read as a paused action, not inert */
+  .neo-btn--primary:disabled,
+  .neo-btn--success:disabled {
+    background: var(--vault-accent-soft);
+    border-color: var(--vault-accent-soft);
+    color: var(--vault-accent-strong);
+    opacity: 0.75;
+  }
+
+  .neo-btn--danger:disabled {
+    background: var(--ns-danger-soft, #fde7e9);
+    border-color: var(--ns-danger-soft, #fde7e9);
+    color: var(--ns-down, #ea3943);
+    opacity: 0.7;
+  }
 }
 
 .vault-select-field {
@@ -129,26 +145,51 @@
   font-weight: 700;
   color: var(--ns-text, #2a2d3d);
 
+  .vault-select-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Single custom chevron, matching NeoInput affordance */
+  .vault-select-chevron {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--ns-text-muted, #8a92a6);
+  }
+
   select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
     width: 100%;
     min-height: 46px;
     border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-    border-radius: var(--ns-radius-xs, 8px);
+    border-radius: var(--ns-radius-sm, 12px);
     background: var(--ns-surface, #ffffff);
+    background-image: none;
     color: var(--ns-text, #2a2d3d);
     font: inherit;
     font-weight: 600;
-    padding: 0 12px;
+    padding: 0 40px 0 14px;
     outline: none;
+    cursor: pointer;
     transition: border-color var(--ns-t, 220ms) ease, box-shadow var(--ns-t, 220ms) ease;
 
+    &::-ms-expand {
+      display: none;
+    }
+
     &:hover {
-      border-color: rgba(62, 140, 255, 0.5);
+      border-color: var(--vault-accent);
     }
 
     &:focus {
-      border-color: var(--ns-violet, #7b61ff);
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+      border-color: var(--vault-accent);
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
     }
   }
 }
@@ -218,8 +259,8 @@
 
   &:focus-visible {
     outline: none;
-    border-color: var(--ns-violet, #7b61ff);
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    border-color: var(--vault-accent);
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   }
 }
 
@@ -292,16 +333,12 @@
     gap: 16px;
   }
 
+  .vault-col {
+    gap: 16px;
+  }
+
   .vault-hero {
     align-items: flex-start;
     padding: 20px;
-  }
-
-  .hero-stats {
-    width: 100%;
-  }
-
-  .hero-stat {
-    flex: 1;
   }
 }

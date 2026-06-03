@@ -144,12 +144,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <span className="tarot-card-frame">
                         <span className="tarot-card-face tarot-card-back">
                           <img src={TAROT_CARD_BACK} alt={t("cardBackAlt")} />
-                          <span>{t("awaitingDraw")}</span>
                         </span>
                       </span>
-                      <span className="tarot-card-caption">
-                        <span>{t("notDrawnYet")}</span>
-                        <small>{t("submitQuestionFirst")}</small>
+                      <span className="tarot-card-caption tarot-card-caption--empty">
+                        {index === 1 ? (
+                          <small>{t("submitQuestionFirst")}</small>
+                        ) : (
+                          <span aria-hidden="true">—</span>
+                        )}
                       </span>
                     </div>
                   );

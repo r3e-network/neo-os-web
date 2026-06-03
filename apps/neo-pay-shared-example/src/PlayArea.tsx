@@ -50,6 +50,54 @@ type LaunchDefaults = {
   notes: string;
 };
 
+type StreamPreset = {
+  id: string;
+  label: string;
+  values: {
+    title: string;
+    amount: string;
+    duration: string;
+    token: StreamToken;
+    notes: string;
+  };
+};
+
+const STREAM_PRESETS: StreamPreset[] = [
+  {
+    id: "7d-gas",
+    label: "7d GAS",
+    values: {
+      title: "Weekly contributor stream",
+      amount: "0.7",
+      duration: "7",
+      token: "GAS",
+      notes: "Contributor weekly release",
+    },
+  },
+  {
+    id: "30d-gas",
+    label: "30d GAS",
+    values: {
+      title: "Monthly payroll stream",
+      amount: "20",
+      duration: "30",
+      token: "GAS",
+      notes: "Monthly payroll release",
+    },
+  },
+  {
+    id: "90d-neo",
+    label: "90d NEO",
+    values: {
+      title: "Governance vesting stream",
+      amount: "1",
+      duration: "90",
+      token: "NEO",
+      notes: "Governance vesting release",
+    },
+  },
+];
+
 const FIXED8_SCALE = 100000000n;
 const BASE58_ADDRESS_PATTERN = /^N[1-9A-HJ-NP-Za-km-z]{25,40}$/u;
 
@@ -313,6 +361,13 @@ export default function PlayArea({
     beneficiaryStreams.length > 0 ||
     totalStreamCount > 0 ||
     activeCount > 0;
+  const activePresetId =
+    STREAM_PRESETS.find(
+      (preset) =>
+        preset.values.amount === amount.trim() &&
+        preset.values.duration === duration.trim() &&
+        preset.values.token === token,
+    )?.id ?? "";
 
   async function createStream() {
     if (!canSubmit) return;
@@ -468,12 +523,30 @@ export default function PlayArea({
   return (
     <div className="shared-pay-play-area">
       <section className="shared-pay-hero" aria-labelledby="shared-pay-title">
-        <span className="shared-pay-eyebrow">
-          {copy("sharedRuntime", "Shared runtime")}
-        </span>
-        <h2 id="shared-pay-title">
-          {copy("sharedRuntimeTitle", "NeoPay shared streams")}
-        </h2>
+        <div className="shared-pay-hero__top">
+          <span className="shared-pay-hero__badge" aria-hidden="true">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 12h6l1.5-4 3 8 1.5-4H21" />
+            </svg>
+          </span>
+          <div className="shared-pay-hero__heading">
+            <span className="shared-pay-eyebrow">
+              {copy("sharedRuntime", "Shared runtime")}
+            </span>
+            <h2 id="shared-pay-title">
+              {copy("sharedRuntimeTitle", "NeoPay shared streams")}
+            </h2>
+          </div>
+        </div>
         <p>
           {copy(
             "sharedRuntimeSubtitle",
@@ -591,48 +664,20 @@ export default function PlayArea({
           </div>
 
           <div className="shared-pay-presets" aria-label="Stream presets">
-            <button
-              type="button"
-              onClick={() =>
-                applyPreset({
-                  title: "Weekly contributor stream",
-                  amount: "0.7",
-                  duration: "7",
-                  token: "GAS",
-                  notes: "Contributor weekly release",
-                })
-              }
-            >
-              7d GAS
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                applyPreset({
-                  title: "Monthly payroll stream",
-                  amount: "20",
-                  duration: "30",
-                  token: "GAS",
-                  notes: "Monthly payroll release",
-                })
-              }
-            >
-              30d GAS
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                applyPreset({
-                  title: "Governance vesting stream",
-                  amount: "1",
-                  duration: "90",
-                  token: "NEO",
-                  notes: "Governance vesting release",
-                })
-              }
-            >
-              90d NEO
-            </button>
+            {STREAM_PRESETS.map((preset) => {
+              const isActive = activePresetId === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={isActive ? "is-active" : undefined}
+                  aria-pressed={isActive}
+                  onClick={() => applyPreset(preset.values)}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
           </div>
 
           <div className="shared-pay-actions">

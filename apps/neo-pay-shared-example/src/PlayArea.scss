@@ -22,7 +22,7 @@
   box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
 
   h2 {
-    margin: 0.55rem 0 0;
+    margin: 0.2rem 0 0;
     font-size: 1.75rem;
     line-height: 1.16;
     letter-spacing: -0.02em;
@@ -32,11 +32,37 @@
 
   p {
     max-width: 60ch;
-    margin: 0.5rem 0 0;
+    margin: 0.55rem 0 0;
     color: var(--ns-text-2, #5b6478);
     font-size: 0.9rem;
     line-height: 1.55;
   }
+}
+
+.shared-pay-hero__top {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.shared-pay-hero__badge {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: var(--ns-violet-soft, #eeeaff);
+  color: var(--ns-violet, #7b61ff);
+  box-shadow: 0 0 0 4px rgba(123, 97, 255, 0.08);
+}
+
+.shared-pay-hero__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .shared-pay-hero__stats {
@@ -128,6 +154,47 @@
   .neo-input:last-child {
     grid-column: 1 / -1;
   }
+
+  // Neutralize the global `.neo-select` root styling (grey box + faint
+  // background-image chevron + off-palette green focus) that leaks onto the
+  // shared NeoSelect root div, leaving a single styled chevron.
+  .neo-select {
+    width: auto;
+    padding: 0;
+    background: none;
+    background-image: none;
+    border: none;
+    border-radius: 0;
+  }
+
+  // Remove the native browser arrow so only one custom chevron renders.
+  .neo-select__field {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 38px;
+    background-image: none;
+
+    &::-ms-expand {
+      display: none;
+    }
+  }
+
+  .neo-select__wrapper {
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: 16px;
+      width: 9px;
+      height: 9px;
+      border-right: 2px solid var(--ns-text-muted, #8a92a6);
+      border-bottom: 2px solid var(--ns-text-muted, #8a92a6);
+      border-radius: 1px;
+      transform: translateY(-65%) rotate(45deg);
+      pointer-events: none;
+    }
+  }
 }
 
 .shared-pay-presets {
@@ -153,6 +220,12 @@
 
     &:hover {
       border-color: rgba(123, 97, 255, 0.32);
+      background: var(--ns-violet-soft, #eeeaff);
+      color: var(--ns-violet-strong, #6a4df4);
+    }
+
+    &.is-active {
+      border-color: var(--ns-violet, #7b61ff);
       background: var(--ns-violet-soft, #eeeaff);
       color: var(--ns-violet-strong, #6a4df4);
     }
