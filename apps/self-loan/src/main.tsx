@@ -44,12 +44,15 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("setBorrowAmount", async (amount: unknown) => {
-      if (typeof amount === "string") loan.borrowAmount.set(amount);
-    });
-
     ctx.registerAction("setCollateralAmount", async (amount: unknown) => {
       if (typeof amount === "string") loan.collateralAmount.set(amount);
+    });
+
+    ctx.registerAction("setLtvTier", async (tier: unknown) => {
+      const next = Number(tier);
+      if (Number.isInteger(next) && next >= 1 && next <= 3) {
+        loan.selectedTier.set(next);
+      }
     });
 
     return {
@@ -59,9 +62,9 @@ defineMiniApp({
         neoPrice: loan.neoPrice,
         stats: loan.stats,
         platformStats: loan.platformStats,
-        borrowAmount: loan.borrowAmount,
         collateralAmount: loan.collateralAmount,
         selectedLtv: loan.selectedLtv,
+        ltvOptions: loan.ltvOptions,
         isLoading: loan.isLoading,
         isBorrowing: loan.isBorrowing,
         isRepaying: loan.isRepaying,

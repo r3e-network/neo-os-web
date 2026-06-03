@@ -17,20 +17,30 @@ const t = (key: string) => {
   return messages[key] ?? key;
 };
 
+/**
+ * Build a mock OS service set. The reading is now derived client-side from the
+ * deposit tx id and persisted via storage.set, so the storage mock echoes the
+ * last value written through set() back out of get() to model the round trip.
+ */
 function createTarotServices(options?: {
-  betResult?: unknown;
-  getResult?: unknown;
+  depositResult?: unknown;
   listResult?: unknown;
-  rejectBet?: boolean;
+  rejectDeposit?: boolean;
 }) {
-  const gameService = {
-    placeBet: vi.fn(async () => {
-      if (options?.rejectBet) throw new Error("oracle unavailable");
-      return options?.betResult ?? { readingId: "reading-1" };
+  const store = new Map<string, unknown>();
+
+  const paymentService = {
+    deposit: vi.fn(async () => {
+      if (options?.rejectDeposit) throw new Error("payment unavailable");
+      return options?.depositResult ?? { invocation: {}, txid: "tx-reading-1" };
     }),
   };
   const storageService = {
-    get: vi.fn(async () => options?.getResult ?? { status: "completed", cards: [0, 22, 77] }),
+    get: vi.fn(async (key: string) => store.get(key)),
+    set: vi.fn(async (key: string, value: unknown) => {
+      store.set(key, value);
+      return { ok: true };
+    }),
     list: vi.fn(async () => options?.listResult ?? {}),
   };
   const badgeService = {
@@ -38,23 +48,38 @@ function createTarotServices(options?: {
   };
 
   return {
-    gameService: gameService as unknown as UseTarotOptions["gameService"],
+    paymentService: paymentService as unknown as UseTarotOptions["paymentService"],
     storageService: storageService as unknown as UseTarotOptions["storageService"],
     badgeService: badgeService as unknown as UseTarotOptions["badgeService"],
   };
 }
 
 describe("useTarot", () => {
-  it("draws a valid three-card oracle reading and supports reveal/reset", async () => {
+  it("pays the draw fee, derives a valid three-card reading, and supports reveal/reset", async () => {
     const services = createTarotServices();
     const tarot = useTarot({ ...services, t });
 
     tarot.question.set("What should I focus on?");
     await tarot.draw();
 
-    expect(services.gameService.placeBet).toHaveBeenCalledWith("tarot", "What should I focus on?");
-    expect(services.storageService.get).toHaveBeenCalledWith("reading:reading-1");
-    expect(tarot.drawn.get().map((card) => card.id)).toEqual([0, 22, 77]);
+    // Draw fee is paid through the OS payment service with the question memo.
+    expect(services.paymentService.deposit).toHaveBeenCalledWith("0.1", "What should I focus on?");
+    // Reading is persisted under the tx-derived reading id and read back.
+    expect(services.storageService.set).toHaveBeenCalledWith(
+      "reading:tx-reading-1",
+      expect.objectContaining({ status: "completed", readingId: "tx-reading-1" }),
+    );
+    expect(services.storageService.get).toHaveBeenCalledWith("reading:tx-reading-1");
+
+    // Three unique, valid deck cards were drawn.
+    const ids = tarot.drawn.get().map((card) => card.id);
+    expect(ids).toHaveLength(3);
+    expect(new Set(ids).size).toBe(3);
+    ids.forEach((id) => {
+      expect(id).toBeGreaterThanOrEqual(0);
+      expect(id).toBeLessThan(78);
+    });
+
     expect(tarot.hasDrawn.get()).toBe(true);
     expect(tarot.allFlipped.get()).toBe(false);
     expect(tarot.readingsCount.get()).toBe(1);
@@ -66,15 +91,29 @@ describe("useTarot", () => {
     tarot.flipCard(2);
     expect(tarot.allFlipped.get()).toBe(true);
     expect(tarot.allRevealedDisplay.get()).toBe("Yes");
-    expect(tarot.getReading()).toContain("Past: The Fool");
 
     tarot.reset();
     expect(tarot.drawn.get()).toEqual([]);
     expect(tarot.readingMode.get()).toBe("idle");
   });
 
-  it("does not synthesize a local reading when the oracle service is unavailable", async () => {
-    const services = createTarotServices({ rejectBet: true });
+  it("derives the same reading for the same tx id (deterministic seed)", async () => {
+    const first = createTarotServices();
+    const tarotA = useTarot({ ...first, t });
+    await tarotA.draw();
+    const idsA = tarotA.drawn.get().map((card) => card.id);
+
+    const second = createTarotServices();
+    const tarotB = useTarot({ ...second, t });
+    await tarotB.draw();
+    const idsB = tarotB.drawn.get().map((card) => card.id);
+
+    // Same deposit tx id => same deterministic three-card spread.
+    expect(idsA).toEqual(idsB);
+  });
+
+  it("does not synthesize a reading when the payment service is unavailable", async () => {
+    const services = createTarotServices({ rejectDeposit: true });
     const tarot = useTarot({ ...services, t });
 
     await expect(tarot.draw()).rejects.toThrow("Reading unavailable");
@@ -82,23 +121,22 @@ describe("useTarot", () => {
     expect(tarot.drawn.get()).toEqual([]);
     expect(tarot.hasDrawn.get()).toBe(false);
     expect(tarot.readingMode.get()).toBe("idle");
+    expect(services.storageService.set).not.toHaveBeenCalled();
   });
 
-  it("unwraps edge responses that use { ok, data } envelopes", async () => {
+  it("unwraps deposit responses that use { ok, data } envelopes", async () => {
     const services = createTarotServices({
-      betResult: { ok: true, data: { reading_id: "wrapped-1" } },
-      getResult: { ok: true, data: { status: "completed", cards: [3, 36, 50] } },
+      depositResult: { ok: true, data: { invocation: {}, txid: "wrapped-tx-1" } },
     });
     const tarot = useTarot({ ...services, t });
 
     await tarot.draw();
 
-    expect(services.storageService.get).toHaveBeenCalledWith("reading:wrapped-1");
-    expect(tarot.drawn.get().map((card) => card.name)).toEqual([
-      "The Empress",
-      "Ace of Cups",
-      "Ace of Swords",
-    ]);
+    expect(services.storageService.set).toHaveBeenCalledWith(
+      "reading:wrapped-tx-1",
+      expect.objectContaining({ readingId: "wrapped-tx-1" }),
+    );
+    expect(services.storageService.get).toHaveBeenCalledWith("reading:wrapped-tx-1");
     expect(tarot.readingMode.get()).toBe("oracle");
   });
 });

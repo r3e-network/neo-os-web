@@ -64,10 +64,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const handleCreate = async () => {
     await dispatch("createEscrow", {
+      name: description.trim() || beneficiary,
       beneficiary,
-      tokenSymbol,
-      amount: amount ? BigInt(amount) : BigInt(0),
-      description,
+      asset: tokenSymbol === "NEO" ? "NEO" : "GAS",
+      notes: description,
+      milestones: [{ amount }],
     });
     setShowCreateForm(false);
     setBeneficiary(""); setAmount(""); setDescription("");

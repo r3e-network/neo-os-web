@@ -183,7 +183,7 @@ defineMiniApp({
               : JSON.parse(String(result)),
         );
       } catch (e) {
-        ctx.services.notify.guard(e, ctx.t("queryFailed"));
+        ctx.services.notify.error(e, ctx.t("queryFailed"));
       } finally {
         isQuerying.set(false);
       }

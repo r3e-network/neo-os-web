@@ -1,24 +1,34 @@
 /**
  * useTarot — Domain logic for On-Chain Tarot (OS Services)
  *
- * Migrated to OS service proxies. Contract interaction is delegated to
- * OS services (GameProxy, StorageProxy, BadgeProxy) via edge functions.
- * The oracle service (ctx.services.oracle) is preserved as-is since
- * oracle callbacks require the platform service layer.
+ * Value flow is delegated to OS service proxies (PaymentProxy, StorageProxy,
+ * BadgeProxy) via edge functions. The draw is paid for through the OS payment
+ * service and the reading itself is derived deterministically on the client
+ * from the resulting transaction id (see note below).
  *
- * Migration from direct chain calls to OS services:
+ * Reading source — design decision (client-derived):
  *
- *   BEFORE (chain):
- *     chain.ensureWallet()
- *     chain.invokeWithPayment(fee, memo, "requestReading", [...])
- *     chain.listAllEvents("ReadingRequested")
- *     chain.listAllEvents("ReadingCompleted")
+ *   The OS kernel exposes only generic primitives (payment / storage / escrow /
+ *   game pools) — there is NO oracle/edge producer that writes a tarot
+ *   "reading:<id>" record. The previous implementation called
+ *   `gameService.placeBet("tarot", <question text>)`, which is malformed:
+ *   os-game-bet requires a numeric poolId + decimal amount, so passing a free
+ *   text question made `parseDecimalToInt` throw and the draw was unreachable.
+ *   It then polled `storage.get("reading:<id>")` for a key that nothing ever
+ *   wrote, so `waitForReading` could never resolve.
  *
- *   AFTER (OS proxy):
- *     gameService.placeBet("tarot", "reading")       — request reading (includes payment)
- *     storageService.get(`reading:${readingId}`)      — poll for completed reading
- *     storageService.list("reading:")                 — load reading count
- *     badgeService.award(badgeId, user)               — award tarot badges
+ *   New flow (uses only existing OS primitives):
+ *     1. paymentService.deposit(DRAW_FEE, question)  — a real "draw fee" value
+ *        call. The edge function returns an invocation intent; EdgeClient pops
+ *        the wallet confirmation, submits it, and returns the on-chain txid.
+ *        That txid (or, if unavailable, a locally generated unique id) becomes
+ *        the readingId / random seed.
+ *     2. The three cards are derived DETERMINISTICALLY from that seed (a
+ *        dependency-free hash → 3 unique deck indices). Same seed ⇒ same
+ *        reading, so the result is reproducible and auditable from the txid.
+ *     3. storageService.set("reading:<readingId>", {status,cards,...})        —
+ *        persists the reading so `storage.list("reading:")` can enumerate the
+ *        history index and the existing poll resolves immediately.
  *
  * The composable still owns:
  *   - Reactive state (refs + computed) for manifest bindings
@@ -29,7 +39,7 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { GameProxy } from "@shared/services/os/GameProxy";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { TAROT_CARD_BACK, TAROT_DECK } from "../pages/index/components/tarot-data";
@@ -40,8 +50,8 @@ export interface Card extends TarotCardDefinition {
 }
 
 export interface UseTarotOptions {
-  /** OS GameProxy instance from ctx.os.game */
-  gameService: GameProxy;
+  /** OS PaymentProxy instance from ctx.os.payment */
+  paymentService: PaymentProxy;
   /** OS StorageProxy instance from ctx.os.storage */
   storageService: StorageProxy;
   /** OS BadgeProxy instance from ctx.os.badge */
@@ -49,6 +59,9 @@ export interface UseTarotOptions {
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
+
+/** Draw fee (GAS) charged through the OS payment service for each reading. */
+const DRAW_FEE = "0.1";
 
 /**
  * Shape of a completed reading returned by the edge function.
@@ -66,11 +79,89 @@ function unwrapServiceData(value: unknown): unknown {
   return value;
 }
 
+/**
+ * Extract a stable reading id from a payment-deposit response.
+ *
+ * EdgeClient resolves the deposit invocation intent through the wallet and
+ * merges the on-chain transaction id back onto the payload as `txid`/`tx`.
+ * We accept those first, then fall back to any explicit id fields, then to a
+ * hash of the nested invocation. An empty string means no id could be derived
+ * and the caller will generate a local unique id instead.
+ */
 function extractReadingId(value: unknown): string {
   const result = unwrapServiceData(value);
   if (!result || typeof result !== "object") return "";
   const data = result as Record<string, unknown>;
-  return String(data.readingId ?? data.reading_id ?? data.poolId ?? data.pool_id ?? "").trim();
+  const direct = String(
+    data.txid ??
+      data.tx ??
+      data.txId ??
+      data.transactionId ??
+      data.readingId ??
+      data.reading_id ??
+      data.poolId ??
+      data.pool_id ??
+      "",
+  ).trim();
+  if (direct) return direct;
+
+  // Last resort: derive a stable id from the invocation intent itself.
+  const invocation = data.invocation;
+  if (invocation && typeof invocation === "object") {
+    return `inv-${hashSeed(JSON.stringify(invocation)).toString(16)}`;
+  }
+  return "";
+}
+
+/**
+ * Deterministic, dependency-free 32-bit hash (xmur3-style) used to turn a
+ * reading id / seed string into a reproducible numeric seed.
+ */
+function hashSeed(input: string): number {
+  let h = 1779033703 ^ input.length;
+  for (let i = 0; i < input.length; i++) {
+    h = Math.imul(h ^ input.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^= h >>> 16) >>> 0;
+}
+
+/**
+ * Mulberry32 PRNG seeded from a 32-bit integer. Deterministic: the same seed
+ * always yields the same sequence, so a reading is fully reproducible from its
+ * readingId (transaction id).
+ */
+function createSeededRng(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state |= 0;
+    state = (state + 0x6d2b79f5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Derive three unique card indices in [0, TAROT_DECK.length) from a seed
+ * string via a partial Fisher-Yates draw over the deck order. The output is
+ * deterministic for a given seed and always satisfies normalizeReadingCards.
+ */
+function deriveReadingCards(seed: string): number[] {
+  const rng = createSeededRng(hashSeed(seed || "tarot"));
+  const indices = Array.from({ length: TAROT_DECK.length }, (_, i) => i);
+  const picks: number[] = [];
+  for (let drawCount = 0; drawCount < 3; drawCount++) {
+    const remaining = indices.length - drawCount;
+    const swapWith = drawCount + Math.floor(rng() * remaining);
+    const chosen = indices[swapWith]!;
+    indices[swapWith] = indices[drawCount]!;
+    indices[drawCount] = chosen;
+    picks.push(chosen);
+  }
+  return picks;
 }
 
 function normalizeReadingCards(cards: unknown): number[] {
@@ -88,7 +179,7 @@ function normalizeReadingCards(cards: unknown): number[] {
 }
 
 export function useTarot({
-  gameService,
+  paymentService,
   storageService,
   badgeService,
   t,
@@ -108,13 +199,15 @@ export function useTarot({
   const readingMode = createObservable<"idle" | "oracle">("idle");
 
   /**
-   * Poll for a completed reading via StorageProxy.
-   * The edge function returns the reading result once the oracle has
-   * completed the VRF callback and the ReadingCompleted event fires.
+   * Read back the persisted reading via StorageProxy.
+   *
+   * The reading is written by `draw()` immediately after the draw fee is paid,
+   * so this normally resolves on the first attempt. A short retry loop is kept
+   * to tolerate eventual-consistency on the storage edge function.
    */
   const waitForReading = async (readingId: string): Promise<ReadingResult | null> => {
-    const maxAttempts = 30;
-    const pollIntervalMs = 1500;
+    const maxAttempts = 5;
+    const pollIntervalMs = 500;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       let result: unknown;
@@ -143,9 +236,12 @@ export function useTarot({
    * Draw tarot cards via OS services.
    *
    * Flow:
-   * 1. Place a "bet" via GameProxy (includes GAS payment via edge function)
-   * 2. Poll StorageProxy for the completed reading (oracle VRF callback)
-   * 3. Map returned card IDs to the tarot deck
+   * 1. Pay the draw fee via PaymentProxy.deposit (wallet-confirmed value call);
+   *    the resulting transaction id is captured as the readingId / seed.
+   * 2. Derive three unique cards deterministically from that seed and persist
+   *    the reading via StorageProxy.set so it joins the "reading:" history
+   *    index and can be read back.
+   * 3. Read the persisted reading back and map card IDs to the tarot deck.
    */
   const draw = async () => {
     if (isLoading.get()) return;
@@ -153,19 +249,41 @@ export function useTarot({
 
     try {
       const prompt = question.get().trim() || t("defaultQuestion");
+
+      // Step 1: Pay the draw fee through the OS payment service. The wallet
+      // confirms the value call and EdgeClient returns the on-chain tx id.
       let result: unknown;
       try {
-        result = await gameService.placeBet("tarot", prompt.slice(0, 200));
+        result = await paymentService.deposit(DRAW_FEE, prompt.slice(0, 200));
       } catch {
         throw new Error(t("readingUnavailable"));
       }
-      const readingId = extractReadingId(result);
-      if (!readingId) throw new Error(t("readingUnavailable"));
 
-      // Step 2: Poll for completed reading via StorageProxy.
+      // Use the tx id as the reading id / seed. Fall back to a locally unique
+      // id if the wallet adapter did not surface a tx id (e.g. test harness).
+      const readingId =
+        extractReadingId(result) ||
+        `local-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
+
+      // Step 2: Derive the reading deterministically from the seed and persist
+      // it so the history index ("reading:" prefix) and the read-back resolve.
+      const derivedCards = normalizeReadingCards(deriveReadingCards(readingId));
+      try {
+        await storageService.set(`reading:${readingId}`, {
+          readingId,
+          status: "completed",
+          cards: derivedCards,
+          question: prompt.slice(0, 200),
+          createdAt: Date.now(),
+        });
+      } catch {
+        // Persistence is best-effort for the history index; the reading below
+        // falls back to the in-memory derived cards if the read-back fails.
+      }
+
+      // Step 3: Read the persisted reading back; fall back to derived cards.
       const reading = await waitForReading(readingId);
-      if (!reading) throw new Error(t("readingPending"));
-      const cardIds = reading.cards;
+      const cardIds = reading ? reading.cards : derivedCards;
 
       // Step 3: Map card IDs to deck entries
       drawn.set(normalizeReadingCards(cardIds).map((cardId: number) => {
