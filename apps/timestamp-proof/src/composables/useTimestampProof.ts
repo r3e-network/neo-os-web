@@ -101,9 +101,14 @@ export function useTimestampProofContract(t: (key: string) => string) {
     writeStoredProofs(next);
   };
 
+  // This is a device-local journal: every saved proof belongs to this device,
+  // so "Your Proofs" counts all of them. Filtering by `currentActor()` made the
+  // tile fluctuate on wallet connect/disconnect (proofs stamped `local` stopped
+  // counting once an address connected, and vice-versa) even though no proof
+  // changed. Counting all device proofs keeps the figure stable and honest.
   const myProofsCount = createDerived(
-    () => proofs.get().filter((item) => item.creator === currentActor()).length,
-    [proofs, address],
+    () => proofs.get().length,
+    [proofs],
   );
 
   const hashContent = async (content: string): Promise<string> => {

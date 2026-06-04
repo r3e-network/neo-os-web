@@ -113,6 +113,8 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   titleRequired: { en: "Contract title is required", zh: "请填写合约标题" },
   titleTooLong: { en: "Title must be 100 characters or less", zh: "标题最多100字符" },
   termsTooLong: { en: "Terms must be 2000 characters or less", zh: "条款最多2000字符" },
+  titleCounter: { en: "{count}/{max} characters", zh: "{count}/{max} 字符" },
+  termsCounter: { en: "{count}/{max} characters", zh: "{count}/{max} 字符" },
   contractUnavailable: { en: "Contract not configured", zh: "合约未配置" },
   loadFailed: { en: "Failed to load contracts", zh: "加载合约失败" },
 

@@ -48,8 +48,9 @@ defineMiniApp({
     return {
       state: refsToObservables({
         totalDestroyed: graveyard.totalDestroyed,
-        gasReclaimed: graveyard.gasReclaimed,
+        burialFeesPaid: graveyard.burialFeesPaid,
         gasReclaimedDisplay: graveyard.gasReclaimedDisplay,
+        burialFeeDisplay: graveyard.burialFeeDisplay,
         historyCount: graveyard.historyCount,
         history: graveyard.history,
         isDestroying: graveyard.isDestroying,

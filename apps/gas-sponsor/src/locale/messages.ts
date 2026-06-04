@@ -120,6 +120,32 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   // Transfer-specific failure fallbacks
   donateFailed: { en: "Donation failed", zh: "捐赠失败" },
   sendFailed: { en: "Send failed", zh: "发送失败" },
+  // Pay-it-forward section (Donate + Send are gated behind a funded balance)
+  payItForward: { en: "Pay It Forward", zh: "回馈社区" },
+  payForwardLead: {
+    en: "You're funded — donate to the pool or send GAS to help another wallet get started.",
+    zh: "您已有余额——向资金池捐赠或发送 GAS，帮助其他钱包起步。",
+  },
+  payForwardLockedTitle: {
+    en: "Get funded first",
+    zh: "请先获取余额",
+  },
+  payForwardLockedDesc: {
+    en: "Donate and Send move GAS you already hold. Request sponsored GAS above, then come back to help others.",
+    zh: "捐赠和发送会转移您已持有的 GAS。请先在上方请求赞助的 GAS，然后回来帮助他人。",
+  },
+  balanceAvailable: {
+    en: "Available: {amount} GAS",
+    zh: "可用：{amount} GAS",
+  },
+  donateInvalid: {
+    en: "Enter an amount up to your balance",
+    zh: "请输入不超过余额的金额",
+  },
+  sendAmountInvalid: {
+    en: "Enter an amount up to your balance",
+    zh: "请输入不超过余额的金额",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

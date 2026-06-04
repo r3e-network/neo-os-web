@@ -58,8 +58,10 @@ defineMiniApp({
     return {
       state: {
         loan: loan.loan,
+        loanHistory: loan.loanHistory,
         neoBalance: loan.neoBalance,
         neoPrice: loan.neoPrice,
+        isPriceNormalized: loan.isPriceNormalized,
         stats: loan.stats,
         platformStats: loan.platformStats,
         collateralAmount: loan.collateralAmount,
@@ -77,14 +79,13 @@ defineMiniApp({
         borrowedDisplay: loan.borrowedDisplay,
         healthFactorDisplay: loan.healthFactorDisplay,
         currentLTVDisplay: loan.currentLTVDisplay,
+        healthMetricLabel: loan.healthMetricLabel,
         hasLoanDisplay: loan.hasLoanDisplay,
         neoBalanceDisplay: loan.neoBalanceDisplay,
         totalLoans: loan.totalLoans,
         totalBorrowedDisplay: loan.totalBorrowedDisplay,
         totalRepaidDisplay: loan.totalRepaidDisplay,
         profitAnchorValue: loan.profitAnchorValue,
-        healthColor: loan.healthColor,
-        healthArc: loan.healthArc,
       },
       loadData: loan.loadAll,
     };

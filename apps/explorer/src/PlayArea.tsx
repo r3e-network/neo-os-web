@@ -85,7 +85,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const heightPending = isPendingFigure(activeHeight);
   const txCountPending = isPendingFigure(activeTxCount);
 
-  const hasSearched = Boolean(searchResult) || recentTxs.length > 0;
+  // Show the recent-tx lane (which carries its own empty-state guidance card)
+  // as the resting-state content rather than gating the whole block away — the
+  // only time it stays hidden is the brief initial load before any data lands,
+  // to avoid flashing the empty guidance over an in-flight fetch.
+  const showRecent = recentTxs.length > 0 || !isLoading;
 
   const handleSearch = async () => {
     await dispatch("search");
@@ -169,8 +173,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         formatTime={formatTime}
       />
 
-      {/* Recent transactions appear once data has loaded; otherwise stay hidden. */}
-      {hasSearched && (
+      {/* Recent transactions — when empty, RecentTransactions renders the
+          workflow-tips guidance card so the lower area has purposeful resting
+          content before the first interaction (only suppressed mid-initial-load). */}
+      {showRecent && (
         <RecentTransactions
           t={t}
           transactions={recentTxs}

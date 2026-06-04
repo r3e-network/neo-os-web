@@ -58,11 +58,38 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   ];
   const selectedOffering =
     offeringOptions.find((item) => item.value === tributeOfferingType) ?? defaultOffering;
+  const currentYear = new Date().getFullYear();
+  const birthYearRaw = formBirthYear.trim();
+  const deathYearRaw = formDeathYear.trim();
   const parsedDeathYear = parseInt(formDeathYear, 10);
   const parsedBirthYear = parseInt(formBirthYear, 10);
-  const deathYearValid = /^\d+$/.test(formDeathYear.trim()) && parsedDeathYear > 0;
-  const birthYearValid = formBirthYear.trim() === "" || (/^\d+$/.test(formBirthYear.trim()) && parsedBirthYear > 0);
-  const canCreateMemorial = formName.trim().length > 0 && deathYearValid && birthYearValid;
+  const deathYearDigits = /^\d+$/.test(deathYearRaw) && parsedDeathYear > 0;
+  const birthYearDigits = birthYearRaw === "" || (/^\d+$/.test(birthYearRaw) && parsedBirthYear > 0);
+  const deathYearValid = deathYearDigits && parsedDeathYear <= currentYear;
+  const birthYearValid =
+    birthYearRaw === "" ||
+    (birthYearDigits && parsedBirthYear <= currentYear);
+  const yearOrderValid =
+    birthYearRaw === "" || !deathYearDigits || parsedBirthYear <= parsedDeathYear;
+  // Inline feedback: only surface an error once the user has typed something.
+  const deathYearError = deathYearRaw === ""
+    ? ""
+    : !deathYearDigits
+      ? (t("yearInvalid") || "Enter a valid year (numbers only).")
+      : parsedDeathYear > currentYear
+        ? (t("yearFuture") || "Year cannot be in the future.")
+        : "";
+  const birthYearError = birthYearRaw === ""
+    ? ""
+    : !/^\d+$/.test(birthYearRaw) || parsedBirthYear <= 0
+      ? (t("yearInvalid") || "Enter a valid year (numbers only).")
+      : parsedBirthYear > currentYear
+        ? (t("yearFuture") || "Year cannot be in the future.")
+        : !yearOrderValid
+          ? (t("yearOrder") || "Birth year must be before the death year.")
+          : "";
+  const canCreateMemorial =
+    formName.trim().length > 0 && deathYearValid && birthYearValid && yearOrderValid;
   const selectedMemorialName = selectedMemorial?.name ? String(selectedMemorial.name) : (t("unnamed") || "Unnamed");
   const selectedMemorialYears =
     selectedMemorial?.birthYear && selectedMemorial?.deathYear
@@ -233,6 +260,11 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               <NeoInput value={formBirthYear} label={t("labelBirth") || "Birth Year"} placeholder={t("placeholderBirthYear") || "1940"} onChange={setFormBirthYear} />
               <NeoInput value={formDeathYear} label={t("labelDeath") || "Death Year"} placeholder={t("placeholderDeathYear") || "2024"} onChange={setFormDeathYear} />
             </div>
+            {(birthYearError || deathYearError) && (
+              <p className="field-error" role="alert">
+                {deathYearError || birthYearError}
+              </p>
+            )}
             <NeoInput value={formBiography} type="textarea" label={t("labelBio") || "Biography"} placeholder={t("placeholderBio") || "Life story..."} onChange={setFormBiography} />
             <NeoInput value={formObituary} type="textarea" label={t("labelObituary") || "Obituary"} placeholder={t("placeholderObituary") || "Obituary text..."} onChange={setFormObituary} />
             <NeoButton variant="primary" loading={isSubmitting} disabled={!canCreateMemorial} onClick={handleCreate} aria-label={t("createMemorial") || "Create Memorial"}>

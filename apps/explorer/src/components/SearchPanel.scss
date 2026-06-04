@@ -44,6 +44,14 @@
   min-height: 48px;
 }
 
+.search-hint {
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .network-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;

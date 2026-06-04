@@ -69,9 +69,11 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     roundStatusDisplay: createObservable("Rollover ready"),
     serviceNotice: createObservable(""),
     shouldPulse: createObservable(false),
+    totalKeysDisplay: createObservable(0),
     totalPot: createObservable(0),
     totalPotDisplay: createObservable("0.00 GAS"),
     userKeys: createObservable(0),
+    userSharePercent: createObservable(0),
     ...Object.fromEntries(
       Object.entries(overrides).map(([key, value]) => [
         key,
@@ -126,5 +128,54 @@ describe("LastSurvivor PlayArea", () => {
     });
     expect((button as HTMLButtonElement).disabled).toBe(false);
     expect(screen.getByText(/rolls the expired round forward/i)).toBeTruthy();
+  });
+
+  it("binds TOTAL KEYS and YOUR SHARE to the round total, not the buy-selector", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          // Buy-selector dialed to 10 — must NOT leak into the strip.
+          keyCount: 10,
+          userKeys: 5,
+          totalKeysDisplay: 20,
+          // userShare = 5 / 20 * 100 = 25% (round total denominator, not 10).
+          userSharePercent: 25,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const values = Array.from(
+      container.querySelectorAll(".participation-value"),
+    ).map((el) => el.textContent);
+
+    // [YOUR KEYS, TOTAL KEYS, YOUR SHARE]
+    expect(values).toEqual(["5", "20", "25.0%"]);
+    // The picker value (10) must not appear in the participation strip.
+    expect(values).not.toContain("10");
+    // Share must not be the meaningless 5/10 = 50%.
+    expect(values).not.toContain("50.0%");
+  });
+
+  it("shows an em-dash share when no keys have been sold in the round", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          keyCount: 3,
+          userKeys: 0,
+          totalKeysDisplay: 0,
+          userSharePercent: 0,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const values = Array.from(
+      container.querySelectorAll(".participation-value"),
+    ).map((el) => el.textContent);
+
+    expect(values).toEqual(["0", "0", "—"]);
   });
 });

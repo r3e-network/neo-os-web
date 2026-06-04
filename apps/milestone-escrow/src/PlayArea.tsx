@@ -53,27 +53,73 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const formatAmountFunc = typeof formatAmountFn === "function" ? formatAmountFn : (a: unknown) => String(a);
   const formatAddressFunc = typeof formatAddressFn === "function" ? formatAddressFn : (a: string) => a;
 
-  // Local create form state
+  // Local create form state. The contract supports 1-12 milestones, so the
+  // form keeps an array of per-milestone amount strings (one input each).
+  const MIN_MILESTONES = 1;
+  const MAX_MILESTONES = 12;
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [beneficiary, setBeneficiary] = useState("");
   const [asset, setAsset] = useState<"GAS" | "NEO">("GAS");
-  const [amount, setAmount] = useState("");
+  const [milestoneAmounts, setMilestoneAmounts] = useState<string[]>([""]);
   const [description, setDescription] = useState("");
 
+  const resetForm = () => {
+    setBeneficiary("");
+    setAsset("GAS");
+    setMilestoneAmounts([""]);
+    setDescription("");
+  };
+
+  const setMilestoneAmount = (index: number, value: string) => {
+    setMilestoneAmounts((prev) => prev.map((amt, i) => (i === index ? value : amt)));
+  };
+
+  const addMilestone = () => {
+    setMilestoneAmounts((prev) =>
+      prev.length >= MAX_MILESTONES ? prev : [...prev, ""],
+    );
+  };
+
+  const removeMilestone = (index: number) => {
+    setMilestoneAmounts((prev) =>
+      prev.length <= MIN_MILESTONES ? prev : prev.filter((_, i) => i !== index),
+    );
+  };
+
+  // Running total in human units (display only). Parsing here is forgiving;
+  // the composable performs the authoritative base-unit conversion/validation.
+  const parseAmount = (raw: string): number => {
+    const n = Number(String(raw ?? "").trim());
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+  const totalAmount = milestoneAmounts.reduce((sum, amt) => sum + parseAmount(amt), 0);
+  const totalDisplay = asset === "NEO"
+    ? String(Math.trunc(totalAmount))
+    : totalAmount.toFixed(8).replace(/\.?0+$/, "") || "0";
+
+  // Lightweight client-side gating: require a beneficiary and at least one
+  // positive milestone amount before the (async, on-chain) submit is enabled.
+  // The composable still re-validates address/amount/minimums authoritatively.
+  const hasBeneficiary = beneficiary.trim().length > 0;
+  const allAmountsPositive =
+    milestoneAmounts.length > 0 && milestoneAmounts.every((amt) => parseAmount(amt) > 0);
+  const canSubmit = hasBeneficiary && allAmountsPositive && !isCreating;
+
   const handleCreate = async () => {
-    // The standalone MiniAppMilestoneEscrow contract supports both NEO and GAS,
-    // so the selected asset is wired through to the deposit transfer (token
-    // script hash) and createEscrow. The composable converts the entered amount
-    // to base units (GAS x 1e8, NEO integer) before invoking.
+    if (!canSubmit) return;
+    // The standalone MiniAppMilestoneEscrow contract supports both NEO and GAS
+    // and 1-12 milestones, so each per-milestone amount is wired through as a
+    // real array. The composable converts every amount to base units (GAS x 1e8,
+    // NEO integer), sums them, and enforces the sum-equals-total invariant.
     await dispatch("createEscrow", {
       name: description.trim() || beneficiary,
       beneficiary,
       asset,
       notes: description,
-      milestones: [{ amount }],
+      milestones: milestoneAmounts.map((amount) => ({ amount })),
     });
     setShowCreateForm(false);
-    setBeneficiary(""); setAsset("GAS"); setAmount(""); setDescription("");
+    resetForm();
   };
 
   return (
@@ -118,9 +164,49 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     ))}
                   </div>
                 </div>
-                <NeoInput value={amount} label={`${t("amount") || "Amount"} (${asset})`} placeholder={asset === "NEO" ? "1" : (t("amountPlaceholder") || "1.5")} onChange={setAmount} />
+                {/* Milestone repeater — 1-12 staged releases, each with its own
+                    amount. The sum is shown live and must equal the deposit. */}
+                <div className="milestone-fields" role="group" aria-label={t("milestones") || "Milestones"}>
+                  <span className="milestone-fields__label">{t("milestones") || "Milestones"}</span>
+                  {milestoneAmounts.map((amt, index) => (
+                    <div key={index} className="milestone-row">
+                      <div className="milestone-row__input">
+                        <NeoInput
+                          value={amt}
+                          label={t("milestoneLabel", { index: index + 1 }) || `Milestone ${index + 1}`}
+                          placeholder={asset === "NEO" ? "1" : (t("milestoneAmountPlaceholder") || "1.5")}
+                          onChange={(value: string) => setMilestoneAmount(index, value)}
+                        />
+                      </div>
+                      {milestoneAmounts.length > MIN_MILESTONES && (
+                        <button
+                          type="button"
+                          className="milestone-row__remove"
+                          aria-label={t("removeMilestone", { index: index + 1 }) || `Remove milestone ${index + 1}`}
+                          onClick={() => removeMilestone(index)}
+                        >
+                          {t("remove") || "Remove"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <div className="milestone-fields__footer">
+                    <button
+                      type="button"
+                      className="milestone-add"
+                      disabled={milestoneAmounts.length >= MAX_MILESTONES}
+                      onClick={addMilestone}
+                    >
+                      + {t("addMilestone") || "Add milestone"}
+                    </button>
+                    <span className="milestone-total">
+                      <span className="milestone-total__label">{t("totalAmount") || "Total"}</span>
+                      <span className="milestone-total__value">{totalDisplay} {asset}</span>
+                    </span>
+                  </div>
+                </div>
                 <NeoInput value={description} type="textarea" label={t("description") || "Description"} placeholder={t("descriptionPlaceholder") || "Milestone description..."} onChange={setDescription} />
-                <NeoButton variant="primary" loading={isCreating} onClick={handleCreate} aria-label={t("submit") || "Submit"}>
+                <NeoButton variant="primary" loading={isCreating} disabled={!canSubmit} onClick={handleCreate} aria-label={t("submit") || "Submit"}>
                   {t("submit") || "Submit"}
                 </NeoButton>
               </div>

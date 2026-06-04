@@ -34,6 +34,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [title, setTitle] = useState("");
   const [terms, setTerms] = useState("");
 
+  const TITLE_MAX = 100;
+  const TERMS_MAX = 2000;
   const stakeNumber = Number(stake);
   const daysNumber = Number(days);
   const partnerLooksInvalid = partner.trim().length > 0 && !isValidNeoAddress(partner);
@@ -41,6 +43,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     stake.trim().length > 0 && (!Number.isFinite(stakeNumber) || stakeNumber < 1);
   const daysLooksInvalid =
     days.trim().length > 0 && (!Number.isFinite(daysNumber) || daysNumber < 30);
+  // Length limits mirror the composable's createContract guards (title > 100,
+  // terms > 2000). Surface them inline/pre-submit instead of only after submit.
+  const titleTooLong = title.trim().length > TITLE_MAX;
+  const termsTooLong = terms.trim().length > TERMS_MAX;
   const canSubmit =
     isValidNeoAddress(partner) &&
     Number.isFinite(stakeNumber) &&
@@ -48,6 +54,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     Number.isFinite(daysNumber) &&
     daysNumber >= 30 &&
     title.trim().length > 0 &&
+    !titleTooLong &&
+    !termsTooLong &&
     !isLoading;
   const stakePresets = ["1", "5", "10"];
   const durationPresets = ["30", "90", "365"];
@@ -176,6 +184,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             placeholder={t("contractTitlePlaceholder") || "Our covenant"}
             value={title}
             required
+            error={titleTooLong ? t("titleTooLong") : ""}
+            hint={titleTooLong ? "" : t("titleCounter", { count: title.trim().length, max: TITLE_MAX })}
             onChange={setTitle}
           />
           <NeoInput
@@ -183,6 +193,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             placeholder={t("contractTermsPlaceholder") || "Optional notes (max 2000 chars)"}
             type="textarea"
             value={terms}
+            error={termsTooLong ? t("termsTooLong") : ""}
+            hint={termsTooLong ? "" : t("termsCounter", { count: terms.trim().length, max: TERMS_MAX })}
             onChange={setTerms}
           />
           {actionNotice && (

@@ -1,18 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NeoCard, NeoInput, NeoButton } from "@shared/components-react";
 
 interface RoundFormProps {
   onSubmit: (...args: unknown[]) => void;
   t: (key: string) => string;
   loading?: boolean;
+  /** Incremented by the parent after a successful create to clear the fields. */
+  resetKey?: number;
 }
 
-export default function RoundForm({ onSubmit, t, loading = false }: RoundFormProps) {
+export default function RoundForm({ onSubmit, t, loading = false, resetKey = 0 }: RoundFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [matchingPool, setMatchingPool] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+
+  // Clear the form only when the parent confirms a successful round creation
+  // (resetKey changes); the initial 0 value is skipped so fields aren't wiped
+  // on first render.
+  useEffect(() => {
+    if (resetKey === 0) return;
+    setTitle("");
+    setDescription("");
+    setMatchingPool("");
+    setStartTime("");
+    setEndTime("");
+  }, [resetKey]);
 
   return (
     <NeoCard title={t("createRound")} className="qf-form-panel">

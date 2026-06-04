@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable, ObservableState } from "@shared/react/context";
-import { formatGas, formatHash } from "@shared/utils/format";
+import { formatGas } from "@shared/utils/format";
 import {
   getLaunchParam,
   type MiniAppLaunchContext,
@@ -202,15 +202,16 @@ export default function PlayArea({
     });
   };
 
-  const effectivePoolId = poolId || currentPoolId;
+  const effectivePoolId = (poolId || currentPoolId).trim();
+  const hasPoolTarget = Boolean(effectivePoolId);
 
   const inspectPool = () => {
-    if (isLoading) return;
+    if (isLoading || !hasPoolTarget) return;
     void dispatch("loadPool", { poolId: effectivePoolId });
   };
 
   const submitTopUp = () => {
-    if (isFunding) return;
+    if (isFunding || !hasPoolTarget) return;
     void dispatch("topUpPool", {
       poolId: effectivePoolId,
       amount: topUpAmount,
@@ -218,7 +219,7 @@ export default function PlayArea({
   };
 
   const submitRefund = () => {
-    if (isRefunding) return;
+    if (isRefunding || !hasPoolTarget) return;
     void dispatch("refundPool", { poolId: effectivePoolId });
   };
 
@@ -537,6 +538,16 @@ export default function PlayArea({
             <div className="gas-pool-form">
               <h2>{t("poolControlsTitle")}</h2>
               <label className="gas-pool-form__field">
+                <span>{t("poolIdLabel")}</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={poolId}
+                  placeholder={t("poolIdPlaceholder")}
+                  onChange={(event) => setPoolId(event.target.value)}
+                />
+              </label>
+              <label className="gas-pool-form__field">
                 <span>{t("topUpAmount")}</span>
                 <input
                   type="number"
@@ -546,12 +557,15 @@ export default function PlayArea({
                   onChange={(event) => setTopUpAmount(event.target.value)}
                 />
               </label>
+              {!hasPoolTarget && (
+                <p className="gas-pool-form__hint">{t("poolControlsHint")}</p>
+              )}
               <div className="gas-pool-actions">
                 <button
                   type="button"
                   className="gas-pool-claim-only__button"
                   onClick={inspectPool}
-                  disabled={isLoading}
+                  disabled={isLoading || !hasPoolTarget}
                 >
                   {isLoading ? t("loadingPool") : t("inspectPool")}
                 </button>
@@ -559,7 +573,7 @@ export default function PlayArea({
                   type="button"
                   className="gas-pool-claim-only__button"
                   onClick={submitTopUp}
-                  disabled={isFunding}
+                  disabled={isFunding || !hasPoolTarget}
                 >
                   {isFunding ? t("addingGas") : t("topUpPool")}
                 </button>
@@ -567,7 +581,7 @@ export default function PlayArea({
                   type="button"
                   className="gas-pool-claim-only__button"
                   onClick={submitRefund}
-                  disabled={isRefunding}
+                  disabled={isRefunding || !hasPoolTarget}
                 >
                   {isRefunding ? t("recoveringGas") : t("refundPool")}
                 </button>

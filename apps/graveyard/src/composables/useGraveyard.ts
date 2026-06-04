@@ -93,7 +93,9 @@ export function useGraveyard({
   t,
 }: UseGraveyardOptions) {
   const totalDestroyed = createObservable(0);
-  const gasReclaimed = createObservable(0);
+  // Total burial fees PAID across all burials, in GAS (display semantics:
+  // "Burial Fees"). Named to match the domain — fees are spent, not reclaimed.
+  const burialFeesPaid = createObservable(0);
   const assetHash = createObservable("");
   const memoryType = createObservable(1);
   const history = createObservable<HistoryItem[]>([]);
@@ -112,8 +114,15 @@ export function useGraveyard({
     { value: 5, label: t("memoryTypeOther") },
   ], []);
 
-  const gasReclaimedDisplay = createDerived(() => `${gasReclaimed.get()} ${t("tokenGas")}`, []);
+  const gasReclaimedDisplay = createDerived(() => `${burialFeesPaid.get()} ${t("tokenGas")}`, []);
   const historyCount = createDerived(() => history.get().length, []);
+  // Single source of truth for the per-burial fee shown on the review panel,
+  // derived from the BURY_FEE_GAS constant so a future fee change can't leave a
+  // stale hardcoded value on the paid-action confirmation surface.
+  const burialFeeDisplay = createDerived(
+    () => `${BURY_FEE_GAS.toFixed(2)} ${t("tokenGas")}`,
+    [],
+  );
 
   const triggerMissingHash = () => {
     showWarningShake.set(true);
@@ -183,7 +192,7 @@ export function useGraveyard({
 
       const newTotal = totalDestroyed.get() + 1;
       totalDestroyed.set(newTotal);
-      gasReclaimed.set(Number((newTotal * BURY_FEE_GAS).toFixed(2)));
+      burialFeesPaid.set(Number((newTotal * BURY_FEE_GAS).toFixed(2)));
 
       // Persist the burial record and updated stats so counters and records
       // survive a refresh/reload (loadHistory/loadStats read these back).
@@ -225,9 +234,9 @@ export function useGraveyard({
         const fee = Number(data.buryFee ?? 0);
         totalDestroyed.set(Number.isFinite(total) ? total : 0);
         if (Number.isFinite(fee) && fee > 0) {
-          gasReclaimed.set(Number(((totalDestroyed.get() * fee) / 1e8).toFixed(2)));
+          burialFeesPaid.set(Number(((totalDestroyed.get() * fee) / 1e8).toFixed(2)));
         } else {
-          gasReclaimed.set(Number((totalDestroyed.get() * BURY_FEE_GAS).toFixed(2)));
+          burialFeesPaid.set(Number((totalDestroyed.get() * BURY_FEE_GAS).toFixed(2)));
         }
       }
     } catch (_e) {
@@ -313,9 +322,9 @@ export function useGraveyard({
     if (shakeTimer) { clearTimeout(shakeTimer); shakeTimer = null; }
   };
 	  return {
-	    totalDestroyed, gasReclaimed, assetHash, memoryType, history,
+	    totalDestroyed, burialFeesPaid, assetHash, memoryType, history,
 	    showConfirm, isDestroying, showWarningShake, forgettingId, isLoading,
-	    memoryTypeOptions, gasReclaimedDisplay, historyCount,
+	    memoryTypeOptions, gasReclaimedDisplay, burialFeeDisplay, historyCount,
 	    initiateDestroy, cancelDestroy, executeDestroy, loadStats, loadHistory, forgetMemory,
 	    loadAll, cleanupTimers,
 	  };

@@ -195,6 +195,12 @@ $soul-accent-soft: #e4f8f0;
   }
 }
 
+/* Layout-neutral wrapper used only as a scroll anchor for the deep-link issue
+   flow; `display: contents` keeps the Issue panel in the workspace flow. */
+.issue-panel-anchor {
+  display: contents;
+}
+
 /* ── Tab content stacks ─────────────────────────────── */
 .certificate-stack {
   display: flex;

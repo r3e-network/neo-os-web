@@ -225,6 +225,37 @@
   font-variant-numeric: tabular-nums;
 }
 
+.vault-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  &--active {
+    color: #0f9d6c;
+    background: rgba(22, 199, 132, 0.12);
+  }
+
+  &--claimable {
+    color: #0f9d6c;
+    background: rgba(22, 199, 132, 0.18);
+  }
+
+  &--broken {
+    color: var(--ns-text-muted, #8a92a6);
+    background: var(--ns-surface-subtle, #eef0f4);
+  }
+
+  &--expired {
+    color: #b4690e;
+    background: rgba(180, 105, 14, 0.12);
+  }
+}
+
 .vault-list-container {
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));

@@ -9,6 +9,7 @@ interface MercActionCardsProps {
   depositAmount: string;
   withdrawAmount: string;
   bidAmount: string;
+  userDeposits: number;
   onAmountChange: (key: AmountField, value: string) => void;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
@@ -24,9 +25,15 @@ export default function MercActionCards({
   depositAmount,
   withdrawAmount,
   bidAmount,
+  userDeposits,
   onAmountChange,
   dispatch,
 }: MercActionCardsProps) {
+  // Block over-withdrawals at the button so a user gets immediate feedback
+  // rather than silently zeroing their deposit. The hook re-validates too.
+  const withdrawParsed = Number(withdrawAmount);
+  const withdrawOverBalance =
+    isPositiveAmount(withdrawAmount) && withdrawParsed > userDeposits;
   return (
     <>
       <div className="gov-merc-action-card">
@@ -70,11 +77,14 @@ export default function MercActionCards({
         <NeoButton
           variant="secondary"
           loading={isBusy}
-          disabled={isBusy || !isPositiveAmount(withdrawAmount)}
+          disabled={isBusy || !isPositiveAmount(withdrawAmount) || withdrawOverBalance}
           onClick={() => dispatch("withdrawNeo")}
         >
           {t("withdrawNeo")}
         </NeoButton>
+        {withdrawOverBalance ? (
+          <p className="gov-merc-field-error">{t("withdrawExceeds")}</p>
+        ) : null}
       </div>
 
       <div className="gov-merc-action-card">

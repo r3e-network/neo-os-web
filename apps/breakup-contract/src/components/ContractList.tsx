@@ -62,7 +62,9 @@ export default function ContractList({
               </span>
               <span className="contract-meta-row">
                 <span className="contract-label">{t("daysLeft") || "Days Left"}</span>
-                <span className="contract-value">{contract.daysLeft}</span>
+                <span className="contract-value">
+                  {contract.daysLeft} {t("daysSuffix") || "Days"}
+                </span>
               </span>
             </div>
             {contract.terms && (

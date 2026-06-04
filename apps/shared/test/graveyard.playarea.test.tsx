@@ -19,6 +19,10 @@ function t(key: string) {
     burialChecklist: "Burial checklist",
     burialFee: "Burial fee",
     burialReview: "Burial review",
+    memoryTypeLocal: "Record tag (local)",
+    memoryTypeLocalHint:
+      "A local label for your own records only — it is not written on-chain. Only the content hash is anchored.",
+    selectedTypeLocal: "Record tag (local)",
     burialReviewSubtitle: "Confirm target, wallet action, and fee model before signing.",
     buryWalletIntent: "Bury memory",
     cancel: "Cancel",
@@ -87,6 +91,7 @@ const historyItem: HistoryItem = {
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const values = {
     assetHash: "",
+    burialFeeDisplay: "0.10 GAS",
     forgettingId: "",
     gasReclaimedDisplay: "0 GAS",
     history: [],
@@ -133,6 +138,48 @@ describe("Graveyard PlayArea", () => {
       (screen.getByRole("button", { name: "Review burial" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it("binds the burial fee from state and labels the type as a local record tag", () => {
+    const dispatch = vi.fn(async () => undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          assetHash: "0x1234567890abcdef1234567890abcdef12345678",
+          burialFeeDisplay: "0.10 GAS",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    // Fee is derived from the source-of-truth constant (state), not hardcoded.
+    expect(screen.getByText("0.10 GAS")).toBeTruthy();
+    // Memory type is presented as a local-only record tag, not an on-chain
+    // attribute (one label on the selector, one in the review panel).
+    expect(screen.getAllByText("Record tag (local)").length).toBeGreaterThanOrEqual(2);
+    expect(
+      screen.getByText(
+        "A local label for your own records only — it is not written on-chain. Only the content hash is anchored.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("uses the brand-green primary variant for the burial CTA, not the danger variant", () => {
+    const dispatch = vi.fn(async () => undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({ assetHash: "0x1234567890abcdef1234567890abcdef12345678" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const cta = screen.getByRole("button", { name: "Review burial" });
+    expect(cta.className).toContain("neo-btn--primary");
+    expect(cta.className).not.toContain("neo-btn--danger");
   });
 
   it("clears the hash and cancels any pending confirmation", async () => {

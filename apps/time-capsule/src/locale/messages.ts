@@ -83,8 +83,8 @@ const appMessages = {
     zh: "封存消息哈希并打捞公开胶囊",
   },
   docDescription: {
-    en: "Time Capsule seals a message hash on-chain with a future unlock date. Keep the full message locally, choose public or private visibility, and optionally fish unlocked public capsules for a small fee.",
-    zh: "时间胶囊会将消息哈希与未来解锁时间封存上链。请本地保存完整内容，选择公开或私密可见性，并可支付小额费用打捞已解锁的公开胶囊。",
+    en: "Time Capsule seals a message hash on-chain with a future unlock date. Keep the full message locally, choose public or private visibility, and optionally fish other users' public, unrevealed capsules for a small fee.",
+    zh: "时间胶囊会将消息哈希与未来解锁时间封存上链。请本地保存完整内容，选择公开或私密可见性，并可支付小额费用打捞其他用户公开且未揭示的胶囊。",
   },
   step1: {
     en: "Connect your Neo wallet and create a new time capsule",
@@ -109,8 +109,8 @@ const appMessages = {
   },
   feature2Name: { en: "Public Fishing", zh: "公开打捞" },
   feature2Desc: {
-    en: "Pay a small fee to discover unlocked public capsules.",
-    zh: "支付小额费用打捞已解锁的公开胶囊。",
+    en: "Pay a small fee to discover other users' public, unrevealed capsules.",
+    zh: "支付小额费用发现其他用户公开且未揭示的胶囊。",
   },
   feature3Name: { en: "Local Content Vault", zh: "本地内容库" },
   feature3Desc: {

@@ -292,6 +292,34 @@ const appMessages = {
     percentSuffix: { en: "%", zh: "%" },
     nep17Label: { en: "NEP-17", zh: "NEP-17" },
     nep11Label: { en: "NEP-11", zh: "NEP-11" },
+    // Weight-derived rarity tier (Studio) — rarity is NOT a creator choice; it is
+    // inferred from each item's weight share on read-back, so the form shows a
+    // live preview instead of a dead dropdown.
+    derivedTierLabel: { en: "Tier", zh: "稀有度" },
+    derivedTierHint: {
+        en: "Rarity tier is derived from this item's weight share, not chosen.",
+        zh: "稀有度由该奖品的权重占比推导得出，并非手动选择。",
+    },
+    derivedTierExplain: {
+        en: "Rarity tiers are derived from each item's weight share — rarer prizes are simply lower-weighted. Adjust weights to change tiers.",
+        zh: "稀有度由每个奖品的权重占比推导：权重越低越稀有。调整权重即可改变等级。",
+    },
+    // Creator earnings (Withdraw Revenue) — shown only to the machine's creator.
+    gasboxCreatorEarningsTitle: { en: "Creator earnings", zh: "创作者收益" },
+    gasboxRevenueAvailable: {
+        en: "Accrued play revenue is available to withdraw to your wallet.",
+        zh: "已累积的游玩收益可提取到你的钱包。",
+    },
+    gasboxRevenueNone: {
+        en: "No withdrawable revenue yet. Earnings accrue as players pull this machine.",
+        zh: "暂无可提取收益。玩家抽取该机器时收益会逐步累积。",
+    },
+    // Hero stat: revenue-based play-volume estimate (not an exact pull count).
+    estPlays: { en: "Est. Plays", zh: "预计游玩" },
+    estPlaysHint: {
+        en: "Estimated from accrued revenue ÷ price; under-reports after revenue withdrawals.",
+        zh: "根据累积收益 ÷ 价格估算；提取收益后会偏低。",
+    },
 } as const;
 
 export const messages = mergeMessages(appMessages);

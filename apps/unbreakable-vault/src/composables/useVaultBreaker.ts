@@ -147,6 +147,10 @@ function normalizeAttemptFeeFixed8(value: unknown): string {
 // Composable
 // ============================================================================
 
+function normalizeAddress(value: unknown): string {
+  return String(value ?? "").trim().toLowerCase();
+}
+
 export function useVaultBreaker({
   chainService,
   storageService,
@@ -159,6 +163,7 @@ export function useVaultBreaker({
   const vaultDetails = createObservable<VaultDetails | null>(null);
   const recentVaults = createObservable<RecentVault[]>([]);
   const isLoading = createObservable(false);
+  const isClaiming = createObservable(false);
 
   const toNumber = toSafeNumber;
 
@@ -172,6 +177,39 @@ export function useVaultBreaker({
         st === "active",
     );
   }, []);
+
+  /**
+   * The current wallet may claim a bounty when the loaded vault is broken and
+   * they are the recorded winner. Reactive on both the loaded vault and the
+   * connected wallet address.
+   */
+  const canClaim = createDerived(() => {
+    const vault = vaultDetails.get();
+    if (!vault) return false;
+    const wallet = normalizeAddress(chainService.address.get());
+    if (!wallet) return false;
+    return (
+      vault.status === "broken" &&
+      Boolean(vault.winner) &&
+      normalizeAddress(vault.winner) === wallet
+    );
+  }, [vaultDetails, chainService.address]);
+
+  /**
+   * The current wallet may reclaim escrowed GAS when the loaded vault has
+   * expired and they are its creator.
+   */
+  const canReclaim = createDerived(() => {
+    const vault = vaultDetails.get();
+    if (!vault) return false;
+    const wallet = normalizeAddress(chainService.address.get());
+    if (!wallet) return false;
+    return (
+      vault.status === "expired" &&
+      Boolean(vault.creator) &&
+      normalizeAddress(vault.creator) === wallet
+    );
+  }, [vaultDetails, chainService.address]);
 
   /**
    * Resolve the effective attempt fee (fixed8 raw) for a vault.
@@ -326,17 +364,76 @@ export function useVaultBreaker({
     return loadVault();
   };
 
+  /**
+   * Settle the second half of the bounty lifecycle: a winner claims the prize
+   * on a broken vault, or a creator reclaims the escrow on an expired vault.
+   *
+   * Both are no-payment contract calls (the escrow already holds the GAS), so
+   * they use the direct `invoke` flow rather than `invokeWithPayment`. The
+   * caller is gated by `canClaim` / `canReclaim`; this function re-validates so
+   * it is safe to call directly from a host action.
+   *
+   * Returns `{ success, mode }` so the registered host action can surface a
+   * status toast, or `undefined` when no settlement was attempted.
+   */
+  const settleVault = async (): Promise<
+    { success: boolean; mode: "claim" | "reclaim" } | undefined
+  > => {
+    if (isClaiming.get() || isLoading.get()) return undefined;
+    const claiming = canClaim.get();
+    const reclaiming = canReclaim.get();
+    if (!claiming && !reclaiming) return undefined;
+    const mode: "claim" | "reclaim" = claiming ? "claim" : "reclaim";
+
+    isClaiming.set(true);
+    try {
+      const wallet = await chainService.ensureWallet();
+      const operation = claiming ? "claimBounty" : "reclaimVault";
+      const result = await chainService.invoke(
+        operation,
+        [
+          { type: "Integer", value: vaultIdInput.get() },
+          { type: "Hash160", value: wallet },
+        ],
+        { waitForEvent: claiming ? "BountyClaimed" : "VaultReclaimed" },
+      );
+      const success = Boolean(result?.success);
+
+      if (success) {
+        eventBus.emit("vault:settled", {
+          mode,
+          action: claiming ? t("bountyClaimed") : t("vaultReclaimed"),
+        });
+      }
+
+      await loadVault();
+      await loadRecentVaults();
+      return { success, mode };
+    } catch (e) {
+      eventBus.emit("vault:error", {
+        message: e instanceof Error ? e.message : t("settleFailed"),
+      });
+      throw e;
+    } finally {
+      isClaiming.set(false);
+    }
+  };
+
   return {
     vaultIdInput,
     attemptSecret,
     vaultDetails,
     recentVaults,
     canAttempt,
+    canClaim,
+    canReclaim,
     attemptFeeDisplay,
     isLoading,
+    isClaiming,
     loadRecentVaults,
     loadVault,
     attemptBreak,
+    settleVault,
     selectVault,
   };
 }

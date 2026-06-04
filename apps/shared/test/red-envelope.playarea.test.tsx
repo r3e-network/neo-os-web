@@ -30,12 +30,17 @@ function t(key: string, params?: Record<string, string | number>) {
     contractRoute: "Contract route",
     createPanelTitle: "Send a lucky envelope",
     createPreviewTitle: "Envelope preview",
+    createReadyDesc: "Ready to send. Each recipient draws a random share of the pool.",
     creatorMode: "Creator mode",
     createdGasLabel: "Created GAS",
     enterPoolId: "Enter pool ID",
     envelopeId: "Envelope ID",
     expiryHours: "Expiry hours",
     hoursSuffix: "h",
+    invalidAmount: "Enter at least 0.1 GAS",
+    invalidExpiry: "Enter a valid expiry in hours",
+    invalidPackets: "Enter 1-100 packets",
+    invalidPerPacket: "Each packet must be at least 0.01 GAS",
     needsEnvelopeId: "Needs envelope ID",
     noActivity: "No recent claims",
     noActivityCopy: "Successful claims will appear here.",
@@ -165,7 +170,16 @@ describe("Red Envelope PlayArea", () => {
     expect((screen.getByLabelText("Packet count") as HTMLInputElement).value).toBe("100");
     expect((screen.getByRole("button", { name: "Send Red Envelope" }) as HTMLButtonElement).disabled).toBe(true);
 
+    // 0.1 GAS across 100 packets = 0.001 each (< 0.01 min), so the disabled
+    // button must explain itself with an inline per-packet validation message.
+    expect(screen.getByRole("alert").textContent).toBe("Each packet must be at least 0.01 GAS");
+
     fireEvent.change(screen.getByLabelText("Packet count"), { target: { value: "5" } });
+
+    // Once the form is valid the error clears and the send button enables.
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect((screen.getByRole("button", { name: "Send Red Envelope" }) as HTMLButtonElement).disabled).toBe(false);
+
     fireEvent.click(screen.getByRole("button", { name: "Send Red Envelope" }));
 
     await waitFor(() =>

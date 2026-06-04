@@ -5,6 +5,7 @@ import {
   isHash160,
   isNeoAddress,
   isOptionalHash160,
+  isOptionalTemplateId,
   isRecoveryExpiryMinutes,
   parseRecoveryExpiryMinutes,
   MAX_RECOVERY_EXPIRY_MINUTES,
@@ -38,6 +39,22 @@ describe("Recovery Guardian validation logic", () => {
     expect(isOptionalHash160("   ")).toBe(true);
     expect(isOptionalHash160(HASH160)).toBe(true);
     expect(isOptionalHash160("0xbad")).toBe(false);
+  });
+
+  it("treats the recovery template id as optional but URL-safe slug when present", () => {
+    expect(isOptionalTemplateId("")).toBe(true);
+    expect(isOptionalTemplateId("   ")).toBe(true);
+    expect(isOptionalTemplateId("recovery-default")).toBe(true);
+    expect(isOptionalTemplateId("tmpl_2024.v1")).toBe(true);
+    expect(
+      isOptionalTemplateId("550e8400-e29b-41d4-a716-446655440000"),
+    ).toBe(true);
+    // Reject anything that could break the generated credential link.
+    expect(isOptionalTemplateId("has space")).toBe(false);
+    expect(isOptionalTemplateId("bad/slash")).toBe(false);
+    expect(isOptionalTemplateId("query?inject=1")).toBe(false);
+    expect(isOptionalTemplateId("-leading-dash")).toBe(false);
+    expect(isOptionalTemplateId("a".repeat(65))).toBe(false);
   });
 
   it("parses recovery expiry minutes only within the inclusive 5..1440 window", () => {

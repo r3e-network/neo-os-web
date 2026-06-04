@@ -10,45 +10,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useNeoPayApp } from "./composables/useNeoPayApp";
-
-/**
- * Translate the PlayArea form (total amount + total duration in days) into the
- * contract's per-interval vesting model: a daily linear release of
- * total / duration per day. Returns the rate string and interval-days string
- * the composable expects, honouring each asset's divisibility:
- *
- *  - GAS is divisible to 8 dp, so a fractional per-day rate is always valid.
- *  - NEO is indivisible. If total / duration truncates to < 1 NEO/day, a daily
- *    rate of 0 would be rejected, so we collapse the schedule into a single
- *    interval that spans the whole duration and releases the full total at the
- *    end (rate = total, intervalDays = duration). When total >= duration, the
- *    per-day integer NEO rate is used.
- */
-function deriveSchedule(
-  amount: string,
-  durationDays: string,
-  asset: "NEO" | "GAS",
-): { rate: string; intervalDays: string } {
-  const total = Number.parseFloat(amount);
-  const days = Number.parseInt(durationDays, 10);
-  if (!Number.isFinite(total) || !Number.isFinite(days) || days <= 0) {
-    return { rate: amount, intervalDays: "1" };
-  }
-
-  if (asset === "NEO") {
-    const totalNeo = Math.trunc(total);
-    const perDay = Math.trunc(totalNeo / days);
-    if (perDay >= 1) {
-      return { rate: String(perDay), intervalDays: "1" };
-    }
-    // Sub-1-NEO/day: release everything in one interval at the horizon.
-    return { rate: String(totalNeo), intervalDays: String(days) };
-  }
-
-  // GAS: linear per-day release; the composable scales by 1e8.
-  const perDay = total / days;
-  return { rate: String(perDay), intervalDays: "1" };
-}
+import { deriveSchedule } from "./composables/deriveSchedule";
 
 defineMiniApp({
   appId: "miniapp-neo-pay",
@@ -136,8 +98,10 @@ defineMiniApp({
         createdStreams: pay.createdStreams,
         beneficiaryStreams: pay.beneficiaryStreams,
         isLoading: pay.isLoading,
-        // composable doesn't track isCreating separately — surface isLoading + isRefreshing
-        isCreating: pay.isLoading,
+        // isCreating is its own observable (set only during the create flow) so
+        // the submit button spins without the created/incoming lists flashing to
+        // their loading state; isLoading/isRefreshing drive the list spinners.
+        isCreating: pay.isCreating,
         isRefreshing: pay.isRefreshing,
         claimingId: pay.claimingId,
         cancellingId: pay.cancellingId,

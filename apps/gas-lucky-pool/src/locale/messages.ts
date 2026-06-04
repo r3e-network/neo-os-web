@@ -36,6 +36,12 @@ const appMessagesBase = {
   creatingPool: { en: "Creating pool", zh: "创建奖池中" },
   ownerWorkspaceTitle: { en: "Reward pool workspace", zh: "奖励池工作台" },
   poolControlsTitle: { en: "Pool controls", zh: "奖池管理" },
+  poolIdLabel: { en: "Pool ID", zh: "奖池 ID" },
+  poolIdPlaceholder: { en: "e.g. 42", zh: "例如 42" },
+  poolControlsHint: {
+    en: "Enter a pool ID to inspect, top up, or recover a pool you created.",
+    zh: "请输入奖池 ID，以查看、补充或取回你创建的奖池。",
+  },
   loadingPool: { en: "Loading pool", zh: "加载奖池中" },
   addingGas: { en: "Adding GAS", zh: "补充 GAS 中" },
   recoveringGas: { en: "Recovering GAS", zh: "回收 GAS 中" },
@@ -246,6 +252,10 @@ const jaMessages = {
   creatingPool: "プールを作成中",
   ownerWorkspaceTitle: "報酬プールのワークスペース",
   poolControlsTitle: "プール管理",
+  poolIdLabel: "プールID",
+  poolIdPlaceholder: "例: 42",
+  poolControlsHint:
+    "作成したプールを確認・追加・回収するには、プールIDを入力してください。",
   loadingPool: "プールを読み込み中",
   addingGas: "GASを追加中",
   recoveringGas: "GASを回収中",

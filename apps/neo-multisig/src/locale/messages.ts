@@ -90,6 +90,10 @@ const appMessages = {
     en: "Ready to deploy an on-chain custody vault.",
     zh: "已准备好在链上创建共管金库。",
   },
+  multisigInsufficientBalance: {
+    en: "Amount exceeds the vault balance ({balance} {asset} available).",
+    zh: "金额超出金库余额（可用 {balance} {asset}）。",
+  },
   multisigVaultIdLabel: { en: "Vault ID", zh: "金库 ID" },
   multisigVaultReceiptCopy: {
     en: "Share this vault ID so signers can deposit and approve spend requests.",

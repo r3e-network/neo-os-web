@@ -70,6 +70,22 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     return `${hours}${t("hoursShort")} ${minutes}${t("minutesShort")}`;
   }, []);
 
+  // -- Transfer affordance / inline validation --
+  // Donate & Send move GAS the user already holds, so they only make sense for a
+  // funded wallet. Surface this so the UI can frame them as "pay it forward" and
+  // disable them inline instead of letting the on-chain transfer fail.
+  const isFunded = createDerived(() => parseFloat(gasBalance.get()) > 0, []);
+  const donateAmountValid = createDerived(() => {
+    const amount = parseFloat(donateAmount.get());
+    return Number.isFinite(amount) && amount > 0 && amount <= parseFloat(gasBalance.get());
+  }, []);
+  const recipientValid = createDerived(() => isValidNeoAddress(recipientAddress.get()), []);
+  const sendAmountValid = createDerived(() => {
+    const amount = parseFloat(sendAmount.get());
+    return Number.isFinite(amount) && amount > 0 && amount <= parseFloat(gasBalance.get());
+  }, []);
+  const canSend = createDerived(() => recipientValid.get() && sendAmountValid.get(), []);
+
   // -- Display values for manifest --
   const tankLevelDisplay = createDerived(() => `${Math.round(fuelLevelPercent.get())}%`, []);
   const gasBalanceDisplay = createDerived(() => gasBalance.get(), []);
@@ -77,6 +93,19 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
   const eligibleDisplay = createDerived(() => isEligible.get() ? t("eligible") : t("notEligible"), []);
 
   // -- Helpers --
+
+  // Base58 alphabet used by Neo (Bitcoin variant — excludes 0, O, I, l).
+  const BASE58_ALPHABET = /^[1-9A-HJ-NP-Za-km-z]+$/;
+
+  /**
+   * Validate a Neo N3 address by format: a single 'N' prefix (version byte 0x35),
+   * exactly 34 base58 characters, all within the base58 alphabet. This rejects
+   * malformed-but-long strings that the previous length>=30 guard let through.
+   */
+  const isValidNeoAddress = (address: string): boolean => {
+    const trimmed = address.trim();
+    return trimmed.length === 34 && trimmed.startsWith("N") && BASE58_ALPHABET.test(trimmed);
+  };
 
   /**
    * Scale a display-unit GAS amount to Fixed8 base units.
@@ -145,6 +174,9 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     if (Number.isNaN(amount) || amount <= 0) {
       throw new Error(t("invalidAmount"));
     }
+    if (amount > parseFloat(gasBalance.get())) {
+      throw new Error(t("insufficientBalance"));
+    }
     isDonating.set(true);
     try {
       await chain.ensureWallet();
@@ -172,12 +204,15 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
 
   const handleSend = async () => {
     if (isSending.get()) return;
-    if (!recipientAddress.get() || recipientAddress.get().length < 30) {
+    if (!isValidNeoAddress(recipientAddress.get())) {
       throw new Error(t("invalidAddress"));
     }
     const amount = parseFloat(sendAmount.get());
     if (Number.isNaN(amount) || amount <= 0) {
       throw new Error(t("invalidAmount"));
+    }
+    if (amount > parseFloat(gasBalance.get())) {
+      throw new Error(t("insufficientBalance"));
     }
     isSending.set(true);
     try {
@@ -231,6 +266,11 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     quickAmounts,
     quotaPercent,
     resetTime,
+    isFunded,
+    donateAmountValid,
+    recipientValid,
+    sendAmountValid,
+    canSend,
 
     // -- Display --
     tankLevelDisplay,

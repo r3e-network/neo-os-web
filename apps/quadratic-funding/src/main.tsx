@@ -18,16 +18,18 @@ defineMiniApp({
   setup(ctx) {
     const qf = useQuadraticFundingPage(ctx.t as (key: string) => string);
 
+    // These three return a success boolean so the view can clear its inputs
+    // only on a confirmed on-chain success (dispatch forwards the payload).
     ctx.registerAction("createRound", async (...args: unknown[]) => {
-      await qf.handleCreateRound(...args);
+      return qf.handleCreateRound(...(args as Parameters<typeof qf.handleCreateRound>));
     });
 
     ctx.registerAction("registerProject", async (...args: unknown[]) => {
-      await qf.handleRegisterProject(...args);
+      return qf.handleRegisterProject(...(args as Parameters<typeof qf.handleRegisterProject>));
     });
 
     ctx.registerAction("contribute", async (...args: unknown[]) => {
-      await qf.handleContribute(...args);
+      return qf.handleContribute(...(args as Parameters<typeof qf.handleContribute>));
     });
 
     ctx.registerAction("addMatching", async (...args: unknown[]) => {

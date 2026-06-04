@@ -52,6 +52,15 @@ function eventValue(event: unknown, index: number): unknown {
 // Types
 // ============================================================================
 
+/** A tribute the connected wallet has paid, persisted per-visitor in storage. */
+export interface TributeRecord {
+  memorialId: number;
+  offeringType: number;
+  amountGas: string;
+  txid: string;
+  paidAt: number;
+}
+
 export interface UseMemorialShrineOptions {
   /** Chain service used to submit wallet-confirmed memorial writes. */
   chainService: ChainService;
@@ -81,6 +90,7 @@ export function useMemorialShrine({
 }: UseMemorialShrineOptions) {
   const memorials = createObservable<Memorial[]>([]);
   const visitedMemorials = createObservable<Memorial[]>([]);
+  const myTributes = createObservable<TributeRecord[]>([]);
   const recentObituaries = createObservable<{ id: number; name: string; text: string }[]>([]);
   const selectedMemorial = createObservable<Memorial | null>(null);
   const shareStatus = createObservable<string | null>(null);
@@ -89,9 +99,23 @@ export function useMemorialShrine({
   const lastTx = createObservable<TxResult | null>(null);
   let shareStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const memorialCount = createDerived(() => memorials.get().length, []);
-  const tributeCount = createDerived(() => visitedMemorials.get().length, []);
-  const obituaryCount = createDerived(() => recentObituaries.get().length, []);
+  const memorialCount = createDerived(() => memorials.get().length, [memorials]);
+  // "My Tributes" reflects tributes the connected wallet has actually paid,
+  // tracked separately from "Visited" (memorials the user has opened).
+  const tributeCount = createDerived(() => myTributes.get().length, [myTributes]);
+  const obituaryCount = createDerived(() => recentObituaries.get().length, [recentObituaries]);
+
+  /** Resolve the connected wallet address without prompting a connection. */
+  const connectedAddress = (): string | null => {
+    try {
+      return chainService.address.get();
+    } catch (_e) {
+      return null;
+    }
+  };
+
+  /** Storage key prefix for a visitor's tribute records. */
+  const tributePrefix = (visitor: string) => `tributes:${visitor}:`;
 
   // ------------------------------------------
   // Read: load memorials (via StorageProxy)
@@ -146,6 +170,47 @@ export function useMemorialShrine({
 
   const loadVisitedMemorials = async () => {
     visitedMemorials.set(memorials.get().slice(0, 2));
+  };
+
+  // ------------------------------------------
+  // Read: load the connected wallet's real tributes
+  // ------------------------------------------
+
+  /**
+   * Load tributes actually paid by the connected wallet from storage.
+   * Does not prompt a wallet connection: when no wallet is connected the
+   * "My Tributes" counter stays at 0 rather than mirroring another stat.
+   */
+  const loadMyTributes = async () => {
+    const visitor = connectedAddress();
+    if (!visitor) {
+      myTributes.set([]);
+      return;
+    }
+    try {
+      const tributeMap = await storageService.list(tributePrefix(visitor), 100);
+      if (tributeMap && typeof tributeMap === "object") {
+        const items: TributeRecord[] = [];
+        for (const value of Object.values(tributeMap)) {
+          const stored = value as Partial<TributeRecord> | null;
+          if (stored && Number.isFinite(Number(stored.memorialId))) {
+            items.push({
+              memorialId: Number(stored.memorialId),
+              offeringType: Number(stored.offeringType ?? 1),
+              amountGas: String(stored.amountGas ?? ""),
+              txid: String(stored.txid ?? ""),
+              paidAt: Number(stored.paidAt ?? 0),
+            });
+          }
+        }
+        items.sort((a, b) => b.paidAt - a.paidAt);
+        myTributes.set(items);
+      } else {
+        myTributes.set([]);
+      }
+    } catch (_e) {
+      myTributes.set([]);
+    }
   };
 
   // ------------------------------------------
@@ -300,18 +365,35 @@ export function useMemorialShrine({
       }
       lastTx.set(result);
 
+      const amountGas = fixed8ToGas(offeringCost);
       eventBus.emit("tribute:paid", {
         memorialId,
         offeringType: selectedOffering,
-        amountGas: fixed8ToGas(offeringCost),
+        amountGas,
         txid: result.txid,
       });
+
+      // Persist the tribute so "My Tributes" reflects real user activity.
+      const record: TributeRecord = {
+        memorialId,
+        offeringType: selectedOffering,
+        amountGas,
+        txid: String(result.txid ?? ""),
+        paidAt: Date.now(),
+      };
+      try {
+        await storageService.set(`${tributePrefix(visitor)}${memorialId}:${record.paidAt}`, record);
+      } catch (_e) {
+        /* storage write best-effort; counter still updates optimistically below */
+      }
+      myTributes.set([record, ...myTributes.get()]);
 
       // Hint badge for tribute payer (fire-and-forget)
       badgeService.award("tribute-payer", "").catch(() => {});
 
       // Reload and update selected memorial
       await loadMemorials();
+      await loadMyTributes();
       if (selectedMemorial.get()?.id === memorialId) {
         selectedMemorial.set(memorials.get().find((m) => m.id === memorialId) || null);
       }
@@ -328,6 +410,7 @@ export function useMemorialShrine({
     await loadMemorials();
     await checkUrlForMemorial();
     await loadVisitedMemorials();
+    await loadMyTributes();
   };
 
   const cleanupTimers = () => {
@@ -335,13 +418,13 @@ export function useMemorialShrine({
   };
   return {
     // State
-    memorials, visitedMemorials, recentObituaries, selectedMemorial, shareStatus,
+    memorials, visitedMemorials, myTributes, recentObituaries, selectedMemorial, shareStatus,
     isSubmitting, isPaying,
     lastTx,
     memorialCount, tributeCount, obituaryCount,
 
     // Navigation
-    loadMemorials, loadVisitedMemorials, openMemorial, closeMemorial,
+    loadMemorials, loadVisitedMemorials, loadMyTributes, openMemorial, closeMemorial,
     shareMemorial, checkUrlForMemorial,
 
     // Write actions

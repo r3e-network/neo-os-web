@@ -159,39 +159,52 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     }
   };
 
-  const searchDomain = () => {
-    const query = searchQuery.get().trim().toLowerCase();
-    if (!query || query.length < 1) { searchResult.set(null); return; }
-    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(async () => {
-      isSearching.set(true);
-      searchResult.set(null);
-      try {
-        const fullName = query.endsWith(".neo") ? query : query + ".neo";
-        const availableRaw = await chain.read("isAvailable", [{ type: "String", value: fullName }], readOpts);
-        const isAvailable = Boolean(availableRaw);
-        const baseName = fullName.replace(/\.neo$/, "");
-        const priceRaw = await chain.read("getPrice", [{ type: "Integer", value: baseName.length }], readOpts);
-        const price = Number(priceRaw || 0) / 1e8;
-        registrationCost.set(price);
+  const runSearch = async (query: string) => {
+    isSearching.set(true);
+    searchResult.set(null);
+    try {
+      const fullName = query.endsWith(".neo") ? query : query + ".neo";
+      const availableRaw = await chain.read("isAvailable", [{ type: "String", value: fullName }], readOpts);
+      const isAvailable = Boolean(availableRaw);
+      const baseName = fullName.replace(/\.neo$/, "");
+      const priceRaw = await chain.read("getPrice", [{ type: "Integer", value: baseName.length }], readOpts);
+      const price = Number(priceRaw || 0) / 1e8;
+      registrationCost.set(price);
 
-        if (isAvailable) {
-          searchResult.set({ name: fullName, available: true, price });
-        } else {
-          let owner = t("unknownOwner");
-          try {
-            const tokenId = domainToTokenId(baseName);
-            const ownerRaw = await chain.read("ownerOf", [{ type: "ByteArray", value: tokenId }], readOpts);
-            if (ownerRaw) owner = String(ownerRaw);
-          } catch { /* owner lookup can fail */ }
-          searchResult.set({ name: fullName, available: false, owner });
-        }
-      } catch (e) {
-        error.set(e instanceof Error ? e.message : t("availabilityFailed"));
-      } finally {
-        isSearching.set(false);
+      if (isAvailable) {
+        searchResult.set({ name: fullName, available: true, price });
+      } else {
+        let owner = t("unknownOwner");
+        try {
+          const tokenId = domainToTokenId(baseName);
+          const ownerRaw = await chain.read("ownerOf", [{ type: "ByteArray", value: tokenId }], readOpts);
+          if (ownerRaw) owner = String(ownerRaw);
+        } catch { /* owner lookup can fail */ }
+        searchResult.set({ name: fullName, available: false, owner });
       }
-    }, SEARCH_DEBOUNCE_MS);
+    } catch (e) {
+      error.set(e instanceof Error ? e.message : t("availabilityFailed"));
+    } finally {
+      isSearching.set(false);
+    }
+  };
+
+  /**
+   * Run an availability lookup for the current query.
+   *
+   * `immediate` (default) fires the read straight away — correct for a deliberate
+   * Search button press, which should not pay a debounce penalty. The debounced
+   * path remains available for any future type-ahead wiring.
+   */
+  const searchDomain = (immediate = true) => {
+    const query = searchQuery.get().trim().toLowerCase();
+    if (searchDebounceTimer) { clearTimeout(searchDebounceTimer); searchDebounceTimer = null; }
+    if (!query || query.length < 1) { searchResult.set(null); return; }
+    if (immediate) {
+      void runSearch(query);
+      return;
+    }
+    searchDebounceTimer = setTimeout(() => { void runSearch(query); }, SEARCH_DEBOUNCE_MS);
   };
 
   const registerDomain = async () => {

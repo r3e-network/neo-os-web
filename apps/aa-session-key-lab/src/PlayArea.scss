@@ -193,21 +193,70 @@
 .session-private-export {
   display: flex;
   min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   padding: 14px 16px;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-accent-soft, #e4f8f0);
 }
 
-.session-private-export span {
+.session-private-export__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.session-private-export__label {
   overflow: hidden;
   color: var(--ns-text-2, #5b6478);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.session-private-export__toggle {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--ns-radius-sm, 8px);
+  background: transparent;
+  color: var(--ns-accent-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.session-private-export__toggle:hover {
+  text-decoration: underline;
+}
+
+.session-private-export__toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+}
+
+.session-private-export__value {
+  display: block;
+  overflow-x: auto;
+  padding: 8px 10px;
+  border-radius: var(--ns-radius-sm, 8px);
+  background: var(--ns-surface, #fff);
+  color: var(--ns-ink, #1e1e2e);
+  font-family: var(--ns-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.session-private-export__error {
+  color: var(--ns-danger, #d64545);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 // Linear setup flow: step 1 (key + sponsorship) → step 2 (configure scope).

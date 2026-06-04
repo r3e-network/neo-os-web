@@ -80,6 +80,10 @@ function t(key: string, params?: Record<string, string | number>) {
     refundPool: "Recover remaining GAS",
     recoveringGas: "Recovering GAS",
     poolControlsTitle: "Pool controls",
+    poolIdLabel: "Pool ID",
+    poolIdPlaceholder: "e.g. 42",
+    poolControlsHint:
+      "Enter a pool ID to inspect, top up, or recover a pool you created.",
     poolStateEmpty: "Enter a pool id and inspect it to load live pool state.",
     poolNotSelected: "No pool selected",
     recentPoolsTitle: "Recent pools",
@@ -378,6 +382,89 @@ describe("OneGate Vault PlayArea launch flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Withdraw credit" }));
     expect(dispatch).toHaveBeenCalledWith("withdrawGasCredit");
+  });
+
+  it("lets a returning owner target any pool by typing a Pool ID", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          currentClaimKey: "",
+          currentPoolId: "",
+        })}
+        dispatch={dispatch}
+        launchContext={regularLaunch()}
+      />,
+    );
+
+    const poolIdInput = screen.getByLabelText("Pool ID");
+    fireEvent.change(poolIdInput, { target: { value: "108" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Inspect pool" }));
+    expect(dispatch).toHaveBeenCalledWith("loadPool", { poolId: "108" });
+
+    fireEvent.change(screen.getByLabelText("Top up amount"), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add GAS" }));
+    expect(dispatch).toHaveBeenCalledWith("topUpPool", {
+      poolId: "108",
+      amount: "3",
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Recover remaining GAS" }),
+    );
+    expect(dispatch).toHaveBeenCalledWith("refundPool", { poolId: "108" });
+  });
+
+  it("disables pool controls and shows a hint when no pool is selected", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          currentClaimKey: "",
+          currentPoolId: "",
+        })}
+        dispatch={dispatch}
+        launchContext={regularLaunch()}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Enter a pool ID to inspect, top up, or recover a pool you created.",
+      ),
+    ).toBeTruthy();
+
+    const inspect = screen.getByRole("button", { name: "Inspect pool" });
+    const addGas = screen.getByRole("button", { name: "Add GAS" });
+    const recover = screen.getByRole("button", {
+      name: "Recover remaining GAS",
+    });
+    expect(inspect).toHaveProperty("disabled", true);
+    expect(addGas).toHaveProperty("disabled", true);
+    expect(recover).toHaveProperty("disabled", true);
+
+    fireEvent.click(inspect);
+    fireEvent.click(addGas);
+    fireEvent.click(recover);
+    expect(dispatch).not.toHaveBeenCalledWith(
+      "loadPool",
+      expect.anything(),
+    );
+    expect(dispatch).not.toHaveBeenCalledWith(
+      "topUpPool",
+      expect.anything(),
+    );
+    expect(dispatch).not.toHaveBeenCalledWith(
+      "refundPool",
+      expect.anything(),
+    );
   });
 
   it("uses action-specific working copy in the creator workspace", () => {

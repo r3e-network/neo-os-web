@@ -72,9 +72,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             loading={isCreating}
             disabled={!canCreate}
             aria-label={t("createProof") || "Create Proof"}
-            onClick={() => {
-              dispatch("createProof", content);
-              setContent("");
+            onClick={async () => {
+              // Preserve the user's input until the proof is actually saved.
+              // Clearing synchronously before the async dispatch resolves would
+              // lose their text if hashing/persistence rejected.
+              try {
+                await dispatch("createProof", content);
+                setContent("");
+              } catch {
+                // Keep `content` intact so the user can retry without retyping.
+              }
             }}
           >
             {isCreating ? t("creating") || "Creating..." : t("createProof") || "Create Proof"}

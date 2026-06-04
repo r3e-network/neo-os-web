@@ -28,6 +28,48 @@ defineMiniApp({
 
     gasbox.setAddress(ctx.services.chain.address.get() ?? null);
 
+    // Per-user pull counter. Pulls settle per-tx on chain (no per-player counter
+    // on the contract), so this is a durable client-side tally keyed by wallet
+    // address via os.storage, incremented only after a confirmed Pulled event.
+    const userPulls = createObservable(0);
+
+    const userPullsStorageKey = (addr: string | null): string | null =>
+      addr ? `gasbox:userPulls:${addr}` : null;
+
+    const persistUserPulls = async (value: number): Promise<void> => {
+      const key = userPullsStorageKey(ctx.services.chain.address.get() ?? null);
+      if (!key) return;
+      try {
+        await ctx.os.storage.set(key, value);
+      } catch (e) {
+        // A failed persist must not break the pull flow; the in-memory tally
+        // still reflects the session. Surface for diagnostics only.
+        console.warn(
+          "[gasbox] persist userPulls failed:",
+          e instanceof Error ? e.message : String(e),
+        );
+      }
+    };
+
+    const loadUserPulls = async (): Promise<void> => {
+      const key = userPullsStorageKey(ctx.services.chain.address.get() ?? null);
+      if (!key) {
+        userPulls.set(0);
+        return;
+      }
+      try {
+        const stored = await ctx.os.storage.get(key);
+        const n = Number(stored);
+        userPulls.set(Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
+      } catch (e) {
+        console.warn(
+          "[gasbox] load userPulls failed:",
+          e instanceof Error ? e.message : String(e),
+        );
+        userPulls.set(0);
+      }
+    };
+
     const findMachineById = (id: string) =>
       gasbox.machines.get().find((m) => String(m.id) === id) ?? null;
 
@@ -59,10 +101,17 @@ defineMiniApp({
         return;
       }
       gasbox.selectMachine(machine);
-      await ctx.services.notify.guard(
+      // guard returns playMachine's boolean on a confirmed on-chain pull, or
+      // undefined when it swallows a thrown error. Only advance the per-user
+      // pull counter on a real, settled win.
+      const pulled = await ctx.services.notify.guard(
         () => gasbox.playMachine(),
         "pullSuccess",
       );
+      if (pulled === true) {
+        userPulls.set(userPulls.get() + 1);
+        void persistUserPulls(userPulls.get());
+      }
     });
 
     ctx.registerAction("publishMachine", async (...args: unknown[]) => {
@@ -111,9 +160,11 @@ defineMiniApp({
       gasbox.closeStudio();
     });
 
-    // Manifest stat counters. Pulls are settled per-tx on chain (no per-machine
-    // pull counter on the contract), so the live "total pulls" stat aggregates
-    // accumulated revenue / price across machines as a play-volume proxy.
+    // Estimated play volume. Pulls settle per-tx on chain (no per-machine pull
+    // counter on the contract), so this aggregates accumulated revenue / price
+    // across machines as a play-volume estimate. It under-reports after a
+    // creator withdraws revenue and rounds per-machine, so the view labels it as
+    // an estimate ("Est. Plays"), not an exact count.
     const totalPulls = createDerived(
       () =>
         gasbox.machines.get().reduce((sum, m) => {
@@ -123,7 +174,6 @@ defineMiniApp({
         }, 0),
       [gasbox.machines],
     );
-    const userPulls = createObservable(0);
 
     return {
       state: {
@@ -140,10 +190,13 @@ defineMiniApp({
         selectedMachineName: gasbox.selectedMachineName,
         showResult: gasbox.showResult,
         studioOpen: gasbox.studioOpen,
+        // Connected wallet address — the view shows the creator-only Withdraw
+        // Revenue control when this matches the selected machine's creatorHash.
+        walletAddress: gasbox.address,
       },
       loadData: async () => {
         gasbox.setAddress(ctx.services.chain.address.get() ?? null);
-        await gasbox.loadAll();
+        await Promise.all([gasbox.loadAll(), loadUserPulls()]);
         applyLaunchSelection();
       },
     };

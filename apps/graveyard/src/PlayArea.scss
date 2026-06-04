@@ -1,9 +1,10 @@
 @use "@shared/styles/tokens.scss" as *;
 
-// Violet accent identity for this app, mapped onto the Neo Soft system.
-$grave-accent: var(--ns-violet, #16c784);
-$grave-accent-strong: var(--ns-violet-strong, #0fb174);
-$grave-accent-soft: var(--ns-violet-soft, #e4f8f0);
+// Single Neo Soft green accent for this app. Bound directly to --ns-brand so the
+// app can never inherit a different hue (no legacy --ns-violet alias dependency).
+$grave-accent: var(--ns-brand, #16c784);
+$grave-accent-strong: var(--ns-brand-strong, #0fb174);
+$grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .graveyard-play-area {
   display: flex;
@@ -61,7 +62,7 @@ $grave-accent-soft: var(--ns-violet-soft, #e4f8f0);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ns-violet-strong, #0fb174);
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .grave-hero-title {
@@ -175,6 +176,13 @@ $grave-accent-soft: var(--ns-violet-soft, #e4f8f0);
   font-size: 12px;
   font-weight: 700;
   color: var(--ns-text-2, #5b6478);
+}
+
+.memory-type-hint {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .type-options {
@@ -404,11 +412,12 @@ $grave-accent-soft: var(--ns-violet-soft, #e4f8f0);
 }
 
 /* Soft-tinted disabled primary so the burial CTA keeps affordance
-   (waiting on a hash) instead of reading as a broken flat-grey control. */
-.destroy-form .neo-btn--danger:disabled {
-  background: var(--ns-danger-soft, #fde7e9);
+   (waiting on a hash) instead of reading as a broken flat-grey control.
+   Tinted with the brand green to match the single-accent primary CTA. */
+.destroy-form .neo-btn--primary:disabled {
+  background: var(--ns-brand-soft, #e4f8f0);
   border-color: transparent;
-  color: var(--ns-danger, #ea3943);
+  color: var(--ns-brand-strong, #0fb174);
   opacity: 0.85;
 }
 
@@ -418,13 +427,13 @@ $grave-accent-soft: var(--ns-violet-soft, #e4f8f0);
 
 @keyframes grave-cta-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(234, 57, 67, 0);
+    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
   }
   40% {
-    box-shadow: 0 0 0 4px rgba(234, 57, 67, 0.18);
+    box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.22);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(234, 57, 67, 0);
+    box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
   }
 }
 

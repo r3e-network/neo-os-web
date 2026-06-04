@@ -339,6 +339,14 @@ defineMiniApp({
           ctx.setStatus(ctx.t("toastRequestNotFound", { id: reqId }), "error");
           return null;
         }
+        // Load the parent vault too so the approval display can show the real
+        // threshold (activeVault.threshold) instead of "?". This is the natural
+        // co-signer entry point — they receive a request ID and load it cold,
+        // with no vault in state — so the vault read is what makes the
+        // "N / threshold" progress meaningful.
+        if (request.vaultId > 0) {
+          await refreshVault(request.vaultId);
+        }
         ctx.setStatus(ctx.t("toastRequestLoaded", { id: reqId }), "success");
         return request;
       } catch (err) {
