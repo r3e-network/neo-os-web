@@ -126,6 +126,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
           </label>
           <p className="capsule-storage-note">{t("contentStorageNote")}</p>
+          <p className="capsule-storage-note">{t("depositNote")}</p>
           <NeoButton
             variant="primary"
             size="lg"

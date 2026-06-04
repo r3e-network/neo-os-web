@@ -5,7 +5,7 @@
   "category_name_zh": "社交",
   "contracts": {
     "neo-n3-mainnet": "0xd853a4ac293ff96e7f70f774c2155d846f91a989",
-    "neo-n3-testnet": "0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489"
+    "neo-n3-testnet": "0x5cc0269c37023e09e996b0fdd3edd3f48cb213cf"
   },
   "contract_domains": {
     "neo-n3-mainnet": "timecapsule.miniapp.neo"

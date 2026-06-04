@@ -18,10 +18,6 @@ defineMiniApp({
   setup(ctx) {
     const capsule = useTimeCapsule({
       chainService: ctx.services.chain,
-      escrowService: ctx.os.escrow,
-      storageService: ctx.os.storage,
-      paymentService: ctx.os.payment,
-      badgeService: ctx.os.badge,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
