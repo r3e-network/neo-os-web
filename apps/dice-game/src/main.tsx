@@ -92,9 +92,11 @@ defineMiniApp({
       let stakeSent = false;
       try {
         const player = await ctx.services.chain.ensureWallet();
-        // Wallet is connected; the next call broadcasts the stake transfer before
-        // invoking placeDiceBet, so from here a failure may leave the stake locked.
-        stakeSent = true;
+        // stakeSent is flipped only by onPaymentSent below — i.e. the exact moment
+        // the stake transfer is broadcast (after ensureWallet/ensureContractAddress
+        // succeed). A pre-transfer failure therefore stays a plain failure; only a
+        // failure after the stake has actually left the wallet surfaces the
+        // recoverable-funds notice.
         const result = await ctx.services.chain.invokeWithPayment(
           amountFixed8,
           `${appId}:stake`,
@@ -105,7 +107,13 @@ defineMiniApp({
             { type: "Integer", value: nextFace },
             { type: "Integer", value: amountFixed8 },
           ],
-          { waitForEvent: "DiceBetPlaced", waitTimeoutMs: 30_000 },
+          {
+            waitForEvent: "DiceBetPlaced",
+            waitTimeoutMs: 30_000,
+            onPaymentSent: () => {
+              stakeSent = true;
+            },
+          },
         );
         lastTxid.set(result.txid ?? "");
         lastStatus.set(ctx.t("statusSubmitted"));

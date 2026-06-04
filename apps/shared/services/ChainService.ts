@@ -58,6 +58,14 @@ export interface InvokeOptions {
   waitForEvent?: string;
   /** Timeout for event waiting. Default: 30 000ms. */
   waitTimeoutMs?: number;
+  /**
+   * Optional callback fired the moment the prepaid GAS transfer is broadcast,
+   * before the settle wait and the target contract call. Receives the transfer
+   * txid ("" if unavailable). Only used by {@link invokeWithPayment}; lets
+   * callers tell a pre-transfer failure (nothing moved) apart from a
+   * post-broadcast failure (funds in flight). Additive — safe to omit.
+   */
+  onPaymentSent?: (txid: string) => void;
 }
 
 export interface TxResult {
@@ -306,6 +314,7 @@ export class ChainService {
       options?.scriptHash,
       undefined,
       options?.signers,
+      options?.onPaymentSent,
     );
 
     this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation });
