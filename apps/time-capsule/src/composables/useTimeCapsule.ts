@@ -33,12 +33,14 @@
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
+import type { ChainService } from "@shared/services";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { sha256Hex } from "@shared/utils/hash";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import { normalizeUnlockTimeMs } from "../utils/unlockTime";
 // ============================================================================
 // Constants
@@ -85,6 +87,12 @@ export interface Capsule {
   fished: boolean;
   /** Capsule category (1-5, see CATEGORY_OPTIONS), surfaced as a badge. */
   category: number;
+  /**
+   * Wallet address that created this capsule. Persisted at seal time so the
+   * list and hero counts can be scoped to the current user. Legacy records
+   * predating owner tagging carry "".
+   */
+  owner: string;
 }
 
 export interface CapsuleFormData {
@@ -96,6 +104,13 @@ export interface CapsuleFormData {
 }
 
 export interface UseTimeCapsuleOptions {
+  /**
+   * ChainService from ctx.services.chain. Used to read the connected wallet
+   * address so each capsule record is tagged with its owner and the list /
+   * hero counts can be scoped to the current user rather than every user in
+   * the shared app namespace.
+   */
+  chainService: ChainService;
   /** OS EscrowProxy instance from ctx.os.escrow */
   escrowService: EscrowProxy;
   /** OS StorageProxy instance from ctx.os.storage */
@@ -161,6 +176,7 @@ function extractEscrowId(result: unknown): string {
 // ============================================================================
 
 export function useTimeCapsule({
+  chainService,
   escrowService,
   storageService,
   paymentService,
@@ -273,6 +289,7 @@ export function useTimeCapsule({
     const escrowId = String(data.escrowId || data.id || "");
     const amount = String(data.amount || CAPSULE_CREATE_AMOUNT);
     const fished = Boolean(data.fished);
+    const owner = String(data.owner || "");
     // Read category back so the persisted selection is surfaced in the UI
     // (it was previously write-only). Use ?? so a real 0 is not masked, and
     // fall back to the default category (1 = Personal) for legacy records.
@@ -295,23 +312,39 @@ export function useTimeCapsule({
       amount,
       fished,
       category,
+      owner,
     } as Capsule;
   };
 
   // ── Data Loading (via OS services) ─────────────────────────────────
 
   /**
-   * Load all capsules via StorageProxy.list().
-   * The edge function handles the contract reads and event parsing.
+   * Load this user's capsules via StorageProxy.list().
+   *
+   * os-storage-list is scoped only by appId (no per-owner filter), so the raw
+   * list contains every user's records in the shared app namespace. We tag each
+   * record with its creating wallet (see createCapsule) and filter here so the
+   * list and the hero/sidebar counts reflect the current user rather than the
+   * whole app. Legacy records that predate owner tagging carry owner === "" and
+   * are kept so a user's earlier capsules are not hidden by this change.
    */
   const loadCapsules = async (): Promise<Capsule[]> => {
     try {
+      const wallet = chainService.address.get();
       const capsuleMap = await storageService.list("capsules:", 50);
       const items: Capsule[] = [];
       if (capsuleMap && typeof capsuleMap === "object") {
         for (const [, value] of Object.entries(capsuleMap)) {
           const stored = value as StoredCapsule;
-          if (stored && stored.id) {
+          if (!stored || !stored.id) continue;
+          const recordOwner = String(stored.owner || "");
+          // Keep records that belong to the current wallet, plus legacy
+          // untagged records (owner === ""). When no wallet is connected we
+          // can only safely show untagged records.
+          const mine = wallet
+            ? recordOwner === "" || ownerMatchesAddress(recordOwner, wallet)
+            : recordOwner === "";
+          if (mine) {
             items.push(buildCapsuleFromStored(stored));
           }
         }
@@ -354,6 +387,15 @@ export function useTimeCapsule({
       const category = newCapsule.get().category;
       const contentHash = await sha256Hex(content);
 
+      // Tag the record with the creating wallet so loadCapsules() can scope the
+      // list and counts to this user. Ensure a wallet is connected first — the
+      // escrow that follows needs a signer anyway, so this fails fast with a
+      // friendly message instead of an opaque downstream error.
+      const owner = await chainService.ensureWallet();
+      if (!owner) {
+        throw new Error(t("walletRequired"));
+      }
+
       // Create capsule via EscrowProxy — the edge function builds the
       // CreateEscrow intent (GAS fee transfer + on-chain record). Capture
       // the returned escrow id so it can be referenced for open/fish later.
@@ -388,7 +430,7 @@ export function useTimeCapsule({
         unlockTime,
         isPublic,
         isRevealed: false,
-        owner: "",
+        owner,
         escrowId: escrowId || capsuleId,
         amount: CAPSULE_CREATE_AMOUNT,
         category,
@@ -472,7 +514,7 @@ export function useTimeCapsule({
           unlockTime: cap.unlockTime,
           isPublic: cap.isPublic,
           isRevealed: true,
-          owner: "",
+          owner: cap.owner,
           escrowId,
           amount: cap.amount,
           fished: cap.fished,
@@ -548,7 +590,7 @@ export function useTimeCapsule({
         unlockTime: candidate.unlockTime,
         isPublic: candidate.isPublic,
         isRevealed: candidate.revealed,
-        owner: "",
+        owner: candidate.owner,
         escrowId: candidate.escrowId || candidate.id,
         amount: candidate.amount,
         fished: true,

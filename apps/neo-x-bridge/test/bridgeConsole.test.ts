@@ -31,7 +31,7 @@ describe("neo-x bridge console intent builders", () => {
     const intent = buildMessageBridgeIntent(
       {
         direction: "neox-to-n3",
-        targetContract: "0x2222222222222222222222222222222222222222",
+        targetContract: "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke",
         method: "onCrossChainMessage",
         payload: "{\"event\":\"settled\"}",
         gasLimit: 300000,
@@ -51,11 +51,11 @@ describe("neo-x bridge console intent builders", () => {
       direction: "Neo X -> Neo N3",
       asset: "GAS",
       amount: "1",
-      recipient: "0x1111111111111111111111111111111111111111",
+      recipient: "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke",
     });
     const messageIntent = buildMessageBridgeIntent({
       direction: "Neo X → Neo N3",
-      targetContract: "0x2222222222222222222222222222222222222222",
+      targetContract: "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke",
       message: "legacy payload",
     } as Parameters<typeof buildMessageBridgeIntent>[0] & { message: string });
 
@@ -90,6 +90,37 @@ describe("neo-x bridge console intent builders", () => {
 
     expect(timeline[1]?.state).toBe("done");
     expect(timeline[2]?.state).toBe("active");
+  });
+
+  it("rejects a wrong-chain recipient for the selected direction", () => {
+    // n3-to-neox settles on Neo X, so a Neo N3 (N...) recipient is wrong-chain.
+    expect(() =>
+      buildAssetBridgeIntent({
+        direction: "n3-to-neox",
+        asset: "GAS",
+        amount: "1",
+        recipient: "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke",
+      }),
+    ).toThrow(/Neo X/);
+    // neox-to-n3 settles on Neo N3, so an EVM (0x...) recipient is wrong-chain.
+    expect(() =>
+      buildAssetBridgeIntent({
+        direction: "neox-to-n3",
+        asset: "GAS",
+        amount: "1",
+        recipient: "0x1111111111111111111111111111111111111111",
+      }),
+    ).toThrow(/Neo N3/);
+  });
+
+  it("rejects a wrong-chain message target contract", () => {
+    expect(() =>
+      buildMessageBridgeIntent({
+        direction: "n3-to-neox",
+        targetContract: "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke",
+        payload: "{\"event\":\"settled\"}",
+      }),
+    ).toThrow(/Neo X/);
   });
 
   it("keeps digests deterministic for the same payload", () => {

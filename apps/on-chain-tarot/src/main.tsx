@@ -19,6 +19,7 @@ defineMiniApp({
       paymentService: ctx.os.payment,
       storageService: ctx.os.storage,
       badgeService: ctx.os.badge,
+      clipboard: ctx.services.clipboard,
       t: ctx.t,
     });
 
@@ -36,6 +37,10 @@ defineMiniApp({
 
     ctx.registerAction("setQuestion", async (value: unknown) => {
       tarot.question.set(String(value ?? "").slice(0, 200));
+    });
+
+    ctx.registerAction("copyReading", async () => {
+      await tarot.copyReading();
     });
 
     return {

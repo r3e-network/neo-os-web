@@ -103,6 +103,15 @@ export function ConsoleToolPanel({
     initialValues(config.fields, launchContext?.params),
   );
   const [result, setResult] = useState<ConsoleResult | null>(null);
+  // Capture the app-provided initial status/digest once, so Reset restores the
+  // exact placeholders each app seeded (e.g. "—" vs "N/A") instead of a single
+  // hardcoded key. Computed once at mount before any preview mutates the state.
+  const [initialDigest] = useState(() =>
+    readObservable(state, "lastDigest", t("notAvailable")),
+  );
+  const [initialStatus] = useState(() =>
+    readObservable(state, "lastStatus", t("statusReady")),
+  );
   const payloadText = useMemo(
     () => (result ? JSON.stringify(result.payload, null, 2) : ""),
     [result],
@@ -140,8 +149,13 @@ export function ConsoleToolPanel({
   function reset() {
     setValues(initialValues(config.fields));
     setResult(null);
-    setObservable(state, "lastStatus", t("statusReady"));
-    setObservable(state, "lastDigest", t("notAvailable"));
+    // Restore the same initial values the app seeded so Reset returns the surface
+    // to a genuinely fresh state: status/digest placeholders match first load and
+    // the request tally is cleared (it tracks this session's previews, not a
+    // lifetime metric).
+    setObservable(state, "lastStatus", initialStatus);
+    setObservable(state, "lastDigest", initialDigest);
+    setObservable(state, "requestCount", 0);
   }
 
   async function copyPayload() {

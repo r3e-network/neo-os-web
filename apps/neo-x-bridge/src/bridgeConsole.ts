@@ -94,6 +94,31 @@ export function isSupportedBridgeAddress(value: unknown): boolean {
   return EVM_ADDRESS_PATTERN.test(text) || NEO_N3_ADDRESS_PATTERN.test(text);
 }
 
+/** True when `value` is an EVM (Neo X) `0x...` address. */
+export function isNeoXAddress(value: unknown): boolean {
+  return EVM_ADDRESS_PATTERN.test(String(value ?? "").trim());
+}
+
+/** True when `value` is a Neo N3 base58 `N...` address. */
+export function isNeoN3Address(value: unknown): boolean {
+  return NEO_N3_ADDRESS_PATTERN.test(String(value ?? "").trim());
+}
+
+/**
+ * Validates that `value` is a well-formed address for the *target* chain of the
+ * given direction: Neo X (`0x...`) for `n3-to-neox`, Neo N3 (`N...`) for
+ * `neox-to-n3`. Guards against wrong-chain addresses being embedded verbatim
+ * into a finalized-looking bridge handoff.
+ */
+export function isValidTargetAddress(
+  direction: BridgeDirection,
+  value: unknown,
+): boolean {
+  return DIRECTION_META[direction].target === "neo-x"
+    ? isNeoXAddress(value)
+    : isNeoN3Address(value);
+}
+
 export function normalizeDirection(value: unknown): BridgeDirection {
   const text = clean(value, "").toLowerCase();
   return text === "neox-to-n3" ||
@@ -146,8 +171,12 @@ export function buildAssetBridgeIntent(
   if (!recipient) {
     throw new Error("Recipient address is required.");
   }
-  if (!isSupportedBridgeAddress(recipient)) {
-    throw new Error("Recipient must be a Neo X (0x...) or Neo N3 (N...) address.");
+  if (!isValidTargetAddress(direction, recipient)) {
+    throw new Error(
+      meta.target === "neo-x"
+        ? "Recipient must be a Neo X (0x...) address for this direction."
+        : "Recipient must be a Neo N3 (N...) address for this direction.",
+    );
   }
 
   const digest = stableDigest(["asset", direction, asset, amount, recipient]);
@@ -203,8 +232,12 @@ export function buildMessageBridgeIntent(
   if (!targetContract) {
     throw new Error("Target contract is required.");
   }
-  if (!isSupportedBridgeAddress(targetContract)) {
-    throw new Error("Target contract must be a Neo X (0x...) or Neo N3 (N...) address.");
+  if (!isValidTargetAddress(direction, targetContract)) {
+    throw new Error(
+      meta.target === "neo-x"
+        ? "Target contract must be a Neo X (0x...) address for this direction."
+        : "Target contract must be a Neo N3 (N...) address for this direction.",
+    );
   }
   if (!payloadBody) {
     throw new Error("Message payload is required.");

@@ -63,12 +63,17 @@ function nowSeconds() {
   return Math.floor(Date.now() / 1000);
 }
 
+let idCounter = 0;
+
 function makeId(prefix: string) {
   // A timestamp alone collides when two ids are minted within the same
-  // millisecond (overwriting the first event/ticket record), so append a
-  // random suffix to keep ids collision-safe under rapid creation.
+  // millisecond (overwriting the first event/ticket record). Combine a
+  // monotonic counter (guaranteed-unique within the session) with a random
+  // suffix so ids stay collision-safe even under rapid creation.
+  idCounter += 1;
+  const counter = idCounter.toString(36);
   const suffix = Math.random().toString(36).slice(2, 8);
-  return `${prefix}-${Date.now().toString(36)}-${suffix}`;
+  return `${prefix}-${Date.now().toString(36)}-${counter}-${suffix}`;
 }
 
 function eventStorageKey(id: string) {

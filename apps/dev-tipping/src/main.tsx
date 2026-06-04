@@ -48,14 +48,13 @@ defineMiniApp({
       const message = args[2] as string;
       const tipperName = args[3] as string;
       const anonymous = args[4] as boolean;
-      await notify.guard(
+      // Surface the guard result so PlayArea can distinguish success (truthy)
+      // from failure (undefined) and reset the form only on success.
+      const result = await notify.guard(
         () => wallet.sendTip(devId, amount, message, tipperName, anonymous, () => void refresh()),
         "tipSent",
       );
-    });
-
-    ctx.registerAction("selectDev", async (...args: unknown[]) => {
-      notify.success("selected");
+      return result === true;
     });
 
     return {
