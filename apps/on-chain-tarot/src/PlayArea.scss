@@ -7,8 +7,8 @@
   --tarot-soft: #f7f8fa;
   --tarot-panel: #ffffff;
   --tarot-border: rgba(20, 22, 38, 0.06);
-  --tarot-violet: #6a4df4;
-  --tarot-violet-soft: #eeeaff;
+  --tarot-violet: #0fb174;
+  --tarot-violet-soft: #e4f8f0;
   --tarot-green: #0fb174;
   --tarot-green-soft: #e4f8f0;
   --tarot-night: #1e1e2e;
@@ -46,11 +46,11 @@
   align-items: center;
   min-width: 0;
   padding: 28px;
-  border: 1px solid rgba(106, 77, 244, 0.14);
+  border: 1px solid rgba(15, 177, 116, 0.14);
   border-radius: var(--ns-radius-lg, 20px);
   overflow: hidden;
   background:
-    radial-gradient(120% 120% at 100% 0%, rgba(106, 77, 244, 0.12), transparent 60%),
+    radial-gradient(120% 120% at 100% 0%, rgba(15, 177, 116, 0.12), transparent 60%),
     linear-gradient(160deg, var(--tarot-violet-soft) 0%, #ffffff 100%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   letter-spacing: 0;
@@ -81,7 +81,7 @@
   border-radius: 50%;
   color: var(--tarot-violet);
   background: #ffffff;
-  box-shadow: 0 6px 16px rgba(106, 77, 244, 0.18);
+  box-shadow: 0 6px 16px rgba(15, 177, 116, 0.18);
 
   svg {
     width: 24px;
@@ -137,7 +137,7 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    border: 1px solid rgba(106, 77, 244, 0.16);
+    border: 1px solid rgba(15, 177, 116, 0.16);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.7);
     color: var(--tarot-muted);
@@ -166,7 +166,7 @@
     flex-direction: column;
     gap: 6px;
     padding: 18px 16px;
-    border: 1px solid rgba(106, 77, 244, 0.12);
+    border: 1px solid rgba(15, 177, 116, 0.12);
     border-radius: var(--ns-radius-md, 16px);
     background: rgba(255, 255, 255, 0.78);
     letter-spacing: 0;
@@ -270,8 +270,8 @@
     }
 
     &:focus {
-      border-color: rgba(123, 97, 255, 0.55);
-      box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.14);
+      border-color: rgba(22, 199, 132, 0.55);
+      box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.14);
     }
   }
 }
@@ -284,11 +284,11 @@
   // Single accent hue: scope the primary CTA to violet so it matches the hero
   .neo-btn--primary {
     background: var(--tarot-violet);
-    box-shadow: 0 2px 10px rgba(106, 77, 244, 0.28);
+    box-shadow: 0 2px 10px rgba(15, 177, 116, 0.28);
 
     &:hover:not(:disabled) {
       background: #5a3fe0;
-      box-shadow: 0 6px 18px rgba(106, 77, 244, 0.34);
+      box-shadow: 0 6px 18px rgba(15, 177, 116, 0.34);
     }
   }
 }

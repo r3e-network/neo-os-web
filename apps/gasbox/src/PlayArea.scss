@@ -442,7 +442,7 @@
 }
 
 .gasbox-rarity-title:focus-visible {
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   border-radius: var(--ns-radius-xs, 8px);
 }
 
@@ -477,13 +477,13 @@
 .gasbox-rarity--common { color: var(--ns-text-2, #5b6478); }
 .gasbox-rarity--uncommon { color: var(--ns-brand-strong, #0fb174); }
 .gasbox-rarity--rare { color: var(--ns-info, #3e8cff); }
-.gasbox-rarity--epic { color: var(--ns-violet, #7b61ff); }
+.gasbox-rarity--epic { color: var(--ns-violet, #16c784); }
 .gasbox-rarity--legendary { color: var(--ns-warning, #f5a623); }
 
 .gasbox-rarity-bar-fill.gasbox-rarity--common { background: var(--ns-text-faint, #aeb4c2); }
 .gasbox-rarity-bar-fill.gasbox-rarity--uncommon { background: var(--ns-brand, #16c784); }
 .gasbox-rarity-bar-fill.gasbox-rarity--rare { background: var(--ns-info, #3e8cff); }
-.gasbox-rarity-bar-fill.gasbox-rarity--epic { background: var(--ns-violet, #7b61ff); }
+.gasbox-rarity-bar-fill.gasbox-rarity--epic { background: var(--ns-violet, #16c784); }
 .gasbox-rarity-bar-fill.gasbox-rarity--legendary { background: var(--ns-warning, #f5a623); }
 
 .gasbox-lever-container {

@@ -6,10 +6,10 @@
   color: var(--ns-ink, #1e1e2e);
 
   // App accent: AA-family violet — single hue across surfaces, focus, and inputs
-  --ns-accent-soft: var(--ns-violet-soft, #eeeaff);
-  --ns-accent-strong: var(--ns-violet-strong, #6a4df4);
-  --ns-violet: #7b61ff;
-  --ns-focus-ring: 0 0 0 4px rgba(123, 97, 255, 0.18);
+  --ns-accent-soft: var(--ns-violet-soft, #e4f8f0);
+  --ns-accent-strong: var(--ns-violet-strong, #0fb174);
+  --ns-violet: #16c784;
+  --ns-focus-ring: 0 0 0 4px rgba(22, 199, 132, 0.18);
 }
 
 // Unify shared NeoCard radius/shadow to Neo Soft default card
@@ -61,8 +61,8 @@
   height: 46px;
   place-items: center;
   border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-accent-soft, #eeeaff);
-  color: var(--ns-accent-strong, #6a4df4);
+  background: var(--ns-accent-soft, #e4f8f0);
+  color: var(--ns-accent-strong, #0fb174);
 }
 
 .session-hero__badge svg {
@@ -78,7 +78,7 @@
 }
 
 .session-hero__eyebrow {
-  color: var(--ns-violet-strong, #6a4df4);
+  color: var(--ns-violet-strong, #0fb174);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -403,9 +403,9 @@
 // broken flat-grey button — it still signals "this is the action to complete".
 .session-play-area button:disabled {
   border-color: transparent !important;
-  background: var(--ns-accent-soft, #eeeaff) !important;
+  background: var(--ns-accent-soft, #e4f8f0) !important;
   box-shadow: none !important;
-  color: var(--ns-accent-strong, #6a4df4) !important;
+  color: var(--ns-accent-strong, #0fb174) !important;
   cursor: not-allowed;
   opacity: 0.7;
 }

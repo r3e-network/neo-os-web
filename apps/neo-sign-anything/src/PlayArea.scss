@@ -13,7 +13,7 @@
   --sign-accent-soft: var(--ns-brand-soft, #e4f8f0);
   --sign-badge-bg: var(--ns-brand-soft, #e4f8f0);
   --sign-badge-fg: var(--ns-brand-strong, #0fb174);
-  --sign-purple: var(--ns-violet, #7b61ff);
+  --sign-purple: var(--ns-violet, #16c784);
   --sign-danger: var(--ns-down, #ea3943);
   --sign-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   --sign-shadow-sm: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
@@ -186,7 +186,7 @@
 
     &:focus-visible {
       outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
     }
   }
 }
@@ -351,7 +351,7 @@
 
 .sign-message-field textarea:focus {
   border-color: var(--sign-purple);
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .sign-action-grid {
@@ -479,7 +479,7 @@
 
 .sign-result-box button:focus-visible {
   outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .sign-result-box button:disabled {
@@ -546,7 +546,7 @@
 
     &:focus-visible {
       outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
     }
   }
 }

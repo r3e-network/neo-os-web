@@ -2,9 +2,9 @@
 @use "@shared/styles/variables.scss" as *;
 
 // Violet accent (this app's identity hue)
-$accent: #7b61ff;
-$accent-strong: #6a4df4;
-$accent-soft: #eeeaff;
+$accent: #16c784;
+$accent-strong: #0fb174;
+$accent-soft: #e4f8f0;
 
 .proof-play-area {
   display: flex;
@@ -69,11 +69,11 @@ $accent-soft: #eeeaff;
 // and give the disabled state a soft violet tint instead of a flat-grey "broken" bar.
 .proof-cta.neo-btn--primary {
   background: $accent;
-  box-shadow: 0 2px 8px rgba(123, 97, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(22, 199, 132, 0.25);
 
   &:hover:not(:disabled) {
     background: $accent-strong;
-    box-shadow: 0 4px 16px rgba(123, 97, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(22, 199, 132, 0.3);
   }
 
   &:disabled {

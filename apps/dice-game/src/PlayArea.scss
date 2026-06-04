@@ -314,7 +314,7 @@
 
 .dice-face-grid__item:focus-visible {
   outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .dice-face-grid__item--active {
@@ -360,7 +360,7 @@
 .dice-stake-field input:focus {
   border-color: rgba(14, 165, 164, 0.58);
   background: #ffffff;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .dice-stake-field input[aria-invalid="true"] {
@@ -414,7 +414,7 @@
 
 .dice-stake-presets button:focus-visible {
   outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .dice-stake-presets button:disabled {
@@ -457,7 +457,7 @@
 
 .dice-roll-button:focus-visible {
   outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .dice-roll-button:disabled {
@@ -533,7 +533,7 @@
 .dice-route-panel > summary:focus-visible {
   outline: none;
   border-radius: var(--ns-radius-sm, 12px);
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .dice-route-body {

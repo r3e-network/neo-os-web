@@ -31,8 +31,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
-  background: var(--ns-violet-soft, #eeeaff);
-  color: var(--ns-violet-strong, #6a4df4);
+  background: var(--ns-violet-soft, #e4f8f0);
+  color: var(--ns-violet-strong, #0fb174);
 }
 
 .account-hero__heading {
@@ -43,7 +43,7 @@
 }
 
 .account-hero__eyebrow {
-  color: var(--ns-violet-strong, #6a4df4);
+  color: var(--ns-violet-strong, #0fb174);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -170,8 +170,8 @@
    stays distinct from neutral secondary/status controls. */
 .aa-account-play-area .neo-btn--primary:disabled {
   border-color: transparent !important;
-  background: var(--ns-violet-soft, #eeeaff) !important;
-  color: var(--ns-violet-strong, #6a4df4) !important;
+  background: var(--ns-violet-soft, #e4f8f0) !important;
+  color: var(--ns-violet-strong, #0fb174) !important;
 }
 
 .account-hint {

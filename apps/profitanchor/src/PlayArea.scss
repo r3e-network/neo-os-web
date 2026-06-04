@@ -140,7 +140,7 @@ body { background: var(--anchor-bg, #ffffff); }
 
 .anchor-refresh-button:focus-visible {
   outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .anchor-refresh-button:active:not(:disabled) {
@@ -208,7 +208,7 @@ body { background: var(--anchor-bg, #ffffff); }
 
 .anchor-amount-field input:focus {
   border-color: var(--ns-brand-strong, #0fb174);
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .anchor-amount-field input[aria-invalid="true"] {
@@ -269,7 +269,7 @@ body { background: var(--anchor-bg, #ffffff); }
 
 .anchor-action-button:focus-visible {
   outline: none;
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .anchor-action-button:active:not(:disabled) {
@@ -335,7 +335,7 @@ body { background: var(--anchor-bg, #ffffff); }
 .anchor-action-link:focus-visible {
   outline: none;
   border-color: var(--ns-brand, #16c784);
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .anchor-action-link:active:not(:disabled) {
