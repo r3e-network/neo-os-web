@@ -4,80 +4,88 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../neo-multisig/src/PlayArea";
-import type { MultisigRequest } from "../../neo-multisig/src/services/api";
+import type { RequestView, VaultView } from "../../neo-multisig/src/utils/vault";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
 
-const SIGNER_A = `02${"11".repeat(32)}`;
-const SIGNER_B = `03${"22".repeat(32)}`;
+const SIGNER_A = "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw";
+const SIGNER_B = "NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv";
 const RECIPIENT = "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu";
 
 function t(key: string) {
   const messages: Record<string, string> = {
     amountLabel: "Amount",
     amountPlaceholder: "0.00",
+    approvalProgress: "Approvals collected",
     ariaSigners: "Signers",
     assetGas: "GAS",
     assetLabel: "Asset",
     assetNeo: "NEO",
-    chainLabel: "Network",
-    chainMainnet: "Neo N3 MainNet",
-    chainTestnet: "Neo N3 TestNet",
-    detailId: "Request ID",
+    buttonApprove: "Approve",
+    buttonApproving: "Approving...",
+    buttonCancel: "Cancel",
+    buttonCancelling: "Cancelling...",
+    buttonCreateVault: "Create Vault",
+    buttonDeposit: "Deposit",
+    buttonPropose: "Propose Spend",
     loadButton: "Load",
-    loadPlaceholder: "Enter multisig ID",
-    loadTitle: "Load Existing Request",
+    loadRequestPlaceholder: "Request ID",
+    loadRequestTitle: "Load request",
+    loadVaultPlaceholder: "Vault ID",
+    loadVaultTitle: "Load vault",
     memoLabel: "Memo",
     memoPlaceholder: "Short note for signers",
-    multisigAmountBlocked: "Enter the transfer amount before creating the request.",
-    multisigBroadcastTitle: "Broadcast",
-    multisigCompletedMetric: "Completed",
-    multisigCreateReady: "Ready to prepare an unsigned Neo N3 transfer request.",
-    multisigDraftState: "Draft safe",
-    multisigHeroEyebrow: "Shared treasury",
-    multisigHeroSubtitle: "Prepare a shared Neo transaction.",
-    multisigHeroTitle: "Multisig Approval Desk",
-    multisigNeedSigners: "Add at least two signer public keys before creating a request.",
-    multisigNetworkTitle: "Network",
-    multisigPendingMetric: "Pending",
-    multisigQuorumTitle: "Quorum",
-    multisigReceiptCopy: "Share this request ID with signers.",
-    multisigRecipientBlocked: "Enter a recipient address for the transfer.",
-    multisigRequestCopy: "Enter signer keys and transfer details.",
-    multisigRequestTitle: "Request workspace",
-    multisigRouteBroadcast: "Submit tx",
-    multisigRouteCopy: "Create, sign, then broadcast.",
-    multisigRouteCreate: "Build request",
-    multisigRouteSign: "Collect signatures",
+    multisigBalanceTitle: "Vault balance",
+    multisigCreateReady: "Ready to deploy an on-chain custody vault.",
+    multisigDepositCopy: "Send GAS or NEO into the vault.",
+    multisigDepositTitle: "Deposit funds",
+    multisigDraftState: "—",
+    multisigDuplicateSigners: "Signer addresses must be distinct.",
+    multisigHeroEyebrow: "On-chain custody",
+    multisigHeroSubtitle: "Deposit GAS or NEO into a shared vault.",
+    multisigHeroTitle: "Multisig Custody Vault",
+    multisigInvalidSignerAddress: "Each signer must be a valid Neo N3 address.",
+    multisigNeedSigners: "Add at least two signer addresses before creating a vault.",
+    multisigNetworkValue: "Neo N3",
+    multisigProposeCopy: "Create a spend request from the vault.",
+    multisigProposeTitle: "Propose a spend",
+    multisigQuorumTitle: "Threshold",
+    multisigRequestStatusTitle: "Request",
+    multisigRouteBroadcast: "Approve & release",
+    multisigRouteCopy: "Create, deposit, propose, approve.",
+    multisigRouteCreate: "Create vault",
+    multisigRouteSign: "Propose spend",
     multisigRouteTitle: "Execution route",
-    multisigScriptHashLabel: "Script Hash",
-    multisigSignerCopy: "Only listed keys can approve.",
-    multisigSignerList: "Signer list",
-    multisigSignerTitle: "Signer controls",
-    multisigThreshold: "2 of 3",
-    multisigThresholdBlocked: "Threshold cannot be greater than the number of signer keys.",
-    multisigTotalMetric: "Total",
-    multisigWalletReviewed: "Wallet reviewed",
-    recentEmpty: "No recent requests yet.",
+    multisigSignerCopy: "Only listed signer addresses can approve.",
+    multisigSignerList: "Signers",
+    multisigSignerTitle: "Vault overview",
+    multisigStepCreate: "Step 1",
+    multisigStepDeposit: "Step 2",
+    multisigStepPropose: "Step 3",
+    multisigThresholdBlocked: "Threshold cannot be greater than the number of signers.",
+    multisigTooManySigners: "A vault supports at most 16 signer addresses.",
+    multisigVaultBadge: "Vault",
+    multisigVaultCopy: "Enter signer addresses and a threshold.",
+    multisigVaultIdLabel: "Vault ID",
+    multisigVaultReceiptCopy: "Share this vault ID with signers.",
+    multisigVaultTitle: "Custody vault",
+    recentEmpty: "No vaults or requests yet.",
     recentTitle: "Recent Activity",
-    reviewFees: "Estimated Fees",
+    reviewAmount: "Amount",
     reviewSigners: "Signers",
-    signerLabel: "Signer Public Key",
-    signerPlaceholder: "Compressed public key (02/03...)",
-    sidebarNoActivity: "No Activity Yet",
-    statusBroadcasted: "Broadcasted",
+    reviewTo: "To",
+    signerLabel: "Signer Address",
+    signerPlaceholder: "Neo N3 address (N...)",
     statusCancelled: "Cancelled",
-    statusExpired: "Expired",
+    statusExecuted: "Executed",
     statusLabel: "Status",
     statusPending: "Pending",
-    statusReady: "Ready",
     statusUnknown: "Unknown",
-    thresholdLabel: "Signature Threshold",
+    thresholdLabel: "Approval Threshold",
     toAddressLabel: "Recipient Address",
     toAddressPlaceholder: "N3 address",
-    buttonCreate: "Create Request",
   };
   return messages[key] ?? key;
 }
@@ -86,14 +94,20 @@ function baseState(
   overrides: Partial<Record<string, unknown>> = {},
 ): ObservableState {
   const values: Record<string, unknown> = {
+    activeRequest: null,
+    activeVault: null,
     completedCount: 0,
+    connectedAddress: "",
     history: [],
-    isCreatingRequest: false,
-    isLoadingRequest: false,
-    lastRequest: null,
+    isApproving: false,
+    isCancelling: false,
+    isCreatingVault: false,
+    isDepositing: false,
+    isLoading: false,
+    isProposing: false,
     pendingCount: 0,
-    selectedRequest: null,
-    totalTxs: 0,
+    totalActions: 0,
+    vaultCount: 0,
     ...overrides,
   };
   return Object.fromEntries(
@@ -104,102 +118,194 @@ function baseState(
   );
 }
 
-function request(overrides: Partial<MultisigRequest> = {}): MultisigRequest {
+function vault(overrides: Partial<VaultView> = {}): VaultView {
   return {
-    id: "req-neo-multisig-001",
-    chain_id: "neo-n3-testnet",
-    script_hash: "0x1111111111111111111111111111111111111111",
+    id: 7,
+    creator: "0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
     threshold: 2,
-    signers: [SIGNER_A, SIGNER_B],
-    transaction_hex: "00aabb",
-    signatures: {},
+    signers: [
+      "0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
+      "0xb89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
+    ],
+    createdTime: 1700000000000,
+    neoBalance: 0,
+    gasBalance: 100000000,
+    ...overrides,
+  };
+}
+
+function request(overrides: Partial<RequestView> = {}): RequestView {
+  return {
+    id: 4,
+    vaultId: 7,
+    creator: "0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
+    recipient: "0xc89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
+    asset: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+    assetSymbol: "GAS",
+    amount: 50000000,
+    approvalCount: 1,
     status: "pending",
-    created_at: "2026-06-01T00:00:00.000Z",
+    createdTime: 1700000000000,
+    memo: "rent",
     ...overrides,
   };
 }
 
 describe("Neo Multisig PlayArea", () => {
-  it("dispatches a real createRequest payload from the primary workspace", async () => {
+  it("dispatches a createVault payload with signer addresses + threshold", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
-    render(
-      <PlayArea t={t} state={baseState()} dispatch={dispatch} />,
-    );
+    render(<PlayArea t={t} state={baseState()} dispatch={dispatch} />);
 
-    expect(screen.getByText("Add at least two signer public keys before creating a request.")).toBeTruthy();
+    // Below the 2-signer minimum, creation is blocked.
     expect(
-      (screen.getByRole("button", { name: "Create Request" }) as HTMLButtonElement)
+      screen.getByText("Add at least two signer addresses before creating a vault."),
+    ).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Create Vault" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
 
-    const signerFields = screen.getAllByLabelText(/Signer Public Key/);
+    const signerFields = screen.getAllByLabelText(/Signer Address/);
     fireEvent.change(signerFields[0], { target: { value: SIGNER_A } });
     fireEvent.change(signerFields[1], { target: { value: SIGNER_B } });
-    fireEvent.change(screen.getByLabelText("Recipient Address"), {
-      target: { value: RECIPIENT },
-    });
-    fireEvent.change(screen.getByLabelText("Amount"), {
-      target: { value: "0.03" },
-    });
-    fireEvent.change(screen.getByLabelText("Memo"), {
-      target: { value: "team payout" },
-    });
 
-    expect(screen.getByText("Ready to prepare an unsigned Neo N3 transfer request.")).toBeTruthy();
     expect(
-      document.querySelector(".multisig-signer-panel")?.textContent,
-    ).toContain("Signers2");
-    expect(
-      document.querySelector(".multisig-signer-panel")?.textContent,
-    ).toContain("Signature Threshold2 / 2");
-    expect(
-      document.querySelector(".multisig-route-panel")?.textContent,
-    ).toContain("Neo N3 TestNet");
-    fireEvent.click(screen.getByRole("button", { name: "Create Request" }));
+      screen.getByText("Ready to deploy an on-chain custody vault."),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Create Vault" }));
 
     await waitFor(() =>
-      expect(dispatch).toHaveBeenCalledWith("createRequest", {
+      expect(dispatch).toHaveBeenCalledWith("createVault", {
         signers: [SIGNER_A, SIGNER_B],
         threshold: 2,
-        selectedChain: "neo-n3-testnet",
-        asset: "GAS",
-        toAddress: RECIPIENT,
-        amount: "0.03",
-        memo: "team payout",
       }),
     );
   });
 
-  it("renders created or loaded request details and keeps load gated by ID", () => {
-    const selectedRequest = request({ signatures: { [SIGNER_A]: "sig" } });
+  it("rejects invalid signer addresses in the create form", () => {
+    const dispatch = vi.fn();
+    render(<PlayArea t={t} state={baseState()} dispatch={dispatch} />);
+
+    const signerFields = screen.getAllByLabelText(/Signer Address/);
+    fireEvent.change(signerFields[0], { target: { value: "not-an-address" } });
+    fireEvent.change(signerFields[1], { target: { value: SIGNER_B } });
+
+    expect(
+      screen.getByText("Each signer must be a valid Neo N3 address."),
+    ).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Create Vault" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
+
+  it("shows vault balance and enables deposit + propose once a vault is active", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ activeVault: vault(), vaultCount: 1 })}
+        dispatch={dispatch}
+      />,
+    );
+
+    // Vault id receipt + GAS balance (1e8 base units => "1") are rendered.
+    expect(document.body.textContent).toContain("#7");
+    expect(
+      document.querySelector(".multisig-signer-panel")?.textContent,
+    ).toContain("1");
+
+    // Deposit
+    fireEvent.change(
+      screen.getAllByLabelText("Amount")[0],
+      { target: { value: "2" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Deposit" }));
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith("deposit", {
+        vaultId: 7,
+        asset: "GAS",
+        amount: "2",
+      }),
+    );
+
+    // Propose a spend
+    fireEvent.change(screen.getByLabelText("Recipient Address"), {
+      target: { value: RECIPIENT },
+    });
+    fireEvent.change(screen.getAllByLabelText("Amount")[1], {
+      target: { value: "0.5" },
+    });
+    fireEvent.change(screen.getByLabelText("Memo"), {
+      target: { value: "rent" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Propose Spend" }));
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith("proposeRequest", {
+        vaultId: 7,
+        asset: "GAS",
+        recipient: RECIPIENT,
+        amount: "0.5",
+        memo: "rent",
+      }),
+    );
+  });
+
+  it("renders request status + approval progress and approves", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
 
     render(
       <PlayArea
         t={t}
         state={baseState({
-          history: [
-            {
-              id: selectedRequest.id,
-              scriptHash: selectedRequest.script_hash,
-              status: selectedRequest.status,
-              createdAt: selectedRequest.created_at,
-            },
-          ],
-          lastRequest: selectedRequest,
-          pendingCount: 1,
-          selectedRequest,
-          totalTxs: 1,
+          activeVault: vault(),
+          activeRequest: request({ approvalCount: 1 }),
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    // Status label + amount + approvals 1/2 are reflected from the request.
+    expect(
+      document.querySelector(".multisig-request-details")?.textContent,
+    ).toContain("Pending");
+    expect(
+      document.querySelector(".multisig-request-details")?.textContent,
+    ).toContain("0.5 GAS");
+    expect(
+      document.querySelector(".multisig-request-details")?.textContent,
+    ).toContain("1 / 2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith("approveRequest", 4),
+    );
+  });
+
+  it("disables approve/cancel once a request is executed", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          activeVault: vault(),
+          activeRequest: request({ status: "executed", approvalCount: 2 }),
         })}
         dispatch={vi.fn()}
       />,
     );
 
-    expect(document.body.textContent).toContain("req-neo-...ig-001");
-    expect(screen.getByText("Share this request ID with signers.")).toBeTruthy();
-    expect(document.body.textContent).toContain("1 / 2");
     expect(
-      (screen.getByRole("button", { name: "Load" }) as HTMLButtonElement)
+      document.querySelector(".multisig-request-details")?.textContent,
+    ).toContain("Executed");
+    expect(
+      (screen.getByRole("button", { name: "Approve" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    expect(
+      (screen.getByRole("button", { name: "Cancel" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
   });
