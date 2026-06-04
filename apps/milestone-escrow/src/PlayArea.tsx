@@ -56,23 +56,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Local create form state
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [beneficiary, setBeneficiary] = useState("");
+  const [asset, setAsset] = useState<"GAS" | "NEO">("GAS");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
 
   const handleCreate = async () => {
-    // Escrows are funded in GAS only: the OS payment proxy deposits GAS
-    // (os-payment-deposit hardcodes the GAS contract) and the escrow create
-    // path carries no asset selector. Hardcoding GAS keeps the stored/displayed
-    // asset consistent with what is actually locked on-chain.
+    // The standalone MiniAppMilestoneEscrow contract supports both NEO and GAS,
+    // so the selected asset is wired through to the deposit transfer (token
+    // script hash) and createEscrow. The composable converts the entered amount
+    // to base units (GAS x 1e8, NEO integer) before invoking.
     await dispatch("createEscrow", {
       name: description.trim() || beneficiary,
       beneficiary,
-      asset: "GAS",
+      asset,
       notes: description,
       milestones: [{ amount }],
     });
     setShowCreateForm(false);
-    setBeneficiary(""); setAmount(""); setDescription("");
+    setBeneficiary(""); setAsset("GAS"); setAmount(""); setDescription("");
   };
 
   return (
@@ -100,7 +101,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoCard variant="erobo" className="create-form-card">
               <div className="create-form">
                 <NeoInput value={beneficiary} label={t("beneficiaryAddress") || "Beneficiary"} placeholder={t("beneficiaryPlaceholder") || "N-address..."} onChange={setBeneficiary} />
-                <NeoInput value={amount} label={t("amount") ? `${t("amount")} (GAS)` : "Amount (GAS)"} placeholder={t("amountPlaceholder") || "1.5"} onChange={setAmount} />
+                <div className="asset-select" role="radiogroup" aria-label={t("assetType") || "Asset"}>
+                  <span className="asset-select__label">{t("assetType") || "Asset"}</span>
+                  <div className="asset-select__options">
+                    {(["GAS", "NEO"] as const).map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        role="radio"
+                        aria-checked={asset === option}
+                        className={`asset-select__option${asset === option ? " asset-select__option--active" : ""}`}
+                        onClick={() => setAsset(option)}
+                      >
+                        {option === "NEO" ? (t("assetNeo") || "NEO") : (t("assetGas") || "GAS")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <NeoInput value={amount} label={`${t("amount") || "Amount"} (${asset})`} placeholder={asset === "NEO" ? "1" : (t("amountPlaceholder") || "1.5")} onChange={setAmount} />
                 <NeoInput value={description} type="textarea" label={t("description") || "Description"} placeholder={t("descriptionPlaceholder") || "Milestone description..."} onChange={setDescription} />
                 <NeoButton variant="primary" loading={isCreating} onClick={handleCreate} aria-label={t("submit") || "Submit"}>
                   {t("submit") || "Submit"}

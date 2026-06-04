@@ -2,17 +2,31 @@ import { describe, expect, it, vi } from "vitest";
 
 import { useMilestoneEscrow } from "../../milestone-escrow/src/composables/useMilestoneEscrow";
 import type { EscrowItem } from "../../milestone-escrow/src/pages/index/components/EscrowList";
-import type { EscrowProxy } from "../services/os/EscrowProxy";
-import type { PaymentProxy } from "../services/os/PaymentProxy";
-import type { StorageProxy } from "../services/os/StorageProxy";
+import type { ChainService, ContractArg } from "../services/ChainService";
+import { addressToScriptHash } from "../utils/neo";
+import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
 const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const BENEFICIARY = "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq";
+const CONTRACT = "0x442162de25008ac78d4cce62ed8d8a64401b7ece";
+
+const OWNER_HASH = addressToScriptHash(OWNER);
+const BENEFICIARY_HASH = addressToScriptHash(BENEFICIARY);
+const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
+const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
+const PAYMENT_MEMO = "miniapp-milestone-escrow:fund";
 
 function t(key: string) {
   const messages: Record<string, string> = {
     invalidAmount: "Enter a valid amount",
+    invalidAddress: "Invalid beneficiary address",
     milestoneLimit: "Milestones must be between 1 and 12",
+    milestoneSumMismatch: "Milestone sum must equal total",
+    minNeo: "Minimum escrow is 1 NEO",
+    minGas: "Minimum escrow is 0.1 GAS",
+    walletNotConnected: "Wallet not connected",
+    contractMissing: "Contract address not configured",
+    depositPrepaidNoEscrow: "funds prepaid, escrow not created",
     statusActive: "Active",
     statusCancelled: "Cancelled",
     statusCompleted: "Completed",
@@ -21,75 +35,54 @@ function t(key: string) {
 }
 
 /**
- * In-memory StorageProxy stand-in so refreshEscrows can rebuild the list from
- * the per-user index the composable writes (escrow:<addr>:<id> → meta).
+ * Minimal ChainService stand-in. Records read/readArray/invoke calls so tests
+ * can assert the direct-contract deposit + createEscrow argument shapes.
  */
-function makeStorage() {
-  const store = new Map<string, unknown>();
-  const storage = {
-    get: vi.fn(async (key: string) => store.get(key) ?? null),
-    set: vi.fn(async (key: string, value: unknown) => {
-      store.set(key, value);
-      return undefined;
+function makeChain() {
+  const invoke = vi.fn(
+    async (_op: string, _args: ContractArg[], _opts?: unknown): Promise<unknown> => ({
+      txid: "0xtx",
+      success: true,
     }),
-    delete: vi.fn(async (key: string) => {
-      store.delete(key);
-      return undefined;
-    }),
-    list: vi.fn(async (prefix: string) => {
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of store.entries()) {
-        if (k.startsWith(prefix)) out[k] = v;
-      }
-      return out;
-    }),
-  } as unknown as StorageProxy & {
-    get: ReturnType<typeof vi.fn>;
-    set: ReturnType<typeof vi.fn>;
-    list: ReturnType<typeof vi.fn>;
+  );
+  const read = vi.fn(
+    async (_op: string, _args?: ContractArg[], _opts?: unknown): Promise<unknown> => ({}),
+  );
+  const readArray = vi.fn(
+    async (_op: string, _args?: ContractArg[], _opts?: unknown): Promise<unknown[]> => [],
+  );
+
+  const chain = {
+    contractAddress: { get: () => CONTRACT },
+    address: { get: () => OWNER },
+    invoke,
+    read,
+    readArray,
+  } as unknown as ChainService & {
+    invoke: typeof invoke;
+    read: typeof read;
+    readArray: typeof readArray;
   };
-  return { storage, store };
+  return { chain, invoke, read, readArray };
 }
 
 function setup() {
-  const escrow = {
-    get: vi.fn(async () => null),
-    create: vi.fn(async () => "esc-1"),
-    completeMilestone: vi.fn(async () => undefined),
-    fund: vi.fn(async () => undefined),
-    refund: vi.fn(async () => undefined),
-  } as unknown as EscrowProxy & {
-    get: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
-    completeMilestone: ReturnType<typeof vi.fn>;
-    fund: ReturnType<typeof vi.fn>;
-    refund: ReturnType<typeof vi.fn>;
-  };
-  const payment = {
-    deposit: vi.fn(async () => ({ invocation: { txid: "0xdeposit" } })),
-  } as unknown as PaymentProxy & { deposit: ReturnType<typeof vi.fn> };
-  const { storage, store } = makeStorage();
-
-  const app = useMilestoneEscrow({
-    escrowService: escrow,
-    paymentService: payment,
-    storageService: storage,
-    t,
-  });
+  const { chain, invoke, read, readArray } = makeChain();
+  const app = useMilestoneEscrow({ chain, t });
   app.setAddress(OWNER);
-  return { app, escrow, payment, storage, store };
+  return { app, chain, invoke, read, readArray };
 }
 
 function escrowItem(overrides: Partial<EscrowItem> = {}): EscrowItem {
   return {
-    id: "esc-1",
+    id: "1",
     creator: OWNER,
-    beneficiary: OWNER,
+    beneficiary: BENEFICIARY,
     assetSymbol: "GAS",
-    totalAmount: 5_000_000n,
+    totalAmount: 10_000_000n,
     releasedAmount: 0n,
     status: "active",
-    milestoneAmounts: [5_000_000n],
+    milestoneAmounts: [10_000_000n],
     milestoneApproved: [false],
     milestoneClaimed: [false],
     title: "Website delivery",
@@ -99,9 +92,14 @@ function escrowItem(overrides: Partial<EscrowItem> = {}): EscrowItem {
   };
 }
 
-describe("useMilestoneEscrow", () => {
-  it("passes human-decimal amounts to the OS proxies (no 10^8 double-scaling)", async () => {
-    const { app, escrow, payment, store } = setup();
+/** Find the recorded invoke call for an operation. */
+function callFor(invoke: ReturnType<typeof vi.fn>, op: string) {
+  return invoke.mock.calls.find((c) => c[0] === op);
+}
+
+describe("useMilestoneEscrow (direct contract)", () => {
+  it("deposits then creates in GAS with base-unit (1e8) integers and the asset memo", async () => {
+    const { app, invoke } = setup();
 
     await app.createEscrow({
       name: "Website delivery",
@@ -111,81 +109,73 @@ describe("useMilestoneEscrow", () => {
       milestones: [{ amount: "0.05" }, { amount: "0.05" }],
     });
 
-    // Edge functions scale by 10^8 themselves: the client must send the
-    // human-decimal value, not pre-scaled base units. 0.05 + 0.05 = 0.1 GAS.
-    expect(payment.deposit).toHaveBeenCalledWith(
-      "0.1",
-      "escrow:create:Website delivery",
-    );
-    expect(escrow.create).toHaveBeenCalledWith({
-      beneficiary: BENEFICIARY,
-      amount: "0.1",
-      milestones: [
-        { name: "milestone-0", amount: "0.05" },
-        { name: "milestone-1", amount: "0.05" },
+    // Step 1: NEP-17 deposit transfer to the contract, targeting the GAS token
+    // (scriptHash override), with the required memo. 0.05 + 0.05 = 0.1 GAS =
+    // 10_000_000 base units.
+    const deposit = callFor(invoke, "transfer");
+    expect(deposit).toBeTruthy();
+    expect(deposit![1]).toEqual([
+      { type: "Hash160", value: OWNER_HASH },
+      { type: "Hash160", value: CONTRACT },
+      { type: "Integer", value: "10000000" },
+      { type: "String", value: PAYMENT_MEMO },
+    ]);
+    expect(deposit![2]).toMatchObject({ scriptHash: GAS_HASH });
+
+    // Step 2: createEscrow with base-unit integers, asset Hash160, actor-first.
+    const create = callFor(invoke, "createEscrow");
+    expect(create).toBeTruthy();
+    const args = create![1] as ContractArg[];
+    expect(args[0]).toEqual({ type: "Hash160", value: OWNER_HASH });
+    expect(args[1]).toEqual({ type: "Hash160", value: BENEFICIARY_HASH });
+    expect(args[2]).toEqual({ type: "Hash160", value: GAS_HASH });
+    expect(args[3]).toEqual({ type: "Integer", value: "10000000" });
+    // milestoneAmounts is a nested Array<Integer> of base units.
+    expect(args[4]).toEqual({
+      type: "Array",
+      value: [
+        { type: "Integer", value: "5000000" },
+        { type: "Integer", value: "5000000" },
       ],
     });
+    expect(args[5]).toEqual({ type: "String", value: "Website delivery" });
 
-    // The local os-storage index keeps base-unit strings for display.
-    expect(app.creatorEscrows.get()).toHaveLength(1);
-    expect(app.creatorEscrows.get()[0].totalAmount).toBe(10_000_000n);
-    const creatorKeys = [...store.keys()].filter((k) => k.startsWith(`escrow:${OWNER}:`));
-    expect(creatorKeys).toHaveLength(1);
+    // The deposit must precede createEscrow.
+    const order = invoke.mock.calls.map((c) => c[0]);
+    expect(order.indexOf("transfer")).toBeLessThan(order.indexOf("createEscrow"));
   });
 
-  it("rejects invalid amounts before any proxy call", async () => {
-    const { app, escrow, payment } = setup();
+  it("creates a NEO escrow with the NEO token + integer count (no scaling)", async () => {
+    const { app, invoke } = setup();
 
-    await expect(
-      app.createEscrow({
-        name: "Bad",
-        beneficiary: BENEFICIARY,
-        asset: "GAS",
-        notes: "",
-        milestones: [{ amount: "-1" }],
-      }),
-    ).rejects.toThrow("Enter a valid amount");
+    await app.createEscrow({
+      name: "NEO escrow",
+      beneficiary: BENEFICIARY,
+      asset: "NEO",
+      notes: "",
+      milestones: [{ amount: "2" }, { amount: "3" }],
+    });
 
-    expect(payment.deposit).not.toHaveBeenCalled();
-    expect(escrow.create).not.toHaveBeenCalled();
-  });
+    const deposit = callFor(invoke, "transfer");
+    // NEO is indivisible: 2 + 3 = 5 base units, NOT 5e8.
+    expect(deposit![1]).toContainEqual({ type: "Integer", value: "5" });
+    expect(deposit![2]).toMatchObject({ scriptHash: NEO_HASH });
 
-  it("rejects an empty beneficiary before any proxy call (no accidental self-escrow)", async () => {
-    const { app, escrow, payment } = setup();
-
-    await expect(
-      app.createEscrow({
-        name: "No beneficiary",
-        beneficiary: "   ",
-        asset: "GAS",
-        notes: "",
-        milestones: [{ amount: "0.05" }],
-      }),
-    ).rejects.toThrow("invalidAddress");
-
-    expect(payment.deposit).not.toHaveBeenCalled();
-    expect(escrow.create).not.toHaveBeenCalled();
-  });
-
-  it("rejects a malformed beneficiary address before any proxy call", async () => {
-    const { app, escrow, payment } = setup();
-
-    await expect(
-      app.createEscrow({
-        name: "Bad beneficiary",
-        beneficiary: "not-a-neo-address",
-        asset: "GAS",
-        notes: "",
-        milestones: [{ amount: "0.05" }],
-      }),
-    ).rejects.toThrow("invalidAddress");
-
-    expect(payment.deposit).not.toHaveBeenCalled();
-    expect(escrow.create).not.toHaveBeenCalled();
+    const create = callFor(invoke, "createEscrow");
+    const args = create![1] as ContractArg[];
+    expect(args[2]).toEqual({ type: "Hash160", value: NEO_HASH });
+    expect(args[3]).toEqual({ type: "Integer", value: "5" });
+    expect(args[4]).toEqual({
+      type: "Array",
+      value: [
+        { type: "Integer", value: "2" },
+        { type: "Integer", value: "3" },
+      ],
+    });
   });
 
   it("rejects fractional NEO amounts (NEO is indivisible)", async () => {
-    const { app, payment } = setup();
+    const { app, invoke } = setup();
 
     await expect(
       app.createEscrow({
@@ -197,24 +187,183 @@ describe("useMilestoneEscrow", () => {
       }),
     ).rejects.toThrow("Enter a valid amount");
 
-    expect(payment.deposit).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("approves, claims, and cancels escrows through the OS proxy actions", async () => {
-    const { app, escrow } = setup();
+  it("rejects a sub-minimum NEO escrow (< 1 NEO)", async () => {
+    const { app, invoke } = setup();
+
+    await expect(
+      app.createEscrow({
+        name: "Tiny NEO",
+        beneficiary: BENEFICIARY,
+        asset: "NEO",
+        notes: "",
+        milestones: [{ amount: "0" }],
+      }),
+    ).rejects.toThrow("Enter a valid amount");
+
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("rejects a sub-minimum GAS escrow (< 0.1 GAS)", async () => {
+    const { app, invoke } = setup();
+
+    await expect(
+      app.createEscrow({
+        name: "Tiny GAS",
+        beneficiary: BENEFICIARY,
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "0.05" }],
+      }),
+    ).rejects.toThrow("Minimum escrow is 0.1 GAS");
+
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid amounts before any chain call", async () => {
+    const { app, invoke } = setup();
+
+    await expect(
+      app.createEscrow({
+        name: "Bad",
+        beneficiary: BENEFICIARY,
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "-1" }],
+      }),
+    ).rejects.toThrow("Enter a valid amount");
+
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed beneficiary address before any chain call", async () => {
+    const { app, invoke } = setup();
+
+    await expect(
+      app.createEscrow({
+        name: "Bad beneficiary",
+        beneficiary: "not-a-neo-address",
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "0.1" }],
+      }),
+    ).rejects.toThrow("Invalid beneficiary address");
+
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a prepaid-credit-held error if createEscrow fails after deposit", async () => {
+    const { app, invoke } = setup();
+
+    // Deposit succeeds, createEscrow throws — credit is held under the creator.
+    invoke.mockImplementation(async (op: string) => {
+      if (op === "createEscrow") throw new Error("on-chain revert");
+      return { txid: "0xtx", success: true };
+    });
+
+    await expect(
+      app.createEscrow({
+        name: "Will fail",
+        beneficiary: BENEFICIARY,
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "0.1" }],
+      }),
+    ).rejects.toThrow("funds prepaid, escrow not created");
+
+    // The deposit transfer was still broadcast.
+    expect(callFor(invoke, "transfer")).toBeTruthy();
+  });
+
+  it("approves with a 1-based milestone index and actor-first args", async () => {
+    const { app, invoke } = setup();
     const active = escrowItem();
-    app.creatorEscrows.set([active]);
-    app.beneficiaryEscrows.set([escrowItem({ creator: BENEFICIARY })]);
 
+    // UI passes 0-based index; the contract call must be 1-based.
     await app.approveMilestone(active, 0);
-    expect(escrow.completeMilestone).toHaveBeenCalledWith("esc-1", 0);
 
-    const claimable = escrowItem({ milestoneApproved: [true], milestoneClaimed: [false] });
+    const call = callFor(invoke, "approveMilestone");
+    expect(call![1]).toEqual([
+      { type: "Hash160", value: OWNER_HASH },
+      { type: "Integer", value: "1" },
+      { type: "Integer", value: "1" }, // 0-based UI -> 1-based contract
+    ]);
+  });
+
+  it("claims with a 1-based milestone index and the beneficiary first", async () => {
+    const { app, invoke } = setup();
+    const claimable = escrowItem({
+      milestoneApproved: [true],
+      milestoneClaimed: [false],
+    });
+
     await app.claimMilestone(claimable, 0);
-    expect(escrow.fund).toHaveBeenCalledWith("esc-1");
 
-    const cancellable = escrowItem({ id: "esc-2" });
+    const call = callFor(invoke, "claimMilestone");
+    expect(call![1]).toEqual([
+      { type: "Hash160", value: OWNER_HASH },
+      { type: "Integer", value: "1" },
+      { type: "Integer", value: "1" }, // 0-based UI -> 1-based contract
+    ]);
+  });
+
+  it("cancels via cancelEscrow with the creator first", async () => {
+    const { app, invoke } = setup();
+    const cancellable = escrowItem({ id: "7" });
+
     await app.cancelEscrow(cancellable);
-    expect(escrow.refund).toHaveBeenCalledWith("esc-2");
+
+    const call = callFor(invoke, "cancelEscrow");
+    expect(call![1]).toEqual([
+      { type: "Hash160", value: OWNER_HASH },
+      { type: "Integer", value: "7" },
+    ]);
+  });
+
+  it("reads escrows by role and parses on-chain details into items", async () => {
+    const { app, read, readArray } = setup();
+
+    // Creator has escrow id 1; beneficiary list empty.
+    readArray.mockImplementation(async (op: string) =>
+      op === "getCreatorEscrows" ? [1] : [],
+    );
+    read.mockImplementation(async (_op: string, args?: ContractArg[]) => {
+      const id = args?.[0]?.value;
+      if (String(id) !== "1") return {};
+      return {
+        creator: OWNER_HASH,
+        beneficiary: BENEFICIARY_HASH,
+        assetSymbol: "GAS",
+        totalAmount: 10_000_000,
+        releasedAmount: 0,
+        milestoneCount: 2,
+        status: "active",
+        title: "Website delivery",
+        notes: "Acceptance",
+        milestoneAmounts: [5_000_000, 5_000_000],
+        milestoneApproved: [true, false],
+        milestoneClaimed: [false, false],
+      };
+    });
+
+    await app.refreshEscrows();
+
+    const created = app.creatorEscrows.get();
+    expect(created).toHaveLength(1);
+    expect(created[0].id).toBe("1");
+    expect(created[0].totalAmount).toBe(10_000_000n);
+    expect(created[0].milestoneAmounts).toEqual([5_000_000n, 5_000_000n]);
+    expect(created[0].milestoneApproved).toEqual([true, false]);
+    expect(created[0].assetSymbol).toBe("GAS");
+
+    // The creator read used getCreatorEscrows with the owner's script hash.
+    const creatorRead = readArray.mock.calls.find((c) => c[0] === "getCreatorEscrows");
+    expect(creatorRead![1]).toEqual([
+      { type: "Hash160", value: OWNER_HASH },
+      { type: "Integer", value: "0" },
+      { type: "Integer", value: "200" },
+    ]);
   });
 });

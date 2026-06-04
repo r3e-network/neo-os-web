@@ -18,6 +18,9 @@ function t(key: string) {
     amount: "Amount",
     amountPlaceholder: "1.5",
     approve: "Approve",
+    assetType: "Asset",
+    assetGas: "GAS",
+    assetNeo: "NEO",
     beneficiaryAddress: "Beneficiary",
     beneficiaryPlaceholder: "N-address...",
     cancel: "Cancel",
@@ -35,7 +38,6 @@ function t(key: string) {
     statusCompleted: "Completed",
     submit: "Submit",
     title: "Milestone Escrow",
-    tokenSymbol: "Token",
   };
   return messages[key] ?? key;
 }
@@ -93,19 +95,24 @@ describe("Milestone Escrow PlayArea", () => {
     expect(screen.getAllByText("Website delivery").length).toBeGreaterThan(0);
   });
 
-  it("opens the create form and funds in GAS only (no NEO selector)", () => {
+  it("opens the create form and offers both GAS and NEO (default GAS)", () => {
     render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
 
     fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
 
     expect(screen.getByLabelText("Beneficiary")).toBeTruthy();
-    // Amount input is GAS-scoped; the non-functional NEO/token selector is gone.
+    // The NEO asset option is back: both radios are present, GAS selected.
+    const gasOption = screen.getByRole("radio", { name: "GAS" });
+    const neoOption = screen.getByRole("radio", { name: "NEO" });
+    expect(gasOption).toBeTruthy();
+    expect(neoOption).toBeTruthy();
+    expect(gasOption.getAttribute("aria-checked")).toBe("true");
+    expect(neoOption.getAttribute("aria-checked")).toBe("false");
+    // Amount label reflects the default (GAS) asset.
     expect(screen.getByLabelText("Amount (GAS)")).toBeTruthy();
-    expect(screen.queryByLabelText("Token")).toBeNull();
-    expect(screen.queryByText("NEO")).toBeNull();
   });
 
-  it("dispatches createEscrow with the human-decimal amount and GAS asset", () => {
+  it("dispatches createEscrow with the entered amount and GAS asset by default", () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
@@ -122,6 +129,29 @@ describe("Milestone Escrow PlayArea", () => {
         asset: "GAS",
         notes: "Phase 1",
         milestones: [{ amount: "1.5" }],
+      }),
+    );
+  });
+
+  it("switches to NEO and dispatches createEscrow with the NEO asset", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
+    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
+    fireEvent.click(screen.getByRole("radio", { name: "NEO" }));
+
+    // Amount label now reflects NEO.
+    expect(screen.getByLabelText("Amount (NEO)")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Amount (NEO)"), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    expect(dispatch).toHaveBeenCalledWith(
+      "createEscrow",
+      expect.objectContaining({
+        beneficiary: BENEFICIARY,
+        asset: "NEO",
+        milestones: [{ amount: "5" }],
       }),
     );
   });
