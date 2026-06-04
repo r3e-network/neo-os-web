@@ -1,0 +1,352 @@
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using Neo;
+using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Attributes;
+using Neo.SmartContract.Framework.Native;
+using Neo.SmartContract.Framework.Services;
+
+namespace NeoMiniAppPlatform.Contracts
+{
+    /// <summary>
+    /// MiniAppRedEnvelope — self-contained on-chain lucky red envelope (NO oracle).
+    ///
+    /// WHY: the platform's red-envelope previously routed create/claim through the
+    /// OS game/payment kernel, which does not actually distribute packets — so
+    /// envelopes funded GAS that was never paid out to claimers. This contract is
+    /// the authoritative on-chain implementation: a creator funds a total GAS
+    /// amount split into N packets; each claimer draws ONE random share and is paid
+    /// ATOMICALLY in the same transaction. After expiry the creator reclaims any
+    /// unclaimed remainder. No external settler, no pending state.
+    ///
+    /// RANDOM SPLIT: the classic WeChat "leftover double-average" algorithm — each
+    /// non-final packet draws a share in [1, 2*avg] where avg = remaining/remaining
+    /// packets, capped so every later packet still receives at least 1 base unit;
+    /// the final packet takes the exact remainder. Randomness is Runtime.GetRandom()
+    /// (the per-block consensus beacon, unknown until the tx mines) mixed with the
+    /// claimer address + time + envelope id so it differs per claimer and cannot be
+    /// cheaply front-run. NOT VRF-grade — intended for low-stakes social packets.
+    ///
+    /// SAFETY:
+    /// - GAS only (divisible — required to split into random sub-amounts); amounts
+    ///   in BASE UNITS (1 GAS = 100_000_000).
+    /// - Deposit-then-create: GAS sent with memo "miniapp-redenvelope:create" credits
+    ///   the sender; createEnvelope consumes that credit, so an envelope can never be
+    ///   created without its funds already escrowed in this contract.
+    /// - Checks-effects-interactions: remaining/opened/claimed state is written
+    ///   before every transfer; a failed transfer asserts and reverts the whole
+    ///   atomic invocation. One claim per address per envelope.
+    /// - The sum of all packet payouts plus any creator reclaim equals exactly the
+    ///   funded total, so no GAS is ever stranded or double-spent.
+    /// </summary>
+    [DisplayName("MiniAppRedEnvelope")]
+    [ManifestExtra("Author", "R3E Network")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "1.0.0")]
+    [ManifestExtra("Description", "Self-contained on-chain lucky red envelope: GAS split into random packets via Runtime.GetRandom and paid atomically — no oracle.")]
+    [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
+    public class MiniAppRedEnvelope : SmartContract
+    {
+        #region Constants
+        private const int MAX_PACKETS = 100;
+        private const string CREATE_MEMO = "miniapp-redenvelope:create";
+        #endregion
+
+        #region Storage prefixes
+        private static readonly byte[] PREFIX_ENV_ID = new byte[] { 0x10 };
+        private static readonly byte[] PREFIX_ENV = new byte[] { 0x11 };          // + envId -> Envelope
+        private static readonly byte[] PREFIX_CREDIT = new byte[] { 0x12 };       // + creator -> GAS credit
+        private static readonly byte[] PREFIX_CLAIMED = new byte[] { 0x13 };      // + envId + claimer -> share (presence = claimed)
+        private static readonly byte[] PREFIX_CREATOR_CNT = new byte[] { 0x14 };  // + creator -> count
+        private static readonly byte[] PREFIX_CREATOR_ITEM = new byte[] { 0x15 }; // + creator + seq -> envId
+        private static readonly byte[] PREFIX_CLAIMER_CNT = new byte[] { 0x16 };  // + claimer -> count
+        private static readonly byte[] PREFIX_CLAIMER_ITEM = new byte[] { 0x17 }; // + claimer + seq -> envId
+        #endregion
+
+        #region Events
+        [DisplayName("Credited")]
+        public static event Action<UInt160, BigInteger, BigInteger> OnCredited; // from, amount, balance
+        [DisplayName("EnvelopeCreated")]
+        public static event Action<BigInteger, UInt160, BigInteger, BigInteger, BigInteger> OnEnvelopeCreated; // id, creator, total, packetCount, expiry
+        [DisplayName("Claimed")]
+        public static event Action<BigInteger, UInt160, BigInteger, BigInteger> OnClaimed; // id, claimer, share, remainingPackets
+        [DisplayName("Reclaimed")]
+        public static event Action<BigInteger, UInt160, BigInteger> OnReclaimed; // id, creator, amount
+        #endregion
+
+        #region Types
+        public struct Envelope
+        {
+            public UInt160 Creator;
+            public BigInteger TotalAmount;
+            public BigInteger RemainingAmount;
+            public BigInteger PacketCount;
+            public BigInteger OpenedCount;
+            public BigInteger ExpiryTime;      // ms since epoch (Runtime.Time units)
+            public UInt160 BestLuckAddress;
+            public BigInteger BestLuckAmount;
+            public bool Active;                // false once fully claimed or reclaimed
+        }
+        #endregion
+
+        #region Deposit (prepaid create credit)
+        /// <summary>
+        /// GAS sent with memo "miniapp-redenvelope:create" credits the sender's
+        /// prepaid balance, which createEnvelope() then consumes.
+        /// </summary>
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == GAS.Hash, "only GAS accepted");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            ExecutionEngine.Assert(data is not null, "memo required");
+            string memo = (string)data;
+            ExecutionEngine.Assert(memo == CREATE_MEMO, "invalid memo");
+
+            StorageContext ctx = Storage.CurrentContext;
+            byte[] key = Helper.Concat(PREFIX_CREDIT, (byte[])from);
+            BigInteger bal = (BigInteger)Storage.Get(ctx, key) + amount;
+            Storage.Put(ctx, key, bal);
+            OnCredited(from, amount, bal);
+        }
+        #endregion
+
+        #region Create
+        /// <summary>
+        /// Open a red envelope funded from the creator's prepaid credit. The total
+        /// is locked in this contract and split into packetCount random packets that
+        /// claimers draw until depleted; unclaimed remainder is reclaimable by the
+        /// creator after durationSeconds.
+        /// </summary>
+        public static BigInteger CreateEnvelope(UInt160 creator, BigInteger totalAmount, BigInteger packetCount, BigInteger durationSeconds)
+        {
+            ExecutionEngine.Assert(creator is not null && creator.IsValid && !creator.IsZero, "invalid creator");
+            ExecutionEngine.Assert(Runtime.CheckWitness(creator), "creator witness required");
+            ExecutionEngine.Assert(packetCount > 0 && packetCount <= MAX_PACKETS, "packet count 1..100");
+            // Each packet must be able to receive at least 1 base unit.
+            ExecutionEngine.Assert(totalAmount >= packetCount, "total must cover one base unit per packet");
+            ExecutionEngine.Assert(durationSeconds > 0, "duration must be > 0");
+
+            StorageContext ctx = Storage.CurrentContext;
+
+            // Consume prepaid credit (deposit-then-create): funds are already in the
+            // contract, so the envelope is always fully backed.
+            byte[] creditKey = Helper.Concat(PREFIX_CREDIT, (byte[])creator);
+            BigInteger credit = (BigInteger)Storage.Get(ctx, creditKey);
+            ExecutionEngine.Assert(credit >= totalAmount, "insufficient deposit credit");
+            BigInteger nextCredit = credit - totalAmount;
+            if (nextCredit == 0) Storage.Delete(ctx, creditKey); else Storage.Put(ctx, creditKey, nextCredit);
+
+            BigInteger envId = (BigInteger)Storage.Get(ctx, PREFIX_ENV_ID) + 1;
+            Storage.Put(ctx, PREFIX_ENV_ID, envId);
+
+            Envelope e = new Envelope
+            {
+                Creator = creator,
+                TotalAmount = totalAmount,
+                RemainingAmount = totalAmount,
+                PacketCount = packetCount,
+                OpenedCount = 0,
+                ExpiryTime = (BigInteger)Runtime.Time + durationSeconds * 1000,
+                BestLuckAddress = UInt160.Zero,
+                BestLuckAmount = 0,
+                Active = true,
+            };
+            Storage.Put(ctx, EnvKey(envId), StdLib.Serialize(e));
+            IndexAppend(ctx, PREFIX_CREATOR_CNT, PREFIX_CREATOR_ITEM, creator, envId);
+
+            OnEnvelopeCreated(envId, creator, totalAmount, packetCount, e.ExpiryTime);
+            return envId;
+        }
+        #endregion
+
+        #region Claim
+        /// <summary>
+        /// Draw one random packet from an active, unexpired envelope and pay the
+        /// claimer atomically. One claim per address per envelope.
+        /// </summary>
+        public static BigInteger Claim(BigInteger envelopeId, UInt160 claimer)
+        {
+            ExecutionEngine.Assert(claimer is not null && claimer.IsValid && !claimer.IsZero, "invalid claimer");
+            ExecutionEngine.Assert(Runtime.CheckWitness(claimer), "claimer witness required");
+
+            StorageContext ctx = Storage.CurrentContext;
+            Envelope e = LoadEnvelope(envelopeId);
+            ExecutionEngine.Assert(e.Active, "envelope not active");
+            ExecutionEngine.Assert((BigInteger)Runtime.Time < e.ExpiryTime, "envelope expired");
+            ExecutionEngine.Assert(e.OpenedCount < e.PacketCount, "all packets claimed");
+
+            byte[] claimedKey = ClaimedKey(envelopeId, claimer);
+            ExecutionEngine.Assert(Storage.Get(ctx, claimedKey) is null, "already claimed");
+
+            BigInteger remainingPackets = e.PacketCount - e.OpenedCount;
+            BigInteger share;
+            if (remainingPackets == 1)
+            {
+                // Final packet takes the exact remainder.
+                share = e.RemainingAmount;
+            }
+            else
+            {
+                // Double-average upper bound, then a random draw in [1, 2*avg].
+                BigInteger avg = e.RemainingAmount / remainingPackets;
+                BigInteger maxShare = avg * 2;
+                if (maxShare < 1) maxShare = 1;
+
+                BigInteger entropy = Runtime.GetRandom();
+                if (entropy < 0) entropy = -entropy;
+                BigInteger mix = (BigInteger)(ByteString)(byte[])claimer + Runtime.Time + envelopeId;
+                if (mix < 0) mix = -mix;
+                share = 1 + (entropy + mix) % maxShare;
+
+                // Leave at least 1 base unit for each remaining packet.
+                BigInteger cap = e.RemainingAmount - (remainingPackets - 1);
+                if (share > cap) share = cap;
+                if (share < 1) share = 1;
+            }
+
+            // Effects before interaction.
+            e.RemainingAmount -= share;
+            e.OpenedCount += 1;
+            if (share > e.BestLuckAmount) { e.BestLuckAmount = share; e.BestLuckAddress = claimer; }
+            if (e.OpenedCount >= e.PacketCount || e.RemainingAmount <= 0) e.Active = false;
+            Storage.Put(ctx, EnvKey(envelopeId), StdLib.Serialize(e));
+            Storage.Put(ctx, claimedKey, share);
+            IndexAppend(ctx, PREFIX_CLAIMER_CNT, PREFIX_CLAIMER_ITEM, claimer, envelopeId);
+
+            bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
+                new object[] { Runtime.ExecutingScriptHash, claimer, share, "" });
+            ExecutionEngine.Assert(ok, "claim transfer failed");
+
+            OnClaimed(envelopeId, claimer, share, e.PacketCount - e.OpenedCount);
+            return share;
+        }
+        #endregion
+
+        #region Reclaim
+        /// <summary>
+        /// After expiry, the creator reclaims any unclaimed remainder.
+        /// </summary>
+        public static BigInteger Reclaim(BigInteger envelopeId, UInt160 creator)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(creator), "creator witness required");
+            StorageContext ctx = Storage.CurrentContext;
+            Envelope e = LoadEnvelope(envelopeId);
+            ExecutionEngine.Assert(e.Creator == creator, "only creator");
+            ExecutionEngine.Assert((BigInteger)Runtime.Time >= e.ExpiryTime, "not yet expired");
+            ExecutionEngine.Assert(e.Active && e.RemainingAmount > 0, "nothing to reclaim");
+
+            BigInteger amount = e.RemainingAmount;
+            e.RemainingAmount = 0;
+            e.Active = false;
+            Storage.Put(ctx, EnvKey(envelopeId), StdLib.Serialize(e));
+
+            bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
+                new object[] { Runtime.ExecutingScriptHash, creator, amount, "" });
+            ExecutionEngine.Assert(ok, "reclaim transfer failed");
+
+            OnReclaimed(envelopeId, creator, amount);
+            return amount;
+        }
+        #endregion
+
+        #region Read-only
+        [Safe]
+        public static BigInteger LastEnvelopeId() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_ENV_ID);
+
+        [Safe]
+        public static BigInteger CreditOf(UInt160 creator) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_CREDIT, (byte[])creator));
+
+        [Safe]
+        public static BigInteger ClaimedAmount(BigInteger envelopeId, UInt160 claimer) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, ClaimedKey(envelopeId, claimer));
+
+        [Safe]
+        public static bool HasClaimed(BigInteger envelopeId, UInt160 claimer) =>
+            Storage.Get(Storage.CurrentContext, ClaimedKey(envelopeId, claimer)) is not null;
+
+        [Safe]
+        public static Map<string, object> GetEnvelope(BigInteger envelopeId)
+        {
+            Envelope e = LoadEnvelope(envelopeId);
+            Map<string, object> r = new Map<string, object>();
+            r["id"] = envelopeId;
+            r["creator"] = e.Creator;
+            r["totalAmount"] = e.TotalAmount;
+            r["remainingAmount"] = e.RemainingAmount;
+            r["packetCount"] = e.PacketCount;
+            r["openedCount"] = e.OpenedCount;
+            r["expiryTime"] = e.ExpiryTime;
+            r["bestLuckAddress"] = e.BestLuckAddress;
+            r["bestLuckAmount"] = e.BestLuckAmount;
+            r["active"] = e.Active;
+            return r;
+        }
+
+        [Safe]
+        public static BigInteger CreatorEnvelopeCount(UInt160 creator) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_CREATOR_CNT, (byte[])creator));
+
+        [Safe]
+        public static BigInteger[] GetCreatorEnvelopes(UInt160 creator, BigInteger offset, BigInteger limit) =>
+            IndexSlice(PREFIX_CREATOR_CNT, PREFIX_CREATOR_ITEM, creator, offset, limit);
+
+        [Safe]
+        public static BigInteger ClaimerEnvelopeCount(UInt160 claimer) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_CLAIMER_CNT, (byte[])claimer));
+
+        [Safe]
+        public static BigInteger[] GetClaimerEnvelopes(UInt160 claimer, BigInteger offset, BigInteger limit) =>
+            IndexSlice(PREFIX_CLAIMER_CNT, PREFIX_CLAIMER_ITEM, claimer, offset, limit);
+        #endregion
+
+        #region Internal
+        private static Envelope LoadEnvelope(BigInteger envelopeId)
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, EnvKey(envelopeId));
+            ExecutionEngine.Assert(raw is not null, "envelope not found");
+            return (Envelope)StdLib.Deserialize(raw);
+        }
+
+        private static byte[] EnvKey(BigInteger id) => Helper.Concat(PREFIX_ENV, (byte[])(ByteString)id);
+
+        private static byte[] ClaimedKey(BigInteger envelopeId, UInt160 claimer) =>
+            Helper.Concat(Helper.Concat(PREFIX_CLAIMED, (byte[])(ByteString)envelopeId), (byte[])claimer);
+
+        /// <summary>Append envId to a per-account index (count + 1-based item list).</summary>
+        private static void IndexAppend(StorageContext ctx, byte[] cntPrefix, byte[] itemPrefix, UInt160 account, BigInteger envId)
+        {
+            byte[] cntKey = Helper.Concat(cntPrefix, (byte[])account);
+            BigInteger n = (BigInteger)Storage.Get(ctx, cntKey) + 1;
+            Storage.Put(ctx, cntKey, n);
+            byte[] itemKey = Helper.Concat(Helper.Concat(itemPrefix, (byte[])account), (byte[])(ByteString)n);
+            Storage.Put(ctx, itemKey, envId);
+        }
+
+        /// <summary>Read a [offset, offset+limit) slice of a per-account index (1-based).</summary>
+        private static BigInteger[] IndexSlice(byte[] cntPrefix, byte[] itemPrefix, UInt160 account, BigInteger offset, BigInteger limit)
+        {
+            StorageContext ctx = Storage.CurrentContext;
+            BigInteger n = (BigInteger)Storage.Get(ctx, Helper.Concat(cntPrefix, (byte[])account));
+            if (offset < 0) offset = 0;
+            if (limit <= 0 || limit > 100) limit = 100;
+            BigInteger start = offset + 1;
+            BigInteger end = start + limit - 1;
+            if (end > n) end = n;
+            if (start > end) return new BigInteger[0];
+
+            BigInteger count = end - start + 1;
+            BigInteger[] result = new BigInteger[(int)count];
+            BigInteger idx = 0;
+            for (BigInteger i = start; i <= end; i++)
+            {
+                byte[] itemKey = Helper.Concat(Helper.Concat(itemPrefix, (byte[])account), (byte[])(ByteString)i);
+                result[(int)idx] = (BigInteger)Storage.Get(ctx, itemKey);
+                idx += 1;
+            }
+            return result;
+        }
+        #endregion
+    }
+}
