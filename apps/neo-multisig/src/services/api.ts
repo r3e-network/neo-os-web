@@ -1,230 +1,194 @@
 /**
- * Multisig request persistence.
+ * Neo Multisig — on-chain vault service.
  *
- * Requests are stored in OS storage (ctx.os.storage) so that a request
- * created on one device can be loaded — and signed — by the other signers
- * on their own devices. Each request is keyed by `msig:<id>` and an index
- * key `msig:index` keeps the list of known request IDs so the activity feed
- * and history can be rebuilt from shared state.
+ * Thin wrapper around the platform ChainService that talks to the deployed
+ * MiniAppMultisig custody-vault contract (resolved from the app manifest).
+ * Every method is a direct contract read or invoke — there is no off-chain
+ * store. State (vault balances, request status, approval counts) is read back
+ * from the contract via getVault / getRequest / balanceOf.
  *
- * A request created here is an unsigned Neo N3 multisig transfer. Signers
- * append their witness signature (keyed by their compressed public key) and
- * the request advances to `ready` once the threshold is met, at which point
- * any participant can assemble the multisig witness and broadcast it.
- *
- * When no OS storage backend is configured (e.g. the legacy creation
- * composable that runs outside the OS context), a runtime-cache backend is
- * used as a local-only fallback so the call still resolves.
+ *   write: createVault, deposit, createRequest, approve, cancel
+ *   read:  getVault, getRequest, balanceOf, hasApproved, lastVaultId,
+ *          lastRequestId
  */
 
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
-
-const STORAGE_KEY = "multisig_requests";
-const KEY_PREFIX = "msig:";
-const INDEX_KEY = "msig:index";
-
-export interface MultisigRequest {
-  id: string;
-  chain_id: "neo-n3-mainnet" | "neo-n3-testnet";
-  script_hash: string;
-  threshold: number;
-  signers: string[];
-  transaction_hex: string;
-  signatures: Record<string, string>;
-  status: "pending" | "ready" | "broadcasted" | "cancelled" | "expired";
-  memo?: string;
-  broadcast_txid?: string;
-  created_at: string;
-}
+import {
+  assetHash,
+  buildApproveArgs,
+  buildCancelArgs,
+  buildCreateRequestArgs,
+  buildCreateVaultArgs,
+  buildDepositArgs,
+  parseRequest,
+  parseVault,
+  validateSignerSet,
+  type ContractArg,
+  type RequestView,
+  type VaultAsset,
+  type VaultView,
+} from "../utils/vault";
 
 /**
- * Minimal storage contract this module needs. `ctx.os.storage` (StorageProxy)
- * satisfies it. Kept narrow so the dependency is explicit and testable.
+ * A single contract argument as accepted by the platform chain layer. The
+ * runtime SDK tolerates nested Array values (an array of ContractArg), which
+ * the static `ChainService.ContractArg` type narrows to scalars — this widened
+ * alias is what we hand to the chain at the call boundary.
  */
-export interface MultisigStorageBackend {
-  get(key: string): Promise<unknown>;
-  set(key: string, value: unknown): Promise<unknown>;
-  list?(prefix: string, limit?: number): Promise<Record<string, unknown>>;
+type ChainArg = { type: string; value: unknown };
+
+/**
+ * Minimal chain surface this service needs. `ctx.services.chain` satisfies it.
+ * Kept narrow so the dependency is explicit and the module stays testable.
+ */
+export interface VaultChain {
+  invoke(
+    operation: string,
+    args: ChainArg[],
+    options?: { scriptHash?: string },
+  ): Promise<{ txid: string; success: boolean }>;
+  read(
+    operation: string,
+    args?: ChainArg[],
+    options?: { scriptHash?: string },
+  ): Promise<unknown>;
+  /** Resolved app contract hash (the custody vault). */
+  contractAddress: { get(): string | null };
 }
 
-function requestKey(id: string): string {
-  return `${KEY_PREFIX}${id}`;
+/** Cast our typed vault args to the widened chain-arg shape. */
+function toChainArgs(args: ContractArg[]): ChainArg[] {
+  return args as unknown as ChainArg[];
 }
 
-function generateId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
+export interface CreateVaultInput {
+  creator: string;
+  signers: string[];
+  threshold: number;
+}
+
+export interface DepositInput {
+  from: string;
+  vaultId: number;
+  amount: string;
+  asset: VaultAsset;
+}
+
+export interface CreateRequestInput {
+  vaultId: number;
+  creator: string;
+  recipient: string;
+  asset: VaultAsset;
+  amount: string;
+  memo: string;
+}
+
+function toNumber(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return 0;
 }
 
-function isMultisigRequest(value: unknown): value is MultisigRequest {
-  if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.id === "string" &&
-    typeof record.transaction_hex === "string" &&
-    Array.isArray(record.signers)
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Runtime-cache fallback backend (local-only) — used when no OS storage is
-// injected. Mirrors the previous behaviour so legacy callers keep working.
-// ---------------------------------------------------------------------------
-
-function loadAllCached(): MultisigRequest[] {
-  const saved = readCachedJSON<MultisigRequest[]>(STORAGE_KEY);
-  return Array.isArray(saved) ? saved : [];
-}
-
-const cacheBackend: MultisigStorageBackend = {
-  async get(key: string) {
-    const id = key.startsWith(KEY_PREFIX) ? key.slice(KEY_PREFIX.length) : key;
-    if (key === INDEX_KEY) {
-      return loadAllCached().map((r) => r.id);
+export function createVaultApi(chain: VaultChain) {
+  /** Resolve the deployed custody-vault contract hash from the chain layer. */
+  function contractHash(): string {
+    const hash = chain.contractAddress.get();
+    if (!hash) {
+      throw new Error("Vault contract is not configured for this network.");
     }
-    return loadAllCached().find((r) => r.id === id) ?? null;
-  },
-  async set(key: string, value: unknown) {
-    if (key === INDEX_KEY) {
-      // Index is derived from the stored list in cache mode; nothing to do.
-      return value;
-    }
-    const id = key.startsWith(KEY_PREFIX) ? key.slice(KEY_PREFIX.length) : key;
-    const all = loadAllCached().filter((r) => r.id !== id);
-    if (isMultisigRequest(value)) {
-      all.unshift(value);
-    }
-    writeCachedJSON(STORAGE_KEY, all.slice(0, 50));
-    return value;
-  },
-  async list(prefix: string) {
-    const out: Record<string, unknown> = {};
-    for (const request of loadAllCached()) {
-      const key = requestKey(request.id);
-      if (key.startsWith(prefix)) out[key] = request;
-    }
-    return out;
-  },
-};
-
-// ---------------------------------------------------------------------------
-// Active backend (defaults to the local cache; replaced with OS storage when
-// the app sets it up via configureStorage()).
-// ---------------------------------------------------------------------------
-
-let backend: MultisigStorageBackend = cacheBackend;
-
-/** Point persistence at the OS storage proxy (cross-device sharing). */
-export function configureStorage(storage: MultisigStorageBackend): void {
-  backend = storage;
-}
-
-async function readIndex(): Promise<string[]> {
-  try {
-    const raw = await backend.get(INDEX_KEY);
-    if (Array.isArray(raw)) {
-      return raw.filter((id): id is string => typeof id === "string");
-    }
-    return [];
-  } catch {
-    return [];
+    return hash;
   }
+
+  return {
+    // -- Writes -------------------------------------------------------------
+
+    /** createVault(creator, signers[], threshold) — connected wallet witnesses. */
+    async createVault(input: CreateVaultInput) {
+      const set = validateSignerSet(input.signers, input.threshold);
+      return chain.invoke(
+        "createVault",
+        toChainArgs(buildCreateVaultArgs(input.creator, set)),
+      );
+    },
+
+    /**
+     * Deposit GAS/NEO into a vault via a NEP-17 transfer to the contract with
+     * the vaultId as the transfer `data`. Targets the TOKEN contract.
+     */
+    async deposit(input: DepositInput) {
+      const args = buildDepositArgs({
+        from: input.from,
+        contractHash: contractHash(),
+        vaultId: input.vaultId,
+        amount: input.amount,
+        asset: input.asset,
+      });
+      return chain.invoke("transfer", toChainArgs(args), {
+        scriptHash: assetHash(input.asset),
+      });
+    },
+
+    /** createRequest(vaultId, creator, recipient, asset, amount, memo). */
+    async createRequest(input: CreateRequestInput) {
+      return chain.invoke(
+        "createRequest",
+        toChainArgs(buildCreateRequestArgs(input)),
+      );
+    },
+
+    /** approve(reqId, signer) — releases funds at threshold. */
+    async approve(reqId: number, signer: string) {
+      return chain.invoke("approve", toChainArgs(buildApproveArgs(reqId, signer)));
+    },
+
+    /** cancel(reqId, caller) — creator-only, pending requests only. */
+    async cancel(reqId: number, caller: string) {
+      return chain.invoke("cancel", toChainArgs(buildCancelArgs(reqId, caller)));
+    },
+
+    // -- Reads --------------------------------------------------------------
+
+    async getVault(vaultId: number): Promise<VaultView | null> {
+      const raw = await chain.read("getVault", [
+        { type: "Integer", value: String(vaultId) },
+      ]);
+      return parseVault(raw);
+    },
+
+    async getRequest(reqId: number): Promise<RequestView | null> {
+      const raw = await chain.read("getRequest", [
+        { type: "Integer", value: String(reqId) },
+      ]);
+      return parseRequest(raw);
+    },
+
+    async balanceOf(vaultId: number, asset: VaultAsset): Promise<number> {
+      const raw = await chain.read("balanceOf", [
+        { type: "Integer", value: String(vaultId) },
+        { type: "Hash160", value: assetHash(asset) },
+      ]);
+      return toNumber(raw);
+    },
+
+    async hasApproved(reqId: number, signer: string): Promise<boolean> {
+      const raw = await chain.read("hasApproved", [
+        { type: "Integer", value: String(reqId) },
+        { type: "Hash160", value: signer },
+      ]);
+      return Boolean(raw);
+    },
+
+    async lastVaultId(): Promise<number> {
+      return toNumber(await chain.read("lastVaultId"));
+    },
+
+    async lastRequestId(): Promise<number> {
+      return toNumber(await chain.read("lastRequestId"));
+    },
+  };
 }
 
-async function writeIndex(ids: string[]): Promise<void> {
-  const unique = Array.from(new Set(ids)).slice(0, 200);
-  await backend.set(INDEX_KEY, unique);
-}
-
-async function persist(request: MultisigRequest): Promise<void> {
-  await backend.set(requestKey(request.id), request);
-}
-
-export const api = {
-  async get(id: string): Promise<MultisigRequest> {
-    const raw = await backend.get(requestKey(id.trim()));
-    if (!isMultisigRequest(raw)) {
-      throw new Error(`Request ${id} not found`);
-    }
-    return raw;
-  },
-
-  /** List every known request via the shared index (newest first). */
-  async list(): Promise<MultisigRequest[]> {
-    const ids = await readIndex();
-    const results = await Promise.all(
-      ids.map(async (id) => {
-        try {
-          return await this.get(id);
-        } catch {
-          return null;
-        }
-      }),
-    );
-    return results.filter(isMultisigRequest).sort((a, b) =>
-      b.created_at.localeCompare(a.created_at),
-    );
-  },
-
-  async create(params: {
-    chainId: string;
-    scriptHash: string;
-    threshold: number;
-    signers: string[];
-    transactionHex: string;
-    memo?: string;
-  }): Promise<MultisigRequest> {
-    const request: MultisigRequest = {
-      id: generateId(),
-      chain_id: params.chainId as MultisigRequest["chain_id"],
-      script_hash: params.scriptHash,
-      threshold: params.threshold,
-      signers: params.signers,
-      transaction_hex: params.transactionHex,
-      signatures: {},
-      status: "pending",
-      memo: params.memo,
-      created_at: new Date().toISOString(),
-    };
-    await persist(request);
-    const ids = await readIndex();
-    await writeIndex([request.id, ...ids]);
-    return request;
-  },
-
-  /**
-   * Append a signer's witness signature (keyed by compressed public key) and
-   * advance the request to `ready` once the threshold is met. Re-reads the
-   * shared record first so concurrent signers don't clobber each other.
-   */
-  async addSignature(
-    id: string,
-    publicKey: string,
-    signature: string,
-  ): Promise<MultisigRequest> {
-    const request = await this.get(id);
-    request.signatures = { ...request.signatures, [publicKey]: signature };
-
-    const sigCount = Object.keys(request.signatures).length;
-    if (sigCount >= request.threshold && request.status === "pending") {
-      request.status = "ready";
-    }
-
-    await persist(request);
-    return request;
-  },
-
-  async updateStatus(
-    id: string,
-    status: MultisigRequest["status"],
-    broadcastTxId?: string,
-  ): Promise<MultisigRequest> {
-    const request = await this.get(id);
-    request.status = status;
-    if (broadcastTxId) request.broadcast_txid = broadcastTxId;
-    await persist(request);
-    return request;
-  },
-};
+export type VaultApi = ReturnType<typeof createVaultApi>;

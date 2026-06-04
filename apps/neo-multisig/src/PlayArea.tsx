@@ -9,12 +9,17 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { useMultisigUI } from "./composables/useMultisigUI";
 import type { HistoryItem } from "./composables/useMultisigHistory";
-import type { MultisigRequest } from "./services/api";
-import { getPublicKeyAddress, normalizePublicKey } from "./utils/multisig";
+import {
+  fromBaseUnits,
+  isValidAddress,
+  isValidAmount,
+  MAX_SIGNERS,
+  MIN_SIGNERS,
+  type RequestView,
+  type VaultAsset,
+  type VaultView,
+} from "./utils/vault";
 import "./PlayArea.scss";
-
-type MultisigChain = "neo-n3-mainnet" | "neo-n3-testnet";
-type MultisigAsset = "GAS" | "NEO";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -24,103 +29,101 @@ interface PlayAreaProps {
 
 const SIGNER_SLOTS = 3;
 
-function shortId(id: string) {
-  return id.length > 16 ? `${id.slice(0, 8)}...${id.slice(-6)}` : id;
-}
-
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { bool, val, str } = useStateBindings(state);
+  const { bool, val } = useStateBindings(state);
   const { statusLabel, shorten, formatDate } = useMultisigUI();
-  const [idInput, setIdInput] = useState("");
+
+  // Create-vault form
   const [signers, setSigners] = useState(() =>
     Array.from({ length: SIGNER_SLOTS }, () => ""),
   );
   const [threshold, setThreshold] = useState("2");
-  const [selectedChain, setSelectedChain] =
-    useState<MultisigChain>("neo-n3-testnet");
-  const [asset, setAsset] = useState<MultisigAsset>("GAS");
-  const [toAddress, setToAddress] = useState("");
-  const [amount, setAmount] = useState("");
+
+  // Deposit + propose form
+  const [vaultIdInput, setVaultIdInput] = useState("");
+  const [depositAsset, setDepositAsset] = useState<VaultAsset>("GAS");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [spendAsset, setSpendAsset] = useState<VaultAsset>("GAS");
+  const [recipient, setRecipient] = useState("");
+  const [spendAmount, setSpendAmount] = useState("");
   const [memo, setMemo] = useState("");
 
+  // Load forms
+  const [loadVaultId, setLoadVaultId] = useState("");
+  const [loadRequestId, setLoadRequestId] = useState("");
+
   const history = (state.history?.get() ?? []) as HistoryItem[];
-  const lastRequest = val<MultisigRequest>("lastRequest");
-  const selectedRequest = val<MultisigRequest>("selectedRequest");
-  const connectedAddress = str("connectedAddress");
-  const isCreatingRequest = bool("isCreatingRequest");
-  const isLoadingRequest = bool("isLoadingRequest");
-  const isSigningRequest = bool("isSigningRequest");
-  const isBroadcastingRequest = bool("isBroadcastingRequest");
+  const activeVault = val<VaultView>("activeVault");
+  const activeRequest = val<RequestView>("activeRequest");
+  const isCreatingVault = bool("isCreatingVault");
+  const isDepositing = bool("isDepositing");
+  const isProposing = bool("isProposing");
+  const isApproving = bool("isApproving");
+  const isCancelling = bool("isCancelling");
 
-  const collectedSignatures = selectedRequest
-    ? Object.keys(selectedRequest.signatures ?? {}).length
-    : 0;
-  const requiredSignatures = selectedRequest?.threshold ?? 0;
-  const hasThreshold =
-    !!selectedRequest && collectedSignatures >= requiredSignatures;
-  const isBroadcasted = selectedRequest?.status === "broadcasted";
-
-  // Determine which (if any) of the request's signer public keys belongs to the
-  // connected wallet, and whether that key has already contributed a signature.
-  // This lets us hide the Sign action for a signer who already approved
-  // (re-signing is idempotent but a confusing, wasted wallet round-trip) and
-  // flag wallets that aren't on the signer list at all.
-  const { connectedSignerKey, isConnectedSigner } = useMemo(() => {
-    if (!selectedRequest || !connectedAddress) {
-      return { connectedSignerKey: "", isConnectedSigner: false };
-    }
-    for (const signer of selectedRequest.signers ?? []) {
-      try {
-        if (getPublicKeyAddress(signer) === connectedAddress) {
-          return {
-            connectedSignerKey: normalizePublicKey(signer),
-            isConnectedSigner: true,
-          };
-        }
-      } catch {
-        // Skip malformed signer keys rather than breaking the whole view.
-      }
-    }
-    return { connectedSignerKey: "", isConnectedSigner: false };
-  }, [selectedRequest, connectedAddress]);
-
-  const signedKeys = useMemo(
-    () =>
-      new Set(
-        Object.keys(selectedRequest?.signatures ?? {}).map(normalizePublicKey),
-      ),
-    [selectedRequest],
-  );
-  const alreadySigned =
-    !!connectedSignerKey && signedKeys.has(connectedSignerKey);
-  const notOnSignerList =
-    !!selectedRequest && !!connectedAddress && !isConnectedSigner;
-
-  const canSign =
-    !!selectedRequest &&
-    !isBroadcasted &&
-    !isSigningRequest &&
-    !alreadySigned;
-  const canBroadcast =
-    !!selectedRequest && hasThreshold && !isBroadcasted && !isBroadcastingRequest;
   const normalizedSigners = useMemo(
     () => signers.map((signer) => signer.trim()).filter(Boolean),
     [signers],
   );
   const thresholdNumber = Math.max(1, Math.floor(Number(threshold) || 0));
-  const signerDenominator = Math.max(normalizedSigners.length, 2);
-  const networkLabel =
-    selectedChain === "neo-n3-testnet" ? t("chainTestnet") : t("chainMainnet");
+  const signerDenominator = Math.max(normalizedSigners.length, MIN_SIGNERS);
+
+  // Vault id used by the deposit/propose forms: prefer the typed override,
+  // otherwise fall back to the active vault loaded into state.
+  const workingVaultId = useMemo(() => {
+    const typed = Math.floor(Number(vaultIdInput.trim()) || 0);
+    if (typed > 0) return typed;
+    return activeVault?.id ?? 0;
+  }, [vaultIdInput, activeVault]);
+
   const createBlockedReason = useMemo(() => {
-    if (normalizedSigners.length < 2) return t("multisigNeedSigners");
+    if (normalizedSigners.length < MIN_SIGNERS) return t("multisigNeedSigners");
+    if (normalizedSigners.length > MAX_SIGNERS) return t("multisigTooManySigners");
+    if (normalizedSigners.some((signer) => !isValidAddress(signer))) {
+      return t("multisigInvalidSignerAddress");
+    }
+    if (new Set(normalizedSigners).size !== normalizedSigners.length) {
+      return t("multisigDuplicateSigners");
+    }
     if (thresholdNumber > normalizedSigners.length) {
       return t("multisigThresholdBlocked");
     }
-    if (!toAddress.trim()) return t("multisigRecipientBlocked");
-    if (!amount.trim()) return t("multisigAmountBlocked");
     return "";
-  }, [amount, normalizedSigners.length, t, thresholdNumber, toAddress]);
-  const canCreateRequest = !createBlockedReason && !isCreatingRequest;
+  }, [normalizedSigners, t, thresholdNumber]);
+  const canCreateVault = !createBlockedReason && !isCreatingVault;
+
+  const thresholdOptions = useMemo(
+    () =>
+      Array.from({ length: Math.max(signerDenominator, 1) }, (_, index) => ({
+        value: String(index + 1),
+        label: String(index + 1),
+      })),
+    [signerDenominator],
+  );
+
+  const canDeposit =
+    workingVaultId > 0 &&
+    isValidAmount(depositAmount.trim(), depositAsset) &&
+    !isDepositing;
+
+  const canPropose =
+    workingVaultId > 0 &&
+    isValidAddress(recipient.trim()) &&
+    isValidAmount(spendAmount.trim(), spendAsset) &&
+    !isProposing;
+
+  const requestPending = activeRequest?.status === "pending";
+  const canApprove = !!activeRequest && requestPending && !isApproving;
+  const canCancel = !!activeRequest && requestPending && !isCancelling;
+
+  const vaultGas = activeVault ? fromBaseUnits(activeVault.gasBalance, "GAS") : "0";
+  const vaultNeo = activeVault ? fromBaseUnits(activeVault.neoBalance, "NEO") : "0";
+  const requestAmount = activeRequest
+    ? fromBaseUnits(
+        activeRequest.amount,
+        activeRequest.assetSymbol === "NEO" ? "NEO" : "GAS",
+      )
+    : "0";
 
   function updateSigner(index: number, value: string) {
     setSigners((current) =>
@@ -130,17 +133,40 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     );
   }
 
-  function createRequest() {
-    return dispatch("createRequest", {
+  function createVault() {
+    return dispatch("createVault", {
       signers: normalizedSigners,
       threshold: thresholdNumber,
-      selectedChain,
-      asset,
-      toAddress: toAddress.trim(),
-      amount: amount.trim(),
+    });
+  }
+
+  function deposit() {
+    return dispatch("deposit", {
+      vaultId: workingVaultId,
+      asset: depositAsset,
+      amount: depositAmount.trim(),
+    });
+  }
+
+  function propose() {
+    return dispatch("proposeRequest", {
+      vaultId: workingVaultId,
+      asset: spendAsset,
+      recipient: recipient.trim(),
+      amount: spendAmount.trim(),
       memo: memo.trim(),
     });
   }
+
+  const heroBalanceLabel = activeVault
+    ? `${vaultGas} GAS · ${vaultNeo} NEO`
+    : t("multisigDraftState");
+  const heroQuorumLabel = activeVault
+    ? `${activeVault.threshold} / ${activeVault.signers.length}`
+    : `${thresholdNumber} / ${signerDenominator}`;
+  const heroRequestLabel = activeRequest
+    ? statusLabel(activeRequest.status)
+    : t("multisigDraftState");
 
   return (
     <div className="multisig-play-area">
@@ -170,32 +196,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="multisig-hero-facts">
               <span className="multisig-hero-tile">
                 <small>{t("multisigQuorumTitle")}</small>
-                <strong>
-                  {thresholdNumber} / {signerDenominator}
-                </strong>
+                <strong>{heroQuorumLabel}</strong>
               </span>
               <span className="multisig-hero-tile">
-                <small>{t("multisigNetworkTitle")}</small>
-                <strong>{networkLabel}</strong>
+                <small>{t("multisigBalanceTitle")}</small>
+                <strong>{heroBalanceLabel}</strong>
               </span>
               <span className="multisig-hero-tile">
-                <small>{t("multisigBroadcastTitle")}</small>
-                <strong>
-                  {selectedRequest
-                    ? statusLabel(selectedRequest.status)
-                    : t("multisigDraftState")}
-                </strong>
+                <small>{t("multisigRequestStatusTitle")}</small>
+                <strong>{heroRequestLabel}</strong>
               </span>
             </div>
           </div>
 
           <div className="multisig-workspace">
             <NeoCard variant="erobo" className="multisig-request-panel">
+              {/* Step 1 — create a custody vault from signer addresses */}
               <div className="multisig-section-heading">
-                <span>{t("multisigRequestTitle")}</span>
-                <strong>{networkLabel}</strong>
+                <span>{t("multisigVaultTitle")}</span>
+                <strong>{t("multisigStepCreate")}</strong>
               </div>
-              <p>{t("multisigRequestCopy")}</p>
+              <p>{t("multisigVaultCopy")}</p>
 
               <div className="multisig-form-grid">
                 <div className="multisig-signer-grid" aria-label={t("ariaSigners")}>
@@ -214,62 +235,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <NeoSelect
                     value={threshold}
                     label={t("thresholdLabel")}
-                    options={[
-                      { value: "1", label: "1" },
-                      { value: "2", label: "2" },
-                      { value: "3", label: "3" },
-                    ]}
+                    options={thresholdOptions}
                     onChange={setThreshold}
                   />
-                  <NeoSelect
-                    value={selectedChain}
-                    label={t("chainLabel")}
-                    options={[
-                      { value: "neo-n3-testnet", label: t("chainTestnet") },
-                      { value: "neo-n3-mainnet", label: t("chainMainnet") },
-                    ]}
-                    onChange={(value) =>
-                      setSelectedChain(
-                        value === "neo-n3-mainnet"
-                          ? "neo-n3-mainnet"
-                          : "neo-n3-testnet",
-                      )
-                    }
-                  />
-                  <NeoSelect
-                    value={asset}
-                    label={t("assetLabel")}
-                    options={[
-                      { value: "GAS", label: t("assetGas") },
-                      { value: "NEO", label: t("assetNeo") },
-                    ]}
-                    onChange={(value) => setAsset(value === "NEO" ? "NEO" : "GAS")}
-                  />
                 </div>
-
-                <div className="multisig-form-row multisig-form-row--transfer">
-                  <NeoInput
-                    value={toAddress}
-                    label={t("toAddressLabel")}
-                    placeholder={t("toAddressPlaceholder")}
-                    onChange={setToAddress}
-                  />
-                  <NeoInput
-                    value={amount}
-                    label={t("amountLabel")}
-                    placeholder={t("amountPlaceholder")}
-                    suffix={asset}
-                    onChange={setAmount}
-                  />
-                </div>
-
-                <NeoInput
-                  value={memo}
-                  type="textarea"
-                  label={t("memoLabel")}
-                  placeholder={t("memoPlaceholder")}
-                  onChange={setMemo}
-                />
               </div>
 
               {createBlockedReason ? (
@@ -283,108 +252,202 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="multisig-primary-actions">
                 <NeoButton
                   variant="primary"
-                  loading={isCreatingRequest}
-                  disabled={!canCreateRequest}
-                  onClick={createRequest}
+                  loading={isCreatingVault}
+                  disabled={!canCreateVault}
+                  onClick={createVault}
                 >
-                  {t("buttonCreate")}
+                  {t("buttonCreateVault")}
                 </NeoButton>
                 <div className="multisig-load-box">
                   <NeoInput
-                    value={idInput}
-                    label={t("loadTitle")}
-                    placeholder={t("loadPlaceholder")}
-                    onChange={setIdInput}
+                    value={loadVaultId}
+                    type="number"
+                    label={t("loadVaultTitle")}
+                    placeholder={t("loadVaultPlaceholder")}
+                    onChange={setLoadVaultId}
                   />
                   <NeoButton
                     variant="secondary"
-                    loading={isLoadingRequest}
-                    disabled={!idInput.trim() || isLoadingRequest}
-                    onClick={() => dispatch("loadTransaction", idInput.trim())}
+                    disabled={!loadVaultId.trim()}
+                    onClick={() => dispatch("loadVault", loadVaultId.trim())}
                   >
                     {t("loadButton")}
                   </NeoButton>
                 </div>
               </div>
 
-              {(lastRequest || selectedRequest) && (
-                <div className="multisig-receipt" aria-live="polite">
-                  <span>{t("detailId")}</span>
-                  <strong>{shortId((selectedRequest || lastRequest)?.id || "")}</strong>
-                  <em>{t("multisigReceiptCopy")}</em>
-                </div>
+              {activeVault && (
+                <>
+                  <div className="multisig-receipt" aria-live="polite">
+                    <span>{t("multisigVaultIdLabel")}</span>
+                    <strong>#{activeVault.id}</strong>
+                    <em>{t("multisigVaultReceiptCopy")}</em>
+                  </div>
+
+                  {/* Step 2 — deposit into the vault */}
+                  <div className="multisig-section-heading">
+                    <span>{t("multisigDepositTitle")}</span>
+                    <strong>{t("multisigStepDeposit")}</strong>
+                  </div>
+                  <p>{t("multisigDepositCopy")}</p>
+                  <div className="multisig-form-row multisig-form-row--transfer">
+                    <NeoInput
+                      value={depositAmount}
+                      label={t("amountLabel")}
+                      placeholder={t("amountPlaceholder")}
+                      suffix={depositAsset}
+                      onChange={setDepositAmount}
+                    />
+                    <NeoSelect
+                      value={depositAsset}
+                      label={t("assetLabel")}
+                      options={[
+                        { value: "GAS", label: t("assetGas") },
+                        { value: "NEO", label: t("assetNeo") },
+                      ]}
+                      onChange={(value) =>
+                        setDepositAsset(value === "NEO" ? "NEO" : "GAS")
+                      }
+                    />
+                  </div>
+                  <div className="multisig-primary-actions">
+                    <NeoButton
+                      variant="primary"
+                      loading={isDepositing}
+                      disabled={!canDeposit}
+                      onClick={deposit}
+                    >
+                      {t("buttonDeposit")}
+                    </NeoButton>
+                  </div>
+
+                  {/* Step 3 — propose a spend */}
+                  <div className="multisig-section-heading">
+                    <span>{t("multisigProposeTitle")}</span>
+                    <strong>{t("multisigStepPropose")}</strong>
+                  </div>
+                  <p>{t("multisigProposeCopy")}</p>
+                  <div className="multisig-form-grid">
+                    <div className="multisig-form-row multisig-form-row--transfer">
+                      <NeoInput
+                        value={recipient}
+                        label={t("toAddressLabel")}
+                        placeholder={t("toAddressPlaceholder")}
+                        onChange={setRecipient}
+                      />
+                      <NeoSelect
+                        value={spendAsset}
+                        label={t("assetLabel")}
+                        options={[
+                          { value: "GAS", label: t("assetGas") },
+                          { value: "NEO", label: t("assetNeo") },
+                        ]}
+                        onChange={(value) =>
+                          setSpendAsset(value === "NEO" ? "NEO" : "GAS")
+                        }
+                      />
+                    </div>
+                    <div className="multisig-form-row multisig-form-row--transfer">
+                      <NeoInput
+                        value={spendAmount}
+                        label={t("amountLabel")}
+                        placeholder={t("amountPlaceholder")}
+                        suffix={spendAsset}
+                        onChange={setSpendAmount}
+                      />
+                    </div>
+                    <NeoInput
+                      value={memo}
+                      type="textarea"
+                      label={t("memoLabel")}
+                      placeholder={t("memoPlaceholder")}
+                      onChange={setMemo}
+                    />
+                  </div>
+                  <div className="multisig-primary-actions">
+                    <NeoButton
+                      variant="primary"
+                      loading={isProposing}
+                      disabled={!canPropose}
+                      onClick={propose}
+                    >
+                      {t("buttonPropose")}
+                    </NeoButton>
+                  </div>
+                </>
               )}
 
-              {selectedRequest && (
+              {/* Step 4 — approve / cancel a loaded request */}
+              <div className="multisig-load-box">
+                <NeoInput
+                  value={loadRequestId}
+                  type="number"
+                  label={t("loadRequestTitle")}
+                  placeholder={t("loadRequestPlaceholder")}
+                  onChange={setLoadRequestId}
+                />
+                <NeoButton
+                  variant="secondary"
+                  disabled={!loadRequestId.trim()}
+                  onClick={() => dispatch("loadRequest", loadRequestId.trim())}
+                >
+                  {t("loadButton")}
+                </NeoButton>
+              </div>
+
+              {activeRequest && (
                 <>
                   <div className="multisig-request-details">
                     <div>
                       <span>{t("statusLabel")}</span>
-                      <strong>{statusLabel(selectedRequest.status)}</strong>
+                      <strong>{statusLabel(activeRequest.status)}</strong>
                     </div>
                     <div>
-                      <span>{t("multisigScriptHashLabel")}</span>
-                      <strong>{shorten(selectedRequest.script_hash)}</strong>
+                      <span>{t("reviewAmount")}</span>
+                      <strong>
+                        {requestAmount} {activeRequest.assetSymbol}
+                      </strong>
                     </div>
                     <div>
                       <span>{t("reviewSigners")}</span>
                       <strong>
-                        {collectedSignatures} / {requiredSignatures}
+                        {activeRequest.approvalCount} /{" "}
+                        {activeVault?.threshold ?? "?"}
                       </strong>
                     </div>
-                    {selectedRequest.broadcast_txid && (
-                      <div>
-                        <span>{t("broadcastedTxid")}</span>
-                        <strong>{shorten(selectedRequest.broadcast_txid)}</strong>
-                      </div>
-                    )}
+                    <div>
+                      <span>{t("reviewTo")}</span>
+                      <strong>{shorten(activeRequest.recipient)}</strong>
+                    </div>
                   </div>
 
                   <p className="multisig-request-hint" aria-live="polite">
-                    {t("signatureProgress", {
-                      count: collectedSignatures,
-                      total: requiredSignatures,
+                    {t("approvalProgress", {
+                      count: activeRequest.approvalCount,
+                      total: activeVault?.threshold ?? 0,
                     })}
                   </p>
-                  {!isBroadcasted && alreadySigned && (
-                    <p
-                      className="multisig-request-hint is-ready"
-                      aria-live="polite"
-                    >
-                      {t("multisigAlreadySigned")}
-                    </p>
-                  )}
-                  {!isBroadcasted && notOnSignerList && (
-                    <p className="multisig-request-hint" aria-live="polite">
-                      {t("multisigNotSignerHint")}
-                    </p>
-                  )}
+
                   <div className="multisig-primary-actions multisig-primary-actions--row">
                     <NeoButton
                       variant="primary"
-                      loading={isSigningRequest}
-                      disabled={!canSign}
+                      loading={isApproving}
+                      disabled={!canApprove}
                       onClick={() =>
-                        dispatch("signRequest", selectedRequest.id)
+                        dispatch("approveRequest", activeRequest.id)
                       }
                     >
-                      {isSigningRequest
-                        ? t("buttonSigning")
-                        : alreadySigned
-                          ? t("buttonSigned")
-                          : t("buttonSign")}
+                      {isApproving ? t("buttonApproving") : t("buttonApprove")}
                     </NeoButton>
                     <NeoButton
                       variant="secondary"
-                      loading={isBroadcastingRequest}
-                      disabled={!canBroadcast}
+                      loading={isCancelling}
+                      disabled={!canCancel}
                       onClick={() =>
-                        dispatch("broadcastRequest", selectedRequest.id)
+                        dispatch("cancelRequest", activeRequest.id)
                       }
                     >
-                      {isBroadcastingRequest
-                        ? t("buttonBroadcasting")
-                        : t("buttonBroadcast")}
+                      {isCancelling ? t("buttonCancelling") : t("buttonCancel")}
                     </NeoButton>
                   </div>
                 </>
@@ -400,32 +463,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <p>{t("multisigSignerCopy")}</p>
                 <div className="multisig-signal-row">
                   <span>{t("reviewSigners")}</span>
-                  <strong>{normalizedSigners.length}</strong>
+                  <strong>
+                    {activeVault?.signers.length ?? normalizedSigners.length}
+                  </strong>
                 </div>
                 <div className="multisig-signal-row">
                   <span>{t("thresholdLabel")}</span>
-                  <strong>
-                    {thresholdNumber} / {signerDenominator}
-                  </strong>
+                  <strong>{heroQuorumLabel}</strong>
                 </div>
+                {activeVault && (
+                  <>
+                    <div className="multisig-signal-row">
+                      <span>{t("assetGas")}</span>
+                      <strong>{vaultGas}</strong>
+                    </div>
+                    <div className="multisig-signal-row">
+                      <span>{t("assetNeo")}</span>
+                      <strong>{vaultNeo}</strong>
+                    </div>
+                  </>
+                )}
               </NeoCard>
 
               <NeoCard variant="erobo" className="multisig-route-panel">
                 <div className="multisig-section-heading">
                   <span>{t("multisigRouteTitle")}</span>
-                  <strong>{networkLabel}</strong>
+                  <strong>{t("multisigNetworkValue")}</strong>
                 </div>
                 <p>{t("multisigRouteCopy")}</p>
                 <div className="multisig-signal-row">
-                  <span>{t("buttonCreate")}</span>
+                  <span>{t("buttonCreateVault")}</span>
                   <strong>{t("multisigRouteCreate")}</strong>
                 </div>
                 <div className="multisig-signal-row">
-                  <span>{t("buttonSign")}</span>
+                  <span>{t("buttonPropose")}</span>
                   <strong>{t("multisigRouteSign")}</strong>
                 </div>
                 <div className="multisig-signal-row">
-                  <span>{t("buttonBroadcast")}</span>
+                  <span>{t("buttonApprove")}</span>
                   <strong>{t("multisigRouteBroadcast")}</strong>
                 </div>
               </NeoCard>
@@ -441,13 +516,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <div className="multisig-history-list">
                     {history.map((item) => (
                       <button
-                        key={item.id}
+                        key={`${item.kind}:${item.id}`}
                         type="button"
                         className="multisig-history-card"
-                        onClick={() => dispatch("loadTransaction", item.id)}
+                        onClick={() =>
+                          dispatch(
+                            item.kind === "vault" ? "loadVault" : "loadRequest",
+                            item.id,
+                          )
+                        }
                       >
-                        <span>{shorten(item.scriptHash)}</span>
-                        <strong>{statusLabel(item.status)}</strong>
+                        <span>{item.label}</span>
+                        <strong>
+                          {item.kind === "vault"
+                            ? t("multisigVaultBadge")
+                            : statusLabel(item.status ?? "pending")}
+                        </strong>
                         <em>{formatDate(item.createdAt)}</em>
                       </button>
                     ))}
