@@ -86,18 +86,17 @@ const STREAM_PRESETS: StreamPreset[] = [
     },
   },
   {
-    // Only GAS is supported by the deposit/vesting edges (see useNeoPayApp).
-    // A long-horizon GAS vesting preset replaces the previously broken 90d NEO
-    // preset, which always failed: NEO is indivisible so a 1-NEO / 90-day
-    // stream truncated the per-interval rate to 0 and was rejected.
-    id: "90d-gas",
-    label: "90d GAS",
+    // NEO is supported by the standalone MiniAppNeoPay contract: it takes
+    // indivisible integer NEO deposits and streams them directly. 90 NEO over
+    // 90 days = exactly 1 NEO/day, so the per-interval integer rate is valid.
+    id: "90d-neo",
+    label: "90d NEO",
     values: {
-      title: "Quarterly vesting stream",
+      title: "Quarterly NEO vesting stream",
       amount: "90",
       duration: "90",
-      token: "GAS",
-      notes: "Quarterly vesting release",
+      token: "NEO",
+      notes: "Quarterly NEO vesting release",
     },
   },
 ];
@@ -658,6 +657,7 @@ export default function PlayArea({
               required
               options={[
                 { value: "GAS", label: "GAS" },
+                { value: "NEO", label: "NEO" },
               ]}
               onChange={(value) => setToken(normalizeToken(value))}
             />

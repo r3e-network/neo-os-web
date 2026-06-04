@@ -66,10 +66,9 @@ export const manifest: MiniAppManifest = {
           validation: { min: 1, max: 365 },
         },
         {
-          // Only GAS is supported: the os-payment-deposit and os-vesting-create
-          // edges transfer GAS and scale by 10^8. NEO (indivisible, different
-          // native contract) cannot be funded/streamed correctly until those
-          // edges accept a per-asset contract/decimals.
+          // GAS and NEO are both supported by the standalone MiniAppNeoPay
+          // contract: it takes base-unit deposits for either token (GAS scaled
+          // by 1e8, NEO as an indivisible integer count). GAS is the default.
           key: "token",
           type: "select",
           labelKey: "token",
@@ -77,6 +76,7 @@ export const manifest: MiniAppManifest = {
           required: true,
           options: [
             { value: "GAS", label: "GAS" },
+            { value: "NEO", label: "NEO" },
           ],
         },
         {

@@ -43,12 +43,12 @@ const appMessages = {
     zh: "资金流索引暂不可用",
   },
   streamListUnavailable: {
-    en: "The payment stream index is not available in this environment yet. You can still prepare a new stream; created and incoming stream lists will refresh once the OS vesting service is configured.",
-    zh: "当前环境尚未启用资金流索引服务。你仍可以准备新的资金流；OS 释放服务配置完成后，已创建和待领取列表会自动恢复刷新。",
+    en: "The payment stream index could not be loaded right now. You can still prepare a new stream; created and incoming stream lists refresh once the stream contract is reachable.",
+    zh: "暂时无法加载资金流索引。你仍可以准备新的资金流；当资金流合约可访问时，已创建和待领取列表会自动刷新。",
   },
   streamActionUnavailable: {
-    en: "Payment stream services are not configured in this environment yet. Review the stream details here, then submit once the OS payment and vesting services are available.",
-    zh: "当前环境尚未配置流式支付服务。你可以先在此检查资金流参数；OS 支付与释放服务可用后再提交。",
+    en: "The stream action could not be completed right now. Review the stream details here, then try again.",
+    zh: "暂时无法完成该资金流操作。你可以先在此检查资金流参数，然后重试。",
   },
   to: { en: "To", zh: "收款方" },
   from: { en: "From", zh: "付款方" },
@@ -97,13 +97,9 @@ const appMessages = {
   invalidAmount: { en: "Enter a valid amount", zh: "请输入有效金额" },
   rateTooHigh: { en: "Release amount exceeds total", zh: "释放金额超过总金额" },
   intervalInvalid: { en: "Interval out of range", zh: "周期超出范围" },
-  assetUnsupported: {
-    en: "Only GAS streams are supported in this environment",
-    zh: "当前环境仅支持 GAS 资金流",
-  },
   depositStrandedRecoverable: {
-    en: "Deposit succeeded but the stream was not created. Your funds are safe in your payment balance and can be withdrawn.",
-    zh: "存入成功，但资金流未能创建。资金已安全保留在你的支付余额中，可随时提取。",
+    en: "Your deposit landed but the stream was not created. The prepaid credit is held on the contract under your address — submit again to reuse it without depositing twice.",
+    zh: "存入已到账，但资金流未能创建。预付额度已在合约中保留在你的地址名下——再次提交即可复用，无需重复存入。",
   },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
 
