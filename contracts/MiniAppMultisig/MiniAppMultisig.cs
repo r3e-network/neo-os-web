@@ -10,32 +10,35 @@ using Neo.SmartContract.Framework.Services;
 namespace NeoMiniAppPlatform.Contracts
 {
     /// <summary>
-    /// MiniAppMultisig — on-chain M-of-N approval registry.
+    /// MiniAppMultisig — on-chain custody multisig wallet (M-of-N).
     ///
-    /// WHY THIS DESIGN: the dApi wallet layer (OneGate/NeoLine signMessage) cannot
-    /// produce the raw secp256r1 witness a native Neo `CheckMultisig` script needs,
-    /// so collecting partial witnesses client-side is impossible. Instead each
-    /// signer approves with a NORMAL single-signature wallet invocation of
-    /// Approve(...), which the contract authenticates with Runtime.CheckWitness.
-    /// The contract records approvals and fires RequestApproved once the threshold
-    /// is reached — verifiable on-chain M-of-N consensus over an intent hash.
-    ///
-    /// This contract holds NO funds (no OnNEP17Payment): it is a pure approval
-    /// ledger, so there is no custody/fund-loss surface. Execution of the approved
-    /// intent is left to the consumer once the on-chain Approved status is reached.
+    /// WHY THIS DESIGN: the dApi wallet (OneGate/NeoLine signMessage/NEP-413)
+    /// cannot produce the raw secp256r1 witness a native Neo CheckMultisig script
+    /// needs, so partial-witness collection is impossible client-side. Instead a
+    /// shared VAULT (set of signer addresses + threshold) custodies NEO/GAS in
+    /// THIS contract; spends are proposed as requests and each signer approves
+    /// with a NORMAL single-sig invoke authenticated by Runtime.CheckWitness. When
+    /// approvals reach the threshold the contract itself transfers the funds to the
+    /// recipient. No raw multisig witness is ever required.
     ///
     /// SECURITY:
-    /// - Only a listed signer can approve (CheckWitness), once, while Pending.
-    /// - Only the creator can cancel, while Pending.
-    /// - Signer set is fixed at creation; duplicates rejected; 2..16 signers.
-    /// - Threshold is 1..signerCount.
+    /// - Only NEO and GAS deposits accepted (OnNEP17Payment caller check).
+    /// - Amounts are stored/compared in BASE UNITS (BigInteger) exactly as the
+    ///   native token reports them — NEO is indivisible (0 decimals), GAS has 8;
+    ///   the contract never rescales, so there is no 10^8 class of bug.
+    /// - Only a vault signer may create a request (and only up to the vault
+    ///   balance) or approve it; one approval per signer; creator-only cancel.
+    /// - Execution uses checks-effects-interactions: status + balance are written
+    ///   BEFORE the outbound transfer, so a re-entrant recipient cannot double
+    ///   spend. A failed transfer asserts, reverting the whole atomic invocation.
     /// </summary>
     [DisplayName("MiniAppMultisig")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "On-chain M-of-N approval registry: each signer approves via a normal single-sig invoke; threshold consensus is recorded on-chain.")]
-    [ContractPermission("*", "*")]
+    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Description", "On-chain M-of-N custody multisig wallet: shared NEO/GAS vault, per-signer CheckWitness approvals, contract-executed release at threshold.")]
+    [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
+    [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer")] // NEO
     public class MiniAppMultisig : SmartContract
     {
         #region Constants
@@ -44,59 +47,94 @@ namespace NeoMiniAppPlatform.Contracts
         private const int MAX_MEMO_LENGTH = 160;
 
         private const byte STATUS_PENDING = 0;
-        private const byte STATUS_APPROVED = 1;
+        private const byte STATUS_EXECUTED = 1;
         private const byte STATUS_CANCELLED = 2;
+
+        private const byte ASSET_NEO = 1;
+        private const byte ASSET_GAS = 2;
         #endregion
 
-        #region Storage Prefixes
-        /// <summary>0x10: BigInteger counter of the last request id.</summary>
-        private static readonly byte[] PREFIX_REQUEST_ID = new byte[] { 0x10 };
-        /// <summary>0x11 + reqId: serialized MultisigRequest.</summary>
-        private static readonly byte[] PREFIX_REQUEST = new byte[] { 0x11 };
-        /// <summary>0x12 + reqId + signer: 1 if that signer has approved.</summary>
-        private static readonly byte[] PREFIX_APPROVED = new byte[] { 0x12 };
+        #region Storage prefixes
+        private static readonly byte[] PREFIX_VAULT_ID = new byte[] { 0x10 };
+        private static readonly byte[] PREFIX_VAULT = new byte[] { 0x11 };       // + vaultId -> Vault
+        private static readonly byte[] PREFIX_BALANCE = new byte[] { 0x12 };     // + vaultId + assetByte -> BigInteger
+        private static readonly byte[] PREFIX_REQUEST_ID = new byte[] { 0x20 };
+        private static readonly byte[] PREFIX_REQUEST = new byte[] { 0x21 };     // + reqId -> Request
+        private static readonly byte[] PREFIX_APPROVED = new byte[] { 0x22 };    // + reqId + signer -> 1
         #endregion
 
         #region Events
+        [DisplayName("VaultCreated")]
+        public static event Action<BigInteger, UInt160, BigInteger, BigInteger> OnVaultCreated;
+
+        [DisplayName("Deposited")]
+        public static event Action<BigInteger, UInt160, UInt160, BigInteger> OnDeposited;
+
         [DisplayName("RequestCreated")]
-        public static event Action<BigInteger, UInt160, BigInteger, BigInteger, ByteString> OnRequestCreated;
+        public static event Action<BigInteger, BigInteger, UInt160, UInt160, BigInteger> OnRequestCreated;
 
         [DisplayName("Approved")]
         public static event Action<BigInteger, UInt160, BigInteger> OnApproved;
 
-        [DisplayName("RequestApproved")]
-        public static event Action<BigInteger> OnRequestApproved;
+        [DisplayName("RequestExecuted")]
+        public static event Action<BigInteger, UInt160, UInt160, BigInteger> OnRequestExecuted;
 
         [DisplayName("RequestCancelled")]
         public static event Action<BigInteger> OnRequestCancelled;
         #endregion
 
         #region Types
-        public struct MultisigRequest
+        public struct Vault
         {
             public UInt160 Creator;
             public BigInteger Threshold;
+            public BigInteger CreatedTime;
+            public UInt160[] Signers;
+        }
+
+        public struct Request
+        {
+            public BigInteger VaultId;
+            public UInt160 Creator;
+            public UInt160 Recipient;
+            public UInt160 Asset;
+            public BigInteger Amount;
             public BigInteger ApprovalCount;
             public BigInteger Status;
             public BigInteger CreatedTime;
-            public ByteString IntentHash;
             public string Memo;
-            public UInt160[] Signers;
         }
         #endregion
 
-        #region Mutating methods
+        #region Deposit
         /// <summary>
-        /// Create an approval request. The caller (creator) must witness the call.
-        /// signers must contain 2..16 distinct addresses; threshold in 1..signers.
-        /// intentHash is an opaque 32-byte hash of the action the signers approve.
+        /// Fund a vault by transferring NEO or GAS to this contract with the target
+        /// vaultId in the transfer data. Rejects any other asset and unknown vault.
         /// </summary>
-        public static BigInteger CreateRequest(
-            UInt160 creator,
-            UInt160[] signers,
-            BigInteger threshold,
-            ByteString intentHash,
-            string memo)
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            UInt160 caller = Runtime.CallingScriptHash;
+            byte assetByte;
+            if (caller == NEO.Hash) assetByte = ASSET_NEO;
+            else if (caller == GAS.Hash) assetByte = ASSET_GAS;
+            else { ExecutionEngine.Assert(false, "only NEO or GAS accepted"); return; }
+
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            ExecutionEngine.Assert(data is not null, "vault id required in transfer data");
+            BigInteger vaultId = (BigInteger)data;
+
+            StorageContext ctx = Storage.CurrentContext;
+            ExecutionEngine.Assert(Storage.Get(ctx, VaultKey(vaultId)) is not null, "vault not found");
+
+            byte[] balKey = BalanceKey(vaultId, assetByte);
+            BigInteger bal = (BigInteger)Storage.Get(ctx, balKey) + amount;
+            Storage.Put(ctx, balKey, bal);
+            OnDeposited(vaultId, from, caller, amount);
+        }
+        #endregion
+
+        #region Vault + request lifecycle
+        public static BigInteger CreateVault(UInt160 creator, UInt160[] signers, BigInteger threshold)
         {
             ExecutionEngine.Assert(creator is not null && creator.IsValid && !creator.IsZero, "invalid creator");
             ExecutionEngine.Assert(Runtime.CheckWitness(creator), "creator witness required");
@@ -105,101 +143,162 @@ namespace NeoMiniAppPlatform.Contracts
             int count = signers.Length;
             ExecutionEngine.Assert(count >= MIN_SIGNERS && count <= MAX_SIGNERS, "signer count out of range");
             ExecutionEngine.Assert(threshold >= 1 && threshold <= count, "invalid threshold");
-            ExecutionEngine.Assert(memo is null || memo.Length <= MAX_MEMO_LENGTH, "memo too long");
-
-            // Validate each signer and reject duplicates.
             for (int i = 0; i < count; i++)
             {
                 UInt160 s = signers[i];
                 ExecutionEngine.Assert(s is not null && s.IsValid && !s.IsZero, "invalid signer");
                 for (int j = i + 1; j < count; j++)
-                {
                     ExecutionEngine.Assert(s != signers[j], "duplicate signer");
-                }
             }
 
             StorageContext ctx = Storage.CurrentContext;
-            BigInteger reqId = (BigInteger)Storage.Get(ctx, PREFIX_REQUEST_ID) + 1;
-            Storage.Put(ctx, PREFIX_REQUEST_ID, reqId);
+            BigInteger vaultId = (BigInteger)Storage.Get(ctx, PREFIX_VAULT_ID) + 1;
+            Storage.Put(ctx, PREFIX_VAULT_ID, vaultId);
 
-            MultisigRequest request = new MultisigRequest
+            Vault vault = new Vault
             {
                 Creator = creator,
                 Threshold = threshold,
+                CreatedTime = Runtime.Time,
+                Signers = signers,
+            };
+            Storage.Put(ctx, VaultKey(vaultId), StdLib.Serialize(vault));
+            OnVaultCreated(vaultId, creator, threshold, count);
+            return vaultId;
+        }
+
+        public static BigInteger CreateRequest(
+            BigInteger vaultId,
+            UInt160 creator,
+            UInt160 recipient,
+            UInt160 asset,
+            BigInteger amount,
+            string memo)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(creator), "creator witness required");
+            ExecutionEngine.Assert(recipient is not null && recipient.IsValid && !recipient.IsZero, "invalid recipient");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            ExecutionEngine.Assert(memo is null || memo.Length <= MAX_MEMO_LENGTH, "memo too long");
+            byte assetByte = AssetByte(asset);
+
+            StorageContext ctx = Storage.CurrentContext;
+            ByteString rawVault = Storage.Get(ctx, VaultKey(vaultId));
+            ExecutionEngine.Assert(rawVault is not null, "vault not found");
+            Vault vault = (Vault)StdLib.Deserialize(rawVault);
+            ExecutionEngine.Assert(IsSignerOf(vault, creator), "creator not a vault signer");
+
+            BigInteger bal = (BigInteger)Storage.Get(ctx, BalanceKey(vaultId, assetByte));
+            ExecutionEngine.Assert(amount <= bal, "amount exceeds vault balance");
+
+            BigInteger reqId = (BigInteger)Storage.Get(ctx, PREFIX_REQUEST_ID) + 1;
+            Storage.Put(ctx, PREFIX_REQUEST_ID, reqId);
+
+            Request request = new Request
+            {
+                VaultId = vaultId,
+                Creator = creator,
+                Recipient = recipient,
+                Asset = asset,
+                Amount = amount,
                 ApprovalCount = 0,
                 Status = STATUS_PENDING,
                 CreatedTime = Runtime.Time,
-                IntentHash = intentHash ?? (ByteString)"",
                 Memo = memo ?? "",
-                Signers = signers,
             };
             Storage.Put(ctx, RequestKey(reqId), StdLib.Serialize(request));
-
-            OnRequestCreated(reqId, creator, threshold, count, request.IntentHash);
+            OnRequestCreated(reqId, vaultId, creator, recipient, amount);
             return reqId;
         }
 
-        /// <summary>
-        /// Approve a pending request as one of its signers. The signer must witness
-        /// the call (their own single-sig wallet), be a listed signer, and not have
-        /// approved already. When the approval count reaches the threshold the
-        /// request transitions to Approved and RequestApproved fires.
-        /// </summary>
         public static void Approve(BigInteger requestId, UInt160 signer)
         {
             ExecutionEngine.Assert(signer is not null && signer.IsValid && !signer.IsZero, "invalid signer");
             ExecutionEngine.Assert(Runtime.CheckWitness(signer), "signer witness required");
 
             StorageContext ctx = Storage.CurrentContext;
-            ByteString raw = Storage.Get(ctx, RequestKey(requestId));
-            ExecutionEngine.Assert(raw is not null, "request not found");
-
-            MultisigRequest request = (MultisigRequest)StdLib.Deserialize(raw);
+            ByteString rawReq = Storage.Get(ctx, RequestKey(requestId));
+            ExecutionEngine.Assert(rawReq is not null, "request not found");
+            Request request = (Request)StdLib.Deserialize(rawReq);
             ExecutionEngine.Assert(request.Status == STATUS_PENDING, "request not pending");
-            ExecutionEngine.Assert(IsListedSigner(request, signer), "not a signer");
+
+            Vault vault = (Vault)StdLib.Deserialize(Storage.Get(ctx, VaultKey(request.VaultId)));
+            ExecutionEngine.Assert(IsSignerOf(vault, signer), "not a signer");
 
             byte[] approvedKey = ApprovedKey(requestId, signer);
             ExecutionEngine.Assert(Storage.Get(ctx, approvedKey) is null, "already approved");
             Storage.Put(ctx, approvedKey, 1);
 
             request.ApprovalCount += 1;
-            if (request.ApprovalCount >= request.Threshold)
-            {
-                request.Status = STATUS_APPROVED;
-            }
-            Storage.Put(ctx, RequestKey(requestId), StdLib.Serialize(request));
-
             OnApproved(requestId, signer, request.ApprovalCount);
-            if (request.Status == STATUS_APPROVED)
+
+            if (request.ApprovalCount >= vault.Threshold)
             {
-                OnRequestApproved(requestId);
+                byte assetByte = AssetByte(request.Asset);
+                byte[] balKey = BalanceKey(request.VaultId, assetByte);
+                BigInteger bal = (BigInteger)Storage.Get(ctx, balKey);
+                ExecutionEngine.Assert(request.Amount <= bal, "vault balance insufficient at execution");
+
+                // Effects BEFORE interaction (reentrancy-safe + atomic on failure).
+                Storage.Put(ctx, balKey, bal - request.Amount);
+                request.Status = STATUS_EXECUTED;
+                Storage.Put(ctx, RequestKey(requestId), StdLib.Serialize(request));
+
+                bool ok = (bool)Contract.Call(
+                    request.Asset, "transfer", CallFlags.All,
+                    new object[] { Runtime.ExecutingScriptHash, request.Recipient, request.Amount, "" });
+                ExecutionEngine.Assert(ok, "asset transfer failed");
+
+                OnRequestExecuted(requestId, request.Recipient, request.Asset, request.Amount);
+            }
+            else
+            {
+                Storage.Put(ctx, RequestKey(requestId), StdLib.Serialize(request));
             }
         }
 
-        /// <summary>Cancel a still-pending request. Only the creator may cancel.</summary>
         public static void Cancel(BigInteger requestId, UInt160 caller)
         {
             ExecutionEngine.Assert(Runtime.CheckWitness(caller), "caller witness required");
-
             StorageContext ctx = Storage.CurrentContext;
-            ByteString raw = Storage.Get(ctx, RequestKey(requestId));
-            ExecutionEngine.Assert(raw is not null, "request not found");
-
-            MultisigRequest request = (MultisigRequest)StdLib.Deserialize(raw);
+            ByteString rawReq = Storage.Get(ctx, RequestKey(requestId));
+            ExecutionEngine.Assert(rawReq is not null, "request not found");
+            Request request = (Request)StdLib.Deserialize(rawReq);
             ExecutionEngine.Assert(request.Status == STATUS_PENDING, "request not pending");
             ExecutionEngine.Assert(request.Creator == caller, "only creator can cancel");
-
             request.Status = STATUS_CANCELLED;
             Storage.Put(ctx, RequestKey(requestId), StdLib.Serialize(request));
             OnRequestCancelled(requestId);
         }
         #endregion
 
-        #region Read-only methods
+        #region Read-only
         [Safe]
-        public static BigInteger LastRequestId()
+        public static BigInteger LastVaultId() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_VAULT_ID);
+
+        [Safe]
+        public static BigInteger LastRequestId() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_REQUEST_ID);
+
+        [Safe]
+        public static BigInteger BalanceOf(BigInteger vaultId, UInt160 asset)
         {
-            return (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_REQUEST_ID);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, BalanceKey(vaultId, AssetByte(asset)));
+        }
+
+        [Safe]
+        public static Map<string, object> GetVault(BigInteger vaultId)
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, VaultKey(vaultId));
+            ExecutionEngine.Assert(raw is not null, "vault not found");
+            Vault vault = (Vault)StdLib.Deserialize(raw);
+            Map<string, object> m = new Map<string, object>();
+            m["id"] = vaultId;
+            m["creator"] = vault.Creator;
+            m["threshold"] = vault.Threshold;
+            m["createdTime"] = vault.CreatedTime;
+            m["signers"] = vault.Signers;
+            m["neoBalance"] = (BigInteger)Storage.Get(Storage.CurrentContext, BalanceKey(vaultId, ASSET_NEO));
+            m["gasBalance"] = (BigInteger)Storage.Get(Storage.CurrentContext, BalanceKey(vaultId, ASSET_GAS));
+            return m;
         }
 
         [Safe]
@@ -207,19 +306,19 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ByteString raw = Storage.Get(Storage.CurrentContext, RequestKey(requestId));
             ExecutionEngine.Assert(raw is not null, "request not found");
-            MultisigRequest request = (MultisigRequest)StdLib.Deserialize(raw);
-
-            Map<string, object> result = new Map<string, object>();
-            result["id"] = requestId;
-            result["creator"] = request.Creator;
-            result["threshold"] = request.Threshold;
-            result["approvalCount"] = request.ApprovalCount;
-            result["status"] = request.Status;
-            result["createdTime"] = request.CreatedTime;
-            result["intentHash"] = request.IntentHash;
-            result["memo"] = request.Memo;
-            result["signers"] = request.Signers;
-            return result;
+            Request r = (Request)StdLib.Deserialize(raw);
+            Map<string, object> m = new Map<string, object>();
+            m["id"] = requestId;
+            m["vaultId"] = r.VaultId;
+            m["creator"] = r.Creator;
+            m["recipient"] = r.Recipient;
+            m["asset"] = r.Asset;
+            m["amount"] = r.Amount;
+            m["approvalCount"] = r.ApprovalCount;
+            m["status"] = r.Status;
+            m["createdTime"] = r.CreatedTime;
+            m["memo"] = r.Memo;
+            return m;
         }
 
         [Safe]
@@ -227,35 +326,27 @@ namespace NeoMiniAppPlatform.Contracts
         {
             return Storage.Get(Storage.CurrentContext, ApprovedKey(requestId, signer)) is not null;
         }
-
-        [Safe]
-        public static bool IsSigner(BigInteger requestId, UInt160 signer)
-        {
-            ByteString raw = Storage.Get(Storage.CurrentContext, RequestKey(requestId));
-            if (raw is null) return false;
-            MultisigRequest request = (MultisigRequest)StdLib.Deserialize(raw);
-            return IsListedSigner(request, signer);
-        }
         #endregion
 
-        #region Internal helpers
-        private static byte[] RequestKey(BigInteger requestId)
+        #region Internal
+        private static byte AssetByte(UInt160 asset)
         {
-            return Helper.Concat(PREFIX_REQUEST, (byte[])(ByteString)requestId);
+            if (asset == NEO.Hash) return ASSET_NEO;
+            if (asset == GAS.Hash) return ASSET_GAS;
+            ExecutionEngine.Assert(false, "unsupported asset");
+            return 0;
         }
 
-        private static byte[] ApprovedKey(BigInteger requestId, UInt160 signer)
-        {
-            return Helper.Concat(Helper.Concat(PREFIX_APPROVED, (byte[])(ByteString)requestId), (byte[])signer);
-        }
+        private static byte[] VaultKey(BigInteger vaultId) => Helper.Concat(PREFIX_VAULT, (byte[])(ByteString)vaultId);
+        private static byte[] RequestKey(BigInteger requestId) => Helper.Concat(PREFIX_REQUEST, (byte[])(ByteString)requestId);
+        private static byte[] BalanceKey(BigInteger vaultId, byte assetByte) => Helper.Concat(Helper.Concat(PREFIX_BALANCE, (byte[])(ByteString)vaultId), new byte[] { assetByte });
+        private static byte[] ApprovedKey(BigInteger requestId, UInt160 signer) => Helper.Concat(Helper.Concat(PREFIX_APPROVED, (byte[])(ByteString)requestId), (byte[])signer);
 
-        private static bool IsListedSigner(MultisigRequest request, UInt160 signer)
+        private static bool IsSignerOf(Vault vault, UInt160 who)
         {
-            UInt160[] signers = request.Signers;
+            UInt160[] signers = vault.Signers;
             for (int i = 0; i < signers.Length; i++)
-            {
-                if (signers[i] == signer) return true;
-            }
+                if (signers[i] == who) return true;
             return false;
         }
         #endregion
