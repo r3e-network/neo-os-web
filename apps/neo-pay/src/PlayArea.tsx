@@ -260,11 +260,11 @@ export default function PlayArea({
   const isFinalized = (stream: Stream): boolean =>
     stream.status === "cancelled" || stream.status === "completed";
 
-  // Only GAS is supported: the payment-deposit and vesting-create edges
-  // transfer GAS and scale by 10^8, so NEO (indivisible, different native
-  // contract) cannot be funded or streamed correctly until those edges accept
-  // a per-asset contract/decimals. Constrain the selector to GAS.
-  const tokenOptions = ["GAS"] as const;
+  // Both GAS and NEO are supported: the standalone MiniAppNeoPay contract takes
+  // base-unit deposits for either token (GAS scaled by 1e8, NEO as an
+  // indivisible integer count) and streams them directly. GAS stays the
+  // default; NEO is offered for indivisible whole-token streams.
+  const tokenOptions = ["GAS", "NEO"] as const;
 
   return (
     <div className="neopay-play-area">

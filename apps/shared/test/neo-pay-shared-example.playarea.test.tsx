@@ -115,13 +115,12 @@ describe("NeoPay shared runtime PlayArea", () => {
     expect(screen.getByLabelText("Amount")).toBeTruthy();
     expect(screen.getByLabelText("Duration")).toBeTruthy();
     expect(screen.getByLabelText("Token")).toBeTruthy();
-    // Stream presets are rendered as quick-fill buttons. Only GAS is supported
-    // by the deposit/vesting edges, so the previously broken "90d NEO" preset
-    // is replaced by a "90d GAS" preset and no NEO preset is offered.
+    // Stream presets are rendered as quick-fill buttons. The standalone
+    // MiniAppNeoPay contract supports NEO + GAS, so the GAS presets are joined
+    // by a "90d NEO" preset (90 NEO over 90 days = exactly 1 NEO/day).
     expect(screen.getByRole("button", { name: "7d GAS" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "30d GAS" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "90d GAS" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /NEO/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "90d NEO" })).toBeTruthy();
   });
 
   it("dispatches the configured shared stream intent", async () => {
