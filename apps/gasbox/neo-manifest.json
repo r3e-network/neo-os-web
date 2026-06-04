@@ -23,7 +23,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-    "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+    "neo-n3-testnet": "0xeb635b6e75b01c12cc26794b906d329531f378e9"
   },
   "contract_domains": {
     "neo-n3-mainnet": "gasbox.miniapp.neo"
