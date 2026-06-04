@@ -186,6 +186,13 @@ export default function PlayArea({
               <p className="account-hint">{t("registerBlocked")}</p>
             )}
             <NeoInput
+              value={accountId}
+              label={t("accountId") || "Account ID"}
+              hint={t("accountIdHint")}
+              placeholder={t("accountIdPlaceholder") || "Enter account ID hash"}
+              onChange={(v) => setAccountId(v)}
+            />
+            <NeoInput
               value={verifierHash}
               label={t("verifier") || "Verifier Hash"}
               hint={t("verifierHint")}

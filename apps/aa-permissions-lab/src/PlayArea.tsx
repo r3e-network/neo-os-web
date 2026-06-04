@@ -237,6 +237,11 @@ export default function PlayArea({
               >
                 {t("updateVerifier") || "Update Verifier"}
               </NeoButton>
+              {!canUpdateVerifier && !isVerifierBusy ? (
+                <p className="permissions-caption permissions-caption--warn">
+                  {t("verifierUpdateBlocked")}
+                </p>
+              ) : null}
             </div>
           </NeoCard>
 
@@ -261,6 +266,11 @@ export default function PlayArea({
               >
                 {t("updateHook") || "Update Hook"}
               </NeoButton>
+              {!canUpdateHook && !isHookBusy ? (
+                <p className="permissions-caption permissions-caption--warn">
+                  {t("hookUpdateBlocked")}
+                </p>
+              ) : null}
             </div>
           </NeoCard>
         </div>

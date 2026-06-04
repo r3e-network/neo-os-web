@@ -71,6 +71,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isError = Boolean(localError || lastError);
   const statusText = localError || lastError || workflowStatus;
   const isBusy = Boolean(busyAction);
+  // Wallet-effect preview: what the next transaction will actually do, surfaced
+  // before the wallet prompt opens (stake path, AA route, claim plan).
+  const stakeMemo = "stake:miniapp-profitanchor";
+  const selectedAgent = stats?.selectedAgentId ? `#${stats.selectedAgentId}` : t("routeAwaiting");
+  const claimReady = pendingRewards > 0;
+  const preflightChecks = [
+    {
+      key: "amount",
+      label: t("preflightAmount"),
+      value: amountIsValid ? plannedAmountLabel : t("blocked"),
+      done: amountIsValid,
+    },
+    {
+      key: "route",
+      label: t("preflightRoute"),
+      value: selectedAgent,
+      done: Boolean(stats?.selectedAgentId),
+    },
+    {
+      key: "claim",
+      label: t("preflightClaim"),
+      value: claimReady ? pendingRewardsDisplay : t("claimPlanEmpty"),
+      done: claimReady,
+    },
+  ];
   // Hero surfaces the three core metrics; "—" placeholder before wallet data lands.
   const placeholder = "—";
   const hasReserve = Boolean(stats);
@@ -208,6 +233,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {amountIsValid ? plannedAmountLabel : t("amountNeedsWholeNeo")}
             <em>{amountIsValid ? t("amountPlanReady") : t("amountPlanBlocked")}</em>
           </p>
+
+          <section
+            className="anchor-preflight-panel"
+            aria-label={t("preflightTitle")}
+          >
+            <div className="anchor-preflight-head">
+              <span>{t("preflightEyebrow")}</span>
+              <strong>{t("preflightTitle")}</strong>
+            </div>
+            <dl className="anchor-preflight-summary" aria-label={t("preflightChecklist")}>
+              {preflightChecks.map((check) => (
+                <div
+                  key={check.key}
+                  className={`anchor-preflight-row${check.done ? " is-ready" : ""}`}
+                >
+                  <dt>{check.label}</dt>
+                  <dd>{check.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="anchor-preflight-note">
+              <strong>{t("stakePathTitle")}</strong>
+              <span>
+                {t("stakePathCopy")} <code>{stakeMemo}</code>
+              </span>
+            </p>
+            <p className="anchor-preflight-note">
+              <strong>{claimReady ? t("claimPlanReady") : t("claimPlanEmpty")}</strong>
+              <span>{claimReady ? t("claimPlanReadyCopy") : t("claimPlanEmptyCopy")}</span>
+            </p>
+          </section>
 
           <button
             type="button"
