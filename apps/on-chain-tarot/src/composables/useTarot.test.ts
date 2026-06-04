@@ -46,11 +46,15 @@ function createTarotServices(options?: {
   const badgeService = {
     award: vi.fn(async () => undefined),
   };
+  const clipboard = {
+    copy: vi.fn(async () => true),
+  };
 
   return {
     paymentService: paymentService as unknown as UseTarotOptions["paymentService"],
     storageService: storageService as unknown as UseTarotOptions["storageService"],
     badgeService: badgeService as unknown as UseTarotOptions["badgeService"],
+    clipboard: clipboard as unknown as UseTarotOptions["clipboard"],
   };
 }
 
@@ -122,6 +126,23 @@ describe("useTarot", () => {
     expect(tarot.hasDrawn.get()).toBe(false);
     expect(tarot.readingMode.get()).toBe("idle");
     expect(services.storageService.set).not.toHaveBeenCalled();
+  });
+
+  it("copies a complete reading via the clipboard service and reports failure when none is drawn", async () => {
+    const services = createTarotServices();
+    const tarot = useTarot({ ...services, t });
+
+    // No reading yet: copyReading must not claim success or hit the clipboard.
+    await expect(tarot.copyReading()).resolves.toBe(false);
+    expect(services.clipboard.copy).not.toHaveBeenCalled();
+
+    await tarot.draw();
+    await expect(tarot.copyReading()).resolves.toBe(true);
+    expect(services.clipboard.copy).toHaveBeenCalledTimes(1);
+    expect(services.clipboard.copy).toHaveBeenCalledWith(
+      expect.stringContaining("Past:"),
+      "readingCopied",
+    );
   });
 
   it("unwraps deposit responses that use { ok, data } envelopes", async () => {

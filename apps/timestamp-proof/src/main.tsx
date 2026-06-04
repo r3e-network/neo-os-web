@@ -72,6 +72,10 @@ defineMiniApp({
       reportLastMessage("success");
     });
 
+    ctx.registerAction("clearVerifyError", async () => {
+      proofContract.clearVerifyError();
+    });
+
     return {
       state: {
         totalProofs,
@@ -83,8 +87,12 @@ defineMiniApp({
         verifyError: proofContract.verifyError,
         lastMessage: proofContract.lastMessage,
         latestId,
+        // Bound so wallet connect/switch re-reads `yourProofs` (the derive
+        // reads the address-backed `currentActor()`).
+        address: proofContract.address,
       },
       loadData: proofContract.loadProofs,
+      cleanup: proofContract.stopAddressPolling,
     };
   },
 });

@@ -117,6 +117,10 @@ const appMessages = {
     en: "Amount exceeds your outstanding debt of {amount} GAS",
     zh: "金额超过您的未偿还债务 {amount} GAS",
   },
+  repayNoActiveLoan: {
+    en: "You have no outstanding loan to repay",
+    zh: "您没有需要偿还的未结贷款",
+  },
   collateralRefunded: {
     en: "Loan setup failed — your NEO collateral was refunded",
     zh: "贷款创建失败——您的 NEO 抵押品已退回",

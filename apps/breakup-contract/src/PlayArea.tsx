@@ -3,7 +3,7 @@ import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import ContractList from "./pages/index/components/ContractList";
+import ContractList from "./components/ContractList";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {

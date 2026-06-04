@@ -46,7 +46,22 @@ function writeStoredProofs(items: TimestampProof[]) {
 }
 
 export function useTimestampProofContract(t: (key: string) => string) {
-  const address = refToObservable(useWallet().address);
+  const walletAddress = useWallet().address;
+  const address = refToObservable(walletAddress);
+
+  // The wallet SDK mutates `walletAddress.value` directly on connect/switch
+  // rather than routing through this wrapper's `.set()`, so subscribers are
+  // never notified by the wrapper alone. Poll the underlying ref and emit
+  // through `.set()` so any address change propagates to bound derives
+  // (e.g. `myProofsCount`). Cheap reference compare every 500ms.
+  let lastSeenAddress = walletAddress.value;
+  const addressPollHandle = setInterval(() => {
+    if (!Object.is(lastSeenAddress, walletAddress.value)) {
+      lastSeenAddress = walletAddress.value;
+      address.set(walletAddress.value);
+    }
+  }, 500);
+  const stopAddressPolling = () => clearInterval(addressPollHandle);
 
   const proofs = createObservable<TimestampProof[]>([]);
   const verifiedProof = createObservable<TimestampProof | null>(null);
@@ -86,7 +101,10 @@ export function useTimestampProofContract(t: (key: string) => string) {
     writeStoredProofs(next);
   };
 
-  const myProofsCount = createDerived(() => proofs.get().filter((item) => item.creator === currentActor()).length, []);
+  const myProofsCount = createDerived(
+    () => proofs.get().filter((item) => item.creator === currentActor()).length,
+    [proofs, address],
+  );
 
   const hashContent = async (content: string): Promise<string> => {
     const encoder = new TextEncoder();
@@ -248,6 +266,12 @@ export function useTimestampProofContract(t: (key: string) => string) {
     await verifyProof(String(id));
   };
 
+  // Clear a stale "invalid proof" error while the user edits the lookup field,
+  // so a corrected/valid id is not shown as still-invalid until re-verify.
+  const clearVerifyError = () => {
+    if (verifyError.get()) verifyError.set(false);
+  };
+
   return {
     address,
     proofs,
@@ -261,9 +285,11 @@ export function useTimestampProofContract(t: (key: string) => string) {
     createProof,
     verifyProof,
     verifyProofById,
+    clearVerifyError,
     copyProofDigest,
     copyProofReference,
     deleteProof,
     clearProofs,
+    stopAddressPolling,
   };
 }

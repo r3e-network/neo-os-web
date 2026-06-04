@@ -63,10 +63,6 @@ defineMiniApp({
       envelope.luckyMessage.set(null);
     });
 
-    ctx.registerAction("dismissOpeningModal", async () => {
-      envelope.showOpeningModal.set(false);
-    });
-
     // Synthetic stats (composable doesn't expose totalCreated/totalClaimed yet)
     const totalCreated = createDerived(
       () => envelope.envelopes.get().reduce((sum, e) => sum + (Number(e.totalAmount) || 0), 0),
@@ -90,8 +86,6 @@ defineMiniApp({
         isCreating: envelope.isLoading,
         luckyMessage: envelope.luckyMessage,
         openingId: envelope.openingId,
-        showOpeningModal: envelope.showOpeningModal,
-        openingEnvelope: envelope.openingEnvelope,
         envelopeCount: envelope.envelopeCount,
         claimCount: envelope.claimCount,
         poolCount: envelope.poolCount,

@@ -3,7 +3,7 @@
  *
  * Uses all state: developers, recentTips, totalDonated, isLoading,
  * address, developerCount, totalDonatedDisplay, recentTipCount.
- * Actions: sendTip, selectDev.
+ * Actions: sendTip.
  * Keeps existing sub-components: TipList, TipForm.
  */
 
@@ -48,13 +48,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     totalDonatedDisplay && !staleZeroTotalDisplay ? totalDonatedDisplay : formatNum(totalDonated);
 
   const handleSelectDev = (dev: Developer) => {
+    // Selecting a developer is pure local state; no chain/notify round-trip.
     setSelectedDevId(dev.id);
-    dispatch("selectDev", dev);
   };
 
   const handleSendTip = async () => {
     if (!selectedDevId) return;
-    await dispatch("sendTip", selectedDevId, tipAmount, tipMessage, tipperName, anonymous);
+    const ok = (await dispatch(
+      "sendTip",
+      selectedDevId,
+      tipAmount,
+      tipMessage,
+      tipperName,
+      anonymous,
+    )) as unknown as boolean;
+    // dispatch resolves to the action's runtime result (true on success).
+    // Clear the form on success to prevent an accidental duplicate tip.
+    if (ok) {
+      setTipAmount("");
+      setTipMessage("");
+      setTipperName("");
+      setSelectedDevId(null);
+    }
   };
 
   const [addressCopied, setAddressCopied] = useState(false);

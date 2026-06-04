@@ -1,5 +1,5 @@
 import { NeoButton } from "@shared/components-react";
-import type { RelationshipContractView } from "../../../types";
+import type { RelationshipContractView } from "../types";
 
 interface ContractListProps {
   contracts: unknown[];

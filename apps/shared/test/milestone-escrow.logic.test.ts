@@ -150,6 +150,40 @@ describe("useMilestoneEscrow", () => {
     expect(escrow.create).not.toHaveBeenCalled();
   });
 
+  it("rejects an empty beneficiary before any proxy call (no accidental self-escrow)", async () => {
+    const { app, escrow, payment } = setup();
+
+    await expect(
+      app.createEscrow({
+        name: "No beneficiary",
+        beneficiary: "   ",
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "0.05" }],
+      }),
+    ).rejects.toThrow("invalidAddress");
+
+    expect(payment.deposit).not.toHaveBeenCalled();
+    expect(escrow.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed beneficiary address before any proxy call", async () => {
+    const { app, escrow, payment } = setup();
+
+    await expect(
+      app.createEscrow({
+        name: "Bad beneficiary",
+        beneficiary: "not-a-neo-address",
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "0.05" }],
+      }),
+    ).rejects.toThrow("invalidAddress");
+
+    expect(payment.deposit).not.toHaveBeenCalled();
+    expect(escrow.create).not.toHaveBeenCalled();
+  });
+
   it("rejects fractional NEO amounts (NEO is indivisible)", async () => {
     const { app, payment } = setup();
 

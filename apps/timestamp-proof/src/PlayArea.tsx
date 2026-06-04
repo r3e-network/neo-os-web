@@ -94,7 +94,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             label={t("proofLookup") || "Proof lookup"}
             placeholder={t("verifyPlaceholder") || "Proof ID, SHA-256 digest, or original content"}
             error={verifyError ? t("invalidProof") || "Invalid Proof" : ""}
-            onChange={(val) => setVerifyId(val)}
+            onChange={(val) => {
+              setVerifyId(val);
+              if (verifyError) dispatch("clearVerifyError");
+            }}
           />
           <NeoButton
             variant="secondary"

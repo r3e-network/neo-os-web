@@ -48,9 +48,22 @@ function parseGasLimit(value: string): number | null {
   return Number.isInteger(limit) ? limit : null;
 }
 
-function isSupportedAddress(value: string) {
+/** Target chain of a direction: Neo X (EVM) for n3-to-neox, Neo N3 otherwise. */
+function targetChain(direction: DirectionValue): "neo-x" | "neo-n3" {
+  return direction === "neox-to-n3" ? "neo-n3" : "neo-x";
+}
+
+/** Address must match the target chain of the selected direction. */
+function isValidTargetAddress(direction: DirectionValue, value: string) {
   const text = value.trim();
-  return EVM_ADDRESS.test(text) || NEO_N3_ADDRESS.test(text);
+  return targetChain(direction) === "neo-x"
+    ? EVM_ADDRESS.test(text)
+    : NEO_N3_ADDRESS.test(text);
+}
+
+/** Locale key for the direction-specific wrong-chain address error. */
+function addressErrorKey(direction: DirectionValue) {
+  return targetChain(direction) === "neo-x" ? "errAddressNeoX" : "errAddressNeoN3";
 }
 
 function normalizeWorkspaceDirection(value: unknown): DirectionValue {
@@ -109,17 +122,20 @@ export default function PlayArea({
   const assetAmountInvalid =
     assetAmount.trim().length > 0 && !isPositiveAmount(assetAmount);
   const assetRecipientInvalid =
-    assetRecipient.trim().length > 0 && !isSupportedAddress(assetRecipient);
+    assetRecipient.trim().length > 0 &&
+    !isValidTargetAddress(assetDirection, assetRecipient);
   const parsedGasLimit = parseGasLimit(gasLimit);
   const gasLimitInvalid =
     gasLimit.trim().length > 0 &&
     (parsedGasLimit === null || parsedGasLimit < 21000);
   const targetContractInvalid =
-    targetContract.trim().length > 0 && !isSupportedAddress(targetContract);
+    targetContract.trim().length > 0 &&
+    !isValidTargetAddress(messageDirection, targetContract);
   const canPrepareAsset =
-    isPositiveAmount(assetAmount) && isSupportedAddress(assetRecipient);
+    isPositiveAmount(assetAmount) &&
+    isValidTargetAddress(assetDirection, assetRecipient);
   const canPrepareMessage =
-    isSupportedAddress(targetContract) &&
+    isValidTargetAddress(messageDirection, targetContract) &&
     messagePayload.trim().length > 0 &&
     parsedGasLimit !== null &&
     parsedGasLimit >= 21000;
@@ -168,7 +184,10 @@ export default function PlayArea({
       setAssetDirection(direction);
       setAssetAmount(nextAmount);
       setAssetRecipient(nextRecipient);
-      if (isPositiveAmount(nextAmount) && isSupportedAddress(nextRecipient)) {
+      if (
+        isPositiveAmount(nextAmount) &&
+        isValidTargetAddress(direction, nextRecipient)
+      ) {
         handledLaunchRef.current = signature;
         void runWorkspaceAction(
           "asset",
@@ -200,7 +219,7 @@ export default function PlayArea({
       setGasLimit(nextGasLimit);
       const nextGasParsed = parseGasLimit(nextGasLimit);
       if (
-        isSupportedAddress(nextTarget) &&
+        isValidTargetAddress(direction, nextTarget) &&
         nextPayload &&
         nextGasParsed !== null &&
         nextGasParsed >= 21000
@@ -440,7 +459,11 @@ export default function PlayArea({
               label="Destination address"
               placeholder="Neo N3 or Neo X address"
               value={assetRecipient}
-              error={assetRecipientInvalid ? t("errAddressFormat") : ""}
+              error={
+                assetRecipientInvalid
+                  ? t(addressErrorKey(assetDirection))
+                  : ""
+              }
               onChange={setAssetRecipient}
               className="bridge-field-wide"
             />
@@ -484,7 +507,11 @@ export default function PlayArea({
               label="Target contract"
               placeholder="0x... or Neo script hash"
               value={targetContract}
-              error={targetContractInvalid ? t("errAddressFormat") : ""}
+              error={
+                targetContractInvalid
+                  ? t(addressErrorKey(messageDirection))
+                  : ""
+              }
               onChange={setTargetContract}
             />
             <NeoInput

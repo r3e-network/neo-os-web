@@ -129,6 +129,8 @@ const appMessages = {
   tarotKnight: { en: "Knight", zh: "骑士" },
   tarotQueen: { en: "Queen", zh: "女王" },
   tarotKing: { en: "King", zh: "国王" },
+  copyReading: { en: "Copy reading", zh: "复制解读" },
+  readingCopied: { en: "Reading copied", zh: "解读已复制" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
