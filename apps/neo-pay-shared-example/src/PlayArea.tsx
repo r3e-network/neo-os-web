@@ -8,6 +8,7 @@ import {
 import type { Observable } from "@shared/react/context";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
+import { deriveSchedule } from "../../neo-pay/src/composables/deriveSchedule";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -338,23 +339,49 @@ export default function PlayArea({
     recipient.trim().length === 0 || BASE58_ADDRESS_PATTERN.test(recipient.trim());
   const amountReady = amountValue > 0;
   const durationReady = durationValue >= 1 && durationValue <= 365;
+
+  // Derive the EXACT schedule the dispatch will send (same canonical helper as
+  // main.tsx) so the preview's rate/interval equal what gets submitted
+  // on-chain, and the form can block submit when the rounded per-interval rate
+  // would be zero (e.g. a GAS amount whose per-day value is < 1e-8).
+  const schedule = useMemo(
+    () => deriveSchedule(amount.trim(), String(durationValue), token),
+    [amount, durationValue, token],
+  );
+  const derivedRate = amountReady && durationReady ? parseAmount(schedule.rate) : 0;
+  const derivedIntervalDays = amountReady && durationReady
+    ? Math.max(parseDays(schedule.intervalDays), 1)
+    : durationValue;
+  const rateRoundsToZero =
+    amountReady && durationReady && derivedRate <= 0;
+
   const canSubmit =
     recipient.trim().length > 0 &&
     recipientReady &&
     amountReady &&
     durationReady &&
+    !rateRoundsToZero &&
     !isCreating;
-  const releasePerDay =
-    amountReady && durationReady ? amountValue / durationValue : 0;
-  const scheduleLabel = durationReady
-    ? `${durationValue} ${copy("days", "days")}`
-    : copy("durationPlaceholder", "Number of days");
+  // The interval shown matches the derived schedule: GAS streams release daily
+  // (intervalDays = 1); a collapsed sub-1-NEO/day stream releases once over the
+  // full span. Showing the true interval keeps the rate and interval consistent.
+  const scheduleLabel = amountReady && durationReady
+    ? `${derivedIntervalDays} ${copy("days", "days")}`
+    : durationReady
+      ? `${durationValue} ${copy("days", "days")}`
+      : copy("durationPlaceholder", "Number of days");
   const totalLabel = amountReady
     ? `${formatDisplayNumber(amountValue)} ${token}`
     : `0 ${token}`;
-  const releaseLabel = releasePerDay > 0
-    ? `${formatDisplayNumber(releasePerDay)} ${token}`
+  const releaseLabel = derivedRate > 0
+    ? `${formatDisplayNumber(derivedRate)} ${token}`
     : `0 ${token}`;
+  // Daily-release streams (GAS, or NEO >= 1/day) read more clearly as a
+  // per-day rate; a collapsed single-interval NEO stream keeps the neutral
+  // "per interval" label since it releases once.
+  const releaseRateLabel = derivedIntervalDays === 1
+    ? copy("releasePerDay", "Release per day")
+    : copy("rateAmount", "Release per interval");
   const recipientLabel = recipient.trim()
     ? shortAddress(recipient.trim())
     : copy("recipientPlaceholder", "N3 address...");
@@ -717,7 +744,7 @@ export default function PlayArea({
                 <strong>{totalLabel}</strong>
               </div>
               <div>
-                <span>{copy("rateAmount", "Release per interval")}</span>
+                <span>{releaseRateLabel}</span>
                 <strong>{releaseLabel}</strong>
               </div>
               <div>
@@ -725,6 +752,14 @@ export default function PlayArea({
                 <strong>{scheduleLabel}</strong>
               </div>
             </div>
+            {rateRoundsToZero && (
+              <p className="shared-pay-review__warning" role="alert">
+                {copy(
+                  "rateRoundsToZero",
+                  "Amount is too small for this duration — increase the amount or shorten the duration.",
+                )}
+              </p>
+            )}
           </details>
         </NeoCard>
       </div>

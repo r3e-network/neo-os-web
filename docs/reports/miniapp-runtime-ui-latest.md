@@ -1,7 +1,7 @@
 # Miniapp Runtime UI Audit
 
-Generated: 2026-05-29T02:20:39.319Z
-Base URL: http://127.0.0.1:62653
+Generated: 2026-06-01T18:29:02.666Z
+Base URL: http://127.0.0.1:57140
 Catalog count: 60
 Viewports: desktop 1440x1000, mobile 390x844
 Total checks: 120
@@ -23,6 +23,8 @@ Screenshots: disabled
 ## Failures
 
 None.
+
 ## Warnings
 
 None.
+

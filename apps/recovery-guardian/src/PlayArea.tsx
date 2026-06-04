@@ -10,6 +10,7 @@ import type { Observable } from "@shared/react/context";
 import {
   isAccountLocator,
   isOptionalHash160,
+  isOptionalTemplateId,
   isRecoveryExpiryMinutes,
 } from "./utils/validation";
 import "./PlayArea.scss";
@@ -31,6 +32,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const verifierHash = str("verifierHash", t("notAvailable") || "—");
   const threshold = str("threshold", t("notAvailable") || "—");
   const timelock = str("timelock", t("notAvailable") || "—");
+  const backupOwner = str("backupOwnerState", t("notAvailable") || "—");
+  const checkedAt = str("checkedAt", t("notAvailable") || "—");
 
   const previewUrl = str("previewUrl");
   const credentialUrl = str("credentialUrl");
@@ -45,9 +48,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const ownerReady = isAccountLocator(recoveryNewOwner);
   const expiryReady = isRecoveryExpiryMinutes(recoveryExpiryMinutes);
   const verifierReady = isOptionalHash160(verifierHashOverride);
+  const templateReady = isOptionalTemplateId(recoveryTemplateId);
   const canQueryState = accountReady && !isQuerying;
   const canPrepareRecovery =
-    accountReady && ownerReady && expiryReady && verifierReady;
+    accountReady && ownerReady && expiryReady && verifierReady && templateReady;
   const accountDisplay = accountAddress.trim() || "—";
   const expiryDisplay = expiryReady ? recoveryExpiryMinutes : "—";
 
@@ -59,8 +63,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const stateItems = [
     { label: t("accountId") || "Account ID", value: accountId },
     { label: t("currentVerifier") || "Verifier", value: verifierHash },
+    { label: t("backupOwner") || "Backup Owner", value: backupOwner },
     { label: t("threshold") || "Threshold", value: threshold },
     { label: t("timelockLabel") || "Timelock", value: timelock },
+    { label: t("checkedAt") || "Checked At", value: checkedAt },
   ];
 
   const linkActions = [

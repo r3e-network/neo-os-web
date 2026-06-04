@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createObservable } from "../react/context";
 import { useMemorialShrine } from "../../memorial-shrine/src/composables/useMemorialShrine";
 
 const OWNER = "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu";
@@ -11,8 +12,14 @@ function t(key: string) {
   return messages[key] ?? key;
 }
 
-function createShrine(options: { launchNetwork?: "mainnet" | "testnet" | null } = {}) {
+function createShrine(options: {
+  launchNetwork?: "mainnet" | "testnet" | null;
+  connectedAddress?: string | null;
+} = {}) {
   const chain = {
+    address: createObservable<string | null>(
+      options.connectedAddress === undefined ? OWNER : options.connectedAddress,
+    ),
     ensureWallet: vi.fn().mockResolvedValue(OWNER),
     invoke: vi.fn().mockResolvedValue({
       txid: "0xinvoke",
@@ -25,8 +32,19 @@ function createShrine(options: { launchNetwork?: "mainnet" | "testnet" | null } 
       event: { state: [{ value: "42" }, { value: OWNER }, { value: "3" }] },
     }),
   };
+  // In-memory storage so list() reflects prior set() calls (real round-trip).
+  const store = new Map<string, unknown>();
   const storage = {
-    list: vi.fn().mockResolvedValue({}),
+    list: vi.fn(async (prefix: string) => {
+      const out: Record<string, unknown> = {};
+      for (const [key, value] of store.entries()) {
+        if (key.startsWith(prefix)) out[key] = value;
+      }
+      return out;
+    }),
+    set: vi.fn(async (key: string, value: unknown) => {
+      store.set(key, value);
+    }),
   };
   const badge = {
     award: vi.fn().mockResolvedValue(undefined),
@@ -105,6 +123,37 @@ describe("Memorial Shrine logic", () => {
         txid: "0xpaid",
       }),
     );
+  });
+
+  it("tracks real tributes so My Tributes is not aliased to Visited", async () => {
+    const { shrine, storage } = createShrine({ launchNetwork: "testnet" });
+
+    expect(shrine.tributeCount.get()).toBe(0);
+
+    await shrine.payTribute(42, 3, "Always remembered");
+
+    // A per-visitor tribute record is persisted to storage.
+    expect(storage.set).toHaveBeenCalledWith(
+      expect.stringMatching(new RegExp(`^tributes:${OWNER}:42:`)),
+      expect.objectContaining({ memorialId: 42, offeringType: 3, amountGas: "0.03" }),
+    );
+
+    // "My Tributes" now reflects the paid tribute, independent of any
+    // hardcoded "Visited" memorial slice.
+    expect(shrine.myTributes.get()).toHaveLength(1);
+    expect(shrine.tributeCount.get()).toBe(1);
+  });
+
+  it("keeps My Tributes at zero when no wallet is connected", async () => {
+    const { shrine, storage } = createShrine({ connectedAddress: null });
+
+    await shrine.loadMyTributes();
+
+    expect(storage.list).not.toHaveBeenCalledWith(
+      expect.stringContaining("tributes:"),
+      expect.anything(),
+    );
+    expect(shrine.tributeCount.get()).toBe(0);
   });
 
   it("uses the mainnet receipt ABI for tributes", async () => {

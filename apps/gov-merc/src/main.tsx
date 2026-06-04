@@ -51,6 +51,32 @@ defineMiniApp({
       set: () => {},
       subscribe: (fn) => pool.bids.subscribe(fn),
     };
+    // Settlement is only possible when the live epoch has at least one bid to
+    // resolve. Drives the enabled/disabled state of the Route Governance button.
+    const canSettle: Observable<boolean> = {
+      get: () => pool.bids.get().length > 0,
+      set: () => {},
+      subscribe: (fn) => pool.bids.subscribe(fn),
+    };
+    // Human-readable summary of the most recently resolved epoch (the winner of
+    // the previous epoch) for the Route Governance panel.
+    const lastSettlementDisplay: Observable<string> = {
+      get: () => {
+        const s = pool.lastSettlement.get();
+        if (!s || !s.winner) return ctx.t("settleNone");
+        const who = `${s.winner.slice(0, 6)}...${s.winner.slice(-4)}`;
+        return ctx.t("settleSummary", {
+          epoch: s.epoch,
+          winner: who,
+          amount: `${pool.formatNum(s.amount, 2)} ${ctx.t("tokenGas")}`,
+        });
+      },
+      set: () => {},
+      subscribe: (fn) => {
+        const u1 = pool.lastSettlement.subscribe(fn);
+        return () => { u1(); };
+      },
+    };
 
     ctx.registerAction("depositNeo", async () => {
       await ctx.services.notify.guard(() => pool.depositNeo(), "depositSuccess");
@@ -60,6 +86,9 @@ defineMiniApp({
     });
     ctx.registerAction("placeBid", async () => {
       await ctx.services.notify.guard(() => pool.placeBid(), "bidSuccess");
+    });
+    ctx.registerAction("settleEpoch", async () => {
+      await ctx.services.notify.guard(() => pool.settleEpoch(), "settleSuccess");
     });
 
     return {
@@ -77,6 +106,8 @@ defineMiniApp({
         totalPoolDisplay,
         userDepositsDisplay,
         bidCount,
+        canSettle,
+        lastSettlementDisplay,
       },
       loadData: pool.loadData,
       cleanup: stopAddressSync,

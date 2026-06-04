@@ -42,10 +42,15 @@ function t(key: string) {
     privateKeyReady: "Ready for one-time copy",
     copyPrivateKey: "Copy Private Key",
     copiedPrivateKey: "Copied",
+    showPrivateKey: "Show",
+    hidePrivateKey: "Hide",
+    copyPrivateKeyFailed: "Copy failed — select and copy the key manually.",
+    sessionPrivateKey: "Session Private Key",
     dappId: "Paymaster dApp ID",
     dappIdPlaceholder: "miniapp-aa-session-key-lab",
     sponsorAmount: "Sponsor Amount",
     sponsorAmountPlaceholder: "0.1",
+    invalidSponsorAmount: "Sponsor amount must be a positive number.",
     generateKey: "Generate Key",
     checkSponsor: "Check Sponsorship",
     requestSponsor: "Request Sponsorship",
@@ -213,7 +218,7 @@ describe("AA Session Key Lab PlayArea launch flow", () => {
     ).toBe("transfer");
   });
 
-  it("offers private key copy after generation without rendering the key", async () => {
+  it("masks the generated private key until the user reveals it", async () => {
     const privateKey = `0x${"ab".repeat(32)}`;
     const dispatch = vi.fn().mockResolvedValue({
       publicKey: SESSION_PUBLIC_KEY,
@@ -237,6 +242,110 @@ describe("AA Session Key Lab PlayArea launch flow", () => {
     expect(
       screen.getByRole("button", { name: "Copy Private Key" }),
     ).toBeTruthy();
+    // Full key is masked by default so the user can verify a fingerprint
+    // without exposing the whole secret.
     expect(screen.queryByText(privateKey)).toBeNull();
+    expect(screen.getByLabelText("Session Private Key").textContent).toContain(
+      "…",
+    );
+
+    // Toggle reveal exposes the full key so the user can verify what they copy.
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(screen.getByLabelText("Session Private Key").textContent).toBe(
+      privateKey,
+    );
+  });
+
+  it("surfaces a copy failure when the clipboard API is unavailable", async () => {
+    const privateKey = `0x${"cd".repeat(32)}`;
+    const dispatch = vi.fn().mockResolvedValue({
+      publicKey: SESSION_PUBLIC_KEY,
+      privateKey,
+    });
+    const originalClipboard = navigator.clipboard;
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+
+    try {
+      render(
+        <PlayArea
+          t={t}
+          state={baseState()}
+          dispatch={dispatch}
+          launchContext={launch(
+            "https://neomini.app/miniapps/aa-session-key-lab?accountSeed=neo-aa-001",
+          )}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Generate Key" }));
+      await screen.findByText("Ready for one-time copy");
+
+      fireEvent.click(screen.getByRole("button", { name: "Copy Private Key" }));
+
+      // Button must NOT flip to "Copied"; instead a real failure is surfaced
+      // and the full key is revealed for manual copy.
+      expect(screen.queryByText("Copied")).toBeNull();
+      expect(
+        await screen.findByText(
+          "Copy failed — select and copy the key manually.",
+        ),
+      ).toBeTruthy();
+      expect(screen.getByLabelText("Session Private Key").textContent).toBe(
+        privateKey,
+      );
+    } finally {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: originalClipboard,
+      });
+    }
+  });
+
+  it("blocks sponsor requests for empty, zero, or negative amounts", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={baseState()}
+        dispatch={dispatch}
+        launchContext={launch(
+          "https://neomini.app/miniapps/aa-session-key-lab?accountSeed=neo-aa-001&sponsorAmount=0",
+        )}
+      />,
+    );
+
+    const requestButton = screen.getByRole("button", {
+      name: "Request Sponsorship",
+    }) as HTMLButtonElement;
+
+    // "0" is invalid -> button disabled, validation error shown, no dispatch.
+    expect(requestButton.disabled).toBe(true);
+    expect(
+      screen.getByText("Sponsor amount must be a positive number."),
+    ).toBeTruthy();
+    fireEvent.click(requestButton);
+    expect(dispatch).not.toHaveBeenCalledWith(
+      "requestSponsor",
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    );
+
+    // A positive amount re-enables the request flow.
+    fireEvent.change(screen.getByLabelText("Sponsor Amount"), {
+      target: { value: "0.2" },
+    });
+    expect(requestButton.disabled).toBe(false);
+    fireEvent.click(requestButton);
+    expect(dispatch).toHaveBeenCalledWith(
+      "requestSponsor",
+      "neo-aa-001",
+      expect.any(String),
+      "0.2",
+    );
   });
 });

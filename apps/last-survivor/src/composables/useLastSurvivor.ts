@@ -205,6 +205,23 @@ export function useLastSurvivor({
   const totalPotDisplay = createDerived(() => `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`, []);
   const roundStatusDisplay = createDerived(() => isRoundActive.get() ? t("activeRound") : t("inactiveRound"), []);
 
+  // Round-total keys as a plain number for binding (the raw value is a bigint
+  // tracked in `totalKeysInRound`, used by the cost formula). This is the
+  // number of keys SOLD in the round — distinct from the buy-selector
+  // `keyCount` picker, which is only used to estimate purchase cost.
+  const totalKeysDisplay = createDerived(
+    () => Number(totalKeysInRound.get()),
+    [totalKeysInRound],
+  );
+
+  // The user's share of the round, as a percentage of the round's real total
+  // keys. Guards divide-by-zero (returns 0 when no keys have been sold yet).
+  const userSharePercent = createDerived(() => {
+    const total = Number(totalKeysInRound.get());
+    if (total <= 0) return 0;
+    return (userKeys.get() / total) * 100;
+  }, [totalKeysInRound, userKeys]);
+
   const needsLifecycleSync = createDerived(() => {
     return (
       !isRoundActive.get() &&
@@ -242,7 +259,11 @@ export function useLastSurvivor({
       const state = await gameService.getPoolState("current") as SurvivorPoolState;
       if (state && typeof state === "object") {
         roundId.set(Number(state.roundId ?? 0));
-        totalPot.set(Number(state.totalBets ?? state.pot ?? 0));
+        // The contract reports the pot in raw GAS base units (1e8), the same
+        // scale used by the key-cost path (BASE_KEY_PRICE is in base units and
+        // estimatedCost divides by 1e8). Scale here too so TOTAL POT renders in
+        // whole GAS instead of being ~1e8x too large.
+        totalPot.set(Number(state.totalBets ?? state.pot ?? 0) / 1e8);
         isRoundActive.set(
           state.status === "open" ||
             state.status === "active" ||
@@ -487,6 +508,7 @@ export function useLastSurvivor({
     isLoading,
     roundDataAvailable,
     serviceNotice,
+    totalKeysInRound,
 
     // ── Timer State ─────────────────────────────────────────────────
     countdown,
@@ -502,6 +524,8 @@ export function useLastSurvivor({
     formattedRound,
     totalPotDisplay,
     roundStatusDisplay,
+    totalKeysDisplay,
+    userSharePercent,
     needsLifecycleSync,
     estimatedCost,
     estimatedCostRaw,

@@ -6,11 +6,6 @@ import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
 import { formatAddress } from "@shared/utils/format";
 
-type FormController = {
-  setLoading?: (loading: boolean) => void;
-  reset?: () => void;
-};
-
 export function useQuadraticFundingPage(t: (key: string) => string) {
   const activeTab = createObservable("rounds");
 
@@ -99,40 +94,32 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   const projectsStatus = roundsStatus;
   const contributionStatus = roundsStatus;
 
-  // Form refs
-  const roundFormRef = createObservable<FormController | null>(null);
-  const projectFormRef = createObservable<FormController | null>(null);
-  const contributeFormRef = createObservable<FormController | null>(null);
-
-  // Form handlers
-  const handleCreateRound = async (data: Parameters<typeof createRound>[0]) => {
-    roundFormRef.get()?.setLoading?.(true);
-    try {
-      await createRound(data);
-      if (roundsStatus.get()?.type === "success") roundFormRef.get()?.reset?.();
-    } finally {
-      roundFormRef.get()?.setLoading?.(false);
-    }
+  // Form handlers — return whether the on-chain call succeeded so the view can
+  // clear its inputs only on success (loading state is bound via the
+  // isCreatingRound / isRegisteringProject / isContributing observables).
+  const statusType = (snapshot: unknown): string =>
+    snapshot && typeof snapshot === "object" ? String((snapshot as { type?: unknown }).type ?? "") : "";
+  const succeededSince = (before: unknown): boolean => {
+    const next = roundsStatus.get();
+    return Boolean(next && next !== before && statusType(next) === "success");
   };
 
-  const handleRegisterProject = async (data: Parameters<typeof registerProject>[0]) => {
-    projectFormRef.get()?.setLoading?.(true);
-    try {
-      await registerProject(data);
-      if (!roundsStatus.get() || roundsStatus.get().type === "success") projectFormRef.get()?.reset?.();
-    } finally {
-      projectFormRef.get()?.setLoading?.(false);
-    }
+  const handleCreateRound = async (data: Parameters<typeof createRound>[0]): Promise<boolean> => {
+    const before = roundsStatus.get();
+    await createRound(data);
+    return succeededSince(before);
   };
 
-  const handleContribute = async (data: Parameters<typeof contribute>[0]) => {
-    contributeFormRef.get()?.setLoading?.(true);
-    try {
-      await contribute(data);
-      if (!roundsStatus.get() || roundsStatus.get().type === "success") contributeFormRef.get()?.reset?.();
-    } finally {
-      contributeFormRef.get()?.setLoading?.(false);
-    }
+  const handleRegisterProject = async (data: Parameters<typeof registerProject>[0]): Promise<boolean> => {
+    const before = roundsStatus.get();
+    await registerProject(data);
+    return succeededSince(before);
+  };
+
+  const handleContribute = async (data: Parameters<typeof contribute>[0]): Promise<boolean> => {
+    const before = roundsStatus.get();
+    await contribute(data);
+    return succeededSince(before);
   };
 
   const handleAddMatching = async (amount: string) => { await addMatching(amount).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
@@ -198,10 +185,6 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     matchingPoolDisplay,
     projectsStatus,
     contributionStatus,
-    // Form refs
-    roundFormRef,
-    projectFormRef,
-    contributeFormRef,
     // Handlers
     handleCreateRound,
     handleRegisterProject,

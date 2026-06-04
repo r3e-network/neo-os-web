@@ -20,8 +20,8 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "create", valueKey: "myVaultCount", format: "number", icon: "lock" },
-    { labelKey: "break", valueKey: "recentVaultCount", format: "number", icon: "key" },
+    { labelKey: "myVaultsStat", valueKey: "myVaultCount", format: "number", icon: "lock" },
+    { labelKey: "openVaultsStat", valueKey: "recentVaultCount", format: "number", icon: "key" },
     { labelKey: "sidebarDifficulty", valueKey: "vaultDifficulty", format: "number", icon: "bar-chart" },
     { labelKey: "sidebarAttemptFee", valueKey: "attemptFeeDisplay", format: "text", icon: "zap" },
   ],
@@ -29,8 +29,8 @@ export const manifest: MiniAppManifest = {
   sidebar: {
     titleKey: "title",
     items: [
-      { labelKey: "create", valueKey: "myVaultCount", format: "number" },
-      { labelKey: "break", valueKey: "recentVaultCount", format: "number" },
+      { labelKey: "myVaultsStat", valueKey: "myVaultCount", format: "number" },
+      { labelKey: "openVaultsStat", valueKey: "recentVaultCount", format: "number" },
       { labelKey: "sidebarDifficulty", valueKey: "vaultDifficulty", format: "number" },
       { labelKey: "sidebarAttemptFee", valueKey: "attemptFeeDisplay", format: "text" },
     ],
@@ -40,7 +40,7 @@ export const manifest: MiniAppManifest = {
 
   docs: [
     { titleKey: "title", contentKey: "docSubtitle", type: "text" },
-    { titleKey: "docDescription", contentKey: "step2", type: "steps" },
+    { titleKey: "howItWorks", contentKey: "stepsCombined", type: "steps" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
   ],
 

@@ -26,11 +26,14 @@ export const manifest: MiniAppManifest = {
   ],
 
   // ── Stats Grid ────────────────────────────────────────────────────────
+  // Network-qualified labels so the four height/tx tiles read unambiguously in
+  // host chrome (two unqualified "Block Height"/"Transactions" pairs were
+  // indistinguishable and mismatched the PlayArea's active-network metrics).
   stats: [
-    { labelKey: "blockHeight", valueKey: "mainnetHeight", format: "number", icon: "box" },
-    { labelKey: "transactions", valueKey: "mainnetTxCount", format: "number", icon: "activity" },
-    { labelKey: "blockHeight", valueKey: "testnetHeight", format: "number", icon: "box" },
-    { labelKey: "transactions", valueKey: "testnetTxCount", format: "number", icon: "activity" },
+    { labelKey: "mainnetHeightLabel", valueKey: "mainnetHeight", format: "number", icon: "box" },
+    { labelKey: "mainnetTxLabel", valueKey: "mainnetTxCount", format: "number", icon: "activity" },
+    { labelKey: "testnetHeightLabel", valueKey: "testnetHeight", format: "number", icon: "box" },
+    { labelKey: "testnetTxLabel", valueKey: "testnetTxCount", format: "number", icon: "activity" },
     { labelKey: "sidebarNetwork", valueKey: "selectedNetwork", format: "text", icon: "globe" },
     { labelKey: "sidebarRecentTxs", valueKey: "recentTxCount", format: "number", icon: "list" },
   ],
@@ -39,8 +42,8 @@ export const manifest: MiniAppManifest = {
   sidebar: {
     titleKey: "title",
     items: [
-      { labelKey: "blockHeight", valueKey: "mainnetHeight", format: "number" },
-      { labelKey: "transactions", valueKey: "mainnetTxCount", format: "number" },
+      { labelKey: "mainnetHeightLabel", valueKey: "mainnetHeight", format: "number" },
+      { labelKey: "mainnetTxLabel", valueKey: "mainnetTxCount", format: "number" },
       { labelKey: "sidebarNetwork", valueKey: "selectedNetwork", format: "text" },
       { labelKey: "sidebarRecentTxs", valueKey: "recentTxCount", format: "number" },
     ],

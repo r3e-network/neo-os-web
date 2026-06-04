@@ -20,6 +20,11 @@ export default function SearchPanel({
   onUpdateSelectedNetwork,
   onSearch,
 }: SearchPanelProps) {
+  // An empty query is a no-op on the composable side and only surfaces an error
+  // through the host channel — so communicate the requirement inline here by
+  // disabling the action and showing an aria-live hint before any dispatch.
+  const isEmptyQuery = searchQuery.trim().length === 0;
+
   return (
     <NeoCard variant="erobo" className="search-card">
       <div className="search-card__header">
@@ -38,10 +43,14 @@ export default function SearchPanel({
           variant="primary"
           block
           loading={isSearching}
+          disabled={isEmptyQuery}
           onClick={onSearch}
         >
           {t("search")}
         </NeoButton>
+        <p className="search-hint" role="status" aria-live="polite">
+          {isEmptyQuery ? t("pleaseEnterQuery") : t("explorerSearchHint")}
+        </p>
       </div>
 
       <div className="network-toggle" role="group" aria-label={t("sidebarNetwork")}>

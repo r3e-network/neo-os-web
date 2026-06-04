@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable, ObservableState } from "@shared/react/context";
@@ -16,6 +16,17 @@ interface PlayAreaProps {
 function tokenLabel(tokenId: string) {
   if (!tokenId) return "";
   return tokenId.length > 18 ? `${tokenId.slice(0, 10)}...${tokenId.slice(-6)}` : tokenId;
+}
+
+/**
+ * Format an on-chain unix-seconds timestamp for display. Returns an empty
+ * string for unset/zero timestamps so the caller can skip the row entirely.
+ */
+function formatTimestamp(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "";
+  const date = new Date(seconds * 1000);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString();
 }
 
 /**
@@ -81,6 +92,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const lastTxid = str("lastTxid", "");
   const lastError = str("lastError", "");
   const lastSuccess = str("lastSuccess", "");
+  const deepLinkTemplateId = str("deepLinkTemplateId", "");
+  const deepLinkAutoIssue = bool("deepLinkAutoIssue");
 
   const [createForm, setCreateForm] = useState({
     name: "Neo Course Completion",
@@ -97,6 +110,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     memo: "",
   });
   const [verifyTokenId, setVerifyTokenId] = useState("");
+
+  const issuePanelRef = useRef<HTMLDivElement | null>(null);
+  const deepLinkApplied = useRef(false);
+
+  // Read side of the Copy/Share Issue Link deep-link: when the app is opened
+  // with ?issueTemplateId=…, preselect that template in the Issue panel (and
+  // scroll it into view when the link asked to auto-draft) instead of leaving
+  // the recipient on the default state. Apply once, then clear the launch flag.
+  useEffect(() => {
+    if (deepLinkApplied.current) return;
+    const linkedTemplateId = deepLinkTemplateId.trim();
+    if (!linkedTemplateId) return;
+    deepLinkApplied.current = true;
+    setIssueForm((current) =>
+      current.templateId
+        ? current
+        : { ...current, templateId: linkedTemplateId },
+    );
+    // The anchor uses `display: contents` (no box of its own), so scroll the
+    // rendered NeoCard element it wraps. Guard scrollIntoView for environments
+    // (and older runtimes) where it is unavailable.
+    const panelEl = issuePanelRef.current?.firstElementChild;
+    if (
+      deepLinkAutoIssue &&
+      panelEl instanceof HTMLElement &&
+      typeof panelEl.scrollIntoView === "function"
+    ) {
+      panelEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    void dispatch("consumeDeepLink");
+  }, [deepLinkTemplateId, deepLinkAutoIssue, dispatch]);
 
   const selectedTemplate = useMemo(
     () => templates.find((template) => template.id === issueForm.templateId),
@@ -213,6 +257,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       )}
 
       <div className="certificate-workspace">
+        <div className="issue-panel-anchor" ref={issuePanelRef}>
         <NeoCard title={t("issueCertificate")} className="certificate-panel">
           <p className="panel-copy">{t("issueHelp")}</p>
 
@@ -314,6 +359,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {isIssuing ? t("issuing") : t("issue")}
           </NeoButton>
         </NeoCard>
+        </div>
 
         <div className="certificate-stack">
           <TemplateList
@@ -470,6 +516,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <dt>{t("issueRecipient")}</dt>
                     <dd>{formatHash(verifiedCertificate.owner, 8, 6)}</dd>
                   </div>
+                  {formatTimestamp(verifiedCertificate.issuedTime) && (
+                    <div>
+                      <dt>{t("issuedAt")}</dt>
+                      <dd>{formatTimestamp(verifiedCertificate.issuedTime)}</dd>
+                    </div>
+                  )}
+                  {verifiedCertificate.revoked &&
+                    formatTimestamp(verifiedCertificate.revokedTime) && (
+                      <div>
+                        <dt>{t("certificateRevoked")}</dt>
+                        <dd>{formatTimestamp(verifiedCertificate.revokedTime)}</dd>
+                      </div>
+                    )}
                 </dl>
                 {!verifiedCertificate.revoked && (
                   <div className="certificate-detail__revoke">

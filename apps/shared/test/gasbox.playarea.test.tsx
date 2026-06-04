@@ -75,7 +75,24 @@ function t(key: string, params?: Record<string, string | number>) {
     totalItems: "Items",
     totalPlays: "Plays",
     totalPulls: "Total Pulls",
+    estPlays: "Est. Plays",
+    estPlaysHint: "Estimated from accrued revenue ÷ price.",
     yourPulls: "Your Pulls",
+    withdrawRevenue: "Withdraw Revenue",
+    gasboxCreatorEarningsTitle: "Creator earnings",
+    gasboxRevenueAvailable: "Accrued play revenue is available to withdraw to your wallet.",
+    gasboxRevenueNone: "No withdrawable revenue yet.",
+    derivedTierLabel: "Tier",
+    derivedTierExplain: "Rarity tiers are derived from each item's weight share.",
+    rarityCommon: "COMMON",
+    rarityRare: "RARE",
+    rarityEpic: "EPIC",
+    rarityLegendary: "LEGENDARY",
+    weightLabel: "Weight",
+    createMachineAction: "Create Machine",
+    studioCloseAction: "Close Studio",
+    itemNamePlaceholder: "Item Name",
+    addItem: "Add Item",
   };
   return messages[key] ?? key;
 }
@@ -167,6 +184,7 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     showResult: false,
     totalPulls: 42,
     userPulls: 3,
+    walletAddress: "",
     ...overrides,
   };
 
@@ -235,5 +253,94 @@ describe("GasBox PlayArea", () => {
     expect(
       (screen.getByRole("button", { name: /Pull/ }) as HTMLButtonElement).disabled,
     ).toBe(true);
+  });
+
+  it("hides the creator Withdraw Revenue control from non-creators", () => {
+    const selectedMachine = machine({ revenueRaw: 2_100_000_000, revenue: "21.00" });
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          machines: [selectedMachine],
+          selectedMachine,
+          selectedMachineName: selectedMachine.name,
+          // A wallet that does not own the machine.
+          walletAddress: "NSomeoneElse111111111111111111111111",
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(screen.queryByText("Creator earnings")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Withdraw Revenue" })).toBeNull();
+  });
+
+  it("shows the creator Withdraw Revenue control and dispatches withdrawRevenue with the machine id", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    const selectedMachine = machine({ revenueRaw: 2_100_000_000, revenue: "21.00" });
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          machines: [selectedMachine],
+          selectedMachine,
+          selectedMachineName: selectedMachine.name,
+          // The connected wallet matches the machine's creatorHash.
+          walletAddress: selectedMachine.creatorHash,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(screen.getByText("Creator earnings")).toBeTruthy();
+    expect(screen.getByText("21.00 GAS")).toBeTruthy();
+    const withdraw = screen.getByRole("button", { name: "Withdraw Revenue" }) as HTMLButtonElement;
+    expect(withdraw.disabled).toBe(false);
+
+    fireEvent.click(withdraw);
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("withdrawRevenue", "gasbox-alpha");
+    });
+  });
+
+  it("disables Withdraw Revenue for the creator when there is no accrued revenue", () => {
+    const selectedMachine = machine({ revenueRaw: 0, revenue: "0.00" });
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          machines: [selectedMachine],
+          selectedMachine,
+          selectedMachineName: selectedMachine.name,
+          walletAddress: selectedMachine.creatorHash,
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    // The panel is shown to the creator, but the action is disabled with no revenue.
+    expect(screen.getByText("Creator earnings")).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Withdraw Revenue" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("replaces the dead Studio rarity selector with a weight-derived tier preview", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ studioOpen: true })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    // The Studio form no longer renders a rarity <select> (it was a no-op).
+    expect(container.querySelector(".gasbox-studio-item select")).toBeNull();
+    // A read-only weight-derived tier preview is shown instead.
+    expect(container.querySelector(".gasbox-derived-tier")).not.toBeNull();
+    expect(screen.getByText("Tier")).toBeTruthy();
   });
 });

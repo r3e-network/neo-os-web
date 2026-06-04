@@ -13,8 +13,9 @@ afterEach(() => cleanup());
 const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const BENEFICIARY = "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq";
 
-function t(key: string) {
+function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
+    addMilestone: "Add milestone",
     amount: "Amount",
     amountPlaceholder: "1.5",
     approve: "Approve",
@@ -32,14 +33,29 @@ function t(key: string) {
     emptyEscrows: "No escrows yet",
     escrowsTab: "Escrows",
     forYou: "For you",
+    milestones: "Milestones",
+    milestoneLabel: "Milestone {index}",
+    milestoneAmountPlaceholder: "1.5",
+    milestoneProgress: "{done} / {count} milestones",
+    noMilestoneToApprove: "All milestones approved",
+    noMilestoneToClaim: "No approved milestone to claim",
     refresh: "Refresh",
+    released: "Released",
+    releasedOfTotal: "{released} / {total} released",
+    remove: "Remove",
+    removeMilestone: "Remove milestone {index}",
     statusActive: "Active",
     statusCancelled: "Cancelled",
     statusCompleted: "Completed",
     submit: "Submit",
     title: "Milestone Escrow",
+    totalAmount: "Total amount",
   };
-  return messages[key] ?? key;
+  const template = messages[key] ?? key;
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, (_m, name: string) =>
+    params[name] !== undefined ? String(params[name]) : `{${name}}`,
+  );
 }
 
 function escrow(overrides: Partial<EscrowItem> = {}): EscrowItem {
@@ -77,7 +93,9 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     claimingId: null,
     cancellingId: null,
     statusLabelFunc: (status: string) => (status === "active" ? "Active" : status),
-    formatAmountFunc: (_symbol: "NEO" | "GAS", amount: bigint) => `${amount.toString()} GAS`,
+    // Mirrors the real composable's formatAmount: returns the bare formatted
+    // number (no asset suffix) — the card appends the asset symbol itself.
+    formatAmountFunc: (_symbol: "NEO" | "GAS", amount: bigint) => amount.toString(),
     formatAddressFunc: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
     ...overrides,
   };
@@ -108,17 +126,17 @@ describe("Milestone Escrow PlayArea", () => {
     expect(neoOption).toBeTruthy();
     expect(gasOption.getAttribute("aria-checked")).toBe("true");
     expect(neoOption.getAttribute("aria-checked")).toBe("false");
-    // Amount label reflects the default (GAS) asset.
-    expect(screen.getByLabelText("Amount (GAS)")).toBeTruthy();
+    // A single milestone row is present by default.
+    expect(screen.getByLabelText("Milestone 1")).toBeTruthy();
   });
 
-  it("dispatches createEscrow with the entered amount and GAS asset by default", () => {
+  it("dispatches createEscrow with a single-milestone array and GAS by default", () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
     fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
-    fireEvent.change(screen.getByLabelText("Amount (GAS)"), { target: { value: "1.5" } });
+    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
     fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Phase 1" } });
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
@@ -133,6 +151,72 @@ describe("Milestone Escrow PlayArea", () => {
     );
   });
 
+  it("adds milestones and dispatches the full per-milestone amount array", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
+    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
+    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
+
+    // Add two more milestone rows (3 total).
+    fireEvent.click(screen.getByRole("button", { name: /Add milestone/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Add milestone/i }));
+    fireEvent.change(screen.getByLabelText("Milestone 2"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Milestone 3"), { target: { value: "0.5" } });
+
+    // Live total reflects the sum of all milestone amounts.
+    expect(screen.getByText("4 GAS")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    expect(dispatch).toHaveBeenCalledWith(
+      "createEscrow",
+      expect.objectContaining({
+        beneficiary: BENEFICIARY,
+        asset: "GAS",
+        milestones: [{ amount: "1.5" }, { amount: "2" }, { amount: "0.5" }],
+      }),
+    );
+  });
+
+  it("removes an added milestone and keeps the remaining amounts", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
+    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
+    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: /Add milestone/i }));
+    fireEvent.change(screen.getByLabelText("Milestone 2"), { target: { value: "2" } });
+
+    // Remove the first milestone; the second shifts up to "Milestone 1".
+    fireEvent.click(screen.getByRole("button", { name: "Remove milestone 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    expect(dispatch).toHaveBeenCalledWith(
+      "createEscrow",
+      expect.objectContaining({ milestones: [{ amount: "2" }] }),
+    );
+  });
+
+  it("disables Submit until a beneficiary and positive amount are entered", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
+    const submit = screen.getByRole("button", { name: "Submit" }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+
+    // Clicking the disabled submit does not dispatch.
+    fireEvent.click(submit);
+    expect(dispatch).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
+    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1" } });
+    expect((screen.getByRole("button", { name: "Submit" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("switches to NEO and dispatches createEscrow with the NEO asset", () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
@@ -141,9 +225,7 @@ describe("Milestone Escrow PlayArea", () => {
     fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
     fireEvent.click(screen.getByRole("radio", { name: "NEO" }));
 
-    // Amount label now reflects NEO.
-    expect(screen.getByLabelText("Amount (NEO)")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Amount (NEO)"), { target: { value: "5" } });
+    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "5" } });
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     expect(dispatch).toHaveBeenCalledWith(
@@ -168,5 +250,48 @@ describe("Milestone Escrow PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Claim" }));
     expect(dispatch).toHaveBeenCalledWith("claimMilestone", expect.objectContaining({ id: "esc-1" }));
+  });
+
+  it("shows the escrow amount, asset, and milestone progress on each card", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
+
+    // formatAmountFunc renders "<base units> GAS"; total appears on the card.
+    expect(screen.getAllByText("10000000 GAS").length).toBeGreaterThan(0);
+    // Milestone progress: 0 of 2 claimed.
+    expect(screen.getAllByText("0 / 2 milestones").length).toBeGreaterThan(0);
+  });
+
+  it("disables Approve when every milestone is already approved", () => {
+    const allApproved = escrow({ milestoneApproved: [true, true], milestoneClaimed: [false, false] });
+    render(
+      <PlayArea
+        t={t}
+        state={state({ creatorEscrows: [allApproved], beneficiaryEscrows: [] })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    const approve = screen.getByRole("button", { name: "Approve" }) as HTMLButtonElement;
+    expect(approve.disabled).toBe(true);
+  });
+
+  it("disables Claim when no milestone is approved-and-unclaimed", () => {
+    // Beneficiary escrow with nothing approved yet -> nothing claimable.
+    const noneApproved = escrow({
+      creator: BENEFICIARY,
+      beneficiary: OWNER,
+      milestoneApproved: [false, false],
+      milestoneClaimed: [false, false],
+    });
+    render(
+      <PlayArea
+        t={t}
+        state={state({ creatorEscrows: [], beneficiaryEscrows: [noneApproved] })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    const claim = screen.getByRole("button", { name: "Claim" }) as HTMLButtonElement;
+    expect(claim.disabled).toBe(true);
   });
 });

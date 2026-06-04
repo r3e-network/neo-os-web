@@ -44,6 +44,7 @@ defineMiniApp({
     );
     ctx.registerAction("copyIssueLink", async (template: unknown) => { await soulbound.copyIssueLink(template); });
     ctx.registerAction("shareIssueLink", async (template: unknown) => { await soulbound.shareIssueLink(template); });
+    ctx.registerAction("consumeDeepLink", async () => { soulbound.consumeDeepLink(); });
 
     return {
       state: refsToObservables({
@@ -66,6 +67,8 @@ defineMiniApp({
         lastTxid: soulbound.lastTxid,
         lastError: soulbound.lastError,
         lastSuccess: soulbound.lastSuccess,
+        deepLinkTemplateId: soulbound.deepLinkTemplateId,
+        deepLinkAutoIssue: soulbound.deepLinkAutoIssue,
       }),
       loadData: soulbound.loadAll,
     };

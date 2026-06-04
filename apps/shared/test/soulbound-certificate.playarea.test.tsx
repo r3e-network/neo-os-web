@@ -134,6 +134,8 @@ function baseState(
     lastTxid: "",
     lastError: "",
     lastSuccess: "",
+    deepLinkTemplateId: "",
+    deepLinkAutoIssue: false,
     ...overrides,
   };
   return Object.fromEntries(
@@ -207,6 +209,43 @@ describe("Soulbound Certificate PlayArea", () => {
     expect(dispatch).toHaveBeenCalledWith("revokeCertificate", {
       tokenId: "0x0700000000000001",
     });
+  });
+
+  it("prefills the issue template from a deep link and marks it consumed", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ deepLinkTemplateId: "7", deepLinkAutoIssue: true })}
+        dispatch={dispatch}
+      />,
+    );
+
+    // Template id input is preselected from ?issueTemplateId=7 without the user
+    // having to pick a template manually.
+    expect(
+      (screen.getByLabelText("Template ID") as HTMLInputElement).value,
+    ).toBe("7");
+    // The view tells the logic layer the deep link has been applied.
+    expect(dispatch).toHaveBeenCalledWith("consumeDeepLink");
+  });
+
+  it("does not override a template the user already typed", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ deepLinkTemplateId: "", deepLinkAutoIssue: false })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const input = screen.getByLabelText("Template ID") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "42" } });
+    expect(input.value).toBe("42");
+    expect(dispatch).not.toHaveBeenCalledWith("consumeDeepLink");
   });
 
   it("keeps raw action keys and fake modal copy out of the rendered workspace", () => {

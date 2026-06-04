@@ -169,6 +169,26 @@ const appMessages = {
   rewardsClaimSubmitted: { en: "Reward claim submitted", zh: "奖励领取已提交" },
   invalidAmount: { en: "NEO is indivisible — enter a whole number", zh: "NEO 不可分割 — 请输入整数" },
   tokenNeo: { en: "NEO", zh: "NEO" },
+  routeStateLabel: { en: "Route state", zh: "路由状态" },
+  statusLabel: { en: "Status", zh: "状态" },
+  agentsLabel: { en: "Agents", zh: "Agent 数" },
+  rewardPoolLabel: { en: "Reward pool", zh: "奖励池" },
+  routeSelected: { en: "Route selected", zh: "已选定路由" },
+  awaitingRoute: { en: "Awaiting route", zh: "等待路由" },
+  noneFallback: { en: "None", zh: "无" },
+  routeModelHeading: { en: "How routing is protected", zh: "路由如何被保护" },
+  agentsHint: { en: "{count}/21 agents", zh: "{count}/21 个 agent" },
+  currentRouteLine: { en: "Current route: {agent}.", zh: "当前路由：{agent}。" },
+  agentsRegisteredLine: {
+    en: "{count}/21 AA agents registered for TrustAnchor.",
+    zh: "已为 TrustAnchor 注册 {count}/21 个 AA agent。",
+  },
+  operatorsNote: {
+    en: "Operators move NEO between candidate agents and update vote targets when the council set changes.",
+    zh: "运营方在候选人 agent 之间移动 NEO，并在 council 列表变化时更新投票目标。",
+  },
+  agentCandidateLabel: { en: "candidate {id}", zh: "候选人 {id}" },
+  stakingWorkspaceLabel: { en: "TrustAnchor staking workspace", zh: "TrustAnchor 质押工作区" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

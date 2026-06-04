@@ -356,6 +356,50 @@ export function useTimeCapsule({
     }
   };
 
+  /**
+   * Load fishable public-capsule candidates across ALL owners.
+   *
+   * Unlike loadCapsules() (which scopes the index to the current wallet so the
+   * list/counts reflect only the user's own capsules), fishing is meant to
+   * DISCOVER other users' public capsules. os-storage-list is scoped only by
+   * appId — not by owner — so the raw list already contains every user's
+   * records in the shared app namespace. Here we deliberately keep that
+   * unfiltered scope and surface only fishable records: public, unrevealed and
+   * not-yet-fished. Records owned by the current wallet are excluded so a user
+   * fishes OTHER people's capsules, not their own (which they can already open).
+   * Legacy untagged records (owner === "") are treated as not-mine so they
+   * remain discoverable.
+   */
+  const loadPublicCandidates = async (): Promise<Capsule[]> => {
+    try {
+      const wallet = chainService.address.get();
+      const capsuleMap = await storageService.list(CAPSULE_INDEX_PREFIX, 50);
+      const items: Capsule[] = [];
+      if (capsuleMap && typeof capsuleMap === "object") {
+        for (const [, value] of Object.entries(capsuleMap)) {
+          const stored = value as StoredCapsule;
+          if (!stored || !stored.id) continue;
+          const recordOwner = String(stored.owner || "");
+          const isMine = wallet
+            ? recordOwner !== "" && ownerMatchesAddress(recordOwner, wallet)
+            : false;
+          if (isMine) continue;
+          const cap = buildCapsuleFromStored(stored);
+          if (cap.isPublic && !cap.revealed && !cap.fished) {
+            items.push(cap);
+          }
+        }
+      }
+      return items.sort((a, b) => Number(b.id) - Number(a.id));
+    } catch (e) {
+      console.warn(
+        "[useTimeCapsule] loadPublicCandidates failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+      return [];
+    }
+  };
+
   // ── Actions (via OS services) ──────────────────────────────────────
 
   /**
@@ -551,9 +595,14 @@ export function useTimeCapsule({
    * existing escrow — so the correct primitive is os-payment deposit, which
    * transfers a positive GAS amount with a memo.
    *
-   * Candidate selection is derived client-side from the os-storage capsule
-   * index (a public, unrevealed, not-yet-fished capsule — the only kind that
-   * can be fished). If none exists we report fishNone without charging the fee.
+   * Candidate selection is sourced from loadPublicCandidates(), an UNFILTERED
+   * scan of the os-storage capsule index (scoped by appId, not by owner) for
+   * public, unrevealed, not-yet-fished records owned by OTHER users — the
+   * cross-user discovery the feature advertises. If no other-owner candidate
+   * exists we fall back to the user's own public, unrevealed, not-fished
+   * capsules from the already-loaded list so the flow still works in a
+   * single-user / local-preview context. If neither exists we report fishNone
+   * without charging the fee.
    *
    * On a successful fee deposit the candidate's index record is marked
    * `fished` via storageService.set, so the same target is excluded on the
@@ -566,11 +615,15 @@ export function useTimeCapsule({
 
     isProcessing.set(true);
     try {
-      // Find a fishable candidate from the index: public, unrevealed, and not
-      // already fished (a fished capsule has had its discovery fee paid).
-      const candidate = capsules
-        .get()
-        .find((c) => c.isPublic && !c.revealed && !c.fished);
+      // Prefer another user's public capsule (true cross-user discovery), then
+      // fall back to the current user's own fishable public capsule so the flow
+      // is not dead in a single-user / preview context.
+      const others = await loadPublicCandidates();
+      const candidate =
+        others[0] ??
+        capsules
+          .get()
+          .find((c) => c.isPublic && !c.revealed && !c.fished);
 
       if (!candidate) {
         eventBus.emit("capsule:fished", { message: t("fishNone") });

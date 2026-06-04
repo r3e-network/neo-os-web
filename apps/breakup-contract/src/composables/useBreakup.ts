@@ -43,13 +43,55 @@ const STORAGE_PREFIX = "contracts:";
 const storageKey = (id: number): string => `${STORAGE_PREFIX}${id}`;
 
 /**
- * Mint a stable numeric contract id. The OS escrow kernel never returns its own
- * assigned id to the client, so we derive one here and use it as BOTH the
- * os-storage index key suffix (`contracts:<id>`) AND the escrowId passed to
- * fund()/completeMilestone(). The contract id therefore IS the escrow id — an
- * invariant signContract/breakContract rely on via String(contract.id).
+ * Mint a stable numeric contract id used ONLY as the os-storage index key
+ * suffix (`contracts:<id>`). This is a local, client-side record id and is
+ * deliberately NOT reused as the on-chain escrow id: the kernel assigns its
+ * own sequential escrow id (MiniAppMilestoneEscrow CreateEscrow returns
+ * `TotalEscrows() + 1`), which we capture separately and persist as
+ * StoredContract.escrowId. All escrow operations (fund/complete/refund) target
+ * that captured kernel escrowId, never the storage-key id.
  */
 const generateContractId = (): number => Date.now();
+
+/**
+ * Extract the kernel-assigned escrow id from whatever `escrowService.create()`
+ * resolves to, when it is available. The os-escrow-create edge function emits a
+ * `CreateEscrow` intent; in environments that reconcile the executed return
+ * value the proxy surfaces the sequential escrow id as a bare string/number or
+ * wrapped in an object (`{ escrowId }`, `{ id }`). In the standard wallet-relay
+ * path, however, the signed-but-unconfirmed invocation only yields `{ txid }`
+ * (the post-execution stack is not known until the tx mines), so this returns
+ * null and the caller falls back to the local storage-key id, advancing the
+ * lifecycle optimistically and overlaying authoritative state via
+ * `escrowService.get()` once it resolves. Anything that is not a
+ * positive-integer-looking id therefore yields null by design.
+ */
+const extractEscrowId = (result: unknown): string | null => {
+  const fromScalar = (value: unknown): string | null => {
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+      return String(Math.trunc(value));
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (/^\d+$/.test(trimmed) && trimmed !== "0") return trimmed;
+    }
+    return null;
+  };
+
+  const scalar = fromScalar(result);
+  if (scalar) return scalar;
+
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    const obj = result as Record<string, unknown>;
+    return (
+      fromScalar(obj.escrowId) ??
+      fromScalar(obj.escrow_id) ??
+      fromScalar(obj.id) ??
+      null
+    );
+  }
+  return null;
+};
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "");
@@ -86,6 +128,13 @@ export interface UseBreakupOptions {
 
 interface StoredContract {
   id: number;
+  /**
+   * The kernel-assigned escrow id (sequential, from CreateEscrow). This is the
+   * canonical id every escrow operation targets — distinct from `id`, which is
+   * only the os-storage index suffix. Optional for backward compatibility with
+   * records written before this field existed; absence falls back to `id`.
+   */
+  escrowId?: string;
   party1: string;
   party2: string;
   stake: string | number;
@@ -142,22 +191,41 @@ export function useBreakup({
 
   // -- Helpers --------------------------------------------------------------
 
+  /**
+   * Live escrow snapshot read from escrowService.get(escrowId). Only the fields
+   * that advance the relationship lifecycle are consumed; everything else falls
+   * back to the static creation record. `funded`/`active` flips pending→active
+   * once party2 signs (escrow.fund), `completed` flips active→broken once the
+   * milestone is completed (escrow.complete).
+   */
+  interface LiveEscrowState {
+    funded?: boolean;
+    active?: boolean;
+    completed?: boolean;
+    cancelled?: boolean;
+  }
+
   const parseContract = (
     data: StoredContract,
+    live?: LiveEscrowState,
   ): RelationshipContractView | null => {
     if (!data || typeof data !== "object") return null;
 
     const party1 = String(data.party1 ?? "");
     const party2 = String(data.party2 ?? "");
     const stakeRaw = String(data.stake ?? "0");
-    const party2Signed = Boolean(data.party2Signed);
+    // The live escrow state (kernel source of truth) takes precedence over the
+    // write-once creation snapshot so the status lifecycle actually advances
+    // after sign/break instead of being frozen at 'pending'.
+    const party2Signed = Boolean(live?.funded ?? data.party2Signed);
     const startTimeSeconds = Number(data.startTime ?? 0);
     const durationSeconds = Number(data.duration ?? 0);
-    const active = Boolean(data.active);
-    const completed = Boolean(data.completed);
-    const cancelled = Boolean(data.cancelled);
+    const active = Boolean(live?.active ?? data.active);
+    const completed = Boolean(live?.completed ?? data.completed);
+    const cancelled = Boolean(live?.cancelled ?? data.cancelled);
     const title = String(data.title ?? "");
     const terms = String(data.terms ?? "");
+    const escrowId = data.escrowId ? String(data.escrowId) : String(data.id);
 
     const startTimeMs = startTimeSeconds * 1000;
     const durationMs = durationSeconds * 1000;
@@ -185,6 +253,7 @@ export function useBreakup({
 
     return {
       id: Number(data.id),
+      escrowId,
       party1,
       party2,
       partner,
@@ -198,6 +267,33 @@ export function useBreakup({
     };
   };
 
+  /**
+   * Read the live escrow lifecycle flags for a contract from the kernel via
+   * escrowService.get(escrowId). Returns undefined on any boundary/parse error
+   * so the caller falls back to the static creation snapshot rather than
+   * dropping the contract from the list.
+   */
+  const fetchLiveEscrowState = async (
+    escrowId: string,
+  ): Promise<LiveEscrowState | undefined> => {
+    if (!escrowId || !/^\d+$/.test(escrowId)) return undefined;
+    try {
+      const raw = await escrowService.get(escrowId);
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+      const obj = raw as Record<string, unknown>;
+      return {
+        funded: obj.funded != null ? Boolean(obj.funded) : undefined,
+        active: obj.active != null ? Boolean(obj.active) : undefined,
+        completed: obj.completed != null ? Boolean(obj.completed) : undefined,
+        cancelled: obj.cancelled != null ? Boolean(obj.cancelled) : undefined,
+      };
+    } catch {
+      // Live hydration is best-effort: never let a single escrow read failure
+      // wipe the whole list. The static snapshot still renders the contract.
+      return undefined;
+    }
+  };
+
   // -- Data loading (via StorageProxy) --------------------------------------
 
   /**
@@ -208,16 +304,26 @@ export function useBreakup({
     isLoading.set(true);
     try {
       const contractMap = await storageService.list(STORAGE_PREFIX, 50);
-      const contractViews: RelationshipContractView[] = [];
+      const storedRecords: StoredContract[] = [];
       if (contractMap && typeof contractMap === "object") {
         for (const [, value] of Object.entries(contractMap)) {
           const stored = value as StoredContract;
-          if (stored && stored.id) {
-            const view = parseContract(stored);
-            if (view) contractViews.push(view);
-          }
+          if (stored && stored.id) storedRecords.push(stored);
         }
       }
+      // Hydrate live escrow state per record so status advances past the
+      // write-once creation snapshot (sign -> active, break -> broken). Reads
+      // run in parallel and are individually fault-tolerant.
+      const liveStates = await Promise.all(
+        storedRecords.map((stored) =>
+          fetchLiveEscrowState(stored.escrowId ? String(stored.escrowId) : String(stored.id)),
+        ),
+      );
+      const contractViews: RelationshipContractView[] = [];
+      storedRecords.forEach((stored, index) => {
+        const view = parseContract(stored, liveStates[index]);
+        if (view) contractViews.push(view);
+      });
       contracts.set(contractViews.sort((a, b) => b.id - a.id));
       serviceNotice.set("");
     } catch (e) {
@@ -264,11 +370,14 @@ export function useBreakup({
     isLoading.set(true);
     try {
       // Create escrow with partner as beneficiary, stake as amount. The proxy
-      // receives the human-decimal GAS string and scales by 10^8 itself.
+      // receives the human-decimal GAS string and scales by 10^8 itself, and
+      // resolves to the kernel-assigned escrow id (CreateEscrow returns the
+      // sequential TotalEscrows()+1). Capture it as the canonical id for
+      // sign/break/refund — the storage-key id below is only a local index.
       const nowSeconds = Math.floor(Date.now() / 1000);
       const durationSeconds = durationDays * 86400;
       const expirySeconds = nowSeconds + durationSeconds;
-      await escrowService.create({
+      const createResult = await escrowService.create({
         beneficiary: partnerValue,
         amount: stakeAmount.get(),
         milestones: [
@@ -278,13 +387,17 @@ export function useBreakup({
       });
 
       // Maintain the os-storage index that loadContracts() reads. The kernel
-      // does not return its assigned id, so we mint a stable contract id (also
-      // used as the escrowId for sign/break) and persist a full StoredContract
-      // under the SAME prefix (contracts:<id>) the list reader consumes.
+      // assigns its OWN sequential escrow id (returned above); persist THAT as
+      // the canonical escrowId. The storage-key id is a separate local index so
+      // the two are never conflated. If the create response did not surface a
+      // usable escrow id (e.g. a wallet-less standalone render that only yields
+      // a txid), fall back to the storage-key id to keep the record listable.
       const contractId = generateContractId();
+      const resolvedEscrowId = extractEscrowId(createResult) ?? String(contractId);
       const creatorAddr = address.get();
       const stored: StoredContract = {
         id: contractId,
+        escrowId: resolvedEscrowId,
         party1: creatorAddr,
         party2: partnerValue,
         stake: Math.round(stake * 1e8),
@@ -307,14 +420,14 @@ export function useBreakup({
       // The escrow is already created on-chain at this point, so a failure of
       // the index write would otherwise strand the stake in an escrow the UI
       // can never surface (the contracts: list would never include it). Roll
-      // the escrow back via refund() before propagating the failure. The
-      // contractId IS the escrowId by invariant (see generateContractId), so
-      // refund(String(contractId)) targets the escrow we just created.
+      // the escrow back via refund() before propagating the failure, targeting
+      // the kernel-assigned escrow id we captured above (resolvedEscrowId), not
+      // the local storage-key id.
       try {
         await storageService.set(storageKey(contractId), stored);
       } catch (storageError) {
         try {
-          await escrowService.refund(String(contractId));
+          await escrowService.refund(resolvedEscrowId);
         } catch (refundError) {
           // Compensation failed too: the stake is still escrowed but the index
           // write failed. Surface a distinct, actionable error so the user
@@ -363,16 +476,53 @@ export function useBreakup({
   };
 
   /**
+   * Resolve the canonical kernel escrow id for a contract action. Newer views
+   * carry `escrowId`; fall back to the stringified storage id for legacy
+   * records or test callers that only pass `{ id }`.
+   */
+  const resolveEscrowId = (contract: { id: number; escrowId?: string }): string =>
+    contract.escrowId && /^\d+$/.test(String(contract.escrowId))
+      ? String(contract.escrowId)
+      : String(contract.id);
+
+  /**
+   * Optimistically patch the stored creation snapshot after a successful escrow
+   * mutation so the lifecycle advances even if the live escrow read is delayed
+   * or unavailable. Best-effort: a write failure is swallowed because the next
+   * loadContracts() hydrates authoritative state from escrowService.get().
+   */
+  const patchStoredContract = async (
+    id: number,
+    patch: Partial<StoredContract>,
+  ): Promise<void> => {
+    try {
+      const existing = (await storageService.get(storageKey(id))) as
+        | StoredContract
+        | null
+        | undefined;
+      if (existing && typeof existing === "object") {
+        await storageService.set(storageKey(id), { ...existing, ...patch });
+      }
+    } catch {
+      // Non-fatal: live hydration in loadContracts() is the source of truth.
+    }
+  };
+
+  /**
    * Sign a contract via EscrowProxy.fund().
    * The edge function handles the matching stake transfer + sign contract call.
    */
-  const signContract = async (contract: { id: number; stake: number }) => {
+  const signContract = async (contract: { id: number; stake: number; escrowId?: string }) => {
     if (isLoading.get()) return;
 
     actionNotice.set(t("contractSigning", { id: contract.id }));
     isLoading.set(true);
     try {
-      await escrowService.fund(String(contract.id));
+      await escrowService.fund(resolveEscrowId(contract));
+
+      // Advance the stored lifecycle pending -> active so the card flips to the
+      // signed state and exposes Break (loadContracts re-hydrates live state).
+      await patchStoredContract(contract.id, { party2Signed: true, active: true });
 
       eventBus.emit("breakup:signed", { action: t("contractSigned") });
       actionNotice.set(t("contractSigned"));
@@ -398,13 +548,17 @@ export function useBreakup({
    * Break a contract via EscrowProxy.completeMilestone().
    * The edge function handles the triggerBreakup contract call.
    */
-  const breakContract = async (contract: { id: number }) => {
+  const breakContract = async (contract: { id: number; escrowId?: string }) => {
     if (isLoading.get()) return;
 
     actionNotice.set(t("contractBreaking", { id: contract.id }));
     isLoading.set(true);
     try {
-      await escrowService.completeMilestone(String(contract.id), 0);
+      await escrowService.completeMilestone(resolveEscrowId(contract), 0);
+
+      // Advance the stored lifecycle active -> broken (completed) so the card
+      // reflects the terminal state immediately.
+      await patchStoredContract(contract.id, { active: false, completed: true });
 
       eventBus.emit("breakup:broken", { action: t("contractBroken") });
       actionNotice.set(t("contractBroken"));

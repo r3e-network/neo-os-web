@@ -99,6 +99,8 @@ const appMessages = {
   finalizeMatchesJson: { en: "Matched amounts (JSON)", zh: "匹配金额（JSON）" },
   finalizeMatchesPlaceholder: { en: "[100,50,25]", zh: "[100,50,25]" },
   finalizeHint: { en: "Amounts are in GAS units, not raw integers.", zh: "金额以 GAS 为单位输入。" },
+  finalizeKnownProjects: { en: "Projects in this round", zh: "本轮项目" },
+  finalizePrefill: { en: "Use these", zh: "填入项目" },
   finalizing: { en: "Finalizing...", zh: "结算中..." },
   roundFinalized: { en: "Round finalized", zh: "轮次已结算" },
   claimUnused: { en: "Claim unused", zh: "领取剩余匹配" },

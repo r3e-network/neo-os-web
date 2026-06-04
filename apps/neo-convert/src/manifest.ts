@@ -20,7 +20,7 @@ export const manifest: MiniAppManifest = {
   ],
 
   sidebar: {
-    titleKey: "title",
+    titleKey: "appTitle",
     items: [
       { labelKey: "sidebarActiveTab", valueKey: "activeTab", format: "text" },
       { labelKey: "sidebarMode", valueKey: "deviceMode", format: "text" },
@@ -30,8 +30,8 @@ export const manifest: MiniAppManifest = {
   features: { chainWarning: false },
 
   docs: [
-    { titleKey: "title", contentKey: "docSubtitle", type: "text" },
-    { titleKey: "docDescription", contentKey: "step2", type: "steps" },
-    { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
+    { titleKey: "docTitle", contentKey: "docDescription", type: "text" },
+    { titleKey: "docStep1", contentKey: "docStep2", type: "steps" },
+    { titleKey: "docFeature1Name", contentKey: "docFeature1Desc", type: "features" },
   ],
 };

@@ -55,6 +55,20 @@ function t(key: string, params?: Record<string, string | number>) {
     routeState: "Route state",
     routeStatus: "Status",
     routingProtectionTitle: "How routing is protected",
+    routeStateLabel: "Route state",
+    statusLabel: "Status",
+    agentsLabel: "Agents",
+    rewardPoolLabel: "Reward pool",
+    awaitingRoute: "Awaiting route",
+    noneFallback: "None",
+    routeModelHeading: "How routing is protected",
+    agentsHint: "{count}/21 agents",
+    currentRouteLine: "Current route: {agent}.",
+    agentsRegisteredLine: "{count}/21 AA agents registered for TrustAnchor.",
+    operatorsNote:
+      "Operators move NEO between candidate agents and update vote targets when the council set changes.",
+    agentCandidateLabel: "candidate {id}",
+    rewardPerNeo: "Reward / NEO",
     submitClaim: "Claim GAS",
     submitStake: "Stake NEO",
     submitWithdraw: "Redeem NEO",
@@ -152,6 +166,37 @@ describe("Anchor user PlayAreas", () => {
     expect(stakeButton.disabled).toBe(true);
     expect(withdrawButton.disabled).toBe(true);
     expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("renders the TrustAnchor route-state card through the translator", () => {
+    render(<TrustAnchorPlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
+
+    // Route-state aside is no longer hardcoded English: every label resolves via t().
+    const routeCard = screen.getByLabelText("Route state");
+    expect(routeCard).toBeTruthy();
+    expect(screen.getByText("Status")).toBeTruthy();
+    expect(screen.getAllByText("Agents").length).toBeGreaterThan(0);
+    expect(screen.getByText("Reward pool")).toBeTruthy();
+    // selectedAgentId: 4 -> "Route selected" via t("routeSelected"), not a literal.
+    expect(screen.getAllByText("Route selected").length).toBeGreaterThan(0);
+  });
+
+  it("shows an em-dash agent count for TrustAnchor when no chain stats exist", () => {
+    render(
+      <TrustAnchorPlayArea
+        t={t}
+        state={state({
+          stats: null,
+          agentCount: 0,
+          agentAccounts: [],
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    // Low-severity fix: empty contract must not overstate "21/21" agents.
+    expect(screen.getByText("—/21")).toBeTruthy();
+    expect(screen.getByText("Awaiting route")).toBeTruthy();
   });
 
   it("renders submitted anchor action history with the latest tx", () => {

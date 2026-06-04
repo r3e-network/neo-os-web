@@ -22,7 +22,7 @@ export const manifest: MiniAppManifest = {
   ],
 
   sidebar: {
-    titleKey: "title",
+    titleKey: "appTitle",
     items: [
       { labelKey: "sidebarTotalTxs", valueKey: "vaultCount", format: "number" },
       { labelKey: "statPending", valueKey: "pendingCount", format: "number" },

@@ -209,8 +209,13 @@ const toIdString = (value: unknown): string => {
 
 export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
   // ── Reactive State ──────────────────────────────────────────────────────
+  // isLoading drives the initial data load (list spinners), isRefreshing the
+  // post-action re-reads, and isCreating ONLY the create flow — kept separate
+  // so creating a stream spins the submit button without flashing the existing
+  // created/incoming lists back to their loading state.
   const isLoading = createObservable(false);
   const isRefreshing = createObservable(false);
+  const isCreating = createObservable(false);
   const claimingId = createObservable<string | null>(null);
   const cancellingId = createObservable<string | null>(null);
   const createdStreams = createObservable<StreamItem[]>([]);
@@ -356,7 +361,7 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
     intervalDays: string;
     notes: string;
   }) => {
-    if (isLoading.get()) return; // double-submit guard
+    if (isCreating.get()) return; // double-submit guard
 
     const asset: "NEO" | "GAS" = formData.asset === "NEO" ? "NEO" : "GAS";
 
@@ -402,7 +407,7 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
     const notes = formData.notes.trim().slice(0, 240);
 
     try {
-      isLoading.set(true);
+      isCreating.set(true);
 
       // Step 1: DEPOSIT — NEP-17 transfer to the contract on the asset token.
       // The scriptHash override targets the token contract (not the app), and
@@ -447,7 +452,7 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
 
       await refreshStreams();
     } finally {
-      isLoading.set(false);
+      isCreating.set(false);
     }
   };
 
@@ -521,6 +526,7 @@ export function useNeoPayApp({ chain, t }: UseNeoPayAppOptions) {
     beneficiaryStreams,
     isLoading,
     isRefreshing,
+    isCreating,
     claimingId,
     cancellingId,
     serviceNotice,

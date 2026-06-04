@@ -19,14 +19,14 @@
     letter-spacing: 0;
   }
 
-  // Harmonize the single accent hue to violet so the primary CTA matches the
-  // hero badge, eyebrow, progress bar and status pills (avoids violet/green clash).
+  // Single GREEN accent hue across the console: primary CTA, hero badge,
+  // eyebrow, progress bar and status pills all derive from the green brand token.
   .neo-btn--primary {
-    background: var(--ns-violet, #16c784);
+    background: var(--ns-brand, #16c784);
     box-shadow: 0 2px 8px rgba(22, 199, 132, 0.28);
 
     &:hover:not(:disabled) {
-      background: var(--ns-violet-strong, #0fb174);
+      background: var(--ns-brand-strong, #0fb174);
       box-shadow: 0 4px 16px rgba(22, 199, 132, 0.32);
     }
   }
@@ -90,8 +90,8 @@
   width: 46px;
   height: 46px;
   border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-violet-soft, #e4f8f0);
-  color: var(--ns-violet-strong, #0fb174);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .qf-hero-kicker {
@@ -157,7 +157,7 @@
   height: 10px;
   overflow: hidden;
   border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-violet-soft, #e4f8f0);
+  background: var(--ns-brand-soft, #e4f8f0);
 
   span {
     display: block;
@@ -166,8 +166,8 @@
     border-radius: inherit;
     background: linear-gradient(
       90deg,
-      var(--ns-violet-strong, #0fb174) 0%,
-      var(--ns-violet, #16c784) 100%
+      var(--ns-brand-strong, #0fb174) 0%,
+      var(--ns-brand, #16c784) 100%
     );
     transition: width var(--ns-t-base, 240ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
   }
@@ -270,7 +270,7 @@
     height: 16px;
     transform: translateY(-50%);
     pointer-events: none;
-    background-color: var(--ns-violet-strong, #0fb174);
+    background-color: var(--ns-brand-strong, #0fb174);
     -webkit-mask: var(--qf-calendar-mask) center / contain no-repeat;
     mask: var(--qf-calendar-mask) center / contain no-repeat;
   }
@@ -326,7 +326,7 @@
 
   &.is-selected {
     box-shadow:
-      0 0 0 1.5px var(--ns-violet, #16c784),
+      0 0 0 1.5px var(--ns-brand, #16c784),
       var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   }
 }
@@ -393,8 +393,8 @@
   flex: 0 0 auto;
   padding: 4px 10px;
   border-radius: var(--ns-radius-full, 9999px);
-  background: var(--ns-violet-soft, #e4f8f0);
-  color: var(--ns-violet-strong, #0fb174);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
   font-size: 11px;
   font-weight: 700;
 
@@ -461,7 +461,7 @@
 
 .qf-project-link {
   overflow-wrap: anywhere;
-  color: var(--ns-violet-strong, #0fb174);
+  color: var(--ns-brand-strong, #0fb174);
   font-size: 12px;
 }
 
@@ -493,6 +493,38 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.qf-finalize-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  line-height: 1.5;
+
+  b {
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.qf-finalize-prefill {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ns-brand-strong, #0fb174);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+    outline: none;
+  }
 }
 
 .qf-loading-row {

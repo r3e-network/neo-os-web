@@ -32,7 +32,7 @@
  * The composable still owns:
  *   - Reactive state (refs + computed) for manifest bindings
  *   - LTV tier selection and terms calculation
- *   - Health factor / LTV gauge computeds
+ *   - Health factor / LTV computeds (value-normalized via neoPrice when available)
  *   - Validation (pure frontend checks)
  *   - Loading UI flags
  *   - Formatted display values
@@ -174,15 +174,34 @@ export function useSelfLoan({
   }), [loan, selectedLtvPercent, minDurationHours]);
 
   // ── Computed: Position Metrics ──────────────────────────────────────
+  // Collateral is held in NEO (integer units) while debt is denominated in
+  // GAS. A health-factor / LTV ratio is only meaningful when both legs are in
+  // the same value unit, so we convert the NEO collateral to its GAS-equivalent
+  // value using neoPrice (GAS per NEO) when a price feed is available.
+  //
+  // When no price feed is wired (neoPrice === 0) we cannot value-normalize, so
+  // we fall back to treating each NEO as 1 unit of collateral value (a raw
+  // collateralization ratio). The UI relabels the metric to "Collateral Ratio"
+  // in that case so the number is not misrepresented as a priced health factor.
+  const collateralValueGas = createDerived(() => {
+    const collateral = loan.get().collateralLocked;
+    const price = neoPrice.get();
+    return price > 0 ? collateral * price : collateral;
+  }, [loan, neoPrice]);
+
+  /** True when a NEO/GAS price feed has been loaded and the ratio is value-normalized. */
+  const isPriceNormalized = createDerived(() => neoPrice.get() > 0, [neoPrice]);
+
   const healthFactor = createDerived(() => {
     if (loan.get().borrowed === 0) return 999;
-    return loan.get().collateralLocked / loan.get().borrowed;
-  }, []);
+    return collateralValueGas.get() / loan.get().borrowed;
+  }, [loan, neoPrice]);
 
   const currentLTV = createDerived(() => {
-    if (loan.get().collateralLocked === 0) return 0;
-    return Math.round((loan.get().borrowed / loan.get().collateralLocked) * 100);
-  }, []);
+    const collateralValue = collateralValueGas.get();
+    if (collateralValue === 0) return 0;
+    return Math.round((loan.get().borrowed / collateralValue) * 100);
+  }, [loan, neoPrice]);
 
   const collateralUtilization = createDerived(() => {
     const total = loan.get().collateralLocked + neoBalance.get();
@@ -199,13 +218,23 @@ export function useSelfLoan({
     const hf = healthFactor.get();
     if (hf >= 999) return t("notAvailable");
     return fmt(hf, 2);
-  }, []);
+  }, [loan, neoPrice]);
 
   const currentLTVDisplay = createDerived(() => {
     const ltv = currentLTV.get();
     if (ltv === 0 && !loan.get().active) return t("notAvailable");
     return `${ltv}%`;
-  }, []);
+  }, [loan, neoPrice]);
+
+  /**
+   * Caption for the health metric: when a price feed is wired the ratio is a
+   * value-normalized "Health Factor"; otherwise it is a same-unit collateral
+   * ratio, surfaced with a distinct label so the number is not misread.
+   */
+  const healthMetricLabel = createDerived(
+    () => (isPriceNormalized.get() ? t("healthFactor") : t("collateralRatio")),
+    [neoPrice],
+  );
 
   const hasLoanDisplay = createDerived(() =>
     loan.get().active ? t("yes") : t("no"),
@@ -216,21 +245,6 @@ export function useSelfLoan({
   const totalBorrowedDisplay = createDerived(() => fmt(stats.get().totalBorrowed), []);
   const totalRepaidDisplay = createDerived(() => fmt(stats.get().totalRepaid), []);
   const profitAnchorValue = createObservable(t("profitAnchorValue"));
-
-  // ── Computed: Health Gauge ──────────────────────────────────────────
-  const healthColor = createDerived(() => {
-    const hf = healthFactor.get();
-    if (!hf || hf >= 999) return "rgba(255,255,255,0.2)";
-    if (hf >= 1.5) return "var(--checkbook-success, #34d399)";
-    if (hf >= 1.2) return "var(--checkbook-warning, #fbbf24)";
-    return "var(--checkbook-danger, #f87171)";
-  }, []);
-
-  const healthArc = createDerived(() => {
-    const hf = healthFactor.get();
-    if (!hf || hf >= 999) return 0;
-    return Math.min(hf / 2, 1) * 327;
-  }, []);
 
   // ── Validation ──────────────────────────────────────────────────────
   const validateCollateral = (amount: string, balance: number): string | null => {
@@ -278,6 +292,29 @@ export function useSelfLoan({
       }
     } catch (e) {
       console.warn("[useSelfLoan] loadPlatformStats failed:", e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  /**
+   * Load the NEO→GAS price via StorageProxy when the host exposes one.
+   * The edge function may surface a council/oracle price as a numeric
+   * "neo-price" entry (GAS per NEO). When absent, neoPrice stays 0 and the
+   * position metrics fall back to a same-unit collateralization ratio.
+   */
+  const loadNeoPrice = async () => {
+    try {
+      const raw = await storageService.get("neo-price");
+      let price = 0;
+      if (typeof raw === "number" || typeof raw === "string") {
+        price = toNumber(raw);
+      } else if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        const data = raw as Record<string, unknown>;
+        price = toNumber(data.gasPerNeo ?? data.price ?? data.value);
+      }
+      neoPrice.set(price > 0 && Number.isFinite(price) ? price : 0);
+    } catch (e) {
+      console.warn("[useSelfLoan] loadNeoPrice failed:", e instanceof Error ? e.message : String(e));
+      neoPrice.set(0);
     }
   };
 
@@ -571,6 +608,7 @@ export function useSelfLoan({
     // is reachable (previously isConnected was never set -> Borrow stayed disabled).
     isConnected.set(Boolean(useWallet().address.value));
     await loadPlatformStats();
+    await loadNeoPrice();
     await loadBalance();
     await loadHistory();
   };
@@ -598,6 +636,8 @@ export function useSelfLoan({
     positionTerms,
     healthFactor,
     currentLTV,
+    collateralValueGas,
+    isPriceNormalized,
     collateralUtilization,
     validateCollateral,
 
@@ -612,16 +652,13 @@ export function useSelfLoan({
     borrowedDisplay,
     healthFactorDisplay,
     currentLTVDisplay,
+    healthMetricLabel,
     hasLoanDisplay,
     neoBalanceDisplay,
     totalLoans,
     totalBorrowedDisplay,
     totalRepaidDisplay,
     profitAnchorValue,
-
-    // Gauge computeds
-    healthColor,
-    healthArc,
 
     // Actions
     takeLoan,
