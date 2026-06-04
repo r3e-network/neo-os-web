@@ -1,6 +1,6 @@
 :global(.theme-council-governance) {
   --senate-bg: var(--ns-surface-subtle, #f7f8fa);
-  --senate-gold: var(--ns-violet-strong, #6a4df4);
+  --senate-gold: var(--ns-violet-strong, #0fb174);
   --senate-slate: var(--ns-ink, #1e1e2e);
   --senate-marble-top: var(--ns-surface, #ffffff);
   --senate-marble-bottom: var(--ns-surface-subtle, #f7f8fa);
@@ -10,11 +10,11 @@
   --senate-danger-bg: var(--ns-danger-soft, #fde7e9);
   --senate-danger-border: #e74c3c;
   --senate-danger-text: #c0392b;
-  --senate-button-gradient: linear-gradient(to bottom, var(--ns-violet, #7b61ff), var(--ns-violet-strong, #6a4df4));
+  --senate-button-gradient: linear-gradient(to bottom, var(--ns-violet, #16c784), var(--ns-violet-strong, #0fb174));
   --senate-success: #00c07a;
   --senate-danger: #dc2626;
   --senate-warning: #eab308;
-  --senate-executed: var(--ns-violet, #7b61ff);
+  --senate-executed: var(--ns-violet, #16c784);
   --senate-font: "Cinzel", serif;
 }
 
@@ -34,7 +34,7 @@
   --senate-success: #16c784;
   --senate-danger: #ef4444;
   --senate-warning: #fde047;
-  --senate-executed: #7b61ff;
+  --senate-executed: #16c784;
   --senate-font: "Cinzel", serif;
 }
 

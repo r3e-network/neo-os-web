@@ -1,9 +1,9 @@
 @use "@shared/styles/tokens.scss" as *;
 
 // Violet accent identity for this app, mapped onto the Neo Soft system.
-$grave-accent: var(--ns-violet, #7b61ff);
-$grave-accent-strong: var(--ns-violet-strong, #6a4df4);
-$grave-accent-soft: var(--ns-violet-soft, #eeeaff);
+$grave-accent: var(--ns-violet, #16c784);
+$grave-accent-strong: var(--ns-violet-strong, #0fb174);
+$grave-accent-soft: var(--ns-violet-soft, #e4f8f0);
 
 .graveyard-play-area {
   display: flex;
@@ -61,7 +61,7 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ns-violet-strong, #6a4df4);
+  color: var(--ns-violet-strong, #0fb174);
 }
 
 .grave-hero-title {
@@ -209,7 +209,7 @@ $grave-accent-soft: var(--ns-violet-soft, #eeeaff);
 
   &:focus-visible {
     outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   }
 }
 

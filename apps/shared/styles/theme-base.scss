@@ -37,9 +37,15 @@
   --ns-brand: #16c784;
   --ns-brand-strong: #0fb174;
   --ns-brand-soft: #e4f8f0;
-  --ns-violet: #7b61ff;
-  --ns-violet-strong: #6a4df4;
-  --ns-violet-soft: #eeeaff;
+  /* Unified single-accent identity: the ecosystem standardized on the brand
+     green as the sole interactive accent. The violet tokens are retained as
+     back-compat aliases (185+ references across apps + shared components) and
+     now resolve to brand green, so every CTA, focus ring, link, and active
+     surface reads as one accent. Decorative art (mascot/coin/confetti variants,
+     category icons) hardcodes its own hex and is intentionally left multi-hue. */
+  --ns-violet: var(--ns-brand);
+  --ns-violet-strong: var(--ns-brand-strong);
+  --ns-violet-soft: var(--ns-brand-soft);
   --ns-up: #16c784;
   --ns-down: #ea3943;
   --ns-success: #16c784;
@@ -69,8 +75,8 @@
   --ns-badge-seafoam-fg: #16c784;
 
   /* Gradients */
-  --ns-gradient-hero: linear-gradient(135deg, #8b7bf0 0%, #a99cf5 100%);
-  --ns-gradient-brand: linear-gradient(135deg, #16c784 0%, #7b61ff 100%);
+  --ns-gradient-hero: linear-gradient(135deg, #16c784 0%, #34d89b 100%);
+  --ns-gradient-brand: linear-gradient(135deg, #16c784 0%, #0fb174 100%);
 
   /* Radius */
   --ns-radius-xs: 8px;
@@ -86,7 +92,7 @@
   --ns-shadow-md: 0 8px 24px rgba(20, 22, 38, 0.06);
   --ns-shadow-lg: 0 16px 40px rgba(20, 22, 38, 0.1);
   --ns-shadow-xl: 0 24px 60px rgba(20, 22, 38, 0.14);
-  --ns-focus-ring: 0 0 0 4px rgba(123, 97, 255, 0.18);
+  --ns-focus-ring: 0 0 0 4px rgba(22, 199, 132, 0.18);
   --ns-glow-brand: 0 8px 24px rgba(22, 199, 132, 0.2);
 
   /* Motion */
@@ -130,7 +136,7 @@
   /* Accents */
   --accent-primary: var(--ns-violet);
   --accent-primary-hover: var(--ns-violet-strong);
-  --accent-primary-active: #5b3fe0;
+  --accent-primary-active: #0c9b63;
   --accent-secondary: var(--ns-brand);
   --accent-success: var(--ns-success);
   --accent-warning: var(--ns-warning);

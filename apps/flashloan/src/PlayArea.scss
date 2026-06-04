@@ -2,9 +2,9 @@
 @use "@shared/styles/playarea-base";
 
 .flashloan-play-area {
-  --fl-accent: var(--ns-violet, #7b61ff);
-  --fl-accent-strong: var(--ns-violet-strong, #6a4df4);
-  --fl-accent-soft: var(--ns-violet-soft, #eeeaff);
+  --fl-accent: var(--ns-violet, #16c784);
+  --fl-accent-strong: var(--ns-violet-strong, #0fb174);
+  --fl-accent-soft: var(--ns-violet-soft, #e4f8f0);
 
   padding: 1.25rem;
   display: flex;
@@ -32,8 +32,8 @@
   height: 52px;
   flex-shrink: 0;
   border-radius: var(--ns-radius-md, 16px);
-  background: var(--fl-accent-soft, #eeeaff);
-  color: var(--fl-accent-strong, #6a4df4);
+  background: var(--fl-accent-soft, #e4f8f0);
+  color: var(--fl-accent-strong, #0fb174);
 }
 
 .flashloan-hero__text {
@@ -48,7 +48,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--fl-accent-strong, #6a4df4);
+  color: var(--fl-accent-strong, #0fb174);
 }
 
 .flashloan-hero__title {
@@ -192,7 +192,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--fl-accent-strong, #6a4df4);
+  color: var(--fl-accent-strong, #0fb174);
 }
 
 .flashloan-section-title {
@@ -228,9 +228,9 @@
 
 /* Fee-rate pill keeps the accent — it is informational data, not a method name */
 .flashloan-method-pill--rate {
-  border-color: rgba(123, 97, 255, 0.24);
-  background: var(--fl-accent-soft, #eeeaff);
-  color: var(--fl-accent-strong, #6a4df4);
+  border-color: rgba(22, 199, 132, 0.24);
+  background: var(--fl-accent-soft, #e4f8f0);
+  color: var(--fl-accent-strong, #0fb174);
   font-family: inherit;
   font-variant-numeric: tabular-nums;
 }
@@ -268,20 +268,20 @@
 }
 
 .flashloan-preset:hover {
-  border-color: var(--fl-accent, #7b61ff);
-  color: var(--fl-accent-strong, #6a4df4);
+  border-color: var(--fl-accent, #16c784);
+  color: var(--fl-accent-strong, #0fb174);
 }
 
 .flashloan-preset:focus-visible {
   outline: none;
-  border-color: var(--fl-accent, #7b61ff);
-  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+  border-color: var(--fl-accent, #16c784);
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .flashloan-preset--active {
-  border-color: var(--fl-accent, #7b61ff);
-  background: var(--fl-accent-soft, #eeeaff);
-  color: var(--fl-accent-strong, #6a4df4);
+  border-color: var(--fl-accent, #16c784);
+  background: var(--fl-accent-soft, #e4f8f0);
+  color: var(--fl-accent-strong, #0fb174);
 }
 
 .flashloan-fixed-callback {
@@ -311,7 +311,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 0.8125rem;
   font-weight: 700;
-  color: var(--fl-accent-strong, #6a4df4);
+  color: var(--fl-accent-strong, #0fb174);
 }
 
 .flashloan-actions {
@@ -330,9 +330,9 @@
  * reading as a broken flat-grey button (overrides shared NeoButton default). */
 .flashloan-actions .neo-btn--primary:disabled,
 .flashloan-lookup-row .neo-btn:disabled {
-  background: var(--fl-accent-soft, #eeeaff);
-  border-color: rgba(123, 97, 255, 0.24);
-  color: var(--fl-accent-strong, #6a4df4);
+  background: var(--fl-accent-soft, #e4f8f0);
+  border-color: rgba(22, 199, 132, 0.24);
+  color: var(--fl-accent-strong, #0fb174);
   opacity: 0.75;
 }
 
@@ -391,16 +391,16 @@
 
 /* Total repayment — accent-emphasized */
 .flashloan-preview-item--total {
-  border-color: rgba(123, 97, 255, 0.22);
-  background: var(--fl-accent-soft, #eeeaff);
+  border-color: rgba(22, 199, 132, 0.22);
+  background: var(--fl-accent-soft, #e4f8f0);
 }
 
 .flashloan-preview-item--total span {
-  color: var(--fl-accent-strong, #6a4df4);
+  color: var(--fl-accent-strong, #0fb174);
 }
 
 .flashloan-preview-item--total strong {
-  color: var(--fl-accent-strong, #6a4df4);
+  color: var(--fl-accent-strong, #0fb174);
 }
 
 .flashloan-flow {
@@ -417,8 +417,8 @@
   min-height: 30px;
   padding: 0 14px;
   border-radius: var(--ns-radius-full, 9999px);
-  background: var(--fl-accent-soft, #eeeaff);
-  color: var(--fl-accent-strong, #6a4df4);
+  background: var(--fl-accent-soft, #e4f8f0);
+  color: var(--fl-accent-strong, #0fb174);
   font-size: 12px;
   font-weight: 700;
 }

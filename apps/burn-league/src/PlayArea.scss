@@ -3,9 +3,9 @@
 
 // Anchored on the system VIOLET accent (matches the violet category icon
 // and platform focus ring). Red is reserved for genuine danger only.
-$burn-accent: var(--ns-violet, #7b61ff);
-$burn-accent-strong: var(--ns-violet-strong, #6a4df4);
-$burn-accent-soft: var(--ns-violet-soft, #eeeaff);
+$burn-accent: var(--ns-violet, #16c784);
+$burn-accent-strong: var(--ns-violet-strong, #0fb174);
+$burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
 
 .burn-league-play-area {
   display: flex;
@@ -234,14 +234,14 @@ $burn-accent-soft: var(--ns-violet-soft, #eeeaff);
 
   &:hover,
   &.is-active {
-    border-color: rgba(123, 97, 255, 0.34);
+    border-color: rgba(22, 199, 132, 0.34);
     background: $burn-accent-soft;
     color: $burn-accent-strong;
   }
 
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.2);
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.2);
   }
 }
 
@@ -313,11 +313,11 @@ $burn-accent-soft: var(--ns-violet-soft, #eeeaff);
      primary variant is brand-green) so icon, chips and CTA share one hue. */
   .neo-btn--primary {
     background: $burn-accent;
-    box-shadow: 0 2px 8px rgba(123, 97, 255, 0.26);
+    box-shadow: 0 2px 8px rgba(22, 199, 132, 0.26);
 
     &:hover:not(:disabled) {
       background: $burn-accent-strong;
-      box-shadow: 0 4px 16px rgba(123, 97, 255, 0.32);
+      box-shadow: 0 4px 16px rgba(22, 199, 132, 0.32);
     }
 
     /* Soft-tinted disabled — keeps affordance instead of flat grey. */
@@ -339,7 +339,7 @@ $burn-accent-soft: var(--ns-violet-soft, #eeeaff);
 
   &:focus-visible {
     outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   }
 }
 

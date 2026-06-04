@@ -2,9 +2,9 @@
 @use "@shared/styles/variables.scss" as *;
 
 // Violet accent (this app's identity hue)
-$accent: #7b61ff;
-$accent-strong: #6a4df4;
-$accent-soft: #eeeaff;
+$accent: #16c784;
+$accent-strong: #0fb174;
+$accent-soft: #e4f8f0;
 
 .hero-container {
   display: flex;
@@ -51,7 +51,7 @@ $accent-soft: #eeeaff;
 .stamp-ring {
   position: absolute;
   inset: 0;
-  border: 2px dashed rgba(123, 97, 255, 0.45);
+  border: 2px dashed rgba(22, 199, 132, 0.45);
   border-radius: 50%;
   animation: ts-stamp-rotate 12s linear infinite;
 }
