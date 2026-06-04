@@ -11,7 +11,6 @@ import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
-import { toFixed8 } from "@shared/utils/format";
 
 const MIN_TIP = 0.001;
 
@@ -48,10 +47,10 @@ export function useDevTippingWallet({ chain, eventBus, payment, t }: UseDevTippi
         throw new Error(t("minTip"));
       }
 
-      const amountInt = toFixed8(tipAmount);
-
       // Deposit via OS payment proxy — the edge function handles
-      // GAS transfer + contract Tip invocation atomically
+      // GAS transfer + contract Tip invocation atomically. It receives the
+      // human-decimal amount string and scales by 10^8 itself, so we must
+      // NOT pre-scale here (doing so would double-scale and overpay 10^8x).
       const memo = JSON.stringify({
         action: "tip",
         devId: selectedDevId,
@@ -59,7 +58,7 @@ export function useDevTippingWallet({ chain, eventBus, payment, t }: UseDevTippi
         tipper: tipperName || "",
         anonymous,
       });
-      await payment.deposit(amountInt, memo);
+      await payment.deposit(tipAmount, memo);
 
       eventBus.emit("devtipping:tipsent", { devId: selectedDevId, amount });
       if (onSuccess) onSuccess();

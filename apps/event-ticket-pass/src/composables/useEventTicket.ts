@@ -322,7 +322,6 @@ export function useEventTicket({
     const event = selectedEvent.get();
     if (!event) throw new Error(t("selectEventFirst"));
     if (!event.active) throw new Error(t("eventInactive"));
-    if (event.minted >= event.maxSupply) throw new Error(t("soldOut"));
     const recipient = clean(issueRecipient.get());
     if (!recipient || !addressToScriptHash(recipient)) {
       throw new Error(t("invalidRecipient"));
@@ -332,6 +331,15 @@ export function useEventTicket({
     lastError.set("");
     try {
       const organizer = address.get() || await connectWallet();
+      // Read the authoritative minted count from storage so the sold-out guard
+      // can't be bypassed by issuing past a stale in-memory count, and so
+      // concurrent issuance increments from the real persisted value.
+      let baseEvent = event;
+      const storedEvent = await storageService.get(eventStorageKey(event.id));
+      if (storedEvent && typeof storedEvent === "object") {
+        baseEvent = toEventItem(storedEvent as StoredEvent);
+      }
+      if (baseEvent.minted >= baseEvent.maxSupply) throw new Error(t("soldOut"));
       const tokenId = makeId(`ticket-${event.id}`);
       const ticket: TicketItem = {
         tokenId,
@@ -358,16 +366,27 @@ export function useEventTicket({
         issuer: organizer,
         owner: recipient,
       };
+      const updatedEvent = { ...baseEvent, minted: baseEvent.minted + 1n };
       const request = {
         kind: "ticket_issue",
         mint: { service: "os-nft-mint", metadata },
         storage: { service: "os-storage-set", key: ticketStorageKey(tokenId), value: ticketPayload(ticket) },
+        event: { service: "os-storage-set", key: eventStorageKey(event.id), value: eventPayload(updatedEvent) },
       };
       latestRequest.set(request);
       const mintResult = await nftService.mint(metadata);
-      const storageResult = await storageService.set(ticketStorageKey(tokenId), ticketPayload(ticket));
+      // The NFT is now minted on-chain. If any subsequent write fails, burn the
+      // freshly minted token so we never orphan an NFT without a ticket record.
+      let storageResult: unknown;
+      try {
+        storageResult = await storageService.set(ticketStorageKey(tokenId), ticketPayload(ticket));
+        // Persist the incremented minted count so the sold-out cap survives a refresh.
+        await storageService.set(eventStorageKey(event.id), eventPayload(updatedEvent));
+      } catch (writeError) {
+        await nftService.burn(tokenId).catch(() => {});
+        throw writeError;
+      }
       tickets.set(mergeTicket(tickets.get(), ticket));
-      const updatedEvent = { ...event, minted: event.minted + 1n };
       events.set(mergeEvent(events.get(), updatedEvent));
       latestResult.set({
         kind: "ticket_issued",

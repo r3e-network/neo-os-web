@@ -37,6 +37,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const setSearch = (v: string) => {
     if (state.searchQuery) state.searchQuery.set(v);
+    // Editing the query invalidates the previous search: clear the stale result and
+    // price so the Register button (and its cost) only show for the name actually searched.
+    state.searchResult?.set(null);
+    state.registrationCost?.set(0);
   };
 
   return (

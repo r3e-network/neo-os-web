@@ -77,6 +77,48 @@ describe("useBurnLeague", () => {
     ]);
   });
 
+  it("resolves the user's rank by wallet address, not by burned amount", async () => {
+    const app = useBurnLeague({
+      ...services({
+        leaderboard: {
+          get: vi.fn(async () => [
+            { user: "NTopBurner", score: "20" },
+            { user: "NMyWallet", score: "12" },
+            { user: "NThirdBurner", score: "12" },
+          ]),
+        },
+      }),
+      t,
+      getAddress: () => "nmywallet",
+    });
+
+    await app.loadAll();
+
+    // Matched by address (case-insensitive), so rank is row #2 even though the
+    // third row shares the identical burned amount.
+    expect(app.rank.get()).toBe(2);
+    const preview = app.leaderboardPreview.get();
+    expect(preview.find((e) => e.isUser)?.address).toBe("NMyWallet");
+    expect(preview.filter((e) => e.isUser)).toHaveLength(1);
+  });
+
+  it("leaves rank unresolved when the connected wallet is not on the board", async () => {
+    const app = useBurnLeague({
+      ...services({
+        leaderboard: {
+          get: vi.fn(async () => [{ user: "NSomeoneElse", score: "12" }]),
+        },
+      }),
+      t,
+      getAddress: () => "NMyWallet",
+    });
+
+    await app.loadAll();
+
+    expect(app.rank.get()).toBe(0);
+    expect(app.leaderboardPreview.get().some((e) => e.isUser)).toBe(false);
+  });
+
   it("submits burn entries through the OS game service", async () => {
     const mocks = services();
     const app = useBurnLeague({ ...mocks, t });

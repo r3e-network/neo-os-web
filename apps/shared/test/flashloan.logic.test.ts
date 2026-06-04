@@ -116,4 +116,22 @@ describe("useFlashloanCore contract flow", () => {
     });
     expect(flashloan.recentLoans.get()).toHaveLength(2);
   });
+
+  it("throws loanNotFound and keeps loanDetails null for a non-existent loan", async () => {
+    // read returns an all-zero/empty payload for a loan ID that does not exist.
+    const emptyChain = {
+      address: createObservable(OWNER),
+      ensureWallet: vi.fn(async () => OWNER),
+      invoke: vi.fn(),
+      read: vi.fn(async () => ["", "0", "0", "", "", 0, false, false]),
+    };
+    const emptyLoan = useFlashloanCore({
+      chainService: emptyChain as never,
+      badgeService: { award: vi.fn(async () => undefined) } as never,
+      t,
+    });
+
+    await expect(emptyLoan.lookupLoan("999")).rejects.toThrow("Loan not found");
+    expect(emptyLoan.loanDetails.get()).toBeNull();
+  });
 });

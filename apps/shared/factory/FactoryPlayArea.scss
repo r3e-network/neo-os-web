@@ -342,6 +342,15 @@
   color: var(--ns-danger, #c81e2a);
 }
 
+.domain-factory-hint {
+  padding: 14px;
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-warning-soft, #fef3da);
+  color: var(--ns-warning-ink, #8a5a00);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ── Deploy checklist ── */
 .domain-factory-steps {
   display: grid;

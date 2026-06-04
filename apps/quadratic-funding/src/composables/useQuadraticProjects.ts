@@ -1,4 +1,4 @@
-import { createObservable, refToObservable } from "@shared/react/context";
+import { createObservable, createDerived, refToObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
@@ -139,6 +139,13 @@ export function useQuadraticProjects(
     );
   };
 
+  // Reactive set of project ids the connected wallet may claim, so the view can
+  // gate the Claim control without re-implementing the eligibility rules.
+  const claimableProjectIds = createDerived<string[]>(
+    () => projects.get().filter((project) => canClaimProject(project)).map((project) => project.id),
+    [projects, selectedRound, address],
+  );
+
   const claimProject = async (project: ProjectItem) => {
     if (!requireNeoChain(chainType, t)) return;
     if (claimingProjectId.get()) return;
@@ -185,6 +192,7 @@ export function useQuadraticProjects(
     refreshProjects,
     registerProject,
     canClaimProject,
+    claimableProjectIds,
     claimProject,
     projectStatusLabel,
     projectStatusClass,

@@ -89,6 +89,50 @@ describe("useCheckin", () => {
     expect(app.latestResult.get()?.summary).toBe("Reward claimed");
   });
 
+  it("locks check-in for the current UTC day when lastCheckinTime is a ms timestamp from today", async () => {
+    const { app, checkin } = setup();
+    // Contract emits Runtime.Time in MILLISECONDS; edge passes it through unchanged.
+    checkin.getStreak.mockResolvedValueOnce({
+      currentStreak: 3,
+      highestStreak: 5,
+      totalCheckins: 9,
+      lastCheckinTime: Date.now(),
+      unclaimedRewards: "0",
+      totalClaimed: "0",
+      totalGlobalCheckins: 0,
+      totalGlobalUsers: 0,
+      totalGlobalRewarded: "0",
+    });
+
+    await app.loadAll();
+
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    expect(app.lastCheckInDay.get()).toBe(Math.floor(Date.now() / MS_PER_DAY));
+    expect(app.canCheckIn.get()).toBe(false);
+  });
+
+  it("unlocks check-in on a fresh UTC day when lastCheckinTime is a ms timestamp from a prior day", async () => {
+    const { app, checkin } = setup();
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const twoDaysAgoMs = Date.now() - 2 * MS_PER_DAY;
+    checkin.getStreak.mockResolvedValueOnce({
+      currentStreak: 3,
+      highestStreak: 5,
+      totalCheckins: 9,
+      lastCheckinTime: twoDaysAgoMs,
+      unclaimedRewards: "0",
+      totalClaimed: "0",
+      totalGlobalCheckins: 0,
+      totalGlobalUsers: 0,
+      totalGlobalRewarded: "0",
+    });
+
+    await app.loadAll();
+
+    expect(app.lastCheckInDay.get()).toBe(Math.floor(twoDaysAgoMs / MS_PER_DAY));
+    expect(app.canCheckIn.get()).toBe(true);
+  });
+
   it("preserves optimistic claim totals when a public status refresh returns defaults", async () => {
     const { app, checkin, seededStreak } = setup();
     const publicDefaults = {

@@ -96,6 +96,8 @@ export default function PlayArea({
   /* ---------- Bound state ---------- */
   const isLoading = bool("isLoading");
   const isCreating = bool("isCreating");
+  const claimingId = str("claimingId");
+  const cancellingId = str("cancellingId");
   const activeCount = num("activeCount");
   const totalStreamCount = num("totalStreamCount");
   const serviceNotice = str("serviceNotice");
@@ -251,7 +253,11 @@ export default function PlayArea({
   const isFinalized = (stream: Stream): boolean =>
     stream.status === "cancelled" || stream.status === "completed";
 
-  const tokenOptions = ["GAS", "NEO"] as const;
+  // Only GAS is supported: the payment-deposit and vesting-create edges
+  // transfer GAS and scale by 10^8, so NEO (indivisible, different native
+  // contract) cannot be funded or streamed correctly until those edges accept
+  // a per-asset contract/decimals. Constrain the selector to GAS.
+  const tokenOptions = ["GAS"] as const;
 
   return (
     <div className="neopay-play-area">
@@ -470,7 +476,8 @@ export default function PlayArea({
                     <NeoButton
                       variant="danger"
                       size="sm"
-                      disabled={isFinalized(stream)}
+                      loading={cancellingId === stream.id}
+                      disabled={isFinalized(stream) || cancellingId === stream.id}
                       onClick={() => handleCancel(stream.id)}
                     >
                       {t("cancel") || "Cancel"}
@@ -583,7 +590,8 @@ export default function PlayArea({
                     <NeoButton
                       variant="success"
                       size="sm"
-                      disabled={isFinalized(stream)}
+                      loading={claimingId === stream.id}
+                      disabled={isFinalized(stream) || claimingId === stream.id}
                       onClick={() => handleClaim(stream.id)}
                     >
                       {t("claim") || "Claim"}

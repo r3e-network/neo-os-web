@@ -4,7 +4,7 @@
  * Uses createObservable instead of Vue ref/computed.
  */
 
-import { createObservable } from "@shared/react/context";
+import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService, BalanceService, EventBus } from "@shared/services";
 import { useMorpheusDataFeed } from "@shared/composables/useMorpheusDataFeed";
@@ -15,6 +15,12 @@ import type { Token } from "@/types";
 const NEO_TOKEN_TEMPLATE: Token = { symbol: "NEO", hash: BLOCKCHAIN_CONSTANTS.NEO_HASH, balance: 0, decimals: 0 };
 const GAS_TOKEN_TEMPLATE: Token = { symbol: "GAS", hash: BLOCKCHAIN_CONSTANTS.GAS_HASH, balance: 0, decimals: 8 };
 const SWAP_DEADLINE_SECONDS = 600;
+
+/** Canonical list of swappable pairs surfaced in the playarea + manifest stats. */
+export const POPULAR_PAIRS: ReadonlyArray<{ id: string; name: string }> = [
+  { id: "neo-gas", name: "NEO/GAS" },
+  { id: "gas-neo", name: "GAS/NEO" },
+];
 
 export interface UseSwapEngineOptions {
   chain: ChainService;
@@ -96,6 +102,20 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     set: () => {},
     subscribe: (fn) => toAmount.subscribe(fn),
   };
+
+  // Manifest-bound views: header stats + sidebar rows read these keys.
+  const selectedPairDisplay = createDerived<string>(
+    () => `${fromToken.get().symbol}/${toToken.get().symbol}`,
+    [fromToken, toToken],
+  );
+  const pairCount = createDerived<number>(() => POPULAR_PAIRS.length, []);
+  const currentRate = createDerived<string>(
+    () => {
+      const rate = parseFloat(exchangeRate.get());
+      return Number.isFinite(rate) && rate > 0 ? exchangeRate.get() : t("rateUnavailable");
+    },
+    [exchangeRate],
+  );
 
   function setMaxAmount() {
     fromAmount.set(fromToken.get().balance.toString());
@@ -208,7 +228,8 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   return {
     fromToken, toToken, fromAmount, toAmount, exchangeRate, rateLoading, loading,
     showSelector, selectorTarget, isSwapping, availableTokens, canSwap,
-    swapButtonText, slippage, minReceived, setMaxAmount, setFromAmount, loadExchangeRate,
+    swapButtonText, slippage, minReceived, selectedPairDisplay, pairCount, currentRate,
+    setMaxAmount, setFromAmount, loadExchangeRate,
     swapTokens, openFromSelector, openToSelector, closeSelector, selectToken,
     executeSwap, refreshBalances, loadAll, cleanup,
   };

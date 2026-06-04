@@ -158,7 +158,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
     isRegistering.set(true);
     lastError.set("");
     try {
-      if (!triggerRequest.get()) buildRecipePayload();
+      buildRecipePayload();
       const request = triggerRequest.get();
       if (!request) throw new Error(t("recipeFailed"));
       const result = await callAutomationEndpoint<AutomationTrigger>(

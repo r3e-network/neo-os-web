@@ -26,6 +26,7 @@ defineMiniApp({
         amount?: string;
         duration?: string;
         token?: string;
+        title?: string;
         notes?: string;
       };
       const recipient = String(form.recipient ?? "").trim();
@@ -99,6 +100,8 @@ defineMiniApp({
         isLoading: pay.isLoading,
         isCreating: pay.isLoading,
         isRefreshing: pay.isRefreshing,
+        claimingId: pay.claimingId,
+        cancellingId: pay.cancellingId,
         serviceNotice: pay.serviceNotice,
         allStreams: pay.allStreams,
         activeCount: pay.activeCount,

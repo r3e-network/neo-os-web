@@ -91,6 +91,14 @@ const appMessages = {
   invalidAmount: { en: "Enter a valid amount", zh: "请输入有效金额" },
   rateTooHigh: { en: "Release amount exceeds total", zh: "释放金额超过总金额" },
   intervalInvalid: { en: "Interval out of range", zh: "周期超出范围" },
+  assetUnsupported: {
+    en: "Only GAS streams are supported in this environment",
+    zh: "当前环境仅支持 GAS 资金流",
+  },
+  depositStrandedRecoverable: {
+    en: "Deposit succeeded but the stream was not created. Your funds are safe in your payment balance and can be withdrawn.",
+    zh: "存入成功，但资金流未能创建。资金已安全保留在你的支付余额中，可随时提取。",
+  },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
 
   myCreated: { en: "Created by you", zh: "我创建的" },

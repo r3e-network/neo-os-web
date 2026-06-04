@@ -86,14 +86,18 @@ const STREAM_PRESETS: StreamPreset[] = [
     },
   },
   {
-    id: "90d-neo",
-    label: "90d NEO",
+    // Only GAS is supported by the deposit/vesting edges (see useNeoPayApp).
+    // A long-horizon GAS vesting preset replaces the previously broken 90d NEO
+    // preset, which always failed: NEO is indivisible so a 1-NEO / 90-day
+    // stream truncated the per-interval rate to 0 and was rejected.
+    id: "90d-gas",
+    label: "90d GAS",
     values: {
-      title: "Governance vesting stream",
-      amount: "1",
+      title: "Quarterly vesting stream",
+      amount: "90",
       duration: "90",
-      token: "NEO",
-      notes: "Governance vesting release",
+      token: "GAS",
+      notes: "Quarterly vesting release",
     },
   },
 ];
@@ -275,6 +279,8 @@ export default function PlayArea({
   const { bool, num, str, val } = useStateBindings(state);
   const isLoading = bool("isLoading");
   const isCreating = bool("isCreating");
+  const claimingId = str("claimingId");
+  const cancellingId = str("cancellingId");
   const serviceNotice = str("serviceNotice");
   const activeCount = num("activeCount");
   const createdStreamCount = num("createdStreamCount");
@@ -497,7 +503,8 @@ export default function PlayArea({
                   <NeoButton
                     size="sm"
                     variant="success"
-                    disabled={isFinal(stream)}
+                    loading={claimingId === String(stream.id ?? "")}
+                    disabled={isFinal(stream) || claimingId === String(stream.id ?? "")}
                     onClick={() => claimStream(stream)}
                   >
                     {copy("claim", "Claim")}
@@ -506,7 +513,8 @@ export default function PlayArea({
                   <NeoButton
                     size="sm"
                     variant="danger"
-                    disabled={isFinal(stream)}
+                    loading={cancellingId === String(stream.id ?? "")}
+                    disabled={isFinal(stream) || cancellingId === String(stream.id ?? "")}
                     onClick={() => cancelStream(stream)}
                   >
                     {copy("cancel", "Cancel")}
@@ -650,7 +658,6 @@ export default function PlayArea({
               required
               options={[
                 { value: "GAS", label: "GAS" },
-                { value: "NEO", label: "NEO" },
               ]}
               onChange={(value) => setToken(normalizeToken(value))}
             />

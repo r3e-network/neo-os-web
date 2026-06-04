@@ -22,10 +22,13 @@ interface PlayAreaProps {
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
-  const mainnetHeight = num("mainnetHeight");
-  const mainnetTxCount = num("mainnetTxCount");
-  const testnetHeight = num("testnetHeight");
-  const testnetTxCount = num("testnetTxCount");
+  // mainnet*/testnet* observables expose already-formatted strings (e.g.
+  // "1,234,567" or the "N/A" placeholder), so read them as strings — parsing
+  // them back through num() would yield NaN and hide every live figure.
+  const mainnetHeight = str("mainnetHeight");
+  const mainnetTxCount = str("mainnetTxCount");
+  const testnetHeight = str("testnetHeight");
+  const testnetTxCount = str("testnetTxCount");
   const recentTxCount = num("recentTxCount");
   const isLoading = bool("isLoading");
 
@@ -65,8 +68,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Unloaded figures use the calm "—" placeholder convention rather than
   // repeating "Sync pending" across every tile (which reads error-ish).
   const PENDING_PLACEHOLDER = "—";
-  const formatNumber = (n: number) =>
-    n > 0 ? n.toLocaleString() : PENDING_PLACEHOLDER;
+  const notAvailable = t("notAvailable");
+  // A pre-formatted figure string counts as pending when the source value was
+  // absent ("N/A") or hasn't synced yet ("0"); otherwise show the live string.
+  const isPendingFigure = (s: string) => !s || s === notAvailable || s === "0";
+  const displayFigure = (s: string) => (isPendingFigure(s) ? PENDING_PLACEHOLDER : s);
 
   const activeNetworkLabel = selectedNetwork === "mainnet" ? t("mainnet") : t("testnet");
   const activeNetworkHint = selectedNetwork === "mainnet"
@@ -76,6 +82,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Surface the active network's live figures inline in the hero / metrics strip.
   const activeHeight = selectedNetwork === "mainnet" ? mainnetHeight : testnetHeight;
   const activeTxCount = selectedNetwork === "mainnet" ? mainnetTxCount : testnetTxCount;
+  const heightPending = isPendingFigure(activeHeight);
+  const txCountPending = isPendingFigure(activeTxCount);
 
   const hasSearched = Boolean(searchResult) || recentTxs.length > 0;
 
@@ -124,14 +132,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section className="explorer-metrics" aria-label={t("sidebarNetwork")}>
         <div className="explorer-metric">
           <span className="explorer-metric__label">{t("blockHeight")}</span>
-          <span className={`explorer-metric__value mono${activeHeight > 0 ? "" : " is-pending"}`}>
-            {formatNumber(activeHeight)}
+          <span className={`explorer-metric__value mono${heightPending ? " is-pending" : ""}`}>
+            {displayFigure(activeHeight)}
           </span>
         </div>
         <div className="explorer-metric">
           <span className="explorer-metric__label">{t("transactions")}</span>
-          <span className={`explorer-metric__value mono${activeTxCount > 0 ? "" : " is-pending"}`}>
-            {formatNumber(activeTxCount)}
+          <span className={`explorer-metric__value mono${txCountPending ? " is-pending" : ""}`}>
+            {displayFigure(activeTxCount)}
           </span>
         </div>
         <div className="explorer-metric">

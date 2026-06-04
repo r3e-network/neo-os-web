@@ -94,6 +94,14 @@ describe("useEventTicket", () => {
     );
     expect(ticket.ticketsCount.get()).toBe(1);
 
+    // The incremented minted count must be persisted back to storage so the
+    // sold-out cap survives a refresh (regression: minted was in-memory only).
+    expect(storage.set).toHaveBeenCalledWith(
+      `events:${event!.id}`,
+      expect.objectContaining({ minted: "1", maxSupply: "120" }),
+    );
+    expect(ticket.selectedEvent.get()?.minted).toBe(1n);
+
     ticket.checkinTokenId.set(issued!.tokenId);
     const found = await ticket.lookupTicket();
     expect(found?.used).toBe(false);
@@ -101,6 +109,26 @@ describe("useEventTicket", () => {
     const checkedIn = await ticket.checkInTicket();
     expect(checkedIn?.used).toBe(true);
     expect(ticket.lookup.get()?.used).toBe(true);
+  });
+
+  it("burns the freshly minted NFT when the ticket storage write fails", async () => {
+    const { ticket, storage, nft } = setup();
+    const burn = vi.fn(async () => undefined);
+    (nft as unknown as { burn: typeof burn }).burn = burn;
+
+    await ticket.createEvent();
+    ticket.issueRecipient.set(OWNER);
+
+    // The mint succeeds but the ticket storage write fails; the NFT must be
+    // compensated with a burn so it is not orphaned without a ticket record.
+    // createEvent already consumed one storage.set; fail the next (ticket write).
+    storage.set.mockRejectedValueOnce(new Error("gateway down"));
+
+    await expect(ticket.issueTicket()).rejects.toThrow("gateway down");
+    expect(nft.mint).toHaveBeenCalledTimes(1);
+    expect(burn).toHaveBeenCalledTimes(1);
+    // No ticket should be recorded locally after the rolled-back issuance.
+    expect(ticket.ticketsCount.get()).toBe(0);
   });
 
   it("rejects ticket issuance until an event and valid recipient are present", async () => {

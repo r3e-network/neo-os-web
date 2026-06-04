@@ -169,7 +169,7 @@ describe("useSoulbound contract intents", () => {
 
     await soulbound.verifyCertificate({ tokenId: "0x0700000000000001" });
     expect(read).toHaveBeenCalledWith("getCertificateDetails", [
-      { type: "ByteArray", value: "0x0700000000000001" },
+      { type: "ByteArray", value: "MHgwNzAwMDAwMDAwMDAwMDAx" },
     ]);
     expect(soulbound.verifiedCertificate.get()?.recipientName).toBe("Alex Chen");
 
@@ -178,7 +178,7 @@ describe("useSoulbound contract intents", () => {
       "revokeCertificate",
       [
         { type: "Hash160", value: OWNER_HASH },
-        { type: "ByteArray", value: "0x0700000000000001" },
+        { type: "ByteArray", value: "MHgwNzAwMDAwMDAwMDAwMDAx" },
       ],
       { waitForEvent: "CertificateRevoked", waitTimeoutMs: 30000 },
     );

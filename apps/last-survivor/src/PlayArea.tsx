@@ -80,9 +80,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
+  const handleKeyCountChange = (value: string) => {
+    setLocalKeyCount(value);
+    // Keep the composable's keyCount in sync so the Estimated Cost derive
+    // reflects the count the user is actually editing (not the 1-key price).
+    void dispatch("setKeyCount", value);
+  };
+
   const handleBuyKeys = async () => {
     await dispatch("buyKeys", localKeyCount);
     setLocalKeyCount("1");
+    void dispatch("setKeyCount", "1");
   };
 
   const handleRefreshRound = async () => {
@@ -169,7 +177,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             helperText={buyKeysHelper}
             submitLabel={buyKeysLabel}
             t={t}
-            onKeyCountChange={setLocalKeyCount}
+            onKeyCountChange={handleKeyCountChange}
             onBuy={handleBuyKeys}
           />
         </NeoCard>
