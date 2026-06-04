@@ -4,7 +4,7 @@ import "./HistoryList.scss";
 
 interface HistoryListProps {
   history: HistoryEvent[];
-  t: (key: string, ...args: unknown[]) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 export default function HistoryList({ history, t }: HistoryListProps) {

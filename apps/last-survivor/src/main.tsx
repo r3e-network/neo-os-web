@@ -1,7 +1,10 @@
 /**
  * Last Survivor — React Entry Point
  *
- * Uses the React defineMiniApp runtime with OS service proxies.
+ * Drives the standalone on-chain MiniAppLastSurvivor contract directly via
+ * ctx.services.chain (no OS service proxies). The composable owns all contract
+ * reads/writes; this file wires the chain service, the buy/settle/refresh
+ * actions, and the 1s countdown ticker.
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
@@ -18,13 +21,11 @@ defineMiniApp({
 
   setup(ctx) {
     const game = useLastSurvivor({
-      gameService: ctx.os.game,
-      paymentService: ctx.os.payment,
-      leaderboardService: ctx.os.leaderboard,
-      badgeService: ctx.os.badge,
-      storageService: ctx.os.storage,
+      chain: ctx.services.chain,
       t: ctx.t,
     });
+
+    game.setAddress(ctx.services.chain.address.get() ?? null);
 
     // Start the countdown ticker
     const tickerInterval = setInterval(() => game.updateNow(), 1000);
@@ -33,6 +34,13 @@ defineMiniApp({
       await ctx.services.notify.guard(
         () => game.buyKeys(String(keyCount)),
         "keysPurchased",
+      );
+    });
+
+    ctx.registerAction("settleRound", async () => {
+      await ctx.services.notify.guard(
+        () => game.settleRound(),
+        "roundSettled",
       );
     });
 
@@ -55,6 +63,7 @@ defineMiniApp({
         keyValidationError: game.keyValidationError,
         history: game.history,
         isBuyingKeys: game.isBuyingKeys,
+        isSettling: game.isSettling,
         isLoading: game.isLoading,
         roundDataAvailable: game.roundDataAvailable,
         serviceNotice: game.serviceNotice,

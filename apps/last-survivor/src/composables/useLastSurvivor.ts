@@ -1,44 +1,67 @@
 /**
- * useLastSurvivor — Domain logic for the Last Survivor (doomsday clock) miniapp
+ * useLastSurvivor — Domain logic for the Last Survivor (doomsday clock) miniapp.
  *
- * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (GameProxy, PaymentProxy, LeaderboardProxy, BadgeProxy,
- * StorageProxy) via edge functions, so this file contains zero contract
- * hashes, parameter encoding, or event parsing logic.
+ * Talks DIRECTLY to the app's standalone on-chain contract
+ * (MiniAppLastSurvivor) via ctx.services.chain. The earlier path routed
+ * buy/settle through the OS game/payment/leaderboard/storage/badge kernel
+ * proxies, which never actually held a pot or paid a winner — buys funded GAS
+ * that was never distributed and "rollover" was a no-op. This composable now
+ * drives the dedicated contract, a FOMO-style pot game where each key extends a
+ * countdown, the pot grows on a rising bonding curve, and the LAST buyer wins
+ * the entire pot — paid ATOMICALLY when settle() runs (permissionless, no
+ * oracle, no off-chain keeper required).
  *
- * Migration from direct chain calls to OS services:
+ * Contract interaction model (verified against MiniAppLastSurvivor.cs / ABI):
  *
- *   BEFORE (chain):
- *     chain.read("getGameStatus")
- *     chain.read("getPlayerKeys", [{ type: "Hash160", value: addr }])
- *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
- *     chain.invoke("buyKeysWithCost", [...])
- *     chain.listEvents("KeysPurchased", { limit: 20 })
+ *   READS (chain.read / chain.readArray, default app contract script hash):
+ *     currentRoundId()                 -> Integer (rounds are 1-based)
+ *     creditOf(player)                 -> Integer (prepaid GAS credit, base units)
+ *     playerKeys(roundId, player)      -> Integer (keys held by the player)
+ *     currentKeyCost(count)            -> Integer (cost of `count` keys NOW)
+ *     keyCost(totalKeys, count)        -> Integer (cost given a round total)
+ *     getCurrentRound()                -> Map{roundId,pot,totalKeys,lastBuyer,
+ *                                           endTime(ms),settled,active,
+ *                                           remainingTime(seconds)}
+ *     getRound(id)                     -> Map{...same...}
  *
- *   AFTER (OS proxy):
- *     ctx.os.game.getPoolState("current")
- *     ctx.os.storage.get(`playerKeys:${roundId}`)
- *     ctx.os.payment.deposit(amount, memo)
- *     ctx.os.game.placeBet("current", keyCount)
- *     ctx.os.storage.list("events:")
- *     ctx.os.leaderboard.get(10)
+ *   MUTATIONS (chain.invoke):
+ *     1. DEPOSIT (fund a buy) — a GAS transfer to the contract with the memo
+ *        "miniapp-lastsurvivor:buy" so OnNEP17Payment credits the sender's
+ *        prepaid balance:
+ *          transfer(from, CONTRACT, costBaseUnits, "miniapp-lastsurvivor:buy")
+ *          { scriptHash: GAS_HASH }
+ *     2. buyKeys(player, count) -> cost. Consumes the prepaid credit at the
+ *        rising bonding-curve price, adds the cost to the round pot, makes the
+ *        player the last buyer, and extends the countdown. If buyKeys fails
+ *        after a successful deposit the credit simply remains on the contract as
+ *        reusable prepaid credit for the next buy — there is no refund call (and
+ *        none is needed; the funds are not lost).
+ *     settle() -> pot. PERMISSIONLESS. Once the round's countdown has expired it
+ *        pays the recorded last buyer the entire pot atomically and advances to
+ *        a fresh round. Anyone may call it; the on-chain last buyer is always the
+ *        winner, regardless of who triggers the settle.
+ *
+ * AMOUNT CONVENTION: the contract takes/returns BASE UNITS. GAS = human × 1e8.
+ * getCurrentRound.endTime is MILLISECONDS (Runtime.Time units); remainingTime is
+ * already SECONDS. The contract's key-cost math is IDENTICAL to the frontend's
+ * calculateKeyCostFormula (BASE_KEY_PRICE = 10_000_000 base units, +0.1% per
+ * key), so the on-screen estimate equals exactly what the contract charges.
  *
  * The composable still owns:
- *   - Reactive state (refs + computed) for manifest bindings
+ *   - Reactive state (observables + derived) for manifest/PlayArea bindings
  *   - Countdown timer logic (danger level, pulse, etc.)
- *   - Key cost formula (pure frontend math)
- *   - Loading/buying/claiming UI flags
+ *   - Key cost formula (pure frontend math, mirrors the contract)
+ *   - Loading/buying/settling UI flags (double-submit guards)
  *   - Formatted display values
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
-import type { GameProxy } from "@shared/services/os/GameProxy";
-import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
-import type { LeaderboardProxy } from "@shared/services/os/LeaderboardProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { ChainService } from "@shared/services/ChainService";
 import { formatNumber, formatAddress } from "@shared/utils/format";
+import { addressToScriptHash } from "@shared/utils/neo";
+import { parseBigInt } from "@shared/utils/parsers";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+
 // HistoryEvent type (extracted from HistoryList component)
 export interface HistoryEvent {
   id: string | number;
@@ -46,12 +69,8 @@ export interface HistoryEvent {
   details: string;
   date: string;
   /**
-   * Numeric, newest-first ordering key assigned at construction time.
-   * Derived from a real temporal source (parsed date or numeric id) and,
-   * for entries without one (e.g. leaderboard winners), from a monotonic
-   * insertion index so ordering is deterministic instead of collapsing
-   * heterogeneous ids through `Number(id)` (which yields NaN for string
-   * ids like `winner-0`).
+   * Numeric, newest-first ordering key. Derived from the round id so the
+   * settled-round winner entries sort deterministically (highest round first).
    */
   sortKey: number;
 }
@@ -60,85 +79,107 @@ export interface HistoryEvent {
 // Constants
 // ============================================================================
 
+/** Base key price in GAS base units (0.1 GAS). Mirrors BASE_KEY_PRICE. */
 const BASE_KEY_PRICE = 10000000n;
+/** +0.1% of base per key already sold. Mirrors COMMON_DIFF (10 bps). */
 const KEY_PRICE_INCREMENT_BPS = 10n;
+
+/** GAS base units per whole GAS (1e8). */
+const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
+
+/** Memo the contract requires on the buy-funding transfer. */
+const BUY_MEMO = "miniapp-lastsurvivor:buy";
+
+/**
+ * 24h cap on the displayed danger meter, in seconds. Mirrors the contract's
+ * MAX_DURATION_MS (86_400_000 ms).
+ */
+const MAX_DURATION_SECONDS = 86400;
+
+/** The zero script hash a fresh round carries for lastBuyer (UInt160.Zero). */
+const ZERO_HASH = "0x0000000000000000000000000000000000000000";
+
+/** How many past rounds to rebuild into the history list (newest first). */
+const MAX_HISTORY_ROUNDS = 30;
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "");
 }
 
-function isOsBoundaryError(error: unknown) {
-  return /OS service error|os-game-|os-payment-|os-storage-|os-leaderboard-|Not Found/i.test(
-    errorMessage(error),
-  );
-}
+/**
+ * Convert a contract base-unit Integer to whole GAS as a number. Base units
+ * are an integer count of 1e-8 GAS; dividing by 1e8 yields human GAS.
+ */
+const fromBaseUnits = (base: bigint): number => Number(base) / 1e8;
+
+/**
+ * Is a parsed Hash160 / address value the zero address (a fresh round's
+ * lastBuyer)? Treats "", the 0x-zero hash, and the base58 zero form as empty.
+ */
+const isZeroAddress = (value: string): boolean => {
+  if (!value) return true;
+  const v = value.trim();
+  if (v === ZERO_HASH) return true;
+  // A 0x-hash of all zeros (case/length tolerant).
+  if (/^0x0{40}$/i.test(v)) return true;
+  return false;
+};
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface UseLastSurvivorOptions {
-  /** OS GameProxy instance from ctx.os.game */
-  gameService: GameProxy;
-  /** OS PaymentProxy instance from ctx.os.payment */
-  paymentService: PaymentProxy;
-  /** OS LeaderboardProxy instance from ctx.os.leaderboard */
-  leaderboardService: LeaderboardProxy;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
-  /** OS StorageProxy instance from ctx.os.storage */
-  storageService: StorageProxy;
-  /** Translation function */
+  /** Shared chain service from ctx.services.chain. */
+  chain: ChainService;
+  /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 /**
- * Shape of the pool state returned by GameProxy for LastSurvivor.
- * Extends the base PoolState with game-specific fields returned by
- * the edge function's getGameStatus translation.
+ * Normalized current-round snapshot read from getCurrentRound(). Amount fields
+ * are kept in their contract scale (pot in base units, remainingTime seconds).
  */
-interface SurvivorPoolState {
-  // Inherited from base PoolState
-  poolId: string;
-  appId: string;
-  status: "open" | "active" | "settled" | "cancelled";
-  playerCount: number;
-  totalBets: string;
-  // Game-specific extensions
-  roundId?: number;
-  pot?: string;
-  active?: boolean;
-  lastBuyer?: string;
-  totalKeys?: number;
-  remainingTime?: number;
+interface RoundSnapshot {
+  roundId: number;
+  potBase: bigint;
+  totalKeys: bigint;
+  lastBuyer: string;
+  endTimeMs: number;
+  settled: boolean;
+  active: boolean;
+  remainingSeconds: number;
 }
 
-/** Shape of a history entry stored via StorageProxy. */
-interface StoredHistoryEntry {
-  id: string | number;
-  type: "keysPurchased" | "winnerDeclared" | "roundStarted";
-  player?: string;
-  keys?: number;
-  potContribution?: number;
-  winner?: string;
-  prize?: number;
-  round?: number;
-  endTime?: number;
-  date?: string;
+// ============================================================================
+// Round map parsing
+// ============================================================================
+
+/**
+ * Map a getCurrentRound / getRound Map (returned by chain.read as a plain
+ * object) into a RoundSnapshot. Returns null for an unknown / empty result.
+ */
+function parseRound(raw: unknown): RoundSnapshot | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const v = raw as Record<string, unknown>;
+  const lastBuyerRaw = String(v.lastBuyer ?? "");
+  return {
+    roundId: Number(parseBigInt(v.roundId)),
+    potBase: parseBigInt(v.pot),
+    totalKeys: parseBigInt(v.totalKeys),
+    lastBuyer: isZeroAddress(lastBuyerRaw) ? "" : lastBuyerRaw,
+    endTimeMs: Number(parseBigInt(v.endTime)),
+    settled: Boolean(v.settled),
+    active: Boolean(v.active),
+    remainingSeconds: Number(parseBigInt(v.remainingTime)),
+  };
 }
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useLastSurvivor({
-  gameService,
-  paymentService,
-  leaderboardService,
-  badgeService,
-  storageService,
-  t,
-}: UseLastSurvivorOptions) {
+export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
   // ── Game State ──────────────────────────────────────────────────────
   const roundId = createObservable(0);
   const totalPot = createObservable(0);
@@ -149,15 +190,22 @@ export function useLastSurvivor({
   const keyValidationError = createObservable<string | null>(null);
   const history = createObservable<HistoryEvent[]>([]);
   const isBuyingKeys = createObservable(false);
+  const isSettling = createObservable(false);
   const isLoading = createObservable(false);
   const totalKeysInRound = createObservable(0n);
   const roundDataAvailable = createObservable(false);
   const serviceNotice = createObservable("");
 
+  // Connected wallet address (synced from main.tsx / chain).
+  const address = createObservable<string | null>(chain.address.get() ?? null);
+
+  const setAddress = (addr: string | null) => {
+    address.set(addr ?? null);
+  };
+
   // ── Timer State ─────────────────────────────────────────────────────
   const endTime = createObservable(0);
   const now = createObservable(Date.now());
-  const MAX_DURATION_SECONDS = 86400;
 
   const timeRemainingSeconds = createDerived(() => {
     if (!endTime.get()) return 0;
@@ -200,7 +248,7 @@ export function useLastSurvivor({
   const updateNow = () => { now.set(Date.now()); };
 
   // ── Formatted display values ──────────────────────────────────────
-  const lastBuyerLabel = createDerived(() => lastBuyer.get() ? formatAddress(lastBuyer.get()) : t("notAvailable"), []);
+  const lastBuyerLabel = createDerived(() => lastBuyer.get() ? formatAddress(lastBuyer.get() ?? "") : t("notAvailable"), []);
   const formattedRound = createDerived(() => `#${roundId.get()}`, []);
   const totalPotDisplay = createDerived(() => `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`, []);
   const roundStatusDisplay = createDerived(() => isRoundActive.get() ? t("activeRound") : t("inactiveRound"), []);
@@ -222,6 +270,9 @@ export function useLastSurvivor({
     return (userKeys.get() / total) * 100;
   }, [totalKeysInRound, userKeys]);
 
+  // The round has ended on chain (timer expired with a recorded last buyer and a
+  // non-empty pot) and still needs settle() to pay the winner and roll forward.
+  // The PlayArea surfaces this as the settle affordance.
   const needsLifecycleSync = createDerived(() => {
     return (
       !isRoundActive.get() &&
@@ -230,7 +281,7 @@ export function useLastSurvivor({
     );
   }, []);
 
-  // ── Key cost formula (pure frontend math) ─────────────────────────
+  // ── Key cost formula (pure frontend math, mirrors the contract) ────
   const calculateKeyCostFormula = (count: bigint, currentTotalKeys: bigint): bigint => {
     if (count <= 0n) return 0n;
     const commonDiff = (BASE_KEY_PRICE * KEY_PRICE_INCREMENT_BPS) / 10000n;
@@ -245,160 +296,126 @@ export function useLastSurvivor({
     return calculateKeyCostFormula(count, totalKeysInRound.get());
   }, [keyCount, totalKeysInRound]);
 
-  const estimatedCost = createDerived(() => (Number(estimatedCostRaw.get()) / 1e8).toFixed(2), [estimatedCostRaw]);
+  const estimatedCost = createDerived(() => fromBaseUnits(estimatedCostRaw.get()).toFixed(2), [estimatedCostRaw]);
 
-  // ── Data Loading (via OS services) ─────────────────────────────────
+  // ── Data Loading (direct chain reads) ──────────────────────────────
 
   /**
-   * Load round state via GameProxy.
-   * The edge function translates getPoolState("current") into the
-   * contract's getGameStatus call and returns normalized data.
+   * Load the current round straight from getCurrentRound(). Maps the contract
+   * Map into the observables the UI binds; returns the remaining time in
+   * seconds (already the contract's unit) so loadAll can derive endTime.
    */
-  const loadRoundData = async () => {
+  const loadRoundData = async (): Promise<number> => {
     try {
-      const state = await gameService.getPoolState("current") as SurvivorPoolState;
-      if (state && typeof state === "object") {
-        roundId.set(Number(state.roundId ?? 0));
-        // The contract reports the pot in raw GAS base units (1e8), the same
-        // scale used by the key-cost path (BASE_KEY_PRICE is in base units and
-        // estimatedCost divides by 1e8). Scale here too so TOTAL POT renders in
-        // whole GAS instead of being ~1e8x too large.
-        totalPot.set(Number(state.totalBets ?? state.pot ?? 0) / 1e8);
-        isRoundActive.set(
-          state.status === "open" ||
-            state.status === "active" ||
-            Boolean(state.active),
-        );
-        lastBuyer.set(String(state.lastBuyer ?? ""));
-        totalKeysInRound.set(BigInt(Number(state.totalKeys) || 0));
+      const raw = await chain.read("getCurrentRound", []);
+      const round = parseRound(raw);
+      if (round) {
+        roundId.set(round.roundId);
+        // pot is in base units (1e8) — scale to whole GAS for display.
+        totalPot.set(fromBaseUnits(round.potBase));
+        // A round is buyable while active. A fresh round (no keys) is always
+        // active; an expired round reports active=false and remainingTime 0.
+        isRoundActive.set(round.active);
+        lastBuyer.set(round.lastBuyer || "");
+        totalKeysInRound.set(round.totalKeys);
         roundDataAvailable.set(true);
         serviceNotice.set("");
-        return Number(state.remainingTime ?? 0);
+        return round.remainingSeconds;
       }
       roundDataAvailable.set(false);
       serviceNotice.set(t("roundStateUnavailable"));
       return 0;
     } catch (e) {
       roundDataAvailable.set(false);
-      if (isOsBoundaryError(e)) {
-        serviceNotice.set(t("roundStateUnavailable"));
-        return 0;
-      }
+      serviceNotice.set(t("roundStateUnavailable"));
       console.warn("[useLastSurvivor] loadRoundData failed:", errorMessage(e));
-      throw e;
+      return 0;
     }
   };
 
   /**
-   * Load user's key count for the current round via StorageProxy.
-   * The edge function reads the per-player key count from contract storage.
+   * Load the connected wallet's key count for the current round via
+   * playerKeys(roundId, player). A missing wallet / round yields 0.
    */
   const loadUserKeys = async () => {
-    if (!roundId.get()) {
+    const currentRound = roundId.get();
+    const walletAddr = address.get();
+    const walletHash = walletAddr ? addressToScriptHash(walletAddr) || null : null;
+    if (!currentRound || !walletHash) {
       userKeys.set(0);
       return;
     }
     try {
-      const keys = await storageService.get(`playerKeys:${roundId.get()}`);
-      userKeys.set(Number(keys || 0));
+      const keys = await chain.read("playerKeys", [
+        { type: "Integer", value: String(currentRound) },
+        { type: "Hash160", value: walletHash },
+      ]);
+      userKeys.set(Number(parseBigInt(keys)));
     } catch (e) {
-      if (!isOsBoundaryError(e)) {
-        console.warn("[useLastSurvivor] loadUserKeys failed:", errorMessage(e));
-      }
+      console.warn("[useLastSurvivor] loadUserKeys failed:", errorMessage(e));
       userKeys.set(0);
     }
   };
 
   /**
-   * Load game history from StorageProxy and leaderboard winners from
-   * LeaderboardProxy, then merge into a unified history list.
+   * Rebuild the history list from past rounds. Rounds 1..currentRoundId-1 are
+   * already finished; each settled round with a pot yields a "winnerDeclared"
+   * entry (winner = lastBuyer, prize = pot). Newest first, capped at
+   * MAX_HISTORY_ROUNDS. This replaces the leaderboard/storage event sources.
    */
   const loadHistory = async () => {
     try {
-      const [eventsMap, winners] = await Promise.all([
-        storageService.list("events:", 40),
-        leaderboardService.get(10),
-      ]);
-
-      const items: HistoryEvent[] = [];
-
-      // Resolve a real temporal ordering key for a stored entry: prefer the
-      // parsed `date`, fall back to a numeric `id` (often a timestamp), and
-      // finally to NaN so the caller can substitute a stable insertion index.
-      const temporalKey = (entry: StoredHistoryEntry): number => {
-        if (entry.date) {
-          const parsed = Date.parse(entry.date);
-          if (Number.isFinite(parsed)) return parsed;
-        }
-        const idNum = Number(entry.id);
-        return Number.isFinite(idNum) ? idNum : NaN;
-      };
-
-      // Parse stored events (key purchases, round starts)
-      if (eventsMap && typeof eventsMap === "object") {
-        for (const [, value] of Object.entries(eventsMap)) {
-          const entry = value as StoredHistoryEntry;
-          const key = temporalKey(entry);
-          if (entry.type === "keysPurchased") {
-            items.push({
-              id: entry.id,
-              title: t("keysPurchased"),
-              details: `${formatAddress(entry.player ?? "")} \u2022 ${entry.keys ?? 0} keys \u2022 +${(entry.potContribution ?? 0).toFixed(2)} ${t("tokenGas")}`,
-              date: entry.date ?? "",
-              sortKey: key,
-            });
-          } else if (entry.type === "roundStarted") {
-            const endText = entry.endTime
-              ? new Intl.DateTimeFormat(undefined).format(new Date(entry.endTime))
-              : t("notAvailable");
-            items.push({
-              id: entry.id,
-              title: t("roundStarted"),
-              details: `#${entry.round ?? 0} \u2022 ${endText}`,
-              date: entry.date ?? "",
-              sortKey: key,
-            });
-          }
-        }
+      const current = roundId.get();
+      if (current <= 1) {
+        history.set([]);
+        return;
       }
 
-      // Parse leaderboard winners into history entries. Winners arrive
-      // pre-ranked (index 0 = most recent/top) and carry no timestamp, so
-      // they get NaN here and inherit a stable insertion index below,
-      // preserving their leaderboard order instead of collapsing to a
-      // single sentinel value.
-      if (Array.isArray(winners)) {
-        winners.forEach((w, idx) => {
-          items.push({
-            id: `winner-${idx}`,
-            title: t("winnerDeclared"),
-            details: `${formatAddress(w.user)} \u2022 ${w.score} ${t("tokenGas")}`,
-            date: "",
-            sortKey: NaN,
-          });
+      // Scan the most recent finished rounds (current-1 down to the cap), newest
+      // first. Round ids are 1-based; the current round is still in progress.
+      const start = Math.max(1, current - MAX_HISTORY_ROUNDS);
+      const ids: number[] = [];
+      for (let id = current - 1; id >= start; id -= 1) ids.push(id);
+
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const raw = await chain.read("getRound", [
+              { type: "Integer", value: String(id) },
+            ]);
+            return parseRound(raw);
+          } catch (e) {
+            console.warn(
+              "[useLastSurvivor] getRound failed for",
+              id,
+              ":",
+              errorMessage(e),
+            );
+            return null;
+          }
+        }),
+      );
+
+      const items: HistoryEvent[] = [];
+      for (const round of results) {
+        if (!round) continue;
+        // A finished round with a winner + pot is a settled win. A round with no
+        // keys / no buyer never produced a winner and is skipped.
+        if (round.totalKeys <= 0n || !round.lastBuyer || round.potBase <= 0n) continue;
+        const prizeGas = fromBaseUnits(round.potBase);
+        items.push({
+          id: `round-${round.roundId}`,
+          title: t("winnerDeclared"),
+          details: `#${round.roundId} • ${formatAddress(round.lastBuyer)} • ${prizeGas.toFixed(2)} ${t("tokenGas")}`,
+          date: "",
+          sortKey: round.roundId,
         });
       }
 
-      // Backfill a deterministic ordering key for entries without a real
-      // temporal source. Walking the (insertion-ordered) list in reverse and
-      // handing out descending indices keeps such entries newest-first while
-      // preserving their original relative order, so the final sort is fully
-      // stable and never depends on NaN comparisons.
-      let fallbackIndex = 0;
-      for (let i = items.length - 1; i >= 0; i--) {
-        const item = items[i];
-        if (item && !Number.isFinite(item.sortKey)) {
-          item.sortKey = fallbackIndex++;
-        }
-      }
-
-      // Sort newest-first on the resolved numeric sortKey. All keys are now
-      // finite, so comparisons are well-defined and ordering is deterministic.
+      // Newest round first.
       history.set(items.sort((a, b) => b.sortKey - a.sortKey));
     } catch (e) {
-      if (!isOsBoundaryError(e)) {
-        console.warn("[useLastSurvivor] loadHistory failed:", errorMessage(e));
-      }
+      console.warn("[useLastSurvivor] loadHistory failed:", errorMessage(e));
       history.set([]);
     }
   };
@@ -416,6 +433,7 @@ export function useLastSurvivor({
   const loadAll = async () => {
     isLoading.set(true);
     try {
+      setAddress(chain.address.get() ?? address.get() ?? null);
       const remainingSeconds = await loadRoundData();
       const endTimeMs = remainingSeconds > 0 ? Date.now() + remainingSeconds * 1000 : 0;
       endTime.set(endTimeMs);
@@ -426,15 +444,25 @@ export function useLastSurvivor({
     }
   };
 
-  // ── Actions (via OS services) ──────────────────────────────────────
+  // ── Actions (direct chain invocations) ─────────────────────────────
 
   /**
-   * Buy keys via PaymentProxy (deposit GAS) + GameProxy (place bet).
+   * Buy `count` keys against the standalone contract.
    *
-   * The OS payment service handles wallet connection and GAS transfer.
-   * The OS game service handles the buyKeysWithCost contract call.
-   * Badge awarding (first key purchase) is handled server-side by the
-   * edge function, so we just fire-and-forget a badge hint.
+   * Two signed steps, both by the player:
+   *   1. DEPOSIT — transfer the cost in GAS to the contract with the
+   *      "miniapp-lastsurvivor:buy" memo, crediting the player's prepaid
+   *      balance. The cost is the rising bonding-curve price for `count` keys at
+   *      the round's current total (frontend formula == contract math).
+   *   2. buyKeys(player, count) — consumes that credit, adds the cost to the
+   *      pot, makes the player the last buyer, and extends the countdown.
+   *
+   * If step 1 succeeds but step 2 fails, the prepaid credit simply remains on
+   * the contract under the player and is reused on the next buy — there is no
+   * refund call (and none is needed; funds are not lost). When the round has
+   * already ended (timer expired with keys), the contract rejects the buy with
+   * "round ended; settle first"; we surface that the round must be settled
+   * before buying rather than letting the buy fault opaquely.
    */
   const buyKeys = async (count: string) => {
     if (isBuyingKeys.get()) return;
@@ -447,50 +475,115 @@ export function useLastSurvivor({
     const numKeys = Math.max(0, Math.floor(Number(count) || 0));
     if (numKeys <= 0) throw new Error(t("invalidKeyCount"));
 
+    // A round that has keys but a zero clock has ended and must be settled
+    // first; surface that cleanly before prompting the wallet.
+    if (
+      totalKeysInRound.get() > 0n &&
+      !isRoundActive.get() &&
+      timeRemainingSeconds.get() <= 0
+    ) {
+      throw new Error(t("settleBeforeBuy"));
+    }
+
+    const playerAddr = address.get() || (await chain.ensureWallet());
+    const playerHash = addressToScriptHash(playerAddr || "");
+    if (!playerAddr || !playerHash) throw new Error(t("walletNotConnected"));
+    setAddress(playerAddr);
+
+    const contractHash = chain.contractAddress.get();
+    if (!contractHash) throw new Error(t("missingContract"));
+
     isBuyingKeys.set(true);
     try {
-      const costRaw = calculateKeyCostFormula(BigInt(numKeys), totalKeysInRound.get());
-      const costGas = (Number(costRaw) / 1e8).toFixed(8);
-
-      // Step 1: Deposit GAS via PaymentProxy
-      await paymentService.deposit(costGas, `buy:${roundId.get()}:${numKeys}`);
-
-      // Step 2: Place bet (buy keys) via GameProxy.
-      // The deposit in Step 1 has already transferred GAS on-chain. If
-      // placeBet fails (round rolled over, edge/network error, validation)
-      // the GAS would be stranded with no keys registered, so we compensate
-      // by withdrawing the deposit before re-throwing. If the withdraw also
-      // fails, surface a distinct manual-recovery error instead of the raw
-      // placeBet error.
+      // Cost for `count` keys at the round's current total. Prefer the on-chain
+      // currentKeyCost read (authoritative); fall back to the local formula
+      // (identical math) if the read is unavailable.
+      let costBase = calculateKeyCostFormula(BigInt(numKeys), totalKeysInRound.get());
       try {
-        await gameService.placeBet("current", String(numKeys));
-      } catch (placeBetErr) {
-        try {
-          await paymentService.withdraw(costGas);
-        } catch (refundErr) {
-          console.error(
-            "[useLastSurvivor] buyKeys: GAS withdraw failed after placeBet error",
-            errorMessage(refundErr),
-          );
-          throw new Error(t("keyPurchaseRecoveryNeeded"));
-        }
-        throw new Error(t("keyPurchaseRefunded"));
+        const onChain = parseBigInt(
+          await chain.read("currentKeyCost", [
+            { type: "Integer", value: String(numKeys) },
+          ]),
+        );
+        if (onChain > 0n) costBase = onChain;
+      } catch (e) {
+        console.warn("[useLastSurvivor] currentKeyCost read failed, using local formula:", errorMessage(e));
       }
+      if (costBase <= 0n) throw new Error(t("invalidKeyCount"));
 
-      // Step 3: Hint badge service about first-key achievement (fire-and-forget)
-      if (userKeys.get() === 0) {
-        badgeService.award("first-key", "").catch(() => {});
+      // Step 1: DEPOSIT — GAS transfer to the contract with the buy memo so
+      // OnNEP17Payment credits the player's prepaid balance.
+      await chain.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: playerHash },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: costBase.toString() },
+          { type: "String", value: BUY_MEMO },
+        ],
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+      );
+
+      // Step 2: buyKeys — consumes the prepaid credit. If this fails the credit
+      // persists on the contract under the player and is reusable on the next
+      // buy (no refund needed; funds are not lost).
+      try {
+        await chain.invoke(
+          "buyKeys",
+          [
+            { type: "Hash160", value: playerHash },
+            { type: "Integer", value: String(numKeys) },
+          ],
+          { waitForEvent: "KeysBought" },
+        );
+      } catch (buyErr) {
+        const raw = errorMessage(buyErr);
+        console.error(
+          "[useLastSurvivor] buyKeys failed after deposit succeeded:",
+          raw,
+        );
+        // A round that ended between the round read and the buy faults with
+        // "round ended; settle first" — surface the settle requirement; any
+        // other failure leaves the deposit as reusable prepaid credit.
+        if (/settle first|round ended/i.test(raw)) {
+          throw new Error(t("settleBeforeBuy"));
+        }
+        throw new Error(t("keyPurchaseDepositHeld"));
       }
 
       await loadAll();
       return numKeys;
-    } catch (e) {
-      if (isOsBoundaryError(e)) {
-        throw new Error(t("keyPurchaseUnavailable"));
-      }
-      throw e;
     } finally {
       isBuyingKeys.set(false);
+    }
+  };
+
+  /**
+   * Settle the current round against the standalone contract.
+   *
+   * settle() is PERMISSIONLESS: once the round's countdown has expired it pays
+   * the recorded last buyer (NOT the caller) the entire pot atomically and
+   * advances to a fresh round. Anyone may trigger it; the winner is paid by the
+   * contract regardless of who signs. The UI surfaces this through the
+   * needsLifecycleSync affordance once a round has ended with a pot.
+   */
+  const settleRound = async () => {
+    if (isSettling.get()) return;
+
+    const contractHash = chain.contractAddress.get();
+    if (!contractHash) throw new Error(t("missingContract"));
+
+    // The signer just triggers the settle; ensure a wallet is available to sign.
+    const callerAddr = address.get() || (await chain.ensureWallet());
+    if (!callerAddr) throw new Error(t("walletNotConnected"));
+    setAddress(callerAddr);
+
+    isSettling.set(true);
+    try {
+      await chain.invoke("settle", [], { waitForEvent: "RoundSettled" });
+      await loadAll();
+    } finally {
+      isSettling.set(false);
     }
   };
 
@@ -505,10 +598,12 @@ export function useLastSurvivor({
     keyValidationError,
     history,
     isBuyingKeys,
+    isSettling,
     isLoading,
     roundDataAvailable,
     serviceNotice,
     totalKeysInRound,
+    address,
 
     // ── Timer State ─────────────────────────────────────────────────
     countdown,
@@ -531,7 +626,9 @@ export function useLastSurvivor({
     estimatedCostRaw,
 
     // ── Actions ─────────────────────────────────────────────────────
+    setAddress,
     buyKeys,
+    settleRound,
     loadAll,
     loadUserKeys,
   };
