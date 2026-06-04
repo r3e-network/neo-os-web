@@ -232,15 +232,23 @@ export function useRedEnvelope({
    * normalized envelope data, so no contract hashes or parameter encoding here.
    */
   const mapStoredEnvelope = (data: StoredEnvelope): EnvelopeItem => {
+    // Coerce stored numerics defensively: a non-numeric value from storage
+    // (e.g. a corrupted record) would otherwise yield NaN and render as "NaN"
+    // in counts/amounts (notably remainingPackets). Fall back to 0, never drop
+    // the whole envelope.
+    const toFinite = (v: unknown): number => {
+      const n = Number(v ?? 0);
+      return Number.isFinite(n) ? n : 0;
+    };
     const creator = String(data.creator ?? "");
-    const totalAmountRaw = Number(data.totalAmount ?? 0);
-    const packetCount = Number(data.packetCount ?? 0);
-    const openedCount = Number(data.openedCount ?? 0);
-    const remainingAmountRaw = Number(data.remainingAmount ?? 0);
+    const totalAmountRaw = toFinite(data.totalAmount);
+    const packetCount = toFinite(data.packetCount);
+    const openedCount = toFinite(data.openedCount);
+    const remainingAmountRaw = toFinite(data.remainingAmount);
     const bestLuckAddress = String(data.bestLuckAddress ?? "");
-    const bestLuckAmountRaw = Number(data.bestLuckAmount ?? 0);
+    const bestLuckAmountRaw = toFinite(data.bestLuckAmount);
     const ready = Boolean(data.ready);
-    const expiryTime = Number(data.expiryTime ?? 0);
+    const expiryTime = toFinite(data.expiryTime);
     const now = Math.floor(Date.now() / 1000);
     const expired = expiryTime > 0 && now > expiryTime;
     const depleted = openedCount >= packetCount || remainingAmountRaw <= 0;

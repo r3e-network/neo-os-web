@@ -43,6 +43,7 @@ import { manifestToTemplateConfig } from "../utils/manifestToTemplateConfig";
 import { StandardAppShell } from "../templates/StandardAppShell";
 import { MiniAppPage } from "../components/MiniAppPage";
 import { MiniAppOperationPanel } from "../components/MiniAppOperationPanel";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import type { TranslationMap } from "../utils/i18n";
 import {
   readMiniAppLaunchContext,
@@ -471,19 +472,31 @@ export function MiniAppRoot({
   );
 
   const fallbackMessage = tFn("errorFallback");
+  // Wrap the app's PlayArea in a real React error boundary so a render-time
+  // throw degrades to a retryable fallback instead of white-screening the whole
+  // shell. This single wrapper covers both the standalone and shell render
+  // paths below (MiniAppPage's own try/catch around `children` cannot catch
+  // render errors). getDerivedStateFromError handles the actual catch.
   const playArea = (
-    <PlayArea
-      t={tFn}
-      state={appStateRef.current}
-      dispatch={dispatch}
-      services={services}
-      status={status}
-      setStatus={setStatusWithFireworks}
-      clearStatus={clearStatus}
-      loadError={loadError}
-      retryLoad={reloadData}
-      launchContext={launchContext}
-    />
+    <ErrorBoundary
+      t={tFn as (key: string) => string}
+      fallback={fallbackMessage}
+      onError={handleBoundaryError}
+      onRetry={reloadData}
+    >
+      <PlayArea
+        t={tFn}
+        state={appStateRef.current}
+        dispatch={dispatch}
+        services={services}
+        status={status}
+        setStatus={setStatusWithFireworks}
+        clearStatus={clearStatus}
+        loadError={loadError}
+        retryLoad={reloadData}
+        launchContext={launchContext}
+      />
+    </ErrorBoundary>
   );
 
   // --------------------------------------------------------------------------

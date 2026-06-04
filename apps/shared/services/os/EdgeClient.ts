@@ -111,10 +111,15 @@ export class EdgeClient {
       headers["Authorization"] = `Bearer ${authToken}`;
     }
 
+    // Bound the request so a slow/dead gateway (stalled DNS, hung server)
+    // cannot freeze the miniapp indefinitely — same pattern as
+    // useMorpheusDataFeed. Abort surfaces as a rejected fetch the callers
+    // already handle as an OS boundary error.
     const res = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!res.ok) {
@@ -126,7 +131,10 @@ export class EdgeClient {
       );
     }
 
-    const payload = await res.json();
+    // A 2xx with a non-JSON body (e.g. an HTML gateway page) must not throw an
+    // uncaught SyntaxError — fall back to an empty object so the shape checks
+    // below treat it as a plain payload, mirroring the error-path .catch().
+    const payload = await res.json().catch(() => ({}));
     if (
       payload &&
       typeof payload === "object" &&
