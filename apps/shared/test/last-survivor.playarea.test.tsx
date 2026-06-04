@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -36,7 +36,15 @@ function t(key: string) {
     ruleTimerDesc: "Later bids add less time.",
     ruleWin: "Last buyer wins",
     ruleWinDesc: "When the timer reaches zero, the last buyer wins.",
+    roundEnded:
+      "Timer expired. The settlement transaction pays the winner and opens the next live round.",
     safe: "SAFE",
+    settleBeforeBuy:
+      "The countdown has expired. Settle the round to pay the winner, then a fresh round opens.",
+    settleRound: "Settle Round",
+    settleRoundHint:
+      "Anyone can settle: the last buyer is paid the entire pot on-chain and a fresh round begins.",
+    settlingRound: "Settling...",
     share: "Share",
     status: "Status",
     timeUntilEvent: "Time Until Event",
@@ -58,6 +66,7 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     formattedRound: createObservable("#0"),
     history: createObservable([]),
     isBuyingKeys: createObservable(false),
+    isSettling: createObservable(false),
     isLoading: createObservable(false),
     isRoundActive: createObservable(false),
     keyCount: createObservable(0),
@@ -107,7 +116,11 @@ describe("LastSurvivor PlayArea", () => {
     ).toBe(true);
   });
 
-  it("keeps the transaction entry enabled for rollover-ready rounds", () => {
+  it("surfaces a permissionless Settle affordance for an ended round and blocks buying", async () => {
+    // The on-chain contract rejects a buy on an ended round ("settle first"), so
+    // the ended-round affordance is Settle — which dispatches the permissionless
+    // settle() — NOT a buy-and-rollover. (Replaces the old OS-rollover behavior.)
+    const dispatch = vi.fn(async () => {});
     render(
       <PlayArea
         t={t}
@@ -119,15 +132,19 @@ describe("LastSurvivor PlayArea", () => {
           totalPot: 12.5,
           totalPotDisplay: "12.50 GAS",
         })}
-        dispatch={vi.fn()}
+        dispatch={dispatch}
       />,
     );
 
-    const button = screen.getByRole("button", {
-      name: "Buy Keys and Roll Forward",
-    });
-    expect((button as HTMLButtonElement).disabled).toBe(false);
-    expect(screen.getByText(/rolls the expired round forward/i)).toBeTruthy();
+    // Settle is the live action; clicking it dispatches settleRound.
+    const settle = screen.getByRole("button", { name: "Settle Round" });
+    expect((settle as HTMLButtonElement).disabled).toBe(false);
+    settle.click();
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("settleRound"));
+
+    // Buying is blocked while the round needs settlement.
+    const buy = screen.getByRole("button", { name: "Buy Keys" });
+    expect((buy as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("binds TOTAL KEYS and YOUR SHARE to the round total, not the buy-selector", () => {

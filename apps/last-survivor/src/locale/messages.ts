@@ -59,6 +59,21 @@ const appMessages = {
     en: "Key purchase failed and the automatic refund did not complete. Please contact support to recover your GAS.",
     zh: "购买钥匙失败且自动退款未完成。请联系客服以找回您的 GAS。",
   },
+  keyPurchaseDepositHeld: {
+    en: "Key purchase failed after the deposit landed. Your GAS is held as reusable credit — try buying again.",
+    zh: "押金已到账但购买钥匙失败。您的 GAS 作为可复用余额保留——请重新购买。",
+  },
+  settleBeforeBuy: {
+    en: "The countdown has expired. Settle the round to pay the winner, then a fresh round opens for buying.",
+    zh: "倒计时已结束。请先结算本轮以支付赢家，随后将自动开启可购买的新一轮。",
+  },
+  settleRound: { en: "Settle Round", zh: "结算本轮" },
+  settlingRound: { en: "Settling...", zh: "结算中..." },
+  settleRoundHint: {
+    en: "Anyone can settle: the last buyer is paid the entire pot on-chain and a fresh round begins.",
+    zh: "任何人都可结算：最后购买者将在链上获得全部奖池，并开启新一轮。",
+  },
+  roundSettled: { en: "Round settled", zh: "本轮已结算" },
   keysPurchased: { en: "Keys purchased", zh: "钥匙购买成功" },
   roundStarted: { en: "Round started", zh: "新一轮开始" },
   winnerDeclared: { en: "Winner declared", zh: "赢家已揭晓" },
