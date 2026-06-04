@@ -317,10 +317,12 @@
 .multisig-request-hint {
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid rgba(240, 160, 32, 0.22);
+  /* Neutral pre-input guidance (not a warning): use the muted surface like the
+     other AA hint banners; the .is-ready variant below turns brand-green. */
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-sm, 14px);
-  background: #fff7ed;
-  color: #9a4b10;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.45;

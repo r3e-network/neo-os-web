@@ -378,9 +378,11 @@
 .session-hint {
   margin: 0;
   padding: 12px 14px;
-  border: 1px solid rgba(214, 158, 46, 0.18);
+  /* Neutral pre-input guidance (not a warning) — match the other AA hint
+     banners' muted surface instead of an amber warning tint. */
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-warning-soft, #fff3dd);
+  background: var(--ns-surface-subtle, #f7f8fa);
   color: var(--ns-text-2, #5b6478);
   font-size: 12px;
   font-weight: 600;
