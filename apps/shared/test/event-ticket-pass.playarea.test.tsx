@@ -140,8 +140,14 @@ describe("Event Ticket Pass PlayArea", () => {
 
     expect(screen.getAllByText("Create Event").length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("Event name").length).toBeGreaterThan(0);
+
+    // The organizer desk defaults to the "Issue Ticket" tab.
     expect(screen.getByLabelText("Recipient address")).toBeTruthy();
+
+    // Check-in controls live behind the "Check-in" tab in the desk.
+    fireEvent.click(screen.getByRole("tab", { name: /Check-in/i }));
     expect(screen.getByLabelText("Ticket Token ID")).toBeTruthy();
+
     expect(screen.getByText("Latest Request")).toBeTruthy();
     expect(screen.getByRole("region", { name: "Request and result evidence" })).toBeTruthy();
   });
@@ -181,6 +187,8 @@ describe("Event Ticket Pass PlayArea", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Issue$/i }));
     expect(dispatch).toHaveBeenCalledWith("issueTicket");
 
+    // Lookup lives on the "Check-in" tab of the organizer desk.
+    fireEvent.click(screen.getByRole("tab", { name: /Check-in/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Lookup$/i }));
     expect(dispatch).toHaveBeenCalledWith("lookupTicket");
   });

@@ -334,30 +334,70 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               )}
             </NeoCard>
 
-            <NeoCard variant="erobo" className="multisig-activity-panel">
-              <div className="multisig-section-heading">
-                <span>{t("recentTitle")}</span>
-                {history.length > 0 && <strong>{history.length}</strong>}
-              </div>
-              {history.length === 0 ? (
-                <p className="multisig-empty-line">{t("recentEmpty")}</p>
-              ) : (
-                <div className="multisig-history-list">
-                  {history.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="multisig-history-card"
-                      onClick={() => dispatch("loadTransaction", item.id)}
-                    >
-                      <span>{shorten(item.scriptHash)}</span>
-                      <strong>{statusLabel(item.status)}</strong>
-                      <em>{formatDate(item.createdAt)}</em>
-                    </button>
-                  ))}
+            <div className="multisig-aside">
+              <NeoCard variant="erobo" className="multisig-signer-panel">
+                <div className="multisig-section-heading">
+                  <span>{t("multisigSignerTitle")}</span>
+                  <strong>{t("multisigSignerList")}</strong>
                 </div>
-              )}
-            </NeoCard>
+                <p>{t("multisigSignerCopy")}</p>
+                <div className="multisig-signal-row">
+                  <span>{t("reviewSigners")}</span>
+                  <strong>{normalizedSigners.length}</strong>
+                </div>
+                <div className="multisig-signal-row">
+                  <span>{t("thresholdLabel")}</span>
+                  <strong>
+                    {thresholdNumber} / {signerDenominator}
+                  </strong>
+                </div>
+              </NeoCard>
+
+              <NeoCard variant="erobo" className="multisig-route-panel">
+                <div className="multisig-section-heading">
+                  <span>{t("multisigRouteTitle")}</span>
+                  <strong>{networkLabel}</strong>
+                </div>
+                <p>{t("multisigRouteCopy")}</p>
+                <div className="multisig-signal-row">
+                  <span>{t("buttonCreate")}</span>
+                  <strong>{t("multisigRouteCreate")}</strong>
+                </div>
+                <div className="multisig-signal-row">
+                  <span>{t("buttonSign")}</span>
+                  <strong>{t("multisigRouteSign")}</strong>
+                </div>
+                <div className="multisig-signal-row">
+                  <span>{t("buttonBroadcast")}</span>
+                  <strong>{t("multisigRouteBroadcast")}</strong>
+                </div>
+              </NeoCard>
+
+              <NeoCard variant="erobo" className="multisig-activity-panel">
+                <div className="multisig-section-heading">
+                  <span>{t("recentTitle")}</span>
+                  {history.length > 0 && <strong>{history.length}</strong>}
+                </div>
+                {history.length === 0 ? (
+                  <p className="multisig-empty-line">{t("recentEmpty")}</p>
+                ) : (
+                  <div className="multisig-history-list">
+                    {history.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="multisig-history-card"
+                        onClick={() => dispatch("loadTransaction", item.id)}
+                      >
+                        <span>{shorten(item.scriptHash)}</span>
+                        <strong>{statusLabel(item.status)}</strong>
+                        <em>{formatDate(item.createdAt)}</em>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </NeoCard>
+            </div>
           </div>
         </section>
       </div>

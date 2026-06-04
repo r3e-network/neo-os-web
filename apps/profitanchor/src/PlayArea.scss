@@ -245,6 +245,96 @@ body { background: var(--anchor-bg, #ffffff); }
   color: var(--ns-brand-strong, #0fb174);
 }
 
+/* Wallet-effect preview: stake path, AA route, and claim plan shown before signing */
+.anchor-preflight-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--ns-border, #e7e9f0);
+  border-radius: var(--ns-radius-lg, 18px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.anchor-preflight-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  span {
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+}
+
+.anchor-preflight-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+
+  > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  dt {
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .anchor-preflight-row.is-ready dd {
+    color: var(--ns-brand-strong, #0fb174);
+  }
+}
+
+.anchor-preflight-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  span {
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  code {
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: var(--ns-surface, #fff);
+    font-size: 11px;
+  }
+}
+
 .anchor-action-button {
   display: inline-grid;
   place-items: center;

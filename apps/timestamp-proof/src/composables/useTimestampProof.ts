@@ -53,8 +53,24 @@ export function useTimestampProofContract(t: (key: string) => string) {
   const verifyError = createObservable(false);
   const isCreating = createObservable(false);
   const isVerifying = createObservable(false);
+  const lastMessage = createObservable("");
 
   const currentActor = () => String(address.get() || "local");
+
+  const setMessage = (key: string) => {
+    lastMessage.set(t(key));
+  };
+
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      const clipboard = (globalThis.navigator as Navigator | undefined)?.clipboard;
+      if (!clipboard?.writeText) return false;
+      await clipboard.writeText(text);
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  };
 
   const loadProofs = async () => {
     proofs.set(readStoredProofs());
@@ -109,40 +125,127 @@ export function useTimestampProofContract(t: (key: string) => string) {
       persistProofs([proof, ...currentProofs]);
       verifiedProof.set(proof);
       verifyError.set(false);
+      setMessage("createSuccess");
       setStatus(t("createSuccess"), "success");
       onSuccess();
     } catch (e) {
-      setStatus(formatErrorMessage(e, t("error")), "error");
+      const message = formatErrorMessage(e, t("error"));
+      lastMessage.set(message);
+      setStatus(message, "error");
     } finally {
       isCreating.set(false);
     }
   };
 
-  const verifyProofById = async (id: string) => {
+  const findProof = (query: string): TimestampProof | null => {
+    const normalized = query.trim();
+    if (!normalized) return null;
+
+    const stored = readStoredProofs();
+
+    // 1) Match by numeric proof id.
+    const asId = Number(normalized);
+    if (Number.isInteger(asId) && asId > 0) {
+      const byId = stored.find((item) => item.id === asId);
+      if (byId) return byId;
+    }
+
+    // 2) Match by SHA-256 digest (case-insensitive 64-hex string).
+    if (/^[0-9a-f]{64}$/i.test(normalized)) {
+      const lower = normalized.toLowerCase();
+      const byHash = stored.find((item) => item.contentHash.toLowerCase() === lower);
+      if (byHash) return byHash;
+    }
+
+    // 3) Match by original content (exact value).
+    const byContent = stored.find((item) => item.content === normalized);
+    if (byContent) return byContent;
+
+    return null;
+  };
+
+  const verifyProof = async (query: string) => {
     try {
       isVerifying.set(true);
       verifyError.set(false);
       verifiedProof.set(null);
 
-      const proofId = Number(id);
-      if (!Number.isInteger(proofId) || proofId <= 0) {
-        verifyError.set(true);
-        return;
-      }
+      proofs.set(readStoredProofs());
 
-      const matched = readStoredProofs().find((item) => item.id === proofId) || null;
+      const matched = findProof(String(query ?? ""));
       if (!matched) {
         verifyError.set(true);
+        setMessage("verifyFailed");
         return;
       }
 
-      proofs.set(readStoredProofs());
       verifiedProof.set(matched);
+      verifyError.set(false);
+      setMessage("validProof");
     } catch (_e) {
       verifyError.set(true);
+      setMessage("verifyFailed");
     } finally {
       isVerifying.set(false);
     }
+  };
+
+  const buildReference = (proof: TimestampProof) =>
+    JSON.stringify(
+      {
+        id: proof.id,
+        sha256: proof.contentHash,
+        timestamp: proof.timestamp,
+        creator: proof.creator,
+        txHash: proof.txHash,
+      },
+      null,
+      2,
+    );
+
+  const copyProofDigest = async (id: number): Promise<boolean> => {
+    const proof = readStoredProofs().find((item) => item.id === Number(id));
+    if (!proof) {
+      setMessage("invalidProof");
+      return false;
+    }
+    const copied = await copyToClipboard(proof.contentHash);
+    setMessage(copied ? "digestCopied" : "error");
+    return copied;
+  };
+
+  const copyProofReference = async (id: number): Promise<boolean> => {
+    const proof = readStoredProofs().find((item) => item.id === Number(id));
+    if (!proof) {
+      setMessage("invalidProof");
+      return false;
+    }
+    const copied = await copyToClipboard(buildReference(proof));
+    setMessage(copied ? "referenceCopied" : "error");
+    return copied;
+  };
+
+  const deleteProof = async (id: number) => {
+    const targetId = Number(id);
+    const remaining = readStoredProofs().filter((item) => item.id !== targetId);
+    persistProofs(remaining);
+    if (verifiedProof.get()?.id === targetId) {
+      verifiedProof.set(null);
+      verifyError.set(false);
+    }
+    setMessage("proofDeleted");
+  };
+
+  const clearProofs = async () => {
+    persistProofs([]);
+    verifiedProof.set(null);
+    verifyError.set(false);
+    setMessage("proofsCleared");
+  };
+
+  // Backwards-compatible alias: verify by proof id only.
+  const verifyProofById = async (id: string) => {
+    await verifyProof(String(id));
   };
 
   return {
@@ -150,11 +253,17 @@ export function useTimestampProofContract(t: (key: string) => string) {
     proofs,
     verifiedProof,
     verifyError,
+    lastMessage,
     isCreating,
     isVerifying,
     myProofsCount,
     loadProofs,
     createProof,
+    verifyProof,
     verifyProofById,
+    copyProofDigest,
+    copyProofReference,
+    deleteProof,
+    clearProofs,
   };
 }

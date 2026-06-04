@@ -376,11 +376,84 @@
   line-height: 1.45;
 }
 
+.gasbox-decision {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.gasbox-decision-head {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gasbox-decision-head strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.gasbox-decision-head span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
 .gasbox-decision-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   min-width: 0;
+}
+
+.gasbox-decision-note {
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.gasbox-checklist {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gasbox-check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.gasbox-check__label {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.gasbox-check__status {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gasbox-check.is-passed .gasbox-check__status {
+  color: var(--ns-success, #0fb174);
+}
+
+.gasbox-check.is-blocked .gasbox-check__status {
+  color: var(--ns-danger, #e5484d);
 }
 
 .gasbox-decision-cell {

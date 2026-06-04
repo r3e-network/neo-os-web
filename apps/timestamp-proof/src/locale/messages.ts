@@ -15,14 +15,38 @@ const appMessages = {
 
   verifyProof: { en: "Verify Proof", zh: "验证证明" },
   enterProofId: { en: "Enter Proof ID", zh: "输入证明ID" },
+  proofLookup: { en: "Proof lookup", zh: "证明查询" },
+  verifyPlaceholder: {
+    en: "Proof ID, SHA-256 digest, or original content",
+    zh: "证明编号、SHA-256 摘要或原始内容",
+  },
+  verifying: { en: "Verifying...", zh: "验证中..." },
+  verifyEmpty: { en: "No proof selected", zh: "未选择证明" },
   validProof: { en: "Proof Found", zh: "已找到证明" },
   invalidProof: { en: "Invalid Proof", zh: "无效证明" },
   verifiedContent: { en: "Verified Content", zh: "已验证内容" },
+  contentPreview: { en: "Content preview", zh: "内容预览" },
+  proofDigest: { en: "SHA-256 digest", zh: "SHA-256 摘要" },
   verifyFailed: { en: "Verification failed", zh: "验证失败" },
 
   recentProofs: { en: "Recent Proofs", zh: "最近证明" },
   noProofs: { en: "No proofs yet", zh: "暂无证明" },
+  noProofsHint: { en: "Saved proof entries will appear here.", zh: "已保存的证明记录会显示在这里。" },
   myProofs: { en: "My Proofs", zh: "我的证明" },
+  localReference: { en: "Local reference", zh: "本地引用" },
+  creatorLabel: { en: "Creator", zh: "创建者" },
+  sourceLocal: { en: "Local", zh: "本地" },
+
+  copyDigest: { en: "Copy digest", zh: "复制摘要" },
+  copyReference: { en: "Copy proof reference", zh: "复制证明引用" },
+  deleteProof: { en: "Delete proof", zh: "删除证明" },
+  clearAllProofs: { en: "Clear all", zh: "清除全部" },
+
+  digestCopied: { en: "Digest copied", zh: "已复制摘要" },
+  referenceCopied: { en: "Reference copied", zh: "已复制引用" },
+  proofDeleted: { en: "Proof deleted", zh: "证明已删除" },
+  proofsCleared: { en: "Proofs cleared", zh: "证明已清除" },
+  error: { en: "Something went wrong", zh: "出现错误" },
 
   docSubtitle: { en: "Device-local SHA-256 proof journal", zh: "设备本地 SHA-256 证明记录" },
   docDescription: {

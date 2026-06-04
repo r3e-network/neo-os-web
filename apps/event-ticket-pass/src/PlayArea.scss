@@ -480,7 +480,7 @@
   box-shadow: var(--tk-shadow);
 }
 
-.ticket-evidence > summary {
+.ticket-evidence__details > summary {
   color: var(--tk-ink);
   font-size: 13px;
   font-weight: 700;
@@ -488,17 +488,17 @@
   list-style: none;
 }
 
-.ticket-evidence > summary::-webkit-details-marker {
+.ticket-evidence__details > summary::-webkit-details-marker {
   display: none;
 }
 
-.ticket-evidence > summary::before {
+.ticket-evidence__details > summary::before {
   content: "▸";
   margin-right: 8px;
   color: var(--tk-accent);
 }
 
-.ticket-evidence[open] > summary::before {
+.ticket-evidence__details[open] > summary::before {
   content: "▾";
 }
 

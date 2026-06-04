@@ -128,6 +128,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : selectedMachine?.active === false
       ? t("gasboxPullBlockedInactive")
       : t("gasboxPullBlockedInventory");
+  const oddsReadable = oddsCoverage > 0;
+  const pullChecklist = [
+    { label: t("gasboxChecklistActive"), passed: Boolean(selectedMachine?.active) },
+    { label: t("gasboxChecklistInventory"), passed: Boolean(selectedMachine?.inventoryReady) },
+    { label: t("gasboxChecklistOdds"), passed: oddsReadable },
+  ];
   const handleSelectMachine = async (id: string) => {
     await dispatch("selectMachine", id);
   };
@@ -611,24 +617,49 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             </div>
 
-            <div className="gasbox-decision-strip" aria-label={t("gasboxDecisionTitle")}>
-              <div className="gasbox-decision-cell">
-                <span>{t("pullCost")}</span>
-                <strong>{selectedMachine.price} GAS</strong>
+            <section className="gasbox-decision" aria-label={t("gasboxDecisionTitle")}>
+              <div className="gasbox-decision-head">
+                <strong>{t("gasboxDecisionTitle")}</strong>
+                <span>{t("gasboxDecisionSubtitle")}</span>
               </div>
-              <div className="gasbox-decision-cell">
-                <span>{t("inventoryAndOdds")}</span>
-                <strong>{inventoryRatio} {t("items")}</strong>
+              <div className="gasbox-decision-strip">
+                <div className="gasbox-decision-cell">
+                  <span>{t("pullCost")}</span>
+                  <strong>{selectedMachine.price} GAS</strong>
+                </div>
+                <div className="gasbox-decision-cell">
+                  <span>{t("inventoryAndOdds")}</span>
+                  <strong>{inventoryRatio} {t("items")}</strong>
+                  <p className="gasbox-decision-note">
+                    {selectedMachine.inventoryReady
+                      ? t("gasboxInventoryReady")
+                      : t("gasboxInventoryActionRequired")}
+                  </p>
+                </div>
+                <div className="gasbox-decision-cell">
+                  <span>{t("gasboxPrizeFocus")}</span>
+                  <strong>{prizeFocusLabel}</strong>
+                </div>
+                <div className="gasbox-decision-cell">
+                  <span>{t("gasboxOddsCoverage")}</span>
+                  <strong>{formatPercent(oddsCoverage, t("gasboxPending"))}</strong>
+                </div>
               </div>
-              <div className="gasbox-decision-cell">
-                <span>{t("gasboxPrizeFocus")}</span>
-                <strong>{prizeFocusLabel}</strong>
-              </div>
-              <div className="gasbox-decision-cell">
-                <span>{t("gasboxOddsCoverage")}</span>
-                <strong>{formatPercent(oddsCoverage, t("gasboxPending"))}</strong>
-              </div>
-            </div>
+
+              <ul className="gasbox-checklist" aria-label={t("gasboxPullChecklist")}>
+                {pullChecklist.map((check) => (
+                  <li
+                    key={check.label}
+                    className={`gasbox-check${check.passed ? " is-passed" : " is-blocked"}`}
+                  >
+                    <span className="gasbox-check__label">{check.label}</span>
+                    <span className="gasbox-check__status">
+                      {check.passed ? t("gasboxCheckPassed") : t("gasboxCheckNeedsAction")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
             {unavailableItems.length > 0 && (
               <p className="gasbox-inventory-note">
