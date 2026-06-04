@@ -1,5 +1,9 @@
 /**
  * GasBox — React Entry Point
+ *
+ * Drives the standalone MiniAppGasBox contract directly via ctx.services.chain.
+ * Prizes are drawn and paid ON-CHAIN in the pull tx (no client-side simulation,
+ * no oracle).
  */
 
 import { defineMiniApp, createObservable, createDerived } from "@shared/react/defineMiniApp";
@@ -18,12 +22,11 @@ defineMiniApp({
 
   setup(ctx) {
     const gasbox = useGasBox({
-      gameService: ctx.os.game,
-      paymentService: ctx.os.payment,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
+      chain: ctx.services.chain,
       t: ctx.t,
     });
+
+    gasbox.setAddress(ctx.services.chain.address.get() ?? null);
 
     const findMachineById = (id: string) =>
       gasbox.machines.get().find((m) => String(m.id) === id) ?? null;
@@ -82,6 +85,15 @@ defineMiniApp({
       if (machine) gasbox.selectMachine(machine);
     });
 
+    ctx.registerAction("withdrawRevenue", async (...args: unknown[]) => {
+      const id = String(args[0] ?? "");
+      if (!id) return;
+      await ctx.services.notify.guard(
+        () => gasbox.withdrawRevenue(id),
+        "revenueClaimed",
+      );
+    });
+
     ctx.registerAction("resetResult", async () => {
       gasbox.resetResult();
     });
@@ -99,10 +111,16 @@ defineMiniApp({
       gasbox.closeStudio();
     });
 
-    // Synthetic counters for manifest stats — Machine type doesn't track per-machine pulls,
-    // so totalPulls aggregates from all machines' itemsPulled summed via composable history.
+    // Manifest stat counters. Pulls are settled per-tx on chain (no per-machine
+    // pull counter on the contract), so the live "total pulls" stat aggregates
+    // accumulated revenue / price across machines as a play-volume proxy.
     const totalPulls = createDerived(
-      () => gasbox.machines.get().reduce((sum, m) => sum + Number((m as unknown as { itemsPulled?: number }).itemsPulled ?? 0), 0),
+      () =>
+        gasbox.machines.get().reduce((sum, m) => {
+          const price = Number(m.priceRaw);
+          const revenue = Number(m.revenueRaw);
+          return sum + (price > 0 ? Math.floor(revenue / price) : 0);
+        }, 0),
       [gasbox.machines],
     );
     const userPulls = createObservable(0);
@@ -124,6 +142,7 @@ defineMiniApp({
         studioOpen: gasbox.studioOpen,
       },
       loadData: async () => {
+        gasbox.setAddress(ctx.services.chain.address.get() ?? null);
         await gasbox.loadAll();
         applyLaunchSelection();
       },
