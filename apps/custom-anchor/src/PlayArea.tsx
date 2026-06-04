@@ -28,6 +28,9 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   const anchorStatus = anchorAppId ? t("anchorLinked") : t("anchorMissing");
   const displayedAnchor = anchorAppId ? truncate(anchorAppId) : t("anchorAwaitingLaunch");
   const displayedTx = lastTxid ? truncate(lastTxid) : "—";
+  // Show the real on-chain agent count (0 is a valid value for an unconfigured anchor).
+  // Only fall back to a neutral placeholder before an anchor is linked, never mask a real 0.
+  const displayedAgentCount = anchorAppId ? String(agentCount) : "—";
 
   const [anchorInput, setAnchorInput] = useState(anchorAppId || "custom-anchor:team:nonce");
   const [amountInput, setAmountInput] = useState("1");
@@ -88,7 +91,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
               {t("anchorStatus")}: <strong>{anchorStatus}</strong>
             </span>
             <span>
-              {t("agentCount")}: <strong>{agentCount || 21}</strong>
+              {t("agentCount")}: <strong>{displayedAgentCount}</strong>
             </span>
             <span>
               {t("lastTxid")}: <strong>{displayedTx}</strong>
@@ -96,7 +99,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
           </div>
         </div>
         <div className="custom-anchor-orbit" aria-hidden="true">
-          <span>{agentCount || 21}</span>
+          <span>{displayedAgentCount}</span>
           <small>AA</small>
         </div>
       </section>

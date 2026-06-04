@@ -14,6 +14,8 @@ const appMessages = {
   pendingRewards: { en: "Claimable GAS", zh: "可领取 GAS" },
   totalNeoTracked: { en: "Tracked NEO", zh: "跟踪 NEO" },
   rewardReserve: { en: "Reward Reserve", zh: "奖励储备" },
+  pendingWithdraw: { en: "Claimable NEO", zh: "可领取 NEO" },
+  rewardPerNeo: { en: "Reward / NEO", zh: "每 NEO 奖励" },
   agentTargetCount: { en: "Candidate Slots", zh: "候选槽位" },
   defaultIngressLabel: { en: "Vote Routes", zh: "投票路由" },
   defaultIngressShort: { en: "Routes", zh: "路由" },

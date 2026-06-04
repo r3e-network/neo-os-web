@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -37,9 +37,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [moveAmount, setMoveAmount] = useState("1");
   const [candidateAgentId, setCandidateAgentId] = useState("1");
   const [candidatePublicKey, setCandidatePublicKey] = useState("");
-  const [voteAgentId, setVoteAgentId] = useState(
-    stats?.selectedAgentId ? String(stats.selectedAgentId) : "1",
-  );
+  const [voteAgentId, setVoteAgentId] = useState("1");
+  // Stats are null on first render (loadAll is async), so the initial seed
+  // above always resolves to "1". Once the live route arrives, pre-fill the
+  // input to match selectedAgentId -- but only until the operator edits it,
+  // so a manual choice is never clobbered by a later stats refresh.
+  const voteEditedRef = useRef(false);
+  const setVoteAgentIdManual = (value: string) => {
+    voteEditedRef.current = true;
+    setVoteAgentId(value);
+  };
+  const selectedAgentId = stats?.selectedAgentId;
+  useEffect(() => {
+    if (voteEditedRef.current) return;
+    if (selectedAgentId && Number.isFinite(selectedAgentId)) {
+      setVoteAgentId(String(selectedAgentId));
+    }
+  }, [selectedAgentId]);
 
   const canMove =
     Boolean(fromAgentId.trim()) &&
@@ -174,7 +188,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 max={21}
                 label={t("agentId")}
                 value={voteAgentId}
-                onChange={setVoteAgentId}
+                onChange={setVoteAgentIdManual}
               />
               <NeoButton
                 block

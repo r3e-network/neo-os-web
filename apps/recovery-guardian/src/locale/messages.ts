@@ -135,6 +135,10 @@ const appMessages = {
   executableAt: { en: "Executable At", zh: "可执行时间" },
   queryLoaded: { en: "Recovery state loaded", zh: "恢复状态已加载" },
   queryFailed: { en: "Failed to load recovery state", zh: "加载恢复状态失败" },
+  clipboardFailed: {
+    en: "Could not copy or share the link",
+    zh: "无法复制或分享链接",
+  },
   previewLinkReady: {
     en: "Recovery preview link ready",
     zh: "恢复预览链接已准备好",

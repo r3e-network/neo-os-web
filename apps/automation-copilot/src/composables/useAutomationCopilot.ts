@@ -128,8 +128,29 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
     }
   }
 
+  // Strict decimal: optional leading +, digits, optional single fractional part.
+  // Rejects NaN, blank, hex (0x..), scientific (1e3), and whitespace-only input.
+  const DECIMAL_RE = /^\+?\d+(\.\d+)?$/;
+
+  function validateTargetPrice(raw: string): number | null {
+    const text = String(raw ?? "").trim();
+    if (!DECIMAL_RE.test(text)) {
+      lastError.set(t("targetPriceInvalid"));
+      return null;
+    }
+    const value = Number(text);
+    if (!Number.isFinite(value) || value <= 0) {
+      lastError.set(t("targetPriceInvalid"));
+      return null;
+    }
+    return value;
+  }
+
   function buildRecipePayload() {
     lastError.set("");
+    if (validateTargetPrice(targetPrice.get()) === null) {
+      throw new Error(lastError.get() || t("targetPriceInvalid"));
+    }
     const request = buildAutomationTriggerRequest({
       asset: asset.get(),
       targetPrice: targetPrice.get(),
@@ -155,6 +176,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
   }
 
   async function registerTrigger() {
+    if (isRegistering.get()) return;
     isRegistering.set(true);
     lastError.set("");
     try {
@@ -196,6 +218,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
   }
 
   async function refreshTriggers() {
+    if (isRefreshing.get()) return [];
     isRefreshing.set(true);
     lastError.set("");
     try {
@@ -205,7 +228,10 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
       );
       const list = normalizeTriggerList(result.data);
       triggers.set(list);
-      if (list[0]) latestTrigger.set(list[0]);
+      // Keep selection consistent with the list: clear it when the server
+      // returns an empty set so the status card returns to the empty state
+      // instead of operating on a trigger that no longer exists.
+      latestTrigger.set(list[0] ?? null);
       apiStatus.set(t("triggersLoaded"));
       return list;
     } catch (error) {
@@ -219,6 +245,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
   }
 
   async function toggleLatestTrigger() {
+    if (isRegistering.get()) return;
     const trigger = latestTrigger.get();
     if (!trigger) throw new Error(t("noTriggerSelected"));
     if (isLocalAutomationIntent(trigger)) {

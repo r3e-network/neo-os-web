@@ -53,7 +53,7 @@ defineMiniApp({
       const id = String(args[0] ?? "");
       const machine = findMachineById(id);
       if (!machine) {
-        ctx.setStatus(ctx.t("machineNotFound") || "Machine not found", "error");
+        ctx.setStatus(ctx.t("machineNotFound"), "error");
         return;
       }
       gasbox.selectMachine(machine);
@@ -65,12 +65,16 @@ defineMiniApp({
 
     ctx.registerAction("publishMachine", async (...args: unknown[]) => {
       const machineData = (args[0] ?? {}) as MachineData;
-      await ctx.services.notify.guard(
+      // guard returns publishMachine's boolean on success, or undefined when it
+      // swallows a thrown error. Propagate it so the view only clears the studio
+      // form on a confirmed publish (a failed publish must keep the user's input).
+      const published = await ctx.services.notify.guard(
         () => gasbox.publishMachine(machineData, (msg, type) => {
           ctx.setStatus(msg, type === "loading" ? "info" : type);
         }),
         "machineCreated",
       );
+      return published === true;
     });
 
     ctx.registerAction("selectMachine", async (...args: unknown[]) => {

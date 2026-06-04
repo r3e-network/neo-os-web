@@ -145,8 +145,17 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
     await dispatch("vote", { proposalId, vote });
   };
 
+  const handleFinalize = async (proposalId: number) => {
+    await dispatch("executeProposal", proposalId);
+  };
+
   const handleCreateProposal = async () => {
-    await dispatch("createProposal", {
+    // dispatch forwards the action payload at runtime (typed Promise<void>);
+    // the createProposal handler resolves to a truthy tx on success and
+    // undefined on failure (validation throw, network/gas error). Only clear
+    // the form and switch tabs on confirmed success so a failed submit keeps
+    // the typed input instead of wiping it.
+    const created: unknown = await dispatch("createProposal", {
       type: Number(proposalType),
       title: newTitle,
       description: newDescription,
@@ -154,6 +163,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
       policyValue: showPolicyFields ? policyValue : undefined,
       duration: Number(duration),
     });
+    if (!created) return;
     setNewTitle("");
     setNewDescription("");
     setProposalType("0");
@@ -448,6 +458,18 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
               <dd>{selectedProposal.totalVotes}/{selectedProposal.quorumRequired || "—"}</dd>
             </div>
           </dl>
+
+          {selectedProposal.statusKey === "passed" && selectedProposal.source !== "neo-community" && (
+            <NeoButton
+              variant="primary"
+              size="md"
+              block
+              disabled={!canWrite}
+              onClick={() => handleFinalize(selectedProposal.id)}
+            >
+              {t("finalizeProposal")}
+            </NeoButton>
+          )}
 
           <details className="council-more-details">
             <summary>{t("proposalDetails")}</summary>

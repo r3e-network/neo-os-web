@@ -1,4 +1,5 @@
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { isHash160OrNeoAddress } from "../utils/validation";
 
 interface WalletConnectCardProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -23,6 +24,9 @@ export function WalletConnectCard({
   onConnect,
   onLoadListings,
 }: WalletConnectCardProps) {
+  const trimmedMarketHash = marketHash.trim();
+  const isValidMarketHash = isHash160OrNeoAddress(trimmedMarketHash);
+  const canLoad = canLoadListings && isValidMarketHash;
   return (
     <NeoCard
       variant="erobo"
@@ -39,6 +43,9 @@ export function WalletConnectCard({
           label={t("marketHash")}
           hint={t("marketHashHint")}
           placeholder={t("marketHashPlaceholder")}
+          error={
+            trimmedMarketHash && !isValidMarketHash ? t("invalidHashInput") : ""
+          }
           onChange={onMarketHashChange}
         />
         <div className="market-command__actions">
@@ -56,7 +63,7 @@ export function WalletConnectCard({
           <NeoButton
             variant="primary"
             loading={isLoading}
-            disabled={!canLoadListings}
+            disabled={!canLoad}
             aria-label={t("loadListings")}
             onClick={onLoadListings}
           >

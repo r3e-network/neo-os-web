@@ -32,6 +32,7 @@ interface PlatformStatsData {
   totalCollateral?: number;
   totalLoans?: number;
   avgLtv?: number;
+  platformFeeBps?: number;
 }
 
 interface StatsData {
@@ -55,6 +56,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isLoading = bool("isLoading");
   const isBorrowing = bool("isBorrowing");
   const isRepaying = bool("isRepaying");
+  const isAddingCollateral = bool("isAddingCollateral");
   const isConnected = bool("isConnected");
 
   const neoBalance = num("neoBalance");
@@ -131,12 +133,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const ltvColor =
     ltvPct <= 50 ? "#16c784" : ltvPct <= 75 ? "#f59e0b" : "#ef4444";
 
-  /* ---------- Expected borrow (collateral × LTV) ---------- */
+  /* ---------- Expected borrow (collateral × LTV, net of origination fee) ---------- */
   const collateralNum = parseFloat(localCollateralAmt || collateralAmount);
-  const expectedBorrow =
+  // Use ?? so a genuine 0% fee renders as 0, not masked by a default.
+  const rawFeeBps = (platformStats as PlatformStatsData | null)?.platformFeeBps;
+  const feeBps = Number.isFinite(rawFeeBps) ? (rawFeeBps as number) : 0;
+  const grossBorrow =
     Number.isFinite(collateralNum) && collateralNum > 0
       ? (collateralNum * selectedLtvPercent) / 100
       : 0;
+  // Mirror takeLoan(): netBorrow = gross − gross*feeBps/10000. The user actually
+  // receives the net amount, so display that (not the gross) to avoid overstating.
+  const feeAmount = (grossBorrow * feeBps) / 10000;
+  const expectedBorrow = Math.max(grossBorrow - feeAmount, 0);
+  const feePercent = feeBps / 100;
 
   /* ---------- Display helpers ---------- */
   const displayNeoBalance =
@@ -341,13 +351,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             ))}
           </div>
 
-          {/* Expected borrow (collateral × LTV) */}
+          {/* Expected borrow (collateral × LTV, net of origination fee) */}
           <div className="selfloan-balance-hint">
-            {t("estimatedBorrow") || "Estimated Borrow"}:{" "}
+            {(feeBps > 0
+              ? t("estimatedBorrowNet")
+              : t("estimatedBorrow")) ||
+              "Estimated Borrow"}
+            :{" "}
             <strong>
               {expectedBorrow > 0 ? expectedBorrow.toFixed(2) : "0.00"} GAS
             </strong>
           </div>
+          {feeBps > 0 && grossBorrow > 0 && (
+            <div className="selfloan-balance-hint">
+              {t("originationFee", { percent: feePercent }) ||
+                "Origination fee"}
+              : <strong>{feeAmount.toFixed(2)} GAS</strong>
+            </div>
+          )}
 
           {/* LTV Selector / Indicator */}
           <div className="selfloan-ltv-indicator">
@@ -441,7 +462,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoButton
               variant="secondary"
               block
-              disabled={!localAddCollateral}
+              loading={isAddingCollateral}
+              disabled={!localAddCollateral || isAddingCollateral}
               onClick={handleAddCollateral}
             >
               {t("addCollateral") || "Add Collateral"}

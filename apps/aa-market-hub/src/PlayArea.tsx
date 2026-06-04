@@ -41,6 +41,7 @@ export default function PlayArea({
   const canBuySelectedListing = bool("canBuySelectedListing");
   const totalListings = num("totalListingsDisplay", listings.length);
   const activeListings = num("activeListingsDisplay", 0);
+  const listingsTruncatedNotice = str("listingsTruncatedNotice");
   const stateMarketHash = str("marketHash");
   const stateAaContractHash = str("aaContractHash");
   const stateAccountIdHash = str("accountIdHash");
@@ -195,6 +196,12 @@ export default function PlayArea({
               <h3>{t("marketBoardTitle")}</h3>
             </div>
           </div>
+
+          {listingsTruncatedNotice && (
+            <p className="hint-text market-list-panel__truncated" role="status">
+              {listingsTruncatedNotice}
+            </p>
+          )}
 
           {!marketHash.trim() && (
             <div className="empty-state">

@@ -206,6 +206,7 @@ export function useSoulbound({
   const verifiedCertificate = createObservable<CertificateItem | null>(null);
   const isRefreshing = createObservable(false);
   const isRefreshingCertificates = createObservable(false);
+  const isConnecting = createObservable(false);
   const isCreatingTemplate = createObservable(false);
   const isIssuing = createObservable(false);
   const isVerifying = createObservable(false);
@@ -272,6 +273,36 @@ export function useSoulbound({
     certificates.set(items);
   };
 
+  const loadCertificatesFromChain = async (owner: string) => {
+    const rawTokens = await chain.read("tokensOf", [
+      { type: "Hash160", value: owner },
+    ]);
+    const tokens = (Array.isArray(rawTokens) ? rawTokens : [])
+      .map(stringValue)
+      .filter((tokenId) => tokenId.length > 0);
+    if (tokens.length === 0) {
+      certificates.set([]);
+      return;
+    }
+    // Best-effort per-token detail reads: one unreadable token must not abort
+    // the whole list, so settle every promise and keep the resolvable ones.
+    const settled = await Promise.allSettled(
+      tokens.map((tokenId) =>
+        chain.read("getCertificateDetails", [
+          { type: "ByteArray", value: encodeTokenId(tokenId) },
+        ]),
+      ),
+    );
+    const items: CertificateItem[] = [];
+    for (const outcome of settled) {
+      if (outcome.status !== "fulfilled") continue;
+      const record = asRecord(outcome.value);
+      const item = record ? certificateFromRecord(record) : null;
+      if (item) items.push(item);
+    }
+    certificates.set(items);
+  };
+
   const loadTemplatesFromChain = async (issuer: string) => {
     const rawIds = await chain.read("getIssuerTemplates", [
       { type: "Hash160", value: issuer },
@@ -313,8 +344,18 @@ export function useSoulbound({
 
   const refreshCertificates = async () => {
     isRefreshingCertificates.set(true);
+    const owner = normalizeHash160(connectedAddress());
     try {
-      await loadCertificatesFromStorage();
+      if (owner) {
+        // Prefer an on-chain read so the issuer/recipient can see their own
+        // certificates without depending on the indexer-populated storage
+        // namespace; fall back to storage when the chain path is unavailable.
+        await loadCertificatesFromChain(owner).catch(async () => {
+          await loadCertificatesFromStorage().catch(() => certificates.set([]));
+        });
+      } else {
+        await loadCertificatesFromStorage().catch(() => certificates.set([]));
+      }
     } catch {
       certificates.set([]);
     } finally {
@@ -323,10 +364,16 @@ export function useSoulbound({
   };
 
   const connectWallet = async () => {
-    const wallet = await chain.ensureWallet();
-    address.set(wallet);
-    lastSuccess.set(t("walletConnected"));
-    await Promise.all([refreshTemplates(), refreshCertificates()]);
+    if (isConnecting.get()) return;
+    isConnecting.set(true);
+    try {
+      const wallet = await chain.ensureWallet();
+      address.set(wallet);
+      lastSuccess.set(t("walletConnected"));
+      await Promise.all([refreshTemplates(), refreshCertificates()]);
+    } finally {
+      isConnecting.set(false);
+    }
   };
 
   const createTemplate = async (form: Partial<CreateTemplateForm>) => {
@@ -488,10 +535,6 @@ export function useSoulbound({
     }
   };
 
-  const openIssueModal = (template: unknown) => {
-    eventBus.emit("soulbound:selectTemplate", template);
-  };
-
   const copyIssueLink = async (template: unknown) => {
     const tpl = template as { id: string };
     const url = buildMiniAppUrl("miniapp-soulbound-certificate", {
@@ -548,6 +591,7 @@ export function useSoulbound({
     address,
     isRefreshing,
     isRefreshingCertificates,
+    isConnecting,
     isCreatingTemplate,
     isIssuing,
     isVerifying,
@@ -565,7 +609,6 @@ export function useSoulbound({
     connectWallet,
     createTemplate,
     issueCertificate,
-    openIssueModal,
     toggleTemplate,
     verifyCertificate,
     revokeCertificate,

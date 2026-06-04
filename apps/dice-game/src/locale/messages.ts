@@ -90,6 +90,10 @@ const appMessages = {
   statusSubmitting: { en: "Submitting roll...", zh: "正在提交掷骰..." },
   statusSubmitted: { en: "Roll submitted", zh: "掷骰已提交" },
   statusFailed: { en: "Roll failed", zh: "掷骰失败" },
+  statusFundsRecoverable: {
+    en: "Stake sent but the roll did not settle. Your GAS is locked and refundable via the contract.",
+    zh: "筹码已发送但掷骰未结算。你的 GAS 已锁定，可通过合约退款找回。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -105,6 +105,7 @@ defineMiniApp({
         isEncrypted: album.isEncrypted,
         password: album.password,
         totalPayloadSize: album.totalPayloadSize,
+        maxTotalBytes: album.maxTotalBytes,
         lastTx: album.lastTx,
       },
       loadData: album.loadPhotos,

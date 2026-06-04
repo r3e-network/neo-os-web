@@ -36,6 +36,7 @@ const appMessages = {
   loadVault: { en: "Load Vault", zh: "加载保险库" },
   secretAttemptLabel: { en: "Break Secret", zh: "破解密钥" },
   secretAttemptPlaceholder: { en: "Enter secret attempt", zh: "输入尝试密钥" },
+  attemptFee: { en: "Attempt Fee", zh: "尝试费用" },
   attemptFeeNote: { en: "Attempt fee (by difficulty): {fee} {tokenGas}", zh: "尝试费用（按难度）：{fee} {tokenGas}" },
   attemptBreak: { en: "Attempt Break", zh: "尝试破解" },
   attempting: { en: "Attempting...", zh: "破解中..." },

@@ -290,6 +290,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+.gasbox-result-note {
+  margin: 0;
+  max-width: 320px;
+  color: var(--ns-ink-soft, #6b7280);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .gasbox-machine-meta,
 .gasbox-selected-tags {
   display: flex;

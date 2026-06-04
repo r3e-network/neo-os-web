@@ -12,6 +12,37 @@ const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
 const NNS_RECORD_TYPE_ADDRESS = 16;
 const EXPIRY_WARNING_MS = 30 * 24 * 60 * 60 * 1000;
 const SEARCH_DEBOUNCE_MS = 500;
+/** Neo N3 address: base58check, leading 'N', 34 chars total. */
+const NEO_ADDRESS_PATTERN = /^N[1-9A-HJ-NP-Za-km-z]{33}$/;
+/** Any expiry beyond this far-future bound is treated as a unit error (over-scaled). */
+const MAX_PLAUSIBLE_EXPIRY_MS = Date.UTC(2200, 0, 1);
+
+/**
+ * Normalise a raw `properties.expiration` value into epoch milliseconds.
+ *
+ * The on-chain NNS contract returns a Unix timestamp; depending on the
+ * deployment this can be in milliseconds (NeoVM `Runtime.Time`) or seconds.
+ * Rather than hard-coding one unit, detect the magnitude: values that already
+ * look like milliseconds (>= ~ year 2001 in ms) are used as-is, smaller values
+ * are treated as seconds and scaled. Absurd over-scaled results (a previous
+ * `* 1000` on an already-ms value) are clamped back down so the UI never shows
+ * a ~50,000-year future date and `expiringSoon` keeps working.
+ */
+function normalizeExpiryMs(raw: unknown): number {
+  let ms = Number(raw ?? 0);
+  if (!Number.isFinite(ms) || ms <= 0) return 0;
+  // Seconds-scale timestamps (< ~ year 33658 in seconds) get promoted to ms.
+  // 1e12 ms ≈ 2001-09; anything below that magnitude is almost certainly seconds.
+  if (ms < 1e12) ms *= 1000;
+  // Guard against a double-scaled (already-ms then *1000) value.
+  if (ms > MAX_PLAUSIBLE_EXPIRY_MS) ms = Math.floor(ms / 1000);
+  return ms > MAX_PLAUSIBLE_EXPIRY_MS ? 0 : ms;
+}
+
+/** Strict Neo N3 address check (trims whitespace, rejects empty/malformed). */
+function isValidNeoAddress(value: unknown): boolean {
+  return NEO_ADDRESS_PATTERN.test(String(value ?? "").trim());
+}
 
 export interface Domain {
   name: string;
@@ -77,7 +108,14 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
   };
 
   const expiringSoon: Observable<number> = {
-    get: () => myDomains.get().filter((d) => d.expiry > 0 && d.expiry - Date.now() < EXPIRY_WARNING_MS).length,
+    get: () =>
+      myDomains.get().filter((d) => {
+        if (d.expiry <= 0) return false;
+        const remaining = d.expiry - Date.now();
+        // Only future-but-near expiries count; already-expired domains (remaining <= 0)
+        // are not "expiring soon".
+        return remaining > 0 && remaining < EXPIRY_WARNING_MS;
+      }).length,
     set: () => {},
     subscribe: (fn) => myDomains.subscribe(fn),
   };
@@ -106,7 +144,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
             } catch { /* address record can be unset */ }
             domains.push({
               name, owner: addr,
-              expiry: Number(props.expiration || 0) * 1000,
+              expiry: normalizeExpiryMs(props.expiration),
               target,
             });
           }
@@ -185,16 +223,20 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
 
   const setRecord = async (domain: Domain, targetAddress: string) => {
     if (!domain || !targetAddress) return;
+    const target = String(targetAddress).trim();
+    // Reject empty/whitespace/malformed addresses before reaching the chain so the
+    // user gets a clear "invalid address" hint instead of a raw contract error.
+    if (!isValidNeoAddress(target)) throw new Error(t("invalidAddress"));
     isLoading.set(true);
     try {
       await chain.ensureWallet();
       const result = await chain.invoke("setRecord", [
         { type: "String", value: domain.name },
         { type: "Integer", value: String(NNS_RECORD_TYPE_ADDRESS) },
-        { type: "String", value: targetAddress },
+        { type: "String", value: target },
       ], { scriptHash: contractHash });
       if (result.success) {
-        eventBus.emit("neo-ns:recordSet", { action: t("targetSet"), domain: domain.name, target: targetAddress });
+        eventBus.emit("neo-ns:recordSet", { action: t("targetSet"), domain: domain.name, target });
         await loadMyDomains();
       }
     } catch (e) {
@@ -205,17 +247,20 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
 
   const transferDomain = async (domain: Domain, toAddress: string) => {
     if (!domain || !toAddress) return;
+    const to = String(toAddress).trim();
+    // Reject empty/whitespace/malformed receiver addresses before invoking transfer.
+    if (!isValidNeoAddress(to)) throw new Error(t("invalidAddress"));
     isLoading.set(true);
     try {
       await chain.ensureWallet();
       const tokenId = domainToTokenId(domain.name.replace(/\.neo$/, ""));
       const result = await chain.invoke("transfer", [
-        { type: "Hash160", value: toAddress },
+        { type: "Hash160", value: to },
         { type: "ByteArray", value: tokenId },
         { type: "String", value: "" },
       ], { scriptHash: contractHash, waitForEvent: "Transfer" });
       if (result.success) {
-        eventBus.emit("neo-ns:transferred", { action: t("transferred"), domain: domain.name, to: toAddress });
+        eventBus.emit("neo-ns:transferred", { action: t("transferred"), domain: domain.name, to });
         await loadMyDomains();
       }
     } catch (e) {

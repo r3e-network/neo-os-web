@@ -39,6 +39,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const selectedRoundId = val<string>("selectedRoundId") ?? "";
   const selectedRound = val<Record<string, unknown>>("selectedRound");
   const isRefreshingRounds = bool("isRefreshingRounds");
+  const isCreatingRound = bool("isCreatingRound");
+  const isRegisteringProject = bool("isRegisteringProject");
+  const isContributing = bool("isContributing");
   const isAddingMatching = bool("isAddingMatching");
   const isFinalizing = bool("isFinalizing");
   const isClaimingUnused = bool("isClaimingUnused");
@@ -134,7 +137,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           {activeTab === "rounds" && (
             <div className="qf-content-grid">
-              <RoundForm onSubmit={(...args: unknown[]) => dispatch("createRound", ...args)} t={t} />
+              <RoundForm onSubmit={(...args: unknown[]) => dispatch("createRound", ...args)} t={t} loading={isCreatingRound} />
               <div className="qf-side-stack">
                 <RoundList
                   rounds={rounds}
@@ -196,6 +199,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <div className="qf-panel-footer">
                   <NeoButton
                     variant="primary"
+                    loading={isRegisteringProject}
+                    disabled={isRegisteringProject || !selectedRound}
                     onClick={() =>
                       dispatch("registerProject", {
                         name: projectName,
@@ -204,7 +209,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       })
                     }
                   >
-                    {t("registerProject")}
+                    {isRegisteringProject ? t("registeringProject") : t("registerProject")}
                   </NeoButton>
                 </div>
               </NeoCard>
@@ -301,7 +306,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="qf-panel-footer">
                 <NeoButton
                   variant="primary"
-                  disabled={!selectedRound}
+                  loading={isContributing}
+                  disabled={!selectedRound || isContributing}
                   onClick={() =>
                     dispatch("contribute", {
                       projectId: contributeProjectId,
@@ -310,7 +316,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     })
                   }
                 >
-                  {t("contribute")}
+                  {isContributing ? t("contributing") : t("contribute")}
                 </NeoButton>
               </div>
             </NeoCard>

@@ -137,6 +137,7 @@ const appMessages = {
   contributionMemoPlaceholder: { en: "For open-source tooling", zh: "支持开源工具" },
   contributionSent: { en: "Contribution sent", zh: "捐助已提交" },
   invalidContribution: { en: "Invalid contribution", zh: "捐助信息无效" },
+  neoNoFractional: { en: "NEO is indivisible — enter a whole number.", zh: "NEO 不可分割，请输入整数。" },
   invalidProject: { en: "Invalid project details", zh: "项目信息无效" },
   selectProjectHint: { en: "Choose a project from the list above.", zh: "从上方列表选择项目。" },
   selectRoundFirst: { en: "Select a round before contributing.", zh: "捐助前请先选择轮次。" },

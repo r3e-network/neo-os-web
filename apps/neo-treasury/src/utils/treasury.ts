@@ -161,43 +161,57 @@ export async function fetchPrices(): Promise<PriceData> {
   return getSharedPrices();
 }
 
-// Fetch balances for a list of addresses
+// Max addresses fetched concurrently per chunk. Bounds RPC fan-out so a slow
+// fail-over endpoint is not hammered by 21 simultaneous requests while still
+// turning O(n) sequential round-trips into O(n/chunk) parallel ones.
+const BALANCE_FETCH_CONCURRENCY = 8;
+
+// Fetch balances for a list of addresses.
+//
+// Addresses are fetched in bounded-concurrency chunks via Promise.allSettled so
+// that (a) first paint no longer waits on ~21 sequential round-trips and (b) a
+// single transient RPC failure for one wallet does not reject the whole batch.
+// A failed wallet is recorded as 0/0 and the load only fails if EVERY address
+// failed. Result order matches the input address order.
 async function fetchAddressBalances(
   addresses: string[],
   labelPrefix: string
 ): Promise<{ wallets: WalletBalance[]; totalNeo: number; totalGas: number }> {
+  const indexed = addresses
+    .map((address, index) => ({ address, index }))
+    .filter((entry): entry is { address: string; index: number } => Boolean(entry.address));
+
   const wallets: WalletBalance[] = [];
   let totalNeo = 0;
   let totalGas = 0;
   let failedCount = 0;
 
-  for (let i = 0; i < addresses.length; i++) {
-    const address = addresses[i];
-    if (!address) continue;
-    try {
-      const balance = await getNep17Balances(address);
-      wallets.push({
-        address,
-        label: `${labelPrefix} Wallet ${i + 1}`,
-        neo: balance.neo,
-        gas: balance.gas,
-      });
-      totalNeo += balance.neo;
-      totalGas += balance.gas;
-    } catch (e) {
-      // A single transient RPC failure must not blank out the other known-good
-      // balances. Record the wallet as 0/0 and continue; only surface an error
-      // if EVERY address failed (handled by the caller-facing throw below).
-      failedCount += 1;
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      console.warn(`[neo-treasury] balance fetch failed for ${address}: ${msg}`);
-      wallets.push({
-        address,
-        label: `${labelPrefix} Wallet ${i + 1}`,
-        neo: 0,
-        gas: 0,
-      });
-    }
+  for (let start = 0; start < indexed.length; start += BALANCE_FETCH_CONCURRENCY) {
+    const chunk = indexed.slice(start, start + BALANCE_FETCH_CONCURRENCY);
+    const settled = await Promise.allSettled(
+      chunk.map((entry) => getNep17Balances(entry.address)),
+    );
+
+    settled.forEach((outcome, offset) => {
+      const entry = chunk[offset];
+      if (!entry) return;
+      const { address, index } = entry;
+      const label = `${labelPrefix} Wallet ${index + 1}`;
+      if (outcome.status === "fulfilled") {
+        wallets.push({ address, label, neo: outcome.value.neo, gas: outcome.value.gas });
+        totalNeo += outcome.value.neo;
+        totalGas += outcome.value.gas;
+      } else {
+        // A single transient RPC failure must not blank out the other
+        // known-good balances. Record the wallet as 0/0 and continue; only
+        // surface an error if EVERY address failed (handled below).
+        failedCount += 1;
+        const reason = outcome.reason;
+        const msg = reason instanceof Error ? reason.message : "Unknown error";
+        console.warn(`[neo-treasury] balance fetch failed for ${address}: ${msg}`);
+        wallets.push({ address, label, neo: 0, gas: 0 });
+      }
+    });
   }
 
   // Only a total wipeout (no address resolved) is treated as a load failure.

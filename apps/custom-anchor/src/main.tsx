@@ -85,9 +85,9 @@ defineMiniApp({
       isLoading.set(true);
       try {
         const [total, reserve, agents] = await Promise.all([
-          ctx.services.chain.read("getTotalStaked", [{ type: "String", value: target }], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
-          ctx.services.chain.read("getRewardReserve", [{ type: "String", value: target }], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
-          ctx.services.chain.read("getAgentCount", [{ type: "String", value: target }], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
+          ctx.services.chain.read("getTotalStaked", [{ type: "String", value: target }], anchorOptions()),
+          ctx.services.chain.read("getRewardReserve", [{ type: "String", value: target }], anchorOptions()),
+          ctx.services.chain.read("getAgentCount", [{ type: "String", value: target }], anchorOptions()),
         ]);
         totalStaked.set(fromWholeNeo(total));
         rewardReserve.set(fromFixed8(reserve));
@@ -99,11 +99,11 @@ defineMiniApp({
             ctx.services.chain.read("getUserStake", [
               { type: "String", value: target },
               { type: "Hash160", value: address },
-            ], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
+            ], anchorOptions()),
             ctx.services.chain.read("getPendingRewards", [
               { type: "String", value: target },
               { type: "Hash160", value: address },
-            ], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
+            ], anchorOptions()),
           ]);
           userStake.set(fromWholeNeo(stake));
           pendingRewards.set(fromFixed8(rewards));

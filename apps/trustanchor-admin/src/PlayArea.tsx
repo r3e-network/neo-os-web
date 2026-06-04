@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -26,9 +26,69 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [moveAmount, setMoveAmount] = useState("1");
   const [candidateAgentId, setCandidateAgentId] = useState("1");
   const [candidatePublicKey, setCandidatePublicKey] = useState("");
-  const [voteAgentId, setVoteAgentId] = useState(
-    stats?.selectedAgentId ? String(stats.selectedAgentId) : "1",
-  );
+  // Seed the vote field with the live on-chain route once stats arrive, but
+  // stop tracking the moment the operator edits the field so we never clobber
+  // their intent. The useState initializer alone runs when stats is still null,
+  // so without this effect the field would freeze on the placeholder value.
+  const [voteAgentId, setVoteAgentId] = useState("");
+  const [voteAgentEdited, setVoteAgentEdited] = useState(false);
+  const selectedAgentId = stats?.selectedAgentId;
+
+  useEffect(() => {
+    if (voteAgentEdited) return;
+    if (selectedAgentId && selectedAgentId > 0) {
+      setVoteAgentId(String(selectedAgentId));
+    }
+  }, [selectedAgentId, voteAgentEdited]);
+
+  const onVoteAgentIdChange = useCallback((next: string) => {
+    setVoteAgentEdited(true);
+    setVoteAgentId(next);
+  }, []);
+
+  // In-flight guards: one per fund-moving action. Each is set true before the
+  // first await and reset in finally so a double-click (or a click while the
+  // first call is still settling) cannot fire the same transfer/vote twice.
+  const [movingNeo, setMovingNeo] = useState(false);
+  const [updatingCandidate, setUpdatingCandidate] = useState(false);
+  const [syncingVote, setSyncingVote] = useState(false);
+
+  const submitMove = useCallback(async () => {
+    if (movingNeo) return;
+    setMovingNeo(true);
+    try {
+      await dispatch("transferAgentNeo", {
+        fromAgentId,
+        toAgentId,
+        amount: moveAmount,
+      });
+    } finally {
+      setMovingNeo(false);
+    }
+  }, [movingNeo, dispatch, fromAgentId, toAgentId, moveAmount]);
+
+  const submitCandidate = useCallback(async () => {
+    if (updatingCandidate) return;
+    setUpdatingCandidate(true);
+    try {
+      await dispatch("setAgentCandidate", {
+        agentId: candidateAgentId,
+        candidate: candidatePublicKey,
+      });
+    } finally {
+      setUpdatingCandidate(false);
+    }
+  }, [updatingCandidate, dispatch, candidateAgentId, candidatePublicKey]);
+
+  const submitVote = useCallback(async () => {
+    if (syncingVote) return;
+    setSyncingVote(true);
+    try {
+      await dispatch("voteAgent", { agentId: voteAgentId });
+    } finally {
+      setSyncingVote(false);
+    }
+  }, [syncingVote, dispatch, voteAgentId]);
 
   const canMove =
     Boolean(fromAgentId.trim()) &&
@@ -105,14 +165,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoButton
                 block
                 variant="primary"
-                disabled={!canMove}
-                onClick={() =>
-                  dispatch("transferAgentNeo", {
-                    fromAgentId,
-                    toAgentId,
-                    amount: moveAmount,
-                  })
-                }
+                disabled={!canMove || movingNeo}
+                loading={movingNeo}
+                onClick={submitMove}
               >
                 {t("submitMove")}
               </NeoButton>
@@ -137,13 +192,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoButton
                 block
                 variant="primary"
-                disabled={!canUpdateCandidate}
-                onClick={() =>
-                  dispatch("setAgentCandidate", {
-                    agentId: candidateAgentId,
-                    candidate: candidatePublicKey,
-                  })
-                }
+                disabled={!canUpdateCandidate || updatingCandidate}
+                loading={updatingCandidate}
+                onClick={submitCandidate}
               >
                 {t("submitCandidate")}
               </NeoButton>
@@ -161,13 +212,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 max={21}
                 label={t("agentId")}
                 value={voteAgentId}
-                onChange={setVoteAgentId}
+                onChange={onVoteAgentIdChange}
               />
               <NeoButton
                 block
                 variant="primary"
-                disabled={!canSyncVote}
-                onClick={() => dispatch("voteAgent", { agentId: voteAgentId })}
+                disabled={!canSyncVote || syncingVote}
+                loading={syncingVote}
+                onClick={submitVote}
               >
                 {t("submitVote")}
               </NeoButton>

@@ -61,9 +61,10 @@ export default function PlayArea({
     accountReady && Boolean(verifierHash.trim()) && !isVerifierBusy;
   const canUpdateHook = accountReady && Boolean(hookHash.trim()) && !isHookBusy;
 
+  const notAvailable = t("notAvailable");
   const normalize = (value: string) => {
     const trimmed = value.trim();
-    if (!trimmed || trimmed === "N/A" || trimmed === "notAvailable") {
+    if (!trimmed || trimmed === notAvailable || trimmed === "N/A") {
       return PLACEHOLDER;
     }
     return trimmed;

@@ -112,6 +112,9 @@ const appMessages = {
   checked: { en: "checked", zh: "已检查" },
   idle: { en: "idle", zh: "空闲" },
   sessionVerifier: { en: "Session Verifier", zh: "Session Verifier" },
+  aaCore: { en: "AA Core", zh: "AA Core" },
+  derivedAccountId: { en: "Account ID Hash", zh: "账户 ID 哈希" },
+  wallet: { en: "Wallet", zh: "钱包" },
   sponsor: { en: "Sponsor", zh: "赞助商" },
   anyMethod: { en: "Any method", zh: "任意方法" },
   sessionHeroTitle: {

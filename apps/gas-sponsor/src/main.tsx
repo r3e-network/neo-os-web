@@ -41,13 +41,13 @@ defineMiniApp({
 
     ctx.registerAction("donate", async (amount: string) => {
       sponsor.donateAmount.set(amount);
-      await notify.guard(() => sponsor.handleDonate(), "donateSuccess", "loadFailed");
+      await notify.guard(() => sponsor.handleDonate(), "donateSuccess", "donateFailed");
     });
 
     ctx.registerAction("send", async (recipient: string, amount: string) => {
       sponsor.recipientAddress.set(recipient);
       sponsor.sendAmount.set(amount);
-      await notify.guard(() => sponsor.handleSend(), "sendSuccess", "loadFailed");
+      await notify.guard(() => sponsor.handleSend(), "sendSuccess", "sendFailed");
     });
 
     return {

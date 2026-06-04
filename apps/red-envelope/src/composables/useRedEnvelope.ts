@@ -377,19 +377,39 @@ export function useRedEnvelope({
       if (totalValue < packetCount * 0.01) throw new Error(t("invalidPerPacket"));
       if (!Number.isFinite(expiryValue) || expiryValue <= 0) throw new Error(t("invalidExpiry"));
 
-      // Step 1: Deposit GAS via PaymentProxy
+      // Step 1: Deposit GAS via PaymentProxy. The memo carries both the
+      // packet count and the funding amount so a server-side reconciler can
+      // unambiguously correlate this deposit with the pool it funds.
       await paymentService.deposit(
         formData.amount,
-        `redenvelope:create:${packetCount}`,
+        `redenvelope:create:${packetCount}:${formData.amount}`,
       );
 
-      // Step 2: Create envelope pool via GameProxy
-      await gameService.createPool({
-        poolType: 2, // lottery (random distribution)
-        maxPlayers: packetCount,
-        entryFee: "0",
-        duration: Math.round(expiryValue * 3600),
-      });
+      // Step 2: Create envelope pool via GameProxy.
+      // The deposit in Step 1 has already settled GAS on-chain. If pool
+      // creation fails the GAS would be stranded with no envelope to fund,
+      // so we compensate by withdrawing the deposit before re-throwing. If
+      // the withdraw itself fails, surface a distinct manual-recovery error
+      // instead of the raw pool-creation error so funds are not silently lost.
+      try {
+        await gameService.createPool({
+          poolType: 2, // lottery (random distribution)
+          maxPlayers: packetCount,
+          entryFee: "0",
+          duration: Math.round(expiryValue * 3600),
+        });
+      } catch (poolErr) {
+        try {
+          await paymentService.withdraw(formData.amount);
+        } catch (refundErr) {
+          console.error(
+            "[useRedEnvelope] create: deposit refund failed after createPool error",
+            refundErr instanceof Error ? refundErr.message : String(refundErr),
+          );
+          throw new Error(t("depositRecoveryNeeded"));
+        }
+        throw new Error(t("depositRefunded"));
+      }
 
       // Step 3: Hint badge service about first-envelope achievement (fire-and-forget)
       badgeService.award("first-envelope", "").catch(() => {});

@@ -25,7 +25,7 @@ export const manifest: MiniAppManifest = {
     { labelKey: "network", valueKey: "networkDisplay", format: "text", icon: "globe" },
     { labelKey: "heroFeed", valueKey: "datafeedShort", format: "text", icon: "activity" },
     { labelKey: "latestPrice", valueKey: "priceDisplay", format: "text", variant: "accent" },
-    { labelKey: "overviewOracle", valueKey: "oracleHash", format: "text", variant: "accent" },
+    { labelKey: "priceMetricSource", valueKey: "sourceLabel", format: "text" },
   ],
 
   // -- Sidebar ----------------------------------------------------------------

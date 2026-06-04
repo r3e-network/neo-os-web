@@ -64,7 +64,10 @@ export default function PlayArea({
     !isSubmitting;
 
   const accountDisplay = accountId.trim() || DASH;
-  const hasInspected = currentVerifier !== notAvailable;
+  // Explicit flag set by the composable after a successful read, so an account
+  // with no verifier still renders the detail grid (not the empty placeholder).
+  const hasInspected = bool("hasInspected");
+  const verifierUnset = currentVerifier === notAvailable;
 
   const fmt = (value: string) =>
     !value || value === notAvailable ? DASH : value;
@@ -162,14 +165,19 @@ export default function PlayArea({
             </div>
 
             {hasInspected ? (
-              <div className="account-detail-grid">
-                {detailItems.map((item) => (
-                  <div key={item.label} className="account-detail-card">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="account-detail-grid">
+                  {detailItems.map((item) => (
+                    <div key={item.label} className="account-detail-card">
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+                {verifierUnset && (
+                  <p className="account-hint">{t("noVerifierRegistered")}</p>
+                )}
+              </>
             ) : (
               <p className="account-empty">{t("accountStateTitle")} {DASH}</p>
             )}

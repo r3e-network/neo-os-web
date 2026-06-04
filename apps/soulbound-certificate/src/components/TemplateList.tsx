@@ -8,6 +8,7 @@ interface TemplateListProps {
   refreshing: boolean;
   togglingId: string | null;
   hasAddress: boolean;
+  connecting?: boolean;
   onRefresh: () => void;
   onConnect: () => void;
   onIssue: (template: TemplateItem) => void;
@@ -26,6 +27,7 @@ export default function TemplateList({
   refreshing,
   togglingId,
   hasAddress,
+  connecting = false,
   onRefresh,
   onConnect,
   onIssue,
@@ -55,6 +57,8 @@ export default function TemplateList({
             className="empty-action"
             size="sm"
             variant="primary"
+            loading={connecting}
+            disabled={connecting}
             onClick={onConnect}
           >
             {t("connectWallet")}

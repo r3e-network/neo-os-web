@@ -21,20 +21,59 @@ type SubmitState =
 const AMOUNT_PRESETS = ["0.1", "1", "5"];
 const NEO_AMOUNT_PRESETS = ["1", "5", "10"];
 const MORPHEUS_ENCRYPTION_ALGORITHM = "X25519-HKDF-SHA256-AES-256-GCM";
+const MEMO_MAX_LENGTH = 160;
+// GAS on Neo N3 carries 8 decimal places; finer precision can never settle.
+const GAS_DECIMALS = 8;
+
+// Neo N3 addresses are Base58Check-encoded, so the Bitcoin/Base58 alphabet
+// applies: the ambiguous glyphs 0 (zero), O, I, and l are NOT valid. The
+// previous /[0-9A-Za-z]/ class let an O-for-0 typo slip into the sealed
+// payload; restricting to the real alphabet rejects clearly-malformed input.
+const BASE58_BODY = "[1-9A-HJ-NP-Za-km-z]{33}";
+const NEO_ADDRESS_PATTERN = new RegExp(`^N${BASE58_BODY}$`);
+
+// Canonical, non-negative decimal only. Rejects scientific ("1e2"), hex
+// ("0x10"), leading-dot (".5"), signs, and internal whitespace. The input is
+// expected pre-trimmed by the caller.
+const DECIMAL_PATTERN = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
 
 const isValidNeoAddress = (value: string) =>
-  /^N[0-9A-Za-z]{33}$/.test(value.trim());
+  NEO_ADDRESS_PATTERN.test(value.trim());
 
 function isPositiveAmount(value: string, asset = "GAS") {
-  const amount = Number(value);
+  const trimmed = value.trim();
+  // Reject scientific/hex/whitespace/leading-dot strings up front so a value
+  // like "1e2" or "0x10" can never reach the sealed payload verbatim.
+  if (!DECIMAL_PATTERN.test(trimmed)) {
+    return false;
+  }
+  const amount = Number(trimmed);
   if (!Number.isFinite(amount) || amount <= 0) {
     return false;
   }
-  // NEO on Neo N3 is indivisible: only whole integer units can ever settle.
   if (asset.trim().toUpperCase() === "NEO") {
-    return Number.isInteger(amount);
+    // NEO on Neo N3 is indivisible: only whole integer units can ever settle.
+    return !trimmed.includes(".");
   }
-  return true;
+  // GAS settles at 8-decimal precision; finer amounts (e.g. "1e-9" worth of
+  // GAS, here written as a long decimal) can never be released.
+  const fraction = trimmed.split(".")[1] ?? "";
+  return fraction.length <= GAS_DECIMALS;
+}
+
+// Normalize a validated amount to a canonical decimal string (strip redundant
+// leading/trailing zeros) so the downstream TEE/settlement consumer parses a
+// single unambiguous representation. Callers MUST validate first.
+function normalizeAmount(value: string, asset = "GAS") {
+  const trimmed = value.trim();
+  if (asset.trim().toUpperCase() === "NEO") {
+    // Integer-only; drop any leading zeros.
+    return String(BigInt(trimmed));
+  }
+  const [whole, fractionRaw = ""] = trimmed.split(".");
+  const normalizedWhole = String(BigInt(whole || "0"));
+  const fraction = fractionRaw.replace(/0+$/, "");
+  return fraction ? `${normalizedWhole}.${fraction}` : normalizedWhole;
 }
 
 function userFacingSealError(
@@ -125,9 +164,9 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
       const transferPackage = await buildConfidentialTransferPackage({
         appId: "miniapp-private-transfer",
         network,
-        recipient,
+        recipient: recipient.trim(),
         asset,
-        amount,
+        amount: normalizeAmount(amount, asset),
         memo,
       });
       const ciphertext = await encryptJsonWithOraclePublicKey(
@@ -307,8 +346,17 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
               <span>Private memo</span>
               <input
                 value={memo}
-                onChange={(event) => setMemo(event.target.value)}
+                maxLength={MEMO_MAX_LENGTH}
+                onChange={(event) =>
+                  setMemo(event.target.value.slice(0, MEMO_MAX_LENGTH))
+                }
               />
+              <small
+                className="private-transfer__memo-count"
+                aria-live="polite"
+              >
+                {memo.length}/{MEMO_MAX_LENGTH}
+              </small>
             </label>
           </div>
           {!canSeal && (

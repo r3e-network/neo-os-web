@@ -57,7 +57,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const agentCount = num("agentCount");
   const myStakeDisplay = str("myStakeDisplay", "0 NEO");
   const pendingRewardsDisplay = str("pendingRewardsDisplay", "0 GAS");
+  const pendingWithdrawDisplay = str("pendingWithdrawDisplay", "0 NEO");
   const rewardReserveDisplay = str("rewardReserveDisplay", "0 GAS");
+  const rewardPerNeoDisplay = str("rewardPerNeoDisplay", "0");
   const totalNeoDisplay = str("totalNeoDisplay", "0 NEO");
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
@@ -142,6 +144,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="stat-chip">
           <span className="stat-value">{rewardReserveDisplay}</span>
           <span className="stat-label">{t("rewardReserve")}</span>
+        </div>
+        <div className="stat-chip">
+          <span className="stat-value">{pendingWithdrawDisplay}</span>
+          <span className="stat-label">{t("pendingWithdraw")}</span>
         </div>
       </div>
 
@@ -249,6 +255,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div>
               <dt>Reward pool</dt>
               <dd>{rewardReserveDisplay}</dd>
+            </div>
+            <div>
+              <dt>{t("rewardPerNeo")}</dt>
+              <dd>{rewardPerNeoDisplay}</dd>
             </div>
           </dl>
         </aside>

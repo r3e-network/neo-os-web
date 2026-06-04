@@ -170,13 +170,14 @@ export function useQuadraticRounds() {
 
     const decimals = data.asset === "NEO" ? 0 : 8;
     const matchingPool = (() => {
-      const [intPart, fracPart = ""] = data.matchingPool.split(".");
+      const [intPart = "", fracPart = ""] = data.matchingPool.split(".");
       const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
-      const value = `${intPart}${normalized}`;
+      const value = `${intPart.trim()}${normalized}`;
       return value.replace(/^0+/, "") || "0";
     })();
 
-    if (!matchingPool || matchingPool === "0") {
+    // Reject negative / non-numeric amounts that survive the leading-zero strip.
+    if (!/^\d+$/.test(matchingPool) || matchingPool === "0") {
       setStatus(t("invalidMatchingPool"), "error");
       return;
     }
@@ -220,13 +221,14 @@ export function useQuadraticRounds() {
 
     const decimals = selectedRound.get().assetSymbol === "NEO" ? 0 : 8;
     const parsedAmount = (() => {
-      const [intPart, fracPart = ""] = amount.split(".");
+      const [intPart = "", fracPart = ""] = amount.split(".");
       const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
-      const value = `${intPart}${normalized}`;
+      const value = `${intPart.trim()}${normalized}`;
       return value.replace(/^0+/, "") || "0";
     })();
 
-    if (!parsedAmount || parsedAmount === "0") {
+    // Reject negative / non-numeric amounts that survive the leading-zero strip.
+    if (!/^\d+$/.test(parsedAmount) || parsedAmount === "0") {
       setStatus(t("invalidMatchingPool"), "error");
       return;
     }
@@ -289,11 +291,22 @@ export function useQuadraticRounds() {
 
     const decimals = selectedRound.get().assetSymbol === "NEO" ? 0 : 8;
     const matchedAmounts = matchedArray.map((value) => {
-      const [intPart, fracPart = ""] = String(value).split(".");
+      const [intPart = "", fracPart = ""] = String(value).split(".");
       const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
-      const val = `${intPart}${normalized}`;
+      const val = `${intPart.trim()}${normalized}`;
       return val.replace(/^0+/, "") || "0";
     });
+
+    // Any bad project id or matched amount (negative / non-numeric / dropped by
+    // the id filter) would desync the parallel arrays sent on-chain — reject
+    // client-side instead of surfacing a confusing invoke failure.
+    if (
+      projectIds.length !== projectIdsArray.length ||
+      matchedAmounts.some((value) => !/^\d+$/.test(value))
+    ) {
+      setStatus(t("invalidRound"), "error");
+      return;
+    }
 
     try {
       isFinalizing.set(true);
@@ -398,6 +411,7 @@ export function useQuadraticRounds() {
   };
 
   return {
+    address,
     rounds,
     selectedRoundId,
     selectedRound,
