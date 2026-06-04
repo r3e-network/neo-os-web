@@ -16,9 +16,7 @@ defineMiniApp({
 
   setup(ctx) {
     const escrow = useMilestoneEscrow({
-      escrowService: ctx.os.escrow,
-      paymentService: ctx.os.payment,
-      storageService: ctx.os.storage,
+      chain: ctx.services.chain,
       t: ctx.t,
     });
 
