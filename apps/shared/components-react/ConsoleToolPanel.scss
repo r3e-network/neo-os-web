@@ -308,7 +308,7 @@
   border-color: var(--ns-border-strong);
 }
 
-.console-tool__field select:focus {
+.console-tool__field select:focus-visible {
   outline: none;
   border-color: var(--ns-violet, #16c784);
   box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
@@ -433,6 +433,14 @@
 
 .console-tool__payload-card > summary::-webkit-details-marker {
   display: none;
+}
+
+/* Keyboard users need a visible focus ring on the disclosure toggle — it has
+   no other affordance besides cursor:pointer. */
+.console-tool__payload-card > summary:focus-visible {
+  outline: none;
+  border-radius: var(--ns-radius-sm, 8px);
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .console-tool__payload-card > summary::after {

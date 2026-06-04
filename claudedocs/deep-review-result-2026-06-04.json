@@ -1,0 +1,503 @@
+{
+  "summary": "Exhaustive perf/stability/UX/refactor review of the neo-miniapps shared core + cross-cutting sweeps, each finding adversarially verified for reality and blast-radius",
+  "agentCount": 32,
+  "logs": [
+    "Review complete: 122 verified findings across 16 units; 15 recommended to implement"
+  ],
+  "result": {
+    "totalFindings": 122,
+    "totalImplement": 15,
+    "byUnit": {
+      "reactivity-core": {
+        "summary": "The reactivity core has 5 significant issues: (1) createDerived recomputes on every .get() without memoization, causing O(n) waste when called repeatedly in useStateBindings.getSnapshot loop; (2) getSnapshot unconditionally re-reads all observables every render, triggering cascading derived computations needlessly; (3) createDerived returns new object references each time, breaking stability for memoized components that depend on observable identity; (4) listener subscriptions leak when state record is replaced mid-component-lifecycle; (5) derived values can silently read untracked observables if deps are incomplete. Together these multiply across 60 apps, with derived values being called 10-50 times per render per miniapp.",
+        "recommend": "Implement only getSnapshot-unconditional-reread now. It is the single real, safe, surgical win: change apps/shared/react/hooks/useStateBindings.ts:60-66 to `const getSnapshot = useCallback(() => revisionRef.current, []);` (drop the .get() loop and the [state] dep). The discarded .get() loop has zero effect on the snapshot React compares, so re-render behavior is provably unchanged (re-renders come from revisionRef.current++ in wrappedOnChange; accessors read .get() live during render), while it removes redundant recomputation of every derived observable on every render across all 50 React-hook apps. Risk is low but blast radius is shared infra (all 60 apps), so gate it: run `cd apps/shared && npx vitest run` (889 tests, including react-context.test.ts and the *.playarea.test.tsx suites that exercise re-render) plus a couple of representative app builds (e.g. red-envelope, which stores 5 createDerived values in state) via `node scripts/build-miniapp-dapps.mjs`. REJECT the createDerived deps-hash memoization (#1) — empty-deps derives reading unlisted sources would cache stale values and silently break correctness everywhere. Reject #3 (misread: the React hook returns scalars, not Observables; the Observable-returning Vue variant has no importers), #4 (misread: appStateRef.current is mutated in place so state identity is stable — no leak; MiniAppRoot's global setStateVersion covers new keys), and #5 (self-admitted cosmetic). For #6, optionally add a JSDoc note + a unit test pinning the empty-deps/separate-state-key contract, but do NOT ship the runtime Proxy dep tracker.",
+        "implement": [
+          {
+            "unit": "reactivity-core",
+            "id": "getSnapshot-unconditional-reread",
+            "dimension": "performance",
+            "severity": "medium",
+            "risk": "low",
+            "files": [
+              "apps/shared/react/hooks/useStateBindings.ts:60-66"
+            ],
+            "problem": "getSnapshot unconditionally calls .get() on every observable in the state record every time it's invoked, even if nothing changed. React calls getSnapshot on *every* render and on sync checks. If there are 15 state observables (common in mini-apps) and each has a derived value with a compute function, this triggers 15 computations per render. For derived values that read other observables inside their compute functions, you get cascading O(n²) reads. Example: if foo_display = createDerived(() => state.foo.get().toUpperCase()) is read 3x per cycle, you're calling the compute function 3x.",
+            "fix": "Skip the re-read loop in getSnapshot and just return revisionRef.current. The subscription mechanism (subscribeCombined) already increments revisionRef when any observable changes. Calling .get() in getSnapshot is redundant — derived observables are read on-demand by components via accessors (str(), bool(), etc.). Change line 60-66 to: `const getSnapshot = useCallback(() => revisionRef.current, []);` (remove the loop).",
+            "confidence": 0.98
+          }
+        ]
+      },
+      "render-path": {
+        "summary": "The render path (MiniAppRoot, defineMiniApp, context) shows several performance and stability issues. Key concerns: (1) PlayArea is recreated on every render without memoization, causing unnecessary reconciliation. (2) MiniAppContext value mutates after creation, breaking best practices. (3) PlayArea lacks error boundary protection in both standalone and shell modes. (4) StrictMode double-mount during setup can cause service lifecycle mismanagement. (5) Async setup operations aren't guarded against unmount, risking state-update warnings. The infrastructure is fundamentally sound but has friction points that accumulate across 60+ apps.",
+        "recommend": "Implement only [missing-error-boundary-around-playarea] now. It is the single confirmed, real defect: a verified-unused ErrorBoundary class exists, the try/catch in MiniAppPage cannot catch React render errors, and StandaloneDappSurface has no protection — so any PlayArea that throws during render white-screens the whole app in production. The fix is surgical and additive: wrap {playArea} in <ErrorBoundary t={tFn} fallback={fallbackMessage} onError={handleBoundaryError} onRetry={reloadData}> at MiniAppRoot.tsx line 503 (standalone branch) and line 535 (MiniAppPage children). All required i18n keys exist with en+zh; retry/reset have component fallbacks. It is an apps/shared change (all 60 apps) but purely wrapping, so it cannot regress the success path; validate with `node scripts/build-miniapp-dapps.mjs` and `cd apps/shared && npx vitest run`. Reject the rest: [playarea-recreation], [context-value-mutation], [unbound-observable-in-sidebar], and [async-setup] rest on misreads (existing guards / React-18 behavior / intentional stable-identity and stateVersion patterns); [strict-mode-double-mount] is real but dev-only, non-crashing (guarded mount/unmount + idempotent destroy), and its fixes are high-blast-radius rewrites not worth the risk; [handleaction] and [no-loading-state] are non-issues / out-of-scope YAGNI.",
+        "implement": [
+          {
+            "unit": "render-path",
+            "id": "missing-error-boundary-around-playarea",
+            "dimension": "stability",
+            "severity": "high",
+            "risk": "low",
+            "files": [
+              "apps/shared/react/MiniAppRoot.tsx:498-537"
+            ],
+            "problem": "The PlayArea component is rendered directly without an error boundary wrapper. If PlayArea throws during render, the error will propagate up and crash MiniAppRoot, potentially taking the entire platform shell down. MiniAppPage has a simple try-catch in renderContent (which doesn't work for render-time errors), but PlayArea rendering in standalone mode (StandaloneDappSurface) has no error handling at all. This violates React error boundary best practices for untrusted/external component trees.",
+            "fix": "Wrap PlayArea in an ErrorBoundary component in both code paths (StandaloneDappSurface and MiniAppPage). Add error boundary right before <PlayArea> with onError, onRetry, and fallback callbacks. Example: <ErrorBoundary onError={handleBoundaryError} onRetry={reloadData} fallback={fallbackMessage}><PlayArea ... /></ErrorBoundary>",
+            "confidence": 0.92
+          }
+        ]
+      },
+      "chain-edge": {
+        "summary": "ChainService and EdgeClient have critical stability, performance, and data-loss issues. Missing network timeout on EdgeClient.fetch causes indefinite hangs; InvokeResult.stack discarded in wallet intent signing flow loses contract return values; concurrent reads lack deduplication causing RPC storms; transient network failures not retried; wallet connect() has potential race condition. The most critical issues are (1) missing fetch timeout/abort signal and (2) stack data loss in submitWalletIntentIfPresent which affects all OS-binder workflows. Both are high-confidence, high-severity, low-risk to fix.",
+        "recommend": "Implement two findings, both surgical and confined to apps/shared/services/os/EdgeClient.ts: (1) edge-client-no-fetch-timeout — add signal: AbortSignal.timeout(30000) to the fetch at line 114; highest value because a hung gateway currently freezes any of the 60 apps with no recovery, and the pattern is already proven in useMorpheusDataFeed.ts:75. (2) edgeclient-json-parse-error — wrap the success-path res.json() at line 129 with .catch(() => ({})) to match the error path at line 122 and avoid an uncaught SyntaxError on non-JSON 200s. Reject submitWalletIntent-stack-loss: the reviewer misread the flow (no real consumer reads stack off this path) and the proposed spread would break the existing os-proxies.test.ts:178-182 assertion. Defer the three remaining items (concurrent-read-dedup, edgeclient-no-retry, submitWalletIntent-connect-race): none is a present correctness bug, each edits a shared transport/signing path with all-60-apps blast radius, and edgeclient-no-retry is actively unsafe because it would retry non-idempotent wallet-signing intents.",
+        "implement": [
+          {
+            "unit": "chain-edge",
+            "id": "edge-client-no-fetch-timeout",
+            "dimension": "stability",
+            "severity": "high",
+            "risk": "low",
+            "files": [
+              "apps/shared/services/os/EdgeClient.ts:114"
+            ],
+            "problem": "EdgeClient.call() uses bare fetch() with no timeout or abort signal. Network hangs (slow DNS, dead gateways, stalled servers) block indefinitely, freezing the entire miniapp. useMorpheusDataFeed.ts demonstrates correct pattern with AbortSignal.timeout(10000) at line 75.",
+            "fix": "Add timeout signal to fetch: const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(30000) });",
+            "confidence": 1
+          },
+          {
+            "unit": "chain-edge",
+            "id": "edgeclient-json-parse-error",
+            "dimension": "stability",
+            "severity": "low",
+            "risk": "low",
+            "files": [
+              "apps/shared/services/os/EdgeClient.ts:129"
+            ],
+            "problem": "res.json() at line 129 lacks error handling. Non-JSON response (e.g. 200 with text/html) throws uncaught SyntaxError. Line 122 correctly uses .catch().",
+            "fix": "Wrap second res.json() in .catch(): const payload = await res.json().catch(() => ({}));",
+            "confidence": 0.9
+          }
+        ]
+      },
+      "cache-balance-transfer": {
+        "summary": "The CacheService, BalanceService, and TransferService trio shows several critical stability issues around cache invalidation, double-submit protection, and race conditions. PRIMARY CONCERN: BalanceService does not invalidate its balance cache when BALANCE_CHANGED events fire, causing stale balance displays for up to 15 seconds after transfers. SECONDARY CONCERN: TransferService lacks idempotency guards, allowing accidental double-submission of transfers if users click buttons twice. TERTIARY CONCERN: Balance event emissions race with on-chain state, potentially showing unconfirmed balances. The cache itself is well-implemented for TTL tracking but lacks unbounded-growth protection for multi-address queries. Float math is handled correctly (using Math.round), and base-unit handling is sound, but timing coordination between events and state updates is loose. Fix the cache invalidation first (high confidence, low risk); then add double-submit guards to TransferService (high confidence, medium risk) to address the worst stability issues affecting 60+ miniapps.",
+        "recommend": "Implement only finding 1 (cache-not-invalidated-on-balance-change) first. It is a confirmed, real correctness bug affecting every reactive balance display across all 60 miniapps: after a transfer, the BALANCE_CHANGED handler calls refresh() -> getBalance() which re-hits the still-valid 15s cache and shows the pre-transfer balance. The fix is surgical (invalidate the balance cache key before refresh() inside useBalance), low-risk, and scoped to BalanceService.useBalance with no existing tests to regress. Recommend extending the fix slightly beyond the proposal: also invalidate the cache in the TRANSACTION_CONFIRMED handler at BalanceService.ts:141, since that path likewise calls refresh() and would otherwise re-hit the cache. Reject findings 4 and 5 (4 is actively harmful, 5 is a misread). Treat 2, 3, 6, 7 as not-now: 2's content-based dedup key would block legitimate repeated identical payments (handle double-submit at the UI/button level instead); 3, 6, 7 are speculative or cosmetic and touch apps/shared primitives with 60-app blast radius for negligible benefit.",
+        "implement": [
+          {
+            "unit": "cache-balance-transfer",
+            "id": "cache-not-invalidated-on-balance-change",
+            "dimension": "stability",
+            "severity": "high",
+            "risk": "low",
+            "files": [
+              "apps/shared/services/BalanceService.ts:111-154",
+              "apps/shared/services/BalanceService.ts:60-74"
+            ],
+            "problem": "When a BALANCE_CHANGED event is emitted, the useBalance() reactive balance watcher calls refresh(), which calls getBalance(). However, getBalance() returns the cached value instead of fetching fresh data from the blockchain. This means balance updates triggered by balance events or transactions will show stale cached data for up to 15 seconds (BALANCE_CACHE_TTL_MS). User transfers GAS, the balance decreases on-chain, but the app still shows the old balance from cache. This affects all 60 miniapps using reactive balance displays.",
+            "fix": "In BalanceService.useBalance() around line 132-137, when handling BALANCE_CHANGED events, invalidate the balance cache before calling refresh() so the next getBalance() call always fetches fresh data: const unsub = this.events.on(EventBus.BALANCE_CHANGED, (payload) => { const p = payload as { asset?: string } | undefined; if (!p?.asset || p.asset === asset || this.resolveAssetHash(p.asset) === this.resolveAssetHash(asset)) { const owner = this.chain.address.get() ?? undefined; this.cache.invalidate(this.balanceCacheKey(asset, owner)); refresh(); } });",
+            "confidence": 1
+          }
+        ]
+      },
+      "infra-services": {
+        "summary": "The infra-services layer is mostly stable with good patterns for EventBus and LifecycleService. However, three HIGH-severity issues were identified: (1) ClipboardService uses the wrong event name ('notification' vs 'platform:notification'), causing clipboard messages to never display; (2) BalanceService.useBalance() cleanup is not auto-registered with lifecycle, creating listener leak risk if callers forget to call cleanup(); (3) AAService state accessors return non-Observable values that won't trigger React re-renders. Additionally, neo-convert hardcodes 'BALANCE_CHANGED' string instead of using EventBus.BALANCE_CHANGED constant, and LifecycleService lacks protection against double-mount scenarios. FormattingService is clean. Blast radius for fixes to NotificationService, EventBus, and LifecycleService is all 59 miniapps (apps/shared/*).",
+        "recommend": "Implement clipboard-event-mismatch first: it is a real, confirmed defect with the broadest user-facing impact (copy success/error toasts silently dropped across every app that routes clipboard feedback through the platform status surface), and the fix is surgical and low-risk. Change ClipboardService.ts:25 and :28 to emit NOTIFICATION_EVENT (import from NotificationService) instead of the bare 'notification' string, and in the SAME change update the unit test ClipboardService.test.ts:17 (bus.on('notification', ...)) to use NOTIFICATION_EVENT — otherwise three tests that currently encode the bug will fail. Payload shape already matches MiniAppRoot's handler, so no app regresses. Second, implement eventbus-hardcoded-string-constant as an app-local fix in neo-convert (useNeoConvert.ts:155-156): import the EventBus value and subscribe to EventBus.BALANCE_CHANGED so the local balance refs stay reactive; no shared blast radius, low risk, but low severity since balance is display-only there. Reject the remaining five: balance-listener (misread — neo-convert cleans up correctly via destroy()->cleanupBalances; rest speculative), lifecycle-state-isolation and notification-queue (author-acknowledged non-issues), formattingservice (explicit no-op), and aaservice-state-accessors (misread — the accessors already return real createObservable instances; the proposed double-wrap would break all consumers).",
+        "implement": [
+          {
+            "unit": "infra-services",
+            "id": "clipboard-event-mismatch",
+            "dimension": "stability",
+            "severity": "medium",
+            "risk": "low",
+            "files": [
+              "apps/shared/services/ClipboardService.ts:25",
+              "apps/shared/react/MiniAppRoot.tsx:304-310"
+            ],
+            "problem": "ClipboardService emits notifications on event name 'notification' (line 25, 28), but MiniAppRoot and NotificationService use 'platform:notification' constant (NOTIFICATION_EVENT). This causes clipboard success/error messages to never display to users—they are silently lost.",
+            "fix": "In ClipboardService.ts, change the emit calls to use the NOTIFICATION_EVENT constant imported from NotificationService. Line 25 and 28: change 'notification' to use NOTIFICATION_EVENT.",
+            "confidence": 0.95
+          },
+          {
+            "unit": "infra-services",
+            "id": "eventbus-hardcoded-string-constant",
+            "dimension": "stability",
+            "severity": "low",
+            "risk": "low",
+            "files": [
+              "apps/neo-convert/src/composables/useNeoConvert.ts:155-156"
+            ],
+            "problem": "neo-convert line 155-156 subscribes to EventBus using hardcoded string 'BALANCE_CHANGED' instead of the EventBus.BALANCE_CHANGED constant. This is fragile—if the constant changes, the subscription silently breaks. Also violates DRY principle and creates a point of divergence from the canonical event names.",
+            "fix": "Import EventBus constant and replace hardcoded 'BALANCE_CHANGED' with EventBus.BALANCE_CHANGED in both line 155 and 156.",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "os-proxies": {
+        "summary": "The OS proxy system (EdgeClient + 9 concrete proxies) is well-structured and mostly sound, with good error propagation and wallet signing confirmation (audit fix E-1/H-3). Key strengths: base OSServiceProxy reduces duplication; ErrorClient.call() throws on network failures (not silent swallowing); recovery-guardian and gasbox properly wrap calls in try/catch and notify.guard(). However, three systemic gaps exist: (1) **Stability**: No graceful handling of unimplemented methods — when the kernel lacks an OS service (e.g., CreateEscrow), the proxy throws a generic 'service error' rather than 'feature not available'. (2) **Stability**: void-returning methods (withdraw, transfer, fund, etc.) don't explicitly document that errors throw and must be caught — callers could assume success without error handling. (3) **Refactor**: 9 proxy files repeat identical patterns; consolidation would improve maintainability. Secondary concerns: no error classification (404 vs 403 vs 500), no timeout/retry on slow edge services, and no documentation of auth token loading. All findings are fixable with low-to-medium risk; most are documentation or type-system improvements rather than behavioral changes.",
+        "recommend": "Implement nothing now. All 10 findings target apps/shared/services/os/** (blast radius = all 60 apps) and none identifies a real, present defect: errors already propagate via thrown exceptions and real consumers (self-loan useSelfLoan.ts:489-509, gas-box, recovery-guardian) already wrap calls in try/catch. The bulk (silent-void-errors, unhandled-wallet-intent-errors, no-auth-token-propagation-docs) are comment/message-only changes that fix no behavior; the rest (no-method-existence-check, no-error-classification, no-graceful-fallback, duplication factory, no-type-safety runtime guard) are speculative new abstractions that add round-trips, new failure modes, or rewrite a 89-test transport layer for zero functional gain (YAGNI), and several risk regressing tests that assert on the existing 'OS service error (...)' message string. The single item with genuine technical merit is the missing fetch timeout (no AbortController) in EdgeClient.call — but it is correctly deferred, not applied: the paired retry/backoff is unsafe on signing mutations (double-submit risk), and even a timeout-only change alters failure semantics for all 60 apps and needs its own design + test pass rather than an inline edit. If anything is scheduled later, do the timeout-only AbortController change first, with new tests, and explicitly exclude auto-retry on mutation endpoints.",
+        "implement": []
+      },
+      "shared-components": {
+        "summary": "The shared components (NeoButton, NeoCard, NeoInput, NeoSelect, ConsoleToolPanel) are generally well-structured with good TypeScript coverage and semantic HTML. However, there are 8 fixable issues across 3 dimensions: (1) **Accessibility**: Two critical focus-visible bugs affecting keyboard users (select and summary elements), missing ARIA labels on empty state and console select field. (2) **UX**: Copy button lacks loading feedback during async clipboard operation, undocumented button debounce silently ignores clicks. (3) **Performance**: Result rows keyed by label (non-unique/unstable), NeoInput/NeoSelect not memoized causing unnecessary re-renders in console panels. The Neo Soft green accent (#16c784) is consistently applied with correct focus-ring shadows. All issues are surgical, low-blast-radius fixes to components with high usage across all 60 apps.",
+        "recommend": "Implement only the two focus-visible findings, which are real, surgical, and low-risk: (1) select-focus-pseudo-selector-mismatch — change ConsoleToolPanel.scss:311 `.console-tool__field select:focus` to `:focus-visible` to match NeoButton/NeoCard and restore correct keyboard-vs-mouse focus ring behavior; (2) summary-element-missing-focus-visible — add an additive `.console-tool__payload-card > summary:focus-visible { outline: 2px solid var(--ns-violet,#16c784); outline-offset: 2px; }` rule. Both are CSS-only, additive/equivalent, and scoped to the 6 oracle console panels with no logic or i18n changes. Do them together in one ConsoleToolPanel.scss edit. Reject the rest: result-rows-key, copy-loading, memoization, empty-state aria, debounce, and select aria-label are either misreads (debounce already documented; empty state already under aria-live; select already label-wrapped; NeoSelect not used in this panel) or speculative low-value changes whose shared-code blast radius (all 60 apps) outweighs the benefit. Note the memoization fix as written would not even compile (no React default import).",
+        "implement": [
+          {
+            "unit": "shared-components",
+            "id": "select-focus-pseudo-selector-mismatch",
+            "dimension": "a11y",
+            "severity": "medium",
+            "risk": "low",
+            "files": [
+              "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/components-react/ConsoleToolPanel.scss:311"
+            ],
+            "problem": "The console panel's custom <select> element uses :focus pseudo-selector instead of :focus-visible. This means the focus ring will show on mouse click (unwanted) and disappear on keyboard navigation (broken for keyboard users). All other components correctly use :focus-visible. This inconsistency breaks keyboard accessibility for the select fields used in oracle consoles.",
+            "fix": "Change line 311 from `.console-tool__field select:focus {` to `.console-tool__field select:focus-visible {` to match the pattern used in NeoButton.scss:33 and NeoCard.scss:31.",
+            "confidence": 0.95
+          },
+          {
+            "unit": "shared-components",
+            "id": "summary-element-missing-focus-visible",
+            "dimension": "a11y",
+            "severity": "medium",
+            "risk": "low",
+            "files": [
+              "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/components-react/ConsoleToolPanel.scss:424"
+            ],
+            "problem": "The <details><summary> disclosure control (PayloadCard) has cursor:pointer and ::after pseudo-element for the expand/collapse chevron, but lacks any :focus-visible styling. Keyboard users cannot see when the summary is focused, violating WCAG 2.1 AA focus-visible requirement. This is a critical interaction element in the console result panel.",
+            "fix": "Add a :focus-visible rule after line 431: `.console-tool__payload-card > summary:focus-visible { outline: 2px solid var(--ns-violet, #16c784); outline-offset: 2px; }` to match button/card focus styling.",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "utils-money": {
+        "summary": "Critical stability issues in money/amount handling across the platform. Primary concern: 5+ locations use `parseFloat() * 1e8` or `Math.round(parseFloat() * 1e8)` for display-to-base-unit conversion, violating the no-float-math convention and risking precision loss (e.g., 1.23 GAS → 122999999.99... → rounds to 122999999 instead of 123000000). A correct `toFixed8()` utility exists in shared/utils/format.ts using string parsing, but is duplicated locally in gas-sponsor and ignored elsewhere. Secondary: address validation regex incomplete in MiniAppOperationPanel; `fromFixed8()` uses unsafe division-by-1e8 (precision limit 2^53); missing positive-amount validation on payment and transfer functions. All findings are surgical and have concrete fixes. Blast radius: apps/shared/utils impacts 60 miniapps; direct fixes in 5 files touch gas-sponsor, wallet-sdk-composables, MiniAppOperationPanel, TransferService, and breakup-contract.\"",
+        "recommend": "Implement only the two positivity guards, which are real, surgical, and regression-safe: (1) payment-amount-validation-missing — add `if (parsedAmount <= 0) throw new MiniAppError(\"Invalid amount\", errorCodes.PAYMENT_INVALID_AMOUNT, ...)` after the Number.isFinite check at apps/shared/utils/wallet-sdk-composables.ts:222; (2) scaleAmount-no-gas-validation — add `if (parsed < 0) throw new Error(\"Invalid transfer amount: must be non-negative\")` after apps/shared/services/TransferService.ts:144. Both only reject inputs no legitimate flow uses, so blast radius across all 60 apps is acceptable.\n\nDo NOT implement the headline finding (parseFloat-1e8-precision): its core premise is empirically false — Math.round(parseFloat(x)*1e8) is byte-identical to the string toFixed8 for every valid 8-decimal GAS value (700k+ tested), so there is no money/rounding bug, and breakup-contract's stake*1e8 is a local display snapshot (divided back via parseGas), not an on-chain value. Reject address-regex-incomplete (the two regexes are provably identical; pure misread) and integer-overflow-risk (doc-only duplicate). Reject toFixedDecimals-edge-cases as proposed because its fix reintroduces float math (Number(x).toFixed), the exact convention violation the function avoids — though there is a genuine latent bug when a NUMBER stringifies to scientific notation, so a future string-only fix could be worthwhile. The remaining items (fromFixed8 precision, duplicate-toFixed8, isNaN→isFinite, formatGas docs) are low-value cleanup/doc notes safe to defer, not ship now, given they touch shared infra used by all 60 apps.",
+        "implement": [
+          {
+            "unit": "utils-money",
+            "id": "payment-amount-validation-missing",
+            "dimension": "stability",
+            "severity": "medium",
+            "risk": "low",
+            "files": [
+              "apps/shared/utils/wallet-sdk-composables.ts:214-232"
+            ],
+            "problem": "`payGAS()` parses the amount with `parseFloat()` and checks `Number.isFinite(parsedAmount)`, but doesn't validate that parsedAmount is positive. A user could pass amount='0' or amount='-5', which would succeed the isFinite check and proceed to the blockchain.",
+            "fix": "Add a validation check after line 221: `if (parsedAmount <= 0) { throw new MiniAppError('Amount must be positive', errorCodes.PAYMENT_INVALID_AMOUNT, ...); }`. This ensures only positive amounts proceed to the conversion step.",
+            "confidence": 0.9
+          },
+          {
+            "unit": "utils-money",
+            "id": "scaleAmount-no-gas-validation",
+            "dimension": "stability",
+            "severity": "medium",
+            "risk": "low",
+            "files": [
+              "apps/shared/services/TransferService.ts:137-149"
+            ],
+            "problem": "In `TransferService.scaleAmount()`, the function checks `Number.isFinite(parsed)` but does not check if parsed is positive or zero. A negative amount would pass through and be sent to the blockchain.",
+            "fix": "Add validation after line 144: `if (parsed < 0) throw new Error('Invalid transfer amount: must be non-negative');`.",
+            "confidence": 0.85
+          }
+        ]
+      },
+      "utils-chain": {
+        "summary": "The utils-chain layer shows good defensive programming (safe-storage wrappers, try/catch patterns) but has 10 moderate-to-low severity issues: 1 HIGH-severity API bug (empty contract hash in n3index), 2 MEDIUM-severity stability issues (hex reversal data loss, reactivity dead zone in createSidebarItems), and 7 LOW-severity edge cases. The most critical finding is n3index.waitForTransaction passing empty contractHash, which creates malformed API paths. The secondary concerns are silent data truncation in hex reversal and untracked observable subscriptions in sidebar rendering.",
+        "recommend": "Only one finding is worth acting on now: n3index-empty-contract-hash (downgraded high->medium). It is a genuine double-slash URL bug in shared code, but the impact is bounded (waitForTransaction is a try/catch best-effort poll that already degrades to null), so it is not high severity. If implemented, do it surgically inside the URL builder — when contractHash is empty, omit the segment so the path becomes `/contracts/events` rather than `/contracts//events` — rather than altering getContractEvents' public signature, to keep blast radius minimal across all 60 apps. Everything else is rejected: neo-hex-reverse and async-retry premises are misreads (the inputs are guarded), createsidebaritems and base64-padding are based on misunderstanding the actual render path / encoding, and the safe-storage/runtime-cache/boolean/manifest items are intentional design or cosmetic and not worth touching apps/shared (which hits every app). hash-sha256 dead-code removal is correct but too trivial to justify a shared-file edit right now.",
+        "implement": [
+          {
+            "unit": "utils-chain",
+            "id": "n3index-empty-contract-hash",
+            "dimension": "stability",
+            "severity": "medium",
+            "risk": "medium",
+            "files": [
+              "apps/shared/utils/n3index.ts:286"
+            ],
+            "problem": "waitForTransaction calls getContractEvents with empty contractHash string (\"\"). This creates an invalid API path `/indexer/v1/networks/{network}/contracts//events` with double slashes, which may cause 404 errors or incorrect routing.",
+            "fix": "Change line 286 from `const events = await getContractEvents(network, \"\", {` to either (a) accept contractHash as a parameter, (b) document that this only works for filtering by tx_hash alone, or (c) adjust the API call to omit the contractHash in the URL construction if empty.",
+            "confidence": 0.95
+          }
+        ]
+      },
+      "composables": {
+        "summary": "The composables module has 8 findings across stability and performance dimensions. Critical issues: (1) useI18n's reference counting bug—listeners increment on every createUseI18n() call but never decrement (apps call this 3+ times), causing memory leaks and duplicate event handlers; (2) useStateBindings creates stale derived observables when state keys are missing (empty deps array), blocking reactivity. Mid-severity issues: (3) useContractInteraction timer accumulation without dispose() calls; (4) useTicker error suppression in immediate tick; (5) useWalletBalanceReader potential staleness via refToObservable; (6) useStatusMessage timer leak on unmount. Low-severity: (7) useContractAddress promise cache not invalidated on network switch; (8) useAllEvents pagination offset bug. All 60 apps depend on apps/shared, so fixes require high confidence and careful testing.",
+        "recommend": "Implement nothing from this batch now. Every finding is either a misread, scoped to an unused file, or a shared-infra concern whose only correct fix has all-60-app blast radius and is not surgically described.\n\nMost are misreads to reject outright: #1 (i18n) — the `if (listenersRefCount === 0)` guard already prevents duplicate registration, and the proposed `if (listenersRefCount > 0) return;` would return undefined from createUseI18n and break i18n for all-but-one app (harmful, do NOT apply). #7 (useContractAddress) — resolvePromise is never assigned, so the 'stale cache' branch is dead code and the bug as described cannot occur. #8 (useAllEvents) — a short final page already terminates the loop in both branches, so no events are skipped. #2 (useStateBindings) — apps consume the react/hooks version (plain values + useSyncExternalStore), not the cited Vue file (zero consumers), and the fix breaks the return-type contract. #4 (useTicker) — start() does not throw, so 'caller thinks start failed' is wrong, and removing the try-catch is a regression.\n\nThe one finding with a genuine underlying mechanism is #5 (refToObservable doesn't notify when the wallet writes address.value directly, including the in-session accountchanged path). It's a real medium concern but its true root cause is shared refToObservable affecting every consumer, and the proposed fix is too vague to apply safely; if pursued, it needs a deliberate shared-infra change (bridge the wallet ref to the observable's .set(), or have refToObservable re-poll) validated against all 60 apps plus a full build — out of scope for a now-safe edit. #3 and #6 are real-but-negligible dispose() hygiene gaps (fired one-shot timers / inert references) not worth an apps/shared change.",
+        "implement": []
+      },
+      "styles": {
+        "summary": "The shared styles system (3981 LOC across 16 files) is well-structured around Neo Soft design tokens and CSS variables, with good coverage of responsive design, dark mode, and accessibility foundations. However, five concerns reduce long-term maintainability and consistency: (1) font-size scale divergence between tokens.scss (px) and variables.scss (rem) creates two sources of truth affecting 60 apps; (2) one hardcoded color (#b9791a) breaks the token-based system; (3) an overly-broad universal selector in reduced-motion handling impacts performance; (4) focus styles use :focus instead of :focus-visible, degrading keyboard-only a11y; (5) redundant responsive variants (_app-responsive.scss vs responsive.scss) emit duplicate CSS in 27 apps. Additionally, no documented contrast ratios exist for color tokens, and there is duplicated mixin logic across files (card, stat, detail patterns). The green accent (#16c784) is properly unified across the system as the sole interactive accent, and dark mode support is solid. Most issues are refactoring/hygiene rather than runtime bugs, but the font-size mismatch and duplicate responsive rules affect the build size and developer experience across all 60 miniapps.",
+        "recommend": "Only one finding is worth applying now: [hardcoded-warning-color] — a genuinely safe, surgical consistency tidy. Add `--ns-warning-strong: #b9791a;` near theme-base.scss:55 (after --ns-warning) and change apps/shared/styles/_playarea-base.scss:136 from `color: #b9791a;` to `color: var(--ns-warning-strong, #b9791a);`. The fallback preserves identical output, so it regresses nothing across the 60 apps. Note its real value is low (the .badge--warning variant has no consumers — it is dead CSS), so this is optional polish, not a priority. Everything else should be rejected: [token-scale-mismatch], [missing-focus-visible-on-inputs] target SCSS vars / CSS classes that have ZERO consumers in the repo (dead code; the alarming 'divergence across 60 apps' / 'a11y/high' premises are simply false). [overly-broad-selector] misreads a standard, behavior-correct prefers-reduced-motion reset and its 'fix' would weaken accessibility. [mixin-duplication] cites non-existent/mismatched mixins and its 'identical' stat-label mixins actually differ in spacing/color, so merging is a visual regression. [redundant-responsive-variants] misstates the duplication (the two variants use different class names/breakpoints) and consolidation is a medium-risk shared-shell change. [missing-contrast-guidance] flags a real WCAG failure but proposes only comments, which fix nothing; a real token-darkening fix needs design sign-off and hits all 60 apps, so defer. Net: implement 1 low-risk cosmetic fix, defer/reject the rest.",
+        "implement": [
+          {
+            "unit": "styles",
+            "id": "hardcoded-warning-color",
+            "dimension": "ux",
+            "severity": "low",
+            "risk": "low",
+            "files": [
+              "apps/shared/styles/_playarea-base.scss:136"
+            ],
+            "problem": "Badge warning text color hardcoded to #b9791a instead of using a token variable. Violates design system consistency—all other badge colors use CSS custom properties (--ns-warning-soft, --ns-down, --ns-info). This makes the color unmaintainable and isolated from theme updates.",
+            "fix": "Add --ns-warning-strong: #b9791a; to theme-base.scss:55 (after --ns-warning), then replace _playarea-base.scss:136 from color: #b9791a; to color: var(--ns-warning-strong, #b9791a);",
+            "confidence": 1
+          }
+        ]
+      },
+      "sweep-timers": {
+        "summary": "Cross-cutting timer and event listener leak audit across 59+ Neo miniapps. Found 2 HIGH-confidence critical issues (gas-lucky-pool OneGate listener leak + explorer ticker not disposed), 2 MEDIUM-confidence issues (useContractInteraction timers not disposed in some contexts, daily-checkin timer pattern inconsistency), and 4 LOW-confidence items (mostly composables with optional dispose patterns that rely on callers). Most React components have correct useEffect cleanups. The codebase architecture via MiniAppRoot and defineMiniApp handles cleanup well for registered patterns, but composables that export dispose/cleanup functions are only safe if apps remember to call them. Risk: medium across all apps due to blast radius of shared composables; recommend prioritizing gas-lucky-pool OneGate fix (actual live leak) and enforcing dispose() calls in all useContractInteraction/useStatusMessage uses.",
+        "recommend": "Implement nothing from this unit. None of the five actionable findings survive adversarial review.\n\nThe headline finding (gas-lucky-pool-onegate-listener-leak, rated high) is both a misread and dangerous: the listener is gated by a module-level `oneGateDapiDiscovery.started` singleton that is only reset on a window change, so remounts in the same window never add a second listener — there is no accumulation. Worse, the proposed stop function would remove the sole listener while leaving started=true, so any remount would skip re-registration (the `if (!started)` guard) and silently break OneGate provider discovery. Do NOT apply it.\n\nThe explorer finding is a plain factual error — explorer/main.tsx already returns `cleanup: () => explorer.stopPolling()`, and useTicker.stop() clears the interval identically to dispose(); MiniAppRoot invokes that cleanup on unmount.\n\nThe remaining three (contract-interaction, daily-checkin, status-message) describe no concrete defect: timers are either short-lived/inline-awaited/self-clearing, owned by services that get destroyed, or already correctly wired via cleanup. Their proposed 'fixes' are documentation/audit notes or cosmetic renames with churn and zero functional benefit.\n\nThe five positive (no-fix) findings are all verified accurate and require no action. If any timer/listener hardening is desired later, the right place is the existing lifecycle registry in MiniAppRoot, not per-app cleanup retrofits — but nothing here justifies touching apps/shared (blast radius = all 60 apps) on speculation.",
+        "implement": []
+      },
+      "sweep-jsonparse": {
+        "summary": "Critical stability vulnerabilities found across 7 miniapps involving unguarded JSON.parse, Number(), parseInt, and parseFloat calls on untrusted external data. Primary issues: (1) red-envelope casts storage data without validation, allowing NaN in numeric fields; (2) neo-treasury calls parseInt() on RPC responses without checking for non-numeric values; (3) gas-sponsor, last-survivor, gas-lucky-pool, and gov-merc use parseFloat/Number on observable strings without NaN validation, breaking transaction validation and UI affordances. All shared utils provide safe alternatives (toSafeNumber, safeReadJSON) that should be used consistently.",
+        "recommend": "Implement two app-local fixes only; both are surgical with no apps/shared blast radius. (1) neo-treasury (HIGH, lowest risk): treasury.ts:148-154 — replace parseInt(b.amount) with const amount = Number(b.amount ?? 0); if (!Number.isFinite(amount)) continue; then assign neo=amount / gas=amount/1e8. This is the strongest finding: a single malformed RPC wallet currently poisons the whole category total to NaN via the += aggregation (lines 202-203, 230). Baseline tests pass and the change is an additive guard. (2) red-envelope (MEDIUM): the only genuinely unguarded leak is packetCount/openedCount -> remainingPackets rendering 'NaN' at PlayArea.tsx:353. A guard there is worthwhile but prefer a surgical version (coerce the two count fields with Number.isFinite fallbacks to 0 in mapStoredEnvelope) over the proposed validateStoredEnvelope, since the proposed validator silently drops an entire envelope when ANY field is non-finite — a behavior change. Reject the other five: last-survivor, gas-lucky-pool are bigint observables where Number() cannot yield NaN (misreads); gov-merc's !(amount>0) and gas-sponsor's Number.isFinite guards and red-envelope's fromFixed8 guard already handle NaN safely. None of the rejected items touch funds.",
+        "implement": [
+          {
+            "unit": "sweep-jsonparse",
+            "id": "red-envelope-unsafe-number-cast",
+            "dimension": "stability",
+            "severity": "medium",
+            "risk": "low",
+            "files": [
+              "apps/red-envelope/src/composables/useRedEnvelope.ts:236-243",
+              "apps/red-envelope/src/composables/useRedEnvelope.ts:294"
+            ],
+            "problem": "StoredEnvelope objects from external storage are cast without validation. Lines 236-243 call Number() on unvalidated storage properties (data.totalAmount, data.packetCount, etc.), which return NaN if the property contains non-numeric strings like 'abc'. Line 294 casts untrusted data 'as StoredEnvelope' without any schema validation, bypassing TypeScript type safety.",
+            "fix": "Add a validation function before mapStoredEnvelope() call. Replace line 294-296 with:\n```ts\nconst validatedEnvelope = validateStoredEnvelope(value);\nif (validatedEnvelope) {\n  allEnvelopes.push(mapStoredEnvelope(validatedEnvelope));\n}\n```\n\nAdd validator function:\n```ts\nfunction validateStoredEnvelope(data: unknown): StoredEnvelope | null {\n  if (!data || typeof data !== 'object') return null;\n  const obj = data as Record<string, unknown>;\n  const totalAmount = Number(obj.totalAmount ?? 0);\n  const packetCount = Number(obj.packetCount ?? 0);\n  const openedCount = Number(obj.openedCount ?? 0);\n  const remainingAmount = Number(obj.remainingAmount ?? 0);\n  const expiryTime = Number(obj.expiryTime ?? 0);\n  if (!Number.isFinite(totalAmount) || !Number.isFinite(packetCount) || !Number.isFinite(openedCount) || !Number.isFinite(remainingAmount) || !Number.isFinite(expiryTime)) return null;\n  return { id: String(obj.id ?? ''), creator: String(obj.creator ?? ''), totalAmount, packetCount, openedCount, remainingAmount, bestLuckAddress: obj.bestLuckAddress ? String(obj.bestLuckAddress) : undefined, bestLuckAmount: obj.bestLuckAmount ? Number(obj.bestLuckAmount) : undefined, ready: Boolean(obj.ready), expiryTime, claimedByCurrentUser: Boolean(obj.claimedByCurrentUser) };\n}\n```",
+            "confidence": 0.95
+          },
+          {
+            "unit": "sweep-jsonparse",
+            "id": "neo-treasury-unvalidated-parseInt",
+            "dimension": "stability",
+            "severity": "high",
+            "risk": "low",
+            "files": [
+              "apps/neo-treasury/src/utils/treasury.ts:150",
+              "apps/neo-treasury/src/utils/treasury.ts:152"
+            ],
+            "problem": "parseInt(b.amount) called on untrusted RPC response data without validation. If b.amount is null, undefined, or a non-numeric string, parseInt returns NaN. This corrupts the neo/gas balance calculations, causing display of 'NaN' values or causing downstream calculations to fail silently.",
+            "fix": "Replace lines 150-152 with:\n```ts\nfor (const b of result.balance ?? []) {\n  const amount = Number(b.amount ?? 0);\n  if (!Number.isFinite(amount)) continue;\n  if (b.assethash === NEO_CONTRACT) {\n    neo = amount / 1;\n  } else if (b.assethash === GAS_CONTRACT) {\n    gas = amount / 1e8;\n  }\n}\n```",
+            "confidence": 0.98
+          }
+        ]
+      },
+      "sweep-console": {
+        "summary": "Out of 81 total console calls across all 28 apps, 73 are appropriate console.warn error logging (RPC failures, storage fallbacks, parsing errors), 8 are appropriate console.error in critical failure paths (refunds, contract operations), and 1 is infrastructure EventBus error handling. Only 2 issues flagged: (1) HIGH SEVERITY: neo-treasury leaks wallet addresses in console.warn on balance fetch failures—fix by replacing actual address with index reference. (2) MEDIUM SEVERITY: aa-market-hub has inconsistent multiline formatting in 3 console.warn calls—standardize formatting. No console.log or debug noise found; all error logging is well-contextualized and follows [AppName] operation convention. This is healthy production observability with clear operation-specific messages.",
+        "recommend": "Implement none of these now. All four are either non-issues or overrated. The two \"no fix needed\" findings (all-console-warn-are-acceptable, appropriate-console-error-logging) are confirmed as correct observations requiring zero action. The sensitive-address-leak finding is downgraded from high to low: Neo addresses are public on-chain identifiers and the treasury addresses are already hardcoded public constants in the shipped source — logging one in a non-fatal RPC-failure warning is not a security leak, and the proposed fix would only hurt debuggability. The multiline-warn finding is a reviewer misread (the call it points to as needing fixing is already in the target format) and otherwise a cosmetic style preference with no functional impact. No surgical, worthwhile change exists in this batch.",
+        "implement": []
+      },
+      "sweep-bundle": {
+        "summary": "Bundle bloat detected in neo-convert from eager jsPDF import and unnecessary optimizeDeps configuration. jsPDF (336KB) is imported at module level in useWalletPdf.ts despite being called only on user click, and both jsPDF and qrcode are in optimizeDeps even though they're dynamically imported. neo-multisig carries unused html2canvas (4.4MB) and jsPDF (336KB) dependencies with zero code references. Total addressable waste: ~5MB across the platform, with quick surgical fixes to defer all PDF/canvas loads until explicit user action.",
+        "recommend": "Implement none of these now. All five rest on misreadings of Vite/Rollup behavior, and the real build output contradicts the central claims.\n\nEvidence (from `npm run build` in apps/neo-convert and the existing dist/): jsPDF is ALREADY code-split into a 387KB lazy chunk (dist/assets/useWalletPdf-D3JAAv-s.js) loaded only when the user clicks 'Download Paper Wallet'. The entry chunk (index-DAUbAdEe.js, 172KB) contains no jsPDF. The three 'eager import / optimizeDeps' findings therefore have no initial-load impact to fix:\n- jspdf-eager-import: the top-level import is inside a module that is itself only dynamically imported, so it is not in the main bundle. The refactor is zero-benefit churn with a sequential-round-trip cost.\n- qrcode/jspdf optimizeDeps: optimizeDeps.include affects only the DEV server's esbuild pre-bundling (confirmed: apps/vite.shared.react.ts:151 passes it straight to Vite, the production build uses rollupOptions/manualChunks which never reference these). No production effect; removal only risks dev-server re-optimization reloads.\n\nThe two 'dead dependency' findings are unsafe or valueless:\n- html2canvas-stub-dead-weight is actively WRONG and dangerous: html2canvas is a jsPDF optionalDependency referenced in jspdf.es.min.js:230; the throwing stub alias is load-bearing and prevents the real 4.4MB lib from bundling (the lazy chunk imports the stub). Removing the alias risks breaking the build. Do not touch.\n- neo-multisig-dead-dependencies is factually real (no src references to jspdf/html2canvas) but mis-justified: this is a hoisted workspace, both libs live once in root node_modules and are needed by neo-convert, so removal saves no disk — only package.json hygiene, and the fix is incomplete (qrcode and other jspdf-transitive deps in neo-multisig are equally phantom). If anyone wants manifest hygiene, do it as a deliberate cross-app pass that removes ALL unused declarations, not this partial edit.\n\nIf a real performance win is wanted here, it is NOT in these findings — the genuine cost is that jsPDF (387KB) is heavy, but it's already correctly lazy-loaded behind an explicit user action, which is the right pattern.",
+        "implement": []
+      },
+      "sweep-reactivity-apps": {
+        "summary": "Found 8 major cross-cutting reactivity bugs affecting 9 apps. All stem from createDerived() calls with empty dependency arrays (`[]`) that read from observable values that should trigger re-renders but don't. This causes computed values to render stale — unchanged until a full page reload. Most critical is gas-sponsor (affects multiple related displays) and burn-league (8 separate display bugs in one file). Blast radius is per-app except for shared context (no issues found there). Fixes are surgical: add the missing observable references to deps arrays.",
+        "recommend": "Implement none. All 9 findings are false positives stemming from a misread of the reactivity model. createDerived.get() always recomputes (apps/shared/react/context.ts:62), and createDerived's deps only govern its OWN subscribe() — which is irrelevant here because both useStateBindings (apps/shared/react/hooks/useStateBindings.ts:45, subscribes to EVERY observable in the state record) and MiniAppRoot (apps/shared/react/MiniAppRoot.tsx:354-360, subscribes to every result.state observable and bumps stateVersion) re-render the component/platform whenever ANY state observable fires. I verified each app's main.tsx state object: in all 9 cases every source observable read by a flagged derived (e.g. wins/losses/totalWon, totalBurned, contracts, gasBalance, platformStats/loan/stats, envelopes/claims/pools, lastBuyer/roundId/totalPot, burialFeesPaid/history, rounds/selectedRoundId) is itself registered in the same state record, so its independent subscription drives a re-render and the derived recomputes fresh via .get(). The brief's own convention — 'createDerived([]) is fine only if it reads nothing reactive… a createDerived that reads an UNbound observable will look stale' — is the exact condition that does NOT hold: the sources are all bound. The proposed dep-additions are cosmetically 'more correct' but fix zero user-visible bugs and would add cross-app churn (and duplicate subscriptions, since the source already fires) for no benefit, violating scope discipline. If anything is worth doing later, it is a single shared-doc note clarifying that deriveds whose sources are co-registered in state need no deps — not 36 edits across 9 apps.",
+        "implement": []
+      }
+    },
+    "implementables": [
+      {
+        "unit": "reactivity-core",
+        "id": "getSnapshot-unconditional-reread",
+        "dimension": "performance",
+        "severity": "medium",
+        "risk": "low",
+        "files": [
+          "apps/shared/react/hooks/useStateBindings.ts:60-66"
+        ],
+        "problem": "getSnapshot unconditionally calls .get() on every observable in the state record every time it's invoked, even if nothing changed. React calls getSnapshot on *every* render and on sync checks. If there are 15 state observables (common in mini-apps) and each has a derived value with a compute function, this triggers 15 computations per render. For derived values that read other observables inside their compute functions, you get cascading O(n²) reads. Example: if foo_display = createDerived(() => state.foo.get().toUpperCase()) is read 3x per cycle, you're calling the compute function 3x.",
+        "fix": "Skip the re-read loop in getSnapshot and just return revisionRef.current. The subscription mechanism (subscribeCombined) already increments revisionRef when any observable changes. Calling .get() in getSnapshot is redundant — derived observables are read on-demand by components via accessors (str(), bool(), etc.). Change line 60-66 to: `const getSnapshot = useCallback(() => revisionRef.current, []);` (remove the loop).",
+        "confidence": 0.98
+      },
+      {
+        "unit": "render-path",
+        "id": "missing-error-boundary-around-playarea",
+        "dimension": "stability",
+        "severity": "high",
+        "risk": "low",
+        "files": [
+          "apps/shared/react/MiniAppRoot.tsx:498-537"
+        ],
+        "problem": "The PlayArea component is rendered directly without an error boundary wrapper. If PlayArea throws during render, the error will propagate up and crash MiniAppRoot, potentially taking the entire platform shell down. MiniAppPage has a simple try-catch in renderContent (which doesn't work for render-time errors), but PlayArea rendering in standalone mode (StandaloneDappSurface) has no error handling at all. This violates React error boundary best practices for untrusted/external component trees.",
+        "fix": "Wrap PlayArea in an ErrorBoundary component in both code paths (StandaloneDappSurface and MiniAppPage). Add error boundary right before <PlayArea> with onError, onRetry, and fallback callbacks. Example: <ErrorBoundary onError={handleBoundaryError} onRetry={reloadData} fallback={fallbackMessage}><PlayArea ... /></ErrorBoundary>",
+        "confidence": 0.92
+      },
+      {
+        "unit": "chain-edge",
+        "id": "edge-client-no-fetch-timeout",
+        "dimension": "stability",
+        "severity": "high",
+        "risk": "low",
+        "files": [
+          "apps/shared/services/os/EdgeClient.ts:114"
+        ],
+        "problem": "EdgeClient.call() uses bare fetch() with no timeout or abort signal. Network hangs (slow DNS, dead gateways, stalled servers) block indefinitely, freezing the entire miniapp. useMorpheusDataFeed.ts demonstrates correct pattern with AbortSignal.timeout(10000) at line 75.",
+        "fix": "Add timeout signal to fetch: const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(30000) });",
+        "confidence": 1
+      },
+      {
+        "unit": "chain-edge",
+        "id": "edgeclient-json-parse-error",
+        "dimension": "stability",
+        "severity": "low",
+        "risk": "low",
+        "files": [
+          "apps/shared/services/os/EdgeClient.ts:129"
+        ],
+        "problem": "res.json() at line 129 lacks error handling. Non-JSON response (e.g. 200 with text/html) throws uncaught SyntaxError. Line 122 correctly uses .catch().",
+        "fix": "Wrap second res.json() in .catch(): const payload = await res.json().catch(() => ({}));",
+        "confidence": 0.9
+      },
+      {
+        "unit": "cache-balance-transfer",
+        "id": "cache-not-invalidated-on-balance-change",
+        "dimension": "stability",
+        "severity": "high",
+        "risk": "low",
+        "files": [
+          "apps/shared/services/BalanceService.ts:111-154",
+          "apps/shared/services/BalanceService.ts:60-74"
+        ],
+        "problem": "When a BALANCE_CHANGED event is emitted, the useBalance() reactive balance watcher calls refresh(), which calls getBalance(). However, getBalance() returns the cached value instead of fetching fresh data from the blockchain. This means balance updates triggered by balance events or transactions will show stale cached data for up to 15 seconds (BALANCE_CACHE_TTL_MS). User transfers GAS, the balance decreases on-chain, but the app still shows the old balance from cache. This affects all 60 miniapps using reactive balance displays.",
+        "fix": "In BalanceService.useBalance() around line 132-137, when handling BALANCE_CHANGED events, invalidate the balance cache before calling refresh() so the next getBalance() call always fetches fresh data: const unsub = this.events.on(EventBus.BALANCE_CHANGED, (payload) => { const p = payload as { asset?: string } | undefined; if (!p?.asset || p.asset === asset || this.resolveAssetHash(p.asset) === this.resolveAssetHash(asset)) { const owner = this.chain.address.get() ?? undefined; this.cache.invalidate(this.balanceCacheKey(asset, owner)); refresh(); } });",
+        "confidence": 1
+      },
+      {
+        "unit": "infra-services",
+        "id": "clipboard-event-mismatch",
+        "dimension": "stability",
+        "severity": "medium",
+        "risk": "low",
+        "files": [
+          "apps/shared/services/ClipboardService.ts:25",
+          "apps/shared/react/MiniAppRoot.tsx:304-310"
+        ],
+        "problem": "ClipboardService emits notifications on event name 'notification' (line 25, 28), but MiniAppRoot and NotificationService use 'platform:notification' constant (NOTIFICATION_EVENT). This causes clipboard success/error messages to never display to users—they are silently lost.",
+        "fix": "In ClipboardService.ts, change the emit calls to use the NOTIFICATION_EVENT constant imported from NotificationService. Line 25 and 28: change 'notification' to use NOTIFICATION_EVENT.",
+        "confidence": 0.95
+      },
+      {
+        "unit": "infra-services",
+        "id": "eventbus-hardcoded-string-constant",
+        "dimension": "stability",
+        "severity": "low",
+        "risk": "low",
+        "files": [
+          "apps/neo-convert/src/composables/useNeoConvert.ts:155-156"
+        ],
+        "problem": "neo-convert line 155-156 subscribes to EventBus using hardcoded string 'BALANCE_CHANGED' instead of the EventBus.BALANCE_CHANGED constant. This is fragile—if the constant changes, the subscription silently breaks. Also violates DRY principle and creates a point of divergence from the canonical event names.",
+        "fix": "Import EventBus constant and replace hardcoded 'BALANCE_CHANGED' with EventBus.BALANCE_CHANGED in both line 155 and 156.",
+        "confidence": 0.95
+      },
+      {
+        "unit": "shared-components",
+        "id": "select-focus-pseudo-selector-mismatch",
+        "dimension": "a11y",
+        "severity": "medium",
+        "risk": "low",
+        "files": [
+          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/components-react/ConsoleToolPanel.scss:311"
+        ],
+        "problem": "The console panel's custom <select> element uses :focus pseudo-selector instead of :focus-visible. This means the focus ring will show on mouse click (unwanted) and disappear on keyboard navigation (broken for keyboard users). All other components correctly use :focus-visible. This inconsistency breaks keyboard accessibility for the select fields used in oracle consoles.",
+        "fix": "Change line 311 from `.console-tool__field select:focus {` to `.console-tool__field select:focus-visible {` to match the pattern used in NeoButton.scss:33 and NeoCard.scss:31.",
+        "confidence": 0.95
+      },
+      {
+        "unit": "shared-components",
+        "id": "summary-element-missing-focus-visible",
+        "dimension": "a11y",
+        "severity": "medium",
+        "risk": "low",
+        "files": [
+          "/Users/jinghuiliao/git/r3e/neo-miniapps-platform/apps/shared/components-react/ConsoleToolPanel.scss:424"
+        ],
+        "problem": "The <details><summary> disclosure control (PayloadCard) has cursor:pointer and ::after pseudo-element for the expand/collapse chevron, but lacks any :focus-visible styling. Keyboard users cannot see when the summary is focused, violating WCAG 2.1 AA focus-visible requirement. This is a critical interaction element in the console result panel.",
+        "fix": "Add a :focus-visible rule after line 431: `.console-tool__payload-card > summary:focus-visible { outline: 2px solid var(--ns-violet, #16c784); outline-offset: 2px; }` to match button/card focus styling.",
+        "confidence": 0.95
+      },
+      {
+        "unit": "utils-money",
+        "id": "payment-amount-validation-missing",
+        "dimension": "stability",
+        "severity": "medium",
+        "risk": "low",
+        "files": [
+          "apps/shared/utils/wallet-sdk-composables.ts:214-232"
+        ],
+        "problem": "`payGAS()` parses the amount with `parseFloat()` and checks `Number.isFinite(parsedAmount)`, but doesn't validate that parsedAmount is positive. A user could pass amount='0' or amount='-5', which would succeed the isFinite check and proceed to the blockchain.",
+        "fix": "Add a validation check after line 221: `if (parsedAmount <= 0) { throw new MiniAppError('Amount must be positive', errorCodes.PAYMENT_INVALID_AMOUNT, ...); }`. This ensures only positive amounts proceed to the conversion step.",
+        "confidence": 0.9
+      },
+      {
+        "unit": "utils-money",
+        "id": "scaleAmount-no-gas-validation",
+        "dimension": "stability",
+        "severity": "medium",
+        "risk": "low",
+        "files": [
+          "apps/shared/services/TransferService.ts:137-149"
+        ],
+        "problem": "In `TransferService.scaleAmount()`, the function checks `Number.isFinite(parsed)` but does not check if parsed is positive or zero. A negative amount would pass through and be sent to the blockchain.",
+        "fix": "Add validation after line 144: `if (parsed < 0) throw new Error('Invalid transfer amount: must be non-negative');`.",
+        "confidence": 0.85
+      },
+      {
+        "unit": "utils-chain",
+        "id": "n3index-empty-contract-hash",
+        "dimension": "stability",
+        "severity": "medium",
+        "risk": "medium",
+        "files": [
+          "apps/shared/utils/n3index.ts:286"
+        ],
+        "problem": "waitForTransaction calls getContractEvents with empty contractHash string (\"\"). This creates an invalid API path `/indexer/v1/networks/{network}/contracts//events` with double slashes, which may cause 404 errors or incorrect routing.",
+        "fix": "Change line 286 from `const events = await getContractEvents(network, \"\", {` to either (a) accept contractHash as a parameter, (b) document that this only works for filtering by tx_hash alone, or (c) adjust the API call to omit the contractHash in the URL construction if empty.",
+        "confidence": 0.95
+      },
+      {
+        "unit": "styles",
+        "id": "hardcoded-warning-color",
+        "dimension": "ux",
+        "severity": "low",
+        "risk": "low",
+        "files": [
+          "apps/shared/styles/_playarea-base.scss:136"
+        ],
+        "problem": "Badge warning text color hardcoded to #b9791a instead of using a token variable. Violates design system consistency—all other badge colors use CSS custom properties (--ns-warning-soft, --ns-down, --ns-info). This makes the color unmaintainable and isolated from theme updates.",
+        "fix": "Add --ns-warning-strong: #b9791a; to theme-base.scss:55 (after --ns-warning), then replace _playarea-base.scss:136 from color: #b9791a; to color: var(--ns-warning-strong, #b9791a);",
+        "confidence": 1
+      },
+      {
+        "unit": "sweep-jsonparse",
+        "id": "red-envelope-unsafe-number-cast",
+        "dimension": "stability",
+        "severity": "medium",
+        "risk": "low",
+        "files": [
+          "apps/red-envelope/src/composables/useRedEnvelope.ts:236-243",
+          "apps/red-envelope/src/composables/useRedEnvelope.ts:294"
+        ],
+        "problem": "StoredEnvelope objects from external storage are cast without validation. Lines 236-243 call Number() on unvalidated storage properties (data.totalAmount, data.packetCount, etc.), which return NaN if the property contains non-numeric strings like 'abc'. Line 294 casts untrusted data 'as StoredEnvelope' without any schema validation, bypassing TypeScript type safety.",
+        "fix": "Add a validation function before mapStoredEnvelope() call. Replace line 294-296 with:\n```ts\nconst validatedEnvelope = validateStoredEnvelope(value);\nif (validatedEnvelope) {\n  allEnvelopes.push(mapStoredEnvelope(validatedEnvelope));\n}\n```\n\nAdd validator function:\n```ts\nfunction validateStoredEnvelope(data: unknown): StoredEnvelope | null {\n  if (!data || typeof data !== 'object') return null;\n  const obj = data as Record<string, unknown>;\n  const totalAmount = Number(obj.totalAmount ?? 0);\n  const packetCount = Number(obj.packetCount ?? 0);\n  const openedCount = Number(obj.openedCount ?? 0);\n  const remainingAmount = Number(obj.remainingAmount ?? 0);\n  const expiryTime = Number(obj.expiryTime ?? 0);\n  if (!Number.isFinite(totalAmount) || !Number.isFinite(packetCount) || !Number.isFinite(openedCount) || !Number.isFinite(remainingAmount) || !Number.isFinite(expiryTime)) return null;\n  return { id: String(obj.id ?? ''), creator: String(obj.creator ?? ''), totalAmount, packetCount, openedCount, remainingAmount, bestLuckAddress: obj.bestLuckAddress ? String(obj.bestLuckAddress) : undefined, bestLuckAmount: obj.bestLuckAmount ? Number(obj.bestLuckAmount) : undefined, ready: Boolean(obj.ready), expiryTime, claimedByCurrentUser: Boolean(obj.claimedByCurrentUser) };\n}\n```",
+        "confidence": 0.95
+      },
+      {
+        "unit": "sweep-jsonparse",
+        "id": "neo-treasury-unvalidated-parseInt",
+        "dimension": "stability",
+        "severity": "high",
+        "risk": "low",
+        "files": [
+          "apps/neo-treasury/src/utils/treasury.ts:150",
+          "apps/neo-treasury/src/utils/treasury.ts:152"
+        ],
+        "problem": "parseInt(b.amount) called on untrusted RPC response data without validation. If b.amount is null, undefined, or a non-numeric string, parseInt returns NaN. This corrupts the neo/gas balance calculations, causing display of 'NaN' values or causing downstream calculations to fail silently.",
+        "fix": "Replace lines 150-152 with:\n```ts\nfor (const b of result.balance ?? []) {\n  const amount = Number(b.amount ?? 0);\n  if (!Number.isFinite(amount)) continue;\n  if (b.assethash === NEO_CONTRACT) {\n    neo = amount / 1;\n  } else if (b.assethash === GAS_CONTRACT) {\n    gas = amount / 1e8;\n  }\n}\n```",
+        "confidence": 0.98
+      }
+    ]
+  }
+}

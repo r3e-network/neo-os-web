@@ -283,7 +283,7 @@
     box-shadow var(--ns-t-fast) var(--ns-ease-smooth);
 }
 
-.neodid-passport__field select:focus {
+.neodid-passport__field select:focus-visible {
   border-color: var(--ns-brand);
   box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.18);
 }

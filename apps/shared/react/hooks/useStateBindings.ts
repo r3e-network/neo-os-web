@@ -57,13 +57,15 @@ export function useStateBindings(state: ObservableState) {
   // useRef keeps the counter stable across renders so getSnapshot reliably
   // observes increments made by subscribeCombined's wrapped change handler.
   const revisionRef = useRef(0);
-  const getSnapshot = useCallback(() => {
-    // Re-read to trigger recompute; the actual values are read via accessors
-    for (const observable of Object.values(state)) {
-      observable.get();
-    }
-    return revisionRef.current;
-  }, [state]);
+  // The snapshot is purely the revision counter (compared by React with
+  // Object.is). It increments in subscribeCombined's wrapped handler whenever
+  // any observable fires — the only thing that should trigger a re-render. We
+  // deliberately do NOT re-read observables here: their values are read live
+  // via the accessor functions (str/num/bool/val) during render, so re-reading
+  // every observable in getSnapshot only recomputes every derived value on
+  // every render (and every React sync check) with no effect on the compared
+  // snapshot. Dropping the loop avoids that O(observables) waste per render.
+  const getSnapshot = useCallback(() => revisionRef.current, []);
 
   // Subscribe to changes — the subscribe callback increments our revision
   const subscribeCombined = useCallback(

@@ -160,11 +160,18 @@ export const getContractEvents = (
     limit?: number;
     offset?: number;
   },
-) =>
-  apiFetch<ContractEvent[]>(
-    `/indexer/v1/networks/${network}/contracts/${contractHash}/events`,
+) => {
+  const hash = contractHash?.trim();
+  if (!hash) {
+    // The events endpoint is contract-scoped. An empty hash would build a
+    // malformed `/contracts//events` path that 404s — fail fast instead.
+    throw new Error("getContractEvents requires a contract hash");
+  }
+  return apiFetch<ContractEvent[]>(
+    `/indexer/v1/networks/${network}/contracts/${hash}/events`,
     params as Record<string, string | number>,
   );
+};
 
 /** Token overview */
 export const getToken = (network: Network, contractHash: string) =>
@@ -278,12 +285,13 @@ export const restDailyAnalytics = (network: Network, limit = 7) =>
 export async function waitForTransaction(
   network: Network,
   txid: string,
+  contractHash: string,
   timeoutMs = 10_000,
 ): Promise<ContractEvent[] | null> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      const events = await getContractEvents(network, "", {
+      const events = await getContractEvents(network, contractHash, {
         tx_hash: txid,
         limit: 10,
       });

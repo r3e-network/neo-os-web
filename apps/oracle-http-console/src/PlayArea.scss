@@ -115,7 +115,7 @@
     box-shadow var(--ns-t-fast) var(--ns-ease-smooth);
 }
 
-.console-tool__field select:focus {
+.console-tool__field select:focus-visible {
   outline: none;
   border-color: var(--ns-brand-strong);
   box-shadow: var(--ns-focus-ring);

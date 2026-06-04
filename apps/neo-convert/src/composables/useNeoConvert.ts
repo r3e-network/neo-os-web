@@ -19,7 +19,8 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService, BalanceService, TransferService, EventBus, ClipboardService } from "@shared/services";
+import type { ChainService, BalanceService, TransferService, ClipboardService } from "@shared/services";
+import { EventBus } from "@shared/services";
 import { generateAccount } from "@/services/neo";
 import type { NeoAccount } from "@/services/neo";
 import { useConverter } from "./useConverter";
@@ -152,8 +153,11 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     syncGas();
 
     // Listen for updates via event bus
-    const unsubNeo = eventBus.on("BALANCE_CHANGED", syncNeo);
-    const unsubGas = eventBus.on("BALANCE_CHANGED", syncGas);
+    // Use the canonical event constant ("platform:balance:changed"); the bare
+    // "BALANCE_CHANGED" string never matched what BalanceService emits, so these
+    // syncs silently never fired on balance changes.
+    const unsubNeo = eventBus.on(EventBus.BALANCE_CHANGED, syncNeo);
+    const unsubGas = eventBus.on(EventBus.BALANCE_CHANGED, syncGas);
 
     balanceCleanups = [
       neoWatcher.cleanup,

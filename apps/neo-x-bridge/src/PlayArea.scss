@@ -281,7 +281,7 @@
   display: none;
 }
 
-.bridge-select-field select:focus {
+.bridge-select-field select:focus-visible {
   border-color: rgba(15, 177, 116, 0.35);
   box-shadow: 0 0 0 3px rgba(15, 177, 116, 0.12);
 }
