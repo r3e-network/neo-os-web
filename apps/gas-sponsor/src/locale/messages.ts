@@ -109,6 +109,17 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   statusPass: { en: "Check passed", zh: "检查通过" },
   statusFail: { en: "Check failed", zh: "检查未通过" },
   iconFuel: { en: "Needs fuel", zh: "需要加油" },
+  // Card titles, labels, and action buttons rendered in PlayArea
+  donate: { en: "Donate GAS", zh: "捐赠 GAS" },
+  sendGas: { en: "Send GAS", zh: "发送 GAS" },
+  donateAction: { en: "Donate", zh: "捐赠" },
+  sendAction: { en: "Send", zh: "发送" },
+  recipient: { en: "Recipient Address", zh: "接收地址" },
+  used: { en: "Used", zh: "已用" },
+  resetsAt: { en: "Resets at", zh: "重置于" },
+  // Transfer-specific failure fallbacks
+  donateFailed: { en: "Donation failed", zh: "捐赠失败" },
+  sendFailed: { en: "Send failed", zh: "发送失败" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

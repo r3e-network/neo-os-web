@@ -85,6 +85,15 @@ const DIRECTION_META: Record<
   },
 };
 
+const EVM_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/;
+const NEO_N3_ADDRESS_PATTERN = /^N[1-9A-HJ-NP-Za-km-z]{33}$/;
+
+/** Accepts an EVM address / script hash (0x + 40 hex) or a Neo N3 base58 address. */
+export function isSupportedBridgeAddress(value: unknown): boolean {
+  const text = String(value ?? "").trim();
+  return EVM_ADDRESS_PATTERN.test(text) || NEO_N3_ADDRESS_PATTERN.test(text);
+}
+
 export function normalizeDirection(value: unknown): BridgeDirection {
   const text = clean(value, "").toLowerCase();
   return text === "neox-to-n3" ||
@@ -137,6 +146,9 @@ export function buildAssetBridgeIntent(
   if (!recipient) {
     throw new Error("Recipient address is required.");
   }
+  if (!isSupportedBridgeAddress(recipient)) {
+    throw new Error("Recipient must be a Neo X (0x...) or Neo N3 (N...) address.");
+  }
 
   const digest = stableDigest(["asset", direction, asset, amount, recipient]);
   const payload = {
@@ -186,10 +198,13 @@ export function buildMessageBridgeIntent(
   const targetContract = clean(form.targetContract, "");
   const method = clean(form.method, "onCrossChainMessage");
   const payloadBody = clean(form.payload || (form as { message?: unknown }).message, "");
-  const gasLimit = clean(form.gasLimit, "250000");
+  const gasLimit = normalizeGasLimit(form.gasLimit);
 
   if (!targetContract) {
     throw new Error("Target contract is required.");
+  }
+  if (!isSupportedBridgeAddress(targetContract)) {
+    throw new Error("Target contract must be a Neo X (0x...) or Neo N3 (N...) address.");
   }
   if (!payloadBody) {
     throw new Error("Message payload is required.");
@@ -313,4 +328,16 @@ function normalizeAmount(value: unknown): string {
     throw new Error("Amount must be greater than zero.");
   }
   return amount.toFixed(8).replace(/\.?0+$/, "");
+}
+
+function normalizeGasLimit(value: unknown): string {
+  const text = clean(value, "250000");
+  if (!/^\d+$/.test(text)) {
+    throw new Error("Gas limit must be a whole number of at least 21000.");
+  }
+  const limit = Number(text);
+  if (!Number.isInteger(limit) || limit < 21000) {
+    throw new Error("Gas limit must be a whole number of at least 21000.");
+  }
+  return String(limit);
 }

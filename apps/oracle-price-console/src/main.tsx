@@ -33,7 +33,16 @@ defineMiniApp({
     if (requestedAsset) price.asset.set(requestedAsset);
 
     ctx.registerAction("fetchPrice", async () => {
-      await ctx.services.notify.guard(() => price.fetchPrice(), "priceLoaded");
+      // price.fetchPrice() never throws — it catches internally and returns
+      // { success, error }. notify.guard would therefore always show the
+      // success toast, even on RPC failure. Branch on the result instead so
+      // exactly one (correct) toast is shown.
+      const result = await price.fetchPrice();
+      if (result.success) {
+        ctx.services.notify.success("priceLoaded");
+      } else {
+        ctx.services.notify.error(result.error ?? ctx.t("fetchFailed"), "fetchFailed");
+      }
     });
 
     ctx.registerAction("updateAsset", async (val: unknown) => {

@@ -19,6 +19,14 @@ const appMessages = {
     en: "Enter at least 12 characters so the burial target is identifiable.",
     zh: "至少输入 12 个字符，确保埋葬目标可识别。",
   },
+  invalidHash: {
+    en: "Enter a valid content hash or token identifier (no spaces or special characters).",
+    zh: "请输入有效的内容哈希或 Token 标识（不含空格或特殊字符）。",
+  },
+  actionBusy: {
+    en: "Another action is still in progress. Please wait for it to finish.",
+    zh: "另一项操作仍在进行中，请等待其完成。",
+  },
   clearHash: { en: "Clear Hash", zh: "清空哈希" },
   warning: { en: "Permanent record", zh: "永久记录" },
   warningText: {

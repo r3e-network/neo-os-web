@@ -29,14 +29,21 @@ export interface UseHealthScoreReturn {
 
 /**
  * Computes wallet health score from a security checklist with persistent state.
- * Uses OS StorageProxy for persistence instead of raw localStorage.
+ *
+ * Checklist state persists synchronously via the runtime cache (safe-storage
+ * backed localStorage) under an app-namespaced key so it cannot collide with
+ * other miniapps. `storage` (the async OS StorageProxy) is accepted to keep the
+ * OS-services injection contract intact but is not used for this synchronous,
+ * device-local checklist; switching to it would require an async load/save path.
  */
 export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy): UseHealthScoreReturn {
   const { t } = createUseI18n(messages)();
   void storage;
 
   const checklistState: Record<string, boolean> = {};
-  const checklistStorageKey = "wallet_health_checklist";
+  // App-namespaced key avoids collisions with other miniapps in the shared
+  // runtime cache (which is unprefixed and explicitly for cross-app data).
+  const checklistStorageKey = "miniapp-wallet-health:checklist";
   const checklistRevision = createObservable(0);
   const notifyChecklistChanged = () => {
     checklistRevision.set(checklistRevision.get() + 1);

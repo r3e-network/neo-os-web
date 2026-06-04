@@ -52,3 +52,15 @@
   font-family: "SF Mono", "Fira Code", "Roboto Mono", monospace;
   font-variant-numeric: tabular-nums;
 }
+
+.result-card--empty {
+  text-align: center;
+}
+
+.result-empty {
+  display: block;
+  padding: 18px 14px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.85rem;
+  font-weight: 600;
+}

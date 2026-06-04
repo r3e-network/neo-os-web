@@ -6,7 +6,7 @@ import {
   Copy,
   ExternalLink,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
@@ -30,9 +30,27 @@ const DIRECTION_OPTIONS: Array<{ value: DirectionValue; label: string }> = [
   { value: "neox-to-n3", label: "Neo X -> Neo N3" },
 ];
 
+const STRICT_DECIMAL = /^\d+(\.\d+)?$/;
+const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const NEO_N3_ADDRESS = /^N[1-9A-HJ-NP-Za-km-z]{33}$/;
+
 function isPositiveAmount(value: string) {
-  const amount = Number(value);
+  const text = value.trim();
+  if (!STRICT_DECIMAL.test(text)) return false;
+  const amount = Number(text);
   return Number.isFinite(amount) && amount > 0;
+}
+
+function parseGasLimit(value: string): number | null {
+  const text = value.trim();
+  if (!/^\d+$/.test(text)) return null;
+  const limit = Number(text);
+  return Number.isInteger(limit) ? limit : null;
+}
+
+function isSupportedAddress(value: string) {
+  const text = value.trim();
+  return EVM_ADDRESS.test(text) || NEO_N3_ADDRESS.test(text);
 }
 
 function normalizeWorkspaceDirection(value: unknown): DirectionValue {
@@ -90,15 +108,49 @@ export default function PlayArea({
 
   const assetAmountInvalid =
     assetAmount.trim().length > 0 && !isPositiveAmount(assetAmount);
+  const assetRecipientInvalid =
+    assetRecipient.trim().length > 0 && !isSupportedAddress(assetRecipient);
+  const parsedGasLimit = parseGasLimit(gasLimit);
   const gasLimitInvalid =
-    gasLimit.trim().length > 0 && Number(gasLimit) < 21000;
+    gasLimit.trim().length > 0 &&
+    (parsedGasLimit === null || parsedGasLimit < 21000);
+  const targetContractInvalid =
+    targetContract.trim().length > 0 && !isSupportedAddress(targetContract);
   const canPrepareAsset =
-    isPositiveAmount(assetAmount) && assetRecipient.trim().length > 0;
+    isPositiveAmount(assetAmount) && isSupportedAddress(assetRecipient);
   const canPrepareMessage =
-    targetContract.trim().length > 0 &&
+    isSupportedAddress(targetContract) &&
     messagePayload.trim().length > 0 &&
-    !gasLimitInvalid;
+    parsedGasLimit !== null &&
+    parsedGasLimit >= 21000;
   const canTrack = operationId.trim().length > 0 || sourceTx.trim().length > 0;
+
+  const runWorkspaceAction = useCallback(
+    async (
+      mode: WorkspaceMode,
+      action: () => Promise<void>,
+      doneMessage: string,
+    ) => {
+      setPendingMode(mode);
+      setActionError("");
+      setActionNotice("");
+      try {
+        await action();
+        setActionNotice(doneMessage);
+        setStatus(doneMessage, "success");
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Bridge handoff could not be prepared.";
+        setActionError(message);
+        setStatus(message, "error");
+      } finally {
+        setPendingMode(null);
+      }
+    },
+    [setStatus],
+  );
 
   useEffect(() => {
     const operation = String(launchContext?.operation || "");
@@ -116,7 +168,7 @@ export default function PlayArea({
       setAssetDirection(direction);
       setAssetAmount(nextAmount);
       setAssetRecipient(nextRecipient);
-      if (isPositiveAmount(nextAmount) && nextRecipient) {
+      if (isPositiveAmount(nextAmount) && isSupportedAddress(nextRecipient)) {
         handledLaunchRef.current = signature;
         void runWorkspaceAction(
           "asset",
@@ -146,7 +198,13 @@ export default function PlayArea({
       setTargetMethod(nextMethod || "onCrossChainMessage");
       setMessagePayload(nextPayload);
       setGasLimit(nextGasLimit);
-      if (nextTarget && nextPayload && Number(nextGasLimit) >= 21000) {
+      const nextGasParsed = parseGasLimit(nextGasLimit);
+      if (
+        isSupportedAddress(nextTarget) &&
+        nextPayload &&
+        nextGasParsed !== null &&
+        nextGasParsed >= 21000
+      ) {
         handledLaunchRef.current = signature;
         void runWorkspaceAction(
           "message",
@@ -191,40 +249,21 @@ export default function PlayArea({
         );
       }
     }
-  }, [dispatch, launchContext?.operation, launchContext?.params, launchContext?.signature]);
+  }, [
+    dispatch,
+    runWorkspaceAction,
+    launchContext?.operation,
+    launchContext?.params,
+    launchContext?.signature,
+  ]);
 
   async function copyPayload() {
     await services.clipboard.copy(payload, "copiedPayload");
   }
 
-  async function runWorkspaceAction(
-    mode: WorkspaceMode,
-    action: () => Promise<void>,
-    doneMessage: string,
-  ) {
-    setPendingMode(mode);
-    setActionError("");
-    setActionNotice("");
-    try {
-      await action();
-      setActionNotice(doneMessage);
-      setStatus(doneMessage, "success");
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Bridge handoff could not be prepared.";
-      setActionError(message);
-      setStatus(message, "error");
-    } finally {
-      setPendingMode(null);
-    }
-  }
-
   async function prepareAssetBridge() {
     if (!canPrepareAsset) {
-      const message =
-        "Enter a positive GAS amount and destination address before preparing the bridge handoff.";
+      const message = t("errAssetForm");
       setActionError(message);
       setStatus(message, "error");
       return;
@@ -244,8 +283,7 @@ export default function PlayArea({
 
   async function prepareMessageBridge() {
     if (!canPrepareMessage) {
-      const message =
-        "Enter a target contract, payload, and gas limit of at least 21000.";
+      const message = t("errMessageForm");
       setActionError(message);
       setStatus(message, "error");
       return;
@@ -266,7 +304,7 @@ export default function PlayArea({
 
   async function refreshTracking() {
     if (!canTrack) {
-      const message = "Enter an operation id or source transaction to refresh tracking.";
+      const message = t("errTrackForm");
       setActionError(message);
       setStatus(message, "error");
       return;
@@ -381,7 +419,7 @@ export default function PlayArea({
               placeholder="0.1"
               suffix="GAS"
               value={assetAmount}
-              error={assetAmountInvalid ? "Enter an amount greater than zero." : ""}
+              error={assetAmountInvalid ? t("errAmountPositive") : ""}
               onChange={setAssetAmount}
             />
             <div className="bridge-amount-presets" aria-label="GAS amount presets">
@@ -402,6 +440,7 @@ export default function PlayArea({
               label="Destination address"
               placeholder="Neo N3 or Neo X address"
               value={assetRecipient}
+              error={assetRecipientInvalid ? t("errAddressFormat") : ""}
               onChange={setAssetRecipient}
               className="bridge-field-wide"
             />
@@ -445,6 +484,7 @@ export default function PlayArea({
               label="Target contract"
               placeholder="0x... or Neo script hash"
               value={targetContract}
+              error={targetContractInvalid ? t("errAddressFormat") : ""}
               onChange={setTargetContract}
             />
             <NeoInput
@@ -458,7 +498,7 @@ export default function PlayArea({
               label="Gas limit"
               placeholder="250000"
               value={gasLimit}
-              error={gasLimitInvalid ? "Gas limit must be at least 21000." : ""}
+              error={gasLimitInvalid ? t("errGasLimit") : ""}
               onChange={setGasLimit}
             />
             <NeoInput

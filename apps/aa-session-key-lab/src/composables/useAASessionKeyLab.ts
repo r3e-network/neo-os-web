@@ -219,10 +219,13 @@ export function useAASessionKeyLab({
     subscribe: (fn) => sponsorState.subscribe(fn),
   };
 
+  // Delegate to the live AA flag so host bindings re-render on toggle. A no-op
+  // subscribe here would leave the sponsorship spinner stuck on after the
+  // request completes, because the finally(false) would never notify React.
   const isCheckingSponsorship: Observable<boolean> = {
     get: () => aa.isCheckingSponsorship.get(),
     set: () => {},
-    subscribe: () => () => {},
+    subscribe: (fn) => aa.isCheckingSponsorship.subscribe(fn),
   };
 
   // Detail items for display

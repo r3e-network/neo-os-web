@@ -51,6 +51,10 @@ const appMessages = {
     en: "Enter an AA address before checking or requesting sponsorship.",
     zh: "先填写 AA 地址，才能检查或请求赞助。",
   },
+  sponsorAmountInvalid: {
+    en: "Enter a positive GAS amount (e.g. 0.1) before requesting sponsorship.",
+    zh: "请求赞助前请输入正数 GAS 额度（例如 0.1）。",
+  },
   relayBlocked: {
     en: "Enter an AA address and keep the payload JSON valid before submitting.",
     zh: "提交前需填写 AA 地址，并保持 payload JSON 有效。",

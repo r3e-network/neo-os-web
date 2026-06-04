@@ -7,8 +7,9 @@
  *
  * Receives ChainService + BalanceService + EventBus from PlatformServices
  * and StorageProxy from OS services. Chain reads against NEO/GAS native
- * contracts stay on ChainService (external). Checklist persistence uses
- * OS storage instead of raw localStorage.
+ * contracts stay on ChainService (external). Checklist persistence is
+ * synchronous and device-local via the runtime cache under an app-namespaced
+ * key (see useHealthScore); StorageProxy is wired through for API parity.
  */
 
 import { createDerived } from "@shared/react/context";
@@ -71,6 +72,7 @@ export function useWalletHealth({ chain, balance, eventBus, storage, targetNetwo
     // From useWalletAnalysis
     address: analysis.address,
     isRefreshing: analysis.isRefreshing,
+    isConnecting: analysis.isConnecting,
     neoDisplay: analysis.neoDisplay,
     gasDisplay: analysis.gasDisplay,
     refreshBalances: analysis.refreshBalances,

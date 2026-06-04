@@ -108,6 +108,9 @@ export function useAARelayConsole({
 
   async function checkSponsor() {
     try {
+      // Clear any prior relay result so the inline card reflects this fresh
+      // sponsor action instead of a stale relay payload (relay takes precedence).
+      lastRelayResult.set(null);
       aa.setAddress(aaAddress.get() || null);
       sponsorResult.set(await aa.checkSponsorship(sponsorScope()));
       eventBus.emit("sponsor:checked", sponsorScope());
@@ -121,6 +124,9 @@ export function useAARelayConsole({
 
   async function requestSponsor() {
     try {
+      // Clear any prior relay result so the inline card reflects this fresh
+      // sponsor action instead of a stale relay payload (relay takes precedence).
+      lastRelayResult.set(null);
       aa.setAddress(aaAddress.get() || null);
       sponsorResult.set(
         await aa.requestSponsorship(sponsorAmount.get() || "0.1", sponsorScope()),

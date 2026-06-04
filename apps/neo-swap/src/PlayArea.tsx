@@ -123,6 +123,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 className="neo-swap-amount-input"
                 value={fromAmount}
                 type="number"
+                min={0}
                 placeholder={t("enterAmount") || "0.00"}
                 onChange={(val) => { void dispatch("setFromAmount", val); }}
               />

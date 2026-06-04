@@ -71,6 +71,16 @@ interface StoredStats {
 const BURY_FEE_GAS = 0.1;
 const BURY_FEE_FIXED8 = BURY_FEE_GAS * 1e8;
 
+/**
+ * The burial target is an encrypted content hash or token identifier that is
+ * forwarded to the OS NFT service as a tokenId. The contract/edge function is
+ * the real enforcement boundary, but we reject obviously-malformed input here
+ * so a user never spends the burial fee on a target containing whitespace or
+ * control characters that can never be a valid hash/token id. Length is already
+ * gated in the view (>= 12 chars); this guards only the character set.
+ */
+const VALID_BURIAL_TARGET = /^[\x21-\x7e]+$/;
+
 // ============================================================================
 // Composable
 // ============================================================================
@@ -131,11 +141,18 @@ export function useGraveyard({
    */
   const executeDestroy = async () => {
     showConfirm.set(false);
-    if (isDestroying.get()) return;
+    // In-flight guard: throw (not silent return) so the host surfaces a busy
+    // message instead of a misleading success toast for the dropped click.
+    if (isDestroying.get()) throw new Error(t("actionBusy"));
     const currentHash = assetHash.get().trim();
     if (!currentHash) {
       triggerMissingHash();
       throw new Error(t("enterAssetHash"));
+    }
+    // Reject obviously-malformed targets (whitespace/control chars) before the
+    // paid burn so the fee is not spent on a target the chain will reject.
+    if (!VALID_BURIAL_TARGET.test(currentHash)) {
+      throw new Error(t("invalidHash"));
     }
     isDestroying.set(true);
 
@@ -250,7 +267,12 @@ export function useGraveyard({
    * The edge function handles the GAS fee transfer + ForgetMemory contract call.
    */
   const forgetMemory = async (item: HistoryItem) => {
-    if (!item.id || item.forgotten || forgettingId.get()) return;
+    // Legitimate no-ops: nothing to forget. Return silently (no toast).
+    if (!item.id || item.forgotten) return;
+    // Busy case: a forget is already in flight. Throw so the host surfaces a
+    // busy message instead of a misleading "forgotten" success toast — only
+    // the in-flight row shows a spinner, so other rows look broken otherwise.
+    if (forgettingId.get()) throw new Error(t("actionBusy"));
 
     forgettingId.set(item.id);
     try {

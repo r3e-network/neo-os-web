@@ -33,7 +33,6 @@ defineMiniApp({
     ctx.registerAction("issueCertificate", (form: unknown) =>
       ctx.services.notify.guard(() => soulbound.issueCertificate(form as never)),
     );
-    ctx.registerAction("openIssueModal", async (template: unknown) => { soulbound.openIssueModal(template); });
     ctx.registerAction("toggleTemplate", (template: unknown) =>
       ctx.services.notify.guard(() => soulbound.toggleTemplate(template)),
     );
@@ -57,6 +56,7 @@ defineMiniApp({
         // Bind the live wallet observable so the connect prompt reacts.
         address: ctx.services.chain.address,
         isRefreshing: soulbound.isRefreshing,
+        isConnecting: soulbound.isConnecting,
         isCreatingTemplate: soulbound.isCreatingTemplate,
         isIssuing: soulbound.isIssuing,
         isVerifying: soulbound.isVerifying,

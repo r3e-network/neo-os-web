@@ -66,6 +66,14 @@ const appMessages = {
   notUnlocked: { en: "Capsule is still locked", zh: "胶囊仍处于锁定状态" },
   notUnlockedYet: { en: "Not unlocked yet", zh: "尚未到解锁时间" },
   invalidLockDuration: { en: "Lock duration must be between 1 and 3650 days.", zh: "锁定时长需在 1 到 3650 天之间。" },
+  createRolledBack: {
+    en: "Capsule could not be saved; the escrow was refunded. Please try again.",
+    zh: "胶囊保存失败，托管资金已退回。请重试。",
+  },
+  createRecoverable: {
+    en: "Capsule was not saved and the escrow ({escrowId}) could not be refunded automatically. Your funds are recoverable—please contact support to release escrow {escrowId}.",
+    zh: "胶囊未能保存，且托管资金（{escrowId}）无法自动退回。您的资金可恢复，请联系支持以释放托管 {escrowId}。",
+  },
   message: { en: "Message:", zh: "消息：" },
   tabCapsules: { en: "Capsules", zh: "胶囊" },
   tabCreate: { en: "Create", zh: "创建" },

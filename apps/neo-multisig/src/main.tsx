@@ -98,6 +98,9 @@ defineMiniApp({
     const totalTxs = createDerived(() => history.get().length, [history]);
     const lastRequest = createObservable<MultisigRequest | null>(null);
     const selectedRequest = createObservable<MultisigRequest | null>(null);
+    // Connected wallet address, mirrored so the view can tell whether the
+    // current signer has already approved the selected request.
+    const connectedAddress = createObservable<string>("");
     const isCreatingRequest = createObservable(false);
     const isLoadingRequest = createObservable(false);
     const isSigningRequest = createObservable(false);
@@ -105,19 +108,37 @@ defineMiniApp({
 
     loadHistory();
 
+    // Keep the connected-wallet address observable in sync with the chain
+    // service so the Sign affordance can reflect who is connected.
+    const syncConnectedAddress = () => {
+      connectedAddress.set(chain.address?.get?.() ?? "");
+    };
+    syncConnectedAddress();
+    chain.address?.subscribe?.(syncConnectedAddress);
+
     // Rebuild history from the shared index so requests created on other
     // devices show up in the activity feed (client-derived state).
     const syncHistoryFromStorage = async () => {
       try {
         const requests = await api.list();
         for (const request of requests) {
-          addToHistory({
-            id: request.id,
-            scriptHash: request.script_hash,
-            status: request.status,
-            createdAt: request.created_at,
-          });
-          updateHistoryItem(request.id, { status: request.status });
+          // addToHistory writes when the item is new; updateHistoryItem writes
+          // when an existing item's status changed. Inserting then immediately
+          // updating the same item caused two serialize+persist passes per new
+          // request — guard so each request triggers at most one write.
+          const existing = history.get().find((h) => h.id === request.id);
+          if (existing) {
+            if (existing.status !== request.status) {
+              updateHistoryItem(request.id, { status: request.status });
+            }
+          } else {
+            addToHistory({
+              id: request.id,
+              scriptHash: request.script_hash,
+              status: request.status,
+              createdAt: request.created_at,
+            });
+          }
         }
       } catch {
         // Storage may be unavailable (e.g. offline); keep local history.
@@ -381,6 +402,7 @@ defineMiniApp({
         totalTxs,
         lastRequest,
         selectedRequest,
+        connectedAddress,
         isCreatingRequest,
         isLoadingRequest,
         isSigningRequest,

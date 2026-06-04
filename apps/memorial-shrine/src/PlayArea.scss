@@ -212,9 +212,11 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 
 /* ── Detail card ── */
 .detail-card { margin-bottom: 4px; }
-.detail-header { margin-bottom: 12px; }
+.detail-header { position: relative; margin-bottom: 12px; padding-right: 132px; }
 .detail-name { display: block; font-size: 20px; font-weight: 800; letter-spacing: -0.01em; color: var(--ns-ink, #1e1e2e); }
 .detail-years { display: block; font-size: 13px; color: var(--ns-text-muted, #8a92a6); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.detail-actions { position: absolute; top: 0; right: 0; display: flex; gap: 8px; }
+.detail-action { padding: 6px 12px; font-size: 13px; }
 .detail-bio { font-size: 14px; color: var(--ns-text-2, #5b6478); line-height: 1.6; margin-bottom: 16px; }
 
 .tribute-form { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06)); }

@@ -68,6 +68,7 @@ defineMiniApp({
         isLoading: loan.isLoading,
         isBorrowing: loan.isBorrowing,
         isRepaying: loan.isRepaying,
+        isAddingCollateral: loan.isAddingCollateral,
         isConnected: loan.isConnected,
         selectedLtvPercent: loan.selectedLtvPercent,
         healthFactor: loan.healthFactor,

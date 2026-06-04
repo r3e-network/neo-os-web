@@ -37,6 +37,14 @@ const appMessages = {
   milestoneSumMismatch: { en: "Milestone sum must equal total", zh: "里程碑总和需等于总金额" },
   milestoneLimit: { en: "Milestones must be between 1 and 12", zh: "里程碑数量需在 1 到 12 之间" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
+  depositRefunded: {
+    en: "Escrow creation failed — your deposit was refunded",
+    zh: "托管创建失败——您的押金已退回",
+  },
+  depositRecoveryNeeded: {
+    en: "Escrow creation failed and the automatic refund did not complete. Your funds are held in your escrow payment balance and can be reclaimed via withdraw.",
+    zh: "托管创建失败且自动退款未完成。您的资金保留在托管支付余额中，可通过提现取回。",
+  },
 
   createdByYou: { en: "Created by you", zh: "我创建的" },
   forYou: { en: "For you", zh: "我受益的" },

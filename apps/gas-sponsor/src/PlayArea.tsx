@@ -91,11 +91,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <div className="quota-details">
             <span className="quota-text">
-              <span className="quota-text-label">{t("used") || "Used"}</span>
+              <span className="quota-text-label">{t("used")}</span>
               <span className="quota-text-value">{usedQuota} / {dailyLimit}</span>
             </span>
             <span className="quota-reset">
-              <span className="quota-reset-label">{t("resetsAt") || "Resets at"}</span>
+              <span className="quota-reset-label">{t("resetsAt")}</span>
               <span className="quota-reset-value">{resetTime && resetTime !== "N/A" ? resetTime : "—"}</span>
             </span>
           </div>
@@ -103,7 +103,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </NeoCard>
 
       {/* Donate */}
-      <NeoCard title={t("donate") || "Donate GAS"}>
+      <NeoCard title={t("donate")}>
         <div className="donate-form">
           <p className="form-hint">{t("donateSubtitle")}</p>
           <NeoInput
@@ -118,21 +118,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             block
             loading={isDonating}
             disabled={loading}
-            aria-label={t("donateAction") || "Donate"}
+            aria-label={t("donateAction")}
             onClick={() => dispatch("donate", donateAmount)}
           >
-            {isDonating ? t("donating") || "Donating..." : t("donateAction") || "Donate"}
+            {isDonating ? t("donating") : t("donateAction")}
           </NeoButton>
         </div>
       </NeoCard>
 
       {/* Send GAS */}
-      <NeoCard title={t("sendGas") || "Send GAS"}>
+      <NeoCard title={t("sendGas")}>
         <div className="send-form">
           <p className="form-hint">{t("sendSubtitle")}</p>
           <NeoInput
             value={recipientAddress}
-            label={t("recipient") || "Recipient Address"}
+            label={t("recipient")}
             placeholder={t("recipientPlaceholder") || "N..."}
             onChange={(val) => state.recipientAddress?.set(val)}
           />
@@ -148,10 +148,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             block
             loading={isSending}
             disabled={loading || !recipientAddress}
-            aria-label={t("sendAction") || "Send"}
+            aria-label={t("sendAction")}
             onClick={() => dispatch("send", recipientAddress, sendAmount)}
           >
-            {isSending ? t("sending") || "Sending..." : t("sendAction") || "Send"}
+            {isSending ? t("sending") : t("sendAction")}
           </NeoButton>
         </div>
       </NeoCard>

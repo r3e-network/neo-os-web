@@ -158,17 +158,42 @@ export function useGovMercPool({ paymentService, storageService, t }: UseGovMerc
 
   const placeBid = async () => {
     if (isBusy.get()) return;
-    const amount = parseFloat(bidAmount.get());
+    const amountStr = bidAmount.get();
+    const amount = parseFloat(amountStr);
     if (!(amount > 0)) throw new Error(t("enterAmount"));
     try {
       isProcessing.set(true);
-      await paymentService.deposit(bidAmount.get(), `govmerc:bid:${currentEpoch.get()}`);
-      if (!isMounted) return;
-      await storageService.set(`bid:${currentEpoch.get()}:${address.get()}`, {
-        address: address.get(),
-        amount: bidAmount.get(),
-        epoch: currentEpoch.get(),
-      });
+      // Step 1 moves real GAS into the payment vault.
+      await paymentService.deposit(amountStr, `govmerc:bid:${currentEpoch.get()}`);
+      // Step 2 records the bid. If it fails the GAS is already debited, so
+      // compensate by refunding the deposit before re-throwing. Do NOT early-
+      // return on unmount here: the GAS has already moved and the record must
+      // be written (or rolled back) regardless of mount state.
+      try {
+        await storageService.set(`bid:${currentEpoch.get()}:${address.get()}`, {
+          address: address.get(),
+          amount: amountStr,
+          epoch: currentEpoch.get(),
+        });
+      } catch (recordErr) {
+        try {
+          await paymentService.withdraw(amountStr);
+        } catch (refundErr) {
+          console.warn(
+            "[useGovMercPool] placeBid: GAS refund failed after bid record error:",
+            refundErr instanceof Error ? refundErr.message : String(refundErr),
+          );
+          // Refund failed too: the GAS is recoverable manually via the payment
+          // balance. Tell the user explicitly so they know funds are safe.
+          throw new Error(t("bidRecoverable"));
+        }
+        // Refund succeeded — surface a distinct, actionable error.
+        console.warn(
+          "[useGovMercPool] placeBid: bid record failed, GAS refunded:",
+          recordErr instanceof Error ? recordErr.message : String(recordErr),
+        );
+        throw new Error(t("bidRefunded"));
+      }
       bidAmount.set("");
       await loadData();
     } finally {

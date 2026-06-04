@@ -218,6 +218,17 @@
   line-height: 1.4;
 }
 
+.private-transfer__memo-count {
+  display: block;
+  margin-top: 6px;
+  text-align: right;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
 .private-transfer__presets {
   display: flex;
   flex-wrap: wrap;

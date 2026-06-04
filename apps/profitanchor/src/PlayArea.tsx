@@ -55,10 +55,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
   const lastTxid = str("lastTxid");
+  const submitting = val<boolean>("submitting", false) ?? false;
   const [amountInput, setAmountInput] = useState("1");
   const [localError, setLocalError] = useState("");
   const [busyAction, setBusyAction] = useState("");
-  const agentTotal = agentCount || 21;
+  // Before stats load `stats` is null -> show 21 candidate slots as a placeholder.
+  // Once stats are loaded, a genuine on-chain 0 must render as 0, not be masked.
+  const agentTotal = stats ? agentCount : 21;
   const routeStatus = stats?.selectedAgentId ? t("routeSelected") : t("routeAwaiting");
   const amountIsValid = useMemo(() => isWholeNeo(amountInput), [amountInput]);
   const normalizedAmount = useMemo(
@@ -70,7 +73,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : t("amountNeedsWholeNeo");
   const isError = Boolean(localError || lastError);
   const statusText = localError || lastError || workflowStatus;
-  const isBusy = Boolean(busyAction);
+  // Reflect the shared in-flight lock so PlayArea buttons disable while a
+  // submission started from the operation panel is still in flight.
+  const isBusy = Boolean(busyAction) || submitting;
   // Wallet-effect preview: what the next transaction will actually do, surfaced
   // before the wallet prompt opens (stake path, AA route, claim plan).
   const stakeMemo = "stake:miniapp-profitanchor";

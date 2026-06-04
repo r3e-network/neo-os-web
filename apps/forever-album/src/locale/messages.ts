@@ -57,6 +57,14 @@ const appMessages = {
   maxPhotosReached: { en: "You already selected the max photos.", zh: "已选择最大数量。" },
   passwordRequired: { en: "Password required for encryption.", zh: "加密需要密码。" },
   encryptedTooLarge: { en: "Encrypted data exceeds size limit.", zh: "加密后数据超过大小限制。" },
+  uploadRolledBack: {
+    en: "Upload failed and was rolled back, so none of your {total} photos were saved. Your selection is kept — sign again to retry.",
+    zh: "上传失败并已回滚，{total} 张照片均未保存。已保留你的选择——再次签名即可重试。",
+  },
+  uploadPartialRecoverable: {
+    en: "Upload failed after {done} of {total} photos and automatic cleanup did not complete. Refresh your album to check which photos were saved before retrying.",
+    zh: "已上传 {total} 张中的 {done} 张后失败，且自动清理未完成。请刷新相册确认已保存的照片后再重试。",
+  },
   missingContract: { en: "Contract address not configured.", zh: "合约地址未配置。" },
   loadFailed: { en: "Failed to load album.", zh: "加载相册失败。" },
   loading: { en: "Loading album...", zh: "正在加载相册..." },

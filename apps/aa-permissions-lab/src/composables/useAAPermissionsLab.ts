@@ -46,9 +46,33 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
     return String(value);
   };
 
+  // 20-byte script hash, optional 0x prefix (e.g. 0x + 40 hex chars).
+  // The prefix group must be (0x)? — `0x?` would mean "literal 0, optional x"
+  // and reject a bare un-prefixed 40-hex hash (which normalizeScriptHash accepts).
+  const SCRIPT_HASH_RE = /^(0x)?[0-9a-fA-F]{40}$/;
+  // Even-length hex byte string, optional 0x prefix (empty payload allowed).
+  const HEX_BYTES_RE = /^(0x)?([0-9a-fA-F]{2})*$/;
+
+  const requireScriptHash = (raw: string) => {
+    const value = String(raw ?? "").trim();
+    if (!SCRIPT_HASH_RE.test(value)) {
+      throw new Error(t("invalidHash"));
+    }
+    return value;
+  };
+
+  const requireHexBytes = (raw: string) => {
+    const value = String(raw ?? "").trim();
+    if (!HEX_BYTES_RE.test(value)) {
+      throw new Error(t("invalidParams"));
+    }
+    return value;
+  };
+
   const refreshState = async () => {
     try {
       isRefreshing.set(true);
+      requireScriptHash(form.accountIdHash);
       const accountId = normalizeScriptHash(form.accountIdHash).replace(/^0x/, "");
       const [verifier, hook, backup] = await Promise.all([
         chain.read("getVerifier", [{ type: "Hash160", value: `0x${accountId}` }], { scriptHash: aaCore }),
@@ -77,6 +101,9 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
   const submitVerifier = async () => {
     try {
       isVerifierBusy.set(true);
+      requireScriptHash(form.accountIdHash);
+      requireScriptHash(form.verifierHash);
+      requireHexBytes(form.verifierParamsHex);
       await chain.invoke("updateVerifier", [
         { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
         { type: "Hash160", value: normalizeScriptHash(form.verifierHash) },
@@ -93,6 +120,8 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
   const submitHook = async () => {
     try {
       isHookBusy.set(true);
+      requireScriptHash(form.accountIdHash);
+      requireScriptHash(form.hookHash);
       await chain.invoke("updateHook", [
         { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
         { type: "Hash160", value: normalizeScriptHash(form.hookHash) },

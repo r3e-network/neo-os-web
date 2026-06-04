@@ -62,7 +62,13 @@ const appMessages = {
   maxBetError: { en: "Maximum bet is {max} {tokenGas}", zh: "最高下注 {max} {tokenGas}" },
   invalidAmountDecimals: { en: "Maximum 8 decimal places", zh: "最多8位小数" },
   gameErrorFallback: { en: "Something went wrong", zh: "出现错误" },
-  wagerRange: { en: "0.1 - 100", zh: "0.1 - 100" },
+  wagerRange: { en: "0.05 - 100", zh: "0.05 - 100" },
+  customBet: { en: "Custom Bet Amount", zh: "自定义下注金额" },
+  betAmount: { en: "Bet amount", zh: "下注金额" },
+  depositStranded: {
+    en: "Deposit succeeded but the bet failed — withdraw from your balance to recover the GAS",
+    zh: "下注资金已存入但投注失败 — 请从余额中提取以取回 GAS",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

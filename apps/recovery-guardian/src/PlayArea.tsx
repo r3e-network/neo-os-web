@@ -24,7 +24,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool } = useStateBindings(state);
 
   const hasPayload = bool("hasPayload");
-  const isLoading = bool("isLoading");
   const isQuerying = bool("isQuerying");
   const renderedPayload = str("renderedPayload", t("notAvailable") || "—");
 
@@ -48,7 +47,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const verifierReady = isOptionalHash160(verifierHashOverride);
   const canQueryState = accountReady && !isQuerying;
   const canPrepareRecovery =
-    accountReady && ownerReady && expiryReady && verifierReady && !isLoading;
+    accountReady && ownerReady && expiryReady && verifierReady;
   const accountDisplay = accountAddress.trim() || "—";
   const expiryDisplay = expiryReady ? recoveryExpiryMinutes : "—";
 

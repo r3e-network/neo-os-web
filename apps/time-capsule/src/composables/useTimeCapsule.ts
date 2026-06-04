@@ -83,6 +83,8 @@ export interface Capsule {
    * the same target cannot be re-fished and re-charged with no effect.
    */
   fished: boolean;
+  /** Capsule category (1-5, see CATEGORY_OPTIONS), surfaced as a badge. */
+  category: number;
 }
 
 export interface CapsuleFormData {
@@ -127,6 +129,8 @@ interface StoredCapsule {
   amount?: string;
   /** True once the capsule has been fished (discovery fee paid). */
   fished?: boolean;
+  /** Capsule category (1-5, see CATEGORY_OPTIONS). */
+  category?: number;
 }
 
 /**
@@ -269,6 +273,13 @@ export function useTimeCapsule({
     const escrowId = String(data.escrowId || data.id || "");
     const amount = String(data.amount || CAPSULE_CREATE_AMOUNT);
     const fished = Boolean(data.fished);
+    // Read category back so the persisted selection is surfaced in the UI
+    // (it was previously write-only). Use ?? so a real 0 is not masked, and
+    // fall back to the default category (1 = Personal) for legacy records.
+    const category =
+      Number.isFinite(Number(data.category)) && data.category !== undefined
+        ? Number(data.category)
+        : 1;
 
     return {
       id: String(data.id),
@@ -283,6 +294,7 @@ export function useTimeCapsule({
       escrowId,
       amount,
       fished,
+      category,
     } as Capsule;
   };
 
@@ -379,11 +391,35 @@ export function useTimeCapsule({
         owner: "",
         escrowId: escrowId || capsuleId,
         amount: CAPSULE_CREATE_AMOUNT,
-      };
-      await storageService.set(`${CAPSULE_INDEX_PREFIX}${capsuleId}`, {
-        ...record,
         category,
-      });
+      };
+      // Compensation: the escrow (0.2 GAS) already exists on-chain. If the
+      // index write fails the capsule is orphaned — loadCapsules() rebuilds the
+      // list purely from this index, so an escrow with no index entry can never
+      // be opened (openCapsule needs cap.escrowId) and its funds are stranded.
+      // On a failed index write, refund the escrow before re-throwing so no
+      // funds are locked. Only attempt the refund when a REAL kernel escrow id
+      // was returned (a deterministic local id has no on-chain escrow to undo).
+      try {
+        await storageService.set(`${CAPSULE_INDEX_PREFIX}${capsuleId}`, record);
+      } catch (writeErr) {
+        if (escrowId) {
+          try {
+            await escrowService.refund(escrowId);
+          } catch {
+            // The inverse also failed: the escrow exists with no index entry
+            // and could not be refunded automatically. Surface a distinct
+            // recoverable message so the user knows the funds need manual
+            // recovery rather than silently losing them.
+            throw new Error(t("createRecoverable", { escrowId }));
+          }
+        }
+        // Index write failed but the escrow was rolled back (or never had a
+        // real on-chain id): no orphaned funds remain. Surface the failure.
+        throw writeErr instanceof Error
+          ? new Error(`${t("createRolledBack")} ${writeErr.message}`)
+          : new Error(t("createRolledBack"));
+      }
 
       eventBus.emit("capsule:created", { action: t("capsuleCreated") });
       newCapsule.set({ title: "", content: "", days: "30", isPublic: false, category: 1 });
@@ -410,7 +446,13 @@ export function useTimeCapsule({
    * revealed state survives reloads.
    */
   const openCapsule = async (cap: Capsule) => {
-    if (cap.locked) {
+    // Recompute lock status live rather than trusting cap.locked, which was
+    // computed once in buildCapsuleFromStored at load time. loadAll only runs
+    // on mount / wallet reconnect (there is no timer), so a capsule whose
+    // unlock instant passed while the app stayed open would still carry a stale
+    // locked=true. PlayArea decides Open-button visibility with the same live
+    // Date.now() check, so this keeps the guard consistent with the UI.
+    if (!cap.revealed && Date.now() < cap.unlockTime) {
       eventBus.emit("capsule:error", { message: t("notUnlocked") });
       return;
     }
@@ -434,6 +476,7 @@ export function useTimeCapsule({
           escrowId,
           amount: cap.amount,
           fished: cap.fished,
+          category: cap.category,
         } satisfies StoredCapsule).catch(() => {});
       }
 
@@ -509,6 +552,7 @@ export function useTimeCapsule({
         escrowId: candidate.escrowId || candidate.id,
         amount: candidate.amount,
         fished: true,
+        category: candidate.category,
       } satisfies StoredCapsule).catch(() => {});
 
       eventBus.emit("capsule:fished", {

@@ -169,6 +169,15 @@ const appMessages = {
   badgePending: { en: "Pending", zh: "待签名" },
   buttonSign: { en: "Sign Transaction", zh: "签名交易" },
   buttonSigning: { en: "Signing...", zh: "签名中..." },
+  buttonSigned: { en: "Already Signed", zh: "已签名" },
+  multisigAlreadySigned: {
+    en: "Your wallet has already approved this request.",
+    zh: "当前钱包已批准此请求。",
+  },
+  multisigNotSignerHint: {
+    en: "Your connected wallet is not on this request's signer list.",
+    zh: "当前连接的钱包不在此请求的签名人列表中。",
+  },
   buttonBroadcast: { en: "Broadcast to Network", zh: "广播到链上" },
   buttonBroadcasting: { en: "Broadcasting...", zh: "广播中..." },
   broadcastedTitle: { en: "Broadcasted", zh: "广播成功" },

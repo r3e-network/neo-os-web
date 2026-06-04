@@ -71,10 +71,22 @@ defineMiniApp({
       [anchor.stats],
     );
     const agentCount = createDerived(
-      () => anchor.stats.get()?.agentCount || agentAccounts.length,
+      () => {
+        const count = anchor.stats.get()?.agentCount;
+        return Number.isFinite(count) && (count as number) > 0
+          ? (count as number)
+          : agentAccounts.length;
+      },
       [anchor.stats],
     );
-    const ingressCount = createObservable(21);
+    const pendingWithdrawDisplay = createDerived(
+      () => `${formatNum(anchor.pendingWithdraw.get())} ${ctx.t("tokenNeo")}`,
+      [anchor.pendingWithdraw],
+    );
+    const rewardPerNeoDisplay = createDerived(() => {
+      const rps = Number(anchor.stats.get()?.rps ?? 0);
+      return Number.isFinite(rps) ? formatNum(rps) : formatNum(0);
+    }, [anchor.stats]);
     const recordAction = (item: Omit<AnchorActionHistoryItem, "at">) => {
       actionHistory.set([
         { ...item, at: new Date().toISOString() },
@@ -168,10 +180,11 @@ defineMiniApp({
         agentAccounts: createObservable(agentAccounts),
         myStakeDisplay,
         pendingRewardsDisplay,
+        pendingWithdrawDisplay,
         totalNeoDisplay,
         rewardReserveDisplay,
+        rewardPerNeoDisplay,
         agentCount,
-        ingressCount,
         workflowStatus,
         lastTxid,
         lastError,

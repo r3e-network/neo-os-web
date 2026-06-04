@@ -24,23 +24,19 @@ export interface UseWalletAnalysisOptions {
 }
 
 export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnalysisOptions) {
+  // `balance` (BalanceService) is intentionally part of the OS-services injection
+  // contract; balance reads route through chain.read against the native NEO/GAS
+  // contracts, so it is not referenced directly here.
+  void balance;
+
   const isRefreshing = createObservable(false);
+  const isConnecting = createObservable(false);
   const balanceRevision = createObservable(0);
 
   const balances = {
     neo: 0n,
     gas: 0n,
   };
-
-  const isUnsupported = createDerived(() => false, []);
-  const chainLabel = createDerived(() => {
-    if (!chain.address.get()) return t("statusUnknown");
-    return t("statusNeo");
-  }, []);
-  const chainVariant = createDerived(() => {
-    if (!chain.address.get()) return "warning";
-    return "accent";
-  }, []);
 
   const gasOk = createDerived(() => balances.gas >= GAS_LOW_THRESHOLD, [balanceRevision]);
   const neoDisplay = createDerived(() => balances.neo.toString(), [balanceRevision]);
@@ -53,16 +49,22 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
 
     try {
       isRefreshing.set(true);
-      balances.neo = parseBigInt(await chain.read(
-        "balanceOf",
-        [{ type: "Hash160", value: address }],
-        { scriptHash: NEO_HASH },
-      ));
-      balances.gas = parseBigInt(await chain.read(
-        "balanceOf",
-        [{ type: "Hash160", value: address }],
-        { scriptHash: GAS_HASH },
-      ));
+      // NEO and GAS reads are independent (same address, different scriptHash);
+      // run them concurrently to roughly halve refresh latency on slow RPC.
+      const [neoRaw, gasRaw] = await Promise.all([
+        chain.read(
+          "balanceOf",
+          [{ type: "Hash160", value: address }],
+          { scriptHash: NEO_HASH },
+        ),
+        chain.read(
+          "balanceOf",
+          [{ type: "Hash160", value: address }],
+          { scriptHash: GAS_HASH },
+        ),
+      ]);
+      balances.neo = parseBigInt(neoRaw);
+      balances.gas = parseBigInt(gasRaw);
       balanceRevision.set(balanceRevision.get() + 1);
       eventBus.emit("balances:refreshed", { neo: balances.neo, gas: balances.gas });
     } catch (e) {
@@ -79,7 +81,14 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
   };
 
   const connectWallet = async () => {
+    // In-flight guard: ensureWallet() opens a wallet prompt and leaves the
+    // address null while pending, so isConnected stays false and the button
+    // remains clickable. Gate entry before the first await to stop repeated
+    // taps from triggering concurrent ensureWallet() calls / duplicate popups.
+    if (isConnecting.get()) return;
+
     try {
+      isConnecting.set(true);
       await chain.ensureWallet();
       if (chain.address.get()) {
         await refreshBalances();
@@ -91,16 +100,16 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
       // Re-throw so the registerActions wrapper surfaces the failure via
       // ctx.setStatus (wallet:error has no subscriber).
       throw e instanceof Error ? e : new Error(t("walletNotConnected"));
+    } finally {
+      isConnecting.set(false);
     }
   };
 
   return {
     address: chain.address,
     isRefreshing,
+    isConnecting,
     balances,
-    isUnsupported,
-    chainLabel,
-    chainVariant,
     gasOk,
     neoDisplay,
     gasDisplay,

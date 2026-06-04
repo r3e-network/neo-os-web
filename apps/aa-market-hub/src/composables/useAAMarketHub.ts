@@ -47,6 +47,8 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   const newBackupOwner = createObservable("");
   const selectedListingId = createObservable("");
   const listings = createObservable<MarketListing[]>([]);
+  const totalOnChainListings = createObservable(0);
+  const listingsTruncated = createObservable(false);
   const isLoading = createObservable(false);
   const isSubmitting = createObservable(false);
   const isWalletConnecting = createObservable(false);
@@ -124,9 +126,40 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
 
   // Display values
   const totalListingsDisplay: Observable<number> = {
-    get: () => listings.get().length,
+    get: () => {
+      const total = totalOnChainListings.get();
+      return total > 0 ? total : listings.get().length;
+    },
     set: () => {},
-    subscribe: (fn) => listings.subscribe(fn),
+    subscribe: (fn) => {
+      const u1 = listings.subscribe(fn);
+      const u2 = totalOnChainListings.subscribe(fn);
+      return () => {
+        u1();
+        u2();
+      };
+    },
+  };
+
+  const listingsTruncatedNotice: Observable<string> = {
+    get: () => {
+      if (!listingsTruncated.get()) return "";
+      return t("listingsTruncatedNotice", {
+        shown: listings.get().length,
+        total: totalOnChainListings.get(),
+      });
+    },
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = listings.subscribe(fn);
+      const u2 = listingsTruncated.subscribe(fn);
+      const u3 = totalOnChainListings.subscribe(fn);
+      return () => {
+        u1();
+        u2();
+        u3();
+      };
+    },
   };
 
   const activeListingsDisplay: Observable<number> = {
@@ -212,13 +245,14 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
         throw new Error(t("marketHashRequired"));
       }
       isLoading.set(true);
-      listings.set(
-        await listAddressListings(
-          wallet,
-          marketHash.get(),
-          walletAddress.get(),
-        ),
+      const result = await listAddressListings(
+        wallet,
+        marketHash.get(),
+        walletAddress.get(),
       );
+      listings.set(result.listings);
+      totalOnChainListings.set(result.total);
+      listingsTruncated.set(result.truncated);
       const currentListings = listings.get();
       const firstListing = currentListings[0];
 
@@ -382,6 +416,8 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
     newBackupOwner,
     selectedListingId,
     listings,
+    totalOnChainListings,
+    listingsTruncated,
     isLoading,
     isSubmitting,
     isWalletConnecting,
@@ -392,6 +428,7 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
     canManageSelectedListing,
     canBuySelectedListing,
     totalListingsDisplay,
+    listingsTruncatedNotice,
     activeListingsDisplay,
     marketHashDisplay,
     walletDisplay,

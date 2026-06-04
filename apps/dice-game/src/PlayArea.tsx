@@ -50,7 +50,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const payoutPreview = str("payoutPreview", "0.57 GAS");
   const lastTxid = str("lastTxid");
   const lastStatus = str("lastStatus", t("statusReady"));
-  const isSubmitting = bool("isSubmitting", false);
+  const isSubmitting = bool("isSubmitting");
   const rollHistory = val<RollHistoryItem[]>("rollHistory", []) ?? [];
   const [faceInput, setFaceInput] = useState(selectedFace);
   const [amountInput, setAmountInput] = useState(amountFromStake(stakeAmount));

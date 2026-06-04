@@ -16,6 +16,34 @@ const LISTING_STATUS: Record<number, string> = {
   3: "cancelled",
 };
 
+// Cap the number of listings fetched/rendered per load to avoid flooding the
+// RPC with hundreds of concurrent reads and mounting an unbounded DOM list.
+export const MAX_LISTINGS = 200;
+// Number of concurrent reads per batch when fanning out per-listing fetches.
+const READ_CHUNK_SIZE = 20;
+
+async function runChunked<T, R>(
+  items: T[],
+  size: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let start = 0; start < items.length; start += size) {
+    const slice = items.slice(start, start + size);
+    const settled = await Promise.all(
+      slice.map((item, offset) => worker(item, start + offset)),
+    );
+    results.push(...settled);
+  }
+  return results;
+}
+
+export interface ListAddressListingsResult {
+  listings: MarketListing[];
+  total: number;
+  truncated: boolean;
+}
+
 export interface MarketListing {
   id: string;
   aaContractHash: string;
@@ -298,7 +326,7 @@ export async function listAddressListings(
   wallet: WalletSDK,
   marketHash: string,
   currentAddress?: string | null,
-): Promise<MarketListing[]> {
+): Promise<ListAddressListingsResult> {
   const countResult = await invokeMarketRead(
     wallet,
     marketHash,
@@ -306,16 +334,23 @@ export async function listAddressListings(
   );
   const count = Number(decodeInteger(countResult?.stack?.[0]));
   if (!Number.isFinite(count) || count <= 0) {
-    return [];
+    return { listings: [], total: 0, truncated: false };
   }
 
-  const reads = Array.from({ length: count }, (_, index) =>
+  // Cap the work and fetch the most recent listings (highest ids) so the cap
+  // does not silently hide newer entries behind older ones.
+  const fetchCount = Math.min(count, MAX_LISTINGS);
+  const truncated = count > fetchCount;
+  const startId = count - fetchCount + 1;
+  const ids = Array.from({ length: fetchCount }, (_, index) => startId + index);
+
+  const reads = await runChunked(ids, READ_CHUNK_SIZE, (listingId) =>
     invokeMarketRead(wallet, marketHash, "getListing", [
-      { type: "Integer", value: String(index + 1) },
+      { type: "Integer", value: String(listingId) },
     ]).catch((e: unknown) => {
       console.warn(
-        "[aa-market] getListing failed at index",
-        index,
+        "[aa-market] getListing failed at id",
+        listingId,
         ":",
         e instanceof Error ? e.message : String(e),
       );
@@ -323,7 +358,7 @@ export async function listAddressListings(
     }),
   );
 
-  const decoded = (await Promise.all(reads))
+  const decoded = reads
     .map((result) => (result ? decodeListing(result) : null))
     .filter(
       (
@@ -333,34 +368,50 @@ export async function listAddressListings(
     );
 
   if (!currentAddress) {
-    return decoded
-      .map((listing) => ({ ...listing, myPendingPayment: "0", isMine: false }))
-      .sort((left, right) => Number(right.id) - Number(left.id));
+    return {
+      listings: decoded
+        .map((listing) => ({
+          ...listing,
+          myPendingPayment: "0",
+          isMine: false,
+        }))
+        .sort((left, right) => Number(right.id) - Number(left.id)),
+      total: count,
+      truncated,
+    };
   }
 
-  const pendingPayments = await Promise.all(
-    decoded.map((listing) =>
-      getPendingPaymentOf(wallet, marketHash, listing.id, currentAddress).catch(
-        (e: unknown) => {
-          console.warn(
-            "[aa-market] getPendingPaymentOf failed for listing",
-            listing.id,
-            ":",
-            e instanceof Error ? e.message : String(e),
-          );
-          return "0";
-        },
-      ),
-    ),
+  const pendingPayments = await runChunked(
+    decoded,
+    READ_CHUNK_SIZE,
+    (listing) =>
+      getPendingPaymentOf(
+        wallet,
+        marketHash,
+        listing.id,
+        currentAddress,
+      ).catch((e: unknown) => {
+        console.warn(
+          "[aa-market] getPendingPaymentOf failed for listing",
+          listing.id,
+          ":",
+          e instanceof Error ? e.message : String(e),
+        );
+        return "0";
+      }),
   );
 
-  return decoded
-    .map((listing, index) => ({
-      ...listing,
-      myPendingPayment: pendingPayments[index] || "0",
-      isMine: ownerMatchesAddress(listing.seller, currentAddress),
-    }))
-    .sort((left, right) => Number(right.id) - Number(left.id));
+  return {
+    listings: decoded
+      .map((listing, index) => ({
+        ...listing,
+        myPendingPayment: pendingPayments[index] || "0",
+        isMine: ownerMatchesAddress(listing.seller, currentAddress),
+      }))
+      .sort((left, right) => Number(right.id) - Number(left.id)),
+    total: count,
+    truncated,
+  };
 }
 
 function buildEscrowCreationSigner(

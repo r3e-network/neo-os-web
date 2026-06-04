@@ -329,7 +329,15 @@ export function useLastSurvivor({
         });
       }
 
-      history.set(items.sort((a, b) => Number(b.id) - Number(a.id)));
+      // Sort newest-first by numeric id. Winner entries use string ids
+      // (`winner-${idx}`) which are non-numeric, so coerce any non-finite
+      // id to a stable sentinel to avoid NaN comparisons that produce
+      // engine-dependent, arbitrary ordering.
+      const sortKey = (id: string | number): number => {
+        const n = Number(id);
+        return Number.isFinite(n) ? n : 0;
+      };
+      history.set(items.sort((a, b) => sortKey(b.id) - sortKey(a.id)));
     } catch (e) {
       if (!isOsBoundaryError(e)) {
         console.warn("[useLastSurvivor] loadHistory failed:", errorMessage(e));
@@ -390,8 +398,27 @@ export function useLastSurvivor({
       // Step 1: Deposit GAS via PaymentProxy
       await paymentService.deposit(costGas, `buy:${roundId.get()}:${numKeys}`);
 
-      // Step 2: Place bet (buy keys) via GameProxy
-      await gameService.placeBet("current", String(numKeys));
+      // Step 2: Place bet (buy keys) via GameProxy.
+      // The deposit in Step 1 has already transferred GAS on-chain. If
+      // placeBet fails (round rolled over, edge/network error, validation)
+      // the GAS would be stranded with no keys registered, so we compensate
+      // by withdrawing the deposit before re-throwing. If the withdraw also
+      // fails, surface a distinct manual-recovery error instead of the raw
+      // placeBet error.
+      try {
+        await gameService.placeBet("current", String(numKeys));
+      } catch (placeBetErr) {
+        try {
+          await paymentService.withdraw(costGas);
+        } catch (refundErr) {
+          console.error(
+            "[useLastSurvivor] buyKeys: GAS withdraw failed after placeBet error",
+            errorMessage(refundErr),
+          );
+          throw new Error(t("keyPurchaseRecoveryNeeded"));
+        }
+        throw new Error(t("keyPurchaseRefunded"));
+      }
 
       // Step 3: Hint badge service about first-key achievement (fire-and-forget)
       if (userKeys.get() === 0) {
