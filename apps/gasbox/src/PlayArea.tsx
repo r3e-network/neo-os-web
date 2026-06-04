@@ -66,7 +66,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isLoading = bool("isLoading");
   const isPulling = bool("isPulling");
   const isCreating = bool("isCreating");
-  const isPlayingDisplay = bool("isPlayingDisplay");
   const machineCount = num("machineCount");
   const userPulls = num("userPulls");
   const totalPulls = num("totalPulls");
@@ -144,6 +143,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const dismissResult = () => {
     setShowResult(false);
+    void dispatch("resetResult");
   };
 
   const updateStudioItem = (index: number, patch: Partial<StudioItem>) => {
@@ -676,7 +676,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {(showResult || isPlayingDisplay) && pullResult && (
+      {showResult && pullResult && (
         <div className="gasbox-result-overlay" onClick={dismissResult} role="dialog" aria-modal="true">
           <div className="gasbox-result-content" onClick={(e) => e.stopPropagation()}>
             <span className={`gasbox-result-rarity ${rarityClass(pullResult.rarity)}`}>

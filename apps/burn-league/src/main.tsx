@@ -33,6 +33,7 @@ defineMiniApp({
       leaderboardService: ctx.os.leaderboard,
       badgeService: ctx.os.badge,
       t: ctx.t,
+      getAddress: () => ctx.services.chain.address.get(),
     });
 
     const launchAmount = normalizeLaunchAmount(

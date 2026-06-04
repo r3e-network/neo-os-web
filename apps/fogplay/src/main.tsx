@@ -40,7 +40,7 @@ defineMiniApp({
 
     ctx.registerAction("setBetAmount", async (amount: unknown) => {
       if (typeof amount === "string") {
-        coinFlip.betAmount.set(amount);
+        coinFlip.setBetAmount(amount);
       }
     });
 

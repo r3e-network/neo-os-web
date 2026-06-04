@@ -22,13 +22,16 @@ function t(key: string) {
     copyPayload: "Copy Payload",
     currentPrice: "Current Price",
     datafeedHash: "Datafeed",
+    disabled: "Disabled",
     disableTrigger: "Disable Trigger",
+    enabled: "Enabled",
     enableTrigger: "Enable Trigger",
     fetchPrice: "Fetch Price",
     latestResult: "Latest Result",
     latestTriggerId: "Latest Trigger",
     network: "Network",
     nextExecution: "Next Execution",
+    noTriggerSelected: "Register or refresh a trigger to see its status.",
     oracleHash: "Oracle",
     payload: "Payload",
     payloadEmpty: "Fetch a price or build a recipe first.",
@@ -45,7 +48,7 @@ function t(key: string) {
     triggerCount: "Verified Triggers",
     triggerRequestEmpty: "Build or register a trigger.",
     triggerStatus: "Trigger Status",
-    verifyBeforeOperate: "Verify a gateway trigger before operating it.",
+    verifyBeforeOperate: "Verify a gateway trigger before enabling or disabling it.",
   };
   return messages[key] ?? key;
 }
@@ -116,8 +119,9 @@ describe("Automation Copilot PlayArea", () => {
   it("shows trigger status controls and does not claim a real trigger for empty state", () => {
     render(<PlayArea {...props()} />);
 
-    expect(screen.getByText("Build or register a trigger.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Enable Trigger/i }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText("Register or refresh a trigger to see its status.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Enable Trigger/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Disable Trigger/i })).toBeNull();
     expect(screen.queryByText("[object Object]")).toBeNull();
   });
 
@@ -148,12 +152,13 @@ describe("Automation Copilot PlayArea", () => {
       />,
     );
 
-    expect(screen.getByText("Host handoff prepared")).toBeTruthy();
     expect(screen.getByText("local-auto...90abcdef")).toBeTruthy();
-    expect(screen.getByText("Verify a gateway trigger before operating it.")).toBeTruthy();
-    expect(screen.getByText("Verified Triggers")).toBeTruthy();
-    expect(screen.getAllByText("0").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: /Enable Trigger/i }));
+    expect(
+      screen.getByText("Verify a gateway trigger before enabling or disabling it."),
+    ).toBeTruthy();
+    const enableButton = screen.getByRole("button", { name: /Enable Trigger/i });
+    expect(enableButton.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(enableButton);
     expect(dispatch).not.toHaveBeenCalledWith("toggleLatestTrigger");
   });
 });

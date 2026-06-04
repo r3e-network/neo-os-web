@@ -109,6 +109,15 @@ const appMessages = {
   repayLoan: { en: "Repay Loan", zh: "还款" },
   repaying: { en: "Repaying...", zh: "还款中..." },
   repaySuccess: { en: "Loan repaid successfully", zh: "还款成功" },
+  collateralRefunded: {
+    en: "Loan setup failed — your NEO collateral was refunded",
+    zh: "贷款创建失败——您的 NEO 抵押品已退回",
+  },
+  collateralRecoveryNeeded: {
+    en: "Loan setup failed and the automatic refund did not complete. Please contact support to recover your NEO collateral.",
+    zh: "贷款创建失败且自动退款未完成。请联系客服以找回您的 NEO 抵押品。",
+  },
+  collateralReleased: { en: "Collateral released", zh: "抵押品已释放" },
   neoCollateral: { en: "NEO Collateral", zh: "NEO 抵押品" },
   sidebarHasLoan: { en: "Has Loan", zh: "有贷款" },
   sidebarYes: { en: "Yes", zh: "是" },

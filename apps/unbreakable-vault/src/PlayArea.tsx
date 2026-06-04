@@ -75,6 +75,28 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
     }
   };
 
+  const handleLoadVault = async (id?: unknown) => {
+    try {
+      await dispatch("loadVault", id);
+    } catch (error) {
+      setStatus?.(
+        error instanceof Error ? error.message : t("loadFailed"),
+        "error",
+      );
+    }
+  };
+
+  const handleAttemptBreak = async () => {
+    try {
+      await dispatch("attemptBreak");
+    } catch (error) {
+      setStatus?.(
+        error instanceof Error ? error.message : t("vaultAttemptFailed"),
+        "error",
+      );
+    }
+  };
+
   return (
     <div className="vault-play-area">
       <VaultHero t={t} />
@@ -169,7 +191,7 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
             variant="secondary"
             size="sm"
             disabled={!vaultIdInput || isLoading}
-            onClick={() => dispatch("loadVault", vaultIdInput)}
+            onClick={() => handleLoadVault(vaultIdInput)}
           >
             {t("loadVault") || "Load Vault"}
           </NeoButton>
@@ -195,7 +217,7 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
             loading={isLoading}
             disabled={!canAttempt}
             aria-label={t("attemptBreak") || "Attempt Break"}
-            onClick={() => dispatch("attemptBreak")}
+            onClick={handleAttemptBreak}
           >
             {t("attemptBreak") || "Attempt Break"}
           </NeoButton>
@@ -219,10 +241,10 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
                 <div
                   key={String(vault.id)}
                   className="vault-list-item"
-                  onClick={() => dispatch("loadVault", vault.id)}
+                  onClick={() => handleLoadVault(vault.id)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter") dispatch("loadVault", vault.id); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleLoadVault(vault.id); }}
                 >
                   <span className="vault-id">#{String(vault.id)}</span>
                   <span className="vault-status">{String(vault.status ?? "active")}</span>
@@ -243,10 +265,10 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
               <div
                 key={String(vault.id)}
                 className="vault-list-item"
-                onClick={() => dispatch("loadVault", vault.id)}
+                onClick={() => handleLoadVault(vault.id)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter") dispatch("loadVault", vault.id); }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleLoadVault(vault.id); }}
               >
                 <span className="vault-id">#{String(vault.id)}</span>
                 <span className="vault-status">{String(vault.status ?? "active")}</span>

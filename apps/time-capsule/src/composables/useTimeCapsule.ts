@@ -77,6 +77,12 @@ export interface Capsule {
   escrowId: string;
   /** Escrow amount (decimal GAS string) backing this capsule. */
   amount: string;
+  /**
+   * True once this public capsule has been fished (discovery fee paid).
+   * Fished capsules are excluded from fishCapsule()'s candidate selection so
+   * the same target cannot be re-fished and re-charged with no effect.
+   */
+  fished: boolean;
 }
 
 export interface CapsuleFormData {
@@ -119,6 +125,8 @@ interface StoredCapsule {
   escrowId?: string;
   /** Escrow amount (decimal GAS string) backing this capsule. */
   amount?: string;
+  /** True once the capsule has been fished (discovery fee paid). */
+  fished?: boolean;
 }
 
 /**
@@ -260,6 +268,7 @@ export function useTimeCapsule({
     const content = contentHash ? localContent.get()[contentHash] : "";
     const escrowId = String(data.escrowId || data.id || "");
     const amount = String(data.amount || CAPSULE_CREATE_AMOUNT);
+    const fished = Boolean(data.fished);
 
     return {
       id: String(data.id),
@@ -273,6 +282,7 @@ export function useTimeCapsule({
       content,
       escrowId,
       amount,
+      fished,
     } as Capsule;
   };
 
@@ -423,6 +433,7 @@ export function useTimeCapsule({
           owner: "",
           escrowId,
           amount: cap.amount,
+          fished: cap.fished,
         } satisfies StoredCapsule).catch(() => {});
       }
 
@@ -456,18 +467,25 @@ export function useTimeCapsule({
    * transfers a positive GAS amount with a memo.
    *
    * Candidate selection is derived client-side from the os-storage capsule
-   * index (a public, unrevealed capsule — the only kind that can be fished).
-   * If none exists we report fishNone without charging the fee.
+   * index (a public, unrevealed, not-yet-fished capsule — the only kind that
+   * can be fished). If none exists we report fishNone without charging the fee.
+   *
+   * On a successful fee deposit the candidate's index record is marked
+   * `fished` via storageService.set, so the same target is excluded on the
+   * next reload. Without this, os-storage-list (scoped only by appId, with no
+   * per-owner filter) would return the identical public+unrevealed capsule on
+   * every reload, letting the 0.05 GAS fee be charged repeatedly for no effect.
    */
   const fishCapsule = async () => {
     if (isBusy.get()) return;
 
     isProcessing.set(true);
     try {
-      // Find a fishable candidate from the index: public + unrevealed.
+      // Find a fishable candidate from the index: public, unrevealed, and not
+      // already fished (a fished capsule has had its discovery fee paid).
       const candidate = capsules
         .get()
-        .find((c) => c.isPublic && !c.revealed);
+        .find((c) => c.isPublic && !c.revealed && !c.fished);
 
       if (!candidate) {
         eventBus.emit("capsule:fished", { message: t("fishNone") });
@@ -476,6 +494,22 @@ export function useTimeCapsule({
 
       // Pay the fishing fee via os-payment deposit (positive amount + memo).
       await paymentService.deposit(FISH_FEE_AMOUNT, `fish:${candidate.id}`);
+
+      // Mark the candidate fished in the os-storage index so it is no longer
+      // re-selectable. This is the real state change the fee pays for; without
+      // it the same target would be fished and charged on every reload.
+      await storageService.set(`${CAPSULE_INDEX_PREFIX}${candidate.id}`, {
+        id: candidate.id,
+        title: candidate.title,
+        contentHash: candidate.contentHash,
+        unlockTime: candidate.unlockTime,
+        isPublic: candidate.isPublic,
+        isRevealed: candidate.revealed,
+        owner: "",
+        escrowId: candidate.escrowId || candidate.id,
+        amount: candidate.amount,
+        fished: true,
+      } satisfies StoredCapsule).catch(() => {});
 
       eventBus.emit("capsule:fished", {
         message: t("fishResult", { id: candidate.id }),

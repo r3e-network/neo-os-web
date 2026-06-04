@@ -25,6 +25,7 @@ export interface Developer {
 
 export interface RecentTip {
   id: string;
+  tipperName: string;
   to: string;
   amount: string;
   time: string;
@@ -108,9 +109,12 @@ export function useDevTippingStats({ storage, t }: UseDevTippingStatsOptions) {
         const devId = toNumber(tip.devId ?? 0);
         const amount = parseGas(tip.amount ?? 0);
         const to = devMap.get(devId) || t("defaultDevName", { id: devId });
+        const anonymous = tip.anonymous === true || tip.anonymous === "true";
+        const tipperName = anonymous ? "" : String(tip.tipper ?? "").trim();
 
         return {
           id: String(tip.id ?? key),
+          tipperName,
           to,
           amount: amount.toFixed(2),
           time: new Intl.DateTimeFormat(undefined).format(new Date((tip.created_at as string) || Date.now())),

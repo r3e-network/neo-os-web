@@ -434,8 +434,9 @@ export function useGasBox({
     const machine = selectedMachine.get();
     if (!machine || isPlaying.get()) return;
     if (!machine.active || !machine.inventoryReady) {
-      playError.set(t("inventoryUnavailable"));
-      return;
+      const msg = t("inventoryUnavailable");
+      playError.set(msg);
+      throw new Error(msg);
     }
 
     try {
@@ -513,7 +514,11 @@ export function useGasBox({
 
       await loadMachines();
     } catch (e) {
+      // Surface the failure to the caller so the host's notify.guard reports
+      // the real error and suppresses the false success toast. The deposit may
+      // have already settled on chain, so the play must not be reported as ok.
       playError.set(e instanceof Error ? e.message : t("error"));
+      throw e;
     } finally {
       isPlaying.set(false);
     }

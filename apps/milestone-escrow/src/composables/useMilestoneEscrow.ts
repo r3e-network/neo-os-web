@@ -386,26 +386,47 @@ export function useMilestoneEscrow({
     }
 
     const decimals = data.asset === "NEO" ? 0 : 8;
+    // milestoneEntries carry HUMAN-DECIMAL amount strings — the OS edge
+    // functions (os-payment-deposit / os-escrow-create) scale by 10^decimals
+    // themselves, so the client must pass the user's decimal value, NOT
+    // pre-scaled base units (scaling here would 10^8x-overpay on every create).
     const milestoneEntries: Array<{ name: string; amount: string }> = [];
+    // Base-unit amount strings, kept ONLY for the local os-storage index /
+    // display (escrowItemFromMeta parses these via parseBigInt). Never sent to
+    // the proxies.
+    const milestoneBaseUnits: string[] = [];
+    // totalAmount is the base-unit bigint sum, used only for the local
+    // os-storage index and display (formatAmount/formatGas) — never sent to
+    // the proxies.
     let totalAmount = 0n;
+    let totalHuman = 0;
 
     for (const milestone of data.milestones) {
       const raw = String(milestone.amount || "").trim();
       if (!raw || (decimals === 0 && raw.includes("."))) {
         throw new Error(t("invalidAmount"));
       }
+      const human = parseFloat(raw);
+      if (!Number.isFinite(human) || human <= 0) {
+        throw new Error(t("invalidAmount"));
+      }
       const multiplier = decimals === 8 ? 1e8 : 1;
-      const amount = BigInt(Math.round(parseFloat(raw) * multiplier));
+      const amount = BigInt(Math.round(human * multiplier));
       if (amount <= 0n) {
         throw new Error(t("invalidAmount"));
       }
-      milestoneEntries.push({ name: `milestone-${milestoneEntries.length}`, amount: amount.toString() });
+      milestoneEntries.push({ name: `milestone-${milestoneEntries.length}`, amount: raw });
+      milestoneBaseUnits.push(amount.toString());
       totalAmount += amount;
+      totalHuman += human;
     }
 
     if (totalAmount <= 0n) {
       throw new Error(t("invalidAmount"));
     }
+
+    // Human-decimal total string for the proxy calls (deposit + create).
+    const totalAmountHuman = decimals === 0 ? String(Math.round(totalHuman)) : String(totalHuman);
 
     const creatorAddr = address.get();
     const beneficiaryAddr = data.beneficiary.trim();
@@ -413,16 +434,16 @@ export function useMilestoneEscrow({
 
     isCreating.set(true);
     try {
-      // Step 1: Fund the escrow via PaymentProxy
+      // Step 1: Fund the escrow via PaymentProxy (human-decimal amount).
       await paymentService.deposit(
-        totalAmount.toString(),
+        totalAmountHuman,
         `escrow:create:${data.name.trim().slice(0, 60)}`,
       );
 
-      // Step 2: Create the escrow via EscrowProxy
+      // Step 2: Create the escrow via EscrowProxy (human-decimal amounts).
       await escrowService.create({
         beneficiary: beneficiaryAddr,
-        amount: totalAmount.toString(),
+        amount: totalAmountHuman,
         milestones: milestoneEntries,
       });
 
@@ -437,7 +458,7 @@ export function useMilestoneEscrow({
         beneficiary: beneficiaryAddr,
         assetSymbol,
         totalAmount: totalAmount.toString(),
-        milestoneAmounts: milestoneEntries.map((m) => m.amount),
+        milestoneAmounts: milestoneBaseUnits,
         title: data.name.trim(),
         notes: data.notes,
         status: "active",

@@ -34,6 +34,14 @@ defineMiniApp({
 
     const { notify } = ctx.services;
 
+    const refresh = async () => {
+      await stats.loadDevelopers();
+      await stats.loadRecentTips();
+      developerCount.set(stats.developers.get().length);
+      totalDonatedDisplay.set(`${stats.formatNum(stats.totalDonated.get())} GAS`);
+      recentTipCount.set(stats.recentTips.get().length);
+    };
+
     ctx.registerAction("sendTip", async (...args: unknown[]) => {
       const devId = args[0] as number;
       const amount = args[1] as string;
@@ -41,7 +49,7 @@ defineMiniApp({
       const tipperName = args[3] as string;
       const anonymous = args[4] as boolean;
       await notify.guard(
-        () => wallet.sendTip(devId, amount, message, tipperName, anonymous),
+        () => wallet.sendTip(devId, amount, message, tipperName, anonymous, () => void refresh()),
         "tipSent",
       );
     });
@@ -61,13 +69,7 @@ defineMiniApp({
         totalDonatedDisplay,
         recentTipCount,
       }),
-      loadData: async () => {
-        await stats.loadDevelopers();
-        await stats.loadRecentTips();
-        developerCount.set(stats.developers.get().length);
-        totalDonatedDisplay.set(`${stats.formatNum(stats.totalDonated.get())} GAS`);
-        recentTipCount.set(stats.recentTips.get().length);
-      },
+      loadData: refresh,
     };
   },
 });

@@ -35,15 +35,22 @@ defineMiniApp({
     });
 
     ctx.registerAction("loadVault", async (vaultId: unknown) => {
-      if (vaultId) {
-        await breaker.selectVault(String(vaultId));
-      } else {
-        await breaker.loadVault();
+      const result = vaultId
+        ? await breaker.selectVault(String(vaultId))
+        : await breaker.loadVault();
+      if (result?.error) {
+        ctx.setStatus(result.error, "error");
       }
     });
 
     ctx.registerAction("attemptBreak", async () => {
-      await breaker.attemptBreak();
+      const result = await breaker.attemptBreak();
+      if (!result) return; // guard not satisfied — no attempt was made
+      if (result.success) {
+        ctx.setStatus(t("broken"), "success");
+      } else {
+        ctx.setStatus(t("vaultAttemptFailed"), "warning");
+      }
     });
 
     ctx.registerAction("createVault", async (form: unknown) => {

@@ -48,6 +48,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     refreshProjects,
     registerProject,
     canClaimProject,
+    claimableProjectIds,
     claimProject,
     projectStatusLabel,
     projectStatusClass,
@@ -174,6 +175,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     isRefreshingProjects,
     claimingProjectId,
     canClaimProject,
+    claimableProjectIds,
     projectStatusLabel,
     projectStatusClass,
     // Contributions

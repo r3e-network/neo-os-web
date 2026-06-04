@@ -84,6 +84,23 @@ function walletPhotoPrefix(walletAddress: string): string {
   return `photos:${walletAddress}:`;
 }
 
+/**
+ * Estimate the stored payload length the chain check will measure for a single
+ * item. When `encrypted` is false the data-URL is written verbatim, so the
+ * length is the data-URL length. When encrypted it is wrapped by
+ * encryptPayload() into an AES-GCM JSON envelope, which inflates the base64
+ * ciphertext (~4/3) and adds a fixed wrapper (JSON keys + salt + iv). Mirroring
+ * that growth here keeps the upload meter and gate in agreement with
+ * uploadPhotos()'s `payload.length` checks.
+ */
+function estimatePayloadBytes(dataUrlLength: number, encrypted: boolean): number {
+  if (!encrypted) return dataUrlLength;
+  // AES-GCM ciphertext = plaintext bytes + 16-byte auth tag, base64-encoded.
+  const dataB64 = Math.ceil((dataUrlLength + 16) / 3) * 4;
+  // Fixed JSON wrapper (51) + salt base64 (24) + iv base64 (16) = 91 chars.
+  return dataB64 + 91;
+}
+
 function normalizeStoredPhoto(value: unknown): StoredPhoto | null {
   let raw = value;
   if (typeof raw === "string") {
@@ -171,9 +188,25 @@ export function useForeverAlbum({
     subscribe: (listener) => photos.subscribe(listener),
   };
   const totalPayloadSize: Observable = {
-    get: () => selectedImages.get().reduce((sum, item) => sum + item.size, 0),
+    get: () => {
+      const encrypted = isEncrypted.get();
+      return selectedImages
+        .get()
+        .reduce(
+          (sum, item) =>
+            sum + estimatePayloadBytes(item.payloadBytes, encrypted),
+          0,
+        );
+    },
     set: () => {},
-    subscribe: (listener) => selectedImages.subscribe(listener),
+    subscribe: (listener) => {
+      const off1 = selectedImages.subscribe(listener);
+      const off2 = isEncrypted.subscribe(listener);
+      return () => {
+        off1();
+        off2();
+      };
+    },
   };
 
   // ── Photo loading (via StorageProxy) ────────────────────────────────
@@ -318,16 +351,20 @@ export function useForeverAlbum({
     const additions: UploadItem[] = [];
     for (const file of list.slice(0, availableSlots)) {
       if (!file.type.startsWith("image/")) continue;
-      if (file.size > MAX_PHOTO_BYTES) {
-        eventBus.emit("album:error", { message: t("imageTooLarge") });
-        continue;
-      }
       try {
         const dataUrl = await readFileAsDataUrl(file);
+        // The chain check measures the stored data-URL length, not raw file
+        // bytes, so guard against the same quantity to avoid accepting an image
+        // that would throw at sign time.
+        if (dataUrl.length > MAX_PHOTO_BYTES) {
+          eventBus.emit("album:error", { message: t("imageTooLarge") });
+          continue;
+        }
         additions.push({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           dataUrl,
           size: file.size,
+          payloadBytes: dataUrl.length,
         });
       } catch (e) {
         console.warn("[forever-album] failed to read file:", e instanceof Error ? e.message : String(e));

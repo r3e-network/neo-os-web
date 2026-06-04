@@ -144,7 +144,7 @@ export function useFlashloanCore({
     const executed = Boolean(parsed.executed);
     const success = Boolean(parsed.success);
 
-    const isEmpty = amount === 0 && fee === 0 && !callbackMethod && !timestamp;
+    const isEmpty = toNumber(amount) === 0 && toNumber(fee) === 0 && !callbackMethod && !timestamp;
     if (isEmpty) return null;
 
     const statusValue: LoanStatus = executed ? (success ? "success" : "failed") : "pending";

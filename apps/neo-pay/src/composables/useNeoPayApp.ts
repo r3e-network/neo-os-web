@@ -36,7 +36,7 @@ import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { VestingProxy } from "@shared/services/os/VestingProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
-import { toFixed8, toFixedDecimals } from "@shared/utils/format";
+import { toFixed8 } from "@shared/utils/format";
 import { addressToScriptHash, normalizeScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import { parseBigInt } from "@shared/utils/parsers";
@@ -204,9 +204,17 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
       throw new Error(t("intervalInvalid"));
     }
 
-    const decimals = formData.asset === "NEO" ? 0 : 8;
-    const totalFixed = decimals === 8 ? toFixed8(formData.total) : toFixedDecimals(formData.total, 0);
-    const rateFixed = decimals === 8 ? toFixed8(formData.rate) : toFixedDecimals(formData.rate, 0);
+    // The os-payment-deposit and os-vesting-create edges both transfer GAS and
+    // scale by 10^8 (GAS decimals). NEO is indivisible and uses a different
+    // native contract, so funding/streaming NEO is not supported until those
+    // edges accept a per-asset contract+decimals. The UI is constrained to GAS;
+    // reject any other asset here as a defensive guard.
+    if (formData.asset !== "GAS") {
+      throw new Error(t("assetUnsupported"));
+    }
+
+    const totalFixed = toFixed8(formData.total);
+    const rateFixed = toFixed8(formData.rate);
 
     const totalAmount = parseBigInt(totalFixed);
     const rateAmount = parseBigInt(rateFixed);
@@ -223,8 +231,14 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
       const title = formData.name.trim().slice(0, 60);
       const notes = formData.notes.trim().slice(0, 240);
 
-      // Step 1: Deposit funds via PaymentProxy
-      await paymentService.deposit(totalFixed, `stream:${formData.asset}:${totalFixed}`);
+      // Step 1: Deposit funds via PaymentProxy.
+      // os-payment-deposit expects a HUMAN-DECIMAL amount and scales by 10^8
+      // itself (same convention as createStream below and every other OS app);
+      // passing pre-scaled toFixed8 base units here would double-scale (~1e8x
+      // overpay). Use the raw decimal string; totalFixed is only for the
+      // validation + duration ratio math above (where the 1e8 factors cancel).
+      const amountDecimal = formData.total.trim();
+      await paymentService.deposit(amountDecimal, `stream:${formData.asset}:${amountDecimal}`);
 
       // Step 2: Create the stream via VestingProxy.
       // os-vesting-create expects { beneficiary, amount (decimal), start_time, duration }.
@@ -246,9 +260,24 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
         title,
         notes,
       };
-      await vestingService.createStream(
-        createStreamPayload as unknown as Parameters<typeof vestingService.createStream>[0],
-      );
+      try {
+        await vestingService.createStream(
+          createStreamPayload as unknown as Parameters<typeof vestingService.createStream>[0],
+        );
+      } catch (createError) {
+        // Step 1 already moved funds into the payment vault. Without a
+        // compensating refund the deposited GAS would be stranded with no
+        // backing stream, so roll it back before surfacing the error.
+        try {
+          await paymentService.withdraw(amountDecimal);
+        } catch {
+          // Withdraw failed too: the deposit is recoverable manually via the
+          // payment balance. Tell the user explicitly instead of the generic
+          // "stream services unavailable" message so they know funds are safe.
+          throw new Error(t("depositStrandedRecoverable"));
+        }
+        throw createError;
+      }
 
       await refreshStreams();
     } catch (e) {

@@ -169,6 +169,7 @@ async function fetchAddressBalances(
   const wallets: WalletBalance[] = [];
   let totalNeo = 0;
   let totalGas = 0;
+  let failedCount = 0;
 
   for (let i = 0; i < addresses.length; i++) {
     const address = addresses[i];
@@ -184,9 +185,24 @@ async function fetchAddressBalances(
       totalNeo += balance.neo;
       totalGas += balance.gas;
     } catch (e) {
+      // A single transient RPC failure must not blank out the other known-good
+      // balances. Record the wallet as 0/0 and continue; only surface an error
+      // if EVERY address failed (handled by the caller-facing throw below).
+      failedCount += 1;
       const msg = e instanceof Error ? e.message : "Unknown error";
-      throw new Error(`Failed to fetch balance for ${address}: ${msg}`);
+      console.warn(`[neo-treasury] balance fetch failed for ${address}: ${msg}`);
+      wallets.push({
+        address,
+        label: `${labelPrefix} Wallet ${i + 1}`,
+        neo: 0,
+        gas: 0,
+      });
     }
+  }
+
+  // Only a total wipeout (no address resolved) is treated as a load failure.
+  if (failedCount > 0 && failedCount === wallets.length) {
+    throw new Error(`Failed to fetch balances for all ${labelPrefix} addresses`);
   }
 
   return { wallets, totalNeo, totalGas };

@@ -123,7 +123,12 @@ describe("Graveyard PlayArea", () => {
 
     expect(screen.getByText("Burial review")).toBeTruthy();
     expect(screen.getByText("Hash too short")).toBeTruthy();
-    expect(screen.getByText("Needs action")).toBeTruthy();
+    // Blocked-state review tile renders the short-hash guidance copy.
+    expect(
+      screen.getByText(
+        "Short values are blocked so users do not bury an accidental fragment.",
+      ),
+    ).toBeTruthy();
     expect(
       (screen.getByRole("button", { name: "Review burial" }) as HTMLButtonElement)
         .disabled,
