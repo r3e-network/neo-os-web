@@ -1,64 +1,79 @@
 /**
- * useMilestoneEscrow — Domain logic for the Milestone Escrow miniapp (OS Services)
+ * useMilestoneEscrow — Domain logic for the Milestone Escrow miniapp.
  *
- * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (EscrowProxy, PaymentProxy) via edge functions, so this file
- * contains zero contract hashes, parameter encoding, or event parsing logic.
+ * Talks DIRECTLY to the app's standalone on-chain contract
+ * (MiniAppMilestoneEscrow) via ctx.services.chain. The earlier OS-proxy data
+ * layer routed deposits/escrows through the Morpheus Oracle FEE kernel, which
+ * is a GAS-only fee-credit contract with no escrow primitive — so NEO could
+ * never work and there was no real escrow ledger. This composable now drives
+ * the dedicated contract, which fully supports NEO + GAS escrows.
  *
- * This app maps directly to the EscrowService OS contract — the OS contract
- * was designed to replace this exact app's pattern.
+ * Contract interaction model (verified against the deployed ABI):
  *
- * Migration from direct chain calls to OS services:
+ *   READS (chain.read, default app contract script hash):
+ *     getCreatorEscrows(creator, offset, limit)      -> escrowId[]
+ *     getBeneficiaryEscrows(beneficiary, offset, limit) -> escrowId[]
+ *     getEscrowDetails(escrowId)                      -> Map of fields
  *
- *   BEFORE (chain):
- *     chain.read("getCreatorEscrows", [...])
- *     chain.read("getBeneficiaryEscrows", [...])
- *     chain.read("GetEscrowDetails", [...])
- *     chain.invoke("CreateEscrow", [...], { waitForEvent })
- *     chain.invoke("ApproveMilestone", [...], { waitForEvent })
- *     chain.invoke("ClaimMilestone", [...], { waitForEvent })
- *     chain.invoke("CancelEscrow", [...], { waitForEvent })
+ *   MUTATIONS (chain.invoke):
+ *     1. DEPOSIT — a NEP-17 transfer to the contract, targeting the *asset*
+ *        token (scriptHash override), with a memo that MUST start with the
+ *        app id + ":" so OnNEP17Payment credits the depositor's prepaid
+ *        balance for that asset:
+ *          transfer(from, CONTRACT, totalBaseUnits, "miniapp-milestone-escrow:fund")
+ *          { scriptHash: <GAS_HASH | NEO_HASH> }
+ *     2. createEscrow(creator, beneficiary, asset, totalAmount,
+ *        milestoneAmounts[], title, notes) -> escrowId
+ *        Consumes the creator's prepaid credit, so the deposit MUST land first.
+ *     approveMilestone(creator, escrowId, milestoneIndex)   — 1-BASED index
+ *     claimMilestone(beneficiary, escrowId, milestoneIndex) — 1-BASED index
+ *     cancelEscrow(creator, escrowId)
  *
- *   AFTER (OS proxy):
- *     escrowService.create(params)                       — create escrow
- *     escrowService.completeMilestone(escrowId, index)   — approve milestone
- *     escrowService.fund(escrowId)                       — claim milestone
- *     escrowService.refund(escrowId)                     — cancel escrow
- *     escrowService.get(escrowId)                        — get a single escrow
- *     paymentService.deposit(amount, memo)               — fund escrow
- *     storageService.set / list / get                    — per-user escrow index
+ * AMOUNT CONVENTION: the contract takes BASE UNITS. GAS is 1e8 base units per
+ * GAS; NEO is indivisible (the integer token count, no scaling). totalAmount
+ * and every milestone amount are base-unit integers, sum(milestones) must
+ * equal total, and per-asset minimums apply (NEO >= 1, GAS >= 0.1 = 1e7).
  *
- * Listing model: the OS kernel exposes only a single-record GetEscrow and has
- * no escrow enumeration, and CreateEscrow does not return the kernel-assigned
- * id to the client. So this composable maintains its own per-user index in
- * os-storage (key `escrow:<addr>:<escrowId>` → minimal metadata) on create,
- * and rebuilds the creator/beneficiary lists from that index on refresh,
- * enriching each entry with a best-effort GetEscrow read. State is therefore
- * client-derived from the os-storage index.
- *
- * The composable still owns:
- *   - Reactive state (refs + computed) for manifest bindings
- *   - Loading/creating/approving/claiming/cancelling UI flags
- *   - Display helper functions
- *   - The os-storage escrow index and list reconstruction
+ * The composable owns:
+ *   - Reactive state (observables + derived) for manifest/PlayArea bindings
+ *   - Loading/creating/approving/claiming/cancelling UI flags (double-submit
+ *     guards)
+ *   - Display helpers
+ *   - Reading the creator/beneficiary escrow lists straight from chain
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
-import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
-import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { ChainService, ContractArg } from "@shared/services/ChainService";
 import { formatGas, formatAddress } from "@shared/utils/format";
-import { addressToScriptHash } from "@shared/utils/neo";
+import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { EscrowItem } from "../pages/index/components/EscrowList";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-/** Maximum milestones per escrow */
+/** Milestone count bounds enforced by the contract (MIN_MILESTONES/MAX). */
+const MIN_MILESTONES = 1;
 const MAX_MILESTONES = 12;
+
+/** Per-asset minimum total amount in BASE UNITS (contract MIN_NEO / MIN_GAS). */
+const MIN_NEO_BASE = 1n; // 1 NEO (indivisible)
+const MIN_GAS_BASE = 10_000_000n; // 0.1 GAS
+
+/** GAS base units per whole GAS. */
+const GAS_DECIMALS_MULTIPLIER = 100_000_000n; // 1e8
+
+/** Memo prefix the contract requires on the prepay transfer (appId + ":"). */
+const PAYMENT_MEMO = "miniapp-milestone-escrow:fund";
+
+/** How many escrow ids to page in per role on a refresh. */
+const LIST_PAGE_LIMIT = 200;
+
+/** Resolve the NEP-17 token script hash for an asset symbol. */
+const assetHash = (asset: "NEO" | "GAS"): string =>
+  asset === "NEO" ? BLOCKCHAIN_CONSTANTS.NEO_HASH : BLOCKCHAIN_CONSTANTS.GAS_HASH;
 
 // ============================================================================
 // Types
@@ -73,151 +88,110 @@ export interface CreateEscrowParams {
 }
 
 export interface UseMilestoneEscrowOptions {
-  /** OS EscrowProxy instance from ctx.os.escrow */
-  escrowService: EscrowProxy;
-  /** OS PaymentProxy instance from ctx.os.payment */
-  paymentService: PaymentProxy;
-  /** OS StorageProxy instance from ctx.os.storage (escrow index) */
-  storageService: StorageProxy;
-  /** Translation function */
+  /** Shared chain service from ctx.services.chain. */
+  chain: ChainService;
+  /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
+// ============================================================================
+// Amount helpers
+// ============================================================================
+
 /**
- * Minimal escrow metadata persisted to the os-storage index at create time.
+ * Convert a human-entered amount string to contract BASE UNITS for an asset.
  *
- * The OS kernel assigns the on-chain escrow id asynchronously and does not
- * return it to the client (CreateEscrow is an invocation intent signed by the
- * wallet, see os-escrow-create). The kernel also exposes no escrow enumeration
- * — only a single-record GetEscrow(appId, escrowId). To list a user's escrows
- * we therefore maintain a per-user index in os-storage, keyed by a stable
- * client-generated escrow id, and reconstruct the UI list from it. Any record
- * the kernel knows about is enriched via escrowService.get(id) on refresh.
+ * GAS: value * 1e8 (must be a finite positive number). NEO: the integer token
+ * count with NO scaling — fractional NEO is rejected (NEO is indivisible).
+ * Returns 0n for any invalid / non-positive input so callers can reject.
  */
-interface StoredEscrowMeta {
-  id: string;
-  creator: string;
-  beneficiary: string;
-  assetSymbol: "NEO" | "GAS";
-  totalAmount: string;
-  milestoneAmounts: string[];
-  title: string;
-  notes: string;
-  status: "active" | "completed" | "cancelled";
-  createdAt: number;
-}
+const toBaseUnits = (raw: string, asset: "NEO" | "GAS"): bigint => {
+  const trimmed = String(raw ?? "").trim();
+  if (!trimmed) return 0n;
+
+  if (asset === "NEO") {
+    // Indivisible: reject anything that is not a positive integer.
+    if (!/^\d+$/.test(trimmed)) return 0n;
+    const n = BigInt(trimmed);
+    return n > 0n ? n : 0n;
+  }
+
+  // GAS: accept up to 8 decimal places, scale to base units without floats.
+  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
+  const [whole = "0", fraction = ""] = trimmed.split(".");
+  const paddedFraction = (fraction + "00000000").slice(0, 8);
+  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
+  return base > 0n ? base : 0n;
+};
 
 // ============================================================================
-// Helpers
+// On-chain detail parsing
 // ============================================================================
 
 const parseBoolArray = (value: unknown, count: number): boolean[] => {
   if (!Array.isArray(value)) return new Array(count).fill(false);
-  return value.map((item) => Boolean(item));
+  const out = value.map((item) => Boolean(item && item !== "0" && item !== 0));
+  while (out.length < count) out.push(false);
+  return out;
 };
 
 const parseBigIntArray = (value: unknown, count: number): bigint[] => {
   if (!Array.isArray(value)) return new Array(count).fill(0n);
-  return value.map((item) => parseBigInt(item));
+  const out = value.map((item) => parseBigInt(item));
+  while (out.length < count) out.push(0n);
+  return out;
 };
 
-/** os-storage index key prefix for a given user address. */
-const indexPrefix = (addr: string): string => `escrow:${addr}:`;
-
-/** Full index key for a single escrow under a user address. */
-const indexKey = (addr: string, escrowId: string): string => `${indexPrefix(addr)}${escrowId}`;
-
-/**
- * Generate a stable client-side escrow id. The kernel assigns its own id, but
- * never returns it to the client, so we mint a deterministic-enough id here to
- * key the os-storage index and to use as the GetEscrow lookup key on refresh.
- */
-const generateEscrowId = (): string =>
-  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-
-/** Narrow an unknown index value into a StoredEscrowMeta, or null if invalid. */
-const asStoredMeta = (value: unknown): StoredEscrowMeta | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const v = value as Record<string, unknown>;
-  if (!v.id) return null;
-  const assetSymbol: "NEO" | "GAS" = String(v.assetSymbol || "") === "NEO" ? "NEO" : "GAS";
-  const milestoneAmounts = Array.isArray(v.milestoneAmounts)
-    ? v.milestoneAmounts.map((m) => String(m))
-    : [];
-  const status = ((s: string): "active" | "completed" | "cancelled" =>
-    s === "completed" || s === "cancelled" ? s : "active")(String(v.status || "active"));
-  return {
-    id: String(v.id),
-    creator: String(v.creator || ""),
-    beneficiary: String(v.beneficiary || ""),
-    assetSymbol,
-    totalAmount: String(v.totalAmount || "0"),
-    milestoneAmounts,
-    title: String(v.title || ""),
-    notes: String(v.notes || ""),
-    status,
-    createdAt: Number(v.createdAt || 0),
-  };
+const normalizeStatus = (value: unknown): "active" | "completed" | "cancelled" => {
+  const s = String(value ?? "active");
+  return s === "completed" || s === "cancelled" ? s : "active";
 };
 
 /**
- * Build an EscrowItem purely from stored index metadata. Used as the baseline
- * UI record; kernel data (when GetEscrow succeeds) is merged on top in
- * refreshEscrows so released/approved/claimed reflect on-chain truth.
+ * Parse a getEscrowDetails Map (returned by chain.read as a plain object) into
+ * an EscrowItem. Returns null for an empty / missing escrow.
  */
-const escrowItemFromMeta = (meta: StoredEscrowMeta): EscrowItem => {
-  const milestoneAmounts = meta.milestoneAmounts.map((m) => parseBigInt(m));
-  const count = milestoneAmounts.length;
-  return {
-    id: meta.id,
-    creator: meta.creator,
-    beneficiary: meta.beneficiary,
-    assetSymbol: meta.assetSymbol,
-    totalAmount: parseBigInt(meta.totalAmount),
-    releasedAmount: 0n,
-    status: meta.status,
-    milestoneAmounts,
-    milestoneApproved: new Array(count).fill(false),
-    milestoneClaimed: new Array(count).fill(false),
-    title: meta.title,
-    notes: meta.notes,
-    active: meta.status === "active",
-  };
-};
+const parseEscrowDetails = (raw: unknown, id: string): EscrowItem | null => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const v = raw as Record<string, unknown>;
+  // An unknown / zeroed escrow yields an empty map (no creator key).
+  if (!v.creator) return null;
 
-const parseEscrow = (raw: Record<string, unknown> | null, id: string): EscrowItem | null => {
-  if (!raw || typeof raw !== "object") return null;
-
-  const assetSymbol: "NEO" | "GAS" = String(raw.assetSymbol || raw.asset || "") === "NEO" ? "NEO" : "GAS";
-  const milestoneCount = Number(raw.milestoneCount || 0);
+  const assetSymbol: "NEO" | "GAS" =
+    String(v.assetSymbol ?? "") === "NEO" ? "NEO" : "GAS";
+  const milestoneCount = Number(parseBigInt(v.milestoneCount));
 
   return {
     id,
-    creator: String(raw.creator || ""),
-    beneficiary: String(raw.beneficiary || ""),
+    creator: String(v.creator ?? ""),
+    beneficiary: String(v.beneficiary ?? ""),
     assetSymbol,
-    totalAmount: parseBigInt(raw.totalAmount),
-    releasedAmount: parseBigInt(raw.releasedAmount),
-    status: String(raw.status || "active") as "active" | "completed" | "cancelled",
-    milestoneAmounts: parseBigIntArray(raw.milestoneAmounts, milestoneCount),
-    milestoneApproved: parseBoolArray(raw.milestoneApproved, milestoneCount),
-    milestoneClaimed: parseBoolArray(raw.milestoneClaimed, milestoneCount),
-    title: String(raw.title || ""),
-    notes: String(raw.notes || ""),
-    active: Boolean(raw.active),
+    totalAmount: parseBigInt(v.totalAmount),
+    releasedAmount: parseBigInt(v.releasedAmount),
+    status: normalizeStatus(v.status),
+    milestoneAmounts: parseBigIntArray(v.milestoneAmounts, milestoneCount),
+    milestoneApproved: parseBoolArray(v.milestoneApproved, milestoneCount),
+    milestoneClaimed: parseBoolArray(v.milestoneClaimed, milestoneCount),
+    title: String(v.title ?? ""),
+    notes: String(v.notes ?? ""),
+    active: normalizeStatus(v.status) === "active",
   };
+};
+
+/** Coerce a raw escrow-id list value (number/string/bigint) to a string id. */
+const toIdString = (value: unknown): string => {
+  try {
+    return parseBigInt(value).toString();
+  } catch {
+    return String(value ?? "");
+  }
 };
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useMilestoneEscrow({
-  escrowService,
-  paymentService,
-  storageService,
-  t,
-}: UseMilestoneEscrowOptions) {
+export function useMilestoneEscrow({ chain, t }: UseMilestoneEscrowOptions) {
   // ── Reactive State ────────────────────────────────────────────────────
   const creatorEscrows = createObservable<EscrowItem[]>([]);
   const beneficiaryEscrows = createObservable<EscrowItem[]>([]);
@@ -247,10 +221,10 @@ export function useMilestoneEscrow({
     [creatorEscrows],
   );
 
-  // Contract readiness: true once we have a wallet address
+  // Contract readiness: true once we have a wallet address.
   const contractReady = createDerived(() => Boolean(address.get()), [address]);
 
-  // ── Display helpers (exposed as refs for PlayArea) ────────────────────
+  // ── Display helpers (exposed for PlayArea) ────────────────────────────
 
   const statusLabel = (statusValue: "active" | "completed" | "cancelled"): string => {
     if (statusValue === "completed") return t("statusCompleted");
@@ -263,60 +237,57 @@ export function useMilestoneEscrow({
     return formatGas(amount, 4);
   };
 
-  // ── Data Loading (via OS services) ──────────────────────────────────
+  // ── Data Loading (direct chain reads) ─────────────────────────────────
 
   /**
-   * Resolve a single escrow into an EscrowItem.
-   *
-   * The stored index metadata is the source of truth for identity (id,
-   * parties, amounts, title) and the baseline UI record. We then attempt a
-   * single-record GetEscrow via EscrowProxy and merge any on-chain fields
-   * (released amount, per-milestone approved/claimed, status) on top. The
-   * kernel read is best-effort: it may 404 / fail for an id the kernel does
-   * not know (e.g. before the create tx is mined), so a failure simply keeps
-   * the metadata-derived baseline rather than dropping the escrow.
+   * Read escrow ids for a role and resolve each into an EscrowItem via
+   * getEscrowDetails. Reads are best-effort: a single failed detail read is
+   * dropped rather than failing the whole refresh.
    */
-  const resolveEscrow = async (meta: StoredEscrowMeta): Promise<EscrowItem> => {
-    const baseline = escrowItemFromMeta(meta);
-    try {
-      const raw = await escrowService.get(meta.id);
-      const onChain = parseEscrow((raw as Record<string, unknown>) || null, meta.id);
-      if (!onChain) return baseline;
-      // Merge: keep stored title/notes/parties, overlay on-chain progress.
-      return {
-        ...baseline,
-        creator: onChain.creator || baseline.creator,
-        beneficiary: onChain.beneficiary || baseline.beneficiary,
-        totalAmount: onChain.totalAmount > 0n ? onChain.totalAmount : baseline.totalAmount,
-        releasedAmount: onChain.releasedAmount,
-        status: onChain.status,
-        milestoneAmounts:
-          onChain.milestoneAmounts.length > 0 ? onChain.milestoneAmounts : baseline.milestoneAmounts,
-        milestoneApproved:
-          onChain.milestoneApproved.length > 0 ? onChain.milestoneApproved : baseline.milestoneApproved,
-        milestoneClaimed:
-          onChain.milestoneClaimed.length > 0 ? onChain.milestoneClaimed : baseline.milestoneClaimed,
-        active: onChain.status === "active",
-      };
-    } catch (e) {
-      // Best-effort enrichment only — fall back to stored metadata.
-      console.warn(
-        "[useMilestoneEscrow] GetEscrow enrichment failed for",
-        meta.id,
-        ":",
-        e instanceof Error ? e.message : String(e),
-      );
-      return baseline;
-    }
+  const readEscrowsForRole = async (
+    op: "getCreatorEscrows" | "getBeneficiaryEscrows",
+    addr: string,
+  ): Promise<EscrowItem[]> => {
+    const hash = addressToScriptHash(addr);
+    if (!hash) return [];
+
+    const idsRaw = await chain.readArray(op, [
+      { type: "Hash160", value: hash },
+      { type: "Integer", value: "0" },
+      { type: "Integer", value: String(LIST_PAGE_LIMIT) },
+    ]);
+
+    const ids = (Array.isArray(idsRaw) ? idsRaw : [])
+      .map(toIdString)
+      .filter((id) => id && id !== "0");
+
+    const items = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const raw = await chain.read("getEscrowDetails", [
+            { type: "Integer", value: id },
+          ]);
+          return parseEscrowDetails(raw, id);
+        } catch (e) {
+          console.warn(
+            "[useMilestoneEscrow] getEscrowDetails failed for",
+            id,
+            ":",
+            e instanceof Error ? e.message : String(e),
+          );
+          return null;
+        }
+      }),
+    );
+
+    return items.filter((item): item is EscrowItem => item !== null);
   };
 
   /**
-   * Refresh all escrows for the current user from the os-storage index.
-   *
-   * The OS kernel has no escrow enumeration, so we list the per-user index
-   * (escrow:<addr>:*) that createEscrow maintains, then resolve each id into an
-   * EscrowItem (stored metadata + best-effort GetEscrow enrichment). Records
-   * are split into creator/beneficiary buckets based on the user's role.
+   * Refresh creator + beneficiary escrows for the current user, straight from
+   * the contract. Newest first (highest escrow id). The beneficiary bucket
+   * excludes self-escrows (where the user is also the creator) so they only
+   * appear once, under "created by you".
    */
   const refreshEscrows = async () => {
     const addr = address.get();
@@ -326,43 +297,38 @@ export function useMilestoneEscrow({
     try {
       isRefreshing.set(true);
 
-      // Enumerate the user's escrow ids from the os-storage index.
-      const indexMap = await storageService.list(indexPrefix(addr), 200);
+      const [created, incoming] = await Promise.all([
+        readEscrowsForRole("getCreatorEscrows", addr),
+        readEscrowsForRole("getBeneficiaryEscrows", addr),
+      ]);
 
-      const metas: StoredEscrowMeta[] = [];
-      if (indexMap && typeof indexMap === "object") {
-        for (const value of Object.values(indexMap)) {
-          const meta = asStoredMeta(value);
-          if (meta) metas.push(meta);
-        }
-      }
+      const sortNewestFirst = (list: EscrowItem[]): EscrowItem[] =>
+        [...list].sort((a, b) => {
+          try {
+            return Number(BigInt(b.id) - BigInt(a.id));
+          } catch {
+            return 0;
+          }
+        });
 
-      // Newest first.
-      metas.sort((a, b) => b.createdAt - a.createdAt);
-
-      const resolved = await Promise.all(metas.map(resolveEscrow));
-
-      const lowerAddr = addr.toLowerCase();
-      const creator = resolved.filter((item) => item.creator.toLowerCase() === lowerAddr);
-      const beneficiary = resolved.filter(
-        (item) =>
-          item.beneficiary.toLowerCase() === lowerAddr &&
-          item.creator.toLowerCase() !== lowerAddr,
+      const beneficiaryOnly = incoming.filter(
+        (item) => !ownerMatchesAddress(item.creator, addr),
       );
 
-      creatorEscrows.set(creator);
-      beneficiaryEscrows.set(beneficiary);
+      creatorEscrows.set(sortNewestFirst(created));
+      beneficiaryEscrows.set(sortNewestFirst(beneficiaryOnly));
     } catch (e) {
-      console.warn("[useMilestoneEscrow] refreshEscrows failed:", e instanceof Error ? e.message : String(e));
+      console.warn(
+        "[useMilestoneEscrow] refreshEscrows failed:",
+        e instanceof Error ? e.message : String(e),
+      );
       throw e;
     } finally {
       isRefreshing.set(false);
     }
   };
 
-  /**
-   * Load all data. Called by defineMiniApp on mount and wallet reconnect.
-   */
+  /** Load all data. Called on mount and wallet reconnect. */
   const loadAll = async () => {
     isLoading.set(true);
     try {
@@ -372,137 +338,131 @@ export function useMilestoneEscrow({
     }
   };
 
-  // ── Actions (via OS services) ─────────────────────────────────────────
+  // ── Actions (direct chain invocations) ────────────────────────────────
 
   /**
-   * Create a new milestone-based escrow via EscrowProxy.
-   * The edge function handles wallet connection, asset transfer,
-   * and the CreateEscrow contract invocation.
+   * Create a milestone escrow against the standalone contract.
+   *
+   * Two-step, both signed by the creator:
+   *   1. DEPOSIT — transfer the total to the contract on the asset token, with
+   *      the required memo, crediting the creator's prepaid balance.
+   *   2. createEscrow — consumes that credit and opens the escrow.
+   *
+   * If step 1 succeeds but step 2 fails, the prepaid credit remains on the
+   * contract under (asset, creator) and can be reused on retry — we surface a
+   * "funds prepaid, escrow not created" message rather than claiming a loss.
    */
   const createEscrow = async (data: CreateEscrowParams) => {
-    if (isCreating.get()) return;
+    if (isCreating.get()) return; // double-submit guard
 
-    if (data.milestones.length < 1 || data.milestones.length > MAX_MILESTONES) {
+    if (
+      data.milestones.length < MIN_MILESTONES ||
+      data.milestones.length > MAX_MILESTONES
+    ) {
       throw new Error(t("milestoneLimit"));
     }
 
-    const decimals = data.asset === "NEO" ? 0 : 8;
-    // milestoneEntries carry HUMAN-DECIMAL amount strings — the OS edge
-    // functions (os-payment-deposit / os-escrow-create) scale by 10^decimals
-    // themselves, so the client must pass the user's decimal value, NOT
-    // pre-scaled base units (scaling here would 10^8x-overpay on every create).
-    const milestoneEntries: Array<{ name: string; amount: string }> = [];
-    // Base-unit amount strings, kept ONLY for the local os-storage index /
-    // display (escrowItemFromMeta parses these via parseBigInt). Never sent to
-    // the proxies.
-    const milestoneBaseUnits: string[] = [];
-    // totalAmount is the base-unit bigint sum, used only for the local
-    // os-storage index and display (formatAmount/formatGas) — never sent to
-    // the proxies.
-    let totalAmount = 0n;
-    let totalHuman = 0;
+    const asset = data.asset === "NEO" ? "NEO" : "GAS";
 
+    // Convert every milestone to base units and sum the total.
+    const milestoneBaseUnits: bigint[] = [];
+    let totalAmount = 0n;
     for (const milestone of data.milestones) {
-      const raw = String(milestone.amount || "").trim();
-      if (!raw || (decimals === 0 && raw.includes("."))) {
+      const base = toBaseUnits(milestone.amount, asset);
+      if (base <= 0n) {
         throw new Error(t("invalidAmount"));
       }
-      const human = parseFloat(raw);
-      if (!Number.isFinite(human) || human <= 0) {
-        throw new Error(t("invalidAmount"));
-      }
-      const multiplier = decimals === 8 ? 1e8 : 1;
-      const amount = BigInt(Math.round(human * multiplier));
-      if (amount <= 0n) {
-        throw new Error(t("invalidAmount"));
-      }
-      milestoneEntries.push({ name: `milestone-${milestoneEntries.length}`, amount: raw });
-      milestoneBaseUnits.push(amount.toString());
-      totalAmount += amount;
-      totalHuman += human;
+      milestoneBaseUnits.push(base);
+      totalAmount += base;
     }
 
     if (totalAmount <= 0n) {
       throw new Error(t("invalidAmount"));
     }
 
-    // Human-decimal total string for the proxy calls (deposit + create).
-    const totalAmountHuman = decimals === 0 ? String(Math.round(totalHuman)) : String(totalHuman);
+    // Per-asset minimum total (contract enforces the same).
+    const minimum = asset === "NEO" ? MIN_NEO_BASE : MIN_GAS_BASE;
+    if (totalAmount < minimum) {
+      throw new Error(asset === "NEO" ? t("minNeo") : t("minGas"));
+    }
+
+    // Sum-equals-total invariant (the contract asserts this too).
+    const computedSum = milestoneBaseUnits.reduce((acc, n) => acc + n, 0n);
+    if (computedSum !== totalAmount) {
+      throw new Error(t("milestoneSumMismatch"));
+    }
 
     const creatorAddr = address.get();
-    const beneficiaryAddr = data.beneficiary.trim();
-    const assetSymbol = data.asset;
+    const creatorHash = addressToScriptHash(creatorAddr);
+    if (!creatorAddr || !creatorHash) {
+      throw new Error(t("walletNotConnected"));
+    }
 
-    // Validate the beneficiary before any on-chain call. An empty/malformed
-    // address would otherwise reach os-escrow-create, which defaults the
-    // counterparty to the creator (silent self-escrow) or fails on-chain with
-    // an opaque error. addressToScriptHash returns "" for an invalid N3 address.
-    if (!beneficiaryAddr || !addressToScriptHash(beneficiaryAddr)) {
+    const beneficiaryAddr = data.beneficiary.trim();
+    const beneficiaryHash = addressToScriptHash(beneficiaryAddr);
+    if (!beneficiaryAddr || !beneficiaryHash) {
       throw new Error(t("invalidAddress"));
+    }
+
+    const contractHash = chain.contractAddress.get();
+    if (!contractHash) {
+      throw new Error(t("contractMissing"));
     }
 
     isCreating.set(true);
     try {
-      // Step 1: Fund the escrow via PaymentProxy (human-decimal amount).
-      await paymentService.deposit(
-        totalAmountHuman,
-        `escrow:create:${data.name.trim().slice(0, 60)}`,
+      // Step 1: DEPOSIT — NEP-17 transfer to the contract on the asset token.
+      // The scriptHash override targets the token contract (not the app), and
+      // the memo must start with the app id so OnNEP17Payment credits us.
+      await chain.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: creatorHash },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: totalAmount.toString() },
+          { type: "String", value: PAYMENT_MEMO },
+        ],
+        { scriptHash: assetHash(asset) },
       );
 
-      // Step 2: Create the escrow via EscrowProxy (human-decimal amounts).
+      // Step 2: createEscrow — consumes the prepaid credit and opens the
+      // escrow. If this fails, the credit stays on the contract under the
+      // creator and the asset, recoverable by retrying create.
       //
-      // The deposit in Step 1 has already moved real funds into the user's
-      // PaymentService balance. If escrow creation fails the funds would be
-      // stranded there with no escrow, so we compensate by withdrawing the
-      // deposit before re-throwing. If the withdraw itself fails, surface a
-      // distinct manual-recovery error instead of the raw escrow error.
+      // The milestoneAmounts param is an on-chain Array<Integer>. The wallet
+      // SDK serialises a nested ContractArg[] passed as the Array arg's value
+      // (same shape quadratic-funding uses for finalizeRound). ContractArg.value
+      // is nominally a scalar, so cast at this single boundary.
+      const milestoneArg = {
+        type: "Array",
+        value: milestoneBaseUnits.map((n) => ({
+          type: "Integer",
+          value: n.toString(),
+        })),
+      } as unknown as ContractArg;
+
       try {
-        await escrowService.create({
-          beneficiary: beneficiaryAddr,
-          amount: totalAmountHuman,
-          milestones: milestoneEntries,
-        });
+        await chain.invoke(
+          "createEscrow",
+          [
+            { type: "Hash160", value: creatorHash },
+            { type: "Hash160", value: beneficiaryHash },
+            { type: "Hash160", value: assetHash(asset) },
+            { type: "Integer", value: totalAmount.toString() },
+            milestoneArg,
+            { type: "String", value: data.name.trim().slice(0, 60) },
+            { type: "String", value: (data.notes ?? "").slice(0, 240) },
+          ],
+          { waitForEvent: "EscrowCreated" },
+        );
       } catch (escrowErr) {
-        try {
-          await paymentService.withdraw(totalAmountHuman);
-        } catch (refundErr) {
-          console.error(
-            "[useMilestoneEscrow] createEscrow: deposit withdraw failed after escrow.create error",
-            refundErr instanceof Error ? refundErr.message : String(refundErr),
-          );
-          throw new Error(t("depositRecoveryNeeded"));
-        }
-        throw new Error(t("depositRefunded"));
+        console.error(
+          "[useMilestoneEscrow] createEscrow failed after deposit succeeded:",
+          escrowErr instanceof Error ? escrowErr.message : String(escrowErr),
+        );
+        // Deposit landed, escrow did not — credit is held under the creator.
+        throw new Error(t("depositPrepaidNoEscrow"));
       }
-
-      // Step 3: Maintain the os-storage index. The kernel does not return its
-      // assigned escrow id and exposes no enumeration, so we mint a stable id
-      // and record minimal metadata under per-user index keys. refreshEscrows
-      // reads these back to rebuild the list (and enriches via GetEscrow).
-      const escrowId = generateEscrowId();
-      const meta: StoredEscrowMeta = {
-        id: escrowId,
-        creator: creatorAddr,
-        beneficiary: beneficiaryAddr,
-        assetSymbol,
-        totalAmount: totalAmount.toString(),
-        milestoneAmounts: milestoneBaseUnits,
-        title: data.name.trim(),
-        notes: data.notes,
-        status: "active",
-        createdAt: Date.now(),
-      };
-
-      // Creator index entry (always). Beneficiary index entry too, so the
-      // counterparty sees the incoming escrow from their own session — skip if
-      // it equals the creator or is empty.
-      const writes: Array<Promise<unknown>> = [
-        storageService.set(indexKey(creatorAddr, escrowId), meta),
-      ];
-      if (beneficiaryAddr && beneficiaryAddr.toLowerCase() !== creatorAddr.toLowerCase()) {
-        writes.push(storageService.set(indexKey(beneficiaryAddr, escrowId), meta));
-      }
-      await Promise.all(writes);
 
       await refreshEscrows();
     } finally {
@@ -511,63 +471,31 @@ export function useMilestoneEscrow({
   };
 
   /**
-   * Patch the stored index metadata for an escrow after a successful action,
-   * for both the creator and beneficiary index entries (when distinct). Keeps
-   * the client-derived list/stats coherent even when GetEscrow enrichment is
-   * unavailable (e.g. build-verified-only environments). Best-effort: storage
-   * write failures are swallowed so they never mask a successful kernel action.
-   */
-  const patchIndexMeta = async (
-    escrow: EscrowItem,
-    patch: Partial<Pick<StoredEscrowMeta, "status">>,
-  ) => {
-    const targets = Array.from(
-      new Set(
-        [escrow.creator, escrow.beneficiary]
-          .map((a) => a.trim())
-          .filter((a) => a.length > 0),
-      ),
-    );
-
-    await Promise.all(
-      targets.map(async (addr) => {
-        try {
-          const raw = await storageService.get(indexKey(addr, escrow.id));
-          const meta = asStoredMeta(raw);
-          if (!meta) return;
-          await storageService.set(indexKey(addr, escrow.id), { ...meta, ...patch });
-        } catch (e) {
-          console.warn(
-            "[useMilestoneEscrow] index meta patch failed for",
-            escrow.id,
-            ":",
-            e instanceof Error ? e.message : String(e),
-          );
-        }
-      }),
-    );
-  };
-
-  /**
-   * Approve a milestone (creator action) via EscrowProxy.
-   * The edge function handles the ApproveMilestone contract invocation.
+   * Approve a milestone (creator action). milestoneIndex from the UI is
+   * 0-based; the contract is 1-based, so we map it.
    */
   const approveMilestone = async (escrow: EscrowItem, milestoneIndex?: number) => {
-    if (approvingId.get()) return;
+    if (approvingId.get()) return; // double-submit guard
 
-    const idx = milestoneIndex ?? escrow.milestoneApproved.findIndex((approved: boolean) => !approved);
+    const idx =
+      milestoneIndex ??
+      escrow.milestoneApproved.findIndex((approved: boolean) => !approved);
     if (idx < 0) return;
+
+    const creatorHash = addressToScriptHash(address.get());
+    if (!creatorHash) throw new Error(t("walletNotConnected"));
 
     try {
       approvingId.set(`${escrow.id}-${idx}`);
-
-      await escrowService.completeMilestone(escrow.id, idx);
-
-      // Mark completed once the final milestone has been approved.
-      if (idx >= escrow.milestoneApproved.length - 1) {
-        await patchIndexMeta(escrow, { status: "completed" });
-      }
-
+      await chain.invoke(
+        "approveMilestone",
+        [
+          { type: "Hash160", value: creatorHash },
+          { type: "Integer", value: escrow.id },
+          { type: "Integer", value: String(idx + 1) }, // 0-based UI → 1-based contract
+        ],
+        { waitForEvent: "MilestoneApproved" },
+      );
       await refreshEscrows();
     } finally {
       approvingId.set(null);
@@ -575,54 +503,64 @@ export function useMilestoneEscrow({
   };
 
   /**
-   * Claim funds for an approved milestone (beneficiary action) via EscrowProxy.
-   * The edge function handles the ClaimMilestone contract invocation.
+   * Claim an approved milestone (beneficiary action). milestoneIndex from the
+   * UI is 0-based; the contract is 1-based.
    */
   const claimMilestone = async (escrow: EscrowItem, milestoneIndex?: number) => {
-    if (claimingId.get()) return;
+    if (claimingId.get()) return; // double-submit guard
 
-    const idx = milestoneIndex ?? escrow.milestoneApproved.findIndex(
-      (approved: boolean, i: number) => approved && !escrow.milestoneClaimed[i],
-    );
+    const idx =
+      milestoneIndex ??
+      escrow.milestoneApproved.findIndex(
+        (approved: boolean, i: number) => approved && !escrow.milestoneClaimed[i],
+      );
     if (idx < 0) return;
+
+    const beneficiaryHash = addressToScriptHash(address.get());
+    if (!beneficiaryHash) throw new Error(t("walletNotConnected"));
 
     try {
       claimingId.set(`${escrow.id}-${idx}`);
-
-      await escrowService.fund(escrow.id);
-
+      await chain.invoke(
+        "claimMilestone",
+        [
+          { type: "Hash160", value: beneficiaryHash },
+          { type: "Integer", value: escrow.id },
+          { type: "Integer", value: String(idx + 1) }, // 0-based UI → 1-based contract
+        ],
+        { waitForEvent: "MilestoneClaimed" },
+      );
       await refreshEscrows();
     } finally {
       claimingId.set(null);
     }
   };
 
-  /**
-   * Cancel an escrow and return funds to creator via EscrowProxy.
-   * The edge function handles the CancelEscrow contract invocation.
-   */
+  /** Cancel an escrow and refund remaining funds to the creator. */
   const cancelEscrow = async (escrow: EscrowItem) => {
-    if (cancellingId.get()) return;
+    if (cancellingId.get()) return; // double-submit guard
+
+    const creatorHash = addressToScriptHash(address.get());
+    if (!creatorHash) throw new Error(t("walletNotConnected"));
 
     try {
       cancellingId.set(escrow.id);
-
-      await escrowService.refund(escrow.id);
-
-      await patchIndexMeta(escrow, { status: "cancelled" });
-
+      await chain.invoke(
+        "cancelEscrow",
+        [
+          { type: "Hash160", value: creatorHash },
+          { type: "Integer", value: escrow.id },
+        ],
+        { waitForEvent: "EscrowCancelled" },
+      );
       await refreshEscrows();
     } finally {
       cancellingId.set(null);
     }
   };
 
-  /**
-   * Connect wallet and load escrows.
-   */
+  /** Connect wallet and load escrows. */
   const connectWallet = async () => {
-    // Wallet connection is handled by the platform's chain service
-    // in main.ts. Once connected, address is set and refreshEscrows is called.
     if (address.get()) {
       await refreshEscrows();
     }
@@ -647,7 +585,7 @@ export function useMilestoneEscrow({
     cancellingId,
     contractReady,
 
-    // ── Computed (for manifest stat/sidebar bindings) ────────────────
+    // ── Computed (manifest stat/sidebar bindings) ────────────────────
     creatorEscrowCount,
     beneficiaryEscrowCount,
     activeCount,
@@ -670,13 +608,12 @@ export function useMilestoneEscrow({
     loadAll,
     cleanup,
 
-    /**
-     * Set the wallet address. Called from main.ts to track the
-     * connected wallet address from the platform's chain service.
-     */
-    setAddress: (addr: string) => { address.set(addr); },
+    /** Set the connected wallet address (called from main.tsx). */
+    setAddress: (addr: string) => {
+      address.set(addr);
+    },
   };
 }
 
-/** Return type of useMilestoneEscrow for external typing */
+/** Return type of useMilestoneEscrow for external typing. */
 export type UseMilestoneEscrowReturn = ReturnType<typeof useMilestoneEscrow>;

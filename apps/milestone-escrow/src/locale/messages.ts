@@ -36,14 +36,12 @@ const appMessages = {
   invalidAmount: { en: "Enter a valid amount", zh: "请输入有效金额" },
   milestoneSumMismatch: { en: "Milestone sum must equal total", zh: "里程碑总和需等于总金额" },
   milestoneLimit: { en: "Milestones must be between 1 and 12", zh: "里程碑数量需在 1 到 12 之间" },
+  minNeo: { en: "Minimum escrow is 1 NEO", zh: "最低托管金额为 1 NEO" },
+  minGas: { en: "Minimum escrow is 0.1 GAS", zh: "最低托管金额为 0.1 GAS" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
-  depositRefunded: {
-    en: "Escrow creation failed — your deposit was refunded",
-    zh: "托管创建失败——您的押金已退回",
-  },
-  depositRecoveryNeeded: {
-    en: "Escrow creation failed and the automatic refund did not complete. Your funds are held in your escrow payment balance and can be reclaimed via withdraw.",
-    zh: "托管创建失败且自动退款未完成。您的资金保留在托管支付余额中，可通过提现取回。",
+  depositPrepaidNoEscrow: {
+    en: "Your funds were prepaid to the escrow contract, but the escrow was not created. Your credit is held under your address and the escrow can be created again (retry).",
+    zh: "资金已预付至托管合约，但托管未创建。您的额度仍记在您的地址下，可重新发起创建（请重试）。",
   },
 
   createdByYou: { en: "Created by you", zh: "我创建的" },
@@ -69,8 +67,8 @@ const appMessages = {
     zh: "逐项批准里程碑并分期释放资金",
   },
   docDescription: {
-    en: "Milestone Escrow locks GAS in a single escrow and tracks milestone amounts on-chain. Creators approve each milestone, and beneficiaries claim approved tranches while unapproved funds stay locked.",
-    zh: "里程碑托管将 GAS 锁定在同一托管中，并在链上记录每个里程碑金额。创建者逐项批准，受益人领取已批准的分期资金，未批准部分持续锁定。",
+    en: "Milestone Escrow locks NEO or GAS in a single escrow and tracks milestone amounts on-chain. Creators approve each milestone, and beneficiaries claim approved tranches while unapproved funds stay locked.",
+    zh: "里程碑托管将 NEO 或 GAS 锁定在同一托管中，并在链上记录每个里程碑金额。创建者逐项批准，受益人领取已批准的分期资金，未批准部分持续锁定。",
   },
   step1: { en: "Define milestones and amounts; the total equals the deposit.", zh: "设置里程碑与金额，总额需等于锁定资金。" },
   step2: { en: "Creator approves milestones after deliverables are accepted.", zh: "交付验收通过后由创建者批准里程碑。" },
