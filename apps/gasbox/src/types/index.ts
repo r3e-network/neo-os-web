@@ -51,4 +51,16 @@ export interface Machine {
   items: MachineItem[];
   topPrize?: string;
   winRate?: number;
+  /** Prize asset paid out by every item on the machine (GAS or NEO). */
+  prizeAsset: "NEO" | "GAS";
+  /** On-chain prize pool balance (display, in prizeAsset units). */
+  poolBalance: string;
+  /** On-chain prize pool balance (base units). */
+  poolBalanceRaw: number;
+  /** Largest single item prize the pool must cover before activation (display). */
+  maxPrize: string;
+  /** Largest single item prize (base units). */
+  maxPrizeRaw: number;
+  /** Whether the pool covers the max prize (the contract's activation gate). */
+  poolReady: boolean;
 }

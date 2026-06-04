@@ -140,6 +140,14 @@ function machine(overrides: Partial<Machine> = {}): Machine {
     ],
     topPrize: "Legend Capsule",
     winRate: 100,
+    // On-chain economics (MiniAppGasBox): every item pays a single prize asset
+    // out of an on-chain pool that must cover the largest prize before activation.
+    prizeAsset: "GAS",
+    poolBalance: "21.00",
+    poolBalanceRaw: 2_100_000_000,
+    maxPrize: "1.00",
+    maxPrizeRaw: 100_000_000,
+    poolReady: true,
     ...overrides,
   };
 }
