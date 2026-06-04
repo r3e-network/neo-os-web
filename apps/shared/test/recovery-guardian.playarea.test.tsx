@@ -17,6 +17,8 @@ function t(key: string) {
     accountAddressPlaceholder: "0x... or N...",
     accountId: "Account ID",
     awaitingQuery: "Awaiting query",
+    backupOwner: "Backup Owner",
+    checkedAt: "Checked At",
     copyRecoveryCredential: "Copy Recovery Credential Link",
     copyRecoveryLink: "Copy Recovery Link",
     currentVerifier: "Verifier",
@@ -85,6 +87,8 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     verifierHash: "N/A",
     threshold: "N/A",
     timelock: "N/A",
+    backupOwnerState: "N/A",
+    checkedAt: "N/A",
     previewUrl: "",
     credentialUrl: "",
     accountAddress: "",
@@ -206,8 +210,10 @@ describe("Recovery Guardian PlayArea", () => {
           hasPayload: true,
           accountId: "aa:test",
           verifierHash: VALID_ACCOUNT,
+          backupOwnerState: VALID_OWNER,
           threshold: "2",
           timelock: "3600",
+          checkedAt: "2026-06-04T00:00:00.000Z",
           renderedPayload: '{\n  "threshold": "2"\n}',
         })}
         dispatch={vi.fn()}
@@ -217,6 +223,10 @@ describe("Recovery Guardian PlayArea", () => {
     expect(screen.getByText("aa:test")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();
     expect(screen.getByText("3600")).toBeTruthy();
+    // The grid surfaces the freshly-read chain values (backup owner + the
+    // checked-at timestamp) alongside verifier/threshold/timelock.
+    expect(screen.getByText(VALID_OWNER)).toBeTruthy();
+    expect(screen.getByText("2026-06-04T00:00:00.000Z")).toBeTruthy();
     expect(screen.getByText(/"threshold": "2"/)).toBeTruthy();
   });
 });

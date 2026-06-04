@@ -144,6 +144,20 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     perPacketGas >= 0.01 &&
     createExpiryHours > 0;
 
+  // Inline validation feedback: surface WHY the send button is disabled so a
+  // user is never stuck staring at a greyed-out control with no guidance.
+  // Order mirrors the composable's create() guard checks so the message the
+  // user sees matches the error that would otherwise be thrown on submit.
+  const createValidationMessage = (() => {
+    if (canCreateEnvelope) return "";
+    if (!Number.isFinite(createAmount) || createAmount < 0.1) return t("invalidAmount");
+    if (!Number.isFinite(createCount) || createCount < 1 || createCount > 100)
+      return t("invalidPackets");
+    if (perPacketGas < 0.01) return t("invalidPerPacket");
+    if (!Number.isFinite(createExpiryHours) || createExpiryHours <= 0) return t("invalidExpiry");
+    return "";
+  })();
+
   const setCreateField = (key: keyof typeof createForm, value: string) => {
     setCreateForm((current) => ({ ...current, [key]: value }));
   };
@@ -295,6 +309,13 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                     <strong>{Number.isFinite(createExpiryHours) ? `${createExpiryHours} ${t("hoursSuffix")}` : "--"}</strong>
                   </div>
                 </div>
+                {createValidationMessage ? (
+                  <p className="redenv-helper redenv-helper--error" role="alert">
+                    {createValidationMessage}
+                  </p>
+                ) : (
+                  <p className="redenv-helper">{t("createReadyDesc")}</p>
+                )}
                 <NeoButton
                   variant="secondary"
                   loading={isLoading}

@@ -121,13 +121,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 ? t("domainAvailable") || "Available"
                 : t("domainTaken") || "Taken"}
             </span>
-            {(searchResult as { available?: boolean })?.available && (
+            {(searchResult as { available?: boolean })?.available ? (
               <div className="register-row">
                 <span className="cost-label">{t("registrationCost") || "Cost"}: {registrationCost} GAS</span>
                 <NeoButton variant="primary" loading={loading} onClick={() => dispatch("registerDomain")} aria-label={t("register") || "Register"}>
                   {t("register") || "Register"}
                 </NeoButton>
               </div>
+            ) : (
+              (searchResult as { owner?: string })?.owner && (
+                <div className="result-owner">
+                  <span className="result-owner__label">{t("owner") || "Owner"}</span>
+                  <span className="result-owner__value">{(searchResult as { owner?: string }).owner}</span>
+                </div>
+              )
             )}
           </div>
         )}

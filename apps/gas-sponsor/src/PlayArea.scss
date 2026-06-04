@@ -445,6 +445,64 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   color: var(--ns-text-muted, #8a92a6);
 }
 
+/* ── Pay it forward (gated Donate + Send) ─────────────── */
+.pay-forward {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pay-forward .donate-form,
+.pay-forward .send-form {
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.pay-forward-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+/* Locked state shown to the app's actual target user (eligible, low balance)
+   so the unusable transfer forms don't read as dead controls. */
+.pay-forward-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 26px 20px;
+}
+
+.pay-forward-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: $gas-accent-soft;
+}
+
+.pay-forward-empty-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.pay-forward-empty-desc {
+  max-width: 360px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
 /* ── Mobile ───────────────────────────────────────────── */
 @media (max-width: 480px) {
   .gas-sponsor-play-area {

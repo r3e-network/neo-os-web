@@ -98,6 +98,71 @@ describe("useLastSurvivor", () => {
     expect(app.roundStatusDisplay.get()).toBe("Active");
   });
 
+  it("exposes the round's real total keys and scales the pot to whole GAS", async () => {
+    const app = useLastSurvivor({
+      ...services({
+        // Pot is reported in raw 1e8 base units; totalKeys is a plain count.
+        game: {
+          getPoolState: vi.fn(async () => ({
+            poolId: "current",
+            appId: "miniapp-last-survivor",
+            status: "open",
+            playerCount: 2,
+            totalBets: "150000000", // 1.5 GAS in base units
+            roundId: 7,
+            active: true,
+            lastBuyer: "",
+            totalKeys: 20,
+            remainingTime: 3600,
+          })),
+          placeBet: vi.fn(),
+        },
+        // Player owns 5 of the 20 round keys.
+        storage: { get: vi.fn(async () => "5"), list: vi.fn(async () => ({})) },
+      }),
+      t,
+    });
+
+    await app.loadAll();
+
+    // totalKeysInRound is the chain round total (bigint), surfaced as a number.
+    expect(app.totalKeysInRound.get()).toBe(20n);
+    expect(app.totalKeysDisplay.get()).toBe(20);
+    // Pot scaled by 1e8: 150000000 base units -> 1.5 GAS.
+    expect(app.totalPot.get()).toBeCloseTo(1.5, 8);
+    // Share uses the ROUND total (20) as denominator, not the buy-selector.
+    expect(app.userKeys.get()).toBe(5);
+    expect(app.userSharePercent.get()).toBeCloseTo(25, 8);
+  });
+
+  it("guards divide-by-zero for share when no keys have been sold", async () => {
+    const app = useLastSurvivor({
+      ...services({
+        game: {
+          getPoolState: vi.fn(async () => ({
+            poolId: "current",
+            appId: "miniapp-last-survivor",
+            status: "open",
+            playerCount: 0,
+            totalBets: "0",
+            roundId: 1,
+            active: true,
+            lastBuyer: "",
+            totalKeys: 0,
+            remainingTime: 3600,
+          })),
+          placeBet: vi.fn(),
+        },
+      }),
+      t,
+    });
+
+    await app.loadAll();
+
+    expect(app.totalKeysDisplay.get()).toBe(0);
+    expect(app.userSharePercent.get()).toBe(0);
+  });
+
   it("normalizes payment boundary failures during key purchase", async () => {
     const app = useLastSurvivor({
       ...services({

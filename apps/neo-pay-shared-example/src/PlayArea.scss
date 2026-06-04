@@ -295,6 +295,18 @@
   .shared-pay-summary {
     margin: 0 0.7rem 0.7rem;
   }
+
+  &__warning {
+    margin: 0 0.7rem 0.7rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--ns-danger-border, rgba(220, 38, 38, 0.22));
+    border-radius: var(--ns-radius-sm, 12px);
+    background: var(--ns-danger-soft, #fdecec);
+    color: var(--ns-danger-strong, #b42318);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
 }
 
 .shared-pay-summary {

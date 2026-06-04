@@ -26,6 +26,10 @@ const appMessages = {
     en: "20-byte hash, pubkey, or seed text",
     zh: "20 字节哈希、公钥或 seed 文本",
   },
+  accountIdSharedHint: {
+    en: "Shared with the inspector above — editing either field updates both.",
+    zh: "与上方查询器共享 —— 编辑任一字段会同时更新两者。",
+  },
   verifier: { en: "Verifier Hash", zh: "Verifier Hash" },
   verifierHint: {
     en: "Required. Defaults to the shared Web3Auth verifier.",
@@ -93,6 +97,14 @@ const appMessages = {
     en: "Complete account id, verifier, backup owner, and timelock before submitting.",
     zh: "提交前需补齐 accountId、verifier、backup owner 与 timelock。",
   },
+  mainnetCaution: {
+    en: "You are on mainnet — Register Account is a real write against mainnet AA Core and spends GAS.",
+    zh: "当前为主网 —— 注册账户是对主网 AA Core 的真实写交易，会消耗 GAS。",
+  },
+  alreadyRegisteredCaution: {
+    en: "This account already has a verifier registered. A re-register will revert on-chain.",
+    zh: "该账户已注册 verifier，重复注册会在链上回滚。",
+  },
   currentVerifier: { en: "Current Verifier", zh: "当前 Verifier" },
   currentHook: { en: "Current Hook", zh: "当前 Hook" },
   currentBackupOwner: { en: "Current Backup Owner", zh: "当前 Backup Owner" },
@@ -139,10 +151,10 @@ const appMessages = {
     en: "Read verifier, hook, and backup owner state.",
     zh: "读取 verifier、hook 和 backup owner 状态。",
   },
-  feature3Name: { en: "Testnet First", zh: "测试网优先" },
+  feature3Name: { en: "Network Aware", zh: "网络自适应" },
   feature3Desc: {
-    en: "Uses the canonical shared AA testnet anchors.",
-    zh: "使用当前共享的 AA 测试网锚点。",
+    en: "Follows the host or ?network param; warns before a mainnet write.",
+    zh: "跟随宿主或 ?network 参数；主网写入前会给出提示。",
   },
   network: { en: "Network", zh: "网络" },
   testnet: { en: "Testnet", zh: "测试网" },

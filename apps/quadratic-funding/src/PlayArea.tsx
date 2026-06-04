@@ -61,8 +61,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const activeRoundCount = num("activeRoundCount", rounds.filter((r) => r.status === "active").length);
 
   const roundsStatus = val<Record<string, unknown>>("roundsStatus");
-  const statusMessage = roundsStatus ? String(roundsStatus.message ?? "") : "";
-  const statusType = roundsStatus ? String(roundsStatus.type ?? "") : "info";
+  const statusMessage = roundsStatus ? String(roundsStatus.msg ?? roundsStatus.message ?? "") : "";
+  const statusType = roundsStatus ? String(roundsStatus.type ?? "info") : "info";
 
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
@@ -73,6 +73,43 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const roundProgressPct =
     roundCount === 0 ? 0 : Math.round((activeRoundCount / roundCount) * 100);
+
+  // Form-reset counter handed to RoundForm; bumped only after a successful
+  // create so the round inputs clear (RoundForm owns its own field state).
+  const [roundResetKey, setRoundResetKey] = useState(0);
+
+  // dispatch is typed Promise<void> but resolves to the handler's runtime
+  // payload (see MiniAppRoot.dispatch); handlers return success booleans.
+  const submitCreateRound = async (...args: unknown[]) => {
+    const ok = (await dispatch("createRound", ...args)) as unknown as boolean;
+    if (ok) setRoundResetKey((key) => key + 1);
+  };
+
+  const submitRegisterProject = async () => {
+    const ok = (await dispatch("registerProject", {
+      name: projectName,
+      description: projectDescription,
+      link: projectLink,
+    })) as unknown as boolean;
+    if (ok) {
+      setProjectName("");
+      setProjectDescription("");
+      setProjectLink("");
+    }
+  };
+
+  const submitContribute = async () => {
+    const ok = (await dispatch("contribute", {
+      projectId: contributeProjectId,
+      amount: contributeAmount,
+      memo: contributionMemo,
+    })) as unknown as boolean;
+    if (ok) {
+      setContributeProjectId("");
+      setContributeAmount("");
+      setContributionMemo("");
+    }
+  };
 
   const switchTab = (tab: string) => {
     state.activeTab?.set(tab);
@@ -137,7 +174,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           {activeTab === "rounds" && (
             <div className="qf-content-grid">
-              <RoundForm onSubmit={(...args: unknown[]) => dispatch("createRound", ...args)} t={t} loading={isCreatingRound} />
+              <RoundForm onSubmit={submitCreateRound} resetKey={roundResetKey} t={t} loading={isCreatingRound} />
               <div className="qf-side-stack">
                 <RoundList
                   rounds={rounds}
@@ -154,6 +191,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {selectedRound && (
                   <RoundAdminPanel
                     round={selectedRound}
+                    knownProjectIds={projects
+                      .map((project) => String(project.id ?? ""))
+                      .filter((id) => id !== "")}
                     canManage={canManageSelectedRound}
                     canFinalize={canFinalizeSelectedRound}
                     canClaimUnused={canClaimUnused}
@@ -201,13 +241,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     variant="primary"
                     loading={isRegisteringProject}
                     disabled={isRegisteringProject || !selectedRound}
-                    onClick={() =>
-                      dispatch("registerProject", {
-                        name: projectName,
-                        description: projectDescription,
-                        link: projectLink,
-                      })
-                    }
+                    onClick={submitRegisterProject}
                   >
                     {isRegisteringProject ? t("registeringProject") : t("registerProject")}
                   </NeoButton>
@@ -308,13 +342,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   variant="primary"
                   loading={isContributing}
                   disabled={!selectedRound || isContributing}
-                  onClick={() =>
-                    dispatch("contribute", {
-                      projectId: contributeProjectId,
-                      amount: contributeAmount,
-                      memo: contributionMemo,
-                    })
-                  }
+                  onClick={submitContribute}
                 >
                   {isContributing ? t("contributing") : t("contribute")}
                 </NeoButton>

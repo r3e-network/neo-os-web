@@ -8,6 +8,7 @@ import { useState } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import type { Machine, MachineItem } from "./types";
 import "./PlayArea.scss";
 
@@ -26,26 +27,43 @@ interface PullResult {
   icon?: string;
 }
 
-/** Local create-form prize item (string-typed for controlled inputs). */
+/**
+ * Local create-form prize item (string-typed for controlled inputs).
+ *
+ * There is intentionally no `rarity` here: the contract stores only name +
+ * weight + amount, and the displayed tier is derived from each item's weight
+ * share on read-back. A creator-chosen rarity would be silently overwritten, so
+ * the form shows a live weight-derived tier preview instead of a dead dropdown.
+ */
 interface StudioItem {
   name: string;
   /** Relative draw weight (positive integer). */
   weight: string;
-  rarity: string;
   /** Prize amount in the machine's prize asset (GAS decimal / NEO integer). */
   amount: string;
 }
 
-const RARITY_OPTIONS = ["COMMON", "RARE", "EPIC", "LEGENDARY"] as const;
 const PRIZE_ASSET_OPTIONS = ["GAS", "NEO"] as const;
 type PrizeAsset = (typeof PRIZE_ASSET_OPTIONS)[number];
 
 const emptyStudioItem = (): StudioItem => ({
   name: "",
   weight: "10",
-  rarity: "COMMON",
   amount: "0.1",
 });
+
+/**
+ * Weight-derived rarity tier — mirrors rarityFromShare() in useGasBox so the
+ * Studio preview matches exactly what players see on read-back. share is the
+ * item's percent of the machine's total weight.
+ */
+const rarityFromShare = (share: number): string => {
+  if (!Number.isFinite(share) || share <= 0) return "COMMON";
+  if (share <= 5) return "LEGENDARY";
+  if (share <= 15) return "EPIC";
+  if (share <= 35) return "RARE";
+  return "COMMON";
+};
 
 const formatCount = (value: number, pendingLabel: string) =>
   value > 0 ? value.toLocaleString() : pendingLabel;
@@ -70,6 +88,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const selectedMachine = val<Machine>("selectedMachine");
   const pullResult = val<PullResult>("pullResult");
   const studioOpen = bool("studioOpen");
+  const walletAddress = str("walletAddress", "");
 
   const [showResult, setShowResult] = useState(false);
   const [leverPulled, setLeverPulled] = useState(false);
@@ -81,11 +100,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [machinePrice, setMachinePrice] = useState("");
   const [prizeAsset, setPrizeAsset] = useState<PrizeAsset>("GAS");
   const [studioItems, setStudioItems] = useState<StudioItem[]>([
-    { name: "", weight: "50", rarity: "COMMON", amount: "0.1" },
+    { name: "", weight: "50", amount: "0.1" },
   ]);
   const [studioError, setStudioError] = useState<string | null>(null);
 
   const selectedMachineReady = Boolean(selectedMachine?.active && selectedMachine?.inventoryReady);
+  // Creator earnings flow: surface Withdraw Revenue only to the machine's
+  // creator (connected wallet matches creatorHash) and only when there is
+  // accrued, withdrawable revenue. Otherwise the control stays hidden.
+  const isSelectedMachineCreator = Boolean(
+    selectedMachine &&
+      walletAddress &&
+      ownerMatchesAddress(selectedMachine.creatorHash, walletAddress),
+  );
+  const selectedRevenueRaw = selectedMachine?.revenueRaw ?? 0;
+  const canWithdrawRevenue = isSelectedMachineCreator && selectedRevenueRaw > 0;
   const machineCountDisplay = machineCount > 0 ? machineCount.toLocaleString() : "—";
   const userPullsDisplay = formatCount(userPulls, "0");
   const totalPullsDisplay = formatCount(totalPulls, "0");
@@ -147,6 +176,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const dismissResult = () => {
     setShowResult(false);
     void dispatch("resetResult");
+  };
+
+  const handleWithdrawRevenue = async () => {
+    const machineId = selectedMachine?.id;
+    if (!machineId || !canWithdrawRevenue) return;
+    await dispatch("withdrawRevenue", machineId);
   };
 
   const updateStudioItem = (index: number, patch: Partial<StudioItem>) => {
@@ -215,7 +250,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       items: validItems.map((item) => ({
         name: item.name.trim(),
         weight: item.weight.trim() || "0",
-        rarity: item.rarity,
         amount: item.amount.trim() || "0",
       })),
     });
@@ -286,8 +320,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span>{t("yourPulls")}</span>
             <strong>{userPullsDisplay}</strong>
           </div>
-          <div className="gasbox-metric">
-            <span>{t("totalPulls")}</span>
+          <div className="gasbox-metric" title={t("estPlaysHint")}>
+            <span>{t("estPlays")}</span>
             <strong>{totalPullsDisplay}</strong>
           </div>
         </div>
@@ -437,8 +471,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {t("totalWeightLabel")}: {studioTotalWeight}
               </strong>
             </div>
+            <p className="gasbox-studio-items__hint">{t("derivedTierExplain")}</p>
 
-            {studioItems.map((item, index) => (
+            {studioItems.map((item, index) => {
+              const itemWeight = Number(item.weight) || 0;
+              const share =
+                studioTotalWeight > 0 ? (itemWeight / studioTotalWeight) * 100 : 0;
+              const derivedRarity = rarityFromShare(share);
+              const rarityKey = `rarity${derivedRarity.charAt(0)}${derivedRarity
+                .slice(1)
+                .toLowerCase()}`;
+              return (
               <div key={index} className="gasbox-studio-item">
                 <div className="gasbox-studio-item__row">
                   <label className="gasbox-field">
@@ -461,19 +504,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       onChange={(e) => updateStudioItem(index, { weight: e.target.value })}
                     />
                   </label>
-                  <label className="gasbox-field gasbox-field--narrow">
-                    <span>{t("rarityLabel")}</span>
-                    <select
-                      value={item.rarity}
-                      onChange={(e) => updateStudioItem(index, { rarity: e.target.value })}
+                  <div className="gasbox-field gasbox-field--narrow gasbox-derived-tier">
+                    <span>{t("derivedTierLabel")}</span>
+                    <strong
+                      className={`gasbox-derived-tier__value ${rarityClass(derivedRarity)}`}
+                      aria-label={t("derivedTierHint")}
                     >
-                      {RARITY_OPTIONS.map((rarity) => (
-                        <option key={rarity} value={rarity}>
-                          {t(`rarity${rarity.charAt(0)}${rarity.slice(1).toLowerCase()}`) || rarity}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      {t(rarityKey) || derivedRarity}
+                      {itemWeight > 0 && (
+                        <span className="gasbox-derived-tier__share">
+                          {" "}
+                          {formatPercent(share, "—")}
+                        </span>
+                      )}
+                    </strong>
+                  </div>
                 </div>
                 <div className="gasbox-studio-item__row">
                   <label className="gasbox-field">
@@ -497,7 +542,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </NeoButton>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             <NeoButton variant="secondary" size="sm" onClick={addStudioItem}>
               {t("addItem")}
@@ -589,6 +635,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </NeoButton>
               </div>
             </div>
+
+            {isSelectedMachineCreator && (
+              <section
+                className="gasbox-creator-revenue"
+                aria-label={t("gasboxCreatorEarningsTitle")}
+              >
+                <div className="gasbox-creator-revenue__copy">
+                  <span className="gasbox-eyebrow">{t("gasboxCreatorEarningsTitle")}</span>
+                  {/* Revenue accrues from the play price, which is always GAS. */}
+                  <strong>{selectedMachine.revenue} GAS</strong>
+                  <p>
+                    {canWithdrawRevenue
+                      ? t("gasboxRevenueAvailable")
+                      : t("gasboxRevenueNone")}
+                  </p>
+                </div>
+                <NeoButton
+                  variant="primary"
+                  size="md"
+                  disabled={isPulling || !canWithdrawRevenue}
+                  onClick={handleWithdrawRevenue}
+                >
+                  {t("withdrawRevenue")}
+                </NeoButton>
+              </section>
+            )}
 
             <section className="gasbox-decision" aria-label={t("gasboxDecisionTitle")}>
               <div className="gasbox-decision-head">

@@ -223,7 +223,9 @@ describe("useGasBox (direct MiniAppGasBox contract)", () => {
     await app.loadAll();
     app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
 
-    await app.playMachine();
+    // A confirmed on-chain pull returns true so callers can advance per-user stats.
+    const pulled = await app.playMachine();
+    expect(pulled).toBe(true);
 
     // Step 1: PREPAY — GAS transfer to the contract with the play memo, base units.
     const prepay = callFor(invoke, "transfer");
@@ -445,8 +447,10 @@ describe("useGasBox (direct MiniAppGasBox contract)", () => {
     app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
 
     const first = app.playMachine();
-    // Second call while the first is in flight must be a no-op.
-    await app.playMachine();
+    // Second call while the first is in flight must be a no-op that returns false
+    // (so the caller does NOT double-count the per-user pull).
+    const second = await app.playMachine();
+    expect(second).toBe(false);
     await first;
 
     // Only one pull was dispatched.

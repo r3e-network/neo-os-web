@@ -36,8 +36,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const recipientAddress = str("recipientAddress");
   const isDonating = bool("isDonating");
   const isSending = bool("isSending");
+  const isFunded = bool("isFunded");
+  const donateAmountValid = bool("donateAmountValid");
+  const recipientValid = bool("recipientValid");
+  const sendAmountValid = bool("sendAmountValid");
+  const canSend = bool("canSend");
   const tankLevelDisplay = str("tankLevelDisplay", "0%");
   const eligibleDisplay = str("eligibleDisplay");
+
+  // Donate & Send move GAS the wallet already holds. For the app's target user
+  // (eligible, low-balance) these are "pay it forward" actions that only work
+  // once funded — frame and gate them so they don't fail at the chain.
+  const recipientTouched = recipientAddress.length > 0;
+  const donateTouched = donateAmount !== "0" && donateAmount !== "";
+  const sendTouched = sendAmount !== "0" && sendAmount !== "";
+
+  // Field-level error copy, only shown once the user has typed something so the
+  // forms don't open in an error state. Mirrors the composable's guards exactly.
+  const donateError = donateTouched && !donateAmountValid ? t("donateInvalid") : "";
+  const recipientError = recipientTouched && !recipientValid ? t("invalidAddress") : "";
+  const sendAmountError = sendTouched && !sendAmountValid ? t("sendAmountInvalid") : "";
 
   return (
     <div className="gas-sponsor-play-area">
@@ -102,58 +120,86 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </NeoCard>
 
-      {/* Donate */}
-      <NeoCard title={t("donate")}>
-        <div className="donate-form">
-          <p className="form-hint">{t("donateSubtitle")}</p>
-          <NeoInput
-            value={donateAmount}
-            type="number"
-            label={t("donateAmount") || "Amount"}
-            placeholder={t("donateAmountPlaceholder") || "0.00"}
-            onChange={(val) => state.donateAmount?.set(val)}
-          />
-          <NeoButton
-            variant="success"
-            block
-            loading={isDonating}
-            disabled={loading}
-            aria-label={t("donateAction")}
-            onClick={() => dispatch("donate", donateAmount)}
-          >
-            {isDonating ? t("donating") : t("donateAction")}
-          </NeoButton>
-        </div>
-      </NeoCard>
+      {/* Pay it forward — Donate & Send move GAS the wallet already holds, so
+          they only work for a funded wallet. The app's target user is an
+          eligible, low-balance wallet; showing two live transfer forms they
+          can't use (they'd fail at the chain) dilutes the "get free GAS" flow.
+          Gate them behind a funded balance and frame them as helping others. */}
+      <NeoCard title={t("payItForward")}>
+        {!isFunded ? (
+          <div className="pay-forward-empty">
+            <span className="pay-forward-empty-icon">
+              <CategoryIcon name="social" size={36} title={t("payItForward")} />
+            </span>
+            <span className="pay-forward-empty-title">{t("payForwardLockedTitle")}</span>
+            <span className="pay-forward-empty-desc">{t("payForwardLockedDesc")}</span>
+          </div>
+        ) : (
+          <div className="pay-forward">
+            <p className="form-hint">{t("payForwardLead")}</p>
 
-      {/* Send GAS */}
-      <NeoCard title={t("sendGas")}>
-        <div className="send-form">
-          <p className="form-hint">{t("sendSubtitle")}</p>
-          <NeoInput
-            value={recipientAddress}
-            label={t("recipient")}
-            placeholder={t("recipientPlaceholder") || "N..."}
-            onChange={(val) => state.recipientAddress?.set(val)}
-          />
-          <NeoInput
-            value={sendAmount}
-            type="number"
-            label={t("sendAmount") || "Amount"}
-            placeholder={t("sendAmountPlaceholder") || "0.00"}
-            onChange={(val) => state.sendAmount?.set(val)}
-          />
-          <NeoButton
-            variant="primary"
-            block
-            loading={isSending}
-            disabled={loading || !recipientAddress}
-            aria-label={t("sendAction")}
-            onClick={() => dispatch("send", recipientAddress, sendAmount)}
-          >
-            {isSending ? t("sending") : t("sendAction")}
-          </NeoButton>
-        </div>
+            {/* Donate */}
+            <div className="donate-form">
+              <span className="pay-forward-section-label">{t("donate")}</span>
+              <p className="form-hint">{t("donateSubtitle")}</p>
+              <NeoInput
+                value={donateAmount}
+                type="number"
+                min={0}
+                label={t("donateAmount") || "Amount"}
+                placeholder={t("donateAmountPlaceholder") || "0.00"}
+                suffix={t("tokenGas")}
+                hint={t("balanceAvailable", { amount: gasBalanceDisplay })}
+                error={donateError}
+                onChange={(val) => state.donateAmount?.set(val)}
+              />
+              <NeoButton
+                variant="success"
+                block
+                loading={isDonating}
+                disabled={loading || !donateAmountValid}
+                aria-label={t("donateAction")}
+                onClick={() => dispatch("donate", donateAmount)}
+              >
+                {isDonating ? t("donating") : t("donateAction")}
+              </NeoButton>
+            </div>
+
+            {/* Send GAS */}
+            <div className="send-form">
+              <span className="pay-forward-section-label">{t("sendGas")}</span>
+              <p className="form-hint">{t("sendSubtitle")}</p>
+              <NeoInput
+                value={recipientAddress}
+                label={t("recipient")}
+                placeholder={t("recipientPlaceholder") || "N..."}
+                error={recipientError}
+                onChange={(val) => state.recipientAddress?.set(val)}
+              />
+              <NeoInput
+                value={sendAmount}
+                type="number"
+                min={0}
+                label={t("sendAmount") || "Amount"}
+                placeholder={t("sendAmountPlaceholder") || "0.00"}
+                suffix={t("tokenGas")}
+                hint={t("balanceAvailable", { amount: gasBalanceDisplay })}
+                error={sendAmountError}
+                onChange={(val) => state.sendAmount?.set(val)}
+              />
+              <NeoButton
+                variant="primary"
+                block
+                loading={isSending}
+                disabled={loading || !canSend}
+                aria-label={t("sendAction")}
+                onClick={() => dispatch("send", recipientAddress, sendAmount)}
+              >
+                {isSending ? t("sending") : t("sendAction")}
+              </NeoButton>
+            </div>
+          </div>
+        )}
       </NeoCard>
     </div>
   );

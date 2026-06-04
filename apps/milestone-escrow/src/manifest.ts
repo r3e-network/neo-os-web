@@ -19,8 +19,8 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "createTab", valueKey: "creatorEscrowCount", format: "number", icon: "upload" },
-    { labelKey: "escrowsTab", valueKey: "beneficiaryEscrowCount", format: "number", icon: "download" },
+    { labelKey: "statCreated", valueKey: "creatorEscrowCount", format: "number", icon: "upload" },
+    { labelKey: "statForYou", valueKey: "beneficiaryEscrowCount", format: "number", icon: "download" },
     { labelKey: "statusActive", valueKey: "activeCount", format: "number", variant: "accent", icon: "play" },
     { labelKey: "statusCompleted", valueKey: "completedCount", format: "number", variant: "success", icon: "check" },
   ],
@@ -28,8 +28,8 @@ export const manifest: MiniAppManifest = {
   sidebar: {
     titleKey: "title",
     items: [
-      { labelKey: "createTab", valueKey: "creatorEscrowCount", format: "number" },
-      { labelKey: "escrowsTab", valueKey: "beneficiaryEscrowCount", format: "number" },
+      { labelKey: "statCreated", valueKey: "creatorEscrowCount", format: "number" },
+      { labelKey: "statForYou", valueKey: "beneficiaryEscrowCount", format: "number" },
       { labelKey: "statusActive", valueKey: "activeCount", format: "number" },
       { labelKey: "statusCompleted", valueKey: "completedCount", format: "number" },
     ],

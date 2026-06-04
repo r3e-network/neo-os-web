@@ -64,23 +64,14 @@ const appMessages = {
     zh: "可选 Hash160 override，用于诊断。",
   },
   recoveryTemplateIdHint: {
-    en: "Optional credential template identifier.",
-    zh: "可选凭证模板 ID。",
+    en: "Optional credential template identifier (letters, digits, . _ -).",
+    zh: "可选凭证模板 ID（字母、数字、. _ -）。",
   },
   recoveryLinkBlocked: {
     en: "Complete a valid account, new owner, expiry window, and optional verifier override before using recovery links.",
     zh: "使用恢复链接前，请补齐有效账户、新 owner、过期窗口和可选 verifier override。",
   },
-  subtitle: {
-    en: "Live recovery state console for AA guardian and timelock status",
-    zh: "面向 AA guardian 与 timelock 状态的实时恢复控制台",
-  },
-  docsSubtitle: {
-    en: "Query bound verifier state, timelock windows, pending recovery, and active private-session state.",
-    zh: "查询绑定 verifier 状态、timelock 窗口、pending recovery 和 active private-session 状态。",
-  },
   latestState: { en: "Latest State", zh: "最新状态" },
-  guardianState: { en: "Guardian State", zh: "守护状态" },
   accountAddress: {
     en: "Account Address / Script Hash",
     zh: "账户地址 / Script Hash",
@@ -124,24 +115,15 @@ const appMessages = {
   openRecoveryDocs: { en: "Open Recovery Docs", zh: "打开恢复文档" },
   currentVerifier: { en: "Verifier", zh: "Verifier" },
   accountId: { en: "Account ID", zh: "Account ID" },
+  backupOwner: { en: "Backup Owner", zh: "备份 Owner" },
   threshold: { en: "Threshold", zh: "阈值" },
   timelockLabel: { en: "Timelock", zh: "Timelock" },
-  recoveryNonce: { en: "Recovery Nonce", zh: "恢复 Nonce" },
-  sessionNonce: { en: "Session Nonce", zh: "会话 Nonce" },
-  owner: { en: "Owner", zh: "Owner" },
-  oracle: { en: "Morpheus Oracle", zh: "Morpheus Oracle" },
-  pendingRecovery: { en: "Pending Recovery", zh: "待完成恢复" },
-  activeSession: { en: "Active Session", zh: "活动会话" },
-  executableAt: { en: "Executable At", zh: "可执行时间" },
+  checkedAt: { en: "Checked At", zh: "检查时间" },
   queryLoaded: { en: "Recovery state loaded", zh: "恢复状态已加载" },
   queryFailed: { en: "Failed to load recovery state", zh: "加载恢复状态失败" },
   clipboardFailed: {
     en: "Could not copy or share the link",
     zh: "无法复制或分享链接",
-  },
-  previewLinkReady: {
-    en: "Recovery preview link ready",
-    zh: "恢复预览链接已准备好",
   },
   previewLinkCopied: {
     en: "Recovery preview link copied",
@@ -151,10 +133,6 @@ const appMessages = {
     en: "Recovery preview link shared",
     zh: "恢复预览链接已分享",
   },
-  credentialLinkReady: {
-    en: "Recovery credential draft ready",
-    zh: "恢复凭证草稿已准备好",
-  },
   credentialLinkCopied: {
     en: "Recovery credential link copied",
     zh: "恢复凭证链接已复制",
@@ -163,21 +141,12 @@ const appMessages = {
     en: "Recovery credential link shared",
     zh: "恢复凭证链接已分享",
   },
-  previewLinkUnavailable: {
-    en: "Recovery preview link is not ready yet",
-    zh: "恢复预览链接尚未准备好",
-  },
   noStateYet: { en: "No recovery state loaded yet.", zh: "尚未加载恢复状态。" },
   noStateHint: {
     en: "Run Query State above to inspect verifier, threshold, and timelock details here.",
     zh: "在上方运行“查询状态”，即可在此查看 verifier、threshold 与 timelock 详情。",
   },
   awaitingQuery: { en: "Awaiting query", zh: "等待查询" },
-  noteTitle: { en: "Operator Note", zh: "运维提示" },
-  noteText: {
-    en: "Recovery ticket generation still belongs in the identity workspace because it requires the live Web3Auth / NeoDID confidential subject. This miniapp is the read-optimized control surface for guardian state.",
-    zh: "恢复票据生成仍然属于身份工作区，因为它需要实时 Web3Auth / NeoDID 机密主体。本小程序是面向 guardian 状态的读优化控制面。",
-  },
   feature1Name: { en: "Read First", zh: "先读后写" },
   feature1Desc: {
     en: "Inspect recovery and timelock state before sending any ownership-changing transaction.",

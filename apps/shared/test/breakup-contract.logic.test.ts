@@ -38,10 +38,13 @@ function services(overrides: {
       create: vi.fn(async () => ({ txid: "0xescrow" })),
       fund: vi.fn(),
       completeMilestone: vi.fn(),
+      refund: vi.fn(),
+      get: vi.fn(async () => null),
       ...overrides.escrow,
     } as unknown as EscrowProxy,
     storageService: {
       list: vi.fn(async () => ({})),
+      get: vi.fn(async () => null),
       set: vi.fn(async () => undefined),
       ...overrides.storage,
     } as unknown as StorageProxy,
@@ -156,6 +159,93 @@ describe("useBreakup", () => {
     // Signing must fund the escrow whose id equals the listed contract id.
     await app.signContract({ id: listed[0].id, stake: listed[0].stake });
     expect(mocks.escrowService.fund).toHaveBeenCalledWith(String(listed[0].id));
+  });
+
+  it("captures the kernel-assigned escrow id and targets it for sign/break", async () => {
+    // The os-escrow-create edge fn returns the kernel CreateEscrow value (a
+    // sequential id) — here "42", distinct from the Date.now() storage id. The
+    // composable must persist THAT as escrowId and use it (not the storage id)
+    // for fund()/completeMilestone(), otherwise those calls hit a non-existent
+    // escrow on chain.
+    const store: Record<string, unknown> = {};
+    const { app, mocks } = validApp({
+      escrow: {
+        create: vi.fn(async () => "42"),
+      },
+      storage: {
+        get: vi.fn(async (key: string) => store[key] ?? null),
+        set: vi.fn(async (key: string, value: unknown) => {
+          store[key] = value;
+          return undefined;
+        }),
+        list: vi.fn(async (prefix: string) =>
+          Object.fromEntries(
+            Object.entries(store).filter(([k]) => k.startsWith(prefix)),
+          ),
+        ),
+      },
+    });
+    app.address.set(PARTNER.replace("A", "B"));
+
+    await app.createContract();
+
+    const [, storedRecord] = (
+      mocks.storageService.set as ReturnType<typeof vi.fn>
+    ).mock.calls[0];
+    expect((storedRecord as { escrowId: string }).escrowId).toBe("42");
+
+    const listed = app.contracts.get();
+    expect(listed).toHaveLength(1);
+    // The storage-key id is a Date.now() timestamp, NOT the kernel escrow id.
+    expect(String(listed[0].id)).not.toBe("42");
+    expect(listed[0].escrowId).toBe("42");
+
+    await app.signContract({ id: listed[0].id, stake: listed[0].stake, escrowId: listed[0].escrowId });
+    expect(mocks.escrowService.fund).toHaveBeenCalledWith("42");
+
+    await app.breakContract({ id: listed[0].id, escrowId: listed[0].escrowId });
+    expect(mocks.escrowService.completeMilestone).toHaveBeenCalledWith("42", 0);
+  });
+
+  it("advances contract status from live escrow state instead of the write-once snapshot", async () => {
+    // A freshly created contract is stored pending (party2Signed:false). Once
+    // the kernel escrow reports funded/active, loadContracts must hydrate that
+    // live state so the card flips to 'active' (exposing Break) rather than
+    // staying frozen on 'pending' (still showing Sign).
+    const store: Record<string, unknown> = {};
+    const liveState: Record<string, { funded: boolean; active: boolean; completed: boolean }> = {};
+    const { app } = validApp({
+      escrow: {
+        create: vi.fn(async () => "7"),
+        get: vi.fn(async (escrowId: string) => liveState[String(escrowId)] ?? null),
+      },
+      storage: {
+        get: vi.fn(async (key: string) => store[key] ?? null),
+        set: vi.fn(async (key: string, value: unknown) => {
+          store[key] = value;
+          return undefined;
+        }),
+        list: vi.fn(async (prefix: string) =>
+          Object.fromEntries(
+            Object.entries(store).filter(([k]) => k.startsWith(prefix)),
+          ),
+        ),
+      },
+    });
+    app.address.set(PARTNER.replace("A", "B"));
+
+    await app.createContract();
+    expect(app.contracts.get()[0].status).toBe("pending");
+
+    // Kernel now reports the escrow funded/active. A reload must surface it.
+    liveState["7"] = { funded: true, active: true, completed: false };
+    await app.loadContracts();
+    expect(app.contracts.get()[0].status).toBe("active");
+
+    // Kernel reports the milestone completed -> status becomes 'broken'.
+    liveState["7"] = { funded: true, active: false, completed: true };
+    await app.loadContracts();
+    expect(app.contracts.get()[0].status).toBe("broken");
   });
 
   it("normalizes escrow boundary errors during create", async () => {

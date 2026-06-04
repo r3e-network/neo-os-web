@@ -69,6 +69,10 @@ const appMessages = {
     en: "Claim the selected GAS envelope. OneGate QR links prefill this ID.",
     zh: "领取选中的 GAS 红包。OneGate 二维码会自动填入这个 ID。",
   },
+  createReadyDesc: {
+    en: "Ready to send. Each recipient draws a random share of the pool.",
+    zh: "可以发送。每位领取者将随机抽取奖池的一份。",
+  },
   sendOperationDesc: {
     en: "Secondary creator flow for sending a lucky GAS envelope.",
     zh: "次要的发红包流程，用于创建拼手气 GAS 红包。",

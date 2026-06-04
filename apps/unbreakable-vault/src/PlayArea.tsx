@@ -35,7 +35,10 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
   const myVaults = val<unknown[]>("myVaults") ?? [];
   const isLoading = bool("isLoading");
   const isCreating = bool("isCreating");
+  const isClaiming = bool("isClaiming");
   const canAttempt = bool("canAttempt");
+  const canClaim = bool("canClaim");
+  const canReclaim = bool("canReclaim");
 
   const [bounty, setBounty] = useState("");
   const [title, setTitle] = useState("");
@@ -97,6 +100,27 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
     }
   };
 
+  const handleSettleVault = async () => {
+    try {
+      await dispatch("settleVault");
+    } catch (error) {
+      setStatus?.(
+        error instanceof Error ? error.message : t("settleFailed"),
+        "error",
+      );
+    }
+  };
+
+  const vaultStatus = vaultDetails ? String(vaultDetails.status ?? "active") : "";
+  const statusLabelKey =
+    vaultStatus === "broken"
+      ? "broken"
+      : vaultStatus === "expired"
+        ? "expired"
+        : vaultStatus === "claimable"
+          ? "claimable"
+          : "active";
+
   return (
     <div className="vault-play-area">
       <VaultHero t={t} />
@@ -104,11 +128,11 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
       <div className="vault-stats">
         <div className="vault-stat">
           <span className="vault-stat-value">{myVaultCount}</span>
-          <span className="vault-stat-label">{t("create")}</span>
+          <span className="vault-stat-label">{t("myVaultsStat")}</span>
         </div>
         <div className="vault-stat">
           <span className="vault-stat-value">{recentVaultCount}</span>
-          <span className="vault-stat-label">{t("break")}</span>
+          <span className="vault-stat-label">{t("openVaultsStat")}</span>
         </div>
       </div>
 
@@ -198,29 +222,62 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
           {vaultDetails && (
             <>
               <div className="vault-detail-row">
+                <span className="detail-label">{t("vaultStatus") || "Status"}</span>
+                <span className={`detail-value vault-status-pill vault-status-pill--${statusLabelKey}`}>
+                  {t(statusLabelKey)}
+                </span>
+              </div>
+              <div className="vault-detail-row">
                 <span className="detail-label">{t("attemptFee") || "Attempt Fee"}</span>
                 <span className="detail-value">{attemptFeeDisplay} GAS</span>
               </div>
-              <NeoInput
-                label={t("secretAttemptLabel") || "Break Secret"}
-                type="password"
-                placeholder={t("secretAttemptPlaceholder") || "Try to crack the secret"}
-                value={attemptSecret}
-                onChange={(v) => state.attemptSecret?.set(v)}
-              />
+              {vaultStatus === "active" && (
+                <NeoInput
+                  label={t("secretAttemptLabel") || "Break Secret"}
+                  type="password"
+                  placeholder={t("secretAttemptPlaceholder") || "Try to crack the secret"}
+                  value={attemptSecret}
+                  onChange={(v) => state.attemptSecret?.set(v)}
+                />
+              )}
             </>
           )}
-          <NeoButton
-            variant="danger"
-            size="lg"
-            block
-            loading={isLoading}
-            disabled={!canAttempt}
-            aria-label={t("attemptBreak") || "Attempt Break"}
-            onClick={handleAttemptBreak}
-          >
-            {t("attemptBreak") || "Attempt Break"}
-          </NeoButton>
+          {vaultStatus === "active" && (
+            <>
+              <NeoButton
+                variant="danger"
+                size="lg"
+                block
+                loading={isLoading}
+                disabled={!canAttempt}
+                aria-label={t("attemptBreak") || "Attempt Break"}
+                onClick={handleAttemptBreak}
+              >
+                {t("attemptBreak") || "Attempt Break"}
+              </NeoButton>
+              <p className="vault-secret-note">{t("attemptCostNote")}</p>
+            </>
+          )}
+          {(canClaim || canReclaim) && (
+            <NeoButton
+              variant="primary"
+              size="lg"
+              block
+              loading={isClaiming}
+              disabled={isClaiming || isLoading}
+              aria-label={canClaim ? t("claimBounty") : t("reclaimVault")}
+              onClick={handleSettleVault}
+            >
+              {canClaim
+                ? t("claimBounty") || "Claim Bounty"
+                : t("reclaimVault") || "Reclaim Vault"}
+            </NeoButton>
+          )}
+          {vaultDetails &&
+            vaultStatus === "broken" &&
+            !canClaim && (
+              <p className="vault-secret-note">{t("bountyPaidNote")}</p>
+            )}
         </div>
       </NeoCard>
 

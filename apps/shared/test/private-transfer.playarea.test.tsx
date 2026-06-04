@@ -11,6 +11,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../private-transfer/src/PlayArea";
 
+// The seal flow's real X25519-HKDF-AES envelope relies on WebCrypto X25519,
+// which jsdom does not provide. Mock the envelope module so the copy-affordance
+// test can exercise the stored state deterministically without crypto support.
+vi.mock("../utils/morpheus-confidential-envelope", () => ({
+  buildConfidentialTransferPackage: vi.fn(async () => ({
+    confidentialPayload: { sealed: true },
+    publicEnvelope: {
+      note_commitment: "commitment-abc",
+      nullifier_hash: "nullifier-def",
+    },
+  })),
+  encryptJsonWithOraclePublicKey: vi.fn(async () => "ciphertext-stub"),
+}));
+
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 const VALID_NEO_ADDRESS = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
@@ -21,13 +35,14 @@ function state(): ObservableState {
     requestCount: createObservable(0),
     lastStatus: createObservable("Ready"),
     lastDigest: createObservable("N/A"),
+    networkLabel: createObservable("Neo N3"),
   };
 }
 
-function props(setStatus = vi.fn()) {
+function props(setStatus = vi.fn(), appState: ObservableState = state()) {
   return {
     t: (key: string) => key,
-    state: state(),
+    state: appState,
     dispatch: vi.fn(async () => undefined),
     services: {},
     status: null,
@@ -146,5 +161,84 @@ describe("Private Transfer PlayArea", () => {
       "error",
     );
     expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("keeps the network stat tile in sync with the in-form network select", () => {
+    const appState = state();
+    render(<PlayArea {...props(vi.fn(), appState)} />);
+
+    // Seeds to the active selection on mount instead of staying at "Neo N3".
+    expect(appState.networkLabel?.get()).toBe("Testnet");
+
+    const networkSelect = screen.getByDisplayValue("Testnet") as HTMLSelectElement;
+    fireEvent.change(networkSelect, { target: { value: "mainnet" } });
+    expect(appState.networkLabel?.get()).toBe("Mainnet");
+
+    fireEvent.change(networkSelect, { target: { value: "testnet" } });
+    expect(appState.networkLabel?.get()).toBe("Testnet");
+  });
+
+  it("re-floors a fractional amount when switching from GAS to NEO", () => {
+    render(<PlayArea {...props()} />);
+
+    const amountInput = screen.getByRole("spinbutton") as HTMLInputElement;
+    fireEvent.change(amountInput, { target: { value: "1.5" } });
+    expect(amountInput.value).toBe("1.5");
+
+    const assetSelect = screen.getByDisplayValue("GAS") as HTMLSelectElement;
+    fireEvent.change(assetSelect, { target: { value: "NEO" } });
+
+    // Fractional part dropped so the value is valid for indivisible NEO.
+    expect(amountInput.value).toBe("1");
+    expect(
+      screen.queryByText(
+        "NEO is indivisible — enter a whole number greater than zero.",
+      ),
+    ).toBeNull();
+  });
+
+  it("copies a sealed output value to the clipboard", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(globalThis.navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const secretRef = "secret-ref-xyz";
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("public-key")) {
+        return {
+          ok: true,
+          json: async () => ({
+            public_key: "0".repeat(64),
+            algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ secret_ref: secretRef }),
+      };
+    }) as unknown as typeof fetch;
+
+    render(<PlayArea {...props()} />);
+    fireEvent.change(screen.getByPlaceholderText("N..."), {
+      target: { value: VALID_NEO_ADDRESS },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Seal private transfer" }),
+    );
+
+    const copyButton = await screen.findByRole("button", {
+      name: "Copy Secret ref",
+    });
+    fireEvent.click(copyButton);
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(secretRef);
+    });
+    await screen.findByRole("button", { name: "Secret ref copied" });
   });
 });

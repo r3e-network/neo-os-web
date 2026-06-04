@@ -3,37 +3,10 @@ import PlayArea from "./PlayArea";
 import { useNeoPayApp } from "../../neo-pay/src/composables/useNeoPayApp";
 import { messages as neoPayMessages } from "../../neo-pay/src/locale/messages";
 import { manifest } from "./manifest";
-
-/**
- * Translate the shared composer form (total amount + total duration in days)
- * into the contract's per-interval vesting model: a daily linear release of
- * total / duration per day, honouring each asset's divisibility. GAS allows a
- * fractional per-day rate; NEO is indivisible and collapses sub-1-NEO/day
- * schedules into a single interval spanning the full duration.
- */
-function deriveSchedule(
-  amount: string,
-  durationDays: string,
-  asset: "NEO" | "GAS",
-): { rate: string; intervalDays: string } {
-  const total = Number.parseFloat(amount);
-  const days = Number.parseInt(durationDays, 10);
-  if (!Number.isFinite(total) || !Number.isFinite(days) || days <= 0) {
-    return { rate: amount, intervalDays: "1" };
-  }
-
-  if (asset === "NEO") {
-    const totalNeo = Math.trunc(total);
-    const perDay = Math.trunc(totalNeo / days);
-    if (perDay >= 1) {
-      return { rate: String(perDay), intervalDays: "1" };
-    }
-    return { rate: String(totalNeo), intervalDays: String(days) };
-  }
-
-  const perDay = total / days;
-  return { rate: String(perDay), intervalDays: "1" };
-}
+// Canonical schedule derivation (also unit-tested in neo-pay.logic.test.ts).
+// PlayArea imports the same helper so the on-screen preview and the dispatched
+// transaction agree on the exact per-interval rate / interval.
+import { deriveSchedule } from "../../neo-pay/src/composables/deriveSchedule";
 
 defineMiniApp({
   appId: "miniapp-neo-pay-shared-example",

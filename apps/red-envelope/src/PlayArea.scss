@@ -190,6 +190,29 @@
   letter-spacing: 0;
 }
 
+/* Inline validation feedback on the create tab: explains why Send is disabled. */
+.redenv-helper--error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--ns-danger-soft, #fde7e9);
+  border-radius: 12px;
+  background: var(--ns-danger-soft, #fde7e9);
+  color: var(--ns-danger, #ea3943);
+  font-weight: 600;
+
+  &::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ns-danger, #ea3943);
+  }
+}
+
 .redenv-section-heading {
   display: flex;
   align-items: flex-start;

@@ -60,6 +60,22 @@ describe("useTimestampProofContract", () => {
     expect(proofApp.lastMessage.get()).toBe("Proof found");
   });
 
+  it("counts every device proof as 'yours' regardless of creator/wallet state", async () => {
+    const proofApp = useTimestampProofContract(t);
+
+    // Seed two proofs with mismatched creators (e.g. one before a wallet
+    // connected, one after). For a device-local journal both belong to the
+    // device, so the count must stay stable and equal to the proof total.
+    await proofApp.createProof("doc-a", () => undefined, () => undefined);
+    await proofApp.createProof("doc-b", () => undefined, () => undefined);
+
+    expect(proofApp.proofs.get()).toHaveLength(2);
+    expect(proofApp.myProofsCount.get()).toBe(2);
+
+    await proofApp.deleteProof(proofApp.proofs.get()[0]?.id ?? 0);
+    expect(proofApp.myProofsCount.get()).toBe(1);
+  });
+
   it("copies proof evidence and can delete or clear saved proofs", async () => {
     const writeText = setupClipboard();
     const proofApp = useTimestampProofContract(t);

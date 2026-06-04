@@ -81,6 +81,33 @@ const appMessages = {
     en: "Bid failed and the automatic refund did not complete. Your GAS is safe in your payment balance and can be withdrawn.",
     zh: "竞价失败且自动退款未完成。你的 GAS 安全保存在支付余额中，可随时提取。",
   },
+  withdrawExceeds: {
+    en: "Amount exceeds your deposits",
+    zh: "金额超过你的存入余额",
+  },
+  settleTitle: { en: "Route governance", zh: "路由治理权" },
+  settleCopy: {
+    en: "Settle the live epoch: the top GAS bid wins and directs the pooled NEO influence, then the epoch advances.",
+    zh: "结算当前周期：最高 GAS 竞价获胜并指向汇聚的 NEO 影响力，随后周期推进。",
+  },
+  settleLastLabel: { en: "Last settled", zh: "上次结算" },
+  settleNone: { en: "No epoch settled yet", zh: "尚未结算任何周期" },
+  settleSummary: {
+    en: "Epoch {epoch}: {winner} won with {amount}",
+    zh: "周期 {epoch}：{winner} 以 {amount} 获胜",
+  },
+  settleNoBids: {
+    en: "No bids to settle for this epoch",
+    zh: "本周期没有可结算的竞价",
+  },
+  settleNoBidsHint: {
+    en: "Place at least one GAS bid before routing governance for this epoch.",
+    zh: "在路由本周期治理权之前，请至少提交一笔 GAS 竞价。",
+  },
+  settleSuccess: {
+    en: "Epoch settled — governance routed",
+    zh: "周期已结算 —— 治理权已路由",
+  },
   loadFailed: { en: "Failed to load data", zh: "加载数据失败" },
   error: { en: "Error", zh: "错误" },
 

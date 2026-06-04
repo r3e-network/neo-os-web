@@ -29,8 +29,8 @@ const appMessages = {
   cardsDrawnCount: { en: "Cards Drawn", zh: "抽取卡牌数" },
   totalSpent: { en: "Total Spent", zh: "总花费" },
   oracleVerified: {
-    en: "Oracle verified reading. Card IDs were returned by the service layer.",
-    zh: "预言机验证解读：卡牌结果由服务层返回。",
+    en: "Cards are derived deterministically from your on-chain payment transaction id, so the reading is reproducible and auditable from the txid.",
+    zh: "卡牌由你的链上支付交易 ID 确定性派生，因此该解读可从交易 ID 复现与审计。",
   },
   tarotHeroTitle: { en: "Oracle Tarot Reading Desk", zh: "预言机塔罗读牌台" },
   tarotHeroSubtitle: {
@@ -44,10 +44,10 @@ const appMessages = {
     en: "The prompt is capped at 200 characters before it enters the OS game request.",
     zh: "问题在进入 OS 游戏请求前限制为 200 个字符。",
   },
-  readingStepTwo: { en: "Request oracle draw", zh: "请求预言机抽牌" },
+  readingStepTwo: { en: "Pay the draw fee", zh: "支付抽牌费用" },
   readingStepTwoCopy: {
-    en: "The game proxy submits the reading request and waits for the storage result.",
-    zh: "游戏代理提交读牌请求，并等待存储层返回结果。",
+    en: "You pay the draw fee via the OS payment service; the resulting tx id seeds the reading, which is persisted to storage.",
+    zh: "你通过 OS 支付服务支付抽牌费用；返回的交易 ID 作为解读的种子，并持久化到存储层。",
   },
   readingStepThree: { en: "Reveal the spread", zh: "揭示牌阵" },
   readingStepThreeCopy: {
@@ -88,21 +88,24 @@ const appMessages = {
   cardImageAlt: { en: "{name} tarot card", zh: "{name} 塔罗牌" },
 
   docSubtitle: {
-    en: "Blockchain-verified tarot readings with verifiable randomness",
-    zh: "区块链验证的塔罗牌解读，具有可验证随机性",
+    en: "Tarot readings seeded by your on-chain payment, reproducible from the txid",
+    zh: "由链上支付作为种子的塔罗解读，可凭交易 ID 复现",
   },
   docDescription: {
-    en: "On-Chain Tarot provides mystical three-card readings powered by blockchain randomness. Ask your question, pay a small fee, and receive Past-Present-Future cards drawn through verifiable on-chain oracles.",
-    zh: "链上塔罗提供由区块链随机性驱动的神秘三牌解读。提出问题，支付少量费用，通过可验证的链上预言机获得过去-现在-未来的牌。",
+    en: "On-Chain Tarot provides mystical three-card readings seeded by your on-chain payment. Ask your question, pay a small fee, and receive Past-Present-Future cards derived deterministically from the payment transaction id, so the reading is reproducible and auditable.",
+    zh: "链上塔罗提供由你的链上支付作为种子的神秘三牌解读。提出问题，支付少量费用，即可获得由支付交易 ID 确定性派生的过去-现在-未来牌，解读可复现、可审计。",
   },
   step1: { en: "Connect your wallet and enter your question.", zh: "连接钱包并输入你的问题。" },
   step2: { en: "Pay 0.1 GAS to request an on-chain reading.", zh: "支付 0.1 GAS 请求链上解读。" },
-  step3: { en: "Wait for the oracle to generate your cards.", zh: "等待预言机生成你的牌。" },
+  step3: {
+    en: "Your payment transaction id seeds the deterministic draw.",
+    zh: "你的支付交易 ID 作为种子，确定性地完成抽牌。",
+  },
   step4: { en: "Flip each card to reveal your Past, Present, and Future.", zh: "翻转每张牌揭示你的过去、现在和未来。" },
-  feature1Name: { en: "Verifiable Randomness", zh: "可验证随机性" },
+  feature1Name: { en: "Reproducible Draw", zh: "可复现抽牌" },
   feature1Desc: {
-    en: "Cards are drawn using on-chain VRF for provably fair results.",
-    zh: "使用链上 VRF 抽取卡牌，确保可证明的公平结果。",
+    en: "Cards are derived deterministically from your on-chain payment transaction id, so anyone can reproduce and audit the reading from the txid.",
+    zh: "卡牌由你的链上支付交易 ID 确定性派生，任何人都可凭交易 ID 复现并审计该解读。",
   },
   feature2Name: { en: "78-Card Deck", zh: "78 张牌组" },
   feature2Desc: {

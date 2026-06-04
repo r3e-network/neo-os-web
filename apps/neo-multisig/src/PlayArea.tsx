@@ -15,6 +15,7 @@ import {
   isValidAmount,
   MAX_SIGNERS,
   MIN_SIGNERS,
+  toBaseUnits,
   type RequestView,
   type VaultAsset,
   type VaultView,
@@ -40,7 +41,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [threshold, setThreshold] = useState("2");
 
   // Deposit + propose form
-  const [vaultIdInput, setVaultIdInput] = useState("");
   const [depositAsset, setDepositAsset] = useState<VaultAsset>("GAS");
   const [depositAmount, setDepositAmount] = useState("");
   const [spendAsset, setSpendAsset] = useState<VaultAsset>("GAS");
@@ -68,13 +68,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const thresholdNumber = Math.max(1, Math.floor(Number(threshold) || 0));
   const signerDenominator = Math.max(normalizedSigners.length, MIN_SIGNERS);
 
-  // Vault id used by the deposit/propose forms: prefer the typed override,
-  // otherwise fall back to the active vault loaded into state.
-  const workingVaultId = useMemo(() => {
-    const typed = Math.floor(Number(vaultIdInput.trim()) || 0);
-    if (typed > 0) return typed;
-    return activeVault?.id ?? 0;
-  }, [vaultIdInput, activeVault]);
+  // Vault id used by the deposit/propose forms. These forms only render once a
+  // vault is loaded into state (the `activeVault` block), so the working id is
+  // simply the active vault's id — populated by createVault, loadVault, or the
+  // history "load" path.
+  const workingVaultId = activeVault?.id ?? 0;
 
   const createBlockedReason = useMemo(() => {
     if (normalizedSigners.length < MIN_SIGNERS) return t("multisigNeedSigners");
@@ -106,10 +104,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     isValidAmount(depositAmount.trim(), depositAsset) &&
     !isDepositing;
 
+  // Pre-flight insufficient-balance guard: when the entered spend is a valid
+  // amount but exceeds the vault's on-chain balance for the chosen asset, block
+  // the proposal up front instead of surfacing a post-invoke error toast. Both
+  // sides are compared in BASE UNITS (GAS 1e8 / NEO integer) via BigInt.
+  const spendExceedsBalance = useMemo(() => {
+    if (!activeVault) return false;
+    const trimmed = spendAmount.trim();
+    if (!isValidAmount(trimmed, spendAsset)) return false;
+    try {
+      const requested = BigInt(toBaseUnits(trimmed, spendAsset));
+      const available = BigInt(
+        spendAsset === "NEO"
+          ? activeVault.neoBalance
+          : activeVault.gasBalance,
+      );
+      return requested > available;
+    } catch {
+      return false;
+    }
+  }, [activeVault, spendAmount, spendAsset]);
+
   const canPropose =
     workingVaultId > 0 &&
     isValidAddress(recipient.trim()) &&
     isValidAmount(spendAmount.trim(), spendAsset) &&
+    !spendExceedsBalance &&
     !isProposing;
 
   const requestPending = activeRequest?.status === "pending";
@@ -364,6 +384,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       onChange={setMemo}
                     />
                   </div>
+                  {spendExceedsBalance && (
+                    <p className="multisig-request-hint" aria-live="polite">
+                      {t("multisigInsufficientBalance", {
+                        balance:
+                          spendAsset === "NEO" ? vaultNeo : vaultGas,
+                        asset: spendAsset,
+                      })}
+                    </p>
+                  )}
                   <div className="multisig-primary-actions">
                     <NeoButton
                       variant="primary"

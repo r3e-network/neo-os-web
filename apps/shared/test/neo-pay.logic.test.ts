@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { useNeoPayApp } from "../../neo-pay/src/composables/useNeoPayApp";
+import { deriveSchedule } from "../../neo-pay/src/composables/deriveSchedule";
 import type { ChainService, ContractArg } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
@@ -347,5 +348,120 @@ describe("useNeoPayApp (direct contract)", () => {
     expect(app.serviceNotice.get()).toBe(
       "The payment stream index could not be loaded right now.",
     );
+  });
+
+  it("tracks creation with a dedicated isCreating flag, leaving isLoading for the list spinners", async () => {
+    const { app, invoke } = setup();
+
+    // isCreating must flip true during the create flow and back to false after,
+    // without ever touching isLoading (which drives the created/incoming list
+    // spinners — those must NOT flash while a stream is being created).
+    let sawCreatingDuringInvoke = false;
+    invoke.mockImplementation(async () => {
+      if (app.isCreating.get()) sawCreatingDuringInvoke = true;
+      expect(app.isLoading.get()).toBe(false);
+      return { txid: "0xtx", success: true };
+    });
+
+    expect(app.isCreating.get()).toBe(false);
+    await app.handleCreateVault({
+      name: "Payroll",
+      beneficiary: BENEFICIARY,
+      asset: "GAS",
+      total: "2",
+      rate: "0.5",
+      intervalDays: "7",
+      notes: "",
+    });
+
+    expect(sawCreatingDuringInvoke).toBe(true);
+    expect(app.isCreating.get()).toBe(false);
+    expect(app.isLoading.get()).toBe(false);
+  });
+});
+
+/**
+ * deriveSchedule turns the PlayArea form (total + duration in days) into the
+ * contract's per-interval rate. The historical bug: GAS rates that don't divide
+ * evenly produced a 17-digit float string (e.g. 5/30 -> "0.16666666666666666")
+ * that the 8-decimal amount validator rejected, so "Create Stream" failed
+ * before any deposit fired. The rate must always be representable as <=8 GAS
+ * decimals and survive a round-trip through handleCreateVault.
+ */
+describe("deriveSchedule (form -> contract rate)", () => {
+  // Mirror of the composable's GAS validator: rate strings must satisfy this to
+  // be accepted by toBaseUnits (and therefore not abort the create flow).
+  const GAS_RATE_RE = /^\d+(\.\d{1,8})?$/;
+
+  it("quantizes a non-evenly-dividing GAS rate to <=8 decimals (5 GAS / 30 days)", () => {
+    const { rate, intervalDays } = deriveSchedule("5", "30", "GAS");
+    // String(5 / 30) === "0.16666666666666666" (17 digits) would be rejected.
+    expect(rate).toBe("0.16666667");
+    expect(rate).toMatch(GAS_RATE_RE);
+    expect(intervalDays).toBe("1");
+    expect(Number.parseFloat(rate)).toBeGreaterThan(0);
+  });
+
+  it("quantizes the manifest placeholder (0.03 GAS / 7 days) to a valid rate", () => {
+    const { rate } = deriveSchedule("0.03", "7", "GAS");
+    // 0.03 / 7 === 0.004285714285714286 — must round to 8 dp, not stringify raw.
+    expect(rate).toBe("0.00428571");
+    expect(rate).toMatch(GAS_RATE_RE);
+    expect(Number.parseFloat(rate)).toBeGreaterThan(0);
+  });
+
+  it("keeps an evenly-dividing GAS rate exact", () => {
+    const { rate, intervalDays } = deriveSchedule("2", "4", "GAS");
+    expect(rate).toBe("0.50000000");
+    expect(rate).toMatch(GAS_RATE_RE);
+    expect(intervalDays).toBe("1");
+  });
+
+  it("collapses sub-1-NEO/day into a single full-duration interval", () => {
+    // 5 NEO / 30 days truncates to 0/day, so release all 5 at the 30-day horizon.
+    const { rate, intervalDays } = deriveSchedule("5", "30", "NEO");
+    expect(rate).toBe("5");
+    expect(intervalDays).toBe("30");
+  });
+
+  it("uses an integer per-day NEO rate when total >= days", () => {
+    const { rate, intervalDays } = deriveSchedule("30", "10", "NEO");
+    expect(rate).toBe("3");
+    expect(intervalDays).toBe("1");
+  });
+});
+
+/**
+ * End-to-end guard for the high-severity bug: feeding deriveSchedule's output
+ * into handleCreateVault for the previously-broken 5 GAS / 30 days case must
+ * deposit + createStream with valid base-unit integers (no invalidAmount abort).
+ */
+describe("create flow accepts derived GAS rates (regression)", () => {
+  it("creates a 5 GAS / 30 day stream via the derived rate without rejecting", async () => {
+    const { app, invoke } = setup();
+
+    const { rate, intervalDays } = deriveSchedule("5", "30", "GAS");
+    await app.handleCreateVault({
+      name: "Payroll",
+      beneficiary: BENEFICIARY,
+      asset: "GAS",
+      total: "5",
+      rate,
+      intervalDays,
+      notes: "",
+    });
+
+    const deposit = callFor(invoke, "transfer");
+    expect(deposit).toBeTruthy();
+    // 5 GAS = 500_000_000 base units.
+    expect(deposit![1]).toContainEqual({ type: "Integer", value: "500000000" });
+
+    const create = callFor(invoke, "createStream");
+    expect(create).toBeTruthy();
+    const args = create![1] as ContractArg[];
+    expect(args[3]).toEqual({ type: "Integer", value: "500000000" }); // total
+    // 0.16666667 GAS rate -> 16666667 base units (no float-string rejection).
+    expect(args[4]).toEqual({ type: "Integer", value: "16666667" });
+    expect(args[5]).toEqual({ type: "Integer", value: String(86400) }); // 1-day interval
   });
 });

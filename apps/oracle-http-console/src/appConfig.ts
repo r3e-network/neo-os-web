@@ -18,7 +18,7 @@ export const manifest: MiniAppManifest = {
   icon: "radio",
   category: "oracle",
   shell: "console",
-  theme: { family: "default", accentColor: "#34d399", density: "comfortable" },
+  theme: { family: "default", accentColor: "#16c784", density: "comfortable" },
   tabs: [{ key: "http", labelKey: "tabHttp", icon: "radio", default: true }],
   stats: [
     { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },
@@ -92,7 +92,7 @@ export const consoleConfig: ConsoleToolConfig = {
 
     return {
       status: urlValid ? t("httpReady") : t("httpInvalidUrl"),
-      summary: t("httpSummary", { method }),
+      summary: urlValid ? t("httpSummary", { method }) : t("httpInvalidUrl"),
       rows: [
         { label: t("method"), value: method },
         { label: t("url"), value: url },
@@ -102,6 +102,12 @@ export const consoleConfig: ConsoleToolConfig = {
       ],
       payload: {
         kind: "oracle.http.request",
+        // A failed http(s) scheme check is a validation failure: flag it as
+        // input_required so the shared ConsoleToolPanel classifies the preview as
+        // a warning (no success toast, no Requests increment, digest placeholder
+        // preserved) — matching the visible "URL valid: No" row instead of
+        // contradicting it with a green success signal.
+        ...(urlValid ? {} : { status: "input_required" as const }),
         method,
         url,
         urlValid,

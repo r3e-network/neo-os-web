@@ -556,16 +556,21 @@
   font-variant-numeric: tabular-nums;
 }
 
+// Rarity tiers are decorative (drop-rate bars + result label only — allowed by
+// the design rules). Keep the 4 tiers visually distinct and ordered:
+// common (muted) < rare (blue) < epic (violet) < legendary (gold). Each token's
+// fallback hex matches the token's intent so the tier renders predictably even
+// when the token is undefined — no green-fallback aliasing.
 .gasbox-rarity--common { color: var(--ns-text-2, #5b6478); }
 .gasbox-rarity--uncommon { color: var(--ns-brand-strong, #0fb174); }
 .gasbox-rarity--rare { color: var(--ns-info, #3e8cff); }
-.gasbox-rarity--epic { color: var(--ns-violet, #16c784); }
+.gasbox-rarity--epic { color: var(--ns-violet, #8b5cf6); }
 .gasbox-rarity--legendary { color: var(--ns-warning, #f5a623); }
 
 .gasbox-rarity-bar-fill.gasbox-rarity--common { background: var(--ns-text-faint, #aeb4c2); }
 .gasbox-rarity-bar-fill.gasbox-rarity--uncommon { background: var(--ns-brand, #16c784); }
 .gasbox-rarity-bar-fill.gasbox-rarity--rare { background: var(--ns-info, #3e8cff); }
-.gasbox-rarity-bar-fill.gasbox-rarity--epic { background: var(--ns-violet, #16c784); }
+.gasbox-rarity-bar-fill.gasbox-rarity--epic { background: var(--ns-violet, #8b5cf6); }
 .gasbox-rarity-bar-fill.gasbox-rarity--legendary { background: var(--ns-warning, #f5a623); }
 
 .gasbox-lever-container {
@@ -924,6 +929,91 @@
 }
 
 .gasbox-studio-item__row .neo-btn {
+  flex: 0 0 auto;
+}
+
+// Read-only weight-derived rarity tier preview (replaces the dead rarity select).
+.gasbox-studio-item__row .gasbox-derived-tier {
+  flex: 0 1 120px;
+  display: grid;
+  gap: 6px;
+}
+
+.gasbox-derived-tier > span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.gasbox-derived-tier__value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--ns-radius-md, 12px);
+  border: 1px solid var(--ns-border, #e4e7ee);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.gasbox-derived-tier__share {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--ns-text-muted, #8a92a6);
+  letter-spacing: 0;
+}
+
+.gasbox-studio-items__hint {
+  margin: -2px 0 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+// Creator earnings panel (Withdraw Revenue) — visible only to the creator.
+.gasbox-creator-revenue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid var(--ns-brand-soft-border, #c7efe0);
+  background: var(--ns-brand-soft, #e4f8f0);
+}
+
+.gasbox-creator-revenue__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.gasbox-creator-revenue__copy .gasbox-eyebrow {
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.gasbox-creator-revenue__copy strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.gasbox-creator-revenue__copy p {
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.gasbox-creator-revenue .neo-btn {
   flex: 0 0 auto;
 }
 

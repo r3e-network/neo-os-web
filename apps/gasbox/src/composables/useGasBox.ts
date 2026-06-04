@@ -92,12 +92,18 @@ const MAX_ITEMS_PER_MACHINE = 100;
 
 export type PrizeAsset = "NEO" | "GAS";
 
-/** Studio publish-form item (string-typed for controlled inputs). */
+/**
+ * Studio publish-form item (string-typed for controlled inputs).
+ *
+ * Note: there is NO creator-chosen rarity. The contract stores only name +
+ * weight + amount; the displayed rarity tier is DERIVED from each item's weight
+ * share on read-back (rarityFromShare). A `rarity` field here would be silently
+ * discarded, so the form does not collect one.
+ */
 export interface MachineItemData {
   name: string;
   /** Weight (relative draw probability) — positive integer. */
   weight: string;
-  rarity?: string;
   /** Prize amount in prizeAsset human units (GAS decimal / NEO integer). */
   amount: string;
 }
@@ -496,10 +502,15 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
    * The pull's nested prize transfer needs a healthy systemFee; fee estimation
    * is delegated to the chain service / dApi wallet (which budgets a buffer), so
    * no manual fee is set here.
+   *
+   * Returns `true` on a confirmed on-chain pull (the Pulled event settled and a
+   * result was recorded), `false` for a no-op double-submit guard, and throws on
+   * any failure so notify.guard reports the real error. Callers use the boolean
+   * to advance per-user stats only on a real win.
    */
-  const playMachine = async () => {
+  const playMachine = async (): Promise<boolean> => {
     const machine = selectedMachine.get();
-    if (!machine || isPlaying.get()) return; // double-submit guard
+    if (!machine || isPlaying.get()) return false; // double-submit guard
     if (!machine.active || !machine.inventoryReady) {
       const msg = t("inventoryUnavailable");
       playError.set(msg);
@@ -638,6 +649,8 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       showFireworks.set(true);
 
       await loadMachines();
+      // Confirmed on-chain pull — the caller increments per-user stats only here.
+      return true;
     } catch (e) {
       // Surface the failure so notify.guard reports the real error and
       // suppresses the false success toast. The prepay may have settled, so the

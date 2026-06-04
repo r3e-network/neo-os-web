@@ -13,6 +13,7 @@ import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { ClipboardService } from "@shared/services";
 import { buildMiniAppUrl } from "@shared/utils/miniapp-routes";
+import { getLaunchParam, readMiniAppLaunchContext } from "@shared/utils/launch-params";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt, parseBool, encodeTokenId } from "@shared/utils/parsers";
 import type { CertificateItem, TemplateItem } from "../types";
@@ -216,6 +217,25 @@ export function useSoulbound({
   const lastTxid = createObservable("");
   const lastError = createObservable("");
   const lastSuccess = createObservable("");
+
+  // Read side of the Copy/Share Issue Link deep-link feature. When a recipient
+  // opens a copied/shared link (…?issueTemplateId=7&autoIssueDraft=1), surface
+  // the requested template id and draft flag so the Issue panel can preselect
+  // the template instead of dropping the user on the default app state.
+  const launchContext = readMiniAppLaunchContext("miniapp-soulbound-certificate");
+  const deepLinkTemplateId = createObservable(
+    getLaunchParam(launchContext, ["issueTemplateId", "templateId"]),
+  );
+  const deepLinkAutoIssue = createObservable(
+    /^(1|true|yes)$/i.test(getLaunchParam(launchContext, "autoIssueDraft")),
+  );
+
+  // Allow the view to mark the deep-link as consumed so the prefill is applied
+  // once and the user can freely edit the template id afterwards.
+  const consumeDeepLink = () => {
+    deepLinkTemplateId.set("");
+    deepLinkAutoIssue.set(false);
+  };
 
   const address = createObservable("");
   const templatesCount = createDerived(() => templates.get().length, [templates]);
@@ -495,7 +515,10 @@ export function useSoulbound({
       if (!cert) throw new Error(t("certificateNotFound"));
       verifiedCertificate.set(cert);
       lastTxid.set("");
-      lastSuccess.set(t("certificateValid"));
+      // Reflect the actual revocation status in the status strip so a verifier
+      // is never told a revoked credential is "Valid" while the detail card
+      // simultaneously renders a red "Revoked" badge.
+      lastSuccess.set(t(cert.revoked ? "certificateRevoked" : "certificateValid"));
       return cert;
     } catch (error) {
       verifiedCertificate.set(null);
@@ -601,6 +624,9 @@ export function useSoulbound({
     lastTxid,
     lastError,
     lastSuccess,
+    deepLinkTemplateId,
+    deepLinkAutoIssue,
+    consumeDeepLink,
     templatesCount,
     certificatesCount,
     activeTemplatesCount,
