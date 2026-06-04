@@ -70,6 +70,7 @@ defineMiniApp({
     };
 
     ctx.registerAction("placeDiceBet", async (...args: unknown[]) => {
+      if (isSubmitting.get()) return;
       const form = (args[0] ?? {}) as {
         chosenNumber?: unknown;
         amount?: unknown;
@@ -79,11 +80,11 @@ defineMiniApp({
         form.amount,
       );
       const amountFixed8 = toFixed8(nextAmount);
-      const player = await ctx.services.chain.ensureWallet();
 
       isSubmitting.set(true);
       lastStatus.set(ctx.t("statusSubmitting"));
       try {
+        const player = await ctx.services.chain.ensureWallet();
         const result = await ctx.services.chain.invokeWithPayment(
           amountFixed8,
           `${appId}:stake`,

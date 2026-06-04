@@ -106,13 +106,35 @@ export function useGovMercPool({ paymentService, storageService, t }: UseGovMerc
     }
   };
 
+  /**
+   * Read-modify-write the aggregate records the loaders consume so a successful
+   * deposit/withdraw is reflected in Total Pool and Your Deposits. A positive
+   * `delta` deposits, a negative `delta` withdraws (clamped at 0 so balances
+   * never go negative). Writes the very keys loadPoolData/loadUserDeposits read
+   * ("pool-state", "user-deposits") — keeping the write/read namespace aligned.
+   */
+  const applyDeposit = async (delta: number) => {
+    const poolRaw = await storageService.get("pool-state");
+    const pool = poolRaw && typeof poolRaw === "object" ? (poolRaw as Record<string, unknown>) : {};
+    const nextTotal = Math.max(0, Number(pool.totalPool || 0) + delta);
+    await storageService.set("pool-state", {
+      ...pool,
+      totalPool: nextTotal,
+      currentEpoch: Number(pool.currentEpoch || 0),
+    });
+
+    const userRaw = await storageService.get("user-deposits");
+    const nextUser = Math.max(0, Number(userRaw || 0) + delta);
+    await storageService.set("user-deposits", nextUser);
+  };
+
   const depositNeo = async () => {
     if (isBusy.get()) return;
     const amount = Number(depositAmount.get());
     if (!(amount > 0)) throw new Error(t("enterAmount"));
     try {
       isProcessing.set(true);
-      await storageService.set("deposit", { depositor: address.get(), amount });
+      await applyDeposit(amount);
       depositAmount.set("");
       await loadData();
     } finally {
@@ -126,7 +148,7 @@ export function useGovMercPool({ paymentService, storageService, t }: UseGovMerc
     if (!(amount > 0)) throw new Error(t("enterAmount"));
     try {
       isProcessing.set(true);
-      await storageService.set("withdraw", { withdrawer: address.get(), amount });
+      await applyDeposit(-amount);
       withdrawAmount.set("");
       await loadData();
     } finally {
@@ -142,8 +164,8 @@ export function useGovMercPool({ paymentService, storageService, t }: UseGovMerc
       isProcessing.set(true);
       await paymentService.deposit(bidAmount.get(), `govmerc:bid:${currentEpoch.get()}`);
       if (!isMounted) return;
-      await storageService.set("bid", {
-        bidder: address.get(),
+      await storageService.set(`bid:${currentEpoch.get()}:${address.get()}`, {
+        address: address.get(),
         amount: bidAmount.get(),
         epoch: currentEpoch.get(),
       });

@@ -14,7 +14,7 @@ import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { ClipboardService } from "@shared/services";
 import { buildMiniAppUrl } from "@shared/utils/miniapp-routes";
 import { addressToScriptHash } from "@shared/utils/neo";
-import { parseBigInt, parseBool } from "@shared/utils/parsers";
+import { parseBigInt, parseBool, encodeTokenId } from "@shared/utils/parsers";
 import type { CertificateItem, TemplateItem } from "../types";
 
 type ContractArg = {
@@ -441,7 +441,7 @@ export function useSoulbound({
     lastError.set("");
     try {
       const details = await chain.read("getCertificateDetails", [
-        { type: "ByteArray", value: tokenId },
+        { type: "ByteArray", value: encodeTokenId(tokenId) },
       ]);
       const record = asRecord(details);
       const cert = record ? certificateFromRecord(record) : null;
@@ -472,7 +472,7 @@ export function useSoulbound({
         "revokeCertificate",
         [
           { type: "Hash160", value: issuer },
-          { type: "ByteArray", value: tokenId },
+          { type: "ByteArray", value: encodeTokenId(tokenId) },
         ],
         { waitForEvent: "CertificateRevoked", waitTimeoutMs: 30_000 },
       );

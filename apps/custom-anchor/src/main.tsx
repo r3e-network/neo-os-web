@@ -49,6 +49,12 @@ function fromFixed8(value: unknown): string {
   return amount.toLocaleString(undefined, { maximumFractionDigits: 8 });
 }
 
+function fromWholeNeo(value: unknown): string {
+  const amount = stackNumber(value);
+  if (!Number.isFinite(amount)) return "0";
+  return Math.trunc(amount).toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
 defineMiniApp({
   appId,
   playArea: PlayArea,
@@ -83,7 +89,7 @@ defineMiniApp({
           ctx.services.chain.read("getRewardReserve", [{ type: "String", value: target }], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
           ctx.services.chain.read("getAgentCount", [{ type: "String", value: target }], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
         ]);
-        totalStaked.set(fromFixed8(total));
+        totalStaked.set(fromWholeNeo(total));
         rewardReserve.set(fromFixed8(reserve));
         agentCount.set(stackNumber(agents));
 
@@ -99,7 +105,7 @@ defineMiniApp({
               { type: "Hash160", value: address },
             ], anchorOptions({ cache: true, cacheTtlMs: 15_000 })),
           ]);
-          userStake.set(fromFixed8(stake));
+          userStake.set(fromWholeNeo(stake));
           pendingRewards.set(fromFixed8(rewards));
         }
         workflowStatus.set(ctx.t("statusLoaded"));

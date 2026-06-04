@@ -252,7 +252,7 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
     currentStreak.set(normalizedCurrent);
     highestStreak.set(normalizedHighest);
     totalUserCheckins.set(toFiniteNumber(data.totalCheckins));
-    lastCheckInDay.set(lastCheckinTime ? Math.floor(lastCheckinTime / (MS_PER_DAY / 1000)) : 0);
+    lastCheckInDay.set(lastCheckinTime ? Math.floor(lastCheckinTime / MS_PER_DAY) : 0);
     unclaimedRewards.set(fixed8FromGasValue(data.unclaimedRewards));
     totalClaimed.set(fixed8FromGasValue(data.totalClaimed));
     totalGlobalCheckins.set(toFiniteNumber(data.totalGlobalCheckins));

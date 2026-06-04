@@ -7,6 +7,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useGraveyard } from "./composables/useGraveyard";
+import type { HistoryItem } from "./types";
 
 defineMiniApp({
   appId: "miniapp-graveyard",
@@ -36,7 +37,7 @@ defineMiniApp({
     });
     ctx.registerAction("forgetMemory", async (item: unknown) => {
       await notify.guard(
-        () => graveyard.forgetMemory(item as { id: string; forgotten: boolean }),
+        () => graveyard.forgetMemory(item as HistoryItem),
         "forgetSuccess",
       );
     });

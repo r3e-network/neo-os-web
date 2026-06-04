@@ -153,7 +153,7 @@ export function useLastSurvivor({
   const timeRemainingSeconds = createDerived(() => {
     if (!endTime.get()) return 0;
     return Math.max(0, Math.floor((endTime.get() - now.get()) / 1000));
-  }, []);
+  }, [now, endTime]);
 
   const countdown = createDerived(() => {
     const total = timeRemainingSeconds.get();
@@ -161,7 +161,7 @@ export function useLastSurvivor({
     const mins = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
     const secs = String(total % 60).padStart(2, "0");
     return `${hours}:${mins}:${secs}`;
-  }, []);
+  }, [timeRemainingSeconds]);
 
   const dangerLevel = createDerived(() => {
     const seconds = timeRemainingSeconds.get();
@@ -169,7 +169,7 @@ export function useLastSurvivor({
     if (seconds > 3600) return "medium";
     if (seconds > 600) return "high";
     return "critical";
-  }, []);
+  }, [timeRemainingSeconds]);
 
   const dangerLevelText = createDerived(() => {
     switch (dangerLevel.get()) {
@@ -179,14 +179,14 @@ export function useLastSurvivor({
       case "critical": return t("dangerCritical");
       default: return t("dangerLow");
     }
-  }, []);
+  }, [dangerLevel]);
 
   const dangerProgress = createDerived(() => {
     if (!timeRemainingSeconds.get()) return 0;
     return Math.min(100, (timeRemainingSeconds.get() / MAX_DURATION_SECONDS) * 100);
-  }, []);
+  }, [timeRemainingSeconds]);
 
-  const shouldPulse = createDerived(() => timeRemainingSeconds.get() <= 600, []);
+  const shouldPulse = createDerived(() => timeRemainingSeconds.get() <= 600, [timeRemainingSeconds]);
 
   const updateNow = () => { now.set(Date.now()); };
 
@@ -217,9 +217,9 @@ export function useLastSurvivor({
   const estimatedCostRaw = createDerived(() => {
     const count = BigInt(Math.max(0, Math.floor(Number(keyCount.get()) || 0)));
     return calculateKeyCostFormula(count, totalKeysInRound.get());
-  }, []);
+  }, [keyCount, totalKeysInRound]);
 
-  const estimatedCost = createDerived(() => (Number(estimatedCostRaw.get()) / 1e8).toFixed(2), []);
+  const estimatedCost = createDerived(() => (Number(estimatedCostRaw.get()) / 1e8).toFixed(2), [estimatedCostRaw]);
 
   // ── Data Loading (via OS services) ─────────────────────────────────
 

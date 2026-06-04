@@ -124,7 +124,7 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     }
 
     try {
-      const result = await apiRequest(requestAmount.get());
+      const result = await apiRequest(amount);
       if (!result.success) {
         throw new Error(gasSponsorSDK.sponsorshipError.value || t("requestFailed"));
       }

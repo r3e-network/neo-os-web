@@ -442,14 +442,33 @@ export function useSelfLoan({
       // Step 2: Create loan escrow via EscrowProxy
       // The edge function handles the CreateLoan contract call,
       // locks collateral, and disburses borrowed GAS.
-      await escrowService.create({
-        beneficiary: "self",
-        amount: String(collateral),
-        milestones: [
-          { name: "collateral-locked", amount: String(collateral) },
-          { name: "gas-disbursed", amount: String(netBorrow) },
-        ],
-      });
+      //
+      // The deposit in Step 1 has already locked NEO on-chain. If escrow
+      // creation fails the collateral would be stranded with no loan
+      // position, so we compensate by refunding the deposit before
+      // re-throwing. If the refund itself fails, surface a distinct
+      // manual-recovery error instead of the raw escrow error.
+      try {
+        await escrowService.create({
+          beneficiary: "self",
+          amount: String(collateral),
+          milestones: [
+            { name: "collateral-locked", amount: String(collateral) },
+            { name: "gas-disbursed", amount: String(netBorrow) },
+          ],
+        });
+      } catch (escrowErr) {
+        try {
+          await paymentService.withdraw(String(collateral));
+        } catch (refundErr) {
+          console.error(
+            "[useSelfLoan] takeLoan: collateral refund failed after escrow.create error",
+            refundErr instanceof Error ? refundErr.message : String(refundErr),
+          );
+          throw new Error(t("collateralRecoveryNeeded"));
+        }
+        throw new Error(t("collateralRefunded"));
+      }
 
       // Step 3: Award first-loan badge if applicable
       try {
@@ -484,10 +503,24 @@ export function useSelfLoan({
   const repay = async (amount: string) => {
     const value = String(amount || "").trim();
     if (!value || Number(value) <= 0) throw new Error(t("enterValidAmount"));
+    // Capture the escrow/loan id and outstanding debt before repaying — once
+    // the position is fully repaid the reloaded position may reset and lose
+    // the id we need to release collateral.
+    const escrowId = loan.get().id;
+    const debtBefore = loan.get().borrowed;
     try {
       isRepaying.set(true);
       await paymentService.deposit(value, "self-loan:repay");
       await loadAll();
+
+      // If this repayment cleared the outstanding debt, release the locked
+      // collateral via EscrowProxy.refund. Without this the GAS repayment
+      // lands but the NEO collateral stays locked in escrow with no other
+      // release path.
+      if (escrowId != null && debtBefore > 0 && loan.get().borrowed === 0) {
+        await escrowService.refund(String(escrowId));
+        await loadAll();
+      }
     } finally {
       isRepaying.set(false);
     }

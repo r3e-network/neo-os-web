@@ -167,7 +167,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="recent-tips-list">
                 {recentTips.slice(0, 5).map((tip, idx) => (
                   <div key={idx} className="recent-tip-item">
-                    <span className="recent-tip-from">{String(tip.tipperName || t("anonymousOn") || "Anonymous")}</span>
+                    <span className="recent-tip-from">
+                      {String(tip.tipperName || t("anonymousOn") || "Anonymous")}
+                      {tip.to ? <span className="recent-tip-to"> → {String(tip.to)}</span> : null}
+                    </span>
                     <span className="recent-tip-amount">{formatNum(Number(tip.amount || 0))} GAS</span>
                   </div>
                 ))}

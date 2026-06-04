@@ -19,14 +19,22 @@ type SubmitState =
   | { status: "error"; message: string };
 
 const AMOUNT_PRESETS = ["0.1", "1", "5"];
+const NEO_AMOUNT_PRESETS = ["1", "5", "10"];
 const MORPHEUS_ENCRYPTION_ALGORITHM = "X25519-HKDF-SHA256-AES-256-GCM";
 
 const isValidNeoAddress = (value: string) =>
   /^N[0-9A-Za-z]{33}$/.test(value.trim());
 
-function isPositiveAmount(value: string) {
+function isPositiveAmount(value: string, asset = "GAS") {
   const amount = Number(value);
-  return Number.isFinite(amount) && amount > 0;
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return false;
+  }
+  // NEO on Neo N3 is indivisible: only whole integer units can ever settle.
+  if (asset.trim().toUpperCase() === "NEO") {
+    return Number.isInteger(amount);
+  }
+  return true;
 }
 
 function userFacingSealError(
@@ -69,10 +77,13 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
     status: "idle",
     message: "Ready to seal private transfer details locally.",
   });
+  const isNeo = asset.trim().toUpperCase() === "NEO";
   const recipientInvalid =
     recipient.trim().length > 0 && !isValidNeoAddress(recipient);
-  const amountInvalid = amount.trim().length > 0 && !isPositiveAmount(amount);
-  const canSeal = isValidNeoAddress(recipient) && isPositiveAmount(amount);
+  const amountInvalid =
+    amount.trim().length > 0 && !isPositiveAmount(amount, asset);
+  const canSeal =
+    isValidNeoAddress(recipient) && isPositiveAmount(amount, asset);
 
   const sealTransfer = useCallback(async () => {
     if (!canSeal) {
@@ -262,21 +273,23 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
               <input
                 type="number"
                 min="0"
-                step="0.00000001"
+                step={isNeo ? "1" : "0.00000001"}
                 value={amount}
                 aria-invalid={amountInvalid || undefined}
                 onChange={(event) => setAmount(event.target.value)}
               />
               {amountInvalid && (
                 <small className="private-transfer__field-error">
-                  Enter an amount greater than zero.
+                  {isNeo
+                    ? "NEO is indivisible — enter a whole number greater than zero."
+                    : "Enter an amount greater than zero."}
                 </small>
               )}
               <div
                 className="private-transfer__presets"
                 aria-label="Amount presets"
               >
-                {AMOUNT_PRESETS.map((preset) => (
+                {(isNeo ? NEO_AMOUNT_PRESETS : AMOUNT_PRESETS).map((preset) => (
                   <button
                     key={preset}
                     type="button"

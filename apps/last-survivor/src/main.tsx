@@ -40,6 +40,10 @@ defineMiniApp({
       await game.loadAll();
     });
 
+    ctx.registerAction("setKeyCount", async (value: unknown) => {
+      game.keyCount.set(String(value));
+    });
+
     return {
       state: {
         roundId: game.roundId,

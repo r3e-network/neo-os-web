@@ -166,31 +166,47 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     }
   };
 
+  let isLoadingTxs = false;
   const loadRecentTxs = async () => {
-    const cached = readCachedJSON<TransactionRecord[]>(TXS_CACHE_KEY);
-    if (cached) recentTxs.set(cached);
-    if (!shouldUseExplorerApi()) return;
-
-    let freshTxs: TransactionRecord[] = [];
-    let hasFreshTxs = false;
-
+    // Guard against overlapping reloads (e.g. rapid network toggles): a single
+    // in-flight fetch keyed to the latest selectedNetwork is enough.
+    if (isLoadingTxs) return;
+    isLoadingTxs = true;
     try {
-      const res = await fetch(`${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`);
-      if (res.ok) {
-        const parsed = parseResponseData(await res.json()) as Record<string, unknown> | null;
-        const rows = Array.isArray(parsed?.transactions) ? (parsed.transactions as Record<string, unknown>[]) : [];
-        freshTxs = rows.map(normalizeTx).filter((tx) => tx.hash);
-        hasFreshTxs = true;
-      }
-    } catch (e) {
-      console.warn("[useExplorer] fetch txs failed, using cached:", e instanceof Error ? e.message : String(e));
-    }
+      const cached = readCachedJSON<TransactionRecord[]>(TXS_CACHE_KEY);
+      if (cached) recentTxs.set(cached);
+      if (!shouldUseExplorerApi()) return;
 
-    if (hasFreshTxs) {
-      recentTxs.set(freshTxs);
-      writeCachedJSON(TXS_CACHE_KEY, freshTxs);
+      let freshTxs: TransactionRecord[] = [];
+      let hasFreshTxs = false;
+
+      try {
+        const res = await fetch(`${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`);
+        if (res.ok) {
+          const parsed = parseResponseData(await res.json()) as Record<string, unknown> | null;
+          const rows = Array.isArray(parsed?.transactions) ? (parsed.transactions as Record<string, unknown>[]) : [];
+          freshTxs = rows.map(normalizeTx).filter((tx) => tx.hash);
+          hasFreshTxs = true;
+        }
+      } catch (e) {
+        console.warn("[useExplorer] fetch txs failed, using cached:", e instanceof Error ? e.message : String(e));
+      }
+
+      if (hasFreshTxs) {
+        recentTxs.set(freshTxs);
+        writeCachedJSON(TXS_CACHE_KEY, freshTxs);
+      }
+    } finally {
+      isLoadingTxs = false;
     }
   };
+
+  // Switching networks must re-scope the recent-tx list to match the stats and
+  // search, which both read selectedNetwork at call time. Without this the list
+  // keeps showing the previous network's transactions after a toggle.
+  selectedNetwork.subscribe(() => {
+    void loadRecentTxs();
+  });
 
   // ── Search ───────────────────────────────────────────────────────────
 

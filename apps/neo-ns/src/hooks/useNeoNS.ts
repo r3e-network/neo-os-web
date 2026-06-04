@@ -21,6 +21,8 @@ export interface Domain {
 }
 
 export interface SearchResult {
+  /** The exact full ".neo" name that was searched (snapshotted so registration cannot drift from the live query). */
+  name: string;
   available: boolean;
   price?: number;
   owner?: string;
@@ -136,7 +138,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
         registrationCost.set(price);
 
         if (isAvailable) {
-          searchResult.set({ available: true, price });
+          searchResult.set({ name: fullName, available: true, price });
         } else {
           let owner = t("unknownOwner");
           try {
@@ -144,7 +146,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
             const ownerRaw = await chain.read("ownerOf", [{ type: "ByteArray", value: tokenId }], readOpts);
             if (ownerRaw) owner = String(ownerRaw);
           } catch { /* owner lookup can fail */ }
-          searchResult.set({ available: false, owner });
+          searchResult.set({ name: fullName, available: false, owner });
         }
       } catch (e) {
         error.set(e instanceof Error ? e.message : t("availabilityFailed"));
@@ -155,12 +157,14 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
   };
 
   const registerDomain = async () => {
-    if (!searchResult.get()?.available || isLoading.get()) return;
+    const result0 = searchResult.get();
+    if (!result0?.available || isLoading.get()) return;
     isLoading.set(true);
     try {
       await chain.ensureWallet();
-      const query = searchQuery.get().trim().toLowerCase();
-      const fullName = query.endsWith(".neo") ? query : query + ".neo";
+      // Register the exact name whose availability and price were verified by the
+      // last search -- NOT the live searchQuery, which the user may have edited since.
+      const fullName = result0.name;
       const result = await chain.invoke("register", [
         { type: "String", value: fullName },
         { type: "Hash160", value: chain.address.get() as string },

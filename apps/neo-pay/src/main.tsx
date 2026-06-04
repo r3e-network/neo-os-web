@@ -104,6 +104,8 @@ defineMiniApp({
         // composable doesn't track isCreating separately — surface isLoading + isRefreshing
         isCreating: pay.isLoading,
         isRefreshing: pay.isRefreshing,
+        claimingId: pay.claimingId,
+        cancellingId: pay.cancellingId,
         serviceNotice: pay.serviceNotice,
         allStreams: pay.allStreams,
         activeCount: pay.activeCount,

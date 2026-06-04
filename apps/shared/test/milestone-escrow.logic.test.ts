@@ -4,40 +4,56 @@ import { useMilestoneEscrow } from "../../milestone-escrow/src/composables/useMi
 import type { EscrowItem } from "../../milestone-escrow/src/pages/index/components/EscrowList";
 import type { EscrowProxy } from "../services/os/EscrowProxy";
 import type { PaymentProxy } from "../services/os/PaymentProxy";
+import type { StorageProxy } from "../services/os/StorageProxy";
 
 const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const BENEFICIARY = "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq";
 
 function t(key: string) {
   const messages: Record<string, string> = {
-    escrowCreated: "Escrow created",
-    escrowCancelled: "Escrow cancelled",
-    escrowNameRequired: "Escrow name is required",
-    escrowsLoaded: "Escrows loaded",
-    invalidAddress: "Invalid beneficiary address",
     invalidAmount: "Enter a valid amount",
-    milestone: "Milestone",
-    milestoneApproved: "Milestone approved",
-    milestoneClaimed: "Milestone claimed",
     milestoneLimit: "Milestones must be between 1 and 12",
-    noClaimableMilestone: "No approved milestone to claim",
-    noPendingMilestone: "No pending milestone to approve",
-    refreshingEscrows: "Refreshing escrows",
     statusActive: "Active",
     statusCancelled: "Cancelled",
     statusCompleted: "Completed",
-    workflowApproving: "Approving milestone",
-    workflowCancelling: "Cancelling escrow",
-    workflowClaiming: "Claiming milestone",
-    workflowCreating: "Creating escrow",
-    workflowFailed: "Action failed",
-    workflowReady: "Ready",
   };
   return messages[key] ?? key;
 }
 
+/**
+ * In-memory StorageProxy stand-in so refreshEscrows can rebuild the list from
+ * the per-user index the composable writes (escrow:<addr>:<id> → meta).
+ */
+function makeStorage() {
+  const store = new Map<string, unknown>();
+  const storage = {
+    get: vi.fn(async (key: string) => store.get(key) ?? null),
+    set: vi.fn(async (key: string, value: unknown) => {
+      store.set(key, value);
+      return undefined;
+    }),
+    delete: vi.fn(async (key: string) => {
+      store.delete(key);
+      return undefined;
+    }),
+    list: vi.fn(async (prefix: string) => {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of store.entries()) {
+        if (k.startsWith(prefix)) out[k] = v;
+      }
+      return out;
+    }),
+  } as unknown as StorageProxy & {
+    get: ReturnType<typeof vi.fn>;
+    set: ReturnType<typeof vi.fn>;
+    list: ReturnType<typeof vi.fn>;
+  };
+  return { storage, store };
+}
+
 function setup() {
   const escrow = {
-    get: vi.fn(async () => []),
+    get: vi.fn(async () => null),
     create: vi.fn(async () => "esc-1"),
     completeMilestone: vi.fn(async () => undefined),
     fund: vi.fn(async () => undefined),
@@ -52,14 +68,16 @@ function setup() {
   const payment = {
     deposit: vi.fn(async () => ({ invocation: { txid: "0xdeposit" } })),
   } as unknown as PaymentProxy & { deposit: ReturnType<typeof vi.fn> };
+  const { storage, store } = makeStorage();
 
   const app = useMilestoneEscrow({
     escrowService: escrow,
     paymentService: payment,
+    storageService: storage,
     t,
   });
   app.setAddress(OWNER);
-  return { app, escrow, payment };
+  return { app, escrow, payment, storage, store };
 }
 
 function escrowItem(overrides: Partial<EscrowItem> = {}): EscrowItem {
@@ -74,7 +92,6 @@ function escrowItem(overrides: Partial<EscrowItem> = {}): EscrowItem {
     milestoneAmounts: [5_000_000n],
     milestoneApproved: [false],
     milestoneClaimed: [false],
-    milestoneNames: ["Design"],
     title: "Website delivery",
     notes: "Ship the UI",
     active: true,
@@ -83,72 +100,87 @@ function escrowItem(overrides: Partial<EscrowItem> = {}): EscrowItem {
 }
 
 describe("useMilestoneEscrow", () => {
-  it("creates a funded escrow with named milestones and records evidence", async () => {
-    const { app, escrow, payment } = setup();
+  it("passes human-decimal amounts to the OS proxies (no 10^8 double-scaling)", async () => {
+    const { app, escrow, payment, store } = setup();
 
-    const created = await app.createEscrow({
+    await app.createEscrow({
       name: "Website delivery",
-      beneficiary: OWNER,
+      beneficiary: BENEFICIARY,
       asset: "GAS",
       notes: "Frontend acceptance",
-      milestones: [
-        { name: "Design", amount: "0.05" },
-        { name: "Build", amount: "0.05" },
-      ],
+      milestones: [{ amount: "0.05" }, { amount: "0.05" }],
     });
 
+    // Edge functions scale by 10^8 themselves: the client must send the
+    // human-decimal value, not pre-scaled base units. 0.05 + 0.05 = 0.1 GAS.
     expect(payment.deposit).toHaveBeenCalledWith(
-      "10000000",
+      "0.1",
       "escrow:create:Website delivery",
     );
     expect(escrow.create).toHaveBeenCalledWith({
-      beneficiary: OWNER,
-      amount: "10000000",
+      beneficiary: BENEFICIARY,
+      amount: "0.1",
       milestones: [
-        { name: "Design", amount: "5000000" },
-        { name: "Build", amount: "5000000" },
+        { name: "milestone-0", amount: "0.05" },
+        { name: "milestone-1", amount: "0.05" },
       ],
     });
-    expect(created?.milestoneNames).toEqual(["Design", "Build"]);
+
+    // The local os-storage index keeps base-unit strings for display.
     expect(app.creatorEscrows.get()).toHaveLength(1);
-    expect(app.latestResult.get()?.status).toBe("success");
+    expect(app.creatorEscrows.get()[0].totalAmount).toBe(10_000_000n);
+    const creatorKeys = [...store.keys()].filter((k) => k.startsWith(`escrow:${OWNER}:`));
+    expect(creatorKeys).toHaveLength(1);
+  });
+
+  it("rejects invalid amounts before any proxy call", async () => {
+    const { app, escrow, payment } = setup();
+
+    await expect(
+      app.createEscrow({
+        name: "Bad",
+        beneficiary: BENEFICIARY,
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "-1" }],
+      }),
+    ).rejects.toThrow("Enter a valid amount");
+
+    expect(payment.deposit).not.toHaveBeenCalled();
+    expect(escrow.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects fractional NEO amounts (NEO is indivisible)", async () => {
+    const { app, payment } = setup();
+
+    await expect(
+      app.createEscrow({
+        name: "Frac",
+        beneficiary: BENEFICIARY,
+        asset: "NEO",
+        notes: "",
+        milestones: [{ amount: "1.5" }],
+      }),
+    ).rejects.toThrow("Enter a valid amount");
+
+    expect(payment.deposit).not.toHaveBeenCalled();
   });
 
   it("approves, claims, and cancels escrows through the OS proxy actions", async () => {
     const { app, escrow } = setup();
     const active = escrowItem();
     app.creatorEscrows.set([active]);
-    app.beneficiaryEscrows.set([active]);
+    app.beneficiaryEscrows.set([escrowItem({ creator: BENEFICIARY })]);
 
     await app.approveMilestone(active, 0);
     expect(escrow.completeMilestone).toHaveBeenCalledWith("esc-1", 0);
-    expect(app.creatorEscrows.get()[0].milestoneApproved[0]).toBe(true);
 
-    const approved = app.beneficiaryEscrows.get()[0];
-    await app.claimMilestone(approved, 0);
-    expect(escrow.fund).toHaveBeenCalledWith("esc-1", 0);
-    expect(app.beneficiaryEscrows.get()[0].milestoneClaimed[0]).toBe(true);
-    expect(app.beneficiaryEscrows.get()[0].status).toBe("completed");
+    const claimable = escrowItem({ milestoneApproved: [true], milestoneClaimed: [false] });
+    await app.claimMilestone(claimable, 0);
+    expect(escrow.fund).toHaveBeenCalledWith("esc-1");
 
     const cancellable = escrowItem({ id: "esc-2" });
-    app.creatorEscrows.set([cancellable]);
     await app.cancelEscrow(cancellable);
     expect(escrow.refund).toHaveBeenCalledWith("esc-2");
-    expect(app.creatorEscrows.get()[0].status).toBe("cancelled");
-  });
-
-  it("rejects invalid create payloads before proxy calls", async () => {
-    const { app, escrow, payment } = setup();
-
-    await expect(app.createEscrow({
-      name: "Bad escrow",
-      beneficiary: "not-a-neo-address",
-      asset: "GAS",
-      notes: "",
-      milestones: [{ name: "Bad", amount: "0.05" }],
-    })).rejects.toThrow("Invalid beneficiary address");
-
-    expect(payment.deposit).not.toHaveBeenCalled();
-    expect(escrow.create).not.toHaveBeenCalled();
   });
 });

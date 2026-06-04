@@ -153,7 +153,7 @@ export function useVaultBreaker({
       vaultIdInput.get() &&
         attemptSecret.get().trim() &&
         vaultDetails.get() &&
-        String(vaultDetails.get().id) === String(vaultIdInput.get()) &&
+        String(vaultDetails.get()?.id) === String(vaultIdInput.get()) &&
         st === "active",
     );
   }, []);
@@ -197,9 +197,14 @@ export function useVaultBreaker({
 
   /**
    * Load vault details via StorageProxy.get().
+   *
+   * Returns `{ error }` with a human-readable message on failure so the
+   * registered host action can surface a status toast (the "vault:*" eventBus
+   * channel is not subscribed by the runtime). Returns `undefined` on success
+   * or when there is no vault id to load.
    */
-  const loadVault = async () => {
-    if (!vaultIdInput.get()) return;
+  const loadVault = async (): Promise<{ error: string } | undefined> => {
+    if (!vaultIdInput.get()) return undefined;
     try {
       const data = await storageService.get(`vault:${vaultIdInput.get()}`) as StoredVaultDetails | null;
       if (!data || typeof data !== "object") throw new Error(t("vaultNotFound"));
@@ -226,20 +231,25 @@ export function useVaultBreaker({
         remainingDays: toNumber(data.remainingDays),
       });
     } catch (e) {
-      eventBus.emit("vault:error", {
-        message: e instanceof Error ? e.message : t("loadFailed"),
-      });
+      const message = e instanceof Error ? e.message : t("loadFailed");
+      eventBus.emit("vault:error", { message });
       vaultDetails.set(null);
+      return { error: message };
     }
+    return undefined;
   };
 
   // ── Actions (via OS services) ──────────────────────────────────────
 
   /**
    * Attempt to break a vault via the live Vault contract funded transaction flow.
+   *
+   * Returns `{ success }` so the registered host action can surface a status
+   * toast (the "vault:*" eventBus channel is not subscribed by the runtime).
+   * Returns `undefined` when the attempt is skipped (guard not satisfied).
    */
-  const attemptBreak = async () => {
-    if (!canAttempt.get() || isLoading.get()) return;
+  const attemptBreak = async (): Promise<{ success: boolean } | undefined> => {
+    if (!canAttempt.get() || isLoading.get()) return undefined;
     isLoading.set(true);
     try {
       const feeBase = vaultDetails.get()?.attemptFee ?? toFixed8(ATTEMPT_FEE);
@@ -273,6 +283,7 @@ export function useVaultBreaker({
       attemptSecret.set("");
       await loadVault();
       await loadRecentVaults();
+      return { success };
     } catch (e) {
       eventBus.emit("vault:error", {
         message: e instanceof Error ? e.message : t("vaultAttemptFailed"),
@@ -285,7 +296,7 @@ export function useVaultBreaker({
 
   const selectVault = async (id: string) => {
     vaultIdInput.set(id);
-    await loadVault();
+    return loadVault();
   };
 
   return {
