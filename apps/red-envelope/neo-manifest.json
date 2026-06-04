@@ -23,7 +23,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
-    "neo-n3-testnet": "0xfa1b7240fead2a63999c02defa3aec5eb274a919"
+    "neo-n3-testnet": "0x68ef0ead081d2263acc51ce82f5c70c46440cca4"
   },
   "contract_domains": {
     "neo-n3-mainnet": "redenvelope.miniapp.neo"
