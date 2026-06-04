@@ -236,6 +236,14 @@ const appMessages = {
     en: "Enter a valid Neo X (0x...) or Neo N3 (N...) address.",
     zh: "请输入有效的 Neo X (0x...) 或 Neo N3 (N...) 地址。",
   },
+  errAddressNeoX: {
+    en: "This direction settles on Neo X. Enter a Neo X (0x...) address.",
+    zh: "该方向在 Neo X 结算，请输入 Neo X (0x...) 地址。",
+  },
+  errAddressNeoN3: {
+    en: "This direction settles on Neo N3. Enter a Neo N3 (N...) address.",
+    zh: "该方向在 Neo N3 结算，请输入 Neo N3 (N...) 地址。",
+  },
   errGasLimit: {
     en: "Gas limit must be a whole number of at least 21000.",
     zh: "Gas 上限必须是不小于 21000 的整数。",

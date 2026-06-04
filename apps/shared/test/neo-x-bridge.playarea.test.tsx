@@ -15,6 +15,7 @@ import PlayArea from "../../neo-x-bridge/src/PlayArea";
 
 const RECIPIENT = "0x1111111111111111111111111111111111111111";
 const TARGET = "0x2222222222222222222222222222222222222222";
+const N3_RECIPIENT = "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke";
 
 function t(key: string) {
   const messages: Record<string, string> = {
@@ -132,7 +133,7 @@ describe("Neo X Bridge PlayArea", () => {
             params: {
               amount: "0.1",
               direction: "Neo X -> Neo N3",
-              recipient: RECIPIENT,
+              recipient: N3_RECIPIENT,
             },
             keys: ["amount", "direction", "recipient"],
             hasParams: true,
@@ -147,12 +148,12 @@ describe("Neo X Bridge PlayArea", () => {
         direction: "neox-to-n3",
         asset: "GAS",
         amount: "0.1",
-        recipient: RECIPIENT,
+        recipient: N3_RECIPIENT,
       });
     });
     expect((screen.getByLabelText("Amount") as HTMLInputElement).value).toBe("0.1");
     expect((screen.getByLabelText("Destination address") as HTMLInputElement).value).toBe(
-      RECIPIENT,
+      N3_RECIPIENT,
     );
   });
 });

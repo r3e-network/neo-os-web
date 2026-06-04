@@ -47,6 +47,8 @@ const appMessages = {
   loanNotFound: { en: "Loan not found", zh: "未找到该贷款" },
   invalidLoanId: { en: "Invalid loan ID", zh: "无效贷款 ID" },
   invalidLoanAmount: { en: "Invalid loan amount", zh: "无效贷款金额" },
+  loanAmountBelowMin: { en: "Amount is below the minimum of {min} GAS", zh: "金额低于最小额度 {min} GAS" },
+  loanAmountAboveMax: { en: "Amount exceeds the maximum of {max} GAS", zh: "金额超过最大额度 {max} GAS" },
   invalidCallbackContract: { en: "Invalid callback contract address", zh: "无效回调合约地址" },
   invalidCallbackMethod: { en: "Callback method must be onFlashLoan", zh: "回调方法必须是 onFlashLoan" },
   main: { en: "Status", zh: "状态" },

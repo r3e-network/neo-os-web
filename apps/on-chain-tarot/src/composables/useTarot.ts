@@ -42,6 +42,7 @@ import type { Observable } from "@shared/react/context";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type { ClipboardService } from "@shared/services/ClipboardService";
 import { TAROT_CARD_BACK, TAROT_DECK } from "../pages/index/components/tarot-data";
 import type { TarotCardDefinition } from "../pages/index/components/tarot-data";
 
@@ -56,6 +57,8 @@ export interface UseTarotOptions {
   storageService: StorageProxy;
   /** OS BadgeProxy instance from ctx.os.badge */
   badgeService: BadgeProxy;
+  /** Clipboard service from ctx.services.clipboard (copy/share reading) */
+  clipboard: ClipboardService;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -84,9 +87,14 @@ function unwrapServiceData(value: unknown): unknown {
  *
  * EdgeClient resolves the deposit invocation intent through the wallet and
  * merges the on-chain transaction id back onto the payload as `txid`/`tx`.
- * We accept those first, then fall back to any explicit id fields, then to a
- * hash of the nested invocation. An empty string means no id could be derived
- * and the caller will generate a local unique id instead.
+ * We accept those first, then fall back to any explicit per-draw id fields,
+ * then to a hash of the nested invocation. An empty string means no id could
+ * be derived and the caller will generate a local unique id instead.
+ *
+ * Note: pool ids are intentionally excluded — a pool id is shared across many
+ * draws, so seeding from it would make two distinct draws reuse the same seed
+ * and produce an identical three-card spread. Only per-draw-unique values feed
+ * the seed.
  */
 function extractReadingId(value: unknown): string {
   const result = unwrapServiceData(value);
@@ -99,8 +107,6 @@ function extractReadingId(value: unknown): string {
       data.transactionId ??
       data.readingId ??
       data.reading_id ??
-      data.poolId ??
-      data.pool_id ??
       "",
   ).trim();
   if (direct) return direct;
@@ -182,6 +188,7 @@ export function useTarot({
   paymentService,
   storageService,
   badgeService,
+  clipboard,
   t,
 }: UseTarotOptions) {
   const tarotDeck = TAROT_DECK;
@@ -227,7 +234,13 @@ export function useTarot({
           };
         }
       }
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+
+      // Don't sleep after the final attempt: the loop is about to exit and the
+      // caller already holds the authoritative in-memory cards to fall back to,
+      // so a trailing wait only adds latency on the not-found path.
+      if (attempt < maxAttempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      }
     }
     return null;
   };
@@ -268,6 +281,7 @@ export function useTarot({
       // Step 2: Derive the reading deterministically from the seed and persist
       // it so the history index ("reading:" prefix) and the read-back resolve.
       const derivedCards = normalizeReadingCards(deriveReadingCards(readingId));
+      let persisted = false;
       try {
         await storageService.set(`reading:${readingId}`, {
           readingId,
@@ -276,6 +290,7 @@ export function useTarot({
           question: prompt.slice(0, 200),
           createdAt: Date.now(),
         });
+        persisted = true;
       } catch {
         // Persistence is best-effort for the history index; the reading below
         // falls back to the in-memory derived cards if the read-back fails.
@@ -307,7 +322,16 @@ export function useTarot({
       }));
       readingMode.set("oracle");
 
-      readingsCount.set(readingsCount.get() + 1);
+      // Reconcile the displayed counter with persisted state. If the reading
+      // was persisted (it joined the "reading:" index), the optimistic local
+      // increment matches storage; if persistence failed, re-derive the count
+      // from the storage index so the UI never shows N+1 readings that the
+      // history index does not actually contain.
+      if (persisted) {
+        readingsCount.set(readingsCount.get() + 1);
+      } else {
+        await loadReadingCount();
+      }
       question.set("");
 
       // Award first-reading badge (fire-and-forget)
@@ -338,6 +362,17 @@ export function useTarot({
     const cards = drawn.get();
     if (cards.length !== 3) return t("readingText");
     return `${t("past")}: ${cards[0]!.name} \u00B7 ${t("present")}: ${cards[1]!.name} \u00B7 ${t("future")}: ${cards[2]!.name}`;
+  };
+
+  /**
+   * Copy the formatted Past/Present/Future reading to the clipboard. Returns
+   * false (with a real error notification surfaced by ClipboardService) when no
+   * complete reading exists or the clipboard write fails, so the UI never shows
+   * a false "Copied" confirmation.
+   */
+  const copyReading = async (): Promise<boolean> => {
+    if (drawn.get().length !== 3) return false;
+    return clipboard.copy(getReading(), "readingCopied");
   };
 
   /**
@@ -377,6 +412,7 @@ export function useTarot({
     flipCard,
     reset,
     getReading,
+    copyReading,
     loadReadingCount,
     loadAll,
   };

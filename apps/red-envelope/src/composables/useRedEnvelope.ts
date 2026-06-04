@@ -157,15 +157,6 @@ export function useRedEnvelope({
   // Opening state
   const luckyMessage = createObservable<{ amount: number; from: string } | null>(null);
   const openingId = createObservable<string | null>(null);
-  const showOpeningModal = createObservable(false);
-  const openingEnvelope = createObservable<EnvelopeItem | null>(null);
-
-  // Eligibility state
-  const isEligible = createObservable(false);
-  const neoBalance = createObservable(0);
-  const holdingDays = createObservable(0);
-  const eligibilityReason = createObservable("");
-  const checkingEligibility = createObservable(false);
 
   // ── Computed ─────────────────────────────────────────────────────────
   const envelopeCount = createDerived(() => envelopes.get().length, []);
@@ -439,45 +430,8 @@ export function useRedEnvelope({
   };
 
   /**
-   * Open an envelope — claims it and shows the lucky message overlay.
-   */
-  const openEnvelope = async (envelope: EnvelopeItem) => {
-    if (openingId.get()) return;
-
-    try {
-      openingId.set(envelope.id);
-
-      const result = await claimEnvelope(envelope.id);
-
-      if (result.amount > 0) {
-        luckyMessage.set({
-          amount: Number(fromFixed8(result.amount).toFixed(4)),
-          from: envelope.from,
-        });
-      }
-
-      showOpeningModal.set(false);
-      openingEnvelope.set(null);
-
-      // Hint badge for lucky draw (fire-and-forget)
-      badgeService.award("lucky-draw", "").catch(() => {});
-
-      await loadEnvelopes();
-    } catch (e) {
-      throw e;
-    } finally {
-      openingId.set(null);
-    }
-  };
-
-  const openFromList = (envelope: EnvelopeItem) => {
-    openingEnvelope.set(envelope);
-    showOpeningModal.set(true);
-  };
-
-  /**
-   * Claim from a pool by envelope ID — same as openEnvelope but
-   * without requiring the full EnvelopeItem object.
+   * Claim from a pool by envelope ID — claims it and shows the lucky
+   * message overlay. This is the live claim path used by the UI.
    */
   const handleClaimFromPool = async (envelopeId: string) => {
     if (openingId.get()) return;
@@ -504,51 +458,6 @@ export function useRedEnvelope({
     }
   };
 
-  // ── NEO Eligibility (via OS services) ──────────────────────────────
-
-  /**
-   * Check eligibility for an envelope via StorageProxy.
-   * The edge function reads the eligibility data from the contract.
-   */
-  const checkEligibility = async (envelopeId: string): Promise<boolean> => {
-    checkingEligibility.set(true);
-    try {
-      const data = await storageService.get(`eligibility:${envelopeId}`) as Record<string, unknown> | null;
-
-      if (!data) {
-        isEligible.set(false);
-        eligibilityReason.set(t("eligibilityCheckFailed"));
-        return false;
-      }
-
-      isEligible.set(Boolean(data.eligible));
-      neoBalance.set(Number(data.neoBalance ?? 0));
-      holdingDays.set(Number(data.holdDays ?? 0));
-      eligibilityReason.set(String(data.reason ?? ""));
-      return isEligible.get();
-    } catch (_e) {
-      isEligible.set(false);
-      eligibilityReason.set(t("checkFailed"));
-      return false;
-    } finally {
-      checkingEligibility.set(false);
-    }
-  };
-
-  /**
-   * Check NEO balance via PaymentProxy.
-   * The edge function reads the balance from the NEO token contract.
-   */
-  const checkNeoBalance = async (): Promise<number> => {
-    try {
-      const balance = Number(await paymentService.getBalance() ?? 0);
-      neoBalance.set(balance);
-      return balance;
-    } catch (_e) {
-      return 0;
-    }
-  };
-
   // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
@@ -564,15 +473,6 @@ export function useRedEnvelope({
     isLoading,
     luckyMessage,
     openingId,
-    showOpeningModal,
-    openingEnvelope,
-
-    // Eligibility
-    isEligible,
-    neoBalance,
-    holdingDays,
-    eligibilityReason,
-    checkingEligibility,
 
     // Computed
     envelopeCount,
@@ -590,12 +490,8 @@ export function useRedEnvelope({
     // Actions
     handleConnect,
     create,
-    openEnvelope,
-    openFromList,
     handleClaimFromPool,
     claimEnvelope,
-    checkEligibility,
-    checkNeoBalance,
 
     // Lifecycle
     loadAll,

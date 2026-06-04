@@ -66,6 +66,7 @@ const appMessages = {
   notUnlocked: { en: "Capsule is still locked", zh: "胶囊仍处于锁定状态" },
   notUnlockedYet: { en: "Not unlocked yet", zh: "尚未到解锁时间" },
   invalidLockDuration: { en: "Lock duration must be between 1 and 3650 days.", zh: "锁定时长需在 1 到 3650 天之间。" },
+  walletRequired: { en: "Connect your Neo wallet to seal a capsule.", zh: "请先连接 Neo 钱包再封存胶囊。" },
   createRolledBack: {
     en: "Capsule could not be saved; the escrow was refunded. Please try again.",
     zh: "胶囊保存失败，托管资金已退回。请重试。",

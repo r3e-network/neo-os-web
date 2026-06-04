@@ -17,7 +17,7 @@ import "./FactoryPlayArea.scss";
 const ERROR_COPY: Record<string, string> = {
   name_length: "Name must be 3-64 characters.",
   collection_name_length: "Collection name must be 3-64 characters.",
-  symbol_format: "Symbol must be 2-12 uppercase letters or digits.",
+  symbol_format: "Symbol must be 2-12 uppercase letters or digits and start with a letter.",
   decimals_range: "Decimals must be an integer from 0 to 8.",
   initial_supply_positive: "Initial supply must be greater than zero.",
   initial_supply_precision: "Initial supply has more decimals than the token allows.",
@@ -132,22 +132,30 @@ export function FactoryPlayArea({
   const [nep11, setNep11] = useState<Nep11Draft>(() => cloneDraft(initialDraft.nep11));
   const [miniapp, setMiniapp] = useState<MiniAppDraft>(() => cloneDraft(initialDraft.miniapp));
   const [copied, setCopied] = useState<"package" | "link" | null>(null);
+  const [copyError, setCopyError] = useState<"package" | "link" | null>(null);
 
   const { val, bool, str } = useStateBindings(state);
   const storedPlan = val<FactoryPlan>("currentPlan") ?? null;
-  const currentPlan =
-    storedPlan ??
-    buildFactoryPlan(
-      kind,
-      (kind === "nep17" ? nep17 : kind === "nep11" ? nep11 : miniapp) as unknown as Record<string, unknown>,
-      { appId },
-    );
+  // Memoize the live-preview fallback on the actual draft inputs so the plan
+  // (and the derived JSON memo) keep a stable identity across unrelated
+  // re-renders, instead of rebuilding on every keystroke/render.
+  const fallbackPlan = useMemo(
+    () =>
+      buildFactoryPlan(
+        kind,
+        (kind === "nep17" ? nep17 : kind === "nep11" ? nep11 : miniapp) as unknown as Record<string, unknown>,
+        { appId },
+      ),
+    [kind, nep17, nep11, miniapp, appId],
+  );
+  const currentPlan = storedPlan ?? fallbackPlan;
   // Signing must operate on the STORED plan (populated by "Generate plan"), not the
   // live form preview. The preview can be publishable while no plan has been generated,
   // which previously enabled Sign and then threw `noPlanToSign`.
   const canSign = Boolean(storedPlan?.publishable);
   const previewReadyButUnsaved = !storedPlan && currentPlan.publishable;
   const isSigning = bool("isSigning");
+  const isGenerating = bool("isGenerating");
   const walletSignature = str("walletSignature");
   const lastError = str("lastError");
 
@@ -171,12 +179,23 @@ export function FactoryPlayArea({
   );
 
   async function copyText(text: string, target: "package" | "link") {
-    await navigator.clipboard?.writeText(text);
-    setCopied(target);
-    window.setTimeout(() => setCopied(null), 1500);
+    setCopyError(null);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("clipboard unavailable");
+      }
+      await navigator.clipboard.writeText(text);
+      setCopied(target);
+      window.setTimeout(() => setCopied(null), 1500);
+    } catch {
+      setCopied(null);
+      setCopyError(target);
+      window.setTimeout(() => setCopyError(null), 1500);
+    }
   }
 
   async function generatePlan() {
+    if (isGenerating) return;
     const input = kind === "nep17" ? nep17 : kind === "nep11" ? nep11 : miniapp;
     await dispatch("generatePlan", input);
   }
@@ -268,7 +287,14 @@ export function FactoryPlayArea({
               </>
             )}
 
-            <NeoButton variant="primary" size="lg" block onClick={generatePlan}>
+            <NeoButton
+              variant="primary"
+              size="lg"
+              block
+              disabled={isGenerating}
+              loading={isGenerating}
+              onClick={generatePlan}
+            >
               {t("generatePlan")}
             </NeoButton>
           </div>
@@ -322,7 +348,11 @@ export function FactoryPlayArea({
 
               <div className="domain-factory-actions">
                 <NeoButton variant="secondary" onClick={() => copyText(packageJson, "package")}>
-                  {copied === "package" ? t("copied") : t("copyPackage")}
+                  {copied === "package"
+                    ? t("copied")
+                    : copyError === "package"
+                      ? t("copyFailed")
+                      : t("copyPackage")}
                 </NeoButton>
                 <NeoButton
                   variant="success"
@@ -365,7 +395,11 @@ export function FactoryPlayArea({
             <div className="domain-factory-onegate">
               <p>{currentPlan.oneGate.url}</p>
               <NeoButton variant="ghost" onClick={() => copyText(currentPlan.oneGate.url, "link")}>
-                {copied === "link" ? t("copied") : t("copyLink")}
+                {copied === "link"
+                  ? t("copied")
+                  : copyError === "link"
+                    ? t("copyFailed")
+                    : t("copyLink")}
               </NeoButton>
             </div>
             <p className="domain-factory-note">{t("deployHonesty")}</p>

@@ -22,7 +22,6 @@ defineMiniApp({
       paymentService: ctx.os.payment,
       storageService: ctx.os.storage,
       badgeService: ctx.os.badge,
-      escrowService: ctx.os.escrow,
       t: ctx.t,
     });
 

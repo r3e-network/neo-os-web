@@ -45,6 +45,15 @@ export interface HistoryEvent {
   title: string;
   details: string;
   date: string;
+  /**
+   * Numeric, newest-first ordering key assigned at construction time.
+   * Derived from a real temporal source (parsed date or numeric id) and,
+   * for entries without one (e.g. leaderboard winners), from a monotonic
+   * insertion index so ordering is deterministic instead of collapsing
+   * heterogeneous ids through `Number(id)` (which yields NaN for string
+   * ids like `winner-0`).
+   */
+  sortKey: number;
 }
 
 // ============================================================================
@@ -292,16 +301,30 @@ export function useLastSurvivor({
 
       const items: HistoryEvent[] = [];
 
+      // Resolve a real temporal ordering key for a stored entry: prefer the
+      // parsed `date`, fall back to a numeric `id` (often a timestamp), and
+      // finally to NaN so the caller can substitute a stable insertion index.
+      const temporalKey = (entry: StoredHistoryEntry): number => {
+        if (entry.date) {
+          const parsed = Date.parse(entry.date);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+        const idNum = Number(entry.id);
+        return Number.isFinite(idNum) ? idNum : NaN;
+      };
+
       // Parse stored events (key purchases, round starts)
       if (eventsMap && typeof eventsMap === "object") {
         for (const [, value] of Object.entries(eventsMap)) {
           const entry = value as StoredHistoryEntry;
+          const key = temporalKey(entry);
           if (entry.type === "keysPurchased") {
             items.push({
               id: entry.id,
               title: t("keysPurchased"),
               details: `${formatAddress(entry.player ?? "")} \u2022 ${entry.keys ?? 0} keys \u2022 +${(entry.potContribution ?? 0).toFixed(2)} ${t("tokenGas")}`,
               date: entry.date ?? "",
+              sortKey: key,
             });
           } else if (entry.type === "roundStarted") {
             const endText = entry.endTime
@@ -312,12 +335,17 @@ export function useLastSurvivor({
               title: t("roundStarted"),
               details: `#${entry.round ?? 0} \u2022 ${endText}`,
               date: entry.date ?? "",
+              sortKey: key,
             });
           }
         }
       }
 
-      // Parse leaderboard winners into history entries
+      // Parse leaderboard winners into history entries. Winners arrive
+      // pre-ranked (index 0 = most recent/top) and carry no timestamp, so
+      // they get NaN here and inherit a stable insertion index below,
+      // preserving their leaderboard order instead of collapsing to a
+      // single sentinel value.
       if (Array.isArray(winners)) {
         winners.forEach((w, idx) => {
           items.push({
@@ -325,19 +353,27 @@ export function useLastSurvivor({
             title: t("winnerDeclared"),
             details: `${formatAddress(w.user)} \u2022 ${w.score} ${t("tokenGas")}`,
             date: "",
+            sortKey: NaN,
           });
         });
       }
 
-      // Sort newest-first by numeric id. Winner entries use string ids
-      // (`winner-${idx}`) which are non-numeric, so coerce any non-finite
-      // id to a stable sentinel to avoid NaN comparisons that produce
-      // engine-dependent, arbitrary ordering.
-      const sortKey = (id: string | number): number => {
-        const n = Number(id);
-        return Number.isFinite(n) ? n : 0;
-      };
-      history.set(items.sort((a, b) => sortKey(b.id) - sortKey(a.id)));
+      // Backfill a deterministic ordering key for entries without a real
+      // temporal source. Walking the (insertion-ordered) list in reverse and
+      // handing out descending indices keeps such entries newest-first while
+      // preserving their original relative order, so the final sort is fully
+      // stable and never depends on NaN comparisons.
+      let fallbackIndex = 0;
+      for (let i = items.length - 1; i >= 0; i--) {
+        const item = items[i];
+        if (item && !Number.isFinite(item.sortKey)) {
+          item.sortKey = fallbackIndex++;
+        }
+      }
+
+      // Sort newest-first on the resolved numeric sortKey. All keys are now
+      // finite, so comparisons are well-defined and ordering is deterministic.
+      history.set(items.sort((a, b) => b.sortKey - a.sortKey));
     } catch (e) {
       if (!isOsBoundaryError(e)) {
         console.warn("[useLastSurvivor] loadHistory failed:", errorMessage(e));
