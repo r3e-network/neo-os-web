@@ -128,6 +128,9 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
 
   const now = createObservable(Date.now());
   let tickerInterval: ReturnType<typeof setInterval> | null = null;
+  // Coalesces overlapping status loads so a user-triggered refresh cannot run
+  // concurrently with an action's internal reload and clobber its writes.
+  let loadInFlight = false;
 
   const currentUtcDay: Observable<number> = {
     get: () => Math.floor(now.get() / MS_PER_DAY),
@@ -306,6 +309,10 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
 
   const loadAll = async (options: LoadOptions = {}) => {
     const shouldRecord = options.record === true;
+    // A load is already running — coalesce to avoid two concurrent getStreak
+    // responses racing to write the same observables out of order.
+    if (loadInFlight) return;
+    loadInFlight = true;
     if (shouldRecord) {
       recordRequest("refreshStatus", t("workflowRefreshing"));
     }
@@ -329,6 +336,7 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
       throw e;
     } finally {
       isLoading.set(false);
+      loadInFlight = false;
     }
   };
 

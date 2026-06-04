@@ -401,7 +401,7 @@ export default function PlayArea({
                   <span className="flashloan-cell-amount">{loan.amount.toFixed(4)} GAS</span>
                   <span className="flashloan-cell-fee">{loan.fee.toFixed(4)} GAS</span>
                   <span className={`flashloan-cell-status ${loanStatusClass(loan.status)}`}>
-                    {t(loan.status) || loan.status}
+                    {t(`status${loan.status[0]?.toUpperCase()}${loan.status.slice(1)}`) || loan.status}
                   </span>
                 </div>
               ))}

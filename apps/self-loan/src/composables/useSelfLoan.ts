@@ -513,7 +513,13 @@ export function useSelfLoan({
     // deposit more GAS than they owe (typo / repaying an already-closed loan),
     // since the excess would not be tied to any debt and may be unrecoverable.
     const outstanding = loan.get().borrowed;
-    if (outstanding > 0 && parsed > outstanding) {
+    // Reject entirely when there is no active loan: depositing GAS as a "repay"
+    // against zero debt strands the funds with no debt to apply against and no
+    // collateral-release path.
+    if (outstanding <= 0) {
+      throw new Error(t("repayNoActiveLoan"));
+    }
+    if (parsed > outstanding) {
       throw new Error(t("repayExceedsDebt", { amount: fmt(outstanding) }));
     }
     // Capture the escrow/loan id and outstanding debt before repaying — once

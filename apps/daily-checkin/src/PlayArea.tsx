@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -60,15 +60,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const weekSlotToday = weekSlotFilled === 7 && canCheckIn ? 1 : Math.min(weekSlotFilled + 1, 7);
 
   const [showConfetti, setShowConfetti] = useState(false);
-  const [prevCanCheckIn, setPrevCanCheckIn] = useState(canCheckIn);
+  // Track the previously observed value via a ref so it faithfully mirrors the
+  // last render's canCheckIn on every edge — avoids the prior bug where prev
+  // stuck at `true` because it was only updated in the non-firing branch.
+  const prevCanCheckInRef = useRef(canCheckIn);
   useEffect(() => {
-    if (prevCanCheckIn === true && canCheckIn === false) {
-      setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 2200);
-      return () => clearTimeout(timer);
-    }
-    setPrevCanCheckIn(canCheckIn);
-  }, [canCheckIn, prevCanCheckIn]);
+    const fired = prevCanCheckInRef.current === true && canCheckIn === false;
+    prevCanCheckInRef.current = canCheckIn;
+    if (!fired) return;
+    setShowConfetti(true);
+    const timer = setTimeout(() => setShowConfetti(false), 2200);
+    return () => clearTimeout(timer);
+  }, [canCheckIn]);
 
   const streakTier = currentStreak >= 14 ? "blaze" : currentStreak >= 7 ? "spark" : "cold";
   const checkInDisabled = !canCheckIn || isLoading;
@@ -195,7 +198,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoButton
             variant="secondary"
             size="lg"
-            disabled={isLoading}
+            disabled={isLoading || isClaiming}
+            loading={isLoading}
             onClick={() => dispatch("refreshStatus")}
             aria-label={t("refreshStatus")}
           >

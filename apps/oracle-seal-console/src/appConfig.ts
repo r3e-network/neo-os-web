@@ -80,15 +80,24 @@ export const consoleConfig: ConsoleToolConfig = {
     const purpose = clean(values.purpose, "oracle-input");
     const recipient = clean(values.recipient, "");
     const payload = clean(values.payload, "{}");
+    // The field's contract is "private JSON payload": validate it so malformed
+    // input is surfaced (non-blocking) instead of being silently packaged.
+    let payloadValid = true;
+    try {
+      JSON.parse(payload);
+    } catch {
+      payloadValid = false;
+    }
     const payloadDigest = previewId(payload);
     const digest = previewId(`${purpose}|${recipient}|${payloadDigest}`);
 
     return {
-      status: t("sealReady"),
+      status: payloadValid ? t("sealReady") : t("sealInvalidJson"),
       summary: t("sealSummary", { purpose }),
       rows: [
         { label: t("purpose"), value: purpose },
         { label: t("recipient"), value: recipient },
+        { label: t("payloadValid"), value: payloadValid ? t("yes") : t("no") },
         { label: t("payloadDigest"), value: payloadDigest },
         { label: t("statDigest"), value: digest },
       ],
@@ -96,6 +105,7 @@ export const consoleConfig: ConsoleToolConfig = {
         kind: "oracle.seal.envelope",
         purpose,
         recipient,
+        payloadValid,
         payloadDigest,
         envelopeVersion: "morpheus-seal-v1",
         digest,
@@ -111,8 +121,8 @@ const appMessages = {
   panelEyebrow: { en: "Private oracle input", zh: "私密预言机输入" },
   panelTitle: { en: "Sealed Envelope Builder", zh: "加密封装构建器" },
   panelDescription: {
-    en: "Turn sensitive request details into a sealed-envelope preview with a stable digest.",
-    zh: "把敏感请求细节整理为带稳定摘要的加密封装预览。",
+    en: "Organize request details into an envelope preview with a stable non-cryptographic reference checksum (not encryption).",
+    zh: "把请求细节整理为信封预览，并附带稳定的非加密引用校验值（不是加密）。",
   },
   runAction: { en: "Build Envelope", zh: "生成封装" },
   purpose: { en: "Purpose", zh: "用途" },
@@ -123,13 +133,17 @@ const appMessages = {
   recipientPlaceholder: { en: "Enter recipient or oracle route", zh: "输入接收方或预言机路由" },
   payload: { en: "Sensitive Payload", zh: "敏感载荷" },
   payloadPlaceholder: { en: "Paste the private JSON payload to seal", zh: "粘贴需要封装的私密 JSON 载荷" },
-  payloadDigest: { en: "Payload Digest", zh: "载荷摘要" },
+  payloadDigest: { en: "Payload Checksum", zh: "载荷校验值" },
   sealReady: { en: "Envelope preview ready", zh: "封装预览已生成" },
+  sealInvalidJson: { en: "Preview ready (payload is not valid JSON)", zh: "预览已生成（载荷不是有效 JSON）" },
   sealSummary: { en: "{purpose} envelope prepared", zh: "{purpose} 封装已准备" },
+  payloadValid: { en: "Payload is valid JSON", zh: "载荷为有效 JSON" },
+  yes: { en: "Yes", zh: "是" },
+  no: { en: "No", zh: "否" },
   statNetwork: { en: "Network", zh: "网络" },
   statEndpoint: { en: "Mode", zh: "模式" },
   statRequests: { en: "Envelopes", zh: "封装数" },
-  statDigest: { en: "Digest", zh: "摘要" },
+  statDigest: { en: "Checksum", zh: "校验值" },
   digestPlaceholder: { en: "—", zh: "—" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   docsSubtitle: {
@@ -140,12 +154,12 @@ const appMessages = {
     en: "A focused surface for sealing sensitive oracle inputs before dispatch.",
     zh: "面向敏感预言机输入封装的清晰工作台。",
   },
-  feature1Name: { en: "Privacy First", zh: "隐私优先" },
-  feature1Desc: { en: "Sensitive payloads are represented by digest in the visible result.", zh: "可见结果中使用摘要代表敏感载荷。" },
+  feature1Name: { en: "Reference Only", zh: "仅作引用" },
+  feature1Desc: { en: "The payload is summarized by a short non-cryptographic checksum for reference — it is not encrypted, hidden, or tamper-proof.", zh: "载荷由一个简短的非加密校验值进行引用——并未加密、隐藏或防篡改。" },
   feature2Name: { en: "Purpose Bound", zh: "用途绑定" },
-  feature2Desc: { en: "Purpose and recipient are part of the local digest.", zh: "用途和接收方都会参与本地摘要。" },
+  feature2Desc: { en: "Purpose and recipient feed into the local reference checksum so previews stay distinguishable.", zh: "用途和接收方都会参与本地引用校验值，便于区分预览。" },
   feature3Name: { en: "Oracle Friendly", zh: "预言机友好" },
-  feature3Desc: { en: "The preview uses an explicit envelope version for downstream routing.", zh: "预览包含明确封装版本，便于后续路由。" },
+  feature3Desc: { en: "The preview carries an explicit envelope version for downstream routing.", zh: "预览包含明确封装版本，便于后续路由。" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

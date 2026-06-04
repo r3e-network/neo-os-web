@@ -167,9 +167,9 @@ defineMiniApp({
       recoveryTemplateId,
     };
 
-    ctx.registerAction("setField", (field: string, value: string) => {
-      const r = fieldRefs[field];
-      if (r) r.set(value);
+    ctx.registerAction("setField", async (field: unknown, value: unknown) => {
+      const r = fieldRefs[String(field)];
+      if (r) r.set(String(value ?? ""));
     });
 
     ctx.registerAction("queryGuardianState", async () => {

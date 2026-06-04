@@ -8,19 +8,9 @@ export function isHash160(value: unknown): boolean {
   return HASH160_PATTERN.test(String(value ?? "").trim());
 }
 
-export function isOptionalHash160(value: unknown): boolean {
-  const trimmed = String(value ?? "").trim();
-  return !trimmed || isHash160(trimmed);
-}
-
 export function isHash160OrNeoAddress(value: unknown): boolean {
   const trimmed = String(value ?? "").trim();
   return isHash160(trimmed) || NEO_ADDRESS_PATTERN.test(trimmed);
-}
-
-export function isOptionalHash160OrNeoAddress(value: unknown): boolean {
-  const trimmed = String(value ?? "").trim();
-  return !trimmed || isHash160OrNeoAddress(trimmed);
 }
 
 export function parseGasAmountFractions(value: unknown): bigint | null {

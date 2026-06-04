@@ -171,8 +171,6 @@ const appMessages = {
   recipientAddress: { en: "Recipient address", zh: "接收地址" },
   recipientIneligible: { en: "Recipient does not meet NEO requirements", zh: "接收者不满足 NEO 要求" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
-  eligibilityCheckFailed: { en: "Eligibility check failed", zh: "资格检查失败" },
-  checkFailed: { en: "Check failed", zh: "检查失败" },
   // NEO eligibility keys
   neoRequirement: { en: "NEO Requirement", zh: "NEO 要求" },
   minNeoPlaceholder: { en: "Min NEO required (default 100)", zh: "最低 NEO 要求（默认 100）" },

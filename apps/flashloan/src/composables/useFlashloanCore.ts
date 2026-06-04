@@ -178,6 +178,13 @@ export function useFlashloanCore({
     if (isNaN(amountNum) || amountNum <= 0) {
       return t("invalidLoanAmount");
     }
+    const { minLoan, maxLoan } = contractStats.get();
+    if (amountNum < minLoan) {
+      return t("loanAmountBelowMin", { min: minLoan.toLocaleString() });
+    }
+    if (amountNum > maxLoan) {
+      return t("loanAmountAboveMax", { max: maxLoan.toLocaleString() });
+    }
     if (!data.callbackContract || data.callbackContract.trim().length < 34) {
       return t("invalidCallbackContract");
     }
@@ -225,17 +232,26 @@ export function useFlashloanCore({
         maxDailyLoans: toNumber(rawStats.maxDailyLoans) || DEFAULT_CONTRACT_STATS.maxDailyLoans,
       });
 
-      const loans: ExecutedLoan[] = [];
       const start = Math.max(1, totalLoans - 4);
-      for (let id = totalLoans; id >= start; id -= 1) {
-        const entry = buildLoanDetails(
-          await chainService.read("getFlashLoan", loanArgs(id), {
-            cache: true,
-            cacheTtlMs: 30_000,
-          }),
-          id,
-        );
-        if (!entry) continue;
+      const ids: number[] = [];
+      for (let id = totalLoans; id >= start; id -= 1) ids.push(id);
+
+      const entries = await Promise.all(
+        ids.map(async (id) =>
+          buildLoanDetails(
+            await chainService.read("getFlashLoan", loanArgs(id), {
+              cache: true,
+              cacheTtlMs: 30_000,
+            }),
+            id,
+          ),
+        ),
+      );
+
+      const loans: ExecutedLoan[] = [];
+      ids.forEach((id, index) => {
+        const entry = entries[index];
+        if (!entry) return;
         loans.push({
           id,
           amount: Number.parseFloat(entry.amount) || 0,
@@ -243,7 +259,7 @@ export function useFlashloanCore({
           status: entry.status === "failed" ? "failed" : "success",
           timestamp: entry.timestamp,
         });
-      }
+      });
       recentLoans.set(loans);
     } catch (e) {
       console.warn("[useFlashloanCore] loadLoanStats failed:", e instanceof Error ? e.message : String(e));

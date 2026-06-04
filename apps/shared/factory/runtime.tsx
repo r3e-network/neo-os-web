@@ -36,9 +36,16 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
     const signatureState = createObservable(ctx.t("unsigned"));
     const walletSignature = createObservable("");
     const isSigning = createObservable(false);
+    const isGenerating = createObservable(false);
     const lastError = createObservable("");
 
     function applyPlan(plan: FactoryPlan) {
+      // Count a generated package only when it is publishable AND its
+      // deterministic digest differs from the currently applied plan. Blocked
+      // plans produce nothing publishable, and re-clicking "Generate" with
+      // unchanged inputs reproduces the same package; neither must inflate the
+      // "Generated" stat.
+      const previousDigest = currentPlan.get()?.digest ?? null;
       currentPlan.set(plan);
       activeKind.set(plan.kind);
       activeTemplateLabel.set(templateLabel(plan.kind));
@@ -46,20 +53,28 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
       planStatus.set(plan.publishable ? ctx.t("packageReady") : ctx.t("packageBlocked"));
       shortDigest.set(plan.digest.slice(-10));
       blockingIssueCount.set(plan.blockingErrors.length);
-      generatedCount.set(generatedCount.get() + 1);
+      if (plan.publishable && plan.digest !== previousDigest) {
+        generatedCount.set(generatedCount.get() + 1);
+      }
       signatureState.set(ctx.t("unsigned"));
       walletSignature.set("");
       lastError.set("");
     }
 
     ctx.registerAction("generatePlan", async (...args: unknown[]) => {
-      const form = (args[0] || {}) as Record<string, unknown>;
-      const plan = buildFactoryPlan(kind, form, { appId });
-      applyPlan(plan);
-      ctx.setStatus(
-        plan.publishable ? ctx.t("packageReady") : ctx.t("packageBlocked"),
-        plan.publishable ? "success" : "warning",
-      );
+      if (isGenerating.get()) return;
+      isGenerating.set(true);
+      try {
+        const form = (args[0] || {}) as Record<string, unknown>;
+        const plan = buildFactoryPlan(kind, form, { appId });
+        applyPlan(plan);
+        ctx.setStatus(
+          plan.publishable ? ctx.t("packageReady") : ctx.t("packageBlocked"),
+          plan.publishable ? "success" : "warning",
+        );
+      } finally {
+        isGenerating.set(false);
+      }
     });
 
     ctx.registerAction("signCurrentPlan", async () => {
@@ -98,6 +113,7 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
         signatureState,
         walletSignature,
         isSigning,
+        isGenerating,
         lastError,
       },
     };

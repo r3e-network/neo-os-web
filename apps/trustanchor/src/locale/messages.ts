@@ -19,7 +19,6 @@ const appMessages = {
   agentTargetCount: { en: "Candidate Slots", zh: "候选槽位" },
   defaultIngressLabel: { en: "Vote Routes", zh: "投票路由" },
   defaultIngressShort: { en: "Routes", zh: "路由" },
-  ingressCount: { en: "Vote Routes", zh: "投票路由" },
   rebalanceShort: { en: "Rebalance", zh: "调仓" },
   noAgentContractsLabel: { en: "Agent Contracts", zh: "Agent 合约数" },
   verificationAccountsTitle: { en: "Verification Accounts", zh: "Verification Script 账户" },

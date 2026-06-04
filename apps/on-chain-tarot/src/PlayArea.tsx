@@ -170,7 +170,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoCard variant="erobo" className="tarot-reading-summary">
               <div className="tarot-section-heading">
                 <span>{t("readingSummary")}</span>
-                <strong>{t("allRevealed")}</strong>
+                <NeoButton variant="secondary" onClick={() => dispatch("copyReading")}>
+                  {t("copyReading")}
+                </NeoButton>
               </div>
               <div className="tarot-summary-list">
                 {drawn.map((card, index) => {

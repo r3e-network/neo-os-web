@@ -53,11 +53,9 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { GameProxy } from "@shared/services/os/GameProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import { formatGas, toFixed8, toSafeNumber } from "@shared/utils/format";
 import type { Machine, MachineItem } from "../types";
 
@@ -66,16 +64,12 @@ import type { Machine, MachineItem } from "../types";
 // ============================================================================
 
 export interface UseGasBoxOptions {
-  /** OS GameProxy instance from ctx.os.game */
-  gameService: GameProxy;
   /** OS PaymentProxy instance from ctx.os.payment */
   paymentService: PaymentProxy;
   /** OS StorageProxy instance from ctx.os.storage */
   storageService: StorageProxy;
   /** OS BadgeProxy instance from ctx.os.badge */
   badgeService: BadgeProxy;
-  /** OS EscrowProxy instance from ctx.os.escrow */
-  escrowService: EscrowProxy;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -188,18 +182,15 @@ const getItemIcon = (item: MachineItem): string => {
 // ============================================================================
 
 export function useGasBox({
-  gameService,
   paymentService,
   storageService,
   badgeService,
-  escrowService,
   t,
 }: UseGasBoxOptions) {
   // ── Machine State ──────────────────────────────────────────────────
   const machines = createObservable<Machine[]>([]);
   const selectedMachine = createObservable<Machine | null>(null);
   const isLoadingMachines = createObservable(false);
-  const actionLoading = createObservable<Record<string, boolean>>({});
   const walletHash = createObservable("");
 
   // ── Play State ─────────────────────────────────────────────────────
@@ -217,10 +208,6 @@ export function useGasBox({
   const address = createObservable<string | null>(null);
 
   // ── Helpers ────────────────────────────────────────────────────────
-
-  const setActionLoading = (key: string, value: boolean) => {
-    actionLoading.set({ ...actionLoading.get(), [key]: value });
-  };
 
   const resetResult = () => {
     showResult.set(false);
@@ -455,9 +442,9 @@ export function useGasBox({
 
       // Step 1: Charge the play price via PaymentProxy (GAS deposit).
       // os-payment-deposit expects a HUMAN-DECIMAL amount and scales by 10^8
-      // itself (same convention as buyMachine and every other OS app); passing
-      // pre-scaled base units here would double-scale (~1e8x overpay). machine.price
-      // is formatGas(priceRaw) — the human-readable decimal string the edge wants.
+      // itself (same convention as every other OS app); passing pre-scaled base
+      // units here would double-scale (~1e8x overpay). machine.price is
+      // formatGas(priceRaw) — the human-readable decimal string the edge wants.
       const depositAmount = machine.price;
       await paymentService.deposit(depositAmount, `play:${machine.id}`);
 
@@ -531,40 +518,6 @@ export function useGasBox({
       throw e;
     } finally {
       isPlaying.set(false);
-    }
-  };
-
-  // ── Buy Machine (via OS services) ──────────────────────────────────
-
-  /**
-   * Buy a machine listed for sale via PaymentProxy + GameProxy.
-   */
-  const buyMachine = async () => {
-    const machine = selectedMachine.get();
-    if (!machine || !machine.forSale || machine.salePriceRaw <= 0) return;
-
-    const key = `buy:${machine.id}`;
-    setActionLoading(key, true);
-
-    try {
-      // Step 1: Deposit GAS payment via PaymentProxy.
-      // machine.salePrice is formatGas(salePriceRaw) — the human-decimal string
-      // os-payment-deposit expects (it scales by 10^8 itself). Same convention
-      // as playMachine; do NOT pass pre-scaled base units here (~1e8x overpay).
-      await paymentService.deposit(
-        machine.salePrice,
-        `sale:${machine.id}`,
-      );
-
-      // Step 2: Execute buy via GameProxy
-      await gameService.placeBet("buy", machine.id);
-
-      // Step 3: Hint badge for first machine purchase (fire-and-forget)
-      badgeService.award("first-purchase", "").catch(() => {});
-
-      await loadMachines();
-    } finally {
-      setActionLoading(key, false);
     }
   };
 
@@ -684,176 +637,6 @@ export function useGasBox({
     }
   };
 
-  // ── Management Actions (via OS services) ───────────────────────────
-
-  /**
-   * Update machine price/metadata via StorageProxy.
-   * The edge function translates this to an UpdateMachine contract call.
-   */
-  const updateMachinePrice = async (machine: Machine) => {
-    const key = `price:${machine.id}`;
-    if (actionLoading.get()[key]) return;
-
-    try {
-      setActionLoading(key, true);
-      await storageService.set(`machine:${machine.id}:config`, {
-        name: machine.name,
-        description: machine.description || "",
-        category: machine.category || "",
-        tags: machine.tags || "",
-        price: machine.price,
-      });
-      await loadMachines();
-    } finally {
-      setActionLoading(key, false);
-    }
-  };
-
-  /**
-   * Toggle machine active state via StorageProxy.
-   * The edge function translates this to a SetMachineActive contract call.
-   */
-  const toggleMachineActive = async (machine: Machine) => {
-    const key = `active:${machine.id}`;
-    if (actionLoading.get()[key]) return;
-
-    try {
-      setActionLoading(key, true);
-      await storageService.set(`machine:${machine.id}:active`, !machine.active);
-      await loadMachines();
-    } finally {
-      setActionLoading(key, false);
-    }
-  };
-
-  /**
-   * Toggle machine listed state via StorageProxy.
-   * The edge function translates this to a SetMachineListed contract call.
-   */
-  const toggleMachineListed = async (machine: Machine) => {
-    const key = `listed:${machine.id}`;
-    if (actionLoading.get()[key]) return;
-
-    try {
-      setActionLoading(key, true);
-      await storageService.set(`machine:${machine.id}:listed`, !machine.listed);
-      await loadMachines();
-    } finally {
-      setActionLoading(key, false);
-    }
-  };
-
-  /**
-   * List machine for sale via EscrowProxy.
-   * The edge function translates this to a ListMachineForSale contract call.
-   */
-  const listMachineForSale = async (machine: Machine, salePrice: string) => {
-    const key = `sale:${machine.id}`;
-    if (actionLoading.get()[key]) return;
-
-    try {
-      setActionLoading(key, true);
-      await escrowService.create({
-        beneficiary: machine.ownerHash,
-        amount: salePrice,
-        milestones: [{ name: "sale", amount: salePrice }],
-      });
-      await loadMachines();
-    } finally {
-      setActionLoading(key, false);
-    }
-  };
-
-  /**
-   * Cancel machine sale via EscrowProxy.
-   * The edge function translates this to a cancelMachineSale contract call.
-   */
-  const cancelMachineSale = async (machine: Machine) => {
-    const key = `cancelSale:${machine.id}`;
-    if (actionLoading.get()[key]) return;
-
-    try {
-      setActionLoading(key, true);
-      await escrowService.refund(machine.id);
-      await loadMachines();
-    } finally {
-      setActionLoading(key, false);
-    }
-  };
-
-  /**
-   * Deposit inventory item via PaymentProxy.
-   * The edge function handles the token transfer + depositItem contract call.
-   */
-  const depositItem = async (
-    machine: Machine,
-    item: MachineItem,
-    index: number,
-    depositAmount: string,
-    tokenId: string,
-  ) => {
-    const key = `deposit:${machine.id}:${index}`;
-    if (actionLoading.get()[key]) return;
-
-    try {
-      setActionLoading(key, true);
-
-      if (item.assetType === 1) {
-        if (!depositAmount) throw new Error(t("depositAmountRequired"));
-        await paymentService.deposit(
-          depositAmount,
-          `deposit:${machine.id}:${index}:token`,
-        );
-      } else if (item.assetType === 2) {
-        const finalTokenId = tokenId || item.tokenId;
-        if (!finalTokenId) throw new Error(t("tokenIdRequired"));
-        await paymentService.deposit(
-          "0",
-          `deposit:${machine.id}:${index}:nft:${finalTokenId}`,
-        );
-      }
-
-      await loadMachines();
-    } finally {
-      setActionLoading(key, false);
-    }
-  };
-
-  /**
-   * Withdraw inventory item via PaymentProxy.
-   * The edge function handles the withdrawItem contract call + token transfer.
-   */
-  const withdrawItem = async (
-    machine: Machine,
-    item: MachineItem,
-    index: number,
-    withdrawAmount: string,
-    tokenId: string,
-  ) => {
-    const key = `withdraw:${machine.id}:${index}`;
-    if (actionLoading.get()[key]) return;
-
-    try {
-      setActionLoading(key, true);
-
-      if (item.assetType === 1) {
-        if (!withdrawAmount) throw new Error(t("withdrawAmountRequired"));
-        await paymentService.withdraw(
-          `withdraw:${machine.id}:${index}:${withdrawAmount}`,
-        );
-      } else if (item.assetType === 2) {
-        const finalTokenId = tokenId || item.tokenId || "";
-        await paymentService.withdraw(
-          `withdraw:${machine.id}:${index}:nft:${finalTokenId}`,
-        );
-      }
-
-      await loadMachines();
-    } finally {
-      setActionLoading(key, false);
-    }
-  };
-
   // ── Derived display values ────────────────────────────────────────
   const machineCount = createDerived(() => machines.get().length, [machines]);
   const isPlayingDisplay = createDerived(
@@ -876,7 +659,6 @@ export function useGasBox({
     machines,
     selectedMachine,
     isLoadingMachines,
-    actionLoading,
     walletHash,
     isPlaying,
     showResult,
@@ -899,15 +681,7 @@ export function useGasBox({
     closeStudio,
     resetResult,
     playMachine,
-    buyMachine,
     publishMachine,
-    updateMachinePrice,
-    toggleMachineActive,
-    toggleMachineListed,
-    listMachineForSale,
-    cancelMachineSale,
-    depositItem,
-    withdrawItem,
     loadAll,
   };
 }
