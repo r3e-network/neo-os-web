@@ -249,6 +249,7 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
    Shows only the two live facts not already in the hero. */
 .burn-league-impact-strip {
   display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
   gap: 0;
   padding: 14px 16px;
@@ -258,7 +259,7 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
 }
 
 .burn-league-impact-item {
-  flex: 1 1 0;
+  flex: 1 1 80px;
   min-width: 0;
   display: flex;
   flex-direction: column;

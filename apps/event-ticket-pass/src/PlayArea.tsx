@@ -402,25 +402,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         )}
       </section>
 
-      <details className="ticket-evidence" open={hasEvidence}>
-        <summary>{t("evidence")}</summary>
-        <div className="ticket-evidence__grid">
-          <div className="ticket-evidence__col">
-            <div className="ticket-evidence__head">
-              <span>{t("latestRequest")}</span>
-              <strong>{requestJson ? t("latestResult") : t("payloadEmpty")}</strong>
+      <section className="ticket-evidence" aria-label={t("evidence")}>
+        <details className="ticket-evidence__details" open={hasEvidence}>
+          <summary>{t("evidence")}</summary>
+          <div className="ticket-evidence__grid">
+            <div className="ticket-evidence__col">
+              <div className="ticket-evidence__head">
+                <span>{t("latestRequest")}</span>
+                <strong>{requestJson ? t("latestResult") : t("payloadEmpty")}</strong>
+              </div>
+              {requestJson ? <pre>{requestJson}</pre> : <div className="ticket-empty ticket-empty--line">{t("requestEmpty")}</div>}
             </div>
-            {requestJson ? <pre>{requestJson}</pre> : <div className="ticket-empty ticket-empty--line">{t("requestEmpty")}</div>}
-          </div>
-          <div className="ticket-evidence__col">
-            <div className="ticket-evidence__head">
-              <span>{t("latestResult")}</span>
-              <strong>{resultJson ? t("serviceStatus") : t("payloadEmpty")}</strong>
+            <div className="ticket-evidence__col">
+              <div className="ticket-evidence__head">
+                <span>{t("latestResult")}</span>
+                <strong>{resultJson ? t("serviceStatus") : t("payloadEmpty")}</strong>
+              </div>
+              {resultJson ? <pre>{resultJson}</pre> : <div className="ticket-empty ticket-empty--line">{t("resultEmpty")}</div>}
             </div>
-            {resultJson ? <pre>{resultJson}</pre> : <div className="ticket-empty ticket-empty--line">{t("resultEmpty")}</div>}
           </div>
-        </div>
-      </details>
+        </details>
+      </section>
     </div>
   );
 }

@@ -72,7 +72,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const streakTier = currentStreak >= 14 ? "blaze" : currentStreak >= 7 ? "spark" : "cold";
   const checkInDisabled = !canCheckIn || isLoading;
-  const claimDisabled = unclaimedRewards <= 0 || isClaiming;
+  const hasClaimable = unclaimedRewards > 0;
+  const claimDisabled = !hasClaimable || isClaiming;
+
+  // "Today plan" facts — derived from the same state the actions use, so the
+  // panel narrates exactly what the buttons will do this UTC cycle.
+  const planTitle = canCheckIn ? t("todayPlanReady") : t("todayPlanDone");
+  const planCopy = canCheckIn
+    ? t("todayPlanReadyCopy", { streak: currentStreak + 1 })
+    : t("todayPlanDoneCopy");
+  const milestoneReachable = canCheckIn && currentStreak + 1 >= nextMilestone.day;
+  const milestoneCopy = milestoneReachable
+    ? t("milestoneImpactReady", { day: nextMilestone.day })
+    : t("milestoneImpactPending", { days: daysToReward });
+  const claimTitle = hasClaimable ? t("rewardPlanReady") : t("rewardPlanEmpty");
+  const claimCopy = hasClaimable
+    ? t("rewardPlanReadyCopy", { amount: `${formatGas(unclaimedRewards)} ${t("tokenGas")}` })
+    : t("rewardPlanEmptyCopy");
 
   // The hero badge already conveys the idle "Ready" state, so only surface the
   // inline status pill when it carries new information (an error or an active
@@ -188,6 +204,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </NeoCard>
 
+      {/* Today plan — narrates what the actions above will do this UTC cycle:
+          the window status, milestone impact, claim plan, and service route. */}
+      <NeoCard
+        variant="erobo-neo"
+        className="checkin-plan-card"
+        aria-label={t("todayPlan")}
+      >
+        <div className="checkin-plan-head">
+          <h3 className="checkin-section-title">{t("todayPlan")}</h3>
+          <p className="checkin-plan-subtitle">{t("todayPlanSubtitle")}</p>
+        </div>
+        <div className="checkin-plan-grid">
+          <div className="checkin-plan-item">
+            <span className="checkin-plan-eyebrow">{t("dailyWindow")}</span>
+            <span className="checkin-plan-title">{planTitle}</span>
+            <span className="checkin-plan-copy">{planCopy}</span>
+          </div>
+          <div className="checkin-plan-item">
+            <span className="checkin-plan-eyebrow">{t("milestoneImpact")}</span>
+            <span className="checkin-plan-title">
+              {milestoneReachable
+                ? `+${nextMilestone.reward} ${t("tokenGas")}`
+                : t("noImmediateReward")}
+            </span>
+            <span className="checkin-plan-copy">{milestoneCopy}</span>
+          </div>
+          <div className="checkin-plan-item checkin-plan-rewards">
+            <span className="checkin-plan-eyebrow">{t("yourRewards")}</span>
+            <span className="checkin-plan-title">{claimTitle}</span>
+            <span className="checkin-plan-copy">{claimCopy}</span>
+          </div>
+        </div>
+        <p className="checkin-plan-route">{t("serviceRouteCopy")}</p>
+      </NeoCard>
+
       {showConfetti && (
         <div className="confetti-container" aria-hidden="true">
           {Array.from({ length: 18 }, (_, i) => (
@@ -272,7 +323,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </NeoCard>
 
-      <details className="checkin-evidence-card" aria-label={t("evidence")}>
+      <details className="checkin-evidence-card" role="region" aria-label={t("evidence")}>
         <summary className="checkin-evidence-summary">
           <span className="checkin-section-title">{t("evidence")}</span>
           <span className="checkin-evidence-chevron" aria-hidden="true">⌄</span>

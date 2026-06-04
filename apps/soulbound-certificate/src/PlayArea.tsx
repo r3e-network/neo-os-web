@@ -13,8 +13,6 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-type TabKey = "issue" | "templates" | "verify";
-
 function tokenLabel(tokenId: string) {
   if (!tokenId) return "";
   return tokenId.length > 18 ? `${tokenId.slice(0, 10)}...${tokenId.slice(-6)}` : tokenId;
@@ -83,16 +81,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const lastError = str("lastError", "");
   const lastSuccess = str("lastSuccess", "");
 
-  const [activeTab, setActiveTab] = useState<TabKey>("issue");
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [confirmRevokeId, setConfirmRevokeId] = useState("");
-
   const [createForm, setCreateForm] = useState({
-    name: "",
-    issuerName: "",
-    category: "",
-    maxSupply: "",
-    description: "",
+    name: "Neo Course Completion",
+    issuerName: "Neo Academy",
+    category: "Course",
+    maxSupply: "1000",
+    description: "Issued to graduates who completed the Neo builder track.",
   });
   const [issueForm, setIssueForm] = useState({
     templateId: "",
@@ -139,7 +133,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       templateId: template.id,
       achievement: current.achievement || template.name,
     }));
-    setActiveTab("issue");
   };
   const submitCreateTemplate = () => {
     if (!createFormValid || isCreatingTemplate) return;
@@ -155,15 +148,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
   const submitRevoke = (tokenId: string) => {
     if (!tokenId || isRevoking) return;
-    setConfirmRevokeId("");
     void dispatch("revokeCertificate", { tokenId });
   };
-
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: "issue", label: t("issueTitle") },
-    { key: "templates", label: t("templatesTab") },
-    { key: "verify", label: t("verifyTab") },
-  ];
 
   return (
     <div className="certificate-play-area">
@@ -219,23 +205,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       )}
 
-      <nav className="certificate-tabs" aria-label={t("issuerWorkspaceTitle")}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            className={`certificate-tab${
-              activeTab === tab.key ? " is-active" : ""
-            }`}
-            aria-pressed={activeTab === tab.key}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
-
-      {activeTab === "issue" && (
+      <div className="certificate-workspace">
         <NeoCard title={t("issueCertificate")} className="certificate-panel">
           <p className="panel-copy">{t("issueHelp")}</p>
 
@@ -276,6 +246,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           )}
 
           <div className="certificate-form-grid">
+            <label className="certificate-field">
+              <span>{t("templateId")}</span>
+              <input
+                value={issueForm.templateId}
+                placeholder={t("templateIdPlaceholder")}
+                onChange={(event) =>
+                  updateIssueForm("templateId", event.currentTarget.value)
+                }
+              />
+            </label>
             <label className="certificate-field">
               <span>{t("issueRecipient")}</span>
               <input
@@ -327,9 +307,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {isIssuing ? t("issuing") : t("issue")}
           </NeoButton>
         </NeoCard>
-      )}
 
-      {activeTab === "templates" && (
         <div className="certificate-stack">
           <TemplateList
             templates={templates}
@@ -348,17 +326,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard title={t("createTemplate")} className="certificate-panel">
             <div className="panel-head">
               <p className="panel-copy">{t("createTemplateHelp")}</p>
-              <NeoButton
-                size="sm"
-                variant="secondary"
-                onClick={() => setShowCreateForm((open) => !open)}
-              >
-                {showCreateForm ? t("statusInactive") : t("createTemplate")}
-              </NeoButton>
             </div>
-            {showCreateForm && (
-              <>
-                <div className="certificate-form-grid">
+            <div className="certificate-form-grid">
                   <label className="certificate-field">
                     <span>{t("templateName")}</span>
                     <input
@@ -425,15 +394,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   disabled={!createFormValid || isCreatingTemplate}
                   onClick={submitCreateTemplate}
                 >
-                  {isCreatingTemplate ? t("creating") : t("createTemplate")}
-                </NeoButton>
-              </>
-            )}
+              {isCreatingTemplate ? t("creating") : t("createTemplate")}
+            </NeoButton>
           </NeoCard>
         </div>
-      )}
 
-      {activeTab === "verify" && (
         <div className="certificate-stack">
           <NeoCard title={t("verifyTab")} variant="default" className="verify-card">
             <p className="panel-copy">{t("verifyHelp")}</p>
@@ -500,37 +465,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </dl>
                 {!verifiedCertificate.revoked && (
                   <div className="certificate-detail__revoke">
-                    {confirmRevokeId === verifiedCertificate.tokenId ? (
-                      <>
-                        <NeoButton
-                          size="sm"
-                          variant="danger"
-                          loading={isRevoking}
-                          disabled={isRevoking}
-                          onClick={() => submitRevoke(verifiedCertificate.tokenId)}
-                        >
-                          {isRevoking ? t("revoking") : t("revoke")}
-                        </NeoButton>
-                        <NeoButton
-                          size="sm"
-                          variant="ghost"
-                          disabled={isRevoking}
-                          onClick={() => setConfirmRevokeId("")}
-                        >
-                          {t("statusInactive")}
-                        </NeoButton>
-                      </>
-                    ) : (
-                      <NeoButton
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          setConfirmRevokeId(verifiedCertificate.tokenId)
-                        }
-                      >
-                        {t("revoke")}
-                      </NeoButton>
-                    )}
+                    <NeoButton
+                      size="sm"
+                      variant="danger"
+                      loading={isRevoking}
+                      disabled={isRevoking}
+                      onClick={() => submitRevoke(verifiedCertificate.tokenId)}
+                    >
+                      {isRevoking ? t("revoking") : t("revoke")}
+                    </NeoButton>
                   </div>
                 )}
               </div>
@@ -585,7 +528,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             )}
           </NeoCard>
         </div>
-      )}
+      </div>
     </div>
   );
 }

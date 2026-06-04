@@ -13,6 +13,8 @@ afterEach(() => cleanup());
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     availableEnvelopes: "Active envelopes",
+    claimTab: "Claim",
+    createTab: "Create",
     claimablePool: "Claimable pool",
     claimContractRoute: "game.placeBet -> claimResult",
     claimFlowTitle: "Claim flow",
@@ -156,6 +158,9 @@ describe("Red Envelope PlayArea", () => {
     );
 
     expect((screen.getByLabelText("Envelope ID") as HTMLInputElement).value).toBe("qr-pool-42");
+
+    fireEvent.click(screen.getByRole("tab", { name: "Create" }));
+
     expect((screen.getByLabelText("Total GAS") as HTMLInputElement).value).toBe("0.1");
     expect((screen.getByLabelText("Packet count") as HTMLInputElement).value).toBe("100");
     expect((screen.getByRole("button", { name: "Send Red Envelope" }) as HTMLButtonElement).disabled).toBe(true);

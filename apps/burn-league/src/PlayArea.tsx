@@ -37,6 +37,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const formattedRank = str("formattedRank", "--");
   const leaderboardSize = num("leaderboardSize");
   const estimatedReward = str("estimatedReward", "0");
+  const projectedTotalDisplay = str("projectedTotalBurnedDisplay", "--");
   const burnAmount = str("burnAmount", "");
   const serviceNotice = str("serviceNotice");
   const actionNotice = str("actionNotice");
@@ -182,17 +183,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </button>
             ))}
           </div>
-          <div className="burn-league-impact-strip" aria-hidden={!amountIsValid}>
+          <div
+            className="burn-league-impact-strip"
+            role="group"
+            aria-label={t("burnReview")}
+          >
             <div className="burn-league-impact-item">
-              <span className="burn-league-impact-label">{t("estimatedReward")}</span>
+              <span className="burn-league-impact-label">{t("entryAmount")}</span>
               <strong className="burn-league-impact-value">
-                {amountIsValid ? estimatedReward : "--"}
+                {amountIsValid ? `${currentBurnAmount} GAS` : "--"}
+              </strong>
+            </div>
+            <div className="burn-league-impact-divider" aria-hidden="true" />
+            <div className="burn-league-impact-item">
+              <span className="burn-league-impact-label">{t("projectedTotal")}</span>
+              <strong className="burn-league-impact-value">
+                {amountIsValid ? projectedTotalDisplay : "--"}
               </strong>
             </div>
             <div className="burn-league-impact-divider" aria-hidden="true" />
             <div className="burn-league-impact-item">
               <span className="burn-league-impact-label">{t("projectedRank")}</span>
               <strong className="burn-league-impact-value">{projectedPosition}</strong>
+            </div>
+            <div className="burn-league-impact-divider" aria-hidden="true" />
+            <div className="burn-league-impact-item">
+              <span className="burn-league-impact-label">{t("estimatedReward")}</span>
+              <strong className="burn-league-impact-value">
+                {amountIsValid ? estimatedReward : "--"}
+              </strong>
             </div>
           </div>
           {burnValidationError && (

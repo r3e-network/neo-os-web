@@ -83,7 +83,14 @@
             "label": "Claim key",
             "placeholder": "ogv_campaign_user_key",
             "required": true,
-            "hidden": true
+            "sensitive": true
+          },
+          {
+            "name": "poolId",
+            "type": "string",
+            "label": "Pool ID",
+            "placeholder": "pool-001",
+            "required": false
           }
         ]
       }
