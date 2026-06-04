@@ -113,6 +113,7 @@ export function useSelfLoan({
   const isLoading = createObservable(false);
   const isBorrowing = createObservable(false);
   const isRepaying = createObservable(false);
+  const isAddingCollateral = createObservable(false);
   const neoBalance = createObservable(0);
   const neoPrice = createObservable(0);
   const platformStats = createObservable<PlatformStats>({
@@ -501,8 +502,20 @@ export function useSelfLoan({
   };
 
   const repay = async (amount: string) => {
+    if (isRepaying.get()) return;
     const value = String(amount || "").trim();
-    if (!value || Number(value) <= 0) throw new Error(t("enterValidAmount"));
+    // Strict decimal validation: reject NaN, scientific/hex/whitespace and
+    // non-positive amounts before any chain/OS call.
+    if (!/^\d+(\.\d+)?$/.test(value)) throw new Error(t("enterValidAmount"));
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) throw new Error(t("enterValidAmount"));
+    // Cap the repayment at the outstanding debt: a user must not be able to
+    // deposit more GAS than they owe (typo / repaying an already-closed loan),
+    // since the excess would not be tied to any debt and may be unrecoverable.
+    const outstanding = loan.get().borrowed;
+    if (outstanding > 0 && parsed > outstanding) {
+      throw new Error(t("repayExceedsDebt", { amount: fmt(outstanding) }));
+    }
     // Capture the escrow/loan id and outstanding debt before repaying — once
     // the position is fully repaid the reloaded position may reset and lose
     // the id we need to release collateral.
@@ -527,11 +540,19 @@ export function useSelfLoan({
   };
 
   const addCollateral = async (amount: string) => {
+    // In-flight guard set BEFORE the first await so a rapid second click cannot
+    // fire a second deposit while the first is still pending (double-deposit).
+    if (isAddingCollateral.get()) return;
     const value = String(amount || "").trim();
     const validation = validateCollateral(value, neoBalance.get());
     if (validation) throw new Error(validation);
-    await paymentService.deposit(value, "self-loan:add-collateral");
-    await loadAll();
+    try {
+      isAddingCollateral.set(true);
+      await paymentService.deposit(value, "self-loan:add-collateral");
+      await loadAll();
+    } finally {
+      isAddingCollateral.set(false);
+    }
   };
 
   // ── Lifecycle ───────────────────────────────────────────────────────
@@ -555,6 +576,7 @@ export function useSelfLoan({
     isLoading,
     isBorrowing,
     isRepaying,
+    isAddingCollateral,
     neoBalance,
     neoPrice,
     platformStats,

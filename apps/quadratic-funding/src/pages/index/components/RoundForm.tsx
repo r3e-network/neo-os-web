@@ -4,9 +4,10 @@ import { NeoCard, NeoInput, NeoButton } from "@shared/components-react";
 interface RoundFormProps {
   onSubmit: (...args: unknown[]) => void;
   t: (key: string) => string;
+  loading?: boolean;
 }
 
-export default function RoundForm({ onSubmit, t }: RoundFormProps) {
+export default function RoundForm({ onSubmit, t, loading = false }: RoundFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [matchingPool, setMatchingPool] = useState("");
@@ -57,6 +58,8 @@ export default function RoundForm({ onSubmit, t }: RoundFormProps) {
       <div className="qf-panel-footer">
         <NeoButton
           variant="primary"
+          loading={loading}
+          disabled={loading}
           onClick={() =>
             onSubmit({
               title,
@@ -68,7 +71,7 @@ export default function RoundForm({ onSubmit, t }: RoundFormProps) {
             })
           }
         >
-          {t("createRound")}
+          {loading ? t("creatingRound") : t("createRound")}
         </NeoButton>
       </div>
     </NeoCard>

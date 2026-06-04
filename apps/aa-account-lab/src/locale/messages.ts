@@ -113,6 +113,18 @@ const appMessages = {
     en: "Backup owner must be a Neo address or hash",
     zh: "Backup owner 必须是 Neo 地址或哈希",
   },
+  invalidTimelock: {
+    en: "Escape timelock must be a whole number of seconds between 7 and 90 days",
+    zh: "逃生锁定期必须是 7 至 90 天之间的整数秒数",
+  },
+  invalidVerifierParams: {
+    en: "Verifier params must be valid even-length hex",
+    zh: "Verifier 参数必须是有效的偶数长度 hex",
+  },
+  noVerifierRegistered: {
+    en: "Read succeeded, but no verifier is registered for this account.",
+    zh: "读取成功，但该账户尚未注册 verifier。",
+  },
   docsSubtitle: {
     en: "Register and inspect Neo AA accounts",
     zh: "注册并查询 Neo AA 账户",

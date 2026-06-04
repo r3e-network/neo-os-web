@@ -42,6 +42,10 @@ const appMessages = {
   keyLoaded: { en: "Oracle public key loaded", zh: "Oracle 公钥已加载" },
   fetchFailed: { en: "Failed to fetch price", zh: "获取价格失败" },
   recipeFailed: { en: "Failed to build recipe", zh: "生成配方失败" },
+  targetPriceInvalid: {
+    en: "Enter a target price greater than 0 (numbers only, e.g. 20 or 20.5).",
+    zh: "请输入大于 0 的目标价格（仅限数字，例如 20 或 20.5）。",
+  },
   triggerFailed: { en: "Failed to register trigger", zh: "注册触发器失败" },
   triggerListFailed: { en: "Failed to load triggers", zh: "加载触发器失败" },
   triggerStatusFailed: { en: "Failed to update trigger status", zh: "更新触发器状态失败" },

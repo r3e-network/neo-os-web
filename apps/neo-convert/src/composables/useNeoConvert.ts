@@ -55,7 +55,6 @@ export interface UseNeoConvertOptions {
 
 export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeoConvertOptions) {
   // ── Tab & UI State ──────────────────────────────────────────────────
-  const activeTab = createObservable("generate");
   const isMobile = createObservable(typeof window !== "undefined" ? window.innerWidth < 768 : false);
   const isLoading = createObservable(false);
 
@@ -101,6 +100,14 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
       converter.result.get().publicKey !== "" ||
       converter.result.get().opcodes.length > 0,
     [converter.result],
+  );
+
+  // Sidebar "Active Tab" — derived & localized so it shows a real label
+  // (not the raw "generate" key) and reflects the section the user is in:
+  // once a conversion result exists, the user is on the Convert tab.
+  const activeTab = createDerived(
+    () => (hasConversionResult.get() ? t("tabConvert") : t("tabGenerate")),
+    [hasConversionResult],
   );
 
   // ── Data Loading ────────────────────────────────────────────────────
@@ -235,8 +242,9 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
   const downloadPaperWallet = async () => {
     const account = generatedAccount.get();
     if (!account) {
-      eventBus.emit("convert:error", { message: t("genEmptyState") });
-      return;
+      // Throw so the registerActions wrapper surfaces a localized error
+      // toast instead of resolving (which would show a false success).
+      throw new Error(t("genEmptyState"));
     }
     const [{ default: QRCode }, { useWalletPdf }] = await Promise.all([
       import("qrcode"),

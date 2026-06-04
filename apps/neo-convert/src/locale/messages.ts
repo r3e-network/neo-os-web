@@ -181,6 +181,14 @@ const appMessages = {
         en: "Reveal secrets before exporting the WIF-backed paper wallet.",
         zh: "导出包含 WIF 的纸钱包前，请先显示密钥。"
     },
+    paperWalletReady: {
+        en: "Paper wallet PDF generated.",
+        zh: "纸钱包 PDF 已生成。"
+    },
+    paperWalletFailed: {
+        en: "Could not generate the paper wallet PDF. Please try again.",
+        zh: "无法生成纸钱包 PDF，请重试。"
+    },
     genEmptyState: {
         en: "Click Generate to create a new Neo N3 account safely on your device.",
         zh: "点击“生成”按钮以在您的设备上安全地创建新的 Neo N3 账户。"

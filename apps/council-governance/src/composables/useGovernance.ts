@@ -370,8 +370,15 @@ export function useGovernance({
       const policyMethod = String(proposalData.policyMethod || "").trim();
       const policyValue = String(proposalData.policyValue || "").trim();
       if (!policyMethod || !policyValue) throw new Error(t("policyFieldsRequired"));
+      // Neo native PolicyContract parameters (FeePerByte, ExecFeeFactor,
+      // StoragePrice, MaxBlockSize, MaxTransactionsPerBlock, MaxSystemFee) are
+      // non-negative integers. Reject floats / scientific / hex / whitespace so
+      // an obviously-invalid value never reaches the invoke and pays gas to fail.
+      if (!/^\d+$/.test(policyValue)) throw new Error(t("invalidPolicyValue"));
       const parsedValue = Number(policyValue);
-      if (!Number.isFinite(parsedValue)) throw new Error(t("invalidPolicyValue"));
+      if (!Number.isInteger(parsedValue) || parsedValue < 0) {
+        throw new Error(t("invalidPolicyValue"));
+      }
       policyData = toBase64Utf8(JSON.stringify({ method: policyMethod, value: parsedValue }));
     }
 

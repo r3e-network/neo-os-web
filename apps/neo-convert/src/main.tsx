@@ -37,6 +37,15 @@ defineMiniApp({
         successKey: "btnGenerate",
         errorKey: "invalidFormat",
       },
+      // Route the paper-wallet export through registerActions so its
+      // genuinely failure-prone steps (dynamic qrcode/pdf imports,
+      // QRCode.toDataURL) surface a localized error toast instead of
+      // rejecting silently. The host dispatch does not wrap handlers.
+      downloadPaperWallet: {
+        handler: async () => convert.downloadPaperWallet(),
+        successKey: "paperWalletReady",
+        errorKey: "paperWalletFailed",
+      },
     });
 
     ctx.registerAction("convert", async (...args: unknown[]) => {
@@ -57,10 +66,6 @@ defineMiniApp({
     ctx.registerAction("copy", async (...args: unknown[]) => {
       const text = typeof args[0] === "string" ? args[0] : "";
       if (text) convert.copyToClipboard(text);
-    });
-
-    ctx.registerAction("downloadPaperWallet", async () => {
-      await convert.downloadPaperWallet();
     });
 
     return {

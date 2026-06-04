@@ -336,7 +336,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               value={checkinTokenId}
               label={t("checkinTokenId")}
               placeholder={t("checkinTokenIdPlaceholder")}
-              onChange={(value) => state.checkinTokenId?.set(value)}
+              onChange={(value) => {
+                state.checkinTokenId?.set(value);
+                // Clear any prior lookup so the check-in button reflects the
+                // current token id and can't act on a stale ticket.
+                if (lookup) state.lookup?.set(null);
+              }}
             />
             {lookup ? (
               <div className="ticket-lookup">

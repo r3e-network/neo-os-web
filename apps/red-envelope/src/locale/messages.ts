@@ -100,6 +100,14 @@ const appMessages = {
   envelopeExpired: { en: "Envelope expired", zh: "红包已过期" },
   envelopeEmpty: { en: "Envelope is empty", zh: "红包已领完" },
   alreadyOpened: { en: "You already opened this envelope", zh: "你已打开过该红包" },
+  depositRefunded: {
+    en: "Envelope creation failed — your GAS deposit was refunded",
+    zh: "红包创建失败——您存入的 GAS 已退回",
+  },
+  depositRecoveryNeeded: {
+    en: "Envelope creation failed and the automatic refund did not complete. Your GAS is safe in your payment balance and can be withdrawn.",
+    zh: "红包创建失败且自动退款未完成。您的 GAS 仍安全保存在支付余额中，可随时提取。",
+  },
   invalidAmount: { en: "Enter at least 0.1 GAS", zh: "至少 0.1 GAS" },
   invalidPackets: { en: "Enter 1-100 packets", zh: "请输入 1-100 个红包" },
   invalidPerPacket: { en: "Each packet must be at least 0.01 GAS", zh: "每个红包至少 0.01 GAS" },

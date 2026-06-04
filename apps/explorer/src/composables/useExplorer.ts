@@ -222,11 +222,17 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
       const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.get()}`);
       if (res.ok) {
         searchResult.set(parseResponseData(await res.json()));
+        return;
       }
-    } catch (e) {
-      eventBus.emit("explorer:error", {
-        message: e instanceof Error ? e.message : t("searchFailed"),
-      });
+      // A 404 is the API's "nothing matched this identifier" signal — surface a
+      // calm not-found result rather than leaving the panel blank and silent.
+      if (res.status === 404) {
+        searchResult.set({ type: "none" });
+        return;
+      }
+      // Any other non-2xx is a genuine failure: re-throw so the host's action
+      // wrapper (registerActions errorKey: "searchFailed") shows the error.
+      throw new Error(t("searchFailed"));
     } finally {
       isSearching.set(false);
     }
@@ -234,7 +240,10 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
 
   const viewTx = (hash: string) => {
     searchQuery.set(hash);
-    search();
+    // search() can now reject (genuine non-2xx / network failure). viewTx is
+    // fire-and-forget from the recent-tx list, so guard against an unhandled
+    // rejection here — the empty result + reset spinner are the user feedback.
+    void search().catch(() => {});
   };
 
   // ── Polling ──────────────────────────────────────────────────────────

@@ -27,6 +27,16 @@ defineMiniApp({
     ctx.registerAction("openMemorial", async (...args: unknown[]) => {
       shrine.openMemorial(Number(args[0]));
     });
+    ctx.registerAction("closeMemorial", async () => {
+      shrine.closeMemorial();
+    });
+    ctx.registerAction("shareMemorial", async (...args: unknown[]) => {
+      const id = Number(args[0]);
+      const memorial = Number.isFinite(id)
+        ? shrine.memorials.get().find((m) => m.id === id)
+        : undefined;
+      shrine.shareMemorial(memorial);
+    });
     ctx.registerAction("createMemorial", async (...args: unknown[]) => {
       const form = args[0] as {
         name: string; photoHash: string; relationship: string;

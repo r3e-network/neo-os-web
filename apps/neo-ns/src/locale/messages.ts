@@ -89,6 +89,13 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   connected: { en: "Connected", zh: "已连接" },
   disconnected: { en: "Disconnected", zh: "未连接" },
   domainSuffix: { en: ".neo", zh: ".neo" },
+  search: { en: "Search", zh: "搜索" },
+  enterDomainName: { en: "myname.neo", zh: "myname.neo" },
+  connectedAddress: { en: "Address", zh: "地址" },
+  domainAvailable: { en: "Available", zh: "可用" },
+  domainTaken: { en: "Taken", zh: "已被占用" },
+  registrationCost: { en: "Cost", zh: "费用" },
+  register: { en: "Register", zh: "注册" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

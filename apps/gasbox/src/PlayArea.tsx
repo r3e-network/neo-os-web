@@ -202,7 +202,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
     setStudioError(null);
 
-    await dispatch("publishMachine", {
+    // The publishMachine action is wrapped in notify.guard, which swallows the
+    // error and resolves regardless of outcome. Gate the form reset on the
+    // action's confirmed-success flag so a failed publish (transient storage /
+    // wallet error) keeps the user's input instead of wiping the whole table.
+    // dispatch is typed Promise<void> but returns the action payload at runtime.
+    const published: unknown = await dispatch("publishMachine", {
       name: machineName.trim(),
       description: machineDescription.trim(),
       category: machineCategory.trim(),
@@ -219,7 +224,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         stock: item.stock.trim() || "1",
       })),
     });
-    resetStudioForm();
+    if (published === true) {
+      resetStudioForm();
+    }
   };
 
   const rarityClass = (rarity: string | undefined) => {
@@ -722,6 +729,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {pullResult.amountDisplay && (
               <span className="gasbox-result-amount">{pullResult.amountDisplay}</span>
             )}
+            <p className="gasbox-result-note">{t("gasboxClientPrizeNote")}</p>
             <NeoButton variant="secondary" size="md" onClick={dismissResult}>
               {t("dismiss")}
             </NeoButton>

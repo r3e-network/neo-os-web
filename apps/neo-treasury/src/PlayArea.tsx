@@ -184,8 +184,16 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
   };
 
   const handleDisbursement = async () => {
-    await dispatch("submitDisbursement", { asset, amount, recipient, memo });
-    setStatus(t("disbursementSubmitted"), "success");
+    try {
+      await dispatch("submitDisbursement", { asset, amount, recipient, memo });
+      // Only emit the success toast on the success path. On failure the
+      // registered action re-throws and the error is already surfaced via the
+      // disbursementError observable, so we just swallow the rejection here to
+      // avoid an unhandled promise rejection (NeoButton does not await onClick).
+      setStatus(t("disbursementSubmitted"), "success");
+    } catch {
+      /* error already shown via disbursementError */
+    }
   };
 
   return (
@@ -443,8 +451,11 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
                 className="treasury-wallet-list"
                 aria-label={`${group.name} ${t("walletList")}`}
               >
-                {group.wallets.map((wallet) => (
-                  <div className="treasury-wallet-row" key={wallet.address}>
+                {group.wallets.map((wallet, walletIndex) => (
+                  <div
+                    className="treasury-wallet-row"
+                    key={wallet.address || `${group.name}-${walletIndex}`}
+                  >
                     <div>
                       <strong>{wallet.label}</strong>
                       <code title={wallet.address}>

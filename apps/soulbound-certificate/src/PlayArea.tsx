@@ -70,6 +70,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     null,
   );
   const address = str("address", "");
+  const isConnecting = bool("isConnecting");
   const isRefreshing = bool("isRefreshing");
   const isLoading = bool("isLoading");
   const isCreatingTemplate = bool("isCreatingTemplate");
@@ -110,7 +111,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     createForm.issuerName.trim() &&
     createForm.category.trim() &&
     Number.isInteger(Number(createForm.maxSupply)) &&
-    Number(createForm.maxSupply) > 0;
+    Number(createForm.maxSupply) > 0 &&
+    Number(createForm.maxSupply) <= 100000;
   const issueFormValid =
     issueForm.templateId.trim() &&
     issueForm.recipient.trim() &&
@@ -186,7 +188,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {t("walletConnected")}: {formatHash(address, 8, 6)}
             </span>
           ) : (
-            <NeoButton variant="primary" onClick={() => dispatch("connectWallet")}>
+            <NeoButton
+              variant="primary"
+              loading={isConnecting}
+              disabled={isConnecting}
+              onClick={() => dispatch("connectWallet")}
+            >
               {t("connectWallet")}
             </NeoButton>
           )}
@@ -314,6 +321,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             refreshing={isRefreshing}
             togglingId={togglingId || null}
             hasAddress={hasAddress}
+            connecting={isConnecting}
             onRefresh={() => dispatch("refreshTemplates")}
             onConnect={() => dispatch("connectWallet")}
             onIssue={selectTemplateForIssue}

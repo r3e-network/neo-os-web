@@ -102,6 +102,10 @@ title: { en: "Breakup Contract", zh: "分手合约" },
     en: "Open this MiniApp from the platform workspace to confirm the contract wallet intent.",
     zh: "请从平台工作区打开此小程序，以确认合约钱包意图。",
   },
+  contractCreateFundsRecoverable: {
+    en: "The stake escrow was created but the contract record could not be saved, and the automatic refund failed. Your funds are still escrowed and recoverable — please retry shortly.",
+    zh: "质押托管已创建，但合约记录保存失败，且自动退款也未成功。您的资金仍在托管中且可恢复，请稍后重试。",
+  },
   lastSubmittedContract: {
     en: "Last submitted: {title}",
     zh: "上次提交：{title}",

@@ -72,7 +72,14 @@ export default function PlayArea({
   const viewingPhoto = val<PhotoView | null>("viewingPhoto", null);
   const selectedImages = val<SelectedImage[]>("selectedImages") ?? [];
   const lastTx = val<TxReceipt | null>("lastTx", null);
-  const uploadLimit = 60 * 1024;
+  // Source the disable gate from the composable's hard limit (MAX_TOTAL_BYTES,
+  // bound as `maxTotalBytes`) so the Upload button and meter agree exactly with
+  // uploadPhotos()'s `totalSize > MAX_TOTAL_BYTES` check. Falls back to 60000
+  // (the composable default) when the binding is absent, never the old 61440.
+  const boundLimit = num("maxTotalBytes");
+  const uploadLimit = Number.isFinite(boundLimit) && boundLimit > 0
+    ? boundLimit
+    : 60000;
   const uploadPct = Math.min(
     100,
     Math.round((totalPayloadSize / uploadLimit) * 100),

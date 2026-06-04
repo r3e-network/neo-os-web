@@ -73,6 +73,7 @@ const appMessages = {
   copySignature: { en: "Copy signature", zh: "复制签名" },
   copyTxHash: { en: "Copy transaction hash", zh: "复制交易哈希" },
   copySuccess: { en: "Copied", zh: "已复制" },
+  signSuccess: { en: "Message signed", zh: "已签名" },
   connectWallet: { en: "Please connect your wallet to proceed.", zh: "请连接钱包以继续。" },
   broadcastSuccess: { en: "Message broadcasted successfully!", zh: "信息广播成功！" },
   signFailed: { en: "Signing failed", zh: "签名失败" },

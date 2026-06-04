@@ -163,7 +163,7 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
       donateAmount.set("0.1");
       await loadUserData();
     } catch (e) {
-      eventBus.emit("donate:error", { message: formatErrorMessage(e, t("loadFailed")) });
+      eventBus.emit("donate:error", { message: formatErrorMessage(e, t("donateFailed")) });
       throw e;
     } finally {
       isDonating.set(false);
@@ -198,7 +198,7 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
       recipientAddress.set("");
       await loadUserData();
     } catch (e) {
-      eventBus.emit("send:error", { message: formatErrorMessage(e, t("loadFailed")) });
+      eventBus.emit("send:error", { message: formatErrorMessage(e, t("sendFailed")) });
       throw e;
     } finally {
       isSending.set(false);

@@ -71,12 +71,23 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     subscribe: (fn) => { const u1 = fromToken.subscribe(fn); const u2 = toToken.subscribe(fn); return () => { u1(); u2(); }; },
   };
 
+  /** Strict decimal: rejects NaN/scientific/hex/whitespace; enforces integer for 0-decimal tokens. */
+  function parseAmount(raw: string, decimals: number): number | null {
+    const trimmed = raw.trim();
+    if (!/^\d+(\.\d+)?$/.test(trimmed)) return null;
+    const amount = Number(trimmed);
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    if (decimals === 0 && !Number.isInteger(amount)) return null;
+    return amount;
+  }
+
   const canSwap: Observable<boolean> = {
     get: () => {
       const rate = parseFloat(exchangeRate.get());
       const hasRate = Number.isFinite(rate) && rate > 0;
-      const amount = parseFloat(fromAmount.get());
-      return hasRate && amount > 0 && amount <= fromToken.get().balance;
+      const ft = fromToken.get();
+      const amount = parseAmount(fromAmount.get(), ft.decimals);
+      return hasRate && amount !== null && amount <= ft.balance;
     },
     set: () => {},
     subscribe: (fn) => { const u1 = exchangeRate.subscribe(fn); const u2 = fromAmount.subscribe(fn); const u3 = fromToken.subscribe(fn); return () => { u1(); u2(); u3(); }; },
@@ -89,8 +100,15 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       if (rateLoading.get()) return t("loadingRate");
       const rate = parseFloat(exchangeRate.get());
       if (!(Number.isFinite(rate) && rate > 0)) return t("rateUnavailable");
-      if (parseFloat(fromAmount.get()) > fromToken.get().balance) return t("insufficientBalance");
-      return `${t("tabSwap")} ${fromToken.get().symbol} ${t("swapArrow")} ${toToken.get().symbol}`;
+      const ft = fromToken.get();
+      const amount = parseAmount(fromAmount.get(), ft.decimals);
+      if (amount === null) {
+        return ft.decimals === 0 && /\./.test(fromAmount.get().trim())
+          ? t("neoIntegerOnly")
+          : t("invalidAmount");
+      }
+      if (amount > ft.balance) return t("insufficientBalance");
+      return `${t("tabSwap")} ${ft.symbol} ${t("swapArrow")} ${toToken.get().symbol}`;
     },
     set: () => {},
     subscribe: (fn) => { const u1 = loading.subscribe(fn); const u2 = fromAmount.subscribe(fn); const u3 = rateLoading.subscribe(fn); const u4 = exchangeRate.subscribe(fn); const u5 = fromToken.subscribe(fn); const u6 = toToken.subscribe(fn); return () => { u1(); u2(); u3(); u4(); u5(); u6(); }; },
@@ -132,8 +150,10 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     rateLoading.set(true);
     exchangeRate.set("");
     try {
-      const fromPrice = await datafeed.getPrice(fromToken.get().symbol);
-      const toPrice = await datafeed.getPrice(toToken.get().symbol);
+      const [fromPrice, toPrice] = await Promise.all([
+        datafeed.getPrice(fromToken.get().symbol),
+        datafeed.getPrice(toToken.get().symbol),
+      ]);
       const rate = fromPrice / toPrice;
       if (Number.isFinite(rate) && rate > 0) {
         exchangeRate.set(rate.toFixed(6));
@@ -147,9 +167,9 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   }
 
   function onFromAmountChange() {
-    const amount = parseFloat(fromAmount.get()) || 0;
     const rate = parseFloat(exchangeRate.get());
-    if (!Number.isFinite(rate) || rate <= 0) { toAmount.set(""); return; }
+    const amount = parseAmount(fromAmount.get(), fromToken.get().decimals);
+    if (amount === null || !Number.isFinite(rate) || rate <= 0) { toAmount.set(""); return; }
     toAmount.set((amount * rate).toFixed(4));
   }
 
@@ -189,6 +209,10 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       const sender = chain.address.get() as string;
       const ft = fromToken.get();
       const tt = toToken.get();
+      const parsedAmount = parseAmount(fromAmount.get(), ft.decimals);
+      if (parsedAmount === null) {
+        throw new Error(ft.decimals === 0 ? t("neoIntegerOnly") : t("invalidAmount"));
+      }
       const amountInt = toFixedDecimals(fromAmount.get(), ft.decimals);
       const expectedOutput = parseFloat(toAmount.get()) || 0;
       const minOutputAmount = expectedOutput * 0.995;

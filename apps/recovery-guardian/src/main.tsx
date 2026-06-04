@@ -19,7 +19,6 @@ defineMiniApp({
     const latestPayload = createObservable<Record<string, unknown> | null>(
       null,
     );
-    const isLoading = createObservable(false);
     const isQuerying = createObservable(false);
 
     // Form fields
@@ -44,26 +43,31 @@ defineMiniApp({
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
 
+    // Render a payload field, treating only undefined/null as "missing" so a
+    // legitimate 0 (e.g. timelock=0 / threshold=0) is shown as "0" instead of
+    // being masked as "Not available" by a falsy `||` fallback.
+    const payloadField = (key: string): string => {
+      const v = latestPayload.get()?.[key];
+      return v === undefined || v === null ? ctx.t("notAvailable") : String(v);
+    };
+
     const accountId: Observable<string> = {
-      get: () =>
-        String(latestPayload.get()?.account_id || ctx.t("notAvailable")),
+      get: () => payloadField("account_id"),
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
     const verifierHash: Observable<string> = {
-      get: () =>
-        String(latestPayload.get()?.verifier_hash || ctx.t("notAvailable")),
+      get: () => payloadField("verifier_hash"),
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
     const threshold: Observable<string> = {
-      get: () =>
-        String(latestPayload.get()?.threshold || ctx.t("notAvailable")),
+      get: () => payloadField("threshold"),
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
     const timelock: Observable<string> = {
-      get: () => String(latestPayload.get()?.timelock || ctx.t("notAvailable")),
+      get: () => payloadField("timelock"),
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
@@ -182,6 +186,7 @@ defineMiniApp({
               ? (result as Record<string, unknown>)
               : JSON.parse(String(result)),
         );
+        ctx.services.notify.success("queryLoaded");
       } catch (e) {
         ctx.services.notify.error(e, ctx.t("queryFailed"));
       } finally {
@@ -194,17 +199,13 @@ defineMiniApp({
         window.open(url, "_blank", "noopener,noreferrer");
       }
     };
-    const copyText = (text: string) => {
-      navigator.clipboard?.writeText(text).catch((e: unknown) => {
-        console.warn(
-          "[recovery-guardian] clipboard write failed:",
-          e instanceof Error ? e.message : String(e),
-        );
-      });
+    const copyText = async (text: string): Promise<void> => {
+      await navigator.clipboard?.writeText(text);
     };
     const registerLinkActions = (
       prefix: string,
       urlRef: Observable<string>,
+      keys: { copied: string; shared: string },
     ) => {
       ctx.registerAction(`open${prefix}`, async () => {
         const u = urlRef.get();
@@ -212,15 +213,43 @@ defineMiniApp({
       });
       ctx.registerAction(`copy${prefix}`, async () => {
         const u = urlRef.get();
-        if (u) copyText(u);
+        if (!u) return;
+        try {
+          await copyText(u);
+          ctx.services.notify.success(keys.copied);
+        } catch (e) {
+          ctx.services.notify.error(e, ctx.t("clipboardFailed"));
+        }
       });
       ctx.registerAction(`share${prefix}`, async () => {
         const u = urlRef.get();
-        if (u) copyText(u);
+        if (!u) return;
+        const nav = typeof navigator !== "undefined" ? navigator : undefined;
+        try {
+          if (nav?.share) {
+            await nav.share({ url: u });
+            ctx.services.notify.success(keys.shared);
+          } else {
+            // No Web Share API: fall back to clipboard but report it as a copy.
+            await copyText(u);
+            ctx.services.notify.success(keys.copied);
+          }
+        } catch (e) {
+          // A user-cancelled share rejects with an AbortError — stay silent for
+          // that, surface anything else (e.g. clipboard fallback failure).
+          if (e instanceof Error && e.name === "AbortError") return;
+          ctx.services.notify.error(e, ctx.t("clipboardFailed"));
+        }
       });
     };
-    registerLinkActions("RecoveryPreviewLink", previewUrl);
-    registerLinkActions("RecoveryCredentialLink", credentialUrl);
+    registerLinkActions("RecoveryPreviewLink", previewUrl, {
+      copied: "previewLinkCopied",
+      shared: "previewLinkShared",
+    });
+    registerLinkActions("RecoveryCredentialLink", credentialUrl, {
+      copied: "credentialLinkCopied",
+      shared: "credentialLinkShared",
+    });
 
     ctx.registerAction("openIdentityWorkspace", async () => {
       openExternal("https://neo-identity.app/workspace");
@@ -235,7 +264,6 @@ defineMiniApp({
     return {
       state: {
         renderedPayload,
-        isLoading,
         isQuerying,
         latestPayload,
         hasPayload,

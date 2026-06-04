@@ -31,7 +31,7 @@ defineMiniApp({
     });
 
     ctx.registerAction("signMessage", async (msg: string) => {
-      await notify.guard(() => signAnything.signMessage(msg), "copySuccess");
+      await notify.guard(() => signAnything.signMessage(msg), "signSuccess");
     });
 
     ctx.registerAction("broadcastMessage", async (msg: string) => {

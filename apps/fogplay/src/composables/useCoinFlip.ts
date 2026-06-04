@@ -180,9 +180,9 @@ export function useCoinFlip({
   const validateBetAmount = (amount: string): string | null => {
     const num = parseFloat(amount);
     if (isNaN(num)) return t("invalidAmountNumber");
-    if (num < MIN_BET) return t("minBetError");
-    if (num > MAX_BET) return t("maxBetError");
-    if (!/^\d+(\.\d{1,8})?$/.test(amount)) return t("invalidAmountDecimals");
+    if (num < MIN_BET) return t("minBetError", { min: MIN_BET, tokenGas: t("tokenGas") });
+    if (num > MAX_BET) return t("maxBetError", { max: MAX_BET, tokenGas: t("tokenGas") });
+    if (!/^\d+(\.\d{1,8})?$/.test(amount.trim())) return t("invalidAmountDecimals");
     return null;
   };
 
@@ -301,12 +301,21 @@ export function useCoinFlip({
 
     const isFirstFlip = totalGames.get() === 0;
 
-    try {
-      const amountBase = toFixed8(betAmount.get());
-      if (amountBase === "0") throw new Error(t("invalidBetAmount"));
+    const amountBase = toFixed8(betAmount.get());
+    if (amountBase === "0") {
+      isFlipping.set(false);
+      validationError.set(t("invalidBetAmount"));
+      throw new Error(t("invalidBetAmount"));
+    }
 
+    // Tracks whether the GAS deposit landed but the bet never did, so the
+    // catch block can return (withdraw) the stranded wager.
+    let depositPending = false;
+
+    try {
       // -- Step 1: Deposit GAS via PaymentProxy ---
       await paymentService.deposit(amountBase, `${APP_ID}:bet`);
+      depositPending = true;
 
       // -- Step 2: Place bet via GameProxy ---
       // The edge function handles wallet verification, contract invocation,
@@ -320,6 +329,11 @@ export function useCoinFlip({
       );
       const betId = String((betPoolState as unknown as { betId?: string })?.betId ?? "");
       if (!betId) throw new Error(t("betMissing"));
+
+      // The bet is now registered on-chain (the deposited GAS is escrowed by
+      // the contract bet, not by the OS payment balance), so a later failure
+      // must NOT trigger a withdraw — that would double-refund.
+      depositPending = false;
 
       // -- Step 3: (No frontend oracle call needed) ---
       // The fogplay contract itself invokes MorpheusOracle.request()
@@ -378,11 +392,22 @@ export function useCoinFlip({
       // -- Step 8: Reload data ---
       await loadAll();
     } catch (e) {
-      eventBus.emit("coinflip:error", {
-        message: e instanceof Error ? e.message : t("flipFailed"),
-      });
+      // Compensation: the deposit landed but the bet never registered on-chain.
+      // Return the stranded wager from the OS payment balance (best-effort).
+      let message = e instanceof Error ? e.message : t("flipFailed");
+      if (depositPending) {
+        try {
+          await paymentService.withdraw(amountBase);
+        } catch {
+          // The inverse also failed — the wager is recoverable but still parked
+          // in the OS payment balance. Surface a distinct, actionable message.
+          message = t("depositStranded");
+        }
+      }
+
+      eventBus.emit("coinflip:error", { message });
       isFlipping.set(false);
-      throw e;
+      throw new Error(message);
     }
   };
 

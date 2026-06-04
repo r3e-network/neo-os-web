@@ -38,7 +38,16 @@ defineMiniApp({
       [anchor.stats],
     );
     const agentCountDisplay = createDerived(
-      () => `${anchor.stats.get()?.agentCount || agentAccounts.length} / 21`,
+      () => {
+        const onChainCount = anchor.stats.get()?.agentCount;
+        // Only fall back to the static roster size before stats load
+        // (undefined). A real on-chain count of 0 must render as 0, not be
+        // masked by the 21-entry static array via a falsy-OR.
+        const count = Number.isFinite(onChainCount)
+          ? (onChainCount as number)
+          : agentAccounts.length;
+        return `${count} / 21`;
+      },
       [anchor.stats],
     );
 

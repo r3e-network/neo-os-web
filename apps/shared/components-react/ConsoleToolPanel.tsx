@@ -118,11 +118,23 @@ export function ConsoleToolPanel({
   function runPreview() {
     const next = config.buildResult(values, t);
     setResult(next);
+    // A buildResult that returns payload.status === "input_required" signals a
+    // validation failure (no real preview produced). Treat it as a warning so the
+    // host does not render a green "success" toast, keep counters/digest honest.
+    const ok = next.payload.status !== "input_required";
     setObservable(state, "lastStatus", next.status);
-    setObservable(state, "lastDigest", String(next.payload.digest ?? next.payload.requestId ?? ""));
-    const count = Number(state.requestCount?.get?.() ?? 0);
-    setObservable(state, "requestCount", count + 1);
-    setStatus(next.status, "success");
+    const digest = next.payload.digest ?? next.payload.requestId;
+    if (ok && digest != null && digest !== "") {
+      setObservable(state, "lastDigest", String(digest));
+    } else if (!ok) {
+      // Preserve the existing placeholder/value instead of blanking the stat.
+      setObservable(state, "lastDigest", readObservable(state, "lastDigest", t("notAvailable")));
+    }
+    if (ok) {
+      const count = Number(state.requestCount?.get?.() ?? 0);
+      setObservable(state, "requestCount", count + 1);
+    }
+    setStatus(next.status, ok ? "success" : "warning");
   }
 
   function reset() {

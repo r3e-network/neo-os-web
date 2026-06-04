@@ -439,16 +439,26 @@ export function useGasBox({
       throw new Error(msg);
     }
 
+    // Validate the play price BEFORE charging: os-payment-deposit rejects a
+    // non-positive / malformed amount with a raw edge error, so surface a
+    // friendly localized message instead. priceRaw is base units (fixed8).
+    if (!Number.isFinite(machine.priceRaw) || machine.priceRaw <= 0) {
+      const msg = t("invalidPlayPrice");
+      playError.set(msg);
+      throw new Error(msg);
+    }
+
     try {
       isPlaying.set(true);
       playError.set(null);
       resetResult();
 
       // Step 1: Charge the play price via PaymentProxy (GAS deposit).
-      // machine.priceRaw is base units (fixed8); deposit takes a base-unit string.
-      const depositAmount = machine.priceRaw > 0
-        ? String(Math.trunc(machine.priceRaw))
-        : toFixed8(machine.price);
+      // os-payment-deposit expects a HUMAN-DECIMAL amount and scales by 10^8
+      // itself (same convention as buyMachine and every other OS app); passing
+      // pre-scaled base units here would double-scale (~1e8x overpay). machine.price
+      // is formatGas(priceRaw) — the human-readable decimal string the edge wants.
+      const depositAmount = machine.price;
       await paymentService.deposit(depositAmount, `play:${machine.id}`);
 
       // Step 2: Resolve the prize client-side from published odds.
@@ -537,7 +547,10 @@ export function useGasBox({
     setActionLoading(key, true);
 
     try {
-      // Step 1: Deposit GAS payment via PaymentProxy
+      // Step 1: Deposit GAS payment via PaymentProxy.
+      // machine.salePrice is formatGas(salePriceRaw) — the human-decimal string
+      // os-payment-deposit expects (it scales by 10^8 itself). Same convention
+      // as playMachine; do NOT pass pre-scaled base units here (~1e8x overpay).
       await paymentService.deposit(
         machine.salePrice,
         `sale:${machine.id}`,
@@ -612,8 +625,8 @@ export function useGasBox({
   const publishMachine = async (
     machineData: MachineData,
     setStatus: (msg: string, type: "success" | "error" | "loading") => void,
-  ) => {
-    if (isPublishing.get()) return;
+  ): Promise<boolean> => {
+    if (isPublishing.get()) return false;
 
     try {
       isPublishing.set(true);
@@ -658,6 +671,10 @@ export function useGasBox({
 
       setStatus(t("publishSuccess"), "success");
       await loadMachines();
+      // Signal confirmed success so the view only resets the studio form when
+      // the machine was actually published (the action's notify.guard swallows
+      // the throw below, so the view cannot rely on dispatch rejecting).
+      return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : t("error");
       setStatus(msg, "error");

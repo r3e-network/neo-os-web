@@ -107,7 +107,6 @@ export const consoleConfig: ConsoleToolConfig = {
   buildResult(values, t) {
     const consumer = clean(values.consumer, "");
     const salt = clean(values.salt, "");
-    const rounds = clean(values.rounds, "1");
     const mode = clean(values.mode, "single-proof");
     if (!consumer || !salt) {
       return {
@@ -121,6 +120,13 @@ export const consoleConfig: ConsoleToolConfig = {
         },
       };
     }
+    // Clamp rounds to a positive integer so an invalid entry (0, -5, 2.5, blank,
+    // or a non-numeric string) never produces a semantically broken request
+    // payload that downstream consumers would carry unchecked.
+    const parsedRounds = Number(clean(values.rounds, "1"));
+    const rounds = String(
+      Number.isFinite(parsedRounds) ? Math.max(1, Math.floor(parsedRounds)) : 1,
+    );
     const requestId = previewId(`${consumer}|${salt}|${rounds}|${mode}`);
 
     return {
@@ -138,6 +144,10 @@ export const consoleConfig: ConsoleToolConfig = {
         salt,
         rounds,
         mode,
+        // `digest` is what the shared ConsoleToolPanel.runPreview() reads to
+        // populate the bound `lastDigest` observable (hero "Request ID" stat +
+        // sidebar). `client_digest` is kept for payload backward-compatibility.
+        digest: requestId,
         client_digest: requestId,
       },
     };
@@ -183,7 +193,7 @@ const appMessages = {
     zh: "{rounds} 轮随机数已准备",
   },
   statNetwork: { en: "Network", zh: "网络" },
-  statEndpoint: { en: "Mode", zh: "模式" },
+  statEndpoint: { en: "Endpoint", zh: "端点" },
   statRequests: { en: "Requests", zh: "请求数" },
   statDigest: { en: "Request ID", zh: "请求 ID" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
