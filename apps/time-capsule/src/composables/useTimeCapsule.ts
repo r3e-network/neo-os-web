@@ -1,65 +1,109 @@
 /**
- * useTimeCapsule — Unified domain logic for the Time Capsule miniapp
+ * useTimeCapsule — Domain logic for the Time Capsule miniapp.
  *
- * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (EscrowProxy, StorageProxy, BadgeProxy) via edge functions.
+ * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppTimeCapsule)
+ * via ctx.services.chain. The earlier path routed bury/reveal/fish through the
+ * OS escrow/payment/storage/badge kernel proxies, which never actually held the
+ * capsule's GAS or moved the fishing fee. This composable now drives the
+ * dedicated contract, a REFUNDABLE TIME-LOCK VAULT (no oracle, no pending
+ * settle state):
  *
- * Migration from direct chain calls to OS services:
+ *   - bury() LOCKS the owner's GAS together with a content hash until an unlock
+ *     time. The 0.2 GAS is a REFUNDABLE DEPOSIT, held in escrow by the contract.
+ *   - reveal() after the unlock time RETURNS that GAS to the owner atomically
+ *     and marks the capsule opened.
+ *   - fish() lets another user pay a discovery fee on a PUBLIC, unrevealed
+ *     capsule; the fee is forwarded to the capsule's owner as a TIP, same tx.
  *
- *   BEFORE (chain):
- *     chain.listAllEvents("CapsuleBuried")
- *     chain.read("getCapsuleDetails", [...])
- *     chain.read("totalCapsules")
- *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
- *     chain.invoke("bury", [...], { waitForEvent: "CapsuleBuried" })
- *     chain.invoke("Reveal", [...])
- *     chain.invoke("fish", [...])
- *     chain.ensureWallet()
+ * Contract interaction model (verified against MiniAppTimeCapsule.cs / ABI):
  *
- *   AFTER (OS proxy):
- *     escrowService.create({ ... })            — seal capsule (escrow + fee)
- *     storageService.set("capsules:<id>", rec) — index record w/ real escrowId
- *     storageService.list("capsules:", 50)     — enumerate capsules (no kernel
- *                                                enumeration endpoint exists)
- *     escrowService.completeMilestone(escrowId, 0) — reveal capsule
- *     paymentService.deposit(fee, "fish:<id>") — pay the fishing fee
- *     badgeService.award("capsule-creator", "")
+ *   READS (chain.read / chain.readArray, default app contract script hash):
+ *     lastCapsuleId()                          -> Integer (capsules are ids 1..last)
+ *     creditOf(owner)                          -> Integer (prepaid deposit credit)
+ *     getCapsule(id)                           -> Map{id,owner,contentHash(ByteString),
+ *                                                  unlockTime(ms),isPublic,category,
+ *                                                  revealed,amount,fished}
+ *     ownerCapsuleCount(owner)                 -> Integer
+ *     getOwnerCapsules(owner, off, limit)      -> Integer[] (capsule ids)
  *
- * Escrow-id coherence: createCapsule() captures the escrow id from
- * escrowService.create() and persists it in the capsule's index record, so
- * openCapsule()/fishCapsule() reference the REAL escrow id rather than ad-hoc
- * strings. Full message content stays on-device (local content store).
+ *   MUTATIONS (chain.invoke):
+ *     1. DEPOSIT (fund a bury) — a GAS transfer to the contract with the memo
+ *        "miniapp-timecapsule:bury" so OnNEP17Payment credits the sender's
+ *        prepaid balance:
+ *          transfer(owner, CONTRACT, amountBaseUnits, "miniapp-timecapsule:bury")
+ *          { scriptHash: GAS_HASH }
+ *     2. bury(owner, contentHash, durationSeconds, isPublic, category, amount)
+ *        -> capsuleId. Consumes the prepaid credit as the locked amount, so the
+ *        deposit MUST land first. If bury fails after a successful deposit the
+ *        credit simply remains on the contract as reusable prepaid credit for the
+ *        next bury — there is no refund call (and none is needed; funds are not
+ *        lost). The new capsule id is read from the "Buried" event (state[0]).
+ *     reveal(owner, capsuleId) -> amount. After the unlock time, returns the
+ *        locked GAS to the owner atomically and marks it revealed. Guarded so it
+ *        cannot double-withdraw.
+ *     fish — a one-shot GAS transfer to the contract with the memo
+ *        "miniapp-timecapsule:fish:<id>"; the sent amount is the fee, forwarded
+ *        to the owner as a tip:
+ *          transfer(fisher, CONTRACT, feeBaseUnits, "miniapp-timecapsule:fish:<id>")
+ *          { scriptHash: GAS_HASH }
+ *
+ * AMOUNT CONVENTION: the contract takes/returns BASE UNITS. GAS = human × 1e8.
+ * getCapsule.unlockTime is in MILLISECONDS (Runtime.Time units), compared
+ * directly against Date.now(). durationSeconds = days × 86400. contentHash is
+ * the sha256Hex(content) — sent as a ByteArray (base64 of the 32 raw bytes); on
+ * read it comes back as a ByteString → "0x<hex>" → decoded to the bare hex.
+ *
+ * ON-DEVICE vs ON-CHAIN: the contract stores only the content HASH + the lock.
+ * The full message AND the human-readable title stay on this device in a local
+ * store. createCapsule() persists the title/content/category locally (keyed by
+ * capsuleId, and content also by contentHash); buildCapsuleFromStored() rebuilds
+ * the display title/content from that store while the authoritative lock/flags
+ * come from getCapsule(). A capsule discovered from another user via fishing has
+ * no local title → it falls back to a placeholder.
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService } from "@shared/services";
-import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { sha256Hex } from "@shared/utils/hash";
-import { ownerMatchesAddress } from "@shared/utils/neo";
-import { normalizeUnlockTimeMs } from "../utils/unlockTime";
+import { hexToBytes } from "@shared/utils/format";
+import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
+import { parseBigInt } from "@shared/utils/parsers";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+
 // ============================================================================
 // Constants
 // ============================================================================
 
 const MIN_LOCK_DAYS = 1;
 const MAX_LOCK_DAYS = 3650;
+
+/** Local store for full message content, keyed by contentHash. */
 const CONTENT_STORE_KEY = "time-capsule-content";
+/** Local store for per-capsule display metadata (title/category), keyed by id. */
+const META_STORE_KEY = "time-capsule-meta";
+
+/** GAS base units per whole GAS (1e8). */
+const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
+
+/** Memo the contract requires on the bury deposit transfer. */
+const BURY_MEMO = "miniapp-timecapsule:bury";
+/** Memo prefix for the one-shot fish discovery-fee transfer. */
+const FISH_MEMO_PREFIX = "miniapp-timecapsule:fish:";
 
 /**
- * os-storage index prefix for capsule records. loadCapsules() enumerates
- * this prefix via storageService.list() to rebuild the capsule list, since
- * the OS kernel has no capsule/escrow enumeration endpoint.
+ * GAS amounts (decimal strings) for the vault lifecycle.
+ * CAPSULE_CREATE_AMOUNT is a REFUNDABLE DEPOSIT returned on reveal — NOT a fee.
+ * FISH_FEE_AMOUNT is the discovery fee forwarded to the capsule's owner as a tip.
  */
-const CAPSULE_INDEX_PREFIX = "capsules:";
-
-/** GAS amounts (decimal strings) for the escrow-backed capsule lifecycle. */
 const CAPSULE_CREATE_AMOUNT = "0.2";
 const FISH_FEE_AMOUNT = "0.05";
+
+/** Hard cap on how many capsules to scan per public-candidate refresh. */
+const MAX_SCAN = 200;
+/** How many capsule ids to page in per owner refresh. */
+const OWNER_PAGE_LIMIT = 100;
 
 // ============================================================================
 // Types
@@ -75,23 +119,20 @@ export interface Capsule {
   revealed: boolean;
   isPublic: boolean;
   content: string;
-  /** Real escrow id returned by escrowService.create(), used by open/fish. */
-  escrowId: string;
-  /** Escrow amount (decimal GAS string) backing this capsule. */
+  /**
+   * Refundable deposit (decimal GAS string) locked in the vault, returned to
+   * the owner on reveal. Kept as `amount` for the consuming UI shape.
+   */
   amount: string;
   /**
-   * True once this public capsule has been fished (discovery fee paid).
-   * Fished capsules are excluded from fishCapsule()'s candidate selection so
-   * the same target cannot be re-fished and re-charged with no effect.
+   * True once this public capsule has been fished (discovery fee paid + tipped
+   * to the owner). Fished capsules are excluded from fishCapsule()'s candidate
+   * selection so the same target cannot be re-fished.
    */
   fished: boolean;
   /** Capsule category (1-5, see CATEGORY_OPTIONS), surfaced as a badge. */
   category: number;
-  /**
-   * Wallet address that created this capsule. Persisted at seal time so the
-   * list and hero counts can be scoped to the current user. Legacy records
-   * predating owner tagging carry "".
-   */
+  /** Owner script hash ("0x…") from the contract, used to scope the list. */
   owner: string;
 }
 
@@ -105,71 +146,102 @@ export interface CapsuleFormData {
 
 export interface UseTimeCapsuleOptions {
   /**
-   * ChainService from ctx.services.chain. Used to read the connected wallet
-   * address so each capsule record is tagged with its owner and the list /
-   * hero counts can be scoped to the current user rather than every user in
-   * the shared app namespace.
+   * ChainService from ctx.services.chain. Used for every on-chain read/write
+   * (bury deposit + bury, reveal, fish) and to read the connected wallet so the
+   * list and hero counts are scoped to the current user.
    */
   chainService: ChainService;
-  /** OS EscrowProxy instance from ctx.os.escrow */
-  escrowService: EscrowProxy;
-  /** OS StorageProxy instance from ctx.os.storage */
-  storageService: StorageProxy;
-  /** OS PaymentProxy instance from ctx.os.payment (fishing fee) */
-  paymentService: PaymentProxy;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
-  /** EventBus for UI events */
+  /** EventBus for UI events. */
   eventBus: { emit: (event: string, payload?: unknown) => void };
-  /** Translation function */
+  /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+// ============================================================================
+// Local metadata stored per capsule (title/category/content live on-device).
+// ============================================================================
+
+interface CapsuleMeta {
+  title: string;
+  category: number;
+  contentHash: string;
 }
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-interface StoredCapsule {
-  id: string;
-  title: string;
-  contentHash: string;
-  unlockTime?: number;
-  unlockTimestamp?: number;
-  isPublic: boolean;
-  isRevealed: boolean;
-  owner: string;
-  /** Real escrow id captured from escrowService.create() at seal time. */
-  escrowId?: string;
-  /** Escrow amount (decimal GAS string) backing this capsule. */
-  amount?: string;
-  /** True once the capsule has been fished (discovery fee paid). */
-  fished?: boolean;
-  /** Capsule category (1-5, see CATEGORY_OPTIONS). */
-  category?: number;
-}
+/**
+ * Convert a human-entered GAS amount string to BASE UNITS without floats.
+ * Returns 0n for any invalid / non-positive input.
+ */
+const toBaseUnits = (raw: string): bigint => {
+  const trimmed = String(raw ?? "").trim();
+  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
+  const [whole = "0", fraction = ""] = trimmed.split(".");
+  const paddedFraction = (fraction + "00000000").slice(0, 8);
+  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
+  return base > 0n ? base : 0n;
+};
+
+/** Convert base units (bigint) to a human GAS decimal string (trimmed). */
+const fromBaseUnits = (base: bigint): string => {
+  if (base <= 0n) return "0";
+  const whole = base / GAS_DECIMALS_MULTIPLIER;
+  const fraction = base % GAS_DECIMALS_MULTIPLIER;
+  if (fraction === 0n) return whole.toString();
+  const frac = fraction.toString().padStart(8, "0").replace(/0+$/, "");
+  return `${whole.toString()}.${frac}`;
+};
+
+/** Encode a hex content hash to the base64 a ByteArray contract arg expects. */
+const hexToBase64 = (hex: string): string => {
+  const bytes = hexToBytes(hex);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+};
 
 /**
- * Extract the escrow id from an escrowService.create() result.
- *
- * EscrowProxy.create() resolves the os-binder response. Depending on the
- * wallet adapter that value may be a bare id string, or an object carrying
- * the kernel's escrow id (commonly under `escrowId`/`id`) alongside the
- * wallet txid. We probe the known shapes and fall back to "" when the id
- * is not available synchronously (e.g. build/preview without a live kernel).
+ * Decode a getCapsule contentHash (a ByteString surfaced as "0x<hex>" or a
+ * printable string) back to a bare lowercase hex string so it matches the
+ * sha256Hex used as the local-store key.
  */
-function extractEscrowId(result: unknown): string {
-  if (typeof result === "string") return result.trim();
-  if (result && typeof result === "object") {
-    const obj = result as Record<string, unknown>;
-    const candidate =
-      obj.escrowId ?? obj.escrow_id ?? obj.id ?? obj.escrow;
-    if (typeof candidate === "string" && candidate.trim()) {
-      return candidate.trim();
-    }
-    if (typeof candidate === "number") return String(candidate);
+const decodeContentHash = (raw: unknown): string => {
+  const value = String(raw ?? "").trim();
+  if (!value) return "";
+  return value.replace(/^0x/i, "").toLowerCase();
+};
+
+/** Coerce a raw map value to a finite number, defaulting to 0. */
+const toFinite = (value: unknown): number => {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Coerce a raw capsule-id list value (number/string/bigint) to a string id. */
+const toIdString = (value: unknown): string => {
+  try {
+    const n = parseBigInt(value);
+    return n > 0n ? n.toString() : "";
+  } catch {
+    return "";
   }
-  return "";
-}
+};
+
+/** Read a single state slot from a contract event payload (positional). */
+const eventValue = (entry: unknown, index: number): unknown => {
+  if (!entry || typeof entry !== "object") return undefined;
+  const state = (entry as { state?: unknown }).state;
+  if (Array.isArray(state)) {
+    const item = state[index] as unknown;
+    if (item && typeof item === "object" && "value" in item) {
+      return (item as { value?: unknown }).value;
+    }
+    return item;
+  }
+  return undefined;
+};
 
 // ============================================================================
 // Composable
@@ -177,10 +249,6 @@ function extractEscrowId(result: unknown): string {
 
 export function useTimeCapsule({
   chainService,
-  escrowService,
-  storageService,
-  paymentService,
-  badgeService,
   eventBus,
   t,
 }: UseTimeCapsuleOptions) {
@@ -198,7 +266,7 @@ export function useTimeCapsule({
     category: 1,
   });
 
-  // Local content store for decrypting capsules
+  // Local content store for revealing capsules (full message stays on-device).
   const localContent = createObservable<Record<string, string>>({});
 
   // ── Computed ──────────────────────────────────────────────────────────
@@ -225,20 +293,20 @@ export function useTimeCapsule({
 
   const canCreate: Observable = {
     get: () => {
-    const daysValue = Number.parseInt(newCapsule.get().days, 10);
-    return (
-      newCapsule.get().title.trim() !== "" &&
-      newCapsule.get().content.trim() !== "" &&
-      Number.isFinite(daysValue) &&
-      daysValue >= MIN_LOCK_DAYS &&
-      daysValue <= MAX_LOCK_DAYS
-    );
+      const daysValue = Number.parseInt(newCapsule.get().days, 10);
+      return (
+        newCapsule.get().title.trim() !== "" &&
+        newCapsule.get().content.trim() !== "" &&
+        Number.isFinite(daysValue) &&
+        daysValue >= MIN_LOCK_DAYS &&
+        daysValue <= MAX_LOCK_DAYS
+      );
     },
     set: () => {},
     subscribe: (listener) => newCapsule.subscribe(listener),
   };
 
-  // ── Local Content Helpers ────────────────────────────────────────────
+  // ── Local Content + Metadata Helpers ─────────────────────────────────
 
   const loadLocalContent = (): Record<string, string> => {
     try {
@@ -267,39 +335,81 @@ export function useTimeCapsule({
       store[hash] = content;
       writeCachedJSON(CONTENT_STORE_KEY, store);
     } catch (e) {
-      console.warn("[useTimeCapsule] local storage write failed:", e instanceof Error ? e.message : String(e));
+      console.warn("[useTimeCapsule] local content write failed:", e instanceof Error ? e.message : String(e));
     }
   };
 
-  // Initialize local content
+  /** Read the local per-capsule metadata store (title/category/contentHash). */
+  const loadLocalMeta = (): Record<string, CapsuleMeta> => {
+    try {
+      const parsed = readCachedJSON<Record<string, CapsuleMeta>>(META_STORE_KEY);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+
+  /**
+   * Persist a capsule's display metadata under its on-chain id. The title (and
+   * category) never leave the device — only the hash + lock are on-chain — so
+   * this is the source of truth buildCapsuleFromStored() reads the title from.
+   */
+  const saveLocalMeta = (id: string, meta: CapsuleMeta) => {
+    if (!id) return;
+    try {
+      const store = readCachedJSON<Record<string, CapsuleMeta>>(META_STORE_KEY) ?? {};
+      store[id] = meta;
+      writeCachedJSON(META_STORE_KEY, store);
+    } catch (e) {
+      console.warn("[useTimeCapsule] local meta write failed:", e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  // Initialize local content from the device store.
   localContent.set(loadLocalContent());
 
-  // ── Capsule Mapping ──────────────────────────────────────────────────
+  // ── Capsule Mapping (from getCapsule Map) ────────────────────────────
 
-  const buildCapsuleFromStored = (data: StoredCapsule): Capsule => {
-    const contentHash = String(data.contentHash || "");
-    const unlockTime = normalizeUnlockTimeMs(
-      data.unlockTime ?? data.unlockTimestamp,
-    );
-    const isPublic = Boolean(data.isPublic);
-    const revealed = Boolean(data.isRevealed);
-    const title = String(data.title || "");
-    const unlockDate = unlockTime ? new Date(unlockTime).toISOString().split("T")[0] : t("notAvailable");
-    const content = contentHash ? localContent.get()[contentHash] : "";
-    const escrowId = String(data.escrowId || data.id || "");
-    const amount = String(data.amount || CAPSULE_CREATE_AMOUNT);
-    const fished = Boolean(data.fished);
-    const owner = String(data.owner || "");
-    // Read category back so the persisted selection is surfaced in the UI
-    // (it was previously write-only). Use ?? so a real 0 is not masked, and
-    // fall back to the default category (1 = Personal) for legacy records.
+  /**
+   * Map a getCapsule Map (returned by chain.read as a plain object) into the
+   * Capsule shape the UI consumes. Returns null for an unknown / empty capsule
+   * (no owner key).
+   *
+   * The authoritative lock/flags (unlockTime ms, revealed, isPublic, fished,
+   * amount, category, owner, contentHash) come from the chain. The display
+   * title + full content are rebuilt from the on-device stores keyed by id /
+   * contentHash; a capsule discovered from another user has no local entry and
+   * falls back to a placeholder title.
+   */
+  const mapCapsule = (raw: unknown, id: string): Capsule | null => {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const v = raw as Record<string, unknown>;
+    const owner = String(v.owner ?? "");
+    if (!owner) return null;
+
+    const contentHash = decodeContentHash(v.contentHash);
+    const unlockTime = toFinite(v.unlockTime); // milliseconds
+    const isPublic = Boolean(v.isPublic);
+    const revealed = Boolean(v.revealed);
+    const fished = Boolean(v.fished);
+    const amountBase = parseBigInt(v.amount);
+    const chainCategory = toFinite(v.category);
+
+    const meta = loadLocalMeta()[id];
+    const title = meta?.title ? meta.title : t("untitledCapsule");
     const category =
-      Number.isFinite(Number(data.category)) && data.category !== undefined
-        ? Number(data.category)
-        : 1;
+      meta && Number.isFinite(Number(meta.category)) && meta.category !== undefined
+        ? Number(meta.category)
+        : chainCategory > 0
+          ? chainCategory
+          : 1;
+    const content = contentHash ? localContent.get()[contentHash] ?? "" : "";
+    const unlockDate = unlockTime
+      ? new Date(unlockTime).toISOString().slice(0, 10)
+      : t("notAvailable");
 
     return {
-      id: String(data.id),
+      id,
       title,
       contentHash,
       unlockDate,
@@ -308,48 +418,57 @@ export function useTimeCapsule({
       revealed,
       isPublic,
       content,
-      escrowId,
-      amount,
+      amount: fromBaseUnits(amountBase),
       fished,
       category,
       owner,
-    } as Capsule;
+    };
   };
 
-  // ── Data Loading (via OS services) ─────────────────────────────────
+  /** Read a single capsule by id into a Capsule. */
+  const readCapsule = async (id: string): Promise<Capsule | null> => {
+    try {
+      const raw = await chainService.read("getCapsule", [
+        { type: "Integer", value: id },
+      ]);
+      return mapCapsule(raw, id);
+    } catch (e) {
+      console.warn(
+        "[useTimeCapsule] getCapsule failed for",
+        id,
+        ":",
+        e instanceof Error ? e.message : String(e),
+      );
+      return null;
+    }
+  };
+
+  // ── Data Loading (direct chain reads) ──────────────────────────────
 
   /**
-   * Load this user's capsules via StorageProxy.list().
-   *
-   * os-storage-list is scoped only by appId (no per-owner filter), so the raw
-   * list contains every user's records in the shared app namespace. We tag each
-   * record with its creating wallet (see createCapsule) and filter here so the
-   * list and the hero/sidebar counts reflect the current user rather than the
-   * whole app. Legacy records that predate owner tagging carry owner === "" and
-   * are kept so a user's earlier capsules are not hidden by this change.
+   * Load this user's capsules from the contract: getOwnerCapsules(wallet) yields
+   * the owner's capsule ids, each read via getCapsule. When no wallet is
+   * connected there is nothing owner-scoped to show.
    */
   const loadCapsules = async (): Promise<Capsule[]> => {
     try {
       const wallet = chainService.address.get();
-      const capsuleMap = await storageService.list("capsules:", 50);
-      const items: Capsule[] = [];
-      if (capsuleMap && typeof capsuleMap === "object") {
-        for (const [, value] of Object.entries(capsuleMap)) {
-          const stored = value as StoredCapsule;
-          if (!stored || !stored.id) continue;
-          const recordOwner = String(stored.owner || "");
-          // Keep records that belong to the current wallet, plus legacy
-          // untagged records (owner === ""). When no wallet is connected we
-          // can only safely show untagged records.
-          const mine = wallet
-            ? recordOwner === "" || ownerMatchesAddress(recordOwner, wallet)
-            : recordOwner === "";
-          if (mine) {
-            items.push(buildCapsuleFromStored(stored));
-          }
-        }
-      }
-      return items.sort((a, b) => Number(b.id) - Number(a.id));
+      const ownerHash = wallet ? addressToScriptHash(wallet) || null : null;
+      if (!ownerHash) return [];
+
+      const idsRaw = await chainService.readArray("getOwnerCapsules", [
+        { type: "Hash160", value: ownerHash },
+        { type: "Integer", value: "0" },
+        { type: "Integer", value: String(OWNER_PAGE_LIMIT) },
+      ]);
+      const ids = (Array.isArray(idsRaw) ? idsRaw : [])
+        .map(toIdString)
+        .filter((id) => id !== "");
+
+      const results = await Promise.all(ids.map((id) => readCapsule(id)));
+      return results
+        .filter((c): c is Capsule => c !== null)
+        .sort((a, b) => Number(b.id) - Number(a.id));
     } catch (e) {
       console.warn("[useTimeCapsule] loadCapsules failed:", e instanceof Error ? e.message : String(e));
       return [];
@@ -357,40 +476,31 @@ export function useTimeCapsule({
   };
 
   /**
-   * Load fishable public-capsule candidates across ALL owners.
-   *
-   * Unlike loadCapsules() (which scopes the index to the current wallet so the
-   * list/counts reflect only the user's own capsules), fishing is meant to
-   * DISCOVER other users' public capsules. os-storage-list is scoped only by
-   * appId — not by owner — so the raw list already contains every user's
-   * records in the shared app namespace. Here we deliberately keep that
-   * unfiltered scope and surface only fishable records: public, unrevealed and
-   * not-yet-fished. Records owned by the current wallet are excluded so a user
-   * fishes OTHER people's capsules, not their own (which they can already open).
-   * Legacy untagged records (owner === "") are treated as not-mine so they
-   * remain discoverable.
+   * Scan the whole contract (ids 1..lastCapsuleId) for fishable capsules:
+   * public, unrevealed, not-yet-fished, and owned by ANOTHER user. This is the
+   * cross-user discovery fishing advertises — the current wallet's own capsules
+   * are excluded (it can already open those). Newest-first, capped at MAX_SCAN.
    */
   const loadPublicCandidates = async (): Promise<Capsule[]> => {
     try {
       const wallet = chainService.address.get();
-      const capsuleMap = await storageService.list(CAPSULE_INDEX_PREFIX, 50);
-      const items: Capsule[] = [];
-      if (capsuleMap && typeof capsuleMap === "object") {
-        for (const [, value] of Object.entries(capsuleMap)) {
-          const stored = value as StoredCapsule;
-          if (!stored || !stored.id) continue;
-          const recordOwner = String(stored.owner || "");
-          const isMine = wallet
-            ? recordOwner !== "" && ownerMatchesAddress(recordOwner, wallet)
-            : false;
-          if (isMine) continue;
-          const cap = buildCapsuleFromStored(stored);
-          if (cap.isPublic && !cap.revealed && !cap.fished) {
-            items.push(cap);
-          }
-        }
-      }
-      return items.sort((a, b) => Number(b.id) - Number(a.id));
+      const lastRaw = await chainService.read("lastCapsuleId", []);
+      const last = toFinite(lastRaw);
+      if (last <= 0) return [];
+
+      const start = Math.max(1, last - MAX_SCAN + 1);
+      const ids: string[] = [];
+      for (let id = last; id >= start; id -= 1) ids.push(String(id));
+
+      const results = await Promise.all(ids.map((id) => readCapsule(id)));
+      return results
+        .filter((c): c is Capsule => c !== null)
+        .filter((c) => {
+          if (!c.isPublic || c.revealed || c.fished) return false;
+          // Exclude the current wallet's own capsules (it can open those itself).
+          return wallet ? !ownerMatchesAddress(c.owner, wallet) : true;
+        })
+        .sort((a, b) => Number(b.id) - Number(a.id));
     } catch (e) {
       console.warn(
         "[useTimeCapsule] loadPublicCandidates failed:",
@@ -400,17 +510,27 @@ export function useTimeCapsule({
     }
   };
 
-  // ── Actions (via OS services) ──────────────────────────────────────
+  // ── Actions (direct chain invocations) ─────────────────────────────
 
   /**
-   * Create a capsule via EscrowProxy.create().
+   * Create a capsule against the standalone vault contract.
    *
-   * The escrow created here is the authoritative on-chain record for the
-   * capsule. We capture the escrow id returned by create() and persist it,
-   * together with the capsule metadata, under an os-storage index entry
-   * (`capsules:<id>`). This index is what loadCapsules() enumerates and what
-   * openCapsule()/fishCapsule() reference — so they act on the REAL escrow id
-   * rather than ad-hoc strings like "fish".
+   * Two steps, both signed by the owner:
+   *   1. DEPOSIT — transfer the 0.2 GAS refundable deposit to the contract with
+   *      the "miniapp-timecapsule:bury" memo, crediting the owner's prepaid
+   *      balance.
+   *   2. bury(owner, contentHash, days*86400, isPublic, category, amount) —
+   *      consumes that credit as the locked amount and seals the capsule. The
+   *      new id is read from the "Buried" event.
+   *
+   * The title + full content NEVER leave the device: only the sha256 contentHash
+   * and the lock are on-chain. We persist the content (keyed by contentHash) and
+   * the display metadata (keyed by the on-chain capsule id) locally so the list
+   * can rebuild the title later.
+   *
+   * If step 2 fails after a successful deposit, the prepaid credit simply remains
+   * on the contract under the owner and is reused on the next bury — there is no
+   * refund call (and none is needed; funds are not lost).
    */
   const createCapsule = async () => {
     if (isBusy.get() || !canCreate.get()) return;
@@ -422,98 +542,77 @@ export function useTimeCapsule({
         throw new Error(t("invalidLockDuration"));
       }
 
-      const unlockDate = new Date();
-      unlockDate.setDate(unlockDate.getDate() + daysValue);
-      const unlockTime = unlockDate.getTime();
       const content = newCapsule.get().content.trim();
       const title = newCapsule.get().title.trim().slice(0, 100);
+      if (!content || !title) throw new Error(t("invalidLockDuration"));
       const isPublic = newCapsule.get().isPublic;
       const category = newCapsule.get().category;
       const contentHash = await sha256Hex(content);
 
-      // Tag the record with the creating wallet so loadCapsules() can scope the
-      // list and counts to this user. Ensure a wallet is connected first — the
-      // escrow that follows needs a signer anyway, so this fails fast with a
-      // friendly message instead of an opaque downstream error.
-      const owner = await chainService.ensureWallet();
-      if (!owner) {
-        throw new Error(t("walletRequired"));
+      const ownerAddr = chainService.address.get() || (await chainService.ensureWallet());
+      const ownerHash = addressToScriptHash(ownerAddr || "");
+      if (!ownerAddr || !ownerHash) throw new Error(t("walletRequired"));
+
+      const contractHash = chainService.contractAddress.get();
+      if (!contractHash) throw new Error(t("contractNotReady"));
+
+      const amountBase = toBaseUnits(CAPSULE_CREATE_AMOUNT);
+      const durationSeconds = daysValue * 86_400;
+
+      // Step 1: DEPOSIT — GAS transfer to the contract with the bury memo so
+      // OnNEP17Payment credits the owner's prepaid (refundable) deposit balance.
+      await chainService.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: ownerHash },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: amountBase.toString() },
+          { type: "String", value: BURY_MEMO },
+        ],
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+      );
+
+      // Step 2: bury — consumes the prepaid credit as the locked amount and
+      // seals the capsule. Read the new id from the Buried event (state[0]).
+      let capsuleId = "";
+      try {
+        const result = await chainService.invoke(
+          "bury",
+          [
+            { type: "Hash160", value: ownerHash },
+            { type: "ByteArray", value: hexToBase64(contentHash) },
+            { type: "Integer", value: String(durationSeconds) },
+            { type: "Boolean", value: isPublic },
+            { type: "Integer", value: String(category) },
+            { type: "Integer", value: amountBase.toString() },
+          ],
+          { waitForEvent: "Buried" },
+        );
+        capsuleId = toIdString(eventValue(result.event, 0));
+        if (!capsuleId) {
+          // Event slot unavailable / unparsed — fall back to lastCapsuleId().
+          capsuleId = toIdString(await chainService.read("lastCapsuleId", []));
+        }
+      } catch (buryErr) {
+        console.error(
+          "[useTimeCapsule] bury failed after deposit succeeded:",
+          buryErr instanceof Error ? buryErr.message : String(buryErr),
+        );
+        // Deposit landed, capsule not buried — credit is held under the owner as
+        // reusable prepaid credit for the next bury (no refund needed).
+        throw new Error(t("depositPrepaidNoCapsule"));
       }
 
-      // Create capsule via EscrowProxy — the edge function builds the
-      // CreateEscrow intent (GAS fee transfer + on-chain record). Capture
-      // the returned escrow id so it can be referenced for open/fish later.
-      const createResult = await escrowService.create({
-        beneficiary: "",
-        amount: CAPSULE_CREATE_AMOUNT,
-        milestones: [{
-          name: "bury",
-          amount: CAPSULE_CREATE_AMOUNT,
-        }],
-        expiry: unlockTime,
-      });
-
-      // Derive a stable capsule/escrow id. Prefer the kernel escrow id from
-      // the create() response; fall back to a deterministic local id (content
-      // hash + unlock time) so the index entry is still coherent and unique
-      // when the id is not yet available synchronously (build/preview).
-      const escrowId = extractEscrowId(createResult);
-      const capsuleId =
-        escrowId || `${contentHash.slice(0, 16)}-${unlockTime}`;
-
-      // Persist content locally (full message stays on-device).
+      // Persist the full content + display metadata ON-DEVICE under the on-chain
+      // id (only the hash + lock are on-chain).
       saveLocalContent(contentHash, content);
-
-      // Write the authoritative capsule record into the os-storage index.
-      // Shape matches StoredCapsule so loadCapsules()/buildCapsuleFromStored
-      // can rebuild it, and carries the real escrow id for value flows.
-      const record: StoredCapsule = {
-        id: capsuleId,
-        title,
-        contentHash,
-        unlockTime,
-        isPublic,
-        isRevealed: false,
-        owner,
-        escrowId: escrowId || capsuleId,
-        amount: CAPSULE_CREATE_AMOUNT,
-        category,
-      };
-      // Compensation: the escrow (0.2 GAS) already exists on-chain. If the
-      // index write fails the capsule is orphaned — loadCapsules() rebuilds the
-      // list purely from this index, so an escrow with no index entry can never
-      // be opened (openCapsule needs cap.escrowId) and its funds are stranded.
-      // On a failed index write, refund the escrow before re-throwing so no
-      // funds are locked. Only attempt the refund when a REAL kernel escrow id
-      // was returned (a deterministic local id has no on-chain escrow to undo).
-      try {
-        await storageService.set(`${CAPSULE_INDEX_PREFIX}${capsuleId}`, record);
-      } catch (writeErr) {
-        if (escrowId) {
-          try {
-            await escrowService.refund(escrowId);
-          } catch {
-            // The inverse also failed: the escrow exists with no index entry
-            // and could not be refunded automatically. Surface a distinct
-            // recoverable message so the user knows the funds need manual
-            // recovery rather than silently losing them.
-            throw new Error(t("createRecoverable", { escrowId }));
-          }
-        }
-        // Index write failed but the escrow was rolled back (or never had a
-        // real on-chain id): no orphaned funds remain. Surface the failure.
-        throw writeErr instanceof Error
-          ? new Error(`${t("createRolledBack")} ${writeErr.message}`)
-          : new Error(t("createRolledBack"));
+      if (capsuleId) {
+        saveLocalMeta(capsuleId, { title, category, contentHash });
       }
 
       eventBus.emit("capsule:created", { action: t("capsuleCreated") });
       newCapsule.set({ title: "", content: "", days: "30", isPublic: false, category: 1 });
 
-      // Hint badge for capsule creator (fire-and-forget)
-      badgeService.award("capsule-creator", "").catch(() => {});
-
-      // Reload capsules
       capsules.set(await loadCapsules());
     } catch (e) {
       eventBus.emit("capsule:error", { message: e instanceof Error ? e.message : t("error") });
@@ -524,46 +623,35 @@ export function useTimeCapsule({
   };
 
   /**
-   * Open/reveal a capsule via EscrowProxy.completeMilestone().
+   * Open/reveal a capsule via reveal(owner, capsuleId).
    *
-   * Uses the REAL escrow id persisted at create time (cap.escrowId), not the
-   * display id, so the milestone completes against the escrow that was
-   * actually created. After revealing, the index record is updated so the
-   * revealed state survives reloads.
+   * Recomputes lock status live against Date.now() vs unlockTime(ms) before
+   * dispatching (loadAll only runs on mount / wallet reconnect, so cap.locked
+   * can be stale). After reveal the locked deposit is RETURNED to the owner
+   * atomically; we reload to reflect the revealed state.
    */
   const openCapsule = async (cap: Capsule) => {
-    // Recompute lock status live rather than trusting cap.locked, which was
-    // computed once in buildCapsuleFromStored at load time. loadAll only runs
-    // on mount / wallet reconnect (there is no timer), so a capsule whose
-    // unlock instant passed while the app stayed open would still carry a stale
-    // locked=true. PlayArea decides Open-button visibility with the same live
-    // Date.now() check, so this keeps the guard consistent with the UI.
     if (!cap.revealed && Date.now() < cap.unlockTime) {
       eventBus.emit("capsule:error", { message: t("notUnlocked") });
       return;
     }
     if (isBusy.get()) return;
 
-    const escrowId = cap.escrowId || cap.id;
-
     isProcessing.set(true);
     try {
       if (!cap.revealed) {
-        await escrowService.completeMilestone(escrowId, 0);
-        // Persist revealed state back into the os-storage index.
-        await storageService.set(`${CAPSULE_INDEX_PREFIX}${cap.id}`, {
-          id: cap.id,
-          title: cap.title,
-          contentHash: cap.contentHash,
-          unlockTime: cap.unlockTime,
-          isPublic: cap.isPublic,
-          isRevealed: true,
-          owner: cap.owner,
-          escrowId,
-          amount: cap.amount,
-          fished: cap.fished,
-          category: cap.category,
-        } satisfies StoredCapsule).catch(() => {});
+        const ownerAddr = chainService.address.get() || (await chainService.ensureWallet());
+        const ownerHash = addressToScriptHash(ownerAddr || "");
+        if (!ownerAddr || !ownerHash) throw new Error(t("walletRequired"));
+
+        await chainService.invoke(
+          "reveal",
+          [
+            { type: "Hash160", value: ownerHash },
+            { type: "Integer", value: cap.id },
+          ],
+          { waitForEvent: "Revealed" },
+        );
       }
 
       const content = cap.contentHash ? localContent.get()[cap.contentHash] : "";
@@ -575,7 +663,6 @@ export function useTimeCapsule({
         eventBus.emit("capsule:opened", { message: t("capsuleRevealed") });
       }
 
-      // Reload capsules
       capsules.set(await loadCapsules());
     } catch (e) {
       eventBus.emit("capsule:error", { message: e instanceof Error ? e.message : t("error") });
@@ -586,78 +673,56 @@ export function useTimeCapsule({
   };
 
   /**
-   * Fish a public capsule by paying the fishing fee.
+   * Fish a public capsule by paying the discovery fee.
    *
-   * Previously this called escrowService.fund("fish") with no amount, which
-   * the os-escrow-fund edge function always rejects: "fish" is not a real
-   * escrow id, and EscrowProxy.fund() never sends an amount (so the required
-   * positive amount is missing). Fishing is a discovery FEE, not funding an
-   * existing escrow — so the correct primitive is os-payment deposit, which
-   * transfers a positive GAS amount with a memo.
-   *
-   * Candidate selection is sourced from loadPublicCandidates(), an UNFILTERED
-   * scan of the os-storage capsule index (scoped by appId, not by owner) for
-   * public, unrevealed, not-yet-fished records owned by OTHER users — the
-   * cross-user discovery the feature advertises. If no other-owner candidate
-   * exists we fall back to the user's own public, unrevealed, not-fished
-   * capsules from the already-loaded list so the flow still works in a
-   * single-user / local-preview context. If neither exists we report fishNone
-   * without charging the fee.
-   *
-   * On a successful fee deposit the candidate's index record is marked
-   * `fished` via storageService.set, so the same target is excluded on the
-   * next reload. Without this, os-storage-list (scoped only by appId, with no
-   * per-owner filter) would return the identical public+unrevealed capsule on
-   * every reload, letting the 0.05 GAS fee be charged repeatedly for no effect.
+   * Picks a public, unrevealed, not-fished capsule owned by ANOTHER user (via
+   * loadPublicCandidates, a full 1..lastCapsuleId scan). The fee is paid with a
+   * one-shot GAS transfer carrying the "miniapp-timecapsule:fish:<id>" memo; the
+   * contract forwards it to the capsule's owner as a TIP in the same tx and
+   * marks the capsule fished. If no other-owner candidate exists we report
+   * fishNone without charging the fee (a user cannot fish their own capsule —
+   * the contract rejects it).
    */
   const fishCapsule = async () => {
     if (isBusy.get()) return;
 
     isProcessing.set(true);
     try {
-      // Prefer another user's public capsule (true cross-user discovery), then
-      // fall back to the current user's own fishable public capsule so the flow
-      // is not dead in a single-user / preview context.
-      const others = await loadPublicCandidates();
-      const candidate =
-        others[0] ??
-        capsules
-          .get()
-          .find((c) => c.isPublic && !c.revealed && !c.fished);
+      const candidates = await loadPublicCandidates();
+      const candidate = candidates[0];
 
       if (!candidate) {
         eventBus.emit("capsule:fished", { message: t("fishNone") });
         return;
       }
 
-      // Pay the fishing fee via os-payment deposit (positive amount + memo).
-      await paymentService.deposit(FISH_FEE_AMOUNT, `fish:${candidate.id}`);
+      const fisherAddr = chainService.address.get() || (await chainService.ensureWallet());
+      const fisherHash = addressToScriptHash(fisherAddr || "");
+      if (!fisherAddr || !fisherHash) throw new Error(t("walletRequired"));
 
-      // Mark the candidate fished in the os-storage index so it is no longer
-      // re-selectable. This is the real state change the fee pays for; without
-      // it the same target would be fished and charged on every reload.
-      await storageService.set(`${CAPSULE_INDEX_PREFIX}${candidate.id}`, {
-        id: candidate.id,
-        title: candidate.title,
-        contentHash: candidate.contentHash,
-        unlockTime: candidate.unlockTime,
-        isPublic: candidate.isPublic,
-        isRevealed: candidate.revealed,
-        owner: candidate.owner,
-        escrowId: candidate.escrowId || candidate.id,
-        amount: candidate.amount,
-        fished: true,
-        category: candidate.category,
-      } satisfies StoredCapsule).catch(() => {});
+      const contractHash = chainService.contractAddress.get();
+      if (!contractHash) throw new Error(t("contractNotReady"));
+
+      const feeBase = toBaseUnits(FISH_FEE_AMOUNT);
+
+      // Pay the discovery fee — a one-shot GAS transfer with the fish memo. The
+      // contract forwards the fee to the capsule owner as a tip and flags the
+      // capsule fished, atomically.
+      await chainService.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: fisherHash },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: feeBase.toString() },
+          { type: "String", value: `${FISH_MEMO_PREFIX}${candidate.id}` },
+        ],
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Fished" },
+      );
 
       eventBus.emit("capsule:fished", {
         message: t("fishResult", { id: candidate.id }),
       });
 
-      // Hint badge for fisher (fire-and-forget)
-      badgeService.award("capsule-fisher", "").catch(() => {});
-
-      // Reload capsules
       capsules.set(await loadCapsules());
     } catch (e) {
       eventBus.emit("capsule:error", { message: e instanceof Error ? e.message : t("error") });
