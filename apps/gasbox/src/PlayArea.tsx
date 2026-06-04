@@ -29,26 +29,22 @@ interface PullResult {
 /** Local create-form prize item (string-typed for controlled inputs). */
 interface StudioItem {
   name: string;
-  probability: string;
+  /** Relative draw weight (positive integer). */
+  weight: string;
   rarity: string;
-  assetType: string;
-  assetHash: string;
+  /** Prize amount in the machine's prize asset (GAS decimal / NEO integer). */
   amount: string;
-  tokenId: string;
-  stock: string;
 }
 
 const RARITY_OPTIONS = ["COMMON", "RARE", "EPIC", "LEGENDARY"] as const;
+const PRIZE_ASSET_OPTIONS = ["GAS", "NEO"] as const;
+type PrizeAsset = (typeof PRIZE_ASSET_OPTIONS)[number];
 
 const emptyStudioItem = (): StudioItem => ({
   name: "",
-  probability: "10",
+  weight: "10",
   rarity: "COMMON",
-  assetType: "1",
-  assetHash: "",
   amount: "0.1",
-  tokenId: "",
-  stock: "10",
 });
 
 const formatCount = (value: number, pendingLabel: string) =>
@@ -83,8 +79,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [machineCategory, setMachineCategory] = useState("");
   const [machineTags, setMachineTags] = useState("");
   const [machinePrice, setMachinePrice] = useState("");
+  const [prizeAsset, setPrizeAsset] = useState<PrizeAsset>("GAS");
   const [studioItems, setStudioItems] = useState<StudioItem[]>([
-    { name: "", probability: "50", rarity: "COMMON", assetType: "1", assetHash: "", amount: "0.1", tokenId: "", stock: "10" },
+    { name: "", weight: "50", rarity: "COMMON", amount: "0.1" },
   ]);
   const [studioError, setStudioError] = useState<string | null>(null);
 
@@ -168,8 +165,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     );
   };
 
-  const studioTotalProbability = studioItems.reduce(
-    (sum, item) => sum + (Number(item.probability) || 0),
+  const studioTotalWeight = studioItems.reduce(
+    (sum, item) => sum + (Number(item.weight) || 0),
     0,
   );
 
@@ -179,6 +176,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     setMachineCategory("");
     setMachineTags("");
     setMachinePrice("");
+    setPrizeAsset("GAS");
     setStudioItems([emptyStudioItem()]);
     setStudioError(null);
   };
@@ -194,7 +192,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       return;
     }
     const validItems = studioItems.filter(
-      (item) => item.name.trim().length > 0 && (Number(item.probability) || 0) > 0,
+      (item) => item.name.trim().length > 0 && (Number(item.weight) || 0) > 0,
     );
     if (validItems.length === 0) {
       setStudioError(t("createNeedsItem"));
@@ -204,7 +202,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
     // The publishMachine action is wrapped in notify.guard, which swallows the
     // error and resolves regardless of outcome. Gate the form reset on the
-    // action's confirmed-success flag so a failed publish (transient storage /
+    // action's confirmed-success flag so a failed publish (transient chain /
     // wallet error) keeps the user's input instead of wiping the whole table.
     // dispatch is typed Promise<void> but returns the action payload at runtime.
     const published: unknown = await dispatch("publishMachine", {
@@ -213,15 +211,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       category: machineCategory.trim(),
       tags: machineTags.trim(),
       price: machinePrice.trim() || "0",
+      prizeAsset,
       items: validItems.map((item) => ({
         name: item.name.trim(),
-        probability: Number(item.probability) || 0,
+        weight: item.weight.trim() || "0",
         rarity: item.rarity,
-        assetType: item.assetType,
-        assetHash: item.assetHash.trim(),
         amount: item.amount.trim() || "0",
-        tokenId: item.tokenId.trim(),
-        stock: item.stock.trim() || "1",
       })),
     });
     if (published === true) {
@@ -393,6 +388,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 onChange={(e) => setMachinePrice(e.target.value)}
               />
             </label>
+            <label className="gasbox-field gasbox-field--narrow">
+              <span>{t("prizeAssetLabel")}</span>
+              <select
+                value={prizeAsset}
+                onChange={(e) => setPrizeAsset(e.target.value as PrizeAsset)}
+              >
+                {PRIZE_ASSET_OPTIONS.map((asset) => (
+                  <option key={asset} value={asset}>
+                    {asset}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="gasbox-field gasbox-field--wide">
               <span>{t("descriptionLabel")}</span>
               <textarea
@@ -426,7 +434,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="gasbox-studio-items__header">
               <span>{t("inventoryAndOdds")}</span>
               <strong>
-                {t("totalProbabilityLabel")}: {studioTotalProbability}
+                {t("totalWeightLabel")}: {studioTotalWeight}
               </strong>
             </div>
 
@@ -443,14 +451,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     />
                   </label>
                   <label className="gasbox-field gasbox-field--narrow">
-                    <span>{t("probPlaceholder")}</span>
+                    <span>{t("weightLabel")}</span>
                     <input
                       type="number"
-                      min="0"
+                      min="1"
                       step="1"
-                      value={item.probability}
-                      placeholder={t("probPlaceholder")}
-                      onChange={(e) => updateStudioItem(index, { probability: e.target.value })}
+                      value={item.weight}
+                      placeholder={t("weightPlaceholder")}
+                      onChange={(e) => updateStudioItem(index, { weight: e.target.value })}
                     />
                   </label>
                   <label className="gasbox-field gasbox-field--narrow">
@@ -468,57 +476,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </label>
                 </div>
                 <div className="gasbox-studio-item__row">
-                  <label className="gasbox-field gasbox-field--narrow">
-                    <span>{t("assetTypeLabel")}</span>
-                    <select
-                      value={item.assetType}
-                      onChange={(e) => updateStudioItem(index, { assetType: e.target.value })}
-                    >
-                      <option value="1">{t("nep17Label")}</option>
-                      <option value="2">{t("nep11Label")}</option>
-                    </select>
-                  </label>
-                  {item.assetType === "2" ? (
-                    <label className="gasbox-field">
-                      <span>{t("tokenIdPlaceholder")}</span>
-                      <input
-                        type="text"
-                        value={item.tokenId}
-                        placeholder={t("tokenIdPlaceholder")}
-                        onChange={(e) => updateStudioItem(index, { tokenId: e.target.value })}
-                      />
-                    </label>
-                  ) : (
-                    <label className="gasbox-field gasbox-field--narrow">
-                      <span>{t("prizePerWinLabel")}</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.0001"
-                        value={item.amount}
-                        placeholder={t("tokenAmountPlaceholder")}
-                        onChange={(e) => updateStudioItem(index, { amount: e.target.value })}
-                      />
-                    </label>
-                  )}
-                  <label className="gasbox-field gasbox-field--narrow">
-                    <span>{t("stockLabelInput")}</span>
+                  <label className="gasbox-field">
+                    <span>{t("prizePerWinLabel")} ({prizeAsset})</span>
                     <input
                       type="number"
-                      min="1"
-                      step="1"
-                      value={item.stock}
-                      placeholder={t("stockPlaceholder")}
-                      onChange={(e) => updateStudioItem(index, { stock: e.target.value })}
-                    />
-                  </label>
-                  <label className="gasbox-field">
-                    <span>{t("tokenContractPlaceholder")}</span>
-                    <input
-                      type="text"
-                      value={item.assetHash}
-                      placeholder={t("tokenContractPlaceholder")}
-                      onChange={(e) => updateStudioItem(index, { assetHash: e.target.value })}
+                      min="0"
+                      step={prizeAsset === "NEO" ? "1" : "0.0001"}
+                      value={item.amount}
+                      placeholder={t("tokenAmountPlaceholder")}
+                      onChange={(e) => updateStudioItem(index, { amount: e.target.value })}
                     />
                   </label>
                   <NeoButton
@@ -729,7 +695,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {pullResult.amountDisplay && (
               <span className="gasbox-result-amount">{pullResult.amountDisplay}</span>
             )}
-            <p className="gasbox-result-note">{t("gasboxClientPrizeNote")}</p>
+            <p className="gasbox-result-note">{t("gasboxOnChainPrizeNote")}</p>
             <NeoButton variant="secondary" size="md" onClick={dismissResult}>
               {t("dismiss")}
             </NeoButton>
