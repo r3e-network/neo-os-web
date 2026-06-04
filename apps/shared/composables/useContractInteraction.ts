@@ -237,6 +237,13 @@ export function useContractInteraction(options: ContractInteractionOptions) {
    * 2. Transfers GAS directly to the target MiniApp contract with an app-specific memo
    * 3. Waits briefly for the credit to be indexed on-chain
    * 4. Calls the target contract method
+   *
+   * @param onPaymentSent Optional callback invoked immediately AFTER the GAS
+   *   transfer is broadcast (step 2) and BEFORE the settle wait + target call.
+   *   Receives the transfer txid, or "" if none could be extracted. This is the
+   *   exact moment funds have left the wallet, letting callers distinguish a
+   *   pre-transfer failure (nothing moved) from a post-broadcast failure (funds
+   *   in flight / recoverable). Purely additive — omit it for legacy behavior.
    */
   const invokeWithDirectPrepaidGas = async (
     paymentAmountBaseUnits: string,
@@ -246,13 +253,14 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     scriptHash?: string,
     waitMs = 4000,
     signers?: WalletSigner[],
+    onPaymentSent?: (txid: string) => void,
   ) => {
     await ensureWallet();
     if (!address.get())
       throw new Error("Wallet address not set after connection");
     const contract = scriptHash ?? (await ensureContractAddress());
 
-    await invokeContract({
+    const transferTx = (await invokeContract({
       scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
       operation: "transfer",
       args: [
@@ -261,7 +269,11 @@ export function useContractInteraction(options: ContractInteractionOptions) {
         { type: "Integer", value: paymentAmountBaseUnits },
         { type: "String", value: paymentMemo },
       ],
-    });
+    })) as unknown;
+
+    if (onPaymentSent) {
+      onPaymentSent(extractTxid(transferTx));
+    }
 
     await new Promise((resolve) => {
       const t = setTimeout(resolve, waitMs || TIME_CONSTANTS.SECOND_MS * 4);
