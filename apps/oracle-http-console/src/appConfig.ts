@@ -76,15 +76,27 @@ export const consoleConfig: ConsoleToolConfig = {
     const method = clean(values.method, "GET");
     const url = clean(values.url, DEFAULT_HTTP_URL);
     const jsonPath = clean(values.jsonPath, "$.status");
-    const body = clean(values.body, "");
+    // Only POST carries a request body; folding a GET body into the digest and
+    // payload would misrepresent the request that gets bound on-chain.
+    const body = method === "POST" ? clean(values.body, "") : "";
+    // Validate the endpoint has an http(s) scheme so a malformed URL is surfaced
+    // (non-blocking) instead of being silently previewed.
+    let urlValid = false;
+    try {
+      const parsed = new URL(url);
+      urlValid = parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      urlValid = false;
+    }
     const digest = previewId(`${method}|${url}|${jsonPath}|${body}`);
 
     return {
-      status: t("httpReady"),
+      status: urlValid ? t("httpReady") : t("httpInvalidUrl"),
       summary: t("httpSummary", { method }),
       rows: [
         { label: t("method"), value: method },
         { label: t("url"), value: url },
+        { label: t("urlValid"), value: urlValid ? t("yes") : t("no") },
         { label: t("jsonPath"), value: jsonPath },
         { label: t("statDigest"), value: digest },
       ],
@@ -92,6 +104,7 @@ export const consoleConfig: ConsoleToolConfig = {
         kind: "oracle.http.request",
         method,
         url,
+        urlValid,
         jsonPath,
         body,
         digest,
@@ -119,6 +132,8 @@ const appMessages = {
   body: { en: "Body", zh: "Body" },
   bodyPlaceholder: { en: "Optional POST body", zh: "可选 POST body" },
   httpReady: { en: "HTTP request ready", zh: "HTTP 请求已准备" },
+  httpInvalidUrl: { en: "Enter a valid http(s) URL", zh: "请输入有效的 http(s) 网址" },
+  urlValid: { en: "URL valid", zh: "网址有效" },
   httpSummary: { en: "{method} oracle request prepared", zh: "{method} 预言机请求已准备" },
   statNetwork: { en: "Network", zh: "网络" },
   statEndpoint: { en: "Mode", zh: "模式" },
