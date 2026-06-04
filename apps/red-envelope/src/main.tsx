@@ -23,12 +23,11 @@ defineMiniApp({
         launchParams.packet,
     );
     const envelope = useRedEnvelope({
-      gameService: ctx.os.game,
-      paymentService: ctx.os.payment,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
+      chain: ctx.services.chain,
       t: ctx.t,
     });
+
+    envelope.setAddress(ctx.services.chain.address.get() ?? null);
 
     ctx.registerAction("createEnvelope", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as {
@@ -95,7 +94,14 @@ defineMiniApp({
         createCount,
         createMemo,
       },
-      loadData: hasLaunchEnvelopeId ? async () => {} : envelope.loadAll,
+      loadData: hasLaunchEnvelopeId
+        ? async () => {
+            envelope.setAddress(ctx.services.chain.address.get() ?? null);
+          }
+        : async () => {
+            envelope.setAddress(ctx.services.chain.address.get() ?? null);
+            await envelope.loadAll();
+          },
     };
   },
 });

@@ -28,8 +28,8 @@ const appMessages = {
   },
   claimRouteTwo: { en: "Review request", zh: "核对请求" },
   claimRouteTwoCopy: {
-    en: "The OS game proxy builds the wallet intent; the miniapp never signs silently.",
-    zh: "OS game proxy 构建钱包意图，小程序不会静默签名。",
+    en: "The miniapp builds the claim transaction; your wallet shows the request and the miniapp never signs silently.",
+    zh: "小程序构建领取交易，钱包会展示请求，小程序不会静默签名。",
   },
   claimRouteThree: { en: "Receive GAS", zh: "领取 GAS" },
   claimRouteThreeCopy: {
@@ -38,12 +38,12 @@ const appMessages = {
   },
   safetyPanelTitle: { en: "Transaction safety", zh: "交易安全" },
   safetyPanelCopy: {
-    en: "Claiming uses the OS game service and reads claim results through storage. Creating first deposits GAS, then opens the game pool.",
-    zh: "领取通过 OS game service，并通过 storage 读取结果。创建时先存入 GAS，再创建 game pool。",
+    en: "Claiming calls the Red Envelope contract directly: it draws one random packet and pays GAS to your wallet atomically in the same transaction. Creating first deposits GAS to the contract, then opens the envelope from that prepaid credit.",
+    zh: "领取直接调用红包合约：在同一笔交易中抽取一个随机红包并原子地把 GAS 支付到你的钱包。创建时先把 GAS 存入合约，再用该预付额度开启红包。",
   },
-  osGuarded: { en: "OS guarded", zh: "OS 保护" },
+  osGuarded: { en: "On-chain contract", zh: "链上合约" },
   contractRoute: { en: "Contract route", zh: "合约路径" },
-  claimContractRoute: { en: "game.placeBet -> claimResult", zh: "game.placeBet -> claimResult" },
+  claimContractRoute: { en: "claim -> atomic GAS payout", zh: "claim -> 原子 GAS 支付" },
   claimablePool: { en: "Claimable pool", zh: "可领取奖池" },
   remainingPacketsLabel: { en: "Packets left", zh: "剩余红包" },
   createdGasLabel: { en: "Created GAS", zh: "已创建 GAS" },
@@ -104,13 +104,9 @@ const appMessages = {
   envelopeExpired: { en: "Envelope expired", zh: "红包已过期" },
   envelopeEmpty: { en: "Envelope is empty", zh: "红包已领完" },
   alreadyOpened: { en: "You already opened this envelope", zh: "你已打开过该红包" },
-  depositRefunded: {
-    en: "Envelope creation failed — your GAS deposit was refunded",
-    zh: "红包创建失败——您存入的 GAS 已退回",
-  },
-  depositRecoveryNeeded: {
-    en: "Envelope creation failed and the automatic refund did not complete. Your GAS is safe in your payment balance and can be withdrawn.",
-    zh: "红包创建失败且自动退款未完成。您的 GAS 仍安全保存在支付余额中，可随时提取。",
+  depositPrepaidNoEnvelope: {
+    en: "Deposit succeeded but the envelope was not created. Your GAS is held as prepaid credit on the contract and is reused automatically the next time you create an envelope.",
+    zh: "存款成功，但红包未创建。您的 GAS 已作为预付额度保存在合约中，下次创建红包时会自动复用。",
   },
   invalidAmount: { en: "Enter at least 0.1 GAS", zh: "至少 0.1 GAS" },
   invalidPackets: { en: "Enter 1-100 packets", zh: "请输入 1-100 个红包" },

@@ -1,60 +1,83 @@
 /**
- * useRedEnvelope — Domain logic for the Red Envelope miniapp
+ * useRedEnvelope — Domain logic for the Red Envelope miniapp.
  *
- * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (GameProxy, PaymentProxy, StorageProxy, BadgeProxy) via edge
- * functions, so this file contains zero contract hashes, parameter encoding,
- * or event parsing logic.
+ * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppRedEnvelope)
+ * via ctx.services.chain. The earlier path routed create/claim through the OS
+ * game/payment/storage/badge kernel proxies, which never actually distributed
+ * packets — envelopes funded GAS that was never paid out to claimers. This
+ * composable now drives the dedicated contract, which splits a funded GAS total
+ * into N random packets and PAYS each claimer ATOMICALLY in the same tx (no
+ * oracle, no pending settle state).
  *
- * Migration from direct chain calls to OS services:
+ * Contract interaction model (verified against MiniAppRedEnvelope.cs / ABI):
  *
- *   BEFORE (chain):
- *     chain.read("getEnvelope", [{ type: "Integer", value: id }])
- *     chain.read("hasClaimed", [...])
- *     chain.listEvents("EnvelopeCreated", { limit: 120 })
- *     chain.listEvents("EnvelopeClaimed", { limit: 120 })
- *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
- *     chain.invoke("createEnvelope", [...])
- *     chain.invoke("claim", [...])
- *     chain.read("checkEligibility", [...])
- *     chain.read("balanceOf", [...], { scriptHash: NEO_HASH })
- *     chain.ensureWallet()
- *     eventBus.emit("envelope:created", ...)
+ *   READS (chain.read / chain.readArray, default app contract script hash):
+ *     lastEnvelopeId()                          -> Integer (envs are ids 1..last)
+ *     getEnvelope(envId)                        -> Map{id,creator,totalAmount,
+ *                                                  remainingAmount,packetCount,
+ *                                                  openedCount,expiryTime(ms),
+ *                                                  bestLuckAddress,bestLuckAmount,
+ *                                                  active}
+ *     hasClaimed(envId, claimer)                -> Boolean
+ *     claimedAmount(envId, claimer)             -> Integer (share, base units)
+ *     creatorEnvelopeCount(creator)             -> Integer
+ *     getCreatorEnvelopes(creator, off, limit)  -> Integer[] (env ids)
+ *     claimerEnvelopeCount(claimer)             -> Integer
+ *     getClaimerEnvelopes(claimer, off, limit)  -> Integer[] (env ids)
  *
- *   AFTER (OS proxy):
- *     storageService.get("envelope:<id>")
- *     storageService.get("claimed:<envelopeId>:<user>")
- *     storageService.list("envelopes:", 120)
- *     storageService.list("claims:", 120)
- *     paymentService.deposit(amount, memo)
- *     gameService.createPool(config)
- *     gameService.placeBet(poolId, "1")
- *     storageService.get("eligibility:<envelopeId>")
- *     paymentService.getBalance()
- *     badgeService.award(badgeId, user)
+ *   MUTATIONS (chain.invoke):
+ *     1. DEPOSIT (fund a create) — a GAS transfer to the contract with the memo
+ *        "miniapp-redenvelope:create" so OnNEP17Payment credits the sender's
+ *        prepaid balance:
+ *          transfer(from, CONTRACT, totalBaseUnits, "miniapp-redenvelope:create")
+ *          { scriptHash: GAS_HASH }
+ *     2. createEnvelope(creator, totalAmount, packetCount, durationSeconds)
+ *        -> envId. Consumes the prepaid credit, so the deposit MUST land first.
+ *        If create fails after a successful deposit the credit simply remains on
+ *        the contract as reusable prepaid credit for the next create — there is
+ *        no refund call (and none is needed; funds are not lost).
+ *     claim(envelopeId, claimer) -> share. Draws one random packet and pays the
+ *        claimer atomically. One claim per address per envelope. The won amount
+ *        is read from the "Claimed" event (state[2] = share), falling back to
+ *        claimedAmount(envId, claimer).
  *
- * The composable still owns:
- *   - Reactive state (refs + computed) for manifest bindings
- *   - Preview distribution (pure frontend math)
- *   - Loading/opening UI flags
- *   - Formatted display values
+ * AMOUNT CONVENTION: the contract takes/returns BASE UNITS. GAS = human × 1e8.
+ * getEnvelope.expiryTime is in MILLISECONDS (Runtime.Time units). Human GAS for
+ * the UI = base / 1e8 (fromFixed8).
+ *
+ * The composable owns:
+ *   - Reactive state (observables + derived) for manifest/PlayArea bindings
+ *   - Preview distribution (pure frontend math, unchanged)
+ *   - Loading/creating/opening UI flags (double-submit guards)
+ *   - Building the envelopes/pools/claims lists straight from chain
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
-import type { GameProxy } from "@shared/services/os/GameProxy";
-import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import { toFixed8, fromFixed8, formatHash } from "@shared/utils/format";
+import type { ChainService } from "@shared/services/ChainService";
+import { fromFixed8, formatHash } from "@shared/utils/format";
+import { addressToScriptHash } from "@shared/utils/neo";
+import { parseBigInt } from "@shared/utils/parsers";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const MIN_AMOUNT = 10000000n; // 0.1 GAS in fixed8
+const MIN_AMOUNT = 10000000n; // 0.1 GAS in base units
 const MAX_PACKETS = 100;
-const MIN_PER_PACKET = 1000000n; // 0.01 GAS in fixed8
+const MIN_PER_PACKET = 1000000n; // 0.01 GAS in base units
+
+/** GAS base units per whole GAS (1e8). */
+const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
+
+/** Memo the contract requires on the create-funding transfer. */
+const CREATE_MEMO = "miniapp-redenvelope:create";
+
+/** Hard cap on how many envelopes to enumerate per full refresh (defensive). */
+const MAX_ENVELOPES = 200;
+
+/** How many env ids to page in per role (creator/claimer) on a refresh. */
+const LIST_PAGE_LIMIT = 100;
 
 // ============================================================================
 // Types
@@ -97,15 +120,9 @@ export interface ClaimItem {
 }
 
 export interface UseRedEnvelopeOptions {
-  /** OS GameProxy instance from ctx.os.game */
-  gameService: GameProxy;
-  /** OS PaymentProxy instance from ctx.os.payment */
-  paymentService: PaymentProxy;
-  /** OS StorageProxy instance from ctx.os.storage */
-  storageService: StorageProxy;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
-  /** Translation function */
+  /** Shared chain service from ctx.services.chain. */
+  chain: ChainService;
+  /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -113,40 +130,43 @@ export interface UseRedEnvelopeOptions {
 // Helpers
 // ============================================================================
 
-/** Shape of an envelope record returned by StorageProxy. */
-interface StoredEnvelope {
-  id: string;
-  creator: string;
-  totalAmount: number;
-  packetCount: number;
-  openedCount: number;
-  remainingAmount: number;
-  bestLuckAddress?: string;
-  bestLuckAmount?: number;
-  ready: boolean;
-  expiryTime: number;
-  claimedByCurrentUser?: boolean;
-}
+/** The zero script hash a fresh envelope carries for bestLuckAddress. */
+const ZERO_HASH = "0x0000000000000000000000000000000000000000";
 
-/** Shape of a claim record returned by StorageProxy. */
-interface StoredClaim {
-  envelopeId: string;
-  holder: string;
-  amount: number;
-  txHash?: string;
-}
+/** Coerce an unknown to a finite number, defaulting to 0. */
+const toFinite = (value: unknown): number => {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Coerce a raw env-id list value (number/string/bigint) to a string id. */
+const toIdString = (value: unknown): string => {
+  try {
+    const n = parseBigInt(value);
+    return n > 0n ? n.toString() : "";
+  } catch {
+    return "";
+  }
+};
+
+/**
+ * Convert a human-entered GAS amount string to BASE UNITS without floats.
+ * Returns 0n for any invalid / non-positive input.
+ */
+const toBaseUnits = (raw: string): bigint => {
+  const trimmed = String(raw ?? "").trim();
+  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
+  const [whole = "0", fraction = ""] = trimmed.split(".");
+  const paddedFraction = (fraction + "00000000").slice(0, 8);
+  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
+  return base > 0n ? base : 0n;
+};
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useRedEnvelope({
-  gameService,
-  paymentService,
-  storageService,
-  badgeService,
-  t,
-}: UseRedEnvelopeOptions) {
+export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
   // ── State ────────────────────────────────────────────────────────────
   const envelopes = createObservable<EnvelopeItem[]>([]);
   const claims = createObservable<ClaimItem[]>([]);
@@ -158,12 +178,19 @@ export function useRedEnvelope({
   const luckyMessage = createObservable<{ amount: number; from: string } | null>(null);
   const openingId = createObservable<string | null>(null);
 
+  // Connected wallet address (synced from main.tsx / chain).
+  const address = createObservable<string | null>(chain.address.get() ?? null);
+
+  const setAddress = (addr: string | null) => {
+    address.set(addr ?? null);
+  };
+
   // ── Computed ─────────────────────────────────────────────────────────
-  const envelopeCount = createDerived(() => envelopes.get().length, []);
-  const claimCount = createDerived(() => claims.get().length, []);
-  const poolCount = createDerived(() => pools.get().length, []);
-  const isConnected = createDerived(() => true, []); // OS services handle auth
-  const isOpening = createDerived(() => Boolean(openingId.get()), []);
+  const envelopeCount = createDerived(() => envelopes.get().length, [envelopes]);
+  const claimCount = createDerived(() => claims.get().length, [claims]);
+  const poolCount = createDerived(() => pools.get().length, [pools]);
+  const isConnected = createDerived(() => Boolean(address.get()), [address]);
+  const isOpening = createDerived(() => Boolean(openingId.get()), [openingId]);
 
   // ── Preview Distribution (pure computation) ─────────────────────────
 
@@ -197,7 +224,7 @@ export function useRedEnvelope({
   const previewDistribution = (totalAmountGas: number, packetCount: number): bigint[] => {
     if (packetCount <= 0 || packetCount > MAX_PACKETS) return [];
 
-    const totalAmount = BigInt(toFixed8(totalAmountGas));
+    const totalAmount = toBaseUnits(String(totalAmountGas));
     if (totalAmount < BigInt(packetCount) * MIN_PER_PACKET) return [];
 
     const seed = generatePreviewSeed(totalAmountGas.toString(), packetCount.toString());
@@ -224,138 +251,246 @@ export function useRedEnvelope({
     return amounts;
   };
 
-  // ── Envelope Mapping (from StorageProxy data) ──────────────────────
+  // ── Envelope Mapping (from getEnvelope Map) ────────────────────────
 
   /**
-   * Map a stored envelope record into the EnvelopeItem shape used by the UI.
-   * The edge function behind StorageProxy handles contract reads and returns
-   * normalized envelope data, so no contract hashes or parameter encoding here.
+   * Map a getEnvelope Map (returned by chain.read as a plain object) into the
+   * EnvelopeItem shape used by the UI. Returns null for an unknown / empty
+   * envelope (no creator key).
+   *
+   * Amount fields are contract BASE UNITS → human GAS via fromFixed8.
+   * expiryTime is MILLISECONDS, compared directly against Date.now().
+   * `claimedByMe` is the result of hasClaimed(envId, currentWallet); a null
+   * wallet means the current viewer has not claimed (canOpen stays true so the
+   * claim attempt can prompt a connect).
    */
-  const mapStoredEnvelope = (data: StoredEnvelope): EnvelopeItem => {
-    // Coerce stored numerics defensively: a non-numeric value from storage
-    // (e.g. a corrupted record) would otherwise yield NaN and render as "NaN"
-    // in counts/amounts (notably remainingPackets). Fall back to 0, never drop
-    // the whole envelope.
-    const toFinite = (v: unknown): number => {
-      const n = Number(v ?? 0);
-      return Number.isFinite(n) ? n : 0;
-    };
-    const creator = String(data.creator ?? "");
-    const totalAmountRaw = toFinite(data.totalAmount);
-    const packetCount = toFinite(data.packetCount);
-    const openedCount = toFinite(data.openedCount);
-    const remainingAmountRaw = toFinite(data.remainingAmount);
-    const bestLuckAddress = String(data.bestLuckAddress ?? "");
-    const bestLuckAmountRaw = toFinite(data.bestLuckAmount);
-    const ready = Boolean(data.ready);
-    const expiryTime = toFinite(data.expiryTime);
-    const now = Math.floor(Date.now() / 1000);
-    const expired = expiryTime > 0 && now > expiryTime;
-    const depleted = openedCount >= packetCount || remainingAmountRaw <= 0;
-    const claimedByMe = Boolean(data.claimedByCurrentUser);
+  const mapEnvelope = (
+    raw: unknown,
+    id: string,
+    claimedByMe: boolean,
+  ): EnvelopeItem | null => {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const v = raw as Record<string, unknown>;
+    const creator = String(v.creator ?? "");
+    if (!creator || creator === ZERO_HASH) return null;
+
+    const totalAmountBase = parseBigInt(v.totalAmount);
+    const remainingAmountBase = parseBigInt(v.remainingAmount);
+    const packetCount = toFinite(v.packetCount);
+    const openedCount = toFinite(v.openedCount);
+    const expiryTimeMs = toFinite(v.expiryTime); // milliseconds
+    const bestLuckAddress = String(v.bestLuckAddress ?? "");
+    const bestLuckAmountBase = parseBigInt(v.bestLuckAmount);
+    const active = Boolean(v.active);
+
+    const now = Date.now();
+    const expired = expiryTimeMs > 0 && now >= expiryTimeMs;
+    const depleted = openedCount >= packetCount || remainingAmountBase <= 0n;
+    const ready = active && !expired && !depleted;
 
     return {
-      id: String(data.id),
+      id,
       type: "lucky",
       creator,
       from: formatHash(creator),
-      totalAmount: fromFixed8(totalAmountRaw),
+      totalAmount: fromFixed8(totalAmountBase),
       packetCount,
       openedCount,
-      remainingAmount: fromFixed8(remainingAmountRaw),
+      remainingAmount: fromFixed8(remainingAmountBase),
       remainingPackets: Math.max(0, packetCount - openedCount),
       minNeoRequired: 0,
       minHoldSeconds: 0,
-      active: ready && !expired && !depleted,
+      active: ready,
       expired,
       depleted,
-      canOpen: ready && !expired && !depleted && !claimedByMe,
+      canOpen: ready && !claimedByMe,
       currentHolder: creator,
       ready,
       bestLuckAddress:
-        bestLuckAddress && bestLuckAddress !== "0x0000000000000000000000000000000000000000"
-          ? bestLuckAddress
-          : "",
-      bestLuckAmount: bestLuckAmountRaw > 0 ? bestLuckAmountRaw : 0,
+        bestLuckAddress && bestLuckAddress !== ZERO_HASH ? bestLuckAddress : "",
+      bestLuckAmount: bestLuckAmountBase > 0n ? fromFixed8(bestLuckAmountBase) : 0,
       message: "",
-      expiryTime,
+      expiryTime: expiryTimeMs,
       parentEnvelopeId: "",
     };
   };
 
-  // ── Data Loading (via OS services) ─────────────────────────────────
+  /** Read a single envelope + the viewer's claim status into an EnvelopeItem. */
+  const readEnvelope = async (
+    id: string,
+    claimerHash: string | null,
+  ): Promise<EnvelopeItem | null> => {
+    const raw = await chain.read("getEnvelope", [
+      { type: "Integer", value: id },
+    ]);
+
+    let claimedByMe = false;
+    if (claimerHash) {
+      try {
+        const claimed = await chain.read("hasClaimed", [
+          { type: "Integer", value: id },
+          { type: "Hash160", value: claimerHash },
+        ]);
+        claimedByMe = Boolean(claimed);
+      } catch {
+        claimedByMe = false;
+      }
+    }
+
+    return mapEnvelope(raw, id, claimedByMe);
+  };
+
+  // ── Data Loading (direct chain reads) ──────────────────────────────
 
   /**
-   * Load all envelopes and claims via StorageProxy.
-   * The edge function translates storage reads into the appropriate
-   * contract queries and returns normalized data.
+   * Rebuild the envelopes/pools/claims lists straight from the contract.
+   *
+   * Envelopes are ids 1..lastEnvelopeId() (capped at MAX_ENVELOPES, newest
+   * scanned), each read via getEnvelope + hasClaimed. Pools = the claimable
+   * subset (active && canOpen). Claims for the connected wallet are resolved
+   * from getClaimerEnvelopes + claimedAmount.
    */
   const loadEnvelopes = async () => {
+    if (loadingEnvelopes.get()) return;
     loadingEnvelopes.set(true);
     try {
-      // Load all envelopes from storage
-      const envelopeMap = await storageService.list("envelopes:", 120);
+      const claimerAddr = address.get();
+      const claimerHash = claimerAddr ? addressToScriptHash(claimerAddr) || null : null;
 
-      const allEnvelopes: EnvelopeItem[] = [];
-      if (envelopeMap && typeof envelopeMap === "object") {
-        for (const [, value] of Object.entries(envelopeMap)) {
-          const stored = value as StoredEnvelope;
-          if (stored && stored.id) {
-            allEnvelopes.push(mapStoredEnvelope(stored));
+      const lastRaw = await chain.read("lastEnvelopeId", []);
+      const last = toFinite(lastRaw);
+
+      // Scan newest-first, capped, so a long history never reads more than
+      // MAX_ENVELOPES envelopes.
+      const start = Math.max(1, last - MAX_ENVELOPES + 1);
+      const ids: string[] = [];
+      for (let id = last; id >= start; id -= 1) ids.push(String(id));
+
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            return await readEnvelope(id, claimerHash);
+          } catch (e) {
+            console.warn(
+              "[useRedEnvelope] getEnvelope failed for",
+              id,
+              ":",
+              e instanceof Error ? e.message : String(e),
+            );
+            return null;
           }
-        }
-      }
+        }),
+      );
 
-      allEnvelopes.sort((a, b) => Number(b.id) - Number(a.id));
+      const allEnvelopes = results
+        .filter((item): item is EnvelopeItem => item !== null)
+        .sort((a, b) => Number(b.id) - Number(a.id));
+
       envelopes.set(allEnvelopes);
       pools.set(allEnvelopes.filter((item) => item.active && item.canOpen));
 
-      // Load claims for current user
-      const claimMap = await storageService.list("claims:", 120);
-      const claimItems: ClaimItem[] = [];
-
-      if (claimMap && typeof claimMap === "object") {
-        for (const [, value] of Object.entries(claimMap)) {
-          const stored = value as StoredClaim;
-          if (stored && stored.holder) {
-            claimItems.push({
-              id: `${stored.envelopeId}:${stored.txHash ?? ""}`,
-              poolId: String(stored.envelopeId),
-              holder: stored.holder,
-              amount: fromFixed8(Number(stored.amount ?? 0)),
-              opened: true,
-              message: "",
-            });
-          }
-        }
+      // Claims for the connected wallet: the envelopes this address has claimed
+      // from, each with the share it drew.
+      if (claimerHash) {
+        await loadClaims(claimerHash);
+      } else {
+        claims.set([]);
       }
-
-      claims.set(claimItems);
     } catch (e) {
-      console.warn("[useRedEnvelope] loadEnvelopes failed:", e instanceof Error ? e.message : String(e));
+      console.warn(
+        "[useRedEnvelope] loadEnvelopes failed:",
+        e instanceof Error ? e.message : String(e),
+      );
     } finally {
       loadingEnvelopes.set(false);
     }
   };
 
-  // ── Actions (via OS services) ──────────────────────────────────────
+  /**
+   * Load the connected wallet's claim history from getClaimerEnvelopes +
+   * claimedAmount. Each entry is one drawn packet (share in base units).
+   */
+  const loadClaims = async (claimerHash: string) => {
+    try {
+      const idsRaw = await chain.readArray("getClaimerEnvelopes", [
+        { type: "Hash160", value: claimerHash },
+        { type: "Integer", value: "0" },
+        { type: "Integer", value: String(LIST_PAGE_LIMIT) },
+      ]);
+
+      const ids = (Array.isArray(idsRaw) ? idsRaw : [])
+        .map(toIdString)
+        .filter((id) => id !== "");
+
+      const items = await Promise.all(
+        ids.map(async (envelopeId) => {
+          try {
+            const shareRaw = await chain.read("claimedAmount", [
+              { type: "Integer", value: envelopeId },
+              { type: "Hash160", value: claimerHash },
+            ]);
+            const share = parseBigInt(shareRaw);
+            const claim: ClaimItem = {
+              id: `${envelopeId}:${claimerHash}`,
+              poolId: envelopeId,
+              holder: claimerHash,
+              amount: fromFixed8(share),
+              opened: true,
+              message: "",
+            };
+            return claim;
+          } catch (e) {
+            console.warn(
+              "[useRedEnvelope] claimedAmount failed for",
+              envelopeId,
+              ":",
+              e instanceof Error ? e.message : String(e),
+            );
+            return null;
+          }
+        }),
+      );
+
+      claims.set(
+        items
+          .filter((item): item is ClaimItem => item !== null)
+          .sort((a, b) => Number(b.poolId) - Number(a.poolId)),
+      );
+    } catch (e) {
+      console.warn(
+        "[useRedEnvelope] loadClaims failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+      claims.set([]);
+    }
+  };
+
+  // ── Actions (direct chain invocations) ─────────────────────────────
 
   /**
-   * Connect wallet — a no-op in the OS services pattern.
-   * OS services handle auth transparently through the edge functions.
-   * Kept for API compatibility with PlayArea action dispatch.
+   * Connect the wallet and reload. The chain service prompts the wallet on
+   * demand; here we just ensure an address is on hand and refresh.
    */
   const handleConnect = async () => {
-    // OS services handle wallet/auth transparently
+    const addr = address.get() || (await chain.ensureWallet());
+    setAddress(addr ?? null);
+    await loadEnvelopes();
   };
 
   /**
-   * Create an envelope via PaymentProxy (deposit GAS) + GameProxy (create pool).
+   * Create a red envelope against the standalone contract.
    *
-   * The OS payment service handles wallet connection and GAS transfer.
-   * The OS game service handles pool creation with random distribution.
-   * Badge awarding (first envelope) is handled server-side by the edge
-   * function, so we just fire-and-forget a badge hint.
+   * Two steps, both signed by the creator:
+   *   1. DEPOSIT — transfer the total in GAS to the contract with the
+   *      "miniapp-redenvelope:create" memo, crediting the creator's prepaid
+   *      balance.
+   *   2. createEnvelope(creator, total, packetCount, durationSeconds) — consumes
+   *      that credit and opens the envelope.
+   *
+   * If step 1 succeeds but step 2 fails, the prepaid credit simply remains on
+   * the contract under the creator and is reused on the next create — there is
+   * no refund call (and none is needed; funds are not lost). We surface a
+   * "funds prepaid, envelope not created" message in that case.
    */
   const create = async (formData: {
     amount: string;
@@ -376,42 +511,57 @@ export function useRedEnvelope({
       if (totalValue < packetCount * 0.01) throw new Error(t("invalidPerPacket"));
       if (!Number.isFinite(expiryValue) || expiryValue <= 0) throw new Error(t("invalidExpiry"));
 
-      // Step 1: Deposit GAS via PaymentProxy. The memo carries both the
-      // packet count and the funding amount so a server-side reconciler can
-      // unambiguously correlate this deposit with the pool it funds.
-      await paymentService.deposit(
-        formData.amount,
-        `redenvelope:create:${packetCount}:${formData.amount}`,
+      const totalBase = toBaseUnits(formData.amount);
+      if (totalBase < MIN_AMOUNT) throw new Error(t("invalidAmount"));
+      // The contract requires total >= packetCount (one base unit per packet);
+      // the per-packet >= 0.01 GAS guard above already implies this.
+      if (totalBase < BigInt(packetCount)) throw new Error(t("invalidPerPacket"));
+
+      const creatorAddr = address.get() || (await chain.ensureWallet());
+      const creatorHash = addressToScriptHash(creatorAddr || "");
+      if (!creatorAddr || !creatorHash) throw new Error(t("walletNotConnected"));
+      setAddress(creatorAddr);
+
+      const contractHash = chain.contractAddress.get();
+      if (!contractHash) throw new Error(t("envelopeNotReady"));
+
+      const durationSeconds = Math.round(expiryValue * 3600);
+
+      // Step 1: DEPOSIT — GAS transfer to the contract with the create memo so
+      // OnNEP17Payment credits the creator's prepaid balance.
+      await chain.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: creatorHash },
+          { type: "Hash160", value: contractHash },
+          { type: "Integer", value: totalBase.toString() },
+          { type: "String", value: CREATE_MEMO },
+        ],
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
 
-      // Step 2: Create envelope pool via GameProxy.
-      // The deposit in Step 1 has already settled GAS on-chain. If pool
-      // creation fails the GAS would be stranded with no envelope to fund,
-      // so we compensate by withdrawing the deposit before re-throwing. If
-      // the withdraw itself fails, surface a distinct manual-recovery error
-      // instead of the raw pool-creation error so funds are not silently lost.
+      // Step 2: createEnvelope — consumes the prepaid credit and opens the
+      // envelope. If this fails the credit persists on the contract under the
+      // creator and is reusable on the next create (no refund needed).
       try {
-        await gameService.createPool({
-          poolType: 2, // lottery (random distribution)
-          maxPlayers: packetCount,
-          entryFee: "0",
-          duration: Math.round(expiryValue * 3600),
-        });
-      } catch (poolErr) {
-        try {
-          await paymentService.withdraw(formData.amount);
-        } catch (refundErr) {
-          console.error(
-            "[useRedEnvelope] create: deposit refund failed after createPool error",
-            refundErr instanceof Error ? refundErr.message : String(refundErr),
-          );
-          throw new Error(t("depositRecoveryNeeded"));
-        }
-        throw new Error(t("depositRefunded"));
+        await chain.invoke(
+          "createEnvelope",
+          [
+            { type: "Hash160", value: creatorHash },
+            { type: "Integer", value: totalBase.toString() },
+            { type: "Integer", value: String(Math.trunc(packetCount)) },
+            { type: "Integer", value: String(durationSeconds) },
+          ],
+          { waitForEvent: "EnvelopeCreated" },
+        );
+      } catch (createErr) {
+        console.error(
+          "[useRedEnvelope] createEnvelope failed after deposit succeeded:",
+          createErr instanceof Error ? createErr.message : String(createErr),
+        );
+        // Deposit landed, envelope did not — credit is held under the creator.
+        throw new Error(t("depositPrepaidNoEnvelope"));
       }
-
-      // Step 3: Hint badge service about first-envelope achievement (fire-and-forget)
-      badgeService.award("first-envelope", "").catch(() => {});
 
       await loadEnvelopes();
     } catch (e) {
@@ -422,24 +572,68 @@ export function useRedEnvelope({
   };
 
   /**
-   * Claim an envelope via GameProxy (place bet = draw from pool).
+   * Claim one packet from an envelope against the standalone contract.
    *
-   * The OS game service handles the claim contract call.
-   * The edge function returns the claim result including the random amount.
+   * claim(envelopeId, claimer) draws a random share and pays the claimer
+   * atomically in the same tx. The won share is read from the "Claimed" event
+   * (state[2] = share), falling back to claimedAmount(envId, claimer). Guards
+   * against a re-claim via hasClaimed before signing. Returns the share in human
+   * GAS (already converted from base units).
    */
   const claimEnvelope = async (envelopeId: string): Promise<{ amount: number }> => {
-    // placeBet with "1" means "claim one packet from this envelope pool"
-    await gameService.placeBet(envelopeId, "1");
+    const id = String(envelopeId ?? "").trim();
+    if (!id) throw new Error(t("envelopeIdRequired"));
 
-    // Read the claim result from storage (set by the edge function post-claim)
-    const result = await storageService.get(`claimResult:${envelopeId}`);
-    const claimData = result as { amount?: number } | null;
-    return { amount: Number(claimData?.amount ?? 0) };
+    const claimerAddr = address.get() || (await chain.ensureWallet());
+    const claimerHash = addressToScriptHash(claimerAddr || "");
+    if (!claimerAddr || !claimerHash) throw new Error(t("walletNotConnected"));
+    setAddress(claimerAddr);
+
+    // Re-claim guard: one claim per address per envelope (the contract enforces
+    // this too, but surface a clean message before prompting the wallet).
+    try {
+      const already = await chain.read("hasClaimed", [
+        { type: "Integer", value: id },
+        { type: "Hash160", value: claimerHash },
+      ]);
+      if (already) throw new Error(t("alreadyOpened"));
+    } catch (e) {
+      // A read failure must not block a legitimate claim; only the explicit
+      // "already claimed" signal short-circuits.
+      if (e instanceof Error && e.message === t("alreadyOpened")) throw e;
+    }
+
+    const result = await chain.invoke(
+      "claim",
+      [
+        { type: "Integer", value: id },
+        { type: "Hash160", value: claimerHash },
+      ],
+      { waitForEvent: "Claimed" },
+    );
+
+    // OnClaimed(id, claimer, share, remainingPackets) — share is state index 2.
+    let shareBase = parseBigInt(eventValue(result.event, 2));
+    if (shareBase <= 0n) {
+      // Event unavailable / unparsed — read the recorded share back.
+      try {
+        shareBase = parseBigInt(
+          await chain.read("claimedAmount", [
+            { type: "Integer", value: id },
+            { type: "Hash160", value: claimerHash },
+          ]),
+        );
+      } catch {
+        shareBase = 0n;
+      }
+    }
+
+    return { amount: fromFixed8(shareBase) };
   };
 
   /**
-   * Claim from a pool by envelope ID — claims it and shows the lucky
-   * message overlay. This is the live claim path used by the UI.
+   * Claim from a pool by envelope ID — claims it and shows the lucky-message
+   * overlay. This is the live claim path the UI dispatches.
    */
   const handleClaimFromPool = async (envelopeId: string) => {
     if (openingId.get()) return;
@@ -450,13 +644,10 @@ export function useRedEnvelope({
 
       if (result.amount > 0) {
         luckyMessage.set({
-          amount: Number(fromFixed8(result.amount).toFixed(4)),
+          amount: Number(result.amount.toFixed(4)),
           from: `#${envelopeId}`,
         });
       }
-
-      // Hint badge for pool claim (fire-and-forget)
-      badgeService.award("pool-claimer", "").catch(() => {});
 
       await loadEnvelopes();
     } catch (e) {
@@ -469,6 +660,7 @@ export function useRedEnvelope({
   // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
+    setAddress(chain.address.get() ?? null);
     await loadEnvelopes();
   };
 
@@ -481,6 +673,7 @@ export function useRedEnvelope({
     isLoading,
     luckyMessage,
     openingId,
+    address,
 
     // Computed
     envelopeCount,
@@ -496,6 +689,7 @@ export function useRedEnvelope({
     MIN_PER_PACKET,
 
     // Actions
+    setAddress,
     handleConnect,
     create,
     handleClaimFromPool,
@@ -505,6 +699,24 @@ export function useRedEnvelope({
     loadAll,
     loadEnvelopes,
   };
+}
+
+// ============================================================================
+// Event parsing
+// ============================================================================
+
+/** Read a single state slot from a contract event payload (positional). */
+function eventValue(entry: unknown, index: number): unknown {
+  if (!entry || typeof entry !== "object") return undefined;
+  const state = (entry as { state?: unknown }).state;
+  if (Array.isArray(state)) {
+    const item = state[index] as unknown;
+    if (item && typeof item === "object" && "value" in item) {
+      return (item as { value?: unknown }).value;
+    }
+    return item;
+  }
+  return undefined;
 }
 
 export type UseRedEnvelopeReturn = ReturnType<typeof useRedEnvelope>;
