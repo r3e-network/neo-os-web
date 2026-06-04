@@ -19,7 +19,9 @@
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
-  "contracts": {},
+  "contracts": {
+    "neo-n3-testnet": "0x9a7eb7db0fd9aac2eacbddaa133bc66083fc8733"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
