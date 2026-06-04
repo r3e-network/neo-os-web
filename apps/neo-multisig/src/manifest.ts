@@ -16,7 +16,7 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "sidebarTotalTxs", valueKey: "totalTxs", format: "number", icon: "hash" },
+    { labelKey: "sidebarTotalTxs", valueKey: "vaultCount", format: "number", icon: "hash" },
     { labelKey: "statPending", valueKey: "pendingCount", format: "number", variant: "warning", icon: "clock" },
     { labelKey: "statCompleted", valueKey: "completedCount", format: "number", variant: "success", icon: "check-circle" },
   ],
@@ -24,7 +24,7 @@ export const manifest: MiniAppManifest = {
   sidebar: {
     titleKey: "title",
     items: [
-      { labelKey: "sidebarTotalTxs", valueKey: "totalTxs", format: "number" },
+      { labelKey: "sidebarTotalTxs", valueKey: "vaultCount", format: "number" },
       { labelKey: "statPending", valueKey: "pendingCount", format: "number" },
       { labelKey: "statCompleted", valueKey: "completedCount", format: "number" },
     ],

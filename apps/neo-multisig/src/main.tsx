@@ -1,5 +1,16 @@
 /**
  * Neo Multisig — Entry Point (React)
+ *
+ * On-chain custody vault. The app talks to the deployed MiniAppMultisig
+ * contract (resolved from the manifest as the app's primary contract):
+ *   1. createVault(creator, signers[], threshold) -> vaultId
+ *   2. deposit GAS/NEO into the vault (NEP-17 transfer with vaultId as data)
+ *   3. createRequest(vaultId, recipient, asset, amount, memo) -> reqId
+ *   4. each signer approve(reqId) — at threshold the contract releases funds
+ *
+ * There is no off-chain store and no native-multisig witness assembly; every
+ * state change is a direct contract invoke and every read comes from the
+ * contract (getVault / getRequest / balanceOf).
  */
 
 import {
@@ -8,71 +19,37 @@ import {
   refsToObservables,
 } from "@shared/react";
 import { createDerived } from "@shared/react/context";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useMultisigHistory } from "./composables/useMultisigHistory";
-import { api, configureStorage, type MultisigRequest } from "./services/api";
+import { createVaultApi } from "./services/api";
 import {
-  assembleSignedTransaction,
-  broadcastTransaction,
-  buildTransferTransaction,
-  createMultisigAccount,
-  getRequestSignData,
+  fromBaseUnits,
   isValidAddress,
-  normalizePublicKey,
-  normalizePublicKeys,
-  orderSignatures,
-  validateAmount,
-  verifySignature,
-} from "./utils/multisig";
+  isValidAmount,
+  validateSignerSet,
+  type RequestView,
+  type VaultAsset,
+  type VaultView,
+} from "./utils/vault";
 
-type CreateRequestPayload = {
-  signers: string[];
-  threshold: number;
-  selectedChain: "neo-n3-mainnet" | "neo-n3-testnet";
-  asset: "GAS" | "NEO";
-  toAddress: string;
-  amount: string;
-  memo: string;
-};
-
-function asString(value: unknown) {
+function asString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function parseCreateRequestPayload(value: unknown): CreateRequestPayload {
-  const payload =
-    value && typeof value === "object"
-      ? (value as Record<string, unknown>)
-      : {};
-  const signers = Array.isArray(payload.signers)
-    ? payload.signers.map(asString).filter(Boolean)
-    : [];
-  const threshold = Number(payload.threshold);
-  const selectedChain =
-    payload.selectedChain === "neo-n3-mainnet"
-      ? "neo-n3-mainnet"
-      : "neo-n3-testnet";
-  const asset = payload.asset === "NEO" ? "NEO" : "GAS";
-
-  return {
-    signers,
-    threshold: Number.isFinite(threshold) ? Math.floor(threshold) : 0,
-    selectedChain,
-    asset,
-    toAddress: asString(payload.toAddress),
-    amount: asString(payload.amount),
-    memo: asString(payload.memo),
-  };
+function asAsset(value: unknown): VaultAsset {
+  return value === "NEO" ? "NEO" : "GAS";
 }
 
-function serializePreparedTransaction(tx: Record<string, unknown>) {
-  const serializable = tx as { serialize?: (signed?: boolean) => string };
-  if (typeof serializable.serialize === "function") {
-    return serializable.serialize(false);
-  }
-  throw new Error("Prepared transaction cannot be serialized");
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function parseVaultId(value: unknown): number {
+  const id = Math.floor(Number(value));
+  return Number.isInteger(id) && id > 0 ? id : 0;
 }
 
 defineMiniApp({
@@ -83,334 +60,329 @@ defineMiniApp({
 
   setup(ctx) {
     const chain = ctx.services.chain;
-    // Persist requests to shared OS storage so other signers can load + sign
-    // them from their own device, replacing the local-only runtime cache.
-    configureStorage(ctx.os.storage);
+    const api = createVaultApi(chain);
 
     const {
       history,
+      vaultCount,
       pendingCount,
       completedCount,
       loadHistory,
-      addToHistory,
-      updateHistoryItem,
+      upsertHistory,
+      updateHistoryStatus,
     } = useMultisigHistory();
-    const totalTxs = createDerived(() => history.get().length, [history]);
-    const lastRequest = createObservable<MultisigRequest | null>(null);
-    const selectedRequest = createObservable<MultisigRequest | null>(null);
-    // Connected wallet address, mirrored so the view can tell whether the
-    // current signer has already approved the selected request.
-    const connectedAddress = createObservable<string>("");
-    const isCreatingRequest = createObservable(false);
-    const isLoadingRequest = createObservable(false);
-    const isSigningRequest = createObservable(false);
-    const isBroadcastingRequest = createObservable(false);
+    const totalActions = createDerived(() => history.get().length, [history]);
+
+    const connectedAddress = createObservable<string>(
+      chain.address.get() ?? "",
+    );
+    const activeVault = createObservable<VaultView | null>(null);
+    const activeRequest = createObservable<RequestView | null>(null);
+    const isCreatingVault = createObservable(false);
+    const isDepositing = createObservable(false);
+    const isProposing = createObservable(false);
+    const isApproving = createObservable(false);
+    const isCancelling = createObservable(false);
+    const isLoading = createObservable(false);
 
     loadHistory();
 
-    // Keep the connected-wallet address observable in sync with the chain
-    // service so the Sign affordance can reflect who is connected.
     const syncConnectedAddress = () => {
-      connectedAddress.set(chain.address?.get?.() ?? "");
+      connectedAddress.set(chain.address.get() ?? "");
     };
     syncConnectedAddress();
-    chain.address?.subscribe?.(syncConnectedAddress);
+    const stopAddressSync = chain.address.subscribe(syncConnectedAddress);
 
-    // Rebuild history from the shared index so requests created on other
-    // devices show up in the activity feed (client-derived state).
-    const syncHistoryFromStorage = async () => {
+    // -- Read refreshers ------------------------------------------------------
+
+    const refreshVault = async (vaultId: number): Promise<VaultView | null> => {
+      const vault = await api.getVault(vaultId);
+      if (vault) {
+        activeVault.set(vault);
+        upsertHistory({
+          kind: "vault",
+          id: vault.id,
+          label: ctx.t("vaultHistoryLabel", {
+            id: vault.id,
+            threshold: vault.threshold,
+            signers: vault.signers.length,
+          }),
+          createdAt: vault.createdTime
+            ? new Date(vault.createdTime).toISOString()
+            : new Date().toISOString(),
+        });
+      }
+      return vault;
+    };
+
+    const refreshRequest = async (
+      reqId: number,
+    ): Promise<RequestView | null> => {
+      const request = await api.getRequest(reqId);
+      if (request) {
+        activeRequest.set(request);
+        upsertHistory({
+          kind: "request",
+          id: request.id,
+          vaultId: request.vaultId,
+          status: request.status,
+          label: ctx.t("requestHistoryLabel", {
+            amount: fromBaseUnits(
+              request.amount,
+              request.assetSymbol === "NEO" ? "NEO" : "GAS",
+            ),
+            asset: request.assetSymbol,
+          }),
+          createdAt: request.createdTime
+            ? new Date(request.createdTime).toISOString()
+            : new Date().toISOString(),
+        });
+        updateHistoryStatus("request", request.id, request.status);
+      }
+      return request;
+    };
+
+    // -- Actions --------------------------------------------------------------
+
+    ctx.registerAction("createVault", async (rawPayload: unknown) => {
+      const payload = asRecord(rawPayload);
+      const signers = Array.isArray(payload.signers)
+        ? payload.signers.map(asString).filter(Boolean)
+        : [];
+      const threshold = Math.floor(Number(payload.threshold));
+
       try {
-        const requests = await api.list();
-        for (const request of requests) {
-          // addToHistory writes when the item is new; updateHistoryItem writes
-          // when an existing item's status changed. Inserting then immediately
-          // updating the same item caused two serialize+persist passes per new
-          // request — guard so each request triggers at most one write.
-          const existing = history.get().find((h) => h.id === request.id);
-          if (existing) {
-            if (existing.status !== request.status) {
-              updateHistoryItem(request.id, { status: request.status });
-            }
-          } else {
-            addToHistory({
-              id: request.id,
-              scriptHash: request.script_hash,
-              status: request.status,
-              createdAt: request.created_at,
-            });
-          }
-        }
-      } catch {
-        // Storage may be unavailable (e.g. offline); keep local history.
+        // Validate before invoking so a malformed signer set never hits chain.
+        validateSignerSet(signers, threshold);
+      } catch (err) {
+        ctx.setStatus(formatErrorMessage(err, ctx.t("toastInvalidSigners")), "error");
+        return null;
       }
-    };
 
-    /** Extract the witness signature + signer pubkey from a wallet result. */
-    const extractSignature = (
-      result: unknown,
-    ): { publicKey: string; signature: string } | null => {
-      if (!result || typeof result !== "object") return null;
-      const record = result as Record<string, unknown>;
-      const signature =
-        typeof record.data === "string"
-          ? record.data
-          : typeof record.signature === "string"
-            ? record.signature
-            : "";
-      const publicKey =
-        typeof record.publicKey === "string"
-          ? record.publicKey
-          : typeof record.pubkey === "string"
-            ? record.pubkey
-            : "";
-      if (!signature || !publicKey) return null;
-      return { publicKey, signature };
-    };
+      isCreatingVault.set(true);
+      try {
+        const creator = await chain.ensureWallet();
+        const result = await api.createVault({ creator, signers, threshold });
+        // The new vaultId is the contract's lastVaultId after creation.
+        const vaultId = await api.lastVaultId();
+        if (vaultId > 0) await refreshVault(vaultId);
+        ctx.setStatus(ctx.t("toastVaultCreated", { id: vaultId }), "success");
+        return { ...result, vaultId };
+      } catch (err) {
+        ctx.setStatus(formatErrorMessage(err, ctx.t("toastVaultFailed")), "error");
+        return null;
+      } finally {
+        isCreatingVault.set(false);
+      }
+    });
 
-    ctx.registerAction("createRequest", async (rawPayload: unknown) => {
-      const payload = parseCreateRequestPayload(rawPayload);
-      if (payload.signers.length < 2) {
-        ctx.setStatus(ctx.t("toastNotEnoughSigners"), "error");
+    ctx.registerAction("deposit", async (rawPayload: unknown) => {
+      const payload = asRecord(rawPayload);
+      const vaultId = parseVaultId(payload.vaultId);
+      const asset = asAsset(payload.asset);
+      const amount = asString(payload.amount);
+
+      if (vaultId <= 0) {
+        ctx.setStatus(ctx.t("toastNoVault"), "error");
         return null;
       }
-      if (payload.threshold < 1 || payload.threshold > payload.signers.length) {
-        ctx.setStatus(ctx.t("toastInvalidThreshold"), "error");
-        return null;
-      }
-      if (!isValidAddress(payload.toAddress)) {
-        ctx.setStatus(ctx.t("toastInvalidAddress"), "error");
-        return null;
-      }
-      if (!validateAmount(payload.amount, payload.asset)) {
+      if (!isValidAmount(amount, asset)) {
         ctx.setStatus(ctx.t("toastInvalidAmount"), "error");
         return null;
       }
 
-      isCreatingRequest.set(true);
+      isDepositing.set(true);
       try {
-        const normalizedSigners = normalizePublicKeys(payload.signers);
-        const multisigAccount = createMultisigAccount(
-          payload.threshold,
-          normalizedSigners,
-        );
-        const prepared = await buildTransferTransaction({
-          chainId: payload.selectedChain,
-          fromAddress: multisigAccount.address,
-          toAddress: payload.toAddress,
-          amount: payload.amount,
-          assetSymbol: payload.asset,
-          threshold: payload.threshold,
-          publicKeys: multisigAccount.publicKeys,
-        });
-        const request = await api.create({
-          chainId: payload.selectedChain,
-          scriptHash: multisigAccount.scriptHash,
-          threshold: payload.threshold,
-          signers: multisigAccount.publicKeys,
-          transactionHex: serializePreparedTransaction(prepared.tx),
-          memo: payload.memo || undefined,
-        });
-
-        lastRequest.set(request);
-        selectedRequest.set(request);
-        addToHistory({
-          id: request.id,
-          scriptHash: request.script_hash,
-          status: request.status,
-          createdAt: request.created_at,
-        });
+        const from = await chain.ensureWallet();
+        const result = await api.deposit({ from, vaultId, amount, asset });
+        await refreshVault(vaultId);
         ctx.setStatus(
-          ctx.t("toastRequestCreated", { id: request.id.slice(0, 8) }),
+          ctx.t("toastDeposited", { amount, asset }),
           "success",
         );
+        return result;
+      } catch (err) {
+        ctx.setStatus(formatErrorMessage(err, ctx.t("toastDepositFailed")), "error");
+        return null;
+      } finally {
+        isDepositing.set(false);
+      }
+    });
+
+    ctx.registerAction("proposeRequest", async (rawPayload: unknown) => {
+      const payload = asRecord(rawPayload);
+      const vaultId = parseVaultId(payload.vaultId);
+      const asset = asAsset(payload.asset);
+      const recipient = asString(payload.recipient);
+      const amount = asString(payload.amount);
+      const memo = asString(payload.memo);
+
+      if (vaultId <= 0) {
+        ctx.setStatus(ctx.t("toastNoVault"), "error");
+        return null;
+      }
+      if (!isValidAddress(recipient)) {
+        ctx.setStatus(ctx.t("toastInvalidAddress"), "error");
+        return null;
+      }
+      if (!isValidAmount(amount, asset)) {
+        ctx.setStatus(ctx.t("toastInvalidAmount"), "error");
+        return null;
+      }
+
+      isProposing.set(true);
+      try {
+        const creator = await chain.ensureWallet();
+        const result = await api.createRequest({
+          vaultId,
+          creator,
+          recipient,
+          asset,
+          amount,
+          memo,
+        });
+        const reqId = await api.lastRequestId();
+        if (reqId > 0) await refreshRequest(reqId);
+        await refreshVault(vaultId);
+        ctx.setStatus(ctx.t("toastRequestCreated", { id: reqId }), "success");
+        return { ...result, reqId };
+      } catch (err) {
+        ctx.setStatus(formatErrorMessage(err, ctx.t("toastCreateFailed")), "error");
+        return null;
+      } finally {
+        isProposing.set(false);
+      }
+    });
+
+    ctx.registerAction("approveRequest", async (...args: unknown[]) => {
+      const reqId = parseVaultId(args[0] ?? activeRequest.get()?.id);
+      if (reqId <= 0) {
+        ctx.setStatus(ctx.t("toastNoRequest"), "error");
+        return null;
+      }
+
+      isApproving.set(true);
+      try {
+        const signer = await chain.ensureWallet();
+        const result = await api.approve(reqId, signer);
+        const request = await refreshRequest(reqId);
+        if (request?.vaultId) await refreshVault(request.vaultId);
+        if (request?.status === "executed") {
+          ctx.setStatus(ctx.t("toastRequestExecuted"), "success");
+        } else {
+          ctx.setStatus(ctx.t("toastApproved"), "success");
+        }
+        return result;
+      } catch (err) {
+        ctx.setStatus(formatErrorMessage(err, ctx.t("toastApproveFailed")), "error");
+        return null;
+      } finally {
+        isApproving.set(false);
+      }
+    });
+
+    ctx.registerAction("cancelRequest", async (...args: unknown[]) => {
+      const reqId = parseVaultId(args[0] ?? activeRequest.get()?.id);
+      if (reqId <= 0) {
+        ctx.setStatus(ctx.t("toastNoRequest"), "error");
+        return null;
+      }
+
+      isCancelling.set(true);
+      try {
+        const caller = await chain.ensureWallet();
+        const result = await api.cancel(reqId, caller);
+        await refreshRequest(reqId);
+        ctx.setStatus(ctx.t("toastCancelled"), "success");
+        return result;
+      } catch (err) {
+        ctx.setStatus(formatErrorMessage(err, ctx.t("toastCancelFailed")), "error");
+        return null;
+      } finally {
+        isCancelling.set(false);
+      }
+    });
+
+    ctx.registerAction("loadVault", async (...args: unknown[]) => {
+      const vaultId = parseVaultId(args[0]);
+      if (vaultId <= 0) {
+        ctx.setStatus(ctx.t("toastNoVault"), "error");
+        return null;
+      }
+      isLoading.set(true);
+      try {
+        const vault = await refreshVault(vaultId);
+        if (!vault) {
+          ctx.setStatus(ctx.t("toastVaultNotFound", { id: vaultId }), "error");
+          return null;
+        }
+        ctx.setStatus(ctx.t("toastVaultLoaded", { id: vaultId }), "success");
+        return vault;
+      } catch (err) {
+        ctx.setStatus(formatErrorMessage(err, ctx.t("toastLoadFailed")), "error");
+        return null;
+      } finally {
+        isLoading.set(false);
+      }
+    });
+
+    ctx.registerAction("loadRequest", async (...args: unknown[]) => {
+      const reqId = parseVaultId(args[0]);
+      if (reqId <= 0) {
+        ctx.setStatus(ctx.t("toastNoRequest"), "error");
+        return null;
+      }
+      isLoading.set(true);
+      try {
+        const request = await refreshRequest(reqId);
+        if (!request) {
+          ctx.setStatus(ctx.t("toastRequestNotFound", { id: reqId }), "error");
+          return null;
+        }
+        ctx.setStatus(ctx.t("toastRequestLoaded", { id: reqId }), "success");
         return request;
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : ctx.t("toastCreateFailed");
-        ctx.setStatus(`${ctx.t("toastCreateFailed")} ${message}`, "error");
+        ctx.setStatus(formatErrorMessage(err, ctx.t("toastLoadFailed")), "error");
         return null;
       } finally {
-        isCreatingRequest.set(false);
-      }
-    });
-
-    ctx.registerAction("loadTransaction", async (...args: unknown[]) => {
-      const id = args[0] as string;
-      if (!id) {
-        ctx.setStatus(ctx.t("toastNoId"), "error");
-        return null;
-      }
-
-      isLoadingRequest.set(true);
-      try {
-        const request = await api.get(id.trim());
-        selectedRequest.set(request);
-        addToHistory({
-          id: request.id,
-          scriptHash: request.script_hash,
-          status: request.status,
-          createdAt: request.created_at,
-        });
-        updateHistoryItem(request.id, { status: request.status });
-        ctx.setStatus(
-          ctx.t("toastRequestLoaded", { id: request.id.slice(0, 8) }),
-          "success",
-        );
-        return request;
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : ctx.t("toastLoadFailed");
-        ctx.setStatus(`${ctx.t("toastLoadFailed")} ${message}`, "error");
-        return null;
-      } finally {
-        isLoadingRequest.set(false);
-      }
-    });
-
-    // Sign the currently-loaded request with the connected wallet and append
-    // the signature to the shared record so other signers can see progress.
-    ctx.registerAction("signRequest", async (...args: unknown[]) => {
-      const id = (args[0] as string) || selectedRequest.get()?.id || "";
-      if (!id) {
-        ctx.setStatus(ctx.t("toastNoId"), "error");
-        return null;
-      }
-
-      isSigningRequest.set(true);
-      try {
-        const request = await api.get(id.trim());
-        if (request.status === "broadcasted") {
-          ctx.setStatus(ctx.t("toastBroadcastSuccess"), "info");
-          selectedRequest.set(request);
-          return request;
-        }
-
-        // Each signer signs the canonical transaction sign-data so the
-        // signature is valid inside the multisig witness.
-        const signData = getRequestSignData(
-          request.transaction_hex,
-          request.chain_id,
-        );
-        const signed = await chain.signMessage(signData);
-        const extracted = extractSignature(signed);
-        if (!extracted) {
-          ctx.setStatus(ctx.t("toastSignFailed"), "error");
-          return null;
-        }
-
-        // Only listed public keys may approve the request.
-        const signerKey = normalizePublicKey(extracted.publicKey);
-        const isAuthorized = request.signers
-          .map(normalizePublicKey)
-          .includes(signerKey);
-        if (!isAuthorized) {
-          ctx.setStatus(ctx.t("toastNotSigner"), "error");
-          return null;
-        }
-
-        // The signature must verify against the exact transaction sign-data
-        // under the signer's public key, otherwise it is worthless inside the
-        // multisig witness and would only be discovered at broadcast time.
-        // Rejecting it here prevents an invalid signature from counting toward
-        // the threshold and falsely advancing the request to 'ready'.
-        if (!verifySignature(signData, extracted.signature, signerKey)) {
-          ctx.setStatus(ctx.t("toastSignatureInvalid"), "error");
-          return null;
-        }
-
-        const updated = await api.addSignature(
-          request.id,
-          signerKey,
-          extracted.signature,
-        );
-        selectedRequest.set(updated);
-        updateHistoryItem(updated.id, { status: updated.status });
-        if (lastRequest.get()?.id === updated.id) lastRequest.set(updated);
-        ctx.setStatus(ctx.t("toastSignSuccess"), "success");
-        return updated;
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : ctx.t("toastSignFailed");
-        ctx.setStatus(`${ctx.t("toastSignFailed")} ${message}`, "error");
-        return null;
-      } finally {
-        isSigningRequest.set(false);
-      }
-    });
-
-    // Assemble the multisig witness from collected signatures and relay the
-    // transaction once the threshold is met.
-    ctx.registerAction("broadcastRequest", async (...args: unknown[]) => {
-      const id = (args[0] as string) || selectedRequest.get()?.id || "";
-      if (!id) {
-        ctx.setStatus(ctx.t("toastNoId"), "error");
-        return null;
-      }
-
-      isBroadcastingRequest.set(true);
-      try {
-        const request = await api.get(id.trim());
-        if (request.broadcast_txid) {
-          ctx.setStatus(ctx.t("toastBroadcastSuccess"), "info");
-          selectedRequest.set(request);
-          return request;
-        }
-
-        const ordered = orderSignatures(
-          request.signers,
-          request.signatures,
-          request.threshold,
-        );
-        if (!ordered) {
-          ctx.setStatus(ctx.t("toastNotEnoughSignatures"), "error");
-          return null;
-        }
-
-        const signedTxHex = assembleSignedTransaction({
-          transactionHex: request.transaction_hex,
-          signers: request.signers,
-          threshold: request.threshold,
-          signatures: request.signatures,
-        });
-        const txid = await broadcastTransaction(request.chain_id, signedTxHex);
-
-        const updated = await api.updateStatus(
-          request.id,
-          "broadcasted",
-          txid,
-        );
-        selectedRequest.set(updated);
-        updateHistoryItem(updated.id, { status: updated.status });
-        if (lastRequest.get()?.id === updated.id) lastRequest.set(updated);
-        ctx.setStatus(ctx.t("toastBroadcastSuccess"), "success");
-        return updated;
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : ctx.t("toastBroadcastFailed");
-        ctx.setStatus(`${ctx.t("toastBroadcastFailed")} ${message}`, "error");
-        return null;
-      } finally {
-        isBroadcastingRequest.set(false);
+        isLoading.set(false);
       }
     });
 
     return {
       state: refsToObservables({
         history,
+        vaultCount,
         pendingCount,
         completedCount,
-        totalTxs,
-        lastRequest,
-        selectedRequest,
+        totalActions,
         connectedAddress,
-        isCreatingRequest,
-        isLoadingRequest,
-        isSigningRequest,
-        isBroadcastingRequest,
+        activeVault,
+        activeRequest,
+        isCreatingVault,
+        isDepositing,
+        isProposing,
+        isApproving,
+        isCancelling,
+        isLoading,
       }),
       loadData: async () => {
-        await syncHistoryFromStorage();
+        // Reconcile any locally-known vaults/requests against fresh chain reads
+        // so balances and statuses are current when the app mounts.
+        const items = history.get();
+        for (const item of items) {
+          try {
+            if (item.kind === "vault") {
+              await refreshVault(item.id);
+            } else {
+              await refreshRequest(item.id);
+            }
+          } catch {
+            // A stale id (e.g. wrong network) should not break the load.
+          }
+        }
       },
+      cleanup: stopAddressSync,
     };
   },
 });
