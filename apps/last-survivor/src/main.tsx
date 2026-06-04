@@ -67,6 +67,8 @@ defineMiniApp({
         formattedRound: game.formattedRound,
         totalPotDisplay: game.totalPotDisplay,
         roundStatusDisplay: game.roundStatusDisplay,
+        totalKeysDisplay: game.totalKeysDisplay,
+        userSharePercent: game.userSharePercent,
         needsLifecycleSync: game.needsLifecycleSync,
         estimatedCost: game.estimatedCost,
       },

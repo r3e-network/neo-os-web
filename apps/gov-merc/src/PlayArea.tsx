@@ -1,4 +1,4 @@
-import { NeoCard } from "@shared/components-react";
+import { NeoCard, NeoButton } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import MercHeroStats from "./components/MercHeroStats";
@@ -22,10 +22,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const dataLoading = bool("dataLoading");
   const address = str("address", "");
   const userDepositsDisplay = str("userDepositsDisplay", "0 NEO");
+  const userDeposits = val<number>("userDeposits", 0) ?? 0;
   const depositAmount = str("depositAmount");
   const withdrawAmount = str("withdrawAmount");
   const bidAmount = str("bidAmount");
   const bidCount = num("bidCount");
+  const canSettle = bool("canSettle");
+  const lastSettlementDisplay = str("lastSettlementDisplay", "");
 
   const setAmountValue = (key: AmountField, value: string) => {
     state[key]?.set(value);
@@ -78,6 +81,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               depositAmount={depositAmount}
               withdrawAmount={withdrawAmount}
               bidAmount={bidAmount}
+              userDeposits={userDeposits}
               onAmountChange={setAmountValue}
               dispatch={dispatch}
             />
@@ -110,6 +114,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <strong>{bidCount}</strong>
           </div>
           <MercBidsList t={t} bids={bids} />
+        </NeoCard>
+
+        <NeoCard variant="erobo" className="gov-merc-settle-panel">
+          <div className="gov-merc-section-heading">
+            <span>{t("settleTitle")}</span>
+            <strong>{`#${currentEpoch}`}</strong>
+          </div>
+          <p>{t("settleCopy")}</p>
+          <div className="gov-merc-settle-last">
+            <span>{t("settleLastLabel")}</span>
+            <strong>{lastSettlementDisplay || t("settleNone")}</strong>
+          </div>
+          <NeoButton
+            variant="primary"
+            loading={isBusy}
+            disabled={isBusy || !canSettle}
+            onClick={() => dispatch("settleEpoch")}
+          >
+            {t("flowInfluence")}
+          </NeoButton>
+          {!canSettle && !isBusy ? (
+            <p className="gov-merc-settle-hint">{t("settleNoBidsHint")}</p>
+          ) : null}
         </NeoCard>
 
         <NeoCard variant="erobo" className="gov-merc-risk-panel">

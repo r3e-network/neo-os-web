@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import {
   buildConfidentialTransferPackage,
@@ -106,6 +106,14 @@ function setObservable(state: PlayAreaProps["state"], key: string, value: unknow
   }
 }
 
+// The header "Network" stat tile binds to the `networkLabel` observable, which
+// otherwise stays at its "Neo N3" seed value. Keep it in lock-step with the
+// in-form Network select so the visible indicator always names the network the
+// ciphertext actually targets.
+function networkLabelFor(network: string) {
+  return network === "mainnet" ? "Mainnet" : "Testnet";
+}
+
 export default function PlayArea({ state, setStatus }: PlayAreaProps) {
   const [recipient, setRecipient] = useState("");
   const [asset, setAsset] = useState("GAS");
@@ -116,6 +124,59 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
     status: "idle",
     message: "Ready to seal private transfer details locally.",
   });
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // The `networkLabel` observable seeds with the chain family ("Neo N3"); keep
+  // the header stat tile tracking the active network the moment the form mounts
+  // and whenever the selection changes, so it never lies about the target.
+  useEffect(() => {
+    setObservable(state, "networkLabel", networkLabelFor(network));
+  }, [network, state]);
+
+  const handleNetworkChange = useCallback(
+    (value: string) => {
+      setNetwork(value);
+      setObservable(state, "networkLabel", networkLabelFor(value));
+    },
+    [state],
+  );
+
+  // Switching GAS -> NEO leaves a fractional amount (e.g. "1.5") that NEO can
+  // never settle, plus a now-stale GAS preset highlight. Re-floor to the whole
+  // unit so the field matches the new asset's constraints instead of forcing an
+  // invalid-input round trip.
+  const handleAssetChange = useCallback(
+    (value: string) => {
+      setAsset(value);
+      const nextIsNeo = value.trim().toUpperCase() === "NEO";
+      if (nextIsNeo) {
+        setAmount((current) => {
+          const trimmed = current.trim();
+          if (!trimmed || !trimmed.includes(".")) {
+            return current;
+          }
+          const whole = trimmed.split(".")[0] ?? "";
+          return /^\d+$/.test(whole) && BigInt(whole) > 0n ? whole : "";
+        });
+      }
+    },
+    [],
+  );
+
+  const copyValue = useCallback(async (field: string, value: string) => {
+    if (!value || !navigator.clipboard?.writeText) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      window.setTimeout(() => {
+        setCopiedField((current) => (current === field ? null : current));
+      }, 1500);
+    } catch {
+      setCopiedField(null);
+    }
+  }, []);
   const isNeo = asset.trim().toUpperCase() === "NEO";
   const recipientInvalid =
     recipient.trim().length > 0 && !isValidNeoAddress(recipient);
@@ -277,7 +338,7 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
               <span>Network</span>
               <select
                 value={network}
-                onChange={(event) => setNetwork(event.target.value)}
+                onChange={(event) => handleNetworkChange(event.target.value)}
               >
                 <option value="testnet">Testnet</option>
                 <option value="mainnet">Mainnet</option>
@@ -287,7 +348,7 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
               <span>Asset</span>
               <select
                 value={asset}
-                onChange={(event) => setAsset(event.target.value)}
+                onChange={(event) => handleAssetChange(event.target.value)}
               >
                 <option>GAS</option>
                 <option>NEO</option>
@@ -406,18 +467,35 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
           )}
           {submitState.status === "stored" && (
             <dl>
-              <div>
-                <dt>Secret ref</dt>
-                <dd>{submitState.secretRef}</dd>
-              </div>
-              <div>
-                <dt>Commitment</dt>
-                <dd>{submitState.noteCommitment}</dd>
-              </div>
-              <div>
-                <dt>Nullifier</dt>
-                <dd>{submitState.nullifier}</dd>
-              </div>
+              {(
+                [
+                  ["secretRef", "Secret ref", submitState.secretRef],
+                  ["commitment", "Commitment", submitState.noteCommitment],
+                  ["nullifier", "Nullifier", submitState.nullifier],
+                ] as const
+              ).map(([field, label, value]) => (
+                <div key={field}>
+                  <dt>{label}</dt>
+                  <div className="private-transfer__copy-row">
+                    <dd>{value}</dd>
+                    <button
+                      type="button"
+                      className="private-transfer__copy-button"
+                      onClick={() => copyValue(field, value)}
+                      aria-label={
+                        copiedField === field
+                          ? `${label} copied`
+                          : `Copy ${label}`
+                      }
+                      title={copiedField === field ? "Copied" : "Copy"}
+                    >
+                      <span aria-hidden="true">
+                        {copiedField === field ? "✓ Copied" : "⧉ Copy"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </dl>
           )}
         </aside>

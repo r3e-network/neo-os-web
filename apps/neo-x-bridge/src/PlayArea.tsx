@@ -25,9 +25,9 @@ const GAS_PRESETS = ["0.1", "1", "5"];
 type WorkspaceMode = "asset" | "message" | "track";
 type DirectionValue = "n3-to-neox" | "neox-to-n3";
 
-const DIRECTION_OPTIONS: Array<{ value: DirectionValue; label: string }> = [
-  { value: "n3-to-neox", label: "Neo N3 -> Neo X" },
-  { value: "neox-to-n3", label: "Neo X -> Neo N3" },
+const DIRECTION_OPTIONS: Array<{ value: DirectionValue; labelKey: string }> = [
+  { value: "n3-to-neox", labelKey: "routeN3ToNeoX" },
+  { value: "neox-to-n3", labelKey: "routeNeoXToN3" },
 ];
 
 const STRICT_DECIMAL = /^\d+(\.\d+)?$/;
@@ -108,6 +108,7 @@ export default function PlayArea({
   const [targetContract, setTargetContract] = useState("");
   const [targetMethod, setTargetMethod] = useState("onCrossChainMessage");
   const [messagePayload, setMessagePayload] = useState("");
+  const [messagePayloadTouched, setMessagePayloadTouched] = useState(false);
   const [gasLimit, setGasLimit] = useState("250000");
   const [trackKind, setTrackKind] = useState<"asset" | "message">("asset");
   const [trackDirection, setTrackDirection] =
@@ -131,6 +132,8 @@ export default function PlayArea({
   const targetContractInvalid =
     targetContract.trim().length > 0 &&
     !isValidTargetAddress(messageDirection, targetContract);
+  const messagePayloadInvalid =
+    messagePayloadTouched && messagePayload.trim().length === 0;
   const canPrepareAsset =
     isPositiveAmount(assetAmount) &&
     isValidTargetAddress(assetDirection, assetRecipient);
@@ -158,14 +161,14 @@ export default function PlayArea({
         const message =
           error instanceof Error
             ? error.message
-            : "Bridge handoff could not be prepared.";
+            : t("errBridgeGeneric");
         setActionError(message);
         setStatus(message, "error");
       } finally {
         setPendingMode(null);
       }
     },
-    [setStatus],
+    [setStatus, t],
   );
 
   useEffect(() => {
@@ -198,7 +201,7 @@ export default function PlayArea({
               amount: nextAmount,
               recipient: nextRecipient,
             }),
-          "Asset bridge handoff prepared.",
+          t("noticeAssetReady"),
         );
       }
       return;
@@ -235,7 +238,7 @@ export default function PlayArea({
               payload: nextPayload,
               gasLimit: nextGasLimit,
             }),
-          "Message bridge intent prepared.",
+          t("noticeMessageReady"),
         );
       }
       return;
@@ -264,13 +267,14 @@ export default function PlayArea({
               operationId: nextOperationId,
               sourceTx: nextSourceTx,
             }),
-          "Bridge tracking timeline refreshed.",
+          t("noticeTrackingReady"),
         );
       }
     }
   }, [
     dispatch,
     runWorkspaceAction,
+    t,
     launchContext?.operation,
     launchContext?.params,
     launchContext?.signature,
@@ -296,12 +300,13 @@ export default function PlayArea({
           amount: assetAmount,
           recipient: assetRecipient,
         }),
-      "Asset bridge handoff prepared.",
+      t("noticeAssetReady"),
     );
   }
 
   async function prepareMessageBridge() {
     if (!canPrepareMessage) {
+      setMessagePayloadTouched(true);
       const message = t("errMessageForm");
       setActionError(message);
       setStatus(message, "error");
@@ -317,7 +322,7 @@ export default function PlayArea({
           payload: messagePayload,
           gasLimit,
         }),
-      "Message bridge intent prepared.",
+      t("noticeMessageReady"),
     );
   }
 
@@ -337,52 +342,49 @@ export default function PlayArea({
           operationId,
           sourceTx,
         }),
-      "Bridge tracking timeline refreshed.",
+      t("noticeTrackingReady"),
     );
   }
 
   return (
     <div className="neo-x-bridge-play-area">
-      <section className="bridge-console-hero" aria-label="Neo X bridge overview">
+      <section className="bridge-console-hero" aria-label={t("heroAria")}>
         <div className="bridge-hero-copy">
           <span className="bridge-hero-badge" aria-hidden="true">
             <ArrowLeftRight size={22} />
           </span>
-          <span className="bridge-eyebrow">AxLabs / BaneLabs Bridge Console</span>
-          <h2>Neo N3 and Neo X cross-chain control</h2>
-          <p>
-            One production-facing surface for official bridge handoffs, arbitrary MessageBridge
-            payloads, and lifecycle tracking from source transaction to destination finalization.
-          </p>
+          <span className="bridge-eyebrow">{t("heroEyebrow")}</span>
+          <h2>{t("heroTitle")}</h2>
+          <p>{t("heroBody")}</p>
         </div>
-        <div className="bridge-route-card" aria-label="Active route">
+        <div className="bridge-route-card" aria-label={t("routeAria")}>
           <div className="route-node">
             <span>Neo N3</span>
-            <small>NEP-21 / NeoLine</small>
+            <small>{t("routeN3Wallet")}</small>
           </div>
           <ArrowLeftRight size={22} aria-hidden="true" />
           <div className="route-node">
-            <span>Neo X</span>
-            <small>EVM / MetaMask</small>
+            <span>{t("neoX")}</span>
+            <small>{t("routeNeoXWallet")}</small>
           </div>
         </div>
       </section>
 
-      <div className="bridge-metrics-strip" aria-label="Bridge console status">
+      <div className="bridge-metrics-strip" aria-label={t("metricsAria")}>
         <span className="strip-metric">
-          <small>Route</small>
+          <small>{t("metricRoute")}</small>
           <strong>{lastRoute}</strong>
         </span>
         <span className="strip-metric">
-          <small>Bridge Type</small>
+          <small>{t("bridgeKind")}</small>
           <strong>{lastKind}</strong>
         </span>
         <span className="strip-metric">
-          <small>Status</small>
+          <small>{t("metricStatus")}</small>
           <strong>{lastStatus}</strong>
         </span>
         <span className="strip-metric">
-          <small>Digest</small>
+          <small>{t("statDigest")}</small>
           <strong className="strip-metric--mono">{compactHash(lastDigest)}</strong>
         </span>
       </div>
@@ -390,15 +392,15 @@ export default function PlayArea({
       <NeoCard variant="erobo" className="bridge-action-card">
         <div className="bridge-action-head">
           <div>
-            <span className="module-kicker">Bridge workspace</span>
-            <h3>Build cross-chain handoff</h3>
+            <span className="module-kicker">{t("workspaceKicker")}</span>
+            <h3>{t("workspaceTitle")}</h3>
           </div>
-          <div className="bridge-mode-tabs" role="tablist" aria-label="Bridge workspace mode">
-            {[
-              ["asset", "Asset"],
-              ["message", "Message"],
-              ["track", "Track"],
-            ].map(([mode, label]) => (
+          <div className="bridge-mode-tabs" role="tablist" aria-label={t("workspaceModeAria")}>
+            {([
+              ["asset", "tabAsset"],
+              ["message", "tabMessage"],
+              ["track", "tabTrack"],
+            ] as const).map(([mode, labelKey]) => (
               <button
                 key={mode}
                 type="button"
@@ -409,7 +411,7 @@ export default function PlayArea({
                 }`}
                 onClick={() => setWorkspaceMode(mode as WorkspaceMode)}
               >
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>
@@ -418,7 +420,7 @@ export default function PlayArea({
         {workspaceMode === "asset" && (
           <div className="bridge-form-grid">
             <label className="bridge-select-field">
-              <span>Direction</span>
+              <span>{t("direction")}</span>
               <select
                 value={assetDirection}
                 onChange={(event) =>
@@ -427,21 +429,21 @@ export default function PlayArea({
               >
                 {DIRECTION_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.labelKey)}
                   </option>
                 ))}
               </select>
             </label>
             <NeoInput
               type="number"
-              label="Amount"
+              label={t("amount")}
               placeholder="0.1"
               suffix="GAS"
               value={assetAmount}
               error={assetAmountInvalid ? t("errAmountPositive") : ""}
               onChange={setAssetAmount}
             />
-            <div className="bridge-amount-presets" aria-label="GAS amount presets">
+            <div className="bridge-amount-presets" aria-label={t("amountPresetsAria")}>
               {GAS_PRESETS.map((preset) => (
                 <button
                   key={preset}
@@ -456,8 +458,8 @@ export default function PlayArea({
               ))}
             </div>
             <NeoInput
-              label="Destination address"
-              placeholder="Neo N3 or Neo X address"
+              label={t("destinationAddress")}
+              placeholder={t("destinationPlaceholder")}
               value={assetRecipient}
               error={
                 assetRecipientInvalid
@@ -469,9 +471,9 @@ export default function PlayArea({
             />
             <BridgeActionPreview
               items={[
-                ["Route", bridgeRouteLabel(assetDirection)],
-                ["Amount", isPositiveAmount(assetAmount) ? `${assetAmount} GAS` : "--"],
-                ["Recipient", assetRecipient || "--"],
+                [t("previewRoute"), bridgeRouteLabel(t, assetDirection)],
+                [t("previewAmount"), isPositiveAmount(assetAmount) ? `${assetAmount} GAS` : "--"],
+                [t("previewRecipient"), assetRecipient || "--"],
               ]}
             />
             <NeoButton
@@ -481,7 +483,7 @@ export default function PlayArea({
               loading={pendingMode === "asset"}
               onClick={prepareAssetBridge}
             >
-              Prepare asset handoff
+              {t("btnPrepareAsset")}
             </NeoButton>
           </div>
         )}
@@ -489,7 +491,7 @@ export default function PlayArea({
         {workspaceMode === "message" && (
           <div className="bridge-form-grid">
             <label className="bridge-select-field">
-              <span>Direction</span>
+              <span>{t("direction")}</span>
               <select
                 value={messageDirection}
                 onChange={(event) =>
@@ -498,14 +500,14 @@ export default function PlayArea({
               >
                 {DIRECTION_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.labelKey)}
                   </option>
                 ))}
               </select>
             </label>
             <NeoInput
-              label="Target contract"
-              placeholder="0x... or Neo script hash"
+              label={t("targetContract")}
+              placeholder={t("targetContractPlaceholder")}
               value={targetContract}
               error={
                 targetContractInvalid
@@ -515,14 +517,14 @@ export default function PlayArea({
               onChange={setTargetContract}
             />
             <NeoInput
-              label="Target method"
+              label={t("targetMethod")}
               placeholder="onCrossChainMessage"
               value={targetMethod}
               onChange={setTargetMethod}
             />
             <NeoInput
               type="number"
-              label="Gas limit"
+              label={t("gasLimit")}
               placeholder="250000"
               value={gasLimit}
               error={gasLimitInvalid ? t("errGasLimit") : ""}
@@ -530,17 +532,22 @@ export default function PlayArea({
             />
             <NeoInput
               type="textarea"
-              label="Message payload"
+              label={t("messagePayload")}
               placeholder='{"type":"signal","value":"..."}'
               value={messagePayload}
-              onChange={setMessagePayload}
+              error={messagePayloadInvalid ? t("messagePayloadRequired") : ""}
+              onChange={(value) => {
+                setMessagePayloadTouched(true);
+                setMessagePayload(value);
+              }}
+              onBlur={() => setMessagePayloadTouched(true)}
               className="bridge-field-wide"
             />
             <BridgeActionPreview
               items={[
-                ["Route", bridgeRouteLabel(messageDirection)],
-                ["Target", targetContract || "--"],
-                ["Payload", messagePayload ? "Ready" : "--"],
+                [t("previewRoute"), bridgeRouteLabel(t, messageDirection)],
+                [t("previewTarget"), targetContract || "--"],
+                [t("previewPayload"), messagePayload ? t("previewReady") : "--"],
               ]}
             />
             <NeoButton
@@ -550,7 +557,7 @@ export default function PlayArea({
               loading={pendingMode === "message"}
               onClick={prepareMessageBridge}
             >
-              Prepare message intent
+              {t("btnPrepareMessage")}
             </NeoButton>
           </div>
         )}
@@ -558,19 +565,19 @@ export default function PlayArea({
         {workspaceMode === "track" && (
           <div className="bridge-form-grid">
             <label className="bridge-select-field">
-              <span>Bridge type</span>
+              <span>{t("bridgeKind")}</span>
               <select
                 value={trackKind}
                 onChange={(event) =>
                   setTrackKind(event.target.value as "asset" | "message")
                 }
               >
-                <option value="asset">Asset Bridge</option>
-                <option value="message">Message Bridge</option>
+                <option value="asset">{t("assetBridge")}</option>
+                <option value="message">{t("messageBridge")}</option>
               </select>
             </label>
             <label className="bridge-select-field">
-              <span>Direction</span>
+              <span>{t("direction")}</span>
               <select
                 value={trackDirection}
                 onChange={(event) =>
@@ -579,28 +586,28 @@ export default function PlayArea({
               >
                 {DIRECTION_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.labelKey)}
                   </option>
                 ))}
               </select>
             </label>
             <NeoInput
-              label="Operation ID"
+              label={t("operationId")}
               placeholder="N3X-ASSET-..."
               value={operationId}
               onChange={setOperationId}
             />
             <NeoInput
-              label="Source transaction"
+              label={t("sourceTx")}
               placeholder="0x..."
               value={sourceTx}
               onChange={setSourceTx}
             />
             <BridgeActionPreview
               items={[
-                ["Bridge", trackKind === "message" ? "Message Bridge" : "Asset Bridge"],
-                ["Route", bridgeRouteLabel(trackDirection)],
-                ["Source tx", sourceTx ? compactHash(sourceTx) : "--"],
+                [t("previewBridge"), trackKind === "message" ? t("messageBridge") : t("assetBridge")],
+                [t("previewRoute"), bridgeRouteLabel(t, trackDirection)],
+                [t("previewSourceTx"), sourceTx ? compactHash(sourceTx) : "--"],
               ]}
             />
             <NeoButton
@@ -610,7 +617,7 @@ export default function PlayArea({
               loading={pendingMode === "track"}
               onClick={refreshTracking}
             >
-              Refresh tracking
+              {t("btnRefreshTracking")}
             </NeoButton>
           </div>
         )}
@@ -631,12 +638,12 @@ export default function PlayArea({
         <div className="bridge-output-grid">
         <NeoCard
           variant="erobo"
-          title="Generated bridge handoff"
+          title={t("outputTitle")}
           className="bridge-output-card"
           header={
-            <NeoButton size="sm" variant="ghost" aria-label="Copy generated JSON" onClick={copyPayload}>
+            <NeoButton size="sm" variant="ghost" aria-label={t("copyAria")} onClick={copyPayload}>
               <Copy size={15} aria-hidden="true" />
-              Copy
+              {t("copyLabel")}
             </NeoButton>
           }
         >
@@ -647,7 +654,7 @@ export default function PlayArea({
           <pre className="payload-preview">{payload}</pre>
         </NeoCard>
 
-        <NeoCard variant="erobo" title="Operation status" className="bridge-status-card">
+        <NeoCard variant="erobo" title={t("statusCardTitle")} className="bridge-status-card">
           <div className="timeline-list">
             {timeline.map((step) => (
               <div key={step.key} className={`timeline-step timeline-step--${step.state}`}>
@@ -671,15 +678,15 @@ export default function PlayArea({
         </div>
       )}
 
-      <div className="bridge-resource-row" aria-label="Bridge resources">
-        <ResourceLink label="Testnet Bridge" href={BRIDGE_RESOURCES.bridgeAppTestnet} />
-        <ResourceLink label="Asset Bridge Docs" href={BRIDGE_RESOURCES.assetBridgeDocs} />
-        <ResourceLink label="MessageBridge Docs" href={BRIDGE_RESOURCES.messageBridgeDocs} />
-        <ResourceLink label="BaneLabs SDK" href={BRIDGE_RESOURCES.bridgeSdk} />
+      <div className="bridge-resource-row" aria-label={t("resourcesAria")}>
+        <ResourceLink label={t("resTestnetBridge")} href={BRIDGE_RESOURCES.bridgeAppTestnet} />
+        <ResourceLink label={t("resAssetBridgeDocs")} href={BRIDGE_RESOURCES.assetBridgeDocs} />
+        <ResourceLink label={t("resMessageBridgeDocs")} href={BRIDGE_RESOURCES.messageBridgeDocs} />
+        <ResourceLink label={t("resBridgeSdk")} href={BRIDGE_RESOURCES.bridgeSdk} />
       </div>
 
       {operations.length > 0 && (
-        <NeoCard variant="erobo" title="Recent operations" className="bridge-recent-card">
+        <NeoCard variant="erobo" title={t("recentTitle")} className="bridge-recent-card">
           <div className="recent-operation-list">
             {operations.map((operation) => (
               <div key={operation.id} className="recent-operation">
@@ -695,8 +702,8 @@ export default function PlayArea({
   );
 }
 
-function bridgeRouteLabel(direction: DirectionValue) {
-  return direction === "neox-to-n3" ? "Neo X -> Neo N3" : "Neo N3 -> Neo X";
+function bridgeRouteLabel(t: PlayAreaProps["t"], direction: DirectionValue) {
+  return direction === "neox-to-n3" ? t("routeNeoXToN3") : t("routeN3ToNeoX");
 }
 
 function BridgeActionPreview({

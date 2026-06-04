@@ -36,9 +36,43 @@ function t(key: string) {
     attemptBreak: "Attempt Break",
     recentVaults: "Recent Vaults",
     noRecentVaults: "No vaults found",
+    myVaultsStat: "My Vaults",
+    openVaultsStat: "Open Vaults",
+    claimBounty: "Claim Bounty",
+    reclaimVault: "Reclaim Vault",
+    vaultStatus: "Status",
+    active: "Active",
+    broken: "Broken",
+    expired: "Expired",
+    attemptFee: "Attempt Fee",
+    secretAttemptLabel: "Break Secret",
+    attemptCostNote: "The attempt fee is charged on every try.",
+    bountyPaidNote: "This vault is broken — the bounty was paid to the winner.",
   };
   return messages[key] ?? key;
 }
+
+const activeVault = {
+  id: "7",
+  creator: "0xcreator",
+  status: "active",
+  winner: "",
+  attemptFee: 10000000,
+};
+const brokenVault = {
+  id: "7",
+  creator: "0xcreator",
+  status: "broken",
+  winner: "0xwinner",
+  attemptFee: 10000000,
+};
+const expiredVault = {
+  id: "7",
+  creator: "0xcreator",
+  status: "expired",
+  winner: "",
+  attemptFee: 10000000,
+};
 
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const values: Record<string, unknown> = {
@@ -118,5 +152,82 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(
       screen.getByRole("button", { name: "Create Vault (bounty + hash)" }),
     ).toHaveProperty("disabled", true);
+  });
+
+  it("labels the hero stat tiles with noun counts, not bare verbs", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({ myVaultCount: 3, recentVaultCount: 5 })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("My Vaults")).toBeTruthy();
+    expect(screen.getByText("Open Vaults")).toBeTruthy();
+  });
+
+  it("shows a Claim Bounty control and dispatches settleVault when the wallet is the winner", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          vaultIdInput: "7",
+          vaultDetails: brokenVault,
+          canClaim: true,
+          canReclaim: false,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const claimButton = screen.getByRole("button", { name: "Claim Bounty" });
+    fireEvent.click(claimButton);
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("settleVault");
+    });
+  });
+
+  it("offers Reclaim Vault to the creator of an expired vault", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          vaultIdInput: "7",
+          vaultDetails: expiredVault,
+          canClaim: false,
+          canReclaim: true,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Reclaim Vault" })).toBeTruthy();
+    // The break-secret input is hidden once a vault is no longer active.
+    expect(screen.queryByLabelText("Break Secret")).toBeNull();
+  });
+
+  it("hides claim/reclaim controls on an active vault and shows the attempt cost note", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          vaultIdInput: "7",
+          vaultDetails: activeVault,
+          canClaim: false,
+          canReclaim: false,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Claim Bounty" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Reclaim Vault" })).toBeNull();
+    expect(
+      screen.getByText("The attempt fee is charged on every try."),
+    ).toBeTruthy();
   });
 });

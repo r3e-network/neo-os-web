@@ -23,6 +23,35 @@ function t(key: string) {
     emptyPayloadHint: "Use the workspace to prepare an asset or message bridge handoff.",
     notAvailable: "Not available",
     statusReady: "Ready",
+    // i18n keys consumed by the bridge console view
+    direction: "Direction",
+    amount: "Amount",
+    destinationAddress: "Destination address",
+    destinationPlaceholder: "Neo N3 or Neo X address",
+    routeN3ToNeoX: "Neo N3 -> Neo X",
+    routeNeoXToN3: "Neo X -> Neo N3",
+    targetContract: "Target contract",
+    targetMethod: "Target method",
+    gasLimit: "Gas limit",
+    messagePayload: "Message payload",
+    messagePayloadRequired: "Enter a payload to send across the bridge.",
+    operationId: "Operation ID",
+    sourceTx: "Source transaction",
+    bridgeKind: "Bridge type",
+    assetBridge: "Asset Bridge",
+    messageBridge: "Message Bridge",
+    tabAsset: "Asset",
+    tabMessage: "Message",
+    tabTrack: "Track",
+    btnPrepareAsset: "Prepare asset handoff",
+    btnPrepareMessage: "Prepare message intent",
+    btnRefreshTracking: "Refresh tracking",
+    noticeAssetReady: "Asset bridge handoff prepared.",
+    noticeMessageReady: "Message bridge intent prepared.",
+    noticeTrackingReady: "Bridge tracking timeline refreshed.",
+    errBridgeGeneric: "Bridge handoff could not be prepared.",
+    errMessageForm:
+      "Enter a valid target contract, payload, and a gas limit of at least 21000.",
   };
   return messages[key] ?? key;
 }
@@ -116,6 +145,34 @@ describe("Neo X Bridge PlayArea", () => {
         gasLimit: "250000",
       });
     });
+  });
+
+  it("surfaces a required-payload error once the empty payload field is touched", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea {...props({ dispatch })} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Message" }));
+    const payload = screen.getByLabelText("Message payload");
+
+    // No error before the user interacts with the field.
+    expect(
+      screen.queryByText("Enter a payload to send across the bridge."),
+    ).toBeNull();
+
+    fireEvent.blur(payload);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Enter a payload to send across the bridge."),
+      ).toBeTruthy();
+    });
+    // The Prepare-message button stays disabled while the payload is empty.
+    expect(
+      (screen.getByRole("button", {
+        name: "Prepare message intent",
+      }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it("turns complete launch params into the matching bridge action", async () => {

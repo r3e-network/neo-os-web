@@ -149,6 +149,27 @@ const appMessages = {
   ariaStreams: { en: "Streams", zh: "流" },
   feature3Name: { en: "Cancelable", zh: "可取消" },
   feature3Desc: { en: "Creators can reclaim unvested funds at any time.", zh: "创建者可随时取回未释放余额。" },
+
+  // Shared-runtime example hero + transaction preview (neo-pay-shared-example).
+  // Defined here so the shared example localizes consistently with the form
+  // instead of falling back to inline English under the zh locale.
+  sharedRuntime: { en: "Shared runtime", zh: "共享运行时" },
+  sharedRuntimeTitle: { en: "NeoPay shared streams", zh: "NeoPay 共享资金流" },
+  sharedRuntimeSubtitle: {
+    en: "Create a funded payment stream through the shared vault and vesting modules.",
+    zh: "通过共享金库与释放模块创建已注资的流式支付。",
+  },
+  reviewStream: { en: "Complete stream details", zh: "请完善资金流信息" },
+  transactionPreview: { en: "Transaction preview", zh: "交易预览" },
+  clear: { en: "Clear", zh: "清空" },
+  // Daily linear release model: the preview rate is per day, so label it
+  // explicitly to match the derived schedule the contract receives.
+  releasePerDay: { en: "Release per day", zh: "每日释放" },
+  releasePerDayValue: { en: "{amount} {token} / day", zh: "{amount} {token} / 天" },
+  rateRoundsToZero: {
+    en: "Amount is too small for this duration — increase the amount or shorten the duration.",
+    zh: "相对该周期金额过小——请增加金额或缩短周期。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

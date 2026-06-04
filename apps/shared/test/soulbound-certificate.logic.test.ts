@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
 import { addressToScriptHash } from "../utils/neo";
@@ -14,6 +14,7 @@ function t(key: string) {
     issuedSuccess: "Certificate issued",
     revokeSuccess: "Certificate revoked",
     certificateValid: "Valid",
+    certificateRevoked: "Revoked",
     walletConnected: "Wallet connected",
     nameRequired: "Certificate name is required",
     issuerNameRequired: "Issuer name is required",
@@ -35,7 +36,8 @@ function t(key: string) {
   return messages[key] ?? key;
 }
 
-function setup() {
+function setup(options: { revoked?: boolean } = {}) {
+  const { revoked = false } = options;
   const invoke = vi.fn(async (operation: string) => ({
     txid: `0x${operation}`,
     event:
@@ -77,8 +79,8 @@ function setup() {
         achievement: "Advanced track",
         memo: "Cohort 1",
         issuedTime: 1780300000,
-        revoked: false,
-        revokedTime: 0,
+        revoked,
+        revokedTime: revoked ? 1780400000 : 0,
       };
     }
     return null;
@@ -182,5 +184,60 @@ describe("useSoulbound contract intents", () => {
       ],
       { waitForEvent: "CertificateRevoked", waitTimeoutMs: 30000 },
     );
+  });
+
+  it("reports a valid lookup with the Valid status message", async () => {
+    const { soulbound } = setup({ revoked: false });
+
+    await soulbound.verifyCertificate({ tokenId: "0x0700000000000001" });
+
+    expect(soulbound.verifiedCertificate.get()?.revoked).toBe(false);
+    expect(soulbound.lastSuccess.get()).toBe("Valid");
+  });
+
+  it("does not claim a revoked certificate is Valid in the status strip", async () => {
+    const { soulbound } = setup({ revoked: true });
+
+    const cert = await soulbound.verifyCertificate({ tokenId: "0x0700000000000001" });
+
+    expect(cert?.revoked).toBe(true);
+    expect(soulbound.verifiedCertificate.get()?.revoked).toBe(true);
+    // Status strip must reflect the actual revocation status, never "Valid".
+    expect(soulbound.lastSuccess.get()).toBe("Revoked");
+    expect(soulbound.lastSuccess.get()).not.toBe("Valid");
+  });
+});
+
+describe("useSoulbound issue-link deep link", () => {
+  const originalHref = window.location.href;
+
+  afterEach(() => {
+    window.history.replaceState({}, "", originalHref);
+  });
+
+  it("ignores the deep link when no issue-link params are present", () => {
+    window.history.replaceState({}, "", "/miniapps/miniapp-soulbound-certificate");
+    const { soulbound } = setup();
+
+    expect(soulbound.deepLinkTemplateId.get()).toBe("");
+    expect(soulbound.deepLinkAutoIssue.get()).toBe(false);
+  });
+
+  it("surfaces issueTemplateId and autoIssueDraft from a copied issue link", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/miniapps/miniapp-soulbound-certificate?issueTemplateId=7&autoIssueDraft=1",
+    );
+    const { soulbound } = setup();
+
+    expect(soulbound.deepLinkTemplateId.get()).toBe("7");
+    expect(soulbound.deepLinkAutoIssue.get()).toBe(true);
+
+    // Once the view applies the prefill it can clear the launch flag so the
+    // user is free to edit the template id afterwards.
+    soulbound.consumeDeepLink();
+    expect(soulbound.deepLinkTemplateId.get()).toBe("");
+    expect(soulbound.deepLinkAutoIssue.get()).toBe(false);
   });
 });

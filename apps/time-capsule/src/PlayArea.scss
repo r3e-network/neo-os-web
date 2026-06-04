@@ -26,8 +26,9 @@ $accent-soft: #e4f8f0;
     }
   }
 
-  // Soft-tinted disabled primary — preserves the violet affordance instead of
-  // collapsing to a flat grey bar that reads as broken.
+  // Soft-tinted disabled primary — keeps the green brand-soft affordance
+  // ($accent-soft tint + muted green text) instead of collapsing to a flat grey
+  // bar that reads as broken.
   .neo-btn--primary:disabled {
     background: $accent-soft;
     border-color: transparent;
@@ -65,8 +66,10 @@ $accent-soft: #e4f8f0;
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    // Single custom chevron — replaces the default OS double-chevron.
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236a4df4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    // Single custom chevron — replaces the default OS double-chevron. Stroke is
+    // the neutral ink (#5b6478) so the affordance stays on the green-accent
+    // design system instead of the stray violet it carried before.
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235b6478' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 14px center;
     transition: border-color 0.16s ease, box-shadow 0.16s ease;

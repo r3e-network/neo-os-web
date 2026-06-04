@@ -53,6 +53,17 @@ defineMiniApp({
       }
     });
 
+    ctx.registerAction("settleVault", async () => {
+      const result = await breaker.settleVault();
+      if (!result) return; // guard not satisfied — winner/creator only
+      const successKey = result.mode === "claim" ? "bountyClaimed" : "vaultReclaimed";
+      if (result.success) {
+        ctx.setStatus(t(successKey), "success");
+      } else {
+        ctx.setStatus(t("settleFailed"), "error");
+      }
+    });
+
     ctx.registerAction("createVault", async (form: unknown) => {
       await creator.createVault(
         form as Parameters<typeof creator.createVault>[0],
@@ -91,7 +102,10 @@ defineMiniApp({
         myVaults: creator.myVaults,
         isLoading: breaker.isLoading,
         isCreating: creator.isCreating,
+        isClaiming: breaker.isClaiming,
         canAttempt: breaker.canAttempt,
+        canClaim: breaker.canClaim,
+        canReclaim: breaker.canReclaim,
       }),
       loadData: async () => {
         await Promise.all([breaker.loadRecentVaults(), creator.loadMyVaults()]);

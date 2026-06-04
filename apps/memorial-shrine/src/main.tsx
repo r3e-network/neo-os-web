@@ -61,6 +61,7 @@ defineMiniApp({
       state: refsToObservables({
         memorials: shrine.memorials,
         visitedMemorials: shrine.visitedMemorials,
+        myTributes: shrine.myTributes,
         recentObituaries: shrine.recentObituaries,
         selectedMemorial: shrine.selectedMemorial,
         memorialCount: shrine.memorialCount,

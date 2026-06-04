@@ -293,6 +293,7 @@
   grid-template-areas:
     "title status"
     "subtitle status"
+    "details details"
     "actions actions";
   gap: 4px 12px;
   align-items: center;
@@ -301,6 +302,41 @@
   border: 1px solid var(--me-line);
   border-radius: var(--me-radius-inner);
   box-shadow: var(--me-shadow);
+}
+
+/* Amount / asset / released / milestone-progress rows on each escrow card. */
+.escrow-details {
+  grid-area: details;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--me-line);
+}
+
+.escrow-detail {
+  font-size: 12px;
+  color: var(--me-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.escrow-detail--amount {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--me-ink);
+}
+
+.escrow-detail--progress {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--me-surface-subtle);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--me-muted);
 }
 
 .escrow-title {
@@ -506,6 +542,115 @@
   border-color: var(--me-line);
   color: var(--me-accent-strong);
   box-shadow: var(--ns-shadow-sm, 0 2px 6px rgba(20, 22, 38, 0.08));
+}
+
+/* Milestone repeater — 1-12 staged-release amount inputs + running total. */
+.milestone-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--me-surface-subtle);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-sm);
+}
+
+.milestone-fields__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--me-muted);
+}
+
+.milestone-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.milestone-row__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.milestone-row__remove {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  margin-bottom: 1px;
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-sm);
+  background: var(--me-surface);
+  color: #c81e2a;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    background: #fde7e9;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(200, 30, 42, 0.22);
+  }
+}
+
+.milestone-fields__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.milestone-add {
+  padding: 8px 14px;
+  border: 1px dashed var(--me-accent);
+  border-radius: var(--me-radius-sm);
+  background: var(--me-accent-soft);
+  color: var(--me-accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #d4f3e6;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.28);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.milestone-total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.milestone-total__label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--me-muted);
+}
+
+.milestone-total__value {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--me-ink);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Mobile ---------- */

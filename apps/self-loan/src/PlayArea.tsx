@@ -49,6 +49,13 @@ interface LtvOptionData {
   desc?: string;
 }
 
+interface LoanHistoryEntry {
+  icon: string;
+  label: string;
+  amount: number;
+  timestamp: string;
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
@@ -68,6 +75,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const neoBalanceDisplay = str("neoBalanceDisplay");
   const hasLoanDisplay = str("hasLoanDisplay");
   const healthFactorDisplay = str("healthFactorDisplay");
+  const healthMetricLabel = str("healthMetricLabel");
   const currentLTVDisplay = str("currentLTVDisplay");
   const collateralDisplay = str("collateralDisplay");
   const borrowedDisplay = str("borrowedDisplay");
@@ -80,6 +88,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const stats = val<StatsData>("stats");
   const selectedTier = num("selectedLtv", 1);
   const ltvOptions = val<LtvOptionData[]>("ltvOptions") ?? [];
+  const loanHistory = val<LoanHistoryEntry[]>("loanHistory") ?? [];
 
   /* ---------- Local form state ---------- */
   const [localCollateralAmt, setLocalCollateralAmt] = useState("");
@@ -284,7 +293,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="selfloan-health">
               <div className="selfloan-health-header">
                 <span className="selfloan-health-label">
-                  {t("healthFactor") || "Health Factor"}
+                  {healthMetricLabel || t("healthFactor") || "Health Factor"}
                 </span>
                 <span
                   className="selfloan-health-value"
@@ -397,17 +406,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <div className="selfloan-cta">
-            <NeoButton
-              variant="primary"
-              block
-              loading={isBorrowing}
-              disabled={!localCollateralAmt || isBorrowing || !isConnected}
-              onClick={handleBorrow}
-            >
-              {isConnected
-                ? t("borrow") || "Borrow"
-                : t("connectWallet") || "Connect Wallet"}
-            </NeoButton>
+            {isConnected ? (
+              <NeoButton
+                variant="primary"
+                block
+                loading={isBorrowing}
+                disabled={!localCollateralAmt || isBorrowing}
+                onClick={handleBorrow}
+              >
+                {t("borrow") || "Borrow"}
+              </NeoButton>
+            ) : (
+              <div className="selfloan-connect-prompt" role="note">
+                <span className="selfloan-connect-prompt-icon" aria-hidden="true">
+                  {"🔒"}
+                </span>
+                <span className="selfloan-connect-prompt-text">
+                  {t("connectWalletToUse") || "Connect wallet to use Self Loan"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </NeoCard>
@@ -469,6 +487,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {t("addCollateral") || "Add Collateral"}
             </NeoButton>
           </div>
+        </NeoCard>
+      )}
+
+      {/* ==================== Loan History ==================== */}
+      {(loanHistory.length > 0 || hasLoan) && (
+        <NeoCard variant="erobo" title={t("loanHistory") || "Loan History"}>
+          {loanHistory.length > 0 ? (
+            <ul className="selfloan-history">
+              {loanHistory.map((entry, index) => (
+                <li
+                  className="selfloan-history-item"
+                  key={`${entry.label}-${entry.timestamp}-${index}`}
+                >
+                  <span className="selfloan-history-icon" aria-hidden="true">
+                    {entry.icon}
+                  </span>
+                  <span className="selfloan-history-label">{entry.label}</span>
+                  <span className="selfloan-history-timestamp">{entry.timestamp}</span>
+                  {entry.amount > 0 && (
+                    <span className="selfloan-history-amount">
+                      {entry.amount.toFixed(2)} GAS
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="selfloan-history-empty">
+              {t("noHistory") || "No history yet"}
+            </div>
+          )}
         </NeoCard>
       )}
 

@@ -89,6 +89,8 @@ export default function PlayArea({
   );
   const [generatedPrivateKey, setGeneratedPrivateKey] = useState("");
   const [privateKeyCopied, setPrivateKeyCopied] = useState(false);
+  const [privateKeyRevealed, setPrivateKeyRevealed] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   useEffect(() => {
     setAccountSeed(launchDefaults.accountSeed);
@@ -106,6 +108,19 @@ export default function PlayArea({
     Boolean(targetContract.trim()) &&
     Boolean(expiresAt.trim()) &&
     !isSubmitting;
+
+  // Sponsor amount is a free numeric input; guard against empty/zero/negative
+  // values before they reach requestSponsor (which only falls back to a default
+  // on a falsy empty string, so "0"/"-1" would otherwise pass straight through).
+  const sponsorAmountParsed = Number(sponsorAmount.trim());
+  const sponsorAmountValid =
+    sponsorAmount.trim() !== "" &&
+    Number.isFinite(sponsorAmountParsed) &&
+    sponsorAmountParsed > 0;
+  const sponsorAmountError =
+    sponsorAmount.trim() !== "" && !sponsorAmountValid
+      ? t("invalidSponsorAmount")
+      : "";
 
   // Derive previews from the live inputs so the environment grid, scope metric,
   // and account-hash update as the user types — not only after a dispatch.
@@ -153,14 +168,34 @@ export default function PlayArea({
     if (result?.privateKey) {
       setGeneratedPrivateKey(result.privateKey);
       setPrivateKeyCopied(false);
+      setPrivateKeyRevealed(false);
+      setCopyFailed(false);
     }
   };
 
   const handleCopyPrivateKey = async () => {
     if (!generatedPrivateKey) return;
-    await navigator.clipboard?.writeText(generatedPrivateKey);
-    setPrivateKeyCopied(true);
+    const writeText = navigator.clipboard?.writeText?.bind(navigator.clipboard);
+    if (!writeText) {
+      // No clipboard API available (insecure context / older host): surface a
+      // real failure instead of silently flipping the button to "Copied".
+      setCopyFailed(true);
+      setPrivateKeyRevealed(true);
+      return;
+    }
+    try {
+      await writeText(generatedPrivateKey);
+      setPrivateKeyCopied(true);
+      setCopyFailed(false);
+    } catch {
+      setCopyFailed(true);
+      setPrivateKeyRevealed(true);
+    }
   };
+
+  const maskedPrivateKey = generatedPrivateKey
+    ? `${generatedPrivateKey.slice(0, 6)}…${generatedPrivateKey.slice(-4)}`
+    : "";
 
   return (
     <div className="session-play-area">
@@ -241,11 +276,12 @@ export default function PlayArea({
             <NeoButton
               variant="secondary"
               loading={isCheckingSponsorship}
-              disabled={isCheckingSponsorship}
+              disabled={isCheckingSponsorship || !sponsorAmountValid}
               aria-label={t("requestSponsor") || "Request Sponsor"}
-              onClick={() =>
-                dispatch("requestSponsor", accountSeed, dappId, sponsorAmount)
-              }
+              onClick={() => {
+                if (!sponsorAmountValid) return;
+                dispatch("requestSponsor", accountSeed, dappId, sponsorAmount);
+              }}
             >
               {t("requestSponsor") || "Request Sponsor"}
             </NeoButton>
@@ -261,15 +297,37 @@ export default function PlayArea({
             />
             <NeoInput
               type="number"
+              min={0}
               value={sponsorAmount}
               label={t("sponsorAmount") || "Sponsor Amount"}
               placeholder={t("sponsorAmountPlaceholder") || "0.1"}
+              error={sponsorAmountError}
               onChange={(v: string) => setSponsorAmount(v)}
             />
           </div>
           {generatedPrivateKey && (
             <div className="session-private-export">
-              <span>{t("privateKeyReady")}</span>
+              <div className="session-private-export__head">
+                <span className="session-private-export__label">
+                  {t("privateKeyReady")}
+                </span>
+                <button
+                  type="button"
+                  className="session-private-export__toggle"
+                  aria-pressed={privateKeyRevealed}
+                  onClick={() => setPrivateKeyRevealed((prev) => !prev)}
+                >
+                  {privateKeyRevealed
+                    ? t("hidePrivateKey")
+                    : t("showPrivateKey")}
+                </button>
+              </div>
+              <code
+                className="session-private-export__value"
+                aria-label={t("sessionPrivateKey")}
+              >
+                {privateKeyRevealed ? generatedPrivateKey : maskedPrivateKey}
+              </code>
               <NeoButton
                 variant="secondary"
                 aria-label={t("copyPrivateKey") || "Copy Private Key"}
@@ -277,6 +335,15 @@ export default function PlayArea({
               >
                 {privateKeyCopied ? t("copiedPrivateKey") : t("copyPrivateKey")}
               </NeoButton>
+              {copyFailed && (
+                <span
+                  className="session-private-export__error"
+                  role="alert"
+                  aria-live="assertive"
+                >
+                  {t("copyPrivateKeyFailed")}
+                </span>
+              )}
             </div>
           )}
         </NeoCard>

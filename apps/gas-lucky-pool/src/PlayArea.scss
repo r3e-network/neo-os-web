@@ -608,9 +608,9 @@ body {
 }
 
 .gas-pool-claim-status--submitted {
-  border-color: rgba(14, 165, 233, 0.24);
-  background: rgba(14, 165, 233, 0.08);
-  color: #0369a1;
+  border-color: rgba(22, 199, 132, 0.24);
+  background: rgba(22, 199, 132, 0.08);
+  color: #0fb174;
 }
 
 .gas-pool-claim-status--paid {
@@ -629,10 +629,10 @@ body {
   display: grid;
   gap: 0.58rem;
   padding: 0.72rem 0.78rem;
-  border: 1px solid rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(22, 199, 132, 0.18);
   border-radius: 12px;
-  background: #f8fafc;
-  color: #075985;
+  background: rgba(22, 199, 132, 0.05);
+  color: #0a6a4f;
 }
 
 .gas-pool-claim-progress--paid {
@@ -683,7 +683,7 @@ body {
   display: grid;
   min-width: 0;
   gap: 0.3rem;
-  color: rgba(7, 89, 133, 0.55);
+  color: rgba(10, 106, 79, 0.5);
   font-size: 0.62rem;
   font-weight: 850;
   line-height: 1.25;
@@ -695,7 +695,7 @@ body {
     left: 0.62rem;
     right: -0.35rem;
     height: 2px;
-    background: rgba(7, 89, 133, 0.16);
+    background: rgba(10, 106, 79, 0.16);
   }
 
   &:last-child::before {
@@ -714,19 +714,19 @@ body {
   height: 0.56rem;
   border-radius: 999px;
   background: #cbd5e1;
-  box-shadow: 0 0 0 4px rgba(240, 249, 255, 0.95);
+  box-shadow: 0 0 0 4px rgba(244, 251, 248, 0.95);
 }
 
 .gas-pool-claim-progress__step--done,
 .gas-pool-claim-progress__step--active {
-  color: #0369a1;
+  color: #0fb174;
 
   &::before {
-    background: rgba(14, 165, 233, 0.42);
+    background: rgba(22, 199, 132, 0.42);
   }
 
   .gas-pool-claim-progress__dot {
-    background: #0ea5e9;
+    background: #16c784;
   }
 }
 
@@ -1109,6 +1109,18 @@ body {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.82rem;
   line-height: 1.5;
+}
+
+.gas-pool-form__hint {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 10px;
+  background: rgba(22, 199, 132, 0.07);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .gas-pool-form__field {

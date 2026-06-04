@@ -59,11 +59,11 @@ defineMiniApp({
       }, "transferred");
     });
 
-    ctx.registerAction("showManage", (domain?: unknown) => {
+    ctx.registerAction("showManage", async (domain?: unknown) => {
       if (domain) ns.showManage(domain as Domain);
     });
 
-    ctx.registerAction("cancelManage", () => {
+    ctx.registerAction("cancelManage", async () => {
       ns.cancelManage();
     });
 

@@ -15,8 +15,10 @@ const appMessages = {
   milestones: { en: "Milestones", zh: "里程碑" },
   milestoneAmount: { en: "Milestone amount", zh: "里程碑金额" },
   milestoneAmountPlaceholder: { en: "1.5", zh: "1.5" },
+  milestoneLabel: { en: "Milestone {index}", zh: "里程碑 {index}" },
   addMilestone: { en: "Add milestone", zh: "新增里程碑" },
   remove: { en: "Remove", zh: "移除" },
+  removeMilestone: { en: "Remove milestone {index}", zh: "移除里程碑 {index}" },
   totalAmount: { en: "Total amount", zh: "总金额" },
   totalHint: { en: "Sum of milestone amounts", zh: "为所有里程碑金额之和" },
   notes: { en: "Notes (optional)", zh: "备注（可选）" },
@@ -46,8 +48,21 @@ const appMessages = {
 
   createdByYou: { en: "Created by you", zh: "我创建的" },
   forYou: { en: "For you", zh: "我受益的" },
+  // Role-clear stat labels for the manifest stat tiles / sidebar.
+  statCreated: { en: "Created", zh: "我创建的" },
+  statForYou: { en: "For you", zh: "我受益的" },
   emptyEscrows: { en: "No escrows yet", zh: "暂无托管" },
   refresh: { en: "Refresh", zh: "刷新" },
+
+  // Escrow card detail rows.
+  locked: { en: "Locked", zh: "已锁定" },
+  released: { en: "Released", zh: "已释放" },
+  releasedOfTotal: { en: "{released} / {total} released", zh: "已释放 {released} / {total}" },
+  milestoneProgress: { en: "{done} / {count} milestones", zh: "{done} / {count} 里程碑" },
+
+  // Button gating helper text (tooltips on disabled actions).
+  noMilestoneToApprove: { en: "All milestones approved", zh: "所有里程碑已批准" },
+  noMilestoneToClaim: { en: "No approved milestone to claim", zh: "暂无可领取的已批准里程碑" },
 
   statusActive: { en: "Active", zh: "活跃" },
   statusCompleted: { en: "Completed", zh: "已完成" },

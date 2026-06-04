@@ -1,9 +1,9 @@
 @use "@shared/styles/tokens.scss" as *;
 
-// Single system accent hue for the whole app (NeoSoft violet)
-$shrine-accent: var(--ns-violet, #16c784);
-$shrine-accent-deep: var(--ns-violet-strong, #0fb174);
-$shrine-accent-soft: var(--ns-violet-soft, #e4f8f0);
+// Single system accent hue for the whole app (NeoSoft green brand)
+$shrine-accent: var(--ns-brand, #16c784);
+$shrine-accent-deep: var(--ns-brand-strong, #0fb174);
+$shrine-accent-soft: var(--ns-brand-soft, #e4f8f0);
 $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 
 .memorial-play-area {
@@ -148,21 +148,22 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   }
 }
 
-/* ── Chain receipt ── */
+/* ── Chain receipt (neutral info notice — keeps green as the only accent hue) ── */
 .chain-receipt {
   display: grid;
   gap: 4px;
   padding: 12px 14px;
-  border: 1px solid #bae6fd;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: 14px;
-  background: #f0f9ff;
-  color: #0c4a6e;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
 
   span {
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    color: var(--ns-text-muted, #8a92a6);
   }
 
   strong {
@@ -172,6 +173,7 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
     font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: var(--ns-ink, #1e1e2e);
   }
 }
 
@@ -247,6 +249,14 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 .year-row { display: flex; gap: 12px; }
 .year-row > * { flex: 1; }
+
+.field-error {
+  margin: -4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--ns-danger, #ea3943);
+}
 
 .offering-cost-card {
   display: grid;

@@ -9,7 +9,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Timestamp Proof",
-  description: "Create verifiable timestamp proofs on the blockchain",
+  description: "Create and verify device-local SHA-256 timestamp proofs",
   icon: "clock",
   category: "tool",
   shell: "launcher",
@@ -33,7 +33,9 @@ export const manifest: MiniAppManifest = {
     ],
   },
 
-  features: { walletRequired: true, chainWarning: true },
+  // Device-local journal: hashing and storage happen entirely in the browser,
+  // so no wallet connection is required and there is no chain to warn about.
+  features: { walletRequired: false, chainWarning: false },
 
   docs: [
     { titleKey: "title", contentKey: "docSubtitle", type: "text" },
@@ -41,7 +43,7 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
   ],
 
-  permissions: { payments: true },
-
+  // No funds ever move — proofs are stored locally and stamped `local:<hash>`,
+  // so the payments permission is intentionally omitted.
   contract: { mode: "custom" },
 };

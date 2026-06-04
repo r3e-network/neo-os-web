@@ -40,7 +40,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   // User participation
   const userKeys = num("userKeys");
-  const keyCount = num("keyCount");
+  // Round total keys SOLD (chain state) and the user's share of them. These
+  // are distinct from the buy-selector `keyCount` picker (used only for the
+  // estimated-cost calculation inside BuyKeysCard).
+  const totalKeys = num("totalKeysDisplay");
+  const userSharePercent = num("userSharePercent");
 
   // Buy keys
   const estimatedCost = str("estimatedCost", "0.00");
@@ -216,7 +220,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <NeoCard variant="erobo" className="claim-card">
           <div className="claim-card-inner">
             <span className="claim-card-trophy" aria-hidden="true">★</span>
-            <span className="claim-card-text">{t("roundEnded") || "Timer expired. The lifecycle keeper will settle and open the next round automatically."}</span>
+            <span className="claim-card-text">{t("roundEnded")}</span>
             <span className="claim-card-text">{t("lifecycleManaged")}</span>
           </div>
         </NeoCard>
@@ -235,17 +239,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="participation-item">
           <span className="participation-icon" aria-hidden="true">∑</span>
           <div className="participation-detail">
-            <span className="participation-label">{t("totalKeys") || "TOTAL KEYS"}</span>
-            <span className="participation-value">{keyCount}</span>
+            <span className="participation-label">{t("totalKeys")}</span>
+            <span className="participation-value">{totalKeys}</span>
           </div>
         </div>
         <div className="participation-divider" />
         <div className="participation-item">
           <span className="participation-icon" aria-hidden="true">%</span>
           <div className="participation-detail">
-            <span className="participation-label">{t("share") || "YOUR SHARE"}</span>
+            <span className="participation-label">{t("share")}</span>
             <span className="participation-value">
-              {keyCount > 0 ? `${((userKeys / keyCount) * 100).toFixed(1)}%` : "—"}
+              {totalKeys > 0 ? `${userSharePercent.toFixed(1)}%` : "—"}
             </span>
           </div>
         </div>
@@ -261,22 +265,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="rule-item">
             <span className="rule-number">1</span>
             <div className="rule-text">
-              <strong>{t("ruleDeposit") || "Deposit 1 GAS"}</strong>
-              <span>{t("ruleDepositDesc") || "Each deposit resets the countdown timer. Initial prize pool is 5 GAS."}</span>
+              <strong>{t("ruleDeposit")}</strong>
+              <span>{t("ruleDepositDesc")}</span>
             </div>
           </div>
           <div className="rule-item">
             <span className="rule-number">2</span>
             <div className="rule-text">
-              <strong>{t("ruleTimer") || "Timer Decreases"}</strong>
-              <span>{t("ruleTimerDesc") || "First bid adds 60 min. Each subsequent bid adds slightly less time (59 min, 58 min, ...) down to 1 min, then resets to 10 min."}</span>
+              <strong>{t("ruleTimer")}</strong>
+              <span>{t("ruleTimerDesc")}</span>
             </div>
           </div>
           <div className="rule-item">
             <span className="rule-number">3</span>
             <div className="rule-text">
-              <strong>{t("ruleWin") || "Last Bidder Wins"}</strong>
-              <span>{t("ruleWinDesc") || "When the timer hits zero, the last person who deposited wins the entire prize pool minus a 20% platform fee."}</span>
+              <strong>{t("ruleWin")}</strong>
+              <span>{t("ruleWinDesc")}</span>
             </div>
           </div>
         </div>

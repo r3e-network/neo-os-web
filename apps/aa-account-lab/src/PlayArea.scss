@@ -186,6 +186,27 @@
   line-height: 1.45;
 }
 
+/* Inline cautions near the Register CTA. Info (already-registered) keeps the
+   green accent; the mainnet write alert uses a distinct warm tone so a real
+   on-chain spend reads as higher-stakes than a neutral hint. */
+.account-caution {
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--ns-violet-strong, #0fb174);
+  border-radius: 14px;
+  background: var(--ns-violet-soft, #e4f8f0);
+  color: var(--ns-violet-strong, #0fb174);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.account-caution--danger {
+  border-color: #f0a23a;
+  background: #fdf3e3;
+  color: #a35a00;
+}
+
 .account-empty {
   display: flex;
   flex: 1 1 auto;

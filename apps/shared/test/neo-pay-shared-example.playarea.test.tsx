@@ -37,9 +37,12 @@ function t(key: string) {
     notes: "Notes (optional)",
     notesPlaceholder: "Add context for the recipient",
     rateAmount: "Release per interval",
+    rateRoundsToZero:
+      "Amount is too small for this duration — increase the amount or shorten the duration.",
     readyForWallet: "Ready for wallet signing",
     recipient: "Recipient Address",
     recipientPlaceholder: "N3 address...",
+    releasePerDay: "Release per day",
     reviewStream: "Complete stream details",
     sharedRuntime: "Shared runtime",
     sharedRuntimeSubtitle:
@@ -153,6 +156,63 @@ describe("NeoPay shared runtime PlayArea", () => {
         notes: "Weekly operations release",
       }),
     );
+  });
+
+  it("previews the exact rounded per-day rate the dispatch will send", () => {
+    // 0.7 GAS over 7 days is the 7d-GAS preset and the canonical float-precision
+    // case: 0.7/7 = 0.0999999999999999 as a raw float. The preview must show the
+    // representable rounded rate (0.1) and the daily interval (1 day), matching
+    // what deriveSchedule hands to the contract — not the misleading raw float.
+    renderSharedPlayArea();
+
+    fireEvent.change(screen.getByLabelText("Recipient Address"), {
+      target: { value: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount"), {
+      target: { value: "0.7" },
+    });
+    fireEvent.change(screen.getByLabelText("Duration"), {
+      target: { value: "7" },
+    });
+
+    // Daily model -> "Release per day", value "0.1 GAS", interval "1 days".
+    expect(screen.getByText("Release per day")).toBeTruthy();
+    expect(screen.getByText("0.1 GAS")).toBeTruthy();
+    expect(screen.getByText("1 days")).toBeTruthy();
+    // Stream is submittable (rate does not round to zero).
+    expect(
+      (screen.getByRole("button", { name: "Create Stream" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
+  });
+
+  it("blocks submit and warns when the GAS rate rounds to zero", () => {
+    // 0.0000001 GAS over 30 days -> per-day < 1e-8 -> toFixed(8) = "0.00000000",
+    // which the contract would reject. The form must block submit and warn
+    // instead of implying a submittable tidy rate.
+    const dispatch = renderSharedPlayArea();
+
+    fireEvent.change(screen.getByLabelText("Recipient Address"), {
+      target: { value: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount"), {
+      target: { value: "0.0000001" },
+    });
+    fireEvent.change(screen.getByLabelText("Duration"), {
+      target: { value: "30" },
+    });
+
+    expect(
+      screen.getByText(
+        "Amount is too small for this duration — increase the amount or shorten the duration.",
+      ),
+    ).toBeTruthy();
+    const submit = screen.getByRole("button", {
+      name: "Complete stream details",
+    }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    fireEvent.click(submit);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it("renders existing streams with cancel and claim actions", () => {

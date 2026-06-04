@@ -17,6 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState, type Observable } from "../react/context";
 import { formatNumber } from "../utils/format";
 import PlayArea from "../../explorer/src/PlayArea";
+import SearchResultDisplay from "../../explorer/src/components/SearchResultDisplay";
 import { useExplorer } from "../../explorer/src/composables/useExplorer";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -42,6 +43,13 @@ function t(key: string) {
     explorerResultReady: "Result ready",
     explorerSearchScope: "Search transactions",
     searching: "Searching...",
+    contract: "Contract",
+    contractName: "Name",
+    contractMethods: "Methods",
+    contractUpdates: "Update Counter",
+    contractCalls: "Indexed Calls",
+    contractNotFound: "Contract not found",
+    noResults: "No results found",
   };
   return messages[key] ?? key;
 }
@@ -177,5 +185,60 @@ describe("Explorer composable — network toggle refetches recent txs (explorer-
     });
 
     explorer.stopPolling();
+  });
+});
+
+/**
+ * explorer-3: contract lookup is advertised everywhere (placeholder, docs,
+ * features) but SearchResultDisplay had no `type === "contract"` branch, so a
+ * contract identifier rendered the "Search Result" title above a blank card.
+ * The branch must surface the contract hash, manifest metadata, and call count.
+ */
+describe("Explorer SearchResultDisplay — contract renderer (explorer-3)", () => {
+  const formatTime = (v: unknown) => String(v ?? "");
+
+  it("renders contract hash, name, method/update counts, and indexed calls from an RPC-backed result", () => {
+    const result = {
+      type: "contract",
+      found: true,
+      network: "mainnet",
+      contract_hash: "0x1234567890abcdef1234567890abcdef12345678",
+      call_count: 7,
+      calls: [],
+      data: {
+        updatecounter: 3,
+        manifest: {
+          name: "MyToken",
+          abi: { methods: [{ name: "transfer" }, { name: "balanceOf" }] },
+        },
+      },
+    };
+
+    render(<SearchResultDisplay t={t} result={result} formatTime={formatTime} />);
+
+    expect(screen.getByText("0x1234567890abcdef1234567890abcdef12345678")).toBeTruthy();
+    expect(screen.getByText("MyToken")).toBeTruthy();
+    // 2 methods in the abi
+    expect(screen.getByText("2")).toBeTruthy();
+    // updatecounter
+    expect(screen.getByText("3")).toBeTruthy();
+    // call_count (indexed calls)
+    expect(screen.getByText("7")).toBeTruthy();
+  });
+
+  it("renders the contract hash and a not-found notice for an unindexed contract (found:false)", () => {
+    const result = {
+      type: "contract",
+      found: false,
+      network: "mainnet",
+      contract_hash: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      call_count: 0,
+      calls: [],
+    };
+
+    render(<SearchResultDisplay t={t} result={result} formatTime={formatTime} />);
+
+    expect(screen.getByText("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd")).toBeTruthy();
+    expect(screen.getByText("Contract not found")).toBeTruthy();
   });
 });

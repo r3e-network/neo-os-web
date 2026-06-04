@@ -69,6 +69,14 @@ export default function PlayArea({
   const hasInspected = bool("hasInspected");
   const verifierUnset = currentVerifier === notAvailable;
 
+  // registerAccount is a real write transaction that follows the host/?network
+  // param (defaults to mainnet). Surface an explicit mainnet caution near the
+  // Register CTA so the "lab" framing + docs don't imply a low-stakes testnet.
+  const networkIsMainnet = networkDisplay.trim().toLowerCase() === "mainnet";
+  // After a successful inspect, if the entered account already has a verifier
+  // set, a re-register would revert on-chain. Warn before the user pays.
+  const alreadyRegistered = hasInspected && !verifierUnset;
+
   const fmt = (value: string) =>
     !value || value === notAvailable ? DASH : value;
 
@@ -196,7 +204,7 @@ export default function PlayArea({
             <NeoInput
               value={accountId}
               label={t("accountId") || "Account ID"}
-              hint={t("accountIdHint")}
+              hint={t("accountIdSharedHint") || t("accountIdHint")}
               placeholder={t("accountIdPlaceholder") || "Enter account ID hash"}
               onChange={(v) => setAccountId(v)}
             />
@@ -236,6 +244,16 @@ export default function PlayArea({
               onChange={(v) => setEscapeTimelock(v)}
             />
             <p className="account-hint">{t("accountRiskCopy")}</p>
+            {alreadyRegistered && (
+              <p className="account-caution" role="status">
+                {t("alreadyRegisteredCaution")}
+              </p>
+            )}
+            {networkIsMainnet && (
+              <p className="account-caution account-caution--danger" role="alert">
+                {t("mainnetCaution")}
+              </p>
+            )}
             <NeoButton
               variant="primary"
               loading={isSubmitting}

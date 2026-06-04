@@ -16,6 +16,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const totalDestroyed = num("totalDestroyed");
   const gasReclaimedDisplay = str("gasReclaimedDisplay", "0");
+  const burialFeeDisplay = str("burialFeeDisplay", "0.10 GAS");
   const historyCount = num("historyCount");
   const historyItems = val<HistoryItem[]>("history") ?? [];
   const isDestroying = bool("isDestroying");
@@ -109,7 +110,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </NeoButton>
             </div>
             <div className="memory-type-selector">
-              <span className="field-label">{t("memoryType")}</span>
+              <span className="field-label">{t("memoryTypeLocal")}</span>
               <div className="type-options">
                 {memoryTypeOptions.map((option) => (
                   <button
@@ -122,6 +123,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </button>
                 ))}
               </div>
+              <span className="memory-type-hint">{t("memoryTypeLocalHint")}</span>
             </div>
             {trimmedAssetHash.length > 0 && (
               <section className="grave-review-panel" aria-label={t("burialReview")}>
@@ -151,12 +153,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
                 <dl className="grave-fee-row" aria-label={t("transactionPath")}>
                   <div>
-                    <dt>{t("selectedType")}</dt>
+                    <dt>{t("selectedTypeLocal")}</dt>
                     <dd>{selectedMemoryTypeLabel}</dd>
                   </div>
                   <div>
                     <dt>{t("burialFee")}</dt>
-                    <dd>0.10 GAS</dd>
+                    <dd>{burialFeeDisplay}</dd>
                   </div>
                 </dl>
               </section>
@@ -182,7 +184,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             )}
             <NeoButton
-              variant="danger"
+              variant="primary"
               size="lg"
               block
               loading={isDestroying}

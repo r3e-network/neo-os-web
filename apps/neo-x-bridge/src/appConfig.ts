@@ -5,7 +5,7 @@ export const appId = "miniapp-neo-x-bridge";
 
 export const appMeta = {
   networkLabel: "Neo N3 / Neo X",
-  endpointLabel: "AxLabs / BaneLabs console",
+  endpointLabel: "AxLabs / BaneLabs",
 };
 
 export const manifest: MiniAppManifest = {
@@ -213,7 +213,7 @@ const appMessages = {
   },
   opTrackAction: { en: "Refresh Tracking", zh: "刷新追踪" },
   statNetwork: { en: "Network", zh: "网络" },
-  statEndpoint: { en: "Mode", zh: "模式" },
+  statEndpoint: { en: "Console", zh: "控制台" },
   statRequests: { en: "Operations", zh: "操作数" },
   statDigest: { en: "Digest", zh: "摘要" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
@@ -282,6 +282,87 @@ const appMessages = {
   feature3Desc: {
     en: "Status tracking follows source transaction, relayer observation, attestation, and destination finalization.",
     zh: "状态追踪覆盖源链交易、relayer 观测、验证者签名和目标链完成。",
+  },
+
+  // Hero
+  heroEyebrow: { en: "AxLabs / BaneLabs Bridge Console", zh: "AxLabs / BaneLabs 跨链控制台" },
+  heroTitle: {
+    en: "Neo N3 and Neo X cross-chain control",
+    zh: "Neo N3 与 Neo X 跨链控制",
+  },
+  heroBody: {
+    en: "Prepare official bridge handoff payloads, arbitrary MessageBridge intents, and preview the cross-chain lifecycle from source transaction to destination finalization.",
+    zh: "准备官方跨链交接载荷、任意 MessageBridge 意图，并预览从源链交易到目标链完成的跨链生命周期。",
+  },
+  heroAria: { en: "Neo X bridge overview", zh: "Neo X 跨链桥概览" },
+
+  // Route card
+  routeAria: { en: "Active route", zh: "当前路径" },
+  routeN3Wallet: { en: "NEP-21 / NeoLine", zh: "NEP-21 / NeoLine" },
+  routeNeoXWallet: { en: "EVM / MetaMask", zh: "EVM / MetaMask" },
+
+  // Metrics strip
+  metricsAria: { en: "Bridge console status", zh: "跨链控制台状态" },
+  metricRoute: { en: "Route", zh: "路径" },
+  metricStatus: { en: "Status", zh: "状态" },
+
+  // Workspace card
+  workspaceKicker: { en: "Bridge workspace", zh: "跨链工作区" },
+  workspaceTitle: { en: "Build cross-chain handoff", zh: "构建跨链交接" },
+  workspaceModeAria: { en: "Bridge workspace mode", zh: "跨链工作区模式" },
+  tabAsset: { en: "Asset", zh: "资产" },
+  tabMessage: { en: "Message", zh: "消息" },
+  tabTrack: { en: "Track", zh: "追踪" },
+
+  // Field labels
+  destinationAddress: { en: "Destination address", zh: "目标地址" },
+  destinationPlaceholder: { en: "Neo N3 or Neo X address", zh: "Neo N3 或 Neo X 地址" },
+  amountPresetsAria: { en: "GAS amount presets", zh: "GAS 数量预设" },
+  targetContractPlaceholder: { en: "0x... or Neo script hash", zh: "0x... 或 Neo 脚本哈希" },
+  messagePayloadRequired: {
+    en: "Enter a payload to send across the bridge.",
+    zh: "请输入要跨链发送的载荷。",
+  },
+
+  // Preview labels
+  previewRoute: { en: "Route", zh: "路径" },
+  previewAmount: { en: "Amount", zh: "数量" },
+  previewRecipient: { en: "Recipient", zh: "接收地址" },
+  previewTarget: { en: "Target", zh: "目标" },
+  previewPayload: { en: "Payload", zh: "载荷" },
+  previewBridge: { en: "Bridge", zh: "桥" },
+  previewSourceTx: { en: "Source tx", zh: "源链交易" },
+  previewReady: { en: "Ready", zh: "就绪" },
+
+  // Buttons
+  btnPrepareAsset: { en: "Prepare asset handoff", zh: "生成资产交接" },
+  btnPrepareMessage: { en: "Prepare message intent", zh: "生成消息意图" },
+  btnRefreshTracking: { en: "Refresh tracking", zh: "刷新追踪" },
+
+  // Output cards
+  outputTitle: { en: "Generated bridge handoff", zh: "生成的跨链交接载荷" },
+  statusCardTitle: { en: "Operation status", zh: "操作状态" },
+  recentTitle: { en: "Recent operations", zh: "最近操作" },
+  copyLabel: { en: "Copy", zh: "复制" },
+  copyAria: { en: "Copy generated JSON", zh: "复制生成的 JSON" },
+
+  // Resources
+  resourcesAria: { en: "Bridge resources", zh: "跨链资源" },
+  resTestnetBridge: { en: "Testnet Bridge", zh: "测试网跨链桥" },
+  resAssetBridgeDocs: { en: "Asset Bridge Docs", zh: "资产桥文档" },
+  resMessageBridgeDocs: { en: "MessageBridge Docs", zh: "MessageBridge 文档" },
+  resBridgeSdk: { en: "BaneLabs SDK", zh: "BaneLabs SDK" },
+
+  // Success notices
+  noticeAssetReady: { en: "Asset bridge handoff prepared.", zh: "资产桥交接载荷已生成。" },
+  noticeMessageReady: { en: "Message bridge intent prepared.", zh: "消息桥意图已生成。" },
+  noticeTrackingReady: {
+    en: "Bridge tracking timeline refreshed.",
+    zh: "跨链追踪时间线已刷新。",
+  },
+  errBridgeGeneric: {
+    en: "Bridge handoff could not be prepared.",
+    zh: "无法生成跨链交接载荷。",
   },
 } as const;
 

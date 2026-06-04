@@ -34,6 +34,7 @@ function setup(opts: {
   balance?: string;
   list?: ListPayload;
   escrowGet?: unknown;
+  neoPrice?: unknown;
 } = {}) {
   const payment = {
     getBalance: vi.fn(async () => opts.balance ?? "100"),
@@ -56,7 +57,10 @@ function setup(opts: {
   };
 
   const storage = {
-    get: vi.fn(async () => null),
+    get: vi.fn(async (key: string) => {
+      if (key === "neo-price") return opts.neoPrice ?? null;
+      return null;
+    }),
     list: vi.fn(async () => opts.list ?? {}),
   } as unknown as StorageProxy & {
     get: ReturnType<typeof vi.fn>;
@@ -196,5 +200,67 @@ describe("useSelfLoan repay collateral release (self-loan-2)", () => {
     await app.repay("15");
 
     expect(escrow.refund).not.toHaveBeenCalled();
+  });
+});
+
+describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
+  beforeEach(() => {
+    walletMock.address.value = OWNER;
+  });
+
+  // collateral 100 NEO, debt 20 GAS.
+  const loanOpts = {
+    balance: "0",
+    list: activeLoanList(),
+    escrowGet: { id: 1, collateral: 100, debt: 20, active: true, ltvBps: 2000 },
+  } as const;
+
+  it("falls back to a same-unit collateral ratio when no price feed is wired", async () => {
+    const { app } = setup(loanOpts);
+    await app.loadAll();
+
+    // No "neo-price" key -> neoPrice stays 0, isPriceNormalized false.
+    expect(app.neoPrice.get()).toBe(0);
+    expect(app.isPriceNormalized.get()).toBe(false);
+
+    // Same-unit fallback: each NEO counts as 1 unit of collateral value, so
+    // healthFactor = 100 / 20 = 5 and LTV = round(20 / 100 * 100) = 20%.
+    expect(app.collateralValueGas.get()).toBe(100);
+    expect(app.healthFactor.get()).toBe(5);
+    expect(app.currentLTV.get()).toBe(20);
+  });
+
+  it("value-normalizes collateral to GAS via neoPrice when a price feed is present", async () => {
+    // 1 NEO = 0.5 GAS. Collateral value = 100 * 0.5 = 50 GAS.
+    const { app } = setup({ ...loanOpts, neoPrice: 0.5 });
+    await app.loadAll();
+
+    expect(app.neoPrice.get()).toBe(0.5);
+    expect(app.isPriceNormalized.get()).toBe(true);
+
+    // healthFactor = 50 / 20 = 2.5; LTV = round(20 / 50 * 100) = 40%.
+    expect(app.collateralValueGas.get()).toBe(50);
+    expect(app.healthFactor.get()).toBe(2.5);
+    expect(app.currentLTV.get()).toBe(40);
+  });
+
+  it("accepts an object price payload (gasPerNeo) from storage", async () => {
+    const { app } = setup({ ...loanOpts, neoPrice: { gasPerNeo: "0.25" } });
+    await app.loadAll();
+
+    expect(app.neoPrice.get()).toBe(0.25);
+    expect(app.isPriceNormalized.get()).toBe(true);
+    // Collateral value = 100 * 0.25 = 25 GAS; LTV = round(20 / 25 * 100) = 80%.
+    expect(app.collateralValueGas.get()).toBe(25);
+    expect(app.currentLTV.get()).toBe(80);
+  });
+
+  it("reports a neutral health factor when there is no debt", async () => {
+    const { app } = setup({ balance: "100" });
+    await app.loadAll();
+
+    expect(app.loan.get().borrowed).toBe(0);
+    expect(app.healthFactor.get()).toBe(999);
+    expect(app.currentLTV.get()).toBe(0);
   });
 });

@@ -72,6 +72,10 @@ function t(key: string) {
     timelockPlaceholder: "2592000",
     register: "Register Account",
     notAvailable: "Not available",
+    accountIdSharedHint: "Shared with the inspector above.",
+    mainnetCaution: "You are on mainnet — Register Account is a real write.",
+    alreadyRegisteredCaution: "This account already has a verifier registered.",
+    noVerifierRegistered: "No verifier registered.",
   };
   return messages[key] ?? key;
 }
@@ -168,5 +172,54 @@ describe("AA Account Lab PlayArea launch flow", () => {
       (screen.getByRole("button", { name: "Register Account" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it("warns before a mainnet write but stays quiet on testnet", () => {
+    const { rerender } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ networkDisplay: "mainnet" })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          "https://neomini.app/miniapps/aa-account-lab?network=mainnet",
+        )}
+      />,
+    );
+
+    expect(screen.getByText(/You are on mainnet/i)).toBeTruthy();
+
+    rerender(
+      <PlayArea
+        t={t}
+        state={baseState({ networkDisplay: "testnet" })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          "https://neomini.app/miniapps/aa-account-lab?network=testnet",
+        )}
+      />,
+    );
+
+    expect(screen.queryByText(/You are on mainnet/i)).toBeNull();
+  });
+
+  it("warns that a re-register will revert once an inspected account has a verifier", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          networkDisplay: "testnet",
+          hasInspected: true,
+          currentVerifier: VERIFIER_HASH,
+        })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          "https://neomini.app/miniapps/aa-account-lab?network=testnet",
+        )}
+      />,
+    );
+
+    expect(
+      screen.getByText(/This account already has a verifier registered/i),
+    ).toBeTruthy();
   });
 });

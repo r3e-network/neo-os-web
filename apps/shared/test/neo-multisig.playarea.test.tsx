@@ -14,7 +14,7 @@ const SIGNER_A = "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw";
 const SIGNER_B = "NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv";
 const RECIPIENT = "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu";
 
-function t(key: string) {
+function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     amountLabel: "Amount",
     amountPlaceholder: "0.00",
@@ -46,6 +46,8 @@ function t(key: string) {
     multisigHeroEyebrow: "On-chain custody",
     multisigHeroSubtitle: "Deposit GAS or NEO into a shared vault.",
     multisigHeroTitle: "Multisig Custody Vault",
+    multisigInsufficientBalance:
+      "Amount exceeds the vault balance ({balance} {asset} available).",
     multisigInvalidSignerAddress: "Each signer must be a valid Neo N3 address.",
     multisigNeedSigners: "Add at least two signer addresses before creating a vault.",
     multisigNetworkValue: "Neo N3",
@@ -87,7 +89,11 @@ function t(key: string) {
     toAddressLabel: "Recipient Address",
     toAddressPlaceholder: "N3 address",
   };
-  return messages[key] ?? key;
+  const template = messages[key] ?? key;
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, (_match, name: string) =>
+    name in params ? String(params[name]) : `{${name}}`,
+  );
 }
 
 function baseState(
@@ -252,6 +258,51 @@ describe("Neo Multisig PlayArea", () => {
         memo: "rent",
       }),
     );
+  });
+
+  it("blocks a proposal that exceeds the vault balance with an inline hint", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    // Vault holds 1 GAS (gasBalance 1e8). A spend of 2 GAS must be blocked
+    // up front (button disabled + insufficient-balance hint), not via a toast.
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ activeVault: vault(), vaultCount: 1 })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Recipient Address"), {
+      target: { value: RECIPIENT },
+    });
+    fireEvent.change(screen.getAllByLabelText("Amount")[1], {
+      target: { value: "2" },
+    });
+
+    expect(
+      screen.getByText(
+        "Amount exceeds the vault balance (1 GAS available).",
+      ),
+    ).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Propose Spend" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+
+    // Lowering the amount within balance clears the block and re-enables propose.
+    fireEvent.change(screen.getAllByLabelText("Amount")[1], {
+      target: { value: "0.5" },
+    });
+    expect(
+      screen.queryByText(
+        "Amount exceeds the vault balance (1 GAS available).",
+      ),
+    ).toBeNull();
+    expect(
+      (screen.getByRole("button", { name: "Propose Spend" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
   });
 
   it("renders request status + approval progress and approves", async () => {

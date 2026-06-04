@@ -69,9 +69,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [busyAction, setBusyAction] = useState("");
   const selectedAgent = stats?.selectedAgentId
     ? `#${stats.selectedAgentId}`
-    : "None";
-  const agentTotal = agentCount || agentAccounts.length || 21;
-  const routeStatus = stats?.selectedAgentId ? "Route selected" : "Awaiting route";
+    : t("noneFallback");
+  const hasAgentStats = agentCount > 0 || agentAccounts.length > 0;
+  const agentTotal = agentCount || agentAccounts.length || 0;
+  const agentTotalDisplay = hasAgentStats ? String(agentTotal) : "—";
+  const routeStatus = stats?.selectedAgentId
+    ? t("routeSelected")
+    : t("awaitingRoute");
   const amountIsValid = useMemo(() => isWholeNeo(amountInput), [amountInput]);
   const normalizedAmount = useMemo(
     () => normalizeNeoAmount(amountInput),
@@ -151,7 +155,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
-      <section className="anchor-workspace" aria-label="TrustAnchor staking workspace">
+      <section className="anchor-workspace" aria-label={t("stakingWorkspaceLabel")}>
         <div className="anchor-status-card">
           <div className="anchor-section-head">
             <span>{t("actionPanelLabel")}</span>
@@ -234,8 +238,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
 
-        <aside className="anchor-route-card" aria-label="TrustAnchor route state">
-          <span>Route state</span>
+        <aside className="anchor-route-card" aria-label={t("routeStateLabel")}>
+          <span>{t("routeStateLabel")}</span>
           <strong
             className={
               stats?.selectedAgentId ? undefined : "anchor-route-card__placeholder"
@@ -245,15 +249,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </strong>
           <dl>
             <div>
-              <dt>Status</dt>
+              <dt>{t("statusLabel")}</dt>
               <dd>{routeStatus}</dd>
             </div>
             <div>
-              <dt>Agents</dt>
-              <dd>{agentTotal}/21</dd>
+              <dt>{t("agentsLabel")}</dt>
+              <dd>{agentTotalDisplay}/21</dd>
             </div>
             <div>
-              <dt>Reward pool</dt>
+              <dt>{t("rewardPoolLabel")}</dt>
               <dd>{rewardReserveDisplay}</dd>
             </div>
             <div>
@@ -266,19 +270,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <details className="neo-card anchor-routing-model">
         <summary className="anchor-routing-model__summary">
-          <span className="section-title">How routing is protected</span>
-          <span className="anchor-routing-model__hint">{agentTotal}/21 agents</span>
+          <span className="section-title">{t("routeModelHeading")}</span>
+          <span className="anchor-routing-model__hint">
+            {t("agentsHint", { count: agentTotalDisplay })}
+          </span>
         </summary>
         <div className="anchor-flow-list">
-          <span>Current route: {selectedAgent}.</span>
-          <span>
-            {agentTotal}/21 AA agents registered for
-            TrustAnchor.
-          </span>
-          <span>
-            Operators move NEO between candidate agents and update vote targets
-            when the council set changes.
-          </span>
+          <span>{t("currentRouteLine", { agent: selectedAgent })}</span>
+          <span>{t("agentsRegisteredLine", { count: agentTotalDisplay })}</span>
+          <span>{t("operatorsNote")}</span>
         </div>
         <div className="agent-list">
           {agentAccounts.slice(0, 21).map((agent, idx) => {
@@ -294,7 +294,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {formatAddress(address)}
                 </span>
                 <span className="agent-status">
-                  candidate {String(agent.agentId ?? idx + 1)}
+                  {t("agentCandidateLabel", {
+                    id: String(agent.agentId ?? idx + 1),
+                  })}
                 </span>
               </div>
             );
