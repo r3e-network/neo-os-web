@@ -133,7 +133,7 @@
   }
   &--warning {
     background: var(--ns-warning-soft, #fff3dd);
-    color: #b9791a;
+    color: var(--ns-warning-strong, #b9791a);
   }
   &--danger {
     background: var(--ns-danger-soft, #fde7e9);

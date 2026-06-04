@@ -146,10 +146,14 @@ async function getNep17Balances(address: string): Promise<TokenBalance> {
   let gas = 0;
 
   for (const b of result.balance ?? []) {
+    // Guard against a malformed RPC amount (null/non-numeric): an unchecked
+    // parseInt would yield NaN and poison the aggregated category totals.
+    const amount = Number(b.amount ?? 0);
+    if (!Number.isFinite(amount)) continue;
     if (b.assethash === NEO_CONTRACT) {
-      neo = parseInt(b.amount) / 1; // NEO has 0 decimals
+      neo = amount; // NEO has 0 decimals
     } else if (b.assethash === GAS_CONTRACT) {
-      gas = parseInt(b.amount) / 1e8; // GAS has 8 decimals
+      gas = amount / 1e8; // GAS has 8 decimals
     }
   }
 

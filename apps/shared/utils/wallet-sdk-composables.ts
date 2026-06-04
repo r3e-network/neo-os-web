@@ -219,7 +219,10 @@ export function createPaymentsComposable(
   ): Promise<PaymentResult> => {
     const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
     const parsedAmount = parseFloat(amount);
-    if (!Number.isFinite(parsedAmount)) {
+    // A payment must be a positive number — reject NaN, 0, and negatives before
+    // scaling so a malformed/empty amount cannot reach the wallet as a 0-value
+    // or negative transfer.
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       throw new MiniAppError(
         "Invalid amount",
         errorCodes.PAYMENT_INVALID_AMOUNT,

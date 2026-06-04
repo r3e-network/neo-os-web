@@ -172,7 +172,7 @@
 }
 
 .private-transfer input:focus,
-.private-transfer select:focus {
+.private-transfer select:focus-visible {
   border-color: var(--ns-accent-strong, #0fb174);
   background-color: var(--ns-surface, #ffffff);
   box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);

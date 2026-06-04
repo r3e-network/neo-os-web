@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventBus } from "@shared/services/EventBus";
 import { ClipboardService } from "@shared/services/ClipboardService";
+import { NOTIFICATION_EVENT } from "@shared/services/NotificationService";
 
 describe("ClipboardService", () => {
   let bus: EventBus;
@@ -14,7 +15,7 @@ describe("ClipboardService", () => {
     clipboard = new ClipboardService(bus, t);
     emitted = [];
 
-    bus.on("notification", (payload) => {
+    bus.on(NOTIFICATION_EVENT, (payload) => {
       emitted.push(payload as { message: string; type: string });
     });
 
