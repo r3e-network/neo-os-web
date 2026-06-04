@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { NeoButton, NeoCard, NeoInput, NeoSelect } from "@shared/components-react";
+import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import MilestoneHero from "./components/MilestoneHero";
@@ -56,15 +56,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Local create form state
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [beneficiary, setBeneficiary] = useState("");
-  const [tokenSymbol, setTokenSymbol] = useState("GAS");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
 
   const handleCreate = async () => {
+    // Escrows are funded in GAS only: the OS payment proxy deposits GAS
+    // (os-payment-deposit hardcodes the GAS contract) and the escrow create
+    // path carries no asset selector. Hardcoding GAS keeps the stored/displayed
+    // asset consistent with what is actually locked on-chain.
     await dispatch("createEscrow", {
       name: description.trim() || beneficiary,
       beneficiary,
-      asset: tokenSymbol === "NEO" ? "NEO" : "GAS",
+      asset: "GAS",
       notes: description,
       milestones: [{ amount }],
     });
@@ -97,16 +100,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoCard variant="erobo" className="create-form-card">
               <div className="create-form">
                 <NeoInput value={beneficiary} label={t("beneficiaryAddress") || "Beneficiary"} placeholder={t("beneficiaryPlaceholder") || "N-address..."} onChange={setBeneficiary} />
-                <NeoSelect
-                  value={tokenSymbol}
-                  label={t("tokenSymbol") || "Token"}
-                  options={[
-                    { value: "GAS", label: "GAS" },
-                    { value: "NEO", label: "NEO" },
-                  ]}
-                  onChange={setTokenSymbol}
-                />
-                <NeoInput value={amount} label={t("amount") || "Amount"} placeholder={t("amountPlaceholder") || "100000000"} onChange={setAmount} />
+                <NeoInput value={amount} label={t("amount") ? `${t("amount")} (GAS)` : "Amount (GAS)"} placeholder={t("amountPlaceholder") || "1.5"} onChange={setAmount} />
                 <NeoInput value={description} type="textarea" label={t("description") || "Description"} placeholder={t("descriptionPlaceholder") || "Milestone description..."} onChange={setDescription} />
                 <NeoButton variant="primary" loading={isCreating} onClick={handleCreate} aria-label={t("submit") || "Submit"}>
                   {t("submit") || "Submit"}

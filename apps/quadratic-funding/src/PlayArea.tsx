@@ -48,6 +48,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const projects = val<Array<Record<string, unknown>>>("projects") ?? [];
   const isRefreshingProjects = bool("isRefreshingProjects");
+  const claimableProjectIds = val<string[]>("claimableProjectIds") ?? [];
+  const claimingProjectId = str("claimingProjectId", "");
   const activeTab = str("activeTab", "rounds");
   const matchingPoolDisplay = str("matchingPoolDisplay", "—");
   const selectedRoundDisplay = str("selectedRoundDisplay", "—");
@@ -233,16 +235,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                           <span>{t("matchedAmount")}: {formatTokenAmount(project.matchedAmount)}</span>
                         </div>
                         {project.link && <span className="qf-project-link">{String(project.link)}</span>}
-                        <NeoButton
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            setContributeProjectId(String(project.id ?? ""));
-                            switchTab("contribute");
-                          }}
-                        >
-                          {t("contributeNow")}
-                        </NeoButton>
+                        <div className="qf-project-actions">
+                          <NeoButton
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setContributeProjectId(String(project.id ?? ""));
+                              switchTab("contribute");
+                            }}
+                          >
+                            {t("contributeNow")}
+                          </NeoButton>
+                          {project.claimed ? (
+                            <span className="qf-status-pill claimed">{t("projectStatusClaimed")}</span>
+                          ) : (
+                            claimableProjectIds.includes(String(project.id ?? "")) && (
+                              <NeoButton
+                                size="sm"
+                                variant="primary"
+                                loading={claimingProjectId === String(project.id ?? "")}
+                                onClick={() => dispatch("claimProject", project)}
+                              >
+                                {t("claimProject")}
+                              </NeoButton>
+                            )
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

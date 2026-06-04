@@ -186,6 +186,20 @@ export function useCoinFlip({
     return null;
   };
 
+  /**
+   * Update the wager amount and recompute the live validation error.
+   *
+   * Recomputing here keeps validationError in sync with the current amount so a
+   * stale error (e.g. from an earlier too-many-decimals entry) self-heals as
+   * soon as the user types a valid value. Without this, validationError would
+   * stay non-null for the rest of the session and canBet would keep the Flip
+   * button disabled forever.
+   */
+  const setBetAmount = (amount: string) => {
+    betAmount.set(amount);
+    validationError.set(validateBetAmount(amount));
+  };
+
   // -- Data Loading (via OS services) -----------------------------------------
 
   /**
@@ -406,6 +420,7 @@ export function useCoinFlip({
 
     // -- Actions --------------------------------------------------------------
     placeBet,
+    setBetAmount,
     resetGame,
     dismissOverlay,
     loadAll,

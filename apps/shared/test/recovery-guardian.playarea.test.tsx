@@ -11,19 +11,15 @@ afterEach(() => cleanup());
 
 function t(key: string) {
   const messages: Record<string, string> = {
-    accountAddress: "AA account",
+    title: "Recovery Guardian",
+    accountAddress: "Account Address",
     accountAddressHint: "Enter an account ID.",
     accountAddressPlaceholder: "0x... or N...",
     accountId: "Account ID",
     awaitingQuery: "Awaiting query",
-    cancelRecovery: "Cancel Recovery",
-    copyRecoveryCredential: "Copy Credential",
-    copyRecoveryLink: "Copy Link",
+    copyRecoveryCredential: "Copy Recovery Credential Link",
+    copyRecoveryLink: "Copy Recovery Link",
     currentVerifier: "Verifier",
-    encryptedParams: "Encrypted Params",
-    encryptedParamsHint: "Encrypted Morpheus subject params.",
-    encryptedParamsPlaceholder: "{}",
-    finalizeRecovery: "Finalize Recovery",
     guardianCommandTitle: "Guardian Preflight",
     guardianDraftLabel: "Draft Account",
     guardianFlowCredential: "Share credential",
@@ -33,14 +29,14 @@ function t(key: string) {
     guardianFlowPrepareDesc: "Prepare before sending.",
     guardianFlowRead: "Read state",
     guardianFlowReadDesc: "Read recovery state.",
-    guardianHeroCopy: "Read state and submit recovery actions.",
+    guardianHeroCopy: "Read state and prepare recovery links.",
     guardianHeroTitle: "Social recovery workspace",
     guardianMetricAccount: "Account",
     guardianMetricExpiry: "Expiry",
     guardianMetricOwner: "New Owner",
     guardianMetricsLabel: "Summary",
     guardianPrepareTitle: "Prepare Recovery",
-    guardianRiskCopy: "Actions stay disabled until valid.",
+    guardianRiskCopy: "Links stay disabled until valid.",
     guardianRiskTitle: "Guardrails",
     guardianStateLabel: "Runtime",
     guardianStateTitle: "Recovery state",
@@ -51,37 +47,33 @@ function t(key: string) {
     noStateHint: "Run query state.",
     noStateYet: "No recovery state loaded yet.",
     notAvailable: "N/A",
-    openAaWorkspace: "AA Workspace",
-    openIdentityWorkspace: "Identity Workspace",
-    openRecoveryCredential: "Open Credential",
-    openRecoveryDocs: "Docs",
-    openRecoveryPreview: "Open Preview",
-    pendingRecovery: "Pending Recovery",
+    openAaWorkspace: "Open AA Workspace",
+    openIdentityWorkspace: "Open Identity Workspace",
+    openRecoveryCredential: "Open Recovery Credential",
+    openRecoveryDocs: "Open Recovery Docs",
+    openRecoveryPreview: "Open Recovery Preview",
     queryBlocked: "Enter a valid account.",
     queryState: "Query State",
     recoveryExpiry: "Expiry minutes",
     recoveryExpiryHint: "5 to 1440.",
     recoveryExpiryPlaceholder: "30",
     recoveryLinkBlocked: "Complete valid fields.",
-    recoveryNonce: "Recovery Nonce",
-    recoveryProvider: "Recovery Provider",
-    recoveryProviderHint: "Provider label.",
-    recoveryProviderPlaceholder: "web3auth",
     recoveryTemplateId: "Template ID",
     recoveryTemplateIdHint: "Optional template.",
     recoveryTemplateIdPlaceholder: "template",
-    requestRecoveryTicket: "Request Recovery Ticket",
-    shareRecoveryCredential: "Share Credential",
-    shareRecoveryLink: "Share Link",
-    targetVerifier: "Target Verifier",
+    shareRecoveryCredential: "Share Recovery Credential Link",
+    shareRecoveryLink: "Share Recovery Link",
     threshold: "Threshold",
     timelockLabel: "Timelock",
-    verifierHash: "Verifier Override",
+    verifierHash: "Verifier Hash Override",
     verifierHashHint: "Optional verifier.",
     verifierHashPlaceholder: "0x...",
   };
   return messages[key] ?? key;
 }
+
+const VALID_ACCOUNT = "0x1111111111111111111111111111111111111111";
+const VALID_OWNER = "0x2222222222222222222222222222222222222222";
 
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const values: Record<string, unknown> = {
@@ -93,9 +85,6 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     verifierHash: "N/A",
     threshold: "N/A",
     timelock: "N/A",
-    recoveryNonce: "N/A",
-    pendingRecovery: "N/A",
-    targetVerifierHash: "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
     previewUrl: "",
     credentialUrl: "",
     accountAddress: "",
@@ -103,11 +92,6 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     recoveryNewOwner: "",
     recoveryExpiryMinutes: "30",
     recoveryTemplateId: "",
-    recoveryProvider: "web3auth",
-    encryptedParams: "{}",
-    actionStatus: "",
-    activeOperation: "",
-    lastTx: null,
     ...overrides,
   };
   return Object.fromEntries(
@@ -118,59 +102,121 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
   );
 }
 
+const LINK_BUTTONS = [
+  "Open Recovery Preview",
+  "Copy Recovery Link",
+  "Share Recovery Link",
+  "Open Recovery Credential",
+  "Copy Recovery Credential Link",
+  "Share Recovery Credential Link",
+];
+
 describe("Recovery Guardian PlayArea", () => {
-  it("enables the on-chain recovery request only after valid recovery fields", () => {
+  it("keeps all recovery link buttons disabled until account, owner, expiry, and optional verifier are valid", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    for (const name of LINK_BUTTONS) {
+      expect(
+        (screen.getByRole("button", { name }) as HTMLButtonElement).disabled,
+      ).toBe(true);
+    }
+
+    // An invalid optional verifier override must still block the links even
+    // when the required fields are valid.
+    cleanup();
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          accountAddress: VALID_ACCOUNT,
+          recoveryNewOwner: VALID_OWNER,
+          recoveryExpiryMinutes: "30",
+          verifierHashOverride: "not-a-hash",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+    for (const name of LINK_BUTTONS) {
+      expect(
+        (screen.getByRole("button", { name }) as HTMLButtonElement).disabled,
+      ).toBe(true);
+    }
+  });
+
+  it("enables link buttons and dispatches the matching link action once fields are valid", () => {
+    const dispatch = vi.fn();
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          accountAddress: VALID_ACCOUNT,
+          recoveryNewOwner: VALID_OWNER,
+          recoveryExpiryMinutes: "30",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const openPreview = screen.getByRole("button", {
+      name: "Open Recovery Preview",
+    });
+    expect((openPreview as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(openPreview);
+    expect(dispatch).toHaveBeenCalledWith("openRecoveryPreviewLink");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Copy Recovery Credential Link" }),
+    );
+    expect(dispatch).toHaveBeenCalledWith("copyRecoveryCredentialLink");
+  });
+
+  it("blocks Query State until the account locator is valid, then dispatches queryGuardianState", () => {
     const dispatch = vi.fn();
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     expect(
-      (screen.getByRole("button", {
-        name: "Request Recovery Ticket",
-      }) as HTMLButtonElement).disabled,
+      (screen.getByRole("button", { name: "Query State" }) as HTMLButtonElement)
+        .disabled,
     ).toBe(true);
 
     cleanup();
     render(
       <PlayArea
         t={t}
-        state={state({
-          accountAddress: "0x1111111111111111111111111111111111111111",
-          recoveryNewOwner: "0x2222222222222222222222222222222222222222",
-        })}
+        state={state({ accountAddress: VALID_ACCOUNT })}
         dispatch={dispatch}
       />,
     );
 
-    const requestButton = screen.getByRole("button", {
-      name: "Request Recovery Ticket",
-    });
-    expect((requestButton as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(requestButton);
-    expect(dispatch).toHaveBeenCalledWith("requestRecoveryTicket");
+    const queryButton = screen.getByRole("button", { name: "Query State" });
+    expect((queryButton as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(queryButton);
+    expect(dispatch).toHaveBeenCalledWith("queryGuardianState");
   });
 
-  it("renders submitted transaction ids without hiding recovery controls", () => {
+  it("renders the recovery state grid only after a payload is loaded", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    expect(screen.getByText("No recovery state loaded yet.")).toBeTruthy();
+
+    cleanup();
     render(
       <PlayArea
         t={t}
         state={state({
-          accountAddress: "0x1111111111111111111111111111111111111111",
-          recoveryNewOwner: "0x2222222222222222222222222222222222222222",
-          actionStatus: "Recovery ticket request submitted",
-          lastTx: {
-            operation: "requestRecoveryTicket",
-            txid: "0xabcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-            success: true,
-          },
+          hasPayload: true,
+          accountId: "aa:test",
+          verifierHash: VALID_ACCOUNT,
+          threshold: "2",
+          timelock: "3600",
+          renderedPayload: '{\n  "threshold": "2"\n}',
         })}
         dispatch={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("status").textContent).toContain(
-      "Recovery ticket request submitted",
-    );
-    expect(screen.getByText(/0xabcdef0123456789/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Finalize Recovery" })).toBeTruthy();
+    expect(screen.getByText("aa:test")).toBeTruthy();
+    expect(screen.getByText("2")).toBeTruthy();
+    expect(screen.getByText("3600")).toBeTruthy();
+    expect(screen.getByText(/"threshold": "2"/)).toBeTruthy();
   });
 });

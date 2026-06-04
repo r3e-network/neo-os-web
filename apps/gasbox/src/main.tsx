@@ -79,6 +79,10 @@ defineMiniApp({
       if (machine) gasbox.selectMachine(machine);
     });
 
+    ctx.registerAction("resetResult", async () => {
+      gasbox.resetResult();
+    });
+
     ctx.registerAction("refreshMachines", async () => {
       await gasbox.loadAll();
     });

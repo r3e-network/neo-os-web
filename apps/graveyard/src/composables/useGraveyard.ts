@@ -20,8 +20,8 @@
  *     storageService.get("stats")
  *     storageService.list("history:", 20)
  *     storageService.get("memory:<id>")
- *     nftService.burn(assetHash)            — bury memory (fee + destroy)
- *     storageService.set("forget:<id>", {}) — forget memory (fee + forget)
+ *     nftService.burn(assetHash)              — bury memory (fee + destroy)
+ *     storageService.set("history:<id>", {…}) — persist burial record / forgotten flag
  *     badgeService.award("memory-buried", "")
  */
 
@@ -66,6 +66,10 @@ interface StoredStats {
   totalMemories?: number;
   buryFee?: number;
 }
+
+/** Burial fee per memory, in GAS. Stored fee is in fixed8 base units (BURY_FEE_GAS * 1e8). */
+const BURY_FEE_GAS = 0.1;
+const BURY_FEE_FIXED8 = BURY_FEE_GAS * 1e8;
 
 // ============================================================================
 // Composable
@@ -140,18 +144,43 @@ export function useGraveyard({
       // the fee transfer and BuryMemory contract call
       await nftService.burn(currentHash);
 
-      // Record the burial in history
+      // Record the burial in history (optimistic, then persist so it
+      // survives refresh/reload — loadHistory reads back the "history:" record)
       const memoryId = String(Date.now());
+      const buriedType = memoryType.get();
+      const buriedTime = new Intl.DateTimeFormat(undefined).format(new Date());
+      const storedItem: StoredHistoryItem = {
+        id: memoryId,
+        hash: currentHash,
+        time: buriedTime,
+        forgotten: false,
+        memoryType: buriedType,
+      };
       history.set([{
         id: memoryId,
         hash: currentHash,
-        time: new Intl.DateTimeFormat(undefined).format(new Date()),
+        time: buriedTime,
         forgotten: false,
-        memoryType: memoryType.get(),
+        memoryType: buriedType,
       }, ...history.get()]);
 
-      totalDestroyed.set(totalDestroyed.get() + 1);
-      gasReclaimed.set(Number((totalDestroyed.get() * 0.1).toFixed(2)));
+      const newTotal = totalDestroyed.get() + 1;
+      totalDestroyed.set(newTotal);
+      gasReclaimed.set(Number((newTotal * BURY_FEE_GAS).toFixed(2)));
+
+      // Persist the burial record and updated stats so counters and records
+      // survive a refresh/reload (loadHistory/loadStats read these back).
+      try {
+        await storageService.set(`history:${memoryId}`, storedItem);
+        const stats: StoredStats = { totalBuried: newTotal, buryFee: BURY_FEE_FIXED8 };
+        await storageService.set("stats", stats);
+      } catch (persistErr) {
+        console.warn(
+          "[useGraveyard] persist burial failed:",
+          persistErr instanceof Error ? persistErr.message : String(persistErr),
+        );
+      }
+
       eventBus.emit("graveyard:buried", { action: t("memoryBuried") });
 
       // Hint badge for memory buried (fire-and-forget)
@@ -181,7 +210,7 @@ export function useGraveyard({
         if (Number.isFinite(fee) && fee > 0) {
           gasReclaimed.set(Number(((totalDestroyed.get() * fee) / 1e8).toFixed(2)));
         } else {
-          gasReclaimed.set(Number((totalDestroyed.get() * 0.1).toFixed(2)));
+          gasReclaimed.set(Number((totalDestroyed.get() * BURY_FEE_GAS).toFixed(2)));
         }
       }
     } catch (_e) {
@@ -225,10 +254,16 @@ export function useGraveyard({
 
     forgettingId.set(item.id);
     try {
-      await storageService.set(`forget:${item.id}`, {
-        memoryId: item.id,
-        action: "forget",
-      });
+      // Persist the forgotten flag onto the same "history:<id>" record that
+      // loadHistory reads, so the forgotten state survives a refresh/reload.
+      const stored: StoredHistoryItem = {
+        id: item.id,
+        hash: item.hash,
+        time: item.time,
+        forgotten: true,
+        memoryType: item.memoryType,
+      };
+      await storageService.set(`history:${item.id}`, stored);
 
       history.set(history.get().map((entry) => entry.id === item.id ? { ...entry, forgotten: true } : entry));
       eventBus.emit("graveyard:forgotten", { action: t("forgetSuccess") });

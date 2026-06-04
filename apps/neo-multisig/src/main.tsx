@@ -24,6 +24,7 @@ import {
   normalizePublicKeys,
   orderSignatures,
   validateAmount,
+  verifySignature,
 } from "./utils/multisig";
 
 type CreateRequestPayload = {
@@ -283,6 +284,16 @@ defineMiniApp({
           .includes(signerKey);
         if (!isAuthorized) {
           ctx.setStatus(ctx.t("toastNotSigner"), "error");
+          return null;
+        }
+
+        // The signature must verify against the exact transaction sign-data
+        // under the signer's public key, otherwise it is worthless inside the
+        // multisig witness and would only be discovered at broadcast time.
+        // Rejecting it here prevents an invalid signature from counting toward
+        // the threshold and falsely advancing the request to 'ready'.
+        if (!verifySignature(signData, extracted.signature, signerKey)) {
+          ctx.setStatus(ctx.t("toastSignatureInvalid"), "error");
           return null;
         }
 

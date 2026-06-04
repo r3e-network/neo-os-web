@@ -14,6 +14,16 @@ interface PlayAreaProps {
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, str } = useStateBindings(state);
+  const [submitting, setSubmitting] = useState(false);
+  const runDispatch = async (name: string, ...args: unknown[]) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await dispatch(name, ...args);
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const stats = val<ProfitAnchorStats | null>("stats", null);
   const agentAccounts =
     val<Array<Record<string, unknown>>>("agentAccounts", []) ?? [];
@@ -108,9 +118,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoButton
                 block
                 variant="primary"
-                disabled={!canMove}
+                disabled={!canMove || submitting}
                 onClick={() =>
-                  dispatch("transferAgentNeo", {
+                  runDispatch("transferAgentNeo", {
                     fromAgentId,
                     toAgentId,
                     amount: moveAmount,
@@ -140,9 +150,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoButton
                 block
                 variant="primary"
-                disabled={!canUpdateCandidate}
+                disabled={!canUpdateCandidate || submitting}
                 onClick={() =>
-                  dispatch("setAgentCandidate", {
+                  runDispatch("setAgentCandidate", {
                     agentId: candidateAgentId,
                     candidate: candidatePublicKey,
                   })
@@ -169,8 +179,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoButton
                 block
                 variant="primary"
-                disabled={!canSyncVote}
-                onClick={() => dispatch("voteAgent", { agentId: voteAgentId })}
+                disabled={!canSyncVote || submitting}
+                onClick={() => runDispatch("voteAgent", { agentId: voteAgentId })}
               >
                 {t("submitVote")}
               </NeoButton>

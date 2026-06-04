@@ -69,6 +69,10 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
       eventBus.emit("balances:error", {
         message: e instanceof Error ? e.message : t("walletNotConnected"),
       });
+      // Re-throw so the registerActions wrapper surfaces the failure via
+      // ctx.setStatus instead of leaving the user with stale balances and no
+      // error indication (balances:error has no subscriber).
+      throw e instanceof Error ? e : new Error(t("refreshFailed"));
     } finally {
       isRefreshing.set(false);
     }
@@ -84,6 +88,9 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
       eventBus.emit("wallet:error", {
         message: e instanceof Error ? e.message : t("walletNotConnected"),
       });
+      // Re-throw so the registerActions wrapper surfaces the failure via
+      // ctx.setStatus (wallet:error has no subscriber).
+      throw e instanceof Error ? e : new Error(t("walletNotConnected"));
     }
   };
 

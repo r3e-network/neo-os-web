@@ -78,11 +78,39 @@ describe("Private Transfer PlayArea", () => {
 
     expect(screen.queryByText("Enter a valid Neo N3 address.")).toBeNull();
     expect(sealButton.disabled).toBe(false);
+  });
+
+  it("rejects fractional NEO amounts because NEO is indivisible", () => {
+    render(<PlayArea {...props()} />);
+
+    fireEvent.change(screen.getByPlaceholderText("N..."), {
+      target: { value: VALID_NEO_ADDRESS },
+    });
+
+    const assetSelect = screen.getByDisplayValue("GAS") as HTMLSelectElement;
+    fireEvent.change(assetSelect, { target: { value: "NEO" } });
+
+    const amountInput = screen.getByRole("spinbutton") as HTMLInputElement;
+    fireEvent.change(amountInput, { target: { value: "0.5" } });
+
+    const sealButton = screen.getByRole("button", {
+      name: "Seal private transfer",
+    }) as HTMLButtonElement;
+    expect(sealButton.disabled).toBe(true);
     expect(
       screen.getByText(
-        `${VALID_NEO_ADDRESS.slice(0, 8)}...${VALID_NEO_ADDRESS.slice(-4)}`,
+        "NEO is indivisible — enter a whole number greater than zero.",
       ),
     ).toBeTruthy();
+    expect(amountInput.step).toBe("1");
+
+    fireEvent.change(amountInput, { target: { value: "2" } });
+    expect(
+      screen.queryByText(
+        "NEO is indivisible — enter a whole number greater than zero.",
+      ),
+    ).toBeNull();
+    expect(sealButton.disabled).toBe(false);
   });
 
   it("normalizes Morpheus service errors before rendering them", async () => {

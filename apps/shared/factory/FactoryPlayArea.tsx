@@ -134,13 +134,19 @@ export function FactoryPlayArea({
   const [copied, setCopied] = useState<"package" | "link" | null>(null);
 
   const { val, bool, str } = useStateBindings(state);
+  const storedPlan = val<FactoryPlan>("currentPlan") ?? null;
   const currentPlan =
-    val<FactoryPlan>("currentPlan") ??
+    storedPlan ??
     buildFactoryPlan(
       kind,
       (kind === "nep17" ? nep17 : kind === "nep11" ? nep11 : miniapp) as unknown as Record<string, unknown>,
       { appId },
     );
+  // Signing must operate on the STORED plan (populated by "Generate plan"), not the
+  // live form preview. The preview can be publishable while no plan has been generated,
+  // which previously enabled Sign and then threw `noPlanToSign`.
+  const canSign = Boolean(storedPlan?.publishable);
+  const previewReadyButUnsaved = !storedPlan && currentPlan.publishable;
   const isSigning = bool("isSigning");
   const walletSignature = str("walletSignature");
   const lastError = str("lastError");
@@ -320,7 +326,7 @@ export function FactoryPlayArea({
                 </NeoButton>
                 <NeoButton
                   variant="success"
-                  disabled={!currentPlan.publishable || isSigning}
+                  disabled={!canSign || isSigning}
                   loading={isSigning}
                   onClick={() => dispatch("signCurrentPlan")}
                 >
@@ -328,6 +334,9 @@ export function FactoryPlayArea({
                 </NeoButton>
               </div>
 
+              {previewReadyButUnsaved ? (
+                <div className="domain-factory-hint">{t("noPlanToSign")}</div>
+              ) : null}
               {walletSignature ? (
                 <div className="domain-factory-signature">
                   <span>{t("walletSignature")}</span>

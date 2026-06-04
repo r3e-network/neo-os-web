@@ -7,6 +7,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useQuadraticFundingPage } from "./pages/index/composables/useQuadraticFundingPage";
+import type { ProjectItem } from "./pages/index/components/ProjectList";
 
 defineMiniApp({
   appId: "miniapp-quadratic-funding",
@@ -38,6 +39,10 @@ defineMiniApp({
       const projectIdsRaw = String(args[0] ?? "");
       const matchedRaw = String(args[1] ?? "");
       await qf.handleFinalize(projectIdsRaw, matchedRaw);
+    });
+
+    ctx.registerAction("claimProject", async (...args: unknown[]) => {
+      await qf.handleClaimProject(args[0] as ProjectItem);
     });
 
     ctx.registerAction("claimUnused", async () => {
@@ -72,6 +77,7 @@ defineMiniApp({
         projects: qf.projects,
         isRefreshingProjects: qf.isRefreshingProjects,
         claimingProjectId: qf.claimingProjectId,
+        claimableProjectIds: qf.claimableProjectIds,
         contributeForm: qf.contributeForm,
         projectsStatus: qf.projectsStatus,
         contributionStatus: qf.contributionStatus,

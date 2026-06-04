@@ -98,6 +98,19 @@ export interface UseBurnLeagueOptions {
   badgeService: BadgeProxy;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
+  /**
+   * Accessor for the connected wallet address (e.g. ctx.services.chain.address.get).
+   * Used to resolve the current user's leaderboard rank by identity rather than
+   * by burned-amount equality. Optional so the composable degrades gracefully
+   * when no wallet is connected (rank stays 0 / "--").
+   */
+  getAddress?: () => string | null | undefined;
+}
+
+/** Case-insensitive address equality (handles base58 and hex script-hash forms). */
+function addressMatches(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false;
+  return a === b || a.toLowerCase() === b.toLowerCase();
 }
 
 // ============================================================================
@@ -109,6 +122,7 @@ export function useBurnLeague({
   leaderboardService,
   badgeService,
   t,
+  getAddress,
 }: UseBurnLeagueOptions) {
   // ── State ────────────────────────────────────────────────────────────
   const totalBurned = createObservable(0);
@@ -191,17 +205,21 @@ export function useBurnLeague({
       const entries = await leaderboardService.get(100);
 
       if (Array.isArray(entries)) {
+        const myAddress = getAddress?.() ?? null;
         const mapped = entries.map((entry: LeaderboardEntry, idx: number) => ({
           rank: idx + 1,
           address: entry.user,
           burned: Number(entry.score || 0),
-          isUser: false, // Edge function marks the current user server-side
+          // Resolve the current user by wallet identity, not by burned-amount
+          // equality (which collides with other players and races loadStats).
+          isUser: addressMatches(entry.user, myAddress),
         }));
 
         leaderboard.set(mapped);
 
-        // Find user's rank from the leaderboard
-        const userEntry = mapped.find((entry) => entry.burned === userBurned.get() && userBurned.get() > 0);
+        // Find the user's rank by address identity. Independent of userBurned,
+        // so it no longer races the concurrent loadStats() call.
+        const userEntry = mapped.find((entry) => entry.isUser);
         rank.set(userEntry ? userEntry.rank : 0);
       }
     } catch (e) {

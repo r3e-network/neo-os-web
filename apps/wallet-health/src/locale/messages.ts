@@ -6,6 +6,7 @@ const appMessages = {
   tabChecklist: { en: "Checklist", zh: "清单" },
 
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
+  refreshFailed: { en: "Failed to refresh balances", zh: "刷新余额失败" },
   walletHeroTitle: { en: "Wallet Health", zh: "钱包健康" },
   walletHeroSubtitle: {
     en: "Review balances, network readiness, and signing hygiene before moving assets or approving app requests.",

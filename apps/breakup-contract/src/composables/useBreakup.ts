@@ -39,6 +39,18 @@ import type { ContractStatus, RelationshipContractView } from "../types";
 const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
 const STORAGE_PREFIX = "contracts:";
 
+/** Full os-storage index key for a single contract. */
+const storageKey = (id: number): string => `${STORAGE_PREFIX}${id}`;
+
+/**
+ * Mint a stable numeric contract id. The OS escrow kernel never returns its own
+ * assigned id to the client, so we derive one here and use it as BOTH the
+ * os-storage index key suffix (`contracts:<id>`) AND the escrowId passed to
+ * fund()/completeMilestone(). The contract id therefore IS the escrow id — an
+ * invariant signContract/breakContract rely on via String(contract.id).
+ */
+const generateContractId = (): number => Date.now();
+
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "");
 }
@@ -251,8 +263,11 @@ export function useBreakup({
     actionNotice.set(t("contractPreparing", { title: titleValue, amount: `${stakeAmount.get()} GAS` }));
     isLoading.set(true);
     try {
-      // Create escrow with partner as beneficiary, stake as amount
-      const expirySeconds = Math.floor(Date.now() / 1000) + durationDays * 86400;
+      // Create escrow with partner as beneficiary, stake as amount. The proxy
+      // receives the human-decimal GAS string and scales by 10^8 itself.
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const durationSeconds = durationDays * 86400;
+      const expirySeconds = nowSeconds + durationSeconds;
       await escrowService.create({
         beneficiary: partnerValue,
         amount: stakeAmount.get(),
@@ -262,13 +277,33 @@ export function useBreakup({
         expiry: expirySeconds,
       });
 
-      // Store contract metadata
-      await storageService.set(`contract-meta:${Date.now()}`, {
-        partner: partnerValue,
+      // Maintain the os-storage index that loadContracts() reads. The kernel
+      // does not return its assigned id, so we mint a stable contract id (also
+      // used as the escrowId for sign/break) and persist a full StoredContract
+      // under the SAME prefix (contracts:<id>) the list reader consumes.
+      const contractId = generateContractId();
+      const creatorAddr = address.get();
+      const stored: StoredContract = {
+        id: contractId,
+        party1: creatorAddr,
+        party2: partnerValue,
+        stake: Math.round(stake * 1e8),
+        party1Signed: true,
+        party2Signed: false,
+        createdTime: nowSeconds,
+        startTime: nowSeconds,
+        duration: durationSeconds,
+        signDeadline: expirySeconds,
+        active: false,
+        completed: false,
+        cancelled: false,
         title: titleValue,
         terms: termsValue,
-        durationDays,
-      });
+        milestonesReached: 0,
+        totalPenaltyPaid: 0,
+        breakupInitiator: "",
+      };
+      await storageService.set(storageKey(contractId), stored);
 
       eventBus.emit("breakup:created", { action: t("contractCreated") });
 

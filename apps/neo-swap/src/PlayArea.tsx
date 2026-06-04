@@ -17,6 +17,7 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import SwapHero from "./components/SwapHero";
 import PopularPairs from "./components/PopularPairs";
+import { POPULAR_PAIRS } from "./hooks/useSwapEngine";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -32,10 +33,7 @@ interface Token {
   decimals: number;
 }
 
-const popularPairs = [
-  { id: "neo-gas", name: "NEO/GAS" },
-  { id: "gas-neo", name: "GAS/NEO" },
-];
+const popularPairs = POPULAR_PAIRS.map((pair) => ({ ...pair }));
 
 const formatBalance = (token: Token | null) =>
   token ? token.balance.toLocaleString(undefined, { maximumFractionDigits: 8 }) : "0";
