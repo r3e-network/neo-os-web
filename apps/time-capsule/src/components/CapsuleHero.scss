@@ -1,9 +1,9 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-$accent: #7b61ff;
-$accent-strong: #6a4df4;
-$accent-soft: #eeeaff;
+$accent: #16c784;
+$accent-strong: #0fb174;
+$accent-soft: #e4f8f0;
 
 .hero-container {
   display: flex;
@@ -28,8 +28,8 @@ $accent-soft: #eeeaff;
   width: 56px;
   height: 56px;
   border-radius: var(--ns-radius-md, 16px);
-  background: linear-gradient(155deg, $accent-soft, rgba(123, 97, 255, 0.16));
-  box-shadow: inset 0 0 0 1px rgba(123, 97, 255, 0.14);
+  background: linear-gradient(155deg, $accent-soft, rgba(22, 199, 132, 0.16));
+  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,8 +50,8 @@ $accent-soft: #eeeaff;
 .capsule-body {
   width: 28px;
   height: 24px;
-  background: linear-gradient(180deg, rgba(123, 97, 255, 0.35), rgba(123, 97, 255, 0.18));
-  border: 1px solid rgba(123, 97, 255, 0.4);
+  background: linear-gradient(180deg, rgba(22, 199, 132, 0.35), rgba(22, 199, 132, 0.18));
+  border: 1px solid rgba(22, 199, 132, 0.4);
   border-radius: 0 0 5px 5px;
   position: relative;
 }
@@ -116,8 +116,8 @@ $accent-soft: #eeeaff;
 
   &:hover {
     transform: translateY(-2px);
-    border-color: rgba(123, 97, 255, 0.3);
-    box-shadow: 0 6px 18px rgba(123, 97, 255, 0.12);
+    border-color: rgba(22, 199, 132, 0.3);
+    box-shadow: 0 6px 18px rgba(22, 199, 132, 0.12);
   }
 }
 

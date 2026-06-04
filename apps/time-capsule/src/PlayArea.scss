@@ -1,9 +1,9 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-$accent: #7b61ff;
-$accent-strong: #6a4df4;
-$accent-soft: #eeeaff;
+$accent: #16c784;
+$accent-strong: #0fb174;
+$accent-soft: #e4f8f0;
 
 .capsule-play-area {
   display: flex;
@@ -18,11 +18,11 @@ $accent-soft: #eeeaff;
 
   .neo-btn--primary:not(:disabled) {
     background: $accent;
-    box-shadow: 0 2px 10px rgba(123, 97, 255, 0.28);
+    box-shadow: 0 2px 10px rgba(22, 199, 132, 0.28);
 
     &:hover:not(:disabled) {
       background: $accent-strong;
-      box-shadow: 0 4px 16px rgba(123, 97, 255, 0.32);
+      box-shadow: 0 4px 16px rgba(22, 199, 132, 0.32);
     }
   }
 
@@ -31,7 +31,7 @@ $accent-soft: #eeeaff;
   .neo-btn--primary:disabled {
     background: $accent-soft;
     border-color: transparent;
-    color: rgba(106, 77, 244, 0.55);
+    color: rgba(15, 177, 116, 0.55);
     box-shadow: none;
   }
 }
@@ -79,7 +79,7 @@ $accent-soft: #eeeaff;
 
     &:focus {
       border-color: $accent;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
     }
   }
 }
@@ -98,12 +98,12 @@ $accent-soft: #eeeaff;
   transition: border-color 0.16s ease, background 0.16s ease;
 
   &:hover {
-    border-color: rgba(123, 97, 255, 0.28);
+    border-color: rgba(22, 199, 132, 0.28);
   }
 
   &:focus-within {
     border-color: $accent;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   }
 
   // Visually hide the native control but keep it accessible/clickable.
@@ -155,7 +155,7 @@ $accent-soft: #eeeaff;
 
   input[type="checkbox"]:focus-visible + .capsule-checkbox-box {
     border-color: $accent;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   }
 
   .capsule-checkbox-copy {
@@ -197,7 +197,7 @@ $accent-soft: #eeeaff;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.08));
   border-radius: var(--ns-radius-lg, 20px);
   background:
-    radial-gradient(120% 120% at 100% 0%, rgba(123, 97, 255, 0.06), transparent 60%),
+    radial-gradient(120% 120% at 100% 0%, rgba(22, 199, 132, 0.06), transparent 60%),
     var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
 }

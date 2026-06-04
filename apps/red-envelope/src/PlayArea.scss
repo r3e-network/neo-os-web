@@ -47,8 +47,8 @@
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  background: var(--ns-violet-soft, #eeeaff);
-  color: var(--ns-violet-strong, #6a4df4);
+  background: var(--ns-violet-soft, #e4f8f0);
+  color: var(--ns-violet-strong, #0fb174);
 }
 
 .redenv-hero .redenv-hero-copy {
@@ -58,7 +58,7 @@
 
   > span {
     width: fit-content;
-    color: var(--ns-violet-strong, #6a4df4);
+    color: var(--ns-violet-strong, #0fb174);
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
@@ -166,12 +166,12 @@
 
   &:focus-visible {
     outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   }
 
   &--active {
     background: var(--ns-surface, #ffffff);
-    color: var(--ns-violet-strong, #6a4df4);
+    color: var(--ns-violet-strong, #0fb174);
     box-shadow: var(--ns-shadow-sm, 0 4px 14px rgba(20, 22, 38, 0.05));
   }
 }
@@ -312,9 +312,9 @@
 /* Soft-tinted disabled CTA -- awaiting input, not broken */
 .redenv-action-panel .neo-btn--primary:disabled,
 .redenv-action-panel .neo-btn--secondary:disabled {
-  background: var(--ns-violet-soft, #eeeaff);
-  border-color: rgba(123, 97, 255, 0.18);
-  color: var(--ns-violet-strong, #6a4df4);
+  background: var(--ns-violet-soft, #e4f8f0);
+  border-color: rgba(22, 199, 132, 0.18);
+  color: var(--ns-violet-strong, #0fb174);
   opacity: 0.85;
   box-shadow: none;
 }
@@ -377,7 +377,7 @@
   }
 
   strong {
-    color: var(--ns-violet-strong, #6a4df4);
+    color: var(--ns-violet-strong, #0fb174);
     font-size: 12px;
     font-weight: 800;
     line-height: 1.25;
@@ -387,19 +387,19 @@
   }
 
   &:hover:not(.redenv-row--static):not(.redenv-row--selected) {
-    border-color: rgba(123, 97, 255, 0.28);
+    border-color: rgba(22, 199, 132, 0.28);
     background: var(--ns-surface, #ffffff);
   }
 
   &:focus-visible {
     outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   }
 
   &--selected {
-    border-color: rgba(123, 97, 255, 0.32);
-    background: var(--ns-violet-soft, #eeeaff);
-    box-shadow: inset 0 0 0 1px rgba(123, 97, 255, 0.12);
+    border-color: rgba(22, 199, 132, 0.32);
+    background: var(--ns-violet-soft, #e4f8f0);
+    box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.12);
   }
 
   &--static {
@@ -430,7 +430,7 @@
 
     &:focus-visible {
       outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(123, 97, 255, 0.18));
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
     }
 
     span {
@@ -464,8 +464,8 @@
     width: 28px;
     height: 28px;
     border-radius: 9px;
-    background: var(--ns-violet-soft, #eeeaff);
-    color: var(--ns-violet-strong, #6a4df4);
+    background: var(--ns-violet-soft, #e4f8f0);
+    color: var(--ns-violet-strong, #0fb174);
   }
 
   .redenv-summary-value {
@@ -564,8 +564,8 @@
   width: 58px;
   height: 58px;
   border-radius: 17px;
-  background: var(--ns-violet, #7b61ff);
-  box-shadow: 0 14px 30px rgba(123, 97, 255, 0.28);
+  background: var(--ns-violet, #16c784);
+  box-shadow: 0 14px 30px rgba(22, 199, 132, 0.28);
 }
 
 .redenv-modal-title {

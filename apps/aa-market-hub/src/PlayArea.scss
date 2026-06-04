@@ -28,8 +28,8 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 14px;
-  background: var(--ns-violet-soft, #eeeaff);
-  color: var(--ns-violet-strong, #6a4df4);
+  background: var(--ns-violet-soft, #e4f8f0);
+  color: var(--ns-violet-strong, #0fb174);
 
   svg {
     width: 22px;
@@ -46,7 +46,7 @@
 }
 
 .market-hero__eyebrow {
-  color: var(--ns-violet-strong, #6a4df4);
+  color: var(--ns-violet-strong, #0fb174);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -234,8 +234,8 @@
   height: 48px;
   place-items: center;
   border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-violet-soft, #eeeaff);
-  color: var(--ns-violet-strong, #6a4df4);
+  background: var(--ns-violet-soft, #e4f8f0);
+  color: var(--ns-violet-strong, #0fb174);
   font-size: 16px;
   font-weight: 800;
 }

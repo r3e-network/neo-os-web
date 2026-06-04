@@ -18,7 +18,7 @@ export const manifest: MiniAppManifest = {
   icon: "dice",
   category: "oracle",
   shell: "console",
-  theme: { family: "default", accentColor: "#7B61FF", density: "comfortable" },
+  theme: { family: "default", accentColor: "#16c784", density: "comfortable" },
   tabs: [{ key: "vrf", labelKey: "tabVrf", icon: "dice", default: true }],
   stats: [
     {
