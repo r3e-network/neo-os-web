@@ -114,6 +114,8 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
             />
             <NeoInput
               value={targetPrice}
+              type="number"
+              min={0}
               label={t("targetPrice") || "Target Price"}
               placeholder={t("targetPricePlaceholder") || "20"}
               onChange={(val) => { if (state.targetPrice) state.targetPrice.set(val); }}

@@ -303,7 +303,32 @@ export function useBreakup({
         totalPenaltyPaid: 0,
         breakupInitiator: "",
       };
-      await storageService.set(storageKey(contractId), stored);
+
+      // The escrow is already created on-chain at this point, so a failure of
+      // the index write would otherwise strand the stake in an escrow the UI
+      // can never surface (the contracts: list would never include it). Roll
+      // the escrow back via refund() before propagating the failure. The
+      // contractId IS the escrowId by invariant (see generateContractId), so
+      // refund(String(contractId)) targets the escrow we just created.
+      try {
+        await storageService.set(storageKey(contractId), stored);
+      } catch (storageError) {
+        try {
+          await escrowService.refund(String(contractId));
+        } catch (refundError) {
+          // Compensation failed too: the stake is still escrowed but the index
+          // write failed. Surface a distinct, actionable error so the user
+          // knows the funds are recoverable rather than lost.
+          const recoverable = new Error(
+            t("contractCreateFundsRecoverable", { id: contractId }),
+          );
+          actionNotice.set(recoverable.message);
+          throw recoverable;
+        }
+        // Refund succeeded: the on-chain stake was returned, so report the
+        // create as failed (not a misleading success) and re-throw.
+        throw storageError;
+      }
 
       eventBus.emit("breakup:created", { action: t("contractCreated") });
 
@@ -374,6 +399,8 @@ export function useBreakup({
    * The edge function handles the triggerBreakup contract call.
    */
   const breakContract = async (contract: { id: number }) => {
+    if (isLoading.get()) return;
+
     actionNotice.set(t("contractBreaking", { id: contract.id }));
     isLoading.set(true);
     try {

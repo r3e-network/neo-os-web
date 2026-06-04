@@ -136,6 +136,7 @@ defineMiniApp({
         canManageSelectedListing: hub.canManageSelectedListing,
         canBuySelectedListing: hub.canBuySelectedListing,
         totalListingsDisplay: hub.totalListingsDisplay,
+        listingsTruncatedNotice: hub.listingsTruncatedNotice,
         activeListingsDisplay: hub.activeListingsDisplay,
         marketHashDisplay: hub.marketHashDisplay,
         walletDisplay: hub.walletDisplay,

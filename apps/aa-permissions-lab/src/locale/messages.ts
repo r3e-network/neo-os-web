@@ -118,6 +118,14 @@ const appMessages = {
     en: "Enter an AccountId hash and hook contract hash before submitting.",
     zh: "请先填写 AccountId hash 与 hook 合约哈希，再提交。",
   },
+  invalidHash: {
+    en: "Enter a valid 20-byte script hash (40 hex characters, optional 0x prefix).",
+    zh: "请输入有效的 20 字节脚本哈希（40 位十六进制，可选 0x 前缀）。",
+  },
+  invalidParams: {
+    en: "Verifier params must be an even-length hex string (optional 0x prefix).",
+    zh: "Verifier 参数必须是偶数长度的十六进制字符串（可选 0x 前缀）。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

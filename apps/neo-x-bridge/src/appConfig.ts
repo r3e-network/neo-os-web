@@ -228,6 +228,30 @@ const appMessages = {
   statusMessageReady: { en: "Message bridge intent prepared", zh: "消息桥意图已生成" },
   statusTrackingReady: { en: "Tracking timeline refreshed", zh: "追踪时间线已刷新" },
   copiedPayload: { en: "Bridge payload copied", zh: "跨链载荷已复制" },
+  errAmountPositive: {
+    en: "Enter an amount greater than zero.",
+    zh: "请输入大于零的数量。",
+  },
+  errAddressFormat: {
+    en: "Enter a valid Neo X (0x...) or Neo N3 (N...) address.",
+    zh: "请输入有效的 Neo X (0x...) 或 Neo N3 (N...) 地址。",
+  },
+  errGasLimit: {
+    en: "Gas limit must be a whole number of at least 21000.",
+    zh: "Gas 上限必须是不小于 21000 的整数。",
+  },
+  errAssetForm: {
+    en: "Enter a positive GAS amount and a valid destination address before preparing the bridge handoff.",
+    zh: "请先输入正数的 GAS 数量和有效的目标地址，再生成跨链交接载荷。",
+  },
+  errMessageForm: {
+    en: "Enter a valid target contract, payload, and a gas limit of at least 21000.",
+    zh: "请输入有效的目标合约、载荷以及不小于 21000 的 Gas 上限。",
+  },
+  errTrackForm: {
+    en: "Enter an operation id or source transaction to refresh tracking.",
+    zh: "请输入操作 ID 或源链交易以刷新追踪。",
+  },
   docsSubtitle: {
     en: "A unified AxLabs/BaneLabs bridge console for Neo N3, Neo X, assets, messages, and status tracking.",
     zh: "统一的 AxLabs/BaneLabs 跨链控制台，覆盖 Neo N3、Neo X、资产、消息和状态追踪。",

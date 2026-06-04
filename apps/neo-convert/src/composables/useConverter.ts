@@ -43,7 +43,6 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
   const inputKey = createObservable("");
   const statusMsg = createObservable("");
   const statusType = createObservable("");
-  const showSecrets = createObservable(false);
   const result = createObservable<ConversionResult>({ ...EMPTY_RESULT });
 
   async function copy(text: string) {
@@ -64,7 +63,6 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
     result.set({ ...EMPTY_RESULT });
     statusMsg.set("");
     statusType.set("");
-    showSecrets.set(false);
   }
 
   function detectAndConvert() {
@@ -128,7 +126,6 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
     inputKey,
     statusMsg,
     statusType,
-    showSecrets,
     result,
     copyStatus,
     copy,

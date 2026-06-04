@@ -73,10 +73,18 @@ export default function PlayArea({
 
   const hasAAAddress = Boolean(aaAddress.trim());
   const payloadJsonIsValid = isValidJson(payloadJsonLocal);
-  const hasSponsorAmount = Boolean(sponsorAmountLocal.trim());
+  // Require a strictly positive plain decimal (no NaN, no <=0, no scientific/hex,
+  // no whitespace). The edge function is the real authority, but blocking the
+  // obviously-invalid client call surfaces inline guidance instead of an opaque
+  // server-side rejection.
+  const sponsorAmountTrimmed = sponsorAmountLocal.trim();
+  const sponsorAmountIsValid =
+    /^\d+(\.\d+)?$/.test(sponsorAmountTrimmed) &&
+    Number(sponsorAmountTrimmed) > 0;
+  const hasSponsorAmount = Boolean(sponsorAmountTrimmed);
   const canCheckSponsor = hasAAAddress && !isCheckingSponsorship;
   const canRequestSponsor =
-    hasAAAddress && hasSponsorAmount && !isCheckingSponsorship;
+    hasAAAddress && sponsorAmountIsValid && !isCheckingSponsorship;
   const canSubmitRelay = hasAAAddress && payloadJsonIsValid && !isRelaying;
   const draftAAAddress = aaAddress.trim() || "—";
 
@@ -93,7 +101,13 @@ export default function PlayArea({
       resultText = t("relaySubmitted");
       resultTone = "ok";
     } else {
-      resultText = t("sponsorCheckComplete");
+      // A SponsorshipResult (request) carries `approved`; a SponsorshipStatus
+      // (check) carries `eligible`. Pick the matching label so a request is not
+      // mislabeled as a check.
+      resultText =
+        "approved" in activeResult
+          ? t("sponsorRequestComplete")
+          : t("sponsorCheckComplete");
       resultTone = "info";
     }
     // Surface an error message if the service returned one.
@@ -219,6 +233,9 @@ export default function PlayArea({
           </div>
           {!canCheckSponsor && (
             <p className="relay-hint">{t("sponsorBlocked")}</p>
+          )}
+          {canCheckSponsor && hasSponsorAmount && !sponsorAmountIsValid && (
+            <p className="relay-hint">{t("sponsorAmountInvalid")}</p>
           )}
 
           <hr className="relay-divider" />

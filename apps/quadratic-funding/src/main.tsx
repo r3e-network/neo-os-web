@@ -63,10 +63,14 @@ defineMiniApp({
 
     return {
       state: refsToObservables({
+        address: qf.address,
         rounds: qf.rounds,
         selectedRoundId: qf.selectedRoundId,
         selectedRound: qf.selectedRound,
         isRefreshingRounds: qf.isRefreshingRounds,
+        isCreatingRound: qf.isCreatingRound,
+        isRegisteringProject: qf.isRegisteringProject,
+        isContributing: qf.isContributing,
         isAddingMatching: qf.isAddingMatching,
         isFinalizing: qf.isFinalizing,
         isClaimingUnused: qf.isClaimingUnused,

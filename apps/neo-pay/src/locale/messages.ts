@@ -85,6 +85,12 @@ const appMessages = {
   createVault: { en: "Create Stream", zh: "创建资金流" },
   vaultCreated: { en: "Stream created", zh: "资金流已创建" },
 
+  // Action success notifications (passed to notify.guard in main.tsx; run through t()).
+  streamCreated: { en: "Stream created", zh: "资金流已创建" },
+  streamCancelled: { en: "Stream cancelled", zh: "资金流已取消" },
+  streamClaimed: { en: "Funds claimed", zh: "资金已领取" },
+  streamNotFound: { en: "Stream not found", zh: "未找到资金流" },
+
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
 
   invalidAddress: { en: "Invalid beneficiary address", zh: "受益人地址无效" },

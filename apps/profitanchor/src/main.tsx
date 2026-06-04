@@ -71,10 +71,16 @@ defineMiniApp({
       [anchor.stats],
     );
     const agentCount = createDerived(
-      () => anchor.stats.get()?.agentCount || agentAccounts.length,
+      () => {
+        const s = anchor.stats.get();
+        // Only fall back to the candidate-slot total before stats load.
+        // A genuine on-chain 0 must render as 0, not be masked as 21.
+        return s ? s.agentCount : agentAccounts.length;
+      },
       [anchor.stats],
     );
     const ingressCount = createObservable(21);
+    const submitting = createObservable(false);
     const recordAction = (item: Omit<AnchorActionHistoryItem, "at">) => {
       actionHistory.set([
         { ...item, at: new Date().toISOString() },
@@ -88,6 +94,11 @@ defineMiniApp({
       run: () => Promise<AnchorTxResult | undefined>,
       amount?: string,
     ) => {
+      // Shared in-flight lock: blocks double-submit across PlayArea and the
+      // manifest-driven operation panel (both render simultaneously). Set
+      // before the first await so a second concurrent NEO transfer can't start.
+      if (submitting.get()) return;
+      submitting.set(true);
       workflowStatus.set(ctx.t("workflowSubmitting"));
       lastError.set("");
       try {
@@ -110,6 +121,8 @@ defineMiniApp({
         workflowStatus.set(ctx.t("workflowFailed"));
         notify.error(error, "anchorActionFailed");
         throw error;
+      } finally {
+        submitting.set(false);
       }
     };
 
@@ -141,6 +154,8 @@ defineMiniApp({
       );
     });
     ctx.registerAction("refreshAnchor", async () => {
+      if (submitting.get()) return;
+      submitting.set(true);
       workflowStatus.set(ctx.t("workflowSubmitting"));
       lastError.set("");
       try {
@@ -156,6 +171,8 @@ defineMiniApp({
         lastError.set(message);
         workflowStatus.set(ctx.t("workflowFailed"));
         throw error;
+      } finally {
+        submitting.set(false);
       }
     });
 
@@ -172,6 +189,7 @@ defineMiniApp({
         rewardReserveDisplay,
         agentCount,
         ingressCount,
+        submitting,
         workflowStatus,
         lastTxid,
         lastError,

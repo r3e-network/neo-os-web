@@ -10,7 +10,11 @@ import type { Observable } from "@shared/react/context";
 import type { ChainService } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
-import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
+import {
+  deriveAAAccountIdHash,
+  AA_REGISTRATION_MIN_ESCAPE_TIMELOCK_SECONDS,
+  AA_REGISTRATION_MAX_ESCAPE_TIMELOCK_SECONDS,
+} from "@shared/utils/aa-account";
 import {
   getExternalIntegrationConfig,
   getNetwork,
@@ -43,6 +47,10 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
   const currentVerifier = createObservable(t("notAvailable"));
   const currentHook = createObservable(t("notAvailable"));
   const currentBackupOwner = createObservable(t("notAvailable"));
+  // Explicit flag: true once a read has completed successfully, regardless of
+  // whether the account has a verifier set. Distinguishes "not inspected yet"
+  // from "inspected, verifier is empty".
+  const hasInspected = createObservable(false);
 
   // Loading states
   const isInspecting = createObservable(false);
@@ -90,6 +98,35 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
     return normalized;
   }
 
+  // Parse + validate the escape timelock before any chain round-trip. Rejects
+  // non-integers, 0, negatives, and out-of-range values (uint32 / 7-90 day
+  // bounds enforced by the contract) with a clear, immediate, localized error
+  // instead of a confusing low-level wallet failure.
+  function parseEscapeTimelock(value: string): number {
+    const trimmed = String(value || "").trim();
+    if (!/^[0-9]+$/.test(trimmed)) throw new Error(t("invalidTimelock"));
+    const seconds = Number.parseInt(trimmed, 10);
+    if (
+      !Number.isInteger(seconds) ||
+      seconds < AA_REGISTRATION_MIN_ESCAPE_TIMELOCK_SECONDS ||
+      seconds > AA_REGISTRATION_MAX_ESCAPE_TIMELOCK_SECONDS
+    ) {
+      throw new Error(t("invalidTimelock"));
+    }
+    return seconds;
+  }
+
+  // Strip an optional 0x prefix and validate that the verifier params are valid
+  // even-length hex before sending as a ByteArray arg, so odd-length or non-hex
+  // input surfaces a localized error instead of an opaque serialization failure.
+  function sanitizeVerifierParams(value: string): string {
+    const normalized = String(value || "").trim().replace(/^0x/i, "");
+    if (normalized && (normalized.length % 2 !== 0 || !/^[0-9a-f]*$/i.test(normalized))) {
+      throw new Error(t("invalidVerifierParams"));
+    }
+    return normalized;
+  }
+
   const inspectAccount = async () => {
     try {
       isInspecting.set(true);
@@ -105,6 +142,9 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
       currentVerifier.set(String(parseInvokeResult(verifierResult) || t("notAvailable")));
       currentHook.set(String(parseInvokeResult(hookResult) || t("notAvailable")));
       currentBackupOwner.set(String(parseInvokeResult(backupResult) || t("notAvailable")));
+      // The read succeeded: surface the detail grid even when verifier/hook are
+      // empty, rather than masking it behind the "not inspected" placeholder.
+      hasInspected.set(true);
 
       storageService.set(`account:${accountIdHash}`, {
         verifier: currentVerifier.get(),
@@ -126,8 +166,8 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
       const verifierHash = normalizeHashOrZero(registerForm.verifierHash);
       const hookHash = normalizeHashOrZero(registerForm.hookHash);
       const backupOwner = normalizeBackupOwner(registerForm.backupOwner);
-      const escapeTimelock = parseInt(registerForm.escapeTimelock, 10) || 2592000;
-      const verifierParams = registerForm.verifierParamsHex.trim().replace(/^0x/, "");
+      const escapeTimelock = parseEscapeTimelock(registerForm.escapeTimelock);
+      const verifierParams = sanitizeVerifierParams(registerForm.verifierParamsHex);
 
       await chain.invoke(
         "registerAccount",
@@ -164,6 +204,7 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
     currentVerifier,
     currentHook,
     currentBackupOwner,
+    hasInspected,
     isInspecting,
     isSubmitting,
     aaCoreDisplay,

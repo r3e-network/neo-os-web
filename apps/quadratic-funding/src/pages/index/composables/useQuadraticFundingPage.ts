@@ -15,6 +15,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   const activeTab = createObservable("rounds");
 
   const {
+    address,
     rounds,
     selectedRoundId,
     selectedRound,
@@ -152,11 +153,16 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   // Caller is responsible for invoking refreshRounds() on mount
 
   return {
+    // Wallet (bound so admin capability derives re-render on connect)
+    address,
     // Rounds
     rounds,
     selectedRoundId,
     selectedRound,
     isRefreshingRounds,
+    isCreatingRound,
+    isRegisteringProject,
+    isContributing,
     isAddingMatching,
     isFinalizing,
     isClaimingUnused,

@@ -47,18 +47,22 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const [tributeReceiptId, setTributeReceiptId] = useState("");
   const isMainnet = launchContext?.network === "mainnet";
 
+  const defaultOffering = { value: "1", costGas: "0.01 GAS", label: `${t("incense") || "Incense"} · 0.01 GAS` };
   const offeringOptions = [
-    { value: "1", label: `${t("incense") || "Incense"} · 0.01 GAS` },
-    { value: "2", label: `${t("candle") || "Candle"} · 0.02 GAS` },
-    { value: "3", label: `${t("flower") || "Flowers"} · 0.03 GAS` },
-    { value: "4", label: `${t("fruit") || "Fruit"} · 0.05 GAS` },
-    { value: "5", label: `${t("wine") || "Wine"} · 0.10 GAS` },
-    { value: "6", label: `${t("feast") || "Feast"} · 0.50 GAS` },
+    defaultOffering,
+    { value: "2", costGas: "0.02 GAS", label: `${t("candle") || "Candle"} · 0.02 GAS` },
+    { value: "3", costGas: "0.03 GAS", label: `${t("flower") || "Flowers"} · 0.03 GAS` },
+    { value: "4", costGas: "0.05 GAS", label: `${t("fruit") || "Fruit"} · 0.05 GAS` },
+    { value: "5", costGas: "0.10 GAS", label: `${t("wine") || "Wine"} · 0.10 GAS` },
+    { value: "6", costGas: "0.50 GAS", label: `${t("feast") || "Feast"} · 0.50 GAS` },
   ];
   const selectedOffering =
-    offeringOptions.find((item) => item.value === tributeOfferingType) ??
-    { value: "1", label: `${t("incense") || "Incense"} · 0.01 GAS` };
-  const canCreateMemorial = formName.trim().length > 0 && formDeathYear.trim().length > 0;
+    offeringOptions.find((item) => item.value === tributeOfferingType) ?? defaultOffering;
+  const parsedDeathYear = parseInt(formDeathYear, 10);
+  const parsedBirthYear = parseInt(formBirthYear, 10);
+  const deathYearValid = /^\d+$/.test(formDeathYear.trim()) && parsedDeathYear > 0;
+  const birthYearValid = formBirthYear.trim() === "" || (/^\d+$/.test(formBirthYear.trim()) && parsedBirthYear > 0);
+  const canCreateMemorial = formName.trim().length > 0 && deathYearValid && birthYearValid;
   const selectedMemorialName = selectedMemorial?.name ? String(selectedMemorial.name) : (t("unnamed") || "Unnamed");
   const selectedMemorialYears =
     selectedMemorial?.birthYear && selectedMemorial?.deathYear
@@ -85,6 +89,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const handlePayTribute = async (memorialId: number) => {
     await dispatch("payTribute", memorialId, parseInt(tributeOfferingType, 10), tributeMessage, tributeReceiptId);
     setTributeMessage("");
+    setTributeReceiptId("");
   };
 
   return (
@@ -161,6 +166,24 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             {selectedMemorialYears && (
               <span className="detail-years">{selectedMemorialYears}</span>
             )}
+            <div className="detail-actions">
+              <NeoButton
+                variant="ghost"
+                className="detail-action"
+                onClick={() => dispatch("shareMemorial", selectedMemorial.id)}
+                aria-label={t("shareMemorial") || "Share Memorial"}
+              >
+                {t("share") || "Share"}
+              </NeoButton>
+              <NeoButton
+                variant="ghost"
+                className="detail-action"
+                onClick={() => dispatch("closeMemorial")}
+                aria-label={t("close") || "Close"}
+              >
+                {t("close") || "Close"}
+              </NeoButton>
+            </div>
           </div>
           {selectedMemorialBio && (
             <p className="detail-bio">{selectedMemorialBio}</p>
@@ -177,7 +200,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               />
               <div className="offering-cost-card" aria-label={t("offeringCost") || "Offering cost"}>
                 <span>{t("offeringCost") || "Offering cost"}</span>
-                <strong>{selectedOffering.label.split("·")[1]?.trim() ?? "0.01 GAS"}</strong>
+                <strong>{selectedOffering.costGas}</strong>
               </div>
             </div>
             {isMainnet && (

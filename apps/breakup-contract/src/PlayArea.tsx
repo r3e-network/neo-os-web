@@ -223,6 +223,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             address={address || null}
             onSign={(c: unknown) => dispatch("signContract", c)}
             onBreak={(c: unknown) => dispatch("breakContract", c)}
+            busy={isLoading}
             t={t}
           />
           {contracts.length === 0 && !isLoading && !serviceNotice && (

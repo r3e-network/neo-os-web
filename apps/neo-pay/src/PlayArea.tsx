@@ -95,7 +95,14 @@ export default function PlayArea({
 
   /* ---------- Bound state ---------- */
   const isLoading = bool("isLoading");
+  const isRefreshing = bool("isRefreshing");
   const isCreating = bool("isCreating");
+  // List cards reflect actual fetch state: the initial load and every
+  // post-action refresh set isRefreshing, while isLoading is only set during
+  // stream creation. Gate the list spinners on either so the cards show a
+  // loading indicator during the first fetch instead of flashing the empty
+  // state, and the create-button spinner stays driven by isCreating.
+  const isListLoading = isLoading || isRefreshing;
   const claimingId = str("claimingId");
   const cancellingId = str("cancellingId");
   const activeCount = num("activeCount");
@@ -388,7 +395,7 @@ export default function PlayArea({
         variant="erobo"
         title={`${t("yourCreatedStreams") || "Your Created Streams"} (${createdStreams.length})`}
       >
-        {isLoading ? (
+        {isListLoading ? (
           <div className="neopay-loading">
             <div className="neopay-loading-spinner" />
             <span>{t("loading") || "Loading..."}</span>
@@ -495,7 +502,7 @@ export default function PlayArea({
         variant="erobo"
         title={`${t("streamsYouReceive") || "Streams You Receive"} (${beneficiaryStreams.length})`}
       >
-        {isLoading ? (
+        {isListLoading ? (
           <div className="neopay-loading">
             <div className="neopay-loading-spinner" />
             <span>{t("loading") || "Loading..."}</span>

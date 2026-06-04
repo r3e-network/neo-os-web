@@ -117,15 +117,30 @@ function utf8ToBase64(value: string): string {
   return base64FromBytes(utf8Bytes(value));
 }
 
+/**
+ * Normalize an attempt fee to a fixed8 raw integer string for payment.
+ *
+ * `attemptFee` is stored/read as a fixed8 raw integer (see formatGas usage in
+ * the display derive). So an integer input is ALREADY in raw units and must be
+ * passed through untouched — re-applying toFixed8 here would double-scale small
+ * fees and massively overpay. Only a value that contains a decimal point is
+ * treated as human GAS and scaled. Non-positive / non-finite input falls back
+ * to the default 0.1 GAS attempt fee.
+ */
 function normalizeAttemptFeeFixed8(value: unknown): string {
   const raw = String(value ?? "").trim();
   if (!raw) return toFixed8(ATTEMPT_FEE);
-  if (raw.includes(".")) return toFixed8(raw);
-  const numeric = Number(raw);
-  if (Number.isFinite(numeric) && numeric > 0 && numeric < 1_000_000) {
-    return toFixed8(numeric);
+  // Human-decimal GAS (e.g. "0.1") → scale to fixed8 raw.
+  if (raw.includes(".")) {
+    const scaled = toFixed8(raw);
+    return scaled !== "0" ? scaled : toFixed8(ATTEMPT_FEE);
   }
-  return raw;
+  // Integer input is already a fixed8 raw value — pass through unchanged.
+  const numeric = Number(raw);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return String(Math.trunc(numeric));
+  }
+  return toFixed8(ATTEMPT_FEE);
 }
 
 // ============================================================================
@@ -158,10 +173,23 @@ export function useVaultBreaker({
     );
   }, []);
 
-  const attemptFeeDisplay = createDerived(() => {
+  /**
+   * Resolve the effective attempt fee (fixed8 raw) for a vault.
+   *
+   * loadVault stores attemptFee via toSafeNumber, which yields 0 (not
+   * null/undefined) when the indexer record lacks the field — so a plain
+   * `?? fallback` would let an absent fee show/pay 0 GAS. Treat any
+   * non-positive / non-finite value as missing and fall back to the default
+   * 0.1 GAS attempt fee.
+   */
+  const resolveAttemptFeeFixed8 = (): string => {
     const fallback = toFixed8(ATTEMPT_FEE);
-    const fee = vaultDetails.get()?.attemptFee ?? fallback;
-    return formatGas(fee);
+    const fee = vaultDetails.get()?.attemptFee;
+    return Number.isFinite(fee) && (fee as number) > 0 ? String(fee) : fallback;
+  };
+
+  const attemptFeeDisplay = createDerived(() => {
+    return formatGas(resolveAttemptFeeFixed8());
   }, []);
 
   // ── Data Loading (via StorageProxy) ────────────────────────────────
@@ -252,8 +280,7 @@ export function useVaultBreaker({
     if (!canAttempt.get() || isLoading.get()) return undefined;
     isLoading.set(true);
     try {
-      const feeBase = vaultDetails.get()?.attemptFee ?? toFixed8(ATTEMPT_FEE);
-      const attemptFee = normalizeAttemptFeeFixed8(feeBase);
+      const attemptFee = normalizeAttemptFeeFixed8(resolveAttemptFeeFixed8());
       const attacker = await chainService.ensureWallet();
 
       await chainService.invokeWithPayment(

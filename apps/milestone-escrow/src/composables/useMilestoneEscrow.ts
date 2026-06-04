@@ -49,6 +49,7 @@ import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { formatGas, formatAddress } from "@shared/utils/format";
+import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import type { EscrowItem } from "../pages/index/components/EscrowList";
 
@@ -432,6 +433,14 @@ export function useMilestoneEscrow({
     const beneficiaryAddr = data.beneficiary.trim();
     const assetSymbol = data.asset;
 
+    // Validate the beneficiary before any on-chain call. An empty/malformed
+    // address would otherwise reach os-escrow-create, which defaults the
+    // counterparty to the creator (silent self-escrow) or fails on-chain with
+    // an opaque error. addressToScriptHash returns "" for an invalid N3 address.
+    if (!beneficiaryAddr || !addressToScriptHash(beneficiaryAddr)) {
+      throw new Error(t("invalidAddress"));
+    }
+
     isCreating.set(true);
     try {
       // Step 1: Fund the escrow via PaymentProxy (human-decimal amount).
@@ -441,11 +450,30 @@ export function useMilestoneEscrow({
       );
 
       // Step 2: Create the escrow via EscrowProxy (human-decimal amounts).
-      await escrowService.create({
-        beneficiary: beneficiaryAddr,
-        amount: totalAmountHuman,
-        milestones: milestoneEntries,
-      });
+      //
+      // The deposit in Step 1 has already moved real funds into the user's
+      // PaymentService balance. If escrow creation fails the funds would be
+      // stranded there with no escrow, so we compensate by withdrawing the
+      // deposit before re-throwing. If the withdraw itself fails, surface a
+      // distinct manual-recovery error instead of the raw escrow error.
+      try {
+        await escrowService.create({
+          beneficiary: beneficiaryAddr,
+          amount: totalAmountHuman,
+          milestones: milestoneEntries,
+        });
+      } catch (escrowErr) {
+        try {
+          await paymentService.withdraw(totalAmountHuman);
+        } catch (refundErr) {
+          console.error(
+            "[useMilestoneEscrow] createEscrow: deposit withdraw failed after escrow.create error",
+            refundErr instanceof Error ? refundErr.message : String(refundErr),
+          );
+          throw new Error(t("depositRecoveryNeeded"));
+        }
+        throw new Error(t("depositRefunded"));
+      }
 
       // Step 3: Maintain the os-storage index. The kernel does not return its
       // assigned escrow id and exposes no enumeration, so we mint a stable id

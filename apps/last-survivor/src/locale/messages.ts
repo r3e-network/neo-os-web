@@ -51,6 +51,14 @@ const appMessages = {
     en: "Key purchase services are not configured in this environment yet.",
     zh: "当前环境暂未配置购钥匙服务。",
   },
+  keyPurchaseRefunded: {
+    en: "Key purchase failed — your GAS deposit was refunded.",
+    zh: "购买钥匙失败——您的 GAS 押金已退回。",
+  },
+  keyPurchaseRecoveryNeeded: {
+    en: "Key purchase failed and the automatic refund did not complete. Please contact support to recover your GAS.",
+    zh: "购买钥匙失败且自动退款未完成。请联系客服以找回您的 GAS。",
+  },
   keysPurchased: { en: "Keys purchased", zh: "钥匙购买成功" },
   roundStarted: { en: "Round started", zh: "新一轮开始" },
   winnerDeclared: { en: "Winner declared", zh: "赢家已揭晓" },

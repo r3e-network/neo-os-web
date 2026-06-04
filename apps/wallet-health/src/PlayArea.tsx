@@ -19,6 +19,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const address = str("address");
   const isConnected = bool("isConnected");
+  const isConnecting = bool("isConnecting");
   const isRefreshing = bool("isRefreshing");
   const connectionStatus = str("connectionStatus");
   const networkLabel = str("networkLabel");
@@ -165,10 +166,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoButton
               size="md"
               variant="primary"
-              disabled={isConnected}
+              disabled={isConnected || isConnecting}
               onClick={() => dispatch("connectWallet")}
             >
-              {isConnected ? t("statusConnected") : t("connectWallet")}
+              {isConnecting ? t("loading") : isConnected ? t("statusConnected") : t("connectWallet")}
             </NeoButton>
             <NeoButton
               size="md"

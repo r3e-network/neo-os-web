@@ -170,6 +170,14 @@ export function useForeverAlbum({
   const isEncrypted = createObservable(false);
   const password = createObservable("");
   const lastTx = createObservable<TxResult | null>(null);
+  // Surface the hard transaction-size limit as a read-only observable so the
+  // view's disable gate and progress meter can be sourced from the same number
+  // uploadPhotos() enforces (MAX_TOTAL_BYTES), instead of a divergent constant.
+  const maxTotalBytes: Observable = {
+    get: () => MAX_TOTAL_BYTES,
+    set: () => {},
+    subscribe: () => () => {},
+  };
 
   // ── Computed ──────────────────────────────────────────────────────────
   const photosCount: Observable = {
@@ -278,6 +286,14 @@ export function useForeverAlbum({
   // ── Decryption ───────────────────────────────────────────────────────
 
   const openDecrypt = () => {
+    // Carry the photo being viewed into the decrypt flow so handleDecrypt has a
+    // valid target. Without this, opening decrypt from the viewer card would
+    // leave decryptTarget null and handleDecrypt would silently no-op.
+    const current = viewingPhoto.get();
+    if (current) {
+      decryptTarget.set(current);
+      decryptedPreview.set("");
+    }
     showViewer.set(false);
     showDecrypt.set(true);
   };
@@ -412,11 +428,67 @@ export function useForeverAlbum({
         });
       }
 
+      // Each photo is an independent wallet-signed write, so a mid-loop
+      // failure (rejection, network, revert) can strand already-persisted
+      // records on-chain. Track which records landed and, on failure,
+      // best-effort delete them so the album does not show a partial upload
+      // the user did not intend, then surface a precise "N of M" message and
+      // keep the un-uploaded photos selected so the user retries only those.
+      const landed: StoredPhoto[] = [];
       for (const record of records) {
-        const tx = await submitWriteIntent(
-          await storageService.set(`${walletPhotoPrefix(walletAddress)}${record.id}`, record),
-        );
-        if (tx?.txid) record.txid = tx.txid;
+        const key = `${walletPhotoPrefix(walletAddress)}${record.id}`;
+        try {
+          const tx = await submitWriteIntent(await storageService.set(key, record));
+          if (tx?.txid) record.txid = tx.txid;
+          landed.push(record);
+        } catch (writeErr) {
+          if (landed.length > 0) {
+            // Compensate: roll back the records that already landed. If every
+            // delete succeeds the album is left clean; if any rollback fails,
+            // surface a distinct recoverable message so the partial state is
+            // not hidden.
+            let rollbackClean = true;
+            for (const placed of landed) {
+              try {
+                await submitWriteIntent(
+                  await storageService.delete(
+                    `${walletPhotoPrefix(walletAddress)}${placed.id}`,
+                  ),
+                );
+              } catch (rollbackErr) {
+                rollbackClean = false;
+                console.error(
+                  "[useForeverAlbum] uploadPhotos: rollback delete failed",
+                  rollbackErr instanceof Error
+                    ? rollbackErr.message
+                    : String(rollbackErr),
+                );
+              }
+            }
+            if (!rollbackClean) {
+              // Some landed records could not be deleted — the album may show a
+              // partial upload. Keep the whole selection so the user can resume,
+              // and surface a distinct recoverable message.
+              throw new Error(
+                t("uploadPartialRecoverable", {
+                  done: landed.length,
+                  total: records.length,
+                }),
+              );
+            }
+          }
+          // Rollback was clean (or nothing had landed): no records remain
+          // on-chain, so the full batch is intact and safe to retry without
+          // creating duplicates. The original selection is already preserved
+          // (only a fully successful upload clears it), so just surface the
+          // failure with context.
+          const failureMessage = t("uploadRolledBack", {
+            total: records.length,
+          });
+          throw writeErr instanceof Error
+            ? new Error(`${failureMessage} ${writeErr.message}`)
+            : new Error(failureMessage);
+        }
       }
 
       // Mint a lightweight album marker when the backend supports it. The
@@ -483,6 +555,7 @@ export function useForeverAlbum({
     isEncrypted,
     password,
     totalPayloadSize,
+    maxTotalBytes,
     lastTx,
 
     // ── Constants ────────────────────────────────────────────────────

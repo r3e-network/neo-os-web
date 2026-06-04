@@ -17,6 +17,12 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
     <div className="result-section">
       <span className="section-title">{t("searchResult")}</span>
 
+      {result.type === "none" && (
+        <NeoCard variant="erobo" className="result-card result-card--empty">
+          <span className="result-empty">{t("noResults")}</span>
+        </NeoCard>
+      )}
+
       {result.type === "block" && (
         <NeoCard variant="erobo" className="result-card">
           <div className="result-rows">

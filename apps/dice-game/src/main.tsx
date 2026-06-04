@@ -83,8 +83,18 @@ defineMiniApp({
 
       isSubmitting.set(true);
       lastStatus.set(ctx.t("statusSubmitting"));
+      // Tracks whether the GAS stake transfer has been broadcast. invokeWithPayment
+      // transfers the stake to the contract FIRST, then calls placeDiceBet. If the
+      // contract call fails after the transfer is sent, the GAS has left the wallet
+      // (tagged with the `${appId}:stake` memo) while no bet was registered, so the
+      // failure must be surfaced as "funds recoverable via contract refund", not a
+      // plain "Roll failed" that implies nothing happened.
+      let stakeSent = false;
       try {
         const player = await ctx.services.chain.ensureWallet();
+        // Wallet is connected; the next call broadcasts the stake transfer before
+        // invoking placeDiceBet, so from here a failure may leave the stake locked.
+        stakeSent = true;
         const result = await ctx.services.chain.invokeWithPayment(
           amountFixed8,
           `${appId}:stake`,
@@ -116,10 +126,32 @@ defineMiniApp({
         );
         return result;
       } catch (error) {
-        const message =
+        const rawMessage =
           error instanceof Error ? error.message : ctx.t("statusFailed");
-        lastStatus.set(message);
-        ctx.setStatus(message, "error");
+        if (stakeSent) {
+          // The stake transfer was already broadcast but the bet did not settle.
+          // Surface a recoverable-funds notice and record it in history so the
+          // user knows the GAS is locked pending the contract's refund path
+          // rather than silently lost. Tracking the intermediate transfer txid
+          // for an automated refund requires a shared-service change.
+          const recoverable = ctx.t("statusFundsRecoverable");
+          lastStatus.set(recoverable);
+          rollHistory.set([
+            {
+              face: nextFace,
+              stake: `${nextAmount} GAS`,
+              result: recoverable,
+              payout: payoutFor(nextAmount),
+              txid: "",
+              at: new Date().toISOString(),
+            },
+            ...rollHistory.get(),
+          ].slice(0, 6));
+          ctx.setStatus(recoverable, "error");
+        } else {
+          lastStatus.set(rawMessage);
+          ctx.setStatus(rawMessage, "error");
+        }
         throw error;
       } finally {
         isSubmitting.set(false);

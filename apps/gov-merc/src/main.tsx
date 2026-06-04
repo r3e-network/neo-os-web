@@ -27,6 +27,15 @@ defineMiniApp({
 
     pool.setAddress(ctx.services.chain.address.get() ?? "");
 
+    // The wallet can connect or switch accounts after mount, so re-propagate
+    // the address and reload deposits/bids whenever it changes. Without this
+    // a late-connecting wallet never loads Your Deposits and writes record a
+    // stale/empty depositor or bidder.
+    const stopAddressSync = ctx.services.chain.address.subscribe(() => {
+      pool.setAddress(ctx.services.chain.address.get() ?? "");
+      void pool.loadData();
+    });
+
     const totalPoolDisplay: Observable<string> = {
       get: () => `${pool.formatNum(pool.totalPool.get(), 0)} ${ctx.t("tokenNeo")}`,
       set: () => {},
@@ -70,6 +79,7 @@ defineMiniApp({
         bidCount,
       },
       loadData: pool.loadData,
+      cleanup: stopAddressSync,
     };
   },
 });

@@ -156,6 +156,18 @@ const appMessages = {
     en: "Trade deterministic Neo Abstract Account addresses through a trustless GAS escrow market. Settlement transfers only the AA shell. Existing verifier, hook, and backup-owner configuration must be reattached by the buyer after purchase.",
     zh: "通过无信任 GAS 托管市场交易确定性 Neo 抽象账户地址。结算仅转移 AA 外壳。现有验证器、Hook 和备份所有者配置需由买方在购买后重新附加。",
   },
+  listingsTruncatedNotice: {
+    en: "Showing {shown} of {total} listings (most recent first).",
+    zh: "显示 {total} 个挂单中的 {shown} 个（最新优先）。",
+  },
+  invalidPriceInput: {
+    en: "Price must be between 0.01 and 1000 GAS (up to 8 decimals).",
+    zh: "价格必须在 0.01 到 1000 GAS 之间（最多 8 位小数）。",
+  },
+  invalidHashInput: {
+    en: "Enter a valid Neo address or 20-byte 0x hash.",
+    zh: "请输入有效的 Neo 地址或 20 字节 0x 哈希。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -113,6 +113,23 @@ function addressMatches(a: string | null | undefined, b: string | null | undefin
   return a === b || a.toLowerCase() === b.toLowerCase();
 }
 
+/**
+ * Strict decimal parse for burn amounts.
+ *
+ * parseFloat is lenient — "5abc", " 5 ", "1e2", "0x5" all coerce to a clean
+ * number, but the raw string is what would otherwise reach the OS/edge call.
+ * This accepts only a canonical, trimmed, non-scientific decimal (optionally
+ * with a fractional part) and returns NaN for anything else, so a malformed
+ * value is rejected by validation instead of silently reaching a fund-moving
+ * call as a non-canonical string.
+ */
+const DECIMAL_RE = /^\d+(\.\d+)?$/;
+function parseBurnAmount(input: string | null | undefined): number {
+  const trimmed = String(input ?? "").trim();
+  if (!DECIMAL_RE.test(trimmed)) return NaN;
+  return Number(trimmed);
+}
+
 // ============================================================================
 // Composable
 // ============================================================================
@@ -259,7 +276,7 @@ export function useBurnLeague({
    */
   const validateBurnAmount = (burnAmountInput?: string) => {
     const amountStr = burnAmountInput ?? burnAmount.get();
-    const amount = parseFloat(amountStr);
+    const amount = parseBurnAmount(amountStr);
     if (!Number.isFinite(amount) || amount < MIN_BURN) {
       return t("minBurn", { amount: MIN_BURN, tokenGas: t("tokenGas") });
     }
@@ -270,8 +287,11 @@ export function useBurnLeague({
   };
 
   const burnTokens = async (burnAmountInput?: string) => {
+    // Double-submit guard: gate entry before any await so a second invocation
+    // (rapid clicks, re-dispatch) cannot start a parallel burn.
+    if (isBurning.get()) return;
+
     const amountStr = burnAmountInput ?? burnAmount.get();
-    const amount = parseFloat(amountStr);
     const validation = validateBurnAmount(amountStr);
     if (validation) {
       burnValidationError.set(validation);
@@ -279,29 +299,42 @@ export function useBurnLeague({
     }
     burnValidationError.set(null);
 
-    if (isBurning.get()) return;
+    // Canonical, validated number — this is the value the user saw and that
+    // passed range validation. We send the canonical string to every OS/edge
+    // call instead of the raw input so the on-chain value can never diverge
+    // from the validated one (no "5abc"/" 5 "/"1e2" reaching a fund call).
+    const amount = parseBurnAmount(amountStr);
+    const canonical = String(amount);
 
     actionNotice.set(t("burnPreparing", {
       amount: `${formatNumber(amount, 2)} ${t("tokenGas")}`,
     }));
     isBurning.set(true);
+    let burnLanded = false;
     try {
       // Step 1: Submit the burn entry via the OS game service. The service
-      // returns a wallet intent for explicit user confirmation.
-      await gameService.placeBet(BURN_POOL_ID, amountStr);
+      // returns a wallet intent for explicit user confirmation. This is the
+      // irreversible, fund-moving step — burns cannot be rolled back, so every
+      // step after it is treated as best-effort and must not mask its success.
+      await gameService.placeBet(BURN_POOL_ID, canonical);
+      burnLanded = true;
 
       // Step 2: Update burn stat via BadgeProxy (fire-and-forget)
-      badgeService.updateStat("", "totalBurned", amountStr).catch(() => {});
+      badgeService.updateStat("", "totalBurned", canonical).catch(() => {});
 
       // Step 3: Award badge for first burn (fire-and-forget)
       if (burnCount.get() === 0) {
         badgeService.award("first-burn", "").catch(() => {});
       }
 
-      // Step 4: Submit score to leaderboard
-      await leaderboardService.submitScore(amountStr);
-
-      await loadAll();
+      // Step 4: Submit score to leaderboard (best-effort). A leaderboard
+      // failure must not surface a successful burn as an error — the GAS is
+      // already gone, so we swallow this and still report success below.
+      try {
+        await leaderboardService.submitScore(canonical);
+      } catch (submitErr) {
+        console.warn("[useBurnLeague] submitScore failed after burn:", errorMessage(submitErr));
+      }
 
       // Reset the burn amount input on success
       burnAmount.set("1");
@@ -323,6 +356,14 @@ export function useBurnLeague({
       throw e;
     } finally {
       isBurning.set(false);
+      // Always refresh once the burn has actually landed on chain, even if a
+      // follow-up step threw — the UI must reflect the new balance/leaderboard
+      // rather than getting stuck on stale pre-burn data.
+      if (burnLanded) {
+        await loadAll().catch((refreshErr) => {
+          console.warn("[useBurnLeague] post-burn refresh failed:", errorMessage(refreshErr));
+        });
+      }
     }
   };
 

@@ -44,7 +44,7 @@ defineMiniApp({
         policyValue?: string;
         duration?: number | string;
       };
-      await ctx.services.notify.guard(
+      return ctx.services.notify.guard(
         async () => {
           isCreating.set(true);
           try {
@@ -79,7 +79,7 @@ defineMiniApp({
           : String(data.vote ?? "for") === "against"
             ? "against"
             : "for";
-      await ctx.services.notify.guard(
+      return ctx.services.notify.guard(
         () => gov.castVote(proposalId, choice),
         "voteRecorded",
       );
@@ -88,7 +88,7 @@ defineMiniApp({
     ctx.registerAction("executeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
       if (!proposalId) return;
-      await ctx.services.notify.guard(
+      return ctx.services.notify.guard(
         () => gov.executeProposal(proposalId),
         "proposalExecuted",
       );

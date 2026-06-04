@@ -64,7 +64,11 @@ function nowSeconds() {
 }
 
 function makeId(prefix: string) {
-  return `${prefix}-${Date.now().toString(36)}`;
+  // A timestamp alone collides when two ids are minted within the same
+  // millisecond (overwriting the first event/ticket record), so append a
+  // random suffix to keep ids collision-safe under rapid creation.
+  const suffix = Math.random().toString(36).slice(2, 8);
+  return `${prefix}-${Date.now().toString(36)}-${suffix}`;
 }
 
 function eventStorageKey(id: string) {
@@ -477,14 +481,21 @@ export function useEventTicket({
     lastError.set("");
     try {
       if (!address.get()) await connectWallet();
-      const ticket = lookup.get() ?? await lookupTicket();
+      // Ignore a cached lookup that disagrees with the current input: a user
+      // may have edited the token field after looking up a different ticket,
+      // so re-resolve to avoid checking in (and overwriting) the wrong ticket.
+      const cached = lookup.get();
+      const ticket =
+        cached && cached.tokenId === tokenId ? cached : await lookupTicket();
       if (!ticket) throw new Error(t("ticketNotFound"));
       if (ticket.used) throw new Error(t("ticketAlreadyUsed"));
       const checkedIn = { ...ticket, used: true, usedTime: nowSeconds() };
+      // Derive the storage key from the resolved ticket, never the raw input,
+      // so the payload is always written under its own tokenId.
       const request = {
         kind: "ticket_checkin",
         service: "os-storage-set",
-        key: ticketStorageKey(tokenId),
+        key: ticketStorageKey(checkedIn.tokenId),
         value: ticketPayload(checkedIn),
       };
       latestRequest.set(request);

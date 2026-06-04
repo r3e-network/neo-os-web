@@ -6,6 +6,9 @@ interface ContractListProps {
   address: string | null;
   onSign: (c: unknown) => void;
   onBreak: (c: unknown) => void;
+  /** When true (an action is in flight), the per-contract buttons are disabled
+   *  to prevent double-submit of sign/break before the first call resolves. */
+  busy?: boolean;
   t: (key: string) => string;
 }
 
@@ -24,6 +27,7 @@ export default function ContractList({
   address,
   onSign,
   onBreak,
+  busy = false,
   t,
 }: ContractListProps) {
   const me = (address ?? "").toLowerCase();
@@ -67,12 +71,12 @@ export default function ContractList({
             {isParty && (
               <div className="contract-actions">
                 {isPending && (
-                  <NeoButton size="sm" variant="primary" onClick={() => onSign(contract)}>
+                  <NeoButton size="sm" variant="primary" disabled={busy} onClick={() => onSign(contract)}>
                     {t("signContract") || "Sign"}
                   </NeoButton>
                 )}
                 {isActive && (
-                  <NeoButton size="sm" variant="danger" onClick={() => onBreak(contract)}>
+                  <NeoButton size="sm" variant="danger" disabled={busy} onClick={() => onBreak(contract)}>
                     {t("breakContract") || "Break"}
                   </NeoButton>
                 )}

@@ -52,6 +52,7 @@ defineMiniApp({
       state: {
         address: health.address,
         isConnected: health.isConnected,
+        isConnecting: health.isConnecting,
         isRefreshing: health.isRefreshing,
         connectionStatus: health.connectionStatus,
         networkLabel: health.networkLabel,

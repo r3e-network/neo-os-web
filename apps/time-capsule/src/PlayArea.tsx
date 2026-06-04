@@ -32,6 +32,14 @@ const CATEGORY_OPTIONS = [
   { value: 5, labelKey: "categorySecret" },
 ] as const;
 
+const CATEGORY_LABEL_KEYS: Record<number, string> = {
+  1: "categoryPersonal",
+  2: "categoryGift",
+  3: "categoryMemorial",
+  4: "categoryAnnouncement",
+  5: "categorySecret",
+};
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, bool, val } = useStateBindings(state);
 
@@ -170,6 +178,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     ? new Date(unlockTimeMs).toLocaleDateString()
                     : null;
                 const itemState = isRevealed ? "revealed" : isLocked ? "locked" : "ready";
+                const categoryValue = Number(cap.category);
+                const categoryKey = CATEGORY_LABEL_KEYS[categoryValue];
                 return (
                   <div key={String(cap.id)} className={`capsule-item ${itemState}`}>
                     <div className="capsule-item-header">
@@ -182,6 +192,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                             : t("unlocked") || "Unlocked"}
                       </span>
                     </div>
+                    {categoryKey ? (
+                      <span className="capsule-category-badge">{t(categoryKey)}</span>
+                    ) : null}
                     {cap.title ? (
                       <p className="capsule-title">{String(cap.title)}</p>
                     ) : null}

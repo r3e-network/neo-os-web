@@ -51,6 +51,9 @@ defineMiniApp({
       if (from && to) {
         swap.fromToken.set(from);
         swap.toToken.set(to);
+        swap.fromAmount.set("");
+        swap.toAmount.set("");
+        swap.loadExchangeRate().catch(() => {});
         return;
       }
       ctx.setStatus(ctx.t("pairUnavailable") || `Pair ${pairId} unavailable`, "info");

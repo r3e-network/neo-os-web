@@ -63,20 +63,22 @@ export function useQuadraticContributions(
 
     const decimals = selectedRound.get().assetSymbol === "NEO" ? 0 : 8;
     const amount = (() => {
-      const [intPart, fracPart = ""] = data.amount.split(".");
+      const [intPart = "", fracPart = ""] = data.amount.split(".");
       // NEO is indivisible — reject fractional amounts explicitly
       if (decimals === 0 && fracPart.length > 0) {
         setStatus(t("neoNoFractional"), "error");
         return null;
       }
       const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
-      const value = `${intPart}${normalized}`;
+      const value = `${intPart.trim()}${normalized}`;
       return value.replace(/^0+/, "") || "0";
     })();
 
     if (amount === null) return;
 
-    if (!amount || amount === "0") {
+    // Reject negative / non-numeric / scientific-notation strings before they
+    // reach the chain call (e.g. "-5" or "abc" survive the leading-zero strip).
+    if (!/^\d+$/.test(amount) || amount === "0") {
       setStatus(t("invalidContribution"), "error");
       return;
     }

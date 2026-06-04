@@ -10,6 +10,7 @@ import type { Observable } from "@shared/react/context";
 import { useMultisigUI } from "./composables/useMultisigUI";
 import type { HistoryItem } from "./composables/useMultisigHistory";
 import type { MultisigRequest } from "./services/api";
+import { getPublicKeyAddress, normalizePublicKey } from "./utils/multisig";
 import "./PlayArea.scss";
 
 type MultisigChain = "neo-n3-mainnet" | "neo-n3-testnet";
@@ -28,7 +29,7 @@ function shortId(id: string) {
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { bool, val } = useStateBindings(state);
+  const { bool, val, str } = useStateBindings(state);
   const { statusLabel, shorten, formatDate } = useMultisigUI();
   const [idInput, setIdInput] = useState("");
   const [signers, setSigners] = useState(() =>
@@ -45,6 +46,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const history = (state.history?.get() ?? []) as HistoryItem[];
   const lastRequest = val<MultisigRequest>("lastRequest");
   const selectedRequest = val<MultisigRequest>("selectedRequest");
+  const connectedAddress = str("connectedAddress");
   const isCreatingRequest = bool("isCreatingRequest");
   const isLoadingRequest = bool("isLoadingRequest");
   const isSigningRequest = bool("isSigningRequest");
@@ -57,8 +59,48 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hasThreshold =
     !!selectedRequest && collectedSignatures >= requiredSignatures;
   const isBroadcasted = selectedRequest?.status === "broadcasted";
+
+  // Determine which (if any) of the request's signer public keys belongs to the
+  // connected wallet, and whether that key has already contributed a signature.
+  // This lets us hide the Sign action for a signer who already approved
+  // (re-signing is idempotent but a confusing, wasted wallet round-trip) and
+  // flag wallets that aren't on the signer list at all.
+  const { connectedSignerKey, isConnectedSigner } = useMemo(() => {
+    if (!selectedRequest || !connectedAddress) {
+      return { connectedSignerKey: "", isConnectedSigner: false };
+    }
+    for (const signer of selectedRequest.signers ?? []) {
+      try {
+        if (getPublicKeyAddress(signer) === connectedAddress) {
+          return {
+            connectedSignerKey: normalizePublicKey(signer),
+            isConnectedSigner: true,
+          };
+        }
+      } catch {
+        // Skip malformed signer keys rather than breaking the whole view.
+      }
+    }
+    return { connectedSignerKey: "", isConnectedSigner: false };
+  }, [selectedRequest, connectedAddress]);
+
+  const signedKeys = useMemo(
+    () =>
+      new Set(
+        Object.keys(selectedRequest?.signatures ?? {}).map(normalizePublicKey),
+      ),
+    [selectedRequest],
+  );
+  const alreadySigned =
+    !!connectedSignerKey && signedKeys.has(connectedSignerKey);
+  const notOnSignerList =
+    !!selectedRequest && !!connectedAddress && !isConnectedSigner;
+
   const canSign =
-    !!selectedRequest && !isBroadcasted && !isSigningRequest;
+    !!selectedRequest &&
+    !isBroadcasted &&
+    !isSigningRequest &&
+    !alreadySigned;
   const canBroadcast =
     !!selectedRequest && hasThreshold && !isBroadcasted && !isBroadcastingRequest;
   const normalizedSigners = useMemo(
@@ -304,6 +346,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       total: requiredSignatures,
                     })}
                   </p>
+                  {!isBroadcasted && alreadySigned && (
+                    <p
+                      className="multisig-request-hint is-ready"
+                      aria-live="polite"
+                    >
+                      {t("multisigAlreadySigned")}
+                    </p>
+                  )}
+                  {!isBroadcasted && notOnSignerList && (
+                    <p className="multisig-request-hint" aria-live="polite">
+                      {t("multisigNotSignerHint")}
+                    </p>
+                  )}
                   <div className="multisig-primary-actions multisig-primary-actions--row">
                     <NeoButton
                       variant="primary"
@@ -315,7 +370,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     >
                       {isSigningRequest
                         ? t("buttonSigning")
-                        : t("buttonSign")}
+                        : alreadySigned
+                          ? t("buttonSigned")
+                          : t("buttonSign")}
                     </NeoButton>
                     <NeoButton
                       variant="secondary"

@@ -9,8 +9,37 @@ import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
+import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
+import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
 import { getSessionKeyLaunchDefaults } from "./launch";
 import "./PlayArea.scss";
+
+/** Live Account ID Hash preview for the seed the user is typing. */
+function previewAccountIdHash(seed: string): string {
+  const trimmed = seed.trim();
+  if (!trimmed) return "";
+  try {
+    return `0x${deriveAAAccountIdHash(trimmed)}`;
+  } catch {
+    return "";
+  }
+}
+
+/** Live normalized target-contract preview (address or script hash). */
+function previewTargetContract(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const normalized = trimmed.startsWith("N")
+      ? addressToScriptHash(trimmed)
+      : normalizeScriptHash(trimmed);
+    return /^0x[0-9a-f]{40}$/i.test(normalized)
+      ? normalized.toLowerCase()
+      : "";
+  } catch {
+    return "";
+  }
+}
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -37,9 +66,6 @@ export default function PlayArea({
   const isCheckingSponsorship = bool("isCheckingSponsorship");
   const detailItems =
     val<Array<{ label: string; value: unknown }>>("detailItems") ?? [];
-  const derivedAccountIdHash = str("derivedAccountIdHash");
-  const normalizedTargetContract = str("normalizedTargetContract");
-  const normalizedAllowedMethod = str("normalizedAllowedMethod");
   const aaCoreDisplay = str("aaCoreDisplay");
   const sessionStatusDisplay = str("sessionStatusDisplay");
   const sessionVerifierDisplay = str("sessionVerifierDisplay");
@@ -80,8 +106,18 @@ export default function PlayArea({
     Boolean(targetContract.trim()) &&
     Boolean(expiresAt.trim()) &&
     !isSubmitting;
-  const methodDisplay =
-    normalizedAllowedMethod || allowedMethod.trim() || t("anyMethod");
+
+  // Derive previews from the live inputs so the environment grid, scope metric,
+  // and account-hash update as the user types — not only after a dispatch.
+  const derivedAccountIdHash = useMemo(
+    () => previewAccountIdHash(accountSeed),
+    [accountSeed],
+  );
+  const normalizedTargetContract = useMemo(
+    () => previewTargetContract(targetContract),
+    [targetContract],
+  );
+  const methodDisplay = allowedMethod.trim() || t("anyMethod");
 
   // A session is only truly configured once the on-chain submit succeeds; the
   // composable reflects that through sessionStatusDisplay === t("configured").
@@ -99,6 +135,10 @@ export default function PlayArea({
     {
       label: t("derivedAccountId") || "Account ID Hash",
       value: derivedAccountIdHash || DASH,
+    },
+    {
+      label: t("targetContract") || "Target Contract",
+      value: normalizedTargetContract || DASH,
     },
   ];
 
@@ -192,6 +232,7 @@ export default function PlayArea({
             <NeoButton
               variant="secondary"
               loading={isCheckingSponsorship}
+              disabled={isCheckingSponsorship}
               aria-label={t("checkSponsor") || "Check Sponsor"}
               onClick={() => dispatch("checkSponsor", accountSeed, dappId)}
             >
@@ -200,6 +241,7 @@ export default function PlayArea({
             <NeoButton
               variant="secondary"
               loading={isCheckingSponsorship}
+              disabled={isCheckingSponsorship}
               aria-label={t("requestSponsor") || "Request Sponsor"}
               onClick={() =>
                 dispatch("requestSponsor", accountSeed, dappId, sponsorAmount)

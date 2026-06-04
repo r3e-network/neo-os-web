@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import {
+  isHash160OrNeoAddress,
+  isMarketPriceGas,
+} from "../utils/validation";
 
 interface CreateListingCardProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -36,16 +40,16 @@ export function CreateListingCard({
   const [listingTitle, setListingTitle] = useState(initialListingTitle);
   const [metadataUri, setMetadataUri] = useState(initialMetadataUri);
   const normalizedPriceGas = priceGas.trim();
-  const isValidGasPrice =
-    /^\d+(\.\d{1,8})?$/.test(normalizedPriceGas) &&
-    BigInt(normalizedPriceGas.split(".")[0] || "0") +
-      BigInt((normalizedPriceGas.split(".")[1] ?? "").padEnd(8, "0")) >
-      0n;
+  // Use the canonical parser/bounds check (utils/validation) instead of an
+  // ad-hoc magnitude expression. Enforces the intended 0.01–1000 GAS band.
+  const isValidGasPrice = isMarketPriceGas(normalizedPriceGas);
+  const isValidAaContract = isHash160OrNeoAddress(aaContractHash);
+  const isValidAccountId = isHash160OrNeoAddress(accountIdHash);
   const canSubmit =
     isMarketReady &&
     Boolean(walletAddress.trim()) &&
-    Boolean(aaContractHash.trim()) &&
-    Boolean(accountIdHash.trim()) &&
+    isValidAaContract &&
+    isValidAccountId &&
     isValidGasPrice;
 
   useEffect(() => {
@@ -98,6 +102,11 @@ export function CreateListingCard({
           label={t("aaContractInput")}
           hint={t("aaContractHint")}
           placeholder={t("aaContractHashPlaceholder")}
+          error={
+            aaContractHash.trim() && !isValidAaContract
+              ? t("invalidHashInput")
+              : ""
+          }
           onChange={(val) => setAaContractHash(val)}
         />
         <NeoInput
@@ -105,12 +114,20 @@ export function CreateListingCard({
           label={t("accountIdInput")}
           hint={t("accountIdHint")}
           placeholder={t("accountIdHashPlaceholder")}
+          error={
+            accountIdHash.trim() && !isValidAccountId
+              ? t("invalidHashInput")
+              : ""
+          }
           onChange={(val) => setAccountIdHash(val)}
         />
         <NeoInput
           value={priceGas}
           label={t("priceInput")}
           placeholder={t("pricePlaceholder")}
+          error={
+            normalizedPriceGas && !isValidGasPrice ? t("invalidPriceInput") : ""
+          }
           onChange={(val) => setPriceGas(val)}
         />
         <NeoInput

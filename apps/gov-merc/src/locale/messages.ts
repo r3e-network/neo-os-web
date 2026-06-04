@@ -73,6 +73,14 @@ const appMessages = {
   withdrawSuccess: { en: "Withdrawal submitted", zh: "提取已提交" },
   bidSuccess: { en: "Bid submitted", zh: "竞价已提交" },
   enterAmount: { en: "Enter an amount", zh: "请输入金额" },
+  bidRefunded: {
+    en: "Bid failed — your GAS was refunded",
+    zh: "竞价失败 —— 你的 GAS 已退回",
+  },
+  bidRecoverable: {
+    en: "Bid failed and the automatic refund did not complete. Your GAS is safe in your payment balance and can be withdrawn.",
+    zh: "竞价失败且自动退款未完成。你的 GAS 安全保存在支付余额中，可随时提取。",
+  },
   loadFailed: { en: "Failed to load data", zh: "加载数据失败" },
   error: { en: "Error", zh: "错误" },
 

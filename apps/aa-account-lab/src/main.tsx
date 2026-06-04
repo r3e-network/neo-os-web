@@ -90,6 +90,7 @@ defineMiniApp({
         currentVerifier: lab.currentVerifier,
         currentHook: lab.currentHook,
         currentBackupOwner: lab.currentBackupOwner,
+        hasInspected: lab.hasInspected,
         aaCoreDisplay: lab.aaCoreDisplay,
         defaultVerifierDisplay: lab.defaultVerifierDisplay,
         networkDisplay: lab.networkDisplay,
