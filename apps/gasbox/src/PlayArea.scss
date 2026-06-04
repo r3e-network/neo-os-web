@@ -863,7 +863,7 @@
 }
 
 .gasbox-field input:focus,
-.gasbox-field select:focus,
+.gasbox-field select:focus-visible,
 .gasbox-field textarea:focus {
   outline: none;
   border-color: var(--ns-brand, #16c784);

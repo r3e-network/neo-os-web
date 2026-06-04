@@ -1,4 +1,5 @@
 import type { EventBus } from "./EventBus";
+import { NOTIFICATION_EVENT } from "./NotificationService";
 
 export class ClipboardService {
   constructor(
@@ -22,10 +23,13 @@ export class ClipboardService {
         document.execCommand("copy");
         document.body.removeChild(textarea);
       }
-      this.eventBus.emit("notification", { message: this.t(successKey), type: "success" });
+      // Emit on the canonical NOTIFICATION_EVENT channel that MiniAppRoot /
+      // NotificationService listen on — emitting the bare "notification" string
+      // meant copy success/failure toasts were silently dropped.
+      this.eventBus.emit(NOTIFICATION_EVENT, { message: this.t(successKey), type: "success" });
       return true;
     } catch {
-      this.eventBus.emit("notification", { message: this.t("copyFailed"), type: "error" });
+      this.eventBus.emit(NOTIFICATION_EVENT, { message: this.t("copyFailed"), type: "error" });
       return false;
     }
   }

@@ -120,6 +120,13 @@ export class BalanceService {
     const refresh = async () => {
       loading.set(true);
       try {
+        // refresh() is only invoked when the balance is believed to have
+        // changed (BALANCE_CHANGED / TRANSACTION_CONFIRMED events, or a manual
+        // call), so the short-TTL cache from a prior getBalance() would
+        // otherwise mask the new value for up to BALANCE_CACHE_TTL_MS. Drop the
+        // cached entry first so this path always reads fresh from chain.
+        const owner = this.chain.address.get() ?? undefined;
+        this.cache.invalidate(this.balanceCacheKey(asset, owner));
         balance.set(await this.getBalance(asset));
       } catch {
         // Keep the last known balance on error

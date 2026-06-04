@@ -135,17 +135,20 @@ export class TransferService {
    * The caller is responsible for passing display units, not base units.
    */
   private scaleAmount(scriptHash: string, amount: string): string {
-    // NEO is indivisible — pass through as integer
-    if (scriptHash === BLOCKCHAIN_CONSTANTS.NEO_HASH) {
-      return String(Math.trunc(Number(amount)));
-    }
-
-    // GAS and other NEP-17 tokens: always scale from display to Fixed8
-    const parsed = parseFloat(amount);
-    if (!Number.isFinite(parsed)) {
+    // Validate once for every asset: reject non-numeric (NaN) and negative
+    // amounts before scaling. This also closes the NEO path, where a malformed
+    // amount would otherwise produce String(Math.trunc(NaN)) === "NaN".
+    const parsed = Number(amount);
+    if (!Number.isFinite(parsed) || parsed < 0) {
       throw new Error(`Invalid transfer amount: ${amount}`);
     }
 
+    // NEO is indivisible — pass through as integer
+    if (scriptHash === BLOCKCHAIN_CONSTANTS.NEO_HASH) {
+      return String(Math.trunc(parsed));
+    }
+
+    // GAS and other NEP-17 tokens: always scale from display to Fixed8
     return String(Math.round(parsed * TOKEN_CONSTANTS.GAS_MULTIPLIER));
   }
 }

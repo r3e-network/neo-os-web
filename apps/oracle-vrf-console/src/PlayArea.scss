@@ -104,7 +104,7 @@
 }
 
 /* Align focus affordance with the Neo Soft violet focus ring. */
-.console-tool__field select:focus {
+.console-tool__field select:focus-visible {
   outline: none;
   border-color: var(--ns-violet);
   box-shadow: var(--ns-focus-ring);
