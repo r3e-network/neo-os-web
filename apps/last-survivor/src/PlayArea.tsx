@@ -53,7 +53,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const roundDataAvailable = bool("roundDataAvailable");
   const serviceNotice = str("serviceNotice");
 
+  // The round has ended on-chain and needs a permissionless settle() to pay the
+  // last buyer and roll forward before a new round can be bought.
   const needsLifecycleSync = bool("needsLifecycleSync");
+  const isSettling = bool("isSettling");
 
   // Loading
   const isLoading = bool("isLoading");
@@ -63,8 +66,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const [localKeyCount, setLocalKeyCount] = useState("1");
   const formatNum = (n: number) => formatNumber(n, 2);
+  // Buys are only valid on a live round. An ended round (needsLifecycleSync) is
+  // blocked by the contract ("round ended; settle first"), so the affordance is
+  // Settle, not Buy.
   const canBuyKeys =
-    roundDataAvailable && (isRoundActive || needsLifecycleSync);
+    roundDataAvailable && isRoundActive && !needsLifecycleSync;
   const showBuyKeysPanel =
     isRoundActive ||
     needsLifecycleSync ||
@@ -73,11 +79,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const buyKeysHelper = !roundDataAvailable
     ? t("roundStateRequired")
     : needsLifecycleSync
-      ? t("buyKeysRolloverHint")
+      ? t("settleBeforeBuy")
       : t("keyPrice");
-  const buyKeysLabel = needsLifecycleSync
-    ? t("buyKeysAndRollover")
-    : t("buyKeys");
+  const buyKeysLabel = t("buyKeys");
 
   const formatBuyerAddress = (addr: string) => {
     if (!addr || addr.length < 10) return addr || "---";
@@ -99,6 +103,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const handleRefreshRound = async () => {
     await dispatch("refreshRound");
+  };
+
+  const handleSettleRound = async () => {
+    await dispatch("settleRound");
   };
 
   return (
@@ -187,19 +195,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {!isRoundActive && (
+      {!isRoundActive && !needsLifecycleSync && (
         <NeoCard variant="erobo" className="round-control-card">
           <div className="round-control-card__body">
             <div className="round-control-card__copy">
               <span className="round-control-card__title">
-                {needsLifecycleSync
-                  ? (t("roundEnded") || "Round needs settlement")
-                  : (t("inactiveRound") || "Rollover ready")}
+                {t("inactiveRound") || "Rollover ready"}
               </span>
               <span className="round-control-card__text">
-                {needsLifecycleSync
-                  ? (t("lifecycleManaged") || "The lifecycle keeper will settle the expired round.")
-                  : (t("refreshRoundHint") || "Refresh the game state before buying keys.")}
+                {t("refreshRoundHint") || "Refresh the game state before buying keys."}
               </span>
             </div>
             <NeoButton
@@ -215,13 +219,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {/* Expired rounds are maintained by the lifecycle keeper. */}
+      {/* Round ended on-chain — anyone can settle() to pay the last buyer the
+          entire pot atomically and open the next round (permissionless). */}
       {needsLifecycleSync && (
         <NeoCard variant="erobo" className="claim-card">
           <div className="claim-card-inner">
             <span className="claim-card-trophy" aria-hidden="true">★</span>
             <span className="claim-card-text">{t("roundEnded")}</span>
-            <span className="claim-card-text">{t("lifecycleManaged")}</span>
+            <span className="claim-card-text">{t("settleRoundHint")}</span>
+            <NeoButton
+              variant="primary"
+              size="lg"
+              block
+              loading={isSettling}
+              disabled={isSettling}
+              onClick={handleSettleRound}
+              aria-label={t("settleRound") || "Settle Round"}
+            >
+              {isSettling ? t("settlingRound") : (t("settleRound") || "Settle Round")}
+            </NeoButton>
           </div>
         </NeoCard>
       )}
