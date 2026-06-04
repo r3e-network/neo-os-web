@@ -32,6 +32,11 @@ defineMiniApp({
       subscribe: (listener) => proofContract.proofs.subscribe(listener),
     };
 
+    const reportLastMessage = (type: "info" | "success" | "error" = "info") => {
+      const message = proofContract.lastMessage.get();
+      if (message) ctx.setStatus(message, type);
+    };
+
     ctx.registerAction("createProof", async (...args: unknown[]) => {
       const content = String(args[0] ?? "");
       await proofContract.createProof(
@@ -42,8 +47,29 @@ defineMiniApp({
     });
 
     ctx.registerAction("verifyProof", async (...args: unknown[]) => {
-      const id = String(args[0] ?? "");
-      await proofContract.verifyProofById(id);
+      const query = String(args[0] ?? "");
+      await proofContract.verifyProof(query);
+      reportLastMessage(proofContract.verifyError.get() ? "error" : "success");
+    });
+
+    ctx.registerAction("copyProofDigest", async (...args: unknown[]) => {
+      const ok = await proofContract.copyProofDigest(Number(args[0] ?? 0));
+      reportLastMessage(ok ? "success" : "error");
+    });
+
+    ctx.registerAction("copyProofReference", async (...args: unknown[]) => {
+      const ok = await proofContract.copyProofReference(Number(args[0] ?? 0));
+      reportLastMessage(ok ? "success" : "error");
+    });
+
+    ctx.registerAction("deleteProof", async (...args: unknown[]) => {
+      await proofContract.deleteProof(Number(args[0] ?? 0));
+      reportLastMessage("success");
+    });
+
+    ctx.registerAction("clearProofs", async () => {
+      await proofContract.clearProofs();
+      reportLastMessage("success");
     });
 
     return {
@@ -55,6 +81,7 @@ defineMiniApp({
         proofs: proofContract.proofs,
         verifiedProof: proofContract.verifiedProof,
         verifyError: proofContract.verifyError,
+        lastMessage: proofContract.lastMessage,
         latestId,
       },
       loadData: proofContract.loadProofs,

@@ -1091,3 +1091,84 @@ $amber: #f59e0b;
     grid-template-columns: 1fr;
   }
 }
+
+/* Today plan — narrates the UTC window, milestone impact, claim plan and the
+   service route in one reference panel below the primary actions. */
+.checkin-plan-card {
+  margin-top: 18px;
+}
+
+.checkin-plan-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+
+  .checkin-section-title {
+    margin: 0;
+  }
+}
+
+.checkin-plan-subtitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: $ns-text-2;
+}
+
+.checkin-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.checkin-plan-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  background: $ns-subtle;
+  border: 1px solid $ns-border;
+  border-radius: var(--ns-radius-md, 14px);
+}
+
+.checkin-plan-rewards {
+  border-color: rgba(22, 199, 132, 0.28);
+  background: rgba(22, 199, 132, 0.06);
+}
+
+.checkin-plan-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $ns-text-muted;
+}
+
+.checkin-plan-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: $ns-text;
+}
+
+.checkin-plan-copy {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: $ns-text-2;
+}
+
+.checkin-plan-route {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid $ns-border;
+  font-size: 12px;
+  line-height: 1.5;
+  color: $ns-text-muted;
+}
+
+@media (max-width: 720px) {
+  .checkin-plan-grid {
+    grid-template-columns: 1fr;
+  }
+}
