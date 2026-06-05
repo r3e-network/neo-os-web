@@ -69,6 +69,18 @@ const appMessages = {
     en: "Deposit succeeded but the bet failed — withdraw from your balance to recover the GAS",
     zh: "下注资金已存入但投注失败 — 请从余额中提取以取回 GAS",
   },
+  betPrepaidNoFlip: {
+    en: "Wager prepaid but the flip didn't settle — your credit is held and reused on your next bet",
+    zh: "下注金额已预付但本局未结算 — 你的余额已保留，下次下注会自动使用",
+  },
+  bankrollTooLow: {
+    en: "House bankroll too low for this bet — try a smaller wager",
+    zh: "庄家奖池余额不足以支付此注 — 请减小下注金额",
+  },
+  bankrollTooLowCap: {
+    en: "House bankroll too low for this bet — max payable bet is {max} {tokenGas}",
+    zh: "庄家奖池余额不足以支付此注 — 当前最大可下注 {max} {tokenGas}",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);
