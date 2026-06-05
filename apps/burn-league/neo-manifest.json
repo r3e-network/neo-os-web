@@ -21,7 +21,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0xd829b7a8c0d9fa3c67a29c703a277de3f922f173",
-    "neo-n3-testnet": "0x0946e3c3db8abdd2fa14bbae4978992015473c09"
+    "neo-n3-testnet": "0xdd3bf2ff39bc4e39107ace953e2271a43a58e28f"
   },
   "contract_domains": {
     "neo-n3-mainnet": "burnleague.miniapp.neo"
