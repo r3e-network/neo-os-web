@@ -7,7 +7,7 @@ import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const PLAYER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const PLAYER_HASH = addressToScriptHash(PLAYER);
-const CONTRACT = "0x8cd0342f2129c07b2d3de1dae51ba09e4045d331";
+const CONTRACT = "0xb680225a1be276b03ecd7de82ea985dcc7435cec";
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const DRAW_MEMO = "miniapp-tarot:draw";
 const DRAW_FEE = "10000000"; // 0.1 GAS base units

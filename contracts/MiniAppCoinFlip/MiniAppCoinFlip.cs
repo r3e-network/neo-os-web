@@ -72,6 +72,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static event Action<BigInteger, UInt160, BigInteger, BigInteger, bool, BigInteger> OnFlipped; // gameId, player, choice, outcome, won, payout
         [DisplayName("BankrollWithdrawn")]
         public static event Action<UInt160, BigInteger> OnBankrollWithdrawn;
+        [DisplayName("CreditWithdrawn")]
+        public static event Action<UInt160, BigInteger> OnCreditWithdrawn; // account, amount
         #endregion
 
         #region Types
@@ -210,6 +212,24 @@ namespace NeoMiniAppPlatform.Contracts
                 new object[] { Runtime.ExecutingScriptHash, to, amount, "" });
             ExecutionEngine.Assert(ok, "bankroll transfer failed");
             OnBankrollWithdrawn(to, amount);
+        }
+        #endregion
+
+        #region Withdraw credit
+        /// <summary>Reclaim any unused prepaid bet-credit back to the sender.</summary>
+        public static BigInteger Withdraw(UInt160 account)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(account), "account witness required");
+            StorageContext ctx = Storage.CurrentContext;
+            byte[] key = Helper.Concat(PREFIX_CREDIT, (byte[])account);
+            BigInteger credit = (BigInteger)Storage.Get(ctx, key);
+            ExecutionEngine.Assert(credit > 0, "no credit");
+            Storage.Delete(ctx, key);
+            bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
+                new object[] { Runtime.ExecutingScriptHash, account, credit, "" });
+            ExecutionEngine.Assert(ok, "withdraw transfer failed");
+            OnCreditWithdrawn(account, credit);
+            return credit;
         }
         #endregion
 
