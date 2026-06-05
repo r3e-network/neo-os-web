@@ -15,6 +15,7 @@ import type { Observable } from "@shared/react/context";
 import { formatNumber } from "@shared/utils/format";
 import TipList from "./components/TipList";
 import TipForm from "./components/TipForm";
+import DeveloperPanel from "./components/DeveloperPanel";
 import type { Developer } from "./composables/useDevTippingStats";
 import "./PlayArea.scss";
 
@@ -36,6 +37,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const developerCount = num("developerCount");
   const totalDonatedDisplay = str("totalDonatedDisplay", "0");
   const recentTipCount = num("recentTipCount");
+  const isRegistering = bool("isRegistering");
+  const isWithdrawing = bool("isWithdrawing");
+  const myDeveloperId = num("myDeveloperId");
+  const myClaimableBalance = num("myClaimableBalance");
 
   const [selectedDevId, setSelectedDevId] = useState<number | null>(null);
   const [tipAmount, setTipAmount] = useState("");
@@ -70,6 +75,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       setTipperName("");
       setSelectedDevId(null);
     }
+  };
+
+  const handleRegisterDeveloper = (name: string, role: string) => {
+    void dispatch("registerDeveloper", name, role);
+  };
+
+  const handleWithdrawTips = () => {
+    if (myDeveloperId <= 0) return;
+    void dispatch("withdrawTips", myDeveloperId);
   };
 
   const [addressCopied, setAddressCopied] = useState(false);
@@ -211,6 +225,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               onTipperNameChange={setTipperName}
               onAnonymousChange={setAnonymous}
               onSubmit={handleSendTip}
+              t={t}
+            />
+          </NeoCard>
+
+          <h3 className="tipping-section-title">{t("developerZone") || "Developer Zone"}</h3>
+          <NeoCard variant="erobo">
+            <DeveloperPanel
+              connected={Boolean(address)}
+              myDeveloperId={myDeveloperId}
+              claimableBalance={myClaimableBalance}
+              isRegistering={isRegistering}
+              isWithdrawing={isWithdrawing}
+              onRegister={handleRegisterDeveloper}
+              onWithdraw={handleWithdrawTips}
+              formatNum={formatNum}
               t={t}
             />
           </NeoCard>

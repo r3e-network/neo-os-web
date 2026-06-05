@@ -1,16 +1,34 @@
 /**
- * useDevTippingStats — Domain logic for loading developer stats and recent tips
+ * useDevTippingStats — Developer registry + tip history loaded straight from the
+ * standalone on-chain contract (MiniAppTipJar) via ctx.services.chain.
  *
- * Uses OS StorageProxy to read app state (developers, totals, recent tips)
- * instead of direct chain.read() / chain.listEvents() against the own
- * contract. The edge functions behind StorageProxy handle contract
- * interaction and caching.
+ * The earlier path read a developer registry and a tips:recent list from OS
+ * StorageProxy that no contract ever wrote, and routed tips through the OS
+ * PaymentProxy edge function (which moved nothing once the kernel degraded). This
+ * composable now reads the authoritative on-chain state directly:
+ *
+ *   READS (chain.read, default app contract script hash):
+ *     totalDevelopers()        -> Integer (developers are devIds 1..N)
+ *     getDeveloper(devId)      -> Map{id,wallet,name,role,totalReceived,tipCount,balance}
+ *                                 (all GAS amounts in BASE UNITS)
+ *     totalDonated()           -> Integer (lifetime tipped, BASE UNITS)
+ *     developerIdOf(wallet)    -> Integer (0 if the wallet is unregistered)
+ *
+ *   EVENTS (chain.listEvents):
+ *     Tipped(tipId, devId, tipper, amount, anonymous) — the lag-free recent-tip
+ *       history source. state slots: [0]=tipId, [1]=devId, [2]=tipper(address),
+ *       [3]=amount(base units), [4]=anonymous(bool).
+ *
+ * AMOUNT CONVENTION: the contract returns BASE UNITS (GAS × 1e8). Human GAS for
+ * the UI = base / 1e8 (fromFixed8). Nothing here writes the chain; tip/register/
+ * withdraw mutations live in useDevTippingWallet.
  */
 
 import { createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import { parseGas, formatNum, toSafeNumber } from "@shared/utils/format";
+import type { ChainService } from "@shared/services/ChainService";
+import { fromFixed8, formatHash, formatNum } from "@shared/utils/format";
+import { addressToScriptHash } from "@shared/utils/neo";
+import { parseBigInt } from "@shared/utils/parsers";
 
 export interface Developer {
   id: number;
@@ -32,96 +50,205 @@ export interface RecentTip {
 }
 
 export interface UseDevTippingStatsOptions {
-  storage: StorageProxy;
+  /** Shared chain service from ctx.services.chain. */
+  chain: ChainService;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useDevTippingStats({ storage, t }: UseDevTippingStatsOptions) {
+/** Hard cap on how many developers to enumerate per refresh (defensive). */
+const MAX_DEVELOPERS = 500;
+
+/** How many recent Tipped events to page in for the activity feed. */
+const RECENT_TIPS_LIMIT = 25;
+
+/** Read a single state slot from a contract event payload (positional). */
+function eventValue(entry: unknown, index: number): unknown {
+  if (!entry || typeof entry !== "object") return undefined;
+  const state = (entry as { state?: unknown }).state;
+  if (Array.isArray(state)) {
+    const item = state[index] as unknown;
+    if (item && typeof item === "object" && "value" in item) {
+      return (item as { value?: unknown }).value;
+    }
+    return item;
+  }
+  return undefined;
+}
+
+/** Coerce a NeoVM boolean (true / "true" / 1 / "1") to a JS boolean. */
+function asBool(value: unknown): boolean {
+  return value === true || value === "true" || value === 1 || value === "1";
+}
+
+/** Coerce an unknown to a finite number, defaulting to 0. */
+function toFinite(value: unknown): number {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
   const developers = createObservable<Developer[]>([]);
   const recentTips = createObservable<RecentTip[]>([]);
   const totalDonated = createObservable(0);
   const isLoading = createObservable(false);
 
-  const toNumber = toSafeNumber;
+  /**
+   * Map a getDeveloper Map (returned by chain.read as a plain object) into the
+   * Developer shape used by the UI. Returns null for a missing / zeroed dev.
+   * GAS amounts are BASE UNITS → human GAS via fromFixed8.
+   */
+  const mapDeveloper = (raw: unknown, id: number): Developer | null => {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const v = raw as Record<string, unknown>;
+    const wallet = String(v.wallet ?? "").trim();
+    if (!wallet) return null;
 
+    const name = String(v.name ?? "").trim();
+    const role = String(v.role ?? "").trim();
+    const totalReceived = fromFixed8(parseBigInt(v.totalReceived));
+    const tipCount = toFinite(v.tipCount);
+    const balance = fromFixed8(parseBigInt(v.balance));
+
+    return {
+      id,
+      name: name || t("defaultDevName", { id }),
+      role: role || t("defaultDevRole"),
+      wallet,
+      totalTips: totalReceived,
+      tipCount,
+      balance,
+      rank: "",
+    };
+  };
+
+  /**
+   * Load the developer registry from totalDevelopers() + getDeveloper(id) for
+   * id 1..N. Sorted by lifetime tips (desc) with rank assigned. totalDonated is
+   * read from the contract's running total.
+   */
   const loadDevelopers = async () => {
     isLoading.set(true);
     try {
-      const total = toNumber(await storage.get("totalDevelopers"));
+      const totalRaw = await chain.read("totalDevelopers", []);
+      const total = Math.min(toFinite(totalRaw), MAX_DEVELOPERS);
 
-      if (!total) {
+      if (total <= 0) {
         developers.set([]);
         totalDonated.set(0);
         return;
       }
 
-      const ids = Array.from({ length: total }, (_, i) => i + 1);
-      const devs = await Promise.all(
+      const ids: number[] = [];
+      for (let id = 1; id <= total; id += 1) ids.push(id);
+
+      const results = await Promise.all(
         ids.map(async (id) => {
-          const parsed = await storage.get(`developer:${id}`);
-          const details =
-            parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
-          const name = String(details.name || "").trim();
-          const role = String(details.role || "").trim();
-          const wallet = String(details.wallet || "").trim();
-          const totalReceived = parseGas(details.totalReceived ?? 0);
-          const tipCount = toNumber(details.tipCount);
-          const balance = parseGas(details.balance ?? 0);
-
-          if (!wallet) return null;
-
-          return {
-            id,
-            name: name || t("defaultDevName", { id }),
-            role: role || t("defaultDevRole"),
-            wallet,
-            totalTips: totalReceived,
-            tipCount,
-            balance,
-            rank: "",
-          };
+          try {
+            const raw = await chain.read("getDeveloper", [
+              { type: "Integer", value: String(id) },
+            ]);
+            return mapDeveloper(raw, id);
+          } catch (e) {
+            console.warn(
+              "[useDevTippingStats] getDeveloper failed for",
+              id,
+              ":",
+              e instanceof Error ? e.message : String(e),
+            );
+            return null;
+          }
         }),
       );
 
-      totalDonated.set(parseGas(await storage.get("totalDonated")));
-
-      const validDevs = devs.filter((d): d is Developer => d !== null);
+      const validDevs = results.filter((d): d is Developer => d !== null);
       validDevs.sort((a, b) => b.totalTips - a.totalTips);
       validDevs.forEach((dev, idx) => {
         dev.rank = `#${idx + 1}`;
       });
       developers.set(validDevs);
-    } catch (_e) {
-      console.warn("[useDevTippingStats] stats load failed:", _e instanceof Error ? _e.message : String(_e));
+
+      try {
+        totalDonated.set(fromFixed8(parseBigInt(await chain.read("totalDonated", []))));
+      } catch (e) {
+        console.warn(
+          "[useDevTippingStats] totalDonated read failed:",
+          e instanceof Error ? e.message : String(e),
+        );
+      }
+    } catch (e) {
+      console.warn(
+        "[useDevTippingStats] loadDevelopers failed:",
+        e instanceof Error ? e.message : String(e),
+      );
     } finally {
       isLoading.set(false);
     }
   };
 
+  /**
+   * Load the recent-tip activity feed from Tipped events. The contract stores
+   * only the tipper address + anonymous flag (no name/message), so each tip
+   * shows the developer it went to and either a truncated tipper address or an
+   * "Anonymous" label (anonymous tips suppress the tipper). Must run after
+   * loadDevelopers so devId → name resolution is populated.
+   */
   const loadRecentTips = async () => {
     try {
-      const tipsData = await storage.list("tips:recent") as Record<string, unknown>;
+      const events = await chain.listEvents("Tipped", { limit: RECENT_TIPS_LIMIT });
       const devMap = new Map(developers.get().map((dev) => [dev.id, dev.name]));
 
-      const entries = Object.entries(tipsData);
-      recentTips.set(entries.map(([key, raw]) => {
-        const tip = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-        const devId = toNumber(tip.devId ?? 0);
-        const amount = parseGas(tip.amount ?? 0);
-        const to = devMap.get(devId) || t("defaultDevName", { id: devId });
-        const anonymous = tip.anonymous === true || tip.anonymous === "true";
-        const tipperName = anonymous ? "" : String(tip.tipper ?? "").trim();
+      const tips = events
+        .map((event, idx) => {
+          const tipId = parseBigInt(eventValue(event, 0));
+          const devId = Number(parseBigInt(eventValue(event, 1)));
+          const tipper = String(eventValue(event, 2) ?? "").trim();
+          const amount = fromFixed8(parseBigInt(eventValue(event, 3)));
+          const anonymous = asBool(eventValue(event, 4));
 
-        return {
-          id: String(tip.id ?? key),
-          tipperName,
-          to,
-          amount: amount.toFixed(2),
-          time: new Intl.DateTimeFormat(undefined).format(new Date((tip.created_at as string) || Date.now())),
-        };
-      }))
-    } catch (_e) {
-      console.warn("[useDevTippingStats] loadRecentTips failed:", _e instanceof Error ? _e.message : String(_e));
+          if (devId <= 0) return null;
+
+          const to = devMap.get(devId) || t("defaultDevName", { id: devId });
+          // The contract has no tipper-name field; show a truncated address for
+          // non-anonymous tips (empty for anonymous → UI renders "Anonymous").
+          const tipperName = anonymous || !tipper ? "" : formatHash(tipper);
+
+          return {
+            id: tipId > 0n ? tipId.toString() : `tip-${idx}`,
+            tipperName,
+            to,
+            amount: amount.toFixed(2),
+            // The Tipped event carries no timestamp; the feed is ordered newest
+            // first by the event index from listEvents.
+            time: "",
+          } satisfies RecentTip;
+        })
+        .filter((tip): tip is RecentTip => tip !== null);
+
+      recentTips.set(tips);
+    } catch (e) {
+      console.warn(
+        "[useDevTippingStats] loadRecentTips failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+      recentTips.set([]);
+    }
+  };
+
+  /**
+   * Resolve the devId owned by a wallet (0 if unregistered). Used by the UI to
+   * decide whether to show the register form vs. the withdraw action.
+   */
+  const developerIdOf = async (address: string): Promise<number> => {
+    const hash = addressToScriptHash(address || "");
+    if (!hash) return 0;
+    try {
+      return Number(parseBigInt(await chain.read("developerIdOf", [{ type: "Hash160", value: hash }])));
+    } catch (e) {
+      console.warn(
+        "[useDevTippingStats] developerIdOf failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+      return 0;
     }
   };
 
@@ -133,5 +260,6 @@ export function useDevTippingStats({ storage, t }: UseDevTippingStatsOptions) {
     formatNum,
     loadDevelopers,
     loadRecentTips,
+    developerIdOf,
   };
 }
