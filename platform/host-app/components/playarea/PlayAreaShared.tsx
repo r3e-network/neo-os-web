@@ -1159,10 +1159,12 @@ export function EmbeddedDappSurface({
         loading="eager"
         onLoad={() => setFrameLoaded(true)}
         referrerPolicy="no-referrer-when-downgrade"
-        /* allow-same-origin: these are first-party miniapps served from the host's
-           own origin; the OS SDK reads the wallet session (neo_miniapp_auth_jwt)
-           from shared storage, which is inaccessible at an opaque sandbox origin. */
-        sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+        /* allow-same-origin is intentionally omitted (Audit fix C-4): with
+           allow-scripts it would defeat the sandbox, letting a miniapp reach
+           window.parent.* and lift the host's wallet session. The wallet session
+           reaches miniapps over the postMessage wallet bridge (data-wallet-bridge),
+           not via shared same-origin storage. */
+        sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
       />
       {showLoading && (
         <div
