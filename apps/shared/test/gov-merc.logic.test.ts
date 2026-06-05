@@ -1,20 +1,35 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { useGovMercPool } from "../../gov-merc/src/hooks/useGovMercPool";
-import type { PaymentProxy } from "../services/os/PaymentProxy";
-import type { StorageProxy } from "../services/os/StorageProxy";
+import { useGovMerc } from "../../gov-merc/src/hooks/useGovMerc";
+import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
+import { addressToScriptHash } from "../utils/neo";
+import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
-const ALICE = "NAliceaddressxxxxxxxxxxxxxxxxxxxxxx";
-const BOB = "NBobaddressyyyyyyyyyyyyyyyyyyyyyyyyy";
+const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const BOB = "NUuPbNwrecVnAQauFTdMPaMQRgwsmFwjwR";
+const CONTRACT = "0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9";
+const ALICE_HASH = addressToScriptHash(ALICE);
+const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
+const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
+const STAKE_MEMO = "govmerc:stake";
+const BID_MEMO = "govmerc:bid";
+const ZERO_HASH = "0x0000000000000000000000000000000000000000";
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     enterAmount: "Enter an amount",
+    enterNeoAmount: "Enter a whole NEO amount",
     withdrawExceeds: "Amount exceeds your deposits",
     walletStatusIdle: "Wallet not connected",
+    missingContract: "Contract not configured",
     settleNoBids: "No bids to settle for this epoch",
-    bidRefunded: "Bid failed — your GAS was refunded",
-    bidRecoverable: "Bid failed and the automatic refund did not complete.",
+    minBid: `First bid must be at least ${params?.amount ?? ""} ${params?.tokenGas ?? ""}`,
+    bidDepositHeld:
+      "Your GAS was deposited as reusable bid credit. Raise the bid again or withdraw the credit.",
+    noRewards: "No rewards to claim yet",
+    noCredit: "No unused bid credit",
+    tokenGas: "GAS",
+    error: "Error",
   };
   let out = messages[key] ?? key;
   if (params) {
@@ -24,244 +39,433 @@ function t(key: string, params?: Record<string, string | number>) {
 }
 
 /**
- * In-memory StorageProxy stand-in. Models the app's SHARED namespace: every
- * write lands in one map and `list(prefix)` returns ALL matching entries
- * regardless of which wallet wrote them. This is the property that makes Total
- * Pool a real aggregate across depositors.
+ * A BidPlaced event payload (epoch, bidder, totalBid). Bidder is a decoded
+ * address string (N3Index decodes the Hash160 slot to an address); totalBid is
+ * GAS base units.
  */
-function makeStorage(initial: Record<string, unknown> = {}) {
-  const store = new Map<string, unknown>(Object.entries(initial));
-  const get = vi.fn(async (key: string) => store.get(key));
-  const set = vi.fn(async (key: string, value: unknown) => {
-    store.set(key, value);
-  });
-  const del = vi.fn(async (key: string) => {
-    store.delete(key);
-  });
-  const list = vi.fn(async (prefix: string) => {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of store.entries()) {
-      if (k.startsWith(prefix)) out[k] = v;
-    }
-    return out;
-  });
-  const storage = { get, set, delete: del, list } as unknown as StorageProxy & {
-    get: typeof get;
-    set: typeof set;
-    delete: typeof del;
-    list: typeof list;
-  };
-  return { storage, store };
-}
-
-function makePayment(overrides: Partial<PaymentProxy> = {}) {
+function bidEvent(epoch: number, bidder: string, totalBidBase: string): unknown {
   return {
-    deposit: vi.fn(async () => ({ invocation: {} })),
-    withdraw: vi.fn(async () => undefined),
-    ...overrides,
-  } as unknown as PaymentProxy & {
-    deposit: ReturnType<typeof vi.fn>;
-    withdraw: ReturnType<typeof vi.fn>;
+    event_name: "BidPlaced",
+    state: [
+      { type: "Integer", value: String(epoch) },
+      { type: "Hash160", value: bidder },
+      { type: "Integer", value: totalBidBase },
+    ],
   };
 }
 
-function setup(opts: { initial?: Record<string, unknown>; payment?: Partial<PaymentProxy> } = {}) {
-  const { storage, store } = makeStorage(opts.initial);
-  const payment = makePayment(opts.payment);
-  const app = useGovMercPool({ paymentService: payment, storageService: storage, t });
-  app.setAddress(ALICE);
-  return { app, storage, store, payment };
+interface ChainOpts {
+  /** totalStaked() read — WHOLE NEO (not base units). */
+  totalStaked?: string;
+  /** currentEpoch() read. */
+  epoch?: number;
+  /** stakeOf(user) read — WHOLE NEO. */
+  stakeOf?: string;
+  /** pendingRewards(user) read — GAS base units. */
+  pendingRewards?: string;
+  /** gasCreditOf(user) read — GAS base units. */
+  gasCredit?: string;
+  /** settlementWinner(epoch) reads, keyed by epoch. */
+  settlementWinner?: Record<number, string>;
+  /** settlementAmount(epoch) reads (GAS base units), keyed by epoch. */
+  settlementAmount?: Record<number, string>;
+  /** bidOf(epoch, user) reads (GAS base units), keyed by epoch. */
+  bidOf?: Record<number, string>;
+  /** BidPlaced events returned by listEvents. */
+  bidEvents?: unknown[];
+  /** Force the bid() invoke to throw. */
+  bidThrows?: Error;
 }
 
-describe("useGovMercPool — shared-pool aggregate", () => {
-  it("computes Total Pool as the sum of EVERY depositor record, not just the current wallet", async () => {
-    // Two distinct depositors already in the shared namespace.
-    const { app } = setup({
-      initial: {
-        "deposit:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx": { address: ALICE, amount: 30 },
-        "deposit:NBobaddressyyyyyyyyyyyyyyyyyyyyyyyyy": { address: BOB, amount: 70 },
-      },
+/**
+ * Minimal ChainService stand-in. Records invoke/read/listEvents calls so tests
+ * can assert the direct-contract stake (NEO integer) + bid (GAS base units) +
+ * settle/claim/reclaim argument shapes and the leaderboard-from-events wiring. No
+ * OS proxies are involved.
+ */
+function makeChain(opts: ChainOpts = {}) {
+  const invoke = vi.fn(
+    async (op: string, _args: ContractArg[], options?: { waitForEvent?: string }): Promise<TxResult> => {
+      let event: unknown;
+      if (op === "bid") {
+        if (opts.bidThrows) throw opts.bidThrows;
+        if (options?.waitForEvent === "BidPlaced") {
+          event = bidEvent(opts.epoch ?? 0, ALICE, "100000000");
+        }
+      }
+      if (op === "settleEpoch" && options?.waitForEvent === "EpochSettled") {
+        event = { state: [{ type: "Integer", value: String(opts.epoch ?? 0) }] };
+      }
+      return { txid: "0xtx", event, success: true };
+    },
+  );
+
+  const read = vi.fn(async (op: string, args?: ContractArg[]): Promise<unknown> => {
+    const epochArg = args && args[0] ? Number(args[0].value) : undefined;
+    switch (op) {
+      case "totalStaked": return opts.totalStaked ?? "0";
+      case "currentEpoch": return String(opts.epoch ?? 0);
+      case "stakeOf": return opts.stakeOf ?? "0";
+      case "pendingRewards": return opts.pendingRewards ?? "0";
+      case "gasCreditOf": return opts.gasCredit ?? "0";
+      case "settlementWinner":
+        return (epochArg !== undefined && opts.settlementWinner?.[epochArg]) || ZERO_HASH;
+      case "settlementAmount":
+        return (epochArg !== undefined && opts.settlementAmount?.[epochArg]) || "0";
+      case "bidOf":
+        return (epochArg !== undefined && opts.bidOf?.[epochArg]) || "0";
+      default: return "0";
+    }
+  });
+
+  const listEvents = vi.fn(async (): Promise<unknown[]> => opts.bidEvents ?? []);
+
+  const chain = {
+    contractAddress: { get: () => CONTRACT },
+    address: { get: () => ALICE },
+    ensureWallet: vi.fn(async () => ALICE),
+    invoke,
+    read,
+    listEvents,
+  } as unknown as ChainService & {
+    invoke: typeof invoke;
+    read: typeof read;
+    listEvents: typeof listEvents;
+  };
+  return { chain, invoke, read, listEvents };
+}
+
+function setup(opts: ChainOpts = {}) {
+  const { chain, invoke, read, listEvents } = makeChain(opts);
+  const app = useGovMerc({ chain, t });
+  app.setAddress(ALICE);
+  return { app, chain, invoke, read, listEvents };
+}
+
+/** Find a recorded invoke call for an operation. */
+function callFor(invoke: ReturnType<typeof vi.fn>, op: string) {
+  return invoke.mock.calls.find((c) => c[0] === op);
+}
+
+describe("useGovMerc — on-chain reads (NEO integer vs GAS base units)", () => {
+  it("reads totalStaked / stakeOf as WHOLE NEO (never ÷1e8) and rewards/credit as GAS (÷1e8)", async () => {
+    const { app, read } = setup({
+      totalStaked: "100", // 100 NEO — integer, not base units
+      epoch: 3,
+      stakeOf: "30", // 30 NEO
+      pendingRewards: "250000000", // 2.5 GAS base units
+      gasCredit: "150000000", // 1.5 GAS base units
     });
 
     await app.loadData();
 
-    // Aggregate across all depositors (30 + 70), not just Alice's 30.
+    // NEO is integer — the pool is 100, NOT 100/1e8.
     expect(app.totalPool.get()).toBe(100);
-    // The current wallet (Alice) only sees her own position.
     expect(app.userDeposits.get()).toBe(30);
+    expect(app.currentEpoch.get()).toBe(3);
+    // GAS is base units — scaled ÷1e8 for display.
+    expect(app.pendingRewards.get()).toBeCloseTo(2.5, 8);
+    expect(app.gasCredit.get()).toBeCloseTo(1.5, 8);
+    // Reads came from the contract, not os.payment/os.storage.
+    expect(read.mock.calls.some((c) => c[0] === "totalStaked")).toBe(true);
+    expect(read.mock.calls.some((c) => c[0] === "stakeOf")).toBe(true);
+    expect(read.mock.calls.some((c) => c[0] === "pendingRewards")).toBe(true);
   });
 
-  it("deposit writes a per-address record and grows the aggregate; a second wallet adds on top", async () => {
-    const { app, store } = setup();
-
-    app.depositAmount.set("40");
-    await app.depositNeo();
-
-    expect(store.get("deposit:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx")).toEqual({
-      address: ALICE,
-      amount: 40,
-    });
-    expect(app.totalPool.get()).toBe(40);
-    expect(app.userDeposits.get()).toBe(40);
-
-    // Bob deposits — the aggregate must reflect both depositors.
-    app.setAddress(BOB);
-    app.depositAmount.set("60");
-    await app.depositNeo();
-
-    await app.loadData();
-    expect(app.totalPool.get()).toBe(100);
-    // Bob's view is his own position only.
-    expect(app.userDeposits.get()).toBe(60);
-  });
-});
-
-describe("useGovMercPool — withdraw validation", () => {
-  it("rejects an over-withdrawal with a clear error and leaves the deposit untouched", async () => {
-    const { app, store, storage } = setup({
-      initial: {
-        "deposit:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx": { address: ALICE, amount: 10 },
-      },
-    });
-    await app.loadData();
-    expect(app.userDeposits.get()).toBe(10);
-
-    app.withdrawAmount.set("25");
-    await expect(app.withdrawNeo()).rejects.toThrow("Amount exceeds your deposits");
-
-    // No write/delete happened — the deposit is intact (no silent clamp-to-zero).
-    expect(store.get("deposit:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx")).toEqual({
-      address: ALICE,
-      amount: 10,
-    });
-    expect(storage.delete).not.toHaveBeenCalled();
-  });
-
-  it("allows a valid partial withdrawal and reduces the position", async () => {
-    const { app, store } = setup({
-      initial: {
-        "deposit:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx": { address: ALICE, amount: 10 },
-      },
-    });
-    await app.loadData();
-
-    app.withdrawAmount.set("4");
-    await app.withdrawNeo();
-
-    expect(store.get("deposit:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx")).toEqual({
-      address: ALICE,
-      amount: 6,
-    });
-    expect(app.userDeposits.get()).toBe(6);
-  });
-
-  it("drops the depositor record on a full withdrawal so it stops counting in the aggregate", async () => {
-    const { app, store } = setup({
-      initial: {
-        "deposit:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx": { address: ALICE, amount: 10 },
-        "deposit:NBobaddressyyyyyyyyyyyyyyyyyyyyyyyyy": { address: BOB, amount: 5 },
-      },
-    });
-    await app.loadData();
-
-    app.withdrawAmount.set("10");
-    await app.withdrawNeo();
-
-    expect(store.has("deposit:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx")).toBe(false);
-    // Only Bob's record remains in the aggregate.
-    expect(app.totalPool.get()).toBe(5);
-    expect(app.userDeposits.get()).toBe(0);
-  });
-});
-
-describe("useGovMercPool — epoch-filtered leaderboard", () => {
-  it("only shows bids for the live epoch, never stale prior-epoch bids", async () => {
-    const { app } = setup({
-      initial: {
-        "epoch-state": { currentEpoch: 2 },
-        // Prior-epoch bids that must NOT leak into the live leaderboard.
-        "bid:1:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx": { address: ALICE, amount: "9", epoch: 1 },
-        // Live-epoch bids.
-        "bid:2:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx": { address: ALICE, amount: "3", epoch: 2 },
-        "bid:2:NBobaddressyyyyyyyyyyyyyyyyyyyyyyyyy": { address: BOB, amount: "5", epoch: 2 },
-      },
+  it("rebuilds the current-epoch leaderboard from BidPlaced events, latest total per bidder, desc", async () => {
+    const { app, listEvents } = setup({
+      epoch: 2,
+      bidEvents: [
+        // Newest first. The FIRST event per bidder is their latest total bid.
+        bidEvent(2, BOB, "500000000"), // Bob: 5 GAS (latest)
+        bidEvent(2, ALICE, "300000000"), // Alice: 3 GAS (latest)
+        bidEvent(2, ALICE, "100000000"), // stale earlier Alice total — ignored
+        bidEvent(1, BOB, "900000000"), // PRIOR epoch — excluded
+      ],
     });
 
     await app.loadData();
 
     const bids = app.bids.get();
     expect(bids).toHaveLength(2);
-    // Sorted by amount desc — Bob (5) leads Alice (3); the epoch-1 bid (9) is excluded.
+    // Sorted by amount desc; base units ÷1e8 → whole GAS.
     expect(bids[0]).toEqual({ address: BOB, amount: 5 });
     expect(bids[1]).toEqual({ address: ALICE, amount: 3 });
     expect(bids.some((b) => b.amount === 9)).toBe(false);
+    expect(listEvents).toHaveBeenCalledWith("BidPlaced", { limit: 200 });
   });
 
-  it("placeBid records the bid under the live epoch and moves GAS first", async () => {
-    const { app, store, payment } = setup({ initial: { "epoch-state": { currentEpoch: 3 } } });
+  it("reads the last settlement (winner + GAS amount ÷1e8) for the prior epoch", async () => {
+    const { app } = setup({
+      epoch: 5,
+      settlementWinner: { 4: BOB },
+      settlementAmount: { 4: "800000000" }, // 8 GAS
+    });
+
     await app.loadData();
+
+    expect(app.lastSettlement.get()).toEqual({ epoch: 4, winner: BOB, amount: 8 });
+  });
+
+  it("treats a zero-address settlement winner as no settlement", async () => {
+    const { app } = setup({ epoch: 2, settlementWinner: { 1: ZERO_HASH } });
+    await app.loadData();
+    expect(app.lastSettlement.get()).toBeNull();
+  });
+});
+
+describe("useGovMerc — staking (NEO integer, transfer IS the stake)", () => {
+  it("stakes a WHOLE NEO transfer with the stake memo and NEO scriptHash (NO ×1e8)", async () => {
+    const { app, invoke } = setup({ epoch: 1 });
+    await app.loadData();
+    invoke.mockClear();
+
+    app.depositAmount.set("30");
+    await app.depositNeo();
+
+    const transfer = callFor(invoke, "transfer");
+    expect(transfer).toBeTruthy();
+    // Amount is the WHOLE NEO integer "30" — NOT "3000000000".
+    expect(transfer![1]).toEqual([
+      { type: "Hash160", value: ALICE_HASH },
+      { type: "Hash160", value: CONTRACT },
+      { type: "Integer", value: "30" },
+      { type: "String", value: STAKE_MEMO },
+    ]);
+    expect(transfer![2]).toMatchObject({ scriptHash: NEO_HASH, waitForEvent: "Staked" });
+    // There is NO separate stake call — the transfer IS the stake.
+    expect(callFor(invoke, "stake")).toBeUndefined();
+    expect(app.depositAmount.get()).toBe("");
+  });
+
+  it("rejects a fractional NEO stake (NEO is indivisible) before any chain call", async () => {
+    const { app, invoke } = setup({ epoch: 1 });
+    await app.loadData();
+    invoke.mockClear();
+
+    app.depositAmount.set("1.5");
+    await expect(app.depositNeo()).rejects.toThrow("Enter a whole NEO amount");
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("withdraws stake via withdrawStake(user, neoInteger) and validates against the user's stake", async () => {
+    const { app, invoke } = setup({ epoch: 1, stakeOf: "10" });
+    await app.loadData();
+    invoke.mockClear();
+
+    // Over-withdrawal is rejected before any chain call.
+    app.withdrawAmount.set("25");
+    await expect(app.withdrawNeo()).rejects.toThrow("Amount exceeds your deposits");
+    expect(invoke).not.toHaveBeenCalled();
+
+    // A valid partial withdrawal calls withdrawStake with the whole NEO integer.
+    app.withdrawAmount.set("4");
+    await app.withdrawNeo();
+    const withdraw = callFor(invoke, "withdrawStake");
+    expect(withdraw).toBeTruthy();
+    expect(withdraw![1]).toEqual([
+      { type: "Hash160", value: ALICE_HASH },
+      { type: "Integer", value: "4" },
+    ]);
+    expect(withdraw![2]).toMatchObject({ waitForEvent: "Unstaked" });
+  });
+});
+
+describe("useGovMerc — bidding (GAS base units, deposit-then-act)", () => {
+  it("deposits the GAS bid then calls bid(bidder, addBase), in that order (×1e8 scaled once)", async () => {
+    const { app, invoke } = setup({ epoch: 4, gasCredit: "0" });
+    await app.loadData();
+    invoke.mockClear();
 
     app.bidAmount.set("2.5");
     await app.placeBid();
 
-    // GAS moved into the vault with the epoch-scoped memo.
-    expect(payment.deposit).toHaveBeenCalledWith("2.5", "govmerc:bid:3");
-    // Bid recorded under the live epoch key.
-    expect(store.get("bid:3:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx")).toEqual({
-      address: ALICE,
-      amount: "2.5",
-      epoch: 3,
-    });
+    // Step 1: GAS transfer to the contract with the bid memo, base units.
+    const deposit = callFor(invoke, "transfer");
+    expect(deposit).toBeTruthy();
+    // 2.5 GAS -> 250000000 base units (×1e8, scaled ONCE — no double-scale).
+    expect(deposit![1]).toEqual([
+      { type: "Hash160", value: ALICE_HASH },
+      { type: "Hash160", value: CONTRACT },
+      { type: "Integer", value: "250000000" },
+      { type: "String", value: BID_MEMO },
+    ]);
+    expect(deposit![2]).toMatchObject({ scriptHash: GAS_HASH });
+
+    // Step 2: bid(bidder, addBase) waiting for BidPlaced.
+    const bid = callFor(invoke, "bid");
+    expect(bid).toBeTruthy();
+    expect(bid![1]).toEqual([
+      { type: "Hash160", value: ALICE_HASH },
+      { type: "Integer", value: "250000000" },
+    ]);
+    expect(bid![2]).toMatchObject({ waitForEvent: "BidPlaced" });
+
+    // The deposit must precede the bid.
+    const order = invoke.mock.calls.map((c) => c[0]);
+    expect(order.indexOf("transfer")).toBeLessThan(order.indexOf("bid"));
+    expect(app.bidAmount.get()).toBe("");
   });
 
-  it("refunds the GAS when the bid record write fails", async () => {
-    const { storage } = makeStorage({ "epoch-state": { currentEpoch: 0 } });
-    storage.set = vi.fn(async (key: string) => {
-      if (key.startsWith("bid:")) throw new Error("write failed");
-    }) as unknown as StorageProxy["set"];
-    const payment = makePayment();
-    const app = useGovMercPool({ paymentService: payment, storageService: storage, t });
-    app.setAddress(ALICE);
+  it("skips the deposit when prepaid bid credit already covers the amount", async () => {
+    const { app, invoke } = setup({ epoch: 4, gasCredit: "300000000" }); // 3 GAS credit
+    await app.loadData();
+    invoke.mockClear();
+
+    app.bidAmount.set("2.5"); // needs 2.5 GAS, credit covers it
+    await app.placeBid();
+
+    expect(callFor(invoke, "transfer")).toBeUndefined();
+    expect(callFor(invoke, "bid")).toBeTruthy();
+  });
+
+  it("rejects a first bid below 1 GAS before any chain call", async () => {
+    const { app, invoke } = setup({ epoch: 4, gasCredit: "0", bidEvents: [] });
+    await app.loadData();
+    invoke.mockClear();
+
+    app.bidAmount.set("0.5");
+    await expect(app.placeBid()).rejects.toThrow("First bid must be at least 1 GAS");
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a held-credit message when bid faults after the deposit lands", async () => {
+    const { app, invoke } = setup({
+      epoch: 4,
+      gasCredit: "0",
+      bidThrows: new Error("some chain fault"),
+    });
     await app.loadData();
 
-    app.bidAmount.set("1");
-    await expect(app.placeBid()).rejects.toThrow("Bid failed — your GAS was refunded");
-    expect((payment as unknown as { withdraw: ReturnType<typeof vi.fn> }).withdraw).toHaveBeenCalledWith("1");
+    app.bidAmount.set("2");
+    await expect(app.placeBid()).rejects.toThrow(
+      "Your GAS was deposited as reusable bid credit.",
+    );
+    // The deposit DID go out (it landed); only the bid faulted.
+    expect(callFor(invoke, "transfer")).toBeTruthy();
+    expect(callFor(invoke, "bid")).toBeTruthy();
   });
 });
 
-describe("useGovMercPool — epoch settlement", () => {
-  it("resolves the winning bid, records the outcome, and advances the epoch", async () => {
-    const { app, store } = setup({
-      initial: {
-        "epoch-state": { currentEpoch: 5 },
-        "bid:5:NAliceaddressxxxxxxxxxxxxxxxxxxxxxx": { address: ALICE, amount: "3", epoch: 5 },
-        "bid:5:NBobaddressyyyyyyyyyyyyyyyyyyyyyyyyy": { address: BOB, amount: "8", epoch: 5 },
-      },
+describe("useGovMerc — settlement (permissionless)", () => {
+  it("settles the live epoch via settleEpoch() with no args, waiting for EpochSettled", async () => {
+    const { app, invoke } = setup({
+      epoch: 5,
+      bidEvents: [bidEvent(5, BOB, "800000000")],
     });
     await app.loadData();
-    expect(app.currentEpoch.get()).toBe(5);
+    expect(app.bids.get()).toHaveLength(1);
+    invoke.mockClear();
 
     await app.settleEpoch();
 
-    // Bob (8) is the winner; the settlement is recorded for epoch 5.
-    expect(store.get("settlement:5")).toEqual({ epoch: 5, winner: BOB, amount: 8 });
-    // Epoch advanced to 6 in shared state and observable.
-    expect(store.get("epoch-state")).toEqual({ currentEpoch: 6 });
-    expect(app.currentEpoch.get()).toBe(6);
-    // The new epoch has no live bids yet.
-    expect(app.bids.get()).toHaveLength(0);
-    // The just-settled epoch (5 = newEpoch-1) surfaces as the last settlement.
-    expect(app.lastSettlement.get()).toEqual({ epoch: 5, winner: BOB, amount: 8 });
+    const settle = callFor(invoke, "settleEpoch");
+    expect(settle).toBeTruthy();
+    expect(settle![1]).toEqual([]); // no args — the contract pays the top bidder
+    expect(settle![2]).toMatchObject({ waitForEvent: "EpochSettled" });
   });
 
   it("refuses to settle an epoch with no bids", async () => {
-    const { app, store } = setup({ initial: { "epoch-state": { currentEpoch: 1 } } });
+    const { app, invoke } = setup({ epoch: 1, bidEvents: [] });
     await app.loadData();
+    invoke.mockClear();
 
     await expect(app.settleEpoch()).rejects.toThrow("No bids to settle for this epoch");
-    // Epoch is unchanged.
-    expect(app.currentEpoch.get()).toBe(1);
-    expect(store.has("settlement:1")).toBe(false);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe("useGovMerc — claim rewards + reclaim losing bid + withdraw credit", () => {
+  it("claims accrued GAS rewards via claimRewards(user)", async () => {
+    const { app, invoke } = setup({ epoch: 2, stakeOf: "10", pendingRewards: "500000000" });
+    await app.loadData();
+    expect(app.pendingRewards.get()).toBeCloseTo(5, 8);
+    invoke.mockClear();
+
+    await app.claimRewards();
+
+    const claim = callFor(invoke, "claimRewards");
+    expect(claim).toBeTruthy();
+    expect(claim![1]).toEqual([{ type: "Hash160", value: ALICE_HASH }]);
+    expect(claim![2]).toMatchObject({ waitForEvent: "RewardsClaimed" });
+  });
+
+  it("refuses to claim when there are no pending rewards", async () => {
+    const { app, invoke } = setup({ epoch: 2, pendingRewards: "0" });
+    await app.loadData();
+    invoke.mockClear();
+
+    await expect(app.claimRewards()).rejects.toThrow("No rewards to claim yet");
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("detects a reclaimable losing bid in a settled epoch (bid by me, won by someone else)", async () => {
+    const { app } = setup({
+      epoch: 3,
+      bidOf: { 1: "200000000", 2: "0" }, // bid 2 GAS in epoch 1, none in epoch 2
+      settlementWinner: { 1: BOB }, // Bob won epoch 1 — Alice lost, can reclaim
+    });
+
+    await app.loadData();
+
+    const reclaimable = app.reclaimableBids.get();
+    expect(reclaimable).toEqual([{ epoch: 1, amount: 2 }]);
+    expect(app.hasReclaimable.get()).toBe(true);
+  });
+
+  it("does NOT mark the winner's bid as reclaimable", async () => {
+    const { app } = setup({
+      epoch: 3,
+      bidOf: { 1: "200000000" },
+      settlementWinner: { 1: ALICE }, // Alice WON epoch 1 — cannot reclaim
+    });
+
+    await app.loadData();
+
+    expect(app.reclaimableBids.get()).toEqual([]);
+    expect(app.hasReclaimable.get()).toBe(false);
+  });
+
+  it("reclaims a losing bid via reclaimBid(bidder, epoch)", async () => {
+    const { app, invoke } = setup({
+      epoch: 3,
+      bidOf: { 1: "200000000" },
+      settlementWinner: { 1: BOB },
+    });
+    await app.loadData();
+    invoke.mockClear();
+
+    await app.reclaimBid(1);
+
+    const reclaim = callFor(invoke, "reclaimBid");
+    expect(reclaim).toBeTruthy();
+    expect(reclaim![1]).toEqual([
+      { type: "Hash160", value: ALICE_HASH },
+      { type: "Integer", value: "1" },
+    ]);
+    expect(reclaim![2]).toMatchObject({ waitForEvent: "BidReclaimed" });
+  });
+
+  it("withdraws unused GAS bid credit via withdraw(account)", async () => {
+    const { app, invoke } = setup({ epoch: 2, gasCredit: "150000000" }); // 1.5 GAS
+    await app.loadData();
+    expect(app.hasCredit.get()).toBe(true);
+    invoke.mockClear();
+
+    await app.withdrawCredit();
+
+    const withdraw = callFor(invoke, "withdraw");
+    expect(withdraw).toBeTruthy();
+    expect(withdraw![1]).toEqual([{ type: "Hash160", value: ALICE_HASH }]);
+    expect(withdraw![2]).toMatchObject({ waitForEvent: "CreditWithdrawn" });
+  });
+
+  it("refuses to withdraw when there is no unused credit", async () => {
+    const { app, invoke } = setup({ epoch: 2, gasCredit: "0" });
+    await app.loadData();
+    invoke.mockClear();
+
+    await expect(app.withdrawCredit()).rejects.toThrow("No unused bid credit");
+    expect(invoke).not.toHaveBeenCalled();
   });
 });

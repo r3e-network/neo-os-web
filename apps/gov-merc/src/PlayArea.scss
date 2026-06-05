@@ -206,7 +206,8 @@ body {
 .gov-merc-action-panel,
 .gov-merc-risk-panel,
 .gov-merc-bid-panel,
-.gov-merc-settle-panel {
+.gov-merc-settle-panel,
+.gov-merc-staker-panel {
   border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface, #ffffff);
