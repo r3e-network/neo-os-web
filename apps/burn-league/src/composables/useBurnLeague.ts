@@ -1,64 +1,147 @@
 /**
- * useBurnLeague — Domain logic for the Burn League miniapp (OS Services)
+ * useBurnLeague — Domain logic for the Burn League miniapp.
  *
- * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (GameProxy, LeaderboardProxy, BadgeProxy) via
- * edge functions, so this file contains zero contract hashes, parameter
- * encoding, or event parsing logic.
+ * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppBurnLeague)
+ * via ctx.services.chain. The earlier path routed burns through the OS
+ * GameProxy/LeaderboardProxy/BadgeProxy edge functions, which moved nothing once
+ * the kernel degraded and read a pool / leaderboard no contract maintained. This
+ * composable drives the dedicated contract, an all-pay SEASONAL contest (no house
+ * fee, pure redistribution): players burn GAS into the current season pool, the
+ * top burner wins the WHOLE pool when the season is settled after its deadline,
+ * and the next season starts lazily on the next burn — settle() is permissionless
+ * (no oracle, no off-chain keeper).
  *
- * Migration from direct chain calls to OS services:
+ * Contract interaction model (verified against MiniAppBurnLeague.cs / ABI):
  *
- *   BEFORE (chain):
- *     chain.read("totalBurned")
- *     chain.read("rewardPool")
- *     chain.read("getUserTotalBurned", [...])
- *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
- *     chain.invoke("burnGas", [...], { waitForEvent: "GasBurned" })
- *     chain.listAllEvents("GasBurned")
+ *   READS (chain.read, default app contract script hash; all GAS in BASE UNITS):
+ *     currentSeason()        -> Integer (1-based; 0 before the first season)
+ *     seasonEnd()            -> Integer (ms epoch; 0 = dormant)
+ *     rewardPool()           -> Integer (current season pool, base units)
+ *     totalBurned()          -> Integer (== rewardPool, base units)
+ *     burnCount()            -> Integer
+ *     userBurned(player)     -> Integer (player's CURRENT-season total, base units)
+ *     topBurner()            -> Hash160 (zero address if none)
+ *     topBurned()            -> Integer (the leader's season total, base units)
+ *     creditOf(player)       -> Integer (prepaid burn credit, base units)
+ *     minBurn() / maxBurn()  -> Integer (base units)
  *
- *   AFTER (OS proxy):
- *     gameService.getPoolState("burn-league")       — load burn stats
- *     leaderboardService.get(100)                   — load leaderboard
- *     gameService.placeBet("burn-league", amount)  — submit burn entry intent
- *     badgeService.updateStat(user, "burned", ...)  — track burn amounts
- *     badgeService.award(badgeId, user)             — award achievements
+ *   EVENTS (chain.listEvents):
+ *     Burned(seasonId, player, amount, userSeasonTotal) — the lag-free
+ *       leaderboard source. state slots: [0]=seasonId, [1]=player(address),
+ *       [2]=amount(base units), [3]=userSeasonTotal(base units). The board is the
+ *       LATEST userSeasonTotal per player for the CURRENT season, ranked desc.
  *
- * The composable still owns:
- *   - Reactive state (refs + computed) for manifest bindings
- *   - Loading/burning UI flags
+ *   MUTATIONS (chain.invoke):
+ *     1. DEPOSIT (fund a burn) — a GAS transfer to the contract with the memo
+ *        "miniapp-burnleague:burn" so OnNEP17Payment credits the sender's prepaid
+ *        burn balance (only topped up when creditOf(player) < amount):
+ *          transfer(from, CONTRACT, amountBaseUnits, "miniapp-burnleague:burn")
+ *          { scriptHash: GAS_HASH }
+ *     2. burn(player, amountBaseUnits) -> userSeasonTotal. Lazily starts a season
+ *        if none is active, moves the amount from prepaid credit into the pool,
+ *        and adds to the player's season total. If step 1 lands but step 2
+ *        reverts, the credit persists on the contract as reusable prepaid credit
+ *        (reclaimable via withdraw) — no funds are lost.
+ *     settle() — PERMISSIONLESS. After the deadline pays the WHOLE pool to the top
+ *        burner and advances the season. Anyone may trigger it; the on-chain top
+ *        burner is the winner regardless of who signs.
+ *
+ * AMOUNT CONVENTION: the contract takes/returns BASE UNITS (GAS × 1e8). Human GAS
+ * for the UI = base / 1e8 (fromBaseUnits). The human input is scaled to base units
+ * in-process ONCE (toBaseUnits, no floats) — never double-scaled, never unscaled.
+ * MIN_BURN 1 GAS, MAX_BURN 1000 GAS per burn, enforced both on-chain and here.
+ *
+ * The composable owns:
+ *   - Reactive state (observables + derived) for manifest/PlayArea bindings
+ *   - Burn-amount input + validation
+ *   - Loading/burning/settling UI flags (double-submit guards)
+ *   - Season lifecycle derivation (dormant / active / ended) + countdown
+ *   - The leaderboard rebuilt from current-season Burned events
  *   - Formatted display values
- *   - Leaderboard preview computation
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { GameProxy } from "@shared/services/os/GameProxy";
-import type { LeaderboardProxy, LeaderboardEntry } from "@shared/services/os/LeaderboardProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type { ChainService } from "@shared/services/ChainService";
 import { formatNumber } from "@shared/utils/format";
+import { addressToScriptHash } from "@shared/utils/neo";
+import { parseBigInt } from "@shared/utils/parsers";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-/** Minimum burn amount in GAS */
+/** Minimum burn amount in GAS (mirrors the contract's MIN_BURN = 1 GAS). */
 export const MIN_BURN = 1;
+/** Maximum burn amount in GAS per burn (mirrors the contract's MAX_BURN). */
 const MAX_BURN = 1_000;
-const BURN_POOL_ID = "burn-league";
+
+/** MIN/MAX in base units (1e8 per GAS). */
+const MIN_BURN_BASE = 1_00000000n;
+const MAX_BURN_BASE = 1000_00000000n;
+
+/** GAS base units per whole GAS (1e8). */
+const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
+
+/** Memo the contract requires on the burn-funding transfer (appId + ":burn"). */
+const BURN_MEMO = "miniapp-burnleague:burn";
+
+/** How many recent Burned events to page in when rebuilding the leaderboard. */
+const BURNED_EVENTS_LIMIT = 200;
+
+/** The zero script hash a contract returns for topBurner when none is set. */
+const ZERO_HASH = "0x0000000000000000000000000000000000000000";
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "");
 }
 
-function isOsBoundaryError(error: unknown) {
-  return /OS service error|os-game-|os-leaderboard-|os-badge-|Not Found|function not allowed|not configured/i.test(
-    errorMessage(error),
-  );
-}
+// ============================================================================
+// Amount helpers
+// ============================================================================
 
-function isWalletBoundaryError(error: unknown) {
-  return /Wallet adapter|invokeWithConfirmation|Wallet address|required to submit|connect wallet|No wallet/i.test(
-    errorMessage(error),
-  );
+/**
+ * Convert a human-entered GAS amount string to contract BASE UNITS without
+ * floats. Accepts up to 8 decimal places; returns 0n for any invalid /
+ * non-positive input so callers can reject before touching the chain. This is
+ * the SINGLE scaling point — the contract scales nothing.
+ */
+const toBaseUnits = (raw: string): bigint => {
+  const trimmed = String(raw ?? "").trim();
+  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
+  const [whole = "0", fraction = ""] = trimmed.split(".");
+  const paddedFraction = (fraction + "00000000").slice(0, 8);
+  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
+  return base > 0n ? base : 0n;
+};
+
+/** Convert a contract base-unit Integer to whole GAS as a number (÷ 1e8). */
+const fromBaseUnits = (base: bigint): number => Number(base) / 1e8;
+
+/**
+ * Is a parsed Hash160 / address value the zero address? Treats "", the 0x-zero
+ * hash, and its case/length variants as empty (a contract with no top burner).
+ */
+const isZeroAddress = (value: string): boolean => {
+  if (!value) return true;
+  const v = value.trim();
+  if (v === ZERO_HASH) return true;
+  if (/^0x0{40}$/i.test(v)) return true;
+  return false;
+};
+
+/** Read a single state slot from a contract event payload (positional). */
+function eventValue(entry: unknown, index: number): unknown {
+  if (!entry || typeof entry !== "object") return undefined;
+  const state = (entry as { state?: unknown }).state;
+  if (Array.isArray(state)) {
+    const item = state[index] as unknown;
+    if (item && typeof item === "object" && "value" in item) {
+      return (item as { value?: unknown }).value;
+    }
+    return item;
+  }
+  return undefined;
 }
 
 // ============================================================================
@@ -72,37 +155,15 @@ export interface LeaderEntry {
   isUser: boolean;
 }
 
-/**
- * Shape of the pool state returned by GameProxy for Burn League.
- * The edge function translates contract reads into normalized data.
- */
-interface BurnLeaguePoolState {
-  poolId: string;
-  appId: string;
-  status: "open" | "active" | "settled" | "cancelled";
-  playerCount: number;
-  totalBets: string;
-  // Game-specific extensions from edge function
-  totalBurned?: number;
-  rewardPool?: number;
-  userBurned?: number;
-  burnCount?: number;
-}
-
 export interface UseBurnLeagueOptions {
-  /** OS GameProxy instance from ctx.os.game */
-  gameService: GameProxy;
-  /** OS LeaderboardProxy instance from ctx.os.leaderboard */
-  leaderboardService: LeaderboardProxy;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
-  /** Translation function */
+  /** Shared chain service from ctx.services.chain. */
+  chain: ChainService;
+  /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
   /**
    * Accessor for the connected wallet address (e.g. ctx.services.chain.address.get).
-   * Used to resolve the current user's leaderboard rank by identity rather than
-   * by burned-amount equality. Optional so the composable degrades gracefully
-   * when no wallet is connected (rank stays 0 / "--").
+   * Used to resolve the current user's leaderboard rank and identity. Optional so
+   * the composable degrades gracefully when no wallet is connected.
    */
   getAddress?: () => string | null | undefined;
 }
@@ -114,14 +175,10 @@ function addressMatches(a: string | null | undefined, b: string | null | undefin
 }
 
 /**
- * Strict decimal parse for burn amounts.
- *
- * parseFloat is lenient — "5abc", " 5 ", "1e2", "0x5" all coerce to a clean
- * number, but the raw string is what would otherwise reach the OS/edge call.
- * This accepts only a canonical, trimmed, non-scientific decimal (optionally
- * with a fractional part) and returns NaN for anything else, so a malformed
- * value is rejected by validation instead of silently reaching a fund-moving
- * call as a non-canonical string.
+ * Strict decimal parse for burn amounts. Accepts only a canonical, trimmed,
+ * non-scientific decimal (optionally with a fractional part) and returns NaN for
+ * anything else, so a malformed value is rejected by validation instead of
+ * silently reaching a fund-moving call.
  */
 const DECIMAL_RE = /^\d+(\.\d+)?$/;
 function parseBurnAmount(input: string | null | undefined): number {
@@ -134,14 +191,8 @@ function parseBurnAmount(input: string | null | undefined): number {
 // Composable
 // ============================================================================
 
-export function useBurnLeague({
-  gameService,
-  leaderboardService,
-  badgeService,
-  t,
-  getAddress,
-}: UseBurnLeagueOptions) {
-  // ── State ────────────────────────────────────────────────────────────
+export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
+  // ── State (all GAS values in whole GAS for display) ──────────────────
   const totalBurned = createObservable(0);
   const rewardPool = createObservable(0);
   const userBurned = createObservable(0);
@@ -149,6 +200,7 @@ export function useBurnLeague({
   const burnCount = createObservable(0);
   const leaderboard = createObservable<LeaderEntry[]>([]);
   const isBurning = createObservable(false);
+  const isSettling = createObservable(false);
   const isLoading = createObservable(false);
   const leagueDataAvailable = createObservable(false);
   const serviceNotice = createObservable("");
@@ -156,124 +208,252 @@ export function useBurnLeague({
   const burnValidationError = createObservable<string | null>(null);
   const lastSubmittedAmount = createObservable("");
 
+  // ── Season lifecycle state ───────────────────────────────────────────
+  /** 1-based season id (0 before the very first season). */
+  const seasonId = createObservable(0);
+  /** Season deadline in ms epoch; 0 = dormant (no active season). */
+  const seasonEndMs = createObservable(0);
+  /** The current leader's address (top burner), "" when none. */
+  const topBurnerAddress = createObservable<string | null>(null);
+  /** The current leader's season total, in whole GAS. */
+  const topBurnedGas = createObservable(0);
+  /** Wall clock for the countdown / ended derivation, ticked once per second. */
+  const now = createObservable(Date.now());
+
   // ── Local UI state managed by the composable ─────────────────────────
   const burnAmount = createObservable("1");
 
+  // Connected wallet address (synced from main.tsx / chain).
+  const resolveAddress = (): string | null =>
+    (getAddress?.() ?? chain.address.get()) ?? null;
+  const address = createObservable<string | null>(resolveAddress());
+
+  const setAddress = (addr: string | null) => {
+    address.set(addr ?? null);
+  };
+
+  const updateNow = () => { now.set(Date.now()); };
+
+  // ── Season lifecycle (derived) ──────────────────────────────────────
+  /**
+   * "dormant"  — no active season (seasonEnd == 0); the first burn starts one.
+   * "active"   — now < seasonEnd; players can burn and the countdown runs.
+   * "ended"    — now >= seasonEnd (seasonEnd != 0); needs settle() to award the
+   *              pool to the leader and roll the season forward.
+   */
+  const seasonPhase = createDerived<"dormant" | "active" | "ended">(() => {
+    const end = seasonEndMs.get();
+    if (end === 0) return "dormant";
+    return now.get() < end ? "active" : "ended";
+  }, [seasonEndMs, now]);
+
+  /** True while the season is open for burns. */
+  const isSeasonActive = createDerived(() => seasonPhase.get() === "active", [seasonPhase]);
+
+  /** True once the season deadline has passed and the pool still needs settling. */
+  const needsSettle = createDerived(() => seasonPhase.get() === "ended", [seasonPhase]);
+
+  /** Remaining seconds until the season deadline (0 once ended / dormant). */
+  const timeRemainingSeconds = createDerived(() => {
+    const end = seasonEndMs.get();
+    if (end === 0) return 0;
+    return Math.max(0, Math.floor((end - now.get()) / 1000));
+  }, [seasonEndMs, now]);
+
+  /** HH:MM:SS countdown to the season deadline. */
+  const countdown = createDerived(() => {
+    const total = timeRemainingSeconds.get();
+    const hours = String(Math.floor(total / 3600)).padStart(2, "0");
+    const mins = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+    const secs = String(total % 60).padStart(2, "0");
+    return `${hours}:${mins}:${secs}`;
+  }, [timeRemainingSeconds]);
+
+  /** Human-readable status line for the season phase. */
+  const seasonStatusLabel = createDerived(() => {
+    switch (seasonPhase.get()) {
+      case "active": return t("seasonActive");
+      case "ended": return t("seasonEnded");
+      default: return t("seasonDormant");
+    }
+  }, [seasonPhase]);
+
+  const formattedSeason = createDerived(() => {
+    const id = seasonId.get();
+    return id > 0 ? `#${id}` : "--";
+  }, [seasonId]);
+
   // ── Formatted display values ─────────────────────────────────────────
-  // These are consumed by the manifest stat/sidebar bindings via the
-  // state object returned from defineMiniApp's setup().
   const totalBurnedDisplay = createDerived(() => `${formatNumber(totalBurned.get(), 2)} ${t("tokenGas")}`, []);
   const userBurnedDisplay = createDerived(() => `${formatNumber(userBurned.get(), 2)} ${t("tokenGas")}`, []);
   const rewardPoolDisplay = createDerived(() => `${formatNumber(rewardPool.get(), 2)} ${t("tokenGas")}`, []);
   const formattedRank = createDerived(() => rank.get() > 0 ? `#${rank.get()}` : "--", []);
   const leaderboardSize = createDerived(() => leaderboard.get().length, []);
 
-  // ── Derived values for PlayArea ─────────────────────────────────────
-  /** Estimated reward based on current burn amount (0.1x multiplier) */
-  const estimatedReward = createDerived(() => {
-    const amount = parseFloat(burnAmount.get());
-    const reward = Number.isFinite(amount) && amount > 0 ? amount * 0.1 : 0;
-    return `${formatNumber(reward, 2)} ${t("tokenGas")}`;
-  }, []);
+  /**
+   * The prize for the current season — the WHOLE reward pool, paid to the top
+   * burner at settle. This replaces the bogus 0.1x estimate: the prize is the
+   * pool, not a fraction of the player's own burn.
+   */
+  const prizePoolDisplay = createDerived(() => `${formatNumber(rewardPool.get(), 2)} ${t("tokenGas")}`, []);
+
+  /** The current leader's burned total, formatted for display. */
+  const topBurnedDisplay = createDerived(() => `${formatNumber(topBurnedGas.get(), 2)} ${t("tokenGas")}`, []);
+
+  /** Short, display-friendly leader address ("--" when no leader yet). */
+  const leaderLabel = createDerived(() => {
+    const addr = topBurnerAddress.get();
+    if (!addr) return "--";
+    if (addr.length < 12) return addr;
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  }, [topBurnerAddress]);
 
   const projectedTotalBurnedDisplay = createDerived(() => {
     const amount = parseFloat(burnAmount.get());
-    const projected = totalBurned.get() + (Number.isFinite(amount) ? Math.max(0, amount) : 0);
+    const projected = userBurned.get() + (Number.isFinite(amount) ? Math.max(0, amount) : 0);
     return `${formatNumber(projected, 2)} ${t("tokenGas")}`;
   }, []);
 
-  /** Top 10 entries for the leaderboard preview */
+  /** Top 10 entries for the leaderboard preview. */
   const leaderboardPreview = createDerived(() => leaderboard.get().slice(0, 10), []);
 
-  // ── Data Loading (via OS services) ──────────────────────────────────
+  // ── Data Loading (direct chain reads) ──────────────────────────────
 
   /**
-   * Load burn stats via GameProxy.
-   * The edge function translates getPoolState("burn-league") into
-   * contract reads for totalBurned, rewardPool, and userBurned.
+   * Read the authoritative season state from the contract: id, deadline, pool,
+   * counts, the connected player's season total, and the current leader. All
+   * amounts are scaled from base units to whole GAS for display.
    */
-  const loadStats = async () => {
+  const loadStats = async (): Promise<boolean> => {
     try {
-      const state = await gameService.getPoolState("burn-league") as BurnLeaguePoolState;
-      if (state && typeof state === "object") {
-        totalBurned.set(Number(state.totalBurned ?? state.totalBets ?? 0));
-        rewardPool.set(Number(state.rewardPool ?? 0));
-        userBurned.set(Number(state.userBurned ?? 0));
-        burnCount.set(Number(state.burnCount ?? state.playerCount ?? 0));
-        leagueDataAvailable.set(true);
-        serviceNotice.set("");
+      const [
+        seasonRaw,
+        endRaw,
+        poolRaw,
+        countRaw,
+        topBurnerRaw,
+        topBurnedRaw,
+      ] = await Promise.all([
+        chain.read("currentSeason", []),
+        chain.read("seasonEnd", []),
+        chain.read("rewardPool", []),
+        chain.read("burnCount", []),
+        chain.read("topBurner", []),
+        chain.read("topBurned", []),
+      ]);
+
+      seasonId.set(Number(parseBigInt(seasonRaw)));
+      seasonEndMs.set(Number(parseBigInt(endRaw)));
+
+      const poolGas = fromBaseUnits(parseBigInt(poolRaw));
+      // TotalBurned() == RewardPool() on the contract — both are the season pool.
+      totalBurned.set(poolGas);
+      rewardPool.set(poolGas);
+      burnCount.set(Number(parseBigInt(countRaw)));
+
+      const topAddr = String(topBurnerRaw ?? "").trim();
+      topBurnerAddress.set(isZeroAddress(topAddr) ? "" : topAddr);
+      topBurnedGas.set(fromBaseUnits(parseBigInt(topBurnedRaw)));
+
+      // The connected player's CURRENT-season total via userBurned(player).
+      const myAddr = resolveAddress();
+      const myHash = myAddr ? addressToScriptHash(myAddr) || null : null;
+      if (myHash) {
+        try {
+          const userRaw = await chain.read("userBurned", [
+            { type: "Hash160", value: myHash },
+          ]);
+          userBurned.set(fromBaseUnits(parseBigInt(userRaw)));
+        } catch (e) {
+          console.warn("[useBurnLeague] userBurned read failed:", errorMessage(e));
+          userBurned.set(0);
+        }
+      } else {
+        userBurned.set(0);
       }
+
+      leagueDataAvailable.set(true);
+      serviceNotice.set("");
+      return true;
     } catch (e) {
       leagueDataAvailable.set(false);
-      if (isOsBoundaryError(e)) {
-        serviceNotice.set(t("burnServiceUnavailable"));
-        return;
-      }
+      serviceNotice.set(t("burnServiceUnavailable"));
       console.warn("[useBurnLeague] loadStats failed:", errorMessage(e));
+      return false;
     }
   };
 
   /**
-   * Load leaderboard via LeaderboardProxy.
-   * The edge function aggregates burn events into a sorted leaderboard.
+   * Rebuild the leaderboard from Burned events, scoped to the CURRENT season.
+   *
+   * Each Burned event carries (seasonId, player, amount, userSeasonTotal). The
+   * board is the LATEST userSeasonTotal per player for the active season, ranked
+   * descending. Because the events arrive newest-first, the FIRST event seen for
+   * a player is their latest total. The user's rank is resolved by wallet
+   * identity (independent of the userBurned read, so it doesn't race loadStats).
    */
   const loadLeaderboard = async () => {
     try {
-      const entries = await leaderboardService.get(100);
+      const currentSeason = seasonId.get();
+      if (currentSeason <= 0) {
+        leaderboard.set([]);
+        rank.set(0);
+        return;
+      }
 
-      if (Array.isArray(entries)) {
-        const myAddress = getAddress?.() ?? null;
-        const mapped = entries.map((entry: LeaderboardEntry, idx: number) => ({
+      const events = await chain.listEvents("Burned", { limit: BURNED_EVENTS_LIMIT });
+
+      // Newest-first: keep the FIRST (= latest) userSeasonTotal seen per player
+      // within the current season.
+      const latestByPlayer = new Map<string, number>();
+      for (const event of events) {
+        const evtSeason = Number(parseBigInt(eventValue(event, 0)));
+        if (evtSeason !== currentSeason) continue;
+        const player = String(eventValue(event, 1) ?? "").trim();
+        if (!player) continue;
+        if (latestByPlayer.has(player)) continue; // already have the newest total
+        const seasonTotal = fromBaseUnits(parseBigInt(eventValue(event, 3)));
+        latestByPlayer.set(player, seasonTotal);
+      }
+
+      const myAddress = resolveAddress();
+      const ranked: LeaderEntry[] = Array.from(latestByPlayer.entries())
+        .map(([player, burned]) => ({ player, burned }))
+        .sort((a, b) => b.burned - a.burned)
+        .map((entry, idx) => ({
           rank: idx + 1,
-          address: entry.user,
-          burned: Number(entry.score || 0),
-          // Resolve the current user by wallet identity, not by burned-amount
-          // equality (which collides with other players and races loadStats).
-          isUser: addressMatches(entry.user, myAddress),
+          address: entry.player,
+          burned: entry.burned,
+          isUser: addressMatches(entry.player, myAddress),
         }));
 
-        leaderboard.set(mapped);
+      leaderboard.set(ranked);
 
-        // Find the user's rank by address identity. Independent of userBurned,
-        // so it no longer races the concurrent loadStats() call.
-        const userEntry = mapped.find((entry) => entry.isUser);
-        rank.set(userEntry ? userEntry.rank : 0);
-      }
+      const userEntry = ranked.find((entry) => entry.isUser);
+      rank.set(userEntry ? userEntry.rank : 0);
     } catch (e) {
-      if (!isOsBoundaryError(e)) {
-        console.warn("[useBurnLeague] loadLeaderboard failed:", errorMessage(e));
-      }
+      console.warn("[useBurnLeague] loadLeaderboard failed:", errorMessage(e));
     }
   };
 
   /**
-   * Load all data (stats + leaderboard).
-   * Called by defineMiniApp on mount and when the wallet connects.
+   * Load all data (season stats + leaderboard). Called by defineMiniApp on mount
+   * and when the wallet connects. The leaderboard depends on the season id read
+   * by loadStats, so it runs after.
    */
   const loadAll = async () => {
     isLoading.set(true);
     try {
-      await Promise.all([loadStats(), loadLeaderboard()]);
+      setAddress(resolveAddress());
+      await loadStats();
+      await loadLeaderboard();
     } finally {
       isLoading.set(false);
     }
   };
 
-  // ── Actions (via OS services) ───────────────────────────────────────
+  // ── Validation ──────────────────────────────────────────────────────
 
-  /**
-   * Burn GAS tokens.
-   *
-   * Flow:
-   * 1. Validate the burn amount (minimum 1 GAS)
-   * 2. Submit an OS game-entry wallet intent for explicit confirmation
-   * 3. Update burn stats via BadgeProxy
-   * 4. Reload all data
-   *
-   * @param burnAmountInput - Amount of GAS to burn (as a string).
-   *   If omitted, uses the composable's reactive burnAmount ref.
-   * @returns The validated burn amount (for UI reset on success)
-   */
   const validateBurnAmount = (burnAmountInput?: string) => {
     const amountStr = burnAmountInput ?? burnAmount.get();
     const amount = parseBurnAmount(amountStr);
@@ -286,9 +466,29 @@ export function useBurnLeague({
     return null;
   };
 
+  // ── Actions (direct chain invocations) ──────────────────────────────
+
+  /**
+   * Burn GAS into the current season pool (deposit-then-act).
+   *
+   * Two signed steps, both by the player:
+   *   1. DEPOSIT — only when creditOf(player) < amount, transfer the amount in
+   *      GAS to the contract with the "miniapp-burnleague:burn" memo so
+   *      OnNEP17Payment credits the player's prepaid burn balance. The amount is
+   *      already in BASE UNITS here (scaled once, no floats).
+   *   2. burn(player, amountBaseUnits) — moves the amount from prepaid credit
+   *      into the pool, lazily starting a season if none is active, and adds to
+   *      the player's season total. The new total is read from the Burned event.
+   *
+   * If step 1 lands but step 2 reverts, the credit persists on the contract as
+   * reusable prepaid credit (reclaimable via withdraw) — no funds are lost. A
+   * burn on an already-ended season faults with "season ended; settle first"; we
+   * surface the settle requirement rather than letting it fault opaquely.
+   *
+   * @returns the validated human burn amount on success.
+   */
   const burnTokens = async (burnAmountInput?: string) => {
-    // Double-submit guard: gate entry before any await so a second invocation
-    // (rapid clicks, re-dispatch) cannot start a parallel burn.
+    // Double-submit guard before any await.
     if (isBurning.get()) return;
 
     const amountStr = burnAmountInput ?? burnAmount.get();
@@ -299,71 +499,137 @@ export function useBurnLeague({
     }
     burnValidationError.set(null);
 
-    // Canonical, validated number — this is the value the user saw and that
-    // passed range validation. We send the canonical string to every OS/edge
-    // call instead of the raw input so the on-chain value can never diverge
-    // from the validated one (no "5abc"/" 5 "/"1e2" reaching a fund call).
     const amount = parseBurnAmount(amountStr);
-    const canonical = String(amount);
+    const amountBase = toBaseUnits(amountStr);
+    if (amountBase < MIN_BURN_BASE || amountBase > MAX_BURN_BASE) {
+      const msg = t("minBurn", { amount: MIN_BURN, tokenGas: t("tokenGas") });
+      burnValidationError.set(msg);
+      throw new Error(msg);
+    }
+
+    // Block a burn on a season that has already ended — it must be settled first.
+    if (seasonPhase.get() === "ended") {
+      const msg = t("settleBeforeBurn");
+      actionNotice.set(msg);
+      throw new Error(msg);
+    }
+
+    const playerAddr = resolveAddress() || (await chain.ensureWallet());
+    const playerHash = addressToScriptHash(playerAddr || "");
+    if (!playerAddr || !playerHash) {
+      const msg = t("burnWalletUnavailable");
+      actionNotice.set(msg);
+      throw new Error(msg);
+    }
+    setAddress(playerAddr);
+
+    const contractHash = chain.contractAddress.get();
+    if (!contractHash) {
+      const msg = t("missingContract");
+      actionNotice.set(msg);
+      throw new Error(msg);
+    }
 
     actionNotice.set(t("burnPreparing", {
       amount: `${formatNumber(amount, 2)} ${t("tokenGas")}`,
     }));
     isBurning.set(true);
     let burnLanded = false;
+    let depositSettled = false;
     try {
-      // Step 1: Submit the burn entry via the OS game service. The service
-      // returns a wallet intent for explicit user confirmation. This is the
-      // irreversible, fund-moving step — burns cannot be rolled back, so every
-      // step after it is treated as best-effort and must not mask its success.
-      await gameService.placeBet(BURN_POOL_ID, canonical);
-      burnLanded = true;
-
-      // Step 2: Update burn stat via BadgeProxy (fire-and-forget)
-      badgeService.updateStat("", "totalBurned", canonical).catch(() => {});
-
-      // Step 3: Award badge for first burn (fire-and-forget)
-      if (burnCount.get() === 0) {
-        badgeService.award("first-burn", "").catch(() => {});
-      }
-
-      // Step 4: Submit score to leaderboard (best-effort). A leaderboard
-      // failure must not surface a successful burn as an error — the GAS is
-      // already gone, so we swallow this and still report success below.
+      // Step 1: DEPOSIT — only top up when existing burn credit can't cover the
+      // amount (credit may persist from a prior aborted burn). The contract
+      // scales nothing; the amount is already in BASE UNITS here.
+      let credit = 0n;
       try {
-        await leaderboardService.submitScore(canonical);
-      } catch (submitErr) {
-        console.warn("[useBurnLeague] submitScore failed after burn:", errorMessage(submitErr));
+        credit = parseBigInt(
+          await chain.read("creditOf", [{ type: "Hash160", value: playerHash }]),
+        );
+      } catch {
+        credit = 0n;
       }
 
-      // Reset the burn amount input on success
+      if (credit < amountBase) {
+        await chain.invoke(
+          "transfer",
+          [
+            { type: "Hash160", value: playerHash },
+            { type: "Hash160", value: contractHash },
+            { type: "Integer", value: amountBase.toString() },
+            { type: "String", value: BURN_MEMO },
+          ],
+          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+        );
+        depositSettled = true;
+      }
+
+      // Step 2: burn — moves the amount from prepaid credit into the pool. If the
+      // deposit landed but this reverts, the credit persists as reusable prepaid
+      // credit (reclaimable via withdraw); surface that distinctly.
+      try {
+        await chain.invoke(
+          "burn",
+          [
+            { type: "Hash160", value: playerHash },
+            { type: "Integer", value: amountBase.toString() },
+          ],
+          { waitForEvent: "Burned" },
+        );
+        burnLanded = true;
+      } catch (burnErr) {
+        const raw = errorMessage(burnErr);
+        if (/settle first|season ended/i.test(raw)) {
+          throw new Error(t("settleBeforeBurn"));
+        }
+        if (depositSettled) {
+          throw new Error(t("burnDepositHeld"));
+        }
+        throw new Error(raw || t("burnActionUnavailable"));
+      }
+
       burnAmount.set("1");
       lastSubmittedAmount.set(`${formatNumber(amount, 2)} ${t("tokenGas")}`);
       actionNotice.set(t("burnSubmitted"));
 
       return amount;
-    } catch (e) {
-      if (isOsBoundaryError(e)) {
-        const normalized = new Error(t("burnActionUnavailable"));
-        actionNotice.set(normalized.message);
-        throw normalized;
-      }
-      if (isWalletBoundaryError(e)) {
-        const normalized = new Error(t("burnWalletUnavailable"));
-        actionNotice.set(normalized.message);
-        throw normalized;
-      }
-      throw e;
     } finally {
       isBurning.set(false);
-      // Always refresh once the burn has actually landed on chain, even if a
-      // follow-up step threw — the UI must reflect the new balance/leaderboard
-      // rather than getting stuck on stale pre-burn data.
+      // Refresh once the burn has actually landed so the UI reflects the new
+      // pool / season total / leaderboard rather than stale pre-burn data.
       if (burnLanded) {
         await loadAll().catch((refreshErr) => {
           console.warn("[useBurnLeague] post-burn refresh failed:", errorMessage(refreshErr));
         });
       }
+    }
+  };
+
+  /**
+   * Settle the current season against the standalone contract.
+   *
+   * settle() is PERMISSIONLESS: once the season deadline has passed it pays the
+   * WHOLE pool to the recorded top burner (NOT the caller) and advances the
+   * season. Anyone may trigger it; the winner is paid by the contract regardless
+   * of who signs. The UI surfaces this through the needsSettle affordance once the
+   * season has ended.
+   */
+  const settleSeason = async () => {
+    if (isSettling.get()) return;
+
+    const contractHash = chain.contractAddress.get();
+    if (!contractHash) throw new Error(t("missingContract"));
+
+    // The signer just triggers the settle; ensure a wallet is available to sign.
+    const callerAddr = resolveAddress() || (await chain.ensureWallet());
+    if (!callerAddr) throw new Error(t("burnWalletUnavailable"));
+    setAddress(callerAddr);
+
+    isSettling.set(true);
+    try {
+      await chain.invoke("settle", [], { waitForEvent: "SeasonSettled" });
+      await loadAll();
+    } finally {
+      isSettling.set(false);
     }
   };
 
@@ -376,12 +642,28 @@ export function useBurnLeague({
     burnCount,
     leaderboard,
     isBurning,
+    isSettling,
     isLoading,
     leagueDataAvailable,
     serviceNotice,
     actionNotice,
     burnValidationError,
     lastSubmittedAmount,
+    address,
+
+    // ── Season lifecycle ────────────────────────────────────────────
+    seasonId,
+    seasonEndMs,
+    topBurnerAddress,
+    topBurnedGas,
+    seasonPhase,
+    isSeasonActive,
+    needsSettle,
+    countdown,
+    timeRemainingSeconds,
+    seasonStatusLabel,
+    formattedSeason,
+    updateNow,
 
     // ── Local UI state ──────────────────────────────────────────────
     burnAmount,
@@ -395,11 +677,15 @@ export function useBurnLeague({
     projectedTotalBurnedDisplay,
 
     // ── Derived values (for PlayArea presentation) ──────────────────
-    estimatedReward,
+    prizePoolDisplay,
+    topBurnedDisplay,
+    leaderLabel,
     leaderboardPreview,
 
     // ── Actions ─────────────────────────────────────────────────────
+    setAddress,
     burnTokens,
+    settleSeason,
     loadAll,
     validateBurnAmount,
   };

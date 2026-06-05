@@ -1,5 +1,10 @@
 /**
  * Burn League — React Entry Point
+ *
+ * Drives the standalone on-chain MiniAppBurnLeague contract directly via
+ * ctx.services.chain (no OS service proxies). The composable owns all contract
+ * reads/writes; this file wires the chain service, the burn/settle/refresh
+ * actions, and the 1s season-countdown ticker.
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
@@ -29,12 +34,15 @@ defineMiniApp({
 
   setup(ctx) {
     const burn = useBurnLeague({
-      gameService: ctx.os.game,
-      leaderboardService: ctx.os.leaderboard,
-      badgeService: ctx.os.badge,
+      chain: ctx.services.chain,
       t: ctx.t,
       getAddress: () => ctx.services.chain.address.get(),
     });
+
+    burn.setAddress(ctx.services.chain.address.get() ?? null);
+
+    // Tick the season countdown / phase derivation once per second.
+    const tickerInterval = setInterval(() => burn.updateNow(), 1000);
 
     const launchAmount = normalizeLaunchAmount(
       ctx.launchContext.params.amount ??
@@ -47,6 +55,13 @@ defineMiniApp({
       await ctx.services.notify.guard(
         () => burn.burnTokens(String(amount)),
         "burnSuccess",
+      );
+    });
+
+    ctx.registerAction("settle", async () => {
+      await ctx.services.notify.guard(
+        () => burn.settleSeason(),
+        "settleSuccess",
       );
     });
 
@@ -64,6 +79,7 @@ defineMiniApp({
         leaderboard: burn.leaderboard,
         burnAmount: burn.burnAmount,
         isBurning: burn.isBurning,
+        isSettling: burn.isSettling,
         isLoading: burn.isLoading,
         leagueDataAvailable: burn.leagueDataAvailable,
         serviceNotice: burn.serviceNotice,
@@ -75,11 +91,23 @@ defineMiniApp({
         rewardPoolDisplay: burn.rewardPoolDisplay,
         formattedRank: burn.formattedRank,
         leaderboardSize: burn.leaderboardSize,
-        estimatedReward: burn.estimatedReward,
         projectedTotalBurnedDisplay: burn.projectedTotalBurnedDisplay,
         leaderboardPreview: burn.leaderboardPreview,
+        // Season lifecycle + real prize model
+        seasonPhase: burn.seasonPhase,
+        isSeasonActive: burn.isSeasonActive,
+        needsSettle: burn.needsSettle,
+        countdown: burn.countdown,
+        seasonStatusLabel: burn.seasonStatusLabel,
+        formattedSeason: burn.formattedSeason,
+        prizePoolDisplay: burn.prizePoolDisplay,
+        topBurnedDisplay: burn.topBurnedDisplay,
+        leaderLabel: burn.leaderLabel,
       },
       loadData: burn.loadAll,
+      cleanup: () => {
+        clearInterval(tickerInterval);
+      },
     };
   },
 });

@@ -14,35 +14,42 @@ function t(key: string, params?: Record<string, string | number>) {
     amount: "Amount",
     burn: "Burn Now",
     burnActionHint:
-      "Burn submission creates an OS game-entry wallet intent.",
+      "Burning deposits GAS to the on-chain pool, then records your season total.",
+    burnBlockedSettle: "Burning is paused until the ended season is settled.",
     burnPresets: "Burn amount presets",
     burnRange: `Burn range: ${params?.min ?? 1}-${params?.max ?? 1000} GAS`,
     burnRangeError: `Enter a burn amount from ${params?.min ?? 1} to ${params?.max ?? 1000} GAS.`,
     burnReview: "Burn review checklist",
     burnServiceUnavailableTitle: "Burn league data unavailable",
     burnTokens: "Burn Tokens",
+    currentLeader: "Current leader",
     enterAmount: "Amount to burn",
     entryAmount: "Entry amount",
-    estimatedReward: "Est. Reward",
-    lastSubmitted: `Last submitted burn: ${params?.amount ?? ""}`,
     leaderboard: "Leaderboard",
     liveLeague: "Live league",
     localPreview: "Data pending",
-    noEntries: "Submitted burns will appear here with rank and burned GAS.",
+    lastSubmitted: `Last submitted burn: ${params?.amount ?? ""}`,
+    noEntries: "Burns appear here with rank and burned GAS as soon as they confirm on chain.",
     noEntriesTitle: "No leaderboard entries yet",
+    noLeaderYet: "No burns yet",
     outOf: `of ${params?.total ?? 0} players`,
+    prizePool: "Prize pool",
     projectedTotal: "Projected total",
     projectedRank: "Projected rank",
-    projectedRankHint: "Estimated from the visible leaderboard preview.",
     resetBurn: "Reset",
-    rewardModel: "Reward model",
-    rewardModelHint: "Preview uses the league's current 10% reward estimate.",
     rewardPool: "Reward Pool",
     reviewAmount: "Confirm amount",
     reviewLeaderboard: "Review rank impact",
     reviewWallet: "Sign wallet intent",
+    seasonActive: "Live now",
+    seasonDormant: "Not started",
+    seasonDormantHint: "No active season yet — the first burn starts a fresh season.",
+    seasonEnded: "Ended — awaiting settle",
+    seasonEndedHint: `The season has ended. Settle to award the ${params?.amount ?? ""} pool to the top burner.`,
+    seasonEndsIn: "Ends in",
+    seasonLabel: "Season",
     seasonStatus: "Season status",
-    seasonStatusHint: "Stats refresh when the league service is available.",
+    settleSeason: "Settle season",
     subtitle: "Burn tokens, earn rewards",
     title: "Burn League",
     totalBurned: "Total Burned",
@@ -58,20 +65,28 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     burnAmount: createObservable("1"),
     burnCount: createObservable(0),
     burnValidationError: createObservable(null),
-    estimatedReward: createObservable("0.10 GAS"),
+    countdown: createObservable("00:01:30"),
     formattedRank: createObservable("--"),
+    formattedSeason: createObservable("#1"),
     isBurning: createObservable(false),
     isLoading: createObservable(false),
+    isSettling: createObservable(false),
     lastSubmittedAmount: createObservable(""),
     leaderboard: createObservable([]),
     leaderboardPreview: createObservable([]),
     leaderboardSize: createObservable(0),
+    leaderLabel: createObservable("--"),
     leagueDataAvailable: createObservable(false),
+    needsSettle: createObservable(false),
+    prizePoolDisplay: createObservable("0.00 GAS"),
     projectedTotalBurnedDisplay: createObservable("1.00 GAS"),
     rank: createObservable(0),
     rewardPool: createObservable(0),
     rewardPoolDisplay: createObservable("0.00 GAS"),
+    seasonPhase: createObservable("active"),
+    seasonStatusLabel: createObservable("Live now"),
     serviceNotice: createObservable(""),
+    topBurnedDisplay: createObservable("0.00 GAS"),
     totalBurned: createObservable(0),
     totalBurnedDisplay: createObservable("0.00 GAS"),
     userBurned: createObservable(0),
@@ -86,27 +101,99 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 }
 
 describe("Burn League PlayArea", () => {
-  it("shows professional service copy and a complete burn preview", () => {
+  it("shows professional service copy and a burn preview with the whole-pool prize", () => {
     render(
       <PlayArea
         t={t}
         state={state({
           serviceNotice:
-            "Live burn stats are not available in this environment yet.",
+            "Live burn stats could not be read from the chain right now.",
+          prizePoolDisplay: "15.00 GAS",
         })}
         dispatch={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("status").textContent).toContain(
-      "Live burn stats are not available",
-    );
+    expect(screen.getAllByRole("status")[0]).toBeTruthy();
+    expect(
+      screen.getByText(/Live burn stats could not be read from the chain/),
+    ).toBeTruthy();
     expect(screen.queryByText(/OS service error|os-game-status|Not Found/i)).toBeNull();
     expect(screen.getByText("Entry amount")).toBeTruthy();
     expect(screen.getByText("Projected total")).toBeTruthy();
     expect(screen.getAllByText("Projected rank").length).toBeGreaterThan(0);
     expect(screen.getByText("Confirm amount")).toBeTruthy();
+    // The prize model is the WHOLE pool, surfaced in the impact strip — no 0.1x.
+    expect(screen.getAllByText("Prize pool").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("15.00 GAS").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Est. Reward")).toBeNull();
     expect(screen.getByRole("button", { name: "Burn Now" })).toBeTruthy();
+  });
+
+  it("renders an active-season countdown banner with pool and leader", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          seasonPhase: "active",
+          seasonStatusLabel: "Live now",
+          countdown: "00:01:30",
+          prizePoolDisplay: "8.00 GAS",
+          leaderLabel: "NTop12...9zEs",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Live now")).toBeTruthy();
+    expect(screen.getByText("Ends in")).toBeTruthy();
+    expect(screen.getByText("00:01:30")).toBeTruthy();
+    expect(screen.getByText("NTop12...9zEs")).toBeTruthy();
+    // No settle affordance while the season is live.
+    expect(screen.queryByRole("button", { name: "Settle season" })).toBeNull();
+  });
+
+  it("surfaces the settle affordance and dispatches settle when a season has ended", () => {
+    const dispatch = vi.fn();
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          seasonPhase: "ended",
+          needsSettle: true,
+          seasonStatusLabel: "Ended — awaiting settle",
+          prizePoolDisplay: "12.00 GAS",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const settleBtn = screen.getByRole("button", { name: "Settle season" });
+    expect(settleBtn).toBeTruthy();
+    fireEvent.click(settleBtn);
+    expect(dispatch).toHaveBeenCalledWith("settle");
+
+    // Burning is blocked until the ended season is settled.
+    expect(
+      (screen.getByRole("button", { name: "Burn Now" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
+
+  it("explains a dormant season needs a first burn", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({ seasonPhase: "dormant", seasonStatusLabel: "Not started", formattedSeason: "--" })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Not started")).toBeTruthy();
+    expect(
+      screen.getByText(/No active season yet/),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Settle season" })).toBeNull();
   });
 
   it("lets users choose a preset amount before submitting", () => {

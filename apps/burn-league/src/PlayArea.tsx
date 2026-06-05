@@ -1,7 +1,9 @@
 /**
  * PlayArea.tsx -- Burn League
  *
- * Full UI: hero stats, rank display, burn input, leaderboard preview.
+ * Full UI: hero stats, season lifecycle banner (dormant / active countdown /
+ * ended-with-settle), burn input with the real whole-pool prize model, and the
+ * current-season leaderboard rebuilt from on-chain Burned events.
  */
 
 import { useMemo, useState } from "react";
@@ -26,17 +28,20 @@ interface LeaderboardEntry {
 const MIN_BURN = 1;
 const MAX_BURN = 1000;
 
+type SeasonPhase = "dormant" | "active" | "ended";
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
   const isLoading = bool("isLoading");
   const isBurning = bool("isBurning");
+  const isSettling = bool("isSettling");
   const totalBurnedDisplay = str("totalBurnedDisplay", "0");
   const userBurnedDisplay = str("userBurnedDisplay", "0");
   const rewardPoolDisplay = str("rewardPoolDisplay", "0");
   const formattedRank = str("formattedRank", "--");
   const leaderboardSize = num("leaderboardSize");
-  const estimatedReward = str("estimatedReward", "0");
+  const prizePoolDisplay = str("prizePoolDisplay", "0");
   const projectedTotalDisplay = str("projectedTotalBurnedDisplay", "--");
   const burnAmount = str("burnAmount", "");
   const serviceNotice = str("serviceNotice");
@@ -46,6 +51,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const leaderboardPreview = val<LeaderboardEntry[]>("leaderboardPreview") ?? [];
   const hasRank = formattedRank !== "--" && formattedRank !== "";
   const hasLeaderboard = leaderboardPreview.length > 0;
+
+  // ── Season lifecycle ──────────────────────────────────────────────────
+  const seasonPhase = (str("seasonPhase", "dormant") || "dormant") as SeasonPhase;
+  const needsSettle = bool("needsSettle");
+  const countdown = str("countdown", "00:00:00");
+  const seasonStatusLabel = str("seasonStatusLabel");
+  const formattedSeason = str("formattedSeason", "--");
+  const leaderLabel = str("leaderLabel", "--");
+  const hasLeader = leaderLabel !== "--" && leaderLabel !== "";
 
   const [localBurnAmount, setLocalBurnAmount] = useState("");
   const currentBurnAmount = localBurnAmount || burnAmount;
@@ -67,6 +81,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     max: MAX_BURN,
   });
 
+  // Burns are blocked while a season has ended and is awaiting settle.
+  const burnDisabled = isBurning || !amountIsValid || needsSettle;
+
   const handleBurnAmountChange = (value: string) => {
     setLocalBurnAmount(value);
     dispatch("setBurnAmount", value);
@@ -75,6 +92,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleBurn = async () => {
     await dispatch("burn", localBurnAmount || burnAmount);
     setLocalBurnAmount("");
+  };
+
+  const handleSettle = async () => {
+    await dispatch("settle");
   };
 
   const handleReset = () => {
@@ -135,6 +156,61 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="burn-league-hero-stat-label">{t("rewardPool")}</span>
           </div>
         </div>
+      </div>
+
+      {/* Season lifecycle banner — dormant / active countdown / ended+settle.
+          The whole pool is the prize; the top burner wins it at settle. */}
+      <div
+        className={`burn-league-season burn-league-season--${seasonPhase}`}
+        role="status"
+      >
+        <div className="burn-league-season-head">
+          <span className="burn-league-season-eyebrow">
+            {t("seasonLabel")} {formattedSeason}
+          </span>
+          <span className="burn-league-season-status">{seasonStatusLabel}</span>
+        </div>
+
+        {seasonPhase === "active" && (
+          <div className="burn-league-season-body">
+            <div className="burn-league-season-fact">
+              <span className="burn-league-season-fact-label">{t("seasonEndsIn")}</span>
+              <strong className="burn-league-season-countdown">{countdown}</strong>
+            </div>
+            <div className="burn-league-season-fact">
+              <span className="burn-league-season-fact-label">{t("prizePool")}</span>
+              <strong className="burn-league-season-fact-value">{prizePoolDisplay}</strong>
+            </div>
+            <div className="burn-league-season-fact">
+              <span className="burn-league-season-fact-label">{t("currentLeader")}</span>
+              <strong className="burn-league-season-fact-value">
+                {hasLeader ? leaderLabel : t("noLeaderYet")}
+              </strong>
+            </div>
+          </div>
+        )}
+
+        {seasonPhase === "dormant" && (
+          <p className="burn-league-season-note">{t("seasonDormantHint")}</p>
+        )}
+
+        {seasonPhase === "ended" && (
+          <div className="burn-league-season-settle">
+            <p className="burn-league-season-note">
+              {t("seasonEndedHint", { amount: prizePoolDisplay })}
+            </p>
+            <NeoButton
+              variant="primary"
+              size="md"
+              loading={isSettling}
+              disabled={isSettling}
+              aria-label={t("settleSeason")}
+              onClick={handleSettle}
+            >
+              {t("settleSeason")}
+            </NeoButton>
+          </div>
+        )}
       </div>
 
       {serviceNotice && (
@@ -208,10 +284,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <div className="burn-league-impact-divider" aria-hidden="true" />
             <div className="burn-league-impact-item">
-              <span className="burn-league-impact-label">{t("estimatedReward")}</span>
-              <strong className="burn-league-impact-value">
-                {amountIsValid ? estimatedReward : "--"}
-              </strong>
+              <span className="burn-league-impact-label">{t("prizePool")}</span>
+              <strong className="burn-league-impact-value">{prizePoolDisplay}</strong>
             </div>
           </div>
           {burnValidationError && (
@@ -236,7 +310,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 size="lg"
                 block
                 loading={isBurning}
-                disabled={isBurning || !amountIsValid}
+                disabled={burnDisabled}
                 aria-label={isBurning ? t("burning") : t("burn")}
                 onClick={handleBurn}
               >
@@ -270,6 +344,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {t("resetBurn")}
             </NeoButton>
           </div>
+          {needsSettle && (
+            <div className="burn-league-action-notice" role="status">
+              {t("burnBlockedSettle")}
+            </div>
+          )}
         </div>
       </NeoCard>
 

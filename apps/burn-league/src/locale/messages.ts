@@ -40,11 +40,41 @@ const appMessages = {
     en: "Estimated from the visible leaderboard preview.",
     zh: "根据当前可见排行榜预估。",
   },
-  rewardModel: { en: "Reward model", zh: "奖励模型" },
-  rewardModelHint: {
-    en: "Preview uses the league's current 10% reward estimate.",
-    zh: "预览使用当前 10% 奖励估算。",
+  // ── Season lifecycle (on-chain MiniAppBurnLeague) ──────────────────────
+  seasonLabel: { en: "Season", zh: "赛季" },
+  seasonActive: { en: "Live now", zh: "进行中" },
+  seasonEnded: { en: "Ended — awaiting settle", zh: "已结束 — 待结算" },
+  seasonDormant: { en: "Not started", zh: "尚未开始" },
+  seasonDormantHint: {
+    en: "No active season yet — the first burn starts a fresh season.",
+    zh: "暂无进行中的赛季 — 第一次燃烧将开启新赛季。",
   },
+  seasonEndsIn: { en: "Ends in", zh: "剩余时间" },
+  seasonEndedHint: {
+    en: "The season has ended. Settle to award the {amount} pool to the top burner.",
+    zh: "赛季已结束。结算后将把 {amount} 奖池发放给燃烧榜首。",
+  },
+  settleSeason: { en: "Settle season", zh: "结算赛季" },
+  settleSuccess: {
+    en: "Season settled — the pool was paid to the top burner.",
+    zh: "赛季已结算 — 奖池已发放给燃烧榜首。",
+  },
+  settleBeforeBurn: {
+    en: "The season has ended. Settle it before burning into a new season.",
+    zh: "赛季已结束。请先结算，再燃烧进入新赛季。",
+  },
+  burnBlockedSettle: {
+    en: "Burning is paused until the ended season is settled.",
+    zh: "在已结束的赛季结算之前，燃烧将暂停。",
+  },
+  burnDepositHeld: {
+    en: "Your GAS was deposited as reusable burn credit, but the burn did not complete. Try again — no funds were lost.",
+    zh: "你的 GAS 已存入为可复用的燃烧额度，但燃烧未完成。请重试 — 资金未丢失。",
+  },
+  // ── Real prize model (whole pool → top burner) ────────────────────────
+  prizePool: { en: "Prize pool", zh: "奖池" },
+  currentLeader: { en: "Current leader", zh: "当前榜首" },
+  noLeaderYet: { en: "No burns yet", zh: "暂无燃烧" },
   burnReview: { en: "Burn review checklist", zh: "燃烧确认清单" },
   reviewAmount: { en: "Confirm amount", zh: "确认数量" },
   reviewLeaderboard: { en: "Review rank impact", zh: "检查排名影响" },
@@ -55,8 +85,8 @@ const appMessages = {
   burn: { en: "Burn Now", zh: "立即燃烧" },
   burnNow: { en: "Burn Now", zh: "立即燃烧" },
   burnActionHint: {
-    en: "Burn submission creates an OS game-entry wallet intent. Review the amount, projected leaderboard impact, and wallet confirmation before signing.",
-    zh: "提交燃烧会创建 OS 游戏参赛钱包意图。签名前请确认金额、排行榜影响和钱包确认内容。",
+    en: "Burning deposits GAS to the on-chain pool, then records your season total. Review the amount, projected leaderboard impact, and wallet confirmation before signing.",
+    zh: "燃烧会将 GAS 存入链上奖池，并记录你的赛季总量。签名前请确认金额、排行榜影响和钱包确认内容。",
   },
   burnPreparing: {
     en: "Preparing a {amount} burn wallet confirmation. Keep this window open while the platform asks for approval.",
@@ -64,20 +94,20 @@ const appMessages = {
   },
   burnServiceUnavailableTitle: { en: "Burn league data unavailable", zh: "燃烧联赛数据暂不可用" },
   burnServiceUnavailable: {
-    en: "Live burn stats are not available in this environment yet. You can still prepare the burn entry, but ranking refresh waits for the league service.",
-    zh: "当前环境暂未接通实时燃烧统计。你仍可准备燃烧参赛项，但排名刷新需要等待联赛服务恢复。",
+    en: "Live burn stats could not be read from the chain right now. You can still prepare a burn, but the pool and ranking refresh once the node responds.",
+    zh: "暂时无法从链上读取实时燃烧统计。你仍可准备燃烧，但奖池和排名将在节点恢复后刷新。",
   },
   burnActionUnavailable: {
-    en: "Burn submission services are not configured in this environment yet.",
-    zh: "当前环境暂未配置燃烧提交服务。",
+    en: "The burn could not be submitted to the contract. Please try again.",
+    zh: "无法将燃烧提交到合约。请重试。",
   },
   burnWalletUnavailable: {
-    en: "Open this MiniApp from the platform workspace to confirm the burn wallet intent.",
-    zh: "请从平台工作区打开此小程序，以确认燃烧钱包意图。",
+    en: "Connect your wallet to confirm the burn transaction.",
+    zh: "请连接钱包以确认燃烧交易。",
   },
   burnSubmitted: {
-    en: "Burn entry submitted. Refreshing the leaderboard state.",
-    zh: "燃烧参赛项已提交，正在刷新排行榜状态。",
+    en: "Burn confirmed on chain. Refreshing the pool and leaderboard.",
+    zh: "燃烧已在链上确认，正在刷新奖池和排行榜。",
   },
   lastSubmitted: {
     en: "Last submitted burn: {amount}",
@@ -85,7 +115,7 @@ const appMessages = {
   },
   leaderboard: { en: "Leaderboard", zh: "排行榜" },
   noEntriesTitle: { en: "No leaderboard entries yet", zh: "暂无排行榜记录" },
-  noEntries: { en: "Submitted burns will appear here with rank and burned GAS once the league service indexes them.", zh: "联赛服务索引后，已提交的燃烧会以排名和 GAS 数量显示在这里。" },
+  noEntries: { en: "Burns appear here with rank and burned GAS as soon as they confirm on chain for this season.", zh: "本赛季的燃烧在链上确认后，会以排名和 GAS 数量显示在这里。" },
   burned: { en: "Burned", zh: "已燃烧" },
   success: { en: "successfully!", zh: "成功！" },
   minBurn: { en: "Minimum burn is {amount} {tokenGas}", zh: "最低燃烧 {amount} {tokenGas}" },
