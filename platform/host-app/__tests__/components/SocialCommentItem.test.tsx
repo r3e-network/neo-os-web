@@ -75,7 +75,12 @@ describe("SocialCommentItem", () => {
           onReply={mockOnReply}
         />,
       );
-      expect(screen.getByText(/1\/15\/2025/)).toBeInTheDocument();
+      // The component renders new Date(created_at).toLocaleDateString() with no
+      // explicit locale, so the exact string is environment-dependent (en-US
+      // "1/15/2025" vs en-GB "15/01/2025"). Derive the expectation the same way
+      // the component does so the test verifies the formatted date locale-robustly.
+      const expectedDate = new Date(mockComment.created_at).toLocaleDateString();
+      expect(screen.getByText(expectedDate)).toBeInTheDocument();
     });
 
     it("shows Developer badge for developer replies", () => {

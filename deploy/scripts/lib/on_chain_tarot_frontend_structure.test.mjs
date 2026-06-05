@@ -13,12 +13,26 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-function assertOnlyZeroLetterSpacing(styles) {
+// Neo Soft redesign adopts uppercase eyebrow/label tracking as the intentional
+// design language. Guard that the tracked declarations all use the canonical
+// 0.12em / 0.08em / 0 values rather than asserting everything is zero.
+function assertNeoSoftLetterSpacing(styles) {
   const values = [...styles.matchAll(/letter-spacing:\s*([^;]+);/g)].map(
     (match) => match[1].trim(),
   );
   assert.ok(values.length > 0, "expected explicit letter-spacing declarations");
-  assert.deepEqual(values, values.map(() => "0"));
+  const allowed = new Set(["0", "0.12em", "0.08em", "0.04em", "-0.02em"]);
+  for (const value of values) {
+    assert.ok(
+      allowed.has(value),
+      `unexpected letter-spacing value: ${value}`,
+    );
+  }
+  // Neo Soft eyebrow tracking must actually be present (not collapsed to 0).
+  assert.ok(
+    values.includes("0.12em"),
+    "expected Neo Soft eyebrow tracking letter-spacing: 0.12em",
+  );
 }
 
 test("On-Chain Tarot renders a complete wallet-style oracle reading workspace", () => {
@@ -30,12 +44,13 @@ test("On-Chain Tarot renders a complete wallet-style oracle reading workspace", 
     "tarot-shell",
     "tarot-main",
     "tarot-hero",
-    "tarot-oracle-stats",
+    "tarot-hero-eyebrow",
+    "tarot-hero-metrics",
     "tarot-question-panel",
     "tarot-spread-panel",
-    "tarot-flow-strip",
+    "tarot-reading-grid",
+    "tarot-card-slot",
     "tarot-verification-panel",
-    "tarot-deck-panel",
     "tarot-reading-summary",
   ]) {
     assert.match(playArea, new RegExp(`className="[^"]*${className}`));
@@ -53,14 +68,14 @@ test("On-Chain Tarot renders a complete wallet-style oracle reading workspace", 
     "tarotHeroTitle",
     "tarotHeroSubtitle",
     "oracleRequestTitle",
-    "readingFlowTitle",
-    "readingStepOne",
-    "readingStepTwo",
-    "readingStepThree",
+    "oraclePromptLabel",
+    "feeLabel",
+    "tarotFee",
     "verificationPanelTitle",
     "contractRouteLabel",
     "tarotContractRoute",
-    "deckPanelTitle",
+    "cardsDrawnCount",
+    "readingSummary",
     "spreadPanelTitle",
   ]) {
     assert.match(messages, new RegExp(`${key}:`), key);
@@ -73,31 +88,41 @@ test("On-Chain Tarot renders a complete wallet-style oracle reading workspace", 
   );
   assert.match(
     styles,
-    /\.tarot-hero\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(280px,\s*0\.52fr\)/s,
+    /\.tarot-hero\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*0\.4fr\)/s,
+  );
+  // Neo Soft light hero: dark ink heading on the light gradient, not white text.
+  assert.match(
+    styles,
+    /\.tarot-hero-copy h2\s*\{[^}]*color:\s*var\(--tarot-ink\)/s,
+  );
+  // Neo Soft eyebrow kicker: uppercase + 0.12em tracking in the green accent.
+  assert.match(
+    styles,
+    /\.tarot-hero-copy \.tarot-hero-eyebrow\s*\{[^}]*text-transform:\s*uppercase/s,
   );
   assert.match(
     styles,
-    /\.tarot-hero-copy\s*\{[\s\S]*>\s*h2\s*\{[^}]*color:\s*#ffffff/s,
+    /\.tarot-hero-copy \.tarot-hero-eyebrow\s*\{[^}]*letter-spacing:\s*0\.12em/s,
   );
   assert.match(
     styles,
-    /\.tarot-hero \.tarot-hero-copy\s*>\s*h2\s*\{[^}]*color:\s*#ffffff/s,
-  );
-  assert.match(
-    styles,
-    /\.tarot-flow-strip\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s,
+    /\.tarot-hero-metrics\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
   );
   assert.match(
     styles,
     /\.tarot-reading-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s,
   );
-  assert.match(styles, /\.tarot-deck-fan\s*\{[^}]*height:\s*270px/s);
+  // Light hero glow layered behind the linear gradient (intentional Neo Soft accent).
+  assert.match(
+    styles,
+    /\.tarot-hero\s*\{[^}]*linear-gradient\(160deg,\s*var\(--tarot-violet-soft\)/s,
+  );
   assert.match(styles, /@media \(max-width: 900px\)[\s\S]*\.tarot-shell[\s\S]*grid-template-columns:\s*1fr/s);
-  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.tarot-flow-strip[\s\S]*grid-template-columns:\s*1fr/s);
+  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.tarot-card-position[\s\S]*letter-spacing:\s*0\.04em/s);
 
-  assertOnlyZeroLetterSpacing(styles);
-  assert.doesNotMatch(styles, /text-transform:\s*uppercase/);
+  assertNeoSoftLetterSpacing(styles);
+  // Neo Soft intentionally uses uppercase eyebrows/labels with tracking.
+  assert.match(styles, /text-transform:\s*uppercase/);
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
-  assert.doesNotMatch(styles, /radial-gradient/i);
   assert.doesNotMatch(styles, /border-radius:\s*(?:2[0-9]|[3-9][0-9])px/);
 });
