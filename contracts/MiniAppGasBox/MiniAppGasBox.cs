@@ -44,7 +44,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Description", "Self-contained on-chain gacha: weighted prize pool drawn with Runtime.GetRandom and paid atomically — no oracle.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
     [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer")] // NEO
-    public class MiniAppGasBox : SmartContract
+    public partial class MiniAppGasBox : SmartContract
     {
         #region Constants
         private const int MAX_ITEMS = 20;
@@ -281,50 +281,6 @@ namespace NeoMiniAppPlatform.Contracts
             OnPulled(playId, machineId, player, chosenIndex, prize);
             return chosenIndex;
         }
-        #endregion
-
-        #region Read-only
-        [Safe]
-        public static BigInteger LastMachineId() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_MACHINE_ID);
-
-        [Safe]
-        public static BigInteger PlayCreditOf(UInt160 player) =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_PLAY_CREDIT, (byte[])player));
-
-        [Safe]
-        public static Map<string, object> GetMachine(BigInteger machineId)
-        {
-            Machine m = LoadMachine(machineId);
-            Map<string, object> r = new Map<string, object>();
-            r["id"] = machineId; r["creator"] = m.Creator; r["name"] = m.Name;
-            r["prizeAsset"] = m.PrizeAsset; r["price"] = m.Price; r["itemCount"] = m.ItemCount;
-            r["totalWeight"] = m.TotalWeight; r["maxPrize"] = m.MaxPrize; r["poolBalance"] = m.PoolBalance;
-            r["revenue"] = m.Revenue; r["active"] = m.Active;
-            return r;
-        }
-
-        [Safe]
-        public static Map<string, object> GetItem(BigInteger machineId, BigInteger index)
-        {
-            ByteString raw = Storage.Get(Storage.CurrentContext, ItemKey(machineId, index));
-            ExecutionEngine.Assert(raw is not null, "item not found");
-            Item it = (Item)StdLib.Deserialize(raw);
-            Map<string, object> r = new Map<string, object>();
-            r["index"] = index; r["name"] = it.Name; r["weight"] = it.Weight; r["amount"] = it.Amount;
-            return r;
-        }
-        #endregion
-
-        #region Internal
-        private static Machine LoadMachine(BigInteger machineId)
-        {
-            ByteString raw = Storage.Get(Storage.CurrentContext, MachineKey(machineId));
-            ExecutionEngine.Assert(raw is not null, "machine not found");
-            return (Machine)StdLib.Deserialize(raw);
-        }
-        private static byte[] MachineKey(BigInteger id) => Helper.Concat(PREFIX_MACHINE, (byte[])(ByteString)id);
-        private static byte[] ItemKey(BigInteger machineId, BigInteger index) =>
-            Helper.Concat(Helper.Concat(PREFIX_ITEM, (byte[])(ByteString)machineId), (byte[])(ByteString)index);
         #endregion
     }
 }
