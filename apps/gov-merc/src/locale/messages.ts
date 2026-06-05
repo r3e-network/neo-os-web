@@ -61,13 +61,13 @@ const appMessages = {
   },
   riskNoteTitle: { en: "Operator readiness", zh: "操作就绪度" },
   riskNoteCopy: {
-    en: "Deposits, withdrawals, and bids are routed through OS service proxies. Review the epoch and amount before submitting.",
-    zh: "存入、提取与竞价均通过 OS 服务代理路由；提交前请确认周期和金额。",
+    en: "Staking, bids, and settlement run directly against the on-chain MiniAppGovMerc contract. Review the epoch and amount before submitting.",
+    zh: "质押、竞价与结算均直接调用链上 MiniAppGovMerc 合约。提交前请确认周期和金额。",
   },
   settlementWindow: { en: "Settlement window", zh: "结算窗口" },
   epochSettlement: { en: "Per epoch", zh: "按周期" },
   executionPath: { en: "Execution path", zh: "执行路径" },
-  executionPathCopy: { en: "OS proxy guarded", zh: "OS 代理保护" },
+  executionPathCopy: { en: "On-chain contract", zh: "链上合约" },
   tabStats: { en: "Stats", zh: "统计" },
   depositSuccess: { en: "Deposit submitted", zh: "存入已提交" },
   withdrawSuccess: { en: "Withdrawal submitted", zh: "提取已提交" },
@@ -110,6 +110,48 @@ const appMessages = {
   },
   loadFailed: { en: "Failed to load data", zh: "加载数据失败" },
   error: { en: "Error", zh: "错误" },
+
+  // ── Chain wiring: validation + missing-contract + bid lifecycle ──────────
+  enterNeoAmount: { en: "Enter a whole NEO amount", zh: "请输入整数 NEO 金额" },
+  missingContract: { en: "Contract not configured", zh: "合约未配置" },
+  minBid: {
+    en: "First bid must be at least {amount} {tokenGas}",
+    zh: "首次竞价至少为 {amount} {tokenGas}",
+  },
+  bidDepositHeld: {
+    en: "Your GAS was deposited as reusable bid credit. Raise the bid again or withdraw the credit.",
+    zh: "你的 GAS 已存为可复用的竞价额度。可再次提价或提取该额度。",
+  },
+
+  // ── Staker rewards (NEW: claim accrued GAS auction revenue) ──────────────
+  rewardsTitle: { en: "Staker rewards", zh: "质押者收益" },
+  rewardsCopy: {
+    en: "NEO stakers earn the GAS auction revenue pro-rata. Claim your accrued share at any time.",
+    zh: "NEO 质押者按比例分得 GAS 竞拍收益，可随时领取你累积的份额。",
+  },
+  pendingRewards: { en: "Claimable rewards", zh: "可领取收益" },
+  claimRewards: { en: "Claim rewards", zh: "领取收益" },
+  claimSuccess: { en: "Rewards claimed", zh: "收益已领取" },
+  noRewards: { en: "No rewards to claim yet", zh: "暂无可领取的收益" },
+  rewardsEmptyHint: {
+    en: "Stake NEO and win an epoch's auction to start earning GAS rewards.",
+    zh: "质押 NEO 并赢得某个周期的竞拍后即可开始累积 GAS 收益。",
+  },
+
+  // ── Losing-bid reclaim + unused credit (NEW) ─────────────────────────────
+  reclaimTitle: { en: "Reclaim bids", zh: "取回竞价" },
+  reclaimCopy: {
+    en: "Lost an epoch? Pull back your losing bid from any settled epoch, and withdraw any unused bid credit.",
+    zh: "未赢得某周期？可从已结算周期取回未中标的竞价，并提取未使用的竞价额度。",
+  },
+  reclaimBidLabel: { en: "Reclaim epoch {epoch}", zh: "取回周期 {epoch}" },
+  reclaimBidAmount: { en: "{amount} {tokenGas} from epoch {epoch}", zh: "周期 {epoch} 的 {amount} {tokenGas}" },
+  reclaimSuccess: { en: "Bid reclaimed", zh: "竞价已取回" },
+  reclaimEmpty: { en: "No losing bids to reclaim", zh: "没有可取回的未中标竞价" },
+  withdrawCredit: { en: "Withdraw unused credit", zh: "提取未用额度" },
+  creditWithdrawSuccess: { en: "Bid credit withdrawn", zh: "竞价额度已提取" },
+  noCredit: { en: "No unused bid credit", zh: "没有未使用的竞价额度" },
+  unusedCredit: { en: "Unused bid credit", zh: "未使用的竞价额度" },
 
   docSubtitle: {
     en: "Governance mercenary pool with competitive bidding",
