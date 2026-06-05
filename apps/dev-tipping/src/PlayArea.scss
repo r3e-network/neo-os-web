@@ -637,6 +637,54 @@
   padding-top: 3px;
 }
 
+/* ── Developer zone (register + withdraw) ── */
+.dev-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dev-panel__hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.dev-panel__status,
+.dev-panel__claim {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border-radius: var(--ns-radius-md, 16px);
+}
+
+.dev-panel__status-label,
+.dev-panel__claim-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.dev-panel__status-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ns-ink, #1e1e2e);
+  font-variant-numeric: tabular-nums;
+}
+
+.dev-panel__claim-value {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--tip-accent-strong);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Accent alignment: primary buttons follow this app's green identity ── */
 .dev-tipping-play-area .neo-btn--primary:not(:disabled) {
   background: var(--tip-accent);

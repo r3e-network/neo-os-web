@@ -1,0 +1,114 @@
+import { useState } from "react";
+import { NeoInput, NeoButton } from "@shared/components-react";
+
+interface DeveloperPanelProps {
+  /** Whether a wallet is connected (gates registration/withdrawal). */
+  connected: boolean;
+  /** The devId owned by the connected wallet (0 = not registered). */
+  myDeveloperId: number;
+  /** That developer's claimable balance in human GAS. */
+  claimableBalance: number;
+  isRegistering: boolean;
+  isWithdrawing: boolean;
+  onRegister: (name: string, role: string) => void;
+  onWithdraw: () => void;
+  formatNum: (n: number | string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+/**
+ * DeveloperPanel — developer self-service.
+ *
+ * Unregistered connected wallets see a register form (name + role → on-chain
+ * registerDeveloper). Registered wallets see their devId and, when they have a
+ * positive claimable balance, a withdraw action (on-chain withdrawTips).
+ */
+export default function DeveloperPanel({
+  connected,
+  myDeveloperId,
+  claimableBalance,
+  isRegistering,
+  isWithdrawing,
+  onRegister,
+  onWithdraw,
+  formatNum,
+  t,
+}: DeveloperPanelProps) {
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("");
+
+  if (!connected) {
+    return (
+      <p className="dev-panel__hint">{t("registerConnectHint")}</p>
+    );
+  }
+
+  if (myDeveloperId > 0) {
+    return (
+      <div className="dev-panel">
+        <div className="dev-panel__status">
+          <span className="dev-panel__status-label">{t("registeredAs")}</span>
+          <span className="dev-panel__status-value">#{myDeveloperId}</span>
+        </div>
+        <div className="dev-panel__claim">
+          <span className="dev-panel__claim-label">{t("claimableBalance")}</span>
+          <span className="dev-panel__claim-value">
+            {formatNum(claimableBalance)} {t("tokenGas")}
+          </span>
+        </div>
+        <NeoButton
+          variant="primary"
+          size="lg"
+          block
+          loading={isWithdrawing}
+          disabled={claimableBalance <= 0 || isWithdrawing}
+          onClick={onWithdraw}
+        >
+          {isWithdrawing
+            ? t("withdrawing")
+            : claimableBalance > 0
+              ? t("withdrawTipsBtn")
+              : t("nothingToWithdraw")}
+        </NeoButton>
+      </div>
+    );
+  }
+
+  const trimmedName = name.trim();
+  const canRegister = trimmedName.length > 0 && trimmedName.length <= 64 && !isRegistering;
+
+  const handleRegister = () => {
+    if (!canRegister) return;
+    onRegister(trimmedName, role.trim());
+    setName("");
+    setRole("");
+  };
+
+  return (
+    <div className="dev-panel form-group">
+      <p className="dev-panel__hint">{t("registerHint")}</p>
+      <NeoInput
+        value={name}
+        label={t("devNameLabel")}
+        placeholder={t("devNamePlaceholder")}
+        onChange={(v) => setName(v.slice(0, 64))}
+      />
+      <NeoInput
+        value={role}
+        label={t("devRoleLabel")}
+        placeholder={t("devRolePlaceholder")}
+        onChange={(v) => setRole(v.slice(0, 64))}
+      />
+      <NeoButton
+        variant="primary"
+        size="lg"
+        block
+        loading={isRegistering}
+        disabled={!canRegister}
+        onClick={handleRegister}
+      >
+        {isRegistering ? t("registering") : t("registerBtn")}
+      </NeoButton>
+    </div>
+  );
+}
