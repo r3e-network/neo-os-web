@@ -1,7 +1,9 @@
 /**
  * Daily Check-in — React Entry Point
  *
- * Uses the React defineMiniApp runtime with OS service proxies.
+ * Uses the React defineMiniApp runtime. The domain logic talks directly to the
+ * app's standalone on-chain contract via ctx.services.chain (the legacy
+ * ctx.os.checkin Morpheus proxy is non-operational).
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
@@ -18,7 +20,7 @@ defineMiniApp({
 
   setup(ctx) {
     const checkin = useCheckin({
-      checkinService: ctx.os.checkin,
+      chain: ctx.services.chain,
       t: ctx.t,
     });
 

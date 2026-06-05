@@ -65,7 +65,7 @@ function t(key: string, params?: Record<string, string | number>) {
     rewardPlanReadyCopy: "{amount} is available through the claim wallet action.",
     rewardProgress: "Reward Progress",
     serviceRoute: "Service route",
-    serviceRouteCopy: "Check-in uses os-checkin-checkin; rewards use os-checkin-claim.",
+    serviceRouteCopy: "Check-in deposits the GAS fee to the on-chain contract; rewards claim directly from it.",
     title: "Daily Check-in",
     todayPlan: "Today plan",
     todayPlanDone: "Secured today",
@@ -147,7 +147,7 @@ describe("Daily Check-in PlayArea", () => {
     expect(screen.getByText("Check-in available")).toBeTruthy();
     expect(screen.getAllByText("+1 GAS").length).toBeGreaterThan(0);
     expect(screen.getByText("Rewards claimable")).toBeTruthy();
-    expect(screen.getByText("Check-in uses os-checkin-checkin; rewards use os-checkin-claim.")).toBeTruthy();
+    expect(screen.getByText("Check-in deposits the GAS fee to the on-chain contract; rewards claim directly from it.")).toBeTruthy();
     expect(screen.getByText("Your Rewards")).toBeTruthy();
     expect(screen.getByText("Recent Check-ins")).toBeTruthy();
     expect(screen.getByRole("region", { name: "Request and result evidence" })).toBeTruthy();

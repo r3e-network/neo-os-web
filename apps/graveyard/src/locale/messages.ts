@@ -72,10 +72,10 @@ const appMessages = {
   feature3Name: { en: "Audit Trail", zh: "审计轨迹" },
   feature3Desc: { en: "Burial and forgetting states remain inspectable in the record history.", zh: "埋葬与遗忘状态会保留在记录历史中，方便核查。" },
   memoryType: { en: "Memory Type", zh: "记忆类型" },
-  memoryTypeLocal: { en: "Record tag (local)", zh: "记录标签（本地）" },
+  memoryTypeLocal: { en: "Record tag", zh: "记录标签" },
   memoryTypeLocalHint: {
-    en: "A local label for your own records only — it is not written on-chain. Only the content hash is anchored.",
-    zh: "仅用于本地记录的标签，不会写入链上。链上只锚定内容哈希。",
+    en: "Categorises the memory; this tag is anchored on-chain alongside the content hash.",
+    zh: "用于给记忆分类；该标签会与内容哈希一起锚定上链。",
   },
   memoryTypeSecret: { en: "Secret", zh: "秘密" },
   memoryTypeRegret: { en: "Regret", zh: "遗憾" },
@@ -112,8 +112,8 @@ const appMessages = {
   walletAction: { en: "Wallet action", zh: "钱包操作" },
   buryWalletIntent: { en: "Bury memory", zh: "埋葬记忆" },
   walletActionCopy: {
-    en: "The wallet submits the paid burial intent through the NFT service boundary.",
-    zh: "钱包会通过 NFT 服务边界提交付费埋葬意图。",
+    en: "The wallet deposits the burial fee in GAS, then anchors the content hash on-chain.",
+    zh: "钱包会先存入 GAS 埋葬费用，再将内容哈希锚定上链。",
   },
   burialChecklist: { en: "Burial checklist", zh: "埋葬检查表" },
   checkHash: { en: "Target hash", zh: "目标哈希" },
@@ -133,6 +133,9 @@ const appMessages = {
   forgettingFee: { en: "Forgetting fee", zh: "遗忘费用" },
   totalDestroyed: { en: "Total Buried", zh: "总埋葬数" },
   hashEllipsis: { en: "...", zh: "..." },
+  tokenGas: { en: "GAS", zh: "GAS" },
+  error: { en: "Something went wrong", zh: "发生错误" },
+  connectWallet: { en: "Please connect your wallet", zh: "请连接钱包" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

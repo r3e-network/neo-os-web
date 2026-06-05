@@ -18,8 +18,6 @@ defineMiniApp({
     const shrine = useMemorialShrine({
       chainService: ctx.services.chain,
       launchNetwork: ctx.launchContext.network,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
