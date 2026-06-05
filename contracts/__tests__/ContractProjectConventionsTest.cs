@@ -136,8 +136,18 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             string contractsRoot = Path.Combine(repoRoot, "contracts");
             Regex weightTerm = new(@"\bweights?\b|\bweighted\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+            // Gacha-odds contracts legitimately use weight terminology for their
+            // weighted prize selection: PlatformGame's Gacha partials and the
+            // self-contained MiniAppGasBox ("on-chain gacha: weighted prize pool").
+            static bool IsGachaOddsFile(string path)
+            {
+                string name = Path.GetFileName(path);
+                return name.StartsWith("PlatformGame.Gacha", StringComparison.Ordinal)
+                    || name.StartsWith("MiniAppGasBox", StringComparison.Ordinal);
+            }
+
             List<string> offenders = EnumerateContractSourceFiles(contractsRoot)
-                .Where(path => !Path.GetFileName(path).StartsWith("PlatformGame.Gacha", StringComparison.Ordinal))
+                .Where(path => !IsGachaOddsFile(path))
                 .SelectMany(path => File
                     .ReadLines(path)
                     .Select((line, index) => new
