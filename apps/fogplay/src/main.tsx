@@ -16,13 +16,12 @@ defineMiniApp({
 
   setup(ctx) {
     const coinFlip = useCoinFlip({
-      gameService: ctx.os.game,
-      paymentService: ctx.os.payment,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
+      chain: ctx.services.chain,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
+
+    coinFlip.setAddress(ctx.services.chain.address.get() ?? null);
 
     ctx.registerAction("placeBet", async () => {
       await ctx.services.notify.guard(() => coinFlip.placeBet(), "youWon");
