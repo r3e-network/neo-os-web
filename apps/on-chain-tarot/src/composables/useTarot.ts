@@ -1,48 +1,68 @@
 /**
- * useTarot — Domain logic for On-Chain Tarot (OS Services)
+ * useTarot — Domain logic for On-Chain Tarot.
  *
- * Value flow is delegated to OS service proxies (PaymentProxy, StorageProxy,
- * BadgeProxy) via edge functions. The draw is paid for through the OS payment
- * service and the reading itself is derived deterministically on the client
- * from the resulting transaction id (see note below).
+ * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppTarot) via
+ * ctx.services.chain. The earlier path paid a "draw fee" to the OS payment
+ * kernel (which moved nothing), polled OS storage for a reading the kernel
+ * never wrote, and derived the three cards CLIENT-SIDE from the deposit tx id.
+ * That made the reading client-trusted rather than authoritative.
  *
- * Reading source — design decision (client-derived):
+ * MiniAppTarot is self-contained: draw() consumes a prepaid 0.1 GAS fee and
+ * picks three DISTINCT cards from the 78-card deck ON-CHAIN with Neo N3's
+ * Runtime.GetRandom in the same transaction — no oracle, no client seed. This
+ * composable drives it directly, so the three card indices come from the
+ * contract's ReadingDrawn event and are authoritative.
  *
- *   The OS kernel exposes only generic primitives (payment / storage / escrow /
- *   game pools) — there is NO oracle/edge producer that writes a tarot
- *   "reading:<id>" record. The previous implementation called
- *   `gameService.placeBet("tarot", <question text>)`, which is malformed:
- *   os-game-bet requires a numeric poolId + decimal amount, so passing a free
- *   text question made `parseDecimalToInt` throw and the draw was unreachable.
- *   It then polled `storage.get("reading:<id>")` for a key that nothing ever
- *   wrote, so `waitForReading` could never resolve.
+ * Contract interaction model (verified against MiniAppTarot.cs / ABI):
  *
- *   New flow (uses only existing OS primitives):
- *     1. paymentService.deposit(DRAW_FEE, question)  — a real "draw fee" value
- *        call. The edge function returns an invocation intent; EdgeClient pops
- *        the wallet confirmation, submits it, and returns the on-chain txid.
- *        That txid (or, if unavailable, a locally generated unique id) becomes
- *        the readingId / random seed.
- *     2. The three cards are derived DETERMINISTICALLY from that seed (a
- *        dependency-free hash → 3 unique deck indices). Same seed ⇒ same
- *        reading, so the result is reproducible and auditable from the txid.
- *     3. storageService.set("reading:<readingId>", {status,cards,...})        —
- *        persists the reading so `storage.list("reading:")` can enumerate the
- *        history index and the existing poll resolves immediately.
+ *   READS (chain.read / chain.readArray, default app contract script hash):
+ *     drawFee()                          -> Integer (0.1 GAS in base units)
+ *     readingsCount()                    -> Integer (global reading id counter)
+ *     creditOf(player)                   -> Integer (prepaid GAS credit, base units)
+ *     playerReadingCount(player)         -> Integer
+ *     getPlayerReadings(player,off,limit) -> Integer[] (reading ids)
+ *     getReading(readingId)              -> Map{id,player,cards(int[3]),time}
  *
- * The composable still owns:
- *   - Reactive state (refs + computed) for manifest bindings
+ *   MUTATIONS (chain.invoke):
+ *     1. DEPOSIT (fund a draw) — a GAS transfer to the contract with the memo
+ *        "miniapp-tarot:draw" so OnNEP17Payment credits the player's draw
+ *        balance:
+ *          transfer(player, CONTRACT, drawFee, "miniapp-tarot:draw")
+ *          { scriptHash: GAS_HASH }
+ *     2. draw(player) -> readingId. Consumes one draw fee from credit and
+ *        reveals three distinct card indices in the SAME tx. The three cards are
+ *        read from the "ReadingDrawn" event:
+ *          ReadingDrawn(readingId, player, card0, card1, card2)
+ *        i.e. state slots [2], [3], [4]. They are also retrievable via
+ *        getReading(readingId).
+ *
+ * Post-deposit draw failure: if the deposit lands but draw() reverts, the credit
+ * simply remains on the contract under the player as REUSABLE PREPAID credit for
+ * the next draw — there is no refund call (and none is needed; funds are not
+ * lost). The next draw skips the deposit when creditOf(player) already covers
+ * the fee.
+ *
+ * AMOUNT CONVENTION: the contract takes/returns BASE UNITS (GAS × 1e8). The draw
+ * fee is read from drawFee() with a 0.1 GAS fallback.
+ *
+ * The question the user typed is NOT stored on-chain. It is kept in composable
+ * state for the active reading and, so the history can surface it, persisted
+ * on-device keyed by readingId via the shared cache (localStorage) helpers.
+ *
+ * The composable owns:
+ *   - Reactive state (observables + derived) for manifest/PlayArea bindings
  *   - Card deck mapping and flip logic
- *   - Loading UI flags
- *   - Question input state
+ *   - Loading UI flags + question input state
+ *   - The three card indices read from the ReadingDrawn event of the draw tx
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
-import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type { ChainService } from "@shared/services/ChainService";
+import type { CacheService } from "@shared/services/CacheService";
 import type { ClipboardService } from "@shared/services/ClipboardService";
+import { addressToScriptHash } from "@shared/utils/neo";
+import { parseBigInt } from "@shared/utils/parsers";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { TAROT_CARD_BACK, TAROT_DECK } from "../pages/index/components/tarot-data";
 import type { TarotCardDefinition } from "../pages/index/components/tarot-data";
 
@@ -51,210 +71,170 @@ export interface Card extends TarotCardDefinition {
 }
 
 export interface UseTarotOptions {
-  /** OS PaymentProxy instance from ctx.os.payment */
-  paymentService: PaymentProxy;
-  /** OS StorageProxy instance from ctx.os.storage */
-  storageService: StorageProxy;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
-  /** Clipboard service from ctx.services.clipboard (copy/share reading) */
+  /** Shared chain service from ctx.services.chain. */
+  chain: ChainService;
+  /** Shared cache service from ctx.services.cache (on-device question store). */
+  cache: CacheService;
+  /** Clipboard service from ctx.services.clipboard (copy/share reading). */
   clipboard: ClipboardService;
-  /** Translation function */
+  /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-/** Draw fee (GAS) charged through the OS payment service for each reading. */
-const DRAW_FEE = "0.1";
+// ============================================================================
+// Constants
+// ============================================================================
 
-/**
- * Shape of a completed reading returned by the edge function.
- */
-interface ReadingResult {
-  readingId: string;
-  cards: number[];
-  status: "completed" | "pending";
-}
+/** Memo the contract requires on the draw-funding transfer. */
+const DRAW_MEMO = "miniapp-tarot:draw";
 
-function unwrapServiceData(value: unknown): unknown {
-  if (value && typeof value === "object" && "ok" in value && "data" in value) {
-    return (value as { data: unknown }).data;
+/** Draw fee fallback (0.1 GAS in base units) when drawFee() can't be read. */
+const DRAW_FEE_FALLBACK = 10_000_000n;
+
+/** Cards per reading (the contract reveals exactly three). */
+const CARDS_PER_READING = 3;
+
+/** How many reading ids to page in per refresh of the player's history. */
+const HISTORY_PAGE_LIMIT = 100;
+
+/** localStorage key prefix for the on-device question store, keyed by readingId. */
+const QUESTION_KEY_PREFIX = "tarot:question:";
+
+// ============================================================================
+// Event parsing
+// ============================================================================
+
+/** Read a single state slot from a contract event payload (positional). */
+function eventValue(entry: unknown, index: number): unknown {
+  if (!entry || typeof entry !== "object") return undefined;
+  const state = (entry as { state?: unknown }).state;
+  if (Array.isArray(state)) {
+    const item = state[index] as unknown;
+    if (item && typeof item === "object" && "value" in item) {
+      return (item as { value?: unknown }).value;
+    }
+    return item;
   }
-  return value;
+  return undefined;
 }
+
+// ============================================================================
+// Card mapping
+// ============================================================================
 
 /**
- * Extract a stable reading id from a payment-deposit response.
- *
- * EdgeClient resolves the deposit invocation intent through the wallet and
- * merges the on-chain transaction id back onto the payload as `txid`/`tx`.
- * We accept those first, then fall back to any explicit per-draw id fields,
- * then to a hash of the nested invocation. An empty string means no id could
- * be derived and the caller will generate a local unique id instead.
- *
- * Note: pool ids are intentionally excluded — a pool id is shared across many
- * draws, so seeding from it would make two distinct draws reuse the same seed
- * and produce an identical three-card spread. Only per-draw-unique values feed
- * the seed.
+ * Validate three card indices: exactly three, distinct, each a valid deck
+ * index in [0, TAROT_DECK.length). Throws on anything else so a malformed draw
+ * never renders a partial / duplicate spread.
  */
-function extractReadingId(value: unknown): string {
-  const result = unwrapServiceData(value);
-  if (!result || typeof result !== "object") return "";
-  const data = result as Record<string, unknown>;
-  const direct = String(
-    data.txid ??
-      data.tx ??
-      data.txId ??
-      data.transactionId ??
-      data.readingId ??
-      data.reading_id ??
-      "",
-  ).trim();
-  if (direct) return direct;
-
-  // Last resort: derive a stable id from the invocation intent itself.
-  const invocation = data.invocation;
-  if (invocation && typeof invocation === "object") {
-    return `inv-${hashSeed(JSON.stringify(invocation)).toString(16)}`;
-  }
-  return "";
-}
-
-/**
- * Deterministic, dependency-free 32-bit hash (xmur3-style) used to turn a
- * reading id / seed string into a reproducible numeric seed.
- */
-function hashSeed(input: string): number {
-  let h = 1779033703 ^ input.length;
-  for (let i = 0; i < input.length; i++) {
-    h = Math.imul(h ^ input.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
-  }
-  h = Math.imul(h ^ (h >>> 16), 2246822507);
-  h = Math.imul(h ^ (h >>> 13), 3266489909);
-  return (h ^= h >>> 16) >>> 0;
-}
-
-/**
- * Mulberry32 PRNG seeded from a 32-bit integer. Deterministic: the same seed
- * always yields the same sequence, so a reading is fully reproducible from its
- * readingId (transaction id).
- */
-function createSeededRng(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state |= 0;
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/**
- * Derive three unique card indices in [0, TAROT_DECK.length) from a seed
- * string via a partial Fisher-Yates draw over the deck order. The output is
- * deterministic for a given seed and always satisfies normalizeReadingCards.
- */
-function deriveReadingCards(seed: string): number[] {
-  const rng = createSeededRng(hashSeed(seed || "tarot"));
-  const indices = Array.from({ length: TAROT_DECK.length }, (_, i) => i);
-  const picks: number[] = [];
-  for (let drawCount = 0; drawCount < 3; drawCount++) {
-    const remaining = indices.length - drawCount;
-    const swapWith = drawCount + Math.floor(rng() * remaining);
-    const chosen = indices[swapWith]!;
-    indices[swapWith] = indices[drawCount]!;
-    indices[drawCount] = chosen;
-    picks.push(chosen);
-  }
-  return picks;
-}
-
 function normalizeReadingCards(cards: unknown): number[] {
   if (!Array.isArray(cards)) throw new Error("invalid reading cards");
 
-  const ids = cards.slice(0, 3).map((cardId) => Number(cardId));
+  const ids = cards.slice(0, CARDS_PER_READING).map((cardId) => Number(cardId));
   const unique = new Set(ids);
-  const invalid = ids.some((cardId) => !Number.isInteger(cardId) || cardId < 0 || cardId >= TAROT_DECK.length);
+  const invalid = ids.some(
+    (cardId) => !Number.isInteger(cardId) || cardId < 0 || cardId >= TAROT_DECK.length,
+  );
 
-  if (ids.length !== 3 || unique.size !== 3 || invalid) {
+  if (ids.length !== CARDS_PER_READING || unique.size !== CARDS_PER_READING || invalid) {
     throw new Error("invalid reading cards");
   }
 
   return ids;
 }
 
-export function useTarot({
-  paymentService,
-  storageService,
-  badgeService,
-  clipboard,
-  t,
-}: UseTarotOptions) {
+/** Map a validated card index to a deck entry (or a neutral fallback card). */
+function cardFromIndex(cardId: number): Card {
+  const card = TAROT_DECK.find((item) => item.id === cardId);
+  if (!card) {
+    return {
+      id: cardId,
+      name: `Card ${cardId}`,
+      icon: "M",
+      suit: "major",
+      number: cardId,
+      arcana: "Major Arcana",
+      suitLabel: "Unknown",
+      keywords: ["Oracle"],
+      image: TAROT_CARD_BACK,
+      backImage: TAROT_CARD_BACK,
+      flipped: false,
+    };
+  }
+  return { ...card, flipped: false };
+}
+
+// ============================================================================
+// Composable
+// ============================================================================
+
+export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
   const tarotDeck = TAROT_DECK;
   const drawn = createObservable<Card[]>([]);
   const readingsCount = createObservable(0);
-  const hasDrawn = createDerived(() => drawn.get().length === 3, [drawn]);
+  const hasDrawn = createDerived(() => drawn.get().length === CARDS_PER_READING, [drawn]);
   const allFlipped = createDerived(() => {
     const cards = drawn.get();
     return cards.length > 0 && cards.every((c) => c.flipped);
   }, [drawn]);
-  const cardsDrawnCount = createDerived(() => readingsCount.get() * 3, [readingsCount]);
-  const allRevealedDisplay = createDerived(() => allFlipped.get() ? t("yes") : t("no"), [drawn]);
+  const cardsDrawnCount = createDerived(() => readingsCount.get() * CARDS_PER_READING, [readingsCount]);
+  const allRevealedDisplay = createDerived(() => (allFlipped.get() ? t("yes") : t("no")), [drawn]);
   const question = createObservable("");
   const isLoading = createObservable(false);
   const readingMode = createObservable<"idle" | "oracle">("idle");
 
-  /**
-   * Read back the persisted reading via StorageProxy.
-   *
-   * The reading is written by `draw()` immediately after the draw fee is paid,
-   * so this normally resolves on the first attempt. A short retry loop is kept
-   * to tolerate eventual-consistency on the storage edge function.
-   */
-  const waitForReading = async (readingId: string): Promise<ReadingResult | null> => {
-    const maxAttempts = 5;
-    const pollIntervalMs = 500;
+  // Connected wallet address (synced from main.tsx / chain).
+  const address = createObservable<string | null>(chain.address.get() ?? null);
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      let result: unknown;
-      try {
-        result = unwrapServiceData(await storageService.get(`reading:${readingId}`));
-      } catch {
-        // Continue polling
-      }
-
-      if (result && typeof result === "object") {
-        const data = result as Record<string, unknown>;
-        if (data.status === "completed" && Array.isArray(data.cards)) {
-          return {
-            readingId: String(data.readingId || readingId),
-            cards: normalizeReadingCards(data.cards),
-            status: "completed",
-          };
-        }
-      }
-
-      // Don't sleep after the final attempt: the loop is about to exit and the
-      // caller already holds the authoritative in-memory cards to fall back to,
-      // so a trailing wait only adds latency on the not-found path.
-      if (attempt < maxAttempts - 1) {
-        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-      }
-    }
-    return null;
+  const setAddress = (addr: string | null) => {
+    address.set(addr ?? null);
   };
 
+  // ── On-device question store (not on-chain) ──────────────────────────
+
+  /** Persist the question for a reading id on-device (best-effort). */
+  const persistQuestion = (readingId: string, text: string) => {
+    const trimmed = text.trim();
+    if (!readingId || !trimmed) return;
+    cache.persist(`${QUESTION_KEY_PREFIX}${readingId}`, trimmed);
+  };
+
+  /** Restore the on-device question for a reading id (empty when absent). */
+  const restoreQuestion = (readingId: string): string =>
+    cache.restore<string>(`${QUESTION_KEY_PREFIX}${readingId}`) ?? "";
+
+  // ── Fee resolution ───────────────────────────────────────────────────
+
+  /** Read the on-chain draw fee in base units, falling back to 0.1 GAS. */
+  const loadDrawFee = async (): Promise<bigint> => {
+    try {
+      const raw = await chain.read("drawFee", []);
+      const fee = parseBigInt(raw);
+      return fee > 0n ? fee : DRAW_FEE_FALLBACK;
+    } catch {
+      return DRAW_FEE_FALLBACK;
+    }
+  };
+
+  // ── Draw (deposit-then-draw, cards from the ReadingDrawn event) ──────
+
   /**
-   * Draw tarot cards via OS services.
+   * Draw three cards against the standalone contract.
    *
-   * Flow:
-   * 1. Pay the draw fee via PaymentProxy.deposit (wallet-confirmed value call);
-   *    the resulting transaction id is captured as the readingId / seed.
-   * 2. Derive three unique cards deterministically from that seed and persist
-   *    the reading via StorageProxy.set so it joins the "reading:" history
-   *    index and can be read back.
-   * 3. Read the persisted reading back and map card IDs to the tarot deck.
+   * Two steps, both signed by the player:
+   *   1. DEPOSIT — if creditOf(player) < drawFee, transfer the fee in GAS to the
+   *      contract with the "miniapp-tarot:draw" memo so OnNEP17Payment credits
+   *      the player's draw balance.
+   *   2. draw(player) — consumes one fee from credit and reveals three DISTINCT
+   *      cards ON-CHAIN in the same tx. The three card indices are read from the
+   *      "ReadingDrawn" event (state slots [2],[3],[4]), falling back to
+   *      getReading(readingId). They are mapped to the deck and rendered.
+   *
+   * The typed question is kept in state for the active reading and persisted
+   * on-device keyed by readingId so the history can surface it.
+   *
+   * If step 1 lands but step 2 reverts, the prepaid credit persists on the
+   * contract under the player and is reused on the next draw — no refund call.
    */
   const draw = async () => {
     if (isLoading.get()) return;
@@ -263,81 +243,87 @@ export function useTarot({
     try {
       const prompt = question.get().trim() || t("defaultQuestion");
 
-      // Step 1: Pay the draw fee through the OS payment service. The wallet
-      // confirms the value call and EdgeClient returns the on-chain tx id.
-      let result: unknown;
+      const playerAddr = address.get() || (await chain.ensureWallet());
+      const playerHash = addressToScriptHash(playerAddr || "");
+      if (!playerAddr || !playerHash) throw new Error(t("walletNotConnected"));
+      setAddress(playerAddr);
+
+      const contractHash = chain.contractAddress.get();
+      if (!contractHash) throw new Error(t("readingUnavailable"));
+
+      const fee = await loadDrawFee();
+
+      // Step 1: DEPOSIT — only top up when the existing credit can't cover the
+      // fee (credit may persist from a prior aborted draw).
+      let credit = 0n;
       try {
-        result = await paymentService.deposit(DRAW_FEE, prompt.slice(0, 200));
+        credit = parseBigInt(
+          await chain.read("creditOf", [{ type: "Hash160", value: playerHash }]),
+        );
       } catch {
-        throw new Error(t("readingUnavailable"));
+        credit = 0n;
       }
 
-      // Use the tx id as the reading id / seed. Fall back to a locally unique
-      // id if the wallet adapter did not surface a tx id (e.g. test harness).
-      const readingId =
-        extractReadingId(result) ||
-        `local-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
-
-      // Step 2: Derive the reading deterministically from the seed and persist
-      // it so the history index ("reading:" prefix) and the read-back resolve.
-      const derivedCards = normalizeReadingCards(deriveReadingCards(readingId));
-      let persisted = false;
-      try {
-        await storageService.set(`reading:${readingId}`, {
-          readingId,
-          status: "completed",
-          cards: derivedCards,
-          question: prompt.slice(0, 200),
-          createdAt: Date.now(),
-        });
-        persisted = true;
-      } catch {
-        // Persistence is best-effort for the history index; the reading below
-        // falls back to the in-memory derived cards if the read-back fails.
+      if (credit < fee) {
+        await chain.invoke(
+          "transfer",
+          [
+            { type: "Hash160", value: playerHash },
+            { type: "Hash160", value: contractHash },
+            { type: "Integer", value: fee.toString() },
+            { type: "String", value: DRAW_MEMO },
+          ],
+          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+        );
       }
 
-      // Step 3: Read the persisted reading back; fall back to derived cards.
-      const reading = await waitForReading(readingId);
-      const cardIds = reading ? reading.cards : derivedCards;
+      // Step 2: draw — consumes one fee and reveals three cards ON-CHAIN. Read
+      // the card indices from the ReadingDrawn event of this tx. If the deposit
+      // landed but this reverts, the credit persists as reusable prepaid credit.
+      let result;
+      try {
+        result = await chain.invoke(
+          "draw",
+          [{ type: "Hash160", value: playerHash }],
+          { waitForEvent: "ReadingDrawn" },
+        );
+      } catch (drawErr) {
+        console.error(
+          "[on-chain-tarot] draw failed after deposit settled:",
+          drawErr instanceof Error ? drawErr.message : String(drawErr),
+        );
+        // Deposit landed, draw did not — credit is held under the player and is
+        // reused on the next draw (no refund needed).
+        throw new Error(t("depositPrepaidNoReading"));
+      }
 
-      // Step 3: Map card IDs to deck entries
-      drawn.set(normalizeReadingCards(cardIds).map((cardId: number) => {
-        const card = tarotDeck.find((item) => item.id === cardId);
-        if (!card) {
-          return {
-            id: cardId,
-            name: `Card ${cardId}`,
-            icon: "M",
-            suit: "major",
-            number: cardId,
-            arcana: "Major Arcana",
-            suitLabel: "Unknown",
-            keywords: ["Oracle"],
-            image: TAROT_CARD_BACK,
-            backImage: TAROT_CARD_BACK,
-            flipped: false,
-          };
-        }
-        return { ...card, flipped: false };
-      }));
+      // ReadingDrawn(readingId, player, card0, card1, card2): id slot 0, cards
+      // slots 2..4.
+      const readingId = parseBigInt(eventValue(result.event, 0)).toString();
+      let cardIds: number[];
+      try {
+        cardIds = normalizeReadingCards([
+          eventValue(result.event, 2),
+          eventValue(result.event, 3),
+          eventValue(result.event, 4),
+        ]);
+      } catch {
+        // Event unavailable / unparsed — read the authoritative reading back.
+        cardIds = await readReadingCards(readingId);
+      }
+
+      // The question is NOT on-chain: persist it on-device keyed by readingId so
+      // the history can surface it later.
+      if (readingId && readingId !== "0") {
+        persistQuestion(readingId, prompt);
+      }
+
+      drawn.set(cardIds.map(cardFromIndex));
       readingMode.set("oracle");
 
-      // Reconcile the displayed counter with persisted state. If the reading
-      // was persisted (it joined the "reading:" index), the optimistic local
-      // increment matches storage; if persistence failed, re-derive the count
-      // from the storage index so the UI never shows N+1 readings that the
-      // history index does not actually contain.
-      if (persisted) {
-        readingsCount.set(readingsCount.get() + 1);
-      } else {
-        await loadReadingCount();
-      }
+      // Reconcile the readings counter from the contract's authoritative total.
+      await loadReadingCount();
       question.set("");
-
-      // Award first-reading badge (fire-and-forget)
-      if (readingsCount.get() === 1) {
-        badgeService.award("first-reading", "").catch(() => {});
-      }
 
       isLoading.set(false);
       return { success: true };
@@ -347,10 +333,28 @@ export function useTarot({
     }
   };
 
+  // ── Reading reads (authoritative cards from the contract) ───────────
+
+  /**
+   * Read a reading's three card indices from getReading(readingId). Used as the
+   * fallback when the ReadingDrawn event could not be parsed, and to rebuild the
+   * player's history.
+   */
+  const readReadingCards = async (readingId: string): Promise<number[]> => {
+    const raw = await chain.read("getReading", [{ type: "Integer", value: readingId }]);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error("reading not found");
+    }
+    const record = raw as Record<string, unknown>;
+    return normalizeReadingCards(record.cards);
+  };
+
+  // ── Flip / reset / formatting ───────────────────────────────────────
+
   const flipCard = (index: number) => {
     const cards = drawn.get();
     if (!cards[index] || cards[index].flipped) return;
-    drawn.set(cards.map((card, cardIndex) => cardIndex === index ? { ...card, flipped: true } : card));
+    drawn.set(cards.map((card, cardIndex) => (cardIndex === index ? { ...card, flipped: true } : card)));
   };
 
   const reset = () => {
@@ -360,8 +364,8 @@ export function useTarot({
 
   const getReading = () => {
     const cards = drawn.get();
-    if (cards.length !== 3) return t("readingText");
-    return `${t("past")}: ${cards[0]!.name} \u00B7 ${t("present")}: ${cards[1]!.name} \u00B7 ${t("future")}: ${cards[2]!.name}`;
+    if (cards.length !== CARDS_PER_READING) return t("readingText");
+    return `${t("past")}: ${cards[0]!.name} · ${t("present")}: ${cards[1]!.name} · ${t("future")}: ${cards[2]!.name}`;
   };
 
   /**
@@ -371,27 +375,43 @@ export function useTarot({
    * a false "Copied" confirmation.
    */
   const copyReading = async (): Promise<boolean> => {
-    if (drawn.get().length !== 3) return false;
+    if (drawn.get().length !== CARDS_PER_READING) return false;
     return clipboard.copy(getReading(), "readingCopied");
   };
 
+  // ── Data loading (direct chain reads) ───────────────────────────────
+
   /**
-   * Load reading count via StorageProxy.
-   * The edge function aggregates ReadingCompleted events.
+   * Load the player's reading count from playerReadingCount(player). Falls back
+   * to the global readingsCount() when no wallet is connected so the stat is
+   * never blank. The count reflects authoritative on-chain state.
    */
   const loadReadingCount = async () => {
     try {
-      const raw = unwrapServiceData(await storageService.list("reading:"));
-      if (raw && typeof raw === "object") {
-        readingsCount.set(Object.keys(raw).length);
+      const playerAddr = address.get();
+      const playerHash = playerAddr ? addressToScriptHash(playerAddr) || null : null;
+
+      if (playerHash) {
+        const raw = await chain.read("playerReadingCount", [
+          { type: "Hash160", value: playerHash },
+        ]);
+        readingsCount.set(Number(parseBigInt(raw)));
+        return;
       }
-    } catch (_e) {
-      console.warn("[on-chain-tarot] reading count load failed:", _e instanceof Error ? _e.message : String(_e));
+
+      const globalRaw = await chain.read("readingsCount", []);
+      readingsCount.set(Number(parseBigInt(globalRaw)));
+    } catch (e) {
+      console.warn(
+        "[on-chain-tarot] reading count load failed:",
+        e instanceof Error ? e.message : String(e),
+      );
       readingsCount.set(Math.max(readingsCount.get(), 0));
     }
   };
 
   const loadAll = async () => {
+    setAddress(chain.address.get() ?? null);
     await loadReadingCount();
   };
 
@@ -406,13 +426,16 @@ export function useTarot({
     question,
     isLoading,
     readingMode,
+    address,
 
     // Actions
+    setAddress,
     draw,
     flipCard,
     reset,
     getReading,
     copyReading,
+    restoreQuestion,
     loadReadingCount,
     loadAll,
   };
