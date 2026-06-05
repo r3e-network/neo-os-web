@@ -34,27 +34,36 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
   const styles = read("apps/shared/components-react/ConsoleToolPanel.scss");
 
   assert.match(component, /className="console-tool__hero"/);
-  assert.match(component, /className="console-tool__hero-metrics"/);
-  assert.match(component, /className="console-tool__asset-card"/);
-  assert.match(component, /className="console-tool__asset-signal"/);
-  assert.match(component, /className="console-tool__flow"/);
-  assert.match(component, /className="console-tool__hint"/);
+  // IA refactor (2026-06): the 3-tile hero-metrics strip + the separate asset
+  // card were replaced by the compact inline `console-tool__hero-meta` context
+  // line and a two-column `console-tool__workspace` (form + result).
+  assert.match(component, /className="console-tool__hero-meta"/);
+  assert.match(component, /className="console-tool__workspace"/);
+  assert.match(component, /className="console-tool__form"/);
+  assert.match(component, /className="console-tool__result"/);
+  assert.match(component, /className="console-tool__empty"/);
   assert.match(component, /className="console-tool__payload-card"/);
   assert.match(component, /const networkLabel =/);
   assert.match(component, /const endpointLabel =/);
   assert.match(component, /const requestCount =/);
-  assert.match(component, /const lastDigest =/);
+  // The request digest is no longer a top-level const stat; it is seeded/updated
+  // through the preview+reset lifecycle, so guard the actual state wiring.
+  assert.match(component, /setObservable\(state, "lastDigest"/);
 
   assert.match(styles, /\.console-tool\s*\{[^}]*#f7f8fb/s);
   assert.match(styles, /\.console-tool__hero\s*\{/);
   assert.match(styles, /\.console-tool__hero\s*\{[^}]*padding:\s*18px/s);
-  assert.match(styles, /\.console-tool__hero\s*\{[^}]*border-radius:\s*16px/s);
-  assert.match(styles, /\.console-tool__hero\s*\{[^}]*background:\s*#ffffff/s);
-  assert.match(styles, /\.console-tool__hero\s*\{[^}]*box-shadow:\s*0 12px 30px rgba\(15,\s*23,\s*42,\s*0\.06\)/s);
-  assert.match(styles, /\.console-tool__asset-card\s*\{[^}]*linear-gradient/s);
-  assert.match(styles, /\.console-tool__asset-token\s*\{[^}]*border-radius:\s*999px/s);
-  assert.match(styles, /\.console-tool__hint\s*\{[^}]*padding:\s*11px 13px/s);
-  assert.match(styles, /\.console-tool__hint\s*\{[^}]*background:\s*#f8fafc/s);
+  // Neo Soft redesign swapped literal hero surface values for --ns-* design tokens
+  // (--ns-radius-lg = 20px, --ns-surface = #ffffff, --ns-shadow-md soft shadow).
+  assert.match(styles, /\.console-tool__hero\s*\{[^}]*border-radius:\s*var\(--ns-radius-lg\)/s);
+  assert.match(styles, /\.console-tool__hero\s*\{[^}]*background:\s*var\(--ns-surface\)/s);
+  assert.match(styles, /\.console-tool__hero\s*\{[^}]*box-shadow:\s*var\(--ns-shadow-md\)/s);
+  // The dense data tiles inside the result panel (the "hint"/asset replacement)
+  // keep the compact padded, subtle-surface card treatment.
+  assert.match(styles, /\.console-tool__rows div\s*\{[^}]*padding:\s*11px 14px/s);
+  assert.match(styles, /\.console-tool__rows div\s*\{[^}]*background:\s*var\(--ns-surface-subtle\)/s);
+  // Reset placeholder status badge stays a fully-rounded pill.
+  assert.match(styles, /\.console-tool__status-badge\s*\{[^}]*border-radius:\s*var\(--ns-radius-full\)/s);
   assert.match(styles, /\.console-tool \.neo-btn:disabled\s*\{[^}]*opacity:\s*1/s);
   assert.doesNotMatch(styles, /\.console-tool__intro h2\s*\{[^}]*#f8fafc/s);
   assert.doesNotMatch(styles, /radial-gradient/i);
@@ -78,9 +87,12 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
     /\.console-tool__intro h2\s*\{[^}]*font-size:\s*1\.4rem;/s,
     "panel title should be compact enough for embedded miniapp surfaces",
   );
+  // The rendered request/result data tiles keep a restrained data-sized type
+  // scale (the asset-copy hero block this used to guard was removed in the IA
+  // refactor; the result rows are now where digest/value data is read).
   assert.match(
     styles,
-    /\.console-tool__asset-copy strong\s*\{[^}]*font-size:\s*1\.12rem;/s,
+    /\.console-tool__rows strong\s*\{[^}]*font-size:\s*0\.9rem;/s,
     "request digest should read as data, not oversized hero text",
   );
   assert.match(
@@ -89,8 +101,8 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
   );
   assert.match(
     styles,
-    /@media \(max-width: 860px\)[\s\S]*\.console-tool__flow\s*\{[^}]*grid-template-columns:\s*1fr/s,
-    "mobile oracle console flow steps should stack instead of crowding the form",
+    /@media \(max-width: 860px\)[\s\S]*\.console-tool__rows\s*\{[^}]*grid-template-columns:\s*1fr/s,
+    "mobile oracle console result tiles should stack instead of crowding the panel",
   );
   assert.match(
     styles,

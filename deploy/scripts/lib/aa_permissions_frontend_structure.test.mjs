@@ -13,12 +13,31 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-function assertOnlyZeroLetterSpacing(styles) {
-  const values = [...styles.matchAll(/letter-spacing:\s*([^;]+);/g)].map(
-    (match) => match[1].trim(),
-  );
-  assert.ok(values.length > 0, "expected at least one letter-spacing declaration");
-  assert.deepEqual(values, values.map(() => "0"));
+// Neo Soft adopts uppercase eyebrow labels with positive letter-spacing
+// tracking (0.12em) as the intentional design language. The old design
+// philosophy (zero letter-spacing, no uppercase) was deliberately replaced,
+// so this guards the new language instead.
+function assertNeoSoftEyebrowTracking(styles) {
+  const eyebrows = [
+    ".permissions-hero__eyebrow",
+    ".permissions-section-heading span",
+  ];
+  for (const selector of eyebrows) {
+    const block = styles.match(
+      new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`, "s"),
+    );
+    assert.ok(block, `expected style block for ${selector}`);
+    assert.match(
+      block[1],
+      /letter-spacing:\s*0\.12em/,
+      `${selector} must use 0.12em eyebrow tracking`,
+    );
+    assert.match(
+      block[1],
+      /text-transform:\s*uppercase/,
+      `${selector} must be an uppercase eyebrow`,
+    );
+  }
 }
 
 test("AA Permissions Lab exposes a guarded wallet-style permissions workspace", () => {
@@ -27,9 +46,15 @@ test("AA Permissions Lab exposes a guarded wallet-style permissions workspace", 
   const messages = read("apps/aa-permissions-lab/src/locale/messages.ts");
 
   assert.match(playArea, /className="permissions-hero"/);
-  assert.match(playArea, /className="permissions-hero__metrics"/);
-  assert.match(playArea, /className="permissions-flow"/);
-  assert.match(playArea, /className="permissions-workspace"/);
+  // Neo Soft redesign: hero metrics grid replaced by an uppercase eyebrow
+  // label that renders the permission-state metrics copy.
+  assert.match(playArea, /className="permissions-hero__eyebrow"/);
+  assert.match(playArea, /\{t\("permissionsMetricsLabel"\)\}/);
+  // The permission-update "flow" heading is now the write-column heading
+  // (renders permissionsFlowLabel); the two-column workspace is the grid.
+  assert.match(playArea, /className="permissions-write-heading"/);
+  assert.match(playArea, /\{t\("permissionsFlowLabel"\)\}/);
+  assert.match(playArea, /className="permissions-grid"/);
   assert.match(playArea, /const canRefresh =/);
   assert.match(playArea, /const canUpdateVerifier =/);
   assert.match(playArea, /const canUpdateHook =/);
@@ -41,10 +66,20 @@ test("AA Permissions Lab exposes a guarded wallet-style permissions workspace", 
   assert.doesNotMatch(styles, /opacity:\s*0\.55/);
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
   assert.doesNotMatch(styles, /border-radius:\s*2[2-9]px/);
-  assertOnlyZeroLetterSpacing(styles);
-  assert.match(styles, /\.permissions-hint\s*\{[^}]*padding:\s*11px 13px/s);
-  assert.match(styles, /\.permissions-hint\s*\{[^}]*border:\s*1px solid/s);
-  assert.match(styles, /\.permissions-hint\s*\{[^}]*background:\s*#f8fafc/s);
+  assertNeoSoftEyebrowTracking(styles);
+  // Neo Soft redesign: the inline hint box is now the warn caption variant.
+  assert.match(
+    styles,
+    /\.permissions-caption--warn\s*\{[^}]*padding:\s*11px 13px/s,
+  );
+  assert.match(
+    styles,
+    /\.permissions-caption--warn\s*\{[^}]*border:\s*1px solid/s,
+  );
+  assert.match(
+    styles,
+    /\.permissions-caption--warn\s*\{[^}]*background:\s*var\(--ns-surface-subtle/s,
+  );
   assert.match(messages, /permissionsHeroTitle/);
   assert.match(messages, /permissionsFlowVerifier/);
   assert.match(messages, /verifierUpdateBlocked/);
