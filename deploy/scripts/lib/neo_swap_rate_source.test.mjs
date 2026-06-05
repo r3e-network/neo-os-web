@@ -20,8 +20,10 @@ test("Neo Swap quotes use the Morpheus DataFeed instead of a missing wallet SDK 
 
   assert.match(hook, /import \{ useMorpheusDataFeed \} from "@shared\/composables\/useMorpheusDataFeed";/);
   assert.match(hook, /const datafeed = useMorpheusDataFeed\(\);/);
-  assert.match(hook, /const fromPrice = await datafeed\.getPrice\(fromToken\.get\(\)\.symbol\);/);
-  assert.match(hook, /const toPrice = await datafeed\.getPrice\(toToken\.get\(\)\.symbol\);/);
+  assert.match(hook, /const \[fromPrice, toPrice\] = await Promise\.all\(\[/);
+  assert.match(hook, /datafeed\.getPrice\(fromToken\.get\(\)\.symbol\),/);
+  assert.match(hook, /datafeed\.getPrice\(toToken\.get\(\)\.symbol\),/);
+  assert.match(hook, /const rate = fromPrice \/ toPrice;/);
   assert.match(hook, /function setFromAmount\(value: string\)/);
   assert.match(hook, /fromAmount\.set\(value\);[\s\S]*onFromAmountChange\(\);/);
   assert.match(playArea, /dispatch\("setFromAmount", val\)/);

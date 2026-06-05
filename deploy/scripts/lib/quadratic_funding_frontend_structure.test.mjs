@@ -13,12 +13,24 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-function assertOnlyZeroLetterSpacing(styles) {
-  const values = [...styles.matchAll(/letter-spacing:\s*([^;]+);/g)].map(
-    (match) => match[1].trim(),
+// The Neo Soft redesign (commit 05ef54aab) intentionally adopts uppercase
+// eyebrow labels with 0.12em tracking as the design language. Assert the new
+// language is present rather than the obsolete "every letter-spacing is 0" rule.
+function assertNeoSoftEyebrow(styles) {
+  // The eyebrow/kicker carries the uppercase + tracking treatment.
+  assert.match(
+    styles,
+    /\.qf-hero-kicker\s*\{[^}]*letter-spacing:\s*0\.12em;[^}]*text-transform:\s*uppercase;/s,
+    "expected the hero kicker to use the Neo Soft uppercase + 0.12em tracking eyebrow",
   );
-  assert.ok(values.length > 0, "expected explicit letter-spacing declarations");
-  assert.deepEqual(values, values.map(() => "0"));
+  // Tracking is shared by other small-caps labels (e.g. admin group titles).
+  const trackedLabels = [
+    ...styles.matchAll(/letter-spacing:\s*0\.12em;/g),
+  ];
+  assert.ok(
+    trackedLabels.length >= 2,
+    "expected at least two 0.12em tracked eyebrow labels in the redesign",
+  );
 }
 
 test("Quadratic Funding renders a compact wallet-style grant console with complete actions", () => {
@@ -31,22 +43,28 @@ test("Quadratic Funding renders a compact wallet-style grant console with comple
   const main = read("apps/quadratic-funding/src/main.tsx");
   const messages = read("apps/quadratic-funding/src/locale/messages.ts");
 
+  // The redesign retired the standalone qf-wallet-strip / qf-impact-strip stat
+  // bands; their funding-metric intent now lives in the hero ledger and the
+  // count-badged action tabs. Guard the current structural regions instead.
   for (const className of [
     "qf-shell",
-    "qf-wallet-strip",
+    "qf-main-column",
     "qf-action-tabs",
     "qf-content-grid",
-    "qf-impact-strip",
+    "qf-side-stack",
     "qf-contribute-panel",
   ]) {
     assert.match(playArea, new RegExp(`className="[^"]*${className}`));
   }
 
+  // Hero regions were renamed in the redesign: qf-hero-copy/-ledger/-metric ->
+  // qf-hero-intro (badge + eyebrow), qf-hero-kicker (eyebrow), qf-hero-facts
+  // (the inline matching-pool / live-round ledger). Progress bar is unchanged.
   for (const className of [
     "qf-hero",
-    "qf-hero-copy",
-    "qf-hero-ledger",
-    "qf-hero-metric",
+    "qf-hero-intro",
+    "qf-hero-kicker",
+    "qf-hero-facts",
     "qf-progress-bar",
   ]) {
     assert.match(hero, new RegExp(`className="[^"]*${className}`));
@@ -97,17 +115,31 @@ test("Quadratic Funding renders a compact wallet-style grant console with comple
     assert.match(messages, new RegExp(`${key}:`));
   }
 
-  assert.match(styles, /\.qf-play-area\s*\{[^}]*#f7f8fb/s);
-  assert.match(styles, /\.qf-shell\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(300px,\s*0\.42fr\)/s);
-  assert.match(styles, /\.qf-hero\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(280px,\s*0\.58fr\)/s);
-  assert.match(styles, /\.qf-wallet-strip\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/s);
+  // The redesign moved to light --ns-* design tokens; the play-area canvas now
+  // uses the Neo Soft background token (var(--ns-bg, #f4f5f7)).
+  assert.match(styles, /\.qf-play-area\s*\{[^}]*var\(--ns-bg,\s*#f4f5f7\)/s);
+  // qf-shell is now a centered max-width column wrapper, not a 2-track grid.
+  assert.match(styles, /\.qf-shell\s*\{[^}]*max-width:\s*1080px;[^}]*margin:\s*0 auto;/s);
+  // The hero stacks its copy/ledger/actions vertically (flex column) rather
+  // than the retired two-track grid layout.
+  assert.match(styles, /\.qf-hero\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
+  // The primary content layout grid is unchanged.
   assert.match(styles, /\.qf-content-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*0\.82fr\) minmax\(300px,\s*0\.38fr\)/s);
-  assert.match(styles, /\.qf-impact-strip\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
-  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.qf-shell[\s\S]*grid-template-columns:\s*1fr/s);
-  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.qf-wallet-strip[\s\S]*grid-template-columns:\s*1fr 1fr/s);
+  // The 4-up wallet strip and 3-up impact strip were retired; the surviving
+  // metric grids are the 2-up form / round-card grids and the 3-up project stats.
+  assert.match(styles, /\.qf-form-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+  assert.match(styles, /\.qf-project-stats\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
+  // Responsive collapse: content grid stacks at <=980px; the inner metric grids
+  // collapse to a single column at <=760px.
+  assert.match(styles, /@media \(max-width: 980px\)[\s\S]*\.qf-content-grid[\s\S]*grid-template-columns:\s*1fr/s);
+  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.qf-form-grid[\s\S]*grid-template-columns:\s*1fr/s);
 
-  assertOnlyZeroLetterSpacing(styles);
-  assert.doesNotMatch(styles, /text-transform:\s*uppercase/);
+  // Neo Soft design language: uppercase eyebrows with 0.12em tracking are now
+  // intentional (replaces the obsolete zero-letter-spacing / no-uppercase rules).
+  assertNeoSoftEyebrow(styles);
+  assert.match(styles, /text-transform:\s*uppercase/);
+  // Still-valid design-system constraints: no fluid clamp typography, no radial
+  // gradients, and radii stay token-bounded (no bare 20px+ literal radii).
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
   assert.doesNotMatch(styles, /radial-gradient/i);
   assert.doesNotMatch(styles, /border-radius:\s*(?:2[0-9]|[3-9][0-9])px/);
