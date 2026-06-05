@@ -13,14 +13,6 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-function assertOnlyZeroLetterSpacing(styles) {
-  const values = [...styles.matchAll(/letter-spacing:\s*([^;]+);/g)].map(
-    (match) => match[1].trim(),
-  );
-  assert.ok(values.length > 0, "expected explicit letter-spacing declarations");
-  assert.deepEqual(values, values.map(() => "0"));
-}
-
 test("Gov Merc renders a complete wallet-style governance market workspace", () => {
   const playArea = read("apps/gov-merc/src/PlayArea.tsx");
   const actions = read("apps/gov-merc/src/components/MercActionCards.tsx");
@@ -38,7 +30,10 @@ test("Gov Merc renders a complete wallet-style governance market workspace", () 
     "gov-merc-shell",
     "gov-merc-hero",
     "gov-merc-scoreboard",
-    "gov-merc-pool-panel",
+    // Neo Soft redesign renamed the deposit/withdraw/bid panel from
+    // `gov-merc-pool-panel` to `gov-merc-action-panel` (it wraps the
+    // gov-merc-action-grid action cards).
+    "gov-merc-action-panel",
     "gov-merc-action-grid",
     "gov-merc-bid-panel",
     "gov-merc-flow",
@@ -101,9 +96,11 @@ test("Gov Merc renders a complete wallet-style governance market workspace", () 
     styles,
     /\.gov-merc-hero\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(300px,\s*0\.48fr\)/s,
   );
+  // Neo Soft redesign: the hero heading lives in `.gov-merc-hero-copy { h2 { ... } }`
+  // and the dark wash (#f8fffb) was replaced with the light --ns-ink token.
   assert.match(
     styles,
-    /\.gov-merc-hero \.gov-merc-hero-copy\s*\{[\s\S]*>\s*h2\s*\{[^}]*color:\s*#f8fffb/s,
+    /\.gov-merc-hero-copy\s*\{[\s\S]*?\bh2\s*\{[^}]*color:\s*var\(--ns-ink,\s*#102019\)/s,
   );
   assert.match(styles, /white-space:\s*nowrap/);
   assert.match(styles, /word-break:\s*normal/);
@@ -124,8 +121,29 @@ test("Gov Merc renders a complete wallet-style governance market workspace", () 
     /@media \(max-width: 640px\)[\s\S]*\.gov-merc-action-grid\s*\{[^}]*grid-template-columns:\s*1fr/s,
   );
 
-  assertOnlyZeroLetterSpacing(styles);
-  assert.doesNotMatch(styles, /text-transform:\s*uppercase/);
+  // Neo Soft design language: small eyebrow/section labels are intentionally
+  // uppercased and tracked out at 0.12em. Replaces the obsolete
+  // zero-letter-spacing / no-uppercase guards from the dark theme.
+  assert.match(styles, /text-transform:\s*uppercase/);
+  // The hero eyebrow (`.gov-merc-hero-copy span`) must be an uppercase, tracked
+  // eyebrow rather than a plain caption.
+  assert.match(
+    styles,
+    /\.gov-merc-hero-copy\s*\{[\s\S]*?\bspan\s*\{[^}]*text-transform:\s*uppercase;[^}]*letter-spacing:\s*0\.12em/s,
+  );
+  // The section headings that label each panel share the same uppercase +
+  // 0.12em tracked eyebrow treatment.
+  assert.match(
+    styles,
+    /\.gov-merc-section-heading\s*\{[\s\S]*?\bspan\s*\{[^}]*text-transform:\s*uppercase;[^}]*letter-spacing:\s*0\.12em/s,
+  );
+  // Tracked eyebrows appear in several places; ensure the canonical 0.12em
+  // tracking is present and not a one-off.
+  assert.ok(
+    [...styles.matchAll(/letter-spacing:\s*0\.12em/g)].length >= 2,
+    "expected uppercase eyebrows tracked at 0.12em (Neo Soft design language)",
+  );
+
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
   assert.doesNotMatch(styles, /radial-gradient/i);
   assert.doesNotMatch(styles, /border-radius:\s*(?:2[0-9]|[3-9][0-9])px/);

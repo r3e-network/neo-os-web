@@ -21,10 +21,14 @@ test("AA Relay Console exposes a guarded wallet-style relay workspace", () => {
   );
   const messages = read("apps/aa-relay-console/src/locale/messages.ts");
 
+  assert.match(playArea, /className="relay-play-area"/);
   assert.match(playArea, /className="relay-hero"/);
-  assert.match(playArea, /className="relay-hero__metrics"/);
-  assert.match(playArea, /className="relay-flow"/);
-  assert.match(playArea, /className="relay-workspace"/);
+  // Neo Soft redesign renamed the hero metric strip relay-hero__metrics -> relay-hero__facts.
+  assert.match(playArea, /className="relay-hero__facts"/);
+  // The multi-step relay-flow/relay-workspace sections were consolidated into a single
+  // relay-command card whose body is the relay-form flow. Guard both regions remain.
+  assert.match(playArea, /className="relay-command"/);
+  assert.match(playArea, /className="relay-form"/);
   assert.match(playArea, /const canCheckSponsor =/);
   assert.match(playArea, /const canRequestSponsor =/);
   assert.match(playArea, /const canSubmitRelay =/);
@@ -32,6 +36,12 @@ test("AA Relay Console exposes a guarded wallet-style relay workspace", () => {
   assert.match(playArea, /disabled=\{!canRequestSponsor/);
   assert.match(playArea, /disabled=\{!canSubmitRelay/);
   assert.match(styles, /\.relay-play-area button:disabled/);
+  // Neo Soft design language: hero eyebrow is an uppercase, letter-spaced kicker.
+  assert.match(styles, /\.relay-hero__eyebrow\s*\{[^}]*text-transform:\s*uppercase/);
+  assert.match(styles, /\.relay-hero__eyebrow\s*\{[^}]*letter-spacing:\s*0\.12em/);
+  // Design-system constraints preserved: no fluid font clamp, no radial-gradient washes.
+  assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
+  assert.doesNotMatch(styles, /radial-gradient/);
   assert.match(composable, /aa\.isCheckingSponsorship\.get\(\)/);
   assert.match(composable, /aa\.isRelaying\.get\(\)/);
   assert.doesNotMatch(

@@ -13,14 +13,6 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-function assertOnlyZeroLetterSpacing(styles) {
-  const values = [...styles.matchAll(/letter-spacing:\s*([^;]+);/g)].map(
-    (match) => match[1].trim(),
-  );
-  assert.ok(values.length > 0, "expected explicit letter-spacing declarations");
-  assert.deepEqual(values, values.map(() => "0"));
-}
-
 test("Neo Sign Anything renders a complete light wallet-style signature workspace", () => {
   const playArea = read("apps/neo-sign-anything/src/PlayArea.tsx");
   const styles = read("apps/neo-sign-anything/src/PlayArea.scss");
@@ -38,7 +30,7 @@ test("Neo Sign Anything renders a complete light wallet-style signature workspac
     "sign-result-panel",
     "sign-flow-strip",
     "sign-safety-panel",
-    "sign-broadcast-panel",
+    "sign-details",
   ]) {
     assert.match(playArea, new RegExp(`className="[^"]*${className}`));
   }
@@ -53,13 +45,16 @@ test("Neo Sign Anything renders a complete light wallet-style signature workspac
   assert.match(playArea, /dispatch\("copyToClipboard",\s*txHash\)/);
   assert.match(playArea, /disabled=\{!canSubmit \|\| isSigning\}/);
   assert.match(playArea, /disabled=\{!canBroadcast \|\| isBroadcasting\}/);
-  assert.doesNotMatch(playArea, /signHeroKicker/);
+  // Neo Soft redesign adopts an uppercase eyebrow above the hero heading.
+  assert.match(playArea, /className="sign-hero-eyebrow"/);
+  assert.match(playArea, /\{t\("signHeroKicker"\)\}/);
 
   assert.match(main, /ctx\.registerAction\("signMessage"/);
   assert.match(main, /ctx\.registerAction\("broadcastMessage"/);
   assert.match(main, /ctx\.registerAction\("copyToClipboard"/);
 
   for (const key of [
+    "signHeroKicker",
     "signHeroTitle",
     "signHeroSubtitle",
     "signatureDeskTitle",
@@ -79,17 +74,17 @@ test("Neo Sign Anything renders a complete light wallet-style signature workspac
     assert.match(messages, new RegExp(`${key}:`), key);
   }
 
-  assert.match(styles, /\.sign-play-area\s*\{[^}]*#f5f7fa/s);
+  assert.match(styles, /\.sign-play-area\s*\{[^}]*#f4f5f7/s);
   assert.match(
     styles,
     /\.sign-shell\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*0\.72fr\)\s+minmax\(320px,\s*0\.44fr\)/s,
   );
   assert.match(
     styles,
-    /\.sign-hero\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(340px,\s*0\.62fr\)/s,
+    /\.sign-hero\s*\{[^}]*grid-template-columns:\s*auto\s+minmax\(0,\s*1fr\)\s+minmax\(220px,\s*auto\)/s,
   );
-  assert.match(styles, /\.sign-hero\s*\{[^}]*#ffffff/s);
-  assert.match(styles, /\.sign-hero\s*\{[^}]*#fff7ed/s);
+  assert.match(styles, /\.sign-hero\s*\{[^}]*background:\s*var\(--sign-panel\)/s);
+  assert.match(styles, /\.sign-hero\s*\{[^}]*box-shadow:\s*var\(--sign-shadow\)/s);
   assert.match(
     styles,
     /\.sign-hero \.sign-hero-copy\s*>\s*h2\s*\{[^}]*color:\s*var\(--sign-ink\)/s,
@@ -100,15 +95,20 @@ test("Neo Sign Anything renders a complete light wallet-style signature workspac
   );
   assert.match(
     styles,
-    /\.sign-hero \.sign-hero-stats span\s*\{[^}]*color:\s*#8a94a6/s,
+    /\.sign-hero \.sign-hero-stats span\s*\{[^}]*color:\s*var\(--sign-label\)/s,
+  );
+  // Neo Soft stat labels are uppercase tracked eyebrows.
+  assert.match(
+    styles,
+    /\.sign-hero \.sign-hero-stats span\s*\{[^}]*text-transform:\s*uppercase/s,
   );
   assert.match(
     styles,
-    /\.sign-hero \.sign-hero-stats strong\s*\{[^}]*white-space:\s*nowrap/s,
+    /\.sign-hero \.sign-hero-stats strong\s*\{[^}]*font-variant-numeric:\s*tabular-nums/s,
   );
   assert.match(
     styles,
-    /\.sign-hero-accent\s*\{[^}]*background:\s*#fef3c7/s,
+    /\.sign-hero-accent\s*\{[^}]*background:\s*var\(--sign-badge-bg\)/s,
   );
   assert.match(
     styles,
@@ -130,12 +130,21 @@ test("Neo Sign Anything renders a complete light wallet-style signature workspac
   assert.match(styles, /@media \(max-width: 900px\)[\s\S]*\.sign-shell[\s\S]*grid-template-columns:\s*1fr/s);
   assert.match(
     styles,
-    /@media \(max-width: 640px\)[\s\S]*\.sign-hero-stats[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s,
+    /@media \(max-width: 640px\)[\s\S]*\.sign-hero-stats[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
   );
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.sign-flow-strip[\s\S]*grid-template-columns:\s*1fr/s);
 
-  assertOnlyZeroLetterSpacing(styles);
-  assert.doesNotMatch(styles, /text-transform:\s*uppercase/);
+  // Neo Soft design language: uppercase eyebrow labels with 0.12em tracking
+  // are intentional (the hero eyebrow), so we assert their presence rather
+  // than the obsolete "every letter-spacing must be 0 / no uppercase" guard.
+  assert.match(
+    styles,
+    /\.sign-hero-eyebrow\s*\{[^}]*text-transform:\s*uppercase/s,
+  );
+  assert.match(
+    styles,
+    /\.sign-hero-eyebrow\s*\{[^}]*letter-spacing:\s*0\.12em/s,
+  );
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
   assert.doesNotMatch(styles, /radial-gradient/i);
   assert.doesNotMatch(
