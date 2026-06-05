@@ -6,8 +6,8 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   subtitle: { en: "Relationship stakes on-chain", zh: "链上关系赌注" },
   contractTitle: { en: "RELATIONSHIP CONTRACT", zh: "关系合约" },
   clause1: {
-    en: "This contract binds two parties in a commitment backed by cryptocurrency stakes.",
-    zh: "本合约将双方绑定在由加密货币质押支持的承诺中。",
+    en: "This pact binds two parties: each locks a matching GAS stake. Break it and your stake goes to your partner; honor it to expiry and both stakes are refunded.",
+    zh: "本约定绑定双方：各自锁定等额 GAS 质押。违约则你的质押归对方所有；坚持到期满则双方质押全额退回。",
   },
 
   partnerLabel: { en: "Partner Address", zh: "伴侣地址" },
@@ -43,8 +43,8 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   contracts: { en: "Contracts", zh: "合约" },
   noContracts: { en: "No contracts yet", zh: "暂无合约" },
   noContractsHint: {
-    en: "Created or signed relationship agreements will appear here once the contract index is available.",
-    zh: "合约索引可用后，已创建或已签署的关系协议会显示在这里。",
+    en: "Pacts you create or are named in will appear here. Connect your wallet to load them from the chain.",
+    zh: "你创建或被指定参与的约定会显示在这里。连接钱包以从链上加载。",
   },
   contractDescription: {
     en: "Draft a stake-backed relationship agreement with a partner, duration, and terms before confirming the wallet intent.",
@@ -69,10 +69,13 @@ title: { en: "Breakup Contract", zh: "分手合约" },
 
   signContract: { en: "Sign Contract", zh: "签署合约" },
   breakContract: { en: "Break Contract", zh: "违约" },
+  settleContract: { en: "Settle", zh: "结算退还" },
+  untitledContract: { en: "Untitled pact", zh: "未命名约定" },
 
   contractCreated: { en: "Contract created successfully!", zh: "合约创建成功！" },
   contractSigned: { en: "Contract signed", zh: "合约已签署" },
-  contractBroken: { en: "Contract broken! Stake forfeited.", zh: "合约已破裂！质押被没收。" },
+  contractBroken: { en: "Pact broken — your stake is forfeited to your partner.", zh: "约定已违约 — 你的质押已归对方所有。" },
+  contractSettled: { en: "Pact honored — both stakes refunded.", zh: "约定已履行 — 双方质押已退回。" },
   contractPreparing: {
     en: "Preparing wallet confirmation for \"{title}\" with {amount} stake.",
     zh: "正在为「{title}」准备 {amount} 质押的钱包确认。",
@@ -89,22 +92,30 @@ title: { en: "Breakup Contract", zh: "分手合约" },
     en: "Preparing breakup confirmation for contract #{id}.",
     zh: "正在为合约 #{id} 准备违约确认。",
   },
-  contractServiceUnavailableTitle: { en: "Contract index unavailable", zh: "合约索引暂不可用" },
-  contractIndexUnavailable: {
-    en: "Live contract records are not available in this environment yet. You can still prepare a new agreement and review the wallet intent before signing.",
-    zh: "当前环境暂未接通实时合约记录。你仍可准备新协议，并在签名前查看钱包意图。",
+  contractSettling: {
+    en: "Preparing settlement for pact #{id} — refunding both stakes.",
+    zh: "正在为约定 #{id} 准备结算 — 退还双方质押。",
   },
-  contractActionUnavailable: {
-    en: "Contract submission services are not configured in this environment yet.",
-    zh: "当前环境暂未配置合约提交服务。",
+  partnerSelf: {
+    en: "You cannot name yourself as the partner.",
+    zh: "不能将自己设为伴侣。",
   },
+  pactIdRequired: {
+    en: "Could not resolve the on-chain pact for this action.",
+    zh: "无法解析该操作对应的链上约定。",
+  },
+  depositPrepaidNoContract: {
+    en: "Your stake was deposited but the pact was not created. The stake is held on the contract as reusable prepaid credit — retry to create the pact.",
+    zh: "你的质押已存入，但约定未能创建。质押作为可复用的预付额度保留在合约上 — 请重试以创建约定。",
+  },
+  depositPrepaidNoSign: {
+    en: "Your matching stake was deposited but the pact was not signed. The stake is held on the contract as reusable prepaid credit — retry to sign.",
+    zh: "你的等额质押已存入，但约定未能签署。质押作为可复用的预付额度保留在合约上 — 请重试签署。",
+  },
+  contractServiceUnavailableTitle: { en: "Couldn't load pacts", zh: "无法加载约定" },
   contractWalletUnavailable: {
-    en: "Open this MiniApp from the platform workspace to confirm the contract wallet intent.",
-    zh: "请从平台工作区打开此小程序，以确认合约钱包意图。",
-  },
-  contractCreateFundsRecoverable: {
-    en: "The stake escrow was created but the contract record could not be saved, and the automatic refund failed. Your funds are still escrowed and recoverable — please retry shortly.",
-    zh: "质押托管已创建，但合约记录保存失败，且自动退款也未成功。您的资金仍在托管中且可恢复，请稍后重试。",
+    en: "Connect your wallet to stake and confirm the pact on-chain.",
+    zh: "请连接钱包，以在链上质押并确认约定。",
   },
   lastSubmittedContract: {
     en: "Last submitted: {title}",
