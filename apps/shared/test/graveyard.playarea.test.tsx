@@ -19,10 +19,10 @@ function t(key: string) {
     burialChecklist: "Burial checklist",
     burialFee: "Burial fee",
     burialReview: "Burial review",
-    memoryTypeLocal: "Record tag (local)",
+    memoryTypeLocal: "Record tag",
     memoryTypeLocalHint:
-      "A local label for your own records only — it is not written on-chain. Only the content hash is anchored.",
-    selectedTypeLocal: "Record tag (local)",
+      "Categorises the memory; this tag is anchored on-chain alongside the content hash.",
+    selectedTypeLocal: "Record tag",
     burialReviewSubtitle: "Confirm target, wallet action, and fee model before signing.",
     buryWalletIntent: "Bury memory",
     cancel: "Cancel",
@@ -156,12 +156,13 @@ describe("Graveyard PlayArea", () => {
 
     // Fee is derived from the source-of-truth constant (state), not hardcoded.
     expect(screen.getByText("0.10 GAS")).toBeTruthy();
-    // Memory type is presented as a local-only record tag, not an on-chain
-    // attribute (one label on the selector, one in the review panel).
-    expect(screen.getAllByText("Record tag (local)").length).toBeGreaterThanOrEqual(2);
+    // Memory type is presented as a record tag that is anchored on-chain
+    // alongside the content hash (one label on the selector, one in the review
+    // panel).
+    expect(screen.getAllByText("Record tag").length).toBeGreaterThanOrEqual(2);
     expect(
       screen.getByText(
-        "A local label for your own records only — it is not written on-chain. Only the content hash is anchored.",
+        "Categorises the memory; this tag is anchored on-chain alongside the content hash.",
       ),
     ).toBeTruthy();
   });
