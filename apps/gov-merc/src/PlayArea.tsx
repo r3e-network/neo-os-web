@@ -4,6 +4,7 @@ import type { Observable } from "@shared/react/context";
 import MercHeroStats from "./components/MercHeroStats";
 import MercActionCards, { type AmountField } from "./components/MercActionCards";
 import MercBidsList from "./components/MercBidsList";
+import MercStakerPanel, { type ReclaimableBid } from "./components/MercStakerPanel";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -29,6 +30,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const bidCount = num("bidCount");
   const canSettle = bool("canSettle");
   const lastSettlementDisplay = str("lastSettlementDisplay", "");
+  const pendingRewards = val<number>("pendingRewards", 0) ?? 0;
+  const gasCredit = val<number>("gasCredit", 0) ?? 0;
+  const reclaimableBids = val<ReclaimableBid[]>("reclaimableBids", []) ?? [];
 
   const setAmountValue = (key: AmountField, value: string) => {
     state[key]?.set(value);
@@ -137,6 +141,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           {!canSettle && !isBusy ? (
             <p className="gov-merc-settle-hint">{t("settleNoBidsHint")}</p>
           ) : null}
+        </NeoCard>
+
+        <NeoCard variant="erobo" className="gov-merc-staker-panel">
+          <div className="gov-merc-section-heading">
+            <span>{t("rewardsTitle")}</span>
+            <strong>{shortAddress}</strong>
+          </div>
+          <MercStakerPanel
+            t={t}
+            isBusy={isBusy}
+            pendingRewards={pendingRewards}
+            gasCredit={gasCredit}
+            reclaimableBids={reclaimableBids}
+            dispatch={dispatch}
+          />
         </NeoCard>
 
         <NeoCard variant="erobo" className="gov-merc-risk-panel">

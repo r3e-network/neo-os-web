@@ -1,0 +1,381 @@
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using Neo;
+using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Attributes;
+using Neo.SmartContract.Framework.Native;
+using Neo.SmartContract.Framework.Services;
+
+namespace NeoMiniAppPlatform.Contracts
+{
+    /// <summary>
+    /// MiniAppGovMerc — self-contained on-chain "mercenary governance" market (NO oracle / OS kernel).
+    ///
+    /// WHY: the app previously kept NEO deposits and per-epoch GAS bids in OS
+    /// StorageProxy/PaymentProxy that no contract enforced, and "settlement" only wrote
+    /// a record — bid GAS entered a vault and was never paid out or refunded (a latent
+    /// strand). This contract makes staking, the epoch auction, the payout, and the
+    /// refunds authoritative on-chain.
+    ///
+    /// MODEL — a two-sided market:
+    ///   * STAKERS lock NEO (governance power). NEO sent with memo "govmerc:stake"
+    ///     credits the staker. Stakers earn the auction revenue pro-rata.
+    ///   * MERCENARIES bid GAS each epoch for the "router" title. GAS sent with memo
+    ///     "govmerc:bid" credits a bid balance; bid() raises the sender's epoch bid.
+    ///   * settleEpoch() resolves the live epoch: the highest bidder wins (recorded), the
+    ///     winner's bid is distributed pro-rata to stakers, the epoch advances. Losing
+    ///     bidders pull-refund their bid (reclaimBid) — no unbounded loop at settle.
+    ///   * Stakers claim accrued GAS rewards (claimRewards); unused bid credit is
+    ///     reclaimable (Withdraw). No GAS or NEO is strandable.
+    ///
+    /// Rewards use the standard accumulator pattern: accRewardPerShare is GAS-per-staked-
+    /// NEO scaled by SCALE; a staker's reward debt is snapshotted on every stake change so
+    /// distributions are split exactly by stake-share. Floor division can only UNDER-
+    /// distribute (dust stays in the contract), never over-distribute.
+    /// </summary>
+    [DisplayName("MiniAppGovMerc")]
+    [ManifestExtra("Author", "R3E Network")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "1.0.0")]
+    [ManifestExtra("Description", "Self-contained on-chain mercenary governance market: stake NEO, bid GAS per epoch, winner's bid paid pro-rata to stakers — no oracle.")]
+    [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
+    [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer")] // NEO
+    public class MiniAppGovMerc : SmartContract
+    {
+        #region Constants
+        private const long MIN_BID = 1_00000000;        // 1 GAS (base units)
+        private const long MIN_STAKE = 1;               // 1 NEO (integer)
+        private static readonly BigInteger SCALE = 1_000_000_000_000; // 1e12 reward accumulator scale
+        private const string STAKE_MEMO = "govmerc:stake";
+        private const string BID_MEMO = "govmerc:bid";
+        #endregion
+
+        #region Storage prefixes
+        private static readonly byte[] PREFIX_STAKED = new byte[] { 0x10 };       // + user -> NEO staked
+        private static readonly byte[] PREFIX_TOTAL_STAKED = new byte[] { 0x11 };
+        private static readonly byte[] PREFIX_ACC_RPS = new byte[] { 0x12 };      // accRewardPerShare (scaled)
+        private static readonly byte[] PREFIX_REWARD_DEBT = new byte[] { 0x13 };  // + user -> reward debt
+        private static readonly byte[] PREFIX_PENDING = new byte[] { 0x14 };      // + user -> banked claimable GAS
+        private static readonly byte[] PREFIX_GAS_CREDIT = new byte[] { 0x15 };   // + user -> GAS bid credit
+        private static readonly byte[] PREFIX_EPOCH = new byte[] { 0x16 };        // current epoch
+        private static readonly byte[] PREFIX_BID = new byte[] { 0x17 };          // + epoch + bidder -> bid
+        private static readonly byte[] PREFIX_HIGH_BIDDER = new byte[] { 0x18 };  // + epoch -> top bidder
+        private static readonly byte[] PREFIX_HIGH_BID = new byte[] { 0x19 };     // + epoch -> top bid
+        private static readonly byte[] PREFIX_SETTLE_WINNER = new byte[] { 0x1a };// + epoch -> winner
+        private static readonly byte[] PREFIX_SETTLE_AMOUNT = new byte[] { 0x1b };// + epoch -> winning bid
+        #endregion
+
+        #region Events
+        [DisplayName("Staked")]
+        public static event Action<UInt160, BigInteger, BigInteger> OnStaked; // user, amount, totalStaked
+        [DisplayName("Unstaked")]
+        public static event Action<UInt160, BigInteger, BigInteger> OnUnstaked; // user, amount, totalStaked
+        [DisplayName("Credited")]
+        public static event Action<UInt160, BigInteger, BigInteger> OnCredited; // user, amount, balance (GAS bid credit)
+        [DisplayName("BidPlaced")]
+        public static event Action<BigInteger, UInt160, BigInteger> OnBidPlaced; // epoch, bidder, totalBid
+        [DisplayName("EpochSettled")]
+        public static event Action<BigInteger, UInt160, BigInteger, BigInteger> OnEpochSettled; // epoch, winner, bid, distributed
+        [DisplayName("RewardsClaimed")]
+        public static event Action<UInt160, BigInteger> OnRewardsClaimed; // staker, amount
+        [DisplayName("BidReclaimed")]
+        public static event Action<BigInteger, UInt160, BigInteger> OnBidReclaimed; // epoch, bidder, amount
+        [DisplayName("CreditWithdrawn")]
+        public static event Action<UInt160, BigInteger> OnCreditWithdrawn; // user, amount
+        #endregion
+
+        #region Deposit (NEO stake / GAS bid credit)
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            ExecutionEngine.Assert(data is not null, "memo required");
+            UInt160 caller = Runtime.CallingScriptHash;
+            StorageContext ctx = Storage.CurrentContext;
+
+            if (caller == NEO.Hash)
+            {
+                ExecutionEngine.Assert((string)data == STAKE_MEMO, "invalid memo");
+                StakeInternal(ctx, from, amount);
+            }
+            else if (caller == GAS.Hash)
+            {
+                ExecutionEngine.Assert((string)data == BID_MEMO, "invalid memo");
+                byte[] key = Helper.Concat(PREFIX_GAS_CREDIT, (byte[])from);
+                BigInteger bal = (BigInteger)Storage.Get(ctx, key) + amount;
+                Storage.Put(ctx, key, bal);
+                OnCredited(from, amount, bal);
+            }
+            else
+            {
+                ExecutionEngine.Assert(false, "only NEO (stake) or GAS (bid) accepted");
+            }
+        }
+        #endregion
+
+        #region Staking
+        private static void StakeInternal(StorageContext ctx, UInt160 user, BigInteger amount)
+        {
+            ExecutionEngine.Assert(amount >= MIN_STAKE, "stake below minimum");
+            Harvest(ctx, user);
+            byte[] sKey = Helper.Concat(PREFIX_STAKED, (byte[])user);
+            BigInteger staked = (BigInteger)Storage.Get(ctx, sKey) + amount;
+            Storage.Put(ctx, sKey, staked);
+            BigInteger total = (BigInteger)Storage.Get(ctx, PREFIX_TOTAL_STAKED) + amount;
+            Storage.Put(ctx, PREFIX_TOTAL_STAKED, total);
+            SetRewardDebt(ctx, user, staked);
+            OnStaked(user, amount, total);
+        }
+
+        /// <summary>Withdraw staked NEO. Pending rewards are banked first.</summary>
+        public static void WithdrawStake(UInt160 user, BigInteger amount)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(user), "user witness required");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            StorageContext ctx = Storage.CurrentContext;
+            byte[] sKey = Helper.Concat(PREFIX_STAKED, (byte[])user);
+            BigInteger staked = (BigInteger)Storage.Get(ctx, sKey);
+            ExecutionEngine.Assert(staked >= amount, "insufficient stake");
+
+            Harvest(ctx, user);
+            BigInteger remaining = staked - amount;
+            if (remaining == 0) Storage.Delete(ctx, sKey); else Storage.Put(ctx, sKey, remaining);
+            BigInteger total = (BigInteger)Storage.Get(ctx, PREFIX_TOTAL_STAKED) - amount;
+            Storage.Put(ctx, PREFIX_TOTAL_STAKED, total);
+            SetRewardDebt(ctx, user, remaining);
+
+            bool ok = (bool)Contract.Call(NEO.Hash, "transfer", CallFlags.All,
+                new object[] { Runtime.ExecutingScriptHash, user, amount, "" });
+            ExecutionEngine.Assert(ok, "NEO transfer failed");
+            OnUnstaked(user, amount, total);
+        }
+        #endregion
+
+        #region Rewards accounting
+        // Bank a staker's earned-but-unclaimed rewards into PENDING. Does NOT touch
+        // reward debt — the caller resets it after any stake change.
+        private static void Harvest(StorageContext ctx, UInt160 user)
+        {
+            BigInteger staked = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_STAKED, (byte[])user));
+            if (staked <= 0) return;
+            BigInteger accRps = (BigInteger)Storage.Get(ctx, PREFIX_ACC_RPS);
+            BigInteger debt = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_REWARD_DEBT, (byte[])user));
+            BigInteger earned = staked * accRps / SCALE - debt;
+            if (earned > 0)
+            {
+                byte[] pKey = Helper.Concat(PREFIX_PENDING, (byte[])user);
+                Storage.Put(ctx, pKey, (BigInteger)Storage.Get(ctx, pKey) + earned);
+            }
+        }
+
+        private static void SetRewardDebt(StorageContext ctx, UInt160 user, BigInteger staked)
+        {
+            BigInteger accRps = (BigInteger)Storage.Get(ctx, PREFIX_ACC_RPS);
+            Storage.Put(ctx, Helper.Concat(PREFIX_REWARD_DEBT, (byte[])user), staked * accRps / SCALE);
+        }
+
+        /// <summary>Claim accrued GAS rewards from auction revenue.</summary>
+        public static BigInteger ClaimRewards(UInt160 user)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(user), "user witness required");
+            StorageContext ctx = Storage.CurrentContext;
+            Harvest(ctx, user);
+            byte[] sKey = Helper.Concat(PREFIX_STAKED, (byte[])user);
+            SetRewardDebt(ctx, user, (BigInteger)Storage.Get(ctx, sKey));
+
+            byte[] pKey = Helper.Concat(PREFIX_PENDING, (byte[])user);
+            BigInteger amount = (BigInteger)Storage.Get(ctx, pKey);
+            ExecutionEngine.Assert(amount > 0, "no rewards");
+            Storage.Delete(ctx, pKey);
+
+            bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
+                new object[] { Runtime.ExecutingScriptHash, user, amount, "" });
+            ExecutionEngine.Assert(ok, "reward transfer failed");
+            OnRewardsClaimed(user, amount);
+            return amount;
+        }
+        #endregion
+
+        #region Bidding
+        /// <summary>
+        /// Raise the caller's bid in the current epoch by `addAmount`, drawn from their
+        /// GAS bid credit. The first bid must meet MIN_BID. Returns the new total bid.
+        /// </summary>
+        public static BigInteger Bid(UInt160 bidder, BigInteger addAmount)
+        {
+            ExecutionEngine.Assert(bidder is not null && bidder.IsValid && !bidder.IsZero, "invalid bidder");
+            ExecutionEngine.Assert(Runtime.CheckWitness(bidder), "bidder witness required");
+            ExecutionEngine.Assert(addAmount > 0, "amount must be > 0");
+
+            StorageContext ctx = Storage.CurrentContext;
+            BigInteger epoch = (BigInteger)Storage.Get(ctx, PREFIX_EPOCH);
+
+            byte[] creditKey = Helper.Concat(PREFIX_GAS_CREDIT, (byte[])bidder);
+            BigInteger credit = (BigInteger)Storage.Get(ctx, creditKey);
+            ExecutionEngine.Assert(credit >= addAmount, "insufficient bid credit");
+
+            byte[] bidKey = Helper.Concat(Helper.Concat(PREFIX_BID, (byte[])(ByteString)epoch), (byte[])bidder);
+            BigInteger current = (BigInteger)Storage.Get(ctx, bidKey);
+            BigInteger newTotal = current + addAmount;
+            if (current == 0) ExecutionEngine.Assert(newTotal >= MIN_BID, "first bid below minimum");
+
+            BigInteger nextCredit = credit - addAmount;
+            if (nextCredit == 0) Storage.Delete(ctx, creditKey); else Storage.Put(ctx, creditKey, nextCredit);
+            Storage.Put(ctx, bidKey, newTotal);
+
+            byte[] highBidKey = Helper.Concat(PREFIX_HIGH_BID, (byte[])(ByteString)epoch);
+            if (newTotal > (BigInteger)Storage.Get(ctx, highBidKey))
+            {
+                Storage.Put(ctx, highBidKey, newTotal);
+                Storage.Put(ctx, Helper.Concat(PREFIX_HIGH_BIDDER, (byte[])(ByteString)epoch), bidder);
+            }
+
+            OnBidPlaced(epoch, bidder, newTotal);
+            return newTotal;
+        }
+        #endregion
+
+        #region Settlement
+        /// <summary>
+        /// Resolve the live epoch: the top bidder wins, their bid is paid pro-rata to
+        /// stakers, and the epoch advances. Permissionless. Reverts if there are no bids.
+        /// </summary>
+        public static void SettleEpoch()
+        {
+            StorageContext ctx = Storage.CurrentContext;
+            BigInteger epoch = (BigInteger)Storage.Get(ctx, PREFIX_EPOCH);
+            BigInteger highBid = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_HIGH_BID, (byte[])(ByteString)epoch));
+            ExecutionEngine.Assert(highBid > 0, "no bids to settle");
+            UInt160 winner = (UInt160)Storage.Get(ctx, Helper.Concat(PREFIX_HIGH_BIDDER, (byte[])(ByteString)epoch));
+
+            // Record the resolved epoch (drives the per-epoch winner check in reclaimBid).
+            Storage.Put(ctx, Helper.Concat(PREFIX_SETTLE_WINNER, (byte[])(ByteString)epoch), winner);
+            Storage.Put(ctx, Helper.Concat(PREFIX_SETTLE_AMOUNT, (byte[])(ByteString)epoch), highBid);
+
+            BigInteger total = (BigInteger)Storage.Get(ctx, PREFIX_TOTAL_STAKED);
+            BigInteger distributed = 0;
+            if (total > 0)
+            {
+                BigInteger accRps = (BigInteger)Storage.Get(ctx, PREFIX_ACC_RPS) + highBid * SCALE / total;
+                Storage.Put(ctx, PREFIX_ACC_RPS, accRps);
+                distributed = highBid;
+            }
+            else
+            {
+                // No stakers to reward: refund the winner's bid to their credit.
+                byte[] wc = Helper.Concat(PREFIX_GAS_CREDIT, (byte[])winner);
+                Storage.Put(ctx, wc, (BigInteger)Storage.Get(ctx, wc) + highBid);
+            }
+
+            Storage.Put(ctx, PREFIX_EPOCH, epoch + 1);
+            OnEpochSettled(epoch, winner, highBid, distributed);
+        }
+
+        /// <summary>
+        /// A losing bidder reclaims their bid from a settled epoch (the winner's bid was
+        /// already spent/refunded at settle). Refunds straight to the bidder's wallet.
+        /// </summary>
+        public static BigInteger ReclaimBid(UInt160 bidder, BigInteger epoch)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(bidder), "bidder witness required");
+            StorageContext ctx = Storage.CurrentContext;
+            BigInteger currentEpoch = (BigInteger)Storage.Get(ctx, PREFIX_EPOCH);
+            ExecutionEngine.Assert(epoch < currentEpoch, "epoch not settled");
+
+            ByteString winner = Storage.Get(ctx, Helper.Concat(PREFIX_SETTLE_WINNER, (byte[])(ByteString)epoch));
+            ExecutionEngine.Assert(winner is null || (UInt160)winner != bidder, "winner cannot reclaim");
+
+            byte[] bidKey = Helper.Concat(Helper.Concat(PREFIX_BID, (byte[])(ByteString)epoch), (byte[])bidder);
+            BigInteger amount = (BigInteger)Storage.Get(ctx, bidKey);
+            ExecutionEngine.Assert(amount > 0, "nothing to reclaim");
+            Storage.Delete(ctx, bidKey);
+
+            bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
+                new object[] { Runtime.ExecutingScriptHash, bidder, amount, "" });
+            ExecutionEngine.Assert(ok, "reclaim transfer failed");
+            OnBidReclaimed(epoch, bidder, amount);
+            return amount;
+        }
+        #endregion
+
+        #region Withdraw bid credit
+        /// <summary>Reclaim any unused prepaid GAS bid-credit back to the sender.</summary>
+        public static BigInteger Withdraw(UInt160 account)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(account), "account witness required");
+            StorageContext ctx = Storage.CurrentContext;
+            byte[] key = Helper.Concat(PREFIX_GAS_CREDIT, (byte[])account);
+            BigInteger credit = (BigInteger)Storage.Get(ctx, key);
+            ExecutionEngine.Assert(credit > 0, "no credit");
+            Storage.Delete(ctx, key);
+            bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
+                new object[] { Runtime.ExecutingScriptHash, account, credit, "" });
+            ExecutionEngine.Assert(ok, "withdraw transfer failed");
+            OnCreditWithdrawn(account, credit);
+            return credit;
+        }
+        #endregion
+
+        #region Read-only
+        [Safe]
+        public static BigInteger TotalStaked() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_STAKED);
+
+        [Safe]
+        public static BigInteger StakeOf(UInt160 user) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_STAKED, (byte[])user));
+
+        [Safe]
+        public static BigInteger CurrentEpoch() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_EPOCH);
+
+        [Safe]
+        public static BigInteger BidOf(BigInteger epoch, UInt160 bidder) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(Helper.Concat(PREFIX_BID, (byte[])(ByteString)epoch), (byte[])bidder));
+
+        [Safe]
+        public static BigInteger HighestBid(BigInteger epoch) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_HIGH_BID, (byte[])(ByteString)epoch));
+
+        [Safe]
+        public static UInt160 HighestBidder(BigInteger epoch)
+        {
+            ByteString v = Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_HIGH_BIDDER, (byte[])(ByteString)epoch));
+            return v is null ? UInt160.Zero : (UInt160)v;
+        }
+
+        [Safe]
+        public static UInt160 SettlementWinner(BigInteger epoch)
+        {
+            ByteString v = Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_SETTLE_WINNER, (byte[])(ByteString)epoch));
+            return v is null ? UInt160.Zero : (UInt160)v;
+        }
+
+        [Safe]
+        public static BigInteger SettlementAmount(BigInteger epoch) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_SETTLE_AMOUNT, (byte[])(ByteString)epoch));
+
+        /// <summary>Total claimable GAS rewards for a staker (banked + unrealized).</summary>
+        [Safe]
+        public static BigInteger PendingRewards(UInt160 user)
+        {
+            StorageContext ctx = Storage.CurrentContext;
+            BigInteger banked = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_PENDING, (byte[])user));
+            BigInteger staked = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_STAKED, (byte[])user));
+            if (staked <= 0) return banked;
+            BigInteger accRps = (BigInteger)Storage.Get(ctx, PREFIX_ACC_RPS);
+            BigInteger debt = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_REWARD_DEBT, (byte[])user));
+            BigInteger unrealized = staked * accRps / SCALE - debt;
+            return banked + (unrealized > 0 ? unrealized : 0);
+        }
+
+        [Safe]
+        public static BigInteger GasCreditOf(UInt160 user) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_GAS_CREDIT, (byte[])user));
+
+        [Safe]
+        public static BigInteger MinBid() => MIN_BID;
+
+        [Safe]
+        public static BigInteger MinStake() => MIN_STAKE;
+        #endregion
+    }
+}
