@@ -49,13 +49,6 @@ interface LtvOptionData {
   desc?: string;
 }
 
-interface LoanHistoryEntry {
-  icon: string;
-  label: string;
-  amount: number;
-  timestamp: string;
-}
-
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
@@ -64,7 +57,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isBorrowing = bool("isBorrowing");
   const isRepaying = bool("isRepaying");
   const isAddingCollateral = bool("isAddingCollateral");
+  const isProcessing = bool("isProcessing");
   const isConnected = bool("isConnected");
+
+  const hasCollateralCredit = bool("hasCollateralCredit");
+  const hasRepayCredit = bool("hasRepayCredit");
+  const collateralCreditDisplay = str("collateralCreditDisplay");
+  const repayCreditDisplay = str("repayCreditDisplay");
 
   const neoBalance = num("neoBalance");
   const selectedLtvPercent = num("selectedLtvPercent");
@@ -88,7 +87,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const stats = val<StatsData>("stats");
   const selectedTier = num("selectedLtv", 1);
   const ltvOptions = val<LtvOptionData[]>("ltvOptions") ?? [];
-  const loanHistory = val<LoanHistoryEntry[]>("loanHistory") ?? [];
 
   /* ---------- Local form state ---------- */
   const [localCollateralAmt, setLocalCollateralAmt] = useState("");
@@ -123,6 +121,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleSetCollateralAmount = (v: string) => {
     setLocalCollateralAmt(v);
     dispatch("setCollateralAmount", v);
+  };
+
+  const handleReclaimCollateral = async () => {
+    await dispatch("reclaimCollateral");
+  };
+
+  const handleReclaimRepayCredit = async () => {
+    await dispatch("reclaimRepayCredit");
   };
 
   /* ---------- Derived health gauge ---------- */
@@ -490,34 +496,56 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {/* ==================== Loan History ==================== */}
-      {(loanHistory.length > 0 || hasLoan) && (
-        <NeoCard variant="erobo" title={t("loanHistory") || "Loan History"}>
-          {loanHistory.length > 0 ? (
-            <ul className="selfloan-history">
-              {loanHistory.map((entry, index) => (
-                <li
-                  className="selfloan-history-item"
-                  key={`${entry.label}-${entry.timestamp}-${index}`}
-                >
-                  <span className="selfloan-history-icon" aria-hidden="true">
-                    {entry.icon}
-                  </span>
-                  <span className="selfloan-history-label">{entry.label}</span>
-                  <span className="selfloan-history-timestamp">{entry.timestamp}</span>
-                  {entry.amount > 0 && (
-                    <span className="selfloan-history-amount">
-                      {entry.amount.toFixed(2)} GAS
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="selfloan-history-empty">
-              {t("noHistory") || "No history yet"}
+      {/* ==================== Reclaim Affordances ==================== */}
+      {/* The deposit-then-act model can leave a credit on the contract if the
+          second step never completed (e.g. a deposited NEO collateral that was
+          never borrowed against, or a GAS repay-deposit that was never applied).
+          These cards give the user an explicit recovery path so no funds strand. */}
+      {hasCollateralCredit && (
+        <NeoCard variant="erobo" title={t("reclaimCollateralTitle") || "Reclaim Collateral"}>
+          <div className="selfloan-form">
+            <div className="selfloan-balance-hint">
+              {t("reclaimCollateralCopy") ||
+                "You have NEO credited as collateral that was never borrowed against."}
             </div>
-          )}
+            <div className="selfloan-balance-hint">
+              {t("reclaimable") || "Reclaimable"}:{" "}
+              <strong>{collateralCreditDisplay}</strong>
+            </div>
+            <NeoButton
+              variant="secondary"
+              block
+              loading={isProcessing}
+              disabled={isProcessing}
+              onClick={handleReclaimCollateral}
+            >
+              {t("reclaimCollateral") || "Reclaim Collateral"}
+            </NeoButton>
+          </div>
+        </NeoCard>
+      )}
+
+      {hasRepayCredit && (
+        <NeoCard variant="erobo" title={t("reclaimRepayTitle") || "Reclaim Repay Credit"}>
+          <div className="selfloan-form">
+            <div className="selfloan-balance-hint">
+              {t("reclaimRepayCopy") ||
+                "You have GAS deposited as repay credit that was never applied to a loan."}
+            </div>
+            <div className="selfloan-balance-hint">
+              {t("reclaimable") || "Reclaimable"}:{" "}
+              <strong>{repayCreditDisplay}</strong>
+            </div>
+            <NeoButton
+              variant="secondary"
+              block
+              loading={isProcessing}
+              disabled={isProcessing}
+              onClick={handleReclaimRepayCredit}
+            >
+              {t("reclaimRepayCredit") || "Reclaim Repay Credit"}
+            </NeoButton>
+          </div>
         </NeoCard>
       )}
 

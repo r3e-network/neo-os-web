@@ -24,7 +24,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x942da575b31f39cbb59e64b5813b128739b44c25",
-    "neo-n3-testnet": "0x39d4584ddb0731e48e611647931993ee033bf373"
+    "neo-n3-testnet": "0x87f94598c78cb954ca8200d3964ded9b584d7250"
   },
   "contract_domains": {
     "neo-n3-mainnet": "selfloan.miniapp.neo"
