@@ -23,7 +23,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-    "neo-n3-testnet": "0x238488397884ad0bf1db99aecce62290e9f47971"
+    "neo-n3-testnet": "0x5d82339da085b72468200e76a2aa2f3cd2912953"
   },
   "contract_domains": {
     "neo-n3-mainnet": "fogplay.miniapp.neo"
