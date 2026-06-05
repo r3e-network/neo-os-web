@@ -66,10 +66,10 @@ const brokenVault = {
   winner: "0xwinner",
   attemptFee: 10000000,
 };
-const expiredVault = {
+const claimableVault = {
   id: "7",
   creator: "0xcreator",
-  status: "expired",
+  status: "claimable",
   winner: "",
   attemptFee: 10000000,
 };
@@ -167,7 +167,29 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(screen.getByText("Open Vaults")).toBeTruthy();
   });
 
-  it("shows a Claim Bounty control and dispatches settleVault when the wallet is the winner", async () => {
+  it("shows the bounty-paid note and no claim control on a broken vault", () => {
+    // The contract pays the bounty to the winner ATOMICALLY on the winning
+    // attemptBreak — there is no separate on-chain claim. A broken vault simply
+    // surfaces that the bounty was already paid.
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          vaultIdInput: "7",
+          vaultDetails: brokenVault,
+          canReclaim: false,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText("This vault is broken — the bounty was paid to the winner."),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Claim Bounty" })).toBeNull();
+  });
+
+  it("offers Reclaim Vault to the creator of a claimable (expired) vault and dispatches settleVault", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
     render(
@@ -175,39 +197,21 @@ describe("Unbreakable Vault PlayArea", () => {
         t={t}
         state={state({
           vaultIdInput: "7",
-          vaultDetails: brokenVault,
-          canClaim: true,
-          canReclaim: false,
+          vaultDetails: claimableVault,
+          canReclaim: true,
         })}
         dispatch={dispatch}
       />,
     );
 
-    const claimButton = screen.getByRole("button", { name: "Claim Bounty" });
-    fireEvent.click(claimButton);
+    const reclaimButton = screen.getByRole("button", { name: "Reclaim Vault" });
+    // The break-secret input is hidden once a vault is no longer active.
+    expect(screen.queryByLabelText("Break Secret")).toBeNull();
 
+    fireEvent.click(reclaimButton);
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("settleVault");
     });
-  });
-
-  it("offers Reclaim Vault to the creator of an expired vault", () => {
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          vaultIdInput: "7",
-          vaultDetails: expiredVault,
-          canClaim: false,
-          canReclaim: true,
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "Reclaim Vault" })).toBeTruthy();
-    // The break-secret input is hidden once a vault is no longer active.
-    expect(screen.queryByLabelText("Break Secret")).toBeNull();
   });
 
   it("hides claim/reclaim controls on an active vault and shows the attempt cost note", () => {
@@ -217,7 +221,6 @@ describe("Unbreakable Vault PlayArea", () => {
         state={state({
           vaultIdInput: "7",
           vaultDetails: activeVault,
-          canClaim: false,
           canReclaim: false,
         })}
         dispatch={vi.fn()}

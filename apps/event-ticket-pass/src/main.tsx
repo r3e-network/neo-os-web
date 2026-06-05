@@ -16,13 +16,12 @@ defineMiniApp({
 
   setup(ctx) {
     const ticket = useEventTicket({
-      nftService: ctx.os.nft,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
-      ensureWallet: () => ctx.services.chain.ensureWallet(),
+      chain: ctx.services.chain,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
+
+    ticket.address.set(ctx.services.chain.address.get() ?? "");
 
     ctx.registerAction("connectWallet", async () => {
       try {
