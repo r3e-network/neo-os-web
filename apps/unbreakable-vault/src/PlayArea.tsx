@@ -37,7 +37,6 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
   const isCreating = bool("isCreating");
   const isClaiming = bool("isClaiming");
   const canAttempt = bool("canAttempt");
-  const canClaim = bool("canClaim");
   const canReclaim = bool("canReclaim");
 
   const [bounty, setBounty] = useState("");
@@ -258,26 +257,22 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
               <p className="vault-secret-note">{t("attemptCostNote")}</p>
             </>
           )}
-          {(canClaim || canReclaim) && (
+          {canReclaim && (
             <NeoButton
               variant="primary"
               size="lg"
               block
               loading={isClaiming}
               disabled={isClaiming || isLoading}
-              aria-label={canClaim ? t("claimBounty") : t("reclaimVault")}
+              aria-label={t("reclaimVault")}
               onClick={handleSettleVault}
             >
-              {canClaim
-                ? t("claimBounty") || "Claim Bounty"
-                : t("reclaimVault") || "Reclaim Vault"}
+              {t("reclaimVault") || "Reclaim Vault"}
             </NeoButton>
           )}
-          {vaultDetails &&
-            vaultStatus === "broken" &&
-            !canClaim && (
-              <p className="vault-secret-note">{t("bountyPaidNote")}</p>
-            )}
+          {vaultDetails && vaultStatus === "broken" && (
+            <p className="vault-secret-note">{t("bountyPaidNote")}</p>
+          )}
         </div>
       </NeoCard>
 

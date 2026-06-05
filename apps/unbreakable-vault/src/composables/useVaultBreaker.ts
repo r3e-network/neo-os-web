@@ -1,23 +1,48 @@
 /**
- * useVaultBreaker — Vault break attempts, listing, and claiming
+ * useVaultBreaker — Vault listing, break attempts, and expired-vault reclaim
  *
- * Uses the direct-prepaid MiniApp contract flow:
- *   GAS.transfer(wallet -> vault, attemptFee, "miniapp-unbreakablevault:attempt")
- *   attemptBreak(vaultId, attacker, secret)
+ * Talks DIRECTLY to the standalone MiniAppUnbreakableVault contract via
+ * ctx.services.chain. The earlier path read vault state through ctx.os.storage,
+ * awarded badges through ctx.os.badge, and "claimed" bounties through
+ * non-existent contract methods — all backed by the offline Morpheus OS kernel.
+ *
+ * Contract interaction model (verified against the deployed ABI at
+ * 0x78fbd57ccfae14fff4b043a82eb491de542d8eb0 + the live-validate harness):
+ *
+ *   READS (chain.read, default app contract script hash):
+ *     totalVaults()              -> Integer (vaults are ids 1..totalVaults)
+ *     getVaultDetails(vaultId)   -> Map (normalized in vaultChain.ts)
+ *
+ *   ATTEMPT (deposit-then-act):
+ *     1. transfer(attacker, CONTRACT, attemptFeeBaseUnits,
+ *        "miniapp-unbreakablevault:attempt") { scriptHash: GAS_HASH } — the
+ *        OnNEP17Payment handler credits the prepaid attempt fee.
+ *     2. attemptBreak(vaultId, attacker, secretBytes) -> Boolean. The outcome is
+ *        read from the "AttemptMade" event: AttemptMade(vaultId, attacker,
+ *        success, attemptNumber). On success the contract pays the bounty to the
+ *        attacker ATOMICALLY (event "VaultBroken") — there is no separate claim.
+ *
+ *   RECLAIM (no payment — the escrow already holds the bounty):
+ *     claimExpiredVault(vaultId) — refunds the creator once the vault has passed
+ *     its expiry without being broken (status "claimable"). Event "VaultExpired".
+ *
+ * AMOUNT CONVENTION: attempt fee + bounty are GAS in BASE UNITS (1e8 per GAS).
+ * getVaultDetails().attemptFee is already a base-unit integer.
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { ChainService } from "@shared/services/ChainService";
-import { formatGas, toFixed8, toSafeNumber } from "@shared/utils/format";
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-const ATTEMPT_FEE = 0.1;
+import { ownerMatchesAddress } from "@shared/utils/neo";
+import { formatGas } from "@shared/utils/format";
+import { parseBigInt } from "@shared/utils/parsers";
+import {
+  ATTEMPT_MEMO,
+  DEFAULT_ATTEMPT_FEE_BASE,
+  MAX_RECENT_VAULTS,
+  readRecentVaultDetails,
+  readVaultDetails,
+  type ChainVaultDetails,
+} from "./vaultChain";
 
 // ============================================================================
 // Types
@@ -42,45 +67,21 @@ export interface RecentVault {
   id: string;
   creator: string;
   bounty: number;
+  status: string;
 }
 
 export interface UseVaultBreakerOptions {
-  /** Shared chain service for wallet-signed direct contract calls */
+  /** Shared chain service for wallet-signed direct contract calls + reads. */
   chainService: ChainService;
-  /** OS StorageProxy instance from ctx.os.storage */
-  storageService: StorageProxy;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
-  /** EventBus for UI events */
+  /** EventBus for UI events. */
   eventBus: { emit: (event: string, payload?: unknown) => void };
-  /** Translation function */
+  /** Translation function. */
   t: (key: string) => string;
 }
 
 // ============================================================================
 // Helpers
 // ============================================================================
-
-interface StoredVaultDetails {
-  id: string;
-  creator: string;
-  bounty: number;
-  attemptCount: number;
-  broken: boolean;
-  expired: boolean;
-  status: string;
-  winner: string;
-  attemptFee: number;
-  difficultyName: string;
-  expiryTime: number;
-  remainingDays: number;
-}
-
-interface StoredRecentVault {
-  id: string;
-  creator: string;
-  bounty: number;
-}
 
 function base64FromBytes(bytes: number[]): string {
   const alphabet =
@@ -113,48 +114,67 @@ function utf8Bytes(value: string): number[] {
   return bytes;
 }
 
+/** Encode a UTF-8 secret string as base64 for the ByteArray contract arg. */
 function utf8ToBase64(value: string): string {
   return base64FromBytes(utf8Bytes(value));
 }
 
-/**
- * Normalize an attempt fee to a fixed8 raw integer string for payment.
- *
- * `attemptFee` is stored/read as a fixed8 raw integer (see formatGas usage in
- * the display derive). So an integer input is ALREADY in raw units and must be
- * passed through untouched — re-applying toFixed8 here would double-scale small
- * fees and massively overpay. Only a value that contains a decimal point is
- * treated as human GAS and scaled. Non-positive / non-finite input falls back
- * to the default 0.1 GAS attempt fee.
- */
-function normalizeAttemptFeeFixed8(value: unknown): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) return toFixed8(ATTEMPT_FEE);
-  // Human-decimal GAS (e.g. "0.1") → scale to fixed8 raw.
-  if (raw.includes(".")) {
-    const scaled = toFixed8(raw);
-    return scaled !== "0" ? scaled : toFixed8(ATTEMPT_FEE);
+/** Read a single state slot from an event payload. */
+function eventSlot(entry: unknown, index: number): unknown {
+  if (!entry || typeof entry !== "object") return undefined;
+  const state = (entry as { state?: unknown }).state;
+  if (Array.isArray(state)) {
+    const item = state[index] as unknown;
+    if (item && typeof item === "object" && "value" in item) {
+      return (item as { value?: unknown }).value;
+    }
+    return item;
   }
-  // Integer input is already a fixed8 raw value — pass through unchanged.
-  const numeric = Number(raw);
-  if (Number.isFinite(numeric) && numeric > 0) {
-    return String(Math.trunc(numeric));
-  }
-  return toFixed8(ATTEMPT_FEE);
+  return undefined;
+}
+
+/** Milliseconds in one day — vault times are unix epoch milliseconds. */
+const DAY_MS = 86_400_000;
+
+function remainingDaysFrom(expiryTimeMs: number): number {
+  if (!Number.isFinite(expiryTimeMs) || expiryTimeMs <= 0) return 0;
+  const remaining = expiryTimeMs - Date.now();
+  if (remaining <= 0) return 0;
+  return Math.ceil(remaining / DAY_MS);
+}
+
+function toVaultDetails(detail: ChainVaultDetails): VaultDetails {
+  return {
+    id: detail.id,
+    creator: detail.creator,
+    bounty: detail.bounty,
+    attempts: detail.attemptCount,
+    broken: detail.broken,
+    expired: detail.expired,
+    status: detail.status,
+    winner: detail.winner,
+    attemptFee: detail.attemptFee,
+    difficultyName: detail.difficultyName,
+    expiryTime: detail.expiryTime,
+    remainingDays: remainingDaysFrom(detail.expiryTime),
+  };
+}
+
+function toRecentVault(detail: ChainVaultDetails): RecentVault {
+  return {
+    id: detail.id,
+    creator: detail.creator,
+    bounty: detail.bounty,
+    status: detail.status,
+  };
 }
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-function normalizeAddress(value: unknown): string {
-  return String(value ?? "").trim().toLowerCase();
-}
-
 export function useVaultBreaker({
   chainService,
-  storageService,
-  badgeService,
   eventBus,
   t,
 }: UseVaultBreakerOptions) {
@@ -164,8 +184,6 @@ export function useVaultBreaker({
   const recentVaults = createObservable<RecentVault[]>([]);
   const isLoading = createObservable(false);
   const isClaiming = createObservable(false);
-
-  const toNumber = toSafeNumber;
 
   const canAttempt = createDerived(() => {
     const st = vaultDetails.get()?.status;
@@ -179,79 +197,51 @@ export function useVaultBreaker({
   }, []);
 
   /**
-   * The current wallet may claim a bounty when the loaded vault is broken and
-   * they are the recorded winner. Reactive on both the loaded vault and the
-   * connected wallet address.
-   */
-  const canClaim = createDerived(() => {
-    const vault = vaultDetails.get();
-    if (!vault) return false;
-    const wallet = normalizeAddress(chainService.address.get());
-    if (!wallet) return false;
-    return (
-      vault.status === "broken" &&
-      Boolean(vault.winner) &&
-      normalizeAddress(vault.winner) === wallet
-    );
-  }, [vaultDetails, chainService.address]);
-
-  /**
-   * The current wallet may reclaim escrowed GAS when the loaded vault has
-   * expired and they are its creator.
+   * The current wallet may reclaim the escrowed bounty when the loaded vault has
+   * passed its expiry unbroken (status "claimable") and they are its creator.
+   * Reactive on both the loaded vault and the connected wallet address.
    */
   const canReclaim = createDerived(() => {
     const vault = vaultDetails.get();
     if (!vault) return false;
-    const wallet = normalizeAddress(chainService.address.get());
+    const wallet = chainService.address.get();
     if (!wallet) return false;
+    const reclaimable = vault.status === "claimable" || vault.status === "expired";
     return (
-      vault.status === "expired" &&
+      reclaimable &&
       Boolean(vault.creator) &&
-      normalizeAddress(vault.creator) === wallet
+      ownerMatchesAddress(vault.creator, wallet)
     );
   }, [vaultDetails, chainService.address]);
 
   /**
-   * Resolve the effective attempt fee (fixed8 raw) for a vault.
+   * Resolve the effective attempt fee (base units) for the loaded vault.
    *
-   * loadVault stores attemptFee via toSafeNumber, which yields 0 (not
-   * null/undefined) when the indexer record lacks the field — so a plain
-   * `?? fallback` would let an absent fee show/pay 0 GAS. Treat any
-   * non-positive / non-finite value as missing and fall back to the default
-   * 0.1 GAS attempt fee.
+   * getVaultDetails().attemptFee is already a base-unit integer set by the
+   * contract from the vault's difficulty tier. Treat any non-positive value as
+   * missing and fall back to the Easy-tier default (0.1 GAS).
    */
-  const resolveAttemptFeeFixed8 = (): string => {
-    const fallback = toFixed8(ATTEMPT_FEE);
+  const resolveAttemptFeeBase = (): string => {
     const fee = vaultDetails.get()?.attemptFee;
-    return Number.isFinite(fee) && (fee as number) > 0 ? String(fee) : fallback;
+    return Number.isFinite(fee) && (fee as number) > 0
+      ? String(Math.trunc(fee as number))
+      : DEFAULT_ATTEMPT_FEE_BASE;
   };
 
   const attemptFeeDisplay = createDerived(() => {
-    return formatGas(resolveAttemptFeeFixed8());
-  }, []);
+    return formatGas(resolveAttemptFeeBase());
+  }, [vaultDetails]);
 
-  // ── Data Loading (via StorageProxy) ────────────────────────────────
+  // ── Data Loading (direct chain reads) ──────────────────────────────
 
   /**
-   * Load recent vaults via StorageProxy.list().
+   * Load the newest vaults straight from the contract. Replaces the old
+   * os.storage list entirely.
    */
   const loadRecentVaults = async () => {
     try {
-      const vaultMap = await storageService.list("recentVaults:", 12);
-      const vaults: RecentVault[] = [];
-      if (vaultMap && typeof vaultMap === "object") {
-        for (const [, value] of Object.entries(vaultMap)) {
-          const stored = value as StoredRecentVault;
-          if (stored && stored.id) {
-            vaults.push({
-              id: String(stored.id),
-              creator: String(stored.creator || ""),
-              bounty: Number(stored.bounty ?? 0),
-            });
-          }
-        }
-      }
-      recentVaults.set(vaults);
+      const details = await readRecentVaultDetails(chainService, MAX_RECENT_VAULTS);
+      recentVaults.set(details.map(toRecentVault));
     } catch (e) {
       console.error(
         "[unbreakable-vault] loadRecentVaults error:",
@@ -262,40 +252,20 @@ export function useVaultBreaker({
   };
 
   /**
-   * Load vault details via StorageProxy.get().
+   * Load a single vault's details from the contract.
    *
    * Returns `{ error }` with a human-readable message on failure so the
    * registered host action can surface a status toast (the "vault:*" eventBus
-   * channel is not subscribed by the runtime). Returns `undefined` on success
-   * or when there is no vault id to load.
+   * channel is not subscribed by the runtime). Returns `undefined` on success or
+   * when there is no vault id to load.
    */
   const loadVault = async (): Promise<{ error: string } | undefined> => {
-    if (!vaultIdInput.get()) return undefined;
+    const id = vaultIdInput.get();
+    if (!id) return undefined;
     try {
-      const data = await storageService.get(`vault:${vaultIdInput.get()}`) as StoredVaultDetails | null;
-      if (!data || typeof data !== "object") throw new Error(t("vaultNotFound"));
-
-      const creator = String(data.creator || "");
-      if (!creator || /^0+$/.test(creator)) throw new Error(t("vaultNotFound"));
-
-      const st = String(data.status || "");
-      const expired = Boolean(data.expired);
-      const broken = Boolean(data.broken);
-
-      vaultDetails.set({
-        id: vaultIdInput.get(),
-        creator,
-        bounty: toNumber(data.bounty),
-        attempts: toNumber(data.attemptCount),
-        broken,
-        expired,
-        status: st || (broken ? "broken" : expired ? "expired" : "active"),
-        winner: String(data.winner || ""),
-        attemptFee: toNumber(data.attemptFee),
-        difficultyName: String(data.difficultyName || ""),
-        expiryTime: toNumber(data.expiryTime),
-        remainingDays: toNumber(data.remainingDays),
-      });
+      const detail = await readVaultDetails(chainService, id);
+      if (!detail) throw new Error(t("vaultNotFound"));
+      vaultDetails.set(toVaultDetails(detail));
     } catch (e) {
       const message = e instanceof Error ? e.message : t("loadFailed");
       eventBus.emit("vault:error", { message });
@@ -305,25 +275,29 @@ export function useVaultBreaker({
     return undefined;
   };
 
-  // ── Actions (via OS services) ──────────────────────────────────────
+  // ── Actions (direct on-chain calls) ────────────────────────────────
 
   /**
-   * Attempt to break a vault via the live Vault contract funded transaction flow.
+   * Attempt to break a vault via the deposit-then-act contract flow:
+   *   transfer(GAS, "miniapp-unbreakablevault:attempt") » attemptBreak(...).
+   *
+   * The outcome is read from the AttemptMade event (slot 2 = success). On a
+   * correct secret the contract pays the bounty to the attacker in the same
+   * transaction — there is no separate claim step.
    *
    * Returns `{ success }` so the registered host action can surface a status
-   * toast (the "vault:*" eventBus channel is not subscribed by the runtime).
-   * Returns `undefined` when the attempt is skipped (guard not satisfied).
+   * toast. Returns `undefined` when the attempt is skipped (guard not satisfied).
    */
   const attemptBreak = async (): Promise<{ success: boolean } | undefined> => {
     if (!canAttempt.get() || isLoading.get()) return undefined;
     isLoading.set(true);
     try {
-      const attemptFee = normalizeAttemptFeeFixed8(resolveAttemptFeeFixed8());
+      const attemptFee = resolveAttemptFeeBase();
       const attacker = await chainService.ensureWallet();
 
-      await chainService.invokeWithPayment(
+      const result = await chainService.invokeWithPayment(
         attemptFee,
-        `miniapp-unbreakablevault:attempt:${vaultIdInput.get()}`,
+        ATTEMPT_MEMO,
         "attemptBreak",
         [
           { type: "Integer", value: vaultIdInput.get() },
@@ -333,14 +307,17 @@ export function useVaultBreaker({
         { waitForEvent: "AttemptMade" },
       );
 
-      // Check the result from storage
-      const result = await storageService.get(`attemptResult:${vaultIdInput.get()}`) as { success?: boolean } | null;
-      const success = Boolean(result?.success);
+      // AttemptMade(vaultId, attacker, success, attemptNumber) — slot 2 is the
+      // boolean success flag, definitive at HALT.
+      const successSlot = eventSlot(result.event, 2);
+      const success =
+        successSlot === true ||
+        successSlot === "true" ||
+        successSlot === 1 ||
+        successSlot === "1";
 
       if (success) {
         eventBus.emit("vault:broken", { action: t("broken") });
-        // Hint badge for vault breaker (fire-and-forget)
-        badgeService.award("vault-breaker", "").catch(() => {});
       } else {
         eventBus.emit("vault:attempt_failed", { message: t("vaultAttemptFailed") });
       }
@@ -365,50 +342,42 @@ export function useVaultBreaker({
   };
 
   /**
-   * Settle the second half of the bounty lifecycle: a winner claims the prize
-   * on a broken vault, or a creator reclaims the escrow on an expired vault.
+   * Reclaim the escrowed bounty on an expired, unbroken vault.
    *
-   * Both are no-payment contract calls (the escrow already holds the GAS), so
-   * they use the direct `invoke` flow rather than `invokeWithPayment`. The
-   * caller is gated by `canClaim` / `canReclaim`; this function re-validates so
-   * it is safe to call directly from a host action.
+   * This is a no-payment contract call (the escrow already holds the bounty),
+   * so it uses the direct `invoke` flow. The caller is gated by `canReclaim`;
+   * this function re-validates so it is safe to call directly from a host
+   * action. `claimExpiredVault` takes only the vault id.
    *
-   * Returns `{ success, mode }` so the registered host action can surface a
-   * status toast, or `undefined` when no settlement was attempted.
+   * Returns `{ success }` so the registered host action can surface a status
+   * toast, or `undefined` when no reclaim was attempted.
    */
-  const settleVault = async (): Promise<
-    { success: boolean; mode: "claim" | "reclaim" } | undefined
-  > => {
+  const settleVault = async (): Promise<{ success: boolean } | undefined> => {
     if (isClaiming.get() || isLoading.get()) return undefined;
-    const claiming = canClaim.get();
-    const reclaiming = canReclaim.get();
-    if (!claiming && !reclaiming) return undefined;
-    const mode: "claim" | "reclaim" = claiming ? "claim" : "reclaim";
+    if (!canReclaim.get()) return undefined;
 
     isClaiming.set(true);
     try {
-      const wallet = await chainService.ensureWallet();
-      const operation = claiming ? "claimBounty" : "reclaimVault";
+      await chainService.ensureWallet();
       const result = await chainService.invoke(
-        operation,
-        [
-          { type: "Integer", value: vaultIdInput.get() },
-          { type: "Hash160", value: wallet },
-        ],
-        { waitForEvent: claiming ? "BountyClaimed" : "VaultReclaimed" },
+        "claimExpiredVault",
+        [{ type: "Integer", value: vaultIdInput.get() }],
+        { waitForEvent: "VaultExpired" },
       );
-      const success = Boolean(result?.success);
+      // The VaultExpired event firing at HALT proves the refund settled; the
+      // base TxResult.success only reflects that a txid was broadcast.
+      const success = Boolean(result.event) || Boolean(result.success);
 
       if (success) {
         eventBus.emit("vault:settled", {
-          mode,
-          action: claiming ? t("bountyClaimed") : t("vaultReclaimed"),
+          mode: "reclaim",
+          action: t("vaultReclaimed"),
         });
       }
 
       await loadVault();
       await loadRecentVaults();
-      return { success, mode };
+      return { success };
     } catch (e) {
       eventBus.emit("vault:error", {
         message: e instanceof Error ? e.message : t("settleFailed"),
@@ -425,7 +394,6 @@ export function useVaultBreaker({
     vaultDetails,
     recentVaults,
     canAttempt,
-    canClaim,
     canReclaim,
     attemptFeeDisplay,
     isLoading,

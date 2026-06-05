@@ -1,17 +1,49 @@
 /**
- * useVaultCreator — Vault creation with password hashing and GAS deposit
+ * useVaultCreator — Vault creation + "my vaults" listing
  *
- * Uses the direct-prepaid MiniApp contract flow:
- *   GAS.transfer(wallet -> vault, bounty, "miniapp-unbreakablevault:create")
- *   createVault(creator, secretHash, bounty, difficulty, title, description)
+ * Talks DIRECTLY to the standalone MiniAppUnbreakableVault contract via
+ * ctx.services.chain. The earlier path routed reads through ctx.os.storage and
+ * badges through ctx.os.badge — both backed by the Morpheus OS kernel/edge,
+ * which is offline, so the app was broken at runtime.
+ *
+ * Contract interaction model (verified against the deployed ABI at
+ * 0x78fbd57ccfae14fff4b043a82eb491de542d8eb0):
+ *
+ *   CREATE (deposit-then-act):
+ *     1. transfer(creator, CONTRACT, bountyBaseUnits, "miniapp-unbreakablevault:create")
+ *        { scriptHash: GAS_HASH } — OnNEP17Payment credits the prepaid bounty.
+ *     2. createVault(creator, secretHash, bounty, difficulty, title, description)
+ *        -> Integer vaultId. The id is read from the "VaultCreated" event:
+ *        VaultCreated(vaultId, creator, bounty, difficulty).
+ *     invokeWithPayment performs both steps; the secret is hashed locally with
+ *     SHA-256 and only the digest is sent on-chain.
+ *
+ *   READS (chain.read, default app contract script hash):
+ *     totalVaults()              -> Integer (vaults are ids 1..totalVaults)
+ *     getVaultDetails(vaultId)   -> Map{id,creator,bounty,attemptCount,difficulty,
+ *                                       difficultyName,attemptFee,createdTime,
+ *                                       expiryTime,hintsRevealed,broken,expired,
+ *                                       winner,title,description,status}
+ *
+ * "My vaults" are derived by enumerating the most recent vaults and filtering
+ * those whose creator matches the connected wallet — the contract has no
+ * per-creator index, so this reuses the shared catalog read.
+ *
+ * AMOUNT CONVENTION: bounty is GAS in BASE UNITS (1e8 per GAS).
  */
 
 import { createObservable } from "@shared/react/context";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { ChainService } from "@shared/services/ChainService";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import { sha256Hex } from "@shared/utils/hash";
 import { toFixed8 } from "@shared/utils/format";
+import { parseBigInt } from "@shared/utils/parsers";
+import {
+  CREATE_MEMO,
+  MAX_RECENT_VAULTS,
+  readRecentVaultDetails,
+  type ChainVaultDetails,
+} from "./vaultChain";
 
 // ============================================================================
 // Types
@@ -21,6 +53,7 @@ export interface MyVault {
   id: string;
   bounty: number;
   created: number;
+  status: string;
 }
 
 export interface VaultCreateForm {
@@ -33,15 +66,11 @@ export interface VaultCreateForm {
 }
 
 export interface UseVaultCreatorOptions {
-  /** Shared chain service for wallet-signed direct contract calls */
+  /** Shared chain service for wallet-signed direct contract calls + reads. */
   chainService: ChainService;
-  /** OS StorageProxy instance from ctx.os.storage */
-  storageService: StorageProxy;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
-  /** EventBus for UI events */
+  /** EventBus for UI events. */
   eventBus: { emit: (event: string, payload?: unknown) => void };
-  /** Translation function */
+  /** Translation function. */
   t: (key: string) => string;
 }
 
@@ -49,39 +78,18 @@ export interface UseVaultCreatorOptions {
 // Helpers
 // ============================================================================
 
-interface StoredVault {
-  id: string;
-  creator: string;
-  bounty: number;
-  created: number;
-}
-
-function valueFromRecord(value: unknown, keys: string[]): string {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
-  const record = value as Record<string, unknown>;
-  for (const key of keys) {
-    const raw = record[key];
-    if (typeof raw === "string" && raw.trim()) return raw.trim();
+/** Read a single state slot from a VaultCreated event payload. */
+function eventSlot(entry: unknown, index: number): unknown {
+  if (!entry || typeof entry !== "object") return undefined;
+  const state = (entry as { state?: unknown }).state;
+  if (Array.isArray(state)) {
+    const item = state[index] as unknown;
+    if (item && typeof item === "object" && "value" in item) {
+      return (item as { value?: unknown }).value;
+    }
+    return item;
   }
-  return "";
-}
-
-function resolveCreatedVaultId(result: unknown, secretHash: string): string {
-  if (typeof result === "string" && result.trim()) return result.trim();
-
-  const explicitId = valueFromRecord(result, [
-    "vaultId",
-    "vault_id",
-    "escrowId",
-    "escrow_id",
-    "id",
-  ]);
-  if (explicitId) return explicitId;
-
-  const txid = valueFromRecord(result, ["txid", "tx", "transactionHash"]);
-  if (txid) return `pending-${txid.replace(/^0x/i, "").slice(0, 12)}`;
-
-  return `vault-${secretHash.slice(0, 12)}`;
+  return undefined;
 }
 
 function base64FromBytes(bytes: number[]): string {
@@ -101,10 +109,20 @@ function base64FromBytes(bytes: number[]): string {
   return output;
 }
 
+/** Convert a hex SHA-256 digest to base64 for the ByteArray contract arg. */
 function hashHexToBase64(hash: string): string {
   const normalized = hash.replace(/^0x/i, "");
   const bytes = normalized.match(/.{2}/g)?.map((byte) => parseInt(byte, 16)) || [];
   return base64FromBytes(bytes);
+}
+
+function toMyVault(detail: ChainVaultDetails): MyVault {
+  return {
+    id: detail.id,
+    bounty: detail.bounty,
+    created: detail.createdTime,
+    status: detail.status,
+  };
 }
 
 // ============================================================================
@@ -113,8 +131,6 @@ function hashHexToBase64(hash: string): string {
 
 export function useVaultCreator({
   chainService,
-  storageService,
-  badgeService,
   eventBus,
   t,
 }: UseVaultCreatorOptions) {
@@ -123,25 +139,22 @@ export function useVaultCreator({
   const isCreating = createObservable(false);
 
   /**
-   * Load vaults created by the current user via StorageProxy.
+   * Load vaults created by the current wallet by enumerating the most recent
+   * vaults on-chain and filtering by creator. Newest first.
    */
   const loadMyVaults = async () => {
     try {
-      const vaultMap = await storageService.list("myVaults:", 50);
-      const vaults: MyVault[] = [];
-      if (vaultMap && typeof vaultMap === "object") {
-        for (const [, value] of Object.entries(vaultMap)) {
-          const stored = value as StoredVault;
-          if (stored && stored.id) {
-            vaults.push({
-              id: String(stored.id),
-              bounty: Number(stored.bounty ?? 0),
-              created: Number(stored.created ?? Date.now()),
-            });
-          }
-        }
+      const wallet = chainService.address.get();
+      if (!wallet) {
+        myVaults.set([]);
+        return;
       }
-      myVaults.set(vaults.sort((a, b) => b.created - a.created));
+      const details = await readRecentVaultDetails(chainService, MAX_RECENT_VAULTS);
+      const mine = details
+        .filter((detail) => ownerMatchesAddress(detail.creator, wallet))
+        .map(toMyVault)
+        .sort((a, b) => b.created - a.created);
+      myVaults.set(mine);
     } catch (e) {
       console.error(
         "[unbreakable-vault] loadMyVaults error:",
@@ -152,7 +165,8 @@ export function useVaultCreator({
   };
 
   /**
-   * Create a vault via the live Vault contract funded transaction flow.
+   * Create a vault via the deposit-then-act contract flow:
+   *   transfer(GAS, "miniapp-unbreakablevault:create") » createVault(...).
    */
   const createVault = async (
     form: VaultCreateForm,
@@ -167,39 +181,40 @@ export function useVaultCreator({
         throw new Error(t("vaultCreateFailed"));
       }
       const bountyFixed8 = toFixed8(form.bounty);
+      if (bountyFixed8 === "0") {
+        throw new Error(t("vaultCreateFailed"));
+      }
+      const difficulty = Number(form.difficulty);
+      if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 3) {
+        throw new Error(t("vaultCreateFailed"));
+      }
       const hash = form.secretHash || (await sha256Hex(form.secret));
       const creator = await chainService.ensureWallet();
 
       const result = await chainService.invokeWithPayment(
         bountyFixed8,
-        `miniapp-unbreakablevault:create:${hash.slice(0, 10)}`,
+        CREATE_MEMO,
         "createVault",
         [
           { type: "Hash160", value: creator },
           { type: "ByteArray", value: hashHexToBase64(hash) },
           { type: "Integer", value: bountyFixed8 },
-          { type: "Integer", value: String(form.difficulty) },
+          { type: "Integer", value: String(difficulty) },
           { type: "String", value: form.title.trim().slice(0, 100) },
           { type: "String", value: form.description.trim().slice(0, 300) },
         ],
         { waitForEvent: "VaultCreated" },
       );
-      const vaultId = resolveCreatedVaultId(result, hash);
 
-      // Store vault metadata
-      await storageService.set(`vault-meta:${vaultId}`, {
-        secretHash: hash,
-        difficulty: form.difficulty,
-        title: form.title.trim().slice(0, 100),
-        description: form.description.trim().slice(0, 300),
-      });
+      // The new vault id is the first slot of the VaultCreated event.
+      const eventId = parseBigInt(eventSlot(result.event, 0));
+      const vaultId = eventId > 0n ? eventId.toString() : "";
 
-      createdVaultId.set(vaultId || createdVaultId.get());
+      if (vaultId) {
+        createdVaultId.set(vaultId);
+      }
 
       eventBus.emit("vault:created", { action: t("vaultCreated") });
-
-      // Hint badge for vault creator (fire-and-forget)
-      badgeService.award("vault-creator", "").catch(() => {});
 
       onSuccess(vaultId);
       await loadRecentVaults();

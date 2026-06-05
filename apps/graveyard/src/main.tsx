@@ -19,9 +19,7 @@ defineMiniApp({
     const { notify } = ctx.services;
 
     const graveyard = useGraveyard({
-      nftService: ctx.os.nft,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
+      chain: ctx.services.chain,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
