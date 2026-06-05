@@ -38,6 +38,8 @@ const LIVE_CHAIN_FLOWS = new Map([
   ["miniapp-memorial-shrine", { script: "deploy/scripts/live_validate_remaining_contracts_part2.js", target: "memorial" }],
   ["miniapp-milestone-escrow", { script: "deploy/scripts/live_validate_remaining_contracts_part2.js", target: "milestone" }],
   ["miniapp-neo-pay", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "neoPay" }],
+  // Shared example: reuses neo-pay's exact contract, so neo-pay's flow covers it.
+  ["miniapp-neo-pay-shared-example", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "neoPay" }],
   ["miniapp-neo-ns", { script: "deploy/scripts/live_validate_aa_ns_miniapps.js", target: "neons" }],
   ["miniapp-onchaintarot", { script: "deploy/scripts/live_validate_remaining_contracts_part1.js", target: "tarot" }],
   ["miniapp-profitanchor", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "profitAnchor" }],
