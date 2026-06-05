@@ -39,6 +39,39 @@ const appMessages = {
   defaultDevName: { en: "Dev #{id}", zh: "开发者 #{id}" },
   defaultDevRole: { en: "Neo Developer", zh: "Neo 开发者" },
 
+  // Developer self-service (register + withdraw)
+  developerZone: { en: "Developer Zone", zh: "开发者专区" },
+  registerHint: {
+    en: "Register your wallet to receive tips from supporters.",
+    zh: "注册您的钱包，即可接收支持者的打赏。",
+  },
+  registerConnectHint: {
+    en: "Connect your wallet to register as a developer.",
+    zh: "连接钱包以注册为开发者。",
+  },
+  devNameLabel: { en: "Display Name", zh: "显示名称" },
+  devNamePlaceholder: { en: "e.g. Neo Core", zh: "例如：Neo Core" },
+  devRoleLabel: { en: "Role (optional)", zh: "角色（可选）" },
+  devRolePlaceholder: { en: "e.g. Protocol Maintainer", zh: "例如：协议维护者" },
+  registerBtn: { en: "Register as Developer", zh: "注册为开发者" },
+  registering: { en: "Registering...", zh: "注册中..." },
+  registered: { en: "Registered successfully!", zh: "注册成功！" },
+  invalidDevName: { en: "Name must be 1-64 characters", zh: "名称需为 1-64 个字符" },
+  invalidDevRole: { en: "Role must be 64 characters or fewer", zh: "角色不超过 64 个字符" },
+  registeredAs: { en: "Registered as developer", zh: "已注册为开发者" },
+  claimableBalance: { en: "Claimable Tips", zh: "可领取打赏" },
+  withdrawTipsBtn: { en: "Withdraw Tips", zh: "领取打赏" },
+  withdrawing: { en: "Withdrawing...", zh: "领取中..." },
+  tipsWithdrawn: { en: "Tips withdrawn to your wallet", zh: "打赏已领取到您的钱包" },
+  nothingToWithdraw: { en: "No tips to withdraw", zh: "暂无可领取打赏" },
+  tipPrepaidNoTip: {
+    en: "Deposit landed but the tip did not settle. Your credit is held on the contract and reused on your next tip.",
+    zh: "已存入但打赏未结算。您的余额已保留在合约中，将用于下次打赏。",
+  },
+  walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
+  contractNotReady: { en: "Contract not ready", zh: "合约未就绪" },
+  error: { en: "Something went wrong", zh: "出现错误" },
+
   docSubtitle: {
     en: "Support developers with direct GAS tips",
     zh: "用 GAS 打赏直接支持开发者",
