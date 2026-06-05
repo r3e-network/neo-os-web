@@ -4,7 +4,7 @@
   "category_name": "Social",
   "category_name_zh": "社交",
   "contracts": {
-    "neo-n3-mainnet": "0xd853a4ac293ff96e7f70f774c2155d846f91a989",
+    "neo-n3-mainnet": "0x3e88058ef32c4d8d17eb1a2188d6d5e329c94f8a",
     "neo-n3-testnet": "0x3e88058ef32c4d8d17eb1a2188d6d5e329c94f8a"
   },
   "contract_domains": {
