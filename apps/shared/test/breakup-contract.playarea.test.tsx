@@ -74,22 +74,22 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 }
 
 describe("Breakup Contract PlayArea", () => {
-  it("shows professional service copy and no raw storage endpoint text", () => {
+  it("shows professional service copy and no raw chain error text", () => {
     render(
       <PlayArea
         t={t}
         state={state({
-          serviceNotice:
-            "Live contract records are not available in this environment yet.",
+          serviceNotice: "Failed to load contracts",
         })}
         dispatch={vi.fn()}
       />,
     );
 
     expect(screen.getByRole("status").textContent).toContain(
-      "Live contract records are not available",
+      "Failed to load contracts",
     );
-    expect(screen.queryByText(/OS service error|os-storage-list|Not Found/i)).toBeNull();
+    // No raw RPC / chain error internals leak into the UI.
+    expect(screen.queryByText(/RPC|getPact|Not Found|ASSERT/i)).toBeNull();
     expect(screen.getAllByText("Stake").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Duration").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Create Contract" })).toBeTruthy();

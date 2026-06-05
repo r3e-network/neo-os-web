@@ -16,9 +16,7 @@ defineMiniApp({
 
   setup(ctx) {
     const breakup = useBreakup({
-      escrowService: ctx.os.escrow,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
+      chain: ctx.services.chain,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
@@ -51,14 +49,20 @@ defineMiniApp({
     });
     ctx.registerAction("signContract", (contract: unknown) =>
       ctx.services.notify.guard(
-        () => breakup.signContract(contract as { id: number; stake: number }),
+        () => breakup.signContract(contract as { id?: number; pactId?: string; stake?: number; stakeRaw?: string }),
         "contractSigned",
       ),
     );
     ctx.registerAction("breakContract", (contract: unknown) =>
       ctx.services.notify.guard(
-        () => breakup.breakContract(contract as { id: number }),
+        () => breakup.breakContract(contract as { id?: number; pactId?: string }),
         "contractBroken",
+      ),
+    );
+    ctx.registerAction("settleContract", (contract: unknown) =>
+      ctx.services.notify.guard(
+        () => breakup.settleContract(contract as { id?: number; pactId?: string }),
+        "contractSettled",
       ),
     );
 
