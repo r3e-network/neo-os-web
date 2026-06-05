@@ -16,12 +16,13 @@ defineMiniApp({
 
   setup(ctx) {
     const tarot = useTarot({
-      paymentService: ctx.os.payment,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
+      chain: ctx.services.chain,
+      cache: ctx.services.cache,
       clipboard: ctx.services.clipboard,
       t: ctx.t,
     });
+
+    tarot.setAddress(ctx.services.chain.address.get() ?? null);
 
     ctx.registerAction("draw", async () => {
       await ctx.services.notify.guard(() => tarot.draw(), "cardsDrawn");
