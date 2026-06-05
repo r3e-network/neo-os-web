@@ -1,5 +1,15 @@
 /**
  * Self-Loan — React Entry Point
+ *
+ * Drives the standalone on-chain MiniAppSelfLoan contract directly via
+ * ctx.services.chain (no OS service proxies). The composable owns all contract
+ * reads/writes; this file wires the chain service, the borrow / repay /
+ * addCollateral / reclaim actions, and re-loads data when the wallet connects or
+ * switches.
+ *
+ * ASSET CONVENTION (kept strictly separate end-to-end): COLLATERAL is NEO, an
+ * integer token (collateral / NEO balance are WHOLE NEO, never ×1e8); DEBT is GAS
+ * (borrowed / totals are displayed ÷1e8).
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
@@ -16,11 +26,17 @@ defineMiniApp({
 
   setup(ctx) {
     const loan = useSelfLoan({
-      paymentService: ctx.os.payment,
-      escrowService: ctx.os.escrow,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
-      t: ctx.t,
+      chain: ctx.services.chain,
+      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+    });
+
+    loan.setAddress(ctx.services.chain.address.get() ?? "");
+
+    // The wallet can connect or switch accounts after mount, so re-propagate the
+    // address and reload the position / balance / credits whenever it changes.
+    const stopAddressSync = ctx.services.chain.address.subscribe(() => {
+      loan.setAddress(ctx.services.chain.address.get() ?? "");
+      void loan.loadAll();
     });
 
     ctx.registerAction("borrow", async (formData: unknown) => {
@@ -44,6 +60,20 @@ defineMiniApp({
       );
     });
 
+    ctx.registerAction("reclaimCollateral", async () => {
+      await ctx.services.notify.guard(
+        () => loan.reclaimCollateral(),
+        "reclaimCollateralSuccess",
+      );
+    });
+
+    ctx.registerAction("reclaimRepayCredit", async () => {
+      await ctx.services.notify.guard(
+        () => loan.reclaimRepayCredit(),
+        "reclaimRepaySuccess",
+      );
+    });
+
     ctx.registerAction("setCollateralAmount", async (amount: unknown) => {
       if (typeof amount === "string") loan.collateralAmount.set(amount);
     });
@@ -58,7 +88,6 @@ defineMiniApp({
     return {
       state: {
         loan: loan.loan,
-        loanHistory: loan.loanHistory,
         neoBalance: loan.neoBalance,
         neoPrice: loan.neoPrice,
         isPriceNormalized: loan.isPriceNormalized,
@@ -71,6 +100,7 @@ defineMiniApp({
         isBorrowing: loan.isBorrowing,
         isRepaying: loan.isRepaying,
         isAddingCollateral: loan.isAddingCollateral,
+        isProcessing: loan.isProcessing,
         isConnected: loan.isConnected,
         selectedLtvPercent: loan.selectedLtvPercent,
         healthFactor: loan.healthFactor,
@@ -86,8 +116,19 @@ defineMiniApp({
         totalBorrowedDisplay: loan.totalBorrowedDisplay,
         totalRepaidDisplay: loan.totalRepaidDisplay,
         profitAnchorValue: loan.profitAnchorValue,
+        // Reclaim affordances (deposit-then-act recovery paths)
+        collateralCredit: loan.collateralCredit,
+        repayCredit: loan.repayCredit,
+        hasCollateralCredit: loan.hasCollateralCredit,
+        hasRepayCredit: loan.hasRepayCredit,
+        collateralCreditDisplay: loan.collateralCreditDisplay,
+        repayCreditDisplay: loan.repayCreditDisplay,
       },
       loadData: loan.loadAll,
+      cleanup: () => {
+        stopAddressSync();
+        loan.dispose();
+      },
     };
   },
 });

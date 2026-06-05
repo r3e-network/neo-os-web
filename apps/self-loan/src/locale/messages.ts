@@ -135,6 +135,36 @@ const appMessages = {
     en: "You have no outstanding loan to repay",
     zh: "您没有需要偿还的未结贷款",
   },
+  // ── Action success toasts (notify.guard keys) ───────────────────────────
+  borrowSuccess: { en: "Loan taken — GAS disbursed to your wallet", zh: "贷款成功——GAS 已发放至您的钱包" },
+  collateralAdded: { en: "Collateral added to your loan", zh: "抵押品已追加到您的贷款" },
+  reclaimCollateralSuccess: { en: "Collateral credit reclaimed", zh: "抵押额度已取回" },
+  reclaimRepaySuccess: { en: "Repay credit reclaimed", zh: "还款额度已取回" },
+  // ── Deposit-then-act held-credit notices ────────────────────────────────
+  collateralCreditHeld: {
+    en: "Your NEO deposit landed but the loan could not be opened. It is held as collateral credit — use Reclaim Collateral to recover it.",
+    zh: "您的 NEO 已存入但贷款未能开立。它已作为抵押额度保留——请使用“取回抵押品”来找回。",
+  },
+  repayCreditHeld: {
+    en: "Your GAS deposit landed but the repayment could not be applied. It is held as repay credit — use Reclaim Repay Credit to recover it.",
+    zh: "您的 GAS 已存入但还款未能应用。它已作为还款额度保留——请使用“取回还款额度”来找回。",
+  },
+  // ── Reclaim affordances (deposit-then-act recovery paths) ───────────────
+  reclaimable: { en: "Reclaimable", zh: "可取回" },
+  reclaimCollateralTitle: { en: "Reclaim Collateral", zh: "取回抵押品" },
+  reclaimCollateral: { en: "Reclaim Collateral", zh: "取回抵押品" },
+  reclaimCollateralCopy: {
+    en: "You have NEO credited as collateral that was never borrowed against. Reclaim it to your wallet.",
+    zh: "您有作为抵押品入账但从未借出的 NEO。将其取回到您的钱包。",
+  },
+  noCollateralCredit: { en: "No collateral credit to reclaim", zh: "没有可取回的抵押额度" },
+  reclaimRepayTitle: { en: "Reclaim Repay Credit", zh: "取回还款额度" },
+  reclaimRepayCredit: { en: "Reclaim Repay Credit", zh: "取回还款额度" },
+  reclaimRepayCopy: {
+    en: "You have GAS deposited as repay credit that was never applied to a loan. Reclaim it to your wallet.",
+    zh: "您有作为还款额度存入但从未应用于贷款的 GAS。将其取回到您的钱包。",
+  },
+  noRepayCredit: { en: "No repay credit to reclaim", zh: "没有可取回的还款额度" },
   collateralRefunded: {
     en: "Loan setup failed — your NEO collateral was refunded",
     zh: "贷款创建失败——您的 NEO 抵押品已退回",

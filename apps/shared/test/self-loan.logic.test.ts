@@ -1,238 +1,418 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PaymentProxy } from "../services/os/PaymentProxy";
-import type { EscrowProxy } from "../services/os/EscrowProxy";
-import type { StorageProxy } from "../services/os/StorageProxy";
-import type { BadgeProxy } from "../services/os/BadgeProxy";
-
-const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-
-const walletMock = { address: { value: OWNER } };
-vi.mock("../utils/wallet-sdk", () => ({ useWallet: () => walletMock }));
-
-// Imported after the wallet mock is registered.
+import type { ChainService } from "../services/ChainService";
 import { useSelfLoan } from "../../self-loan/src/composables/useSelfLoan";
 
-function t(key: string) {
+// A funded testnet account; addressToScriptHash resolves it without external deps.
+const OWNER = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
+const CONTRACT = "0x87f94598c78cb954ca8200d3964ded9b584d7250";
+
+// GAS base-unit multiplier (1 GAS = 1e8 base units).
+const GAS = 100_000_000n;
+
+function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     enterValidAmount: "Enter a valid amount",
-    neoMustBeInteger: "NEO must be a whole number",
+    neoMustBeInteger: "NEO amount must be a whole number",
     insufficientNeo: "Insufficient NEO balance",
-    collateralRefunded: "Loan setup failed — your NEO collateral was refunded",
-    collateralRecoveryNeeded:
-      "Loan setup failed and the automatic refund did not complete.",
+    repayNoActiveLoan: "You have no outstanding loan to repay",
+    repayExceedsDebt: `Amount exceeds your outstanding debt of ${params?.amount ?? ""} GAS`,
+    collateralCreditHeld: "collateral credit held",
+    repayCreditHeld: "repay credit held",
+    noCollateralCredit: "No collateral credit to reclaim",
+    noRepayCredit: "No repay credit to reclaim",
+    walletStatusIdle: "Wallet not connected",
+    missingContract: "Contract not configured",
     notAvailable: "N/A",
+    healthFactor: "Health Factor",
+    collateralRatio: "Collateral Ratio",
     yes: "Yes",
     no: "No",
+    tokenNeo: "NEO",
+    tokenGas: "GAS",
+    profitAnchorValue: "Operator-selected council candidate",
+    ltvTierConservative: "Conservative",
+    ltvTierConservativeDesc: "20% LTV",
+    ltvTierBalanced: "Balanced",
+    ltvTierBalancedDesc: "30% LTV",
+    ltvTierAggressive: "Aggressive",
+    ltvTierAggressiveDesc: "40% LTV",
   };
   return messages[key] ?? key;
 }
 
-type ListPayload = Record<string, unknown>;
-
-function setup(opts: {
-  balance?: string;
-  list?: ListPayload;
-  escrowGet?: unknown;
-  neoPrice?: unknown;
-} = {}) {
-  const payment = {
-    getBalance: vi.fn(async () => opts.balance ?? "100"),
-    deposit: vi.fn(async () => ({ invocation: { txid: "0xdeposit" } })),
-    withdraw: vi.fn(async () => undefined),
-  } as unknown as PaymentProxy & {
-    getBalance: ReturnType<typeof vi.fn>;
-    deposit: ReturnType<typeof vi.fn>;
-    withdraw: ReturnType<typeof vi.fn>;
-  };
-
-  const escrow = {
-    create: vi.fn(async () => "esc-1"),
-    refund: vi.fn(async () => undefined),
-    get: vi.fn(async () => opts.escrowGet ?? null),
-  } as unknown as EscrowProxy & {
-    create: ReturnType<typeof vi.fn>;
-    refund: ReturnType<typeof vi.fn>;
-    get: ReturnType<typeof vi.fn>;
-  };
-
-  const storage = {
-    get: vi.fn(async (key: string) => {
-      if (key === "neo-price") return opts.neoPrice ?? null;
-      return null;
-    }),
-    list: vi.fn(async () => opts.list ?? {}),
-  } as unknown as StorageProxy & {
-    get: ReturnType<typeof vi.fn>;
-    list: ReturnType<typeof vi.fn>;
-  };
-
-  const badge = {
-    award: vi.fn(async () => undefined),
-  } as unknown as BadgeProxy & { award: ReturnType<typeof vi.fn> };
-
-  const app = useSelfLoan({
-    paymentService: payment,
-    escrowService: escrow,
-    storageService: storage,
-    badgeService: badge,
-    t,
-  });
-
-  return { app, payment, escrow, storage, badge };
+/** Reads the contract emulates. Values are RAW on-chain forms (NEO integer / GAS base units). */
+interface ChainState {
+  neoPrice?: bigint; // GAS base units per 1 NEO (0 / undefined = unset)
+  neoBalance?: bigint; // WHOLE NEO (integer)
+  loan?: {
+    collateral: bigint; // WHOLE NEO
+    borrowed: bigint; // GAS base units
+    ltvBps: bigint;
+    active: boolean;
+  } | null;
+  collateralCredit?: bigint; // WHOLE NEO
+  repayCredit?: bigint; // GAS base units
+  totalLoans?: bigint;
+  totalBorrowed?: bigint; // GAS base units
+  totalRepaid?: bigint; // GAS base units
 }
 
-// An active loan record as returned by storage.list("loan:"), keyed arbitrarily.
-function activeLoanList() {
-  return {
-    "loan:1": {
-      id: 1,
-      netBorrow: 20,
-      repaid: 0,
-      active: true,
-      collateral: 100,
-      createdTime: 1_700_000_000,
-    },
-  } as ListPayload;
+interface ContractArg {
+  type: string;
+  value: string | number | boolean;
 }
 
-describe("useSelfLoan takeLoan rollback (self-loan-1)", () => {
-  beforeEach(() => {
-    walletMock.address.value = OWNER;
+function makeChain(state: ChainState = {}) {
+  const read = vi.fn(async (op: string, _args?: ContractArg[], _opts?: unknown) => {
+    switch (op) {
+      case "ltvTierBps": {
+        const tier = Number((_args?.[0]?.value ?? "1"));
+        return tier === 1 ? 2000n : tier === 2 ? 3000n : 4000n;
+      }
+      case "feeBps":
+        return 50n;
+      case "neoPrice":
+        return state.neoPrice ?? 0n;
+      case "balanceOf":
+        return state.neoBalance ?? 0n;
+      case "getLoan": {
+        const l = state.loan;
+        if (!l) return { collateral: 0n, borrowed: 0n, ltvBps: 0n, active: false };
+        return { collateral: l.collateral, borrowed: l.borrowed, ltvBps: l.ltvBps, active: l.active };
+      }
+      case "collateralCreditOf":
+        return state.collateralCredit ?? 0n;
+      case "repayCreditOf":
+        return state.repayCredit ?? 0n;
+      case "totalLoans":
+        return state.totalLoans ?? 0n;
+      case "totalBorrowed":
+        return state.totalBorrowed ?? 0n;
+      case "totalRepaid":
+        return state.totalRepaid ?? 0n;
+      default:
+        return 0n;
+    }
   });
 
-  it("refunds deposited collateral when escrow.create fails", async () => {
-    const { app, payment, escrow } = setup({ balance: "100" });
+  const invoke = vi.fn(async (_op: string, _args: ContractArg[], _opts?: unknown) => ({
+    txid: "0xtx",
+    success: true,
+  }));
+
+  const chain = {
+    read,
+    invoke,
+    ensureWallet: vi.fn(async () => OWNER),
+    contractAddress: { get: () => CONTRACT, set: () => {}, subscribe: () => () => {} },
+    address: { get: () => OWNER, set: () => {}, subscribe: () => () => {} },
+  } as unknown as ChainService;
+
+  return { chain, read, invoke };
+}
+
+/** Pull every invoke call's [op, args] for assertions. */
+function invokeCalls(invoke: ReturnType<typeof vi.fn>) {
+  return invoke.mock.calls.map((c) => ({ op: c[0] as string, args: c[1] as ContractArg[], opts: c[2] }));
+}
+
+describe("useSelfLoan NEO-integer vs GAS-base-units separation (self-loan-asset)", () => {
+  it("reads loan collateral as WHOLE NEO and debt as GAS ÷1e8", async () => {
+    // 100 NEO collateral, 20 GAS debt (= 20e8 base units), 20% LTV.
+    const { chain } = makeChain({
+      loan: { collateral: 100n, borrowed: 20n * GAS, ltvBps: 2000n, active: true },
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
     await app.loadAll();
+
+    // Collateral is NEVER scaled by 1e8 — 100 NEO stays 100.
+    expect(app.loan.get().collateralLocked).toBe(100);
+    // Debt is GAS base units → ÷1e8 for display = 20 GAS.
+    expect(app.loan.get().borrowed).toBe(20);
+    expect(app.loan.get().active).toBe(true);
+  });
+
+  it("reads NEO balance as WHOLE NEO (no ÷1e8)", async () => {
+    const { chain } = makeChain({ neoBalance: 250n });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+    expect(app.neoBalance.get()).toBe(250);
+  });
+
+  it("reads platform totals as GAS ÷1e8 and loan count as an integer", async () => {
+    const { chain } = makeChain({
+      totalLoans: 7n,
+      totalBorrowed: 140n * GAS,
+      totalRepaid: 35n * GAS,
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+    expect(app.stats.get().totalLoans).toBe(7);
+    expect(app.stats.get().totalBorrowed).toBe(140);
+    expect(app.stats.get().totalRepaid).toBe(35);
+  });
+
+  it("reads tier bps + fee bps straight from the contract", async () => {
+    const { chain } = makeChain();
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+    expect(app.platformStats.get().ltvTier1Bps).toBe(2000);
+    expect(app.platformStats.get().ltvTier2Bps).toBe(3000);
+    expect(app.platformStats.get().ltvTier3Bps).toBe(4000);
+    expect(app.platformStats.get().platformFeeBps).toBe(50);
+    expect(app.ltvOptions.get().map((o) => o.percent)).toEqual([20, 30, 40]);
+  });
+});
+
+describe("useSelfLoan borrow flow (self-loan-1)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("deposits NEO collateral (integer memo transfer) then calls borrow(tier)", async () => {
+    // Price set so borrow is allowed on-chain; 100 NEO available.
+    const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    app.selectedTier.set(2);
+    await app.borrow({ collateralAmount: "10" });
+
+    const calls = invokeCalls(invoke);
+    // Step 1: NEO transfer with the collateral memo, amount = WHOLE integer "10".
+    const transfer = calls.find((c) => c.op === "transfer");
+    expect(transfer).toBeTruthy();
+    expect(transfer?.args[2]).toMatchObject({ type: "Integer", value: "10" }); // NOT "1000000000"
+    expect(transfer?.args[3]).toMatchObject({ type: "String", value: "selfloan:collateral" });
+    expect((transfer?.opts as { scriptHash?: string })?.scriptHash).toBe(
+      "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+    );
+    // Step 2: borrow(borrower, tier).
+    const borrow = calls.find((c) => c.op === "borrow");
+    expect(borrow).toBeTruthy();
+    expect(borrow?.args[1]).toMatchObject({ type: "Integer", value: "2" });
+  });
+
+  it("rejects fractional NEO collateral before any chain call", async () => {
+    const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    app.collateralAmount.set("1.5");
+    await expect(app.takeLoan()).rejects.toThrow(t("neoMustBeInteger"));
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a held-credit error when the deposit lands but borrow reverts", async () => {
+    const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    // First invoke (transfer) succeeds, second (borrow) reverts.
+    invoke
+      .mockResolvedValueOnce({ txid: "0xdep", success: true })
+      .mockRejectedValueOnce(new Error("insufficient pool liquidity"));
 
     app.collateralAmount.set("10");
-    app.selectedTier.set(1);
-
-    escrow.create.mockRejectedValueOnce(new Error("edge failure"));
-
-    await expect(app.takeLoan()).rejects.toThrow(t("collateralRefunded"));
-
-    // Deposit happened, escrow failed, so the deposit must be compensated.
-    expect(payment.deposit).toHaveBeenCalledTimes(1);
-    expect(escrow.create).toHaveBeenCalledTimes(1);
-    expect(payment.withdraw).toHaveBeenCalledTimes(1);
-    expect(payment.withdraw).toHaveBeenCalledWith("10");
+    await expect(app.takeLoan()).rejects.toThrow(t("collateralCreditHeld"));
   });
 
-  it("surfaces a manual-recovery error when the refund itself fails", async () => {
-    const { app, payment, escrow } = setup({ balance: "100" });
-    await app.loadAll();
-
-    app.collateralAmount.set("5");
-    escrow.create.mockRejectedValueOnce(new Error("edge failure"));
-    payment.withdraw.mockRejectedValueOnce(new Error("withdraw failed"));
-
-    await expect(app.takeLoan()).rejects.toThrow(t("collateralRecoveryNeeded"));
-    expect(payment.withdraw).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not withdraw when escrow.create succeeds", async () => {
-    const { app, payment, escrow } = setup({ balance: "100" });
+  it("skips the deposit when collateral credit already covers the amount", async () => {
+    // 10 NEO already credited; borrowing 10 should NOT re-deposit.
+    const { chain, invoke } = makeChain({
+      neoPrice: 5n * GAS,
+      neoBalance: 100n,
+      collateralCredit: 10n,
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
     await app.loadAll();
 
     app.collateralAmount.set("10");
     await app.takeLoan();
 
-    expect(escrow.create).toHaveBeenCalledTimes(1);
-    expect(payment.withdraw).not.toHaveBeenCalled();
+    const calls = invokeCalls(invoke);
+    expect(calls.some((c) => c.op === "transfer")).toBe(false);
+    expect(calls.some((c) => c.op === "borrow")).toBe(true);
   });
 });
 
-describe("useSelfLoan repay collateral release (self-loan-2)", () => {
-  beforeEach(() => {
-    walletMock.address.value = OWNER;
-  });
+describe("useSelfLoan repay flow (self-loan-2)", () => {
+  beforeEach(() => vi.clearAllMocks());
 
-  it("releases collateral via escrow.refund once the loan is fully repaid", async () => {
-    // Start with an active loan (debt 20), then after repay the escrow.get
-    // reports zero debt so the position reloads as fully repaid.
-    const { app, escrow } = setup({
-      balance: "0",
-      list: activeLoanList(),
-      escrowGet: { id: 1, collateral: 100, debt: 20, active: true, ltvBps: 2000 },
-    });
+  const activeLoan = {
+    loan: { collateral: 100n, borrowed: 20n * GAS, ltvBps: 2000n, active: true },
+  } as const;
 
-    await app.loadAll();
-    expect(app.loan.get().borrowed).toBe(20);
-    expect(app.loan.get().id).toBe(1);
-
-    // After repayment the loan position reports no outstanding debt.
-    escrow.get.mockResolvedValue({
-      id: 1,
-      collateral: 100,
-      debt: 0,
-      active: false,
-      ltvBps: 2000,
-    });
-    // Storage list now shows the loan as inactive/repaid.
-    app.loanHistory.get();
-
-    await app.repay("20");
-
-    expect(escrow.refund).toHaveBeenCalledTimes(1);
-    expect(escrow.refund).toHaveBeenCalledWith("1");
-  });
-
-  it("does not release collateral on a partial repayment", async () => {
-    const { app, escrow } = setup({
-      balance: "0",
-      list: activeLoanList(),
-      escrowGet: { id: 1, collateral: 100, debt: 20, active: true, ltvBps: 2000 },
-    });
-
+  it("deposits GAS repay credit (base units) then calls repay(borrower)", async () => {
+    const { chain, invoke } = makeChain(activeLoan);
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
     await app.loadAll();
     expect(app.loan.get().borrowed).toBe(20);
 
-    // Still has outstanding debt after a partial repayment.
-    escrow.get.mockResolvedValue({
-      id: 1,
-      collateral: 100,
-      debt: 5,
-      active: true,
-      ltvBps: 2000,
+    await app.repay("5");
+
+    const calls = invokeCalls(invoke);
+    const transfer = calls.find((c) => c.op === "transfer");
+    // 5 GAS → 5e8 base units, memo "selfloan:repay", GAS script hash.
+    expect(transfer?.args[2]).toMatchObject({ type: "Integer", value: (5n * GAS).toString() });
+    expect(transfer?.args[3]).toMatchObject({ type: "String", value: "selfloan:repay" });
+    expect((transfer?.opts as { scriptHash?: string })?.scriptHash).toBe(
+      "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+    );
+    expect(calls.some((c) => c.op === "repay")).toBe(true);
+  });
+
+  it("caps the repayment at the outstanding debt (client-side UX)", async () => {
+    const { chain, invoke } = makeChain(activeLoan);
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    // Debt is 20 GAS; repaying 25 must be rejected before any chain call.
+    await expect(app.repay("25")).rejects.toThrow(/exceeds your outstanding debt/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("rejects repaying when there is no active loan", async () => {
+    const { chain, invoke } = makeChain({ loan: null });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    await expect(app.repay("5")).rejects.toThrow(t("repayNoActiveLoan"));
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a held-credit error when the GAS deposit lands but repay reverts", async () => {
+    const { chain, invoke } = makeChain(activeLoan);
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    invoke
+      .mockResolvedValueOnce({ txid: "0xdep", success: true })
+      .mockRejectedValueOnce(new Error("no repay credit"));
+
+    await expect(app.repay("5")).rejects.toThrow(t("repayCreditHeld"));
+  });
+});
+
+describe("useSelfLoan addCollateral (self-loan-add)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("deposits NEO (integer) then calls addCollateral(borrower)", async () => {
+    const { chain, invoke } = makeChain({
+      neoBalance: 100n,
+      loan: { collateral: 50n, borrowed: 5n * GAS, ltvBps: 2000n, active: true },
     });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
 
-    await app.repay("15");
+    await app.addCollateral("7");
 
-    expect(escrow.refund).not.toHaveBeenCalled();
+    const calls = invokeCalls(invoke);
+    const transfer = calls.find((c) => c.op === "transfer");
+    expect(transfer?.args[2]).toMatchObject({ type: "Integer", value: "7" }); // integer, not scaled
+    expect(transfer?.args[3]).toMatchObject({ type: "String", value: "selfloan:collateral" });
+    expect(calls.some((c) => c.op === "addCollateral")).toBe(true);
+  });
+
+  it("rejects fractional NEO before any chain call", async () => {
+    const { chain, invoke } = makeChain({
+      neoBalance: 100n,
+      loan: { collateral: 50n, borrowed: 5n * GAS, ltvBps: 2000n, active: true },
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    await expect(app.addCollateral("2.5")).rejects.toThrow(t("neoMustBeInteger"));
+    expect(invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe("useSelfLoan reclaim affordances (self-loan-reclaim)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("exposes reclaimable NEO collateral credit (WHOLE NEO) and reclaims via withdraw()", async () => {
+    const { chain, invoke } = makeChain({ collateralCredit: 12n });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    expect(app.hasCollateralCredit.get()).toBe(true);
+    // Credit is WHOLE NEO (never ÷1e8).
+    expect(app.collateralCredit.get()).toBe(12);
+
+    await app.reclaimCollateral();
+    expect(invokeCalls(invoke).some((c) => c.op === "withdraw")).toBe(true);
+  });
+
+  it("exposes reclaimable GAS repay credit (÷1e8) and reclaims via withdrawRepayCredit()", async () => {
+    const { chain, invoke } = makeChain({ repayCredit: 3n * GAS });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    expect(app.hasRepayCredit.get()).toBe(true);
+    // Repay credit is GAS base units → 3 GAS for display.
+    expect(app.repayCredit.get()).toBe(3);
+
+    await app.reclaimRepayCredit();
+    expect(invokeCalls(invoke).some((c) => c.op === "withdrawRepayCredit")).toBe(true);
+  });
+
+  it("rejects reclaim when there is no credit", async () => {
+    const { chain } = makeChain();
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    await expect(app.reclaimCollateral()).rejects.toThrow(t("noCollateralCredit"));
+    await expect(app.reclaimRepayCredit()).rejects.toThrow(t("noRepayCredit"));
   });
 });
 
 describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
-  beforeEach(() => {
-    walletMock.address.value = OWNER;
-  });
+  beforeEach(() => vi.clearAllMocks());
 
   // collateral 100 NEO, debt 20 GAS.
   const loanOpts = {
-    balance: "0",
-    list: activeLoanList(),
-    escrowGet: { id: 1, collateral: 100, debt: 20, active: true, ltvBps: 2000 },
+    loan: { collateral: 100n, borrowed: 20n * GAS, ltvBps: 2000n, active: true },
   } as const;
 
-  it("falls back to a same-unit collateral ratio when no price feed is wired", async () => {
-    const { app } = setup(loanOpts);
+  it("falls back to a same-unit collateral ratio when no price is configured", async () => {
+    const { chain } = makeChain(loanOpts);
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
     await app.loadAll();
 
-    // No "neo-price" key -> neoPrice stays 0, isPriceNormalized false.
+    // neoPrice unset (0) → not normalized.
     expect(app.neoPrice.get()).toBe(0);
     expect(app.isPriceNormalized.get()).toBe(false);
 
     // Same-unit fallback: each NEO counts as 1 unit of collateral value, so
-    // healthFactor = 100 / 20 = 5 and LTV = round(20 / 100 * 100) = 20%.
+    // collateralValue = 100, healthFactor = 100 / 20 = 5, LTV = 20%.
     expect(app.collateralValueGas.get()).toBe(100);
     expect(app.healthFactor.get()).toBe(5);
     expect(app.currentLTV.get()).toBe(20);
+    expect(app.healthMetricLabel.get()).toBe(t("collateralRatio"));
   });
 
-  it("value-normalizes collateral to GAS via neoPrice when a price feed is present", async () => {
-    // 1 NEO = 0.5 GAS. Collateral value = 100 * 0.5 = 50 GAS.
-    const { app } = setup({ ...loanOpts, neoPrice: 0.5 });
+  it("value-normalizes collateral to GAS via neoPrice when configured", async () => {
+    // neoPrice = 0.5 GAS per NEO = 0.5e8 base units. Collateral value = 100 * 0.5 = 50 GAS.
+    const { chain } = makeChain({ ...loanOpts, neoPrice: GAS / 2n });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
     await app.loadAll();
 
     expect(app.neoPrice.get()).toBe(0.5);
@@ -242,21 +422,13 @@ describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
     expect(app.collateralValueGas.get()).toBe(50);
     expect(app.healthFactor.get()).toBe(2.5);
     expect(app.currentLTV.get()).toBe(40);
-  });
-
-  it("accepts an object price payload (gasPerNeo) from storage", async () => {
-    const { app } = setup({ ...loanOpts, neoPrice: { gasPerNeo: "0.25" } });
-    await app.loadAll();
-
-    expect(app.neoPrice.get()).toBe(0.25);
-    expect(app.isPriceNormalized.get()).toBe(true);
-    // Collateral value = 100 * 0.25 = 25 GAS; LTV = round(20 / 25 * 100) = 80%.
-    expect(app.collateralValueGas.get()).toBe(25);
-    expect(app.currentLTV.get()).toBe(80);
+    expect(app.healthMetricLabel.get()).toBe(t("healthFactor"));
   });
 
   it("reports a neutral health factor when there is no debt", async () => {
-    const { app } = setup({ balance: "100" });
+    const { chain } = makeChain({ neoBalance: 100n, loan: null });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
     await app.loadAll();
 
     expect(app.loan.get().borrowed).toBe(0);
