@@ -16,7 +16,7 @@ const NEO_TESTNET_RPC = process.env.NEXT_PUBLIC_NEO_RPC_TESTNET
   || process.env.NEO_RPC_URL
   || "https://api.n3index.dev/testnet";
 
-const MORPHEUS_KERNEL_MAINNET = "0x5b492098fc094c760402e01f7e0b631b939d2bea";
+const MORPHEUS_KERNEL_MAINNET = "0xf54d8584ef82315c1800373272ab08ae0db2d5ef";
 const MORPHEUS_KERNEL_TESTNET = "0x4b882e94ed766807c4fd728768f972e13008ad52";
 
 type NeoNetwork = "mainnet" | "testnet";
