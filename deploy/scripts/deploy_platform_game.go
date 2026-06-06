@@ -40,7 +40,7 @@ const (
 	pgDefaultMainnetRPC = "https://mainnet2.neo.coz.io:443"
 	pgDefaultTestnetRPC = "https://testnet1.neo.coz.io:443"
 
-	pgMainnetMorpheusOracle = "0x5b492098fc094c760402e01f7e0b631b939d2bea"
+	pgMainnetMorpheusOracle = "0xf54d8584ef82315c1800373272ab08ae0db2d5ef"
 	pgMainnetAA             = "0x0268a387913b250166ddec032b03332690a1ef78"
 )
 
