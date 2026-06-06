@@ -97,7 +97,10 @@ const siblingEdgeGatewayConfigPath = path.resolve(
   "wrangler.meshmini.toml"
 );
 const TARGET_NETWORK = normalizeNetworkName(process.env.NEO_TARGET_NETWORK || process.env.FLAGSHIP_NETWORK) || "testnet";
-const siblingOraclePhalaEnvPath = path.resolve(
+// NOTE: the directory literal stays "phala" because that is the on-box path
+// the live oracle keeps its env file at (neo-morpheus-oracle/deploy/nitro);
+// changing it would break credential discovery. Only the identifier is renamed.
+const siblingOracleNitroEnvPath = path.resolve(
   root,
   "..",
   "neo-morpheus-oracle",
@@ -174,8 +177,8 @@ const RNG_FALLBACK_ENABLED = !["0", "false", "no", "off"].includes(
   String(process.env.MORPHEUS_LIVE_VALIDATE_RNG_FALLBACK || "1").trim().toLowerCase()
 );
 // Lead time before the deadline at which the RNG fallback fires. A single
-// Neo N3 block is ~15s, and forceFulfillRngRequest has to (a) call the Phala
-// API, (b) submit + mine the fulfillRequest tx, then (c) be observed by the
+// Neo N3 block is ~15s, and forceFulfillRngRequest has to (a) call the Nitro
+// runtime API, (b) submit + mine the fulfillRequest tx, then (c) be observed by the
 // next poll cycle. 15s wasn't enough — the fulfill confirmed on-chain but
 // the poll loop had already exited. 45s gives ~2 blocks of headroom plus
 // poll cushion.
@@ -248,12 +251,13 @@ function loadOptionalEnvFile(filePath) {
 
 const siblingOracleEnv = loadOptionalEnvFile(siblingOracleEnvPath);
 const siblingOracleEnvLocal = loadOptionalEnvFile(siblingOracleEnvLocalPath);
-const siblingOraclePhalaEnv = loadOptionalEnvFile(siblingOraclePhalaEnvPath);
+const siblingOracleNitroEnv = loadOptionalEnvFile(siblingOracleNitroEnvPath);
 const siblingEdgeGatewayConfig = loadOptionalEnvFile(siblingEdgeGatewayConfigPath);
 
-function resolvePhalaRuntimeUrl() {
+function resolveNitroRuntimeUrl() {
   const explicit = String(
     process.env.MORPHEUS_RUNTIME_URL
+      || process.env.NITRO_API_URL
       || process.env.PHALA_API_URL
       || ""
   ).trim();
@@ -261,15 +265,15 @@ function resolvePhalaRuntimeUrl() {
 
   const networkScoped = String(
     TARGET_NETWORK === "mainnet"
-      ? (process.env.MORPHEUS_MAINNET_RUNTIME_URL || process.env.MORPHEUS_MAINNET_PHALA_API_URL || "")
-      : (process.env.MORPHEUS_TESTNET_RUNTIME_URL || process.env.MORPHEUS_TESTNET_PHALA_API_URL || "")
+      ? (process.env.MORPHEUS_MAINNET_RUNTIME_URL || process.env.MORPHEUS_MAINNET_NITRO_API_URL || process.env.MORPHEUS_MAINNET_PHALA_API_URL || "")
+      : (process.env.MORPHEUS_TESTNET_RUNTIME_URL || process.env.MORPHEUS_TESTNET_NITRO_API_URL || process.env.MORPHEUS_TESTNET_PHALA_API_URL || "")
   ).trim();
   if (networkScoped) return networkScoped;
 
   const siblingEnvScoped = String(
     TARGET_NETWORK === "mainnet"
-      ? (siblingOracleEnv.MORPHEUS_MAINNET_RUNTIME_URL || siblingOracleEnv.PHALA_API_URL_MAINNET || "")
-      : (siblingOracleEnv.MORPHEUS_TESTNET_RUNTIME_URL || siblingOracleEnv.PHALA_API_URL_TESTNET || "")
+      ? (siblingOracleEnv.MORPHEUS_MAINNET_RUNTIME_URL || siblingOracleEnv.NITRO_API_URL_MAINNET || siblingOracleEnv.PHALA_API_URL_MAINNET || "")
+      : (siblingOracleEnv.MORPHEUS_TESTNET_RUNTIME_URL || siblingOracleEnv.NITRO_API_URL_TESTNET || siblingOracleEnv.PHALA_API_URL_TESTNET || "")
   ).trim();
   if (siblingEnvScoped) return siblingEnvScoped;
 
@@ -282,6 +286,7 @@ function resolvePhalaRuntimeUrl() {
 
   const siblingEnvDirect = String(
     siblingOracleEnv.MORPHEUS_RUNTIME_URL
+      || siblingOracleEnv.NITRO_API_URL
       || siblingOracleEnv.PHALA_API_URL
       || ""
   ).trim();
@@ -300,27 +305,34 @@ function resolvePhalaRuntimeUrl() {
   return "https://oracle.meshmini.app/testnet";
 }
 
-const PHALA_API_URL = resolvePhalaRuntimeUrl();
-// Network-scoped phala creds (morpheus.{mainnet,testnet}.env) win over the
+const NITRO_API_URL = resolveNitroRuntimeUrl();
+// Network-scoped runtime creds (morpheus.{mainnet,testnet}.env) win over the
 // generic sibling .env so a stale generic token can't shadow the right one
 // for the active network — explicit process.env still overrides everything.
-const PHALA_API_TOKEN = String(
+const NITRO_API_TOKEN = String(
   process.env.MORPHEUS_RUNTIME_TOKEN
+    || process.env.NITRO_API_TOKEN
     || process.env.PHALA_API_TOKEN
+    || process.env.NITRO_SHARED_SECRET
     || process.env.PHALA_SHARED_SECRET
-    || siblingOraclePhalaEnv.MORPHEUS_RUNTIME_TOKEN
-    || siblingOraclePhalaEnv.PHALA_API_TOKEN
-    || siblingOraclePhalaEnv.PHALA_SHARED_SECRET
+    || siblingOracleNitroEnv.MORPHEUS_RUNTIME_TOKEN
+    || siblingOracleNitroEnv.NITRO_API_TOKEN
+    || siblingOracleNitroEnv.PHALA_API_TOKEN
+    || siblingOracleNitroEnv.NITRO_SHARED_SECRET
+    || siblingOracleNitroEnv.PHALA_SHARED_SECRET
     || siblingOracleEnv.MORPHEUS_RUNTIME_TOKEN
+    || siblingOracleEnv.NITRO_API_TOKEN
     || siblingOracleEnv.PHALA_API_TOKEN
+    || siblingOracleEnv.NITRO_SHARED_SECRET
     || siblingOracleEnv.PHALA_SHARED_SECRET
     || ""
 ).trim();
 const ORACLE_UPDATER_WIF = String(
   process.env.MORPHEUS_ORACLE_UPDATER_WIF
     || process.env.MORPHEUS_RELAYER_NEO_N3_WIF
-    || siblingOraclePhalaEnv.MORPHEUS_RELAYER_NEO_N3_WIF
-    || siblingOraclePhalaEnv.PHALA_NEO_N3_WIF
+    || siblingOracleNitroEnv.MORPHEUS_RELAYER_NEO_N3_WIF
+    || siblingOracleNitroEnv.NITRO_NEO_N3_WIF
+    || siblingOracleNitroEnv.PHALA_NEO_N3_WIF
     || ""
 ).trim();
 
@@ -439,20 +451,20 @@ function buildRngFulfillmentDigestHex(requestId, requestType, success, resultByt
   return crypto.createHash("sha256").update(payload).digest("hex");
 }
 
-async function callPhala(pathname, payload) {
-  if (!PHALA_API_URL || !PHALA_API_TOKEN) {
+async function callNitro(pathname, payload) {
+  if (!NITRO_API_URL || !NITRO_API_TOKEN) {
     throw new Error("MORPHEUS_RUNTIME_URL / MORPHEUS_RUNTIME_TOKEN unavailable for local rng fallback");
   }
-  // Retry up to 3 attempts with exponential backoff. The mainnet Phala
+  // Retry up to 3 attempts with exponential backoff. The mainnet Nitro runtime
   // endpoint occasionally drops connections or times out under load, and a
   // single transient blip shouldn't fail the whole flagship run.
   let lastErr;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(`${PHALA_API_URL.replace(/\/$/, "")}${pathname}`, {
+      const res = await fetch(`${NITRO_API_URL.replace(/\/$/, "")}${pathname}`, {
         method: "POST",
         headers: {
-          authorization: `Bearer ${PHALA_API_TOKEN}`,
+          authorization: `Bearer ${NITRO_API_TOKEN}`,
           "content-type": "application/json",
         },
         body: JSON.stringify(payload),
@@ -478,7 +490,7 @@ async function callPhala(pathname, payload) {
         || msg.match(/failed with 5\d\d/);
       if (!transient || attempt === 3) throw err;
       const backoff = 2000 * attempt;
-      console.warn(`[phala-retry] ${pathname} attempt ${attempt} failed (${msg.slice(0, 80)}); retrying in ${backoff}ms`);
+      console.warn(`[nitro-retry] ${pathname} attempt ${attempt} failed (${msg.slice(0, 80)}); retrying in ${backoff}ms`);
       await sleep(backoff);
     }
   }
@@ -487,7 +499,7 @@ async function callPhala(pathname, payload) {
 
 async function forceFulfillRngRequest(requestId, requestType = "vrf_random") {
   console.error(`[rng-fallback] request ${requestId} (${requestType})`);
-  const vrf = await callPhala("/vrf/random", {
+  const vrf = await callNitro("/vrf/random", {
     request_id: String(requestId),
     target_chain: "neo_n3",
   });
@@ -882,24 +894,24 @@ async function buildPreflightSummary(targets) {
     files: {
       siblingOracleEnvPath,
       siblingOracleEnvLocalPath,
-      siblingOraclePhalaEnvPath,
+      siblingOracleNitroEnvPath,
       siblingEdgeGatewayConfigPath,
       siblingOracleEnvExists: fs.existsSync(siblingOracleEnvPath),
       siblingOracleEnvLocalExists: fs.existsSync(siblingOracleEnvLocalPath),
-      siblingOraclePhalaEnvExists: fs.existsSync(siblingOraclePhalaEnvPath),
+      siblingOracleNitroEnvExists: fs.existsSync(siblingOracleNitroEnvPath),
       siblingEdgeGatewayConfigExists: fs.existsSync(siblingEdgeGatewayConfigPath),
     },
     targets,
     runtime: {
-      phalaApiUrlConfigured: Boolean(PHALA_API_URL),
-      phalaApiTokenConfigured: Boolean(PHALA_API_TOKEN),
+      nitroApiUrlConfigured: Boolean(NITRO_API_URL),
+      nitroApiTokenConfigured: Boolean(NITRO_API_TOKEN),
       rngFallbackEnabled: RNG_FALLBACK_ENABLED,
       rngFallbackLeadMs: RNG_FALLBACK_LEAD_MS,
       oracleUpdaterWifConfigured: Boolean(ORACLE_UPDATER_WIF),
       oracleUpdaterOnChain: oracleUpdater || null,
       oracleUpdaterLocal: localOracleUpdater,
       rngFallbackSignerMatches,
-      rngFallbackReady: Boolean(PHALA_API_URL && PHALA_API_TOKEN && rngFallbackSignerMatches),
+      rngFallbackReady: Boolean(NITRO_API_URL && NITRO_API_TOKEN && rngFallbackSignerMatches),
       oracleUpdaterMinGas: ORACLE_UPDATER_MIN_GAS.toString(),
       anchorLiveWriteSmokeEnabled: ANCHOR_LIVE_WRITE_SMOKE_ENABLED,
       anchorAutoFundAgentNeo: ANCHOR_AUTO_FUND_AGENT_NEO,
@@ -2732,7 +2744,7 @@ async function main() {
     `[preflight] primaryGas=${preflight.wallets.primary.gas} primaryNEO=${preflight.wallets.primary.neo} adminGas=${preflight.wallets.admin.gas} updaterGas=${preflight.wallets.oracleUpdater.gas}`
   );
   console.error(
-    `[preflight] phalaUrl=${preflight.runtime.phalaApiUrlConfigured ? "set" : "unset"} phalaToken=${preflight.runtime.phalaApiTokenConfigured ? "set" : "unset"} rngFallback=${preflight.runtime.rngFallbackEnabled ? "on" : "off"}`
+    `[preflight] nitroUrl=${preflight.runtime.nitroApiUrlConfigured ? "set" : "unset"} nitroToken=${preflight.runtime.nitroApiTokenConfigured ? "set" : "unset"} rngFallback=${preflight.runtime.rngFallbackEnabled ? "on" : "off"}`
   );
 
   let failed = false;
@@ -2748,7 +2760,7 @@ async function main() {
     let runnerResult = null;
     // Retry once on transient network/oracle blips. Real contract failures
     // (assertion errors, vm faults, business-logic exceptions) get the same
-    // error message back on retry and surface unchanged; flaky RPC/Phala
+    // error message back on retry and surface unchanged; flaky RPC/Nitro runtime
     // fetches typically recover.
     while (attempts < 2) {
       attempts++;
@@ -2764,7 +2776,7 @@ async function main() {
           || msg.includes("timed out")
           || msg.includes("ECONNRESET")
           || msg.includes("ENOTFOUND")
-          || msg.match(/Phala.*5\d\d/)
+          || msg.match(/(?:Nitro|Phala).*5\d\d/)
           || msg.match(/Service Unavailable/);
         if (!transient || attempts >= 2) break;
         console.error(`[retry] ${label} attempt ${attempts} hit transient error: ${msg.slice(0, 100)}; retrying`);
