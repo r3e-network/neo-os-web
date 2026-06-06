@@ -8,8 +8,11 @@ describe("morpheus endpoint resolvers", () => {
     delete process.env.MORPHEUS_RUNTIME_URL;
     delete process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN;
     delete process.env.MORPHEUS_RUNTIME_TOKEN;
+    delete process.env.MORPHEUS_TESTNET_NITRO_API_TOKEN;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_TOKEN;
+    delete process.env.NITRO_API_TOKEN;
     delete process.env.PHALA_API_TOKEN;
+    delete process.env.NITRO_SHARED_SECRET;
     delete process.env.PHALA_SHARED_SECRET;
     delete process.env.MORPHEUS_TESTNET_PUBLIC_API_URL;
     delete process.env.MORPHEUS_PUBLIC_API_URL;
@@ -33,8 +36,8 @@ describe("morpheus endpoint resolvers", () => {
     ]);
   });
 
-  it("falls back to runtime token aliases when runtime URL is already resolved", () => {
-    process.env.PHALA_SHARED_SECRET = "shared-secret";
+  it("falls back to the Nitro runtime token alias when runtime URL is already resolved", () => {
+    process.env.NITRO_SHARED_SECRET = "shared-secret";
 
     const {
       resolveMorpheusRuntimeCandidates,
@@ -43,6 +46,23 @@ describe("morpheus endpoint resolvers", () => {
 
     expect(resolveMorpheusRuntimeCandidates("mainnet")[0]).toBe("https://oracle.meshmini.app/mainnet");
     expect(resolveMorpheusRuntimeToken("mainnet")).toBe("shared-secret");
+  });
+
+  it("still honours the legacy PHALA_SHARED_SECRET as a backward-compatible fallback", () => {
+    process.env.PHALA_SHARED_SECRET = "legacy-shared-secret";
+
+    const { resolveMorpheusRuntimeToken } = require("../../lib/morpheus-endpoints");
+
+    expect(resolveMorpheusRuntimeToken("mainnet")).toBe("legacy-shared-secret");
+  });
+
+  it("prefers the NITRO token over the legacy PHALA fallback", () => {
+    process.env.NITRO_API_TOKEN = "nitro-token";
+    process.env.PHALA_API_TOKEN = "legacy-phala-token";
+
+    const { resolveMorpheusRuntimeToken } = require("../../lib/morpheus-endpoints");
+
+    expect(resolveMorpheusRuntimeToken("mainnet")).toBe("nitro-token");
   });
 
   it("returns network-scoped public api candidates before shared defaults", () => {

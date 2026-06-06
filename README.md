@@ -319,7 +319,7 @@ Notes:
 | `CONTRACT_ESCROWSERVICE_HASH` | OS EscrowService contract hash |
 | `CONTRACT_NFTSERVICE_HASH` | OS NFTService contract hash |
 | `MORPHEUS_RUNTIME_URL` | preferred unified Morpheus runtime URL |
-| `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET` | runtime auth for unified Morpheus endpoints |
+| `MORPHEUS_RUNTIME_TOKEN` or `NITRO_API_TOKEN` / `NITRO_SHARED_SECRET` (legacy `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET` still accepted) | runtime auth for unified Morpheus endpoints |
 | `MORPHEUS_PUBLIC_API_URL` | Morpheus web/public API URL |
 | `MORPHEUS_EDGE_URL` | Morpheus edge URL |
 | `MORPHEUS_CONTROL_PLANE_URL` | Morpheus control-plane URL |

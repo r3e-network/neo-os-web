@@ -67,7 +67,7 @@ describe("/api/secrets/tokens", () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "POST",
       body: {
-        name: "Phala API",
+        name: "Nitro API",
         appId: "miniapp-oracle",
         secretType: "api_key",
         value: "plain-secret-must-not-be-stored",
