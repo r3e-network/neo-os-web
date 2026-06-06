@@ -11,8 +11,12 @@ describe("/api/morpheus/neodid/providers", () => {
     global.fetch = mockFetch;
     delete process.env.MORPHEUS_TESTNET_RUNTIME_URL;
     delete process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN;
+    delete process.env.MORPHEUS_TESTNET_NITRO_API_URL;
+    delete process.env.MORPHEUS_TESTNET_NITRO_API_TOKEN;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_URL;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_TOKEN;
+    delete process.env.NITRO_API_URL;
+    delete process.env.NITRO_API_TOKEN;
     delete process.env.PHALA_API_URL;
     delete process.env.PHALA_API_TOKEN;
   });

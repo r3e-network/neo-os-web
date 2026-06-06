@@ -76,7 +76,7 @@ Morpheus routing env vars (required by functions that proxy to runtime services)
 
 - unified runtime routing:
   - `MORPHEUS_RUNTIME_URL`
-  - `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
+  - `MORPHEUS_RUNTIME_TOKEN` or `NITRO_API_TOKEN` / `NITRO_SHARED_SECRET` (legacy `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET` still accepted)
   - `MORPHEUS_PUBLIC_API_URL`
   - `MORPHEUS_EDGE_URL`
   - `MORPHEUS_CONTROL_PLANE_URL`
@@ -160,7 +160,7 @@ set:
 
 - preferred:
   - `MORPHEUS_RUNTIME_URL=https://oracle.meshmini.app/testnet`
-  - `PHALA_API_TOKEN=<token>`
+  - `NITRO_API_TOKEN=<token>` (legacy `PHALA_API_TOKEN` still accepted)
 - optional local auxiliaries:
   - `NEOFLOW_URL=http://localhost:8084`
   - `TXPROXY_URL=http://localhost:8090`

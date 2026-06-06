@@ -11,8 +11,12 @@ describe("/api/morpheus/neodid/resolve", () => {
     global.fetch = mockFetch;
     delete process.env.MORPHEUS_TESTNET_RUNTIME_URL;
     delete process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN;
+    delete process.env.MORPHEUS_TESTNET_NITRO_API_URL;
+    delete process.env.MORPHEUS_TESTNET_NITRO_API_TOKEN;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_URL;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_TOKEN;
+    delete process.env.NITRO_API_URL;
+    delete process.env.NITRO_API_TOKEN;
     delete process.env.PHALA_API_URL;
     delete process.env.PHALA_API_TOKEN;
   });
@@ -92,6 +96,8 @@ describe("/api/morpheus/neodid/resolve", () => {
     const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
     const headers = init.headers as Headers;
     expect(headers.get("authorization")).toBe("Bearer testnet-token");
+    // Emits the new primary header plus the legacy header for backward-compat.
+    expect(headers.get("x-nitro-token")).toBe("testnet-token");
     expect(headers.get("x-phala-token")).toBe("testnet-token");
 
     expect(res._getStatusCode()).toBe(200);
