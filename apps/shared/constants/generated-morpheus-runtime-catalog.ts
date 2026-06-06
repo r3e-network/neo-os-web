@@ -63,7 +63,7 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "aaSocialRecoveryVerifier": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
         "aaAddressMarket": "0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69",
         "aaPaymaster": "0xa0defa2bc6d7a71ba1e237149287c8ca4ff46caf",
-        "morpheusOracle": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+        "morpheusOracle": "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
         "oracleCallbackConsumer": "0xe1226268f2fe08bea67fb29e1c8fda0d7c8e9844",
         "morpheusDatafeed": "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
         "morpheusNeoDid": "0xb81f31ea81e279793b30411b82c2e82078b63105"
