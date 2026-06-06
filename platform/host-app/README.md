@@ -40,7 +40,7 @@ surfaces do not lose translated metadata.
 - `AA_RELAY_URL`: external `neo-abstract-account` relay URL used by `/api/aa/relay`.
 - `MORPHEUS_PUBLIC_API_URL`: preferred Morpheus web/public API origin for host-side `/api/morpheus/*` proxies.
 - `MORPHEUS_<NETWORK>_RUNTIME_URL` / `MORPHEUS_RUNTIME_URL`: preferred Morpheus runtime origin for host-side NeoDID/runtime lookups.
-- `MORPHEUS_<NETWORK>_RUNTIME_TOKEN` / `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`: runtime auth for protected Morpheus endpoints.
+- `MORPHEUS_<NETWORK>_RUNTIME_TOKEN` / `MORPHEUS_RUNTIME_TOKEN` or `NITRO_API_TOKEN` / `NITRO_SHARED_SECRET` (legacy `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET` still accepted): runtime auth for protected Morpheus endpoints.
 - `NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL`: optional public CDN/R2 base for `/miniapp-assets/*`. When set, MiniApp logo/banner URLs are resolved from this base while local development keeps using bundled assets.
 - `CRON_SECRET`: bearer secret required by protected cron endpoints.
 - `MINIAPP_LIFECYCLE_RELAYER_URL`: optional protected relayer endpoint used by `/api/cron/miniapp-lifecycle` to submit automatic PlatformGame lifecycle transactions.

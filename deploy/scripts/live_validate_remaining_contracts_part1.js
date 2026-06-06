@@ -28,7 +28,10 @@ const LIVE_ACTOR_WIFS = Array.from(new Set([
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52").trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const ROOT = path.resolve(__dirname, "../..");
-const siblingOraclePhalaEnvPath = path.resolve(
+// NOTE: the directory literal stays "phala" because that is the on-box path
+// the live oracle keeps its env file at (neo-morpheus-oracle/deploy/nitro);
+// changing it would break credential discovery. Only the identifier is renamed.
+const siblingOracleNitroEnvPath = path.resolve(
   ROOT,
   "..",
   "neo-morpheus-oracle",
@@ -75,12 +78,13 @@ function loadOptionalEnvFile(filePath) {
   }
 }
 
-const siblingOraclePhalaEnv = loadOptionalEnvFile(siblingOraclePhalaEnvPath);
+const siblingOracleNitroEnv = loadOptionalEnvFile(siblingOracleNitroEnvPath);
 const ORACLE_UPDATER_WIF = String(
   process.env.MORPHEUS_ORACLE_UPDATER_WIF
     || process.env.MORPHEUS_RELAYER_NEO_N3_WIF
-    || siblingOraclePhalaEnv.MORPHEUS_RELAYER_NEO_N3_WIF
-    || siblingOraclePhalaEnv.PHALA_NEO_N3_WIF
+    || siblingOracleNitroEnv.MORPHEUS_RELAYER_NEO_N3_WIF
+    || siblingOracleNitroEnv.NITRO_NEO_N3_WIF
+    || siblingOracleNitroEnv.PHALA_NEO_N3_WIF
     || ADMIN_WIF
 ).trim();
 

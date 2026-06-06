@@ -16,8 +16,9 @@ function logMTLSStatus(message: string) {
  *
  * Previously this function suffix-matched `*.workers.dev`, which meant any
  * attacker-controlled `attacker.workers.dev` URL routed through `requestJSON`
- * would auto-attach `MORPHEUS_RUNTIME_TOKEN` / `PHALA_API_TOKEN` /
- * `PHALA_SHARED_SECRET` Bearer credentials. The suffix wildcard has been
+ * would auto-attach `MORPHEUS_RUNTIME_TOKEN` / `NITRO_API_TOKEN` /
+ * `NITRO_SHARED_SECRET` (with `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
+ * legacy fallbacks) Bearer credentials. The suffix wildcard has been
  * removed; additional hosts can be added via `TEE_PUBLIC_RUNTIME_HOSTS`
  * (comma-separated) at deploy time but never via a URL.
  */
@@ -54,11 +55,16 @@ function maybeAttachRuntimeAuth(headers: Headers, url: string) {
 
   const token =
     getEnv("MORPHEUS_RUNTIME_TOKEN") ??
+    getEnv("NITRO_API_TOKEN") ??
     getEnv("PHALA_API_TOKEN") ??
+    getEnv("NITRO_SHARED_SECRET") ??
     getEnv("PHALA_SHARED_SECRET");
   if (!token) return;
 
   headers.set("authorization", `Bearer ${token}`);
+  // Emit both the new and legacy runtime auth headers so the live runtime
+  // (which may still read x-phala-token) keeps working during the cutover.
+  headers.set("x-nitro-token", token);
   headers.set("x-phala-token", token);
 }
 

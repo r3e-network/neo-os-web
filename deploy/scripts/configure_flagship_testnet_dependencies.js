@@ -13,6 +13,7 @@ const ORACLE_ADMIN_WIF =
   process.env.MORPHEUS_ORACLE_OWNER_WIF ||
   process.env.MORPHEUS_ORACLE_UPDATER_WIF ||
   process.env.MORPHEUS_RELAYER_NEO_N3_WIF ||
+  process.env.NITRO_NEO_N3_WIF ||
   process.env.PHALA_NEO_N3_WIF ||
   "";
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_TESTNET_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52").trim();
