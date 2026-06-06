@@ -98,7 +98,8 @@ function listMorpheusWorkflows(network: NeoNetwork) {
 export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
   mainnet: {
     'miniapp-last-survivor': '0x8e1e432e966357de8d7642564b744d3274a81bd0',
-    'miniapp-gasbox': '0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7',
+    'miniapp-gasbox': '0xeb635b6e75b01c12cc26794b906d329531f378e9',
+    'miniapp-neo-multisig': '0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e',
     'miniapp-redenvelope': '0x363c5de9760d1aaaed5096fdf3bdc877cd0368e9',
     'miniapp-gas-lucky-pool': '0x5f371cc50116bb13d79554d96ccdd6e246cd5d59',
     'miniapp-dailycheckin': '0xbd4f3646e189350b9c11a659655854e6f03f9be4',
@@ -121,7 +122,8 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
   },
   testnet: {
     'miniapp-last-survivor': '0x8e1e432e966357de8d7642564b744d3274a81bd0',
-    'miniapp-gasbox': '0x740671b10330ef6669ab8b2724437eb8d5e7a34c',
+    'miniapp-gasbox': '0xeb635b6e75b01c12cc26794b906d329531f378e9',
+    'miniapp-neo-multisig': '0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e',
     'miniapp-redenvelope': '0x363c5de9760d1aaaed5096fdf3bdc877cd0368e9',
     'miniapp-gas-lucky-pool': '0xfa1b7240fead2a63999c02defa3aec5eb274a919',
     'miniapp-dailycheckin': '0xaba84da240a55410d284a656fc8dae044e6ec1a5',
