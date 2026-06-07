@@ -441,8 +441,8 @@ $radius-lg: 16px;
 .page-grid--focus {
   .section-hero {
     border-bottom: 0;
-    padding: 18px;
-    min-height: 100vh;
+    padding: 18px 18px 10px;
+    min-height: auto;
   }
 
   @media (max-width: $mobile) {
@@ -450,6 +450,82 @@ $radius-lg: 16px;
       padding: 10px;
       min-height: auto;
     }
+  }
+}
+
+.section-focus-reference {
+  padding: 0 18px 18px;
+}
+
+.focus-reference-panel,
+.console-focus-reference {
+  overflow: hidden;
+  border: 1px solid $border;
+  border-radius: $radius-lg;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(20, 32, 21, 0.05);
+
+  summary {
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    color: $text-2;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    small {
+      display: inline-flex;
+      min-width: 24px;
+      height: 24px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: $surface-2;
+      color: $text-2;
+      font-size: 11px;
+    }
+  }
+}
+
+.focus-reference-content {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid $border;
+}
+
+.focus-reference-block {
+  min-width: 0;
+}
+
+.focus-reference-comments {
+  display: grid;
+  gap: 10px;
+}
+
+.console-focus-workspace {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.console-focus-reference {
+  summary {
+    color: $text-2;
+  }
+
+  .stats-display {
+    padding: 12px;
+    border-top: 1px solid $border;
   }
 }
 
