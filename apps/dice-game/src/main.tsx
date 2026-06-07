@@ -218,7 +218,9 @@ defineMiniApp({
         let resolver: () => void;
         if (ctx.services.chain.isEvmNetwork(network)) {
           const address = DICE_EVM_ADDRESS[network as EvmNetwork];
-          if (!address) throw new Error(ctx.t("statusFailed"));
+          if (!address) {
+            throw new Error("Neo X dice is live on mainnet only. Switch to Neo X Mainnet or use Neo N3 for testnet play.");
+          }
           await ctx.services.chain.ensureEvmWallet(network as EvmNetwork);
           // EVM placeBet is atomic: the stake (value) is sent with the call, so a
           // revert returns the funds — no recoverable-funds intermediate state.

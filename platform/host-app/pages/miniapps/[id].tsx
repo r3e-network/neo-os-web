@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { ChevronUp, Wallet, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Wallet, X } from "lucide-react";
 import { AppDetailHeader, OperationPanel } from "../../components";
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
 import type { OperationEntry } from "../../components/types";
@@ -96,7 +96,7 @@ export default function MiniAppDetailPage({
   error,
 }: AppDetailPageProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("workflow");
   const [invokeFeedback, setInvokeFeedback] = useState<{
     type: "success" | "error";
     message: string;
@@ -515,17 +515,17 @@ export default function MiniAppDetailPage({
         </Head>
         <AppDetailHeader app={app} onBack={handleBack} />
 
-        <main className="mx-auto max-w-[1600px] px-3 py-2 sm:px-4 sm:py-3">
+        <main className="mx-auto max-w-[1580px] px-3 py-2 sm:px-4 sm:py-3">
           <div
-            className="miniapp-stable-scroll grid grid-cols-1 items-start gap-3 xl:grid-cols-[minmax(0,1fr)_340px]"
+            className="miniapp-stable-scroll focus-mode-layout grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"
             data-testid="miniapp-detail-layout"
           >
             <section
-              className="order-1 min-w-0 space-y-3 xl:order-none"
+              className="order-1 min-w-0 space-y-4 xl:order-none"
               aria-label="MiniApp workspace"
             >
               <section
-                className="relative z-10 w-full"
+                className="focus-mode-canvas relative z-10 w-full"
                 aria-label="MiniApp play area"
                 data-testid="miniapp-playarea"
               >
@@ -536,33 +536,48 @@ export default function MiniAppDetailPage({
                 />
               </section>
 
-              <MiniAppStatusBoard
-                app={app}
-                activities={appActivities}
-                activityConnected={activityConnected}
-                activityError={activityError}
-                activityLoading={activityLoading}
-                contractDisplayValue={contractDisplayValue}
-                contractDomainBinding={contractDomainBinding}
-                contractDomainDisplayValue={contractDomainDisplayValue}
-                liveNotifications={liveNotifications}
-                networkLabel={targetNetworkLabel}
-                newsConnected={newsConnected}
-                newsLoading={newsLoading}
-                runtimeDisplayValue={runtimeDisplayValue}
-              />
+              <details className="focus-mode-reference group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm shadow-gray-950/5 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40">
+                  <span className="min-w-0">
+                    <span className="block text-sm font-black text-gray-950">
+                      Reference and diagnostics
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-5 text-gray-600">
+                      Open only when you need activity, docs, contract details, or raw app context.
+                    </span>
+                  </span>
+                  <ChevronDown className="h-4 w-4 shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <MiniAppStatusBoard
+                    app={app}
+                    activities={appActivities}
+                    activityConnected={activityConnected}
+                    activityError={activityError}
+                    activityLoading={activityLoading}
+                    contractDisplayValue={contractDisplayValue}
+                    contractDomainBinding={contractDomainBinding}
+                    contractDomainDisplayValue={contractDomainDisplayValue}
+                    liveNotifications={liveNotifications}
+                    networkLabel={targetNetworkLabel}
+                    newsConnected={newsConnected}
+                    newsLoading={newsLoading}
+                    runtimeDisplayValue={runtimeDisplayValue}
+                  />
 
-              <DetailTabsSection
-                app={app}
-                tabs={tabs}
-                activeTabConfig={activeTabConfig}
-                onTabClick={handleDetailTabClick}
-                targetNetwork={targetNetwork}
-                liveNotifications={liveNotifications}
-                newsLoading={newsLoading}
-                showNews={showNews}
-                showSecrets={showSecrets}
-              />
+                  <DetailTabsSection
+                    app={app}
+                    tabs={tabs}
+                    activeTabConfig={activeTabConfig}
+                    onTabClick={handleDetailTabClick}
+                    targetNetwork={targetNetwork}
+                    liveNotifications={liveNotifications}
+                    newsLoading={newsLoading}
+                    showNews={showNews}
+                    showSecrets={showSecrets}
+                  />
+                </div>
+              </details>
             </section>
 
             <aside
@@ -570,11 +585,11 @@ export default function MiniAppDetailPage({
               aria-label="MiniApp actions"
               data-testid="miniapp-actions"
             >
-              <section className="overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-md shadow-gray-950/8 sm:p-5">
+              <section className="focus-mode-action-panel overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-md shadow-gray-950/8 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-600">
-                      Action Console
+                      Focus action
                     </p>
                     <h2 className="m-0 text-base font-bold text-gray-900 sm:text-lg">
                       {operationTitle}
@@ -704,7 +719,7 @@ export default function MiniAppDetailPage({
                 >
                   <span className="min-w-0">
                     <span className="block text-[11px] font-bold uppercase tracking-wide text-white">
-                      Action Console
+                      Focus action
                     </span>
                     <span className="block truncate text-sm font-bold">
                       {primaryOperationLabel}
@@ -736,7 +751,7 @@ export default function MiniAppDetailPage({
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-600">
-                          Action Console
+                          Focus action
                         </p>
                         <h2 className="m-0 truncate text-lg font-bold text-gray-900">
                           {operationTitle}

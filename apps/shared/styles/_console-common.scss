@@ -99,8 +99,35 @@
   display: flex;
   flex-direction: column;
   gap: $gap;
-  padding: 20px 16px;
+  padding: 24px 18px 96px;
+  min-height: min(760px, calc(100vh - 120px));
   color: var(--ns-text, #2a2d3d);
+  background: var(--ns-bg, #f4f5f7);
+}
+
+@mixin focus-card {
+  padding: clamp(18px, 2vw, 28px);
+  border-radius: var(--ns-radius-xl, 24px);
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+@mixin action-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 12px -10px -76px;
+  padding: 12px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--ns-shadow-lg, 0 16px 40px rgba(20, 22, 38, 0.1));
+  backdrop-filter: blur(16px);
 }
 
 // ── Console Output / Result panel ──

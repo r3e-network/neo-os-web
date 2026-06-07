@@ -762,24 +762,34 @@ export function PlayShell({
 }) {
   const styles = toneStyle(tone);
 
-  // The page-level AppDetailHeader is the visible chrome; PlayShell's own
-  // header is intentionally screen-reader-only so the dApp iframe stays
-  // above the fold. Title remains an <h2> for assistive tech + tests.
   void styles;
   return (
-    <div className="bg-white">
-      <div className="sr-only">
-        <h2>{title}</h2>
-        <p>{subtitle}</p>
-        <span>{app.name}</span>
+    <div className="focus-play-shell bg-white">
+      <div className="border-b border-gray-100 px-4 py-4 sm:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">
+              Focus workspace
+            </p>
+            <h2 className="m-0 truncate text-xl font-black tracking-tight text-gray-950 sm:text-2xl">
+              {title}
+            </h2>
+            <p className="m-0 mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+              {subtitle}
+            </p>
+          </div>
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-emerald-700">
+            {app.name}
+          </span>
+        </div>
       </div>
-      <div className="p-0">
+      <div className="p-0 sm:p-1">
         <div className="min-w-0">{children}</div>
         {side && (
-          <div className="mt-2 px-2 sm:px-3">
+          <div className="mt-3 px-2 sm:px-3">
             <SecondaryInfo
-              title="Activity and details"
-              description="Recent events, raw readings, and diagnostic context are available when needed."
+              title="Context and diagnostics"
+              description="Receipts, raw readings, and technical context stay tucked away until needed."
             >
               <div className="min-w-0 space-y-3">{side}</div>
             </SecondaryInfo>
