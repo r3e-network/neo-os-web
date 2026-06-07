@@ -69,26 +69,39 @@ export function ConsoleMiniApp({
       fallbackMessage={fallbackMessage}
       onBoundaryError={handleBoundaryError}
       onBoundaryRetry={onRetry}
+      focusMode
     >
-      <HeroSection variant="erobo" icon={heroIcon} compact stats={<HeroStatsStrip items={heroStats} compact />} />
+      <div className="console-focus-workspace">
+        <HeroSection
+          variant="erobo"
+          icon={heroIcon}
+          compact
+          stats={<HeroStatsStrip items={heroStats} compact />}
+        />
 
-      <StatsDisplay items={overviewStats} layout="grid" className="mb-6" />
+        {wrapResultCard ? (
+          <NeoCard variant="erobo" title={resultTitle} className="px-1">
+            {resultContent}
+          </NeoCard>
+        ) : (
+          resultContent
+        )}
 
-      {wrapResultCard ? (
-        <NeoCard variant="erobo" title={resultTitle} className="px-1">
-          {resultContent}
-        </NeoCard>
-      ) : (
-        resultContent
-      )}
+        {wrapOperationCard ? (
+          <NeoCard variant="erobo" title={operationTitle} className="px-1">
+            {operationContent}
+          </NeoCard>
+        ) : (
+          operationContent
+        )}
 
-      {wrapOperationCard ? (
-        <NeoCard variant="erobo" title={operationTitle} className="px-1">
-          {operationContent}
-        </NeoCard>
-      ) : (
-        operationContent
-      )}
+        {overviewStats.length > 0 && (
+          <details className="console-focus-reference">
+            <summary>Reference metrics</summary>
+            <StatsDisplay items={overviewStats} layout="grid" />
+          </details>
+        )}
+      </div>
     </MiniAppPage>
   );
 }

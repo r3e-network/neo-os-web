@@ -531,6 +531,7 @@ export function MiniAppRoot({
                   fallbackMessage={fallbackMessage}
                   onBoundaryError={handleBoundaryError}
                   onBoundaryRetry={reloadData}
+                  focusMode
                   renderOperation={
                     hasOperations
                       ? () => (

@@ -560,6 +560,73 @@ export function MiniAppPage({
               )}
             </section>
           )}
+
+          {focusMode && (
+            <section className="section-focus-reference">
+              <details className="focus-reference-panel">
+                <summary>
+                  <span>Reference and activity</span>
+                  <small>{infoTabs.length + (comments.length > 0 ? 1 : 0)}</small>
+                </summary>
+                <div className="focus-reference-content">
+                  {hasInfoContent && (
+                    <div className="focus-reference-block">
+                      {renderTabStats
+                        ? renderTabStats()
+                        : sidebarItems.length > 0 && (
+                            <div className="auto-stats-grid">
+                              {sidebarItems.map((item, i) => (
+                                <div
+                                  key={`focus-stat-${i}`}
+                                  className="auto-stat-card"
+                                  style={{ "--i": i } as React.CSSProperties}
+                                >
+                                  <span className="auto-stat-value">
+                                    {item.value ?? t("notAvailable")}
+                                  </span>
+                                  <span className="auto-stat-label">
+                                    {item.label}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                    </div>
+                  )}
+                  {renderTabHistory && (
+                    <div className="focus-reference-block">
+                      {renderTabHistory()}
+                    </div>
+                  )}
+                  {renderDocs && (
+                    <div className="focus-reference-block">{renderDocs()}</div>
+                  )}
+                  {comments.length > 0 && (
+                    <div className="focus-reference-block focus-reference-comments">
+                      {comments.slice(0, 4).map((comment) => (
+                        <div key={comment.id} className="comment-item">
+                          <div className="comment-avatar">
+                            {comment.author?.[0] || "?"}
+                          </div>
+                          <div className="comment-body">
+                            <div className="comment-meta">
+                              <span className="comment-author">
+                                {comment.author}
+                              </span>
+                              <span className="comment-time">
+                                {comment.time}
+                              </span>
+                            </div>
+                            <p className="comment-text">{comment.text}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </details>
+            </section>
+          )}
         </main>
 
         {hasOperationPanel && (
