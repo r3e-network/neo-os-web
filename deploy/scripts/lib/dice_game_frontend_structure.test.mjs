@@ -48,7 +48,12 @@ test("Dice Game renders a modern wallet-style VRF roll desk", () => {
   // Active face is reflected via aria-pressed against the local faceInput state.
   assert.match(playArea, /aria-pressed=\{face === faceInput\}/);
   assert.match(playArea, /formatHash\(lastTxid,\s*10,\s*8\)/);
-  assert.match(playArea, /isSubmitting \? t\("pendingTitle"\) : t\("readyTitle"\)/);
+  // Hero title is state-driven across the VRF workflow: rolling -> result -> ready.
+  assert.match(playArea, /isResolving\s*\n?\s*\?\s*t\("resolvingTitle"\)/);
+  assert.match(playArea, /t\("readyTitle"\)/);
+  // The settled roll is revealed (chain-aware result panel + network badge).
+  assert.match(playArea, /dice-result/);
+  assert.match(playArea, /dice-chain-badge/);
   // Bet placement is wired through the platform dispatch contract.
   assert.match(playArea, /dispatch\("placeDiceBet"/);
 
