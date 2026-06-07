@@ -61,7 +61,7 @@ test("package lock resolves the hardened dependency versions used in production 
 
   assert.equal(packages["node_modules/axios"]?.version, "1.16.0");
   assert.equal(packages["node_modules/picomatch"]?.version, "2.3.2");
-  assert.equal(packages["node_modules/@sentry/nextjs"]?.version, "10.48.0");
+  assert.equal(packages["node_modules/@sentry/nextjs"]?.version, "10.56.0");
   assert.ok(versionAtLeast(resolvedRollup, "4.35.0"));
   assert.equal(packages["node_modules/@parcel/watcher/node_modules/picomatch"]?.version, "4.0.4");
   assert.equal(packages["node_modules/vite/node_modules/picomatch"]?.version, "4.0.4");
