@@ -94,6 +94,24 @@ const appMessages = {
     en: "Stake sent but the roll did not settle. Your GAS is locked and refundable via the contract.",
     zh: "筹码已发送但掷骰未结算。你的 GAS 已锁定，可通过合约退款找回。",
   },
+  statusRolling: { en: "Rolling — oracle is settling your bet…", zh: "掷骰中——预言机正在结算…" },
+  statusWon: { en: "You won! 🎉", zh: "你赢了！🎉" },
+  statusLost: { en: "No win this time", zh: "这次未中" },
+  statusRefunded: { en: "Bet refunded", zh: "下注已退款" },
+  networkLabel: { en: "Network", zh: "网络" },
+  resolvingTitle: { en: "Rolling the dice…", zh: "掷骰中…" },
+  resolvingBody: {
+    en: "Morpheus VRF is settling your roll on-chain. This usually takes a few seconds.",
+    zh: "Morpheus VRF 正在链上结算你的掷骰，通常只需几秒。",
+  },
+  rolledLabel: { en: "Rolled", zh: "掷出" },
+  outcomeWon: { en: "Won", zh: "赢" },
+  outcomeLost: { en: "Lost", zh: "未中" },
+  outcomeRefunded: { en: "Refunded", zh: "已退款" },
+  resultWonBody: { en: "Your face matched the roll — payout sent to your wallet.", zh: "你的点数与掷骰结果一致——赔付已发送到你的钱包。" },
+  resultLostBody: { en: "The roll didn't match your face. Try another roll.", zh: "掷骰结果与你的点数不一致，再试一次吧。" },
+  resultRefundedBody: { en: "The roll couldn't settle, so your stake was returned.", zh: "掷骰无法结算，你的筹码已退回。" },
+  maxStakeNote: { en: "Max on this network", zh: "本网络上限" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
