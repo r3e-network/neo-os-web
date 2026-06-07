@@ -1,21 +1,23 @@
 import { createObservable, defineMiniApp } from "@shared/react";
 import { formatHash, toFixed8 } from "@shared/utils/format";
-import { gasToWei } from "@shared/utils/evm-chain";
+import { gasToWei, evmCall, decodeReturnWord } from "@shared/utils/evm-chain";
 import type { EvmNetwork } from "@shared/utils/evm-chain";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
+import { chainLabelOf, maxStakeOf, evmStatusToOutcome } from "./dice-logic";
+import type { RollOutcome } from "./dice-logic";
 
 const appId = "miniapp-dice-game";
 const PAYOUT_MULTIPLIER = 5.7;
 
-// Neo X (EVM) dice deployment + minimal ABI. The Neo N3 path uses the kernel
-// contract resolved by the host; the EVM path calls this contract directly.
+// Neo X (EVM) dice deployment. The Neo N3 path uses the kernel contract resolved
+// by the host; the EVM path calls this contract directly.
 const DICE_EVM_ADDRESS: Partial<Record<EvmNetwork, string>> = {
   "neo-x-mainnet": "0xFA795F814d38F218153d21838360096f3F5cb774",
 };
-// placeBet(uint8) selector + DiceBetPlaced(uint256,address,uint8,uint256) topic.
-const DICE_PLACE_BET_SELECTOR = "0x43046844";
+const DICE_PLACE_BET_SELECTOR = "0x43046844"; // placeBet(uint8)
+const DICE_GET_BET_SELECTOR = "0x061e494f"; //   getBet(uint256)
 const DICE_BET_PLACED_TOPIC = "0xd8175cc91837f6ecc7efc5783d64298c19ccb0e81d4b0436c082fa056905d942";
 
 type RollHistoryItem = {
@@ -23,6 +25,8 @@ type RollHistoryItem = {
   stake: string;
   result: string;
   payout: string;
+  outcome?: RollOutcome;
+  rolled?: string;
   txid?: string;
   at: string;
 };
@@ -33,13 +37,13 @@ function sanitizeFace(value: unknown): string {
   return String(face);
 }
 
-function sanitizeAmount(value: unknown): string {
+function sanitizeAmount(value: unknown, max = 20): string {
   const raw = String(value ?? "").trim();
   if (raw.length === 0) return "0.10";
   const amount = Number(raw);
   if (!Number.isFinite(amount)) return "0.10";
   if (amount < 0.05) return "0.05";
-  if (amount > 20) return "20";
+  if (amount > max) return max.toFixed(2).replace(/\.00$/, "");
   return amount.toFixed(2).replace(/\.00$/, "");
 }
 
@@ -47,6 +51,21 @@ function payoutFor(amount: string): string {
   const numeric = Number(amount);
   if (!Number.isFinite(numeric)) return "0 GAS";
   return `${(numeric * PAYOUT_MULTIPLIER).toFixed(2)} GAS`;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Read a Neo event-state field value defensively across indexer shapes. */
+function eventStateValue(ev: unknown, index: number): unknown {
+  const state = (ev as { state?: unknown })?.state ?? ev;
+  if (Array.isArray(state)) {
+    const item = state[index];
+    return (item as { value?: unknown })?.value ?? item;
+  }
+  return undefined;
+}
+function asBool(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
 }
 
 defineMiniApp({
@@ -70,42 +89,132 @@ defineMiniApp({
     const lastStatus = createObservable(ctx.t("statusReady"));
     const isSubmitting = createObservable(false);
     const rollHistory = createObservable<RollHistoryItem[]>([]);
+    // Multi-chain + result-reveal state.
+    const chainLabel = createObservable("");
+    const maxStake = createObservable(20);
+    const lastRoll = createObservable(""); // the settled face (1..6), revealed
+    const lastOutcome = createObservable<RollOutcome>("");
+    const isResolving = createObservable(false); // bet placed, awaiting VRF settlement
+
+    const refreshNetwork = async (): Promise<string> => {
+      try {
+        const net = await ctx.services.chain.detectNetwork();
+        chainLabel.set(chainLabelOf(net));
+        maxStake.set(maxStakeOf(net));
+        return net;
+      } catch {
+        chainLabel.set(chainLabelOf("neo-n3"));
+        maxStake.set(20);
+        return "neo-n3";
+      }
+    };
 
     const syncSelection = (face: unknown, amount: unknown) => {
       const nextFace = sanitizeFace(face);
-      const nextAmount = sanitizeAmount(amount);
+      const nextAmount = sanitizeAmount(amount, maxStake.get());
       selectedFace.set(nextFace);
       stakeAmount.set(`${nextAmount} GAS`);
       payoutPreview.set(payoutFor(nextAmount));
       return { nextFace, nextAmount };
     };
 
+    // Reveal a settled bet: update the dice, the result banner and the history,
+    // and celebrate a win (success status auto-fires the host fireworks).
+    const finishResolve = (outcome: RollOutcome, rolled: number, amount: string) => {
+      isResolving.set(false);
+      lastRoll.set(rolled ? String(rolled) : "");
+      lastOutcome.set(outcome);
+      const won = outcome === "won";
+      const label =
+        won ? ctx.t("outcomeWon") : outcome === "refunded" ? ctx.t("outcomeRefunded") : ctx.t("outcomeLost");
+      const history = rollHistory.get().slice();
+      if (history[0]) {
+        history[0] = {
+          ...history[0],
+          result: rolled ? `${label} · 🎲 ${rolled}` : label,
+          payout: won ? payoutFor(amount) : "0 GAS",
+          outcome,
+          rolled: rolled ? String(rolled) : "",
+        };
+        rollHistory.set(history);
+      }
+      if (won) {
+        lastStatus.set(ctx.t("statusWon"));
+        ctx.setStatus(ctx.t("statusWon"), "success");
+      } else if (outcome === "refunded") {
+        lastStatus.set(ctx.t("statusRefunded"));
+        ctx.setStatus(ctx.t("statusRefunded"), "info");
+      } else {
+        lastStatus.set(ctx.t("statusLost"));
+        ctx.setStatus(ctx.t("statusLost"), "info");
+      }
+    };
+
+    // Neo X: poll getBet(requestId) until the VRF settles the bet on-chain.
+    const resolveEvmBet = async (address: string, requestId: string, amount: string) => {
+      for (let i = 0; i < 45; i += 1) {
+        await sleep(4000);
+        let raw: string;
+        try {
+          raw = await evmCall(address, DICE_GET_BET_SELECTOR, [requestId]);
+        } catch {
+          continue;
+        }
+        const status = Number(decodeReturnWord(raw, 4)); // Bet.status word
+        if (status <= 1) continue; // None / Pending
+        finishResolve(evmStatusToOutcome(status), Number(decodeReturnWord(raw, 3)), amount);
+        return;
+      }
+      isResolving.set(false); // timed out — stays "rolling" in history
+    };
+
+    // Neo N3: poll DiceBetResolved (and DiceBetRefunded) for this bet id.
+    const resolveN3Bet = async (betId: string, amount: string) => {
+      if (!betId) {
+        isResolving.set(false);
+        return;
+      }
+      for (let i = 0; i < 36; i += 1) {
+        await sleep(5000);
+        try {
+          const resolved = await ctx.services.chain.listEvents("DiceBetResolved", { limit: 40 });
+          const hit = resolved.find((ev) => String(eventStateValue(ev, 6)) === String(betId));
+          if (hit) {
+            const won = asBool(eventStateValue(hit, 5));
+            finishResolve(won ? "won" : "lost", Number(eventStateValue(hit, 3)) || 0, amount);
+            return;
+          }
+          const refunded = await ctx.services.chain.listEvents("DiceBetRefunded", { limit: 40 });
+          const refundHit = refunded.find((ev) => String(eventStateValue(ev, 2)) === String(betId));
+          if (refundHit) {
+            finishResolve("refunded", 0, amount);
+            return;
+          }
+        } catch {
+          /* transient indexer error — retry */
+        }
+      }
+      isResolving.set(false);
+    };
+
     ctx.registerAction("placeDiceBet", async (...args: unknown[]) => {
       if (isSubmitting.get()) return;
-      const form = (args[0] ?? {}) as {
-        chosenNumber?: unknown;
-        amount?: unknown;
-      };
-      const { nextFace, nextAmount } = syncSelection(
-        form.chosenNumber,
-        form.amount,
-      );
-      const amountFixed8 = toFixed8(nextAmount);
+      const form = (args[0] ?? {}) as { chosenNumber?: unknown; amount?: unknown };
 
       isSubmitting.set(true);
       lastStatus.set(ctx.t("statusSubmitting"));
-      // Tracks whether the GAS stake transfer has been broadcast. invokeWithPayment
-      // transfers the stake to the contract FIRST, then calls placeDiceBet. If the
-      // contract call fails after the transfer is sent, the GAS has left the wallet
-      // (tagged with the `${appId}:stake` memo) while no bet was registered, so the
-      // failure must be surfaced as "funds recoverable via contract refund", not a
-      // plain "Roll failed" that implies nothing happened.
+      lastOutcome.set("");
+      lastRoll.set("");
       let stakeSent = false;
       try {
-        // Auto-detect the chain from the connected wallet: Neo X (EVM) when an
-        // injected EVM wallet is on a supported Neo X chain, else Neo N3.
-        const network = await ctx.services.chain.detectNetwork();
+        // Auto-detect the chain from the connected wallet (also refreshes the UI
+        // chain badge + per-network stake cap), then clamp the stake to that cap.
+        const network = await refreshNetwork();
+        const { nextFace, nextAmount } = syncSelection(form.chosenNumber, form.amount);
+        const amountFixed8 = toFixed8(nextAmount);
+
         let result;
+        let resolver: () => void;
         if (ctx.services.chain.isEvmNetwork(network)) {
           const address = DICE_EVM_ADDRESS[network as EvmNetwork];
           if (!address) throw new Error(ctx.t("statusFailed"));
@@ -119,12 +228,12 @@ defineMiniApp({
             valueWei: gasToWei(nextAmount).toString(),
             eventTopic: DICE_BET_PLACED_TOPIC,
           });
+          const requestId = (result.event as { id?: string } | undefined)?.id ?? "";
+          resolver = () => void resolveEvmBet(address, requestId, nextAmount);
         } else {
           const player = await ctx.services.chain.ensureWallet();
-          // stakeSent is flipped only by onPaymentSent below — i.e. the exact
-          // moment the stake transfer is broadcast. A pre-transfer failure stays
-          // a plain failure; only a failure after the stake has left the wallet
-          // surfaces the recoverable-funds notice. (Neo N3 two-step path.)
+          // stakeSent flips the moment the stake transfer broadcasts; a pre-transfer
+          // failure stays a plain failure, a post-broadcast one is recoverable.
           result = await ctx.services.chain.invokeWithPayment(
             amountFixed8,
             `${appId}:stake`,
@@ -143,47 +252,55 @@ defineMiniApp({
               },
             },
           );
+          const betId = String(eventStateValue(result.event, 4) ?? "");
+          resolver = () => void resolveN3Bet(betId, nextAmount);
         }
+
         lastTxid.set(result.txid ?? "");
-        lastStatus.set(ctx.t("statusSubmitted"));
-        rollHistory.set([
-          {
-            face: nextFace,
-            stake: `${nextAmount} GAS`,
-            result: ctx.t("statusSubmitted"),
-            payout: payoutFor(nextAmount),
-            txid: result.txid ?? "",
-            at: new Date().toISOString(),
-          },
-          ...rollHistory.get(),
-        ].slice(0, 6));
-        ctx.setStatus(
-          `${ctx.t("statusSubmitted")}${result.txid ? `: ${formatHash(result.txid, 10, 8)}` : ""}`,
-          "success",
-        );
-        return result;
-      } catch (error) {
-        const rawMessage =
-          error instanceof Error ? error.message : ctx.t("statusFailed");
-        if (stakeSent) {
-          // The stake transfer was already broadcast but the bet did not settle.
-          // Surface a recoverable-funds notice and record it in history so the
-          // user knows the GAS is locked pending the contract's refund path
-          // rather than silently lost. Tracking the intermediate transfer txid
-          // for an automated refund requires a shared-service change.
-          const recoverable = ctx.t("statusFundsRecoverable");
-          lastStatus.set(recoverable);
-          rollHistory.set([
+        lastStatus.set(ctx.t("statusRolling"));
+        lastOutcome.set("pending");
+        isResolving.set(true);
+        rollHistory.set(
+          [
             {
               face: nextFace,
               stake: `${nextAmount} GAS`,
-              result: recoverable,
+              result: ctx.t("statusRolling"),
               payout: payoutFor(nextAmount),
-              txid: "",
+              outcome: "pending" as RollOutcome,
+              txid: result.txid ?? "",
               at: new Date().toISOString(),
             },
             ...rollHistory.get(),
-          ].slice(0, 6));
+          ].slice(0, 6),
+        );
+        ctx.setStatus(
+          `${ctx.t("statusRolling")}${result.txid ? `: ${formatHash(result.txid, 10, 8)}` : ""}`,
+          "info",
+        );
+        // Reveal the outcome asynchronously so the user can keep playing.
+        resolver();
+        return result;
+      } catch (error) {
+        const rawMessage = error instanceof Error ? error.message : ctx.t("statusFailed");
+        isResolving.set(false);
+        lastOutcome.set("");
+        if (stakeSent) {
+          const recoverable = ctx.t("statusFundsRecoverable");
+          lastStatus.set(recoverable);
+          rollHistory.set(
+            [
+              {
+                face: sanitizeFace(form.chosenNumber),
+                stake: stakeAmount.get(),
+                result: recoverable,
+                payout: "0 GAS",
+                txid: "",
+                at: new Date().toISOString(),
+              },
+              ...rollHistory.get(),
+            ].slice(0, 6),
+          );
           ctx.setStatus(recoverable, "error");
         } else {
           lastStatus.set(rawMessage);
@@ -204,8 +321,15 @@ defineMiniApp({
         lastStatus,
         isSubmitting,
         rollHistory,
+        chainLabel,
+        maxStake,
+        lastRoll,
+        lastOutcome,
+        isResolving,
       },
-      loadData: async () => {},
+      loadData: async () => {
+        await refreshNetwork();
+      },
     };
   },
 });
