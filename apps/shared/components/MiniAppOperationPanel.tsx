@@ -467,6 +467,29 @@ export function MiniAppOperationPanel({
 
   return (
     <div className="operation-panels">
+      <div className="operation-panel-header">
+        <div>
+          <span className="operation-panel-eyebrow">Focus action</span>
+          <strong>{resolveStaticLabel("operationsPanel", "Operations")}</strong>
+        </div>
+        <span className="operation-panel-count">{operations.length}</span>
+      </div>
+
+      <div className="operation-workflow" aria-hidden="true">
+        <span className="operation-workflow__step operation-workflow__step--active">
+          Configure
+        </span>
+        <span className="operation-workflow__step">Preview</span>
+        <span className="operation-workflow__step">Submit</span>
+      </div>
+
+      {operations.length === 0 && (
+        <div className="operation-empty-state" role="status">
+          <strong>No transaction action required</strong>
+          <span>This miniapp is ready to use from the workspace.</span>
+        </div>
+      )}
+
       {operationGroups.primary.length > 1 && (
         <div
           className="operation-tabs"
@@ -698,7 +721,10 @@ export function MiniAppOperationPanel({
         className="neo-card neo-card--erobo operation-card"
       >
         <div className="neo-card__header">
-          <span className="neo-card__title">{resolveTitle(operation)}</span>
+          <div>
+            <span className="operation-card-kicker">Selected action</span>
+            <span className="neo-card__title">{resolveTitle(operation)}</span>
+          </div>
         </div>
         <div className="neo-card__body">
           {claimOnlyOperation && (
@@ -718,15 +744,24 @@ export function MiniAppOperationPanel({
             </p>
           )}
 
-          {visibleFields.length > 0 && (
-            <div className="operation-fields">
+          <div className="operation-card-section">
+            <span className="operation-card-section__label">
+              {visibleFields.length > 0 ? "Configure" : "Ready"}
+            </span>
+            {visibleFields.length > 0 ? (
+              <div className="operation-fields">
               {visibleFields.map((field) => (
                 <div key={field.key} className="operation-field">
                   {renderField(operation.key, field)}
                 </div>
               ))}
-            </div>
-          )}
+              </div>
+            ) : (
+              <p className="operation-ready-copy">
+                No extra fields are needed for this action.
+              </p>
+            )}
+          </div>
 
           {hasStateSummary(operation) && (
             <div className="operation-summary">
