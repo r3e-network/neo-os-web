@@ -132,6 +132,22 @@ async function waitForReceipt(eth: Eip1193Provider, txid: string, timeoutMs = 60
   }
 }
 
+/** Read-only contract call (eth_call) via the injected wallet. Returns the raw
+ * 0x-prefixed return data; the caller decodes the static-typed return words. */
+export async function evmCall(address: string, selector: string, uintArgs: (number | bigint | string)[] = []): Promise<string> {
+  const eth = getInjectedEthereum();
+  if (!eth) throw new Error("No EVM wallet detected.");
+  const data = selector + (uintArgs ?? []).map(toUint256Hex).join("");
+  return (await eth.request({ method: "eth_call", params: [{ to: address, data }, "latest"] })) as string;
+}
+
+/** Decode the i-th 32-byte word of an ABI return as an unsigned integer. */
+export function decodeReturnWord(returnHex: string, index: number): bigint {
+  const hex = String(returnHex || "").replace(/^0x/, "");
+  const word = hex.slice(index * 64, index * 64 + 64);
+  return word ? BigInt("0x" + word) : 0n;
+}
+
 /** Send a (possibly payable) contract transaction via the injected wallet (raw eth_sendTransaction). */
 export async function evmInvoke(call: EvmCall): Promise<EvmCallResult> {
   const eth = getInjectedEthereum();
