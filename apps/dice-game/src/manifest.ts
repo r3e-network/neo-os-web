@@ -2,7 +2,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Dice Game",
-  description: "Pick one face and roll with Morpheus VRF on Neo N3.",
+  description: "Pick one face and roll with Morpheus VRF on Neo N3 or Neo X (auto-detected from your wallet).",
   icon: "dice",
   category: "game",
   shell: "game",
