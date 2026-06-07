@@ -185,7 +185,8 @@ defineMiniApp({
             return;
           }
           const refunded = await ctx.services.chain.listEvents("DiceBetRefunded", { limit: 40 });
-          const refundHit = refunded.find((ev) => String(eventStateValue(ev, 2)) === String(betId));
+          // DiceBetRefunded params: appId(0), player(1), amount(2), betId(3).
+          const refundHit = refunded.find((ev) => String(eventStateValue(ev, 3)) === String(betId));
           if (refundHit) {
             finishResolve("refunded", 0, amount);
             return;
