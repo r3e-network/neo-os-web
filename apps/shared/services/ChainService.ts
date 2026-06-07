@@ -30,6 +30,14 @@ import type { EventsListParams } from "../utils/wallet-sdk";
 import type { WalletSDK } from "../utils/wallet-sdk";
 import { useAllEvents } from "../composables/useAllEvents";
 import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
+import {
+  detectEvmNetwork,
+  connectEvm,
+  ensureNeoXNetwork,
+  evmInvoke,
+  isEvmNetwork as isEvmNetworkId,
+} from "../utils/evm-chain";
+import type { EvmNetwork, EvmCall } from "../utils/evm-chain";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -176,6 +184,57 @@ export class ChainService {
       this.events.emit(EventBus.WALLET_CONNECTED, { address: addr });
     }
     return addr;
+  }
+
+  // -- Multi-chain (Neo N3 + Neo X) -----------------------------------------
+
+  /**
+   * Detect the active chain network from the connected wallet. Returns a Neo X
+   * EVM network id ("neo-x-mainnet"/"neo-x-testnet") when an injected EVM wallet
+   * is on a supported Neo X chain, otherwise the Neo N3 chain type
+   * ("neo-n3-mainnet"/"neo-n3-testnet"/"neo-n3"). Read-only — never prompts.
+   *
+   * Miniapps that support multiple chains branch on this (see
+   * {@link isEvmNetwork}); single-chain apps can ignore it and keep using the
+   * Neo N3 methods unchanged.
+   */
+  async detectNetwork(): Promise<string> {
+    const evm = await detectEvmNetwork();
+    if (evm) return evm;
+    const ct = (this.wallet as unknown as { chainType?: { get?: () => string; value?: string } }).chainType;
+    const raw = typeof ct?.get === "function" ? ct.get() : ct?.value;
+    return typeof raw === "string" && raw ? raw : "neo-n3";
+  }
+
+  /** Whether a network id is a Neo X (EVM) network. */
+  isEvmNetwork(network: string): boolean {
+    return isEvmNetworkId(network);
+  }
+
+  /**
+   * Connect an EVM wallet (MetaMask / injected) on the given Neo X network,
+   * switching/adding the chain if needed. Returns the checksummed address.
+   * Emits WALLET_CONNECTED. The Neo N3 {@link ensureWallet} path is separate.
+   */
+  async ensureEvmWallet(network: EvmNetwork): Promise<string> {
+    await ensureNeoXNetwork(network);
+    const addr = await connectEvm();
+    this.events.emit(EventBus.WALLET_CONNECTED, { address: addr });
+    return addr;
+  }
+
+  /**
+   * Payable EVM contract invocation (the Neo X analogue of
+   * {@link invokeWithPayment}): sends `valueWei` native GAS with the call and
+   * optionally extracts an event id from the receipt. Emits TRANSACTION_SENT /
+   * TRANSACTION_CONFIRMED.
+   */
+  async invokeEvmWithValue(call: EvmCall): Promise<TxResult> {
+    const { txid, eventId } = await evmInvoke(call);
+    this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation: call.selector });
+    const event = eventId ? { id: eventId } : undefined;
+    if (event) this.events.emit(EventBus.TRANSACTION_CONFIRMED, { txid, event });
+    return { txid, event, success: Boolean(txid) };
   }
 
   // -- Contract address -----------------------------------------------------
