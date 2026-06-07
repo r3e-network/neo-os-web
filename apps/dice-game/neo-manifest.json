@@ -4,8 +4,8 @@
   "name": "Dice Game",
   "name_zh": "骰子游戏",
   "version": "1.0.0",
-  "description": "A simple Morpheus VRF dice roll on Neo N3. Pick one face, fund a GAS stake, and let the oracle settle the roll on-chain.",
-  "description_zh": "基于 Morpheus VRF 的 Neo N3 链上骰子游戏。选择一个点数，注入 GAS 筹码，由预言机链上结算。",
+  "description": "A focused Morpheus VRF dice workflow for Neo N3 and Neo X mainnet. Pick a face, preview the stake, submit, and reveal the on-chain result.",
+  "description_zh": "面向 Neo N3 与 Neo X 主网的 Morpheus VRF 骰子流程。选择点数、预览筹码、提交交易并查看链上结果。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
@@ -28,7 +28,8 @@
   },
   "supported_networks": [
     "neo-n3-mainnet",
-    "neo-n3-testnet"
+    "neo-n3-testnet",
+    "neo-x-mainnet"
   ],
   "default_network": "neo-n3-mainnet",
   "deployment": {

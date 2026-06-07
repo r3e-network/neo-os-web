@@ -67,8 +67,8 @@ export function OperationPanel({
 
   const embedded = variant === "embedded";
   const shellClass = embedded
-    ? "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
-    : "overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md shadow-gray-950/6";
+    ? "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
+    : "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md shadow-gray-950/6";
 
   return (
     <div
@@ -150,6 +150,32 @@ export function OperationPanel({
           )}
         </div>
       )}
+
+      <div className="border-b border-gray-100 px-3 py-3 sm:px-4">
+        <div
+          className="grid grid-cols-4 gap-1.5"
+          aria-label="Transaction workflow steps"
+        >
+          {["Configure", "Preview", "Submit", "Result"].map((step, index) => (
+            <div key={step} className="min-w-0">
+              <div
+                className={cn(
+                  "h-1.5 rounded-full",
+                  index === 0 ? "bg-emerald-600" : "bg-gray-200",
+                )}
+              />
+              <span
+                className={cn(
+                  "mt-1 block truncate text-[10px] font-black uppercase tracking-wide",
+                  index === 0 ? "text-emerald-700" : "text-gray-400",
+                )}
+              >
+                {step}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="p-3 sm:p-4">
         <OperationForm
@@ -501,7 +527,7 @@ function OperationForm({
         )}
       </div>
 
-      <div className="sticky bottom-0 z-10 mt-2 space-y-2 border-t border-gray-100 bg-white/95 pt-2.5 backdrop-blur">
+      <div className="sticky bottom-0 z-10 mt-3 space-y-2 border-t border-gray-100 bg-white/95 pt-3 backdrop-blur">
         {error && (
           <div
             aria-live="polite"
@@ -523,7 +549,7 @@ function OperationForm({
         <button
           type="button"
           className={cn(
-            "inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 text-sm font-black leading-none transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+            "inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-2xl border-none px-4 py-3 text-sm font-black leading-none transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
             "whitespace-nowrap",
             "disabled:cursor-not-allowed disabled:opacity-50",
             tone.submitClass,
