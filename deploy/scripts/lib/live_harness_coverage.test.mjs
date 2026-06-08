@@ -29,7 +29,7 @@ test("live harness coverage summary exposes fix lists", () => {
   const rows = buildCoverageRows({ root: repoRoot });
   const summary = summarizeCoverage(rows);
 
-  assert.equal(summary.totalActive, 60);
+  assert.equal(summary.totalActive, 61);
   // miniapp-neo-multisig now ships a deployed testnet contract
   // (0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e) but has no registered live-chain
   // harness in LIVE_CHAIN_FLOWS, so the audit correctly classifies it as

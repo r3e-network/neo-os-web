@@ -1,0 +1,20 @@
+<svg width="960" height="360" viewBox="0 0 960 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Neo Message banner">
+  <rect width="960" height="360" fill="url(#bg)"/>
+  <g opacity="0.16" fill="#ffffff">
+    <circle cx="820" cy="60" r="120"/>
+    <circle cx="120" cy="320" r="90"/>
+  </g>
+  <g transform="translate(80,118)">
+    <rect x="0" y="0" width="150" height="104" rx="20" fill="#ffffff"/>
+    <path d="M10 18 L75 64 L140 18" stroke="#5b6ef5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="140" cy="8" r="22" fill="#9fe6c8" stroke="#ffffff" stroke-width="6"/>
+  </g>
+  <text x="280" y="170" font-family="Inter, system-ui, sans-serif" font-size="56" font-weight="800" fill="#ffffff" letter-spacing="-1">Neo Message</text>
+  <text x="282" y="214" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="500" fill="#e7eafd">Encrypted &amp; time-locked messaging on Neo X</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="960" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6d7df7"/>
+      <stop offset="1" stop-color="#3a47bf"/>
+    </linearGradient>
+  </defs>
+</svg>
