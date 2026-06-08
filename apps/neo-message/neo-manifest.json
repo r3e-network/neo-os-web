@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neo-message",
+  "name": "Neo Message",
+  "name_zh": "Neo 消息",
+  "version": "1.0.0",
+  "description": "Encrypted and time-locked messaging on Neo X. Send a message only the recipient can read, or seal one that unlocks on-chain at a future time — secured by the Morpheus confidential oracle.",
+  "description_zh": "Neo X 上的加密与定时解锁消息。发送仅收件人可读的消息，或封存一条在未来于链上解锁的消息——由 Morpheus 机密预言机保护。",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [
+    "message",
+    "encryption",
+    "oracle",
+    "time-lock",
+    "neox"
+  ],
+  "developer": {
+    "name": "R3E",
+    "email": "dev@r3e.network",
+    "website": "https://neomini.app"
+  },
+  "contracts": {
+    "neo-x-mainnet": "0xd1906192c2308ae416aCDa96238cA846EBB83f15"
+  },
+  "supported_networks": [
+    "neo-x-mainnet"
+  ],
+  "default_network": "neo-x-mainnet",
+  "deployment": {
+    "neo-x-mainnet": {
+      "status": "deployed",
+      "contract_hash": "0xd1906192c2308ae416aCDa96238cA846EBB83f15",
+      "registered": true
+    }
+  },
+  "permissions": {
+    "payments": true
+  },
+  "urls": {
+    "entry": "/miniapps/neo-message/index.html",
+    "icon": "/miniapps/neo-message/logo.svg",
+    "banner": "/miniapps/neo-message/banner.svg"
+  }
+}

@@ -53,6 +53,18 @@ export async function detectEvmNetwork(): Promise<EvmNetwork | null> {
   }
 }
 
+/** Read the currently authorized EVM account WITHOUT prompting (eth_accounts). "" if none. */
+export async function getEvmAccount(): Promise<string> {
+  const eth = getInjectedEthereum();
+  if (!eth) return "";
+  try {
+    const accounts = (await eth.request({ method: "eth_accounts" })) as string[];
+    return accounts?.[0] ?? "";
+  } catch {
+    return "";
+  }
+}
+
 /** Prompt connection (eth_requestAccounts) and return the active address. */
 export async function connectEvm(): Promise<string> {
   const eth = getInjectedEthereum();
@@ -103,10 +115,113 @@ export function gasToWei(amount: string | number): bigint {
   return BigInt(whole || "0") * 10n ** 18n + BigInt(fracPadded || "0");
 }
 
+// ── richer ABI codec (address / uint / dynamic bytes / tuple) ────────────────
+// Beyond the uint-only dice path. Still dependency-free (no web3 bundle);
+// covered by evm-chain.test.mjs against ethers reference vectors. Supports the
+// exact shapes the Neo Message lane needs: sendMessage(address,bytes,uint64),
+// inboxOf(address)->uint256[], getMessage(uint256)->struct.
+
+function stripHex(value: string): string {
+  return String(value || "").replace(/^0x/, "");
+}
+function bytesToHex(bytes: Uint8Array): string {
+  let out = "";
+  for (const b of bytes) out += b.toString(16).padStart(2, "0");
+  return out;
+}
+function hexToBytes(hex: string): Uint8Array {
+  const h = stripHex(hex);
+  const out = new Uint8Array(Math.floor(h.length / 2));
+  for (let i = 0; i < out.length; i += 1) out[i] = parseInt(h.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+export function utf8ToBytes(value: string): Uint8Array {
+  return new TextEncoder().encode(value);
+}
+export function bytesToUtf8(bytes: Uint8Array): string {
+  return new TextDecoder().decode(bytes);
+}
+
+export type AbiEncParam =
+  | { t: "address"; v: string }
+  | { t: "uint"; v: number | bigint | string } // uint8..uint256 share one encoding
+  | { t: "bytes"; v: Uint8Array };
+
+/** ABI-encode a parameter list (head/tail) into a hex string WITHOUT a selector. */
+export function encodeParams(params: AbiEncParam[]): string {
+  const head: string[] = [];
+  const tail: string[] = [];
+  let tailOffset = params.length * 32; // bytes
+  for (const p of params) {
+    if (p.t === "bytes") {
+      head.push(toUint256Hex(tailOffset));
+      let data = bytesToHex(p.v);
+      if (data.length % 64 !== 0) data = data.padEnd(data.length + (64 - (data.length % 64)), "0");
+      const chunk = toUint256Hex(p.v.length) + data;
+      tail.push(chunk);
+      tailOffset += chunk.length / 2;
+    } else if (p.t === "address") {
+      head.push(stripHex(p.v).toLowerCase().padStart(64, "0"));
+    } else {
+      head.push(toUint256Hex(p.v));
+    }
+  }
+  return head.join("") + tail.join("");
+}
+
+/** Decode a function return of type uint256[] (e.g. inboxOf). */
+export function decodeUintArray(returnHex: string): bigint[] {
+  const h = stripHex(returnHex);
+  if (h.length < 128) return [];
+  const base = Number(BigInt("0x" + h.slice(0, 64))) * 2; // array offset (hex chars)
+  const len = Number(BigInt("0x" + h.slice(base, base + 64)));
+  const out: bigint[] = [];
+  for (let i = 0; i < len; i += 1) {
+    out.push(BigInt("0x" + h.slice(base + 64 + i * 64, base + 64 + (i + 1) * 64)));
+  }
+  return out;
+}
+
+export interface DecodedEvmMessage {
+  sender: string;
+  recipient: string;
+  envelope: Uint8Array;
+  unlockTime: number;
+  sentAt: number;
+  revealed: boolean;
+  plaintext: string;
+}
+
+/** Decode getMessage(uint256) -> (address,address,bytes,uint64,uint64,bool,string). */
+export function decodeMessageStruct(returnHex: string): DecodedEvmMessage {
+  const h = stripHex(returnHex);
+  const base = Number(BigInt("0x" + h.slice(0, 64))) * 2; // tuple offset (hex chars)
+  const word = (i: number) => h.slice(base + i * 64, base + (i + 1) * 64);
+  const readDyn = (relOffsetBytes: number): Uint8Array => {
+    const p = base + relOffsetBytes * 2;
+    const len = Number(BigInt("0x" + h.slice(p, p + 64)));
+    return hexToBytes(h.slice(p + 64, p + 64 + len * 2));
+  };
+  const envelope = readDyn(Number(BigInt("0x" + word(2))));
+  const plaintext = bytesToUtf8(readDyn(Number(BigInt("0x" + word(6)))));
+  return {
+    sender: "0x" + word(0).slice(24),
+    recipient: "0x" + word(1).slice(24),
+    envelope,
+    unlockTime: Number(BigInt("0x" + word(3))),
+    sentAt: Number(BigInt("0x" + word(4))),
+    revealed: BigInt("0x" + word(5)) !== 0n,
+    plaintext,
+  };
+}
+
 export interface EvmCall {
   address: string; // contract address
   selector: string; // 4-byte function selector, e.g. "0x43046844" for placeBet(uint8)
   uintArgs?: (number | bigint | string)[]; // encoded as uint256 (covers uint8..uint256)
+  /** Pre-encoded ABI argument blob (hex, no selector). Takes precedence over uintArgs
+   * when present — used for calls with non-uint params (address/bytes), see encodeParams. */
+  argsHex?: string;
   valueWei?: bigint | string; // native GAS to send (payable)
   /** Optional event topic[0] to locate in the receipt; returns its indexed topic[1] as `eventId`. */
   eventTopic?: string;
@@ -141,6 +256,25 @@ export async function evmCall(address: string, selector: string, uintArgs: (numb
   return (await eth.request({ method: "eth_call", params: [{ to: address, data }, "latest"] })) as string;
 }
 
+/** Read-only contract call with a pre-encoded ABI argument blob (for non-uint args). */
+export async function evmCallEncoded(address: string, selector: string, argsHex = ""): Promise<string> {
+  const eth = getInjectedEthereum();
+  if (!eth) throw new Error("No EVM wallet detected.");
+  const data = selector + stripHex(argsHex);
+  return (await eth.request({ method: "eth_call", params: [{ to: address, data }, "latest"] })) as string;
+}
+
+/** EIP-191 personal_sign with the active wallet account; returns the 0x signature. */
+export async function evmPersonalSign(message: string): Promise<string> {
+  const eth = getInjectedEthereum();
+  if (!eth) throw new Error("No EVM wallet detected.");
+  let accounts = (await eth.request({ method: "eth_accounts" })) as string[];
+  if (!accounts?.length) accounts = [await connectEvm()];
+  const from = accounts[0];
+  const hexMessage = "0x" + bytesToHex(utf8ToBytes(message));
+  return (await eth.request({ method: "personal_sign", params: [hexMessage, from] })) as string;
+}
+
 /** Decode the i-th 32-byte word of an ABI return as an unsigned integer. */
 export function decodeReturnWord(returnHex: string, index: number): bigint {
   const hex = String(returnHex || "").replace(/^0x/, "");
@@ -155,7 +289,10 @@ export async function evmInvoke(call: EvmCall): Promise<EvmCallResult> {
   let accounts = (await eth.request({ method: "eth_accounts" })) as string[];
   if (!accounts?.length) accounts = [(await connectEvm())];
   const from = accounts[0];
-  const data = call.selector + (call.uintArgs ?? []).map(toUint256Hex).join("");
+  const data =
+    call.argsHex !== undefined
+      ? call.selector + stripHex(call.argsHex)
+      : call.selector + (call.uintArgs ?? []).map(toUint256Hex).join("");
   const value = call.valueWei !== undefined ? "0x" + BigInt(call.valueWei).toString(16) : undefined;
   const txid = (await eth.request({
     method: "eth_sendTransaction",
