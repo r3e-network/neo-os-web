@@ -30,50 +30,10 @@ export async function invokeRead(contractHash, method, args = []) {
   return result;
 }
 
-export async function invokeWrite(wif, contractHash, method, args = [], signers = []) {
-  const neon = await ensureNeon();
-  const account = new neon.wallet.Account(wif);
-
-  const defaultSigners = signers.length > 0 ? signers : [{
-    account: account.scriptHash,
-    scopes: "CalledByEntry",
-  }];
-
-  const script = neon.sc.createScript({
-    scriptHash: contractHash,
-    operation: method,
-    args,
-  });
-
-  const currentHeight = await new neon.rpc.RPCClient(RPC_URL).getBlockCount();
-  const tx = new neon.tx.Transaction({
-    signers: defaultSigners,
-    validUntilBlock: currentHeight + 100,
-    script,
-  });
-
-  // Estimate fees
-  const client = new neon.rpc.RPCClient(RPC_URL);
-  const invoke = await client.invokeScript(
-    neon.u.HexString.fromHex(script).toString(),
-    defaultSigners,
-  );
-
-  if (invoke.state === "FAULT") {
-    const err = new Error(`VM FAULT: ${invoke.exception || "unknown"}`);
-    err._vmfault = true;
-    err._expected = true; // Faulting on bad input is correct
-    throw err;
-  }
-
-  tx.systemFee = neon.u.BigInteger.fromNumber(invoke.gasconsumed);
-  tx.networkFee = neon.u.BigInteger.fromNumber(200000); // estimate
-
-  tx.sign(account, NETWORK_MAGIC);
-  const result = await client.sendRawTransaction(tx);
-
-  return { txid: result, invoke };
-}
+// NOTE: the old invokeWrite helper was deleted (MP-W3-09): it had zero
+// callers, never called calculatenetworkfee, and signed with a flat 200k
+// datoshi network fee below the per-byte minimum — any broadcast would have
+// been rejected. Real write paths live in deploy/scripts/lib/live_rpc.mjs.
 
 export function intParam(value) {
   return { type: "Integer", value: String(value) };

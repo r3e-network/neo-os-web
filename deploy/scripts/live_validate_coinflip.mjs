@@ -1,5 +1,8 @@
 /**
- * Live testnet validation for MiniAppCoinFlip (0x238488397884ad0bf1db99aecce62290e9f47971).
+ * Live testnet validation for MiniAppCoinFlip (the fogplay miniapp contract).
+ *
+ * The contract hash resolves from apps/fogplay/neo-manifest.json
+ * (override: CONTRACT_OVERRIDE / CONTRACT_OVERRIDE_FOGPLAY).
  *
  *   1. house funds bankroll (2 GAS, memo "miniapp-fogplay:fund")
  *   2. player deposits 0.5 GAS bet credit (memo "miniapp-fogplay:bet")
@@ -7,52 +10,34 @@
  *   4. assert per-flip accounting (Flipped events), stats, bankroll math, and that the
  *      contract is EXACTLY solvent (held GAS == bankroll; no strand, no over-pay)
  *
- * Asserts via the tx's own Flipped events (lag-free). Testnet-pinned; no WIFs printed.
+ * Asserts via the tx's own Flipped events (lag-free). Testnet-pinned
+ * (endpoints/magic via lib/neo_network.js env overrides); no WIFs printed.
  */
 import pkg from "@cityofzion/neon-js";
-const { sc, wallet, rpc, tx, u } = pkg;
+import { getManifestContractHash } from "./lib/miniapp_manifest_hash.js";
+import { requireCredential } from "./lib/live_credentials.js";
+import { createLiveRpc } from "./lib/live_rpc.mjs";
 
-const RPC = "https://testnet1.neo.coz.io:443";
-const MAGIC = 894710606;
-const CONTRACT = "0x238488397884ad0bf1db99aecce62290e9f47971";
+const { sc, wallet } = pkg;
+
+const CONTRACT = getManifestContractHash("fogplay", { network: "testnet" });
 const GAS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-const A = new wallet.Account(process.env.NEO_TESTNET_WIF);
-const client = new rpc.RPCClient(RPC);
+
+const A = new wallet.Account(requireCredential("NEO_TESTNET_WIF", process.env.NEO_TESTNET_WIF));
+
+const live = createLiveRpc({ network: "testnet", neon: pkg, label: "live_validate_coinflip" });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const retry = async (fn) => { for (let i = 0; i < 6; i++) { try { return await fn(); } catch (e) { if (i === 5) throw e; await sleep(3000); } } };
+
 const H = (a) => sc.ContractParam.hash160(a);
 const I = (n) => sc.ContractParam.integer(n.toString());
 const S = (s) => sc.ContractParam.string(s);
 const P_H = (a) => ({ type: "Hash160", value: a });
 
-async function invoke(label, scriptHash, op, args) {
-  const script = sc.createScript({ scriptHash, operation: op, args });
-  const count = await retry(() => client.getBlockCount());
-  const signers = [tx.Signer.fromJson({ account: "0x" + A.scriptHash, scopes: "CalledByEntry" })];
-  const txn = new tx.Transaction({ signers, validUntilBlock: count + 50, script });
-  const inv = await retry(() => client.invokeScript(u.HexString.fromHex(script), signers));
-  if (inv.state !== "HALT") throw new Error(`${label} test FAULT: ${inv.exception}`);
-  txn.systemFee = u.BigInteger.fromNumber(inv.gasconsumed);
-  txn.sign(A, MAGIC);
-  txn.networkFee = u.BigInteger.fromNumber(await retry(() => client.calculateNetworkFee(txn)));
-  txn.sign(A, MAGIC);
-  const txid = await retry(() => client.sendRawTransaction(txn));
-  for (let i = 0; i < 45; i++) {
-    await sleep(4000);
-    let log; try { log = await client.getApplicationLog(txid); } catch { continue; }
-    const ex = log.executions?.[0];
-    if (ex?.vmstate === "HALT") { console.log(`  ${label} ✓`); return { txid, log }; }
-    throw new Error(`${label} FAULT: ${JSON.stringify(ex?.exception)}`);
-  }
-  throw new Error(`${label} not confirmed`);
-}
-async function read(method, params = []) {
-  const res = await retry(() => client.invokeFunction(CONTRACT, method, params));
-  if (res.state !== "HALT") throw new Error(`${method} FAULT`);
-  return res.stack;
-}
+const invoke = (label, scriptHash, op, args) =>
+  live.invokeAndConfirm({ label, account: A, scriptHash, operation: op, args });
+const read = (method, params = []) => live.readStack(CONTRACT, method, params);
 const decInt = (s) => BigInt(s?.[0]?.value ?? "0");
-async function gasBal(h) { const r = await retry(() => client.invokeFunction(GAS, "balanceOf", [P_H(h)])); return BigInt(r.stack?.[0]?.value ?? "0"); }
+const gasBal = (h) => live.nep17BalanceOf(GAS, h);
 function ev(log, name) { for (const n of log?.executions?.[0]?.notifications ?? []) if (n.eventname === name) return n.state?.value ?? []; return null; }
 function mapField(stack, key) { for (const kv of stack?.[0]?.value ?? []) { const raw = kv.key?.value; const d = typeof raw === "string" ? Buffer.from(raw, "base64").toString() : raw; if (d === key) return kv.value; } return null; }
 

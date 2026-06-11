@@ -1,57 +1,41 @@
 /**
- * Live testnet validation for MiniAppTarot (0x8cd0342f2129c07b2d3de1dae51ba09e4045d331).
+ * Live testnet validation for MiniAppTarot.
+ *
+ * The contract hash resolves from apps/on-chain-tarot/neo-manifest.json
+ * (override: CONTRACT_OVERRIDE / CONTRACT_OVERRIDE_ON_CHAIN_TAROT).
  *
  *   1. A deposits 0.2 GAS (memo "miniapp-tarot:draw")
  *   2. draw() -> three DISTINCT cards in [0,78) drawn on-chain (Runtime.GetRandom)
  *   3. draw() again -> a different reading, fee consumed each time, revenue accrues
  *
  * Asserts on the ReadingDrawn event (lag-free) + getReading + credit/revenue.
- * Testnet-pinned; no WIFs printed.
+ * Testnet-pinned (endpoints/magic via lib/neo_network.js env overrides); no
+ * WIFs printed.
  */
 import pkg from "@cityofzion/neon-js";
-const { sc, wallet, rpc, tx, u } = pkg;
+import { getManifestContractHash } from "./lib/miniapp_manifest_hash.js";
+import { requireCredential } from "./lib/live_credentials.js";
+import { createLiveRpc } from "./lib/live_rpc.mjs";
 
-const RPC = "https://testnet1.neo.coz.io:443";
-const MAGIC = 894710606;
-const CONTRACT = "0x8cd0342f2129c07b2d3de1dae51ba09e4045d331";
+const { sc, wallet } = pkg;
+
+const CONTRACT = getManifestContractHash("on-chain-tarot", { network: "testnet" });
 const GAS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
-const A = new wallet.Account(process.env.NEO_TESTNET_WIF);
-const client = new rpc.RPCClient(RPC);
+const A = new wallet.Account(requireCredential("NEO_TESTNET_WIF", process.env.NEO_TESTNET_WIF));
+
+const live = createLiveRpc({ network: "testnet", neon: pkg, label: "live_validate_tarot" });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const retry = async (fn) => { for (let i = 0; i < 6; i++) { try { return await fn(); } catch (e) { if (i === 5) throw e; await sleep(3000); } } };
+
 const H = (a) => sc.ContractParam.hash160(a);
 const I = (n) => sc.ContractParam.integer(n.toString());
 const S = (s) => sc.ContractParam.string(s);
 const P_H = (a) => ({ type: "Hash160", value: a });
 const P_I = (n) => ({ type: "Integer", value: n.toString() });
 
-async function invoke(label, account, scriptHash, operation, args) {
-  const script = sc.createScript({ scriptHash, operation, args });
-  const count = await retry(() => client.getBlockCount());
-  const signers = [tx.Signer.fromJson({ account: "0x" + account.scriptHash, scopes: "CalledByEntry" })];
-  const txn = new tx.Transaction({ signers, validUntilBlock: count + 50, script });
-  const inv = await retry(() => client.invokeScript(u.HexString.fromHex(script), signers));
-  if (inv.state !== "HALT") throw new Error(`${label} test-invoke FAULT: ${inv.exception}`);
-  txn.systemFee = u.BigInteger.fromNumber(inv.gasconsumed);
-  txn.sign(account, MAGIC);
-  txn.networkFee = u.BigInteger.fromNumber(await retry(() => client.calculateNetworkFee(txn)));
-  txn.sign(account, MAGIC);
-  const txid = await retry(() => client.sendRawTransaction(txn));
-  for (let i = 0; i < 45; i++) {
-    await sleep(4000);
-    let log; try { log = await client.getApplicationLog(txid); } catch { continue; }
-    const ex = log.executions?.[0];
-    if (ex?.vmstate === "HALT") { console.log(`  ${label} ✓ (${txid.slice(0, 12)}…)`); return { txid, log }; }
-    throw new Error(`${label} FAULT: ${JSON.stringify(ex?.exception)}`);
-  }
-  throw new Error(`${label} not confirmed`);
-}
-async function read(method, params = []) {
-  const res = await retry(() => client.invokeFunction(CONTRACT, method, params));
-  if (res.state !== "HALT") throw new Error(`${method} FAULT: ${res.exception}`);
-  return res.stack;
-}
+const invoke = (label, account, scriptHash, operation, args) =>
+  live.invokeAndConfirm({ label, account, scriptHash, operation, args });
+const read = (method, params = []) => live.readStack(CONTRACT, method, params);
 const decInt = (s) => BigInt(s?.[0]?.value ?? "0");
 function eventState(log, name) {
   for (const n of log?.executions?.[0]?.notifications ?? []) if (n.eventname === name) return n.state?.value ?? [];

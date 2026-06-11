@@ -46,7 +46,7 @@ function normalizeParams(params = []) {
 }
 
 function normalizeSignerAccount(account) {
-  return normalizeHash(account).replace(/^$/, "");
+  return normalizeHash(account);
 }
 
 function normalizeSigners(signers = []) {
@@ -125,14 +125,51 @@ function toRpcBinaryPayload(value) {
   return value;
 }
 
-async function estimateNetworkFee(rpcClient, transaction) {
+const NETWORK_FEE_FALLBACK_ENV = "NEON_COMPAT_NETWORK_FEE_FALLBACK";
+const DEFAULT_NETWORK_FEE_FALLBACK = 5000000n;
+
+function resolveNetworkFeeFallback(env) {
+  const raw = String(env[NETWORK_FEE_FALLBACK_ENV] || "").trim();
+  if (!raw) return null;
+  if (/^(1|true|yes)$/i.test(raw)) return DEFAULT_NETWORK_FEE_FALLBACK;
+  let value;
   try {
-    const result = await rpcClient.inner.calculateNetworkFee({
-      tx: toRpcBinaryPayload(transaction),
-    });
+    value = BigInt(raw);
+  } catch {
+    value = null;
+  }
+  if (value === null || value <= 0n) {
+    throw new Error(
+      `${NETWORK_FEE_FALLBACK_ENV} must be "1" or a positive datoshi integer, got "${raw}"`
+    );
+  }
+  return value;
+}
+
+async function estimateNetworkFee(rpcClient, transaction, { env = process.env } = {}) {
+  try {
+    const result = await withTransientRpcRetry("rpc.calculatenetworkfee", () =>
+      rpcClient.inner.calculateNetworkFee({
+        tx: toRpcBinaryPayload(transaction),
+      })
+    );
     return BigInt(result?.networkfee || 0);
-  } catch (_error) {
-    return 5000000n;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const fallback = resolveNetworkFeeFallback(env);
+    if (fallback === null) {
+      const wrapped = new Error(
+        `calculatenetworkfee failed: ${message} (set ${NETWORK_FEE_FALLBACK_ENV}=1 or a datoshi amount to substitute a flat network fee)`
+      );
+      if (error instanceof Error && error.stack) {
+        wrapped.stack = `${wrapped.name}: ${wrapped.message}\nCaused by: ${error.stack}`;
+      }
+      throw wrapped;
+    }
+    console.warn(
+      `[neon-compat] calculatenetworkfee failed (${message}); substituting flat network fee ${fallback} datoshi via ${NETWORK_FEE_FALLBACK_ENV}`
+    );
+    return fallback;
   }
 }
 
@@ -268,10 +305,16 @@ const rpc = {
   Query,
 };
 
-ContractParam.bool = ContractParam.boolean;
+// Local compat alias: ContractParam.bool === ContractParam.boolean.
+// Implemented as a subclass so importing this module no longer mutates the
+// shared @r3e/neo-js-sdk ContractParam class as a side effect (the previous
+// `ContractParam.bool = ContractParam.boolean` patched it process-wide for
+// every other consumer).
+class CompatContractParam extends ContractParam {}
+CompatContractParam.bool = ContractParam.boolean.bind(ContractParam);
 
 const sc = {
-  ContractParam,
+  ContractParam: CompatContractParam,
   ScriptBuilder,
 };
 
@@ -298,6 +341,8 @@ const tx = {
 const experimental = {
   SmartContract,
 };
+
+export { estimateNetworkFee, NETWORK_FEE_FALLBACK_ENV };
 
 export default {
   wallet,

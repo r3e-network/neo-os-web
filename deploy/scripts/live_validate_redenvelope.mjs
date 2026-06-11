@@ -1,5 +1,9 @@
 /**
- * Live testnet validation for MiniAppRedEnvelope (0x68ef0ead...).
+ * Live testnet validation for MiniAppRedEnvelope.
+ *
+ * The contract hash resolves from apps/red-envelope/neo-manifest.json
+ * (override: CONTRACT_OVERRIDE / CONTRACT_OVERRIDE_RED_ENVELOPE), so the
+ * harness always targets the deployment the app actually uses.
  *
  * Full flow against the real deployed contract:
  *   1. deposit GAS (NEP-17 transfer to contract, memo "miniapp-redenvelope:create")
@@ -9,64 +13,37 @@
  *   5. assert share1 + share2 == total, opened == packetCount, active == false
  *
  * Uses only one funded testnet account (the deployer); the second claimer is a
- * fresh ephemeral account funded at runtime. Never prints WIFs. Testnet-pinned.
+ * fresh ephemeral account funded at runtime. Never prints WIFs. Testnet-pinned
+ * (RPC endpoint/magic via lib/neo_network.js — NEO_RPC_TESTNET / NEO_RPC_URL /
+ * NEO_RPC_ENDPOINTS env overrides apply).
  */
 import pkg from "@cityofzion/neon-js";
-const { sc, wallet, rpc, tx, u } = pkg;
+import { getManifestContractHash } from "./lib/miniapp_manifest_hash.js";
+import { requireCredential } from "./lib/live_credentials.js";
+import { createLiveRpc } from "./lib/live_rpc.mjs";
 
-const RPC = "https://testnet1.neo.coz.io:443";
-const MAGIC = 894710606;
-const CONTRACT = "0x68ef0ead081d2263acc51ce82f5c70c46440cca4";
+const { sc, wallet } = pkg;
+
+const CONTRACT = getManifestContractHash("red-envelope", { network: "testnet" });
 const GAS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
-const creator = new wallet.Account(process.env.NEO_TESTNET_WIF);
+const creator = new wallet.Account(requireCredential("NEO_TESTNET_WIF", process.env.NEO_TESTNET_WIF));
 const claimer = new wallet.Account(); // fresh ephemeral 2nd participant
 
-const client = new rpc.RPCClient(RPC);
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const live = createLiveRpc({ network: "testnet", neon: pkg, label: "live_validate_redenvelope" });
 
 const H = (a) => sc.ContractParam.hash160(a);
 const I = (n) => sc.ContractParam.integer(n.toString());
 const S = (s) => sc.ContractParam.string(s);
 
-async function invoke(label, account, scriptHash, operation, args) {
-  const script = sc.createScript({ scriptHash, operation, args });
-  const count = await client.getBlockCount();
-  const signers = [tx.Signer.fromJson({ account: "0x" + account.scriptHash, scopes: "CalledByEntry" })];
-  const txn = new tx.Transaction({ signers, validUntilBlock: count + 50, script });
+const invoke = (label, account, scriptHash, operation, args) =>
+  live.invokeAndConfirm({ label, account, scriptHash, operation, args });
+const read = (method, params = []) => live.readStack(CONTRACT, method, params);
 
-  const inv = await client.invokeScript(u.HexString.fromHex(script), signers);
-  if (inv.state !== "HALT") throw new Error(`${label} test-invoke FAULT: ${inv.exception}`);
-  txn.systemFee = u.BigInteger.fromNumber(inv.gasconsumed);
-  txn.sign(account, MAGIC); // provisional witness so the size is right for fee calc
-  const nf = await client.calculateNetworkFee(txn);
-  txn.networkFee = u.BigInteger.fromNumber(nf);
-  txn.sign(account, MAGIC); // final signature over the real fees
-
-  const txid = await client.sendRawTransaction(txn);
-  for (let i = 0; i < 45; i++) {
-    await sleep(4000);
-    let log;
-    try { log = await client.getApplicationLog(txid); } catch { continue; }
-    const ex = log.executions?.[0];
-    if (ex?.vmstate === "HALT") { console.log(`  ${label} ✓ (${txid.slice(0, 12)}…)`); return { txid, log }; }
-    throw new Error(`${label} FAULT: ${JSON.stringify(ex?.exception)}`);
-  }
-  throw new Error(`${label} not confirmed`);
-}
-
-async function read(method, params = []) {
-  const res = await client.invokeFunction(CONTRACT, method, params);
-  if (res.state !== "HALT") throw new Error(`${method} FAULT: ${res.exception}`);
-  return res.stack;
-}
 const P_H = (a) => ({ type: "Hash160", value: a });
 const P_I = (n) => ({ type: "Integer", value: n.toString() });
 function decInt(stack) { return BigInt(stack?.[0]?.value ?? "0"); }
-async function gasBalance(addr) {
-  const r = await client.invokeFunction(GAS, "balanceOf", [P_H(addr)]);
-  return BigInt(r.stack?.[0]?.value ?? "0");
-}
+const gasBalance = (accountHash) => live.nep17BalanceOf(GAS, accountHash);
 function mapField(stack, key) {
   for (const kv of stack?.[0]?.value ?? []) {
     const raw = kv.key?.value;
