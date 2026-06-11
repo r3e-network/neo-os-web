@@ -9,7 +9,7 @@
  *
  *   write: createVault, deposit, createRequest, approve, cancel
  *   read:  getVault, getRequest, balanceOf, hasApproved, lastVaultId,
- *          lastRequestId
+ *          lastRequestId, requestUnfunded (RequestUnfunded event lookup)
  */
 
 import {
@@ -20,9 +20,11 @@ import {
   buildCreateVaultArgs,
   buildDepositArgs,
   parseRequest,
+  parseRequestUnfundedEvent,
   parseVault,
   validateSignerSet,
   type ContractArg,
+  type RequestUnfundedEvent,
   type RequestView,
   type VaultAsset,
   type VaultView,
@@ -51,6 +53,15 @@ export interface VaultChain {
     args?: ChainArg[],
     options?: { scriptHash?: string },
   ): Promise<unknown>;
+  /**
+   * Decoded contract-event listing (ChainService.listEvents). Optional so
+   * older/leaner chain layers still satisfy the interface; event-derived
+   * features (RequestUnfunded detection) degrade gracefully without it.
+   */
+  listEvents?(
+    eventName: string,
+    options?: { limit?: number },
+  ): Promise<unknown[]>;
   /** Resolved app contract hash (the custody vault). */
   contractAddress: { get(): string | null };
 }
@@ -144,7 +155,7 @@ export function createVaultApi(chain: VaultChain) {
       return chain.invoke("approve", toChainArgs(buildApproveArgs(reqId, signer)));
     },
 
-    /** cancel(reqId, caller) — creator-only, pending requests only. */
+    /** cancel(reqId, caller) — ANY vault signer (v2), pending requests only. */
     async cancel(reqId: number, caller: string) {
       return chain.invoke("cancel", toChainArgs(buildCancelArgs(reqId, caller)));
     },
@@ -187,6 +198,27 @@ export function createVaultApi(chain: VaultChain) {
 
     async lastRequestId(): Promise<number> {
       return toNumber(await chain.read("lastRequestId"));
+    },
+
+    /**
+     * Look up the RequestUnfunded(requestId, required, available) event for a
+     * request (v2 contract): a threshold approval that found the vault balance
+     * below the request amount auto-cancelled it. Returns the parsed amounts
+     * (BASE UNITS) or null when no event exists / events are unavailable —
+     * callers fall back to a generic auto-cancel notice.
+     */
+    async requestUnfunded(reqId: number): Promise<RequestUnfundedEvent | null> {
+      if (typeof chain.listEvents !== "function") return null;
+      try {
+        const events = await chain.listEvents("RequestUnfunded", { limit: 50 });
+        for (const entry of events ?? []) {
+          const parsed = parseRequestUnfundedEvent(entry);
+          if (parsed && parsed.requestId === reqId) return parsed;
+        }
+      } catch {
+        // Event indexing is best-effort; the caller shows a generic notice.
+      }
+      return null;
     },
   };
 }

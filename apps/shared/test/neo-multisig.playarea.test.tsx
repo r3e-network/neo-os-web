@@ -68,6 +68,8 @@ function t(key: string, params?: Record<string, string | number>) {
     multisigStepPropose: "Step 3",
     multisigThresholdBlocked: "Threshold cannot be greater than the number of signers.",
     multisigTooManySigners: "A vault supports at most 16 signer addresses.",
+    multisigUnfundedNotice:
+      "Auto-cancelled at threshold: the vault was underfunded (needed {required} {asset}, held {available}). Deposit again, then propose a new request.",
     multisigVaultBadge: "Vault",
     multisigVaultCopy: "Enter signer addresses and a threshold.",
     multisigVaultIdLabel: "Vault ID",
@@ -105,6 +107,7 @@ function baseState(
     completedCount: 0,
     connectedAddress: "",
     history: [],
+    unfundedNotice: null,
     isApproving: false,
     isCancelling: false,
     isCreatingVault: false,
@@ -127,10 +130,10 @@ function baseState(
 function vault(overrides: Partial<VaultView> = {}): VaultView {
   return {
     id: 7,
-    creator: "0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
+    creator: "0xaaaa11112222333344445555666677778888aaaa",
     threshold: 2,
     signers: [
-      "0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
+      "0xaaaa11112222333344445555666677778888aaaa",
       "0xb89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
     ],
     createdTime: 1700000000000,
@@ -144,7 +147,7 @@ function request(overrides: Partial<RequestView> = {}): RequestView {
   return {
     id: 4,
     vaultId: 7,
-    creator: "0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
+    creator: "0xaaaa11112222333344445555666677778888aaaa",
     recipient: "0xc89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
     asset: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
     assetSymbol: "GAS",
@@ -359,5 +362,91 @@ describe("Neo Multisig PlayArea", () => {
       (screen.getByRole("button", { name: "Cancel" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it("offers cancel to ANY connected signer on a pending request (v2 — not creator-only)", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    // The connected wallet is a co-signer, NOT the request creator. v2 lets any
+    // vault signer cancel, so the affordance must stay enabled and dispatch.
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          activeVault: vault(),
+          activeRequest: request({ approvalCount: 1 }),
+          connectedAddress: SIGNER_B,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const cancelButton = screen.getByRole("button", {
+      name: "Cancel",
+    }) as HTMLButtonElement;
+    expect(cancelButton.disabled).toBe(false);
+
+    fireEvent.click(cancelButton);
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith("cancelRequest", 4),
+    );
+  });
+
+  it("explains a RequestUnfunded auto-cancel instead of a bare cancelled status (v2)", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          activeVault: vault(),
+          activeRequest: request({ status: "cancelled", approvalCount: 2 }),
+          unfundedNotice: {
+            requestId: 4,
+            required: "0.5",
+            available: "0.1",
+            asset: "GAS",
+          },
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(
+      document.querySelector(".multisig-request-details")?.textContent,
+    ).toContain("Cancelled");
+    expect(
+      screen.getByText(
+        "Auto-cancelled at threshold: the vault was underfunded (needed 0.5 GAS, held 0.1). Deposit again, then propose a new request.",
+      ),
+    ).toBeTruthy();
+    // The auto-cancelled request offers no further approve/cancel actions.
+    expect(
+      (screen.getByRole("button", { name: "Approve" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    expect(
+      (screen.getByRole("button", { name: "Cancel" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
+
+  it("does not show the unfunded notice for a different request id", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          activeVault: vault(),
+          activeRequest: request({ status: "cancelled" }),
+          unfundedNotice: {
+            requestId: 99,
+            required: "0.5",
+            available: "0.1",
+            asset: "GAS",
+          },
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/Auto-cancelled at threshold/)).toBeNull();
   });
 });

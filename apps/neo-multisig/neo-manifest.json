@@ -20,8 +20,8 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-testnet": "0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e",
-    "neo-n3-mainnet": "0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e"
+    "neo-n3-testnet": "0xa361cdc792e97c4d8ddf42048cf48f3283ea7178",
+    "neo-n3-mainnet": "0xa361cdc792e97c4d8ddf42048cf48f3283ea7178"
   },
   "supported_networks": [
     "neo-n3-mainnet",
@@ -55,5 +55,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-28T21:07:41Z"
+  "updatedAt": "2026-06-12T00:00:00Z"
 }

@@ -108,6 +108,38 @@ const appMessages = {
     en: "Epoch settled — governance routed",
     zh: "周期已结算 —— 治理权已路由",
   },
+
+  // ── v2 bidding window (first bid opens a fixed window; settle after it) ──
+  bidWindowTitle: { en: "Bidding window", zh: "竞价窗口" },
+  bidWindowUnopened: {
+    en: "First bid opens a {minutes}-minute window",
+    zh: "首笔竞价将开启 {minutes} 分钟竞价窗口",
+  },
+  bidWindowCountdown: { en: "Closes in {time}", zh: "{time} 后截止" },
+  bidWindowClosed: {
+    en: "Bidding closed — ready to settle",
+    zh: "竞价已截止 —— 可以结算",
+  },
+  biddingClosed: {
+    en: "Bidding for this epoch has closed",
+    zh: "本周期竞价已截止",
+  },
+  biddingClosedHint: {
+    en: "Bidding for this epoch has closed — settle to start the next one.",
+    zh: "本周期竞价已截止 —— 结算后将开启下一周期。",
+  },
+  biddingClosedCreditHeld: {
+    en: "Bidding closed before your bid landed. Your GAS is held as reusable bid credit — withdraw it or bid in the next epoch.",
+    zh: "竞价在你的出价生效前已截止。你的 GAS 已保存为可复用的竞价额度 —— 可提取或在下一周期使用。",
+  },
+  epochNotEnded: {
+    en: "The bidding window is still open — settle after the deadline",
+    zh: "竞价窗口尚未结束 —— 截止后才能结算",
+  },
+  settleAfterDeadlineHint: {
+    en: "Settlement unlocks when the bidding window ends.",
+    zh: "竞价窗口结束后才能结算。",
+  },
   loadFailed: { en: "Failed to load data", zh: "加载数据失败" },
   error: { en: "Error", zh: "错误" },
 

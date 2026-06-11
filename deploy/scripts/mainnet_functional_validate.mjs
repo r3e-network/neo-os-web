@@ -184,7 +184,9 @@ const MINIAPPS = [
   { app: 'fogplay(coinflip)', hash: '0x5d82339da085b72468200e76a2aa2f3cd2912953', method: 'bankroll' },
   { app: 'breakup-contract', hash: '0xf6769c080395f15c28013108b7af7631e1665336', method: 'lastPactId' },
   { app: 'self-loan', hash: '0x87f94598c78cb954ca8200d3964ded9b584d7250', method: 'neoPrice' },
-  { app: 'gov-merc', hash: '0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9', method: 'totalStaked' },
+  // v2 (2026-06-12): fixed 5-minute bidding window per epoch. The v1 contract
+  // (0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9) stays live for user exits only.
+  { app: 'gov-merc', hash: '0x140f5faf5692d21421a79278b0e45b9b9bd4bb46', method: 'totalStaked' },
   { app: 'burn-league', hash: '0xdd3bf2ff39bc4e39107ace953e2271a43a58e28f', method: 'currentSeason' },
   { app: 'dev-tipping(tipjar)', hash: '0x6fdcf2ff29bde658cdcd9fddd082fe1813dd21ec', method: 'totalDevelopers' },
   { app: 'gasbox', hash: '0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7', method: 'lastMachineId' },
