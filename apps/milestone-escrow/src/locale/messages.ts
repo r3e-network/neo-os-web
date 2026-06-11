@@ -8,7 +8,11 @@ const appMessages = {
   escrowName: { en: "Escrow name", zh: "托管名称" },
   escrowNamePlaceholder: { en: "Website delivery escrow", zh: "项目交付托管" },
   beneficiary: { en: "Beneficiary address", zh: "受益人地址" },
+  beneficiaryAddress: { en: "Beneficiary address", zh: "受益人地址" },
   beneficiaryPlaceholder: { en: "Enter Neo N3 address", zh: "输入 Neo N3 地址" },
+  description: { en: "Description", zh: "描述" },
+  descriptionPlaceholder: { en: "Milestone description...", zh: "里程碑描述..." },
+  submit: { en: "Submit", zh: "提交" },
   assetType: { en: "Asset", zh: "资产" },
   assetNeo: { en: "NEO", zh: "NEO" },
   assetGas: { en: "GAS", zh: "GAS" },
@@ -25,7 +29,11 @@ const appMessages = {
   notesPlaceholder: { en: "Describe delivery criteria", zh: "说明交付标准" },
 
   createEscrow: { en: "Create Escrow", zh: "创建托管" },
+  // Action success toasts (notify.guard keys).
   escrowCreated: { en: "Escrow created", zh: "托管已创建" },
+  approveSuccess: { en: "Milestone approved", zh: "里程碑已批准" },
+  claimSuccess: { en: "Milestone claimed — funds released", zh: "里程碑已领取——资金已释放" },
+  cancelSuccess: { en: "Escrow cancelled — remaining funds refunded", zh: "托管已取消——剩余资金已退回" },
 
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
   deploymentPendingTitle: { en: "Contract deployment pending", zh: "合约待部署" },

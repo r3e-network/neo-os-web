@@ -10,6 +10,10 @@ import { timingSafeEqual } from "crypto";
  * For production deployments behind a reverse proxy, the proxy can inject the
  * admin key server-side so that upstream services also accept the request.
  *
+ * Rate limiting counts FAILED auth attempts per client IP. The client IP is
+ * taken from the LAST x-forwarded-for hop, so the console must sit behind a
+ * trusted reverse proxy that appends the real peer address to that header.
+ *
  * IMPORTANT: ADMIN_CONSOLE_API_KEY must NEVER be prefixed with NEXT_PUBLIC_.
  */
 const ADMIN_API_KEY = String(process.env.ADMIN_CONSOLE_API_KEY || process.env.ADMIN_API_KEY || "").trim();
@@ -49,8 +53,12 @@ function extractAdminKey(req: Request): string {
 function extractClientIP(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
+    // Proxies APPEND to x-forwarded-for, so only the LAST hop was written by
+    // our own trusted proxy; earlier entries are client-controlled and would
+    // let an attacker rotate keys (bypass) or spoof the operator's IP (lockout).
+    const hops = forwarded.split(",").map((hop) => hop.trim()).filter(Boolean);
+    const last = hops[hops.length - 1];
+    if (last) return last;
   }
 
   const realIP = req.headers.get("x-real-ip") || "";
@@ -59,22 +67,25 @@ function extractClientIP(req: Request): string {
   return "unknown";
 }
 
-function isRateLimited(req: Request): boolean {
+function isRateLimited(clientKey: string): boolean {
+  const existing = authRateLimit.get(clientKey);
+  if (!existing || Date.now() >= existing.resetAtUnixMS) return false;
+  return existing.count >= ADMIN_AUTH_MAX_REQUESTS;
+}
+
+function recordAuthFailure(clientKey: string): void {
   const now = Date.now();
-  const key = extractClientIP(req);
   const windowMS = ADMIN_AUTH_WINDOW_SECONDS * 1000;
 
-  const existing = authRateLimit.get(key);
+  const existing = authRateLimit.get(clientKey);
   if (!existing || now >= existing.resetAtUnixMS) {
-    authRateLimit.set(key, {
+    authRateLimit.set(clientKey, {
       count: 1,
       resetAtUnixMS: now + windowMS,
     });
-    return false;
+  } else {
+    existing.count += 1;
   }
-
-  existing.count += 1;
-  authRateLimit.set(key, existing);
 
   if (authRateLimit.size > 10_000) {
     for (const [ip, entry] of authRateLimit.entries()) {
@@ -83,8 +94,6 @@ function isRateLimited(req: Request): boolean {
       }
     }
   }
-
-  return existing.count > ADMIN_AUTH_MAX_REQUESTS;
 }
 
 /**
@@ -97,7 +106,8 @@ function isRateLimited(req: Request): boolean {
  * Returns null on success, or an error Response to short-circuit the handler.
  */
 export function requireAdminAuth(req: Request): Response | null {
-  if (isRateLimited(req)) {
+  const clientKey = extractClientIP(req);
+  if (isRateLimited(clientKey)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
@@ -112,11 +122,15 @@ export function requireAdminAuth(req: Request): Response | null {
 
   // Require a valid API key header for ALL requests (server-to-server,
   // proxy-injected, or same-origin browser requests via fetch).
+  // Successful auth never counts toward the limit: only FAILED attempts do,
+  // so a brute-forcer trips the window while the operator cannot be locked
+  // out of their own console by request volume alone.
   const token = extractAdminKey(req);
   if (token && safeCompare(token, ADMIN_API_KEY)) {
     return null;
   }
 
   // Reject: no valid key header
+  recordAuthFailure(clientKey);
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
