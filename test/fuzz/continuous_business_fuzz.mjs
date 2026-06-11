@@ -1,31 +1,48 @@
+#!/usr/bin/env node
 /**
  * Continuous Business-Logic Fuzzer
- * 
- * Generates random test accounts and simulates real user flows
- * against all 7 flagship contracts on testnet.
+ *
+ * Generates random test accounts and simulates real user flows against the
+ * self-contained miniapp contracts on testnet. All calls are read-only
+ * invokeFunction SIMULATIONS (no broadcasts, no key required) — the goal is
+ * to verify that reads never FAULT for arbitrary accounts/ids and that write
+ * guards consistently reject calls without deposits/witnesses.
+ *
+ * Grounding (MP-W3-06): contract hashes resolve from apps/<slug>/
+ * neo-manifest.json; every method used is validated against
+ * contracts/build/<C>.manifest.json before any live call ("ABI drift" fails
+ * fast). FUZZ_DRY_RUN=1 / --dry-run prints the plan and exits offline.
  */
 import { wallet, rpc, sc } from '@cityofzion/neon-js';
+import { resolveFuzzTargets, enforceAbiOrExit } from './lib/abi.mjs';
 
-const RPC_URL = process.env.NEO_RPC_URL || 'https://api.n3index.dev/testnet';
-const FUNDER_WIF = process.env.NEO_TESTNET_WIF || '';
+const RPC_URL = process.env.NEO_RPC_URL || 'https://testnet1.neo.coz.io:443';
 const GAS_HASH = '0xd2a4cff31913016155e38e474a2c06d08be276cf';
-const NEO_HASH = '0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5';
 
-const CONTRACTS = {
-  LastSurvivor:  '0xd55df731978582ea81719a5d87ce49b248e91275',
-  DailyCheckin:  '0xaba84da240a55410d284a656fc8dae044e6ec1a5',
-  GASBox:        '0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c',
-  FogPlay:       '0xb115dd775a7591bb0eedef6dbf50428d50e7bc07',
-  RedEnvelope:   '0xfa1b7240fead2a63999c02defa3aec5eb274a919',
-  SelfLoan:      '0xd097c63ea89251d23632826ebed99a7e7ce536f7',
-  NeoPay:        '0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e',
-};
+const TARGETS = resolveFuzzTargets({
+  redEnvelope: { appSlug: 'red-envelope', contractName: 'MiniAppRedEnvelope' },
+  lastSurvivor: { appSlug: 'last-survivor', contractName: 'MiniAppLastSurvivor' },
+  timeCapsule: { appSlug: 'time-capsule', contractName: 'MiniAppTimeCapsule' },
+  tarot: { appSlug: 'on-chain-tarot', contractName: 'MiniAppTarot' },
+  breakupPact: { appSlug: 'breakup-contract', contractName: 'MiniAppBreakupPact' },
+  coinFlip: { appSlug: 'fogplay', contractName: 'MiniAppCoinFlip' },
+  selfLoan: { appSlug: 'self-loan', contractName: 'MiniAppSelfLoan' },
+});
+const hashOf = (key) => TARGETS[key].hash;
+
+// Every contract method the fuzzers below touch — validated up front.
+const PLANNED_CALLS = [
+  ['redEnvelope', ['lastEnvelopeId', 'getEnvelope', 'claim', 'creditOf', 'onNEP17Payment']],
+  ['lastSurvivor', ['getCurrentRound', 'currentKeyCost', 'buyKeys', 'playerKeys', 'currentRoundId']],
+  ['timeCapsule', ['lastCapsuleId', 'getCapsule', 'reveal']],
+  ['tarot', ['readingsCount', 'drawFee', 'getReading', 'draw']],
+  ['breakupPact', ['lastPactId', 'getPact', 'signPact', 'breakPact']],
+  ['coinFlip', ['bankroll', 'getStats', 'flip', 'getGame']],
+  ['selfLoan', ['neoPrice', 'pool', 'getLoan', 'borrow']],
+].flatMap(([contract, methods]) => methods.map((method) => ({ contract, method })));
+enforceAbiOrExit('continuous-business-fuzz', TARGETS, PLANNED_CALLS);
 
 const client = new rpc.RPCClient(RPC_URL);
-if (!FUNDER_WIF) {
-  throw new Error('NEO_TESTNET_WIF is required for continuous_business_fuzz.mjs');
-}
-const funder = new wallet.Account(FUNDER_WIF);
 const signers = (acc) => [{ account: acc.scriptHash, scopes: 'CalledByEntry' }];
 
 let totalRuns = 0, totalPass = 0, totalFail = 0, totalFindings = 0;
@@ -67,158 +84,175 @@ async function simulate(name, fn) {
 
 // ── Business Logic Simulations ──
 
-async function fuzzLastSurvivor(acc) {
-  const hash = CONTRACTS.LastSurvivor;
-
-  // Read current state
-  const state = await client.invokeFunction(hash, 'getGameStatus', []);
-  if (state.state !== 'HALT') return { finding: 'getGameStatus FAULT' };
-
-  // Try buyKeys with random key counts
-  const keyCount = randomInt(0, 100);
-  const r = await client.invokeFunction(hash, 'buyKeys', [
-    sc.ContractParam.hash160(acc.address), sc.ContractParam.integer(keyCount),
-  ], signers(acc));
-  
-  // Should FAULT if round inactive or keyCount < 1
-  if (keyCount < 1 && r.state === 'HALT') return { finding: `buyKeys accepted keyCount=${keyCount}` };
-  
-  // Try claiming when not winner
-  const cr = await client.invokeFunction(hash, 'checkAndEndRound', [], signers(acc));
-  // This should work (anyone can check) or fault if already checked
-
-  // Read player stats for random account
-  const ps = await client.invokeFunction(hash, 'getPlayerStats', [sc.ContractParam.hash160(acc.address)]);
-  if (ps.state !== 'HALT') return { finding: 'getPlayerStats FAULT for random account' };
-
-  return {};
-}
-
-async function fuzzDailyCheckin(acc) {
-  const hash = CONTRACTS.DailyCheckin;
-
-  // Read platform stats
-  const stats = await client.invokeFunction(hash, 'getPlatformStats', []);
-  if (stats.state !== 'HALT') return { finding: 'getPlatformStats FAULT' };
-
-  // Read user stats for random account (should return defaults, not FAULT)
-  const us = await client.invokeFunction(hash, 'getUserStats', [sc.ContractParam.hash160(acc.address)]);
-  if (us.state !== 'HALT') return { finding: 'getUserStats FAULT for new account' };
-
-  // Simulate checkin via GAS transfer with random amounts
-  const amount = randomInt(0, 1000000);
-  const r = await client.invokeFunction(GAS_HASH, 'transfer', [
-    sc.ContractParam.hash160(acc.address), sc.ContractParam.hash160(hash),
-    sc.ContractParam.integer(amount), sc.ContractParam.any(null),
-  ], signers(acc));
-  // Should FAULT (no funds) — but shouldn't crash
-
-  return {};
-}
-
-async function fuzzGASBox(acc) {
-  const hash = CONTRACTS.GASBox;
-
-  // Read machines
-  const mc = await client.invokeFunction(hash, 'totalMachines', []);
-  if (mc.state !== 'HALT') return { finding: 'totalMachines FAULT' };
-  const machines = parseInt(mc.stack[0]?.value || '0');
-
-  if (machines > 0) {
-    // Try reading a random machine
-    const mid = randomInt(1, machines + 5);
-    const mr = await client.invokeFunction(hash, 'getMachine', [sc.ContractParam.integer(mid)]);
-    // Should HALT (returns empty for non-existent)
-  }
-
-  // Try pulling from random machine
-  const pullId = randomInt(-5, machines + 5);
-  const pr = await client.invokeFunction(hash, 'onNEP17Payment', [
-    sc.ContractParam.hash160(acc.address), sc.ContractParam.integer(1e8),
-    sc.ContractParam.any(null),
-  ], signers(acc));
-  // Should FAULT (direct call not from GAS contract)
-  if (pr.state === 'HALT') return { finding: `onNEP17Payment accepted direct call from random account` };
-
-  return {};
-}
-
-async function fuzzFogPlay(acc) {
-  const hash = CONTRACTS.FogPlay;
-
-  // Read bet limits
-  const bl = await client.invokeFunction(hash, 'getBetLimits', []);
-  if (bl.state !== 'HALT') return { finding: 'getBetLimits FAULT' };
-
-  // Try placing bet with random amounts
-  const amount = randomChoice([0, -1, 100000, 1e8, 1e16]);
-  const r = await client.invokeFunction(GAS_HASH, 'transfer', [
-    sc.ContractParam.hash160(acc.address), sc.ContractParam.hash160(hash),
-    sc.ContractParam.integer(amount), sc.ContractParam.integer(randomChoice([0, 1])),
-  ], signers(acc));
-  // Should FAULT (insufficient funds)
-
-  // Read player stats
-  const ps = await client.invokeFunction(hash, 'getPlayerBetCount', [sc.ContractParam.hash160(acc.address)]);
-  if (ps.state !== 'HALT') return { finding: 'getPlayerBetCount FAULT for random account' };
-
-  return {};
-}
-
 async function fuzzRedEnvelope(acc) {
-  const hash = CONTRACTS.RedEnvelope;
+  const hash = hashOf('redEnvelope');
 
-  // Try claiming from random envelope IDs
-  const eid = randomInt(-5, 100);
-  const cr = await client.invokeFunction(hash, 'Claim', [
-    sc.ContractParam.integer(eid), sc.ContractParam.hash160(acc.address),
-  ], signers(acc));
-  // Should FAULT (envelope doesn't exist or already claimed)
+  // Counter read must never FAULT.
+  const last = await client.invokeFunction(hash, 'lastEnvelopeId', []);
+  if (last.state !== 'HALT') return { finding: 'lastEnvelopeId FAULT' };
+  const total = parseInt(last.stack[0]?.value || '0', 10);
 
-  // Read envelope data
+  // Random-id envelope reads must HALT (empty/default for unknown ids).
+  const eid = randomInt(-5, total + 10);
   const er = await client.invokeFunction(hash, 'getEnvelope', [sc.ContractParam.integer(eid)]);
   if (er.state !== 'HALT') return { finding: `getEnvelope(${eid}) FAULT` };
+
+  // Credit read for a fresh random account must HALT with 0.
+  const cr = await client.invokeFunction(hash, 'creditOf', [sc.ContractParam.hash160(acc.address)]);
+  if (cr.state !== 'HALT') return { finding: 'creditOf FAULT for fresh account' };
+
+  // Claiming with no credit/witness should FAULT, never HALT.
+  const claim = await client.invokeFunction(hash, 'claim', [
+    sc.ContractParam.integer(eid), sc.ContractParam.hash160(acc.address),
+  ], signers(acc));
+  if (claim.state === 'HALT') return { finding: `claim(${eid}) accepted for an account with no credit` };
+
+  // Direct onNEP17Payment must be rejected (caller is not the GAS contract).
+  const pr = await client.invokeFunction(hash, 'onNEP17Payment', [
+    sc.ContractParam.hash160(acc.address), sc.ContractParam.integer(1e8), sc.ContractParam.any(null),
+  ], signers(acc));
+  if (pr.state === 'HALT') return { finding: 'onNEP17Payment accepted direct call from random account' };
+
+  return {};
+}
+
+async function fuzzLastSurvivor(acc) {
+  const hash = hashOf('lastSurvivor');
+
+  const round = await client.invokeFunction(hash, 'getCurrentRound', []);
+  if (round.state !== 'HALT') return { finding: 'getCurrentRound FAULT' };
+
+  const cost = await client.invokeFunction(hash, 'currentKeyCost', [sc.ContractParam.integer(1)]);
+  if (cost.state !== 'HALT') return { finding: 'currentKeyCost(1) FAULT' };
+
+  // Buying with no deposited credit must FAULT; 0 keys must always FAULT.
+  const keyCount = randomInt(0, 100);
+  const buy = await client.invokeFunction(hash, 'buyKeys', [
+    sc.ContractParam.hash160(acc.address), sc.ContractParam.integer(keyCount),
+  ], signers(acc));
+  if (buy.state === 'HALT') {
+    return { finding: `buyKeys(${keyCount}) accepted for an account with no credit` };
+  }
+
+  // Player stats for a random account must HALT (default 0).
+  const rid = await client.invokeFunction(hash, 'currentRoundId', []);
+  const roundId = parseInt(rid.stack?.[0]?.value || '1', 10);
+  const ps = await client.invokeFunction(hash, 'playerKeys', [
+    sc.ContractParam.integer(roundId), sc.ContractParam.hash160(acc.address),
+  ]);
+  if (ps.state !== 'HALT') return { finding: 'playerKeys FAULT for random account' };
+
+  return {};
+}
+
+async function fuzzTimeCapsule(acc) {
+  const hash = hashOf('timeCapsule');
+
+  const last = await client.invokeFunction(hash, 'lastCapsuleId', []);
+  if (last.state !== 'HALT') return { finding: 'lastCapsuleId FAULT' };
+  const total = parseInt(last.stack[0]?.value || '0', 10);
+
+  const cid = randomInt(-5, total + 10);
+  const cap = await client.invokeFunction(hash, 'getCapsule', [sc.ContractParam.integer(cid)]);
+  if (cap.state !== 'HALT') return { finding: `getCapsule(${cid}) FAULT` };
+
+  // Revealing someone else's (or a non-existent) capsule must FAULT.
+  const rev = await client.invokeFunction(hash, 'reveal', [
+    sc.ContractParam.hash160(acc.address), sc.ContractParam.integer(cid),
+  ], signers(acc));
+  if (rev.state === 'HALT') return { finding: `reveal(${cid}) accepted for a non-owner` };
+
+  return {};
+}
+
+async function fuzzTarot(acc) {
+  const hash = hashOf('tarot');
+
+  const count = await client.invokeFunction(hash, 'readingsCount', []);
+  if (count.state !== 'HALT') return { finding: 'readingsCount FAULT' };
+  const fee = await client.invokeFunction(hash, 'drawFee', []);
+  if (fee.state !== 'HALT') return { finding: 'drawFee FAULT' };
+
+  const rid = randomInt(-5, parseInt(count.stack[0]?.value || '0', 10) + 10);
+  const reading = await client.invokeFunction(hash, 'getReading', [sc.ContractParam.integer(rid)]);
+  if (reading.state !== 'HALT') return { finding: `getReading(${rid}) FAULT` };
+
+  // Drawing without prepaid credit must FAULT.
+  const draw = await client.invokeFunction(hash, 'draw', [sc.ContractParam.hash160(acc.address)], signers(acc));
+  if (draw.state === 'HALT') return { finding: 'draw accepted for an account with no credit' };
+
+  return {};
+}
+
+async function fuzzBreakupPact(acc) {
+  const hash = hashOf('breakupPact');
+
+  const last = await client.invokeFunction(hash, 'lastPactId', []);
+  if (last.state !== 'HALT') return { finding: 'lastPactId FAULT' };
+  const total = parseInt(last.stack[0]?.value || '0', 10);
+
+  const pid = randomInt(-5, total + 10);
+  const pact = await client.invokeFunction(hash, 'getPact', [sc.ContractParam.integer(pid)]);
+  if (pact.state !== 'HALT') return { finding: `getPact(${pid}) FAULT` };
+
+  // A random account is not party2 of any pact and has no stake credit.
+  const sign = await client.invokeFunction(hash, 'signPact', [
+    sc.ContractParam.integer(pid), sc.ContractParam.hash160(acc.address),
+  ], signers(acc));
+  if (sign.state === 'HALT') return { finding: `signPact(${pid}) accepted for a non-party` };
+
+  const brk = await client.invokeFunction(hash, 'breakPact', [
+    sc.ContractParam.integer(pid), sc.ContractParam.hash160(acc.address),
+  ], signers(acc));
+  if (brk.state === 'HALT') return { finding: `breakPact(${pid}) accepted for a non-party` };
+
+  return {};
+}
+
+async function fuzzCoinFlip(acc) {
+  const hash = hashOf('coinFlip');
+
+  const bankroll = await client.invokeFunction(hash, 'bankroll', []);
+  if (bankroll.state !== 'HALT') return { finding: 'bankroll FAULT' };
+
+  const stats = await client.invokeFunction(hash, 'getStats', [sc.ContractParam.hash160(acc.address)]);
+  if (stats.state !== 'HALT') return { finding: 'getStats FAULT for random account' };
+
+  // Flipping without deposited bet credit must FAULT (any amount, any choice).
+  const amount = randomChoice([0, 1, 100000, 1e8, 1e16]);
+  const flip = await client.invokeFunction(hash, 'flip', [
+    sc.ContractParam.hash160(acc.address),
+    sc.ContractParam.integer(randomChoice([0, 1])),
+    sc.ContractParam.integer(amount),
+  ], signers(acc));
+  if (flip.state === 'HALT') return { finding: `flip(${amount}) accepted for an account with no credit` };
+
+  const game = await client.invokeFunction(hash, 'getGame', [sc.ContractParam.integer(randomInt(-5, 100))]);
+  if (game.state !== 'HALT') return { finding: 'getGame FAULT' };
 
   return {};
 }
 
 async function fuzzSelfLoan(acc) {
-  const hash = CONTRACTS.SelfLoan;
+  const hash = hashOf('selfLoan');
 
-  // Read platform stats
-  const stats = await client.invokeFunction(hash, 'getPlatformStats', []);
-  if (stats.state !== 'HALT') return { finding: 'getPlatformStats FAULT' };
+  const price = await client.invokeFunction(hash, 'neoPrice', []);
+  if (price.state !== 'HALT') return { finding: 'neoPrice FAULT' };
+  const pool = await client.invokeFunction(hash, 'pool', []);
+  if (pool.state !== 'HALT') return { finding: 'pool FAULT' };
 
-  // Read loan for random account
-  const lr = await client.invokeFunction(hash, 'getLoan', [sc.ContractParam.hash160(acc.address)]);
-  if (lr.state !== 'HALT') return { finding: 'getLoan FAULT for account without loan' };
+  // Loan read for an account without a loan must HALT (empty/default).
+  const loan = await client.invokeFunction(hash, 'getLoan', [sc.ContractParam.hash160(acc.address)]);
+  if (loan.state !== 'HALT') return { finding: 'getLoan FAULT for account without loan' };
 
-  // Try repaying when no loan exists
-  const rr = await client.invokeFunction(hash, 'onNEP17Payment', [
-    sc.ContractParam.hash160(acc.address), sc.ContractParam.hash160(hash),
-    sc.ContractParam.integer(1e8), sc.ContractParam.any(null),
+  // Borrowing with no collateral credit must FAULT — including invalid tiers.
+  const tier = randomChoice([0, 1, 2, 3, 99]);
+  const borrow = await client.invokeFunction(hash, 'borrow', [
+    sc.ContractParam.hash160(acc.address), sc.ContractParam.integer(tier),
   ], signers(acc));
-  // Should FAULT
-
-  return {};
-}
-
-async function fuzzNeoPay(acc) {
-  const hash = CONTRACTS.NeoPay;
-
-  // Read total streams
-  const ts = await client.invokeFunction(hash, 'totalStreams', []);
-  if (ts.state !== 'HALT') return { finding: 'totalStreams FAULT' };
-  const total = parseInt(ts.stack[0]?.value || '0');
-
-  // Try reading random stream details
-  const sid = randomInt(-5, total + 10);
-  const sr = await client.invokeFunction(hash, 'getStreamDetails', [sc.ContractParam.integer(sid)]);
-  // Should HALT with empty or valid data
-
-  // Try canceling a stream we don't own
-  const cr = await client.invokeFunction(hash, 'cancelStream', [sc.ContractParam.integer(randomInt(1, total))], signers(acc));
-  if (cr.state === 'HALT') return { finding: 'cancelStream allowed by non-owner' };
+  if (borrow.state === 'HALT') {
+    return { finding: `borrow(tier=${tier}) accepted for an account with no collateral` };
+  }
 
   return {};
 }
@@ -226,8 +260,8 @@ async function fuzzNeoPay(acc) {
 // ── Main Loop ──
 
 async function runOneCycle(accounts) {
-  const fuzzers = [fuzzLastSurvivor, fuzzDailyCheckin, fuzzGASBox, fuzzFogPlay, fuzzRedEnvelope, fuzzSelfLoan, fuzzNeoPay];
-  const names = ['LastSurvivor', 'DailyCheckin', 'GASBox', 'FogPlay', 'RedEnvelope', 'SelfLoan', 'NeoPay'];
+  const fuzzers = [fuzzRedEnvelope, fuzzLastSurvivor, fuzzTimeCapsule, fuzzTarot, fuzzBreakupPact, fuzzCoinFlip, fuzzSelfLoan];
+  const names = ['RedEnvelope', 'LastSurvivor', 'TimeCapsule', 'Tarot', 'BreakupPact', 'CoinFlip', 'SelfLoan'];
 
   for (let i = 0; i < fuzzers.length; i++) {
     const acc = randomChoice(accounts);
@@ -238,10 +272,10 @@ async function runOneCycle(accounts) {
 async function main() {
   const duration = parseInt(process.env.FUZZ_DURATION_MS || '120000');
   const accounts = generateTestAccounts(5);
-  
+
   console.log('Continuous Business-Logic Fuzzer');
-  console.log(`Duration: ${duration/1000}s, Accounts: ${accounts.length}`);
-  console.log(`Contracts: ${Object.keys(CONTRACTS).join(', ')}`);
+  console.log(`Duration: ${duration / 1000}s, Accounts: ${accounts.length}`);
+  console.log(`Contracts: ${Object.keys(TARGETS).map((k) => `${k}=${hashOf(k)}`).join(', ')}`);
   console.log('');
 
   let cycle = 0;
@@ -256,15 +290,17 @@ async function main() {
 
   console.log('');
   console.log('═══════════════════════════════════════');
-  console.log(`COMPLETE: ${totalRuns} runs in ${((Date.now()-startTime)/1000).toFixed(0)}s`);
+  console.log(`COMPLETE: ${totalRuns} runs in ${((Date.now() - startTime) / 1000).toFixed(0)}s`);
   console.log(`Pass: ${totalPass}, Fail: ${totalFail}, Findings: ${totalFindings}`);
   if (findings.length > 0) {
     console.log('');
     console.log('FINDINGS:');
     findings.forEach(f => console.log('  ' + f));
+    process.exitCode = 1;
   } else {
     console.log('ZERO FINDINGS — all business logic correct');
   }
 }
 
-main().catch(e => console.error('FATAL:', e.message));
+// enforceAbiOrExit already exited for dry-run mode — reaching here means live.
+main().catch(e => { console.error('FATAL:', e.message); process.exit(1); });

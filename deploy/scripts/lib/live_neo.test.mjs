@@ -66,6 +66,51 @@ test("stackValue decodes booleans, integers, arrays, maps, utf8, and hash160 byt
   );
 });
 
+test("stackValue honors caller-directed ByteString decode modes", () => {
+  // A 20-byte hash whose bytes are ALL printable ASCII — the "auto" heuristic
+  // mis-reads it as text, so callers that know the shape direct the decode.
+  const printableHash = Buffer.from("ABCDEFGHIJKLMNOPQRST", "ascii");
+  const item = { type: "ByteString", value: printableHash.toString("base64") };
+
+  assert.equal(stackValue(item), "ABCDEFGHIJKLMNOPQRST"); // default unchanged
+  assert.equal(
+    stackValue(item, { byteString: "hash160" }),
+    `0x${Buffer.from(printableHash).reverse().toString("hex")}`
+  );
+  assert.equal(stackValue(item, "hash160"), stackValue(item, { byteString: "hash160" }));
+  assert.equal(stackValue(item, "utf8"), "ABCDEFGHIJKLMNOPQRST");
+  assert.equal(stackValue(item, "hex"), `0x${printableHash.toString("hex")}`);
+  assert.equal(stackValue(item, "base64"), printableHash.toString("base64"));
+
+  // utf8 mode also overrides the 20-byte hash heuristic in the other direction.
+  const binaryHash = Buffer.from("00112233445566778899aabbccddeeff00112233", "hex");
+  const binaryItem = { type: "ByteString", value: binaryHash.toString("base64") };
+  assert.equal(stackValue(binaryItem, "utf8"), binaryHash.toString("utf8"));
+
+  // hash160 mode refuses values that are not 20 bytes.
+  const shortItem = { type: "ByteString", value: Buffer.from("abc").toString("base64") };
+  assert.throws(() => stackValue(shortItem, "hash160"), /expected a 20-byte hash160/);
+});
+
+test("caller-directed decode applies recursively through arrays and maps", () => {
+  const hashBytes = Buffer.from("ABCDEFGHIJKLMNOPQRST", "ascii");
+  const nested = {
+    type: "Map",
+    value: [
+      {
+        key: { type: "ByteString", value: Buffer.from("owner").toString("base64") },
+        value: {
+          type: "Array",
+          value: [{ type: "ByteString", value: hashBytes.toString("base64") }],
+        },
+      },
+    ],
+  };
+  assert.deepEqual(stackValue(nested, { byteString: "hash160" }), {
+    owner: [`0x${Buffer.from(hashBytes).reverse().toString("hex")}`],
+  });
+});
+
 test("executionReturnedTrue interprets bool and integer stack heads", () => {
   assert.equal(executionReturnedTrue({ stack: [{ type: "Boolean", value: true }] }), true);
   assert.equal(executionReturnedTrue({ stack: [{ type: "Boolean", value: false }] }), false);

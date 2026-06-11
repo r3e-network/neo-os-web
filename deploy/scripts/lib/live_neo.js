@@ -22,15 +22,35 @@ function stackBytes(item) {
   return Buffer.alloc(0);
 }
 
-function stackValue(item) {
-  if (!item || typeof item !== "object") return null;
-  switch (item.type) {
-    case "Integer":
-      return String(item.value || "0");
-    case "Boolean":
-      return Boolean(item.value);
-    case "ByteString": {
-      const bytes = stackBytes(item);
+/**
+ * Decode a ByteString stack item per a caller-directed mode:
+ *   "auto"    (default) printable-ASCII → utf8 text, else 20 bytes → reversed
+ *             0x hash, else utf8 text — the historical heuristic.
+ *   "utf8"    always utf8 text (even for 20-byte values).
+ *   "hash160" require exactly 20 bytes; return big-endian display "0x…".
+ *   "hex"     raw bytes as unreversed "0x…" hex.
+ *   "base64"  the node's base64 payload untouched.
+ */
+function decodeByteString(item, mode) {
+  const bytes = stackBytes(item);
+  switch (mode) {
+    case "utf8":
+      return bytes.toString("utf8");
+    case "hex":
+      return `0x${bytes.toString("hex")}`;
+    case "base64":
+      return String(item.value || "");
+    case "hash160": {
+      if (bytes.length !== 20) {
+        throw new Error(`stackValue: expected a 20-byte hash160 ByteString, got ${bytes.length} bytes`);
+      }
+      return `0x${Buffer.from(bytes).reverse().toString("hex")}`;
+    }
+    case "auto":
+    default: {
+      // Heuristic: printable ASCII reads as text, 20-byte values as a script
+      // hash. A 20-byte hash that is entirely printable ASCII mis-decodes as
+      // text here — callers that know the shape should pass an explicit mode.
       const text = bytes.toString("utf8");
       if (/^[\x20-\x7E]+$/.test(text)) {
         return text;
@@ -38,18 +58,37 @@ function stackValue(item) {
       if (bytes.length === 20) {
         return `0x${Buffer.from(bytes).reverse().toString("hex")}`;
       }
-      try {
-        return text;
-      } catch {
-        return item.value ?? null;
-      }
+      return text;
     }
+  }
+}
+
+/**
+ * Decode an invokefunction stack item to a plain JS value.
+ *
+ * @param {object} item     RPC stack item
+ * @param {string|{byteString?: string}} [options]  caller-directed ByteString
+ *        decode mode ("auto" | "utf8" | "hash160" | "hex" | "base64"), either
+ *        as a bare string or as { byteString }. Applies recursively to
+ *        Array/Struct/Map members. Defaults to the historical "auto" heuristic.
+ */
+function stackValue(item, options) {
+  if (!item || typeof item !== "object") return null;
+  const byteStringMode =
+    typeof options === "string" ? options : (options && options.byteString) || "auto";
+  switch (item.type) {
+    case "Integer":
+      return String(item.value || "0");
+    case "Boolean":
+      return Boolean(item.value);
+    case "ByteString":
+      return decodeByteString(item, byteStringMode);
     case "Array":
     case "Struct":
-      return Array.isArray(item.value) ? item.value.map(stackValue) : [];
+      return Array.isArray(item.value) ? item.value.map((entry) => stackValue(entry, options)) : [];
     case "Map":
       return Object.fromEntries(
-        (item.value || []).map((entry) => [stackMapKey(entry.key), stackValue(entry.value)])
+        (item.value || []).map((entry) => [stackMapKey(entry.key), stackValue(entry.value, options)])
       );
     default:
       return item.value ?? null;

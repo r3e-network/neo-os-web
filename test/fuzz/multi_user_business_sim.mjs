@@ -6,38 +6,63 @@
  *   1. Generates N fresh sub-accounts (configurable via SIM_USERS), or
  *      reuses the ones from previous runs stored in
  *      docs/reports/multi-user-sim/sim-users.json.
- *   2. Funds every sub-account with GAS (and NEO for SelfLoan scenarios)
- *      from the master WIF whenever their balance drops below the floor.
+ *   2. Funds every sub-account with GAS from the master WIF whenever their
+ *      balance drops below the floor.
  *   3. Assigns scenarios across the sub-accounts and runs them through
  *      the real on-chain business workflow (not just read-fuzz).
  *   4. Writes a structured JSON report per iteration to
  *      docs/reports/multi-user-sim/<timestamp>.json and appends a
  *      one-line summary to docs/reports/multi-user-sim/history.log.
  *
- * Covered flagship flows (no oracle dependency):
- *   - Daily Check-in: fee transfer → checkIn → verify streak
- *   - NeoPay:         createStream → beneficiary claim after interval
- *   - SelfLoan:       NEO collateral transfer → createLoan
- *   - LastSurvivor:   transfer 1 GAS → round state read-back
+ * Covered flows — the SELF-CONTAINED miniapp contracts (no oracle dependency):
+ *   - RedEnvelope:  deposit → createEnvelope → claim (full cycle, no strand)
+ *   - LastSurvivor: settle expired round if needed → deposit → buyKeys
+ *   - CoinFlip:     deposit bet credit → flip (skips when bankroll is low)
+ *   - Tarot:        deposit draw fee → draw → 3 distinct cards
+ *   - BreakupPact:  A+B stake → sign → break (partner wins both stakes)
  *
- * FogPlay is included as a contract-to-oracle integration check. The sim
- * pre-funds the oracle request fee and verifies OracleRequested, while full
- * callback settlement remains covered by deploy/scripts/live_validate_flagship_user_flows.js.
+ * Grounding (MP-W3-06): contract hashes resolve from apps/<slug>/
+ * neo-manifest.json; every method used is validated against
+ * contracts/build/<C>.manifest.json before any live call ("ABI drift" fails
+ * fast). FUZZ_DRY_RUN=1 / --dry-run prints the plan and exits offline.
  *
  * Env:
- *   NEO_TESTNET_WIF  — master funder WIF (default: built-in testnet key)
- *   SIM_USERS        — sub-account count per iteration (default: 3)
- *   SIM_ITERATIONS   — cap on iterations (0 = loop forever, default: 0)
+ *   NEO_TESTNET_WIF   — master funder WIF (required for live runs;
+ *                       LIVE_SMOKE_ALLOW_SKIP=1 turns absence into a skip)
+ *   SIM_USERS         — sub-account count per iteration (default: 3)
+ *   SIM_ITERATIONS    — cap on iterations (0 = loop forever, default: 0)
  *   SIM_LOOP_DELAY_MS — sleep between iterations (default: 30000)
- *   SIM_GAS_PER_USER  — GAS units (satoshi) to send each sub-account (default: 2e9 = 20 GAS)
- *   SIM_NEO_PER_USER  — NEO whole units (default: 3)
+ *   SIM_GAS_PER_USER  — GAS units (datoshi) to send each sub-account (default: 2e9 = 20 GAS)
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { resolveFuzzTargets, enforceAbiOrExit } from "./lib/abi.mjs";
+
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..", "..");
+
+// ── Targets: hashes from app manifests, ABI-gated method lists ─────────────
+const TARGETS = resolveFuzzTargets({
+  redEnvelope: { appSlug: "red-envelope", contractName: "MiniAppRedEnvelope" },
+  lastSurvivor: { appSlug: "last-survivor", contractName: "MiniAppLastSurvivor" },
+  coinFlip: { appSlug: "fogplay", contractName: "MiniAppCoinFlip" },
+  tarot: { appSlug: "on-chain-tarot", contractName: "MiniAppTarot" },
+  breakupPact: { appSlug: "breakup-contract", contractName: "MiniAppBreakupPact" },
+});
+const hashOf = (key) => TARGETS[key].hash;
+
+const PLANNED_CALLS = [
+  ["redEnvelope", ["createEnvelope", "lastEnvelopeId", "claim", "claimedAmount"]],
+  ["lastSurvivor", ["getCurrentRound", "currentKeyCost", "settle", "buyKeys", "playerKeys", "currentRoundId"]],
+  ["coinFlip", ["bankroll", "flip"]],
+  ["tarot", ["drawFee", "draw"]],
+  ["breakupPact", ["createPact", "signPact", "breakPact"]],
+].flatMap(([contract, methods]) => methods.map((method) => ({ contract, method })));
+// Fail fast on ABI drift; FUZZ_DRY_RUN=1 prints the plan and exits offline
+// BEFORE the funder WIF is required or any RPC client is constructed.
+enforceAbiOrExit("multi-user-sim", TARGETS, PLANNED_CALLS);
 
 // Load the same neon-compat shim the live validator uses, so we inherit
 // its SmartContract.invoke flow (preview + estimate fees + sign + send).
@@ -49,12 +74,14 @@ const Neon = (
 const { createWaitForLog, asTxid, findNotification } = await import(
   path.join(repoRoot, "deploy", "scripts", "lib", "live_neo.js")
 );
+const { requireCredential } = await import(
+  path.join(repoRoot, "deploy", "scripts", "lib", "live_credentials.js")
+);
 
 // Multi-endpoint RPC pool with auto-failover. The 2026-04-18 run hit a
-// 7.5-hour testnet RPC outage at iter 2135–2507 that turned ~1,464 of
-// 4 scenarios × 366 iters into "fail" entries, none of which were
-// contract-logic failures. With this pool the sim rotates to the next
-// healthy endpoint on `fetch failed` / `aborted` mid-iteration.
+// 7.5-hour testnet RPC outage that turned ~1,464 scenario entries into
+// "fail", none of which were contract-logic failures. With this pool the sim
+// rotates to the next healthy endpoint on `fetch failed` / `aborted`.
 const RPC_ENDPOINTS = (
   process.env.NEO_RPC_ENDPOINTS ||
   process.env.NEO_RPC_URL ||
@@ -73,35 +100,12 @@ const NETWORK_MAGIC = Number(
   process.env.NEO_NETWORK_MAGIC || Neon.CONST.MAGIC_NUMBER.TestNet,
 );
 
-const FUNDER_WIF = process.env.NEO_TESTNET_WIF || process.env.TEST_FUZZ_WIF;
-if (!FUNDER_WIF) {
-  console.error(
-    "[sim] NEO_TESTNET_WIF/TEST_FUZZ_WIF is required for multi-user testnet simulation; refusing to use embedded private keys.",
-  );
-  process.exit(0);
-}
+const FUNDER_WIF = requireCredential(
+  "NEO_TESTNET_WIF (or TEST_FUZZ_WIF)",
+  process.env.NEO_TESTNET_WIF || process.env.TEST_FUZZ_WIF,
+);
 
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-
-const CONTRACTS = {
-  lastSurvivor: "0xd55df731978582ea81719a5d87ce49b248e91275",
-  dailyCheckin: "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
-  selfLoan: "0xd097c63ea89251d23632826ebed99a7e7ce536f7",
-  neoPay: "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
-  fogplay: "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07",
-};
-
-// Morpheus VRF oracle on testnet — used by FogPlay/RedEnvelope/GASBox
-// for randomness. The sim only verifies that the contract→oracle request
-// fires (OracleRequested notification); it doesn't block on the TEE-side
-// callback to keep iteration cadence under a minute.
-const ORACLE_HASH = (
-  process.env.MORPHEUS_ORACLE_HASH ||
-  "0x4b882e94ed766807c4fd728768f972e13008ad52"
-).trim();
-
-const FOGPLAY_BET = "5000000"; // 0.05 GAS
 
 const SIM_USERS = parseInt(process.env.SIM_USERS || "3", 10);
 const SIM_ITERATIONS = process.env.SIM_ITERATIONS
@@ -109,7 +113,6 @@ const SIM_ITERATIONS = process.env.SIM_ITERATIONS
   : 0;
 const SIM_LOOP_DELAY = parseInt(process.env.SIM_LOOP_DELAY_MS || "30000", 10);
 const SIM_GAS_PER_USR = BigInt(process.env.SIM_GAS_PER_USER || "2000000000"); // 20 GAS
-const SIM_NEO_PER_USR = BigInt(process.env.SIM_NEO_PER_USER || "3");
 
 const REPORT_DIR = path.join(repoRoot, "docs", "reports", "multi-user-sim");
 fs.mkdirSync(REPORT_DIR, { recursive: true });
@@ -252,6 +255,26 @@ function readMap(stackItem) {
   return out;
 }
 
+/** Read an event's state array from an execution's notifications. */
+function eventState(execution, contractHash, name) {
+  const found = findNotification(execution, contractHash, name);
+  return found ? found.state?.value ?? [] : null;
+}
+
+const H = (v) => Neon.sc.ContractParam.hash160(v);
+const I = (v) => Neon.sc.ContractParam.integer(v.toString());
+const S = (v) => Neon.sc.ContractParam.string(v);
+
+/** Deposit GAS to a miniapp contract with the memo its onNEP17Payment expects. */
+async function depositWithMemo(user, contractHash, amount, memo) {
+  const txid = await transferAsset(user, GAS_HASH, contractHash, amount, S(memo));
+  const execution = await waitForTx(txid);
+  if (execution.vmstate !== "HALT") {
+    throw new Error(`deposit (${memo}) FAULT: ${execution.exception}`);
+  }
+  return txid;
+}
+
 /* ─── Account management ──────────────────────────────────────────── */
 
 function loadSubAccounts() {
@@ -296,14 +319,11 @@ function ensureSubAccounts() {
 }
 
 async function fundIfLow(account) {
-  const [gas, neo] = await Promise.all([
-    getBalance(GAS_HASH, account.scriptHash),
-    getBalance(NEO_HASH, account.scriptHash),
-  ]);
+  const gas = await getBalance(GAS_HASH, account.scriptHash);
   const actions = [];
   if (gas < SIM_GAS_PER_USR / 2n) {
     log(
-      `  fund GAS → ${account.address} (${SIM_GAS_PER_USR} sat; current ${gas})`,
+      `  fund GAS → ${account.address} (${SIM_GAS_PER_USR} datoshi; current ${gas})`,
     );
     const txid = await transferAsset(
       funder,
@@ -314,344 +334,218 @@ async function fundIfLow(account) {
     await waitForTx(txid);
     actions.push({ asset: "GAS", txid, amount: SIM_GAS_PER_USR.toString() });
   }
-  if (neo < SIM_NEO_PER_USR) {
-    log(`  fund NEO → ${account.address} (${SIM_NEO_PER_USR}; current ${neo})`);
-    const txid = await transferAsset(
-      funder,
-      NEO_HASH,
-      account.scriptHash,
-      SIM_NEO_PER_USR,
-    );
-    await waitForTx(txid);
-    actions.push({ asset: "NEO", txid, amount: SIM_NEO_PER_USR.toString() });
-  }
   return actions;
 }
 
-/* ─── Per-flagship workflows ──────────────────────────────────────── */
+/* ─── Per-miniapp workflows ───────────────────────────────────────── */
 
-async function runDailyCheckin(user) {
-  const hash = CONTRACTS.dailyCheckin;
+async function runRedEnvelope(user) {
+  const hash = hashOf("redEnvelope");
+  const TOTAL = 10000000n; // 0.1 GAS, 1 packet → claimed back in full
 
-  // Read current check-in status — skip if user already checked in today.
-  const statusRes = await invokeRead(hash, "getCheckinStatus", [
+  await depositWithMemo(user, hash, TOTAL, "miniapp-redenvelope:create");
+
+  const createTx = await invokeMethod(user, hash, "createEnvelope", [
+    H(user.scriptHash), I(TOTAL), I(1), I(3600),
+  ]);
+  const createExec = await waitForTx(createTx);
+  if (createExec.vmstate !== "HALT") {
+    return { ok: false, step: "createEnvelope", exception: createExec.exception };
+  }
+
+  const envId = await readInteger(hash, "lastEnvelopeId");
+
+  const claimTx = await invokeMethod(user, hash, "claim", [I(envId), H(user.scriptHash)]);
+  const claimExec = await waitForTx(claimTx);
+  if (claimExec.vmstate !== "HALT") {
+    return { ok: false, step: "claim", envId: envId.toString(), exception: claimExec.exception };
+  }
+
+  const share = await readInteger(hash, "claimedAmount", [
+    { type: "Integer", value: envId.toString() },
     { type: "Hash160", value: `0x${user.scriptHash}` },
   ]);
-  if (String(statusRes?.state || "").toUpperCase() !== "HALT") {
+  if (share !== TOTAL) {
     return {
       ok: false,
-      step: "getCheckinStatus",
-      reason: statusRes?.exception,
-    };
-  }
-  const statusMap = readMap(statusRes.stack?.[0]);
-  const canCheckin =
-    statusMap.canCheckin === true || statusMap.canCheckin === "true";
-  const lastDay = String(statusMap.lastCheckinDay ?? "0");
-  const currentDay = String(statusMap.currentUtcDay ?? "0");
-  if (!canCheckin && lastDay === currentDay) {
-    return { ok: true, step: "already_checked_in", note: `lastDay=${lastDay}` };
-  }
-
-  // Contract expects fee via GAS.transfer with memo "miniapp-dailycheckin:checkin"
-  // The transfer triggers onNEP17Payment which performs the check-in atomically.
-  const fee = "100000";
-  const txid = await transferAsset(
-    user,
-    GAS_HASH,
-    hash,
-    BigInt(fee),
-    Neon.sc.ContractParam.string("miniapp-dailycheckin:checkin"),
-  );
-  const execution = await waitForTx(txid);
-  if (execution.vmstate !== "HALT") {
-    return {
-      ok: false,
-      step: "fee_transfer",
-      txid,
-      exception: execution.exception,
+      step: "claimed_amount_mismatch",
+      envId: envId.toString(),
+      share: share.toString(),
+      expected: TOTAL.toString(),
     };
   }
 
-  const streakRes = await invokeRead(hash, "getUserStreak", [
-    { type: "Hash160", value: `0x${user.scriptHash}` },
-  ]);
-  const streak = streakRes?.stack?.[0]?.value || "0";
-
-  return { ok: true, step: "checked_in", txid, fee, streak };
+  return { ok: true, step: "envelope_cycle_complete", envId: envId.toString(), createTx, claimTx };
 }
 
-async function runNeoPayFlow(creator, beneficiary) {
-  const hash = CONTRACTS.neoPay;
-  // Contract enforces interval >= 86400s (1 day) — match the live flow shape.
-  const totalAmount = "100000000"; // 1 GAS
-  const rateAmount = "100000000"; // single full release per interval
-  const intervalSec = "86400";
+async function runLastSurvivor(player) {
+  const hash = hashOf("lastSurvivor");
 
-  // Fund the contract first (covers escrowed amount). Memo must be null for
-  // NeoPay — anything else is treated as an unknown transfer and rejected.
-  const fundTxid = await transferAsset(
-    creator,
-    GAS_HASH,
-    hash,
-    BigInt(totalAmount),
-  );
-  await waitForTx(fundTxid);
-
-  const createTxid = await invokeMethod(creator, hash, "createStream", [
-    Neon.sc.ContractParam.hash160(`0x${creator.scriptHash}`),
-    Neon.sc.ContractParam.hash160(`0x${beneficiary.scriptHash}`),
-    Neon.sc.ContractParam.hash160(GAS_HASH),
-    Neon.sc.ContractParam.integer(totalAmount),
-    Neon.sc.ContractParam.integer(rateAmount),
-    Neon.sc.ContractParam.integer(intervalSec),
-    Neon.sc.ContractParam.string("Sim Payroll"),
-    Neon.sc.ContractParam.string("auto-sim"),
-  ]);
-  const createExec = await waitForTx(createTxid);
-  if (createExec.vmstate !== "HALT") {
-    return { ok: false, step: "createStream", exception: createExec.exception };
+  // If the previous round has expired, settle it first (permissionless) so
+  // the buy lands in a fresh round instead of faulting on "round over".
+  let round = readMap((await invokeRead(hash, "getCurrentRound")).stack?.[0]);
+  const remaining = BigInt(String(round.remainingTime ?? "0"));
+  const totalKeys = BigInt(String(round.totalKeys ?? "0"));
+  let settleTx = null;
+  if (remaining === 0n && totalKeys > 0n) {
+    settleTx = await invokeMethod(player, hash, "settle", []);
+    const settleExec = await waitForTx(settleTx);
+    if (settleExec.vmstate !== "HALT") {
+      return { ok: false, step: "settle", exception: settleExec.exception };
+    }
   }
 
-  const totalStack = await invokeRead(hash, "totalStreams");
-  const streamId = String(totalStack.stack?.[0]?.value || "0");
-
-  // Cancel as creator — exercises the full create→cancel cycle without
-  // waiting a full day for a claim window.
-  const cancelTxid = await invokeMethod(creator, hash, "cancelStream", [
-    Neon.sc.ContractParam.hash160(`0x${creator.scriptHash}`),
-    Neon.sc.ContractParam.integer(streamId),
+  const cost = await readInteger(hash, "currentKeyCost", [
+    { type: "Integer", value: "1" },
   ]);
-  const cancelExec = await waitForTx(cancelTxid);
+  await depositWithMemo(player, hash, cost, "miniapp-lastsurvivor:buy");
 
-  return {
-    ok: cancelExec.vmstate === "HALT",
-    step: "stream_cancelled",
-    streamId,
-    fundTxid,
-    createTxid,
-    cancelTxid,
-    exception: cancelExec.vmstate === "HALT" ? undefined : cancelExec.exception,
-  };
-}
-
-async function runSelfLoanFlow(borrower) {
-  const hash = CONTRACTS.selfLoan;
-  const collateral = "1";
-  const poolTopup = "30000000"; // 0.3 GAS — keeps pool warm so borrow can settle
-  const tier = 1;
-
-  // 1. GAS pool top-up so the contract has GAS to lend out.
-  const poolTxid = await transferAsset(
-    borrower,
-    GAS_HASH,
-    hash,
-    BigInt(poolTopup),
-    Neon.sc.ContractParam.string("miniapp-self-loan:pool"),
-  );
-  await waitForTx(poolTxid);
-
-  // 2. NEO collateral transfer with the matching memo.
-  const collateralTxid = await transferAsset(
-    borrower,
-    NEO_HASH,
-    hash,
-    BigInt(collateral),
-    Neon.sc.ContractParam.string("miniapp-self-loan:collateral"),
-  );
-  await waitForTx(collateralTxid);
-
-  // 3. createLoan
-  const createTxid = await invokeMethod(borrower, hash, "createLoan", [
-    Neon.sc.ContractParam.hash160(`0x${borrower.scriptHash}`),
-    Neon.sc.ContractParam.integer(collateral),
-    Neon.sc.ContractParam.integer(tier),
-  ]);
-  const createExec = await waitForTx(createTxid);
-  if (createExec.vmstate !== "HALT") {
-    return { ok: false, step: "createLoan", exception: createExec.exception };
-  }
-
-  const loanIdStack = await invokeRead(hash, "totalLoans");
-  const loanId = String(loanIdStack.stack?.[0]?.value || "0");
-
-  return {
-    ok: true,
-    step: "loan_created",
-    poolTxid,
-    collateralTxid,
-    createTxid,
-    loanId,
-  };
-}
-
-async function runLastSurvivorFlow(player) {
-  const hash = CONTRACTS.lastSurvivor;
-
-  // Read game status — if no active round, the buy will fault. Skip with
-  // a clear "round_inactive" outcome rather than logging it as a failure.
-  const statusRes = await invokeRead(hash, "getGameStatus");
-  const statusMap = readMap(statusRes.stack?.[0]);
-  const active = statusMap.active === true || statusMap.active === "true";
-  if (!active) {
-    return {
-      ok: true,
-      step: "round_inactive",
-      note: "no active round to buy into",
-    };
-  }
-
-  // Compute current key cost: basePrice + totalKeys * (basePrice * 10 / 10000)
-  const totalKeys = BigInt(String(statusMap.totalKeys || "0"));
-  const basePrice = 10000000n;
-  const commonDiff = (basePrice * 10n) / 10000n;
-  const cost = basePrice + totalKeys * commonDiff;
-
-  // Round id from the contract for memo namespacing.
-  const roundIdRes = await invokeRead(hash, "currentRoundId");
-  const roundId = String(roundIdRes.stack?.[0]?.value || "0");
-
-  const paymentTx = await transferAsset(
-    player,
-    GAS_HASH,
-    hash,
-    cost,
-    Neon.sc.ContractParam.string(`miniapp-last-survivor:buy:${roundId}`),
-  );
-  await waitForTx(paymentTx);
-
-  const buyTx = await invokeMethod(player, hash, "buyKeysWithCost", [
-    Neon.sc.ContractParam.hash160(`0x${player.scriptHash}`),
-    Neon.sc.ContractParam.integer("1"),
-    Neon.sc.ContractParam.integer(cost.toString()),
-  ]);
+  const buyTx = await invokeMethod(player, hash, "buyKeys", [H(player.scriptHash), I(1)]);
   const buyExec = await waitForTx(buyTx);
   if (buyExec.vmstate !== "HALT") {
-    return { ok: false, step: "buyKeysWithCost", exception: buyExec.exception };
+    return { ok: false, step: "buyKeys", exception: buyExec.exception };
+  }
+
+  const roundId = await readInteger(hash, "currentRoundId");
+  const keys = await readInteger(hash, "playerKeys", [
+    { type: "Integer", value: roundId.toString() },
+    { type: "Hash160", value: `0x${player.scriptHash}` },
+  ]);
+  if (keys < 1n) {
+    return { ok: false, step: "player_keys_not_recorded", roundId: roundId.toString() };
   }
 
   return {
     ok: true,
     step: "key_bought",
-    roundId,
+    roundId: roundId.toString(),
     cost: cost.toString(),
-    paymentTx,
+    keys: keys.toString(),
+    settleTx,
     buyTx,
   };
 }
 
-async function runFogPlayFlow(player) {
-  const hash = CONTRACTS.fogplay;
-  const requestFee = await readInteger(ORACLE_HASH, "requestFee");
-  const feeCredit = await readInteger(ORACLE_HASH, "feeCreditOf", [
-    Neon.sc.ContractParam.hash160(hash),
-  ]);
-  let oracleFeeTx = null;
-  if (requestFee > 0n && feeCredit < requestFee) {
-    const callbackBytes = Buffer.from(
-      hash.replace(/^0x/i, ""),
-      "hex",
-    ).reverse();
-    oracleFeeTx = await transferAsset(
-      player,
-      GAS_HASH,
-      ORACLE_HASH,
-      requestFee,
-      Neon.sc.ContractParam.byteArray(callbackBytes.toString("base64")),
-    );
-    const oracleFeeExec = await waitForTx(oracleFeeTx);
-    if (oracleFeeExec.vmstate !== "HALT") {
-      return {
-        ok: false,
-        step: "oracle_fee_topup",
-        txid: oracleFeeTx,
-        exception: oracleFeeExec.exception,
-      };
-    }
+async function runCoinFlip(player) {
+  const hash = hashOf("coinFlip");
+  const BET = 5000000n; // 0.05 GAS
+
+  // A win pays 2x out of the house bankroll — when the bankroll cannot cover
+  // it the contract rightly rejects the flip, so skip instead of failing.
+  const bankroll = await readInteger(hash, "bankroll");
+  if (bankroll < BET * 2n) {
+    return { ok: true, step: "bankroll_low_skip", bankroll: bankroll.toString() };
   }
 
-  // Bet payment first — memo gates the onNEP17Payment branch.
-  const transferTx = await transferAsset(
-    player,
-    GAS_HASH,
-    hash,
-    BigInt(FOGPLAY_BET),
-    Neon.sc.ContractParam.string("miniapp-fogplay:bet"),
-  );
-  const transferExec = await waitForTx(transferTx);
-  if (transferExec.vmstate !== "HALT") {
+  await depositWithMemo(player, hash, BET, "miniapp-fogplay:bet");
+
+  const choice = Math.random() < 0.5 ? 0 : 1;
+  const flipTx = await invokeMethod(player, hash, "flip", [
+    H(player.scriptHash), I(choice), I(BET),
+  ]);
+  const flipExec = await waitForTx(flipTx);
+  if (flipExec.vmstate !== "HALT") {
+    return { ok: false, step: "flip", exception: flipExec.exception };
+  }
+
+  // Flipped(gameId, player, choice, outcome, won, payout)
+  const flipped = eventState(flipExec, hash, "Flipped");
+  if (!flipped) {
+    return { ok: false, step: "missing_flipped_event", txid: flipTx };
+  }
+  const won = flipped[4]?.value === true || flipped[4]?.value === 1 || flipped[4]?.value === "1";
+  const payout = String(flipped[5]?.value ?? "0");
+
+  return { ok: true, step: won ? "flip_won" : "flip_lost", choice, payout, flipTx };
+}
+
+async function runTarot(player) {
+  const hash = hashOf("tarot");
+
+  const fee = await readInteger(hash, "drawFee");
+  await depositWithMemo(player, hash, fee, "miniapp-tarot:draw");
+
+  const drawTx = await invokeMethod(player, hash, "draw", [H(player.scriptHash)]);
+  const drawExec = await waitForTx(drawTx);
+  if (drawExec.vmstate !== "HALT") {
+    return { ok: false, step: "draw", exception: drawExec.exception };
+  }
+
+  // ReadingDrawn(id, player, card1, card2, card3)
+  const drawn = eventState(drawExec, hash, "ReadingDrawn");
+  if (!drawn) {
+    return { ok: false, step: "missing_reading_event", txid: drawTx };
+  }
+  const cards = [drawn[2], drawn[3], drawn[4]].map((c) => BigInt(String(c?.value ?? "-1")));
+  const distinct =
+    cards.every((c) => c >= 0n && c < 78n) && new Set(cards.map(String)).size === 3;
+  if (!distinct) {
+    return { ok: false, step: "cards_invalid", cards: cards.map(String) };
+  }
+
+  return { ok: true, step: "reading_drawn", cards: cards.map(String), fee: fee.toString(), drawTx };
+}
+
+async function runBreakupPact(partyA, partyB) {
+  const hash = hashOf("breakupPact");
+  const STAKE = 5000000n; // 0.05 GAS each
+
+  // A stakes and creates the pact.
+  await depositWithMemo(partyA, hash, STAKE, "miniapp-breakup:stake");
+  const createTx = await invokeMethod(partyA, hash, "createPact", [
+    H(partyA.scriptHash), H(partyB.scriptHash), I(STAKE), I(3600),
+  ]);
+  const createExec = await waitForTx(createTx);
+  if (createExec.vmstate !== "HALT") {
+    return { ok: false, step: "createPact", exception: createExec.exception };
+  }
+  const created = eventState(createExec, hash, "PactCreated");
+  if (!created) {
+    return { ok: false, step: "missing_pact_created_event", txid: createTx };
+  }
+  const pactId = BigInt(String(created[0]?.value ?? "0"));
+
+  // B stakes and signs — the pact goes active.
+  await depositWithMemo(partyB, hash, STAKE, "miniapp-breakup:stake");
+  const signTx = await invokeMethod(partyB, hash, "signPact", [I(pactId), H(partyB.scriptHash)]);
+  const signExec = await waitForTx(signTx);
+  if (signExec.vmstate !== "HALT") {
+    return { ok: false, step: "signPact", pactId: pactId.toString(), exception: signExec.exception };
+  }
+
+  // A breaks — B (the non-breaker) must receive BOTH stakes atomically.
+  const breakTx = await invokeMethod(partyA, hash, "breakPact", [I(pactId), H(partyA.scriptHash)]);
+  const breakExec = await waitForTx(breakTx);
+  if (breakExec.vmstate !== "HALT") {
+    return { ok: false, step: "breakPact", pactId: pactId.toString(), exception: breakExec.exception };
+  }
+  // PactBroken(id, breaker, paidTo, amount)
+  const broken = eventState(breakExec, hash, "PactBroken");
+  const paid = BigInt(String(broken?.[3]?.value ?? "0"));
+  if (paid !== STAKE * 2n) {
     return {
       ok: false,
-      step: "fee_transfer",
-      txid: transferTx,
-      exception: transferExec.exception,
+      step: "breaker_forfeit_mismatch",
+      pactId: pactId.toString(),
+      paid: paid.toString(),
+      expected: (STAKE * 2n).toString(),
     };
   }
 
-  const betTx = await invokeMethod(player, hash, "placeBet", [
-    Neon.sc.ContractParam.hash160(`0x${player.scriptHash}`),
-    Neon.sc.ContractParam.integer(FOGPLAY_BET),
-    Neon.sc.ContractParam.boolean(false),
-  ]);
-  const betExec = await waitForTx(betTx);
-  if (betExec.vmstate !== "HALT") {
-    // request_in_progress means a previous bet hasn't been resolved yet —
-    // benign in continuous-loop mode; surface as a soft skip so it doesn't
-    // pollute the pass-rate.
-    const exception = String(betExec.exception || "");
-    if (exception.includes("request_in_progress")) {
-      return {
-        ok: true,
-        step: "oracle_request_in_progress",
-        txid: betTx,
-        transferTx,
-      };
-    }
-    return { ok: false, step: "placeBet", txid: betTx, exception };
-  }
-
-  const betPlaced = findNotification(betExec, hash, "BetPlaced");
-  const oracleRequested = findNotification(
-    betExec,
-    ORACLE_HASH,
-    "OracleRequested",
-  );
-  if (!betPlaced || !oracleRequested) {
-    return {
-      ok: false,
-      step: "missing_notifications",
-      txid: betTx,
-      hasBetPlaced: !!betPlaced,
-      hasOracleRequested: !!oracleRequested,
-    };
-  }
-
-  // Don't block on the TEE-side oracle callback to keep iter cadence < 1m.
-  // The OracleRequested notification proves the contract→oracle integration
-  // path is healthy; the actual payout settlement is observed separately
-  // by deploy/scripts/live_validate_flagship_user_flows.js.
-  return {
-    ok: true,
-    step: "bet_placed",
-    oracleFeeTx,
-    requestFee: requestFee.toString(),
-    transferTx,
-    betTx,
-    requestId: String(oracleRequested.state?.value?.[0]?.value || ""),
-  };
+  return { ok: true, step: "pact_cycle_complete", pactId: pactId.toString(), createTx, signTx, breakTx };
 }
 
 /* ─── Scenario runner ─────────────────────────────────────────────── */
 
 const SCENARIOS = [
-  { name: "dailyCheckin", run: (users) => runDailyCheckin(users[0]) },
+  { name: "redEnvelope", run: (users) => runRedEnvelope(users[0]) },
+  { name: "lastSurvivor", run: (users) => runLastSurvivor(users[0]) },
+  { name: "coinFlip", run: (users) => runCoinFlip(users[0]) },
+  { name: "tarot", run: (users) => runTarot(users[0]) },
   {
-    name: "neoPay",
-    run: (users) => runNeoPayFlow(users[0], users[1] || users[0]),
+    name: "breakupPact",
+    run: (users) => runBreakupPact(users[0], users[1] || users[0]),
   },
-  { name: "lastSurvivor", run: (users) => runLastSurvivorFlow(users[0]) },
-  { name: "selfLoan", run: (users) => runSelfLoanFlow(users[0]) },
-  { name: "fogplay", run: (users) => runFogPlayFlow(users[0]) },
 ];
 
 function rotate(users, offset) {
@@ -711,6 +605,9 @@ async function main() {
   log("multi-user business sim starting");
   log(`  funder=${funder.address}`);
   log(`  rpc-pool=[${RPC_ENDPOINTS.join(", ")}]  initial=${currentRpcUrl()}`);
+  log(
+    `  contracts: ${Object.keys(TARGETS).map((k) => `${k}=${hashOf(k)}`).join(", ")}`,
+  );
   log(
     `  users=${SIM_USERS} iterations=${SIM_ITERATIONS || "continuous"} delay=${SIM_LOOP_DELAY}ms`,
   );

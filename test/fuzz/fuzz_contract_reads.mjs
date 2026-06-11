@@ -2,78 +2,83 @@
 /**
  * Fuzz Campaign: Contract Read Methods
  *
- * Fuzzes all flagship contract read methods with random inputs.
- * Read-only calls cannot change state, so this is safe to run continuously.
- * Checks: no VM FAULTs on valid-shaped inputs, graceful handling of invalid inputs.
+ * Fuzzes the self-contained miniapp contracts' read methods with random
+ * inputs. Read-only calls cannot change state, so this is safe to run
+ * continuously. Checks: no VM FAULTs on valid-shaped inputs, graceful
+ * handling of invalid inputs.
+ *
+ * Grounding (MP-W3-06): contract hashes resolve from apps/<slug>/
+ * neo-manifest.json; every method below is validated against
+ * contracts/build/<C>.manifest.json before any live call ("ABI drift" fails
+ * fast). FUZZ_DRY_RUN=1 / --dry-run prints the plan and exits offline.
+ *
+ * NOTE: daily-checkin, flashloan and neo-pay have no committed compiled ABI
+ * under contracts/build/, so they cannot be ABI-gated here; their behavior is
+ * covered by the live validator harnesses instead.
  */
 import { FuzzRunner } from "./lib/runner.mjs";
-import { invokeRead, intParam, hashParam, strParam } from "./lib/neo-rpc.mjs";
-import { randomUInt160, randomBigInt, randomChoice, randomString, BOUNDARY_INTS } from "./lib/rng.mjs";
+import { invokeRead, intParam, hashParam } from "./lib/neo-rpc.mjs";
+import { randomUInt160, randomBigInt, randomChoice, BOUNDARY_INTS } from "./lib/rng.mjs";
+import { resolveFuzzTargets, enforceAbiOrExit } from "./lib/abi.mjs";
 
-import fs from "node:fs";
-import path from "node:path";
+const TARGETS = resolveFuzzTargets({
+  redEnvelope: { appSlug: "red-envelope", contractName: "MiniAppRedEnvelope" },
+  lastSurvivor: { appSlug: "last-survivor", contractName: "MiniAppLastSurvivor" },
+  timeCapsule: { appSlug: "time-capsule", contractName: "MiniAppTimeCapsule" },
+  tarot: { appSlug: "on-chain-tarot", contractName: "MiniAppTarot" },
+  breakupPact: { appSlug: "breakup-contract", contractName: "MiniAppBreakupPact" },
+  coinFlip: { appSlug: "fogplay", contractName: "MiniAppCoinFlip" },
+  selfLoan: { appSlug: "self-loan", contractName: "MiniAppSelfLoan" },
+  gasBox: { appSlug: "gasbox", contractName: "MiniAppGasBox" },
+  govMerc: { appSlug: "gov-merc", contractName: "MiniAppGovMerc" },
+});
+const hashOf = (key) => TARGETS[key].hash;
 
-const { getManifestContractHash, getNetworkConfig } = await import("../../deploy/scripts/lib/neo_network.js");
-const NETWORK = getNetworkConfig("testnet");
-const ROOT = path.resolve(new URL(".", import.meta.url).pathname, "../..");
-
-function appHash(manifestRel) {
-  const fullPath = path.join(ROOT, manifestRel);
-  if (!fs.existsSync(fullPath)) return "";
-  const manifest = JSON.parse(fs.readFileSync(fullPath, "utf8"));
-  return getManifestContractHash(manifest, "testnet");
-}
-
-const CONTRACTS = {
-  dailyCheckin: appHash("apps/daily-checkin/neo-manifest.json"),
-  lastSurvivor: appHash("apps/last-survivor/neo-manifest.json"),
-  gasBox: appHash("apps/gasbox/neo-manifest.json"),
-  selfLoan: appHash("apps/self-loan/neo-manifest.json"),
-  flashloan: appHash("apps/flashloan/neo-manifest.json"),
-  redEnvelope: appHash("apps/red-envelope/neo-manifest.json"),
-  neoPay: appHash("apps/neo-pay/neo-manifest.json"),
-};
-
-// Filter out contracts that aren't deployed
-const deployed = Object.entries(CONTRACTS).filter(([, hash]) => hash);
-if (deployed.length === 0) {
-  console.log("[fuzz] No testnet contracts found in manifest. Exiting.");
-  process.exit(0);
-}
-
-console.log(`[fuzz] Found ${deployed.length} deployed contracts`);
-
-/** Fuzz target: read methods with random IDs */
+/** Fuzz target: zero-arg read methods (must never FAULT) */
 const readMethods = [
-  { contract: "dailyCheckin", methods: ["totalCheckins", "totalUsers", "totalRewarded"] },
-  // PlatformGame/PlatformDeFi unified contracts expose app-scoped reads rather
-  // than the older standalone counters. Keep fuzz targets aligned with the
-  // deployed ABIs so continuous fuzzing reports real behavior, not stale tests.
-  { contract: "lastSurvivor", methods: ["admin", "oracle", "abstractAccount", "isContractPaused"] },
-  { contract: "gasBox", methods: ["totalMachines"] },
-  { contract: "selfLoan", methods: ["admin", "isPaused"] },
-  { contract: "flashloan", methods: ["getLoanCount", "getTotalBorrowed", "getTotalFees"] },
-  { contract: "neoPay", methods: ["totalStreams"] },
+  { contract: "redEnvelope", methods: ["lastEnvelopeId"] },
+  { contract: "lastSurvivor", methods: ["currentRoundId", "getCurrentRound"] },
+  { contract: "timeCapsule", methods: ["lastCapsuleId"] },
+  { contract: "tarot", methods: ["readingsCount", "drawFee", "revenue"] },
+  { contract: "breakupPact", methods: ["lastPactId"] },
+  { contract: "coinFlip", methods: ["bankroll", "lastGameId"] },
+  { contract: "selfLoan", methods: ["neoPrice", "pool", "totalLoans", "feeBps", "getOwner"] },
+  { contract: "gasBox", methods: ["lastMachineId"] },
+  { contract: "govMerc", methods: ["totalStaked", "currentEpoch", "minBid", "minStake"] },
 ];
 
 /** Fuzz target: parameterized read methods */
 const paramReadMethods = [
-  { contract: "dailyCheckin", method: "getCheckInStateForFrontend", argGen: () => [hashParam(randomUInt160())] },
-  { contract: "lastSurvivor", method: "getCountdownStatus", argGen: () => [strParam("miniapp-last-survivor")] },
-  { contract: "lastSurvivor", method: "getCountdownPlayerStats", argGen: () => [strParam("miniapp-last-survivor"), hashParam(randomUInt160())] },
-  { contract: "selfLoan", method: "getLoan", argGen: (v = randomBigInt(0n, 100n)) => [strParam("miniapp-self-loan"), intParam(v)] },
-  { contract: "selfLoan", method: "getHealthFactor", argGen: (v = randomBigInt(0n, 100n)) => [strParam("miniapp-self-loan"), intParam(v)] },
-  { contract: "selfLoan", method: "getLendingStats", argGen: () => [strParam("miniapp-self-loan")] },
-  { contract: "flashloan", method: "getLoan", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
-  { contract: "neoPay", method: "getStreamDetails", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
+  { contract: "redEnvelope", method: "getEnvelope", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
+  { contract: "redEnvelope", method: "creditOf", argGen: () => [hashParam(randomUInt160())] },
+  { contract: "lastSurvivor", method: "getRound", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
+  { contract: "lastSurvivor", method: "playerKeys", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v), hashParam(randomUInt160())] },
+  { contract: "timeCapsule", method: "getCapsule", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
+  { contract: "tarot", method: "getReading", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
+  { contract: "breakupPact", method: "getPact", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
+  { contract: "coinFlip", method: "getGame", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
+  { contract: "coinFlip", method: "getStats", argGen: () => [hashParam(randomUInt160())] },
+  { contract: "selfLoan", method: "getLoan", argGen: () => [hashParam(randomUInt160())] },
+  { contract: "selfLoan", method: "ltvTierBps", argGen: (v = randomBigInt(0n, 10n)) => [intParam(v)] },
+  { contract: "gasBox", method: "getMachine", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
+  { contract: "gasBox", method: "getItem", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v), intParam(v)] },
+  { contract: "govMerc", method: "bidOf", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v), hashParam(randomUInt160())] },
 ];
 
+// Fail fast on ABI drift; dry-run prints the plan and exits offline.
+const plannedCalls = [
+  ...readMethods.flatMap((t) => t.methods.map((method) => ({ contract: t.contract, method }))),
+  ...paramReadMethods.map((t) => ({ contract: t.contract, method: t.method })),
+];
+enforceAbiOrExit("fuzz-contract-reads", TARGETS, plannedCalls);
+
+console.log(`[fuzz] targeting ${Object.keys(TARGETS).length} manifest-resolved contracts`);
+
 // --- Campaign 1: Zero-arg read methods should never FAULT ---
-const runner1 = new FuzzRunner("contract-reads-noarg", { iterations: deployed.length * 3 });
+const runner1 = new FuzzRunner("contract-reads-noarg", { iterations: readMethods.length * 3 });
 await runner1.run(async (i) => {
   const target = readMethods[i % readMethods.length];
-  const hash = CONTRACTS[target.contract];
-  if (!hash) return "skip";
+  const hash = hashOf(target.contract);
 
   const method = randomChoice(target.methods);
   const result = await invokeRead(hash, method, []);
@@ -89,8 +94,7 @@ await runner1.run(async (i) => {
 const runner2 = new FuzzRunner("contract-reads-param", { iterations: 200 });
 await runner2.run(async (i) => {
   const target = randomChoice(paramReadMethods);
-  const hash = CONTRACTS[target.contract];
-  if (!hash) return "skip";
+  const hash = hashOf(target.contract);
 
   const args = target.argGen();
   const result = await invokeRead(hash, target.method, args);
@@ -110,8 +114,7 @@ const runner3 = new FuzzRunner("contract-reads-boundary", { iterations: BOUNDARY
 await runner3.run(async (i) => {
   const boundaryVal = BOUNDARY_INTS[i % BOUNDARY_INTS.length];
   const target = paramReadMethods[Math.floor(i / BOUNDARY_INTS.length) % paramReadMethods.length];
-  const hash = CONTRACTS[target.contract];
-  if (!hash) return "skip";
+  const hash = hashOf(target.contract);
 
   const args = target.argGen(boundaryVal);
   const result = await invokeRead(hash, target.method, args);
