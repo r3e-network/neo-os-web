@@ -96,18 +96,29 @@ async function main() {
   const result = await experimental.deployContract(nef, manifest, config);
   console.log("deploy txid    : " + result);
 
-  // Poll for confirmation.
+  // Poll for confirmation. The authoritative contract hash comes from the
+  // ContractManagement Deploy notification (the local prediction has been
+  // observed to disagree with the node's computation).
   for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 4000));
     try {
       const log = await client.getApplicationLog(result);
-      const vmstate = log.executions?.[0]?.vmstate;
+      const execution = log.executions?.[0];
+      const vmstate = execution?.vmstate;
       console.log("vm state       : " + vmstate);
       if (vmstate === "HALT") {
-        console.log("DEPLOYED ✓  hash=0x" + expectedHash);
-        console.log("RESULT_HASH=0x" + expectedHash);
+        const deployNote = (execution.notifications || []).find((n) => n.eventname === "Deploy");
+        const raw = deployNote?.state?.value?.[0]?.value;
+        const actualHash = raw
+          ? "0x" + Buffer.from(raw, "base64").toString("hex").match(/../g).reverse().join("")
+          : "0x" + expectedHash;
+        if (actualHash !== "0x" + expectedHash) {
+          console.log("note: actual hash differs from the local prediction (0x" + expectedHash + ")");
+        }
+        console.log("DEPLOYED ✓  hash=" + actualHash);
+        console.log("RESULT_HASH=" + actualHash);
       } else {
-        console.log("DEPLOY FAULTED: " + JSON.stringify(log.executions?.[0]?.exception));
+        console.log("DEPLOY FAULTED: " + JSON.stringify(execution?.exception));
       }
       return;
     } catch {
