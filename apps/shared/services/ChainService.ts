@@ -22,14 +22,22 @@
 
 import { createDerived } from "../react/context";
 import type { Observable } from "../react/context";
-import { useContractInteraction } from "../composables/useContractInteraction";
+import {
+  useContractInteraction,
+  waitForDepositConfirmation,
+  DepositConfirmedActionFailedError,
+} from "../composables/useContractInteraction";
 import type { CacheService } from "./CacheService";
 import { EventBus } from "./EventBus";
 import { useEvents, useWallet } from "../utils/wallet-sdk";
 import type { EventsListParams } from "../utils/wallet-sdk";
 import type { WalletSDK } from "../utils/wallet-sdk";
 import { useAllEvents } from "../composables/useAllEvents";
-import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
+import {
+  BLOCKCHAIN_CONSTANTS,
+  TIME_CONSTANTS,
+  resolveNeoNetwork,
+} from "../constants";
 import {
   detectEvmNetwork,
   connectEvm,
@@ -42,6 +50,22 @@ import type { EvmNetwork, EvmCall } from "../utils/evm-chain";
 // ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
+
+/**
+ * Emitted instead of EventBus.TRANSACTION_CONFIRMED when an event wait timed
+ * out: the transaction was broadcast but its confirming event was never
+ * observed, so "confirmed" would be dishonest. Payload:
+ * { txid: string, operation: string }. Lives here (with its only emitter)
+ * because EventBus is a generic pub/sub.
+ */
+export const TRANSACTION_UNVERIFIED = "platform:tx:unverified";
+
+/**
+ * Default wait for a transaction's confirming event: ~2 Neo N3 blocks
+ * (~15s each) plus indexer lag. TIME_CONSTANTS.DEFAULT_TIMEOUT_MS (10s) is
+ * shorter than a single block, so it stays reserved for generic async ops.
+ */
+const EVENT_WAIT_TIMEOUT_MS = 45_000;
 
 export interface ContractArg {
   type: "String" | "Integer" | "Boolean" | "Hash160" | "Hash256" | "PublicKey" | "ByteArray" | "Array";
@@ -64,7 +88,7 @@ export interface InvokeOptions {
   signers?: WalletSigner[];
   /** If set, wait for this event name after the transaction confirms. */
   waitForEvent?: string;
-  /** Timeout for event waiting. Default: 30 000ms. */
+  /** Timeout for event waiting. Default: 45 000ms (~2 blocks + indexer lag). */
   waitTimeoutMs?: number;
   /**
    * Optional callback fired the moment the prepaid GAS transfer is broadcast,
@@ -274,10 +298,11 @@ export class ChainService {
    * Execute a read-only contract call. Optionally checks the cache first.
    */
   async read(operation: string, args?: ContractArg[], options?: ReadOptions): Promise<unknown> {
-    const cacheKey = options?.cache ? this.buildCacheKey("read", operation, args) : null;
-    if (cacheKey) {
-      const cached = this.cache.get(cacheKey);
-      if (cached !== null) return cached;
+    const cacheKey = options?.cache
+      ? this.buildCacheKey("read", operation, args, options?.scriptHash)
+      : null;
+    if (cacheKey && this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
     }
 
     const result = await this.interaction.read(
@@ -297,10 +322,11 @@ export class ChainService {
    * Read-only call that returns an array of parsed stack items.
    */
   async readArray(operation: string, args?: ContractArg[], options?: ReadOptions): Promise<unknown[]> {
-    const cacheKey = options?.cache ? this.buildCacheKey("readArray", operation, args) : null;
-    if (cacheKey) {
-      const cached = this.cache.get<unknown[]>(cacheKey);
-      if (cached !== null) return cached;
+    const cacheKey = options?.cache
+      ? this.buildCacheKey("readArray", operation, args, options?.scriptHash)
+      : null;
+    if (cacheKey && this.cache.has(cacheKey)) {
+      return this.cache.get<unknown[]>(cacheKey) ?? [];
     }
 
     const result = await this.interaction.readArray(
@@ -343,7 +369,7 @@ export class ChainService {
     let event: unknown;
     if (options?.waitForEvent && txid) {
       event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
-      this.events.emit(EventBus.TRANSACTION_CONFIRMED, { txid, event });
+      this.emitEventWaitOutcome(txid, operation, event);
     }
 
     return { txid, event, success: Boolean(txid) };
@@ -381,7 +407,7 @@ export class ChainService {
     let event: unknown;
     if (options?.waitForEvent && txid) {
       event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
-      this.events.emit(EventBus.TRANSACTION_CONFIRMED, { txid, event });
+      this.emitEventWaitOutcome(txid, operation, event);
     }
 
     return { txid, event, success: Boolean(txid) };
@@ -394,7 +420,7 @@ export class ChainService {
    * Returns the event payload or null on timeout.
    */
   async waitForEvent(txid: string, eventName: string, timeoutMs?: number): Promise<unknown> {
-    const timeout = timeoutMs ?? TIME_CONSTANTS.DEFAULT_TIMEOUT_MS;
+    const timeout = timeoutMs ?? EVENT_WAIT_TIMEOUT_MS;
     const result = await this.listEventsComposable.waitForEvent(
       txid,
       eventName,
@@ -481,6 +507,10 @@ export class ChainService {
    * steps atomically. Use this method when you need explicit control over
    * the GAS transfer and the follow-up invocation as separate transactions.
    *
+   * If the deposit was confirmed but the follow-up invocation fails, the
+   * error surfaces as {@link DepositConfirmedActionFailedError} — the credit
+   * is withdrawable, not lost.
+   *
    * @example
    * ```ts
    * await chain.prepayAndInvoke(
@@ -501,7 +531,7 @@ export class ChainService {
     await this.ensureWallet();
 
     // Step 1: Transfer GAS to contract
-    await this.invoke(
+    const transfer = await this.invoke(
       "transfer",
       [
         { type: "Hash160", value: this.address.get()! },
@@ -512,11 +542,26 @@ export class ChainService {
       { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
     );
 
-    // Step 2: Wait for credit to settle
-    await new Promise((r) => setTimeout(r, TIME_CONSTANTS.SECOND_MS * 4));
+    // Step 2: Wait for the credit to land in a block (indexer poll, ~2 blocks
+    // max). The legacy fixed sleep remains only when the indexer is
+    // unreachable — a blind sleep cannot guarantee the deposit executed
+    // before the consuming call.
+    const settlement = await waitForDepositConfirmation(transfer.txid, {
+      network: this.indexerNetwork(),
+    });
+    if (settlement === "unreachable") {
+      await new Promise((r) => setTimeout(r, TIME_CONSTANTS.SECOND_MS * 4));
+    }
 
     // Step 3: Invoke the target operation
-    return this.invoke(operation, args, options);
+    try {
+      return await this.invoke(operation, args, options);
+    } catch (error: unknown) {
+      if (settlement === "confirmed") {
+        throw new DepositConfirmedActionFailedError(operation, transfer.txid, error);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -541,8 +586,39 @@ export class ChainService {
 
   // -- Helpers --------------------------------------------------------------
 
-  private buildCacheKey(prefix: string, operation: string, args?: ContractArg[]): string {
+  private buildCacheKey(
+    prefix: string,
+    operation: string,
+    args?: ContractArg[],
+    scriptHash?: string,
+  ): string {
     const argStr = args ? JSON.stringify(args) : "";
-    return `${prefix}:${operation}:${argStr}`;
+    // "default" denotes the app's manifest contract — unambiguous because the
+    // cache namespace is per-app. Explicit overrides get their own keys so
+    // reads against different contracts never collide.
+    return `${prefix}:${scriptHash ?? "default"}:${operation}:${argStr}`;
+  }
+
+  /**
+   * Emit the honest outcome of an event wait: TRANSACTION_CONFIRMED only when
+   * the event was actually observed, TRANSACTION_UNVERIFIED otherwise. The
+   * unverified path also emits BALANCE_CHANGED — the transaction was broadcast
+   * and may well have landed, so balance subscribers (BalanceService.useBalance)
+   * still refresh deliberately rather than riding a false "confirmed" signal.
+   */
+  private emitEventWaitOutcome(txid: string, operation: string, event: unknown): void {
+    if (event != null) {
+      this.events.emit(EventBus.TRANSACTION_CONFIRMED, { txid, event });
+    } else {
+      this.events.emit(TRANSACTION_UNVERIFIED, { txid, operation });
+      this.events.emit(EventBus.BALANCE_CHANGED, {});
+    }
+  }
+
+  /** Indexer network matching the connected wallet's chain. */
+  private indexerNetwork(): "mainnet" | "testnet" {
+    const ct = (this.wallet as unknown as { chainType?: { get?: () => string; value?: string } }).chainType;
+    const raw = typeof ct?.get === "function" ? ct.get() : ct?.value;
+    return resolveNeoNetwork(typeof raw === "string" ? raw : "");
   }
 }
