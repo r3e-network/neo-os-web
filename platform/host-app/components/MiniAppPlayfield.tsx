@@ -6,6 +6,7 @@ import {
   getRpcUrl,
 } from "@/lib/rpc-helpers";
 import type { NeoNetwork } from "@/lib/neo-network";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { PlayAreaRegistry } from "./playarea/PlayAreaRegistry";
 import {
   fetchAppActivity,
@@ -108,17 +109,44 @@ function LiveContractView({
   }, [stats]);
 
   return (
-    <PlayAreaRegistry
-      app={app}
-      stats={stats}
-      statsMap={statsMap}
-      activity={activity}
-      loading={loading}
-      error={error}
-      contractHash={contractHash}
-      network={requestedNetwork}
-      launchContext={launchContext}
-      onRefresh={() => loadContractData({ isInitial: true })}
-    />
+    <ErrorBoundary
+      componentName={`playarea:${app.app_id}`}
+      fallback={<PlayAreaErrorFallback />}
+    >
+      <PlayAreaRegistry
+        app={app}
+        stats={stats}
+        statsMap={statsMap}
+        activity={activity}
+        loading={loading}
+        error={error}
+        contractHash={contractHash}
+        network={requestedNetwork}
+        launchContext={launchContext}
+        onRefresh={() => loadContractData({ isInitial: true })}
+      />
+    </ErrorBoundary>
+  );
+}
+
+// Compact fallback so a playarea render crash degrades to a refresh card
+// instead of taking down the whole miniapp detail page (operations, tabs).
+function PlayAreaErrorFallback() {
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+      <p className="text-sm font-semibold text-gray-900">
+        This play area failed to render
+      </p>
+      <p className="mt-1 text-xs text-gray-600">
+        The rest of the page is still available. Refresh to try again.
+      </p>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+      >
+        Refresh
+      </button>
+    </div>
   );
 }

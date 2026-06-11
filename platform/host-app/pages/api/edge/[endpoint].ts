@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createHash } from "crypto";
 import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl } from "@/lib/edge";
-import { apiError } from "@/lib/api-response";
+import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 import { getKernelHash, getMiniAppContractHash, getRpcNetwork } from "@/lib/rpc-helpers";
@@ -10,6 +10,7 @@ const FETCH_TIMEOUT_MS = 10_000;
 const MAX_BODY_SIZE = 256 * 1024;
 const MAX_RESPONSE_SIZE = 2 * 1024 * 1024;
 const GAS_CONTRACT_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+const FIXED8_FACTOR = 100_000_000n;
 const EDGE_CORS_ALLOW_HEADERS =
   "Content-Type, Authorization, X-API-Key, X-Requested-With";
 const EDGE_CORS_ALLOW_METHODS = "GET,HEAD,POST,OPTIONS";
@@ -95,21 +96,46 @@ function setMiniAppEdgeCorsHeaders(res: NextApiResponse) {
   res.setHeader("Access-Control-Max-Age", "600");
 }
 
+class BodyTooLargeError extends Error {
+  constructor() {
+    super(`request body exceeds ${MAX_BODY_SIZE} bytes`);
+    this.name = "BodyTooLargeError";
+  }
+}
+
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let totalSize = 0;
   await new Promise<void>((resolve, reject) => {
-    req.on("data", (chunk) => {
+    const onData = (chunk: Buffer | string) => {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       totalSize += buf.length;
       if (totalSize > MAX_BODY_SIZE) {
-        reject(new Error("Request body too large"));
+        // Stop accumulating and drop the connection so the client cannot keep
+        // streaming past the cap; the handler maps this rejection to a 413.
+        cleanup();
+        req.destroy();
+        reject(new BodyTooLargeError());
         return;
       }
       chunks.push(buf);
-    });
-    req.on("end", () => resolve());
-    req.on("error", reject);
+    };
+    const onEnd = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+    const cleanup = () => {
+      req.off("data", onData);
+      req.off("end", onEnd);
+      req.off("error", onError);
+    };
+    req.on("data", onData);
+    req.on("end", onEnd);
+    req.on("error", onError);
   });
   return Buffer.concat(chunks);
 }
@@ -171,20 +197,32 @@ function resolveLocalEdgeNetwork(
   return getRpcNetwork();
 }
 
+// Amounts are decimal GAS strings, always scaled by 1e8 here. Pure integers
+// of 1e8 or more are rejected: they are indistinguishable from already-scaled
+// fixed8 base units, and silently guessing the unit produces 10^8x intents.
 function parsePositiveFixed8Amount(value: unknown, label: string): bigint {
   const raw = String(value ?? "").trim();
-  if (/^\d{8,}$/.test(raw)) {
-    const scaled = BigInt(raw);
-    if (scaled <= 0n) throw new Error(`${label} must be greater than zero`);
-    return scaled;
-  }
   if (!/^\d+(?:\.\d{1,8})?$/.test(raw)) {
     throw new Error(`${label} must be a positive GAS amount`);
   }
   const [whole, fraction = ""] = raw.split(".");
+  if (!fraction && BigInt(whole) >= FIXED8_FACTOR) {
+    throw new Error(
+      `${label} must be a decimal GAS amount; integer values of ${FIXED8_FACTOR} or more look like fixed8 base units`,
+    );
+  }
   const scaled = BigInt(`${whole}${fraction.padEnd(8, "0")}`);
   if (scaled <= 0n) throw new Error(`${label} must be greater than zero`);
   return scaled;
+}
+
+function formatGasAmount(scaled: bigint): string {
+  const whole = scaled / FIXED8_FACTOR;
+  const fraction = (scaled % FIXED8_FACTOR)
+    .toString()
+    .padStart(8, "0")
+    .replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
 function buildKernelStateIntent(
@@ -244,6 +282,9 @@ function buildPaymentDepositIntent(
         { type: "String", value: memo },
       ],
     },
+    meta: {
+      amountGas: formatGasAmount(amount),
+    },
   };
 }
 
@@ -269,6 +310,7 @@ function buildGameBetIntent(
     ],
     meta: {
       requestedPoolId: rawPoolId,
+      amountGas: formatGasAmount(amount),
     },
   };
 }
@@ -296,6 +338,9 @@ function buildEscrowCreateIntent(
       { type: "Integer", value: amount.toString() },
       { type: "Integer", value: String(countMilestones(body.milestones)) },
     ],
+    meta: {
+      amountGas: formatGasAmount(amount),
+    },
   };
 }
 
@@ -626,7 +671,17 @@ export default async function handler(
 
   const method = String(req.method || "GET").toUpperCase();
   const hasBody = !(method === "GET" || method === "HEAD");
-  const rawBody = hasBody ? await readRawBody(req) : undefined;
+  let rawBody: Buffer | undefined;
+  try {
+    rawBody = hasBody ? await readRawBody(req) : undefined;
+  } catch (error) {
+    if (error instanceof BodyTooLargeError) {
+      sendError(res, 413, "request body too large", ErrorCodes.BAD_REQUEST);
+      return;
+    }
+    apiError.badRequest(res, "failed to read request body");
+    return;
+  }
   const body = rawBody ? new Uint8Array(rawBody) : undefined;
   const headers = forwardEdgeRpcHeaders(req);
   const base = getEdgeFunctionsBaseUrl();
