@@ -31,7 +31,14 @@ import { useEvents, usePayments } from "@shared/utils/wallet-sdk";
 import { useContractAddress } from "./useContractAddress";
 import { parseInvokeResult, parseStackItem } from "../utils/neo";
 import { extractTxid, pollForTxEvent } from "../utils/transaction";
-import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
+import { waitForTransactionStatus } from "../utils/n3index";
+import type { Network, TransactionWaitStatus } from "../utils/n3index";
+import {
+  BLOCKCHAIN_CONSTANTS,
+  TIME_CONSTANTS,
+  getNetwork,
+  resolveNeoNetwork,
+} from "../constants";
 import { createObservable, refToObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 
@@ -40,6 +47,82 @@ type InvokeArg = {
   value: string | number | boolean;
 };
 
+// ---------------------------------------------------------------------------
+// Deposit confirmation
+// ---------------------------------------------------------------------------
+
+/**
+ * Outcome of a deposit-confirmation wait:
+ *  - "confirmed"   — the deposit tx is indexed in a block; the prepaid credit exists
+ *  - "timeout"     — the indexer is reachable but the tx never appeared in time
+ *  - "unreachable" — the indexer could not be queried (or no txid was available);
+ *                    callers should fall back to a fixed settle delay
+ */
+export type DepositConfirmation = TransactionWaitStatus;
+
+export interface DepositConfirmationOptions {
+  /** Indexer network to poll. Defaults to the host's ?network= selection. */
+  network?: Network;
+  /**
+   * Contract whose decoded events prove the deposit landed. Defaults to the
+   * GAS token contract — a prepaid deposit is a NEP-17 transfer, so its
+   * Transfer event is indexed there once the tx is in a block.
+   */
+  contractHash?: string;
+  /** Overall polling deadline. Default: ~2 Neo N3 blocks (~15s each). */
+  timeoutMs?: number;
+  /** Delay between indexer polls. Default: 3s. */
+  pollIntervalMs?: number;
+}
+
+/**
+ * Poll the N3Index until a broadcast deposit transfer is confirmed in a block.
+ *
+ * Deposit-then-act contracts fault with "insufficient prepaid gas" when the
+ * consuming call lands before the deposit, so the prepaid flows wait for this
+ * confirmation instead of sleeping a fixed interval. Exported so per-app
+ * composables that broadcast their own deposit transfers can adopt the same
+ * settle-before-consume pattern.
+ */
+export async function waitForDepositConfirmation(
+  txid: string,
+  options: DepositConfirmationOptions = {},
+): Promise<DepositConfirmation> {
+  if (!txid) return "unreachable";
+  const { status } = await waitForTransactionStatus(
+    options.network ?? getNetwork(),
+    txid,
+    options.contractHash ?? BLOCKCHAIN_CONSTANTS.GAS_HASH,
+    options.timeoutMs,
+    options.pollIntervalMs,
+  );
+  return status;
+}
+
+/**
+ * Thrown when the prepaid deposit was CONFIRMED on-chain but the follow-up
+ * contract call failed: the funds are not lost — they sit as withdrawable
+ * credit on the contract. Callers should surface a recovery hint (credit is
+ * withdrawable / retry the action) instead of a generic payment failure.
+ */
+export class DepositConfirmedActionFailedError extends Error {
+  readonly operation: string;
+  readonly depositTxid: string;
+  readonly actionError: unknown;
+
+  constructor(operation: string, depositTxid: string, actionError: unknown) {
+    const reason =
+      actionError instanceof Error ? actionError.message : String(actionError);
+    super(
+      `Deposit confirmed but "${operation}" failed — the prepaid credit remains on the contract and is withdrawable (deposit tx ${depositTxid}): ${reason}`,
+    );
+    this.name = "DepositConfirmedActionFailedError";
+    this.operation = operation;
+    this.depositTxid = depositTxid;
+    this.actionError = actionError;
+  }
+}
+
 export interface ContractInteractionOptions {
   /** App ID used for payment flow and event listing */
   appId: string;
@@ -47,6 +130,12 @@ export interface ContractInteractionOptions {
   t: (key: string) => string;
   /** Optional pre-existing wallet instance to reuse */
   wallet?: WalletSDK;
+  /**
+   * Override the deposit-confirmation wait used by the prepaid flows.
+   * Defaults to {@link waitForDepositConfirmation} polling the N3Index on the
+   * wallet's network. Injectable for tests and apps that need custom pacing.
+   */
+  confirmDeposit?: (txid: string) => Promise<DepositConfirmation>;
 }
 
 export function useContractInteraction(options: ContractInteractionOptions) {
@@ -70,6 +159,22 @@ export function useContractInteraction(options: ContractInteractionOptions) {
   const paymentSuccess: Observable<boolean> = createObservable(false);
   let successTimer: ReturnType<typeof setTimeout> | null = null;
   let waitTimers: ReturnType<typeof setTimeout>[] = [];
+
+  /** Disposable sleep — timers are tracked so dispose() can clear them. */
+  const delay = (ms: number) =>
+    new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, ms);
+      waitTimers.push(timer);
+    });
+
+  /** Indexer network matching the connected wallet's chain. */
+  const walletNetwork = (): Network =>
+    resolveNeoNetwork(wallet.chainType?.value ?? "");
+
+  const confirmDeposit =
+    options.confirmDeposit ??
+    ((txid: string) =>
+      waitForDepositConfirmation(txid, { network: walletNetwork() }));
 
   /**
    * Ensure wallet is connected, connecting if needed.
@@ -151,16 +256,30 @@ export function useContractInteraction(options: ContractInteractionOptions) {
 
       const payment = await payGAS(paymentAmount, paymentMemo, contract, appId);
       const receiptId = payment.receipt_id || "";
-      await new Promise((resolve) => {
-        const t = setTimeout(resolve, TIME_CONSTANTS.SECOND_MS * 4);
-        waitTimers.push(t);
-      });
+      // Wait for the prepaid credit to land in a block before consuming it.
+      // The legacy fixed sleep remains only when the indexer is unreachable.
+      const settlement = await confirmDeposit(payment.txid);
+      if (settlement === "unreachable") {
+        await delay(TIME_CONSTANTS.SECOND_MS * 4);
+      }
 
-      const tx = (await invokeContract({
-        scriptHash: contract,
-        operation,
-        args,
-      })) as unknown;
+      let tx: unknown;
+      try {
+        tx = (await invokeContract({
+          scriptHash: contract,
+          operation,
+          args,
+        })) as unknown;
+      } catch (error: unknown) {
+        if (settlement === "confirmed") {
+          throw new DepositConfirmedActionFailedError(
+            operation,
+            payment.txid,
+            error,
+          );
+        }
+        throw error;
+      }
 
       const txid = extractTxid(tx);
 
@@ -200,6 +319,9 @@ export function useContractInteraction(options: ContractInteractionOptions) {
       const sanitized =
         error instanceof Error ? error.message : "Payment operation failed";
       paymentError.set(error instanceof Error ? error : new Error(sanitized));
+      // Keep the funds-recoverable signal distinct — apps branch on this class
+      // to tell "credit withdrawable" apart from a generic payment failure.
+      if (error instanceof DepositConfirmedActionFailedError) throw error;
       throw new Error(sanitized);
     } finally {
       isProcessing.set(false);
@@ -235,9 +357,16 @@ export function useContractInteraction(options: ContractInteractionOptions) {
    *
    * 1. Ensures wallet connection
    * 2. Transfers GAS directly to the target MiniApp contract with an app-specific memo
-   * 3. Waits briefly for the credit to be indexed on-chain
+   * 3. Waits for the transfer to confirm in a block (indexer poll, ~2 blocks max)
    * 4. Calls the target contract method
    *
+   * If the deposit was confirmed but step 4 fails, the error surfaces as
+   * {@link DepositConfirmedActionFailedError} — the credit is withdrawable,
+   * not lost.
+   *
+   * @param waitMs Fallback settle delay used ONLY when the indexer is
+   *   unreachable and the deposit could not be confirmed. Pass 0 to skip the
+   *   fallback entirely.
    * @param onPaymentSent Optional callback invoked immediately AFTER the GAS
    *   transfer is broadcast (step 2) and BEFORE the settle wait + target call.
    *   Receives the transfer txid, or "" if none could be extracted. This is the
@@ -271,16 +400,31 @@ export function useContractInteraction(options: ContractInteractionOptions) {
       ],
     })) as unknown;
 
+    const transferTxid = extractTxid(transferTx);
     if (onPaymentSent) {
-      onPaymentSent(extractTxid(transferTx));
+      onPaymentSent(transferTxid);
     }
 
-    await new Promise((resolve) => {
-      const t = setTimeout(resolve, waitMs || TIME_CONSTANTS.SECOND_MS * 4);
-      waitTimers.push(t);
-    });
+    // Confirm the deposit landed in a block before firing the consuming call —
+    // intra-block ordering is fee/hash-based, so an unconfirmed deposit lets
+    // the action execute first and fault with "insufficient prepaid gas".
+    const settlement = await confirmDeposit(transferTxid);
+    if (settlement === "unreachable" && waitMs > 0) {
+      await delay(waitMs);
+    }
 
-    return invokeDirectly(operation, args, contract, signers);
+    try {
+      return await invokeDirectly(operation, args, contract, signers);
+    } catch (error: unknown) {
+      if (settlement === "confirmed") {
+        throw new DepositConfirmedActionFailedError(
+          operation,
+          transferTxid,
+          error,
+        );
+      }
+      throw error;
+    }
   };
 
   /** Cleanup function — caller is responsible for invoking on teardown. */
