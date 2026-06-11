@@ -67,8 +67,25 @@ namespace NeoMiniAppPlatform.Contracts.Tests
                     ContractManifest.Parse(File.ReadAllText(manifestPath)));
         }
 
+        // Fund an account with GAS from the genesis validators multisig.
+        private static void FundGas(TestEngine engine, UInt160 to, BigInteger gas)
+        {
+            UInt160 validators = engine.ValidatorsAddress;
+            engine.SetTransactionSigners(validators);
+            engine.Native.GAS.Transfer(validators, to, gas, null);
+        }
+
+        // Contract asserts surface as "ABORTMSG is executed. Reason: <text>"; pin the
+        // exact reason so the test fails if a different (earlier) guard fires instead.
+        private static void AssertRevert(string reason, Action act)
+        {
+            var ex = Assert.ThrowsAny<Exception>(act);
+            Assert.Equal($"ABORTMSG is executed. Reason: {reason}", ex.Message);
+        }
+
         // -----------------------------------------------------------------
-        // MiniAppMilestoneEscrow: createEscrow returns positive id; counter increments.
+        // MiniAppMilestoneEscrow: deposit-then-create with real prepaid GAS.
+        // createEscrow returns sequential ids and the counter increments.
         // -----------------------------------------------------------------
         [Fact]
         public void MilestoneEscrow_CreateReturnsId()
@@ -79,57 +96,50 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             var creator = TestEngine.GetNewSigner();
             var beneficiary = TestEngine.GetNewSigner();
+            FundGas(engine, creator.Account, 5L * 100000000);
+            Assert.Equal(BigInteger.Zero, contract.totalEscrows());
+
+            // Without prepaid credit, a fully valid create must stop at the deposit gate.
             engine.SetTransactionSigners(creator);
+            var milestoneAmounts = new object[] { new BigInteger(50000000), new BigInteger(50000000) };
+            AssertRevert("insufficient prepaid asset", () => contract.createEscrow(
+                creator.Account, beneficiary.Account, engine.Native.GAS.Hash,
+                new BigInteger(100000000), milestoneAmounts, "Test Escrow", "memo"));
 
-            var milestoneAmounts = new object[] { new BigInteger(50), new BigInteger(50) };
+            // Deposit 1 GAS with the app memo, then lock it into escrow #1.
+            Assert.True(engine.Native.GAS.Transfer(
+                creator.Account, contract.Hash, 100000000, "miniapp-milestone-escrow:deposit") == true);
+            BigInteger? id = contract.createEscrow(
+                creator.Account, beneficiary.Account, engine.Native.GAS.Hash,
+                new BigInteger(100000000), milestoneAmounts, "Test Escrow", "memo");
+            Assert.Equal(BigInteger.One, id);
+            Assert.Equal(BigInteger.One, contract.totalEscrows());
+            Assert.Equal(new BigInteger(100000000), engine.Native.GAS.BalanceOf(contract.Hash));
 
-            BigInteger? id = null;
-            try
-            {
-                id = contract.createEscrow(
-                    creator.Account, beneficiary.Account,
-                    new UInt160(new byte[20]),
-                    new BigInteger(100),
-                    milestoneAmounts,
-                    "Test Escrow", "memo");
-            }
-            catch (Exception te)
-            {
-                // Acceptable failure modes are those that come from the contract's own asserts
-                // (e.g., pause registry not configured, asset transfer fails). The point is
-                // that the entrypoint dispatches into the contract body.
-                var msg = te.Message?.ToLowerInvariant() ?? string.Empty;
-                bool isContractAssert = msg.Contains("paused") || msg.Contains("registry")
-                    || msg.Contains("admin") || msg.Contains("gateway")
-                    || msg.Contains("oracle") || msg.Contains("asset")
-                    || msg.Contains("witness") || msg.Contains("deploy")
-                    || msg.Contains("transfer") || msg.Contains("invalid")
-                    || msg.Contains("called from a contract")
-                    || msg.Contains("specified cast is not valid");
-                Assert.True(isContractAssert,
-                    $"unexpected exception type/message: {te.GetType().Name}: {te.Message}");
-                return;
-            }
-            Assert.NotNull(id);
-            Assert.True(id > 0, $"escrowId should be positive, got {id}");
-            var counter = contract.totalEscrows();
-            Assert.NotNull(counter);
-            Assert.True(counter >= 1);
+            // A second funded escrow gets the next id and increments the counter.
+            engine.Native.GAS.Transfer(
+                creator.Account, contract.Hash, 200000000, "miniapp-milestone-escrow:deposit");
+            BigInteger? id2 = contract.createEscrow(
+                creator.Account, beneficiary.Account, engine.Native.GAS.Hash,
+                new BigInteger(200000000),
+                new object[] { new BigInteger(100000000), new BigInteger(100000000) },
+                "Second Escrow", "memo");
+            Assert.Equal(new BigInteger(2), id2);
+            Assert.Equal(new BigInteger(2), contract.totalEscrows());
+            Assert.Equal(new BigInteger(300000000), engine.Native.GAS.BalanceOf(contract.Hash));
         }
 
         // -----------------------------------------------------------------
-        // MiniAppEventTicketPass: symbol() returns the NEP-11 symbol.
+        // MiniAppEventTicketPass: symbol() returns the exact NEP-11 symbol.
         // -----------------------------------------------------------------
         [Fact]
-        public void EventTicketPass_SymbolReturnsTAG()
+        public void EventTicketPass_SymbolReturnsTicket()
         {
             var engine = new TestEngine(true);
             var (nef, manifest) = Load("MiniAppEventTicketPass");
             var contract = engine.Deploy<EventTicketPassContract>(nef, manifest);
 
-            var symbol = contract.symbol();
-            Assert.False(string.IsNullOrWhiteSpace(symbol),
-                "symbol() must return non-empty NEP-11 token symbol");
+            Assert.Equal("TICKET", contract.symbol());
         }
 
         // -----------------------------------------------------------------
@@ -178,7 +188,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
         // -----------------------------------------------------------------
         // SoulboundCertificate: createTemplate requires issuer witness.
-        // Without the right signer, the call must revert.
+        // The arguments are fully valid, so the call reaches the witness gate;
+        // the identical call signed by the issuer succeeds, proving the witness
+        // check (and not an earlier argument guard) was the only blocker.
         // -----------------------------------------------------------------
         [Fact]
         public void SoulboundCertificate_CreateTemplate_RequiresIssuerWitness()
@@ -189,32 +201,19 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             var issuer = TestEngine.GetNewSigner();
             var attacker = TestEngine.GetNewSigner();
-            // Sign as attacker but pass issuer.Account as the "issuer" argument:
+
+            // Sign as attacker but pass issuer.Account as the "issuer" argument.
             engine.SetTransactionSigners(attacker);
+            AssertRevert("unauthorized", () => contract.createTemplate(
+                issuer.Account, "Title", "Issuer", "category",
+                new BigInteger(10), "desc"));
 
-            Exception? thrown = null;
-            try
-            {
-                contract.createTemplate(
-                    issuer.Account, "Title", "Issuer", "category",
-                    new BigInteger(10), "desc");
-            }
-            catch (Exception ex) { thrown = ex; }
-
-            Assert.NotNull(thrown);
-            // The contract should fail the witness check.
-            var msg = thrown!.Message?.ToLowerInvariant() ?? string.Empty;
-            // Acceptable rejection sources: witness check, deploy/admin/oracle gates,
-            // or contract ABORT on invalid input — all guard the entrypoint from
-            // unauthorized execution.
-            Assert.True(msg.Contains("witness") || msg.Contains("authorize")
-                       || msg.Contains("unauthorize") || msg.Contains("assert")
-                       || msg.Contains("invalid") || msg.Contains("called from")
-                       || msg.Contains("specified cast")
-                       || msg.Contains("abortmsg")
-                       || msg.Contains("asset")
-                       || msg.Contains("unsupported"),
-                $"expected witness/authorization/guard failure, got: {thrown.Message}");
+            // Positive control: the issuer-signed call passes the gate.
+            engine.SetTransactionSigners(issuer);
+            BigInteger? id = contract.createTemplate(
+                issuer.Account, "Title", "Issuer", "category",
+                new BigInteger(10), "desc");
+            Assert.Equal(BigInteger.One, id);
         }
 
         // -----------------------------------------------------------------
@@ -229,36 +228,28 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             var creator = TestEngine.GetNewSigner();
             var attacker = TestEngine.GetNewSigner();
+            // Fixed event window (start < end, both positive) keeps the argument
+            // guards deterministic regardless of wall-clock time.
+            var startTime = new BigInteger(1700000000000L);
+            var endTime = new BigInteger(1700086400000L);
+
             engine.SetTransactionSigners(attacker);
-            var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            AssertRevert("unauthorized", () => contract.createEvent(
+                creator.Account, "Event", "Venue",
+                startTime, endTime, new BigInteger(100), "notes"));
 
-            Exception? thrown = null;
-            try
-            {
-                contract.createEvent(
-                    creator.Account, "Event", "Venue",
-                    new BigInteger(nowMs), new BigInteger(nowMs + 86400000),
-                    new BigInteger(100), "notes");
-            }
-            catch (Exception ex) { thrown = ex; }
-
-            Assert.NotNull(thrown);
-            var msg = thrown!.Message?.ToLowerInvariant() ?? string.Empty;
-            // Acceptable rejection sources: witness check, deploy/admin/oracle gates,
-            // or contract ABORT on invalid input — all guard the entrypoint from
-            // unauthorized execution.
-            Assert.True(msg.Contains("witness") || msg.Contains("authorize")
-                       || msg.Contains("unauthorize") || msg.Contains("assert")
-                       || msg.Contains("invalid") || msg.Contains("called from")
-                       || msg.Contains("specified cast")
-                       || msg.Contains("abortmsg")
-                       || msg.Contains("asset")
-                       || msg.Contains("unsupported"),
-                $"expected witness/authorization/guard failure, got: {thrown.Message}");
+            // Positive control: the creator-signed call passes the gate.
+            engine.SetTransactionSigners(creator);
+            BigInteger? id = contract.createEvent(
+                creator.Account, "Event", "Venue",
+                startTime, endTime, new BigInteger(100), "notes");
+            Assert.Equal(BigInteger.One, id);
         }
 
         // -----------------------------------------------------------------
-        // QuadraticFunding: createRound requires creator witness.
+        // QuadraticFunding: createRound requires creator witness. Valid asset
+        // (GAS) and pool so the call reaches the witness gate, then the same
+        // call funded + signed by the creator succeeds end-to-end.
         // -----------------------------------------------------------------
         [Fact]
         public void QuadraticFunding_CreateRound_RequiresCreatorWitness()
@@ -269,33 +260,27 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             var creator = TestEngine.GetNewSigner();
             var attacker = TestEngine.GetNewSigner();
+            // End time must be after Runtime.Time (the engine's genesis-era
+            // persisting block), so pin it far in the future deterministically.
+            var startTime = BigInteger.One;
+            var endTime = new BigInteger(32503680000000L); // year 3000 (ms)
+            var matchingPool = new BigInteger(100000000);  // 1 GAS
+
             engine.SetTransactionSigners(attacker);
-            var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            AssertRevert("unauthorized", () => contract.createRound(
+                creator.Account, engine.Native.GAS.Hash, matchingPool,
+                startTime, endTime, "Round", "desc"));
 
-            Exception? thrown = null;
-            try
-            {
-                contract.createRound(
-                    creator.Account, new UInt160(new byte[20]),
-                    new BigInteger(0),
-                    new BigInteger(nowMs), new BigInteger(nowMs + 86400000L),
-                    "Round", "desc");
-            }
-            catch (Exception ex) { thrown = ex; }
-
-            Assert.NotNull(thrown);
-            var msg = thrown!.Message?.ToLowerInvariant() ?? string.Empty;
-            // Acceptable rejection sources: witness check, deploy/admin/oracle gates,
-            // or contract ABORT on invalid input — all guard the entrypoint from
-            // unauthorized execution.
-            Assert.True(msg.Contains("witness") || msg.Contains("authorize")
-                       || msg.Contains("unauthorize") || msg.Contains("assert")
-                       || msg.Contains("invalid") || msg.Contains("called from")
-                       || msg.Contains("specified cast")
-                       || msg.Contains("abortmsg")
-                       || msg.Contains("asset")
-                       || msg.Contains("unsupported"),
-                $"expected witness/authorization/guard failure, got: {thrown.Message}");
+            // Positive control: prepay the matching pool, then the creator-signed
+            // call creates round #1.
+            FundGas(engine, creator.Account, 2L * 100000000);
+            engine.SetTransactionSigners(creator);
+            engine.Native.GAS.Transfer(
+                creator.Account, contract.Hash, matchingPool, "miniapp-quadratic-funding:deposit");
+            BigInteger? id = contract.createRound(
+                creator.Account, engine.Native.GAS.Hash, matchingPool,
+                startTime, endTime, "Round", "desc");
+            Assert.Equal(BigInteger.One, id);
         }
 
         // -----------------------------------------------------------------
