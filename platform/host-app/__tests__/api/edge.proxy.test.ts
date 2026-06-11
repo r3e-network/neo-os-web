@@ -473,6 +473,7 @@ describe("/api/edge/[endpoint]", () => {
             },
           ],
         },
+        meta: { amountGas: "1.25" },
       },
       meta: { state: "local_wallet_intent" },
     });
@@ -523,6 +524,7 @@ describe("/api/edge/[endpoint]", () => {
           { type: "Integer", value: "50000000" },
           { type: "Integer", value: "1" },
         ],
+        meta: { amountGas: "0.5" },
       },
       meta: { state: "local_wallet_intent" },
     });
@@ -573,11 +575,92 @@ describe("/api/edge/[endpoint]", () => {
         ],
         meta: {
           requestedPoolId: "burn-league",
+          amountGas: "5",
         },
       },
       meta: { state: "local_wallet_intent" },
     });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects ambiguous pure-integer base-unit amounts and scales decimal GAS amounts", async () => {
+    delete process.env.EDGE_BASE_URL;
+    delete process.env.NEXT_PUBLIC_EDGE_URL;
+    delete process.env.MINIAPP_EDGE_ALLOWLIST;
+    process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK = "testnet";
+    const handler = require("@/pages/api/edge/[endpoint]").default;
+
+    const postDeposit = async (amount: string) => {
+      const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+        method: "POST",
+        query: { endpoint: "os-payment-deposit" },
+        headers: { "content-type": "application/json" },
+      });
+      const requestBody = Buffer.from(
+        JSON.stringify({ appId: "miniapp-unbreakablevault", amount }),
+      );
+      process.nextTick(() => {
+        req.emit("data", requestBody);
+        req.emit("end");
+      });
+      await handler(req, res);
+      return res;
+    };
+
+    // 1e8 as a pure integer is indistinguishable from fixed8 base units.
+    const rejected = await postDeposit("100000000");
+    expect(rejected._getStatusCode()).toBe(400);
+    expect(JSON.parse(rejected._getData()).error.message).toMatch(
+      /decimal GAS amount/,
+    );
+
+    // "1.0" is an explicit decimal GAS amount: exactly 1 GAS in base units.
+    const accepted = await postDeposit("1.0");
+    expect(accepted._getStatusCode()).toBe(200);
+    const acceptedData = JSON.parse(accepted._getData()).data;
+    expect(acceptedData.invocation.params[2]).toEqual({
+      type: "Integer",
+      value: "100000000",
+    });
+    expect(acceptedData.meta).toEqual({ amountGas: "1" });
+
+    // Pure integers below 1e8 stay whole-GAS: no digit-count unit flipping.
+    const wholeGas = await postDeposit("99999999");
+    expect(wholeGas._getStatusCode()).toBe(200);
+    expect(JSON.parse(wholeGas._getData()).data.invocation.params[2]).toEqual({
+      type: "Integer",
+      value: "9999999900000000",
+    });
+  });
+
+  it("rejects oversized request bodies with 413 and destroys the request stream", async () => {
+    delete process.env.EDGE_BASE_URL;
+    delete process.env.NEXT_PUBLIC_EDGE_URL;
+    delete process.env.MINIAPP_EDGE_ALLOWLIST;
+    const handler = require("@/pages/api/edge/[endpoint]").default;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      query: { endpoint: "os-storage-set" },
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer wallet-session",
+      },
+    });
+    const destroySpy = jest.spyOn(req, "destroy");
+    const oversized = Buffer.alloc(256 * 1024 + 1, 0x61);
+    process.nextTick(() => {
+      req.emit("data", oversized);
+      req.emit("end");
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(413);
+    expect(JSON.parse(res._getData()).error.message).toBe(
+      "request body too large",
+    );
+    expect(destroySpy).toHaveBeenCalled();
   });
 
   it("does not forward encoded-body headers after Node fetch has decoded the upstream body", async () => {

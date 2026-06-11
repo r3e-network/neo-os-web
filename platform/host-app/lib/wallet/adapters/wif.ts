@@ -382,49 +382,60 @@ function isStaleRelayError(message: string): boolean {
   return /expired transaction|expired/i.test(message);
 }
 
+// Only explicit duplicate signals mean the transaction is already accepted.
+// Mempool-capacity or policy rejections must surface as failures instead of
+// fabricating a success txid for a transaction that will never land on chain.
 function isAlreadyAcceptedRelayError(message: string): boolean {
-  return /already\s*exists|alreadyexists|memory pool|mempool|blockchain/i.test(
-    message,
-  );
+  return /already\s*exists|alreadyinpool|duplicate/i.test(message);
 }
 
 async function relaySignedTransaction(
   network: NeoNetwork,
   txBase64: string,
   fallbackTxid: string,
+  rebuildStaleTransaction?: () => Promise<{
+    txBase64: string;
+    fallbackTxid: string;
+  }>,
 ): Promise<string> {
-  const send = () =>
+  const send = (serialized: string) =>
     neoRpc<NeoRpcSendResult | boolean | string>(network, "sendrawtransaction", [
-      txBase64,
+      serialized,
     ]);
-  const resolveTxid = (relayResult: NeoRpcSendResult | boolean | string) => {
+  const resolveTxid = (
+    relayResult: NeoRpcSendResult | boolean | string,
+    fallback: string,
+  ) => {
     const txid =
       typeof relayResult === "object" && relayResult && "hash" in relayResult
         ? relayResult.hash
         : typeof relayResult === "string"
           ? relayResult
-          : fallbackTxid;
-    return normalizeTxId(String(txid || fallbackTxid));
+          : fallback;
+    return normalizeTxId(String(txid || fallback));
   };
 
   try {
-    return resolveTxid(await send());
+    return resolveTxid(await send(txBase64), fallbackTxid);
   } catch (error) {
     const message = relayErrorMessage(error);
     if (isAlreadyAcceptedRelayError(message)) {
       return normalizeTxId(fallbackTxid);
     }
-    if (!isStaleRelayError(message)) {
+    if (!isStaleRelayError(message) || !rebuildStaleTransaction) {
       throw error;
     }
   }
 
+  // A stale rejection means validUntilBlock already passed; resending the
+  // identical transaction would fail the same way, so rebuild against the
+  // current block height before the single retry.
+  const rebuilt = await rebuildStaleTransaction();
   try {
-    return resolveTxid(await send());
+    return resolveTxid(await send(rebuilt.txBase64), rebuilt.fallbackTxid);
   } catch (error) {
-    const message = relayErrorMessage(error);
-    if (isAlreadyAcceptedRelayError(message)) {
-      return normalizeTxId(fallbackTxid);
+    if (isAlreadyAcceptedRelayError(relayErrorMessage(error))) {
+      return normalizeTxId(rebuilt.fallbackTxid);
     }
     throw error;
   }
@@ -581,6 +592,7 @@ export class WifAdapter implements WalletAdapter {
         );
       }
 
+      const wif = this.wif;
       const finalTransaction = createTransaction(sdk, {
         script: invocation.script,
         signers: invocation.txSigners,
@@ -588,13 +600,29 @@ export class WifAdapter implements WalletAdapter {
         networkFee,
         validUntilBlock,
         networkMagic,
-        wif: this.wif,
+        wif,
       });
       const txBase64 = serializeTransactionBase64(sdk, finalTransaction);
       const txid = await relaySignedTransaction(
         network,
         txBase64,
         finalTransaction.hash(),
+        async () => {
+          const freshBlockCount = await neoRpc<number>(network, "getblockcount");
+          const rebuilt = createTransaction(sdk, {
+            script: invocation.script,
+            signers: invocation.txSigners,
+            systemFee,
+            networkFee,
+            validUntilBlock: Number(freshBlockCount) + VALID_UNTIL_BLOCK_DELTA,
+            networkMagic,
+            wif,
+          });
+          return {
+            txBase64: serializeTransactionBase64(sdk, rebuilt),
+            fallbackTxid: rebuilt.hash(),
+          };
+        },
       );
 
       return {
@@ -725,6 +753,7 @@ export class WifAdapter implements WalletAdapter {
         );
       }
 
+      const wif = this.wif;
       const finalTransaction = createTransaction(sdk, {
         script,
         signers: txSigners,
@@ -732,13 +761,29 @@ export class WifAdapter implements WalletAdapter {
         networkFee,
         validUntilBlock,
         networkMagic,
-        wif: this.wif,
+        wif,
       });
       const txBase64 = serializeTransactionBase64(sdk, finalTransaction);
       const txid = await relaySignedTransaction(
         network,
         txBase64,
         finalTransaction.hash(),
+        async () => {
+          const freshBlockCount = await neoRpc<number>(network, "getblockcount");
+          const rebuilt = createTransaction(sdk, {
+            script,
+            signers: txSigners,
+            systemFee,
+            networkFee,
+            validUntilBlock: Number(freshBlockCount) + VALID_UNTIL_BLOCK_DELTA,
+            networkMagic,
+            wif,
+          });
+          return {
+            txBase64: serializeTransactionBase64(sdk, rebuilt),
+            fallbackTxid: rebuilt.hash(),
+          };
+        },
       );
 
       return {
