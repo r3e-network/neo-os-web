@@ -278,6 +278,50 @@ export const restDailyAnalytics = (network: Network, limit = 7) =>
 
 // ─── Convenience: wait for tx confirmation ──────────────────────────────
 
+export type TransactionWaitStatus = "confirmed" | "timeout" | "unreachable";
+
+export interface TransactionWaitResult {
+  status: TransactionWaitStatus;
+  events: ContractEvent[] | null;
+}
+
+/**
+ * Status-aware variant of {@link waitForTransaction}: distinguishes "the
+ * transaction never appeared before the deadline" (timeout) from "the indexer
+ * could not be queried at all" (unreachable), so callers can fall back to a
+ * fixed settle delay only in the latter case.
+ *
+ * Defaults: ~2 Neo N3 blocks (~15s each) total, polled every 3s.
+ */
+export async function waitForTransactionStatus(
+  network: Network,
+  txid: string,
+  contractHash: string,
+  timeoutMs = 30_000,
+  pollIntervalMs = 3_000,
+): Promise<TransactionWaitResult> {
+  const deadline = Date.now() + timeoutMs;
+  let reachable = false;
+  for (;;) {
+    try {
+      const events = await getContractEvents(network, contractHash, {
+        tx_hash: txid,
+        limit: 10,
+      });
+      reachable = true;
+      if (events.length > 0) return { status: "confirmed", events };
+    } catch (e) {
+      console.warn("[n3index] waitForTransactionStatus poll failed:", e);
+      // A failure before any successful poll means the indexer is down —
+      // bail out so the caller can use its fixed-delay fallback instead of
+      // stalling here for the full deadline.
+      if (!reachable) return { status: "unreachable", events: null };
+    }
+    if (Date.now() >= deadline) return { status: "timeout", events: null };
+    await new Promise((r) => setTimeout(r, pollIntervalMs));
+  }
+}
+
 /**
  * Poll N3Index until a transaction appears in the index.
  * More reliable than RPC polling since N3Index decodes events.
@@ -288,20 +332,13 @@ export async function waitForTransaction(
   contractHash: string,
   timeoutMs = 10_000,
 ): Promise<ContractEvent[] | null> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    try {
-      const events = await getContractEvents(network, contractHash, {
-        tx_hash: txid,
-        limit: 10,
-      });
-      if (events.length > 0) return events;
-    } catch (e) {
-      console.warn("[n3index] waitForTransaction poll failed:", e);
-    }
-    await new Promise((r) => setTimeout(r, 3000));
-  }
-  return null;
+  const { events } = await waitForTransactionStatus(
+    network,
+    txid,
+    contractHash,
+    timeoutMs,
+  );
+  return events;
 }
 
 // ─── Export base URL for direct use ──────────────────────────────────────
@@ -330,4 +367,5 @@ export default {
   getNep17Balances,
   restDailyAnalytics,
   waitForTransaction,
+  waitForTransactionStatus,
 };

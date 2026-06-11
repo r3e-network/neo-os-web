@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -236,6 +236,45 @@ describe("Milestone Escrow PlayArea", () => {
         milestones: [{ amount: "5" }],
       }),
     );
+  });
+
+  it("keeps the form open and intact when createEscrow fails (dispatch resolves false)", async () => {
+    // notify.guard swallows the failure into an error toast and the action
+    // resolves false — the form must keep the user's input for retry.
+    const dispatchMock = vi.fn(async () => false);
+    render(
+      <PlayArea
+        t={t}
+        state={state()}
+        dispatch={dispatchMock as unknown as (name: string, ...args: unknown[]) => Promise<void>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
+    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
+    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => expect(dispatchMock).toHaveBeenCalled());
+    expect((screen.getByLabelText("Beneficiary") as HTMLInputElement).value).toBe(BENEFICIARY);
+  });
+
+  it("closes and resets the form only on a real createEscrow success", async () => {
+    const dispatchMock = vi.fn(async () => true);
+    render(
+      <PlayArea
+        t={t}
+        state={state()}
+        dispatch={dispatchMock as unknown as (name: string, ...args: unknown[]) => Promise<void>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^Create Escrow$/i }));
+    fireEvent.change(screen.getByLabelText("Beneficiary"), { target: { value: BENEFICIARY } });
+    fireEvent.change(screen.getByLabelText("Milestone 1"), { target: { value: "1.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => expect(screen.queryByLabelText("Beneficiary")).toBeNull());
   });
 
   it("dispatches approve, cancel, and claim actions from the ledger", () => {

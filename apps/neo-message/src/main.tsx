@@ -15,6 +15,7 @@ import {
   decodeMessageStruct,
   utf8ToBytes,
 } from "@shared/utils/evm-chain";
+import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
 import { encryptTextWithOraclePublicKey } from "@shared/utils/morpheus-confidential-envelope";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
@@ -41,7 +42,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 let cachedOraclePublicKey = "";
 async function getOraclePublicKey(): Promise<string> {
   if (cachedOraclePublicKey) return cachedOraclePublicKey;
-  const res = await fetch(`${ORACLE_EDGE_BASE}/oracle/public-key`, {
+  const res = await fetchWithTimeout(`${ORACLE_EDGE_BASE}/oracle/public-key`, {
     headers: { accept: "application/json" },
   });
   if (!res.ok) throw new Error(`oracle public key unavailable (${res.status})`);
@@ -199,7 +200,7 @@ defineMiniApp({
         const issuedAt = Math.floor(Date.now() / 1000);
         const statement = buildRevealStatement(NEO_X_CHAIN_ID, MESSAGE_EVM_ADDRESS, msg.id, issuedAt);
         const signature = await evmPersonalSign(statement);
-        const res = await fetch(`${ORACLE_EDGE_BASE}/oracle/message-reveal`, {
+        const res = await fetchWithTimeout(`${ORACLE_EDGE_BASE}/oracle/message-reveal`, {
           method: "POST",
           headers: { "content-type": "application/json", accept: "application/json" },
           body: JSON.stringify({ chain: "neox", messageId: msg.id, signature, issuedAt }),

@@ -108,18 +108,26 @@ function toUint256Hex(value: number | bigint | string): string {
   return BigInt(value).toString(16).padStart(64, "0");
 }
 
-/** Convert a decimal GAS amount (e.g. "0.10") to wei (18 decimals) as a bigint. */
+/** Convert a decimal GAS amount (e.g. "0.10") to wei (18 decimals) as a bigint.
+ * Accepts canonical non-negative decimals only: signs (a negative would silently
+ * flip positive), exponent forms ("1e-7"), multi-dot strings, and other
+ * malformed input throw a descriptive error instead of mis-scaling. */
 export function gasToWei(amount: string | number): bigint {
-  const [whole, frac = ""] = String(amount).trim().split(".");
+  const text = String(amount).trim();
+  if (!/^\d+(\.\d+)?$/.test(text)) {
+    throw new Error(`Invalid GAS amount: "${text}"`);
+  }
+  const [whole, frac = ""] = text.split(".");
   const fracPadded = (frac + "0".repeat(18)).slice(0, 18);
   return BigInt(whole || "0") * 10n ** 18n + BigInt(fracPadded || "0");
 }
 
 // ── richer ABI codec (address / uint / dynamic bytes / tuple) ────────────────
 // Beyond the uint-only dice path. Still dependency-free (no web3 bundle);
-// covered by evm-chain.test.mjs against ethers reference vectors. Supports the
-// exact shapes the Neo Message lane needs: sendMessage(address,bytes,uint64),
-// inboxOf(address)->uint256[], getMessage(uint256)->struct.
+// covered by apps/shared/test/evm-chain.abi.test.ts against ethers reference
+// vectors. Supports the exact shapes the Neo Message lane needs:
+// sendMessage(address,bytes,uint64), inboxOf(address)->uint256[],
+// getMessage(uint256)->struct.
 
 function stripHex(value: string): string {
   return String(value || "").replace(/^0x/, "");
@@ -195,7 +203,15 @@ export interface DecodedEvmMessage {
 /** Decode getMessage(uint256) -> (address,address,bytes,uint64,uint64,bool,string). */
 export function decodeMessageStruct(returnHex: string): DecodedEvmMessage {
   const h = stripHex(returnHex);
+  // An eth_call against a wrong or non-contract address returns "0x"; fail
+  // with context instead of a raw "Cannot convert 0x to a BigInt".
+  if (h.length < 64) {
+    throw new Error("decodeMessageStruct: empty or truncated ABI return");
+  }
   const base = Number(BigInt("0x" + h.slice(0, 64))) * 2; // tuple offset (hex chars)
+  if (h.length < base + 7 * 64) {
+    throw new Error("decodeMessageStruct: truncated ABI return");
+  }
   const word = (i: number) => h.slice(base + i * 64, base + (i + 1) * 64);
   const readDyn = (relOffsetBytes: number): Uint8Array => {
     const p = base + relOffsetBytes * 2;

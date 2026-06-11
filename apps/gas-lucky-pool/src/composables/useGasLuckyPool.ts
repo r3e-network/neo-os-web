@@ -1,4 +1,5 @@
 import { createDerived, createObservable } from "@shared/react/context";
+import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
 import {
   formatGas,
   formatHash,
@@ -525,7 +526,7 @@ export function useGasLuckyPool({
       network: launchContext.network ?? "mainnet",
     });
     addClaimIdentity(search, identity);
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `/api/onegate-vault/status?${search.toString()}`,
     );
     const body = await response.json().catch(() => ({}));
@@ -572,7 +573,7 @@ export function useGasLuckyPool({
         network: launchContext.network ?? "mainnet",
       };
       addClaimIdentity(request, identity);
-      const response = await fetch("/api/onegate-vault/claim", {
+      const response = await fetchWithTimeout("/api/onegate-vault/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),

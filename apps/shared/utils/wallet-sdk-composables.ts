@@ -7,6 +7,7 @@ import {
   N3INDEX_API,
 } from "../constants/rpc";
 import { MiniAppError } from "./errorHandling";
+import { fetchWithTimeout } from "./fetch-timeout";
 import type {
   ContractEvent,
   EventsListParams,
@@ -34,6 +35,7 @@ export type WalletSdkComposableDeps = {
 async function fetchEvents(
   params: EventsListParams,
   platformApi: string,
+  signal?: AbortSignal,
 ): Promise<EventsListResponse> {
   if (!platformApi) {
     return { events: [], total: 0 };
@@ -45,8 +47,9 @@ async function fetchEvents(
   if (params.offset) query.set("offset", String(params.offset));
   if (params.tx_hash) query.set("tx_hash", params.tx_hash);
 
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `${platformApi}/api/activity/events?${query.toString()}`,
+    { signal },
   );
   if (!res.ok) return { events: [], total: 0 };
   try {
@@ -107,7 +110,7 @@ export function createGasSponsorComposable(deps: WalletSdkComposableDeps) {
           resets_at: "",
         };
       }
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `${platformApi}/api/gas-sponsor/eligibility?address=${addr}`,
       );
       if (!res.ok)
@@ -160,7 +163,7 @@ export function createGasSponsorComposable(deps: WalletSdkComposableDeps) {
           undefined,
           errorCodes.WALLET_NOT_CONNECTED,
         );
-      const res = await fetch(`${platformApi}/api/gas-sponsor/request`, {
+      const res = await fetchWithTimeout(`${platformApi}/api/gas-sponsor/request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: addr, amount }),
@@ -294,6 +297,7 @@ export function createEventsComposable(deps: WalletSdkComposableDeps) {
    */
   const list = async (
     params: EventsListParams,
+    signal?: AbortSignal,
   ): Promise<EventsListResponse> => {
     // Try N3Index first (decoded events, more reliable)
     if (params.app_id) {
@@ -323,7 +327,7 @@ export function createEventsComposable(deps: WalletSdkComposableDeps) {
           url.searchParams.set("offset", String(params.offset));
         if (params.tx_hash) url.searchParams.set("tx_hash", params.tx_hash);
 
-        const res = await fetch(url.toString());
+        const res = await fetchWithTimeout(url.toString(), { signal });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) {
@@ -349,7 +353,7 @@ export function createEventsComposable(deps: WalletSdkComposableDeps) {
     }
 
     // Fallback to platform API
-    return fetchEvents(params, platformApi);
+    return fetchEvents(params, platformApi, signal);
   };
 
   /**
@@ -366,30 +370,42 @@ export function createEventsComposable(deps: WalletSdkComposableDeps) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       if (signal?.aborted) return null;
-      const result = await list({
-        app_id: appId,
-        event_name: eventName,
-        tx_hash: txHash,
-        limit: 1,
-      });
+      let result: EventsListResponse;
+      try {
+        result = await list(
+          {
+            app_id: appId,
+            event_name: eventName,
+            tx_hash: txHash,
+            limit: 1,
+          },
+          signal,
+        );
+      } catch (error) {
+        // An aborted in-flight fetch keeps the null-on-abort contract;
+        // genuine failures still surface to the caller.
+        if (signal?.aborted) return null;
+        throw error;
+      }
       if (result.events.length > 0) return result.events[0] ?? null;
-      // Wait 2500ms or until signal fires, whichever comes first
-      let aborted = false;
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const onAbort = () => {
-        aborted = true;
-      };
-      signal?.addEventListener("abort", onAbort, { once: true });
-      await new Promise((r) => {
-        timer = setTimeout(r, 2500);
-        const onAbortResolve = () => {
-          aborted = true;
-          r(null);
+      // Wait 2500ms or until signal fires, whichever comes first. The abort
+      // listener is removed when the timer wins so repeated polls cannot
+      // pile listeners onto a long-lived signal.
+      const aborted = await new Promise<boolean>((resolve) => {
+        if (signal?.aborted) {
+          resolve(true);
+          return;
+        }
+        const onAbort = () => {
+          clearTimeout(timer);
+          resolve(true);
         };
-        signal?.addEventListener("abort", onAbortResolve, { once: true });
+        const timer = setTimeout(() => {
+          signal?.removeEventListener("abort", onAbort);
+          resolve(false);
+        }, 2500);
+        signal?.addEventListener("abort", onAbort, { once: true });
       });
-      if (timer !== undefined) clearTimeout(timer);
-      signal?.removeEventListener("abort", onAbort);
       if (aborted) return null;
     }
     return null;

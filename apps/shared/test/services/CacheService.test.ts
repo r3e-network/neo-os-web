@@ -120,6 +120,29 @@ describe("CacheService", () => {
     expect(cache.get("key")).toBe("updated");
   });
 
+  describe("has()", () => {
+    it("should return false for missing keys", () => {
+      expect(cache.has("nonexistent")).toBe(false);
+    });
+
+    it("should distinguish a cached null from a miss", () => {
+      cache.set("empty", null, 1000);
+
+      expect(cache.has("empty")).toBe(true);
+      expect(cache.get("empty")).toBeNull();
+      expect(cache.has("never-set")).toBe(false);
+    });
+
+    it("should respect TTL expiry", () => {
+      cache.set("short-lived", null, 1000);
+      expect(cache.has("short-lived")).toBe(true);
+
+      vi.advanceTimersByTime(1001);
+
+      expect(cache.has("short-lived")).toBe(false);
+    });
+  });
+
   describe("localStorage persistence", () => {
     it("should persist and restore values", () => {
       cache.persist("prefs", { theme: "dark" });
