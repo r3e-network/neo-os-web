@@ -65,17 +65,17 @@
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
+import { gasToBaseUnits, neoToInteger } from "@shared/utils/amounts";
+import { eventValue } from "@shared/utils/chain-events";
 import { formatNum } from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
+import { combineBusy } from "@shared/utils/observables";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 // ============================================================================
 // Constants
 // ============================================================================
-
-/** GAS base units per whole GAS (1e8). */
-const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
 
 /** Minimum bid in GAS (mirrors the contract's MIN_BID = 1 GAS). */
 export const MIN_BID = 1;
@@ -100,33 +100,8 @@ function errorMessage(error: unknown): string {
 // ============================================================================
 // Amount helpers (NEO integer vs GAS base units kept strictly separate)
 // ============================================================================
-
-/**
- * Convert a human-entered GAS amount string to contract BASE UNITS without
- * floats. Accepts up to 8 decimal places; returns 0n for any invalid /
- * non-positive input so callers can reject before touching the chain. This is
- * the SINGLE GAS scaling point — the contract scales nothing.
- */
-const gasToBaseUnits = (raw: string): bigint => {
-  const trimmed = String(raw ?? "").trim();
-  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
-  const [whole = "0", fraction = ""] = trimmed.split(".");
-  const paddedFraction = (fraction + "00000000").slice(0, 8);
-  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
-  return base > 0n ? base : 0n;
-};
-
-/**
- * Parse a WHOLE NEO amount string to an integer bigint. NEO is INDIVISIBLE, so a
- * fractional value is rejected (returns 0n) — it is NEVER scaled by 1e8. Returns
- * 0n for any invalid / non-positive input.
- */
-const neoToInteger = (raw: string): bigint => {
-  const trimmed = String(raw ?? "").trim();
-  if (!/^\d+$/.test(trimmed)) return 0n;
-  const n = BigInt(trimmed);
-  return n > 0n ? n : 0n;
-};
+// gasToBaseUnits / neoToInteger come from @shared/utils/amounts — the SINGLE
+// GAS scaling point (the contract scales nothing); NEO is never ×1e8.
 
 /** Convert a GAS base-unit Integer to whole GAS as a number (÷ 1e8). */
 const gasFromBaseUnits = (base: bigint): number => Number(base) / 1e8;
@@ -143,20 +118,6 @@ const isZeroAddress = (value: string): boolean => {
 function addressMatches(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false;
   return a === b || a.toLowerCase() === b.toLowerCase();
-}
-
-/** Read a single state slot from a contract event payload (positional). */
-function eventValue(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
 }
 
 // ============================================================================
@@ -215,18 +176,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
   const isProcessing = createObservable(false);
   const address = createObservable("");
 
-  const isBusy: Observable<boolean> = {
-    get: () => isProcessing.get() || dataLoading.get(),
-    set: () => {},
-    subscribe: (fn) => {
-      const u1 = isProcessing.subscribe(fn);
-      const u2 = dataLoading.subscribe(fn);
-      return () => {
-        u1();
-        u2();
-      };
-    },
-  };
+  const isBusy: Observable<boolean> = combineBusy(isProcessing, dataLoading);
 
   let isMounted = true;
 

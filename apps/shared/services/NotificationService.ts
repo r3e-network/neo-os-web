@@ -48,6 +48,17 @@ export interface Notification {
 /** Well-known event name used on the EventBus */
 export const NOTIFICATION_EVENT = "platform:notification";
 
+/**
+ * Discriminated result returned by {@link NotificationService.guardResult}.
+ *
+ * The `ok` flag lets callers gate post-success steps (form resets, modal
+ * closes, counters) explicitly instead of inferring success from the
+ * truthiness of the wrapped value — which breaks for void/falsy results.
+ */
+export type GuardResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: unknown };
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -90,10 +101,44 @@ export class NotificationService {
   }
 
   /**
+   * Wrap an async operation with automatic error notification, returning an
+   * explicit `{ok}` discriminator.
+   *
+   * On success, optionally shows a success toast (if `successKey` is provided)
+   * and returns `{ ok: true, value }`. On failure, shows an error toast and
+   * returns `{ ok: false, error }` instead of throwing — so callers can gate
+   * post-success steps on `result.ok` without re-implementing try/catch.
+   *
+   * @param fn         - The async operation to execute
+   * @param successKey - Optional i18n key for the success message
+   * @param errorKey   - Optional i18n key used as fallback when the error is not an Error instance
+   * @returns `{ ok: true, value }` on success, `{ ok: false, error }` on failure
+   */
+  async guardResult<T>(
+    fn: () => Promise<T>,
+    successKey?: string,
+    errorKey?: string,
+  ): Promise<GuardResult<T>> {
+    try {
+      const value = await fn();
+      if (successKey) this.success(successKey);
+      return { ok: true, value };
+    } catch (e) {
+      this.error(e, errorKey);
+      return { ok: false, error: e };
+    }
+  }
+
+  /**
    * Wrap an async operation with automatic error notification.
    *
    * On success, optionally shows a success toast (if `successKey` is provided).
    * On failure, shows an error toast and returns `undefined` instead of throwing.
+   *
+   * Existing callers gate on the truthiness of the returned value (e.g.
+   * gasbox's `pulled === true`), so this legacy contract is frozen — prefer
+   * {@link guardResult} when the caller needs to tell "fn resolved with a
+   * falsy/void value" apart from "fn threw".
    *
    * @param fn         - The async operation to execute
    * @param successKey - Optional i18n key for the success message
@@ -105,14 +150,8 @@ export class NotificationService {
     successKey?: string,
     errorKey?: string,
   ): Promise<T | undefined> {
-    try {
-      const result = await fn();
-      if (successKey) this.success(successKey);
-      return result;
-    } catch (e) {
-      this.error(e, errorKey);
-      return undefined;
-    }
+    const result = await this.guardResult(fn, successKey, errorKey);
+    return result.ok ? result.value : undefined;
   }
 
   // -------------------------------------------------------------------------

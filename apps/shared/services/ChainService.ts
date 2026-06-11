@@ -254,11 +254,13 @@ export class ChainService {
    * TRANSACTION_CONFIRMED.
    */
   async invokeEvmWithValue(call: EvmCall): Promise<TxResult> {
-    const { txid, eventId } = await evmInvoke(call);
-    this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation: call.selector });
-    const event = eventId ? { id: eventId } : undefined;
-    if (event) this.events.emit(EventBus.TRANSACTION_CONFIRMED, { txid, event });
-    return { txid, event, success: Boolean(txid) };
+    return this.withProcessing(async () => {
+      const { txid, eventId } = await evmInvoke(call);
+      this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation: call.selector });
+      const event = eventId ? { id: eventId } : undefined;
+      if (event) this.events.emit(EventBus.TRANSACTION_CONFIRMED, { txid, event });
+      return { txid, event, success: Boolean(txid) };
+    });
   }
 
   // -- Contract address -----------------------------------------------------
@@ -273,6 +275,28 @@ export class ChainService {
   /** Whether a write operation is currently in flight. */
   get isProcessing(): RefCompatObservable<boolean> {
     return this.isProcessingObservable;
+  }
+
+  /** Re-entrancy depth for nested write paths (e.g. prepayAndInvoke → invoke). */
+  private processingDepth = 0;
+
+  /**
+   * Toggle {@link isProcessing} around a write operation. try/finally
+   * guarantees the flag resets even when the write throws; the depth counter
+   * keeps it true across nested writes (prepayAndInvoke issues two invokes)
+   * instead of flickering false between steps.
+   */
+  private async withProcessing<T>(fn: () => Promise<T>): Promise<T> {
+    this.processingDepth += 1;
+    this.isProcessingObservable.set(true);
+    try {
+      return await fn();
+    } finally {
+      this.processingDepth -= 1;
+      if (this.processingDepth === 0) {
+        this.isProcessingObservable.set(false);
+      }
+    }
   }
 
   /**
@@ -357,22 +381,24 @@ export class ChainService {
    * Emits TRANSACTION_SENT and optionally waits for an on-chain event.
    */
   async invoke(operation: string, args: ContractArg[], options?: InvokeOptions): Promise<TxResult> {
-    const { txid } = await this.interaction.invokeDirectly(
-      operation,
-      args as { type: string; value: string | number | boolean }[],
-      options?.scriptHash,
-      options?.signers,
-    );
+    return this.withProcessing(async () => {
+      const { txid } = await this.interaction.invokeDirectly(
+        operation,
+        args as { type: string; value: string | number | boolean }[],
+        options?.scriptHash,
+        options?.signers,
+      );
 
-    this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation });
+      this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation });
 
-    let event: unknown;
-    if (options?.waitForEvent && txid) {
-      event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
-      this.emitEventWaitOutcome(txid, operation, event);
-    }
+      let event: unknown;
+      if (options?.waitForEvent && txid) {
+        event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
+        this.emitEventWaitOutcome(txid, operation, event);
+      }
 
-    return { txid, event, success: Boolean(txid) };
+      return { txid, event, success: Boolean(txid) };
+    });
   }
 
   /**
@@ -391,26 +417,28 @@ export class ChainService {
     args: ContractArg[],
     options?: InvokeOptions,
   ): Promise<TxResult> {
-    const { txid } = await this.interaction.invokeWithDirectPrepaidGas(
-      amount,
-      memo,
-      operation,
-      args as { type: string; value: string | number | boolean }[],
-      options?.scriptHash,
-      undefined,
-      options?.signers,
-      options?.onPaymentSent,
-    );
+    return this.withProcessing(async () => {
+      const { txid } = await this.interaction.invokeWithDirectPrepaidGas(
+        amount,
+        memo,
+        operation,
+        args as { type: string; value: string | number | boolean }[],
+        options?.scriptHash,
+        undefined,
+        options?.signers,
+        options?.onPaymentSent,
+      );
 
-    this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation });
+      this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation });
 
-    let event: unknown;
-    if (options?.waitForEvent && txid) {
-      event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
-      this.emitEventWaitOutcome(txid, operation, event);
-    }
+      let event: unknown;
+      if (options?.waitForEvent && txid) {
+        event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
+        this.emitEventWaitOutcome(txid, operation, event);
+      }
 
-    return { txid, event, success: Boolean(txid) };
+      return { txid, event, success: Boolean(txid) };
+    });
   }
 
   // -- Event watching -------------------------------------------------------
@@ -528,40 +556,42 @@ export class ChainService {
     args: ContractArg[],
     options?: InvokeOptions,
   ): Promise<TxResult> {
-    await this.ensureWallet();
+    return this.withProcessing(async () => {
+      await this.ensureWallet();
 
-    // Step 1: Transfer GAS to contract
-    const transfer = await this.invoke(
-      "transfer",
-      [
-        { type: "Hash160", value: this.address.get()! },
-        { type: "Hash160", value: this.contractAddress.get()! },
-        { type: "Integer", value: gasAmount },
-        { type: "String", value: memo },
-      ],
-      { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-    );
+      // Step 1: Transfer GAS to contract
+      const transfer = await this.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: this.address.get()! },
+          { type: "Hash160", value: this.contractAddress.get()! },
+          { type: "Integer", value: gasAmount },
+          { type: "String", value: memo },
+        ],
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+      );
 
-    // Step 2: Wait for the credit to land in a block (indexer poll, ~2 blocks
-    // max). The legacy fixed sleep remains only when the indexer is
-    // unreachable — a blind sleep cannot guarantee the deposit executed
-    // before the consuming call.
-    const settlement = await waitForDepositConfirmation(transfer.txid, {
-      network: this.indexerNetwork(),
-    });
-    if (settlement === "unreachable") {
-      await new Promise((r) => setTimeout(r, TIME_CONSTANTS.SECOND_MS * 4));
-    }
-
-    // Step 3: Invoke the target operation
-    try {
-      return await this.invoke(operation, args, options);
-    } catch (error: unknown) {
-      if (settlement === "confirmed") {
-        throw new DepositConfirmedActionFailedError(operation, transfer.txid, error);
+      // Step 2: Wait for the credit to land in a block (indexer poll, ~2 blocks
+      // max). The legacy fixed sleep remains only when the indexer is
+      // unreachable — a blind sleep cannot guarantee the deposit executed
+      // before the consuming call.
+      const settlement = await waitForDepositConfirmation(transfer.txid, {
+        network: this.indexerNetwork(),
+      });
+      if (settlement === "unreachable") {
+        await new Promise((r) => setTimeout(r, TIME_CONSTANTS.SECOND_MS * 4));
       }
-      throw error;
-    }
+
+      // Step 3: Invoke the target operation
+      try {
+        return await this.invoke(operation, args, options);
+      } catch (error: unknown) {
+        if (settlement === "confirmed") {
+          throw new DepositConfirmedActionFailedError(operation, transfer.txid, error);
+        }
+        throw error;
+      }
+    });
   }
 
   /**

@@ -14,6 +14,7 @@ import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { ClipboardService } from "@shared/services";
 import { buildMiniAppUrl } from "@shared/utils/miniapp-routes";
 import { getLaunchParam, readMiniAppLaunchContext } from "@shared/utils/launch-params";
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt, parseBool, encodeTokenId } from "@shared/utils/parsers";
 import type { CertificateItem, TemplateItem } from "../types";
@@ -118,17 +119,6 @@ function normalizeHash160(value: unknown): string {
 
 function txidFrom(result: TxResult | null | undefined): string {
   return stringValue(result?.txid);
-}
-
-function eventValue(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (!Array.isArray(state)) return undefined;
-  const item = state[index];
-  if (item && typeof item === "object" && "value" in item) {
-    return (item as { value?: unknown }).value;
-  }
-  return item;
 }
 
 function templateFromRecord(record: Record<string, unknown>): TemplateItem | null {

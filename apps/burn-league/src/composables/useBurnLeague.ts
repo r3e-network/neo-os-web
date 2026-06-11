@@ -62,6 +62,8 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
+import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
+import { eventValue } from "@shared/utils/chain-events";
 import { formatNumber } from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
@@ -80,9 +82,6 @@ const MAX_BURN = 1_000;
 const MIN_BURN_BASE = 1_00000000n;
 const MAX_BURN_BASE = 1000_00000000n;
 
-/** GAS base units per whole GAS (1e8). */
-const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
-
 /** Memo the contract requires on the burn-funding transfer (appId + ":burn"). */
 const BURN_MEMO = "miniapp-burnleague:burn";
 
@@ -99,21 +98,8 @@ function errorMessage(error: unknown) {
 // ============================================================================
 // Amount helpers
 // ============================================================================
-
-/**
- * Convert a human-entered GAS amount string to contract BASE UNITS without
- * floats. Accepts up to 8 decimal places; returns 0n for any invalid /
- * non-positive input so callers can reject before touching the chain. This is
- * the SINGLE scaling point — the contract scales nothing.
- */
-const toBaseUnits = (raw: string): bigint => {
-  const trimmed = String(raw ?? "").trim();
-  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
-  const [whole = "0", fraction = ""] = trimmed.split(".");
-  const paddedFraction = (fraction + "00000000").slice(0, 8);
-  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
-  return base > 0n ? base : 0n;
-};
+// toBaseUnits (gasToBaseUnits) comes from @shared/utils/amounts — the SINGLE
+// scaling point; the contract scales nothing.
 
 /** Convert a contract base-unit Integer to whole GAS as a number (÷ 1e8). */
 const fromBaseUnits = (base: bigint): number => Number(base) / 1e8;
@@ -129,20 +115,6 @@ const isZeroAddress = (value: string): boolean => {
   if (/^0x0{40}$/i.test(v)) return true;
   return false;
 };
-
-/** Read a single state slot from a contract event payload (positional). */
-function eventValue(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
-}
 
 // ============================================================================
 // Types

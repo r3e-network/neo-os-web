@@ -125,18 +125,7 @@ export function parsePool(id: string, raw: unknown): GasLuckyPool | null {
   };
 }
 
-export function eventValue(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
-}
+export { eventValue } from "@shared/utils/chain-events";
 
 export function isWalletUnavailableError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? "");

@@ -43,6 +43,7 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
+import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { addressToScriptHash, normalizeScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -54,9 +55,6 @@ import type { StreamItem, StreamStatus } from "../types";
 
 const NEO_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.NEO_HASH);
 const GAS_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.GAS_HASH);
-
-/** GAS base units per whole GAS (1e8). */
-const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
 
 /** Per-asset minimum total amount in BASE UNITS. */
 const MIN_NEO_BASE = 1n; // 1 NEO (indivisible)
@@ -82,33 +80,8 @@ const assetHash = (asset: "NEO" | "GAS"): string =>
 // ============================================================================
 // Amount helpers
 // ============================================================================
-
-/**
- * Convert a human-entered amount string to contract BASE UNITS for an asset.
- *
- * GAS: value * 1e8, up to 8 decimal places, scaled without floats. NEO: the
- * integer token count with NO scaling — fractional NEO is rejected (NEO is
- * indivisible). Returns 0n for any invalid / non-positive input so callers can
- * reject before touching the chain.
- */
-const toBaseUnits = (raw: string, asset: "NEO" | "GAS"): bigint => {
-  const trimmed = String(raw ?? "").trim();
-  if (!trimmed) return 0n;
-
-  if (asset === "NEO") {
-    // Indivisible: reject anything that is not a positive integer.
-    if (!/^\d+$/.test(trimmed)) return 0n;
-    const n = BigInt(trimmed);
-    return n > 0n ? n : 0n;
-  }
-
-  // GAS: accept up to 8 decimal places, scale to base units without floats.
-  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
-  const [whole = "0", fraction = ""] = trimmed.split(".");
-  const paddedFraction = (fraction + "00000000").slice(0, 8);
-  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
-  return base > 0n ? base : 0n;
-};
+// toBaseUnits (amountToBaseUnits) comes from @shared/utils/amounts — GAS is
+// scaled ×1e8 without floats; NEO is the integer token count (never scaled).
 
 // ============================================================================
 // Types

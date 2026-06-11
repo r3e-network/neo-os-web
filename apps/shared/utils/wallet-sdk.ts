@@ -10,9 +10,11 @@
  */
 import { ref } from "vue";
 import {
+  GAS_HASH,
   getMiniAppContractHash,
   getNetwork,
   MAINNET_MAGIC,
+  NEO_HASH,
   TESTNET_MAGIC,
 } from "../constants/rpc";
 import { MiniAppError } from "./errorHandling";
@@ -682,9 +684,6 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
-    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-    const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-
     const contractHash =
       asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
 
@@ -707,8 +706,6 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
-    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-    const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
     const contractHash =
       asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
 
@@ -773,6 +770,15 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       manifest?.contracts?.[network] ||
       "";
     if (configured) return configured;
+
+    // Manifest-backed registry lookup before the URL fallback (matches the
+    // events lane): a manifest without a contracts entry still resolves via
+    // the generated MINIAPP_CONTRACTS registry keyed by its app id.
+    const manifestAppId = String(manifest?.id ?? "").trim();
+    const registryHash = manifestAppId
+      ? getMiniAppContractHash(manifestAppId, network)
+      : "";
+    if (registryHash) return registryHash;
 
     const fallbackAppId =
       typeof window !== "undefined"

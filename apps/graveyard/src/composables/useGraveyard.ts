@@ -50,6 +50,7 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import type { HistoryItem } from "../types";
@@ -120,23 +121,6 @@ const formatGasAmount = (base: bigint): string => {
   if (frac === 0n) return whole.toString();
   const fracStr = frac.toString().padStart(8, "0").replace(/0+$/, "");
   return `${whole.toString()}.${fracStr}`;
-};
-
-/**
- * Read a single positional state slot from a contract event payload. NeoVM
- * event states are `{ state: [{ type, value }, ...] }`.
- */
-const eventValue = (entry: unknown, index: number): unknown => {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
 };
 
 /**

@@ -238,3 +238,75 @@ describe("ChainService.prepayAndInvoke deposit settlement", () => {
     });
   });
 });
+
+describe("ChainService.isProcessing write-in-flight flag", () => {
+  it("is true while invoke() is in flight and false before/after", async () => {
+    // withValueCompat augments the interaction's observable in place, so
+    // reading interaction.isProcessing inside the mock sees the service's writes.
+    const interaction = makeInteraction();
+    const seenDuring: boolean[] = [];
+    interaction.invokeDirectly = vi.fn(async () => {
+      seenDuring.push(interaction.isProcessing.get());
+      return { txid: "0xtx", tx: {} };
+    });
+    const { chain } = makeChain(interaction);
+
+    expect(chain.isProcessing.get()).toBe(false);
+    await chain.invoke("claim", []);
+
+    expect(seenDuring).toEqual([true]);
+    expect(chain.isProcessing.get()).toBe(false);
+  });
+
+  it("resets to false when invoke() throws (try/finally)", async () => {
+    const interaction = makeInteraction({
+      invokeDirectly: vi.fn(async () => {
+        throw new Error("wallet rejected");
+      }),
+    });
+    const { chain } = makeChain(interaction);
+
+    await expect(chain.invoke("claim", [])).rejects.toThrow("wallet rejected");
+    expect(chain.isProcessing.get()).toBe(false);
+  });
+
+  it("toggles around invokeWithPayment() and resets on failure", async () => {
+    const interaction = makeInteraction();
+    const seenDuring: boolean[] = [];
+    interaction.invokeWithDirectPrepaidGas = vi.fn(async () => {
+      seenDuring.push(interaction.isProcessing.get());
+      return { txid: "0xtx", tx: {} };
+    });
+    const { chain } = makeChain(interaction);
+
+    await chain.invokeWithPayment("100000000", "memo", "buy", []);
+    expect(seenDuring).toEqual([true]);
+    expect(chain.isProcessing.get()).toBe(false);
+
+    interaction.invokeWithDirectPrepaidGas = vi.fn(async () => {
+      throw new Error("FAULT");
+    });
+    await expect(
+      chain.invokeWithPayment("100000000", "memo", "buy", []),
+    ).rejects.toThrow("FAULT");
+    expect(chain.isProcessing.get()).toBe(false);
+  });
+
+  it("stays true across prepayAndInvoke's nested steps instead of flickering", async () => {
+    const interaction = makeInteraction();
+    const seenDuring: boolean[] = [];
+    interaction.invokeDirectly = vi.fn(async () => ({ txid: "0xtx", tx: {} }));
+    const { chain } = makeChain(interaction);
+    mocks.waitForDepositConfirmation.mockImplementation(async () => {
+      // Between the transfer invoke and the consuming invoke the flag must
+      // hold — a depth counter, not a plain boolean, guarantees that.
+      seenDuring.push(chain.isProcessing.get());
+      return "confirmed";
+    });
+
+    await chain.prepayAndInvoke("100000000", "stake", "lockStake", []);
+
+    expect(seenDuring).toEqual([true]);
+    expect(chain.isProcessing.get()).toBe(false);
+  });
+});
