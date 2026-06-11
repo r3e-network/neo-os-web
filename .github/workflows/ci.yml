@@ -59,6 +59,12 @@ jobs:
       - name: Run fast host-app tests
         run: npm --prefix platform/host-app test -- --runTestsByPath __tests__/lib/fetch-client.test.ts __tests__/lib/morpheus-endpoints.test.ts --runInBand
 
+      - name: Run deploy-script unit tests
+        run: npm run -s test:deploy-scripts
+
+      - name: Run shared miniapp library tests
+        run: npm run -s test:shared
+
       - name: Typecheck SDK
         run: npm --prefix platform/sdk run typecheck
 
