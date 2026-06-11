@@ -28,6 +28,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static event Action<BigInteger, UInt160, BigInteger> OnBidReclaimed; // epoch, bidder, amount
         [DisplayName("CreditWithdrawn")]
         public static event Action<UInt160, BigInteger> OnCreditWithdrawn; // user, amount
+        [DisplayName("EpochOpened")]
+        public static event Action<BigInteger, BigInteger> OnEpochOpened; // epoch, bidding deadline (ms)
         #endregion
 
         #region Withdraw bid credit
@@ -108,6 +110,15 @@ namespace NeoMiniAppPlatform.Contracts
 
         [Safe]
         public static BigInteger MinStake() => MIN_STAKE;
+
+        /// <summary>Bidding window length opened by an epoch's first bid (ms).</summary>
+        [Safe]
+        public static BigInteger EpochDuration() => EPOCH_DURATION_MS;
+
+        /// <summary>Bidding deadline for an epoch (0 until its first bid lands).</summary>
+        [Safe]
+        public static BigInteger EpochDeadline(BigInteger epoch) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_EPOCH_END, (byte[])(ByteString)epoch));
         #endregion
     }
 }

@@ -37,6 +37,10 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Description", "SoulboundCertificate issues non-transferable NEP-11 badges for permanent credentials.")]
     // Audit fix NEW-H-2: pause-registry isPaused callback (MiniAppBase.ValidateNotGloballyPaused).
     [ContractPermission("*", "isPaused")]
+    // Tri-repo review MP-D-02: the contract implements the full NEP-11 surface but
+    // shipped with an empty supportedStandards manifest, so NEP-11 wallets,
+    // explorers, and indexers never recognized it as an NFT contract. Declare it.
+    [SupportedStandards(NepStandard.Nep11)]
     public partial class MiniAppSoulboundCertificate : MiniAppBase
     {
         #region App Constants
@@ -185,11 +189,17 @@ namespace NeoMiniAppPlatform.Contracts
         /// <param name="issuer">Revoking issuer.</param>
         public delegate void CertificateRevokedHandler(ByteString tokenId, BigInteger templateId, UInt160 issuer);
 
-        /// <summary>Event emitted when token is transferred (enforced non-transferable).</summary>
+        /// <summary>
+        /// Event emitted when token is transferred (enforced non-transferable, so
+        /// only minting raises it, with from = zero). Uses the NEP-11 standard
+        /// shape (from, to, amount, tokenId) so standard indexers track balances;
+        /// amount is always 1 for this non-divisible token.
+        /// </summary>
         /// <param name="from">Previous owner (always zero).</param>
         /// <param name="to">New owner.</param>
+        /// <param name="amount">Token amount (always 1, non-divisible).</param>
         /// <param name="tokenId">Token ID.</param>
-        public delegate void TransferHandler(UInt160 from, UInt160 to, ByteString tokenId);
+        public delegate void TransferHandler(UInt160 from, UInt160 to, BigInteger amount, ByteString tokenId);
         #endregion
 
         #region Events

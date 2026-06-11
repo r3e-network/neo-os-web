@@ -49,6 +49,13 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly BigInteger SCALE = 1_000_000_000_000; // 1e12 reward accumulator scale
         private const string STAKE_MEMO = "govmerc:stake";
         private const string BID_MEMO = "govmerc:bid";
+        // Tri-repo review MP-D-01: the first bid of an epoch opens a fixed bidding
+        // window; settle is only valid once the window has elapsed, so a sniper can
+        // no longer bid MIN_BID and settle in the same block before anyone can
+        // counter-bid (and a flash-staker cannot pick the settle block at will).
+        // Compile-time const like BurnLeague.SEASON_DURATION — short enough for
+        // live validation runs; lengthen for slower production auctions if wanted.
+        private const long EPOCH_DURATION_MS = 300_000; // 5 minutes
         #endregion
 
         #region Storage prefixes
@@ -64,6 +71,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_HIGH_BID = new byte[] { 0x19 };     // + epoch -> top bid
         private static readonly byte[] PREFIX_SETTLE_WINNER = new byte[] { 0x1a };// + epoch -> winner
         private static readonly byte[] PREFIX_SETTLE_AMOUNT = new byte[] { 0x1b };// + epoch -> winning bid
+        private static readonly byte[] PREFIX_EPOCH_END = new byte[] { 0x1c };    // + epoch -> bidding deadline (ms)
         #endregion
 
         #region Deposit (NEO stake / GAS bid credit)
@@ -191,6 +199,21 @@ namespace NeoMiniAppPlatform.Contracts
             StorageContext ctx = Storage.CurrentContext;
             BigInteger epoch = (BigInteger)Storage.Get(ctx, PREFIX_EPOCH);
 
+            // MP-D-01: the first bid opens the epoch's bidding window; later bids
+            // must land strictly before the deadline. Settle only runs after it.
+            byte[] endKey = Helper.Concat(PREFIX_EPOCH_END, (byte[])(ByteString)epoch);
+            BigInteger deadline = (BigInteger)Storage.Get(ctx, endKey);
+            if (deadline == 0)
+            {
+                deadline = Runtime.Time + EPOCH_DURATION_MS;
+                Storage.Put(ctx, endKey, deadline);
+                OnEpochOpened(epoch, deadline);
+            }
+            else
+            {
+                ExecutionEngine.Assert(Runtime.Time < deadline, "bidding closed");
+            }
+
             byte[] creditKey = Helper.Concat(PREFIX_GAS_CREDIT, (byte[])bidder);
             BigInteger credit = (BigInteger)Storage.Get(ctx, creditKey);
             ExecutionEngine.Assert(credit >= addAmount, "insufficient bid credit");
@@ -216,68 +239,6 @@ namespace NeoMiniAppPlatform.Contracts
         }
         #endregion
 
-        #region Settlement
-        /// <summary>
-        /// Resolve the live epoch: the top bidder wins, their bid is paid pro-rata to
-        /// stakers, and the epoch advances. Permissionless. Reverts if there are no bids.
-        /// </summary>
-        public static void SettleEpoch()
-        {
-            StorageContext ctx = Storage.CurrentContext;
-            BigInteger epoch = (BigInteger)Storage.Get(ctx, PREFIX_EPOCH);
-            BigInteger highBid = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_HIGH_BID, (byte[])(ByteString)epoch));
-            ExecutionEngine.Assert(highBid > 0, "no bids to settle");
-            UInt160 winner = (UInt160)Storage.Get(ctx, Helper.Concat(PREFIX_HIGH_BIDDER, (byte[])(ByteString)epoch));
-
-            // Record the resolved epoch (drives the per-epoch winner check in reclaimBid).
-            Storage.Put(ctx, Helper.Concat(PREFIX_SETTLE_WINNER, (byte[])(ByteString)epoch), winner);
-            Storage.Put(ctx, Helper.Concat(PREFIX_SETTLE_AMOUNT, (byte[])(ByteString)epoch), highBid);
-
-            BigInteger total = (BigInteger)Storage.Get(ctx, PREFIX_TOTAL_STAKED);
-            BigInteger distributed = 0;
-            if (total > 0)
-            {
-                BigInteger accRps = (BigInteger)Storage.Get(ctx, PREFIX_ACC_RPS) + highBid * SCALE / total;
-                Storage.Put(ctx, PREFIX_ACC_RPS, accRps);
-                distributed = highBid;
-            }
-            else
-            {
-                // No stakers to reward: refund the winner's bid to their credit.
-                byte[] wc = Helper.Concat(PREFIX_GAS_CREDIT, (byte[])winner);
-                Storage.Put(ctx, wc, (BigInteger)Storage.Get(ctx, wc) + highBid);
-            }
-
-            Storage.Put(ctx, PREFIX_EPOCH, epoch + 1);
-            OnEpochSettled(epoch, winner, highBid, distributed);
-        }
-
-        /// <summary>
-        /// A losing bidder reclaims their bid from a settled epoch (the winner's bid was
-        /// already spent/refunded at settle). Refunds straight to the bidder's wallet.
-        /// </summary>
-        public static BigInteger ReclaimBid(UInt160 bidder, BigInteger epoch)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(bidder), "bidder witness required");
-            StorageContext ctx = Storage.CurrentContext;
-            BigInteger currentEpoch = (BigInteger)Storage.Get(ctx, PREFIX_EPOCH);
-            ExecutionEngine.Assert(epoch < currentEpoch, "epoch not settled");
-
-            ByteString winner = Storage.Get(ctx, Helper.Concat(PREFIX_SETTLE_WINNER, (byte[])(ByteString)epoch));
-            ExecutionEngine.Assert(winner is null || (UInt160)winner != bidder, "winner cannot reclaim");
-
-            byte[] bidKey = Helper.Concat(Helper.Concat(PREFIX_BID, (byte[])(ByteString)epoch), (byte[])bidder);
-            BigInteger amount = (BigInteger)Storage.Get(ctx, bidKey);
-            ExecutionEngine.Assert(amount > 0, "nothing to reclaim");
-            Storage.Delete(ctx, bidKey);
-
-            bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
-                new object[] { Runtime.ExecutingScriptHash, bidder, amount, "" });
-            ExecutionEngine.Assert(ok, "reclaim transfer failed");
-            OnBidReclaimed(epoch, bidder, amount);
-            return amount;
-        }
-        #endregion
-
+        // Settlement (SettleEpoch / ReclaimBid) lives in MiniAppGovMerc.Settlement.cs.
     }
 }
