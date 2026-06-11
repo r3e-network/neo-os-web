@@ -142,4 +142,46 @@ describe("NotificationService", () => {
       expect(result).toEqual({ txid: "0xabc" });
     });
   });
+
+  describe("guardResult()", () => {
+    it("should return {ok: true, value} and emit success on resolve", async () => {
+      const fn = vi.fn().mockResolvedValue("result-data");
+
+      const result = await notify.guardResult(fn, "operationSuccess");
+
+      expect(result).toEqual({ ok: true, value: "result-data" });
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0]).toEqual({
+        message: "translated:operationSuccess",
+        type: "success",
+      });
+    });
+
+    it("should return {ok: false, error} and emit error toast on reject without throwing", async () => {
+      const failure = new Error("Network timeout");
+      const fn = vi.fn().mockRejectedValue(failure);
+
+      const result = await notify.guardResult(fn, "success", "fallbackErr");
+
+      expect(result).toEqual({ ok: false, error: failure });
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0]).toEqual({
+        message: "Network timeout",
+        type: "error",
+      });
+    });
+
+    it("should let callers distinguish a void success from a swallowed failure", async () => {
+      // guard()'s legacy contract cannot tell these two apart — both yield
+      // undefined. guardResult's discriminator is what PlayAreas gate
+      // post-success steps (form resets, modal closes) on.
+      const voidSuccess = await notify.guardResult(async () => undefined);
+      const swallowedFailure = await notify.guardResult(async () => {
+        throw new Error("boom");
+      });
+
+      expect(voidSuccess.ok).toBe(true);
+      expect(swallowedFailure.ok).toBe(false);
+    });
+  });
 });

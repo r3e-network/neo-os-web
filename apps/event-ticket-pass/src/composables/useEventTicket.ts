@@ -43,6 +43,7 @@
 
 import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { encodeTokenId, parseBigInt, parseBool, parseDateInput } from "@shared/utils/parsers";
 import type { EventItem, TicketItem } from "../types";
@@ -100,21 +101,6 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function txidFrom(result: TxResult | null | undefined): string {
   return stringValue(result?.txid);
-}
-
-/**
- * Read the value at `index` of an on-chain notification's `state` array.
- * waitForEvent returns the raw notification ({ state: [{ type, value }, ...] }).
- */
-function eventValue(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (!Array.isArray(state)) return undefined;
-  const item = state[index];
-  if (item && typeof item === "object" && "value" in item) {
-    return (item as { value?: unknown }).value;
-  }
-  return item;
 }
 
 /**

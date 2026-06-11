@@ -58,6 +58,8 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
+import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
+import { eventValue } from "@shared/utils/chain-events";
 import { formatGas, formatAddress } from "@shared/utils/format";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
@@ -70,9 +72,6 @@ import type { Machine, MachineItem } from "../types";
 
 const NEO_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.NEO_HASH);
 const GAS_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.GAS_HASH);
-
-/** GAS base units per whole GAS (1e8). */
-const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
 
 /** Memo the contract requires on the play prepay transfer (appId + ":play"). */
 const PLAY_MEMO = "miniapp-gasbox:play";
@@ -131,33 +130,8 @@ export interface UseGasBoxOptions {
 // ============================================================================
 // Amount helpers
 // ============================================================================
-
-/**
- * Convert a human-entered amount string to contract BASE UNITS for an asset.
- *
- * GAS: value * 1e8, up to 8 decimal places, scaled without floats. NEO: the
- * integer token count with NO scaling — fractional NEO is rejected (NEO is
- * indivisible). Returns 0n for any invalid / non-positive input so callers can
- * reject before touching the chain.
- */
-const toBaseUnits = (raw: string, asset: PrizeAsset): bigint => {
-  const trimmed = String(raw ?? "").trim();
-  if (!trimmed) return 0n;
-
-  if (asset === "NEO") {
-    // Indivisible: reject anything that is not a positive integer.
-    if (!/^\d+$/.test(trimmed)) return 0n;
-    const n = BigInt(trimmed);
-    return n > 0n ? n : 0n;
-  }
-
-  // GAS: accept up to 8 decimal places, scale to base units without floats.
-  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
-  const [whole = "0", fraction = ""] = trimmed.split(".");
-  const paddedFraction = (fraction + "00000000").slice(0, 8);
-  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
-  return base > 0n ? base : 0n;
-};
+// toBaseUnits (amountToBaseUnits) comes from @shared/utils/amounts — GAS is
+// scaled ×1e8 without floats; NEO is the integer token count (never scaled).
 
 /** Parse a plain positive integer (weights, NOT scaled). 0n if invalid. */
 const toPositiveInt = (raw: string): bigint => {
@@ -192,20 +166,6 @@ const formatPrizeAmount = (amount: bigint, asset: PrizeAsset): string =>
 const asNumber = (value: unknown): number => {
   const n = Number(value ?? 0);
   return Number.isFinite(n) ? n : 0;
-};
-
-/** Read a single state slot from a Pulled event payload. */
-const eventValue = (entry: unknown, index: number): unknown => {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
 };
 
 /** Build the icon hint for an item from its rarity / prize asset. */

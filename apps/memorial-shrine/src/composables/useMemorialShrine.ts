@@ -52,6 +52,7 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService, ContractArg, TxResult } from "@shared/services";
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { readQueryParam } from "@shared/utils/url";
 import type { Memorial } from "../types";
@@ -85,16 +86,6 @@ function fixed8ToGas(value: bigint): string {
 
 function normalizeText(value: unknown, maxLength: number): string {
   return String(value ?? "").trim().slice(0, maxLength);
-}
-
-function eventValue(event: unknown, index: number): unknown {
-  if (!event || typeof event !== "object") return undefined;
-  const state = (event as { state?: unknown }).state;
-  if (!Array.isArray(state)) return undefined;
-  const item = state[index];
-  return item && typeof item === "object" && "value" in item
-    ? (item as { value?: unknown }).value
-    : item;
 }
 
 /** Coerce a parsed NeoVM Integer (number | numeric string) to a JS number. */

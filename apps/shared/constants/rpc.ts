@@ -1,3 +1,4 @@
+import { GENERATED_MINIAPP_CONTRACTS } from './generated-miniapp-contracts';
 import { MORPHEUS_PUBLIC_REGISTRY } from './generated-morpheus-registry';
 import { MORPHEUS_PUBLIC_RUNTIME_CATALOG } from './generated-morpheus-runtime-catalog';
 
@@ -95,63 +96,17 @@ function listMorpheusWorkflows(network: NeoNetwork) {
   );
 }
 
+/**
+ * Per-app deployed contract hashes, keyed by miniapp id.
+ *
+ * Generated from the per-app neo-manifest.json files (the source of truth) by
+ * scripts/generate-miniapp-contract-registry.mjs — do not hand-edit entries
+ * here; update the app manifest and re-run the generator. The drift guard
+ * (deploy/scripts/lib/miniapp_contract_registry.test.mjs) fails on divergence.
+ */
 export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
-  mainnet: {
-    'miniapp-last-survivor': '0x8e1e432e966357de8d7642564b744d3274a81bd0',
-    'miniapp-gasbox': '0xeb635b6e75b01c12cc26794b906d329531f378e9',
-    'miniapp-neo-multisig': '0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e',
-    'miniapp-redenvelope': '0x363c5de9760d1aaaed5096fdf3bdc877cd0368e9',
-    'miniapp-gas-lucky-pool': '0x5f371cc50116bb13d79554d96ccdd6e246cd5d59',
-    'miniapp-dailycheckin': '0xbd4f3646e189350b9c11a659655854e6f03f9be4',
-    'miniapp-fogplay': '0x5d82339da085b72468200e76a2aa2f3cd2912953',
-    'miniapp-dice-game': '0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7',
-    'miniapp-self-loan': '0x87f94598c78cb954ca8200d3964ded9b584d7250',
-    'miniapp-gov-merc': '0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9',
-    'miniapp-dev-tipping': '0x6fdcf2ff29bde658cdcd9fddd082fe1813dd21ec',
-    'miniapp-neo-pay': '0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34',
-    'miniapp-council-governance': '0xc7e50e67589df63302cbea1a6b00beb649ee74d8',
-    'miniapp-profitanchor': '0x02beeef6f65c6989a121c0a0e6b23190333edb98',
-    'miniapp-trustanchor': '0x02beeef6f65c6989a121c0a0e6b23190333edb98',
-    'miniapp-custom-anchor': '0x02beeef6f65c6989a121c0a0e6b23190333edb98',
-    'miniapp-aa-account-lab': '0x0268a387913b250166ddec032b03332690a1ef78',
-    'miniapp-aa-permissions-lab': '0x0268a387913b250166ddec032b03332690a1ef78',
-    'miniapp-aa-relay-console': '0x0268a387913b250166ddec032b03332690a1ef78',
-    'miniapp-aa-market-hub': '0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69',
-    'miniapp-aa-session-key-lab': '0x3ba8333406e59f9fd83cf378b33706a33d9f3755',
-    'miniapp-recovery-guardian': '0x198b3a9cec9bccc2110d19bd929b10374a9d034d',
-  },
-  testnet: {
-    'miniapp-last-survivor': '0x8e1e432e966357de8d7642564b744d3274a81bd0',
-    'miniapp-gasbox': '0xeb635b6e75b01c12cc26794b906d329531f378e9',
-    'miniapp-neo-multisig': '0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e',
-    'miniapp-redenvelope': '0x363c5de9760d1aaaed5096fdf3bdc877cd0368e9',
-    'miniapp-gas-lucky-pool': '0xfa1b7240fead2a63999c02defa3aec5eb274a919',
-    'miniapp-dailycheckin': '0xaba84da240a55410d284a656fc8dae044e6ec1a5',
-    'miniapp-fogplay': '0x5d82339da085b72468200e76a2aa2f3cd2912953',
-    'miniapp-dice-game': '0x740671b10330ef6669ab8b2724437eb8d5e7a34c',
-    'miniapp-self-loan': '0x87f94598c78cb954ca8200d3964ded9b584d7250',
-    'miniapp-gov-merc': '0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9',
-    'miniapp-dev-tipping': '0x6fdcf2ff29bde658cdcd9fddd082fe1813dd21ec',
-    'miniapp-neo-pay': '0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e',
-    'miniapp-burn-league': '0xdd3bf2ff39bc4e39107ace953e2271a43a58e28f',
-    'miniapp-breakupcontract': '0xf6769c080395f15c28013108b7af7631e1665336',
-    'miniapp-onchaintarot': '0xb680225a1be276b03ecd7de82ea985dcc7435cec',
-    'miniapp-unbreakablevault': '0x78fbd57ccfae14fff4b043a82eb491de542d8eb0',
-    'miniapp-flashloan': '0xde8e595d8d3c293731db499367ee2a768e1e458b',
-    'miniapp-council-governance': '0x4c61e5575ae9e151027f6724d07fac127d4cc25f',
-    'miniapp-gas-sponsor': '0x31888679572bf2de61462ff9934b6265d60284f2',
-    'miniapp-memorial-shrine': '0x87f0fe2ba69cd973a3274471234d3cc13ef943c5',
-    'miniapp-neo-ns': '0x50ac1c37690cc2cfc594472833cf57505d5f46de',
-    'miniapp-profitanchor': '0xab079b4f9a0a2471d136392e25eb8e99898dcad0',
-    'miniapp-trustanchor': '0xab079b4f9a0a2471d136392e25eb8e99898dcad0',
-    'miniapp-custom-anchor': '0xab079b4f9a0a2471d136392e25eb8e99898dcad0',
-    'miniapp-aa-account-lab': '0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2',
-    'miniapp-aa-permissions-lab': '0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2',
-    'miniapp-aa-relay-console': '0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2',
-    'miniapp-aa-market-hub': '0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf',
-    'miniapp-aa-session-key-lab': '0xed44c88535650b4dd6b8d59776e6ed045462cab6',
-    'miniapp-recovery-guardian': '0x198b3a9cec9bccc2110d19bd929b10374a9d034d',
-  },
+  mainnet: { ...GENERATED_MINIAPP_CONTRACTS.mainnet },
+  testnet: { ...GENERATED_MINIAPP_CONTRACTS.testnet },
 };
 
 function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegrationConfig {

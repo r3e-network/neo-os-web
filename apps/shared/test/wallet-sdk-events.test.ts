@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createEventsComposable } from "../utils/wallet-sdk-composables";
 import type { WalletSdkComposableDeps } from "../utils/wallet-sdk-composables";
 import type { WalletSDK } from "../utils/wallet-sdk-types";
+import { useAllEvents } from "../composables/useAllEvents";
 
 const APP_ID = "miniapp-test-events";
 const CONTRACT = `0x${"ab".repeat(20)}`;
@@ -99,5 +100,70 @@ describe("useEvents waitForEvent abort handling", () => {
     // Every listener registered during polling/fetching must be removed once
     // the timer wins — previously one listener per cycle stayed behind.
     expect(abortRemoves.length).toBe(abortAdds.length);
+  });
+});
+
+describe("useEvents list pagination over N3Index", () => {
+  // The N3Index endpoint returns a bare page array with no overall count.
+  // list() must therefore leave `total` undefined so useAllEvents keeps
+  // paginating on full pages — synthesizing total = page length made
+  // listAllEvents stop after the first 50 events for every app.
+  it("paginates through two full pages instead of stopping at a synthesized total", async () => {
+    const pageSize = 50;
+    const makePage = (offset: number, count: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        id: offset + i,
+        event_name: "Burned",
+        state: [],
+        txid: `0xtx${offset + i}`,
+        block_time: "2026-06-11T00:00:00Z",
+        block_index: offset + i,
+      }));
+    const fetchMock = vi.fn(async (url: string) => {
+      const offset = Number(new URL(url).searchParams.get("offset") ?? "0");
+      // Two full pages, then an empty page that ends the walk.
+      const body =
+        offset < pageSize * 2 ? makePage(offset, pageSize) : makePage(offset, 0);
+      return { ok: true, json: async () => body };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const events = createEventsComposable(makeDeps());
+    const { listAllEvents } = useAllEvents(events.list, APP_ID);
+    const all = await listAllEvents("Burned");
+
+    expect(all).toHaveLength(pageSize * 2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const requestedOffsets = fetchMock.mock.calls.map(([url]) =>
+      Number(new URL(String(url)).searchParams.get("offset") ?? "0"),
+    );
+    expect(requestedOffsets).toEqual([0, 50, 100]);
+    expect((all[0] as { tx_hash: string }).tx_hash).toBe("0xtx0");
+    expect((all[99] as { tx_hash: string }).tx_hash).toBe("0xtx99");
+  });
+
+  it("ends pagination on a short final page", async () => {
+    const makePage = (offset: number, count: number) =>
+      Array.from({ length: count }, (_, i) => ({
+        id: offset + i,
+        event_name: "Claimed",
+        state: [],
+        txid: `0xtx${offset + i}`,
+        block_time: "2026-06-11T00:00:00Z",
+        block_index: offset + i,
+      }));
+    const fetchMock = vi.fn(async (url: string) => {
+      const offset = Number(new URL(url).searchParams.get("offset") ?? "0");
+      const body = offset === 0 ? makePage(0, 50) : makePage(50, 3);
+      return { ok: true, json: async () => body };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const events = createEventsComposable(makeDeps());
+    const { listAllEvents } = useAllEvents(events.list, APP_ID);
+    const all = await listAllEvents("Claimed");
+
+    expect(all).toHaveLength(53);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

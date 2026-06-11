@@ -1,6 +1,7 @@
 import { ref } from "vue";
 
 import {
+  GAS_HASH,
   getMiniAppContractHash,
   getNetwork,
   type NeoNetwork,
@@ -220,7 +221,6 @@ export function createPaymentsComposable(
     targetContractHash = "",
     scopedAppId = appId || "miniapp",
   ): Promise<PaymentResult> => {
-    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
     const parsedAmount = parseFloat(amount);
     // A payment must be a positive number — reject NaN, 0, and negatives before
     // scaling so a malformed/empty amount cannot reach the wallet as a 0-value
@@ -331,6 +331,11 @@ export function createEventsComposable(deps: WalletSdkComposableDeps) {
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) {
+            // The N3Index endpoint returns a bare page array with no overall
+            // count, so leave `total` undefined: useAllEvents then falls back
+            // to its full-page continuation heuristic. Synthesizing
+            // `total: data.length` made offset + page length === total on any
+            // full page, stopping pagination after the first 50 events.
             return {
               events: data.map((e: Record<string, unknown>) => ({
                 id: e.id as string | number,
@@ -340,7 +345,6 @@ export function createEventsComposable(deps: WalletSdkComposableDeps) {
                 created_at: e.block_time as string,
                 block_index: e.block_index as number,
               })),
-              total: data.length,
             };
           }
         }
