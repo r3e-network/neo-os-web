@@ -14,6 +14,7 @@ const HOUSE_FEE_PERCENT = 5;
 type RollOutcome = "" | "pending" | "won" | "lost" | "refunded";
 
 type RollHistoryItem = {
+  id?: string;
   face: string;
   stake: string;
   result: string;
@@ -343,7 +344,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               rollHistory.map((item) => (
                 <div
                   className={`dice-history-row${item.outcome ? ` dice-history-row--${item.outcome}` : ""}`}
-                  key={`${item.txid || item.at || item.face}-${item.result}`}
+                  key={item.id ?? `${item.txid || item.at || item.face}-${item.result}`}
                 >
                   <span>{item.face}</span>
                   <strong>{item.result}</strong>

@@ -58,6 +58,34 @@ defineMiniApp({
       );
     });
 
+    ctx.registerAction("reclaimEnvelope", async (...args: unknown[]) => {
+      const first = args[0];
+      const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
+      const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
+      if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired") || "Envelope ID is required");
+      await ctx.services.notify.guard(async () => {
+        const { amount } = await envelope.reclaimEnvelope(id);
+        if (amount > 0) {
+          ctx.services.notify.success("reclaimSuccess", {
+            amount: Number(amount.toFixed(4)),
+            tokenGas: ctx.t("tokenGas"),
+          });
+        }
+      });
+    });
+
+    ctx.registerAction("withdrawCredit", async () => {
+      await ctx.services.notify.guard(async () => {
+        const { amount } = await envelope.withdrawCredit();
+        if (amount > 0) {
+          ctx.services.notify.success("creditWithdrawn", {
+            amount: Number(amount.toFixed(4)),
+            tokenGas: ctx.t("tokenGas"),
+          });
+        }
+      });
+    });
+
     ctx.registerAction("dismissOverlay", async () => {
       envelope.luckyMessage.set(null);
     });
@@ -88,6 +116,7 @@ defineMiniApp({
         envelopeCount: envelope.envelopeCount,
         claimCount: envelope.claimCount,
         poolCount: envelope.poolCount,
+        prepaidCredit: envelope.prepaidCredit,
         totalCreated,
         totalClaimed,
         createAmount,

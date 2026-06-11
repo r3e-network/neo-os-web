@@ -34,6 +34,7 @@ interface Envelope {
   ready?: boolean;
   expired?: boolean;
   depleted?: boolean;
+  reclaimable?: boolean;
   status?: string;
   creator?: string;
   from?: string;
@@ -88,6 +89,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const poolCount = val<number>("poolCount", 0) ?? 0;
   const totalCreated = val<number>("totalCreated", 0) ?? 0;
   const totalClaimed = val<number>("totalClaimed", 0) ?? 0;
+  const prepaidCredit = val<number>("prepaidCredit", 0) ?? 0;
   const launchedEnvelopeId = getLaunchEnvelopeId(launchContext);
   const launchedCreateForm = getLaunchCreateForm(launchContext);
   const [selectedEnvelopeId, setSelectedEnvelopeId] = useState(launchedEnvelopeId);
@@ -170,6 +172,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const createEnvelope = () => dispatch("createEnvelope", createForm);
 
   const hasActivity = activeEnvelopes.length > 0 || recentClaims.length > 0;
+  const reclaimables = envelopes.filter((env) => env.reclaimable);
+  const hasRecovery = reclaimables.length > 0 || prepaidCredit > 0;
 
   return (
     <div className="redenv-play-area">
@@ -368,6 +372,45 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               </div>
             )}
           </NeoCard>
+
+          {hasRecovery && (
+            <NeoCard variant="erobo" className="redenv-recovery-panel">
+              <div className="redenv-section-heading">
+                <span>{t("reclaimableTitle")}</span>
+                <strong>{reclaimables.length}</strong>
+              </div>
+              <div className="redenv-list">
+                {reclaimables.slice(0, 6).map((env) => (
+                  <div key={env.id} className="redenv-row redenv-row--static redenv-row--recovery">
+                    <span>#{shortId(String(env.id))}</span>
+                    <strong>{formatGas(env.remainingAmount)}</strong>
+                    <NeoButton
+                      variant="secondary"
+                      size="sm"
+                      disabled={isLoading}
+                      onClick={() => dispatch("reclaimEnvelope", { envelopeId: String(env.id) })}
+                    >
+                      {t("reclaimEnvelope")}
+                    </NeoButton>
+                  </div>
+                ))}
+                {prepaidCredit > 0 && (
+                  <div className="redenv-row redenv-row--static redenv-row--recovery">
+                    <span>{t("prepaidCreditLabel")}</span>
+                    <strong>{formatGas(prepaidCredit)}</strong>
+                    <NeoButton
+                      variant="secondary"
+                      size="sm"
+                      disabled={isLoading}
+                      onClick={() => dispatch("withdrawCredit")}
+                    >
+                      {t("withdrawCredit")}
+                    </NeoButton>
+                  </div>
+                )}
+              </div>
+            </NeoCard>
+          )}
 
           <details className="redenv-details">
             <summary>

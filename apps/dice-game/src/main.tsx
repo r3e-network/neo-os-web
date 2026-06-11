@@ -7,6 +7,7 @@ import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { chainLabelOf, maxStakeOf, evmStatusToOutcome } from "./dice-logic";
 import type { RollOutcome } from "./dice-logic";
+import { createBetTracker } from "./bet-tracker";
 
 const appId = "miniapp-dice-game";
 const PAYOUT_MULTIPLIER = 5.7;
@@ -19,17 +20,6 @@ const DICE_EVM_ADDRESS: Partial<Record<EvmNetwork, string>> = {
 const DICE_PLACE_BET_SELECTOR = "0x43046844"; // placeBet(uint8)
 const DICE_GET_BET_SELECTOR = "0x061e494f"; //   getBet(uint256)
 const DICE_BET_PLACED_TOPIC = "0xd8175cc91837f6ecc7efc5783d64298c19ccb0e81d4b0436c082fa056905d942";
-
-type RollHistoryItem = {
-  face: string;
-  stake: string;
-  result: string;
-  payout: string;
-  outcome?: RollOutcome;
-  rolled?: string;
-  txid?: string;
-  at: string;
-};
 
 function sanitizeFace(value: unknown): string {
   const face = Number(value);
@@ -88,13 +78,14 @@ defineMiniApp({
     const lastTxid = createObservable("");
     const lastStatus = createObservable(ctx.t("statusReady"));
     const isSubmitting = createObservable(false);
-    const rollHistory = createObservable<RollHistoryItem[]>([]);
-    // Multi-chain + result-reveal state.
+    // Per-bet settlement tracking: history rows keyed by bet id, reveal state
+    // pinned to the ACTIVE (most recent) bet so interleaved bets never stomp
+    // each other's row or banner.
+    const tracker = createBetTracker();
+    const { rollHistory, lastRoll, lastOutcome, isResolving } = tracker;
+    // Multi-chain state.
     const chainLabel = createObservable("");
     const maxStake = createObservable(20);
-    const lastRoll = createObservable(""); // the settled face (1..6), revealed
-    const lastOutcome = createObservable<RollOutcome>("");
-    const isResolving = createObservable(false); // bet placed, awaiting VRF settlement
 
     const refreshNetwork = async (): Promise<string> => {
       try {
@@ -118,26 +109,21 @@ defineMiniApp({
       return { nextFace, nextAmount };
     };
 
-    // Reveal a settled bet: update the dice, the result banner and the history,
-    // and celebrate a win (success status auto-fires the host fireworks).
-    const finishResolve = (outcome: RollOutcome, rolled: number, amount: string) => {
-      isResolving.set(false);
-      lastRoll.set(rolled ? String(rolled) : "");
-      lastOutcome.set(outcome);
+    // Reveal a settled bet: update ITS history row (matched by id — a later
+    // bet may occupy row 0 by now) and, only when it is still the active bet,
+    // the dice + result banner. A win on the active bet fires the host
+    // fireworks via the success status.
+    const finishResolve = (rowId: string, outcome: RollOutcome, rolled: number, amount: string) => {
       const won = outcome === "won";
       const label =
         won ? ctx.t("outcomeWon") : outcome === "refunded" ? ctx.t("outcomeRefunded") : ctx.t("outcomeLost");
-      const history = rollHistory.get().slice();
-      if (history[0]) {
-        history[0] = {
-          ...history[0],
-          result: rolled ? `${label} · 🎲 ${rolled}` : label,
-          payout: won ? payoutFor(amount) : "0 GAS",
-          outcome,
-          rolled: rolled ? String(rolled) : "",
-        };
-        rollHistory.set(history);
-      }
+      const isActive = tracker.settleBet(rowId, {
+        outcome,
+        rolled,
+        result: rolled ? `${label} · 🎲 ${rolled}` : label,
+        payout: won ? payoutFor(amount) : "0 GAS",
+      });
+      if (!isActive) return;
       if (won) {
         lastStatus.set(ctx.t("statusWon"));
         ctx.setStatus(ctx.t("statusWon"), "success");
@@ -151,7 +137,7 @@ defineMiniApp({
     };
 
     // Neo X: poll getBet(requestId) until the VRF settles the bet on-chain.
-    const resolveEvmBet = async (address: string, requestId: string, amount: string) => {
+    const resolveEvmBet = async (rowId: string, address: string, requestId: string, amount: string) => {
       for (let i = 0; i < 45; i += 1) {
         await sleep(4000);
         let raw: string;
@@ -162,16 +148,16 @@ defineMiniApp({
         }
         const status = Number(decodeReturnWord(raw, 4)); // Bet.status word
         if (status <= 1) continue; // None / Pending
-        finishResolve(evmStatusToOutcome(status), Number(decodeReturnWord(raw, 3)), amount);
+        finishResolve(rowId, evmStatusToOutcome(status), Number(decodeReturnWord(raw, 3)), amount);
         return;
       }
-      isResolving.set(false); // timed out — stays "rolling" in history
+      tracker.markUnresolved(rowId); // timed out — stays "rolling" in history
     };
 
     // Neo N3: poll DiceBetResolved (and DiceBetRefunded) for this bet id.
-    const resolveN3Bet = async (betId: string, amount: string) => {
+    const resolveN3Bet = async (rowId: string, betId: string, amount: string) => {
       if (!betId) {
-        isResolving.set(false);
+        tracker.markUnresolved(rowId);
         return;
       }
       for (let i = 0; i < 36; i += 1) {
@@ -181,21 +167,21 @@ defineMiniApp({
           const hit = resolved.find((ev) => String(eventStateValue(ev, 6)) === String(betId));
           if (hit) {
             const won = asBool(eventStateValue(hit, 5));
-            finishResolve(won ? "won" : "lost", Number(eventStateValue(hit, 3)) || 0, amount);
+            finishResolve(rowId, won ? "won" : "lost", Number(eventStateValue(hit, 3)) || 0, amount);
             return;
           }
           const refunded = await ctx.services.chain.listEvents("DiceBetRefunded", { limit: 40 });
           // DiceBetRefunded params: appId(0), player(1), amount(2), betId(3).
           const refundHit = refunded.find((ev) => String(eventStateValue(ev, 3)) === String(betId));
           if (refundHit) {
-            finishResolve("refunded", 0, amount);
+            finishResolve(rowId, "refunded", 0, amount);
             return;
           }
         } catch {
           /* transient indexer error — retry */
         }
       }
-      isResolving.set(false);
+      tracker.markUnresolved(rowId);
     };
 
     ctx.registerAction("placeDiceBet", async (...args: unknown[]) => {
@@ -204,8 +190,6 @@ defineMiniApp({
 
       isSubmitting.set(true);
       lastStatus.set(ctx.t("statusSubmitting"));
-      lastOutcome.set("");
-      lastRoll.set("");
       let stakeSent = false;
       try {
         // Auto-detect the chain from the connected wallet (also refreshes the UI
@@ -215,7 +199,7 @@ defineMiniApp({
         const amountFixed8 = toFixed8(nextAmount);
 
         let result;
-        let resolver: () => void;
+        let resolver: (rowId: string) => void;
         if (ctx.services.chain.isEvmNetwork(network)) {
           const address = DICE_EVM_ADDRESS[network as EvmNetwork];
           if (!address) {
@@ -232,7 +216,7 @@ defineMiniApp({
             eventTopic: DICE_BET_PLACED_TOPIC,
           });
           const requestId = (result.event as { id?: string } | undefined)?.id ?? "";
-          resolver = () => void resolveEvmBet(address, requestId, nextAmount);
+          resolver = (rowId) => void resolveEvmBet(rowId, address, requestId, nextAmount);
         } else {
           const player = await ctx.services.chain.ensureWallet();
           // stakeSent flips the moment the stake transfer broadcasts; a pre-transfer
@@ -256,54 +240,42 @@ defineMiniApp({
             },
           );
           const betId = String(eventStateValue(result.event, 4) ?? "");
-          resolver = () => void resolveN3Bet(betId, nextAmount);
+          resolver = (rowId) => void resolveN3Bet(rowId, betId, nextAmount);
         }
 
         lastTxid.set(result.txid ?? "");
         lastStatus.set(ctx.t("statusRolling"));
-        lastOutcome.set("pending");
-        isResolving.set(true);
-        rollHistory.set(
-          [
-            {
-              face: nextFace,
-              stake: `${nextAmount} GAS`,
-              result: ctx.t("statusRolling"),
-              payout: payoutFor(nextAmount),
-              outcome: "pending" as RollOutcome,
-              txid: result.txid ?? "",
-              at: new Date().toISOString(),
-            },
-            ...rollHistory.get(),
-          ].slice(0, 6),
-        );
+        const rowId = tracker.beginBet({
+          face: nextFace,
+          stake: `${nextAmount} GAS`,
+          result: ctx.t("statusRolling"),
+          payout: payoutFor(nextAmount),
+          outcome: "pending" as RollOutcome,
+          txid: result.txid ?? "",
+          at: new Date().toISOString(),
+        });
         ctx.setStatus(
           `${ctx.t("statusRolling")}${result.txid ? `: ${formatHash(result.txid, 10, 8)}` : ""}`,
           "info",
         );
         // Reveal the outcome asynchronously so the user can keep playing.
-        resolver();
+        resolver(rowId);
         return result;
       } catch (error) {
         const rawMessage = error instanceof Error ? error.message : ctx.t("statusFailed");
-        isResolving.set(false);
-        lastOutcome.set("");
+        // This bet never started resolving, so the tracker's reveal state is
+        // left alone — a still-pending earlier bet keeps its rolling banner.
         if (stakeSent) {
           const recoverable = ctx.t("statusFundsRecoverable");
           lastStatus.set(recoverable);
-          rollHistory.set(
-            [
-              {
-                face: sanitizeFace(form.chosenNumber),
-                stake: stakeAmount.get(),
-                result: recoverable,
-                payout: "0 GAS",
-                txid: "",
-                at: new Date().toISOString(),
-              },
-              ...rollHistory.get(),
-            ].slice(0, 6),
-          );
+          tracker.recordRow({
+            face: sanitizeFace(form.chosenNumber),
+            stake: stakeAmount.get(),
+            result: recoverable,
+            payout: "0 GAS",
+            txid: "",
+            at: new Date().toISOString(),
+          });
           ctx.setStatus(recoverable, "error");
         } else {
           lastStatus.set(rawMessage);
