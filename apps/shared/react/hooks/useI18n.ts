@@ -126,7 +126,12 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
     const t = useCallback(
       (key: keyof MergedMessages<T>, args?: InterpolationArgs): string => {
         const entry = mergedRef.current[key];
-        if (!entry) return "";
+        if (!entry) {
+          // Dev-only: surface the missing key instead of rendering a blank
+          // string so absent locale entries are visible during development.
+          // Production keeps "" so `t(key) || fallback` chains still apply.
+          return import.meta.env?.DEV ? String(key) : "";
+        }
 
         let str = "";
         if (typeof entry === "string") {

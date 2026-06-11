@@ -9,6 +9,7 @@ const appMessages = {
   borrowed: { en: "Borrowed", zh: "已借款" },
   collateralLocked: { en: "Collateral locked", zh: "锁定抵押品" },
   takeSelfLoan: { en: "Take Self-Loan", zh: "申请自我贷款" },
+  collateral: { en: "Collateral", zh: "抵押品" },
   collateralAmount: { en: "Collateral Amount", zh: "抵押金额" },
   amountToLock: { en: "NEO to lock", zh: "锁定 NEO" },
   estimatedBorrow: { en: "Estimated Borrow", zh: "预计借款" },
@@ -30,6 +31,8 @@ const appMessages = {
   enterAmount: { en: "Enter 1-{max} {tokenNeo}", zh: "请输入 1-{max} {tokenNeo}" },
   loanApproved: { en: "Loan created: {amount} {tokenGas} borrowed", zh: "贷款已创建：已借 {amount} {tokenGas}" },
   paymentFailed: { en: "Transaction failed", zh: "交易失败" },
+  walletStatusIdle: { en: "Wallet not connected", zh: "钱包未连接" },
+  missingContract: { en: "Contract not configured", zh: "合约未配置" },
   main: { en: "Borrow", zh: "借款" },
   eyebrow: { en: "SELF LOAN", zh: "自我贷款" },
   loanStatus: { en: "Your Loan", zh: "你的贷款" },
@@ -148,6 +151,10 @@ const appMessages = {
   repayCreditHeld: {
     en: "Your GAS deposit landed but the repayment could not be applied. It is held as repay credit — use Reclaim Repay Credit to recover it.",
     zh: "您的 GAS 已存入但还款未能应用。它已作为还款额度保留——请使用“取回还款额度”来找回。",
+  },
+  collateralCreditExceedsAmount: {
+    en: "You have {credit} NEO of existing collateral credit and the contract locks ALL of it — more than the {amount} NEO you entered. Enter at least {credit} NEO or reclaim the credit first.",
+    zh: "您已有 {credit} NEO 抵押额度，合约会全部锁定——超过您输入的 {amount} NEO。请输入至少 {credit} NEO，或先取回该额度。",
   },
   // ── Reclaim affordances (deposit-then-act recovery paths) ───────────────
   reclaimable: { en: "Reclaimable", zh: "可取回" },

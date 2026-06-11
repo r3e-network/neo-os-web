@@ -14,6 +14,7 @@ import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import { useGasSponsor as useGasSponsorSDK } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { toFixed8 } from "@shared/utils/format";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const SPONSOR_POOL_ADDRESS = "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK";
@@ -105,16 +106,6 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
   const isValidNeoAddress = (address: string): boolean => {
     const trimmed = address.trim();
     return trimmed.length === 34 && trimmed.startsWith("N") && BASE58_ALPHABET.test(trimmed);
-  };
-
-  /**
-   * Scale a display-unit GAS amount to Fixed8 base units.
-   * E.g. "0.1" -> "10000000"
-   */
-  const toFixed8 = (displayAmount: string): string => {
-    const parsed = parseFloat(displayAmount);
-    if (!Number.isFinite(parsed)) return "0";
-    return String(Math.round(parsed * 1e8));
   };
 
   // -- Actions --

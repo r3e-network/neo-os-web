@@ -152,7 +152,12 @@ export function toCsvRow(value: unknown): string {
       ? ""
       : (() => { try { return JSON.stringify(value); } catch { return String(value); } })();
 
-  return `"${String(text).replace(/"/g, '""')}"`;
+  // Diff values originate from developer-submitted manifests; prefix
+  // formula-leading characters so spreadsheet apps treat the cell as text
+  // instead of executing =/+/-/@ payloads when an admin opens the export.
+  const str = String(text);
+  const guarded = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  return `"${guarded.replace(/"/g, '""')}"`;
 }
 
 export function diffEntriesToCsv(entries: VersionDiffEntry[]): string {

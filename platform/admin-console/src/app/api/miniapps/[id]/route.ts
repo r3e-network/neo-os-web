@@ -95,8 +95,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const normalizedBody = { ...body };
   delete normalizedBody.action;
 
-  // Validate partial config
-  const partial = miniAppConfigBaseSchema.partial().safeParse(normalizedBody);
+  // Validate partial config. `.passthrough()` mirrors the create route so
+  // extended keys accepted on create are not silently stripped on update.
+  const partial = miniAppConfigBaseSchema.partial().passthrough().safeParse(normalizedBody);
   if (!partial.success) {
     return jsonError(partial.error.errors[0]?.message || "Invalid input", 400);
   }

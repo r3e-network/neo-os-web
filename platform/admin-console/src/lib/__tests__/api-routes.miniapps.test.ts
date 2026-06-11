@@ -146,6 +146,113 @@ describe("PATCH /api/miniapps/[id]", () => {
     expect(body.action).toBe("publish");
     expect(body.app_id).toBe("my-app");
   });
+
+  it("preserves extended keys on PATCH so updates stay symmetric with create", async () => {
+    fetchSpy.mockImplementation(() => mockJsonResponse({ success: true }));
+
+    const { PATCH } = await importRoute<{
+      PATCH: (
+        r: Request,
+        ctx: { params: Promise<{ id: string }> },
+      ) => Promise<Response>;
+    }>("@/app/api/miniapps/[id]/route");
+
+    // Create accepts extended keys via .passthrough(); editing the same app
+    // through the console must not silently strip them.
+    const res = await PATCH(
+      patchReq({
+        name: "Updated Name",
+        custom_extension: { flag: true, note: "kept" },
+      }),
+      { params: routeParams("my-app") },
+    );
+
+    expect(res.status).toBe(200);
+    const [, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(calledInit.body || "{}"));
+    expect(body.name).toBe("Updated Name");
+    expect(body.custom_extension).toEqual({ flag: true, note: "kept" });
+  });
+});
+
+// ==========================================================================
+// 8b. POST /api/miniapps/create
+// ==========================================================================
+
+describe("POST /api/miniapps/create", () => {
+  const url = "http://localhost/api/miniapps/create";
+
+  function postReq(body: string) {
+    return authedRequest(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+  }
+
+  it("returns the schema validation message instead of 'Invalid JSON body' for invalid configs", async () => {
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/create/route");
+
+    const res = await POST(
+      postReq(
+        JSON.stringify({
+          app_id: "INVALID!!!",
+          name: "My App",
+          entry_url: "https://example.com/app",
+        }),
+      ),
+    );
+
+    expect(res.status).toBe(400);
+    const payload = await res.json();
+    expect(payload.error).toBe("lowercase alphanumeric with dots/hyphens");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("still reports 'Invalid JSON body' for malformed JSON", async () => {
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/create/route");
+
+    const res = await POST(postReq("{not-json"));
+
+    expect(res.status).toBe(400);
+    const payload = await res.json();
+    expect(payload.error).toBe("Invalid JSON body");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("proxies a valid config to the host upsert endpoint", async () => {
+    fetchSpy.mockImplementation(() => mockJsonResponse({ success: true }));
+
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/create/route");
+
+    const res = await POST(
+      postReq(
+        JSON.stringify({
+          app_id: "my-app",
+          name: "My App",
+          entry_url: "https://example.com/app",
+          custom_extension: { flag: true },
+        }),
+      ),
+    );
+
+    expect(res.status).toBe(200);
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(calledUrl).toContain("/api/miniapps/admin/upsert");
+    const body = JSON.parse(String(calledInit.body || "{}"));
+    expect(body.app_id).toBe("my-app");
+    expect(body.action).toBe("save_draft");
+    expect(body.custom_extension).toEqual({ flag: true });
+  });
 });
 
 // ==========================================================================
