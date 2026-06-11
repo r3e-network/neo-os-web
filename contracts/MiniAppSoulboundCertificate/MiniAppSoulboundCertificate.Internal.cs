@@ -139,7 +139,7 @@ namespace NeoMiniAppPlatform.Contracts
             RegisterToken(tokenId);
             IncreaseTotalSupply(1);
 
-            OnTransfer(UInt160.Zero, to, tokenId);
+            OnTransfer(UInt160.Zero, to, 1, tokenId);
         }
 
         #endregion

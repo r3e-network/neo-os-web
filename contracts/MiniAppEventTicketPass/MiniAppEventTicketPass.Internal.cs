@@ -130,7 +130,7 @@ namespace NeoMiniAppPlatform.Contracts
             RegisterToken(tokenId);
             IncreaseTotalSupply(1);
 
-            OnTransfer(UInt160.Zero, to, tokenId);
+            OnTransfer(UInt160.Zero, to, 1, tokenId);
         }
 
         private static void TransferToken(UInt160 from, UInt160 to, ByteString tokenId)
@@ -141,7 +141,7 @@ namespace NeoMiniAppPlatform.Contracts
             UpdateBalance(from, -1);
             UpdateBalance(to, 1);
 
-            OnTransfer(from, to, tokenId);
+            OnTransfer(from, to, 1, tokenId);
         }
 
         #endregion

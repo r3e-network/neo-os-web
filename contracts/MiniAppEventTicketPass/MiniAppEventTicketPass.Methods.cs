@@ -202,27 +202,37 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
-        /// NEP-11 Transfer (non-divisible).
+        /// NEP-11 Transfer using the standard non-divisible signature
+        /// (to, tokenId, data) required by the NEP-11 supportedStandards
+        /// declaration (tri-repo review MP-D-02). The current owner is resolved
+        /// from the token itself and must witness the transaction.
         /// </summary>
-        public static bool Transfer(UInt160 from, UInt160 to, ByteString tokenId, object data)
+        public static bool Transfer(UInt160 to, ByteString tokenId, object data)
         {
             ValidateNotGloballyPaused(APP_ID);
-            ValidateAddress(from);
             ValidateAddress(to);
 
+            UInt160 from = GetTokenOwner(tokenId);
+            ExecutionEngine.Assert(from != UInt160.Zero, "ticket not found");
             ExecutionEngine.Assert(Runtime.CheckWitness(from), "unauthorized");
-            ExecutionEngine.Assert(GetTokenOwner(tokenId) == from, "not owner");
 
             TicketData ticket = GetTicket(tokenId);
             ExecutionEngine.Assert(ticket.EventId > 0, "ticket not found");
             ExecutionEngine.Assert(!ticket.Used, "ticket already used");
 
-            if (from == to) return true;
+            if (from != to)
+            {
+                TransferToken(from, to, tokenId);
 
-            TransferToken(from, to, tokenId);
-
-            ticket.Owner = to;
-            StoreTicket(tokenId, ticket);
+                ticket.Owner = to;
+                StoreTicket(tokenId, ticket);
+            }
+            else
+            {
+                // NEP-11: a self-transfer is still a successful transfer — emit
+                // the standard event so indexers observe it (no state change).
+                OnTransfer(from, to, 1, tokenId);
+            }
 
             if (ContractManagement.GetContract(to) != null)
             {
@@ -233,7 +243,8 @@ namespace NeoMiniAppPlatform.Contracts
                 // record-keeping), AllowNotify lets it emit events. It can
                 // no longer write to platform storage under our witness or
                 // ride the seller's signature to drain other tickets.
-                Contract.Call(to, "onNEP11Payment", CallFlags.AllowCall | CallFlags.AllowNotify, from, tokenId, data);
+                // NEP-11 onNEP11Payment shape: (from, amount, tokenId, data).
+                Contract.Call(to, "onNEP11Payment", CallFlags.AllowCall | CallFlags.AllowNotify, from, 1, tokenId, data);
             }
             return true;
         }

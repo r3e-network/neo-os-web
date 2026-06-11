@@ -45,11 +45,14 @@ namespace NeoMiniAppPlatform.Contracts
     //     Without this permission, calling SetPauseRegistry on a deployed
     //     contract bricks every state-mutating method.
     [ContractPermission("*", "onNEP11Payment", "isPaused")]
+    // Tri-repo review MP-D-02: the contract implements the full NEP-11 surface but
+    // shipped with an empty supportedStandards manifest, so NEP-11 wallets,
+    // explorers, and indexers never recognized it as an NFT contract. Declare it.
+    [SupportedStandards(NepStandard.Nep11)]
     public partial class MiniAppEventTicketPass : MiniAppBase
     {
         #region App Constants
         /// <summary>Unique application identifier for the EventTicketPass miniapp.</summary>
-        /// <summary>Unique application identifier for the event-ticket-pass miniapp.</summary>
         private const string APP_ID = "miniapp-event-ticket-pass";
 
         /// <summary>Token symbol for tickets.</summary>
@@ -88,44 +91,34 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Storage Prefixes
         /// <summary>Prefix 0x20: Current event ID counter.</summary>
-        /// <summary>Storage prefix for event id.</summary>
         private static readonly byte[] PREFIX_EVENT_ID = new byte[] { 0x20 };
 
         /// <summary>Prefix 0x21: Event data storage.</summary>
-        /// <summary>Storage prefix for events.</summary>
         private static readonly byte[] PREFIX_EVENTS = new byte[] { 0x21 };
 
         /// <summary>Prefix 0x22: Creator event list.</summary>
-        /// <summary>Storage prefix for creator events.</summary>
         private static readonly byte[] PREFIX_CREATOR_EVENTS = new byte[] { 0x22 };
 
         /// <summary>Prefix 0x23: Creator event count.</summary>
-        /// <summary>Storage prefix for creator event count.</summary>
         private static readonly byte[] PREFIX_CREATOR_EVENT_COUNT = new byte[] { 0x23 };
 
         /// <summary>Prefix 0x24: Ticket data storage.</summary>
-        /// <summary>Storage prefix for tickets.</summary>
         private static readonly byte[] PREFIX_TICKETS = new byte[] { 0x24 };
 
         // NEP-11 storage prefixes
         /// <summary>Prefix 0x30: Total token supply.</summary>
-        /// <summary>Storage prefix for total supply.</summary>
         private static readonly byte[] PREFIX_TOTAL_SUPPLY = new byte[] { 0x30 };
 
         /// <summary>Prefix 0x31: Token to owner mapping.</summary>
-        /// <summary>Storage prefix for token owner.</summary>
         private static readonly byte[] PREFIX_TOKEN_OWNER = new byte[] { 0x31 };
 
         /// <summary>Prefix 0x32: Owner balance.</summary>
-        /// <summary>Storage prefix for owner balance.</summary>
         private static readonly byte[] PREFIX_OWNER_BALANCE = new byte[] { 0x32 };
 
         /// <summary>Prefix 0x33: Owner token list.</summary>
-        /// <summary>Storage prefix for owner token.</summary>
         private static readonly byte[] PREFIX_OWNER_TOKEN = new byte[] { 0x33 };
 
         /// <summary>Prefix 0x34: Token metadata.</summary>
-        /// <summary>Storage prefix for tokens.</summary>
         private static readonly byte[] PREFIX_TOKENS = new byte[] { 0x34 };
         #endregion
 
@@ -186,34 +179,34 @@ namespace NeoMiniAppPlatform.Contracts
         /// <param name="eventId">New event identifier.</param>
         /// <param name="creator">Creator address.</param>
         /// <param name="name">Event name.</param>
-        /// <summary>Event emitted when event created.</summary>
     public delegate void EventCreatedHandler(BigInteger eventId, UInt160 creator, string name);
 
         /// <summary>Event emitted when event is updated.</summary>
         /// <param name="eventId">Event identifier.</param>
-        /// <summary>Event emitted when event updated.</summary>
     public delegate void EventUpdatedHandler(BigInteger eventId);
 
         /// <summary>Event emitted when ticket is issued.</summary>
         /// <param name="tokenId">Ticket token ID.</param>
         /// <param name="eventId">Event identifier.</param>
         /// <param name="owner">Ticket owner.</param>
-        /// <summary>Event emitted when ticket issued.</summary>
     public delegate void TicketIssuedHandler(ByteString tokenId, BigInteger eventId, UInt160 owner);
 
         /// <summary>Event emitted when ticket is checked in.</summary>
         /// <param name="tokenId">Ticket token ID.</param>
         /// <param name="eventId">Event identifier.</param>
         /// <param name="operatorAddress">Operator who performed check-in.</param>
-        /// <summary>Event emitted when ticket checked in.</summary>
     public delegate void TicketCheckedInHandler(ByteString tokenId, BigInteger eventId, UInt160 operatorAddress);
 
-        /// <summary>Event emitted when ticket is transferred.</summary>
-        /// <param name="from">Previous owner.</param>
+        /// <summary>
+        /// Event emitted when ticket is transferred. Uses the NEP-11 standard
+        /// shape (from, to, amount, tokenId) so standard indexers track balances;
+        /// amount is always 1 for this non-divisible token.
+        /// </summary>
+        /// <param name="from">Previous owner (zero when minting).</param>
         /// <param name="to">New owner.</param>
+        /// <param name="amount">Token amount (always 1, non-divisible).</param>
         /// <param name="tokenId">Ticket token ID.</param>
-        /// <summary>Event emitted when transfer.</summary>
-    public delegate void TransferHandler(UInt160 from, UInt160 to, ByteString tokenId);
+    public delegate void TransferHandler(UInt160 from, UInt160 to, BigInteger amount, ByteString tokenId);
         #endregion
 
         #region Events

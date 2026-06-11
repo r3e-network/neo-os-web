@@ -29,6 +29,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract BigInteger? bidOf(BigInteger epoch, UInt160 bidder);
         public abstract UInt160 settlementWinner(BigInteger epoch);
         public abstract BigInteger? settlementAmount(BigInteger epoch);
+        public abstract BigInteger? epochDuration();
+        public abstract BigInteger? epochDeadline(BigInteger epoch);
     }
 
     public class MiniAppGovMercTests
@@ -52,6 +54,20 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             engine.SetTransactionSigners(committee);
             if (neo > 0) engine.Native.NEO.Transfer(committee, to, neo, null);
             if (gas > 0) engine.Native.GAS.Transfer(committee, to, gas, null);
+        }
+
+        // Contract asserts surface as "ABORTMSG is executed. Reason: <text>".
+        private static void AssertRevert(string reason, Action act)
+        {
+            var ex = Assert.ThrowsAny<Exception>(act);
+            Assert.Equal($"ABORTMSG is executed. Reason: {reason}", ex.Message);
+        }
+
+        // MP-D-01: settle is only valid once the bidding window opened by the
+        // epoch's first bid has elapsed; tests jump the persisting block past it.
+        private static void AdvancePastDeadline(TestEngine engine, GovMercContract gov)
+        {
+            engine.PersistingBlock.Advance(TimeSpan.FromMilliseconds((long)(gov.epochDuration() ?? 0) + 1));
         }
 
         [Fact]
@@ -110,7 +126,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(new BigInteger(4L * 100000000), gov.highestBid(0));
             Assert.Equal(carol, gov.highestBidder(0));
 
-            // Settle epoch 0: Carol wins, her 4 GAS distributed pro-rata to stakers.
+            // Settle epoch 0 after the bidding window: Carol wins, her 4 GAS
+            // distributed pro-rata to stakers.
+            AdvancePastDeadline(engine, gov);
             engine.SetTransactionSigners(carol);
             gov.settleEpoch();
             Assert.Equal(new BigInteger(1), gov.currentEpoch());
@@ -154,6 +172,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             // Settle with zero stakers: the winner's 2 GAS bid is refunded to credit
             // (nothing distributed) -> credit back to 3 GAS.
+            AdvancePastDeadline(engine, gov);
             gov.settleEpoch();
             Assert.Equal(new BigInteger(3L * 100000000), gov.gasCreditOf(carol));
 
@@ -184,6 +203,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             engine.SetTransactionSigners(carol);
             engine.Native.GAS.Transfer(carol, gov.Hash, 2L * 100000000, "govmerc:bid");
             gov.bid(carol, 2L * 100000000);
+            AdvancePastDeadline(engine, gov);
             gov.settleEpoch(); // Alice is sole staker -> earns all 2 GAS
 
             // Withdraw all stake; pending 2 GAS must be banked, then claimable.
@@ -192,6 +212,72 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(BigInteger.Zero, gov.totalStaked());
             Assert.Equal(new BigInteger(2L * 100000000), gov.pendingRewards(alice));
             Assert.Equal(new BigInteger(2L * 100000000), gov.claimRewards(alice));
+        }
+
+        // MP-D-01: a mercenary could previously bid MIN_BID and settle in the
+        // same block, winning the title (and the reward snapshot) before any
+        // competitor could counter-bid. The first bid now opens a fixed bidding
+        // window and settle is rejected until it elapses.
+        [Fact]
+        public void GovMerc_SettleSnipingBeforeDeadlineIsBlocked()
+        {
+            var engine = new TestEngine(true);
+            var (nef, manifest) = Load("MiniAppGovMerc");
+            var gov = engine.Deploy<GovMercContract>(nef, manifest);
+
+            var alice = TestEngine.GetNewSigner().Account;  // honest staker
+            var sniper = TestEngine.GetNewSigner().Account; // bid+settle attacker
+            Fund(engine, alice, 100, 1_00000000);
+            Fund(engine, sniper, 0, 5L * 100000000);
+
+            engine.SetTransactionSigners(alice);
+            engine.Native.NEO.Transfer(alice, gov.Hash, 100, "govmerc:stake");
+
+            // The sniper's first bid opens the epoch's bidding window...
+            engine.SetTransactionSigners(sniper);
+            engine.Native.GAS.Transfer(sniper, gov.Hash, 1L * 100000000, "govmerc:bid");
+            gov.bid(sniper, 1L * 100000000);
+            Assert.True((gov.epochDeadline(0) ?? 0) > 0, "first bid should open the bidding window");
+
+            // ...so the same-block settle (the sniping step) must now revert.
+            AssertRevert("epoch not ended", () => gov.settleEpoch());
+            Assert.Equal(BigInteger.Zero, gov.currentEpoch()); // epoch did not advance
+
+            // Once the window elapses, permissionless settle works as before.
+            AdvancePastDeadline(engine, gov);
+            gov.settleEpoch();
+            Assert.Equal(BigInteger.One, gov.currentEpoch());
+            Assert.Equal(sniper, gov.settlementWinner(0));
+        }
+
+        [Fact]
+        public void GovMerc_LateBidAfterDeadlineIsRejected()
+        {
+            var engine = new TestEngine(true);
+            var (nef, manifest) = Load("MiniAppGovMerc");
+            var gov = engine.Deploy<GovMercContract>(nef, manifest);
+
+            var carol = TestEngine.GetNewSigner().Account;
+            var dave = TestEngine.GetNewSigner().Account;
+            Fund(engine, carol, 0, 5L * 100000000);
+            Fund(engine, dave, 0, 5L * 100000000);
+
+            engine.SetTransactionSigners(carol);
+            engine.Native.GAS.Transfer(carol, gov.Hash, 2L * 100000000, "govmerc:bid");
+            gov.bid(carol, 2L * 100000000);
+
+            // Bids must land strictly before the deadline opened by the first bid.
+            AdvancePastDeadline(engine, gov);
+            engine.SetTransactionSigners(dave);
+            engine.Native.GAS.Transfer(dave, gov.Hash, 3L * 100000000, "govmerc:bid");
+            AssertRevert("bidding closed", () => gov.bid(dave, 3L * 100000000));
+
+            // The closed epoch settles with the in-window high bid intact, and
+            // the late bidder's credit stays fully withdrawable.
+            gov.settleEpoch();
+            Assert.Equal(carol, gov.settlementWinner(0));
+            Assert.Equal(new BigInteger(3L * 100000000), gov.gasCreditOf(dave));
+            Assert.Equal(new BigInteger(3L * 100000000), gov.withdraw(dave));
         }
     }
 }

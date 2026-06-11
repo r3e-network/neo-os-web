@@ -160,11 +160,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             engine.SetTransactionSigners(alice);
             wallet.createRequest(1, alice, stranger, engine.Native.GAS.Hash, 1L * GAS, "");
 
-            // Approvals: vault signers only; cancel: request creator only.
+            // Approvals and cancels: vault signers only (MP-D-04 widened cancel
+            // from creator-only to any signer; strangers stay locked out).
             engine.SetTransactionSigners(stranger);
             AssertRevert("not a signer", () => wallet.approve(1, stranger));
-            engine.SetTransactionSigners(bob);
-            AssertRevert("only creator can cancel", () => wallet.cancel(1, bob));
+            AssertRevert("only a vault signer can cancel", () => wallet.cancel(1, stranger));
 
             engine.SetTransactionSigners(alice);
             wallet.cancel(1, alice);
@@ -173,6 +173,83 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             // The cancelled request released nothing: funds stay custodied.
             Assert.Equal(new BigInteger(3L * GAS), wallet.balanceOf(1, engine.Native.GAS.Hash));
             Assert.Equal(new BigInteger(3L * GAS), engine.Native.GAS.BalanceOf(wallet.Hash));
+        }
+
+        // MP-D-04: cancel was creator-only, so a stuck request could never be
+        // cleared when the creator key was lost. Any vault signer may now cancel
+        // a pending request.
+        [Fact]
+        public void Multisig_NonCreatorSignerCanCancelPendingRequest()
+        {
+            var engine = new TestEngine(true);
+            var (nef, manifest) = Load("MiniAppMultisig");
+            var wallet = engine.Deploy<MultisigContract>(nef, manifest);
+
+            var alice = TestEngine.GetNewSigner().Account;
+            var bob = TestEngine.GetNewSigner().Account;
+            var recipient = TestEngine.GetNewSigner().Account;
+            Fund(engine, alice, 0, 10L * GAS);
+
+            engine.SetTransactionSigners(alice);
+            wallet.createVault(alice, new[] { alice, bob }, 2);
+            engine.Native.GAS.Transfer(alice, wallet.Hash, 3L * GAS, (BigInteger)1);
+            wallet.createRequest(1, alice, recipient, engine.Native.GAS.Hash, 1L * GAS, "alice's request");
+
+            // Bob is a vault signer but NOT the creator — he can clear it now.
+            engine.SetTransactionSigners(bob);
+            wallet.cancel(1, bob);
+
+            AssertRevert("request not pending", () => wallet.approve(1, bob));
+            Assert.Equal(BigInteger.Zero, engine.Native.GAS.BalanceOf(recipient));
+            Assert.Equal(new BigInteger(3L * GAS), wallet.balanceOf(1, engine.Native.GAS.Hash));
+        }
+
+        // MP-D-04: two pending requests can each be within balance at creation but
+        // collectively exceed it. Once one executes, the other's threshold-reaching
+        // approval used to ASSERT ("vault balance insufficient at execution"),
+        // reverting every finalizing signer forever and pinning the request in
+        // PENDING. It must instead mark the request CANCELLED gracefully.
+        [Fact]
+        public void Multisig_UnfundedExecutionCancelsGracefullyInsteadOfReverting()
+        {
+            var engine = new TestEngine(true);
+            var (nef, manifest) = Load("MiniAppMultisig");
+            var wallet = engine.Deploy<MultisigContract>(nef, manifest);
+
+            var alice = TestEngine.GetNewSigner().Account;
+            var bob = TestEngine.GetNewSigner().Account;
+            var recipient1 = TestEngine.GetNewSigner().Account;
+            var recipient2 = TestEngine.GetNewSigner().Account;
+            Fund(engine, alice, 0, 10L * GAS);
+
+            engine.SetTransactionSigners(alice);
+            wallet.createVault(alice, new[] { alice, bob }, 2);
+            engine.Native.GAS.Transfer(alice, wallet.Hash, 3L * GAS, (BigInteger)1);
+
+            // Both requests individually fit the 3 GAS balance; together they don't.
+            wallet.createRequest(1, alice, recipient1, engine.Native.GAS.Hash, 3L * GAS, "first");
+            wallet.createRequest(1, alice, recipient2, engine.Native.GAS.Hash, 3L * GAS, "second");
+            wallet.approve(1, alice);
+            wallet.approve(2, alice);
+
+            // Request 1 executes at threshold and drains the vault.
+            engine.SetTransactionSigners(bob);
+            wallet.approve(1, bob);
+            Assert.Equal(new BigInteger(3L * GAS), engine.Native.GAS.BalanceOf(recipient1));
+            Assert.Equal(BigInteger.Zero, wallet.balanceOf(1, engine.Native.GAS.Hash));
+
+            // Request 2's finalizing approval can no longer be funded. The old
+            // code FAULTed here; it must now succeed and retire the request.
+            wallet.approve(2, bob);
+            Assert.True(wallet.hasApproved(2, bob));
+
+            // Retired, not executed: nothing was paid out and the request takes
+            // no further approvals. The vault stays exactly solvent.
+            Assert.Equal(BigInteger.Zero, engine.Native.GAS.BalanceOf(recipient2));
+            engine.SetTransactionSigners(alice);
+            AssertRevert("request not pending", () => wallet.approve(2, alice));
+            Assert.Equal(BigInteger.Zero, wallet.balanceOf(1, engine.Native.GAS.Hash));
+            Assert.Equal(BigInteger.Zero, engine.Native.GAS.BalanceOf(wallet.Hash));
         }
     }
 }
