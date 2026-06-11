@@ -39,6 +39,21 @@ export class CacheService {
   }
 
   /**
+   * Whether a live (non-expired) entry exists for the key. Unlike get(),
+   * this distinguishes a cached null/undefined value from a cache miss,
+   * so callers can honor the TTL of legitimately-empty results.
+   */
+  has(key: string): boolean {
+    const entry = this.memory.get(this.prefixed(key));
+    if (!entry) return false;
+    if (Date.now() > entry.expires) {
+      this.memory.delete(this.prefixed(key));
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Store a value in the memory cache with an optional TTL.
    */
   set(key: string, data: unknown, ttlMs: number = DEFAULT_TTL_MS): void {
