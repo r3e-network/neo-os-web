@@ -602,6 +602,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   ): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
+    updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
     if (!wallet.provider.invoke) {
@@ -634,6 +635,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   ): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
+    updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
     if (!wallet.provider.invoke) {
@@ -677,6 +679,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   const getBalance = async (asset: string): Promise<string | number> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) return "0";
+    updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
     const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
@@ -701,6 +704,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   ): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
+    updateDapiNetwork(wallet.provider);
     assertWalletMatchesAppNetwork();
 
     const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";

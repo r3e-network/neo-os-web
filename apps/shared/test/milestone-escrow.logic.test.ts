@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useMilestoneEscrow } from "../../milestone-escrow/src/composables/useMilestoneEscrow";
 import type { EscrowItem } from "../../milestone-escrow/src/pages/index/components/EscrowList";
+import type { DepositConfirmation } from "../composables/useContractInteraction";
 import type { ChainService, ContractArg } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
@@ -66,9 +67,20 @@ function makeChain() {
   return { chain, invoke, read, readArray };
 }
 
-function setup() {
+function setup(
+  confirmDeposit?: (
+    txid: string,
+    asset: "NEO" | "GAS",
+  ) => Promise<DepositConfirmation>,
+) {
   const { chain, invoke, read, readArray } = makeChain();
-  const app = useMilestoneEscrow({ chain, t });
+  // Tests inject an instant confirmation by default so the deposit-settle
+  // wait never reaches the real N3Index poller.
+  const app = useMilestoneEscrow({
+    chain,
+    t,
+    confirmDeposit: confirmDeposit ?? (async () => "confirmed" as const),
+  });
   app.setAddress(OWNER);
   return { app, chain, invoke, read, readArray };
 }
@@ -96,6 +108,85 @@ function escrowItem(overrides: Partial<EscrowItem> = {}): EscrowItem {
 function callFor(invoke: ReturnType<typeof vi.fn>, op: string) {
   return invoke.mock.calls.find((c) => c[0] === op);
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe("useMilestoneEscrow deposit settlement", () => {
+  const gasParams = {
+    name: "Ordering",
+    beneficiary: BENEFICIARY,
+    asset: "GAS" as const,
+    notes: "",
+    milestones: [{ amount: "0.1" }],
+  };
+
+  it("does not fire createEscrow until the deposit transfer is confirmed", async () => {
+    const order: string[] = [];
+    let resolveConfirm!: (value: DepositConfirmation) => void;
+    const confirmDeposit = vi.fn(
+      () =>
+        new Promise<DepositConfirmation>((resolve) => {
+          resolveConfirm = resolve;
+        }),
+    );
+    const { app, invoke } = setup(confirmDeposit);
+    invoke.mockImplementation(async (op: string) => {
+      order.push(op);
+      return { txid: op === "transfer" ? "0xdeposit" : "0xtx", success: true };
+    });
+
+    const pending = app.createEscrow(gasParams);
+
+    // Let the deposit broadcast and the confirmation wait begin.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // The wait polls the deposit's OWN txid (no Credited event exists on this
+    // contract); the credit-consuming createEscrow must not be issued yet.
+    expect(confirmDeposit).toHaveBeenCalledWith("0xdeposit", "GAS");
+    expect(order).toEqual(["transfer"]);
+
+    resolveConfirm("confirmed");
+    await pending;
+    expect(order).toEqual(["transfer", "createEscrow"]);
+  });
+
+  it("passes the NEO asset through so the wait targets the NEO token's events", async () => {
+    const confirmDeposit = vi.fn(async (): Promise<DepositConfirmation> => "confirmed");
+    const { app } = setup(confirmDeposit);
+
+    await app.createEscrow({
+      name: "NEO ordering",
+      beneficiary: BENEFICIARY,
+      asset: "NEO",
+      notes: "",
+      milestones: [{ amount: "2" }],
+    });
+
+    expect(confirmDeposit).toHaveBeenCalledWith("0xtx", "NEO");
+  });
+
+  it("falls back to a fixed settle delay when the indexer is unreachable", async () => {
+    vi.useFakeTimers();
+    const order: string[] = [];
+    const { app, invoke } = setup(async () => "unreachable" as const);
+    invoke.mockImplementation(async (op: string) => {
+      order.push(op);
+      return { txid: "0xtx", success: true };
+    });
+
+    const pending = app.createEscrow(gasParams);
+
+    // Microtasks flushed: the deposit is out but the 4s fallback delay still
+    // gates createEscrow.
+    await vi.advanceTimersByTimeAsync(0);
+    expect(order).toEqual(["transfer"]);
+
+    await vi.advanceTimersByTimeAsync(4000);
+    await pending;
+    expect(order).toEqual(["transfer", "createEscrow"]);
+  });
+});
 
 describe("useMilestoneEscrow (direct contract)", () => {
   it("deposits then creates in GAS with base-unit (1e8) integers and the asset memo", async () => {

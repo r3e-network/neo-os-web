@@ -4,6 +4,7 @@
  * Utility functions for parsing and handling Neo blockchain data
  * including contract invocation results and stack items.
  */
+import { sha256 } from "../shims/noble-hashes-sha256.js";
 
 function decodeBase64Bytes(value: unknown): Uint8Array | null {
   if (typeof value !== "string") return null;
@@ -44,7 +45,6 @@ function parseByteLike(value: unknown): unknown {
   if (!bytes) return value;
   const text = bytesToPrintableText(bytes);
   if (text !== null) return text;
-  if (bytes.length === 20) return `0x${bytesToHex(bytes)}`;
   return `0x${bytesToHex(bytes)}`;
 }
 
@@ -80,25 +80,35 @@ export function parseStackItem(item: unknown): unknown {
       case "Buffer":
         return parseByteLike(typed.value);
 
-      case "Integer":
-        // Convert Integer to number
+      case "Integer": {
+        // Parse via BigInt so large values stay precise. One rule for every
+        // encoding (decimal string, 0x-hex string, number): values within
+        // Number.MAX_SAFE_INTEGER return as number; anything larger (fixed8
+        // products, 1e12-scaled accumulators) returns as a decimal string so
+        // the digits survive intact. Unparseable input returns 0.
+        let parsed: bigint;
         if (typeof typed.value === "string") {
-          // Handle hex strings (BigInt doesn't support 0x prefix, need to parse differently)
-          if (typed.value.startsWith("0x")) {
-            try {
-              return BigInt(parseInt(typed.value.slice(2), 16)).toString();
-            } catch (_e) {
-              return "0";
-            }
+          try {
+            parsed = BigInt(typed.value.trim());
+          } catch (_e) {
+            return 0;
           }
-          const parsed = parseInt(typed.value, 10);
-          return Number.isFinite(parsed) ? parsed : 0;
+        } else if (typeof typed.value === "number") {
+          if (!Number.isFinite(typed.value)) return 0;
+          parsed = BigInt(Math.trunc(typed.value));
+        } else if (typeof typed.value === "bigint") {
+          parsed = typed.value;
+        } else {
+          return 0;
         }
-        // Handle number or other types
-        if (typeof typed.value === "number") {
-          return Number.isFinite(typed.value) ? typed.value : 0;
+        if (
+          parsed >= BigInt(Number.MIN_SAFE_INTEGER) &&
+          parsed <= BigInt(Number.MAX_SAFE_INTEGER)
+        ) {
+          return Number(parsed);
         }
-        return 0;
+        return parsed.toString();
+      }
 
       case "Array":
       case "Struct":
@@ -193,14 +203,46 @@ export function parseInvokeResult(result: unknown): unknown {
   return parseStackItem(result);
 }
 
+const BASE58_ALPHABET =
+  "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+const NEO_N3_ADDRESS_VERSION = 0x35;
+
+function base58Decode(input: string): Uint8Array | null {
+  let num = BigInt(0);
+  for (const char of input) {
+    const idx = BASE58_ALPHABET.indexOf(char);
+    if (idx < 0) return null;
+    num = num * BigInt(58) + BigInt(idx);
+  }
+  let hex = num === BigInt(0) ? "" : num.toString(16);
+  if (hex.length % 2) hex = `0${hex}`;
+  const digits = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < digits.length; i += 1) {
+    digits[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  // Preserve leading zero bytes (encoded as leading "1" characters)
+  let leadingZeros = 0;
+  for (const char of input) {
+    if (char !== "1") break;
+    leadingZeros += 1;
+  }
+  if (leadingZeros === 0) return digits;
+  const bytes = new Uint8Array(leadingZeros + digits.length);
+  bytes.set(digits, leadingZeros);
+  return bytes;
+}
+
 /**
  * Convert a Neo N3 address to its script hash.
  *
  * Neo N3 addresses are Base58Check encoded:
  *   Base58Check(0x35 + 20-byte-script-hash + 4-byte-checksum)
  *
- * This function decodes the address, extracts the 20-byte hash,
- * reverses it to little-endian, and returns it with a 0x prefix.
+ * This function performs the full Base58Check validation — decoded length
+ * must be exactly 25 bytes, the version byte must be 0x35, and the trailing
+ * 4 bytes must equal the first 4 bytes of double-SHA256 of the payload — so
+ * a typo'd address can never silently produce a plausible-looking hash.
+ * The validated 20-byte hash is reversed to little-endian and 0x-prefixed.
  *
  * @param address - Neo N3 address (e.g. "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs")
  * @returns Script hash in 0x-prefixed little-endian hex, or "" on error
@@ -217,20 +259,17 @@ export function addressToScriptHash(address: string): string {
     return address;
   }
   try {
-    // Neo N3 address format: Base58Check(0x35 + 20-byte-script-hash)
-    // Decode Base58 to a big integer, then extract the script hash bytes.
-    const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-    let num = BigInt(0);
-    for (const char of address) {
-      const idx = ALPHABET.indexOf(char);
-      if (idx < 0) return "";
-      num = num * BigInt(58) + BigInt(idx);
+    const decoded = base58Decode(address);
+    if (!decoded || decoded.length !== 25) return "";
+    if (decoded[0] !== NEO_N3_ADDRESS_VERSION) return "";
+    const payload = decoded.subarray(0, 21);
+    const checksum = decoded.subarray(21);
+    const expected = sha256(sha256(payload)).subarray(0, 4);
+    for (let i = 0; i < 4; i += 1) {
+      if (checksum[i] !== expected[i]) return "";
     }
-    // Convert to hex, pad to 50 chars (25 bytes = 1 version + 20 hash + 4 checksum)
-    const hex = num.toString(16).padStart(50, "0");
-    // Extract script hash (bytes 1-20, skip version byte, skip 4 checksum bytes)
-    const scriptHashHex = hex.substring(2, 42);
-    // Reverse byte order for little-endian
+    // Extract script hash (bytes 1-20) and reverse byte order for little-endian
+    const scriptHashHex = bytesToHex(decoded.subarray(1, 21));
     const reversed = scriptHashHex.match(/.{2}/g)?.reverse().join("") ?? "";
     return `0x${reversed}`;
   } catch (_e) {

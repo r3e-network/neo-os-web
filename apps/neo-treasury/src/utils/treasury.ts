@@ -17,6 +17,7 @@ const RPC_ENDPOINTS = [
 
 // Contract addresses (from shared constants)
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
 
 const NEO_CONTRACT = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_CONTRACT = BLOCKCHAIN_CONSTANTS.GAS_HASH;
@@ -111,7 +112,9 @@ export interface TreasuryData {
 async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
   for (const endpoint of RPC_ENDPOINTS) {
     try {
-      const res = await fetch(endpoint, {
+      // Timeout-bound so a hung endpoint actually fails over to the next one
+      // instead of stalling the whole balance sweep.
+      const res = await fetchWithTimeout(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

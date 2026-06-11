@@ -15,6 +15,7 @@
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
+import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
 import { formatNumber } from "@shared/utils/format";
 import { useTicker } from "@shared/composables/useTicker";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
@@ -152,7 +153,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     let freshStats: ExplorerStats | null = null;
 
     try {
-      const res = await fetch(`${API_BASE}/stats`);
+      const res = await fetchWithTimeout(`${API_BASE}/stats`);
       if (res.ok) {
         freshStats = parseResponseData(await res.json()) as ExplorerStats;
       }
@@ -181,7 +182,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
       let hasFreshTxs = false;
 
       try {
-        const res = await fetch(`${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`);
+        const res = await fetchWithTimeout(`${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`);
         if (res.ok) {
           const parsed = parseResponseData(await res.json()) as Record<string, unknown> | null;
           const rows = Array.isArray(parsed?.transactions) ? (parsed.transactions as Record<string, unknown>[]) : [];
@@ -219,7 +220,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     searchResult.set(null);
 
     try {
-      const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.get()}`);
+      const res = await fetchWithTimeout(`${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.get()}`);
       if (res.ok) {
         searchResult.set(parseResponseData(await res.json()));
         return;

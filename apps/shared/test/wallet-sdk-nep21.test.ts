@@ -529,6 +529,56 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(neoLine.invoke).not.toHaveBeenCalled();
   });
 
+  it("re-reads the provider network on write paths so a mid-session switch is rejected", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    // No .on support: the 'networkchanged' event can never fire, so only an
+    // on-demand provider.network re-read can catch the switch.
+    const provider = createNep21Provider();
+    window.neoDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+    expect(wallet.chainType.value).toBe("neo-n3-testnet");
+
+    // User flips the wallet to mainnet mid-session.
+    provider.network = MAINNET_MAGIC;
+
+    await expect(wallet.invokeContract({
+      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      operation: "Transfer",
+      args: [],
+    })).rejects.toThrow(/targets Neo N3 Testnet/i);
+    expect(provider.invoke).not.toHaveBeenCalled();
+
+    await expect(wallet.invokeMultiple?.({
+      invokeArgs: [{
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "Transfer",
+        args: [],
+      }],
+    })).rejects.toThrow(/targets Neo N3 Testnet/i);
+
+    await expect(wallet.send?.(
+      "GAS",
+      "100000000",
+      "0x2222222222222222222222222222222222222222",
+    )).rejects.toThrow(/targets Neo N3 Testnet/i);
+    expect(provider.send).not.toHaveBeenCalled();
+
+    await expect(wallet.getBalance("GAS")).rejects.toThrow(
+      /targets Neo N3 Testnet/i,
+    );
+    expect(provider.getBalance).not.toHaveBeenCalled();
+
+    // Switching back restores the write path.
+    provider.network = TESTNET_MAGIC;
+    await expect(wallet.invokeContract({
+      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      operation: "Transfer",
+      args: [],
+    })).resolves.toMatchObject({ txid: "0xtxid" });
+  });
+
   it("does not request a root neo-manifest from host-rendered pages", async () => {
     window.history.replaceState({}, "", "/miniapps/miniapp-profitanchor");
     const fetchSpy = vi.fn();

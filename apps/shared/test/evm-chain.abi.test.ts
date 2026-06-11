@@ -84,4 +84,13 @@ describe("evm-chain ABI codec", () => {
     expect(decoded.plaintext).toBe("");
     expect(decoded.unlockTime).toBe(0);
   });
+
+  it("decodeMessageStruct fails with context on empty/short returns", () => {
+    // eth_call against a wrong or non-contract address returns "0x" — that
+    // must surface a descriptive error, not a raw BigInt SyntaxError.
+    expect(() => decodeMessageStruct("0x")).toThrow(/empty or truncated/);
+    expect(() => decodeMessageStruct("")).toThrow(/empty or truncated/);
+    // a lone offset word without the tuple body is also truncated
+    expect(() => decodeMessageStruct("0x" + "00".repeat(32))).toThrow(/truncated/);
+  });
 });

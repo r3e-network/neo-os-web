@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
+import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
 import {
   buildConfidentialTransferPackage,
   encryptJsonWithOraclePublicKey,
@@ -202,7 +203,7 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
 
     let sealPhase: "key" | "store" | "package" = "key";
     try {
-      const keyResponse = await fetch(
+      const keyResponse = await fetchWithTimeout(
         `/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`,
       );
       const keyMeta = await keyResponse.json().catch(() => ({}));
@@ -236,7 +237,7 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
       );
 
       sealPhase = "store";
-      const storeResponse = await fetch("/api/morpheus/confidential/store", {
+      const storeResponse = await fetchWithTimeout("/api/morpheus/confidential/store", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
