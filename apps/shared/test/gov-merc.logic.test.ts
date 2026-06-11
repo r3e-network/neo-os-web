@@ -1,13 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { useGovMerc } from "../../gov-merc/src/hooks/useGovMerc";
+import {
+  EPOCH_DURATION_FALLBACK_MS,
+  epochWindowPhase,
+  useGovMerc,
+  windowRevertKey,
+} from "../../gov-merc/src/hooks/useGovMerc";
 import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const BOB = "NUuPbNwrecVnAQauFTdMPaMQRgwsmFwjwR";
-const CONTRACT = "0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9";
+const CONTRACT = "0x140f5faf5692d21421a79278b0e45b9b9bd4bb46";
 const ALICE_HASH = addressToScriptHash(ALICE);
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
@@ -26,6 +31,10 @@ function t(key: string, params?: Record<string, string | number>) {
     minBid: `First bid must be at least ${params?.amount ?? ""} ${params?.tokenGas ?? ""}`,
     bidDepositHeld:
       "Your GAS was deposited as reusable bid credit. Raise the bid again or withdraw the credit.",
+    biddingClosed: "Bidding for this epoch has closed",
+    biddingClosedCreditHeld:
+      "Bidding closed before your bid landed. Your GAS is held as reusable bid credit — withdraw it or bid in the next epoch.",
+    epochNotEnded: "The bidding window is still open — settle after the deadline",
     noRewards: "No rewards to claim yet",
     noCredit: "No unused bid credit",
     tokenGas: "GAS",
@@ -75,6 +84,12 @@ interface ChainOpts {
   bidEvents?: unknown[];
   /** Force the bid() invoke to throw. */
   bidThrows?: Error;
+  /** epochDeadline(currentEpoch) read — ms timestamp (0 = window unopened). */
+  epochDeadline?: string;
+  /** epochDuration() read — bidding-window length in ms. */
+  epochDuration?: string;
+  /** Force the settleEpoch() invoke to throw. */
+  settleThrows?: Error;
 }
 
 /**
@@ -93,8 +108,11 @@ function makeChain(opts: ChainOpts = {}) {
           event = bidEvent(opts.epoch ?? 0, ALICE, "100000000");
         }
       }
-      if (op === "settleEpoch" && options?.waitForEvent === "EpochSettled") {
-        event = { state: [{ type: "Integer", value: String(opts.epoch ?? 0) }] };
+      if (op === "settleEpoch") {
+        if (opts.settleThrows) throw opts.settleThrows;
+        if (options?.waitForEvent === "EpochSettled") {
+          event = { state: [{ type: "Integer", value: String(opts.epoch ?? 0) }] };
+        }
       }
       return { txid: "0xtx", event, success: true };
     },
@@ -114,6 +132,8 @@ function makeChain(opts: ChainOpts = {}) {
         return (epochArg !== undefined && opts.settlementAmount?.[epochArg]) || "0";
       case "bidOf":
         return (epochArg !== undefined && opts.bidOf?.[epochArg]) || "0";
+      case "epochDeadline": return opts.epochDeadline ?? "0";
+      case "epochDuration": return opts.epochDuration ?? "300000";
       default: return "0";
     }
   });
@@ -467,5 +487,156 @@ describe("useGovMerc — claim rewards + reclaim losing bid + withdraw credit", 
 
     await expect(app.withdrawCredit()).rejects.toThrow("No unused bid credit");
     expect(invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe("useGovMerc — v2 bidding window (epochDeadline / epochDuration)", () => {
+  it("derives the window phase: unopened (deadline 0) → open → closed", () => {
+    const now = 1_750_000_000_000;
+    expect(epochWindowPhase(0, now)).toBe("unopened");
+    expect(epochWindowPhase(-1, now)).toBe("unopened");
+    expect(epochWindowPhase(Number.NaN, now)).toBe("unopened");
+    expect(epochWindowPhase(now + 1, now)).toBe("open");
+    expect(epochWindowPhase(now, now)).toBe("closed");
+    expect(epochWindowPhase(now - 1, now)).toBe("closed");
+  });
+
+  it("maps the v2 revert reasons to friendly message keys", () => {
+    expect(windowRevertKey(new Error("Assert failed: bidding closed"))).toBe(
+      "biddingClosed",
+    );
+    expect(windowRevertKey(new Error("ASSERT: Epoch Not Ended"))).toBe(
+      "epochNotEnded",
+    );
+    expect(windowRevertKey(new Error("insufficient prepaid asset"))).toBeNull();
+  });
+
+  it("loads epochDeadline(currentEpoch) + epochDuration() into state", async () => {
+    const deadline = Date.now() + 60_000;
+    const { app, read } = setup({
+      epoch: 7,
+      epochDeadline: String(deadline),
+      epochDuration: "300000",
+    });
+
+    await app.loadData();
+
+    expect(app.epochDeadline.get()).toBe(deadline);
+    expect(app.epochDurationMs.get()).toBe(300000);
+    const deadlineCall = read.mock.calls.find((c) => c[0] === "epochDeadline");
+    expect(deadlineCall).toBeTruthy();
+    // The deadline is read for the LIVE epoch.
+    expect(deadlineCall![1]).toEqual([{ type: "Integer", value: "7" }]);
+    expect(read.mock.calls.some((c) => c[0] === "epochDuration")).toBe(true);
+  });
+
+  it("falls back to the 5-minute default when epochDuration() reads 0", async () => {
+    const { app } = setup({ epoch: 2, epochDuration: "0" });
+    await app.loadData();
+    expect(app.epochDurationMs.get()).toBe(EPOCH_DURATION_FALLBACK_MS);
+  });
+
+  it("rejects a bid after the deadline BEFORE any chain call", async () => {
+    const { app, invoke } = setup({
+      epoch: 4,
+      epochDeadline: String(Date.now() - 1_000), // window already closed
+    });
+    await app.loadData();
+    invoke.mockClear();
+
+    app.bidAmount.set("2");
+    await expect(app.placeBid()).rejects.toThrow(
+      "Bidding for this epoch has closed",
+    );
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("allows the opening bid while the window is unopened (deadline 0)", async () => {
+    const { app, invoke } = setup({ epoch: 4, epochDeadline: "0" });
+    await app.loadData();
+    invoke.mockClear();
+
+    app.bidAmount.set("2");
+    await app.placeBid();
+
+    expect(callFor(invoke, "transfer")).toBeTruthy();
+    expect(callFor(invoke, "bid")).toBeTruthy();
+  });
+
+  it("maps a 'bidding closed' bid revert to the credit-held message after the deposit landed", async () => {
+    const { app } = setup({
+      epoch: 4,
+      gasCredit: "0", // forces the deposit leg first
+      epochDeadline: String(Date.now() + 60_000), // open locally, closed on-chain
+      bidThrows: new Error("Assert failed: bidding closed"),
+    });
+    await app.loadData();
+
+    app.bidAmount.set("2");
+    await expect(app.placeBid()).rejects.toThrow(
+      "Bidding closed before your bid landed",
+    );
+  });
+
+  it("maps a 'bidding closed' bid revert to the plain message when credit already covered it", async () => {
+    const { app, invoke } = setup({
+      epoch: 4,
+      gasCredit: "300000000", // credit covers the bid — no deposit leg
+      epochDeadline: String(Date.now() + 60_000),
+      bidThrows: new Error("Assert failed: bidding closed"),
+    });
+    await app.loadData();
+    invoke.mockClear();
+
+    app.bidAmount.set("2");
+    await expect(app.placeBid()).rejects.toThrow(
+      "Bidding for this epoch has closed",
+    );
+    expect(callFor(invoke, "transfer")).toBeUndefined();
+  });
+
+  it("blocks settlement before the deadline (epoch not ended) with no chain call", async () => {
+    const { app, invoke } = setup({
+      epoch: 5,
+      bidEvents: [bidEvent(5, BOB, "800000000")],
+      epochDeadline: String(Date.now() + 60_000), // window still open
+    });
+    await app.loadData();
+    invoke.mockClear();
+
+    await expect(app.settleEpoch()).rejects.toThrow(
+      "The bidding window is still open",
+    );
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("settles once the deadline has passed", async () => {
+    const { app, invoke } = setup({
+      epoch: 5,
+      bidEvents: [bidEvent(5, BOB, "800000000")],
+      epochDeadline: String(Date.now() - 1_000), // window closed
+    });
+    await app.loadData();
+    invoke.mockClear();
+
+    await app.settleEpoch();
+
+    const settle = callFor(invoke, "settleEpoch");
+    expect(settle).toBeTruthy();
+    expect(settle![2]).toMatchObject({ waitForEvent: "EpochSettled" });
+  });
+
+  it("maps the contract's 'epoch not ended' settle revert when the deadline is unknown", async () => {
+    const { app } = setup({
+      epoch: 5,
+      bidEvents: [bidEvent(5, BOB, "800000000")],
+      epochDeadline: "0", // deadline read degraded — contract still rules
+      settleThrows: new Error("Assert failed: epoch not ended"),
+    });
+    await app.loadData();
+
+    await expect(app.settleEpoch()).rejects.toThrow(
+      "The bidding window is still open — settle after the deadline",
+    );
   });
 });

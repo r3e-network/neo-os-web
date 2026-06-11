@@ -28,6 +28,14 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+/** v2: why a request auto-cancelled (vault underfunded at threshold). */
+interface UnfundedNotice {
+  requestId: number;
+  required: string;
+  available: string;
+  asset: string;
+}
+
 const SIGNER_SLOTS = 3;
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
@@ -55,6 +63,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const history = (state.history?.get() ?? []) as HistoryItem[];
   const activeVault = val<VaultView>("activeVault");
   const activeRequest = val<RequestView>("activeRequest");
+  const unfundedNotice = val<UnfundedNotice>("unfundedNotice");
   const isCreatingVault = bool("isCreatingVault");
   const isDepositing = bool("isDepositing");
   const isProposing = bool("isProposing");
@@ -134,7 +143,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const requestPending = activeRequest?.status === "pending";
   const canApprove = !!activeRequest && requestPending && !isApproving;
+  // v2 contract: ANY vault signer may cancel a pending request (previously
+  // creator-only) — so the cancel affordance is NOT gated to the creator.
   const canCancel = !!activeRequest && requestPending && !isCancelling;
+  // v2: a threshold approval that found the vault underfunded auto-cancelled
+  // the request — explain that instead of leaving a bare "Cancelled" status.
+  const showUnfundedNotice =
+    !!activeRequest &&
+    activeRequest.status === "cancelled" &&
+    unfundedNotice?.requestId === activeRequest.id;
 
   const vaultGas = activeVault ? fromBaseUnits(activeVault.gasBalance, "GAS") : "0";
   const vaultNeo = activeVault ? fromBaseUnits(activeVault.neoBalance, "NEO") : "0";
@@ -456,6 +473,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       total: activeVault?.threshold ?? 0,
                     })}
                   </p>
+
+                  {showUnfundedNotice && unfundedNotice && (
+                    <p
+                      className="multisig-request-hint multisig-request-hint--unfunded"
+                      aria-live="polite"
+                    >
+                      {t("multisigUnfundedNotice", {
+                        required: unfundedNotice.required,
+                        available: unfundedNotice.available,
+                        asset: unfundedNotice.asset,
+                      })}
+                    </p>
+                  )}
 
                   <div className="multisig-primary-actions multisig-primary-actions--row">
                     <NeoButton

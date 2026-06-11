@@ -6,7 +6,7 @@ import { addressToScriptHash } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-const CONTRACT = "0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9";
+const CONTRACT = "0x140f5faf5692d21421a79278b0e45b9b9bd4bb46";
 const ALICE_HASH = addressToScriptHash(ALICE);
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const BID_MEMO = "govmerc:bid";

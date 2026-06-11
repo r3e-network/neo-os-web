@@ -52,6 +52,18 @@ function parseVaultId(value: unknown): number {
   return Number.isInteger(id) && id > 0 ? id : 0;
 }
 
+/**
+ * Why a request auto-cancelled (v2 contract): a threshold approval found the
+ * vault underfunded (RequestUnfunded event). Amounts are pre-formatted display
+ * strings; PlayArea renders this only for the matching active request.
+ */
+interface UnfundedNotice {
+  requestId: number;
+  required: string;
+  available: string;
+  asset: string;
+}
+
 defineMiniApp({
   appId: "miniapp-neo-multisig",
   playArea: PlayArea,
@@ -78,6 +90,9 @@ defineMiniApp({
     );
     const activeVault = createObservable<VaultView | null>(null);
     const activeRequest = createObservable<RequestView | null>(null);
+    // v2: RequestUnfunded explanation for an auto-cancelled request (keyed by
+    // requestId; PlayArea only shows it for the matching active request).
+    const unfundedNotice = createObservable<UnfundedNotice | null>(null);
     const isCreatingVault = createObservable(false);
     const isDepositing = createObservable(false);
     const isProposing = createObservable(false);
@@ -138,6 +153,27 @@ defineMiniApp({
             : new Date().toISOString(),
         });
         updateHistoryStatus("request", request.id, request.status);
+
+        // v2: a threshold approval that finds the vault underfunded
+        // AUTO-CANCELS the request and emits RequestUnfunded(reqId, required,
+        // available). Resolve that event for cancelled requests so the UI can
+        // explain WHY instead of showing a generic cancel.
+        if (
+          request.status === "cancelled" &&
+          unfundedNotice.get()?.requestId !== request.id
+        ) {
+          const unfunded = await api.requestUnfunded(request.id);
+          if (unfunded) {
+            const asset: "GAS" | "NEO" =
+              request.assetSymbol === "NEO" ? "NEO" : "GAS";
+            unfundedNotice.set({
+              requestId: request.id,
+              required: fromBaseUnits(unfunded.required, asset),
+              available: fromBaseUnits(unfunded.available, asset),
+              asset: request.assetSymbol,
+            });
+          }
+        }
       }
       return request;
     };
@@ -269,6 +305,24 @@ defineMiniApp({
         if (request?.vaultId) await refreshVault(request.vaultId);
         if (request?.status === "executed") {
           ctx.setStatus(ctx.t("toastRequestExecuted"), "success");
+        } else if (request?.status === "cancelled") {
+          // v2: the threshold approval found the vault underfunded and the
+          // contract auto-cancelled the request (RequestUnfunded). Surface a
+          // clear explanation — with amounts when the event resolved — instead
+          // of a generic approval/cancel toast.
+          const notice = unfundedNotice.get();
+          if (notice && notice.requestId === reqId) {
+            ctx.setStatus(
+              ctx.t("toastRequestUnfunded", {
+                required: notice.required,
+                available: notice.available,
+                asset: notice.asset,
+              }),
+              "error",
+            );
+          } else {
+            ctx.setStatus(ctx.t("toastRequestUnfundedShort"), "error");
+          }
         } else {
           ctx.setStatus(ctx.t("toastApproved"), "success");
         }
@@ -367,6 +421,7 @@ defineMiniApp({
         connectedAddress,
         activeVault,
         activeRequest,
+        unfundedNotice,
         isCreatingVault,
         isDepositing,
         isProposing,

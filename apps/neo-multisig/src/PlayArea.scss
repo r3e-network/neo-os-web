@@ -335,6 +335,14 @@
   color: var(--multisig-green-strong);
 }
 
+/* v2 RequestUnfunded notice: a threshold approval found the vault underfunded
+   and the contract auto-cancelled the request — amber warning treatment. */
+.multisig-request-hint--unfunded {
+  border-color: rgba(217, 119, 6, 0.28);
+  background: #fdf6ec;
+  color: #b45309;
+}
+
 .multisig-receipt,
 .multisig-request-details {
   display: grid;

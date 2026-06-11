@@ -10,6 +10,8 @@ interface MercActionCardsProps {
   withdrawAmount: string;
   bidAmount: string;
   userDeposits: number;
+  /** v2 contract: the epoch's bidding window has ended — bids are rejected. */
+  biddingClosed: boolean;
   onAmountChange: (key: AmountField, value: string) => void;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
@@ -26,6 +28,7 @@ export default function MercActionCards({
   withdrawAmount,
   bidAmount,
   userDeposits,
+  biddingClosed,
   onAmountChange,
   dispatch,
 }: MercActionCardsProps) {
@@ -104,11 +107,14 @@ export default function MercActionCards({
         <NeoButton
           variant="secondary"
           loading={isBusy}
-          disabled={isBusy || !isPositiveAmount(bidAmount)}
+          disabled={isBusy || biddingClosed || !isPositiveAmount(bidAmount)}
           onClick={() => dispatch("placeBid")}
         >
           {t("placeBid")}
         </NeoButton>
+        {biddingClosed ? (
+          <p className="gov-merc-field-error">{t("biddingClosedHint")}</p>
+        ) : null}
       </div>
     </>
   );

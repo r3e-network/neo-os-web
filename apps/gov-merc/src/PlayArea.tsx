@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NeoCard, NeoButton } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -5,6 +6,7 @@ import MercHeroStats from "./components/MercHeroStats";
 import MercActionCards, { type AmountField } from "./components/MercActionCards";
 import MercBidsList from "./components/MercBidsList";
 import MercStakerPanel, { type ReclaimableBid } from "./components/MercStakerPanel";
+import { epochWindowPhase, EPOCH_DURATION_FALLBACK_MS } from "./hooks/useGovMerc";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -13,8 +15,25 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+/** Format the remaining bidding-window time as m:ss. */
+function formatCountdown(remainingMs: number): string {
+  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, str, bool, num } = useStateBindings(state);
+
+  // Ticking clock for the bidding-window countdown / closed state (v2 contract:
+  // the first bid of an epoch opens a fixed window; bids after the deadline are
+  // rejected and settlement only unlocks once the deadline passes).
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const totalPool = val<number>("totalPool", 0) ?? 0;
   const currentEpoch = val<number>("currentEpoch", 0) ?? 0;
@@ -29,6 +48,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const bidAmount = str("bidAmount");
   const bidCount = num("bidCount");
   const canSettle = bool("canSettle");
+  const epochDeadline = val<number>("epochDeadline", 0) ?? 0;
+  const epochDurationMs =
+    val<number>("epochDurationMs", EPOCH_DURATION_FALLBACK_MS) ??
+    EPOCH_DURATION_FALLBACK_MS;
   const lastSettlementDisplay = str("lastSettlementDisplay", "");
   const pendingRewards = val<number>("pendingRewards", 0) ?? 0;
   const gasCredit = val<number>("gasCredit", 0) ?? 0;
@@ -41,6 +64,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const shortAddress = address
     ? `${address.slice(0, 8)}...${address.slice(-6)}`
     : t("walletStatusIdle");
+
+  // Bidding-window phase: "unopened" (first bid opens it), "open" (countdown)
+  // or "closed" (bids rejected; settlement available once there are bids).
+  const windowPhase = epochWindowPhase(epochDeadline, now);
+  const biddingClosed = windowPhase === "closed";
+  const windowMinutes = Math.max(1, Math.round(epochDurationMs / 60_000));
+  const windowLabel =
+    windowPhase === "unopened"
+      ? t("bidWindowUnopened", { minutes: windowMinutes })
+      : windowPhase === "open"
+        ? t("bidWindowCountdown", { time: formatCountdown(epochDeadline - now) })
+        : t("bidWindowClosed");
+  // Settle is available only AFTER the bidding deadline (and with bids).
+  const canSettleNow = canSettle && biddingClosed;
 
   return (
     <div className="gov-merc-shell">
@@ -86,6 +123,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               withdrawAmount={withdrawAmount}
               bidAmount={bidAmount}
               userDeposits={userDeposits}
+              biddingClosed={biddingClosed}
               onAmountChange={setAmountValue}
               dispatch={dispatch}
             />
@@ -126,6 +164,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <strong>{`#${currentEpoch}`}</strong>
           </div>
           <p>{t("settleCopy")}</p>
+          <div
+            className={`gov-merc-settle-window${biddingClosed ? " is-closed" : ""}`}
+            aria-live="polite"
+          >
+            <span>{t("bidWindowTitle")}</span>
+            <strong>{windowLabel}</strong>
+          </div>
           <div className="gov-merc-settle-last">
             <span>{t("settleLastLabel")}</span>
             <strong>{lastSettlementDisplay || t("settleNone")}</strong>
@@ -133,13 +178,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoButton
             variant="primary"
             loading={isBusy}
-            disabled={isBusy || !canSettle}
+            disabled={isBusy || !canSettleNow}
             onClick={() => dispatch("settleEpoch")}
           >
             {t("flowInfluence")}
           </NeoButton>
           {!canSettle && !isBusy ? (
             <p className="gov-merc-settle-hint">{t("settleNoBidsHint")}</p>
+          ) : null}
+          {canSettle && !biddingClosed && !isBusy ? (
+            <p className="gov-merc-settle-hint">{t("settleAfterDeadlineHint")}</p>
           ) : null}
         </NeoCard>
 

@@ -32,19 +32,25 @@
 
 | 属性 | 值 |
 |------|-----|
-| **合约地址** | `0x69a013c8fde3e835d642717ef1af71f7e02ade00` |
+| **合约地址** | `0x140f5faf5692d21421a79278b0e45b9b9bd4bb46` |
 | **RPC 节点** | `https://testnet1.neo.coz.io:443` |
-| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x69a013c8fde3e835d642717ef1af71f7e02ade00) |
+| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x140f5faf5692d21421a79278b0e45b9b9bd4bb46) |
 | **网络魔数** | `894710606` |
 
 ### 主网 (Mainnet)
 
 | 属性 | 值 |
 |------|-----|
-| **合约地址** | `0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0` |
+| **合约地址** | `0x140f5faf5692d21421a79278b0e45b9b9bd4bb46` |
 | **RPC 节点** | `https://mainnet2.neo.coz.io:443` |
-| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0) |
+| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x140f5faf5692d21421a79278b0e45b9b9bd4bb46) |
 | **网络魔数** | `860833102` |
+
+> **迁移说明（v2，2026-06-12）：** MiniAppGovMerc v2 为每个周期引入固定的
+> 5 分钟竞价窗口（首笔竞价开启窗口；之后的竞价必须在截止时间前提交，
+> 结算只能在截止后进行）。v1 合约
+> `0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9` 在两个网络上保持在线，
+> 仅用于用户退出（提取质押 / 取回竞价 / 提取额度）。
 
 ## 平台合约
 
