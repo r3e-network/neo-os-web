@@ -6,6 +6,8 @@
   ],
   "scripts": {
     "verify:repo": "bash scripts/verify_repo.sh",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "npm run -s test:deploy-scripts && npm run -s test:host-app && npm run -s test:admin-console && npm run -s test:shared && npm run -s test:miniapps",
     "test:shared": "cd apps/shared && npx vitest run",
     "test:miniapps": "node scripts/run-miniapp-tests.mjs",
@@ -58,17 +60,22 @@
   },
   "devDependencies": {
     "@cityofzion/neon-js": "^5.9.0",
+    "@eslint/js": "^9.39.4",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^5.2.0",
+    "@vitest/coverage-v8": "^4.1.0",
     "dotenv": "^17.2.3",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.6.0",
     "pg": "^8.16.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "turbo": "^2.9.14",
+    "typescript-eslint": "^8.61.0",
     "vite-plugin-node-polyfills": "^0.25.0",
     "vitest": "^4.1.0",
-    "@vitest/coverage-v8": "^4.1.0",
     "vue": "^3.5.33"
   },
   "dependencies": {
