@@ -36,6 +36,29 @@ describe("OracleSecretsPage", () => {
     vi.restoreAllMocks();
   });
 
+  it("shows the demo-data banner when the secrets API flags X-Mock-Data", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(JSON.stringify(sampleSecrets), {
+          status: 200,
+          headers: { "X-Mock-Data": "true" },
+        }),
+    );
+
+    render(<OracleSecretsPage />);
+
+    expect(await screen.findByTestId("demo-data-banner")).toHaveTextContent(
+      "Demo data",
+    );
+  });
+
+  it("hides the demo-data banner when the secrets API serves real data", async () => {
+    render(<OracleSecretsPage />);
+
+    await screen.findByText("binance_api_key");
+    expect(screen.queryByTestId("demo-data-banner")).not.toBeInTheDocument();
+  });
+
   it("renders a light secret inventory dashboard without legacy dark styling", async () => {
     const { container } = render(<OracleSecretsPage />);
 

@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Tests for the in-memory + supabase-backed admin config routes that
-// the api-routes audit flagged as untested: contracts, oracle-secrets,
-// pricefeeds, settings, simulations, users.
+// Tests for the demo-data + supabase-backed admin config routes:
+// contracts, oracle-secrets, pricefeeds, settings, simulations, users.
+//
+// The four demo-data routes (contracts, oracle-secrets, pricefeeds, settings)
+// serve read-only sample payloads flagged with the `X-Mock-Data: true` header
+// (which drives the demo-data banner in the UI) and answer every mutation
+// with an explicit 501 instead of pretending to persist.
 
 const API_KEY = "test-admin-key-config";
 
@@ -43,31 +47,38 @@ describe("/api/contracts", () => {
     expect(res.status).toBe(401);
   });
 
-  it("GET with auth → 200 array", async () => {
+  it("GET with auth → 200 array flagged as demo data", async () => {
     const { GET } = await import("@/app/api/contracts/route");
     const res = await GET(authedRequest("http://t/api/contracts"));
     expect(res.status).toBe(200);
+    expect(res.headers.get("X-Mock-Data")).toBe("true");
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
     expect(body.length).toBeGreaterThan(0);
   });
 
-  it("POST upserts an entry", async () => {
+  it("POST → 501 not implemented; nothing is upserted", async () => {
     const { POST, GET } = await import("@/app/api/contracts/route");
     const res = await POST(authedRequest("http://t/api/contracts", {
       method: "POST",
       body: JSON.stringify({ id: "TestContract", name: "TestContract", hash: "0xabc" }),
       headers: { "content-type": "application/json" },
     }));
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(501);
+    const body = await res.json();
+    expect(String(body.error)).toContain("not implemented");
     const after = await (await GET(authedRequest("http://t/api/contracts"))).json();
-    expect(after.find((c: { id: string }) => c.id === "TestContract")).toBeDefined();
+    expect(after.find((c: { id: string }) => c.id === "TestContract")).toBeUndefined();
   });
 
-  it("DELETE without id → 400", async () => {
-    const { DELETE } = await import("@/app/api/contracts/route");
-    const res = await DELETE(authedRequest("http://t/api/contracts", { method: "DELETE" }));
-    expect(res.status).toBe(400);
+  it("DELETE → 501 not implemented; nothing is removed", async () => {
+    const { DELETE, GET } = await import("@/app/api/contracts/route");
+    const res = await DELETE(
+      authedRequest("http://t/api/contracts?id=AppRegistry", { method: "DELETE" }),
+    );
+    expect(res.status).toBe(501);
+    const after = await (await GET(authedRequest("http://t/api/contracts"))).json();
+    expect(after.find((c: { id: string }) => c.id === "AppRegistry")).toBeDefined();
   });
 });
 
@@ -81,10 +92,11 @@ describe("/api/oracle-secrets", () => {
     expect(res.status).toBe(401);
   });
 
-  it("GET with auth → 200 metadata array (no values)", async () => {
+  it("GET with auth → 200 metadata array (no values) flagged as demo data", async () => {
     const { GET } = await import("@/app/api/oracle-secrets/route");
     const res = await GET(authedRequest("http://t/api/oracle-secrets"));
     expect(res.status).toBe(200);
+    expect(res.headers.get("X-Mock-Data")).toBe("true");
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
     for (const s of body) {
@@ -92,19 +104,31 @@ describe("/api/oracle-secrets", () => {
     }
   });
 
-  it("POST adds new secret without value in response", async () => {
-    const { POST } = await import("@/app/api/oracle-secrets/route");
+  it("POST → 501 not implemented; never pretends to store the secret", async () => {
+    const { POST, GET } = await import("@/app/api/oracle-secrets/route");
     const res = await POST(authedRequest("http://t/api/oracle-secrets", {
       method: "POST",
       body: JSON.stringify({ name: "fresh_key", description: "test", value: "secret-value" }),
       headers: { "content-type": "application/json" },
     }));
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(501);
     const body = await res.json();
-    expect(body.find((s: { name: string }) => s.name === "fresh_key")).toBeDefined();
-    // The actual secret value must NOT round-trip in the GET payload.
-    const stored = body.find((s: { name: string }) => s.name === "fresh_key");
-    expect(stored).not.toHaveProperty("value");
+    expect(String(body.error)).toContain("not implemented");
+    // Regression: the old mock accepted the secret, dropped the value, and
+    // reported success — an operator believed a key rotation happened.
+    const after = await (await GET(authedRequest("http://t/api/oracle-secrets"))).json();
+    expect(after.find((s: { name: string }) => s.name === "fresh_key")).toBeUndefined();
+    expect(JSON.stringify(after)).not.toContain("secret-value");
+  });
+
+  it("DELETE → 501 not implemented; nothing is removed", async () => {
+    const { DELETE, GET } = await import("@/app/api/oracle-secrets/route");
+    const res = await DELETE(
+      authedRequest("http://t/api/oracle-secrets?id=1", { method: "DELETE" }),
+    );
+    expect(res.status).toBe(501);
+    const after = await (await GET(authedRequest("http://t/api/oracle-secrets"))).json();
+    expect(after.find((s: { id: string }) => s.id === "1")).toBeDefined();
   });
 });
 
@@ -118,12 +142,35 @@ describe("/api/pricefeeds", () => {
     expect(res.status).toBe(401);
   });
 
-  it("GET with auth → 200 array", async () => {
+  it("GET with auth → 200 array flagged as demo data", async () => {
     const { GET } = await import("@/app/api/pricefeeds/route");
     const res = await GET(authedRequest("http://t/api/pricefeeds"));
     expect(res.status).toBe(200);
+    expect(res.headers.get("X-Mock-Data")).toBe("true");
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
+  });
+
+  it("POST → 501 not implemented; nothing is upserted", async () => {
+    const { POST, GET } = await import("@/app/api/pricefeeds/route");
+    const res = await POST(authedRequest("http://t/api/pricefeeds", {
+      method: "POST",
+      body: JSON.stringify({ id: "DOGE-USD", symbol: "DOGE", pair: "DOGE/USD", enabled: true, source: "okx" }),
+      headers: { "content-type": "application/json" },
+    }));
+    expect(res.status).toBe(501);
+    const after = await (await GET(authedRequest("http://t/api/pricefeeds"))).json();
+    expect(after.find((p: { id: string }) => p.id === "DOGE-USD")).toBeUndefined();
+  });
+
+  it("DELETE → 501 not implemented; nothing is removed", async () => {
+    const { DELETE, GET } = await import("@/app/api/pricefeeds/route");
+    const res = await DELETE(
+      authedRequest("http://t/api/pricefeeds?id=BTC-USD", { method: "DELETE" }),
+    );
+    expect(res.status).toBe(501);
+    const after = await (await GET(authedRequest("http://t/api/pricefeeds"))).json();
+    expect(after.find((p: { id: string }) => p.id === "BTC-USD")).toBeDefined();
   });
 });
 
@@ -137,12 +184,27 @@ describe("/api/settings", () => {
     expect(res.status).toBe(401);
   });
 
-  it("GET with auth → 200 config object", async () => {
+  it("GET with auth → 200 config object flagged as demo data", async () => {
     const { GET } = await import("@/app/api/settings/route");
     const res = await GET(authedRequest("http://t/api/settings"));
     expect(res.status).toBe(200);
+    expect(res.headers.get("X-Mock-Data")).toBe("true");
     const body = await res.json();
     expect(body).toBeTypeOf("object");
+  });
+
+  it("POST → 501 not implemented; config is not mutated", async () => {
+    const { POST, GET } = await import("@/app/api/settings/route");
+    const res = await POST(authedRequest("http://t/api/settings", {
+      method: "POST",
+      body: JSON.stringify({ maintenanceMode: true }),
+      headers: { "content-type": "application/json" },
+    }));
+    expect(res.status).toBe(501);
+    const body = await res.json();
+    expect(String(body.error)).toContain("not implemented");
+    const after = await (await GET(authedRequest("http://t/api/settings"))).json();
+    expect(after.maintenanceMode).toBe(false);
   });
 });
 
@@ -156,13 +218,40 @@ describe("/api/simulations", () => {
     expect(res.status).toBe(401);
   });
 
-  it("GET with auth → 200 status object", async () => {
+  it("GET with auth + configured edge URL → 200 status object", async () => {
+    vi.stubEnv("NEXT_PUBLIC_EDGE_URL", "http://edge.test");
     fetchSpy.mockResolvedValueOnce(
       new Response(JSON.stringify({ running: false }), { status: 200 }),
     );
     const { GET } = await import("@/app/api/simulations/route");
     const res = await GET(authedRequest("http://t/api/simulations"));
-    expect([200, 502]).toContain(res.status);
+    expect(res.status).toBe(200);
+    const firstCall = fetchSpy.mock.calls[0]?.[0] as string;
+    expect(firstCall).toContain("http://edge.test/admin-simulations");
+  });
+
+  it("GET without NEXT_PUBLIC_EDGE_URL → 503 configuration error, no fetch", async () => {
+    // Regression: the route used to fall back to a stale k8s cluster-local
+    // URL, hang on the fetch timeout, and send the service-role key to it.
+    const { GET } = await import("@/app/api/simulations/route");
+    const res = await GET(authedRequest("http://t/api/simulations"));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(String(body.error)).toContain("NEXT_PUBLIC_EDGE_URL is not configured");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("POST without NEXT_PUBLIC_EDGE_URL → 503 configuration error, no fetch", async () => {
+    const { POST } = await import("@/app/api/simulations/route");
+    const res = await POST(authedRequest("http://t/api/simulations", {
+      method: "POST",
+      body: JSON.stringify({ action: "start", config: {} }),
+      headers: { "content-type": "application/json" },
+    }));
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(String(body.error)).toContain("NEXT_PUBLIC_EDGE_URL is not configured");
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 

@@ -1,5 +1,6 @@
 import { assertEquals, assertThrows } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { stableStringify, canonicalizeMiniAppManifest, computeSHA256Hex } from "./manifest.ts";
+import stableStringifyGolden from "../../../shared/__fixtures__/stable-stringify-golden.json" with { type: "json" };
 
 // ---------------------------------------------------------------------------
 // stableStringify
@@ -66,6 +67,37 @@ Deno.test("stableStringify handles mixed nested structures", () => {
   const obj = { arr: [1, { z: true, a: false }], str: "test" };
   const result = stableStringify(obj);
   assertEquals(result, '{"arr":[1,{"a":false,"z":true}],"str":"test"}');
+});
+
+// ---------------------------------------------------------------------------
+// stableStringify golden vector (copy-sync tripwire)
+//
+// THREE copies of stableStringify exist (platform/shared/manifest.ts, this
+// Deno copy, and deploy/scripts/verify-publish-audit-chain.js). Each tree
+// pins its copy against the SAME shared fixture, so a change to any one copy
+// fails CI in that tree until all copies (and the golden) move together —
+// manifest-hash verification cannot silently diverge between admin console,
+// edge, and the audit-chain verifier.
+// ---------------------------------------------------------------------------
+
+Deno.test("stableStringify matches the shared golden canonical string", () => {
+  assertEquals(
+    stableStringify(stableStringifyGolden.input),
+    stableStringifyGolden.expectedCanonical,
+  );
+});
+
+Deno.test("stableStringify matches the shared golden sha256", async () => {
+  const digest = await computeSHA256Hex(stableStringify(stableStringifyGolden.input));
+  assertEquals(digest, stableStringifyGolden.expectedSha256);
+});
+
+Deno.test("stableStringify pins the current undefined/null edge-case behavior", () => {
+  // JSON cannot express undefined, so these cases are pinned inline and must
+  // match the equivalent inline assertions in the other two trees.
+  assertEquals(stableStringify(undefined), "null");
+  assertEquals(stableStringify(null), "null");
+  assertEquals(stableStringify({ a: undefined }), '{"a":null}');
 });
 
 // ---------------------------------------------------------------------------

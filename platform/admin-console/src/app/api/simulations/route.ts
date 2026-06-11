@@ -7,13 +7,20 @@ function simulationEnv() {
   return getEnv({ strict: true, required: ["SUPABASE_SERVICE_ROLE_KEY"] });
 }
 
+// No fallback URL: an unset edge base must fail fast with a clear
+// configuration error instead of hanging on a dead host (and must never send
+// the service-role key to an unintended resolver).
+const EDGE_URL_NOT_CONFIGURED =
+  "NEXT_PUBLIC_EDGE_URL is not configured — set it to the edge functions base URL";
+
 export async function GET(req: Request) {
   const authError = requireAdminAuth(req);
   if (authError) return authError;
 
   try {
     const env = simulationEnv();
-    const edgeURL = env.NEXT_PUBLIC_EDGE_URL || "http://edge-gateway.platform.svc.cluster.local:8787";
+    const edgeURL = env.NEXT_PUBLIC_EDGE_URL;
+    if (!edgeURL) return jsonError(EDGE_URL_NOT_CONFIGURED, 503);
 
     const response = await fetch(`${edgeURL}/admin-simulations?action=status`, {
       signal: AbortSignal.timeout(10000),
@@ -40,7 +47,8 @@ export async function POST(req: Request) {
 
   try {
     const env = simulationEnv();
-    const edgeURL = env.NEXT_PUBLIC_EDGE_URL || "http://edge-gateway.platform.svc.cluster.local:8787";
+    const edgeURL = env.NEXT_PUBLIC_EDGE_URL;
+    if (!edgeURL) return jsonError(EDGE_URL_NOT_CONFIGURED, 503);
     const body = await req.json();
     const { action, config } = body;
 

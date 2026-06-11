@@ -9,6 +9,10 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  DemoDataBanner,
+  isMockDataResponse,
+} from "@/components/ui/DemoDataBanner";
 import { Spinner } from "@/components/ui/Spinner";
 import {
   Table,
@@ -38,6 +42,7 @@ export default function ContractsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDemoData, setIsDemoData] = useState(false);
   const mountedRef = useRef(true);
 
   const deployedCount = contracts.filter((contract) => contract.deployed).length;
@@ -97,6 +102,7 @@ export default function ContractsPage() {
     }
     if (mountedRef.current) {
       setContracts(data);
+      setIsDemoData(isMockDataResponse(res));
       setLoadError(null);
     }
   };
@@ -155,6 +161,7 @@ export default function ContractsPage() {
 
   return (
     <div className="space-y-6">
+      {isDemoData && <DemoDataBanner />}
       {saveError && (
         <div className="rounded-xl border border-danger-200 bg-danger-50 p-4">
           <p className="text-sm font-semibold text-danger-700">

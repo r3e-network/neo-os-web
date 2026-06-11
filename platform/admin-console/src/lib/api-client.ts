@@ -7,7 +7,15 @@ import { getEnv } from "@/lib/env";
 import { HEALTH_CHECK_TIMEOUT_MS } from "@/lib/constants";
 
 function getAPIBaseURL() {
-  return getEnv({ required: [] }).NEXT_PUBLIC_EDGE_URL || "https://edge.localhost";
+  const base = getEnv({ required: [] }).NEXT_PUBLIC_EDGE_URL;
+  if (!base) {
+    // No fallback URL: an unset edge base must fail fast with a clear
+    // configuration error instead of timing out against a dead host.
+    throw new Error(
+      "NEXT_PUBLIC_EDGE_URL is not configured — set it to the edge gateway base URL",
+    );
+  }
+  return base;
 }
 
 function getSupabaseURL(required: boolean) {

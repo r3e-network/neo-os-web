@@ -60,6 +60,8 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
+import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
+import { eventValue } from "@shared/utils/chain-events";
 import { fromFixed8, formatHash } from "@shared/utils/format";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
@@ -73,17 +75,21 @@ const MIN_AMOUNT = 10000000n; // 0.1 GAS in base units
 const MAX_PACKETS = 100;
 const MIN_PER_PACKET = 1000000n; // 0.01 GAS in base units
 
-/** GAS base units per whole GAS (1e8). */
-const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
-
 /** Memo the contract requires on the create-funding transfer. */
 const CREATE_MEMO = "miniapp-redenvelope:create";
 
-/** Hard cap on how many envelopes to enumerate per full refresh (defensive). */
-const MAX_ENVELOPES = 200;
+/**
+ * How many of the NEWEST envelopes a full refresh pages in. Each envelope
+ * costs two reads (getEnvelope + hasClaimed), so this bounds a refresh at
+ * ~60 RPC reads instead of the former 200-id scan (~400 reads).
+ */
+const ENVELOPE_PAGE_SIZE = 30;
 
 /** How many env ids to page in per role (creator/claimer) on a refresh. */
 const LIST_PAGE_LIMIT = 100;
+
+/** Upper bound on chain reads in flight at once during list refreshes. */
+const MAX_CONCURRENT_READS = 8;
 
 // ============================================================================
 // Types
@@ -158,16 +164,29 @@ const toIdString = (value: unknown): string => {
 };
 
 /**
- * Convert a human-entered GAS amount string to BASE UNITS without floats.
- * Returns 0n for any invalid / non-positive input.
+ * Map items through an async fn with at most `limit` calls in flight —
+ * the host bridge / RPC node must never see an unbounded Promise.all burst.
+ * Result order matches the input order.
  */
-const toBaseUnits = (raw: string): bigint => {
-  const trimmed = String(raw ?? "").trim();
-  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
-  const [whole = "0", fraction = ""] = trimmed.split(".");
-  const paddedFraction = (fraction + "00000000").slice(0, 8);
-  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
-  return base > 0n ? base : 0n;
+const mapWithConcurrency = async <T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> => {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.max(1, Math.min(limit, items.length)) },
+    async () => {
+      while (next < items.length) {
+        const index = next;
+        next += 1;
+        results[index] = await fn(items[index] as T);
+      }
+    },
+  );
+  await Promise.all(workers);
+  return results;
 };
 
 // ============================================================================
@@ -365,10 +384,11 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
   /**
    * Rebuild the envelopes/pools/claims lists straight from the contract.
    *
-   * Envelopes are ids 1..lastEnvelopeId() (capped at MAX_ENVELOPES, newest
-   * scanned), each read via getEnvelope + hasClaimed. Pools = the claimable
-   * subset (active && canOpen). Claims for the connected wallet are resolved
-   * from getClaimerEnvelopes + claimedAmount.
+   * PAGED refresh: only the NEWEST ENVELOPE_PAGE_SIZE ids ending at
+   * lastEnvelopeId() are read (via getEnvelope + hasClaimed, at most
+   * MAX_CONCURRENT_READS in flight). Pools = the claimable subset
+   * (active && canOpen). Claims for the connected wallet are resolved from
+   * getClaimerEnvelopes + claimedAmount.
    */
   const loadEnvelopes = async () => {
     if (loadingEnvelopes.get()) return;
@@ -380,27 +400,25 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       const lastRaw = await chain.read("lastEnvelopeId", []);
       const last = toFinite(lastRaw);
 
-      // Scan newest-first, capped, so a long history never reads more than
-      // MAX_ENVELOPES envelopes.
-      const start = Math.max(1, last - MAX_ENVELOPES + 1);
+      // Scan newest-first, one page, so a long history never reads more than
+      // ENVELOPE_PAGE_SIZE envelopes per refresh.
+      const start = Math.max(1, last - ENVELOPE_PAGE_SIZE + 1);
       const ids: string[] = [];
       for (let id = last; id >= start; id -= 1) ids.push(String(id));
 
-      const results = await Promise.all(
-        ids.map(async (id) => {
-          try {
-            return await readEnvelope(id, claimerHash);
-          } catch (e) {
-            console.warn(
-              "[useRedEnvelope] getEnvelope failed for",
-              id,
-              ":",
-              e instanceof Error ? e.message : String(e),
-            );
-            return null;
-          }
-        }),
-      );
+      const results = await mapWithConcurrency(ids, MAX_CONCURRENT_READS, async (id) => {
+        try {
+          return await readEnvelope(id, claimerHash);
+        } catch (e) {
+          console.warn(
+            "[useRedEnvelope] getEnvelope failed for",
+            id,
+            ":",
+            e instanceof Error ? e.message : String(e),
+          );
+          return null;
+        }
+      });
 
       const allEnvelopes = results
         .filter((item): item is EnvelopeItem => item !== null)
@@ -444,34 +462,32 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
         .map(toIdString)
         .filter((id) => id !== "");
 
-      const items = await Promise.all(
-        ids.map(async (envelopeId) => {
-          try {
-            const shareRaw = await chain.read("claimedAmount", [
-              { type: "Integer", value: envelopeId },
-              { type: "Hash160", value: claimerHash },
-            ]);
-            const share = parseBigInt(shareRaw);
-            const claim: ClaimItem = {
-              id: `${envelopeId}:${claimerHash}`,
-              poolId: envelopeId,
-              holder: claimerHash,
-              amount: fromFixed8(share),
-              opened: true,
-              message: "",
-            };
-            return claim;
-          } catch (e) {
-            console.warn(
-              "[useRedEnvelope] claimedAmount failed for",
-              envelopeId,
-              ":",
-              e instanceof Error ? e.message : String(e),
-            );
-            return null;
-          }
-        }),
-      );
+      const items = await mapWithConcurrency(ids, MAX_CONCURRENT_READS, async (envelopeId) => {
+        try {
+          const shareRaw = await chain.read("claimedAmount", [
+            { type: "Integer", value: envelopeId },
+            { type: "Hash160", value: claimerHash },
+          ]);
+          const share = parseBigInt(shareRaw);
+          const claim: ClaimItem = {
+            id: `${envelopeId}:${claimerHash}`,
+            poolId: envelopeId,
+            holder: claimerHash,
+            amount: fromFixed8(share),
+            opened: true,
+            message: "",
+          };
+          return claim;
+        } catch (e) {
+          console.warn(
+            "[useRedEnvelope] claimedAmount failed for",
+            envelopeId,
+            ":",
+            e instanceof Error ? e.message : String(e),
+          );
+          return null;
+        }
+      });
 
       claims.set(
         items
@@ -484,6 +500,36 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
         e instanceof Error ? e.message : String(e),
       );
       claims.set([]);
+    }
+  };
+
+  /**
+   * Re-read ONE envelope and patch it into the envelopes/pools lists in
+   * place — the cheap post-claim refresh (2 reads) instead of re-running the
+   * whole paged loadEnvelopes. A read failure leaves the lists untouched
+   * (the next full refresh reconciles).
+   */
+  const refreshEnvelope = async (envelopeId: string) => {
+    try {
+      const claimerAddr = address.get();
+      const claimerHash = claimerAddr ? addressToScriptHash(claimerAddr) || null : null;
+      const updated = await readEnvelope(envelopeId, claimerHash);
+      if (!updated) return;
+
+      const patched = envelopes
+        .get()
+        .map((item) => (item.id === envelopeId ? updated : item));
+      // An envelope outside the current page (e.g. claimed via a stale link)
+      // is not inserted — the list stays the newest page.
+      envelopes.set(patched);
+      pools.set(patched.filter((item) => item.active && item.canOpen));
+    } catch (e) {
+      console.warn(
+        "[useRedEnvelope] refreshEnvelope failed for",
+        envelopeId,
+        ":",
+        e instanceof Error ? e.message : String(e),
+      );
     }
   };
 
@@ -693,6 +739,11 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
   /**
    * Claim from a pool by envelope ID — claims it and shows the lucky-message
    * overlay. This is the live claim path the UI dispatches.
+   *
+   * Post-claim refresh is SURGICAL: only the claimed envelope is re-read and
+   * patched into the lists, and the new claim is appended locally from the
+   * known share — no full paged refresh (a claim cannot change any other
+   * envelope, and the prepaid credit is untouched by claims).
    */
   const handleClaimFromPool = async (envelopeId: string) => {
     if (openingId.get()) return;
@@ -708,9 +759,30 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
         });
       }
 
-      await loadEnvelopes();
-    } catch (e) {
-      throw e;
+      // Patch the single claimed envelope instead of reloading everything.
+      await refreshEnvelope(envelopeId);
+
+      // Record the wallet's new claim locally (dedupe on re-entry).
+      const claimerAddr = address.get();
+      const claimerHash = claimerAddr ? addressToScriptHash(claimerAddr) || "" : "";
+      if (claimerHash) {
+        const claimId = `${envelopeId}:${claimerHash}`;
+        if (!claims.get().some((item) => item.id === claimId)) {
+          claims.set(
+            [
+              {
+                id: claimId,
+                poolId: envelopeId,
+                holder: claimerHash,
+                amount: result.amount,
+                opened: true,
+                message: "",
+              },
+              ...claims.get(),
+            ].sort((a, b) => Number(b.poolId) - Number(a.poolId)),
+          );
+        }
+      }
     } finally {
       openingId.set(null);
     }
@@ -848,24 +920,6 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     loadAll,
     loadEnvelopes,
   };
-}
-
-// ============================================================================
-// Event parsing
-// ============================================================================
-
-/** Read a single state slot from a contract event payload (positional). */
-function eventValue(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
 }
 
 export type UseRedEnvelopeReturn = ReturnType<typeof useRedEnvelope>;

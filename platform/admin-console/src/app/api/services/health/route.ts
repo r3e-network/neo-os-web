@@ -93,9 +93,15 @@ export async function GET(req: Request) {
       strict: true,
       required: ["SUPABASE_SERVICE_ROLE_KEY"],
     });
-    const edgeURL =
-      env.NEXT_PUBLIC_EDGE_URL ||
-      "http://edge-gateway.platform.svc.cluster.local:8787";
+    // No fallback URL: an unset edge base must fail fast with a clear
+    // configuration error instead of hanging on a dead host (and must never
+    // send the service-role key to an unintended resolver).
+    const edgeURL = env.NEXT_PUBLIC_EDGE_URL;
+    if (!edgeURL) {
+      throw new Error(
+        "NEXT_PUBLIC_EDGE_URL is not configured — set it to the edge functions base URL",
+      );
+    }
 
     const response = await fetch(`${edgeURL}/admin-services-health`, {
       signal: AbortSignal.timeout(10000),

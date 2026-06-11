@@ -1,0 +1,17 @@
+{
+  "description": "Shared golden vector for the THREE stableStringify copies (platform/shared/manifest.ts, platform/edge/functions/_shared/manifest.ts, deploy/scripts/verify-publish-audit-chain.js). Each tree has a test hashing this fixture and asserting expectedCanonical/expectedSha256, so a change to any one copy fails CI in that tree until all three (and this golden) are updated together. The input deliberately includes keys whose localeCompare order differs from code-unit order (Zebra/apple, éclair/zoo, _meta) to pin the current collation behavior; the planned algorithm change (MP-D-05) must update this fixture in lockstep across all trees.",
+  "input": {
+    "Zebra": "uppercase-key sorts after lowercase under localeCompare",
+    "apple": { "nested_b": 2, "nested_a": 1, "deeper": { "z": true, "a": false } },
+    "éclair": "non-ASCII key sorts before zoo under localeCompare",
+    "zoo": [3, 1, 2, "mixed", null, true, false, { "y": 1, "x": 2 }],
+    "10": "numeric-ish key",
+    "2": "numeric-ish key two",
+    "_meta": { "version": 1, "pi": 3.14159, "negative": -7, "big": 1e21, "label": "中文 ✓" },
+    "empty_object": {},
+    "empty_array": [],
+    "null_value": null
+  },
+  "expectedCanonical": "{\"_meta\":{\"big\":1e+21,\"label\":\"中文 ✓\",\"negative\":-7,\"pi\":3.14159,\"version\":1},\"10\":\"numeric-ish key\",\"2\":\"numeric-ish key two\",\"apple\":{\"deeper\":{\"a\":false,\"z\":true},\"nested_a\":1,\"nested_b\":2},\"éclair\":\"non-ASCII key sorts before zoo under localeCompare\",\"empty_array\":[],\"empty_object\":{},\"null_value\":null,\"Zebra\":\"uppercase-key sorts after lowercase under localeCompare\",\"zoo\":[3,1,2,\"mixed\",null,true,false,{\"x\":2,\"y\":1}]}",
+  "expectedSha256": "cf9e729a7b849adf68ae87f9dc9f81791f7d9141c0c6143a23ca159587d23355"
+}
