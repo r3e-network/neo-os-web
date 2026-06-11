@@ -198,13 +198,22 @@ function normalizeBridgeSigners(value: unknown): InvokeParams["signers"] {
     .map((entry: BridgeSigner) => {
       const account = asBridgeString(entry.account);
       if (!account) return null;
+      const scopes = normalizeBridgeScope(entry.scopes);
+      // Audit fix (signer hardening): the bridge does not forward WitnessRules rule
+      // trees, so mapping scope 64 while dropping the rules would hand the wallet a
+      // broader witness than the miniapp specified. Reject explicitly instead.
+      if (entry.rules != null || (scopes & 64) !== 0) {
+        throw new Error(
+          "WitnessRules signers are not supported by the embedded wallet bridge.",
+        );
+      }
       const allowedContracts = stringArray(
         entry.allowedContracts ?? entry.allowedcontracts,
       );
       const allowedGroups = stringArray(entry.allowedGroups);
       return {
         account,
-        scopes: normalizeBridgeScope(entry.scopes),
+        scopes,
         ...(allowedContracts ? { allowedContracts } : {}),
         ...(allowedGroups ? { allowedGroups } : {}),
       };
@@ -216,6 +225,16 @@ function normalizeBridgeSigners(value: unknown): InvokeParams["signers"] {
         Boolean(signer),
     );
   return signers.length ? signers : undefined;
+}
+
+// Single source of truth for the invocation's target contract. The miniapp SDK
+// sends it under `hash` (NeoDapiInvocation); display and execution must use the
+// same fallback chain so the user-approval prompt can never show a different
+// contract than the one actually invoked.
+function invocationContractHash(invocation: BridgeInvocation): string {
+  return asBridgeString(
+    invocation.hash ?? invocation.scriptHash ?? invocation.contractHash,
+  );
 }
 
 function firstBridgeInvocation(payload: unknown): BridgeInvocation | null {
@@ -272,9 +291,7 @@ export function buildEmbeddedWalletBridgeResultDetail({
     operation: normalizeBridgeOperation(
       invocation?.operation ?? invocation?.method,
     ),
-    contractHash: asBridgeString(
-      invocation?.hash ?? invocation?.scriptHash ?? invocation?.contractHash,
-    ),
+    contractHash: invocation ? invocationContractHash(invocation) : "",
     memo: bridgeInvocationMemo(invocation),
     at: new Date().toISOString(),
   };
@@ -346,9 +363,7 @@ function bridgeInvocationToParams(
   invocation: BridgeInvocation,
   signers?: InvokeParams["signers"],
 ): InvokeParams {
-  const scriptHash = asBridgeString(
-    invocation.hash ?? invocation.scriptHash ?? invocation.contractHash,
-  );
+  const scriptHash = invocationContractHash(invocation);
   const operation = normalizeBridgeOperation(
     invocation.operation ?? invocation.method,
   );
@@ -362,12 +377,23 @@ function bridgeInvocationToParams(
   };
 }
 
-function requireBridgeWallet(targetNetwork: "mainnet" | "testnet") {
+function requireBridgeWallet(
+  targetNetwork: "mainnet" | "testnet",
+  options: { requireVerifiedNetwork?: boolean } = {},
+) {
   const walletState = useWalletStore.getState();
   const adapter = getWalletAdapter();
   if (!walletState.connected || !walletState.address || !adapter) {
     throw new Error(
       "Connect wallet from the top navigation before submitting embedded dApp actions.",
+    );
+  }
+  // Audit fix (network hardening): NEP-21 connections can yield network=null when
+  // getNetwork fails. For fund-moving methods that null must fail closed — otherwise
+  // the host could sign a testnet-targeted invoke with a wallet sitting on mainnet.
+  if (options.requireVerifiedNetwork && !walletState.network) {
+    throw new Error(
+      "Wallet network is unverified — reconnect the wallet before submitting embedded dApp actions.",
     );
   }
   if (walletState.network && walletState.network !== targetNetwork) {
@@ -408,6 +434,30 @@ async function invokeBridgeRead(
 // silently on a miniapp's request. These require an explicit user confirmation in the host.
 const SENSITIVE_BRIDGE_METHODS = new Set(["signMessage", "invoke", "send"]);
 
+const BRIDGE_SCOPE_LABELS: Array<[number, string]> = [
+  [1, "CalledByEntry"],
+  [16, "CustomContracts"],
+  [32, "CustomGroups"],
+  [64, "WitnessRules"],
+  [128, "Global"],
+];
+
+function bridgeScopeLabel(scope: number): string {
+  if (scope === 0) return "None";
+  const labels = BRIDGE_SCOPE_LABELS.filter(([bit]) => (scope & bit) !== 0).map(
+    ([, label]) => label,
+  );
+  return labels.length ? labels.join("+") : `scope ${scope}`;
+}
+
+function describeBridgeSignerScopes(value: unknown): string {
+  if (!Array.isArray(value)) return "";
+  const labels = value
+    .filter(isBridgeRecord)
+    .map((entry: BridgeSigner) => bridgeScopeLabel(normalizeBridgeScope(entry.scopes)));
+  return labels.join(", ");
+}
+
 function describeSensitiveBridgeOperation(method: string, payload: unknown): string {
   const rec = isBridgeRecord(payload) ? payload : {};
   if (method === "send") {
@@ -425,15 +475,21 @@ function describeSensitiveBridgeOperation(method: string, payload: unknown): str
     const invocations = Array.isArray(rec.invocations)
       ? rec.invocations.filter(isBridgeRecord)
       : [];
+    // Mirror the execution path exactly (invocationContractHash +
+    // normalizeBridgeOperation) so the approval prompt always names the same
+    // contract and operation that the wallet will sign.
     const ops = invocations
-      .map((inv) => {
-        const scriptHash =
-          asBridgeString(inv.scriptHash) || asBridgeString(inv.contract) || "?";
-        const op = asBridgeString(inv.operation) || asBridgeString(inv.method) || "?";
+      .map((inv: BridgeInvocation) => {
+        const scriptHash = invocationContractHash(inv) || "?";
+        const op =
+          normalizeBridgeOperation(inv.operation ?? inv.method) || "?";
         return `${op} @ ${scriptHash}`;
       })
       .join(", ");
-    return `submit a transaction (${ops || "no operations"})`;
+    const signerScopes = describeBridgeSignerScopes(rec.signers);
+    return `submit a transaction (${ops || "no operations"})${
+      signerScopes ? ` with signer scope ${signerScopes}` : ""
+    }`;
   }
   return method;
 }
@@ -467,7 +523,9 @@ async function handleEmbeddedWalletBridgeRequest(
     return invokeBridgeRead(invocation, targetNetwork);
   }
 
-  const { walletState, adapter } = requireBridgeWallet(targetNetwork);
+  const { walletState, adapter } = requireBridgeWallet(targetNetwork, {
+    requireVerifiedNetwork: method === "invoke" || method === "send",
+  });
   if (method === "getAccounts") {
     return [
       {
@@ -552,14 +610,27 @@ export function useEmbeddedWalletBridge({
 
       // Audit fix (origin hardening): additionally allowlist the sender origin against the
       // frame's own src origin. Miniapps are first-party (served same-origin), so a legitimate
-      // message's origin equals the frame origin; anything else is rejected.
+      // message's origin equals the frame origin — except when the frame is sandboxed without
+      // allow-same-origin (audit fix C-4): such documents carry an opaque origin and their
+      // messages arrive with origin "null". In that case the window-identity check above
+      // remains the security boundary and only the literal "null" origin is accepted.
       let expectedOrigin = window.location.origin;
       try {
         expectedOrigin = new URL(frame!.src, window.location.href).origin;
       } catch {
         expectedOrigin = window.location.origin;
       }
-      if (event.origin !== expectedOrigin) return;
+      const sandboxTokens = frame!.getAttribute("sandbox");
+      const frameHasOpaqueOrigin =
+        sandboxTokens !== null &&
+        !sandboxTokens
+          .split(/\s+/)
+          .some((token) => token.toLowerCase() === "allow-same-origin");
+      if (frameHasOpaqueOrigin) {
+        if (event.origin !== "null") return;
+      } else if (event.origin !== expectedOrigin) {
+        return;
+      }
 
       const data = event.data as BridgeRequest;
       if (!isBridgeRecord(data) || data.type !== HOST_WALLET_BRIDGE_REQUEST) return;
@@ -568,8 +639,10 @@ export function useEmbeddedWalletBridge({
       if (!id || !method) return;
 
       const reply = (response: BridgeRecord) => {
-        // Reply only to the expected origin (was "*"), so a response carrying a signature/txid
-        // cannot leak if the frame is ever navigated cross-origin.
+        // Sandboxed frames have an opaque origin that no targetOrigin string can name,
+        // so the reply must use "*" — safe because it targets the exact window reference,
+        // not a broadcast. Non-sandboxed frames keep the strict origin so a response
+        // carrying a signature/txid cannot leak if the frame is ever navigated cross-origin.
         frameWindow.postMessage(
           {
             type: HOST_WALLET_BRIDGE_RESPONSE,
@@ -577,7 +650,7 @@ export function useEmbeddedWalletBridge({
             appId,
             ...response,
           },
-          expectedOrigin,
+          frameHasOpaqueOrigin ? "*" : expectedOrigin,
         );
       };
 

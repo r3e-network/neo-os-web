@@ -2,6 +2,14 @@ import React from "react";
 import { render, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
+// MiniAppPlayfield wraps its playarea in ErrorBoundary, whose monitoring
+// module pulls in @sentry/nextjs (not loadable under jsdom) — mock it out.
+jest.mock("@/lib/monitoring/errors", () => ({
+  trackError: jest.fn(() => "err_test"),
+  getTrackedErrors: jest.fn(() => []),
+  getErrorCount: jest.fn(() => 0),
+}));
+
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
 import type { MiniAppInfo } from "../../components/types";
 
