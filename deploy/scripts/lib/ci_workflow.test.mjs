@@ -19,8 +19,17 @@ test("ci workflow installs node dependencies and exercises the maintained test s
   assert.match(workflow, shaOrTag("setup-node"));
   assert.match(workflow, shaOrTag("setup-go"));
   assert.match(workflow, /npm ci --legacy-peer-deps/);
-  assert.match(workflow, /npm run -s test/);
-  assert.match(workflow, /npm run -s test:integration|node --test test\/integration\/\*\.test\.mjs/);
+  // Anchored per-step matches: a substring like `npm run -s test:integration`
+  // must not satisfy the requirement that the push/PR job runs the suite.
+  assert.match(workflow, /^\s*run: npm run -s test:deploy-scripts$/m);
+  assert.match(workflow, /^\s*run: npm run -s test:shared$/m);
+  assert.match(workflow, /^\s*run: (?:npm run -s test:integration|node --test test\/integration\/\*\.test\.mjs)$/m);
   assert.match(workflow, /generated-morpheus-runtime-catalog/);
   assert.match(workflow, /automation\.upkeep/);
+});
+
+test("verify_repo gate runs the shared miniapp library suite", () => {
+  const verifyRepo = fs.readFileSync(path.join(repoRoot, "scripts/verify_repo.sh"), "utf8");
+  assert.match(verifyRepo, /^npm run -s test:shared$/m);
+  assert.match(verifyRepo, /^npm run test:deploy-scripts$/m);
 });

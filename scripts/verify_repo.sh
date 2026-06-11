@@ -117,6 +117,7 @@ else
 fi
 
 npm run test:deploy-scripts
+npm run -s test:shared
 npm --prefix platform/admin-console test --silent
 npm --prefix platform/admin-console run typecheck
 rm -rf platform/admin-console/.next >/dev/null 2>&1 || true
