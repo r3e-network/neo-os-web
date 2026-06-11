@@ -13,6 +13,11 @@ const {
   findNotification,
   createWaitForLog,
 } = require("./lib/live_neo");
+const {
+  getManifestContractHash,
+  getRegistryContractHash,
+} = require("./lib/miniapp_manifest_hash");
+const { requireCredential } = require("./lib/live_credentials");
 let Neon;
 
 const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
@@ -63,10 +68,8 @@ const SELECTED_TASKS = [
   ["turtlematch", runTurtleMatch],
 ];
 
-if (!ADMIN_WIF || !USER_WIF) {
-  console.error("TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF (or equivalent env fallbacks) are required");
-  process.exit(1);
-}
+requireCredential("TEST_SMOKE_ADMIN_WIF (or MINIAPP_UPDATE_WIF / FLAGSHIP_LIVE_WIF)", ADMIN_WIF);
+requireCredential("TEST_SMOKE_USER_WIF (or NEO_TESTNET_WIF)", USER_WIF);
 
 function loadOptionalEnvFile(filePath) {
   try {
@@ -101,15 +104,19 @@ const ORACLE_UPDATER_WIF = String(
     || ADMIN_WIF
 ).trim();
 
+// Hashes resolve from each app's source-of-truth manifest where one exists;
+// the remaining smoke targets are contract-only (no apps/<slug>/ directory)
+// and resolve from deploy/config/contract-hashes.json. CONTRACT_OVERRIDE_<NAME>
+// / CONTRACT_OVERRIDE env overrides apply to every entry (MP-W3-05).
 const ADDRESSES = {
-  flashloan: "0xde8e595d8d3c293731db499367ee2a768e1e458b",
-  gascircle: "0x4630b40a4e67882cfab3d3f5041c1da597b0c7b6",
-  exfiles: "0xb55358f282a519762ad8c7db57dff2f01bb8cd2a",
-  masqueradedao: "0xa79f897c8f1d6b1450b7204668b82cffd1bad4a0",
-  millionpiecemap: "0x4cac0ac79bac3b94c388fe0f27a9ed1a8e476cbf",
-  graveyard: "0xb55aa635b10a5abb5cbac169db26a38df739778e",
-  heritagetrust: "0x42e14d04c17dad0b1d76ee7509e537791230431b",
-  turtlematch: "0x4750b2d55de0282579e66c2b1b6c07d9138380ad",
+  flashloan: getManifestContractHash("flashloan", { network: "testnet" }),
+  graveyard: getManifestContractHash("graveyard", { network: "testnet" }),
+  gascircle: getRegistryContractHash("gascircle"),
+  exfiles: getRegistryContractHash("exfiles"),
+  masqueradedao: getRegistryContractHash("masqueradedao"),
+  millionpiecemap: getRegistryContractHash("millionpiecemap"),
+  heritagetrust: getRegistryContractHash("heritagetrust"),
+  turtlematch: getRegistryContractHash("turtlematch"),
 };
 
 let admin;

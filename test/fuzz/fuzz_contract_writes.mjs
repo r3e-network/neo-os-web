@@ -2,81 +2,65 @@
 /**
  * Fuzz Campaign: Contract Write Methods (Testnet Only)
  *
- * Fuzzes contract write methods with invalid inputs to verify they correctly
- * reject bad data. Uses a funded testnet WIF.
+ * Simulates contract write methods with invalid inputs to verify they
+ * correctly reject bad data. All calls are read-only invokeFunction
+ * SIMULATIONS — nothing is broadcast and no key is required.
  *
- * SAFETY: Only runs on testnet. All calls use intentionally invalid inputs
- * that should be REJECTED by the contracts. If a call unexpectedly succeeds
- * with bad input, that's a finding.
+ * SAFETY: every target uses intentionally invalid inputs that must be
+ * REJECTED by the contracts. If a simulation unexpectedly HALTs with bad
+ * input, that's a finding.
  *
- * Usage: TEST_FUZZ_WIF=<testnet-wif> node test/fuzz/fuzz_contract_writes.mjs
+ * Grounding (MP-W3-06): contract hashes resolve from apps/<slug>/
+ * neo-manifest.json; every method below is validated against
+ * contracts/build/<C>.manifest.json before any live call ("ABI drift" fails
+ * fast). FUZZ_DRY_RUN=1 / --dry-run prints the plan and exits offline.
+ *
+ * Usage: node test/fuzz/fuzz_contract_writes.mjs
  */
 import { FuzzRunner } from "./lib/runner.mjs";
-import { invokeRead, intParam, hashParam, strParam, boolParam } from "./lib/neo-rpc.mjs";
-import { randomUInt160, randomBigInt, randomInt, BOUNDARY_INTS } from "./lib/rng.mjs";
+import { invokeRead, intParam, hashParam } from "./lib/neo-rpc.mjs";
+import { randomUInt160, randomBigInt } from "./lib/rng.mjs";
+import { resolveFuzzTargets, enforceAbiOrExit } from "./lib/abi.mjs";
 
-import fs from "node:fs";
-import path from "node:path";
-
-const { getManifestContractHash } = await import("../../deploy/scripts/lib/neo_network.js");
-const ROOT = path.resolve(new URL(".", import.meta.url).pathname, "../..");
-
-function appHash(manifestRel) {
-  const fullPath = path.join(ROOT, manifestRel);
-  if (!fs.existsSync(fullPath)) return "";
-  const manifest = JSON.parse(fs.readFileSync(fullPath, "utf8"));
-  return getManifestContractHash(manifest, "testnet");
-}
-
-const WIF = process.env.TEST_FUZZ_WIF || process.env.TEST_SMOKE_ADMIN_WIF;
-if (!WIF) {
-  console.log("[fuzz] TEST_FUZZ_WIF not set. Skipping write fuzz.");
-  process.exit(0);
-}
-
-const CONTRACTS = {
-  dailyCheckin: appHash("apps/daily-checkin/neo-manifest.json"),
-  lastSurvivor: appHash("apps/last-survivor/neo-manifest.json"),
-  selfLoan: appHash("apps/self-loan/neo-manifest.json"),
-  flashloan: appHash("apps/flashloan/neo-manifest.json"),
-};
+const TARGETS = resolveFuzzTargets({
+  redEnvelope: { appSlug: "red-envelope", contractName: "MiniAppRedEnvelope" },
+  lastSurvivor: { appSlug: "last-survivor", contractName: "MiniAppLastSurvivor" },
+  timeCapsule: { appSlug: "time-capsule", contractName: "MiniAppTimeCapsule" },
+  tarot: { appSlug: "on-chain-tarot", contractName: "MiniAppTarot" },
+  breakupPact: { appSlug: "breakup-contract", contractName: "MiniAppBreakupPact" },
+  coinFlip: { appSlug: "fogplay", contractName: "MiniAppCoinFlip" },
+  selfLoan: { appSlug: "self-loan", contractName: "MiniAppSelfLoan" },
+  govMerc: { appSlug: "gov-merc", contractName: "MiniAppGovMerc" },
+});
+const hashOf = (key) => TARGETS[key].hash;
 
 /**
- * Write-fuzz targets: calls that SHOULD fail.
+ * Write-fuzz targets: simulations that SHOULD fail.
  * Each test invokes a method with invalid args and verifies the VM FAULTs.
  * If the call unexpectedly HALTs, that's a finding (the contract accepted bad input).
  */
 const writeTargets = [
-  // Self-loan: zero collateral should fail
+  // Self-loan: invalid LTV tiers must fail (valid tiers are 1..3)
   {
-    name: "selfLoan.createLoan(0 collateral)",
+    name: "selfLoan.borrow(tier 0)",
     contract: "selfLoan",
-    method: "createLoan",
-    args: () => [hashParam(randomUInt160()), intParam(0), intParam(1)],
+    method: "borrow",
+    args: () => [hashParam(randomUInt160()), intParam(0)],
     expectFault: true,
   },
-  // Self-loan: invalid LTV tier should fail
   {
-    name: "selfLoan.createLoan(invalid LTV tier)",
+    name: "selfLoan.borrow(tier 99)",
     contract: "selfLoan",
-    method: "createLoan",
-    args: () => [hashParam(randomUInt160()), intParam(1), intParam(99)],
+    method: "borrow",
+    args: () => [hashParam(randomUInt160()), intParam(99)],
     expectFault: true,
   },
-  // Self-loan: repay non-existent loan
+  // Self-loan: repay with no loan / no repay credit must fail
   {
-    name: "selfLoan.repayDebt(nonexistent loan)",
+    name: "selfLoan.repay(no loan)",
     contract: "selfLoan",
-    method: "repayDebt",
-    args: () => [intParam(randomBigInt(99999n, 999999n)), hashParam(randomUInt160()), intParam(100)],
-    expectFault: true,
-  },
-  // Flash loan: zero amount should fail
-  {
-    name: "flashloan.requestLoan(0 amount)",
-    contract: "flashloan",
-    method: "requestLoan",
-    args: () => [hashParam(randomUInt160()), intParam(0), hashParam(randomUInt160()), strParam("callback")],
+    method: "repay",
+    args: () => [hashParam(randomUInt160())],
     expectFault: true,
   },
   // Last survivor: buy 0 keys should fail
@@ -87,15 +71,70 @@ const writeTargets = [
     args: () => [hashParam(randomUInt160()), intParam(0)],
     expectFault: true,
   },
-  // Daily checkin: checkin for random address (unauthorized)
+  // Red envelope: create without deposited credit should fail
   {
-    name: "dailyCheckin.checkIn(unauthorized)",
-    contract: "dailyCheckin",
-    method: "checkIn",
+    name: "redEnvelope.createEnvelope(no credit)",
+    contract: "redEnvelope",
+    method: "createEnvelope",
+    args: () => [hashParam(randomUInt160()), intParam(100000000), intParam(2), intParam(3600)],
+    expectFault: true,
+  },
+  // Red envelope: claim from a non-existent envelope should fail
+  {
+    name: "redEnvelope.claim(nonexistent)",
+    contract: "redEnvelope",
+    method: "claim",
+    args: () => [intParam(randomBigInt(99999n, 999999n)), hashParam(randomUInt160())],
+    expectFault: true,
+  },
+  // Coin flip: zero bet should fail
+  {
+    name: "coinFlip.flip(0 bet)",
+    contract: "coinFlip",
+    method: "flip",
+    args: () => [hashParam(randomUInt160()), intParam(0), intParam(0)],
+    expectFault: true,
+  },
+  // Tarot: draw without prepaid credit should fail
+  {
+    name: "tarot.draw(no credit)",
+    contract: "tarot",
+    method: "draw",
     args: () => [hashParam(randomUInt160())],
     expectFault: true,
   },
+  // Time capsule: reveal a non-existent capsule should fail
+  {
+    name: "timeCapsule.reveal(nonexistent)",
+    contract: "timeCapsule",
+    method: "reveal",
+    args: () => [hashParam(randomUInt160()), intParam(randomBigInt(99999n, 999999n))],
+    expectFault: true,
+  },
+  // Breakup pact: sign a non-existent pact should fail
+  {
+    name: "breakupPact.signPact(nonexistent)",
+    contract: "breakupPact",
+    method: "signPact",
+    args: () => [intParam(randomBigInt(99999n, 999999n)), hashParam(randomUInt160())],
+    expectFault: true,
+  },
+  // Gov merc: bid below the minimum (and with no deposited credit) should fail
+  {
+    name: "govMerc.bid(0)",
+    contract: "govMerc",
+    method: "bid",
+    args: () => [hashParam(randomUInt160()), intParam(0)],
+    expectFault: true,
+  },
 ];
+
+// Fail fast on ABI drift; dry-run prints the plan and exits offline.
+enforceAbiOrExit(
+  "fuzz-contract-writes",
+  TARGETS,
+  writeTargets.map((t) => ({ contract: t.contract, method: t.method }))
+);
 
 const runner = new FuzzRunner("contract-writes-invalid", {
   iterations: writeTargets.length * 10,
@@ -103,8 +142,7 @@ const runner = new FuzzRunner("contract-writes-invalid", {
 
 await runner.run(async (i) => {
   const target = writeTargets[i % writeTargets.length];
-  const hash = CONTRACTS[target.contract];
-  if (!hash) return "skip";
+  const hash = hashOf(target.contract);
 
   const args = target.args();
 

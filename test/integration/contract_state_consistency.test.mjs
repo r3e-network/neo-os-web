@@ -1,255 +1,296 @@
 /**
  * Contract State Consistency — cross-repo integration tests (read-only).
  *
- * Verifies that all 7 flagship contracts on testnet:
- *   1. Respond to their documented stats/count read methods
- *   2. Return HALT (not FAULT) for zero-arg read methods
- *   3. Have non-zero admin addresses configured
+ * Every assertion is derived from the committed contract build artifacts
+ * (contracts/build/<Name>.manifest.json) instead of a hand-maintained
+ * method list.  For each migrated miniapp contract on testnet we verify:
+ *   1. The app's testnet hash resolves to the migrated contract name
+ *   2. The deployed ABI exposes every safe method from the committed manifest
+ *   3. Every committed safe zero-arg read method returns HALT
+ *   4. Manifest-declared admin/owner reads return a non-zero account
+ *   5. Unknown-id lookups behave concretely (HALT with an empty record, or
+ *      FAULT with the contract's documented abort reason) — never the
+ *      HALT-or-FAULT tautology.
  */
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 
 import {
+  ROOT,
+  UINT160_ZERO,
   invokeRead,
   getContractState,
   isHalt,
-  firstStack,
   stackHash160,
   readManifest,
   getManifestContractHash,
   intParam,
-  strParam,
+  hashParam,
 } from "./helpers.mjs";
 
-// ── Flagship apps with their testnet hashes and expected read methods ─────
+// ── App ↔ migrated contract bindings ───────────────────────────────────────
+//
+// One representative slug per deployed contract that has a committed build
+// manifest under contracts/build/.  The contract NAME is the intent pin
+// (which committed artifact each app must run); every method-level
+// expectation below is generated from that artifact's ABI.
 
-const FLAGSHIP_APPS = [
+const CONTRACT_BINDINGS = [
+  { slug: "breakup-contract", contractName: "MiniAppBreakupPact" },
+  { slug: "custom-anchor", contractName: "PlatformAnchor" },
+  { slug: "dice-game", contractName: "PlatformGame" },
+  { slug: "event-ticket-pass", contractName: "MiniAppEventTicketPass" },
+  { slug: "fogplay", contractName: "MiniAppCoinFlip" },
+  { slug: "gasbox", contractName: "MiniAppGasBox" },
+  { slug: "gov-merc", contractName: "MiniAppGovMerc" },
+  { slug: "last-survivor", contractName: "MiniAppLastSurvivor" },
+  { slug: "milestone-escrow", contractName: "MiniAppMilestoneEscrow" },
+  { slug: "neo-multisig", contractName: "MiniAppMultisig" },
+  { slug: "on-chain-tarot", contractName: "MiniAppTarot" },
+  { slug: "quadratic-funding", contractName: "MiniAppQuadraticFunding" },
+  { slug: "red-envelope", contractName: "MiniAppRedEnvelope" },
+  { slug: "self-loan", contractName: "MiniAppSelfLoan" },
+  { slug: "soulbound-certificate", contractName: "MiniAppSoulboundCertificate" },
+  { slug: "time-capsule", contractName: "MiniAppTimeCapsule" },
+];
+
+// Deployed reads that are known to FAULT because of a bug baked into the
+// deployed NEF.  Each entry must keep faulting with the documented reason;
+// once the contract is redeployed with a fix, the entry must be removed.
+const KNOWN_FAULTING_READS = new Map([
+  [
+    "MiniAppSoulboundCertificate.tokens",
+    {
+      reason:
+        "deployed NEF passes conflicting FindOptions (KeysOnly|ValuesOnly) to System.Storage.Find; fixing requires a contract redeploy",
+      exceptionPattern: /Storage\.Find/,
+    },
+  ],
+]);
+
+// Concrete unknown-id lookup expectations (replaces the old HALT-or-FAULT
+// tautology).  Param values are synthesized per the build-manifest ABI type.
+const UNKNOWN_ID_LOOKUPS = [
   {
-    brand: "LastSurvivor",
-    slug: "last-survivor",
-    contractName: "PlatformGame",
-    readMethods: [
-      { method: "getGameType", args: [strParam("miniapp-last-survivor")] },
-      { method: "getGameAdmin", args: [strParam("miniapp-last-survivor")] },
-      { method: "isPaused", args: [strParam("miniapp-last-survivor")] },
-    ],
-    countMethods: [],
-  },
-  {
-    brand: "GASBOX",
-    slug: "gasbox",
-    contractName: "PlatformGame",
-    readMethods: [
-      { method: "getGameType", args: [strParam("miniapp-gasbox")] },
-      { method: "getGameAdmin", args: [strParam("miniapp-gasbox")] },
-      { method: "isPaused", args: [strParam("miniapp-gasbox")] },
-      { method: "getGachaMachine", args: [strParam("miniapp-gasbox"), intParam(0)] },
-    ],
-    countMethods: [],
-  },
-  {
-    brand: "Red Envelope",
-    slug: "red-envelope",
     contractName: "MiniAppRedEnvelope",
-    readMethods: [],
-    // getEnvelope requires an id arg, tested separately
-    countMethods: [],
+    method: "getEnvelope",
+    expect: "fault",
+    exceptionPattern: /envelope not found/,
   },
   {
-    brand: "Daily Check-in",
-    slug: "daily-checkin",
-    contractName: "MiniAppDailyCheckIn",
-    readMethods: [{ method: "getPlatformStats" }],
-    countMethods: [],
+    contractName: "MiniAppCoinFlip",
+    method: "getGame",
+    expect: "fault",
+    exceptionPattern: /game not found/,
   },
   {
-    brand: "FogPlay",
-    slug: "fogplay",
-    contractName: "PlatformGame",
-    readMethods: [
-      { method: "getGameType", args: [strParam("miniapp-fogplay")] },
-      { method: "getGameAdmin", args: [strParam("miniapp-fogplay")] },
-      { method: "isPaused", args: [strParam("miniapp-fogplay")] },
-      { method: "getCoinFlipBetLimits", args: [strParam("miniapp-fogplay")] },
-    ],
-    countMethods: [],
+    contractName: "MiniAppSelfLoan",
+    method: "getLoan",
+    expect: "halt",
   },
   {
-    brand: "SelfLoan",
-    slug: "self-loan",
-    contractName: "PlatformDeFi",
-    readMethods: [
-      { method: "isPaused" },
-      { method: "getLendingStats", args: [strParam("miniapp-self-loan")] },
-    ],
-    countMethods: [],
-  },
-  {
-    brand: "NeoPay",
-    slug: "neo-pay",
-    contractName: "MiniAppNeoPay",
-    readMethods: [{ method: "totalStreams" }],
-    countMethods: [{ method: "totalStreams", minValue: 0n }],
+    contractName: "MiniAppLastSurvivor",
+    method: "getRound",
+    expect: "halt",
   },
 ];
 
-/** Resolve the testnet contract hash for an app from its manifest. */
-function testnetHash(slug) {
-  const manifest = readManifest(slug);
-  return getManifestContractHash(manifest, "testnet");
+const UNKNOWN_ID = 999_999_999;
+
+// ── Build-manifest helpers ─────────────────────────────────────────────────
+
+function readBuildManifest(contractName) {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(ROOT, "contracts", "build", `${contractName}.manifest.json`),
+      "utf8",
+    ),
+  );
 }
 
-// ── Test 1: All flagship contracts respond to stats/count reads ───────────
+function methodKey(method) {
+  return `${method.name}/${(method.parameters || []).length}`;
+}
 
-test("all 7 flagship contracts respond to their documented read/count methods", async () => {
-  for (const app of FLAGSHIP_APPS) {
-    const hash = testnetHash(app.slug);
-    if (!hash) {
-      // Skip apps without a testnet deployment.
-      continue;
-    }
+function safeMethods(buildManifest) {
+  return (buildManifest.abi?.methods || []).filter((method) => method.safe === true);
+}
 
-    for (const { method, args = [] } of app.readMethods) {
-      const result = await invokeRead(hash, method, args);
-      assert.ok(
-        isHalt(result),
-        `${app.brand}.${method}() returned ${result.state}: ${result.exception || "no exception"}`,
-      );
-    }
+function zeroArgSafeReads(buildManifest) {
+  return safeMethods(buildManifest).filter(
+    (method) => (method.parameters || []).length === 0,
+  );
+}
 
-    for (const { method, minValue } of app.countMethods) {
-      const result = await invokeRead(hash, method);
-      assert.ok(
-        isHalt(result),
-        `${app.brand}.${method}() returned ${result.state}`,
-      );
-      const count = BigInt(String(firstStack(result) || "0"));
-      assert.ok(
-        count >= minValue,
-        `${app.brand}.${method}() = ${count}, expected >= ${minValue}`,
-      );
-    }
+function ownerStyleReads(buildManifest) {
+  return zeroArgSafeReads(buildManifest).filter((method) =>
+    /^(admin|owner|getAdmin|getOwner)$/i.test(method.name),
+  );
+}
+
+function synthesizedParam(type) {
+  if (type === "Integer") return intParam(UNKNOWN_ID);
+  if (type === "Hash160") return hashParam(UINT160_ZERO);
+  throw new Error(`no synthesized value for ABI parameter type ${type}`);
+}
+
+// ── Target resolution (committed artifacts; no network access) ────────────
+
+const TARGETS = CONTRACT_BINDINGS.map(({ slug, contractName }) => ({
+  slug,
+  contractName,
+  hash: getManifestContractHash(readManifest(slug), "testnet"),
+  build: readBuildManifest(contractName),
+}));
+
+// getcontractstate is cached so each deployed contract is fetched once.
+const deployedStateCache = new Map();
+async function deployedState(hash) {
+  if (!deployedStateCache.has(hash)) {
+    deployedStateCache.set(hash, await getContractState(hash));
   }
-});
+  return deployedStateCache.get(hash);
+}
 
-// ── Test 2: All zero-arg read methods return HALT ─────────────────────────
+// ── Test 1: every bound app resolves to its migrated contract ─────────────
 
-test("all flagship contracts return HALT for documented read methods", async () => {
-  for (const app of FLAGSHIP_APPS) {
-    const hash = testnetHash(app.slug);
-    if (!hash) continue;
-
-    for (const { method, args = [] } of app.readMethods) {
-      const result = await invokeRead(hash, method, args);
-      const state = String(result.state || "").toUpperCase();
-      assert.equal(
-        state,
-        "HALT",
-        `${app.brand}.${method}() returned ${state} instead of HALT: ${result.exception || ""}`,
-      );
-    }
-  }
-});
-
-// ── Test 3: Contract admin addresses are set ──────────────────────────────
-
-test("all flagship contracts have non-zero admin addresses", async () => {
-  for (const app of FLAGSHIP_APPS) {
-    const hash = testnetHash(app.slug);
-    if (!hash) continue;
-
-    // Most contracts expose an "admin" or "owner" method.  Try both.
-    let result = await invokeRead(hash, "admin");
-    if (!isHalt(result)) {
-      result = await invokeRead(hash, "owner");
-    }
-    if (!isHalt(result)) {
-      // Some contracts use getAdmin or getOwner.
-      result = await invokeRead(hash, "getAdmin");
-    }
-    if (!isHalt(result)) {
-      result = await invokeRead(hash, "getOwner");
-    }
-
-    if (isHalt(result)) {
-      const admin = stackHash160(result.stack?.[0]);
-      assert.ok(
-        admin && admin !== "0x" + "00".repeat(20),
-        `${app.brand} admin is zero or missing — contract may be uninitialised`,
-      );
-    } else {
-      // If no admin method exists at all, verify the contract is at least
-      // deployed and responds to getcontractstate.
-      const state = await getContractState(hash);
-      assert.ok(
-        state?.manifest?.name,
-        `${app.brand} (${hash}) has no admin method and getcontractstate returned no manifest name`,
-      );
-    }
-  }
-});
-
-// ── Test 4: getcontractstate resolves for all 7 flagships ─────────────────
-
-test("getcontractstate resolves for every flagship testnet contract", async () => {
-  for (const app of FLAGSHIP_APPS) {
-    const hash = testnetHash(app.slug);
-    if (!hash) continue;
-
-    const state = await getContractState(hash);
+test("every bound app's testnet hash resolves to its migrated contract name", async () => {
+  for (const target of TARGETS) {
     assert.ok(
-      state?.manifest?.name,
-      `${app.brand} (${hash}): getcontractstate returned no manifest name`,
+      target.hash,
+      `${target.slug}: neo-manifest.json has no testnet contract hash — update CONTRACT_BINDINGS if the deployment was retired`,
     );
     assert.equal(
-      state.manifest.name,
-      app.contractName,
-      `${app.brand} contract name mismatch: expected ${app.contractName}, got ${state.manifest.name}`,
+      target.build.name,
+      target.contractName,
+      `${target.slug}: contracts/build/${target.contractName}.manifest.json declares name ${target.build.name}`,
+    );
+
+    const state = await deployedState(target.hash);
+    assert.equal(
+      state?.manifest?.name,
+      target.contractName,
+      `${target.slug} (${target.hash}): deployed contract is ${state?.manifest?.name}, expected ${target.contractName}`,
     );
   }
 });
 
-// ── Test 5: parameterized read methods (with arg) return HALT ─────────────
+// ── Test 2: deployed ABI is a superset of the committed safe surface ──────
 
-test("flagship contracts handle parameterized reads gracefully", async () => {
-  // Red Envelope: getEnvelope(0)
-  const redEnvelopeHash = testnetHash("red-envelope");
-  if (redEnvelopeHash) {
-    const result = await invokeRead(redEnvelopeHash, "getEnvelope", [
-      intParam(0),
-    ]);
-    const state = String(result.state || "").toUpperCase();
-    assert.ok(
-      state === "HALT" || state === "FAULT",
-      `RedEnvelope.getEnvelope(0) unexpected state: ${state}`,
+test("deployed ABIs expose every safe method from the committed build manifests", async () => {
+  for (const target of TARGETS) {
+    const state = await deployedState(target.hash);
+    const deployedMethods = new Map(
+      (state?.manifest?.abi?.methods || []).map((method) => [
+        methodKey(method),
+        method.safe === true,
+      ]),
     );
+
+    for (const method of safeMethods(target.build)) {
+      const key = methodKey(method);
+      assert.ok(
+        deployedMethods.has(key),
+        `${target.contractName}.${key} is safe in the committed manifest but missing from the deployed ABI (${target.hash})`,
+      );
+      assert.ok(
+        deployedMethods.get(key),
+        `${target.contractName}.${key} is safe in the committed manifest but not marked safe on chain (${target.hash})`,
+      );
+    }
   }
+});
 
-  // SelfLoan: getLoan(appId, loanId)
-  const selfLoanHash = testnetHash("self-loan");
-  if (selfLoanHash) {
-    const result = await invokeRead(selfLoanHash, "getLoan", [
-      strParam("miniapp-self-loan"),
-      intParam(0),
-    ]);
-    const state = String(result.state || "").toUpperCase();
-    assert.ok(
-      state === "HALT" || state === "FAULT",
-      `SelfLoan.getLoan(miniapp-self-loan, 0) unexpected state: ${state}`,
-    );
+// ── Test 3: every committed safe zero-arg read returns HALT ───────────────
+
+test("all committed safe zero-arg read methods HALT on testnet", async () => {
+  for (const target of TARGETS) {
+    for (const method of zeroArgSafeReads(target.build)) {
+      const key = `${target.contractName}.${method.name}`;
+      const known = KNOWN_FAULTING_READS.get(key);
+      const result = await invokeRead(target.hash, method.name);
+
+      if (known) {
+        assert.ok(
+          !isHalt(result) && known.exceptionPattern.test(String(result.exception || "")),
+          `${key} is allowlisted as faulting (${known.reason}) but returned ` +
+            `${result.state}: ${result.exception || "no exception"} — if the contract was redeployed with a fix, remove the KNOWN_FAULTING_READS entry`,
+        );
+        continue;
+      }
+
+      assert.ok(
+        isHalt(result),
+        `${target.slug}: ${key}() returned ${result.state}: ${result.exception || "no exception"}`,
+      );
+      assert.ok(
+        Array.isArray(result.stack) && result.stack.length >= 1,
+        `${target.slug}: ${key}() halted but returned no stack value`,
+      );
+    }
   }
+});
 
-  // NeoPay: getStreamDetails(0)
-  const neoPayHash = testnetHash("neo-pay");
-  if (neoPayHash) {
-    const result = await invokeRead(neoPayHash, "getStreamDetails", [
-      intParam(0),
-    ]);
-    const state = String(result.state || "").toUpperCase();
-    assert.ok(
-      state === "HALT" || state === "FAULT",
-      `NeoPay.getStreamDetails(0) unexpected state: ${state}`,
+// ── Test 4: manifest-declared admin/owner reads return a non-zero account ─
+
+test("manifest-declared admin/owner reads return a non-zero account", async () => {
+  for (const target of TARGETS) {
+    for (const method of ownerStyleReads(target.build)) {
+      const result = await invokeRead(target.hash, method.name);
+      assert.ok(
+        isHalt(result),
+        `${target.contractName}.${method.name}() returned ${result.state}: ${result.exception || "no exception"}`,
+      );
+      const account = stackHash160(result.stack?.[0]);
+      assert.ok(
+        account && account !== UINT160_ZERO,
+        `${target.contractName}.${method.name}() is zero or not a Hash160 — contract may be uninitialised`,
+      );
+    }
+  }
+});
+
+// ── Test 5: unknown-id lookups behave concretely ───────────────────────────
+
+test("unknown-id lookups HALT with an empty record or FAULT with the documented reason", async () => {
+  for (const lookup of UNKNOWN_ID_LOOKUPS) {
+    const target = TARGETS.find((entry) => entry.contractName === lookup.contractName);
+    assert.ok(target, `${lookup.contractName} is missing from CONTRACT_BINDINGS`);
+
+    const method = safeMethods(target.build).find(
+      (entry) => entry.name === lookup.method && (entry.parameters || []).length === 1,
     );
+    assert.ok(
+      method,
+      `${lookup.contractName}.${lookup.method}/1 is not a safe one-arg method in the committed manifest`,
+    );
+
+    const args = [synthesizedParam(method.parameters[0].type)];
+    const result = await invokeRead(target.hash, lookup.method, args);
+    const label = `${lookup.contractName}.${lookup.method}(${args[0].value})`;
+
+    if (lookup.expect === "halt") {
+      assert.ok(
+        isHalt(result),
+        `${label} expected HALT with an empty record, got ${result.state}: ${result.exception || "no exception"}`,
+      );
+      assert.ok(
+        Array.isArray(result.stack) && result.stack.length >= 1,
+        `${label} halted but returned no stack value`,
+      );
+    } else {
+      assert.ok(
+        !isHalt(result),
+        `${label} expected FAULT for an unknown id, got HALT — lookup contract behavior changed`,
+      );
+      assert.match(
+        String(result.exception || ""),
+        lookup.exceptionPattern,
+        `${label} faulted with an unexpected reason`,
+      );
+    }
   }
 });

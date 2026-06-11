@@ -2,9 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
+const require = createRequire(import.meta.url);
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const { LIVE_CHAIN_FLOWS, SHARED_RUNTIME_FLOWS } = require("../audit_live_harness_coverage.js");
+
+const FLAGSHIP_SCRIPT = "deploy/scripts/live_validate_flagship_user_flows.js";
 
 function extractFunction(script, name) {
   const signature = script.indexOf(`function ${name}(`);
@@ -38,25 +43,38 @@ function extractFunction(script, name) {
   throw new Error(`${name} function body was not closed`);
 }
 
-test("flagship live validation covers every flagship miniapp", () => {
-  const script = fs.readFileSync(
-    path.join(repoRoot, "deploy/scripts/live_validate_flagship_user_flows.js"),
-    "utf8",
+test("flagship live validation registers exactly the targets the coverage registry routes to it", () => {
+  const script = fs.readFileSync(path.join(repoRoot, FLAGSHIP_SCRIPT), "utf8");
+
+  // Parse the FLAGSHIP_TASKS registry literal (the script runs main() on load,
+  // so its task table cannot be imported directly).
+  const tasksLiteral = script.match(/const FLAGSHIP_TASKS = \[([\s\S]*?)\n\];/);
+  assert.ok(tasksLiteral, "FLAGSHIP_TASKS registry was not found in the flagship validator");
+  const registered = [...tasksLiteral[1].matchAll(/\["([^"]+)",\s*[A-Za-z0-9_$]+\]/g)].map(
+    (match) => match[1],
+  );
+  assert.ok(registered.length > 0, "FLAGSHIP_TASKS registry declares no targets");
+  assert.equal(
+    new Set(registered).size,
+    registered.length,
+    `FLAGSHIP_TASKS registry declares duplicate targets: ${registered.join(", ")}`,
   );
 
-  const targetNames = [...script.matchAll(/\["([^"]+)",\s*run[A-Za-z]+\]/g)].map((match) => match[1]);
+  // The expected target set is derived from the live harness coverage
+  // registry (the routing source of truth), not from a duplicated literal.
+  const expected = new Set();
+  for (const flows of [LIVE_CHAIN_FLOWS, SHARED_RUNTIME_FLOWS]) {
+    for (const flow of flows.values()) {
+      if (flow.script !== FLAGSHIP_SCRIPT) continue;
+      for (const target of String(flow.target).split("/")) expected.add(target);
+    }
+  }
 
-  assert.deepEqual(targetNames, [
-    "dailyCheckin",
-    "lastSurvivor",
-    "gasBox",
-    "fogPlay",
-    "redEnvelope",
-    "profitAnchor",
-    "trustAnchor",
-    "selfLoan",
-    "neoPay",
-  ]);
+  assert.deepEqual(
+    [...registered].sort(),
+    [...expected].sort(),
+    "FLAGSHIP_TASKS must register exactly the targets that audit_live_harness_coverage.js routes to the flagship validator",
+  );
 });
 
 test("anchor AA proxy smoke witness matches the AA core scoped transaction rule", () => {
