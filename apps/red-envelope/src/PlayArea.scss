@@ -428,6 +428,24 @@
   &--static {
     cursor: default;
   }
+
+  /* Recovery rows (reclaim / withdraw credit) carry an inline action button. */
+  &--recovery {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+}
+
+/* Creator recovery: expired-envelope reclaims + prepaid-credit withdrawal */
+.redenv-recovery-panel {
+  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 18px;
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.redenv-recovery-panel .neo-card__content {
+  display: grid;
+  gap: 14px;
 }
 
 /* Diagnostics collapsed behind a Details disclosure -- internal telemetry */

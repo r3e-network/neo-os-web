@@ -537,6 +537,9 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       }
 
       if (credit < addBase) {
+        // Wait for the contract's "Credited" event so the deposit is confirmed
+        // in a block before bid() consumes it — an unconfirmed deposit lets the
+        // bid execute first and fault with "insufficient prepaid asset".
         await chain.invoke(
           "transfer",
           [
@@ -545,7 +548,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
             { type: "Integer", value: addBase.toString() },
             { type: "String", value: BID_MEMO },
           ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
         );
         depositSettled = true;
       }

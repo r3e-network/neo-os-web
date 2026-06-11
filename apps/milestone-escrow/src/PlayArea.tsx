@@ -111,15 +111,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     // and 1-12 milestones, so each per-milestone amount is wired through as a
     // real array. The composable converts every amount to base units (GAS x 1e8,
     // NEO integer), sums them, and enforces the sum-equals-total invariant.
-    await dispatch("createEscrow", {
+    const ok = (await dispatch("createEscrow", {
       name: description.trim() || beneficiary,
       beneficiary,
       asset,
       notes: description,
       milestones: milestoneAmounts.map((amount) => ({ amount })),
-    });
-    setShowCreateForm(false);
-    resetForm();
+    })) as unknown as boolean;
+    // dispatch resolves to the action's runtime result (true on success);
+    // notify.guard swallows failures into error toasts, so only a real
+    // success may close the form — a failed create keeps the input for retry.
+    if (ok) {
+      setShowCreateForm(false);
+      resetForm();
+    }
   };
 
   return (

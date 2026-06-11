@@ -20,6 +20,7 @@
  *                                                  active}
  *     hasClaimed(envId, claimer)                -> Boolean
  *     claimedAmount(envId, claimer)             -> Integer (share, base units)
+ *     creditOf(account)                         -> Integer (prepaid credit, base units)
  *     creatorEnvelopeCount(creator)             -> Integer
  *     getCreatorEnvelopes(creator, off, limit)  -> Integer[] (env ids)
  *     claimerEnvelopeCount(claimer)             -> Integer
@@ -40,6 +41,11 @@
  *        claimer atomically. One claim per address per envelope. The won amount
  *        is read from the "Claimed" event (state[2] = share), falling back to
  *        claimedAmount(envId, claimer).
+ *     reclaim(envelopeId, creator) -> amount. After expiry, pays the unclaimed
+ *        remainder of the creator's own envelope back to the creator's wallet
+ *        ("Reclaimed" event, state[2] = amount).
+ *     withdraw(account) -> credit. Pays the whole unused prepaid create-credit
+ *        back to the wallet ("CreditWithdrawn" event, state[1] = amount).
  *
  * AMOUNT CONVENTION: the contract takes/returns BASE UNITS. GAS = human × 1e8.
  * getEnvelope.expiryTime is in MILLISECONDS (Runtime.Time units). Human GAS for
@@ -55,7 +61,7 @@
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import { fromFixed8, formatHash } from "@shared/utils/format";
-import { addressToScriptHash } from "@shared/utils/neo";
+import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
@@ -101,6 +107,8 @@ export interface EnvelopeItem {
   expired: boolean;
   depleted: boolean;
   canOpen: boolean;
+  /** The connected wallet created this envelope, it expired with a remainder. */
+  reclaimable: boolean;
   currentHolder: string;
   ready: boolean;
   bestLuckAddress?: string;
@@ -173,6 +181,8 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
   const pools = createObservable<EnvelopeItem[]>([]);
   const loadingEnvelopes = createObservable(false);
   const isLoading = createObservable(false);
+  /** Connected wallet's unused prepaid create-credit (human GAS). */
+  const prepaidCredit = createObservable(0);
 
   // Opening state
   const luckyMessage = createObservable<{ amount: number; from: string } | null>(null);
@@ -191,6 +201,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
   const poolCount = createDerived(() => pools.get().length, [pools]);
   const isConnected = createDerived(() => Boolean(address.get()), [address]);
   const isOpening = createDerived(() => Boolean(openingId.get()), [openingId]);
+  const hasCredit = createDerived(() => prepaidCredit.get() > 0, [prepaidCredit]);
 
   // ── Preview Distribution (pure computation) ─────────────────────────
 
@@ -263,6 +274,9 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
    * `claimedByMe` is the result of hasClaimed(envId, currentWallet); a null
    * wallet means the current viewer has not claimed (canOpen stays true so the
    * claim attempt can prompt a connect).
+   * `reclaimable` marks the connected creator's OWN expired envelopes that
+   * still hold a remainder (raw contract `active` flag, not the UI `ready`
+   * rebadge) — the precondition for the contract's reclaim() call.
    */
   const mapEnvelope = (
     raw: unknown,
@@ -287,6 +301,11 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     const expired = expiryTimeMs > 0 && now >= expiryTimeMs;
     const depleted = openedCount >= packetCount || remainingAmountBase <= 0n;
     const ready = active && !expired && !depleted;
+    const reclaimable =
+      active &&
+      expired &&
+      remainingAmountBase > 0n &&
+      ownerMatchesAddress(creator, address.get());
 
     return {
       id,
@@ -304,6 +323,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       expired,
       depleted,
       canOpen: ready && !claimedByMe,
+      reclaimable,
       currentHolder: creator,
       ready,
       bestLuckAddress:
@@ -390,11 +410,13 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       pools.set(allEnvelopes.filter((item) => item.active && item.canOpen));
 
       // Claims for the connected wallet: the envelopes this address has claimed
-      // from, each with the share it drew.
+      // from, each with the share it drew. The prepaid create-credit refreshes
+      // alongside so the withdraw affordance stays honest after every action.
       if (claimerHash) {
-        await loadClaims(claimerHash);
+        await Promise.all([loadClaims(claimerHash), loadCredit(claimerHash)]);
       } else {
         claims.set([]);
+        prepaidCredit.set(0);
       }
     } catch (e) {
       console.warn(
@@ -465,6 +487,25 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     }
   };
 
+  /**
+   * Refresh the connected wallet's unused prepaid create-credit from
+   * creditOf(account). Base units → human GAS. A read failure leaves the last
+   * known value in place (the withdraw path re-reads before acting anyway).
+   */
+  const loadCredit = async (accountHash: string) => {
+    try {
+      const raw = await chain.read("creditOf", [
+        { type: "Hash160", value: accountHash },
+      ]);
+      prepaidCredit.set(fromFixed8(parseBigInt(raw)));
+    } catch (e) {
+      console.warn(
+        "[useRedEnvelope] creditOf failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  };
+
   // ── Actions (direct chain invocations) ─────────────────────────────
 
   /**
@@ -481,16 +522,18 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
    * Create a red envelope against the standalone contract.
    *
    * Two steps, both signed by the creator:
-   *   1. DEPOSIT — transfer the total in GAS to the contract with the
+   *   1. DEPOSIT — only when creditOf(creator) can't cover the total, transfer
+   *      the SHORTFALL in GAS to the contract with the
    *      "miniapp-redenvelope:create" memo, crediting the creator's prepaid
-   *      balance.
+   *      balance. The transfer waits for the contract's "Credited" event so
+   *      the deposit is confirmed in a block before step 2 consumes it.
    *   2. createEnvelope(creator, total, packetCount, durationSeconds) — consumes
    *      that credit and opens the envelope.
    *
    * If step 1 succeeds but step 2 fails, the prepaid credit simply remains on
-   * the contract under the creator and is reused on the next create — there is
-   * no refund call (and none is needed; funds are not lost). We surface a
-   * "funds prepaid, envelope not created" message in that case.
+   * the contract under the creator and is reused on the next create (or
+   * withdrawn via withdrawCredit). We surface a "funds prepaid, envelope not
+   * created" message in that case.
    */
   const create = async (formData: {
     amount: string;
@@ -527,22 +570,38 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
 
       const durationSeconds = Math.round(expiryValue * 3600);
 
-      // Step 1: DEPOSIT — GAS transfer to the contract with the create memo so
-      // OnNEP17Payment credits the creator's prepaid balance.
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: creatorHash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: totalBase.toString() },
-          { type: "String", value: CREATE_MEMO },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
+      // Step 1: DEPOSIT — top up only the SHORTFALL beyond any prepaid credit
+      // left from a previous aborted create, so stale credit is consumed
+      // instead of accumulating.
+      let credit = 0n;
+      try {
+        credit = parseBigInt(
+          await chain.read("creditOf", [{ type: "Hash160", value: creatorHash }]),
+        );
+      } catch {
+        credit = 0n;
+      }
+
+      if (credit < totalBase) {
+        // Wait for the contract's "Credited" event so the deposit is confirmed
+        // in a block before createEnvelope consumes it — an unconfirmed deposit
+        // lets the create execute first and fault on "insufficient deposit
+        // credit" with the funds already in flight.
+        await chain.invoke(
+          "transfer",
+          [
+            { type: "Hash160", value: creatorHash },
+            { type: "Hash160", value: contractHash },
+            { type: "Integer", value: (totalBase - credit).toString() },
+            { type: "String", value: CREATE_MEMO },
+          ],
+          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
+        );
+      }
 
       // Step 2: createEnvelope — consumes the prepaid credit and opens the
       // envelope. If this fails the credit persists on the contract under the
-      // creator and is reusable on the next create (no refund needed).
+      // creator and is reusable on the next create (or withdrawable).
       try {
         await chain.invoke(
           "createEnvelope",
@@ -657,6 +716,92 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     }
   };
 
+  /**
+   * Reclaim the unclaimed remainder of the creator's OWN expired envelope via
+   * reclaim(envelopeId, creator). The contract pays the remainder straight back
+   * to the creator's wallet and deactivates the envelope. Returns the reclaimed
+   * amount in human GAS (from the "Reclaimed" event, state[2] = amount, falling
+   * back to the locally known remainder when the event wait times out).
+   */
+  const reclaimEnvelope = async (envelopeId: string): Promise<{ amount: number }> => {
+    const id = String(envelopeId ?? "").trim();
+    if (!id) throw new Error(t("envelopeIdRequired"));
+    if (isLoading.get()) return { amount: 0 };
+
+    isLoading.set(true);
+    try {
+      const creatorAddr = address.get() || (await chain.ensureWallet());
+      const creatorHash = addressToScriptHash(creatorAddr || "");
+      if (!creatorAddr || !creatorHash) throw new Error(t("walletNotConnected"));
+      setAddress(creatorAddr);
+
+      const result = await chain.invoke(
+        "reclaim",
+        [
+          { type: "Integer", value: id },
+          { type: "Hash160", value: creatorHash },
+        ],
+        { waitForEvent: "Reclaimed" },
+      );
+
+      // OnReclaimed(id, creator, amount) — amount is state index 2.
+      const amountBase = parseBigInt(eventValue(result.event, 2));
+      const local = envelopes.get().find((item) => item.id === id);
+      const amount = amountBase > 0n ? fromFixed8(amountBase) : local?.remainingAmount ?? 0;
+
+      await loadEnvelopes();
+      return { amount };
+    } finally {
+      isLoading.set(false);
+    }
+  };
+
+  /**
+   * Withdraw the connected wallet's unused prepaid create-credit via
+   * withdraw(account). The contract pays the WHOLE credit back to the wallet —
+   * the recovery path when a deposit landed but createEnvelope never completed.
+   * Returns the withdrawn amount in human GAS (from the "CreditWithdrawn"
+   * event, state[1] = amount).
+   */
+  const withdrawCredit = async (): Promise<{ amount: number }> => {
+    if (isLoading.get()) return { amount: 0 };
+
+    isLoading.set(true);
+    try {
+      const accountAddr = address.get() || (await chain.ensureWallet());
+      const accountHash = addressToScriptHash(accountAddr || "");
+      if (!accountAddr || !accountHash) throw new Error(t("walletNotConnected"));
+      setAddress(accountAddr);
+
+      // Read the live credit first — the contract reverts "no credit" on an
+      // empty balance, so surface a clean message before prompting the wallet.
+      let credit = 0n;
+      try {
+        credit = parseBigInt(
+          await chain.read("creditOf", [{ type: "Hash160", value: accountHash }]),
+        );
+      } catch {
+        credit = 0n;
+      }
+      if (credit <= 0n) throw new Error(t("noCredit"));
+
+      const result = await chain.invoke(
+        "withdraw",
+        [{ type: "Hash160", value: accountHash }],
+        { waitForEvent: "CreditWithdrawn" },
+      );
+
+      // OnCreditWithdrawn(account, amount) — amount is state index 1.
+      const amountBase = parseBigInt(eventValue(result.event, 1));
+      const amount = amountBase > 0n ? fromFixed8(amountBase) : fromFixed8(credit);
+
+      await loadEnvelopes();
+      return { amount };
+    } finally {
+      isLoading.set(false);
+    }
+  };
+
   // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
@@ -674,6 +819,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     luckyMessage,
     openingId,
     address,
+    prepaidCredit,
 
     // Computed
     envelopeCount,
@@ -681,6 +827,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     poolCount,
     isConnected,
     isOpening,
+    hasCredit,
 
     // Preview
     previewDistribution,
@@ -694,6 +841,8 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     create,
     handleClaimFromPool,
     claimEnvelope,
+    reclaimEnvelope,
+    withdrawCredit,
 
     // Lifecycle
     loadAll,

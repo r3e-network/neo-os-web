@@ -539,8 +539,10 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
     isLoading.set(true);
     let depositSettled = false;
     try {
-      // Step 1: DEPOSIT — only top up when the existing collateral credit can't
-      // cover the amount (credit may persist from a prior aborted borrow).
+      // Step 1: DEPOSIT — the contract's borrow locks ALL credited collateral
+      // and sizes the debt on it, so the locked total must equal the typed
+      // amount for the previewed terms to hold (credit may persist from a
+      // prior aborted borrow).
       let credit = 0n;
       try {
         credit = parseBigInt(
@@ -550,14 +552,29 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
         credit = 0n;
       }
 
-      if (credit < neoInt) {
-        // NEO transfer carries the WHOLE integer — no scaling.
+      // Residual credit larger than the typed amount would lock — and borrow
+      // against — more NEO than the user consented to. Block until the credit
+      // is reclaimed or the typed amount covers it.
+      if (credit > neoInt) {
+        throw new Error(
+          t("collateralCreditExceedsAmount", {
+            credit: credit.toString(),
+            amount: neoInt.toString(),
+          }),
+        );
+      }
+
+      // Top up only the SHORTFALL — existing credit plus this transfer is
+      // exactly what borrow locks. NEO transfer carries the WHOLE integer —
+      // no scaling.
+      const shortfall = neoInt - credit;
+      if (shortfall > 0n) {
         await chain.invoke(
           "transfer",
           [
             { type: "Hash160", value: hash },
             { type: "Hash160", value: contractHash },
-            { type: "Integer", value: neoInt.toString() },
+            { type: "Integer", value: shortfall.toString() },
             { type: "String", value: COLLATERAL_MEMO },
           ],
           { scriptHash: NEO_HASH, waitForEvent: "CollateralCredited" },
@@ -639,13 +656,28 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
         credit = 0n;
       }
 
-      if (credit < neoInt) {
+      // addCollateral moves ALL freshly-credited NEO into the loan, so excess
+      // residual credit would lock more than the typed amount — block until
+      // the credit is reclaimed or the typed amount covers it.
+      if (credit > neoInt) {
+        throw new Error(
+          t("collateralCreditExceedsAmount", {
+            credit: credit.toString(),
+            amount: neoInt.toString(),
+          }),
+        );
+      }
+
+      // Top up only the SHORTFALL — existing credit plus this transfer is
+      // exactly what addCollateral moves into the loan.
+      const shortfall = neoInt - credit;
+      if (shortfall > 0n) {
         await chain.invoke(
           "transfer",
           [
             { type: "Hash160", value: hash },
             { type: "Hash160", value: contractHash },
-            { type: "Integer", value: neoInt.toString() },
+            { type: "Integer", value: shortfall.toString() },
             { type: "String", value: COLLATERAL_MEMO },
           ],
           { scriptHash: NEO_HASH, waitForEvent: "CollateralCredited" },
