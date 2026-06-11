@@ -250,11 +250,15 @@ describe("WifAdapter", () => {
     ]);
   });
 
-  it("retries a stale expired relay response and returns the accepted txid", async () => {
+  it("rebuilds a stale expired transaction against a fresh block height before retrying", async () => {
+    let blockCountCalls = 0;
     let relayAttempts = 0;
     mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
       const body = JSON.parse(String(init.body));
-      if (body.method === "getblockcount") return rpcResponse(100);
+      if (body.method === "getblockcount") {
+        blockCountCalls += 1;
+        return rpcResponse(blockCountCalls === 1 ? 100 : 250);
+      }
       if (body.method === "getversion") return rpcResponse({ protocol: { network: 894710606 } });
       if (body.method === "invokefunction") {
         return rpcResponse({ state: "HALT", gasconsumed: "100", stack: [] });
@@ -286,8 +290,88 @@ describe("WifAdapter", () => {
       "invokefunction",
       "calculatenetworkfee",
       "sendrawtransaction",
+      "getblockcount",
       "sendrawtransaction",
     ]);
+    // Draft, final, and rebuilt transactions; the rebuilt one must carry a
+    // fresh validUntilBlock derived from the second getblockcount result.
+    expect(mockTransactionInstances).toHaveLength(3);
+    expect(mockTransactionInstances[2].init).toEqual(
+      expect.objectContaining({
+        systemFee: 100n,
+        networkFee: 2n,
+        validUntilBlock: 250 + 5760,
+      }),
+    );
+  });
+
+  it.each([
+    "The transaction already exists in the blockchain",
+    "TxAlreadyInPool",
+    "duplicate transaction submitted",
+  ])("treats the duplicate relay rejection %p as already accepted", async (relayError) => {
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      if (body.method === "getblockcount") return rpcResponse(100);
+      if (body.method === "getversion") return rpcResponse({ protocol: { network: 894710606 } });
+      if (body.method === "invokefunction") {
+        return rpcResponse({ state: "HALT", gasconsumed: "100", stack: [] });
+      }
+      if (body.method === "calculatenetworkfee") return rpcResponse({ networkfee: "2" });
+      if (body.method === "sendrawtransaction") return rpcError(relayError);
+      throw new Error(`unexpected method ${body.method}`);
+    });
+
+    const adapter = new WifAdapter();
+    await adapter.connectWithWif("test-wif");
+
+    const result = await adapter.invoke({
+      scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      operation: "transfer",
+      args: [{ type: "Hash160", value: "NDirectWifAddress" }],
+      signers: [{ account: "NDirectWifAddress", scopes: 1 }],
+    });
+
+    expect(result.txid).toBe(`0x${"a".repeat(64)}`);
+    const relayCalls = mockFetch.mock.calls.filter(
+      ([, init]) => JSON.parse(String(init.body)).method === "sendrawtransaction",
+    );
+    expect(relayCalls).toHaveLength(1);
+  });
+
+  it.each([
+    "the memory pool is full and no more transactions can be sent",
+    "mempool capacity reached, transaction evicted for insufficient fee",
+    "the transaction was rejected by the Policy contract",
+  ])("fails the invoke when the relay rejects with %p", async (relayError) => {
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      if (body.method === "getblockcount") return rpcResponse(100);
+      if (body.method === "getversion") return rpcResponse({ protocol: { network: 894710606 } });
+      if (body.method === "invokefunction") {
+        return rpcResponse({ state: "HALT", gasconsumed: "100", stack: [] });
+      }
+      if (body.method === "calculatenetworkfee") return rpcResponse({ networkfee: "2" });
+      if (body.method === "sendrawtransaction") return rpcError(relayError);
+      throw new Error(`unexpected method ${body.method}`);
+    });
+
+    const adapter = new WifAdapter();
+    await adapter.connectWithWif("test-wif");
+
+    await expect(
+      adapter.invoke({
+        scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        operation: "transfer",
+        args: [{ type: "Hash160", value: "NDirectWifAddress" }],
+        signers: [{ account: "NDirectWifAddress", scopes: 1 }],
+      }),
+    ).rejects.toThrow(relayError);
+
+    const relayCalls = mockFetch.mock.calls.filter(
+      ([, init]) => JSON.parse(String(init.body)).method === "sendrawtransaction",
+    );
+    expect(relayCalls).toHaveLength(1);
   });
 
   it("does not relay when live network fee estimation fails", async () => {
