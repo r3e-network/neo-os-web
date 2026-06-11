@@ -43,11 +43,13 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
+import { waitForDepositConfirmation } from "@shared/composables/useContractInteraction";
+import type { DepositConfirmation } from "@shared/composables/useContractInteraction";
 import type { ChainService, ContractArg } from "@shared/services/ChainService";
 import { formatGas, formatAddress } from "@shared/utils/format";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "@shared/constants";
 import type { EscrowItem } from "../pages/index/components/EscrowList";
 
 // ============================================================================
@@ -92,6 +94,17 @@ export interface UseMilestoneEscrowOptions {
   chain: ChainService;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
+  /**
+   * Override the deposit-confirmation wait used before createEscrow consumes
+   * the prepaid credit. Defaults to {@link waitForDepositConfirmation} polling
+   * the N3Index for the deposit transfer's indexed NEP-17 Transfer event on
+   * the asset token contract (this contract's OnNEP17Payment emits no Credited
+   * event to wait on). Injectable for tests.
+   */
+  confirmDeposit?: (
+    txid: string,
+    asset: "NEO" | "GAS",
+  ) => Promise<DepositConfirmation>;
 }
 
 // ============================================================================
@@ -191,7 +204,20 @@ const toIdString = (value: unknown): string => {
 // Composable
 // ============================================================================
 
-export function useMilestoneEscrow({ chain, t }: UseMilestoneEscrowOptions) {
+export function useMilestoneEscrow({
+  chain,
+  t,
+  confirmDeposit,
+}: UseMilestoneEscrowOptions) {
+  // Deposit-confirmation wait (injectable). The default polls the N3Index for
+  // the transfer txid's decoded events on the asset token contract — a prepaid
+  // deposit is a NEP-17 transfer, so its Transfer event is indexed there once
+  // the tx is in a block.
+  const settleDeposit =
+    confirmDeposit ??
+    ((txid: string, asset: "NEO" | "GAS") =>
+      waitForDepositConfirmation(txid, { contractHash: assetHash(asset) }));
+
   // ── Reactive State ────────────────────────────────────────────────────
   const creatorEscrows = createObservable<EscrowItem[]>([]);
   const beneficiaryEscrows = createObservable<EscrowItem[]>([]);
@@ -414,7 +440,7 @@ export function useMilestoneEscrow({ chain, t }: UseMilestoneEscrowOptions) {
       // Step 1: DEPOSIT — NEP-17 transfer to the contract on the asset token.
       // The scriptHash override targets the token contract (not the app), and
       // the memo must start with the app id so OnNEP17Payment credits us.
-      await chain.invoke(
+      const deposit = await chain.invoke(
         "transfer",
         [
           { type: "Hash160", value: creatorHash },
@@ -424,6 +450,20 @@ export function useMilestoneEscrow({ chain, t }: UseMilestoneEscrowOptions) {
         ],
         { scriptHash: assetHash(asset) },
       );
+
+      // Wait for the deposit to land in a block before firing the consuming
+      // call — intra-block ordering is fee/hash-based, so an unconfirmed
+      // deposit lets createEscrow execute first and fault with "insufficient
+      // prepaid asset". OnNEP17Payment emits no Credited event on this
+      // contract, so the wait polls the transfer txid's own application log
+      // (the indexed Transfer event on the asset token). The fixed sleep
+      // remains only when the indexer is unreachable.
+      const settlement = await settleDeposit(deposit.txid, asset);
+      if (settlement === "unreachable") {
+        await new Promise((resolve) =>
+          setTimeout(resolve, TIME_CONSTANTS.SECOND_MS * 4),
+        );
+      }
 
       // Step 2: createEscrow — consumes the prepaid credit and opens the
       // escrow. If this fails, the credit stays on the contract under the
