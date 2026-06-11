@@ -406,6 +406,59 @@ async function invokeDirectInvocation(
   );
 }
 
+// Pending invocation intents are consumable exactly once: wallet.invokeIntent
+// and the *AndInvoke helpers both remove the stored entry before submitting,
+// so a request_id can never replay the same to-be-signed invocation. Entries
+// also expire (TTL) and the map is capped so abandoned intents cannot grow it
+// unboundedly.
+const PENDING_INVOCATION_TTL_MS = 10 * 60 * 1000;
+const PENDING_INVOCATION_MAX_ENTRIES = 64;
+
+type PendingInvocationEntry = {
+  invocation: InvocationIntent;
+  expiresAt: number;
+};
+
+type PendingInvocationMap = Map<string, PendingInvocationEntry>;
+
+function prunePendingInvocations(pending: PendingInvocationMap): void {
+  const now = Date.now();
+  for (const [requestId, entry] of pending) {
+    if (entry.expiresAt <= now) pending.delete(requestId);
+  }
+}
+
+function rememberPendingInvocation(
+  pending: PendingInvocationMap,
+  requestId: string,
+  invocation: InvocationIntent,
+): void {
+  prunePendingInvocations(pending);
+  pending.delete(requestId);
+  pending.set(requestId, {
+    invocation,
+    expiresAt: Date.now() + PENDING_INVOCATION_TTL_MS,
+  });
+  // Maps iterate in insertion order, so evicting from the front drops the
+  // oldest intents first once the cap is exceeded.
+  while (pending.size > PENDING_INVOCATION_MAX_ENTRIES) {
+    const oldest = pending.keys().next().value;
+    if (oldest === undefined) break;
+    pending.delete(oldest);
+  }
+}
+
+function takePendingInvocation(
+  pending: PendingInvocationMap,
+  requestId: string,
+): InvocationIntent | null {
+  const entry = pending.get(requestId);
+  if (!entry) return null;
+  pending.delete(requestId);
+  if (entry.expiresAt <= Date.now()) return null;
+  return entry.invocation;
+}
+
 async function requestJSON<T>(
   cfg: MiniAppSDKConfig,
   path: string,
@@ -487,7 +540,7 @@ async function requestHostJSON<T>(
 }
 
 export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
-  const pendingInvocations = new Map<string, InvocationIntent>();
+  const pendingInvocations: PendingInvocationMap = new Map();
 
   return {
     async getAddress() {
@@ -506,10 +559,9 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       async invokeIntent(requestId: string): Promise<unknown> {
         const id = String(requestId ?? "").trim();
         if (!id) throw new Error("request_id required");
-        const invocation = pendingInvocations.get(id);
+        const invocation = takePendingInvocation(pendingInvocations, id);
         if (!invocation)
           throw new Error("unknown request_id (no pending invocation)");
-        pendingInvocations.delete(id);
         return invokeDirectInvocation(invocation);
       },
       async invokeInvocation(invocation: InvocationIntent): Promise<unknown> {
@@ -526,11 +578,18 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
           method: "POST",
           body: JSON.stringify({ app_id: appId, amount_gas: amount, memo }),
         });
-        pendingInvocations.set(res.request_id, res.invocation);
+        rememberPendingInvocation(
+          pendingInvocations,
+          res.request_id,
+          res.invocation,
+        );
         return res;
       },
       async payGASAndInvoke(appId: string, amount: string, memo?: string) {
         const intent = await this.payGAS(appId, amount, memo);
+        // Consume the stored intent so a later invokeIntent cannot replay
+        // the same payment invocation.
+        pendingInvocations.delete(intent.request_id);
         const tx = await invokeDirectInvocation(intent.invocation);
         return { intent, tx };
       },
@@ -551,7 +610,11 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
             support,
           }),
         });
-        pendingInvocations.set(res.request_id, res.invocation);
+        rememberPendingInvocation(
+          pendingInvocations,
+          res.request_id,
+          res.invocation,
+        );
         return res;
       },
       async voteAndInvoke(
@@ -561,6 +624,9 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         support?: boolean,
       ) {
         const intent = await this.vote(appId, proposalId, bneoAmount, support);
+        // Consume the stored intent so a later invokeIntent cannot replay
+        // the same governance invocation.
+        pendingInvocations.delete(intent.request_id);
         const tx = await invokeDirectInvocation(intent.invocation);
         return { intent, tx };
       },

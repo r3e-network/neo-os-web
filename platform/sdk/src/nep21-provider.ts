@@ -366,6 +366,50 @@ function networkMagicFromLocation(win: Nep21Window): number {
   return TESTNET_MAGIC;
 }
 
+function createHostBridgeRequestId(): string {
+  hostBridgeRequestId += 1;
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.getRandomValues === "function"
+  ) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const nonce = Array.from(bytes, (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    return `host-wallet-${nonce}`;
+  }
+  return `host-wallet-${Date.now().toString(16)}-${hostBridgeRequestId}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
+}
+
+function deriveHostBridgeOrigin(win: Nep21Window): string | null {
+  // Prefer the embedding page reported by the referrer (the host shell), then
+  // fall back to the frame's own URL origin (miniapps are served first-party).
+  const candidates: string[] = [];
+  try {
+    const referrer = String(win.document?.referrer ?? "").trim();
+    if (referrer) candidates.push(referrer);
+  } catch {
+    // Sandboxed documents may refuse referrer access; try the location below.
+  }
+  try {
+    candidates.push(win.location.href);
+  } catch {
+    // No usable location; the source-identity check remains the boundary.
+  }
+  for (const candidate of candidates) {
+    try {
+      const origin = new URL(candidate).origin;
+      if (origin && origin !== "null") return origin;
+    } catch {
+      // Ignore unparseable candidates and keep looking.
+    }
+  }
+  return null;
+}
+
 function hostBridgeRequest<T>(
   win: Nep21Window,
   method: string,
@@ -376,7 +420,8 @@ function hostBridgeRequest<T>(
     return Promise.reject(new Error("MiniApp host wallet bridge is not available."));
   }
 
-  const id = `host-wallet-${Date.now()}-${hostBridgeRequestId += 1}`;
+  const id = createHostBridgeRequestId();
+  const expectedOrigin = deriveHostBridgeOrigin(win);
   return new Promise<T>((resolve, reject) => {
     const timeout = win.setTimeout(() => {
       cleanup();
@@ -389,6 +434,23 @@ function hostBridgeRequest<T>(
     };
 
     const onMessage = (event: MessageEvent) => {
+      // Identity check: only the embedding host window may answer a bridge
+      // request. Cross-window messages always carry the sender as `source`,
+      // so a nested frame inside the miniapp can never spoof a response. A
+      // null/undefined source only occurs for synthetic same-document events
+      // (e.g. jsdom test harnesses), where no foreign window is involved.
+      if (event.source !== target && event.source != null) return;
+      // Origin check: sandboxed hosts and test harnesses report an opaque
+      // ("null"/empty) origin — the source identity above stays the boundary
+      // there. A real, mismatching origin is rejected outright.
+      if (
+        expectedOrigin &&
+        event.origin &&
+        event.origin !== "null" &&
+        event.origin !== expectedOrigin
+      ) {
+        return;
+      }
       const data = event.data as HostBridgeResponse;
       if (!isRecord(data)) return;
       if (data.type !== HOST_WALLET_BRIDGE_RESPONSE || data.id !== id) return;
@@ -413,7 +475,7 @@ function hostBridgeRequest<T>(
         payload,
         version: 1,
       },
-      "*",
+      expectedOrigin ?? "*",
     );
   });
 }
