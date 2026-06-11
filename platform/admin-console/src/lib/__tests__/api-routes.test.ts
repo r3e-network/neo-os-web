@@ -247,6 +247,7 @@ describe("GET /api/analytics/by-app", () => {
 
 describe("GET /api/services/health", () => {
   it("returns health check array", async () => {
+    vi.stubEnv("NEXT_PUBLIC_EDGE_URL", "http://edge.test");
     fetchSpy.mockImplementation(() =>
       mockJsonResponse([
         { name: "service-a", status: "healthy", version: "1.0.0" },
@@ -271,6 +272,7 @@ describe("GET /api/services/health", () => {
   });
 
   it("handles service timeout with fallback health rows, not crash", async () => {
+    vi.stubEnv("NEXT_PUBLIC_EDGE_URL", "http://edge.test");
     fetchSpy.mockRejectedValue(new Error("timeout"));
 
     const { GET } = await importRoute<{
@@ -286,6 +288,24 @@ describe("GET /api/services/health", () => {
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toMatchObject({ status: "unknown" });
     expect(data[0].error).toContain("timeout");
+  });
+
+  it("fails fast with a configuration error (no fetch) when NEXT_PUBLIC_EDGE_URL is unset", async () => {
+    // Regression: the route used to fall back to a stale k8s cluster-local
+    // URL, hang on the fetch timeout, and send the service-role key to it.
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/services/health/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/services/health"),
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(data)).toBe(true);
+    expect(data[0]).toMatchObject({ status: "unknown" });
+    expect(data[0].error).toContain("NEXT_PUBLIC_EDGE_URL is not configured");
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 

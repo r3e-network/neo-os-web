@@ -38,6 +38,29 @@ describe("PriceFeedsPage", () => {
     vi.restoreAllMocks();
   });
 
+  it("shows the demo-data banner when the pricefeeds API flags X-Mock-Data", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(JSON.stringify(sampleFeeds), {
+          status: 200,
+          headers: { "X-Mock-Data": "true" },
+        }),
+    );
+
+    render(<PriceFeedsPage />);
+
+    expect(await screen.findByTestId("demo-data-banner")).toHaveTextContent(
+      "Demo data",
+    );
+  });
+
+  it("hides the demo-data banner when the pricefeeds API serves real data", async () => {
+    render(<PriceFeedsPage />);
+
+    await screen.findByText("TWELVEDATA:BTC-USD");
+    expect(screen.queryByTestId("demo-data-banner")).not.toBeInTheDocument();
+  });
+
   it("presents oracle feed inventory with compact summary cards", async () => {
     const { container } = render(<PriceFeedsPage />);
 

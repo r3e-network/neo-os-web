@@ -274,4 +274,11 @@ async function loadAuditRowsFromSupabaseRest(config, args) {
   return rows;
 }
 
-main();
+// Exported so the golden-vector copy-sync test
+// (deploy/scripts/lib/stable_stringify_golden.test.mjs) can pin this copy of
+// stableStringify against the shared fixture in platform/shared/__fixtures__.
+module.exports = { stableStringify };
+
+if (require.main === module) {
+  main();
+}

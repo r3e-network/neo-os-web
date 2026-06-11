@@ -37,18 +37,18 @@ See `platform/edge/functions/`:
 - `vote-bneo`: returns a Governance `vote` invocation (bNEO-only).
 - `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `registerApp` invocation (developer wallet-signed).
 - `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateApp` invocation (developer wallet-signed).
-- `rng-request`: runs RNG via `neovrf` (signature + attestation hash).
-- `compute-execute`: runs a script via `neocompute` (`/execute`) (host-gated).
-- `compute-jobs`: lists compute jobs via `neocompute` (`/jobs`) (host-gated).
-- `compute-job`: gets a compute job via `neocompute` (`/jobs/{id}`) (host-gated; uses `?id=`).
-- `datafeed-price`: read proxy to `neofeeds` (symbols like `BTC-USD` or `BTC` which defaults to `BTC-USD`).
-- `oracle-query`: forwards allowlisted HTTP fetch requests to `neooracle` (optional secret injection).
 - `automation-triggers`: list/create automation triggers via `neoflow` (host-gated).
 - `automation-trigger`: get a trigger via `neoflow` (host-gated; uses `?id=`).
 - `automation-trigger-update`: update a trigger via `neoflow` (host-gated; uses POST in Edge).
 - `automation-trigger-delete`: delete a trigger via `neoflow` (host-gated; uses POST in Edge).
 - `automation-trigger-enable`, `automation-trigger-disable`, `automation-trigger-resume`: lifecycle controls.
 - `automation-trigger-executions`: list executions (audit log).
+
+The old TEE-forwarding gateway functions (`rng-request`, `datafeed-price`,
+`oracle-query`, `compute-execute`, `compute-jobs`, `compute-job`,
+`privacy-merkle-path`, `privacy-relay`) were removed; the matching SDK
+methods now throw a typed `ENDPOINT_RETIRED` error (see
+`platform/sdk/README.md`).
 
 Supabase deploys functions under:
 
@@ -89,14 +89,13 @@ Most endpoints accept either:
 - `Authorization: Bearer <jwt>` (Supabase Auth), or
 - `X-API-Key: <key>` (user API keys; used for secrets/gasbank/etc.)
 
-Host-only endpoints (compute/automation/oracle/secrets) require **API keys with
-explicit scopes** in production; bearer JWTs are rejected there.
+Host-only endpoints (automation/secrets) require **API keys with explicit
+scopes** in production; bearer JWTs are rejected there.
 
 API key management endpoints (`api-keys-*`) require `Authorization: Bearer <jwt>`.
 
 ## Optional Env Vars
 
-- `RNG_ANCHOR`: set to `1` to record RNG results on-chain via `txproxy` (`RandomnessLog.record`).
 - `EDGE_CORS_ORIGINS`: origin allowlist for browser clients (comma/space-separated exact origins, for example `https://neomini.app http://localhost:3000`). When unset, Edge functions intentionally reject cross-origin preflight requests instead of using a wildcard.
 - `MINIAPP_USAGE_MODE`: `record` (default) or `check` for cap-only enforcement.
 - `MINIAPP_USAGE_MODE_PAYMENTS`, `MINIAPP_USAGE_MODE_GOVERNANCE`: optional per-intent overrides.

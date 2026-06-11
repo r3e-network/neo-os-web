@@ -40,6 +40,8 @@ interface ChainOpts {
   envelopes?: Record<string, Record<string, unknown>>;
   /** Force createEnvelope to throw (deposit-held recovery path). */
   createThrows?: Error;
+  /** Share (base units) the Claimed event reports for claim(). */
+  claimShare?: string;
 }
 
 /**
@@ -56,6 +58,17 @@ function makeChain(opts: ChainOpts = {}) {
         if (options?.waitForEvent === "EnvelopeCreated") {
           event = { state: [{ type: "Integer", value: "1" }] };
         }
+      }
+      if (op === "claim" && options?.waitForEvent === "Claimed") {
+        // OnClaimed(id, claimer, share, remainingPackets)
+        event = {
+          state: [
+            { type: "Integer", value: String(args[0]?.value ?? "0") },
+            { type: "Hash160", value: ALICE_HASH },
+            { type: "Integer", value: opts.claimShare ?? "50000000" },
+            { type: "Integer", value: "1" },
+          ],
+        };
       }
       if (op === "reclaim" && options?.waitForEvent === "Reclaimed") {
         // OnReclaimed(id, creator, amount)
@@ -240,5 +253,106 @@ describe("useRedEnvelope — withdraw prepaid credit", () => {
     const { app, invoke } = setup({ credit: "0" });
     await expect(app.withdrawCredit()).rejects.toThrow("noCredit");
     expect(invoke).not.toHaveBeenCalled();
+  });
+});
+
+describe("useRedEnvelope — paged refresh (newest page, bounded concurrency)", () => {
+  it("reads only the newest 30 envelopes per refresh, not the whole history", async () => {
+    // Regression: the old refresh scanned 200 ids per refresh — with a long
+    // history that is up to ~400 parallel reads through the host bridge.
+    const envelopes: Record<string, Record<string, unknown>> = {};
+    for (let id = 1; id <= 100; id += 1) envelopes[String(id)] = envelopeMap();
+    const { app, read } = setup({ lastEnvelopeId: "100", envelopes });
+
+    await app.loadEnvelopes();
+
+    const envReads = read.mock.calls.filter((c) => c[0] === "getEnvelope");
+    expect(envReads).toHaveLength(30);
+    const ids = envReads.map((c) => String((c[1] as ContractArg[])[0]?.value));
+    expect(ids).toContain("100");
+    expect(ids).toContain("71");
+    expect(ids).not.toContain("70");
+    expect(app.envelopes.get()).toHaveLength(30);
+  });
+
+  it("keeps at most 8 chain reads in flight during a refresh", async () => {
+    const fixtures: Record<string, Record<string, unknown>> = {};
+    for (let id = 1; id <= 30; id += 1) fixtures[String(id)] = envelopeMap();
+
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const read = vi.fn(async (op: string, args?: ContractArg[]): Promise<unknown> => {
+      if (op === "lastEnvelopeId") return "30";
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      inFlight -= 1;
+      switch (op) {
+        case "getEnvelope":
+          return fixtures[String(args?.[0]?.value ?? "")] ?? null;
+        case "hasClaimed":
+          return false;
+        default:
+          return "0";
+      }
+    });
+    const chain = {
+      contractAddress: { get: () => CONTRACT },
+      address: { get: () => ALICE },
+      ensureWallet: vi.fn(async () => ALICE),
+      invoke: vi.fn(),
+      read,
+      readArray: vi.fn(async () => []),
+    } as unknown as ChainService;
+    const app = useRedEnvelope({ chain, t });
+    app.setAddress(ALICE);
+
+    await app.loadEnvelopes();
+
+    expect(app.envelopes.get()).toHaveLength(30);
+    expect(maxInFlight).toBeGreaterThan(1); // still parallel…
+    expect(maxInFlight).toBeLessThanOrEqual(8); // …but bounded
+  });
+});
+
+describe("useRedEnvelope — post-claim surgical refresh", () => {
+  it("re-reads ONLY the claimed envelope and appends the claim locally", async () => {
+    const envelopes: Record<string, Record<string, unknown>> = {
+      "1": envelopeMap(),
+      "2": envelopeMap({ openedCount: "2" }),
+    };
+    const { app, invoke, read } = setup({ lastEnvelopeId: "2", envelopes });
+
+    await app.loadEnvelopes();
+    expect(app.envelopes.get()).toHaveLength(2);
+
+    // The claim changes envelope 2 on-chain; the next read reflects it.
+    envelopes["2"] = envelopeMap({ openedCount: "3", remainingAmount: "10000000" });
+    read.mockClear();
+
+    await app.handleClaimFromPool("2");
+
+    // The claim was submitted with the Claimed settle wait.
+    const claim = callFor(invoke, "claim");
+    expect(claim).toBeTruthy();
+    expect(claim![2]).toMatchObject({ waitForEvent: "Claimed" });
+
+    // Surgical refresh: no full rescan (no lastEnvelopeId), and the only
+    // envelope re-read is the claimed one.
+    expect(read.mock.calls.filter((c) => c[0] === "lastEnvelopeId")).toHaveLength(0);
+    const envReads = read.mock.calls.filter((c) => c[0] === "getEnvelope");
+    expect(envReads).toHaveLength(1);
+    expect(String((envReads[0]![1] as ContractArg[])[0]?.value)).toBe("2");
+
+    // The claimed envelope was patched in place…
+    const patched = app.envelopes.get().find((e) => e.id === "2");
+    expect(patched?.openedCount).toBe(3);
+    expect(patched?.remainingAmount).toBeCloseTo(0.1, 8);
+    // …its sibling untouched…
+    expect(app.envelopes.get().find((e) => e.id === "1")?.openedCount).toBe(2);
+    // …and the wallet's new claim is recorded from the Claimed event share
+    // (50000000 base units -> 0.5 GAS) without re-walking claim history.
+    expect(app.claims.get()[0]).toMatchObject({ poolId: "2", amount: 0.5 });
+    expect(read.mock.calls.filter((c) => c[0] === "claimedAmount")).toHaveLength(0);
   });
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { OnChainActivity } from "../components/types";
 import { logger } from "../lib/logger";
 import { fetchJSON, toApiError } from "@/lib/fetch-client";
@@ -56,8 +56,6 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const lastEventIdRef = useRef<string | null>(null);
-  const lastTxIdRef = useRef<string | null>(null);
 
   const fetchActivities = useCallback(
     async (isInitial = false) => {
@@ -96,9 +94,6 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
           for (const evt of events) {
             newActivities.push(transformEvent(evt));
           }
-          if (events.length > 0) {
-            lastEventIdRef.current = String(events[0].id ?? "");
-          }
         }
 
         // Process transactions
@@ -106,9 +101,6 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
           const txs = txData.transactions || [];
           for (const tx of txs) {
             newActivities.push(transformTransaction(tx));
-          }
-          if (txs.length > 0) {
-            lastTxIdRef.current = String(txs[0].id ?? "");
           }
         }
 
@@ -142,19 +134,36 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
     }
   }, [enabled, fetchActivities]);
 
-  // Polling
+  // Polling — paused while the document is hidden so a backgrounded tab does
+  // not keep re-downloading both activity endpoints every interval. A refresh
+  // fires immediately when the tab becomes visible again.
   useEffect(() => {
     if (!enabled || pollInterval <= 0) return;
 
     let active = true;
+    const isHidden = () =>
+      typeof document !== "undefined" && document.visibilityState === "hidden";
+
     const interval = setInterval(() => {
-      if (!active) return;
+      if (!active || isHidden()) return;
       fetchActivities(false);
     }, pollInterval);
+
+    const handleVisibilityChange = () => {
+      if (!active || isHidden()) return;
+      fetchActivities(false);
+    };
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
 
     return () => {
       active = false;
       clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
     };
   }, [enabled, pollInterval, fetchActivities]);
 

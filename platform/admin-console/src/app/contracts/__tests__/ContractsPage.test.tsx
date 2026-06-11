@@ -44,6 +44,29 @@ describe("ContractsPage", () => {
     vi.restoreAllMocks();
   });
 
+  it("shows the demo-data banner when the contracts API flags X-Mock-Data", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        new Response(JSON.stringify(sampleContracts), {
+          status: 200,
+          headers: { "X-Mock-Data": "true" },
+        }),
+    );
+
+    render(<ContractsPage />);
+
+    expect(await screen.findByTestId("demo-data-banner")).toHaveTextContent(
+      "Demo data",
+    );
+  });
+
+  it("hides the demo-data banner when the contracts API serves real data", async () => {
+    render(<ContractsPage />);
+
+    await waitForContractsToLoad();
+    expect(screen.queryByTestId("demo-data-banner")).not.toBeInTheDocument();
+  });
+
   it("renders a light contract registry dashboard with compact status cards", async () => {
     const { container } = render(<ContractsPage />);
 

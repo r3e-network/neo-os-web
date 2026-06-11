@@ -1,64 +1,56 @@
-// MOCK: In-memory stub — replace with Supabase persistence before production
+// DEMO DATA: this route serves read-only sample metadata so the console page
+// renders in dev stacks without the secret backend. Every response carries the
+// `X-Mock-Data: true` header, which drives the demo-data banner in the UI.
+// Mutations are intentionally NOT implemented: persisting oracle secrets
+// requires the TEE-backed vault, and silently "accepting" a pasted secret
+// would make an operator believe a key rotation happened when it did not.
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
-let oracleSecrets = [
+
+const MOCK_HEADERS = { "X-Mock-Data": "true" } as const;
+
+const DEMO_ORACLE_SECRETS = [
   { id: "1", name: "binance_api_key", description: "Binance API Key for Market Data", lastUpdated: "2026-03-01T10:00:00Z" },
   { id: "2", name: "okx_api_key", description: "OKX API Key", lastUpdated: "2026-03-02T12:30:00Z" },
-  { id: "3", name: "twelvedata_api_key", description: "Twelve Data API Key", lastUpdated: "2026-03-05T12:00:00Z" }
-];
+  { id: "3", name: "twelvedata_api_key", description: "Twelve Data API Key", lastUpdated: "2026-03-05T12:00:00Z" },
+] as const;
 
 export async function GET(request: Request) {
   const authResponse = await requireAdminAuth(request);
   if (authResponse) return authResponse;
-  
+
   // Never return the actual secret values, only metadata
-  return NextResponse.json(oracleSecrets, { headers: { "X-Mock-Data": "true" } });
+  return NextResponse.json(DEMO_ORACLE_SECRETS, { headers: MOCK_HEADERS });
 }
 
 export async function POST(request: Request) {
   const authResponse = await requireAdminAuth(request);
   if (authResponse) return authResponse;
 
-  try {
-    const data = await request.json();
+  // Drain the body so the submitted secret value never lingers in the request
+  // stream, then refuse explicitly instead of pretending to store it.
+  await request.json().catch(() => null);
 
-    // In a real implementation, 'data.value' would be encrypted and saved securely.
-    // Here we just save the metadata.
-    const newSecret = {
-      id: Date.now().toString(),
-      name: data.name,
-      description: data.description,
-      lastUpdated: new Date().toISOString()
-    };
-
-    const existingIndex = oracleSecrets.findIndex(s => s.name === data.name);
-    if (existingIndex >= 0) {
-      oracleSecrets[existingIndex] = { ...oracleSecrets[existingIndex], ...newSecret, id: oracleSecrets[existingIndex].id };
-    } else {
-      oracleSecrets.push(newSecret);
-    }
-
-    return NextResponse.json(oracleSecrets, { headers: { "X-Mock-Data": "true" } });
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid secret data" }, { status: 400 });
-  }
+  return NextResponse.json(
+    {
+      error:
+        "Oracle secret storage is not implemented. The submitted value was discarded — configure secrets through the TEE vault deployment, not this console.",
+      code: "NOT_IMPLEMENTED",
+    },
+    { status: 501, headers: MOCK_HEADERS },
+  );
 }
 
 export async function DELETE(request: Request) {
   const authResponse = await requireAdminAuth(request);
   if (authResponse) return authResponse;
 
-  try {
-    const url = new URL(request.url);
-    const id = url.searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-    }
-
-    oracleSecrets = oracleSecrets.filter(s => s.id !== id);
-    return NextResponse.json(oracleSecrets, { headers: { "X-Mock-Data": "true" } });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to delete secret" }, { status: 500 });
-  }
+  return NextResponse.json(
+    {
+      error:
+        "Oracle secret deletion is not implemented. This console only displays demo metadata; manage real secrets through the TEE vault deployment.",
+      code: "NOT_IMPLEMENTED",
+    },
+    { status: 501, headers: MOCK_HEADERS },
+  );
 }

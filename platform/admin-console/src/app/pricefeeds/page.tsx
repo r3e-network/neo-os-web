@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
+  DemoDataBanner,
+  isMockDataResponse,
+} from "@/components/ui/DemoDataBanner";
+import {
   getAdminAuthHeaders,
   getAdminFetchOptions,
 } from "@/lib/admin-client";
@@ -41,6 +45,7 @@ export default function PriceFeedsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDemoData, setIsDemoData] = useState(false);
   const mountedRef = useRef(true);
 
   const activeFeeds = feeds.filter((feed) => feed.enabled).length;
@@ -92,6 +97,7 @@ export default function PriceFeedsPage() {
       throw new Error("Invalid pricefeed payload");
     }
     if (mountedRef.current) setFeeds(data);
+    if (mountedRef.current) setIsDemoData(isMockDataResponse(res));
     if (mountedRef.current) setLoadError(null);
   };
 
@@ -141,6 +147,7 @@ export default function PriceFeedsPage() {
 
   return (
     <div className="space-y-6">
+      {isDemoData && <DemoDataBanner />}
       {saveError && (
         <div className="rounded-xl border border-danger-200 bg-danger-50 p-4">
           <p className="text-sm font-semibold text-danger-700">
