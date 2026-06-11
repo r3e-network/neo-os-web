@@ -1,4 +1,4 @@
-export { createHostSDK, createMiniAppSDK } from "./client.js";
+export { createHostSDK, createMiniAppSDK, SDKError } from "./client.js";
 export { createAdminSDK, AdminSDK } from "./admin.js";
 export { installMiniAppSDK } from "./window.js";
 export {

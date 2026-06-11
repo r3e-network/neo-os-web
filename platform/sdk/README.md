@@ -5,10 +5,11 @@
 This package is the TypeScript SDK matching the platform blueprint:
 
 - MiniApps do not talk to the chain directly.
-- Calls go to **Supabase Edge**, which enforces policy and either:
-  - returns an invocation for the wallet to sign (user-signed flows), or
-  - forwards to a TEE service (RNG/compute/oracle).
-- The preferred platform architecture is direct Oracle / direct AA.
+- Calls go to **Supabase Edge**, which enforces policy and returns an
+  invocation for the wallet to sign (user-signed flows).
+- The preferred platform architecture is direct Oracle / direct AA. The old
+  TEE-forwarding gateway lane (RNG/data feed/oracle fetch/compute/privacy
+  relay) is retired — see [Retired Gateway Endpoints](#retired-gateway-endpoints).
 - AA relay integration is intentionally kept outside the core SDK surface today;
   the platform consumes it through `useAbstractAccount()` and the host
   `/api/aa/relay` proxy backed by `AA_RELAY_URL`.
@@ -28,8 +29,6 @@ const sdk = createMiniAppSDK({
 
 await sdk.payments.payGAS("my-app", "1.5", "entry fee");
 await sdk.governance.vote("my-app", "proposal-1", "10", true);
-await sdk.rng.requestRandom("my-app");
-await sdk.datafeed.getPrice("BTC-USD"); // or "BTC" (defaults to BTC-USD)
 await sdk.stats.getMyUsage(); // uses appId from config when provided
 ```
 
@@ -44,48 +43,47 @@ Notes:
   - `sdk.payments.payGASAndInvoke(...)` / `sdk.governance.voteAndInvoke(...)` convenience helpers
   - `sdk.stats.getMyUsage(appId?, date?)` for per-user daily usage (base units)
 
-## Oracle (Host-only)
+## Errors
 
-NeoOracle is an allowlisted HTTP fetch service that can inject user secrets for auth.
-
-The gateway endpoint is `oracle-query` (Supabase Edge), which forwards to the TEE service.
-
-Host-only endpoints require an API key with explicit scopes in production.
+All edge responses are surfaced as typed `SDKError`s:
 
 ```ts
-const host = createHostSDK({
-  edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
-  getAPIKey: async () => "<host-api-key>",
-});
+import { SDKError } from "@neo-miniapp/sdk";
 
-const res = await host.oracle.query({
-  url: "https://api.coingecko.com/api/v3/simple/price?ids=neo&vs_currencies=usd",
-});
-console.log(res.status_code, res.body);
+try {
+  await sdk.payments.payGAS("my-app", "1.5");
+} catch (err) {
+  if (err instanceof SDKError) {
+    console.error(err.status, err.code, err.path, err.body);
+  }
+}
 ```
 
-## Compute (Host-only)
+- `status`: HTTP status of the failed request (`0` when the request was never
+  sent, e.g. a missing API key for a host-only endpoint).
+- `code`: server-provided error code when the body matches the edge
+  `{ error: { code, message } }` shape; otherwise a synthetic code
+  (`HTTP_<status>`, `INVALID_JSON`, `NON_OBJECT_RESPONSE`,
+  `API_KEY_REQUIRED`, `ENDPOINT_RETIRED`).
+- `path`: the requested edge path (e.g. `/pay-gas`).
+- `body`: the server body, preserved as parsed JSON when possible and as raw
+  text otherwise.
 
-NeoCompute executes restricted scripts inside the enclave. These endpoints are
-host-only and require API-key auth (and typically a primary wallet binding).
+## Retired Gateway Endpoints
 
-```ts
-const host = createHostSDK({
-  edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
-  getAPIKey: async () => "<host-api-key>",
-});
+The TEE-forwarding lane was removed from Supabase Edge when the platform
+moved to the Morpheus oracle runtime and self-contained miniapp contracts.
+The SDK keeps the method surface so existing callers fail loudly: each method
+below throws an `SDKError` with `code: "ENDPOINT_RETIRED"` (status 410)
+instead of hitting a non-existent edge function.
 
-const job = await host.compute.execute({
-  script: "function main() { return { now: Date.now(), x: input.x }; }",
-  entry_point: "main",
-  input: { x: 123 },
-});
-console.log(job.job_id, job.status);
-```
-
-If the script source is too large for inline payloads, use the platform's
-registered-script flow (`compute-app-execute`) through the shared
-`useOracle().executeRegisteredScript(...)` helper or your own host-side call.
+| Method | Replacement |
+| --- | --- |
+| `sdk.rng.requestRandom(...)` | On-chain randomness (`Runtime.GetRandom`) in your miniapp contract |
+| `sdk.datafeed.getPrice(...)` | On-chain MorpheusDataFeed contract (`getLatest`); see `apps/shared/composables/useMorpheusDataFeed.ts` |
+| `sdk.privacy.getMerklePath(...)` / `sdk.privacy.relay(...)` | None — the privacy relayer gateway was removed |
+| `host.oracle.query(...)` | Morpheus oracle runtime (`oracle.query` workflow) |
+| `host.compute.execute(...)` / `listJobs()` / `getJob(...)` | Morpheus oracle runtime TEE compute |
 
 ## Automation (Host-only)
 

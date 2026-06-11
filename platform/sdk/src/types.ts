@@ -391,9 +391,11 @@ export interface MiniAppSDK {
       support?: boolean,
     ) => Promise<IntentWithTx<VoteBNEOResponse>>;
   };
+  /** Retired gateway lane: every method throws SDKError(ENDPOINT_RETIRED). Use on-chain randomness (Runtime.GetRandom) in your miniapp contract. */
   rng: {
     requestRandom(appId: string): Promise<RNGResponse>;
   };
+  /** Retired gateway lane: every method throws SDKError(ENDPOINT_RETIRED). Read prices from the on-chain MorpheusDataFeed contract instead. */
   datafeed: {
     getPrice(symbol: string): Promise<PriceResponse>;
   };
@@ -406,6 +408,7 @@ export interface MiniAppSDK {
   transactions: {
     list(params: TransactionsListParams): Promise<TransactionsListResponse>;
   };
+  /** Retired gateway lane: every method throws SDKError(ENDPOINT_RETIRED). The privacy relayer gateway was removed. */
   privacy: {
     getMerklePath(commitment: string): Promise<PrivacyMerklePathResponse>;
     relay(params: PrivacyRelayRequest): Promise<PrivacyRelayResponse>;
@@ -433,9 +436,11 @@ export interface HostSDK {
     register(params: { manifest: Record<string, unknown> }): Promise<AppRegisterResponse>;
     updateManifest(params: { manifest: Record<string, unknown> }): Promise<AppUpdateManifestResponse>;
   };
+  /** Retired gateway lane: every method throws SDKError(ENDPOINT_RETIRED). Use the Morpheus oracle runtime directly. */
   oracle: {
     query(params: OracleQueryRequest): Promise<OracleQueryResponse>;
   };
+  /** Retired gateway lane: every method throws SDKError(ENDPOINT_RETIRED). Use the Morpheus oracle runtime for TEE compute. */
   compute: {
     execute(params: ComputeExecuteRequest): Promise<ComputeJob>;
     listJobs(): Promise<ComputeJob[]>;

@@ -459,23 +459,103 @@ function takePendingInvocation(
   return entry.invocation;
 }
 
+/**
+ * Typed SDK error surface: every non-2xx edge response and every malformed
+ * success payload is thrown as an SDKError carrying the HTTP status, a
+ * stable machine-readable code, the requested edge path, and the server
+ * body (parsed JSON when possible, raw text otherwise).
+ *
+ * `status` is 0 when the request was never sent (client-side failures such
+ * as a missing API key). `code` is the server-provided error code when the
+ * body matches the edge `{ error: { code, message } }` shape, otherwise a
+ * synthetic `HTTP_<status>` / `INVALID_JSON` / `NON_OBJECT_RESPONSE` /
+ * `API_KEY_REQUIRED` / `ENDPOINT_RETIRED` code.
+ */
+export class SDKError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly path: string;
+  readonly body?: unknown;
+
+  constructor(params: {
+    status: number;
+    code: string;
+    message: string;
+    path: string;
+    body?: unknown;
+  }) {
+    super(params.message);
+    this.name = "SDKError";
+    this.status = params.status;
+    this.code = params.code;
+    this.path = params.path;
+    this.body = params.body;
+  }
+}
+
+// Edge functions reply `{ error: { code, message } }` (see
+// platform/edge/functions/_shared/response.ts); tolerate the flat
+// `{ error: "..." }` and `{ code, message }` shapes as well.
+function extractServerError(body: unknown): {
+  code?: string;
+  message?: string;
+} {
+  if (typeof body !== "object" || body === null) return {};
+  const record = body as Record<string, unknown>;
+  const error = record.error;
+  if (typeof error === "string" && error.trim()) return { message: error };
+  const source =
+    typeof error === "object" && error !== null
+      ? (error as Record<string, unknown>)
+      : record;
+  return {
+    code:
+      typeof source.code === "string" && source.code.trim()
+        ? source.code
+        : undefined,
+    message:
+      typeof source.message === "string" && source.message.trim()
+        ? source.message
+        : undefined,
+  };
+}
+
+type RequestJSONOptions = {
+  /** Host-only endpoints require API-key auth; bearer JWTs are not sent. */
+  hostOnly?: boolean;
+};
+
 async function requestJSON<T>(
   cfg: MiniAppSDKConfig,
   path: string,
   init: RequestInit,
+  options: RequestJSONOptions = {},
 ): Promise<T> {
   const base = cfg.edgeBaseUrl.replace(/\/$/, "");
   const url = `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
-  if (cfg.getAuthToken) {
-    const token = await cfg.getAuthToken();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-  }
-  if (!headers.get("Authorization") && cfg.getAPIKey) {
-    const apiKey = await cfg.getAPIKey();
-    if (apiKey) headers.set("X-API-Key", apiKey);
+  if (options.hostOnly) {
+    const apiKey = cfg.getAPIKey ? await cfg.getAPIKey() : undefined;
+    if (!apiKey) {
+      throw new SDKError({
+        status: 0,
+        code: "API_KEY_REQUIRED",
+        message: "API key required for host-only endpoint",
+        path,
+      });
+    }
+    headers.set("X-API-Key", apiKey);
+  } else {
+    if (cfg.getAuthToken) {
+      const token = await cfg.getAuthToken();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+    }
+    if (!headers.get("Authorization") && cfg.getAPIKey) {
+      const apiKey = await cfg.getAPIKey();
+      if (apiKey) headers.set("X-API-Key", apiKey);
+    }
   }
 
   const resp = await fetch(url, {
@@ -484,20 +564,47 @@ async function requestJSON<T>(
     signal: init.signal ?? AbortSignal.timeout(DEFAULT_REQUEST_TIMEOUT_MS),
   });
   const text = await resp.text();
-  if (!resp.ok) throw new Error(`request failed (${resp.status})`);
+
+  let parsed: unknown;
+  let parseFailed = false;
   try {
-    const parsed: unknown = JSON.parse(text);
-    if (typeof parsed !== "object" || parsed === null) {
-      throw new Error(`unexpected non-object response from ${path}`);
-    }
-    return parsed as T;
-  } catch (err) {
-    if (err instanceof SyntaxError)
-      throw new Error(`invalid JSON response from ${path}`);
-    throw new Error(
-      `requestJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    parsed = JSON.parse(text);
+  } catch {
+    parseFailed = true;
   }
+
+  if (!resp.ok) {
+    const serverError = parseFailed ? {} : extractServerError(parsed);
+    throw new SDKError({
+      status: resp.status,
+      code: serverError.code ?? `HTTP_${resp.status}`,
+      message: serverError.message
+        ? `request failed (${resp.status}): ${serverError.message}`
+        : `request failed (${resp.status})`,
+      path,
+      body: parseFailed ? text : parsed,
+    });
+  }
+
+  if (parseFailed) {
+    throw new SDKError({
+      status: resp.status,
+      code: "INVALID_JSON",
+      message: `invalid JSON response from ${path}`,
+      path,
+      body: text,
+    });
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new SDKError({
+      status: resp.status,
+      code: "NON_OBJECT_RESPONSE",
+      message: `unexpected non-object response from ${path}`,
+      path,
+      body: parsed,
+    });
+  }
+  return parsed as T;
 }
 
 async function requestHostJSON<T>(
@@ -505,38 +612,24 @@ async function requestHostJSON<T>(
   path: string,
   init: RequestInit,
 ): Promise<T> {
-  const base = cfg.edgeBaseUrl.replace(/\/$/, "");
-  const url = `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  return requestJSON<T>(cfg, path, init, { hostOnly: true });
+}
 
-  const headers = new Headers(init.headers);
-  headers.set("Content-Type", "application/json");
-
-  const apiKey = cfg.getAPIKey ? await cfg.getAPIKey() : undefined;
-  if (!apiKey) {
-    throw new Error("API key required for host-only endpoint");
-  }
-  headers.set("X-API-Key", apiKey);
-
-  const resp = await fetch(url, {
-    ...init,
-    headers,
-    signal: init.signal ?? AbortSignal.timeout(DEFAULT_REQUEST_TIMEOUT_MS),
+/**
+ * These gateway methods pointed at Supabase Edge functions that no longer
+ * exist — the TEE-forwarding lane (RNG / data feed / oracle fetch / compute
+ * / privacy relay) was removed when the platform moved to the Morpheus
+ * oracle runtime and self-contained miniapp contracts. The method surface
+ * is kept so existing callers fail loudly with a typed error instead of an
+ * opaque 404 from a non-existent function.
+ */
+function retiredEndpoint(method: string, replacement: string): never {
+  throw new SDKError({
+    status: 410,
+    code: "ENDPOINT_RETIRED",
+    message: `${method} endpoint retired — use ${replacement}`,
+    path: method,
   });
-  const text = await resp.text();
-  if (!resp.ok) throw new Error(`request failed (${resp.status})`);
-  try {
-    const parsed: unknown = JSON.parse(text);
-    if (typeof parsed !== "object" || parsed === null) {
-      throw new Error(`unexpected non-object response from ${path}`);
-    }
-    return parsed as T;
-  } catch (err) {
-    if (err instanceof SyntaxError)
-      throw new Error(`invalid JSON response from ${path}`);
-    throw new Error(
-      `requestHostJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
 }
 
 export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
@@ -632,23 +725,18 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       },
     },
     rng: {
-      async requestRandom(appId: string): Promise<RNGResponse> {
-        return requestJSON<RNGResponse>(cfg, "/rng-request", {
-          method: "POST",
-          body: JSON.stringify({ app_id: appId }),
-        });
+      async requestRandom(_appId: string): Promise<RNGResponse> {
+        return retiredEndpoint(
+          "rng.requestRandom",
+          "on-chain randomness (Runtime.GetRandom) in your miniapp contract",
+        );
       },
     },
     datafeed: {
-      async getPrice(symbol: string): Promise<PriceResponse> {
-        if (!symbol || typeof symbol !== "string" || !symbol.trim())
-          throw new Error("symbol is required");
-        return requestJSON<PriceResponse>(
-          cfg,
-          `/datafeed-price?symbol=${encodeURIComponent(symbol)}`,
-          {
-            method: "GET",
-          },
+      async getPrice(_symbol: string): Promise<PriceResponse> {
+        return retiredEndpoint(
+          "datafeed.getPrice",
+          "the on-chain MorpheusDataFeed contract (getLatest) for price reads",
         );
       },
     },
@@ -699,23 +787,20 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
     },
     privacy: {
       async getMerklePath(
-        commitment: string,
+        _commitment: string,
       ): Promise<PrivacyMerklePathResponse> {
-        if (!commitment || typeof commitment !== "string" || !commitment.trim())
-          throw new Error("commitment is required");
-        return requestJSON<PrivacyMerklePathResponse>(
-          cfg,
-          `/privacy-merkle-path?commitment=${encodeURIComponent(commitment)}`,
-          {
-            method: "GET",
-          },
+        return retiredEndpoint(
+          "privacy.getMerklePath",
+          "direct contract reads; the privacy relayer gateway was removed",
         );
       },
-      async relay(params: PrivacyRelayRequest): Promise<PrivacyRelayResponse> {
-        return requestJSON<PrivacyRelayResponse>(cfg, "/privacy-relay", {
-          method: "POST",
-          body: JSON.stringify(params),
-        });
+      async relay(
+        _params: PrivacyRelayRequest,
+      ): Promise<PrivacyRelayResponse> {
+        return retiredEndpoint(
+          "privacy.relay",
+          "a wallet-signed transaction; the privacy relayer gateway was removed",
+        );
       },
     },
     gasSponsor: {
@@ -827,32 +912,30 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
       },
     },
     oracle: {
-      async query(params: OracleQueryRequest): Promise<OracleQueryResponse> {
-        return requestHostJSON<OracleQueryResponse>(cfg, "/oracle-query", {
-          method: "POST",
-          body: JSON.stringify(params),
-        });
+      async query(_params: OracleQueryRequest): Promise<OracleQueryResponse> {
+        return retiredEndpoint(
+          "oracle.query",
+          "the Morpheus oracle runtime (oracle.query workflow) directly",
+        );
       },
     },
     compute: {
-      async execute(params: ComputeExecuteRequest): Promise<ComputeJob> {
-        return requestHostJSON<ComputeJob>(cfg, "/compute-execute", {
-          method: "POST",
-          body: JSON.stringify(params),
-        });
+      async execute(_params: ComputeExecuteRequest): Promise<ComputeJob> {
+        return retiredEndpoint(
+          "compute.execute",
+          "the Morpheus oracle runtime for TEE compute",
+        );
       },
       async listJobs(): Promise<ComputeJob[]> {
-        return requestHostJSON<ComputeJob[]>(cfg, "/compute-jobs", {
-          method: "GET",
-        });
+        return retiredEndpoint(
+          "compute.listJobs",
+          "the Morpheus oracle runtime for TEE compute",
+        );
       },
-      async getJob(id: string): Promise<ComputeJob> {
-        if (!id || typeof id !== "string" || !id.trim())
-          throw new Error("id is required for getJob");
-        return requestHostJSON<ComputeJob>(
-          cfg,
-          `/compute-job?id=${encodeURIComponent(id)}`,
-          { method: "GET" },
+      async getJob(_id: string): Promise<ComputeJob> {
+        return retiredEndpoint(
+          "compute.getJob",
+          "the Morpheus oracle runtime for TEE compute",
         );
       },
     },

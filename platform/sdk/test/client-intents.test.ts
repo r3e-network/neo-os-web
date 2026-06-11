@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createMiniAppSDK } from "../src/client";
+import { createHostSDK, createMiniAppSDK, SDKError } from "../src/client";
 import { resetNep21ProviderCacheForTests } from "../src/nep21-provider";
 import type { MiniAppSDKConfig } from "../src/types";
 
@@ -87,6 +87,7 @@ describe("createMiniAppSDK", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.useRealTimers();
   });
 
@@ -251,7 +252,7 @@ describe("createMiniAppSDK", () => {
       );
       const sdk = createMiniAppSDK(cfg);
 
-      await expect(sdk.rng.requestRandom("miniapp-demo")).rejects.toThrow(
+      await expect(sdk.gasSponsor.check()).rejects.toThrow(
         "request failed (500)",
       );
     });
@@ -260,8 +261,8 @@ describe("createMiniAppSDK", () => {
       vi.stubGlobal("fetch", vi.fn(async () => jsonResponse("not-json{")));
       const sdk = createMiniAppSDK(cfg);
 
-      await expect(sdk.rng.requestRandom("miniapp-demo")).rejects.toThrow(
-        /invalid JSON response from \/rng-request/,
+      await expect(sdk.gasSponsor.check()).rejects.toThrow(
+        /invalid JSON response from \/gas-sponsor-check/,
       );
     });
 
@@ -269,7 +270,7 @@ describe("createMiniAppSDK", () => {
       vi.stubGlobal("fetch", vi.fn(async () => jsonResponse("42")));
       const sdk = createMiniAppSDK(cfg);
 
-      await expect(sdk.rng.requestRandom("miniapp-demo")).rejects.toThrow(
+      await expect(sdk.gasSponsor.check()).rejects.toThrow(
         /unexpected non-object response/,
       );
     });
@@ -280,7 +281,7 @@ describe("createMiniAppSDK", () => {
         "fetch",
         vi.fn(async (_url: string, init: RequestInit) => {
           capturedHeaders = new Headers(init.headers);
-          return jsonResponse({ request_id: "req-1", app_id: "a", randomness: "00" });
+          return jsonResponse({ eligible: true });
         }),
       );
       const sdk = createMiniAppSDK({
@@ -289,9 +290,167 @@ describe("createMiniAppSDK", () => {
         getAPIKey: async () => "key-1",
       });
 
-      await sdk.rng.requestRandom("miniapp-demo");
+      await sdk.gasSponsor.check();
       expect(capturedHeaders!.get("Authorization")).toBe("Bearer token-1");
       expect(capturedHeaders!.get("X-API-Key")).toBeNull();
+    });
+  });
+
+  describe("typed SDKError surface", () => {
+    it("exposes status/code/path and preserves the parsed server body", async () => {
+      const serverBody = {
+        error: { code: "rate_limited", message: "Too many requests" },
+      };
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => jsonResponse(serverBody, 429)),
+      );
+      const sdk = createMiniAppSDK(cfg);
+
+      const err = await sdk.gasSponsor.check().catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(SDKError);
+      const sdkErr = err as SDKError;
+      expect(sdkErr.status).toBe(429);
+      expect(sdkErr.code).toBe("rate_limited");
+      expect(sdkErr.path).toBe("/gas-sponsor-check");
+      expect(sdkErr.message).toBe("request failed (429): Too many requests");
+      expect(sdkErr.body).toEqual(serverBody);
+    });
+
+    it("supports the flat {error: string} shape", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => jsonResponse({ error: "bad input" }, 400)),
+      );
+      const sdk = createMiniAppSDK(cfg);
+
+      const err = (await sdk.gasSponsor
+        .check()
+        .catch((e: unknown) => e)) as SDKError;
+      expect(err).toBeInstanceOf(SDKError);
+      expect(err.code).toBe("HTTP_400");
+      expect(err.message).toBe("request failed (400): bad input");
+      expect(err.body).toEqual({ error: "bad input" });
+    });
+
+    it("falls back to HTTP_<status> and preserves raw text bodies", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => jsonResponse("upstream down", 503)),
+      );
+      const sdk = createMiniAppSDK(cfg);
+
+      const err = (await sdk.gasSponsor
+        .check()
+        .catch((e: unknown) => e)) as SDKError;
+      expect(err).toBeInstanceOf(SDKError);
+      expect(err.status).toBe(503);
+      expect(err.code).toBe("HTTP_503");
+      expect(err.message).toBe("request failed (503)");
+      expect(err.body).toBe("upstream down");
+    });
+
+    it("types malformed success payloads", async () => {
+      vi.stubGlobal("fetch", vi.fn(async () => jsonResponse("not-json{")));
+      const sdk = createMiniAppSDK(cfg);
+
+      const err = (await sdk.gasSponsor
+        .check()
+        .catch((e: unknown) => e)) as SDKError;
+      expect(err).toBeInstanceOf(SDKError);
+      expect(err.status).toBe(200);
+      expect(err.code).toBe("INVALID_JSON");
+      expect(err.body).toBe("not-json{");
+    });
+  });
+
+  describe("host-only request handling (merged requestJSON)", () => {
+    it("rejects without an API key before any network call", async () => {
+      vi.stubEnv("HOST_SDK_ALLOW_BROWSER", "true");
+      const fetchMock = vi.fn(async () => jsonResponse({ secrets: [] }));
+      vi.stubGlobal("fetch", fetchMock);
+      const host = createHostSDK(cfg);
+
+      const err = (await host.secrets
+        .list()
+        .catch((e: unknown) => e)) as SDKError;
+      expect(err).toBeInstanceOf(SDKError);
+      expect(err.status).toBe(0);
+      expect(err.code).toBe("API_KEY_REQUIRED");
+      expect(err.message).toBe("API key required for host-only endpoint");
+      expect(err.path).toBe("/secrets-list");
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("sends only X-API-Key (never the bearer token) and maps errors identically", async () => {
+      vi.stubEnv("HOST_SDK_ALLOW_BROWSER", "true");
+      let capturedHeaders: Headers | null = null;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init: RequestInit) => {
+          capturedHeaders = new Headers(init.headers);
+          return jsonResponse(
+            { error: { code: "forbidden", message: "scope missing" } },
+            403,
+          );
+        }),
+      );
+      const host = createHostSDK({
+        ...cfg,
+        getAuthToken: async () => "token-1",
+        getAPIKey: async () => "key-1",
+      });
+
+      const err = (await host.secrets
+        .list()
+        .catch((e: unknown) => e)) as SDKError;
+      expect(capturedHeaders!.get("X-API-Key")).toBe("key-1");
+      expect(capturedHeaders!.get("Authorization")).toBeNull();
+      expect(err).toBeInstanceOf(SDKError);
+      expect(err.status).toBe(403);
+      expect(err.code).toBe("forbidden");
+      expect(err.message).toBe("request failed (403): scope missing");
+      expect(err.path).toBe("/secrets-list");
+    });
+  });
+
+  describe("retired gateway endpoints", () => {
+    it("throws ENDPOINT_RETIRED for every retired method without touching the network", async () => {
+      vi.stubEnv("HOST_SDK_ALLOW_BROWSER", "true");
+      const fetchMock = vi.fn(async () => {
+        throw new Error("fetch must not be called for retired endpoints");
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      const sdk = createMiniAppSDK(cfg);
+      const host = createHostSDK({ ...cfg, getAPIKey: async () => "key-1" });
+
+      const retiredCalls: Array<Promise<unknown>> = [
+        sdk.rng.requestRandom("miniapp-demo"),
+        sdk.datafeed.getPrice("NEO"),
+        sdk.privacy.getMerklePath("0xabc"),
+        sdk.privacy.relay({
+          proof: "p",
+          nullifierHash: "n",
+          root: "r",
+          recipient: "NX",
+          relayerFee: "1",
+          asset: "GAS",
+          amount: "1",
+        }),
+        host.oracle.query({ url: "https://example.com" }),
+        host.compute.execute({ script: "function main(){}" }),
+        host.compute.listJobs(),
+        host.compute.getJob("job-1"),
+      ];
+
+      for (const call of retiredCalls) {
+        const err = (await call.catch((e: unknown) => e)) as SDKError;
+        expect(err).toBeInstanceOf(SDKError);
+        expect(err.status).toBe(410);
+        expect(err.code).toBe("ENDPOINT_RETIRED");
+        expect(err.message).toMatch(/endpoint retired — use /);
+      }
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 });
