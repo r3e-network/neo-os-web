@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import { buildSupportIssueUrl } from "@/lib/brand";
 import { logger } from "@/lib/logger";
 import {
   trackError,
@@ -82,12 +83,13 @@ export class ErrorBoundary extends Component<Props, State> {
 
   handleReport = (): void => {
     if (this.state.errorId) {
-      // In production, this would open a bug report dialog
-      // or send to a bug tracking service
-      const errorReportUrl = `mailto:support@example.com?subject=Error Report: ${this.state.errorId}&body=${encodeURIComponent(
-        `Error ID: ${this.state.errorId}\nError: ${this.state.error?.toString()}\n\nStack: ${this.state.errorInfo?.componentStack || "N/A"}`,
-      )}`;
-      window.open(errorReportUrl);
+      // Open a prefilled report on the platform's public issue tracker —
+      // the real support channel (BRAND.supportUrl).
+      const errorReportUrl = buildSupportIssueUrl({
+        title: `Error Report: ${this.state.errorId}`,
+        body: `Error ID: ${this.state.errorId}\nError: ${this.state.error?.toString()}\n\nComponent stack:\n${this.state.errorInfo?.componentStack || "N/A"}`,
+      });
+      window.open(errorReportUrl, "_blank", "noopener,noreferrer");
     }
   };
 

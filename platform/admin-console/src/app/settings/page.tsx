@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
+  DemoDataBanner,
+  isMockDataResponse,
+} from "@/components/ui/DemoDataBanner";
+import {
   getAdminAuthHeaders,
   getAdminFetchOptions,
 } from "@/lib/admin-client";
@@ -27,6 +31,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isDemoData, setIsDemoData] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -43,6 +48,7 @@ export default function SettingsPage() {
               : `HTTP ${res.status}`;
           throw new Error(message);
         }
+        if (active) setIsDemoData(isMockDataResponse(res));
         return data;
       })
       .then((data) => {
@@ -164,6 +170,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
+      {isDemoData && <DemoDataBanner />}
       {saveError && (
         <div className="rounded-xl border border-danger-200 bg-danger-50 p-4">
           <p className="text-sm font-semibold text-danger-700">

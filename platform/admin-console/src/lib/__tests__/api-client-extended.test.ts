@@ -70,6 +70,22 @@ describe("API Client Extended", () => {
   });
 
   describe("edgeClient", () => {
+    beforeEach(() => {
+      vi.stubEnv("NEXT_PUBLIC_EDGE_URL", "http://edge.test");
+    });
+
+    it("should fail fast with a configuration error (no fetch) when NEXT_PUBLIC_EDGE_URL is unset", async () => {
+      // Regression: getAPIBaseURL used to fall back to the dead
+      // https://edge.localhost host and hang for the full request timeout.
+      vi.stubEnv("NEXT_PUBLIC_EDGE_URL", "");
+      const fetchSpy = vi.spyOn(global, "fetch");
+
+      await expect(edgeClient.get("/health")).rejects.toThrow(
+        "NEXT_PUBLIC_EDGE_URL is not configured",
+      );
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
     it("should make GET request", async () => {
       const mockData = { status: "ok" };
       vi.spyOn(global, "fetch").mockImplementation(() => mockFetchResponse(mockData));

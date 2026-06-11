@@ -156,6 +156,30 @@ describe("SettingsPage", () => {
     expect(screen.queryByText("System Controls")).not.toBeInTheDocument();
   });
 
+  it("shows the demo-data banner when the settings API flags X-Mock-Data", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(sampleConfig), {
+        status: 200,
+        headers: { "content-type": "application/json", "X-Mock-Data": "true" },
+      }),
+    );
+
+    render(<SettingsPage />);
+
+    expect(await screen.findByTestId("demo-data-banner")).toHaveTextContent(
+      "Demo data",
+    );
+  });
+
+  it("hides the demo-data banner when the settings API serves real data", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(sampleConfig));
+
+    render(<SettingsPage />);
+
+    await screen.findByLabelText("Maintenance Mode");
+    expect(screen.queryByTestId("demo-data-banner")).not.toBeInTheDocument();
+  });
+
   it("keeps source free of deprecated dark/glow settings tokens", () => {
     const source = fs.readFileSync(pagePath, "utf8");
 
