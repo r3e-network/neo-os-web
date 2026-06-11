@@ -19,7 +19,6 @@ import {
   Database,
   Key,
   Cpu,
-  Lock,
 } from "lucide-react";
 
 // Documentation sections
@@ -34,7 +33,7 @@ const sections = [
     id: "sdk-reference",
     title: "SDK Reference",
     icon: Code2,
-    keywords: ["sdk", "api", "wallet", "privacy", "events", "datafeed"],
+    keywords: ["sdk", "api", "wallet", "payments", "governance", "events"],
   },
   {
     id: "smart-contracts",
@@ -46,7 +45,7 @@ const sections = [
     id: "platform-services",
     title: "Platform Services",
     icon: Layers,
-    keywords: ["oracle", "aa", "tee", "vrf", "privacy", "relay"],
+    keywords: ["oracle", "aa", "tee", "vrf", "randomness", "relay"],
   },
 ];
 
@@ -366,13 +365,8 @@ function SDKReferenceContent() {
           },
           {
             icon: Shield,
-            title: "TEE API",
-            description: "Confidential computing",
-          },
-          {
-            icon: Lock,
-            title: "Privacy API",
-            description: "Zero-knowledge asset transfers",
+            title: "Errors API",
+            description: "Typed SDKError with status, code, path, and body",
           },
         ]}
       />
@@ -391,21 +385,22 @@ const sdk = window.MiniAppSDK;
 sdk.wallet;
 sdk.payments;
 sdk.governance;
-sdk.rng;
-sdk.datafeed;
 sdk.events;
 sdk.transactions;
 sdk.gasSponsor;
-sdk.privacy;
 
 // Optional authenticated usage endpoint
 // sdk.stats.getMyUsage(appId, date);
 
 // Host-only modules are created separately via createHostSDK(...)
-// host.oracle
-// host.compute
+// host.apps
 // host.automation
-// host.secrets`}
+// host.secrets
+// host.apiKeys
+// host.gasbank
+
+// Retired gateway modules (rng, datafeed, privacy, host.oracle,
+// host.compute) throw a typed SDKError with code "ENDPOINT_RETIRED".`}
         language="typescript"
       />
 
@@ -544,61 +539,70 @@ function PlatformServicesContent() {
               "External AA relay, verifiers, and gas sponsorship hooks",
             color: "from-amber-500 to-orange-500",
           },
-          {
-            icon: Lock,
-            title: "NeoPrivacy Relayer",
-            description: "Zero-knowledge gasless transfers",
-            color: "from-gray-500 to-slate-800",
-          },
         ]}
       />
 
       <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">
         Using VRF
       </h3>
+      <p className="text-gray-600 mb-4">
+        Randomness is read on-chain inside your miniapp contract via the
+        native <code>Runtime.GetRandom()</code>. The old{" "}
+        <code>rng.requestRandom</code> gateway endpoint is retired and throws
+        a typed <code>ENDPOINT_RETIRED</code> error.
+      </p>
       <CodeBlock
-        code={`// End-user MiniApp flow
-const randomResult = await window.MiniAppSDK.rng.requestRandom("miniapp-gasbox");
-console.log(randomResult.request_id, randomResult.randomness);
-`}
-        language="typescript"
+        code={`// Consensus-derived randomness, no oracle round trip required.
+private static BigInteger RollDice()
+{
+ return (BigInteger)(Runtime.GetRandom() % 6) + 1;
+}`}
+        language="csharp"
       />
 
       <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">
         Using Oracle
       </h3>
+      <p className="text-gray-600 mb-4">
+        Price data is published on-chain to the MorpheusDataFeed contract and
+        read directly via a contract call. The old{" "}
+        <code>datafeed.getPrice</code> and host-only <code>oracle.query</code>{" "}
+        gateway endpoints are retired.
+      </p>
       <CodeBlock
-        code={`// Public DataFeed read through the platform gateway
-const price = await window.MiniAppSDK.datafeed.getPrice("NEO");
-console.log(price.pair, price.price);
-
-// Host-only allowlisted fetch
-const host = createHostSDK({
- edgeBaseUrl: "https://<project>.supabase.co/functions/v1",
- getAPIKey: async () => "<host-api-key>",
+        code={`// Read the on-chain Morpheus data feed (read-only, no GAS cost)
+const result = await app.contract.invoke({
+ scriptHash: '<MorpheusDataFeed contract hash>',
+ operation: 'getLatest',
+ args: [
+ { type: 'String', value: 'TWELVEDATA:NEO-USD' }
+ ],
 });
 
-const oracleRes = await host.oracle.query({
- url: "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
-});
-console.log(oracleRes.status_code, oracleRes.body);`}
+// Returns [pair, dataTimestamp, price, recordTimestamp, signature, flag];
+// prices are published at a fixed 6-decimal scale.`}
         language="typescript"
       />
 
       <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">
         Using TEE
       </h3>
+      <p className="text-gray-600 mb-4">
+        TEE workloads run inside the Morpheus oracle runtime. The host-only{" "}
+        <code>compute.execute</code> / <code>compute.listJobs</code> /{" "}
+        <code>compute.getJob</code> gateway endpoints are retired; SDK callers
+        receive a typed error they can detect:
+      </p>
       <CodeBlock
-        code={`// Host-only inline compute
-const computeResult = await host.compute.execute({
- script: "function main(){ return { ok: true, sum: input.a + input.b }; }",
- entry_point: "main",
- input: { a: 2, b: 3 },
-});
-console.log(computeResult.status, computeResult.output);
+        code={`import { SDKError } from "@neo-miniapp/sdk";
 
-// If the script body is too large for request payloads, register it elsewhere
-// and call the platform's registered-script path instead of inlining source.`}
+try {
+ await host.compute.execute({ script: "function main(){}" });
+} catch (err) {
+ if (err instanceof SDKError && err.code === "ENDPOINT_RETIRED") {
+ // Route TEE workloads through the Morpheus oracle runtime instead.
+ }
+}`}
         language="typescript"
       />
 
@@ -617,31 +621,6 @@ const relayResponse = await fetch("/api/aa/relay", {
 }).then((res) => res.json());
 
 console.log(relayResponse.txid);`}
-        language="typescript"
-      />
-
-      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">
-        Using Privacy Relayer (zNEP17)
-      </h3>
-      <CodeBlock
-        code={`// 1. Get Merkle path to construct zero-knowledge proof
-const path = await app.privacy.getMerklePath('0x...commitment');
-
-// 2. Generate ZK-SNARK proof locally (using snarkjs or similar)
-const proof = await generateZkProof(path, secret, nullifier);
-
-// 3. Relay the transaction gaslessly
-const tx = await app.privacy.relay({
- proof: proof.toString(),
- nullifierHash: proof.nullifierHash,
- root: path.root,
- recipient: 'NXX...',
- relayerFee: '10000',
- asset: 'GAS',
- amount: '500000000'
-});
-
-console.log('Privacy Tx Relayed:', tx.txHash);`}
         language="typescript"
       />
     </div>
