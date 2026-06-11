@@ -474,6 +474,28 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       slots: ["Recipient", "Claim", "Issuer", "Token ID"],
     },
   },
+  "miniapp-neo-message": {
+    title: "Encrypted message desk",
+    subtitle:
+      "Send wallet-to-wallet messages encrypted for the recipient, with optional oracle time-locked reveal on Neo X.",
+    tone: "violet",
+    icon: <FileKey className="h-5 w-5" />,
+    fields: [
+      { key: "recipient", label: "Recipient address", defaultValue: "" },
+      { key: "unlock", label: "Unlock time (optional)", defaultValue: "" },
+    ],
+    cards: [
+      { label: "Encryption", value: "X25519 sealed" },
+      { label: "Reveal", value: "recipient proof" },
+      { label: "Time lock", value: "oracle" },
+    ],
+    steps: ["Connect wallet", "Compose", "Encrypt + send", "Reveal"],
+    primaryAction: "Send encrypted message",
+    visual: {
+      headline: "Message lifecycle",
+      slots: ["Compose", "Seal", "Deliver", "Reveal"],
+    },
+  },
   "miniapp-time-capsule": {
     title: "Time capsule locker",
     subtitle:
