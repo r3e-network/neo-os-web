@@ -59,6 +59,8 @@
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import type { EventBus } from "@shared/services";
+import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { formatNum, fromFixed8, formatGas } from "@shared/utils/format";
@@ -76,9 +78,6 @@ export const MIN_BET = 0.05;
 
 /** Maximum bet in GAS (mirrors the contract's MAX_BET = 100 GAS). */
 export const MAX_BET = 100;
-
-/** GAS base units per whole GAS (1e8). */
-const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
 
 /** Preset wager amounts shown in the UI. */
 export const BET_PRESETS = ["1", "5", "10", "50"] as const;
@@ -117,20 +116,8 @@ export interface UseCoinFlipOptions {
 // ============================================================================
 // Amount + choice mapping
 // ============================================================================
-
-/**
- * Convert a human-entered GAS amount to contract BASE UNITS without floats.
- * Accepts up to 8 decimal places; returns 0n for any invalid / non-positive
- * input so callers can reject before touching the chain.
- */
-const toBaseUnits = (raw: string): bigint => {
-  const trimmed = String(raw ?? "").trim();
-  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
-  const [whole = "0", fraction = ""] = trimmed.split(".");
-  const paddedFraction = (fraction + "00000000").slice(0, 8);
-  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
-  return base > 0n ? base : 0n;
-};
+// toBaseUnits (gasToBaseUnits) comes from @shared/utils/amounts — the SINGLE
+// scaling point; the contract scales nothing.
 
 /** Map a UI choice ("heads"|"tails") to the contract's integer (0|1). */
 const choiceToInt = (side: "heads" | "tails"): number => (side === "heads" ? 0 : 1);
@@ -141,20 +128,6 @@ const outcomeToSide = (outcome: number): "heads" | "tails" => (outcome === 0 ? "
 // ============================================================================
 // Event / map parsing
 // ============================================================================
-
-/** Read a single state slot from a contract event payload (positional). */
-const eventValue = (entry: unknown, index: number): unknown => {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
-};
 
 /** Coerce a NeoVM boolean (true / "true" / 1 / "1") to a JS boolean. */
 const asBool = (value: unknown): boolean =>

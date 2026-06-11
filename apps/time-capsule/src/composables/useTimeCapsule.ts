@@ -66,6 +66,11 @@ import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService } from "@shared/services";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
+import {
+  GAS_DECIMALS_MULTIPLIER,
+  gasToBaseUnits as toBaseUnits,
+} from "@shared/utils/amounts";
+import { eventValue } from "@shared/utils/chain-events";
 import { sha256Hex } from "@shared/utils/hash";
 import { hexToBytes } from "@shared/utils/format";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
@@ -83,9 +88,6 @@ const MAX_LOCK_DAYS = 3650;
 const CONTENT_STORE_KEY = "time-capsule-content";
 /** Local store for per-capsule display metadata (title/category), keyed by id. */
 const META_STORE_KEY = "time-capsule-meta";
-
-/** GAS base units per whole GAS (1e8). */
-const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
 
 /** Memo the contract requires on the bury deposit transfer. */
 const BURY_MEMO = "miniapp-timecapsule:bury";
@@ -171,19 +173,6 @@ interface CapsuleMeta {
 // Helpers
 // ============================================================================
 
-/**
- * Convert a human-entered GAS amount string to BASE UNITS without floats.
- * Returns 0n for any invalid / non-positive input.
- */
-const toBaseUnits = (raw: string): bigint => {
-  const trimmed = String(raw ?? "").trim();
-  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
-  const [whole = "0", fraction = ""] = trimmed.split(".");
-  const paddedFraction = (fraction + "00000000").slice(0, 8);
-  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
-  return base > 0n ? base : 0n;
-};
-
 /** Convert base units (bigint) to a human GAS decimal string (trimmed). */
 const fromBaseUnits = (base: bigint): string => {
   if (base <= 0n) return "0";
@@ -227,20 +216,6 @@ const toIdString = (value: unknown): string => {
   } catch {
     return "";
   }
-};
-
-/** Read a single state slot from a contract event payload (positional). */
-const eventValue = (entry: unknown, index: number): unknown => {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
 };
 
 // ============================================================================

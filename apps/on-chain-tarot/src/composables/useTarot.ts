@@ -60,6 +60,7 @@ import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import type { CacheService } from "@shared/services/CacheService";
 import type { ClipboardService } from "@shared/services/ClipboardService";
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -103,20 +104,6 @@ const QUESTION_KEY_PREFIX = "tarot:question:";
 // ============================================================================
 // Event parsing
 // ============================================================================
-
-/** Read a single state slot from a contract event payload (positional). */
-function eventValue(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
-}
 
 // ============================================================================
 // Card mapping

@@ -43,6 +43,20 @@ export {
   ownerMatchesAddress,
 } from "./neo";
 
+// amounts.ts
+export {
+  GAS_DECIMALS_MULTIPLIER,
+  gasToBaseUnits,
+  neoToInteger,
+  amountToBaseUnits,
+} from "./amounts";
+
+// chain-events.ts
+export { eventValue, eventStateValue } from "./chain-events";
+
+// observables.ts
+export { combineBusy } from "./observables";
+
 // chain.ts
 export { isEvmChain, requireNeoChain } from "./chain";
 

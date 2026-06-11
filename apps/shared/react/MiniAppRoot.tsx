@@ -429,12 +429,30 @@ export function MiniAppRoot({
   // Dispatch
   // --------------------------------------------------------------------------
 
-  const dispatch = useCallback(async (name: string, ...args: unknown[]): Promise<void> => {
-    const handler = actionHandlersRef.current.get(name);
-    // Preserve the public Promise<void> type while still returning handler
-    // payloads at runtime for components that need success/failure semantics.
-    if (handler) return (await handler(...args)) as void;
-  }, []);
+  const dispatch = useCallback(
+    async (name: string, ...args: unknown[]): Promise<void> => {
+      const handler = actionHandlersRef.current.get(name);
+      if (!handler) return;
+      try {
+        // Preserve the public Promise<void> type while still returning handler
+        // payloads at runtime for components that need success/failure semantics.
+        return (await handler(...args)) as void;
+      } catch (err) {
+        // Kernel-level error convention (mirrors handleAction): every failed
+        // dispatch surfaces as a status toast so apps that never wrap their
+        // handlers are safe by default. The error then rethrows so PlayAreas
+        // keep their existing catch blocks and post-success steps (form
+        // resets, modal closes) stay gated on a resolved dispatch.
+        console.error(`[${appId}] action "${name}" error:`, err);
+        setStatus(
+          err instanceof Error ? err.message : "Action failed",
+          "error",
+        );
+        throw err;
+      }
+    },
+    [appId, setStatus],
+  );
 
   // --------------------------------------------------------------------------
   // Template Config & Sidebar (derived from manifest)

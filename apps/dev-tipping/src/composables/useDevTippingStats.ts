@@ -27,6 +27,7 @@
 import { createObservable } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import { fromFixed8, formatHash, formatNum } from "@shared/utils/format";
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 
@@ -60,20 +61,6 @@ const MAX_DEVELOPERS = 500;
 
 /** How many recent Tipped events to page in for the activity feed. */
 const RECENT_TIPS_LIMIT = 25;
-
-/** Read a single state slot from a contract event payload (positional). */
-function eventValue(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
-}
 
 /** Coerce a NeoVM boolean (true / "true" / 1 / "1") to a JS boolean. */
 function asBool(value: unknown): boolean {

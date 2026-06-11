@@ -67,6 +67,11 @@
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
+import {
+  GAS_DECIMALS_MULTIPLIER,
+  gasToBaseUnits as toBaseUnits,
+} from "@shared/utils/amounts";
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { parseGas } from "@shared/utils/format";
@@ -83,9 +88,6 @@ const MIN_STAKE_GAS = 1;
 const MIN_DURATION_DAYS = 30;
 const TITLE_MAX = 100;
 const TERMS_MAX = 2000;
-
-/** GAS base units per whole GAS (1e8). */
-const GAS_DECIMALS_MULTIPLIER = 100_000_000n;
 
 /** Memo the contract requires on the stake-deposit transfer. */
 const STAKE_MEMO = "miniapp-breakup:stake";
@@ -146,33 +148,6 @@ const toIdString = (value: unknown): string => {
   } catch {
     return "";
   }
-};
-
-/**
- * Convert a human-entered GAS amount string to BASE UNITS without floats.
- * Returns 0n for any invalid / non-positive input.
- */
-const toBaseUnits = (raw: string): bigint => {
-  const trimmed = String(raw ?? "").trim();
-  if (!/^\d+(\.\d{1,8})?$/.test(trimmed)) return 0n;
-  const [whole = "0", fraction = ""] = trimmed.split(".");
-  const paddedFraction = (fraction + "00000000").slice(0, 8);
-  const base = BigInt(whole) * GAS_DECIMALS_MULTIPLIER + BigInt(paddedFraction);
-  return base > 0n ? base : 0n;
-};
-
-/** Read a single state slot from a contract event payload (positional). */
-const eventValue = (entry: unknown, index: number): unknown => {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
 };
 
 // ============================================================================
