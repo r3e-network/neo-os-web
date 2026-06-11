@@ -37,6 +37,18 @@ export interface UserListResponse {
   updated_at: string;
 }
 
+export interface UpdateMiniAppStatusResponse {
+  success?: boolean;
+  /**
+   * When true the status change has NOT been applied yet: the registry
+   * requires an on-chain transaction. The caller must submit `invocation`
+   * (or surface it to an operator) to complete the change.
+   */
+  requires_onchain_confirmation?: boolean;
+  invocation?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface AnalyticsResponse {
   totalUsers: number;
   totalMiniApps: number;
@@ -159,12 +171,17 @@ export class AdminSDK {
   }
 
   /**
-   * Update MiniApp status
+   * Update MiniApp status.
+   *
+   * Returns the server payload so callers can detect a pending on-chain step
+   * instead of treating the resolved Promise as "done": when
+   * `requires_onchain_confirmation` is true the change has NOT been applied
+   * and the caller must submit `invocation` to complete it.
    */
   async updateMiniAppStatus(
     appId: string,
     status: "active" | "disabled",
-  ): Promise<void> {
+  ): Promise<UpdateMiniAppStatusResponse> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -184,19 +201,20 @@ export class AdminSDK {
       throw new Error(`Failed to update MiniApp status (${response.status})`);
     }
 
-    const payload = await response.json().catch((e: unknown) => {
+    const payload = (await response.json().catch((e: unknown) => {
       console.warn(
         "[admin-sdk] failed to parse status update response JSON:",
         e instanceof Error ? e.message : String(e),
       );
-      return null;
-    });
+      return { success: true };
+    })) as UpdateMiniAppStatusResponse;
     if (payload?.requires_onchain_confirmation) {
       const serialized = JSON.stringify(payload.invocation ?? {}, null, 2);
       console.warn(
         `On-chain confirmation required for status change. Submit invocation:\n${serialized}`,
       );
     }
+    return payload;
   }
 }
 
