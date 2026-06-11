@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
 import { miniAppConfigBaseSchema } from "@/lib/schemas";
@@ -21,7 +22,10 @@ export async function POST(req: Request) {
     payload = parsed as Record<string, unknown>;
     const rawAction = String((body as Record<string, unknown>)?.action || "").trim();
     if (rawAction) action = rawAction;
-  } catch {
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return jsonError(err.errors[0]?.message || "Invalid input", 400);
+    }
     return jsonError("Invalid JSON body", 400);
   }
 
