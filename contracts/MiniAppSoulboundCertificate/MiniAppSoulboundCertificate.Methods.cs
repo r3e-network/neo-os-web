@@ -188,16 +188,18 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
-        /// NEP-11 Transfer (soulbound, non-transferable).
+        /// NEP-11 Transfer (soulbound, non-transferable). Uses the standard
+        /// non-divisible signature (to, tokenId, data) required by the NEP-11
+        /// supportedStandards declaration (tri-repo review MP-D-02) so wallets
+        /// and indexers recognize the contract; the call still always fails.
         /// </summary>
-        public static bool Transfer(UInt160 from, UInt160 to, ByteString tokenId, object data)
+        public static bool Transfer(UInt160 to, ByteString tokenId, object data)
         {
             // Audit fix NEW-M-2: every Transfer() call on a soulbound token must
             // observably fail so external tools probing for the "soulbound"
             // property by attempting a no-op transfer can detect non-transferability.
             // The prior self-transfer short-circuit returned true silently, which
             // made the contract look transferable.
-            ValidateAddress(from);
             ValidateAddress(to);
             ExecutionEngine.Assert(false, "soulbound: non-transferable");
             return false;

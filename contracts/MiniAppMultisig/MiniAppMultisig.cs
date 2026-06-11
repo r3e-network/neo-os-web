@@ -27,7 +27,7 @@ namespace NeoMiniAppPlatform.Contracts
     ///   native token reports them — NEO is indivisible (0 decimals), GAS has 8;
     ///   the contract never rescales, so there is no 10^8 class of bug.
     /// - Only a vault signer may create a request (and only up to the vault
-    ///   balance) or approve it; one approval per signer; creator-only cancel.
+    ///   balance), approve it, or cancel it; one approval per signer.
     /// - Execution uses checks-effects-interactions: status + balance are written
     ///   BEFORE the outbound transfer, so a re-entrant recipient cannot double
     ///   spend. A failed transfer asserts, reverting the whole atomic invocation.
@@ -81,6 +81,11 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("RequestCancelled")]
         public static event Action<BigInteger> OnRequestCancelled;
+
+        /// <summary>A threshold-reaching approval found the vault no longer able to
+        /// cover the request (requestId, requested amount, available balance).</summary>
+        [DisplayName("RequestUnfunded")]
+        public static event Action<BigInteger, BigInteger, BigInteger> OnRequestUnfunded;
         #endregion
 
         #region Types
@@ -236,7 +241,20 @@ namespace NeoMiniAppPlatform.Contracts
                 byte assetByte = AssetByte(request.Asset);
                 byte[] balKey = BalanceKey(request.VaultId, assetByte);
                 BigInteger bal = (BigInteger)Storage.Get(ctx, balKey);
-                ExecutionEngine.Assert(request.Amount <= bal, "vault balance insufficient at execution");
+                if (request.Amount > bal)
+                {
+                    // Tri-repo review MP-D-04: another request spent the balance
+                    // after this one was created, so it can never execute.
+                    // Asserting here would force EVERY finalizing signer into a
+                    // reverting transaction and leave the request stuck PENDING
+                    // forever. Mark it CANCELLED gracefully instead (the vault
+                    // keeps its funds; the creator can recreate once refunded).
+                    request.Status = STATUS_CANCELLED;
+                    Storage.Put(ctx, RequestKey(requestId), StdLib.Serialize(request));
+                    OnRequestUnfunded(requestId, request.Amount, bal);
+                    OnRequestCancelled(requestId);
+                    return;
+                }
 
                 // Effects BEFORE interaction (reentrancy-safe + atomic on failure).
                 Storage.Put(ctx, balKey, bal - request.Amount);
@@ -264,7 +282,12 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(rawReq is not null, "request not found");
             Request request = (Request)StdLib.Deserialize(rawReq);
             ExecutionEngine.Assert(request.Status == STATUS_PENDING, "request not pending");
-            ExecutionEngine.Assert(request.Creator == caller, "only creator can cancel");
+            // Tri-repo review MP-D-04: any vault signer may cancel a pending
+            // request, not just its creator. A request only spends with M-of-N
+            // approvals anyway, and creator-only cancel left stuck requests
+            // dangling forever when the creator key was lost or unavailable.
+            Vault vault = (Vault)StdLib.Deserialize(Storage.Get(ctx, VaultKey(request.VaultId)));
+            ExecutionEngine.Assert(IsSignerOf(vault, caller), "only a vault signer can cancel");
             request.Status = STATUS_CANCELLED;
             Storage.Put(ctx, RequestKey(requestId), StdLib.Serialize(request));
             OnRequestCancelled(requestId);
