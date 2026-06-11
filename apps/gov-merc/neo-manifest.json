@@ -4,8 +4,8 @@
   "category_name": "Governance",
   "category_name_zh": "治理",
   "contracts": {
-    "neo-n3-mainnet": "0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9",
-    "neo-n3-testnet": "0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9"
+    "neo-n3-mainnet": "0x140f5faf5692d21421a79278b0e45b9b9bd4bb46",
+    "neo-n3-testnet": "0x140f5faf5692d21421a79278b0e45b9b9bd4bb46"
   },
   "contract_domains": {
     "neo-n3-mainnet": "govmerc.miniapp.neo"
@@ -52,7 +52,7 @@
     "delegation",
     "marketplace"
   ],
-  "updatedAt": "2026-01-26T12:00:00Z",
+  "updatedAt": "2026-06-12T00:00:00Z",
   "urls": {
     "banner": "/miniapps/gov-merc/banner.jpg",
     "entry": "/miniapps/gov-merc/index.html",

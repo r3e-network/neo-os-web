@@ -32,6 +32,9 @@
  *     pendingRewards(user)       -> Integer (GAS base units, banked + unrealized)
  *     bidOf(epoch, bidder)       -> Integer (GAS base units)
  *     gasCreditOf(user)          -> Integer (GAS base units)
+ *     epochDuration()            -> Integer (bidding-window length, ms) [v2]
+ *     epochDeadline(epoch)       -> Integer (ms timestamp; 0 until the epoch's
+ *                                   first bid opens its bidding window) [v2]
  *
  *   EVENTS (chain.listEvents):
  *     BidPlaced(epoch, bidder, totalBid) — leaderboard source for the CURRENT
@@ -39,6 +42,15 @@
  *       units). Board is the LATEST totalBid per bidder for the current epoch,
  *       ranked desc.
  *     EpochSettled(epoch, winner, bid, distributed) — settlement source.
+ *     EpochOpened(epoch, deadline) — the FIRST bid of an epoch opened its fixed
+ *       bidding window (deadline = ms timestamp). [v2]
+ *
+ * BIDDING-WINDOW SEMANTICS (v2 contract):
+ *   The first bid of an epoch opens a fixed bidding window (epochDuration(),
+ *   5 minutes). Later bids must land BEFORE epochDeadline(epoch) — the contract
+ *   reverts "bidding closed" — and settleEpoch() only succeeds AFTER the
+ *   deadline — the contract reverts "epoch not ended". Both reverts are mapped
+ *   to friendly messages here, and mirrored locally as pre-flight guards.
  *
  *   MUTATIONS (chain.invoke):
  *     STAKE — a NEO transfer to the contract with memo "govmerc:stake". The whole
@@ -93,8 +105,39 @@ const BID_EVENTS_LIMIT = 200;
 /** The zero script hash a contract returns for an unset Hash160. */
 const ZERO_HASH = "0x0000000000000000000000000000000000000000";
 
+/** Fallback bidding-window length (ms) until epochDuration() has loaded. */
+export const EPOCH_DURATION_FALLBACK_MS = 300_000;
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error ?? "");
+}
+
+// ============================================================================
+// Bidding-window helpers (v2 contract: fixed window per epoch)
+// ============================================================================
+
+/** Phase of an epoch's bidding window derived from epochDeadline(epoch). */
+export type EpochWindowPhase = "unopened" | "open" | "closed";
+
+/**
+ * Resolve the bidding-window phase. The v2 contract opens a FIXED window when
+ * the first bid of an epoch lands (EpochOpened); epochDeadline(epoch) stays 0
+ * until then, so 0 / negative means "window not opened yet".
+ */
+export function epochWindowPhase(deadlineMs: number, nowMs: number): EpochWindowPhase {
+  if (!Number.isFinite(deadlineMs) || deadlineMs <= 0) return "unopened";
+  return nowMs < deadlineMs ? "open" : "closed";
+}
+
+/**
+ * Map the v2 contract's bidding-window revert reasons onto friendly i18n
+ * message keys ("bidding closed" / "epoch not ended" asserts).
+ */
+export function windowRevertKey(error: unknown): "biddingClosed" | "epochNotEnded" | null {
+  const message = errorMessage(error);
+  if (/bidding closed/i.test(message)) return "biddingClosed";
+  if (/epoch not ended/i.test(message)) return "epochNotEnded";
+  return null;
 }
 
 // ============================================================================
@@ -161,6 +204,10 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
   /** Connected wallet's staked NEO (WHOLE NEO — not scaled). */
   const userDeposits = createObservable(0);
   const currentEpoch = createObservable(0);
+  /** Live epoch's bidding deadline (ms timestamp); 0 until its first bid. */
+  const epochDeadline = createObservable(0);
+  /** Bidding-window length in ms (epochDuration(); 5 minutes on the v2 contract). */
+  const epochDurationMs = createObservable(EPOCH_DURATION_FALLBACK_MS);
   /** Current-epoch leaderboard: { address, amount } where amount is whole GAS. */
   const bids = createObservable<{ address: string; amount: number }[]>([]);
   const lastSettlement = createObservable<SettlementResult | null>(null);
@@ -207,6 +254,23 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     totalPool.set(Math.max(0, Number(parseBigInt(totalStakedRaw))));
     const epoch = Math.max(0, Number(parseBigInt(epochRaw)));
     currentEpoch.set(epoch);
+
+    // v2: the first bid of an epoch opens a fixed bidding window. Read the live
+    // epoch's deadline (0 until that first bid) and the window length so the UI
+    // can show a countdown / closed state. A failed read degrades to "unopened"
+    // — the contract stays the authority via its own reverts.
+    try {
+      const [deadlineRaw, durationRaw] = await Promise.all([
+        chain.read("epochDeadline", [{ type: "Integer", value: String(epoch) }]),
+        chain.read("epochDuration", []),
+      ]);
+      epochDeadline.set(Math.max(0, Number(parseBigInt(deadlineRaw))));
+      const duration = Number(parseBigInt(durationRaw));
+      epochDurationMs.set(duration > 0 ? duration : EPOCH_DURATION_FALLBACK_MS);
+    } catch (e) {
+      console.warn("[useGovMerc] bidding-window read failed:", errorMessage(e));
+      epochDeadline.set(0);
+    }
 
     const hash = myHash();
     if (hash) {
@@ -472,6 +536,14 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       throw new Error(t("minBid", { amount: MIN_BID, tokenGas: t("tokenGas") }));
     }
 
+    // v2: bids must land BEFORE the epoch's bidding deadline. Mirror the
+    // contract's "bidding closed" revert locally so no GAS moves after the
+    // window has ended (a deadline of 0 means the window hasn't opened yet —
+    // this bid would be the one that opens it).
+    if (epochWindowPhase(epochDeadline.get(), Date.now()) === "closed") {
+      throw new Error(t("biddingClosed"));
+    }
+
     isProcessing.set(true);
     let depositSettled = false;
     try {
@@ -516,6 +588,12 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
           { waitForEvent: "BidPlaced" },
         );
       } catch (bidErr) {
+        // v2: the bid can race the deadline — map the contract's
+        // "bidding closed" revert to a friendly message. When the deposit
+        // already landed, say explicitly that the GAS is held as credit.
+        if (windowRevertKey(bidErr) === "biddingClosed") {
+          throw new Error(t(depositSettled ? "biddingClosedCreditHeld" : "biddingClosed"));
+        }
         if (depositSettled) throw new Error(t("bidDepositHeld"));
         throw new Error(errorMessage(bidErr) || t("error"));
       }
@@ -537,11 +615,19 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
    * Settle the live epoch via settleEpoch(). PERMISSIONLESS: the top bidder wins
    * (paid by the contract regardless of who signs), their bid is distributed
    * pro-rata to stakers, and the epoch advances. Reverts "no bids to settle" if
-   * there are none — the canSettle gate prevents that path.
+   * there are none — the canSettle gate prevents that path. The v2 contract
+   * additionally reverts "epoch not ended" before the bidding deadline; that is
+   * mirrored locally (when the deadline is known) and mapped to a friendly
+   * message when the contract still rejects.
    */
   const settleEpoch = async () => {
     if (isBusy.get()) return;
     if (bids.get().length === 0) throw new Error(t("settleNoBids"));
+
+    // v2: settlement only succeeds AFTER the bidding deadline. Only pre-block
+    // when a deadline is actually known (>0) — otherwise let the contract rule.
+    const deadline = epochDeadline.get();
+    if (deadline > 0 && Date.now() < deadline) throw new Error(t("epochNotEnded"));
 
     const addr = address.get() || (await chain.ensureWallet());
     if (!addr) throw new Error(t("walletStatusIdle"));
@@ -552,7 +638,13 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
 
     isProcessing.set(true);
     try {
-      await chain.invoke("settleEpoch", [], { waitForEvent: "EpochSettled" });
+      try {
+        await chain.invoke("settleEpoch", [], { waitForEvent: "EpochSettled" });
+      } catch (settleErr) {
+        const mapped = windowRevertKey(settleErr);
+        if (mapped) throw new Error(t(mapped));
+        throw settleErr;
+      }
       await loadData();
     } finally {
       isProcessing.set(false);
@@ -665,6 +757,8 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     totalPool,
     userDeposits,
     currentEpoch,
+    epochDeadline,
+    epochDurationMs,
     bids,
     lastSettlement,
     pendingRewards,

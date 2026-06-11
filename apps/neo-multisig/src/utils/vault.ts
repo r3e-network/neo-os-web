@@ -1,9 +1,10 @@
 /**
  * Neo Multisig — on-chain custody vault operations.
  *
- * Pure helpers for the MiniAppMultisig custody-vault contract
- * (hash 0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e on neo-n3-testnet,
- * resolved through the app manifest as the app's primary contract).
+ * Pure helpers for the MiniAppMultisig v2 custody-vault contract
+ * (hash 0xa361cdc792e97c4d8ddf42048cf48f3283ea7178 on neo-n3-testnet AND
+ * neo-n3-mainnet, resolved through the app manifest as the app's primary
+ * contract).
  *
  * The vault model is fully on-chain:
  *   1. createVault(creator, signers[], threshold) -> vaultId
@@ -11,6 +12,11 @@
  *      passed as the transfer `data`; OnNEP17Payment credits the vault.
  *   3. createRequest(vaultId, creator, recipient, asset, amount, memo) -> reqId
  *   4. approve(reqId, signer) — at threshold the contract releases the funds.
+ *      If the vault balance no longer covers the request at threshold time,
+ *      the contract auto-cancels it and emits
+ *      RequestUnfunded(requestId, required, available) (v2).
+ *   5. cancel(reqId, caller) — ANY vault signer may cancel a pending request
+ *      (v2; previously creator-only).
  *
  * Amounts are contract BASE UNITS: GAS uses 1e8 (1 GAS = 100_000_000),
  * NEO is indivisible (1 = 1 NEO, no scaling). These helpers build the
@@ -18,6 +24,7 @@
  * all chain I/O lives in services/api.ts.
  */
 
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 
 export const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
@@ -289,7 +296,7 @@ export function buildApproveArgs(reqId: number, signer: string): ContractArg[] {
   ];
 }
 
-/** cancel(reqId, caller) */
+/** cancel(reqId, caller) — caller may be ANY vault signer (v2). */
 export function buildCancelArgs(reqId: number, caller: string): ContractArg[] {
   return [
     { type: "Integer", value: String(reqId) },
@@ -344,6 +351,31 @@ export function parseVault(raw: unknown): VaultView | null {
     createdTime: toNumber(data.createdTime),
     neoBalance: toNumber(data.neoBalance),
     gasBalance: toNumber(data.gasBalance),
+  };
+}
+
+/**
+ * Parsed RequestUnfunded(requestId, required, available) event payload (v2).
+ * Emitted when a threshold approval found the vault balance below the request
+ * amount — the contract auto-cancels the request instead of leaving it stuck.
+ * Amounts are BASE UNITS of the request's asset.
+ */
+export interface RequestUnfundedEvent {
+  requestId: number;
+  required: number;
+  available: number;
+}
+
+/** Parse a RequestUnfunded event entry, or null when it is not one. */
+export function parseRequestUnfundedEvent(
+  entry: unknown,
+): RequestUnfundedEvent | null {
+  const requestId = toNumber(eventValue(entry, 0));
+  if (requestId <= 0) return null;
+  return {
+    requestId,
+    required: toNumber(eventValue(entry, 1)),
+    available: toNumber(eventValue(entry, 2)),
   };
 }
 

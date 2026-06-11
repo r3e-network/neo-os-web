@@ -175,6 +175,20 @@ const appMessages = {
   toastRequestExecuted: { en: "Threshold met — funds released.", zh: "达到阈值，资金已放行。" },
   toastCancelled: { en: "Request cancelled.", zh: "请求已取消。" },
   toastCancelFailed: { en: "Cancel failed.", zh: "取消失败。" },
+  // v2: a threshold approval that finds the vault underfunded AUTO-CANCELS the
+  // request (RequestUnfunded event) — explain it instead of a generic cancel.
+  toastRequestUnfunded: {
+    en: "Vault underfunded — request auto-cancelled (needs {required} {asset}, vault holds {available}).",
+    zh: "金库余额不足 —— 请求已自动取消（需要 {required} {asset}，金库仅有 {available}）。",
+  },
+  toastRequestUnfundedShort: {
+    en: "Request auto-cancelled — the vault balance no longer covers it.",
+    zh: "请求已自动取消 —— 金库余额已不足以支付。",
+  },
+  multisigUnfundedNotice: {
+    en: "Auto-cancelled at threshold: the vault was underfunded (needed {required} {asset}, held {available}). Deposit again, then propose a new request.",
+    zh: "达到阈值时金库余额不足，已自动取消（需要 {required} {asset}，仅有 {available}）。请先补充存入，再重新发起请求。",
+  },
   toastLoadFailed: { en: "Failed to load.", zh: "加载失败。" },
 
   docTitle: { en: "Neo Multisig", zh: "Neo 多重签名" },

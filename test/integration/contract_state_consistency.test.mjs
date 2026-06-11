@@ -60,16 +60,9 @@ const CONTRACT_BINDINGS = [
 // Deployed reads that are known to FAULT because of a bug baked into the
 // deployed NEF.  Each entry must keep faulting with the documented reason;
 // once the contract is redeployed with a fix, the entry must be removed.
-const KNOWN_FAULTING_READS = new Map([
-  [
-    "MiniAppSoulboundCertificate.tokens",
-    {
-      reason:
-        "deployed NEF passes conflicting FindOptions (KeysOnly|ValuesOnly) to System.Storage.Find; fixing requires a contract redeploy",
-      exceptionPattern: /Storage\.Find/,
-    },
-  ],
-]);
+// (Empty since the 2026-06-12 in-place upgrade of MiniAppSoulboundCertificate
+// fixed its tokens() Storage.Find FindOptions bug — tokens() now HALTs.)
+const KNOWN_FAULTING_READS = new Map([]);
 
 // Concrete unknown-id lookup expectations (replaces the old HALT-or-FAULT
 // tautology).  Param values are synthesized per the build-manifest ABI type.

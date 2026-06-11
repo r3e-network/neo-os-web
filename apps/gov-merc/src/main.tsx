@@ -119,6 +119,9 @@ defineMiniApp({
       state: {
         totalPool: pool.totalPool,
         currentEpoch: pool.currentEpoch,
+        // v2 bidding window: deadline (ms; 0 = unopened) + window length (ms).
+        epochDeadline: pool.epochDeadline,
+        epochDurationMs: pool.epochDurationMs,
         userDeposits: pool.userDeposits,
         bids: pool.bids,
         pendingRewards: pool.pendingRewards,

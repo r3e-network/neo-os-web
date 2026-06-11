@@ -7,6 +7,7 @@ import {
 } from "../../neo-multisig/src/services/api";
 import {
   buildApproveArgs,
+  buildCancelArgs,
   buildCreateRequestArgs,
   buildCreateVaultArgs,
   buildDepositArgs,
@@ -16,6 +17,7 @@ import {
   isValidAmount,
   NEO_HASH,
   parseRequest,
+  parseRequestUnfundedEvent,
   parseVault,
   statusFromCode,
   toBaseUnits,
@@ -25,7 +27,7 @@ import {
 const SIGNER_A = "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw";
 const SIGNER_B = "NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv";
 const RECIPIENT = "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu";
-const VAULT_CONTRACT = "0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e";
+const VAULT_CONTRACT = "0xa361cdc792e97c4d8ddf42048cf48f3283ea7178";
 
 /** Build a mock VaultChain that records invoke/read calls. */
 function mockChain(reads: Record<string, unknown> = {}): VaultChain & {
@@ -155,6 +157,15 @@ describe("neo-multisig contract-arg builders", () => {
       { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
     ]);
   });
+
+  it("builds cancel args for ANY vault signer (v2 — not just the creator)", () => {
+    // SIGNER_B is a non-creator co-signer; the v2 contract accepts any vault
+    // signer as the cancel caller, so the builder must not assume the creator.
+    expect(buildCancelArgs(9, SIGNER_B)).toEqual([
+      { type: "Integer", value: "9" },
+      { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
+    ]);
+  });
 });
 
 describe("neo-multisig read parsing", () => {
@@ -205,6 +216,25 @@ describe("neo-multisig read parsing", () => {
 
     expect(statusFromCode(1)).toBe("executed");
     expect(statusFromCode(2)).toBe("cancelled");
+  });
+
+  it("parses RequestUnfunded(requestId, required, available) event payloads (v2)", () => {
+    const parsed = parseRequestUnfundedEvent({
+      event_name: "RequestUnfunded",
+      state: [
+        { type: "Integer", value: "4" },
+        { type: "Integer", value: "50000000" },
+        { type: "Integer", value: "10000000" },
+      ],
+    });
+    expect(parsed).toEqual({ requestId: 4, required: 50000000, available: 10000000 });
+
+    // Malformed / non-matching entries are rejected, not coerced.
+    expect(parseRequestUnfundedEvent(null)).toBeNull();
+    expect(parseRequestUnfundedEvent({ state: [] })).toBeNull();
+    expect(
+      parseRequestUnfundedEvent({ state: [{ type: "Integer", value: "0" }] }),
+    ).toBeNull();
   });
 });
 
@@ -286,6 +316,61 @@ describe("neo-multisig vault service", () => {
       { type: "Integer", value: "4" },
       { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
     ]);
+  });
+
+  it("dispatches cancel from ANY signer (v2 semantics)", async () => {
+    const chain = mockChain();
+    const api = createVaultApi(chain);
+
+    // SIGNER_B did not create the request; v2 lets any vault signer cancel.
+    await api.cancel(4, SIGNER_B);
+    expect(chain.invoke).toHaveBeenCalledWith("cancel", [
+      { type: "Integer", value: "4" },
+      { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
+    ]);
+  });
+
+  it("resolves the RequestUnfunded event for an auto-cancelled request (v2)", async () => {
+    const listEvents = vi.fn().mockResolvedValue([
+      {
+        event_name: "RequestUnfunded",
+        state: [
+          { type: "Integer", value: "9" },
+          { type: "Integer", value: "200000000" },
+          { type: "Integer", value: "150000000" },
+        ],
+      },
+      {
+        event_name: "RequestUnfunded",
+        state: [
+          { type: "Integer", value: "4" },
+          { type: "Integer", value: "50000000" },
+          { type: "Integer", value: "10000000" },
+        ],
+      },
+    ]);
+    const api = createVaultApi({ ...mockChain(), listEvents });
+
+    expect(await api.requestUnfunded(4)).toEqual({
+      requestId: 4,
+      required: 50000000,
+      available: 10000000,
+    });
+    expect(listEvents).toHaveBeenCalledWith("RequestUnfunded", { limit: 50 });
+    // A request with no RequestUnfunded event resolves to null.
+    expect(await api.requestUnfunded(7)).toBeNull();
+  });
+
+  it("degrades requestUnfunded to null when events are unavailable", async () => {
+    // No listEvents on the chain layer at all.
+    expect(await createVaultApi(mockChain()).requestUnfunded(4)).toBeNull();
+
+    // listEvents present but failing (indexer outage) — still null, no throw.
+    const failing = createVaultApi({
+      ...mockChain(),
+      listEvents: vi.fn().mockRejectedValue(new Error("indexer down")),
+    });
+    expect(await failing.requestUnfunded(4)).toBeNull();
   });
 
   it("reads vault and request state back from the contract", async () => {

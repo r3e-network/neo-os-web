@@ -32,19 +32,25 @@ Governance mercenary - vote rental marketplace like Curve War
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62` |
+| **Contract** | `0x140f5faf5692d21421a79278b0e45b9b9bd4bb46` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x140f5faf5692d21421a79278b0e45b9b9bd4bb46) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0` |
+| **Contract** | `0x140f5faf5692d21421a79278b0e45b9b9bd4bb46` |
 | **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x140f5faf5692d21421a79278b0e45b9b9bd4bb46) |
 | **Network Magic** | `860833102` |
+
+> **Migration note (v2, 2026-06-12):** MiniAppGovMerc v2 adds a fixed 5-minute
+> bidding window per epoch (the first bid opens it; later bids must land before
+> the deadline, and settlement unlocks after it). The v1 contract
+> `0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9` stays live on both networks for
+> user exits only (withdraw stake / reclaim bids / withdraw credit).
 
 ## Platform Contracts
 

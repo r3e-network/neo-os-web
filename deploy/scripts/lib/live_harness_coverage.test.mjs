@@ -30,8 +30,10 @@ test("live harness coverage summary exposes fix lists", () => {
   const summary = summarizeCoverage(rows);
 
   assert.equal(summary.totalActive, 61);
-  // miniapp-neo-multisig now ships a deployed testnet contract
-  // (0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e) but has no registered live-chain
+  // miniapp-neo-multisig now ships a deployed testnet contract (v2:
+  // 0xa361cdc792e97c4d8ddf42048cf48f3283ea7178, replacing the v1
+  // 0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e which stays live for user
+  // exits) but has no registered live-chain
   // harness in LIVE_CHAIN_FLOWS, so the audit correctly classifies it as
   // missing-live-chain-harness. This is a real coverage gap (a dedicated
   // deploy/scripts/live_validate_* flow for the on-chain approval contract is still
