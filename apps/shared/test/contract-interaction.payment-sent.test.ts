@@ -38,7 +38,13 @@ describe("invokeWithDirectPrepaidGas onPaymentSent signal", () => {
         return { txid: "0xtarget" };
       });
 
-    const ci = useContractInteraction({ appId: "test-app", t, wallet });
+    const ci = useContractInteraction({
+      appId: "test-app",
+      t,
+      wallet,
+      // Deterministic settle — keeps the test off the live indexer.
+      confirmDeposit: async () => "confirmed",
+    });
     const onPaymentSent = vi.fn(() => order.push("onPaymentSent"));
 
     await ci.invokeWithDirectPrepaidGas(
@@ -63,8 +69,14 @@ describe("invokeWithDirectPrepaidGas onPaymentSent signal", () => {
     // before any transfer is broadcast, so no funds move and the callback is silent.
     const wallet = makeWallet("");
     const onPaymentSent = vi.fn();
+    const confirmDeposit = vi.fn(async () => "confirmed" as const);
 
-    const ci = useContractInteraction({ appId: "test-app", t, wallet });
+    const ci = useContractInteraction({
+      appId: "test-app",
+      t,
+      wallet,
+      confirmDeposit,
+    });
 
     await expect(
       ci.invokeWithDirectPrepaidGas(
@@ -80,6 +92,7 @@ describe("invokeWithDirectPrepaidGas onPaymentSent signal", () => {
     ).rejects.toThrow();
 
     expect(onPaymentSent).not.toHaveBeenCalled();
+    expect(confirmDeposit).not.toHaveBeenCalled();
     expect(
       (wallet as { invokeContract: ReturnType<typeof vi.fn> }).invokeContract,
     ).not.toHaveBeenCalled();

@@ -19,6 +19,7 @@ function t(key: string, params?: Record<string, string | number>) {
     repayExceedsDebt: `Amount exceeds your outstanding debt of ${params?.amount ?? ""} GAS`,
     collateralCreditHeld: "collateral credit held",
     repayCreditHeld: "repay credit held",
+    collateralCreditExceedsAmount: `You have ${params?.credit ?? ""} NEO of existing collateral credit and the contract locks ALL of it — more than the ${params?.amount ?? ""} NEO you entered`,
     noCollateralCredit: "No collateral credit to reclaim",
     noRepayCredit: "No repay credit to reclaim",
     walletStatusIdle: "Wallet not connected",
@@ -241,6 +242,48 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
     expect(calls.some((c) => c.op === "transfer")).toBe(false);
     expect(calls.some((c) => c.op === "borrow")).toBe(true);
   });
+
+  it("tops up only the SHORTFALL when residual credit partially covers the amount", async () => {
+    // 4 NEO residual credit + typed 10 → transfer just 6; borrow locks 4+6=10,
+    // exactly what the user typed (NOT credit + a full 10 re-deposit = 14).
+    const { chain, invoke } = makeChain({
+      neoPrice: 5n * GAS,
+      neoBalance: 100n,
+      collateralCredit: 4n,
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    app.collateralAmount.set("10");
+    await app.takeLoan();
+
+    const calls = invokeCalls(invoke);
+    const transfer = calls.find((c) => c.op === "transfer");
+    expect(transfer?.args[2]).toMatchObject({ type: "Integer", value: "6" });
+    expect(transfer?.args[3]).toMatchObject({ type: "String", value: "selfloan:collateral" });
+    expect(calls.some((c) => c.op === "borrow")).toBe(true);
+  });
+
+  it("blocks borrowing when residual credit exceeds the typed amount (borrow locks ALL credit)", async () => {
+    // 12 NEO residual credit, user typed 10: borrow would lock — and size the
+    // debt on — 12 NEO, more than consented. Surface the credit warning and
+    // make no chain call.
+    const { chain, invoke } = makeChain({
+      neoPrice: 5n * GAS,
+      neoBalance: 100n,
+      collateralCredit: 12n,
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    app.collateralAmount.set("10");
+    await expect(app.takeLoan()).rejects.toThrow(
+      /12 NEO of existing collateral credit/,
+    );
+    expect(invoke).not.toHaveBeenCalled();
+  });
 });
 
 describe("useSelfLoan repay flow (self-loan-2)", () => {
@@ -336,6 +379,44 @@ describe("useSelfLoan addCollateral (self-loan-add)", () => {
     await app.loadAll();
 
     await expect(app.addCollateral("2.5")).rejects.toThrow(t("neoMustBeInteger"));
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("tops up only the SHORTFALL when residual credit partially covers the added amount", async () => {
+    // 3 NEO residual credit + typed 7 → transfer just 4; addCollateral moves
+    // 3+4=7 into the loan, exactly what the user typed.
+    const { chain, invoke } = makeChain({
+      neoBalance: 100n,
+      collateralCredit: 3n,
+      loan: { collateral: 50n, borrowed: 5n * GAS, ltvBps: 2000n, active: true },
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    await app.addCollateral("7");
+
+    const calls = invokeCalls(invoke);
+    const transfer = calls.find((c) => c.op === "transfer");
+    expect(transfer?.args[2]).toMatchObject({ type: "Integer", value: "4" });
+    expect(calls.some((c) => c.op === "addCollateral")).toBe(true);
+  });
+
+  it("blocks adding collateral when residual credit exceeds the typed amount", async () => {
+    // addCollateral moves ALL credited NEO into the loan — 9 credited vs 7
+    // typed must surface the credit warning and make no chain call.
+    const { chain, invoke } = makeChain({
+      neoBalance: 100n,
+      collateralCredit: 9n,
+      loan: { collateral: 50n, borrowed: 5n * GAS, ltvBps: 2000n, active: true },
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    await expect(app.addCollateral("7")).rejects.toThrow(
+      /9 NEO of existing collateral credit/,
+    );
     expect(invoke).not.toHaveBeenCalled();
   });
 });

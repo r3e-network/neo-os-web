@@ -23,6 +23,23 @@ describe("gasToWei", () => {
     expect(gasToWei("20").toString()).toBe("20000000000000000000");
     expect(gasToWei(0.5).toString()).toBe("500000000000000000");
   });
+
+  it("rejects malformed amounts instead of mis-scaling them", () => {
+    // "-0.5" previously lost its sign (BigInt("-0") is 0n) and became +5e17
+    expect(() => gasToWei("-0.5")).toThrow(/Invalid GAS amount/);
+    expect(() => gasToWei("-1")).toThrow(/Invalid GAS amount/);
+    // multi-dot input previously dropped everything after the second dot
+    expect(() => gasToWei("1.2.3")).toThrow(/Invalid GAS amount/);
+    // scientific notation (a String(number) artifact) previously threw a raw
+    // BigInt SyntaxError; now it is a descriptive validation error
+    expect(() => gasToWei("1e-7")).toThrow(/Invalid GAS amount/);
+    expect(() => gasToWei(1e-7)).toThrow(/Invalid GAS amount/);
+    expect(() => gasToWei(".5")).toThrow(/Invalid GAS amount/);
+    expect(() => gasToWei("+1")).toThrow(/Invalid GAS amount/);
+    expect(() => gasToWei("")).toThrow(/Invalid GAS amount/);
+    expect(() => gasToWei("abc")).toThrow(/Invalid GAS amount/);
+    expect(() => gasToWei("1 000")).toThrow(/Invalid GAS amount/);
+  });
 });
 
 describe("isEvmNetwork", () => {
