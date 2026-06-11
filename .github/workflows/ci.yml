@@ -44,6 +44,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Lint
+        run: npm run -s lint
+
       - name: Validate Morpheus runtime catalog
         run: |
           node - <<'NODE'
