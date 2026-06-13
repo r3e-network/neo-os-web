@@ -44,7 +44,9 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     hasGeneratedAccount: false,
     generatedAccount: null,
     hasConversionResult: false,
-    showSecrets: false,
+    showGeneratedSecrets: false,
+    showConversionSecrets: false,
+    walletConnected: true,
     accountsGenerated: "0",
     conversionResult: {
       address: "",
@@ -52,6 +54,8 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
       privateKey: "",
       wif: "",
       opcodes: [],
+      scriptHash: "",
+      scriptHashLE: "",
     },
     conversionStatus: "",
     conversionStatusType: "",
@@ -99,7 +103,7 @@ describe("Neo Convert PlayArea", () => {
         t={t}
         state={state({
           hasGeneratedAccount: true,
-          showSecrets: true,
+          showGeneratedSecrets: true,
           generatedAccount: {
             address: "NabcGeneratedAddress",
             publicKey: "03" + "cd".repeat(32),
@@ -172,7 +176,7 @@ describe("Neo Convert PlayArea", () => {
         t={t}
         state={state({
           hasGeneratedAccount: true,
-          showSecrets: true,
+          showGeneratedSecrets: true,
           generatedAccount: {
             address: "NabcGeneratedAddress",
             publicKey: "03" + "cd".repeat(32),

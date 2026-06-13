@@ -4,6 +4,7 @@ const appMessages = {
   // App translations
   title: { en: "Time Capsule", zh: "时间胶囊" },
   subtitle: { en: "Lock content until future date", zh: "锁定内容直到未来日期" },
+  vaultEyebrow: { en: "ON-CHAIN VAULT", zh: "链上金库" },
   yourCapsules: { en: "Your Capsules", zh: "你的胶囊" },
   noCapsules: { en: "No capsules yet. Create your first one!", zh: "还没有胶囊。创建你的第一个吧！" },
   noLocalCapsules: {
@@ -76,9 +77,18 @@ const appMessages = {
     zh: "时间胶囊合约在当前网络上不可用。",
   },
   depositPrepaidNoCapsule: {
-    en: "The 0.2 GAS deposit was prepaid but the capsule was not buried. The deposit is held on the contract as reusable credit—just try sealing again.",
-    zh: "0.2 GAS 押金已预付，但胶囊未能封存。押金会作为可复用余额保留在合约中，直接重试封存即可。",
+    en: "The 0.2 GAS deposit was prepaid but the capsule was not buried. The deposit is held on the contract as reusable credit—seal again to use it, or withdraw it below.",
+    zh: "0.2 GAS 押金已预付，但胶囊未能封存。押金会作为可复用余额保留在合约中——可重试封存使用，或在下方提取。",
   },
+  prepaidCreditLabel: { en: "Reusable Deposit Credit", zh: "可复用押金余额" },
+  prepaidCreditHint: {
+    en: "A 0.2 GAS deposit landed but its capsule was not sealed. It is reused on your next capsule, or withdraw it back to your wallet now.",
+    zh: "一笔 0.2 GAS 押金已到账但胶囊未封存。下次封存会自动复用，也可现在提取回钱包。",
+  },
+  withdrawCredit: { en: "Withdraw Credit", zh: "提取余额" },
+  withdrawingCredit: { en: "Withdrawing...", zh: "提取中..." },
+  creditWithdrawn: { en: "Withdrew {amount} GAS deposit credit", zh: "已提取 {amount} GAS 押金余额" },
+  noCreditToWithdraw: { en: "No reusable deposit credit to withdraw.", zh: "没有可提取的押金余额。" },
   untitledCapsule: { en: "Untitled capsule", zh: "无标题胶囊" },
   message: { en: "Message:", zh: "消息：" },
   tabCapsules: { en: "Capsules", zh: "胶囊" },

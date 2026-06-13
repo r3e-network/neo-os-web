@@ -72,8 +72,9 @@ import {
   gasToBaseUnits as toBaseUnits,
 } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
-import { addressToScriptHash } from "@shared/utils/neo";
+import { addressToScriptHash, ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
+import { scriptHashToAddress } from "../utils/address";
 import { parseGas } from "@shared/utils/format";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { ContractStatus, RelationshipContractView } from "../types";
@@ -169,6 +170,10 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
   const actionNotice = createObservable("");
   const validationNotice = createObservable("");
   const lastSubmittedTitle = createObservable("");
+  /** Reclaimable prepaid stake-credit (whole GAS, display) under the wallet. */
+  const creditBalance = createObservable("0");
+  /** Raw reclaimable credit in base units (string) — the exact on-chain credit. */
+  const creditBalanceRaw = createObservable("0");
 
   // -- Wallet (synced from main.tsx) ---------------------------------------
   const address = createObservable("");
@@ -178,6 +183,13 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
   const activeCount = createDerived(() => contracts.get().filter((c) => c.status === "active").length, [contracts]);
   const pendingCount = createDerived(() => contracts.get().filter((c) => c.status === "pending").length, [contracts]);
   const brokenCount = createDerived(() => contracts.get().filter((c) => c.status === "broken").length, [contracts]);
+  const hasCredit = createDerived(() => {
+    try {
+      return parseBigInt(creditBalanceRaw.get()) > 0n;
+    } catch {
+      return false;
+    }
+  }, [creditBalanceRaw]);
 
   // -- On-device title/terms store -----------------------------------------
 
@@ -228,8 +240,13 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
   const mapPact = (raw: unknown, id: string, meta?: PactMeta): RelationshipContractView | null => {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
     const v = raw as Record<string, unknown>;
-    const party1 = String(v.party1 ?? "");
-    const party2 = String(v.party2 ?? "");
+    // getPact returns party1/party2 as UInt160 Hash160s, which parseStackItem
+    // renders as raw chain-order ByteStrings (0x-hex or printable garbage) — NOT
+    // comparable to an N-address. Normalize to display-order 0x hex so
+    // ownerMatchesAddress can match them against the connected wallet and the UI
+    // can encode them back to N-addresses.
+    const party1 = parseHash160(v.party1);
+    const party2 = parseHash160(v.party2);
     if (!party1 || !party2) return null;
 
     const stakeBase = parseBigInt(v.stake);
@@ -244,7 +261,8 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     let contractStatus: ContractStatus = "pending";
     if (status === STATUS_ACTIVE) contractStatus = "active";
     else if (status === STATUS_BROKEN) contractStatus = "broken";
-    else if (status === STATUS_SETTLED || status === STATUS_CANCELLED) contractStatus = "ended";
+    else if (status === STATUS_SETTLED) contractStatus = "ended";
+    else if (status === STATUS_CANCELLED) contractStatus = "cancelled";
 
     const now = Date.now();
     const daysLeft = endTimeMs > 0 ? Math.max(0, Math.ceil((endTimeMs - now) / 86_400_000)) : 0;
@@ -258,9 +276,16 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     const title = meta?.title ? meta.title : t("untitledContract");
     const terms = meta?.terms ?? "";
 
+    // Match the connected wallet against the (display-order) party hashes via
+    // ownerMatchesAddress, which understands N-address vs 0x-hash equality.
     const addr = address.get();
-    const me = addr ? addr.toLowerCase() : "";
-    const partner = me && me === party1.toLowerCase() ? party2 : party1;
+    const isCreator = ownerMatchesAddress(party1, addr);
+    const isPartner = ownerMatchesAddress(party2, addr);
+    // The counterparty is the OTHER party relative to the wallet; when no wallet
+    // is connected, default to showing party2 (the named partner). Encode the
+    // chosen hash to an N-address for display, falling back to the raw hash.
+    const counterpartyHash = isCreator ? party2 : party1;
+    const partner = scriptHashToAddress(counterpartyHash) || counterpartyHash;
 
     // settleContract is only meaningful for an honored ACTIVE pact past expiry.
     const settleable = active && endTimeMs > 0 && now >= endTimeMs;
@@ -271,6 +296,8 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       party1,
       party2,
       partner,
+      isCreator,
+      isPartner,
       title,
       terms,
       stake: parseGas(stakeBase),
@@ -340,6 +367,36 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     } finally {
       isLoading.set(false);
     }
+    // Credit is independent of the pact list; load it best-effort afterward so a
+    // pact-index hiccup never hides a recoverable stranded stake.
+    await loadCredit();
+  };
+
+  /**
+   * Read the connected wallet's reclaimable prepaid stake-credit (creditOf).
+   * Non-zero credit means a deposit landed but its create/sign step did not
+   * complete (e.g. the user rejected the second prompt), leaving GAS recoverable
+   * via withdrawCredit. Failures here are silent — credit recovery is an exit
+   * affordance, never a blocker for the rest of the UI.
+   */
+  const loadCredit = async () => {
+    const wallet = address.get();
+    const partyHash = wallet ? addressToScriptHash(wallet) || null : null;
+    if (!partyHash) {
+      creditBalance.set("0");
+      creditBalanceRaw.set("0");
+      return;
+    }
+    try {
+      const raw = await chain.read("creditOf", [{ type: "Hash160", value: partyHash }]);
+      const base = parseBigInt(raw);
+      creditBalanceRaw.set(base.toString());
+      creditBalance.set(base > 0n ? String(parseGas(base)) : "0");
+    } catch (e) {
+      console.warn("[useBreakup] creditOf read failed:", e instanceof Error ? e.message : String(e));
+      creditBalance.set("0");
+      creditBalanceRaw.set("0");
+    }
   };
 
   // -- Actions (direct chain invocations) ----------------------------------
@@ -384,8 +441,8 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
    * remains on the contract under party1 and is reused on the next createPact —
    * there is no refund call (and none is needed; funds are not lost).
    */
-  const createContract = async () => {
-    if (isLoading.get()) return;
+  const createContract = async (): Promise<boolean> => {
+    if (isLoading.get()) return false;
 
     const partnerValue = partnerAddress.get().trim();
     if (!partnerValue) throw new Error(t("partnerRequired"));
@@ -433,7 +490,13 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       const durationSeconds = durationDays * 86_400;
 
       // Step 1: DEPOSIT — GAS transfer to the contract with the stake memo so
-      // OnNEP17Payment credits party1's prepaid balance.
+      // OnNEP17Payment credits party1's prepaid balance. Wait for the contract's
+      // Credited event before step 2: ChainService.invoke returns at broadcast,
+      // and intra-block ordering is fee/hash-based, so without this wait
+      // createPact can execute before the credit lands and fault "insufficient
+      // stake credit" — surfacing the scary depositPrepaidNoContract error
+      // spuriously. waitForEvent resolves null on timeout (best-effort, never
+      // throws), so a slow indexer degrades to the prior behavior, not a hang.
       await chain.invoke(
         "transfer",
         [
@@ -442,7 +505,7 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
           { type: "Integer", value: stakeBase.toString() },
           { type: "String", value: STAKE_MEMO },
         ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
       );
 
       // Step 2: createPact — consumes the prepaid credit as party1's stake and
@@ -492,6 +555,7 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       actionNotice.set(t("contractSubmitted", { title: titleValue }));
 
       await loadContracts();
+      return true;
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       actionNotice.set(message);
@@ -530,6 +594,14 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       // Read the pact's exact stake (base units) so party2's deposit matches
       // party1's lock precisely, independent of any human-rounded view value.
       const raw = await chain.read("getPact", [{ type: "Integer", value: pactId }]);
+      const pactParty2 = parseHash160((raw as Record<string, unknown> | null)?.party2);
+      // Only the NAMED partner can sign: signPact asserts p.Party2 == party2, so
+      // a non-partner (e.g. the creator) tapping Sign would deposit a full
+      // matching stake and then revert — stranding it as credit. Reject before
+      // moving any GAS so the stake never leaves the wrong wallet.
+      if (pactParty2 && !ownerMatchesAddress(pactParty2, address.get())) {
+        throw new Error(t("signNotPartner"));
+      }
       const stakeBase = parseBigInt((raw as Record<string, unknown> | null)?.stake);
       if (stakeBase <= 0n) {
         // Fall back to the carried raw stake (also base units) if present.
@@ -539,6 +611,8 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
       const matchBase = stakeBase > 0n ? stakeBase : parseBigInt(contract.stakeRaw);
 
       // Step 1: DEPOSIT — matching stake with the stake memo (credits party2).
+      // Wait for the Credited event so signPact (step 2) never races ahead of the
+      // credit landing (best-effort; resolves null on timeout, never throws).
       await chain.invoke(
         "transfer",
         [
@@ -547,7 +621,7 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
           { type: "Integer", value: matchBase.toString() },
           { type: "String", value: STAKE_MEMO },
         ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
       );
 
       // Step 2: signPact — consumes the matching credit and activates the pact.
@@ -654,6 +728,39 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     }
   };
 
+  /**
+   * Reclaim stranded prepaid stake-credit via withdraw(account). A user whose
+   * create/sign failed after the deposit landed — or who rejected the second
+   * prompt — has GAS held as reusable credit on the contract; this is the exit
+   * path that returns it to their wallet (the contract emits CreditWithdrawn).
+   */
+  const withdrawCredit = async () => {
+    if (isLoading.get()) return;
+    if (parseBigInt(creditBalanceRaw.get()) <= 0n) {
+      throw new Error(t("noCreditToRecover"));
+    }
+    actionNotice.set(t("creditRecovering"));
+    isLoading.set(true);
+    try {
+      const { hash: accountHash } = await requireWallet();
+      await chain.invoke(
+        "withdraw",
+        [{ type: "Hash160", value: accountHash }],
+        { waitForEvent: "CreditWithdrawn" },
+      );
+      eventBus.emit("breakup:credit-recovered", { action: t("creditRecovered") });
+      actionNotice.set(t("creditRecovered"));
+      await loadContracts();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      actionNotice.set(message);
+      eventBus.emit("breakup:error", { message });
+      throw e;
+    } finally {
+      isLoading.set(false);
+    }
+  };
+
   return {
     // Wallet state
     address,
@@ -672,15 +779,20 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     actionNotice,
     validationNotice,
     lastSubmittedTitle,
+    creditBalance,
+    creditBalanceRaw,
 
     // Derived state
     contractCount,
     activeCount,
     pendingCount,
     brokenCount,
+    hasCredit,
 
     // Methods
     loadContracts,
+    loadCredit,
+    withdrawCredit,
     createContract,
     signContract,
     breakContract,

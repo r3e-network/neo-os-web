@@ -13,6 +13,7 @@
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
+import { parseHash160 } from "@shared/utils/neo";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -54,12 +55,20 @@ defineMiniApp({
       set: () => {},
       subscribe: (fn) => pool.bids.subscribe(fn),
     };
-    // Settlement is only possible when the live epoch has at least one bid to
-    // resolve. Drives the enabled/disabled state of the Route Governance button.
+    // Settlement is possible when the live epoch has a bid to resolve. Derive
+    // from EITHER the event leaderboard OR the contract's highestBid read, so a
+    // degraded events feed cannot wrongly disable settle while highestBid > 0.
     const canSettle: Observable<boolean> = {
-      get: () => pool.bids.get().length > 0,
+      get: () => pool.bids.get().length > 0 || pool.hasLiveBid.get(),
       set: () => {},
-      subscribe: (fn) => pool.bids.subscribe(fn),
+      subscribe: (fn) => {
+        const stopBids = pool.bids.subscribe(fn);
+        const stopLive = pool.hasLiveBid.subscribe(fn);
+        return () => {
+          stopBids();
+          stopLive();
+        };
+      },
     };
     // Human-readable summary of the most recently resolved epoch (the winner of
     // the previous epoch). The amount is GAS (already scaled to whole GAS).
@@ -67,7 +76,11 @@ defineMiniApp({
       get: () => {
         const s = pool.lastSettlement.get();
         if (!s || !s.winner) return ctx.t("settleNone");
-        const who = `${s.winner.slice(0, 6)}...${s.winner.slice(-4)}`;
+        // settlementWinner is a Hash160 in chain (LE) byte order — normalize to
+        // the display-order 0x hash explorers accept before truncating (the raw
+        // value is an unrecognizable little-endian hash no explorer resolves).
+        const display = parseHash160(s.winner) || s.winner;
+        const who = `${display.slice(0, 6)}...${display.slice(-4)}`;
         return ctx.t("settleSummary", {
           epoch: s.epoch,
           winner: who,

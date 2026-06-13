@@ -2,9 +2,9 @@
 @use "@shared/styles/playarea-base";
 
 .flashloan-play-area {
-  --fl-accent: var(--ns-violet, #16c784);
-  --fl-accent-strong: var(--ns-violet-strong, #0fb174);
-  --fl-accent-soft: var(--ns-violet-soft, #e4f8f0);
+  --fl-accent: var(--ns-brand, #16c784);
+  --fl-accent-strong: var(--ns-brand-strong, #0fb174);
+  --fl-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   padding: 1.25rem;
   display: flex;
@@ -144,6 +144,30 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--ns-text-muted, #8a92a6);
+}
+
+/* ============================================================
+ *  Service notice (read-failure banner — keep last good snapshot)
+ * ============================================================ */
+.flashloan-service-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 18px;
+  padding: 0.875rem 1.125rem;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-warning-soft, #fff3dd);
+  color: var(--ns-warning, #b9791a);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.flashloan-service-notice__title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ns-ink, #1e1e2e);
 }
 
 /* ============================================================
@@ -314,6 +338,26 @@
   color: var(--fl-accent-strong, #0fb174);
 }
 
+.flashloan-callback-note {
+  margin: 0;
+  font-size: 0.78125rem;
+  line-height: 1.55;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.flashloan-callback-link {
+  color: var(--fl-accent-strong, #0fb174);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(22, 199, 132, 0.32);
+}
+
+.flashloan-callback-link:hover,
+.flashloan-callback-link:focus-visible {
+  outline: none;
+  border-bottom-color: var(--fl-accent, #16c784);
+}
+
 .flashloan-actions {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -447,6 +491,40 @@
   font-size: 0.8125rem;
   line-height: 1.5;
   text-align: center;
+}
+
+/* ============================================================
+ *  Liquidity provider surface
+ * ============================================================ */
+.flashloan-liquidity-card {
+  min-width: 0;
+  width: 100%;
+}
+
+.flashloan-liquidity-info {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.flashloan-liquidity-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
+.flashloan-liquidity-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.flashloan-liquidity-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 /* ============================================================
@@ -639,6 +717,7 @@
   .flashloan-workspace,
   .flashloan-workspace--secondary,
   .flashloan-preview-grid,
+  .flashloan-liquidity-stats,
   .flashloan-actions,
   .flashloan-lookup-row {
     grid-template-columns: 1fr;

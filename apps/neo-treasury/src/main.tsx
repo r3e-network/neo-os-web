@@ -31,6 +31,10 @@ defineMiniApp({
     const loading = createObservable(true);
     const error = createObservable("");
     const data = createObservable<TreasuryData | null>(null);
+    // True when the displayed figures came from cache because the fresh fetch
+    // failed — drives the amber "showing cached data" signal instead of the
+    // green "live synced" one.
+    const stale = createObservable(false);
     const address = createObservable(ctx.services.chain.address.get() ?? "");
     const disbursementSubmitting = createObservable(false);
     const disbursementStatus = createObservable(ctx.t("disbursementDraftReady"));
@@ -41,9 +45,11 @@ defineMiniApp({
     const totalUsdDisplay: Observable<string> = {
       get: () => {
         const d = data.get();
-        return d?.totalUsd
+        // totalUsd is null when the price feed was unavailable — render the
+        // em-dash placeholder (the NEO/GAS balances still show).
+        return typeof d?.totalUsd === "number"
           ? `${ctx.t("currencySymbol")}${formatAmount(d.totalUsd, 2)}`
-          : ctx.t("notAvailable");
+          : "—";
       },
       set: () => {},
       subscribe: (listener) => data.subscribe(listener),
@@ -84,11 +90,15 @@ defineMiniApp({
       try {
         const freshData = await fetchTreasuryData();
         data.set(freshData);
+        stale.set(false);
         writeCachedJSON(CACHE_KEY, freshData);
       } catch (e) {
         if (!data.get()) {
           error.set(formatErrorMessage(e, ctx.t("loadFailed")));
         } else {
+          // We're rendering day-old cached figures — flag them as stale so the
+          // hero shows the amber "cached data" signal, not "live synced".
+          stale.set(true);
           console.warn("[neo-treasury] using cached data:", e instanceof Error ? e.message : String(e));
         }
       } finally {
@@ -127,6 +137,14 @@ defineMiniApp({
 
         lastTxid.set(result.txid || "");
         disbursementStatus.set(ctx.t("disbursementSubmitted"));
+        // If the recipient is one of the watched wallets, the dashboard would
+        // otherwise stay stale until a manual Refresh. Re-load after a short
+        // delay to absorb RPC node-lag before re-reading balances.
+        if (result.txid) {
+          setTimeout(() => {
+            void loadData();
+          }, 6000);
+        }
         return result;
       } catch (e) {
         const message = formatErrorMessage(e, ctx.t("disbursementFailed"));
@@ -147,6 +165,7 @@ defineMiniApp({
         loading,
         error,
         data,
+        stale,
         address,
         disbursementSubmitting,
         disbursementStatus,

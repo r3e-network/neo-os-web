@@ -213,6 +213,40 @@
   }
 }
 
+/* Post-create share affordance — copy a OneGate-claimable deep link. */
+.redenv-share-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--ns-success-soft, #d8f3e3);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-success-soft, #eafaf1);
+}
+
+.redenv-share-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.redenv-share-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ns-text, #2a2d3d);
+}
+
+.redenv-share-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.redenv-share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .redenv-section-heading {
   display: flex;
   align-items: flex-start;

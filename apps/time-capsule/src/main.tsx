@@ -28,20 +28,34 @@ defineMiniApp({
         successKey: "capsuleCreated",
         errorKey: "error",
       },
-      fishCapsule: {
-        handler: () => capsule.fishCapsule(),
-        errorKey: "error",
-      },
+    });
+
+    // fishCapsule surfaces its own DYNAMIC toast (fished #id / nothing-found /
+    // error) on the platform notification channel — the result depends on which
+    // capsule (if any) was discovered at runtime, so a static successKey cannot
+    // express it. Swallow the rethrow here to avoid a duplicate error toast.
+    ctx.registerAction("fishCapsule", async () => {
+      await capsule.fishCapsule().catch(() => {
+        /* toast already surfaced inside the composable */
+      });
     });
 
     ctx.registerAction("openCapsule", async (cap: unknown) => {
-      try {
-        await capsule.openCapsule(
-          cap as Parameters<typeof capsule.openCapsule>[0],
-        );
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      // openCapsule emits its own dynamic toasts (reveal confirmation + the
+      // on-device message / hash fallback) on the platform notification channel.
+      await capsule.openCapsule(
+        cap as Parameters<typeof capsule.openCapsule>[0],
+      ).catch(() => {
+        /* toast already surfaced inside the composable */
+      });
+    });
+
+    // withdrawCredit emits its own dynamic success / "no credit" toast (the amount
+    // is only known at runtime) on the platform notification channel.
+    ctx.registerAction("withdrawCredit", async () => {
+      await capsule.withdrawCredit().catch(() => {
+        /* toast already surfaced inside the composable */
+      });
     });
 
     return {
@@ -57,6 +71,8 @@ defineMiniApp({
         isBusy: capsule.isBusy,
         newCapsule: capsule.newCapsule,
         canCreate: capsule.canCreate,
+        reusableCredit: capsule.reusableCredit,
+        hasCredit: capsule.hasCredit,
       },
       loadData: capsule.loadAll,
     };

@@ -202,6 +202,13 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
   const isLoading = createObservable(false);
   /** Connected wallet's unused prepaid create-credit (human GAS). */
   const prepaidCredit = createObservable(0);
+  /**
+   * The id of the most recently created envelope, captured from the
+   * EnvelopeCreated event, so the UI can surface a share affordance (copy a
+   * deep link the recipient claims from). Empty until a create succeeds this
+   * session; reset when a new create starts.
+   */
+  const lastCreatedEnvelopeId = createObservable<string>("");
 
   // Opening state
   const luckyMessage = createObservable<{ amount: number; from: string } | null>(null);
@@ -589,6 +596,8 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     if (isLoading.get()) return;
 
     isLoading.set(true);
+    // Clear any prior share card so a fresh attempt never shows a stale id.
+    lastCreatedEnvelopeId.set("");
     try {
       const totalValue = Number(formData.amount);
       const packetCount = Number(formData.count);
@@ -649,7 +658,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
       // envelope. If this fails the credit persists on the contract under the
       // creator and is reusable on the next create (or withdrawable).
       try {
-        await chain.invoke(
+        const result = await chain.invoke(
           "createEnvelope",
           [
             { type: "Hash160", value: creatorHash },
@@ -659,6 +668,13 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
           ],
           { waitForEvent: "EnvelopeCreated" },
         );
+
+        // OnEnvelopeCreated(envId, creator, total, packets, expiry) — envId is
+        // state index 0. Capture it so the UI can show a share affordance (the
+        // distribution journey the product is named for). When the event wait
+        // times out the id stays empty and the share card is simply not shown.
+        const envId = parseBigInt(eventValue(result.event, 0));
+        lastCreatedEnvelopeId.set(envId > 0n ? envId.toString() : "");
       } catch (createErr) {
         console.error(
           "[useRedEnvelope] createEnvelope failed after deposit succeeded:",
@@ -892,6 +908,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     openingId,
     address,
     prepaidCredit,
+    lastCreatedEnvelopeId,
 
     // Computed
     envelopeCount,

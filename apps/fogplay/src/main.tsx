@@ -24,7 +24,17 @@ defineMiniApp({
     coinFlip.setAddress(ctx.services.chain.address.get() ?? null);
 
     ctx.registerAction("placeBet", async () => {
-      await ctx.services.notify.guard(() => coinFlip.placeBet(), "youWon");
+      // The toast must reflect the actual outcome — placeBet resolves on both a
+      // win and a loss, so a blanket "youWon" success key would celebrate losses.
+      const result = await ctx.services.notify.guard(() => coinFlip.placeBet());
+      if (result) {
+        if (result.won) ctx.services.notify.success("youWon");
+        else ctx.services.notify.info("youLost");
+      }
+    });
+
+    ctx.registerAction("withdrawCredit", async () => {
+      await ctx.services.notify.guard(() => coinFlip.withdrawCredit(), "creditWithdrawn");
     });
 
     ctx.registerAction("dismissOverlay", async () => {
@@ -64,6 +74,12 @@ defineMiniApp({
         validationError: coinFlip.validationError,
         canBet: coinFlip.canBet,
         gameHistory: coinFlip.gameHistory,
+        bankrollBase: coinFlip.bankrollBase,
+        creditBase: coinFlip.creditBase,
+        maxPayableBet: coinFlip.maxPayableBet,
+        formattedMaxPayable: coinFlip.formattedMaxPayable,
+        formattedCredit: coinFlip.formattedCredit,
+        hasCredit: coinFlip.hasCredit,
       },
       loadData: coinFlip.loadAll,
     };

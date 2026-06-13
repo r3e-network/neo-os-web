@@ -51,7 +51,8 @@ export default function MilestoneHero({ t, progressPercent, checkpoints, hasEscr
       {hasEscrows && (
         <div className="hero-progress">
           <div className="hero-progress-meta">
-            <span className="hero-progress-label">{t("milestones")}</span>
+            {/* The band plots completed escrows, not milestones — label it so. */}
+            <span className="hero-progress-label">{t("escrowsCompleted")}</span>
             <span className="hero-progress-pct">{progressPercent}%</span>
           </div>
           <div className="hero-progress-track">

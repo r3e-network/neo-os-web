@@ -12,6 +12,7 @@ interface PlayAreaProps {
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
   setStatus?: (msg: string, type: StatusType) => void;
+  launchContext?: { network?: "mainnet" | "testnet" | null };
 }
 
 const DIFFICULTY_OPTIONS = [
@@ -20,7 +21,22 @@ const DIFFICULTY_OPTIONS = [
   { value: "3", labelKey: "difficultyHard", fee: "1 GAS" },
 ] as const;
 
-export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProps) {
+/** Status enum → localized pill label key. */
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  active: "active",
+  broken: "broken",
+  expired: "expired",
+  claimable: "claimable",
+};
+
+/** Base units (1e8) → trimmed GAS decimal string for display. */
+function baseUnitsToGas(value: unknown): string {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  return (n / 1e8).toFixed(8).replace(/\.?0+$/, "");
+}
+
+export default function PlayArea({ t, state, dispatch, setStatus, launchContext }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
 
   const myVaultCount = num("myVaultCount");
@@ -43,8 +59,13 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [secret, setSecret] = useState("");
+  const [confirmSecret, setConfirmSecret] = useState("");
+  const [topUpAmount, setTopUpAmount] = useState("");
 
+  const isMainnet = launchContext?.network === "mainnet";
   const bountyValue = Number.parseFloat(bounty);
+  // A mistyped secret locks the bounty until expiry — block submit on mismatch.
+  const secretMismatch = secret.trim() !== "" && confirmSecret.trim() !== "" && secret !== confirmSecret;
   const canSubmitCreate =
     Number.isFinite(bountyValue) &&
     bountyValue >= 1 &&
@@ -52,7 +73,9 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
     Number(vaultDifficulty) <= 3 &&
     bounty.trim() !== "" &&
     title.trim() !== "" &&
-    secret.trim() !== "";
+    secret.trim() !== "" &&
+    confirmSecret.trim() !== "" &&
+    !secretMismatch;
 
   const handleCreate = async () => {
     if (!canSubmitCreate) return;
@@ -69,6 +92,7 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
       setTitle("");
       setDescription("");
       setSecret("");
+      setConfirmSecret("");
     } catch (error) {
       setStatus?.(
         error instanceof Error ? error.message : t("vaultCreateFailed"),
@@ -110,15 +134,30 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
     }
   };
 
+  const handleIncreaseBounty = async () => {
+    if (!vaultDetails || !topUpAmount.trim()) return;
+    try {
+      await dispatch("increaseBounty", String(vaultDetails.id), topUpAmount.trim());
+      setTopUpAmount("");
+    } catch (error) {
+      setStatus?.(
+        error instanceof Error ? error.message : t("increaseBountyFailed"),
+        "error",
+      );
+    }
+  };
+
   const vaultStatus = vaultDetails ? String(vaultDetails.status ?? "active") : "";
-  const statusLabelKey =
-    vaultStatus === "broken"
-      ? "broken"
-      : vaultStatus === "expired"
-        ? "expired"
-        : vaultStatus === "claimable"
-          ? "claimable"
-          : "active";
+  const statusLabelKey = STATUS_LABEL_KEYS[vaultStatus] ?? "active";
+
+  // Details fetched into vaultDetails that a challenger needs BEFORE paying.
+  const detailTitle = vaultDetails?.title ? String(vaultDetails.title) : "";
+  const detailHint = vaultDetails?.description ? String(vaultDetails.description) : "";
+  const detailBountyGas = vaultDetails ? baseUnitsToGas(vaultDetails.bounty) : "0";
+  const detailAttempts = vaultDetails ? Number(vaultDetails.attempts ?? 0) : 0;
+  const detailRemainingDays = vaultDetails ? Number(vaultDetails.remainingDays ?? 0) : 0;
+  const detailWinner = vaultDetails?.winner ? String(vaultDetails.winner) : "";
+  const detailDifficulty = vaultDetails?.difficultyName ? String(vaultDetails.difficultyName) : "";
 
   return (
     <div className="vault-play-area">
@@ -136,31 +175,35 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
       </div>
 
       <div className="vault-grid">
-      <NeoCard title={t("createVault") || "Create Vault"}>
+      <NeoCard title={t("createVault")}>
         <div className="vault-form">
+          {isMainnet && (
+            <p className="vault-mainnet-note" role="note">{t("mainnetVaultNote")}</p>
+          )}
           <NeoInput
-            label={t("titleLabel") || "Vault Title"}
-            placeholder={t("titlePlaceholder") || "Crack me if you can"}
+            label={t("titleLabel")}
+            placeholder={t("titlePlaceholder")}
             value={title}
             onChange={setTitle}
           />
           <NeoInput
-            label={t("descriptionLabel") || "Description"}
+            label={t("descriptionLabel")}
             type="textarea"
-            placeholder={t("descriptionPlaceholder") || "Optional clue for breakers"}
+            placeholder={t("descriptionPlaceholder")}
             value={description}
             onChange={setDescription}
           />
           <NeoInput
-            label={t("bountyLabel") || "Bounty"}
+            label={t("bountyLabel")}
             type="number"
-            placeholder="10"
+            placeholder={t("bountyPlaceholder")}
             min={1}
             value={bounty}
             onChange={setBounty}
           />
+          <p className="vault-secret-note">{t("minBountyNote")}</p>
           <label className="vault-select-field">
-            <span>{t("difficultyLabel") || "Difficulty"}</span>
+            <span>{t("difficultyLabel")}</span>
             <div className="vault-select-control">
               <select
                 value={vaultDifficulty}
@@ -178,12 +221,22 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
             </div>
           </label>
           <NeoInput
-            label={t("secretLabel") || "Vault Secret"}
+            label={t("secretLabel")}
             type="password"
-            placeholder={t("secretPlaceholder") || "The unlock phrase — kept private"}
+            placeholder={t("secretPlaceholder")}
             value={secret}
             onChange={setSecret}
           />
+          <NeoInput
+            label={t("confirmSecretLabel")}
+            type="password"
+            placeholder={t("confirmSecretPlaceholder")}
+            value={confirmSecret}
+            onChange={setConfirmSecret}
+          />
+          {secretMismatch && (
+            <p className="vault-field-error" role="alert">{t("secretMismatch")}</p>
+          )}
           <p className="vault-secret-note">{t("secretNote")}</p>
           <NeoButton
             variant="primary"
@@ -191,22 +244,22 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
             block
             loading={isCreating || isLoading}
             disabled={!canSubmitCreate || isCreating}
-            aria-label={t("createVaultButton") || "Create Vault"}
+            aria-label={t("createVaultButton")}
             onClick={handleCreate}
           >
             {isCreating
-              ? t("creatingVault") || "Creating vault..."
-              : t("createVaultButton") || "Create Vault"}
+              ? t("creatingVault")
+              : t("createVaultButton")}
           </NeoButton>
         </div>
       </NeoCard>
 
       <div className="vault-col">
-      <NeoCard title={t("breakVault") || "Break a Vault"}>
+      <NeoCard title={t("breakVault")}>
         <div className="vault-form">
           <NeoInput
-            label={t("vaultIdLabel") || "Vault ID"}
-            placeholder={t("vaultIdPlaceholder") || "Pick from list or enter ID"}
+            label={t("vaultIdLabel")}
+            placeholder={t("vaultIdPlaceholder")}
             value={vaultIdInput}
             onChange={(v) => state.vaultIdInput?.set(v)}
           />
@@ -216,25 +269,54 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
             disabled={!vaultIdInput || isLoading}
             onClick={() => handleLoadVault(vaultIdInput)}
           >
-            {t("loadVault") || "Load Vault"}
+            {t("loadVault")}
           </NeoButton>
           {vaultDetails && (
             <>
+              {/* What you are trying to break — surfaced BEFORE paying the fee. */}
+              {detailTitle && <p className="vault-detail-title">{detailTitle}</p>}
+              {detailHint && <p className="vault-detail-hint">{detailHint}</p>}
               <div className="vault-detail-row">
-                <span className="detail-label">{t("vaultStatus") || "Status"}</span>
+                <span className="detail-label">{t("vaultStatus")}</span>
                 <span className={`detail-value vault-status-pill vault-status-pill--${statusLabelKey}`}>
                   {t(statusLabelKey)}
                 </span>
               </div>
               <div className="vault-detail-row">
-                <span className="detail-label">{t("attemptFee") || "Attempt Fee"}</span>
-                <span className="detail-value">{attemptFeeDisplay} GAS</span>
+                <span className="detail-label">{t("bountyLabel")}</span>
+                <span className="detail-value detail-value--accent">{detailBountyGas} {t("tokenGas")}</span>
               </div>
+              {detailDifficulty && (
+                <div className="vault-detail-row">
+                  <span className="detail-label">{t("difficultyLabel")}</span>
+                  <span className="detail-value">{detailDifficulty}</span>
+                </div>
+              )}
+              <div className="vault-detail-row">
+                <span className="detail-label">{t("attemptFee")}</span>
+                <span className="detail-value">{attemptFeeDisplay} {t("tokenGas")}</span>
+              </div>
+              <div className="vault-detail-row">
+                <span className="detail-label">{t("attempts")}</span>
+                <span className="detail-value">{detailAttempts}</span>
+              </div>
+              {(vaultStatus === "active" || vaultStatus === "claimable") && (
+                <div className="vault-detail-row">
+                  <span className="detail-label">{t("remainingDaysLabel")}</span>
+                  <span className="detail-value">{detailRemainingDays}</span>
+                </div>
+              )}
+              {detailWinner && (
+                <div className="vault-detail-row">
+                  <span className="detail-label">{t("winner")}</span>
+                  <span className="detail-value detail-value--mono">{detailWinner}</span>
+                </div>
+              )}
               {vaultStatus === "active" && (
                 <NeoInput
-                  label={t("secretAttemptLabel") || "Break Secret"}
+                  label={t("secretAttemptLabel")}
                   type="password"
-                  placeholder={t("secretAttemptPlaceholder") || "Try to crack the secret"}
+                  placeholder={t("secretAttemptPlaceholder")}
                   value={attemptSecret}
                   onChange={(v) => state.attemptSecret?.set(v)}
                 />
@@ -243,18 +325,43 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
           )}
           {vaultStatus === "active" && (
             <>
+              {isMainnet && (
+                <p className="vault-mainnet-note" role="note">{t("mainnetVaultNote")}</p>
+              )}
               <NeoButton
                 variant="danger"
                 size="lg"
                 block
                 loading={isLoading}
                 disabled={!canAttempt}
-                aria-label={t("attemptBreak") || "Attempt Break"}
+                aria-label={t("attemptBreak")}
                 onClick={handleAttemptBreak}
               >
-                {t("attemptBreak") || "Attempt Break"}
+                {t("attemptBreak")}
               </NeoButton>
               <p className="vault-secret-note">{t("attemptCostNote")}</p>
+              {/* Top up — anyone can grow an active vault's bounty (contract has
+                  increaseBounty, advertised in the operation panel). */}
+              <div className="vault-topup">
+                <NeoInput
+                  label={t("increaseBountyLabel")}
+                  type="number"
+                  min={0}
+                  placeholder={t("increaseBountyPlaceholder")}
+                  value={topUpAmount}
+                  onChange={setTopUpAmount}
+                />
+                <NeoButton
+                  variant="secondary"
+                  size="sm"
+                  loading={isCreating}
+                  disabled={!topUpAmount.trim() || isCreating || isLoading}
+                  aria-label={t("increaseBounty")}
+                  onClick={handleIncreaseBounty}
+                >
+                  {t("increaseBounty")}
+                </NeoButton>
+              </div>
             </>
           )}
           {canReclaim && (
@@ -267,7 +374,7 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
               aria-label={t("reclaimVault")}
               onClick={handleSettleVault}
             >
-              {t("reclaimVault") || "Reclaim Vault"}
+              {t("reclaimVault")}
             </NeoButton>
           )}
           {vaultDetails && vaultStatus === "broken" && (
@@ -277,7 +384,7 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
       </NeoCard>
 
       {/* Recent Vaults */}
-      <NeoCard title={t("recentVaults") || "Recent Vaults"}>
+      <NeoCard title={t("recentVaults")}>
         <div className="vault-list-container">
           {recentVaults.length === 0 ? (
             <div className="empty-state">
@@ -285,7 +392,7 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
                 <rect x="3" y="11" width="18" height="10" rx="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
-              <span>{t("noRecentVaults") || "No recent vaults"}</span>
+              <span>{t("noRecentVaults")}</span>
             </div>
           ) : (
             <div className="vault-list">
@@ -299,7 +406,9 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
                   onKeyDown={(e) => { if (e.key === "Enter") handleLoadVault(vault.id); }}
                 >
                   <span className="vault-id">#{String(vault.id)}</span>
-                  <span className="vault-status">{String(vault.status ?? "active")}</span>
+                  <span className={`vault-status-pill vault-status-pill--${STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active"}`}>
+                    {t(STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active")}
+                  </span>
                 </div>
               ))}
             </div>
@@ -311,7 +420,7 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
 
       {/* My Vaults */}
       {myVaults.length > 0 && (
-        <NeoCard title={t("myVaults") || "My Vaults"}>
+        <NeoCard title={t("myVaults")}>
           <div className="vault-list">
             {(myVaults as Array<Record<string, unknown>>).map((vault) => (
               <div
@@ -323,7 +432,9 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
                 onKeyDown={(e) => { if (e.key === "Enter") handleLoadVault(vault.id); }}
               >
                 <span className="vault-id">#{String(vault.id)}</span>
-                <span className="vault-status">{String(vault.status ?? "active")}</span>
+                <span className={`vault-status vault-status-pill vault-status-pill--${STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active"}`}>
+                  {t(STATUS_LABEL_KEYS[String(vault.status ?? "active")] ?? "active")}
+                </span>
               </div>
             ))}
           </div>

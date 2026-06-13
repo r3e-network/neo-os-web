@@ -49,6 +49,15 @@ function t(key: string) {
     triggerRequestEmpty: "Build or register a trigger.",
     triggerStatus: "Trigger Status",
     verifyBeforeOperate: "Verify a gateway trigger before enabling or disabling it.",
+    manageTriggers: "Manage Triggers",
+    deleteTrigger: "Delete",
+    activeTrigger: "Active",
+    actionRepaySelfLoan: "Repay self-loan",
+    actionCustom: "Custom action…",
+    actionCustomLabel: "Custom Action Name",
+    schedulePresetHourly: "Hourly",
+    schedulePresetEvery6h: "Every 6h",
+    schedulePresetDaily: "Daily",
   };
   return messages[key] ?? key;
 }
@@ -71,6 +80,7 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     latestTriggerId: "notAvailable",
     latestTriggerState: "Ready",
     latestTrigger: null,
+    triggers: [],
     triggerCount: 0,
     apiStatus: "Ready",
     lastError: "",
@@ -160,5 +170,59 @@ describe("Automation Copilot PlayArea", () => {
     expect(enableButton.hasAttribute("disabled")).toBe(true);
     fireEvent.click(enableButton);
     expect(dispatch).not.toHaveBeenCalledWith("toggleLatestTrigger");
+  });
+
+  it("renders the full trigger list and dispatches select + delete per row", () => {
+    const dispatch = vi.fn(async () => undefined);
+    const triggers = [
+      { id: "trig-1", name: "NEO repay", trigger_type: "threshold", enabled: true, created_at: "2026-06-01T00:00:00.000Z" },
+      { id: "trig-2", name: "GAS rebalance", trigger_type: "threshold", enabled: false, created_at: "2026-06-02T00:00:00.000Z" },
+    ];
+    render(
+      <PlayArea
+        {...props({
+          dispatch,
+          state: state({
+            triggers,
+            triggerCount: 2,
+            latestTrigger: triggers[0],
+            latestTriggerId: "trig-1",
+          }),
+        })}
+      />,
+    );
+
+    // Both triggers are listed (previously only the latest was visible).
+    expect(screen.getByText("NEO repay")).toBeTruthy();
+    expect(screen.getByText("GAS rebalance")).toBeTruthy();
+
+    // Selecting the older trigger makes it active.
+    fireEvent.click(screen.getByText("GAS rebalance"));
+    expect(dispatch).toHaveBeenCalledWith("selectTrigger", "trig-2");
+
+    // Deleting dispatches the per-row delete with the trigger id.
+    fireEvent.click(screen.getByRole("button", { name: /Delete GAS rebalance/i }));
+    expect(dispatch).toHaveBeenCalledWith("deleteTrigger", "trig-2");
+  });
+
+  it("offers a discoverable action vocabulary and reveals a custom field for unlisted actions", () => {
+    render(
+      <PlayArea {...props({ state: state({ actionName: "my_custom_action" }) })} />,
+    );
+
+    // An unlisted action name flips the select to Custom and reveals the field.
+    expect(screen.getByLabelText("Custom Action Name")).toBeTruthy();
+    // The select exposes the known preset action.
+    expect(screen.getByRole("option", { name: "Repay self-loan" })).toBeTruthy();
+  });
+
+  it("fills the schedule field from a preset chip", () => {
+    const setSchedule = vi.fn();
+    const baseState = state();
+    baseState.schedule.set = setSchedule;
+    render(<PlayArea {...props({ state: baseState })} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Every 6h" }));
+    expect(setSchedule).toHaveBeenCalledWith("0 */6 * * *");
   });
 });

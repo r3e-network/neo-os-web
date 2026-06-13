@@ -49,6 +49,10 @@ const appMessages = {
     en: "No active season yet — the first burn starts a fresh season.",
     zh: "暂无进行中的赛季 — 第一次燃烧将开启新赛季。",
   },
+  seasonDormantHintWithLength: {
+    en: "No active season yet — the first burn starts a fresh {length} season. Only the top burner wins the pool; all other burns are forfeited to it.",
+    zh: "暂无进行中的赛季 — 第一次燃烧将开启一个 {length} 的新赛季。只有燃烧榜首赢得奖池，其余燃烧将被并入奖池。",
+  },
   seasonEndsIn: { en: "Ends in", zh: "剩余时间" },
   seasonEndedHint: {
     en: "The season has ended. Settle to award the {amount} pool to the top burner.",
@@ -59,6 +63,25 @@ const appMessages = {
     en: "Season settled — the pool was paid to the top burner.",
     zh: "赛季已结算 — 奖池已发放给燃烧榜首。",
   },
+  burnSuccess: {
+    en: "Burn confirmed — your season total is updated.",
+    zh: "燃烧已确认 — 你的赛季总量已更新。",
+  },
+  // ── Season length disclosure (read from seasonDuration()) ─────────────
+  seasonLengthLabel: { en: "Season length", zh: "赛季时长" },
+  durationSeconds: { en: "{count}s", zh: "{count} 秒" },
+  durationMinutes: { en: "{count} min", zh: "{count} 分钟" },
+  durationHours: { en: "{count}h", zh: "{count} 小时" },
+  durationDays: { en: "{count}d", zh: "{count} 天" },
+  // ── Exit path (withdraw unused prepaid burn-credit) ───────────────────
+  prepaidCreditLabel: { en: "Prepaid credit", zh: "预付额度" },
+  prepaidCreditHint: {
+    en: "Unused GAS from a burn that didn't complete. Reused on your next burn, or withdraw it now.",
+    zh: "未完成的燃烧所剩的 GAS。下次燃烧会复用，也可立即提取。",
+  },
+  withdrawCredit: { en: "Withdraw credit", zh: "提取额度" },
+  creditWithdrawn: { en: "Withdrew {amount} {tokenGas} prepaid credit", zh: "已提取预付额度 {amount} {tokenGas}" },
+  noCredit: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付额度" },
   settleBeforeBurn: {
     en: "The season has ended. Settle it before burning into a new season.",
     zh: "赛季已结束。请先结算，再燃烧进入新赛季。",
@@ -127,8 +150,8 @@ const appMessages = {
     zh: "带有赛季奖励的竞争性代币销毁",
   },
   docDescription: {
-    en: "Burn League is a competitive token burning platform where participants compete to burn the most tokens during seasonal competitions. Climb the leaderboard, earn points, and win exclusive rewards.",
-    zh: "Burn League 是一个竞争性代币销毁平台，参与者在赛季竞赛中竞争销毁最多的代币。攀登排行榜，赚取积分，赢取独家奖励。",
+    en: "Burn League is an all-pay seasonal contest: burn GAS into the season pool and climb the leaderboard. When the season is settled, ONLY the top burner wins the entire pool — every other burn is forfeited to the pool. It is winner-takes-all, not tiered rewards.",
+    zh: "Burn League 是一个全员付费的赛季竞赛：将 GAS 燃烧进赛季奖池并攀登排行榜。赛季结算时，只有燃烧榜首赢得全部奖池——其余所有燃烧都将并入奖池。这是赢者通吃，而非分级奖励。",
   },
   step1: {
     en: "Connect your Neo wallet and join the current season",
@@ -143,8 +166,8 @@ const appMessages = {
     zh: "在赛季结束前与他人竞争顶级位置",
   },
   step4: {
-    en: "Claim your seasonal rewards based on final ranking",
-    zh: "根据最终排名领取赛季奖励",
+    en: "When the season ends, the single top burner wins the entire pool — everyone else forfeits their burn",
+    zh: "赛季结束时，唯一的燃烧榜首赢得全部奖池——其他人的燃烧都将被没收",
   },
   feature1Name: { en: "Seasonal Competitions", zh: "赛季竞赛" },
   feature1Desc: {
@@ -156,10 +179,10 @@ const appMessages = {
     en: "All burns and rankings are transparently recorded on Neo N3.",
     zh: "所有销毁和排名都透明地记录在 Neo N3 上。",
   },
-  feature3Name: { en: "Burn-to-Earn", zh: "销毁奖励" },
+  feature3Name: { en: "Winner-Takes-All", zh: "赢者通吃" },
   feature3Desc: {
-    en: "Earn seasonal rewards based on your burn contribution.",
-    zh: "根据销毁贡献获取赛季奖励。",
+    en: "Only the season's top burner wins the entire pool; all other burns are forfeited to the pool.",
+    zh: "只有赛季燃烧榜首赢得全部奖池；其余所有燃烧都将并入奖池。",
   },
   // App-specific sidebar keys
   ariaLeaderboard: { en: "Leaderboard", zh: "排行榜" },

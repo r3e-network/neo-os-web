@@ -36,7 +36,8 @@ export interface UseWalletHealthOptions {
 
 export function useWalletHealth({ chain, balance, eventBus, storage, targetNetwork, t }: UseWalletHealthOptions) {
   const analysis = useWalletAnalysis({ chain, balance, eventBus, t });
-  const health = useHealthScore(analysis.gasOk, storage);
+  const isConnected = createDerived(() => Boolean(analysis.address.get()), [analysis.address]);
+  const health = useHealthScore(analysis.gasOk, isConnected, storage);
 
   // ── Formatted display values ─────────────────────────────────────────
   const connectionStatus = createDerived(
@@ -48,22 +49,32 @@ export function useWalletHealth({ chain, balance, eventBus, storage, targetNetwo
     if (targetNetwork === "mainnet") return "Neo N3 MainNet";
     return "Neo N3";
   }, []);
-  const isConnected = createDerived(() => Boolean(analysis.address.get()), [analysis.address]);
+
+  // Balances are em-dashes while disconnected so the 0/0.0000 defaults don't
+  // read as real zero balances.
+  const neoStatDisplay = createDerived(
+    () => (isConnected.get() ? analysis.neoDisplay.get() : "—"),
+    [isConnected, analysis.neoDisplay],
+  );
+  const gasStatDisplay = createDerived(
+    () => (isConnected.get() ? analysis.gasDisplay.get() : "—"),
+    [isConnected, analysis.gasDisplay],
+  );
 
   // ── Health stats array for the dashboard grid ────────────────────────
   const healthStats = createDerived<HealthStat[]>(
     () => [
       { label: t("statConnection"), value: connectionStatus.get() },
       { label: t("statNetwork"), value: networkLabel.get() },
-      { label: t("statNeo"), value: analysis.neoDisplay.get() },
-      { label: t("statGas"), value: analysis.gasDisplay.get() },
+      { label: t("statNeo"), value: neoStatDisplay.get() },
+      { label: t("statGas"), value: gasStatDisplay.get() },
       { label: t("statScore"), value: `${health.safetyScore.get()}%` },
     ],
     [
       connectionStatus,
       networkLabel,
-      analysis.neoDisplay,
-      analysis.gasDisplay,
+      neoStatDisplay,
+      gasStatDisplay,
       health.safetyScore,
     ],
   );
@@ -73,8 +84,9 @@ export function useWalletHealth({ chain, balance, eventBus, storage, targetNetwo
     address: analysis.address,
     isRefreshing: analysis.isRefreshing,
     isConnecting: analysis.isConnecting,
-    neoDisplay: analysis.neoDisplay,
-    gasDisplay: analysis.gasDisplay,
+    // Connection-gated so the hero/strip show "—" (not 0) while disconnected.
+    neoDisplay: neoStatDisplay,
+    gasDisplay: gasStatDisplay,
     refreshBalances: analysis.refreshBalances,
     connectWallet: analysis.connectWallet,
 

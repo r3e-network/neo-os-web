@@ -1,14 +1,25 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 import type { ConsoleToolConfig } from "@shared/components-react";
 import { previewId } from "@shared/components-react";
-import { getExternalIntegrationConfig } from "@shared/constants/rpc";
+import { getExternalIntegrationConfig, getNetwork } from "@shared/constants/rpc";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-oracle-http-console";
-const DEFAULT_HTTP_URL = `${getExternalIntegrationConfig("testnet").morpheusPublicApiUrl}/health`;
+// Default the example URL to the launched network's Morpheus public API (the
+// mainnet nitro worker is the restored lane; the testnet runtime is still the
+// degraded emergency runtime), so the seeded request targets a live endpoint.
+const DEFAULT_HTTP_URL = `${getExternalIntegrationConfig().morpheusPublicApiUrl}/health`;
+
+/**
+ * Resolve the network label from the launched network instead of a hardcoded
+ * "Morpheus Testnet" string (getNetwork() defaults to mainnet, the live lane).
+ */
+export function resolveNetworkLabel(): string {
+  return getNetwork() === "testnet" ? "Morpheus Testnet" : "Morpheus Mainnet";
+}
 
 export const appMeta = {
-  networkLabel: "Morpheus Testnet",
+  networkLabel: resolveNetworkLabel(),
   endpointLabel: "HTTP data request",
 };
 
@@ -49,6 +60,36 @@ const clean = (value: string | undefined, fallback: string) => {
   return text.length > 0 ? text : fallback;
 };
 
+/**
+ * Lightweight JSONPath validity check: the extraction path must start with the
+ * root `$`, have balanced `[`/`]`, and contain no empty `..` / trailing `.`
+ * segments. This is a syntax sanity gate (matching the http(s) URL row), not a
+ * full JSONPath engine — a typo like `$status`, `status.`, or `$.a[` is caught
+ * before the request would be bound on-chain.
+ */
+export function isValidJsonPath(path: string): boolean {
+  if (!path.startsWith("$")) return false;
+  // After the root `$`, the path must either end or continue with `.` (member
+  // / recursive descent) or `[` (subscript). `$status` (root glued to a key) is
+  // rejected — exactly the typo this row is meant to catch.
+  if (path.length > 1 && path[1] !== "." && path[1] !== "[") return false;
+  let depth = 0;
+  for (const char of path) {
+    if (char === "[") depth += 1;
+    else if (char === "]") {
+      depth -= 1;
+      if (depth < 0) return false;
+    }
+  }
+  if (depth !== 0) return false;
+  // Reject empty dotted segments: a trailing dot or `..` (other than the
+  // recursive-descent `..` operator, which is followed by a key or `*`).
+  if (/\.$/.test(path)) return false;
+  if (/\.\.(?![A-Za-z0-9_*[])/.test(path)) return false;
+  if (/\.(?=[.])/.test(path.replace(/\.\./g, ""))) return false;
+  return true;
+}
+
 export const consoleConfig: ConsoleToolConfig = {
   titleKey: "panelTitle",
   eyebrowKey: "panelEyebrow",
@@ -88,30 +129,42 @@ export const consoleConfig: ConsoleToolConfig = {
     } catch {
       urlValid = false;
     }
+    // Validate the extraction path too: a typo'd path (`$status`, `status.`)
+    // would otherwise preview as "ready" and only fail after on-chain binding.
+    const pathValid = isValidJsonPath(jsonPath);
+    const inputOk = urlValid && pathValid;
+    const status = !urlValid
+      ? t("httpInvalidUrl")
+      : !pathValid
+        ? t("httpInvalidPath")
+        : t("httpReady");
     const digest = previewId(`${method}|${url}|${jsonPath}|${body}`);
 
     return {
-      status: urlValid ? t("httpReady") : t("httpInvalidUrl"),
-      summary: urlValid ? t("httpSummary", { method }) : t("httpInvalidUrl"),
+      status,
+      summary: inputOk ? t("httpSummary", { method }) : status,
       rows: [
         { label: t("method"), value: method },
         { label: t("url"), value: url },
         { label: t("urlValid"), value: urlValid ? t("yes") : t("no") },
         { label: t("jsonPath"), value: jsonPath },
+        { label: t("pathValid"), value: pathValid ? t("yes") : t("no") },
         { label: t("statDigest"), value: digest },
       ],
       payload: {
         kind: "oracle.http.request",
-        // A failed http(s) scheme check is a validation failure: flag it as
-        // input_required so the shared ConsoleToolPanel classifies the preview as
-        // a warning (no success toast, no Requests increment, digest placeholder
-        // preserved) — matching the visible "URL valid: No" row instead of
-        // contradicting it with a green success signal.
-        ...(urlValid ? {} : { status: "input_required" as const }),
+        // A failed http(s) scheme or JSONPath syntax check is a validation
+        // failure: flag it as input_required so the shared ConsoleToolPanel
+        // classifies the preview as a warning (no success toast, no Requests
+        // increment, digest placeholder preserved) — matching the visible
+        // "URL valid: No" / "Path valid: No" rows instead of contradicting them
+        // with a green success signal.
+        ...(inputOk ? {} : { status: "input_required" as const }),
         method,
         url,
         urlValid,
         jsonPath,
+        pathValid,
         body,
         digest,
       },
@@ -139,12 +192,17 @@ const appMessages = {
   bodyPlaceholder: { en: "Optional POST body", zh: "可选 POST body" },
   httpReady: { en: "HTTP request ready", zh: "HTTP 请求已准备" },
   httpInvalidUrl: { en: "Enter a valid http(s) URL", zh: "请输入有效的 http(s) 网址" },
+  httpInvalidPath: { en: "Enter a valid JSON path (start with $)", zh: "请输入有效的 JSON 路径（以 $ 开头）" },
   urlValid: { en: "URL valid", zh: "网址有效" },
+  pathValid: { en: "Path valid", zh: "路径有效" },
+  yes: { en: "Yes", zh: "是" },
+  no: { en: "No", zh: "否" },
   httpSummary: { en: "{method} oracle request prepared", zh: "{method} 预言机请求已准备" },
   statNetwork: { en: "Network", zh: "网络" },
   statEndpoint: { en: "Mode", zh: "模式" },
   statRequests: { en: "Requests", zh: "请求数" },
   statDigest: { en: "Digest", zh: "摘要" },
+  digestPlaceholder: { en: "—", zh: "—" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   docsSubtitle: {
     en: "A focused request builder for HTTP-backed Morpheus oracle reads.",

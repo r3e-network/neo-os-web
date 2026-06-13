@@ -22,7 +22,7 @@ defineMiniApp({
       () => proofContract.proofs.get().length,
       [proofContract.proofs],
     );
-    const yourProofs = proofContract.myProofsCount;
+    const anchoredProofs = proofContract.anchoredCount;
     const latestId: Observable<string> = {
       get: () => {
         const all = proofContract.proofs.get();
@@ -76,19 +76,26 @@ defineMiniApp({
       proofContract.clearVerifyError();
     });
 
+    ctx.registerAction("anchorProof", async (...args: unknown[]) => {
+      await proofContract.anchorProof(Number(args[0] ?? 0), (msg, type) =>
+        ctx.setStatus(msg, type === "success" ? "success" : type === "error" ? "error" : "info"),
+      );
+    });
+
     return {
       state: {
         totalProofs,
-        yourProofs,
+        anchoredProofs,
         isCreating: proofContract.isCreating,
         isVerifying: proofContract.isVerifying,
+        isAnchoring: proofContract.isAnchoring,
+        anchoringId: proofContract.anchoringId,
         proofs: proofContract.proofs,
         verifiedProof: proofContract.verifiedProof,
         verifyError: proofContract.verifyError,
         lastMessage: proofContract.lastMessage,
         latestId,
-        // Bound so wallet connect/switch re-reads `yourProofs` (the derive
-        // reads the address-backed `currentActor()`).
+        // Bound so wallet connect/switch re-reads address-derived state.
         address: proofContract.address,
       },
       loadData: proofContract.loadProofs,

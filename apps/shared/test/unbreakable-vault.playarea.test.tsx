@@ -28,6 +28,11 @@ function t(key: string) {
     difficultyHard: "Hard",
     secretLabel: "Vault Secret",
     secretPlaceholder: "Enter a secret phrase",
+    confirmSecretLabel: "Confirm Secret",
+    confirmSecretPlaceholder: "Re-enter the secret",
+    secretMismatch: "Secrets do not match",
+    minBountyNote: "Minimum bounty: 1 GAS",
+    bountyPlaceholder: "Minimum 1",
     secretNote: "Secret is hashed locally; only the hash is stored on-chain.",
     breakVault: "Break a Vault",
     vaultIdLabel: "Vault ID",
@@ -44,10 +49,19 @@ function t(key: string) {
     active: "Active",
     broken: "Broken",
     expired: "Expired",
+    claimable: "Claimable",
     attemptFee: "Attempt Fee",
+    attempts: "Attempts",
+    winner: "Winner",
+    remainingDaysLabel: "Days Left",
+    tokenGas: "GAS",
     secretAttemptLabel: "Break Secret",
     attemptCostNote: "The attempt fee is charged on every try.",
     bountyPaidNote: "This vault is broken — the bounty was paid to the winner.",
+    increaseBounty: "Add Bounty",
+    increaseBountyLabel: "Increase Bounty (GAS)",
+    increaseBountyPlaceholder: "Amount of GAS to add",
+    mainnetVaultNote: "On mainnet, the GAS deposit and contract call are batched by the host's operation panel.",
   };
   return messages[key] ?? key;
 }
@@ -58,6 +72,12 @@ const activeVault = {
   status: "active",
   winner: "",
   attemptFee: 10000000,
+  bounty: 500000000, // 5 GAS in base units
+  attempts: 4,
+  remainingDays: 9,
+  title: "Crack me if you can",
+  description: "Hint: it rhymes with cat",
+  difficultyName: "Medium",
 };
 const brokenVault = {
   id: "7",
@@ -120,6 +140,9 @@ describe("Unbreakable Vault PlayArea", () => {
     fireEvent.change(screen.getByLabelText("Vault Secret"), {
       target: { value: "open sesame" },
     });
+    fireEvent.change(screen.getByLabelText("Confirm Secret"), {
+      target: { value: "open sesame" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Create Vault (bounty + hash)" }));
 
     await waitFor(() => {
@@ -134,6 +157,20 @@ describe("Unbreakable Vault PlayArea", () => {
         }),
       );
     });
+  });
+
+  it("blocks create on a secret/confirm mismatch and shows the mismatch error", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Vault Title"), { target: { value: "Crack me" } });
+    fireEvent.change(screen.getByLabelText("Bounty"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("Vault Secret"), { target: { value: "open sesame" } });
+    fireEvent.change(screen.getByLabelText("Confirm Secret"), { target: { value: "typo" } });
+
+    expect(screen.getByText("Secrets do not match")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Create Vault (bounty + hash)" }),
+    ).toHaveProperty("disabled", true);
   });
 
   it("requires the minimum bounty before enabling create", () => {
@@ -231,6 +268,73 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(screen.queryByRole("button", { name: "Reclaim Vault" })).toBeNull();
     expect(
       screen.getByText("The attempt fee is charged on every try."),
+    ).toBeTruthy();
+  });
+
+  it("surfaces the bounty, title, hint, attempts and days-left a challenger needs before paying", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({ vaultIdInput: "7", vaultDetails: activeVault, canReclaim: false })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    // Previously all of these were fetched but never rendered.
+    expect(screen.getByText("Crack me if you can")).toBeTruthy();
+    expect(screen.getByText("Hint: it rhymes with cat")).toBeTruthy();
+    expect(screen.getByText("5 GAS")).toBeTruthy(); // 5e8 base units → 5 GAS bounty
+    expect(screen.getByText("Medium")).toBeTruthy();
+    expect(screen.getByText("4")).toBeTruthy(); // attempts
+    expect(screen.getByText("9")).toBeTruthy(); // days left
+  });
+
+  it("dispatches increaseBounty with the loaded vault id and the entered amount", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlayArea
+        t={t}
+        state={state({ vaultIdInput: "7", vaultDetails: activeVault, canReclaim: false })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Increase Bounty (GAS)"), {
+      target: { value: "2.5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add Bounty" }));
+
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("increaseBounty", "7", "2.5");
+    });
+  });
+
+  it("localizes recent-vault statuses instead of rendering raw enum text", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          recentVaults: [{ id: "3", creator: "0xc", bounty: 0, status: "claimable" }],
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+    // The raw "claimable" enum is mapped to the localized label.
+    expect(screen.getByText("Claimable")).toBeTruthy();
+    expect(screen.queryByText("claimable")).toBeNull();
+  });
+
+  it("shows the honest mainnet handoff note when launched on mainnet", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state()}
+        dispatch={vi.fn()}
+        launchContext={{ network: "mainnet" }}
+      />,
+    );
+    expect(
+      screen.getByText(/the GAS deposit and contract call are batched/),
     ).toBeTruthy();
   });
 });

@@ -38,6 +38,16 @@ const appMessages = {
   treasuryLiveSynced: { en: "Live balances synced", zh: "实时余额已同步" },
   treasuryLiveLoading: { en: "Reading public chain data", zh: "正在读取公开链上数据" },
   treasuryLivePending: { en: "Live data pending", zh: "实时数据待同步" },
+  treasuryStale: { en: "Showing cached data", zh: "显示缓存数据" },
+  treasuryWalletsUnreachable: {
+    en: "{count} wallets unreachable",
+    zh: "{count} 个钱包无法访问",
+  },
+  treasuryPriceFeedUnavailable: {
+    en: "Price feed unavailable — USD totals hidden",
+    zh: "价格源不可用 — 已隐藏美元总额",
+  },
+  treasuryWatchlistNetwork: { en: "Watchlist data: Mainnet", zh: "监控数据：主网" },
   treasuryPendingHint: { en: "Public balances load independently from connected-wallet payout actions.", zh: "公开余额读取与连接钱包支出操作相互独立。" },
   treasurySyncedHint: { en: "Totals are assembled from public NEO and GAS balances.", zh: "总额由公开 NEO 与 GAS 余额汇总。" },
   treasuryReadOnlyRoute: { en: "Transparency and payout route", zh: "透明度与支出路径" },
@@ -98,7 +108,9 @@ const appMessages = {
   refreshData: { en: "Refresh Data", zh: "刷新数据" },
   tokenNeo: { en: "NEO", zh: "NEO" },
   tokenGas: { en: "GAS", zh: "GAS" },
-  currencySymbol: { en: "$", zh: "¥" },
+  // USD-denominated regardless of locale — both locales use the $ prefix so a
+  // zh user never sees "¥4,123,456" for a dollar figure.
+  currencySymbol: { en: "$", zh: "$" },
   trendUp: { en: "▲", zh: "▲" },
   trendDown: { en: "▼", zh: "▼" },
   approxEqual: { en: "≈ ", zh: "≈ " },

@@ -253,7 +253,16 @@ describe("Burn League PlayArea", () => {
     );
 
     expect(screen.getByText("#1")).toBeTruthy();
-    expect(screen.getByText("12 GAS")).toBeTruthy();
+    // The burned amount is now rendered with consistent 2-decimal GAS
+    // formatting (formatNumber(burned, 2) + " GAS"), and the value + unit are
+    // split across text nodes inside the <strong>, so match on the element's
+    // normalized text content.
+    expect(
+      screen.getByText((_, element) => {
+        if (!element || element.tagName !== "STRONG") return false;
+        return element.textContent?.replace(/\s+/g, " ").trim() === "12.00 GAS";
+      }),
+    ).toBeTruthy();
     expect(screen.queryByText("No leaderboard entries yet")).toBeNull();
   });
 });

@@ -1,30 +1,34 @@
 /**
- * useForeverAlbum — Domain logic for the Forever Album miniapp
+ * useForeverAlbum — Domain logic for the Forever Album miniapp.
  *
- * Uses OS service proxies to build contract intents, then submits those
- * intents through ChainService so uploads become real wallet-signed writes.
+ * STORAGE MODEL: ON-DEVICE, wallet-scoped.
  *
- * Migration from direct chain calls to OS services:
+ * The earlier design wrote each 45KB photo as an OS-storage kernel record
+ * through ctx.os.storage + ChainService. That path was broken three ways:
+ *   1. EdgeClient AUTO-SUBMITTED the storage intent and the composable
+ *      re-invoked the SAME intent — two wallet prompts + two duplicate paid
+ *      writes per photo.
+ *   2. The list read used a bare-prefix getMiniAppState (a single-key read), so
+ *      the gallery was permanently empty even after a successful upload.
+ *   3. A 45KB on-chain blob costs ~45 GAS in storage fees at sign time, and the
+ *      mainnet storage kernel hash is an "Unknown contract" — uploads failed
+ *      outright on the default network.
  *
- *   BEFORE (chain):
- *     chain.read("getUserPhotoCount", [...])
- *     chain.read("getUserPhotoIds", [...])
- *     chain.read("getPhoto", [...])
- *     chain.invoke("uploadPhotos", [...])
- *     chain.ensureWallet()
+ * On-chain 45KB photo storage is impractical (cost) and unavailable (kernel),
+ * so the honest model is LOCAL-ONLY: photos live in this browser, keyed by the
+ * connected wallet address. Encryption (AES-GCM, password never leaves the
+ * device) still gives real privacy. Nothing is written on-chain — no wallet
+ * prompt, no GAS, no kernel dependency — and the UI copy says so plainly.
  *
- *   AFTER (OS proxy):
- *     storageService.list("photos:<wallet>:", 50) -> ChainService.read(...)
- *     storageService.set("photos:<wallet>:<id>", photo) -> ChainService.invoke(...)
- *     badgeService.award("album-creator", "")
+ * The wallet is still the album's identity: each wallet address has its own
+ * device-local album, so switching wallets switches albums. Photos persist
+ * across reloads in localStorage; they do NOT sync across devices.
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService, ContractArg, TxResult } from "@shared/services";
-import type { NFTProxy } from "@shared/services/os/NFTProxy";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type { ChainService } from "@shared/services";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { decryptPayload, encryptPayload } from "../utils/crypto";
 import type { PhotoItem, UploadItem } from "../types";
 
@@ -36,106 +40,77 @@ const MAX_PHOTOS_PER_UPLOAD = 5;
 const MAX_PHOTO_BYTES = 45000;
 const MAX_TOTAL_BYTES = 60000;
 
+/** localStorage key prefix for a wallet's device-local album. */
+const ALBUM_STORE_PREFIX = "forever-album:photos:";
+
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface UseForeverAlbumOptions {
-  /** Chain service used to read and submit OS service intents. */
+  /** Chain service — used ONLY to read the connected wallet address (album id). */
   chainService: ChainService;
-  /** OS NFTProxy instance from ctx.os.nft */
-  nftService: NFTProxy;
-  /** OS StorageProxy instance from ctx.os.storage */
-  storageService: StorageProxy;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
-  /** EventBus for UI events */
+  /** EventBus for UI events. */
   eventBus: { emit: (event: string, payload?: unknown) => void };
-  /** Translation function */
+  /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
-
-// ============================================================================
-// Helpers
-// ============================================================================
 
 interface StoredPhoto {
   id: string;
   data: string;
   encrypted: boolean;
   createdAt: number;
-  owner?: string;
-  txid?: string;
 }
 
-interface InvocationIntent {
-  contract: string;
-  operation: string;
-  args: ContractArg[];
-}
+// ============================================================================
+// Helpers
+// ============================================================================
 
-function isInvocationIntent(value: unknown): value is InvocationIntent {
-  if (!value || typeof value !== "object") return false;
-  const data = value as Partial<InvocationIntent>;
-  return Boolean(data.contract && data.operation && Array.isArray(data.args));
-}
-
-function walletPhotoPrefix(walletAddress: string): string {
-  return `photos:${walletAddress}:`;
+/** localStorage key for a wallet's album (device-local). */
+function albumStoreKey(walletAddress: string): string {
+  return `${ALBUM_STORE_PREFIX}${walletAddress}`;
 }
 
 /**
- * Estimate the stored payload length the chain check will measure for a single
- * item. When `encrypted` is false the data-URL is written verbatim, so the
- * length is the data-URL length. When encrypted it is wrapped by
+ * Estimate the stored payload length for a single item. When `encrypted` is
+ * false the data-URL is stored verbatim. When encrypted it is wrapped by
  * encryptPayload() into an AES-GCM JSON envelope, which inflates the base64
- * ciphertext (~4/3) and adds a fixed wrapper (JSON keys + salt + iv). Mirroring
- * that growth here keeps the upload meter and gate in agreement with
- * uploadPhotos()'s `payload.length` checks.
+ * ciphertext (~4/3) and adds a fixed wrapper. Mirroring that growth keeps the
+ * upload meter and gate in agreement with uploadPhotos()'s size checks.
  */
 function estimatePayloadBytes(dataUrlLength: number, encrypted: boolean): number {
   if (!encrypted) return dataUrlLength;
-  // AES-GCM ciphertext = plaintext bytes + 16-byte auth tag, base64-encoded.
   const dataB64 = Math.ceil((dataUrlLength + 16) / 3) * 4;
-  // Fixed JSON wrapper (51) + salt base64 (24) + iv base64 (16) = 91 chars.
   return dataB64 + 91;
 }
 
 function normalizeStoredPhoto(value: unknown): StoredPhoto | null {
-  let raw = value;
-  if (typeof raw === "string") {
-    try {
-      raw = JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  }
-  if (!raw || typeof raw !== "object") return null;
-  const item = raw as Partial<StoredPhoto>;
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<StoredPhoto>;
   if (!item.id || !item.data) return null;
   return {
     id: String(item.id),
     data: String(item.data),
     encrypted: Boolean(item.encrypted),
     createdAt: Number(item.createdAt || 0),
-    owner: item.owner ? String(item.owner) : undefined,
-    txid: item.txid ? String(item.txid) : undefined,
   };
 }
 
-function normalizePhotoEntries(value: unknown): StoredPhoto[] {
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    return value
-      .map((entry) => normalizeStoredPhoto(entry))
+function readAlbum(walletAddress: string): StoredPhoto[] {
+  try {
+    const raw = readCachedJSON<StoredPhoto[]>(albumStoreKey(walletAddress));
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map(normalizeStoredPhoto)
       .filter((entry): entry is StoredPhoto => Boolean(entry));
+  } catch {
+    return [];
   }
-  if (typeof value === "object") {
-    return Object.values(value as Record<string, unknown>)
-      .map((entry) => normalizeStoredPhoto(entry))
-      .filter((entry): entry is StoredPhoto => Boolean(entry));
-  }
-  return [];
+}
+
+function writeAlbum(walletAddress: string, photos: StoredPhoto[]): void {
+  writeCachedJSON(albumStoreKey(walletAddress), photos);
 }
 
 // ============================================================================
@@ -144,9 +119,6 @@ function normalizePhotoEntries(value: unknown): StoredPhoto[] {
 
 export function useForeverAlbum({
   chainService,
-  nftService,
-  storageService,
-  badgeService,
   eventBus,
   t,
 }: UseForeverAlbumOptions) {
@@ -161,6 +133,10 @@ export function useForeverAlbum({
   const decryptTarget = createObservable<PhotoItem | null>(null);
   const decrypting = createObservable(false);
   const decryptedPreview = createObservable("");
+  // Wrong-password / invalid-payload feedback, rendered in the decrypt card.
+  // (The earlier code emitted on a dead "album:error" eventBus channel, so a
+  // wrong password gave the user no feedback at all.)
+  const decryptError = createObservable("");
 
   // ── Upload state ─────────────────────────────────────────────────────
   const showUpload = createObservable(false);
@@ -169,10 +145,9 @@ export function useForeverAlbum({
   const selectedImages = createObservable<UploadItem[]>([]);
   const isEncrypted = createObservable(false);
   const password = createObservable("");
-  const lastTx = createObservable<TxResult | null>(null);
-  // Surface the hard transaction-size limit as a read-only observable so the
-  // view's disable gate and progress meter can be sourced from the same number
-  // uploadPhotos() enforces (MAX_TOTAL_BYTES), instead of a divergent constant.
+
+  // Surface the hard total-size limit as a read-only observable so the view's
+  // disable gate and meter source the same number uploadPhotos() enforces.
   const maxTotalBytes: Observable = {
     get: () => MAX_TOTAL_BYTES,
     set: () => {},
@@ -200,11 +175,7 @@ export function useForeverAlbum({
       const encrypted = isEncrypted.get();
       return selectedImages
         .get()
-        .reduce(
-          (sum, item) =>
-            sum + estimatePayloadBytes(item.payloadBytes, encrypted),
-          0,
-        );
+        .reduce((sum, item) => sum + estimatePayloadBytes(item.payloadBytes, encrypted), 0);
     },
     set: () => {},
     subscribe: (listener) => {
@@ -217,29 +188,9 @@ export function useForeverAlbum({
     },
   };
 
-  // ── Photo loading (via StorageProxy) ────────────────────────────────
+  // ── Photo loading (device-local) ────────────────────────────────────
 
-  async function resolveReadIntent(value: unknown): Promise<unknown> {
-    if (!isInvocationIntent(value)) return value;
-    return chainService.read(value.operation, value.args, {
-      scriptHash: value.contract,
-    });
-  }
-
-  async function submitWriteIntent(value: unknown): Promise<TxResult | null> {
-    if (!isInvocationIntent(value)) return null;
-    const tx = await chainService.invoke(value.operation, value.args, {
-      scriptHash: value.contract,
-    });
-    lastTx.set(tx);
-    return tx;
-  }
-
-  /**
-   * Load all wallet-scoped photos via StorageProxy.list().
-   * The proxy may return either concrete data or a read intent depending on
-   * environment; both paths are handled here.
-   */
+  /** Load the connected wallet's device-local album, newest first. */
   const loadPhotos = async () => {
     loadingPhotos.set(true);
     try {
@@ -248,10 +199,7 @@ export function useForeverAlbum({
         photos.set([]);
         return;
       }
-      const photoMap = await resolveReadIntent(
-        await storageService.list(walletPhotoPrefix(walletAddress), 50),
-      );
-      const entries = normalizePhotoEntries(photoMap).map((stored) => ({
+      const entries = readAlbum(walletAddress).map((stored) => ({
         id: stored.id,
         data: stored.data,
         encrypted: stored.encrypted,
@@ -271,6 +219,7 @@ export function useForeverAlbum({
     if (photo.encrypted) {
       decryptTarget.set(photo);
       decryptedPreview.set("");
+      decryptError.set("");
       showDecrypt.set(true);
       return;
     }
@@ -286,13 +235,11 @@ export function useForeverAlbum({
   // ── Decryption ───────────────────────────────────────────────────────
 
   const openDecrypt = () => {
-    // Carry the photo being viewed into the decrypt flow so handleDecrypt has a
-    // valid target. Without this, opening decrypt from the viewer card would
-    // leave decryptTarget null and handleDecrypt would silently no-op.
     const current = viewingPhoto.get();
     if (current) {
       decryptTarget.set(current);
       decryptedPreview.set("");
+      decryptError.set("");
     }
     showViewer.set(false);
     showDecrypt.set(true);
@@ -302,13 +249,22 @@ export function useForeverAlbum({
     showDecrypt.set(false);
     decryptTarget.set(null);
     decryptedPreview.set("");
+    decryptError.set("");
   };
 
+  /**
+   * Decrypt the selected encrypted photo with the supplied password. On a wrong
+   * password / malformed payload the error is surfaced via the decryptError
+   * observable (rendered in the decrypt card) AND rethrown so the host's
+   * notify.guard errorKey also fires — the user always gets feedback.
+   */
   const handleDecrypt = async (pwd: string) => {
     const target = decryptTarget.get();
+    decryptError.set("");
     if (!target || !pwd) {
-      eventBus.emit("album:error", { message: t("passwordRequired") });
-      return;
+      const message = t("passwordRequired");
+      decryptError.set(message);
+      throw new Error(message);
     }
     decrypting.set(true);
     try {
@@ -316,21 +272,26 @@ export function useForeverAlbum({
       if (!result.startsWith("data:image")) throw new Error(t("invalidPayload"));
       decryptedPreview.set(result);
     } catch (e) {
-      eventBus.emit("album:error", {
-        message: e instanceof Error ? e.message : t("decryptFailed"),
-      });
+      // A failed AES-GCM decrypt (wrong password) throws an opaque DOMException;
+      // map it to the localized decrypt-failed message for both surfaces.
+      const message = e instanceof Error && e.message === t("invalidPayload")
+        ? e.message
+        : t("decryptFailed");
+      decryptError.set(message);
+      throw new Error(message);
     } finally {
       decrypting.set(false);
     }
   };
 
-  // ── Upload (via NFTProxy + StorageProxy) ────────────────────────────
+  // ── Upload (device-local) ──────────────────────────────────────────
 
   const openUpload = () => {
     showUpload.set(true);
     selectedImages.set([]);
     isEncrypted.set(false);
     password.set("");
+    uploadError.set(null);
   };
 
   const closeUpload = () => {
@@ -353,7 +314,9 @@ export function useForeverAlbum({
 
   /**
    * Read browser File objects, convert to data URLs, and append as upload items.
-   * Returns the list of items that were successfully read.
+   * Rejections (max-photos / too-large) are surfaced on the rendered uploadError
+   * observable — the earlier code emitted them on a dead eventBus channel, so an
+   * oversized image silently vanished from the selection.
    */
   const addFiles = async (files: File[] | FileList) => {
     const list = Array.from(files);
@@ -361,19 +324,17 @@ export function useForeverAlbum({
     uploadError.set(null);
     const availableSlots = Math.max(0, MAX_PHOTOS_PER_UPLOAD - selectedImages.get().length);
     if (availableSlots === 0) {
-      eventBus.emit("album:error", { message: t("maxPhotosReached") });
+      uploadError.set(t("maxPhotosReached"));
       return [];
     }
     const additions: UploadItem[] = [];
+    let rejectedTooLarge = false;
     for (const file of list.slice(0, availableSlots)) {
       if (!file.type.startsWith("image/")) continue;
       try {
         const dataUrl = await readFileAsDataUrl(file);
-        // The chain check measures the stored data-URL length, not raw file
-        // bytes, so guard against the same quantity to avoid accepting an image
-        // that would throw at sign time.
         if (dataUrl.length > MAX_PHOTO_BYTES) {
-          eventBus.emit("album:error", { message: t("imageTooLarge") });
+          rejectedTooLarge = true;
           continue;
         }
         additions.push({
@@ -389,26 +350,31 @@ export function useForeverAlbum({
     if (additions.length > 0) {
       selectedImages.set([...selectedImages.get(), ...additions]);
     }
+    // Surface a too-large rejection (only when nothing else masked it).
+    if (rejectedTooLarge) uploadError.set(t("imageTooLarge"));
+    if (list.length > availableSlots) uploadError.set(t("maxPhotosReached"));
     return additions;
   };
 
   /**
-   * Upload photos as wallet-scoped OS storage records. Each proxy call returns
-   * a contract intent and ChainService submits it through the connected wallet.
+   * Save the selected photos into the wallet's device-local album. Encrypted
+   * photos are stored as AES-GCM ciphertext only. No on-chain write, no wallet
+   * prompt, no GAS — the album lives in this browser.
    */
   const uploadPhotos = async () => {
     if (uploading.get() || selectedImages.get().length === 0) return;
     if (isEncrypted.get() && !password.get()) {
       const message = t("passwordRequired");
       uploadError.set(message);
-      eventBus.emit("album:error", { message });
-      return;
+      throw new Error(message);
     }
 
     uploading.set(true);
     uploadError.set(null);
     try {
-      const walletAddress = await chainService.ensureWallet();
+      const walletAddress = chainService.address.get() || (await chainService.ensureWallet());
+      if (!walletAddress) throw new Error(t("connectPromptTitle"));
+
       const records: StoredPhoto[] = [];
       let totalSize = 0;
       const createdAt = Date.now();
@@ -424,109 +390,36 @@ export function useForeverAlbum({
           data: payload,
           encrypted: isEncrypted.get(),
           createdAt: createdAt + index,
-          owner: walletAddress,
         });
       }
 
-      // Each photo is an independent wallet-signed write, so a mid-loop
-      // failure (rejection, network, revert) can strand already-persisted
-      // records on-chain. Track which records landed and, on failure,
-      // best-effort delete them so the album does not show a partial upload
-      // the user did not intend, then surface a precise "N of M" message and
-      // keep the un-uploaded photos selected so the user retries only those.
-      const landed: StoredPhoto[] = [];
-      for (const record of records) {
-        const key = `${walletPhotoPrefix(walletAddress)}${record.id}`;
-        try {
-          const tx = await submitWriteIntent(await storageService.set(key, record));
-          if (tx?.txid) record.txid = tx.txid;
-          landed.push(record);
-        } catch (writeErr) {
-          if (landed.length > 0) {
-            // Compensate: roll back the records that already landed. If every
-            // delete succeeds the album is left clean; if any rollback fails,
-            // surface a distinct recoverable message so the partial state is
-            // not hidden.
-            let rollbackClean = true;
-            for (const placed of landed) {
-              try {
-                await submitWriteIntent(
-                  await storageService.delete(
-                    `${walletPhotoPrefix(walletAddress)}${placed.id}`,
-                  ),
-                );
-              } catch (rollbackErr) {
-                rollbackClean = false;
-                console.error(
-                  "[useForeverAlbum] uploadPhotos: rollback delete failed",
-                  rollbackErr instanceof Error
-                    ? rollbackErr.message
-                    : String(rollbackErr),
-                );
-              }
-            }
-            if (!rollbackClean) {
-              // Some landed records could not be deleted — the album may show a
-              // partial upload. Keep the whole selection so the user can resume,
-              // and surface a distinct recoverable message.
-              throw new Error(
-                t("uploadPartialRecoverable", {
-                  done: landed.length,
-                  total: records.length,
-                }),
-              );
-            }
-          }
-          // Rollback was clean (or nothing had landed): no records remain
-          // on-chain, so the full batch is intact and safe to retry without
-          // creating duplicates. The original selection is already preserved
-          // (only a fully successful upload clears it), so just surface the
-          // failure with context.
-          const failureMessage = t("uploadRolledBack", {
-            total: records.length,
-          });
-          throw writeErr instanceof Error
-            ? new Error(`${failureMessage} ${writeErr.message}`)
-            : new Error(failureMessage);
-        }
-      }
-
-      // Mint a lightweight album marker when the backend supports it. The
-      // durable photo payload is already written above, so marker failures do
-      // not hide successful uploads or block viewing.
-      await nftService
-        .mint({
-          type: "album-upload",
-          photoIds: records.map((record) => record.id),
-          count: records.length,
-          encrypted: isEncrypted.get(),
-          createdAt,
-        })
-        .then(submitWriteIntent)
-        .catch(() => {});
+      // Persist atomically: append to the existing album and write once. A
+      // device-local write either fully succeeds or throws — no partial state.
+      const existing = readAlbum(walletAddress);
+      writeAlbum(walletAddress, [...existing, ...records]);
 
       eventBus.emit("album:uploaded", { action: t("uploadSuccess") });
       uploadError.set(null);
-
-      // Hint badge for album creator (fire-and-forget)
-      badgeService.award("album-creator", "").catch(() => {});
-
       closeUpload();
       selectedImages.set([]);
       await loadPhotos();
     } catch (e) {
-      const rawMessage = e instanceof Error ? e.message : t("uploadFailed");
-      const message = /putMiniAppState|deleteMiniAppState|getMiniAppState|doesn'?t exist in the contract/i.test(rawMessage)
-        ? t("storageKernelUnavailable")
-        : rawMessage;
+      const message = e instanceof Error ? e.message : t("uploadFailed");
       uploadError.set(message);
-      eventBus.emit("album:error", {
-        message,
-      });
       throw e;
     } finally {
       uploading.set(false);
     }
+  };
+
+  /** Delete a photo from the wallet's device-local album. */
+  const deletePhoto = async (id: string) => {
+    const walletAddress = chainService.address.get();
+    if (!walletAddress || !id) return;
+    const remaining = readAlbum(walletAddress).filter((photo) => photo.id !== id);
+    writeAlbum(walletAddress, remaining);
+    if (viewingPhoto.get()?.id === id) closeViewer();
+    await loadPhotos();
   };
 
   return {
@@ -546,6 +439,7 @@ export function useForeverAlbum({
     decryptTarget,
     decrypting,
     decryptedPreview,
+    decryptError,
 
     // ── Upload state ─────────────────────────────────────────────────
     showUpload,
@@ -556,7 +450,6 @@ export function useForeverAlbum({
     password,
     totalPayloadSize,
     maxTotalBytes,
-    lastTx,
 
     // ── Constants ────────────────────────────────────────────────────
     MAX_PHOTOS_PER_UPLOAD,
@@ -574,6 +467,7 @@ export function useForeverAlbum({
     addFiles,
     removeImage,
     uploadPhotos,
+    deletePhoto,
   };
 }
 

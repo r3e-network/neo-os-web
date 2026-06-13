@@ -98,7 +98,10 @@ export function parsePool(id: string, raw: unknown): GasLuckyPool | null {
   const maxClaims = asNumber(raw[4]);
   const remainingAmount = asBigInt(raw[6]);
   const active = Boolean(raw[10]);
-  const expired = expiryTime > 0 && Math.floor(Date.now() / 1000) > expiryTime;
+  // ExpiryTime is stored in MILLISECONDS on-chain (Runtime.Time is ms on Neo N3),
+  // so compare against Date.now() directly — dividing by 1000 made every live
+  // pool's expiry look ~1000× in the past and rendered expired pools as active.
+  const expired = expiryTime > 0 && Date.now() > expiryTime;
   const empty = remainingAmount <= 0n || claimedCount >= maxClaims;
   const status: GasPoolStatus = empty
     ? "empty"

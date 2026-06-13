@@ -48,9 +48,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     val<AnchorActionHistoryItem[]>("actionHistory", []) ?? [];
   const agentCount = num("agentCount");
   const pendingRewards = num("pendingRewards");
-  const myStake = num("myStake");
+  const pendingWithdraw = num("pendingWithdraw");
   const myStakeDisplay = str("myStakeDisplay", "0 NEO");
   const pendingRewardsDisplay = str("pendingRewardsDisplay", "0 GAS");
+  const pendingWithdrawDisplay = str("pendingWithdrawDisplay", "0 NEO");
   const rewardReserveDisplay = str("rewardReserveDisplay", "0 GAS");
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
@@ -101,23 +102,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       done: claimReady,
     },
   ];
-  // Hero surfaces the three core metrics; "—" placeholder before wallet data lands.
+  // Hero surfaces the three core metrics; "—" placeholder before wallet/chain
+  // data lands. Once stats are loaded a genuine on-chain 0 renders as "0 NEO"
+  // (not "—"), so it is distinguishable from data-not-loaded.
   const placeholder = "—";
-  const hasReserve = Boolean(stats);
+  const hasData = Boolean(stats);
+  const canRecoverCredit = pendingWithdraw > 0;
   const metrics: Array<{ key: string; value: string; label: string }> = [
     {
       key: "stake",
-      value: myStake > 0 ? myStakeDisplay : placeholder,
+      value: hasData ? myStakeDisplay : placeholder,
       label: t("myStake"),
     },
     {
       key: "pending",
-      value: pendingRewards > 0 ? pendingRewardsDisplay : placeholder,
+      value: hasData ? pendingRewardsDisplay : placeholder,
       label: t("pendingRewards"),
     },
     {
       key: "reserve",
-      value: hasReserve ? rewardReserveDisplay : placeholder,
+      value: hasData ? rewardReserveDisplay : placeholder,
       label: t("rewardReserve"),
     },
   ];
@@ -138,7 +142,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   };
 
-  const runSimpleAction = async (action: "claimRewards" | "refreshAnchor") => {
+  const runSimpleAction = async (
+    action: "claimRewards" | "refreshAnchor" | "recoverNeoCredit",
+  ) => {
     setLocalError("");
     setBusyAction(action);
     try {
@@ -195,7 +201,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       )}
 
-      <section className="anchor-status-card" aria-label="ProfitAnchor staking workspace">
+      <section className="anchor-status-card" aria-label={t("stakingWorkspaceLabel")}>
         <div className="anchor-section-head">
           <div className="anchor-section-head__text">
             <span>{t("actionPanelLabel")}</span>
@@ -291,12 +297,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <button
               type="button"
               className="anchor-action-link"
-              disabled={isBusy}
+              disabled={isBusy || !claimReady}
+              title={claimReady ? undefined : t("claimPlanEmpty")}
               onClick={() => void runSimpleAction("claimRewards")}
             >
               {busyAction === "claimRewards" ? t("workflowSubmitting") : t("submitClaim")}
             </button>
           </div>
+
+          {canRecoverCredit && (
+            <div className="anchor-recover-card">
+              <div className="anchor-recover-card__copy">
+                <span className="anchor-recover-card__label">{t("pendingWithdraw")}</span>
+                <strong>{pendingWithdrawDisplay}</strong>
+                <small>{t("creditRecoverHint")}</small>
+              </div>
+              <button
+                type="button"
+                className="anchor-action-button anchor-action-button--primary"
+                disabled={isBusy}
+                onClick={() => void runSimpleAction("recoverNeoCredit")}
+              >
+                {busyAction === "recoverNeoCredit"
+                  ? t("workflowSubmitting")
+                  : t("recoverCredit")}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className={`anchor-status-strip${isError ? " anchor-status-strip--error" : ""}`} aria-live="polite">

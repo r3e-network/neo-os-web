@@ -5,7 +5,7 @@
   "name_zh": "无法破碎的金库",
   "version": "1.0.0",
   "description": "Hacker bounty vaults secured by secret hashes.",
-  "description_zh": "不可破金库 — 时间锁定资产保险箱，到期前任何人都无法取出",
+  "description_zh": "黑客悬赏保险库：创建者用密钥哈希锁定 GAS 悬赏，挑战者按难度支付尝试费来破解，错误尝试会增加悬赏，过期未破解可由创建者取回。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",

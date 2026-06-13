@@ -1,4 +1,4 @@
-export type ContractStatus = "pending" | "active" | "broken" | "ended";
+export type ContractStatus = "pending" | "active" | "broken" | "ended" | "cancelled";
 
 export interface RelationshipContractView {
   /**
@@ -12,9 +12,20 @@ export interface RelationshipContractView {
    * is just its numeric form for keying/sorting.
    */
   pactId: string;
+  /** party1 (creator) script hash in display-order 0x hex. */
   party1: string;
+  /** party2 (named partner) script hash in display-order 0x hex. */
   party2: string;
+  /**
+   * The counterparty's Neo N3 address (the OTHER party relative to the connected
+   * wallet), resolved from its script hash. "" when no wallet is connected or the
+   * hash cannot be encoded; the UI falls back to a truncated script hash then.
+   */
   partner: string;
+  /** True when the connected wallet is party1 (the creator). */
+  isCreator: boolean;
+  /** True when the connected wallet is party2 (the named partner). */
+  isPartner: boolean;
   title: string;
   terms: string;
   /** Per-party stake in whole GAS (base units / 1e8) for display. */

@@ -386,6 +386,54 @@ body { background: var(--anchor-bg, #ffffff); }
   transform: none;
 }
 
+/* Recover NEO credit: surfaces a bare deposit that landed as credit (no memo). */
+.anchor-recover-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+
+  &__copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ns-text-muted, #8a92a6);
+  }
+
+  strong {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ns-text-2, #5b6478);
+  }
+
+  .anchor-action-button {
+    flex: none;
+    width: auto;
+    padding-inline: 18px;
+  }
+}
+
 /* Secondary actions: redeem / claim — outlined ghost buttons, clearly grouped */
 .anchor-action-secondary {
   display: grid;

@@ -11,6 +11,8 @@ export interface ChecklistItem {
   desc: string;
   done: boolean;
   auto: boolean;
+  /** Auto item whose state can't be evaluated yet (e.g. gas before connect). */
+  pending?: boolean;
 }
 
 export interface UseHealthScoreReturn {
@@ -36,7 +38,11 @@ export interface UseHealthScoreReturn {
  * OS-services injection contract intact but is not used for this synchronous,
  * device-local checklist; switching to it would require an async load/save path.
  */
-export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy): UseHealthScoreReturn {
+export function useHealthScore(
+  gasOk: Observable<boolean>,
+  isConnected: Observable<boolean>,
+  storage: StorageProxy,
+): UseHealthScoreReturn {
   const { t } = createUseI18n(messages)();
   void storage;
 
@@ -59,22 +65,44 @@ export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy
   ] as const;
 
   const checklistItems = createDerived<ChecklistItem[]>(
-    () =>
-      checklistBase.map((item) => ({
-        id: item.id,
-        title: t(item.titleKey),
-        desc: t(item.descKey),
-        done: item.id === "gas" ? gasOk.get() : checklistState[item.id] === true,
-        auto: item.id === "gas",
-      })),
-    [checklistRevision, gasOk],
+    () => {
+      const connected = isConnected.get();
+      return checklistBase.map((item) => {
+        if (item.id === "gas") {
+          // The auto GAS check can only be evaluated once a wallet is connected.
+          // Before that it is "pending" (shown as "connect to check"), NOT a
+          // failed item — so a disconnected user doesn't see a false "top up GAS".
+          return {
+            id: item.id,
+            title: t(item.titleKey),
+            desc: connected ? t(item.descKey) : t("checklistGasPending"),
+            done: connected ? gasOk.get() : false,
+            auto: true,
+            pending: !connected,
+          };
+        }
+        return {
+          id: item.id,
+          title: t(item.titleKey),
+          desc: t(item.descKey),
+          done: checklistState[item.id] === true,
+          auto: false,
+        };
+      });
+    },
+    [checklistRevision, gasOk, isConnected],
   );
 
   const completedChecklistCount = createDerived(
     () => checklistItems.get().filter((item) => item.done).length,
     [checklistItems],
   );
-  const totalChecklistCount = createDerived(() => checklistItems.get().length, [checklistItems]);
+  // Pending auto items (gas before connect) are excluded from the denominator so
+  // the score reflects only items that can actually be evaluated/acted on.
+  const totalChecklistCount = createDerived(
+    () => checklistItems.get().filter((item) => !item.pending).length,
+    [checklistItems],
+  );
 
   const safetyScore = createDerived(() => {
     if (totalChecklistCount.get() === 0) return 0;
@@ -100,13 +128,30 @@ export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy
     return "alert-circle";
   }, [safetyScore]);
 
+  // Per-item recommendation keys so the panel and the score/risk chip always
+  // agree: every unchecked (non-pending) item contributes a recommendation.
+  const RECOMMENDATION_KEY_BY_ID = {
+    backup: "recommendationBackup",
+    permissions: "recommendationPermissions",
+    device: "recommendationDevice",
+    hardware: "recommendationHardware",
+    twofa: "recommendation2fa",
+  } as const;
+
   const recommendations = createDerived(() => {
     const items: string[] = [];
-    if (!checklistState.backup) items.push(t("recommendationBackup"));
-    if (!gasOk.get()) items.push(t("recommendationGasLow"));
-    if (!checklistState.permissions) items.push(t("recommendationPermissions"));
+    // The auto GAS item is only actionable once connected; surface its
+    // recommendation only then (a disconnected user can't act on balance).
+    if (isConnected.get() && !gasOk.get()) items.push(t("recommendationGasLow"));
+    for (const item of checklistBase) {
+      if (item.id === "gas") continue;
+      const key = RECOMMENDATION_KEY_BY_ID[item.id as keyof typeof RECOMMENDATION_KEY_BY_ID];
+      if (key && checklistState[item.id] !== true) {
+        items.push(t(key));
+      }
+    }
     return items;
-  }, [checklistRevision, gasOk]);
+  }, [checklistRevision, gasOk, isConnected]);
 
   const loadChecklist = () => {
     const result = readCachedJSON<Record<string, unknown>>(checklistStorageKey);

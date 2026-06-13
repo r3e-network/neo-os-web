@@ -33,7 +33,7 @@ defineMiniApp({
       const memorial = Number.isFinite(id)
         ? shrine.memorials.get().find((m) => m.id === id)
         : undefined;
-      shrine.shareMemorial(memorial);
+      await shrine.shareMemorial(memorial);
     });
     ctx.registerAction("createMemorial", async (...args: unknown[]) => {
       const form = args[0] as {
@@ -62,6 +62,7 @@ defineMiniApp({
         myTributes: shrine.myTributes,
         recentObituaries: shrine.recentObituaries,
         selectedMemorial: shrine.selectedMemorial,
+        shareStatus: shrine.shareStatus,
         memorialCount: shrine.memorialCount,
         tributeCount: shrine.tributeCount,
         obituaryCount: shrine.obituaryCount,

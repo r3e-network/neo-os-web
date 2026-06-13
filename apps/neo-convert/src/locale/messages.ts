@@ -221,6 +221,18 @@ const appMessages = {
         en: "Detected: NeoVM Script",
         zh: "检测到: NeoVM 脚本"
     },
+    detectedAddress: {
+        en: "Detected: Neo N3 Address",
+        zh: "检测到: Neo N3 地址"
+    },
+    scriptHashLabel: {
+        en: "Script Hash (0x, big-endian)",
+        zh: "脚本哈希 (0x, 大端)"
+    },
+    scriptHashLeLabel: {
+        en: "Script Hash (little-endian)",
+        zh: "脚本哈希 (小端)"
+    },
     unknownFormat: {
         en: "Unknown format",
         zh: "未知格式"
@@ -253,6 +265,11 @@ const appMessages = {
     sidebarDesktop: { en: "Desktop", zh: "桌面端" },
     quickTools: { en: "Quick Tools", zh: "快捷工具" },
     loading: { en: "Loading...", zh: "加载中..." },
+    loadingBalances: { en: "Loading balances...", zh: "正在加载余额…" },
+    connectForBalances: {
+        en: "Connect a wallet to see live NEO / GAS balances.",
+        zh: "连接钱包以查看实时 NEO / GAS 余额。"
+    },
     showSecrets: { en: "Show secrets", zh: "显示密钥" },
     hideSecrets: { en: "Hide secrets", zh: "隐藏密钥" },
     copyAddress: { en: "Copy address", zh: "复制地址" },

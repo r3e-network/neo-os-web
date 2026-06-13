@@ -49,6 +49,13 @@ function t(key: string) {
     noStateHint: "Run query state.",
     noStateYet: "No recovery state loaded yet.",
     notAvailable: "N/A",
+    digestPlaceholder: "—",
+    escapeStatusLabel: "Recovery Escape",
+    escapeTriggeredAtLabel: "Escape Triggered",
+    networkDefaultVerifierLabel: "Network Default Verifier",
+    verifierNotConfigured: "Not configured",
+    verifierOverrideMatch: "Override matches bound verifier",
+    verifierOverrideMismatch: "Override differs from bound verifier",
     openAaWorkspace: "Open AA Workspace",
     openIdentityWorkspace: "Open Identity Workspace",
     openRecoveryCredential: "Open Recovery Credential",
@@ -82,13 +89,15 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     hasPayload: false,
     isLoading: false,
     isQuerying: false,
-    renderedPayload: "N/A",
-    accountId: "N/A",
-    verifierHash: "N/A",
-    threshold: "N/A",
-    timelock: "N/A",
-    backupOwnerState: "N/A",
-    checkedAt: "N/A",
+    renderedPayload: "—",
+    accountId: "—",
+    verifierHash: "—",
+    escapeStatus: "—",
+    timelock: "—",
+    backupOwnerState: "—",
+    checkedAt: "—",
+    networkDefaultVerifier: "—",
+    escapeTriggeredAt: "—",
     previewUrl: "",
     credentialUrl: "",
     accountAddress: "",
@@ -211,22 +220,55 @@ describe("Recovery Guardian PlayArea", () => {
           accountId: "aa:test",
           verifierHash: VALID_ACCOUNT,
           backupOwnerState: VALID_OWNER,
-          threshold: "2",
-          timelock: "3600",
+          escapeStatus: "Inactive",
+          timelock: "3600s",
           checkedAt: "2026-06-04T00:00:00.000Z",
-          renderedPayload: '{\n  "threshold": "2"\n}',
+          renderedPayload: '{\n  "timelock": 3600\n}',
         })}
         dispatch={vi.fn()}
       />,
     );
 
     expect(screen.getByText("aa:test")).toBeTruthy();
-    expect(screen.getByText("2")).toBeTruthy();
-    expect(screen.getByText("3600")).toBeTruthy();
+    // Escape (recovery) status and the recovery timelock are populated from the
+    // AA core reads instead of staying "—".
+    expect(screen.getByText("Inactive")).toBeTruthy();
+    expect(screen.getByText("3600s")).toBeTruthy();
     // The grid surfaces the freshly-read chain values (backup owner + the
-    // checked-at timestamp) alongside verifier/threshold/timelock.
+    // checked-at timestamp) alongside verifier/escape status/timelock.
     expect(screen.getByText(VALID_OWNER)).toBeTruthy();
     expect(screen.getByText("2026-06-04T00:00:00.000Z")).toBeTruthy();
-    expect(screen.getByText(/"threshold": "2"/)).toBeTruthy();
+    expect(screen.getByText(/"timelock": 3600/)).toBeTruthy();
+  });
+
+  it("badges the verifier override against the bound verifier once state is loaded", () => {
+    // Override equals the bound verifier → match badge.
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          hasPayload: true,
+          verifierHash: VALID_ACCOUNT,
+          verifierHashOverride: VALID_ACCOUNT,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Override matches bound verifier")).toBeTruthy();
+
+    // A different valid override → mismatch badge.
+    cleanup();
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          hasPayload: true,
+          verifierHash: VALID_ACCOUNT,
+          verifierHashOverride: VALID_OWNER,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Override differs from bound verifier")).toBeTruthy();
   });
 });

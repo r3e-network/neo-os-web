@@ -29,6 +29,27 @@ function isValidJson(value: string) {
   }
 }
 
+// AA address: a Neo N-address (34 chars) or a 0x/40-hex script hash. Gating the
+// actions on this avoids enabling all three buttons for obviously bad input
+// like "abc" that only fails server-side.
+const AA_ADDRESS_PATTERN = /^(N[1-9A-HJ-NP-Za-km-z]{33}|(0x)?[0-9a-fA-F]{40})$/;
+function isValidAAAddress(value: string) {
+  return AA_ADDRESS_PATTERN.test(value.trim());
+}
+
+// Known service-failure markers the host returns when the gas-sponsor edge
+// function is not allow-listed or the relay upstream is unset. Mapped to a
+// single localized "service unavailable" sentence instead of leaking codes.
+function isServiceUnavailable(text: string): boolean {
+  const lowered = text.toLowerCase();
+  return (
+    lowered.includes("function not allowed") ||
+    lowered.includes("forbidden") ||
+    lowered.includes("not configured") ||
+    lowered.includes("aa_relay_url")
+  );
+}
+
 /** Parse a stringified state object; returns null for empty "{}" / invalid. */
 function parseStateJson(value: string): Record<string, unknown> | null {
   if (!value || value.trim() === "{}") return null;
@@ -72,6 +93,7 @@ export default function PlayArea({
   );
 
   const hasAAAddress = Boolean(aaAddress.trim());
+  const aaAddressValid = isValidAAAddress(aaAddress);
   const payloadJsonIsValid = isValidJson(payloadJsonLocal);
   // Require a strictly positive plain decimal (no NaN, no <=0, no scientific/hex,
   // no whitespace). The edge function is the real authority, but blocking the
@@ -82,11 +104,12 @@ export default function PlayArea({
     /^\d+(\.\d+)?$/.test(sponsorAmountTrimmed) &&
     Number(sponsorAmountTrimmed) > 0;
   const hasSponsorAmount = Boolean(sponsorAmountTrimmed);
-  const canCheckSponsor = hasAAAddress && !isCheckingSponsorship;
+  const canCheckSponsor = aaAddressValid && !isCheckingSponsorship;
   const canRequestSponsor =
-    hasAAAddress && sponsorAmountIsValid && !isCheckingSponsorship;
-  const canSubmitRelay = hasAAAddress && payloadJsonIsValid && !isRelaying;
+    aaAddressValid && sponsorAmountIsValid && !isCheckingSponsorship;
+  const canSubmitRelay = aaAddressValid && payloadJsonIsValid && !isRelaying;
   const draftAAAddress = aaAddress.trim() || "—";
+  const aaAddressInvalid = hasAAAddress && !aaAddressValid;
 
   // Single human-readable result line: show only after an action has populated state.
   const relayResult = parseStateJson(relayResponse);
@@ -110,17 +133,52 @@ export default function PlayArea({
           : t("sponsorCheckComplete");
       resultTone = "info";
     }
-    // Surface an error message if the service returned one.
+    // Promote the real eligibility answer to the headline instead of burying it
+    // in the collapsed raw JSON.
+    if ("eligible" in activeResult || "approved" in activeResult) {
+      const eligible = Boolean(activeResult.eligible ?? activeResult.approved);
+      if (eligible) {
+        const remaining = String(activeResult.remaining ?? "");
+        const dailyLimit = String(activeResult.dailyLimit ?? "");
+        resultText =
+          remaining && dailyLimit
+            ? t("sponsorEligibleSummary", { remaining, dailyLimit })
+            : t("sponsorEligible");
+        resultTone = "ok";
+      } else {
+        const reason = String(
+          activeResult.reason ?? activeResult.message ?? "",
+        );
+        resultText = reason
+          ? t("sponsorNotEligibleReason", { reason })
+          : t("sponsorNotEligible");
+        resultTone = "warn";
+      }
+    }
+    // Surface an error message if the service returned one, mapping known
+    // service-outage markers to a single honest "unavailable" sentence. The
+    // error can be a string or a nested {code,message} envelope.
+    const rawError = activeResult.error;
+    const nestedMessage =
+      rawError && typeof rawError === "object"
+        ? String(
+            (rawError as Record<string, unknown>).message ??
+              (rawError as Record<string, unknown>).code ??
+              "",
+          )
+        : "";
     const errLike =
-      (activeResult.error as string) ||
-      (activeResult.message as string) ||
+      (typeof rawError === "string" ? rawError : nestedMessage) ||
+      (typeof activeResult.message === "string" ? activeResult.message : "") ||
       "";
     const statusLike =
       (activeResult.status as string) ||
       (activeResult.state as string) ||
       "";
-    if (typeof errLike === "string" && errLike) {
-      resultText = errLike;
+    if (errLike) {
+      resultText = isServiceUnavailable(errLike)
+        ? t("serviceUnavailable")
+        : errLike;
       resultTone = "warn";
     } else if (typeof statusLike === "string" && statusLike) {
       resultText = `${resultText} (${statusLike})`;
@@ -149,7 +207,7 @@ export default function PlayArea({
             </svg>
           </span>
           <div className="relay-hero__copy">
-            <span className="relay-hero__eyebrow">{t("relayLabel") || "Relay"}</span>
+            <span className="relay-hero__eyebrow">{t("relayLabel")}</span>
             <h2>{t("relayHeroTitle")}</h2>
             <p>{t("relayHeroCopy")}</p>
           </div>
@@ -157,7 +215,7 @@ export default function PlayArea({
 
         <div className="relay-hero__facts" aria-label={t("relayMetricsLabel")}>
           <span className="relay-fact">
-            {t("network") || "Network"}
+            {t("network")}
             <strong>{networkDisplay || "—"}</strong>
           </span>
           <span className="relay-hero__divider" aria-hidden="true" />
@@ -186,9 +244,10 @@ export default function PlayArea({
           {/* Step 1: AA address + sponsorship preflight */}
           <NeoInput
             value={aaAddress}
-            label={t("aaAddress") || "AA Address"}
+            label={t("aaAddress")}
             hint={t("aaAddressHint")}
-            placeholder={t("aaAddressPlaceholder") || "N..."}
+            placeholder={t("aaAddressPlaceholder")}
+            error={aaAddressInvalid ? t("aaAddressInvalid") : ""}
             onChange={(val) => setAaAddress(val)}
           />
 
@@ -197,9 +256,9 @@ export default function PlayArea({
               <NeoInput
                 type="number"
                 value={sponsorAmountLocal}
-                label={t("sponsorAmount") || "Sponsor Amount"}
+                label={t("sponsorAmount")}
                 hint={t("sponsorAmountHint")}
-                placeholder={t("sponsorAmountPlaceholder") || "0.1"}
+                placeholder={t("sponsorAmountPlaceholder")}
                 onChange={(val) => setSponsorAmountLocal(val)}
               />
             </div>
@@ -208,16 +267,16 @@ export default function PlayArea({
                 variant="secondary"
                 loading={isCheckingSponsorship}
                 disabled={!canCheckSponsor}
-                aria-label={t("sponsorCheck") || "Check Sponsorship"}
+                aria-label={t("sponsorCheck")}
                 onClick={() => dispatch("checkSponsor", aaAddress, dappIdLocal)}
               >
-                {t("sponsorCheck") || "Check Sponsorship"}
+                {t("sponsorCheck")}
               </NeoButton>
               <NeoButton
                 variant="secondary"
                 loading={isCheckingSponsorship}
                 disabled={!canRequestSponsor}
-                aria-label={t("sponsorRequest") || "Request Sponsorship"}
+                aria-label={t("sponsorRequest")}
                 onClick={() =>
                   dispatch(
                     "requestSponsor",
@@ -227,7 +286,7 @@ export default function PlayArea({
                   )
                 }
               >
-                {t("sponsorRequest") || "Request Sponsorship"}
+                {t("sponsorRequest")}
               </NeoButton>
             </div>
           </div>
@@ -243,18 +302,18 @@ export default function PlayArea({
           {/* Step 2: payload + submit */}
           <NeoInput
             value={dappIdLocal}
-            label={t("dappId") || "Paymaster Dapp ID"}
+            label={t("dappId")}
             hint={t("dappIdHint")}
-            placeholder={t("dappIdPlaceholder") || "Optional dapp id"}
+            placeholder={t("dappIdPlaceholder")}
             onChange={(val) => setDappIdLocal(val)}
           />
           <NeoInput
             type="textarea"
             value={payloadJsonLocal}
-            label={t("payloadJson") || "Relay Payload JSON"}
+            label={t("payloadJson")}
             hint={t("payloadJsonHint")}
-            placeholder={t("payloadJsonPlaceholder") || "{}"}
-            aria-label={t("payloadJson") || "Relay Payload JSON"}
+            placeholder={t("payloadJsonPlaceholder")}
+            aria-label={t("payloadJson")}
             onChange={(val) => setPayloadJsonLocal(val)}
           />
           {(!hasAAAddress || !payloadJsonIsValid) && (
@@ -266,12 +325,12 @@ export default function PlayArea({
             variant="primary"
             loading={isRelaying}
             disabled={!canSubmitRelay}
-            aria-label={t("submitRelay") || "Submit Relay"}
+            aria-label={t("submitRelay")}
             onClick={() =>
               dispatch("submitRelay", aaAddress, dappIdLocal, payloadJsonLocal)
             }
           >
-            {t("submitRelay") || "Submit Relay Payload"}
+            {t("submitRelay")}
           </NeoButton>
 
           {/* Single human-readable result line, only after an action runs */}

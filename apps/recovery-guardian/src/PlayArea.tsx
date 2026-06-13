@@ -26,14 +26,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const hasPayload = bool("hasPayload");
   const isQuerying = bool("isQuerying");
-  const renderedPayload = str("renderedPayload", t("notAvailable") || "—");
+  const renderedPayload = str("renderedPayload", t("digestPlaceholder"));
 
-  const accountId = str("accountId", t("notAvailable") || "—");
-  const verifierHash = str("verifierHash", t("notAvailable") || "—");
-  const threshold = str("threshold", t("notAvailable") || "—");
-  const timelock = str("timelock", t("notAvailable") || "—");
-  const backupOwner = str("backupOwnerState", t("notAvailable") || "—");
-  const checkedAt = str("checkedAt", t("notAvailable") || "—");
+  const accountId = str("accountId", t("digestPlaceholder"));
+  const verifierHash = str("verifierHash", t("digestPlaceholder"));
+  const escapeStatus = str("escapeStatus", t("digestPlaceholder"));
+  const timelock = str("timelock", t("digestPlaceholder"));
+  const backupOwner = str("backupOwnerState", t("digestPlaceholder"));
+  const checkedAt = str("checkedAt", t("digestPlaceholder"));
+  const networkDefaultVerifier = str("networkDefaultVerifier", t("digestPlaceholder"));
+  const escapeTriggeredAt = str("escapeTriggeredAt", t("digestPlaceholder"));
 
   const previewUrl = str("previewUrl");
   const credentialUrl = str("credentialUrl");
@@ -55,45 +57,51 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const accountDisplay = accountAddress.trim() || "—";
   const expiryDisplay = expiryReady ? recoveryExpiryMinutes : "—";
 
+  // In-app diagnostic for the optional verifier override: once a guardian state
+  // is loaded and a valid override is entered, compare it to the account's
+  // bound verifier and badge match/mismatch (case-insensitive Hash160 compare).
+  const overrideTrimmed = verifierHashOverride.trim();
+  const boundVerifierKnown =
+    hasPayload && verifierHash !== t("digestPlaceholder") && verifierHash !== t("verifierNotConfigured");
+  const overrideDiagnostic =
+    overrideTrimmed.length > 0 && verifierReady && boundVerifierKnown
+      ? overrideTrimmed.toLowerCase() === verifierHash.trim().toLowerCase()
+        ? { ok: true, label: t("verifierOverrideMatch") }
+        : { ok: false, label: t("verifierOverrideMismatch") }
+      : null;
+
   const setField = (field: string, value: string) => {
     dispatch("setField", field, value);
   };
   const handleAction = (name: string) => dispatch(name);
 
+  const showEscapeTriggered =
+    hasPayload && escapeTriggeredAt !== t("digestPlaceholder");
+  const showNetworkDefaultVerifier =
+    hasPayload && networkDefaultVerifier !== t("digestPlaceholder");
+
   const stateItems = [
-    { label: t("accountId") || "Account ID", value: accountId },
-    { label: t("currentVerifier") || "Verifier", value: verifierHash },
-    { label: t("backupOwner") || "Backup Owner", value: backupOwner },
-    { label: t("threshold") || "Threshold", value: threshold },
-    { label: t("timelockLabel") || "Timelock", value: timelock },
-    { label: t("checkedAt") || "Checked At", value: checkedAt },
+    { label: t("accountId"), value: accountId },
+    { label: t("currentVerifier"), value: verifierHash },
+    { label: t("backupOwner"), value: backupOwner },
+    { label: t("escapeStatusLabel"), value: escapeStatus },
+    { label: t("timelockLabel"), value: timelock },
+    { label: t("checkedAt"), value: checkedAt },
+    ...(showEscapeTriggered
+      ? [{ label: t("escapeTriggeredAtLabel"), value: escapeTriggeredAt }]
+      : []),
+    ...(showNetworkDefaultVerifier
+      ? [{ label: t("networkDefaultVerifierLabel"), value: networkDefaultVerifier }]
+      : []),
   ];
 
   const linkActions = [
-    {
-      key: "openRecoveryPreviewLink",
-      label: t("openRecoveryPreview") || "Open Recovery Preview",
-    },
-    {
-      key: "copyRecoveryPreviewLink",
-      label: t("copyRecoveryLink") || "Copy Recovery Link",
-    },
-    {
-      key: "shareRecoveryPreviewLink",
-      label: t("shareRecoveryLink") || "Share Recovery Link",
-    },
-    {
-      key: "openRecoveryCredentialLink",
-      label: t("openRecoveryCredential") || "Open Recovery Credential",
-    },
-    {
-      key: "copyRecoveryCredentialLink",
-      label: t("copyRecoveryCredential") || "Copy Recovery Credential",
-    },
-    {
-      key: "shareRecoveryCredentialLink",
-      label: t("shareRecoveryCredential") || "Share Recovery Credential",
-    },
+    { key: "openRecoveryPreviewLink", label: t("openRecoveryPreview") },
+    { key: "copyRecoveryPreviewLink", label: t("copyRecoveryLink") },
+    { key: "shareRecoveryPreviewLink", label: t("shareRecoveryLink") },
+    { key: "openRecoveryCredentialLink", label: t("openRecoveryCredential") },
+    { key: "copyRecoveryCredentialLink", label: t("copyRecoveryCredential") },
+    { key: "shareRecoveryCredentialLink", label: t("shareRecoveryCredential") },
   ];
 
   return (
@@ -150,9 +158,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoInput
               value={accountAddress}
               onChange={(v) => setField("accountAddress", v)}
-              label={t("accountAddress") || "Account Address"}
+              label={t("accountAddress")}
               hint={t("accountAddressHint")}
-              placeholder={t("accountAddressPlaceholder") || "NeoAddress..."}
+              placeholder={t("accountAddressPlaceholder")}
             />
             {!canQueryState && (
               <p className="guardian-hint">{t("queryBlocked")}</p>
@@ -163,16 +171,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 loading={isQuerying}
                 disabled={!canQueryState}
                 onClick={() => handleAction("queryGuardianState")}
-                aria-label={t("queryState") || "Query State"}
+                aria-label={t("queryState")}
               >
-                {t("queryState") || "Query State"}
+                {t("queryState")}
               </NeoButton>
               <NeoButton
                 variant="secondary"
                 onClick={() => handleAction("openRecoveryDocs")}
-                aria-label={t("openRecoveryDocs") || "Recovery Docs"}
+                aria-label={t("openRecoveryDocs")}
               >
-                {t("openRecoveryDocs") || "Recovery Docs"}
+                {t("openRecoveryDocs")}
               </NeoButton>
             </div>
           </div>
@@ -275,32 +283,40 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoInput
                 value={recoveryNewOwner}
                 onChange={(v) => setField("recoveryNewOwner", v)}
-                label={t("newOwner") || "New Owner"}
+                label={t("newOwner")}
                 hint={t("newOwnerHint")}
-                placeholder={t("newOwnerPlaceholder") || "NeoAddress..."}
+                placeholder={t("newOwnerPlaceholder")}
               />
               <NeoInput
                 value={recoveryExpiryMinutes}
                 onChange={(v) => setField("recoveryExpiryMinutes", v)}
-                label={t("recoveryExpiry") || "Expiry (minutes)"}
+                label={t("recoveryExpiry")}
                 hint={t("recoveryExpiryHint")}
-                placeholder={t("recoveryExpiryPlaceholder") || "30"}
+                placeholder={t("recoveryExpiryPlaceholder")}
               />
               <NeoInput
                 value={verifierHashOverride}
                 onChange={(v) => setField("verifierHashOverride", v)}
-                label={t("verifierHash") || "Verifier Hash Override"}
+                label={t("verifierHash")}
                 hint={t("verifierHashHint")}
-                placeholder={t("verifierHashPlaceholder") || "0x..."}
+                placeholder={t("verifierHashPlaceholder")}
               />
+              {overrideDiagnostic && (
+                <p
+                  className={`guardian-verifier-diagnostic guardian-verifier-diagnostic--${
+                    overrideDiagnostic.ok ? "match" : "mismatch"
+                  }`}
+                  role="status"
+                >
+                  {overrideDiagnostic.label}
+                </p>
+              )}
               <NeoInput
                 value={recoveryTemplateId}
                 onChange={(v) => setField("recoveryTemplateId", v)}
-                label={t("recoveryTemplateId") || "Template ID"}
+                label={t("recoveryTemplateId")}
                 hint={t("recoveryTemplateIdHint")}
-                placeholder={
-                  t("recoveryTemplateIdPlaceholder") || "Enter template ID"
-                }
+                placeholder={t("recoveryTemplateIdPlaceholder")}
               />
               <div className="guardian-link-grid">
                 {linkActions.map((action) => (
@@ -322,16 +338,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoButton
               variant="secondary"
               onClick={() => handleAction("openIdentityWorkspace")}
-              aria-label={t("openIdentityWorkspace") || "Identity Workspace"}
+              aria-label={t("openIdentityWorkspace")}
             >
-              {t("openIdentityWorkspace") || "Identity Workspace"}
+              {t("openIdentityWorkspace")}
             </NeoButton>
             <NeoButton
               variant="secondary"
               onClick={() => handleAction("openAaWorkspace")}
-              aria-label={t("openAaWorkspace") || "AA Workspace"}
+              aria-label={t("openAaWorkspace")}
             >
-              {t("openAaWorkspace") || "AA Workspace"}
+              {t("openAaWorkspace")}
             </NeoButton>
           </div>
         </aside>

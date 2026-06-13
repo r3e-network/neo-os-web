@@ -89,14 +89,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const pullResult = val<PullResult>("pullResult");
   const studioOpen = bool("studioOpen");
   const walletAddress = str("walletAddress", "");
+  const hasPlayCredit = bool("hasPlayCredit");
+  const formattedPlayCredit = str("formattedPlayCredit", "");
 
   const [showResult, setShowResult] = useState(false);
   const [leverPulled, setLeverPulled] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
 
   const [machineName, setMachineName] = useState("");
-  const [machineDescription, setMachineDescription] = useState("");
-  const [machineCategory, setMachineCategory] = useState("");
-  const [machineTags, setMachineTags] = useState("");
   const [machinePrice, setMachinePrice] = useState("");
   const [prizeAsset, setPrizeAsset] = useState<PrizeAsset>("GAS");
   const [studioItems, setStudioItems] = useState<StudioItem[]>([
@@ -149,11 +149,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const pullReadinessTitle = selectedMachineReady
     ? t("gasboxPullReadyTitle")
     : t("gasboxPullBlockedTitle");
+  const blockedKeyBase =
+    selectedMachine?.active === false
+      ? "gasboxPullBlockedInactive"
+      : "gasboxPullBlockedInventory";
   const pullReadinessCopy = selectedMachineReady
     ? t("gasboxPullReadyCopy")
-    : selectedMachine?.active === false
-      ? t("gasboxPullBlockedInactive")
-      : t("gasboxPullBlockedInventory");
+    : // The creator can re-fund / re-activate inline (controls below); everyone
+      // else just sees that the machine isn't currently playable.
+      t(isSelectedMachineCreator ? `${blockedKeyBase}Creator` : blockedKeyBase);
   const oddsReadable = oddsCoverage > 0;
   const pullChecklist = [
     { label: t("gasboxChecklistActive"), passed: Boolean(selectedMachine?.active) },
@@ -184,6 +188,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     await dispatch("withdrawRevenue", machineId);
   };
 
+  const handleTopUpPool = async () => {
+    const machineId = selectedMachine?.id;
+    if (!machineId || !(Number(topUpAmount) > 0)) return;
+    await dispatch("topUpPool", machineId, topUpAmount.trim());
+    setTopUpAmount("");
+  };
+
+  const handleToggleActive = async () => {
+    const machineId = selectedMachine?.id;
+    if (!machineId) return;
+    await dispatch("setMachineActive", machineId, !selectedMachine?.active);
+  };
+
   const updateStudioItem = (index: number, patch: Partial<StudioItem>) => {
     setStudioItems((items) =>
       items.map((item, i) => (i === index ? { ...item, ...patch } : item)),
@@ -207,9 +224,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const resetStudioForm = () => {
     setMachineName("");
-    setMachineDescription("");
-    setMachineCategory("");
-    setMachineTags("");
     setMachinePrice("");
     setPrizeAsset("GAS");
     setStudioItems([emptyStudioItem()]);
@@ -242,9 +256,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     // dispatch is typed Promise<void> but returns the action payload at runtime.
     const published: unknown = await dispatch("publishMachine", {
       name: machineName.trim(),
-      description: machineDescription.trim(),
-      category: machineCategory.trim(),
-      tags: machineTags.trim(),
       price: machinePrice.trim() || "0",
       prizeAsset,
       items: validItems.map((item) => ({
@@ -378,7 +389,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <span className="gasbox-machine-cost">{machine.price} GAS</span>
                     <div className="gasbox-machine-meta">
                       <span>{machine.itemCount} {t("items")}</span>
-                      <span>{machine.plays} {t("plays")}</span>
+                      <span title={t("estPlaysHint")}>{machine.plays} {t("estPlays").toLowerCase()}</span>
                     </div>
                   </div>
                 </NeoCard>
@@ -434,33 +445,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="gasbox-field gasbox-field--wide">
-              <span>{t("descriptionLabel")}</span>
-              <textarea
-                rows={2}
-                value={machineDescription}
-                placeholder={t("descriptionPlaceholder")}
-                onChange={(e) => setMachineDescription(e.target.value)}
-              />
-            </label>
-            <label className="gasbox-field">
-              <span>{t("categoryLabel")}</span>
-              <input
-                type="text"
-                value={machineCategory}
-                placeholder={t("categoryPlaceholder")}
-                onChange={(e) => setMachineCategory(e.target.value)}
-              />
-            </label>
-            <label className="gasbox-field">
-              <span>{t("tagsLabel")}</span>
-              <input
-                type="text"
-                value={machineTags}
-                placeholder={t("tagsPlaceholder")}
-                onChange={(e) => setMachineTags(e.target.value)}
-              />
             </label>
           </div>
 
@@ -636,6 +620,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             </div>
 
+            {hasPlayCredit && (
+              <div className="gasbox-play-credit" role="status">
+                <span className="gasbox-play-credit__label">{t("gasboxPlayCreditLabel")}</span>
+                <span className="gasbox-play-credit__value">{formattedPlayCredit}</span>
+                <span className="gasbox-play-credit__hint">{t("gasboxPlayCreditHint")}</span>
+              </div>
+            )}
+
             {isSelectedMachineCreator && (
               <section
                 className="gasbox-creator-revenue"
@@ -658,6 +650,56 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   onClick={handleWithdrawRevenue}
                 >
                   {t("withdrawRevenue")}
+                </NeoButton>
+              </section>
+            )}
+
+            {isSelectedMachineCreator && (
+              <section
+                className="gasbox-creator-controls"
+                aria-label={t("gasboxMachineControlsTitle")}
+              >
+                <div className="gasbox-creator-controls__head">
+                  <span className="gasbox-eyebrow">{t("gasboxMachineControlsTitle")}</span>
+                  <p>{t("gasboxMachineControlsDesc")}</p>
+                </div>
+                <div className="gasbox-creator-controls__pool">
+                  <span>{t("gasboxPoolBalance")}</span>
+                  <strong>
+                    {selectedMachine.poolBalance} {selectedMachine.prizeAsset} / {selectedMachine.maxPrize} {selectedMachine.prizeAsset}
+                  </strong>
+                </div>
+                <div className="gasbox-creator-controls__row">
+                  <label className="gasbox-field">
+                    <span>
+                      {t("gasboxTopUpLabel", { asset: selectedMachine.prizeAsset ?? "GAS" })}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step={selectedMachine.prizeAsset === "NEO" ? "1" : "0.0001"}
+                      value={topUpAmount}
+                      placeholder={t("gasboxTopUpPlaceholder")}
+                      onChange={(e) => setTopUpAmount(e.target.value)}
+                    />
+                  </label>
+                  <NeoButton
+                    variant="secondary"
+                    size="md"
+                    disabled={isPulling || !(Number(topUpAmount) > 0)}
+                    onClick={handleTopUpPool}
+                  >
+                    {t("gasboxTopUpAction")}
+                  </NeoButton>
+                </div>
+                <NeoButton
+                  variant={selectedMachine.active ? "ghost" : "primary"}
+                  size="md"
+                  block
+                  disabled={isPulling}
+                  onClick={handleToggleActive}
+                >
+                  {selectedMachine.active ? t("gasboxDeactivateAction") : t("gasboxActivateAction")}
                 </NeoButton>
               </section>
             )}

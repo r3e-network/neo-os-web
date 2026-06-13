@@ -5,6 +5,12 @@ import {
   buildConfidentialTransferPackage,
   encryptJsonWithOraclePublicKey,
 } from "@shared/utils/morpheus-confidential-envelope";
+import {
+  appendSealedIntent,
+  clearSealedIntents,
+  readSealedIntents,
+  type SealedIntent,
+} from "./history";
 import "./PlayArea.scss";
 
 type SubmitState =
@@ -17,7 +23,9 @@ type SubmitState =
       noteCommitment: string;
       nullifier: string;
     }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; detail?: string };
+
+type NetworkHealth = "checking" | "live" | "degraded";
 
 const AMOUNT_PRESETS = ["0.1", "1", "5"];
 const NEO_AMOUNT_PRESETS = ["1", "5", "10"];
@@ -25,6 +33,7 @@ const MORPHEUS_ENCRYPTION_ALGORITHM = "X25519-HKDF-SHA256-AES-256-GCM";
 const MEMO_MAX_LENGTH = 160;
 // GAS on Neo N3 carries 8 decimal places; finer precision can never settle.
 const GAS_DECIMALS = 8;
+const NETWORKS = ["testnet", "mainnet"] as const;
 
 // Neo N3 addresses are Base58Check-encoded, so the Bitcoin/Base58 alphabet
 // applies: the ambiguous glyphs 0 (zero), O, I, and l are NOT valid. The
@@ -77,27 +86,16 @@ function normalizeAmount(value: string, asset = "GAS") {
   return fraction ? `${normalizedWhole}.${fraction}` : normalizedWhole;
 }
 
-function userFacingSealError(
-  error: unknown,
-  sealPhase: "key" | "store" | "package" = "package",
-) {
-  const raw = error instanceof Error ? error.message : String(error ?? "");
-  if (
-    sealPhase === "key" ||
-    /public key|contract.*configured|not configured|network|404|not found/i.test(raw)
-  ) {
-    return "Morpheus sealing is unavailable for this network. Your transfer details remain local.";
+// Map the wallet's detected chain id (e.g. "neo-n3-testnet", "neo-x-mainnet")
+// onto the two networks this sealing desk targets. Anything that doesn't name
+// "mainnet" — including the generic "neo-n3" default — falls back to mainnet,
+// the only lane currently serving a live Morpheus key.
+function networkFromChainId(chainId: string | null | undefined): "testnet" | "mainnet" {
+  const id = String(chainId ?? "").toLowerCase();
+  if (id.includes("test")) {
+    return "testnet";
   }
-  if (/algorithm|X25519|HKDF|AES/i.test(raw)) {
-    return "The selected Morpheus key cannot be used by this client. Your transfer details remain local.";
-  }
-  if (
-    sealPhase === "store" ||
-    /secret reference|secret_ref|store|inline_fallback/i.test(raw)
-  ) {
-    return "Morpheus confidential storage is temporarily unavailable. Your transfer details remain local.";
-  }
-  return "Private transfer sealing is unavailable right now. Your transfer details remain local.";
+  return "mainnet";
 }
 
 function setObservable(state: PlayAreaProps["state"], key: string, value: unknown) {
@@ -107,62 +105,141 @@ function setObservable(state: PlayAreaProps["state"], key: string, value: unknow
   }
 }
 
-// The header "Network" stat tile binds to the `networkLabel` observable, which
-// otherwise stays at its "Neo N3" seed value. Keep it in lock-step with the
-// in-form Network select so the visible indicator always names the network the
-// ciphertext actually targets.
-function networkLabelFor(network: string) {
-  return network === "mainnet" ? "Mainnet" : "Testnet";
-}
-
-export default function PlayArea({ state, setStatus }: PlayAreaProps) {
+export default function PlayArea({ t, state, services, setStatus }: PlayAreaProps) {
   const [recipient, setRecipient] = useState("");
   const [asset, setAsset] = useState("GAS");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
-  const [network, setNetwork] = useState("testnet");
+  const [network, setNetwork] = useState<"testnet" | "mainnet">("mainnet");
+  const [networkHealth, setNetworkHealth] = useState<Record<string, NetworkHealth>>({
+    testnet: "checking",
+    mainnet: "checking",
+  });
   const [submitState, setSubmitState] = useState<SubmitState>({
     status: "idle",
-    message: "Ready to seal private transfer details locally.",
+    message: t("statusInitial"),
   });
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [history, setHistory] = useState<SealedIntent[]>(() => readSealedIntents());
 
-  // The `networkLabel` observable seeds with the chain family ("Neo N3"); keep
-  // the header stat tile tracking the active network the moment the form mounts
-  // and whenever the selection changes, so it never lies about the target.
+  const userFacingSealError = useCallback(
+    (error: unknown, sealPhase: "key" | "store" | "package") => {
+      const raw = error instanceof Error ? error.message : String(error ?? "");
+      // The phase we actually failed in is authoritative: a store-phase 404
+      // ("not found") must not be misclassified by the key-phase message regex.
+      if (sealPhase === "store") {
+        return t("sealErrorStore");
+      }
+      if (sealPhase === "key") {
+        return t("sealErrorKey");
+      }
+      if (/algorithm|X25519|HKDF|AES/i.test(raw)) {
+        return t("sealErrorAlgorithm");
+      }
+      if (/public key|contract.*configured|not configured|network|404|not found/i.test(raw)) {
+        return t("sealErrorKey");
+      }
+      if (/secret reference|secret_ref|store|inline_fallback/i.test(raw)) {
+        return t("sealErrorStore");
+      }
+      return t("sealErrorGeneric");
+    },
+    [t],
+  );
+
+  const networkLabelFor = useCallback(
+    (value: string) => (value === "mainnet" ? t("networkMainnet") : t("networkTestnet")),
+    [t],
+  );
+
+  // Default the form network from the connected wallet's chain (falling back to
+  // mainnet — the lane that currently serves a live Morpheus key) instead of
+  // hardcoding the degraded testnet lane, so the default-path user does not fail
+  // at the very first fetch.
+  useEffect(() => {
+    let cancelled = false;
+    const detect = services?.chain?.detectNetwork;
+    if (typeof detect !== "function") {
+      return;
+    }
+    void Promise.resolve(detect.call(services.chain))
+      .then((chainId) => {
+        if (cancelled) {
+          return;
+        }
+        const resolved = networkFromChainId(chainId);
+        setNetwork(resolved);
+        setObservable(state, "networkLabel", networkLabelFor(resolved));
+      })
+      .catch(() => {
+        // Detection unavailable — keep the mainnet default already in state.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [networkLabelFor, services, state]);
+
+  // Ping each network's Morpheus public-key endpoint once so the Network select
+  // can badge live vs degraded lanes and the user can avoid the dead one.
+  useEffect(() => {
+    let cancelled = false;
+    NETWORKS.forEach((net) => {
+      void fetchWithTimeout(
+        `/api/morpheus/oracle/public-key?network=${encodeURIComponent(net)}`,
+      )
+        .then(async (response) => {
+          const meta = await response.json().catch(() => ({}));
+          return Boolean(response.ok && meta?.public_key);
+        })
+        .catch(() => false)
+        .then((live) => {
+          if (cancelled) {
+            return;
+          }
+          setNetworkHealth((current) => ({
+            ...current,
+            [net]: live ? "live" : "degraded",
+          }));
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Keep the header "Network" stat tile in lock-step with the in-form select so
+  // the visible indicator always names the network the ciphertext targets.
   useEffect(() => {
     setObservable(state, "networkLabel", networkLabelFor(network));
-  }, [network, state]);
+  }, [network, networkLabelFor, state]);
 
   const handleNetworkChange = useCallback(
     (value: string) => {
-      setNetwork(value);
-      setObservable(state, "networkLabel", networkLabelFor(value));
+      const next = value === "mainnet" ? "mainnet" : "testnet";
+      setNetwork(next);
+      setObservable(state, "networkLabel", networkLabelFor(next));
     },
-    [state],
+    [networkLabelFor, state],
   );
 
   // Switching GAS -> NEO leaves a fractional amount (e.g. "1.5") that NEO can
   // never settle, plus a now-stale GAS preset highlight. Re-floor to the whole
   // unit so the field matches the new asset's constraints instead of forcing an
   // invalid-input round trip.
-  const handleAssetChange = useCallback(
-    (value: string) => {
-      setAsset(value);
-      const nextIsNeo = value.trim().toUpperCase() === "NEO";
-      if (nextIsNeo) {
-        setAmount((current) => {
-          const trimmed = current.trim();
-          if (!trimmed || !trimmed.includes(".")) {
-            return current;
-          }
-          const whole = trimmed.split(".")[0] ?? "";
-          return /^\d+$/.test(whole) && BigInt(whole) > 0n ? whole : "";
-        });
-      }
-    },
-    [],
-  );
+  const handleAssetChange = useCallback((value: string) => {
+    setAsset(value);
+    const nextIsNeo = value.trim().toUpperCase() === "NEO";
+    if (nextIsNeo) {
+      setAmount((current) => {
+        const trimmed = current.trim();
+        if (!trimmed || !trimmed.includes(".")) {
+          return current;
+        }
+        const whole = trimmed.split(".")[0] ?? "";
+        return /^\d+$/.test(whole) && BigInt(whole) > 0n ? whole : "";
+      });
+    }
+  }, []);
 
   const copyValue = useCallback(async (field: string, value: string) => {
     if (!value || !navigator.clipboard?.writeText) {
@@ -178,6 +255,15 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
       setCopiedField(null);
     }
   }, []);
+
+  const handleClearHistory = useCallback(() => {
+    clearSealedIntents();
+    setHistory([]);
+    setObservable(state, "requestCount", 0);
+    setObservable(state, "lastDigest", t("digestPlaceholder"));
+    setObservable(state, "lastStatus", t("statusReady"));
+  }, [state, t]);
+
   const isNeo = asset.trim().toUpperCase() === "NEO";
   const recipientInvalid =
     recipient.trim().length > 0 && !isValidNeoAddress(recipient);
@@ -188,18 +274,16 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
 
   const sealTransfer = useCallback(async () => {
     if (!canSeal) {
-      const message =
-        "Enter a valid Neo N3 recipient and a positive transfer amount before sealing.";
+      const message = t("errorMissingInputs");
       setStatus(message, "error");
       setSubmitState({ status: "error", message });
       return;
     }
     setSubmitState({
       status: "sealing",
-      message:
-        "Fetching Morpheus key, encrypting locally, and storing ciphertext.",
+      message: t("statusSealingProgress"),
     });
-    setStatus("Sealing private transfer", "info");
+    setStatus(t("statusSealingShort"), "info");
 
     let sealPhase: "key" | "store" | "package" = "key";
     try {
@@ -250,12 +334,20 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
         }),
       });
       const stored = await storeResponse.json().catch(() => ({}));
-      if (!storeResponse.ok) {
-        throw new Error(
-          stored?.error ||
-            stored?.message ||
-            "Morpheus confidential store is unavailable",
-        );
+      // The host proxy converts an upstream failure into a 200 body carrying
+      // inline_fallback:true with no secret_ref; surface the upstream detail
+      // so the failure is diagnosable rather than always-generic.
+      const upstreamDetail = String(
+        stored?.error || stored?.message || "",
+      ).trim();
+      const upstreamStatus = stored?.upstream_status;
+      if (!storeResponse.ok || stored?.inline_fallback || stored?.store_available === false) {
+        const reason = upstreamDetail || "Morpheus confidential store is unavailable";
+        const error = new Error(reason);
+        (error as Error & { detail?: string }).detail = upstreamStatus
+          ? `${reason} (${upstreamStatus})`
+          : reason;
+        throw error;
       }
       const secretRef = String(
         stored.secret_ref || stored.id || stored.ref || "",
@@ -264,30 +356,50 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
         throw new Error("Morpheus confidential store did not return a secret reference");
       }
 
-      const requestCount = Number(state.requestCount?.get?.() ?? 0) + 1;
-      setObservable(state, "requestCount", requestCount);
-      setObservable(state, "lastStatus", "Sealed");
-      setObservable(
-        state,
-        "lastDigest",
-        transferPackage.publicEnvelope.note_commitment,
-      );
-      setStatus("Private transfer sealed", "success");
+      const commitment = transferPackage.publicEnvelope.note_commitment;
+      const nullifier = transferPackage.publicEnvelope.nullifier_hash;
+      const nextHistory = appendSealedIntent({
+        secretRef,
+        commitment,
+        nullifier,
+        network,
+        asset,
+        ts: Date.now(),
+      });
+      setHistory(nextHistory);
+      setObservable(state, "requestCount", nextHistory.length);
+      setObservable(state, "lastStatus", t("statusSealed"));
+      setObservable(state, "lastDigest", commitment);
+      setStatus(t("statusSealedToast"), "success");
       setSubmitState({
         status: "stored",
-        message:
-          "Ciphertext stored. Morpheus confidential compute can now decrypt and validate the private transfer payload inside the TEE.",
+        message: t("statusStored"),
         secretRef,
-        noteCommitment: transferPackage.publicEnvelope.note_commitment,
-        nullifier: transferPackage.publicEnvelope.nullifier_hash,
+        noteCommitment: commitment,
+        nullifier,
       });
     } catch (error) {
       const message = userFacingSealError(error, sealPhase);
-      console.warn(`[private-transfer] seal failed during ${sealPhase} phase`);
+      const detail = (error as Error & { detail?: string })?.detail;
+      console.warn(
+        `[private-transfer] seal failed during ${sealPhase} phase`,
+        error,
+      );
       setStatus(message, "error");
-      setSubmitState({ status: "error", message });
+      setSubmitState({ status: "error", message, detail });
     }
-  }, [amount, asset, canSeal, memo, network, recipient, setStatus, state]);
+  }, [
+    amount,
+    asset,
+    canSeal,
+    memo,
+    network,
+    recipient,
+    setStatus,
+    state,
+    t,
+    userFacingSealError,
+  ]);
 
   const sealed = submitState.status !== "idle";
 
@@ -309,21 +421,14 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
           </svg>
         </div>
         <div className="private-transfer__hero-body">
-          <span className="private-transfer__eyebrow">
-            Neo N3 private payments
-          </span>
-          <h2>Confidential transfer desk</h2>
-          <p>
-            Seal recipient, amount, memo, and note secret in the browser, then
-            Morpheus runs the private compute path.
-          </p>
+          <span className="private-transfer__eyebrow">{t("heroEyebrow")}</span>
+          <h2>{t("heroTitle")}</h2>
+          <p>{t("heroBody")}</p>
           <div className="private-transfer__hero-facts">
             <span>
-              {network === "mainnet" ? "Mainnet" : "Testnet"} · {asset}
+              {t("heroFacts", { network: networkLabelFor(network), asset })}
             </span>
-            <span className="private-transfer__badge">
-              No on-chain zk curve dependency
-            </span>
+            <span className="private-transfer__badge">{t("heroBadge")}</span>
           </div>
         </div>
       </section>
@@ -336,17 +441,30 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
         <div className="private-transfer__panel">
           <div className="private-transfer__form-grid">
             <label>
-              <span>Network</span>
+              <span>{t("formNetworkLabel")}</span>
               <select
                 value={network}
                 onChange={(event) => handleNetworkChange(event.target.value)}
               >
-                <option value="testnet">Testnet</option>
-                <option value="mainnet">Mainnet</option>
+                {NETWORKS.map((net) => {
+                  const health = networkHealth[net];
+                  const suffix =
+                    health === "live"
+                      ? ` · ${t("networkStatusLive")}`
+                      : health === "degraded"
+                        ? ` · ${t("networkStatusDegraded")}`
+                        : ` · ${t("networkStatusChecking")}`;
+                  return (
+                    <option key={net} value={net}>
+                      {networkLabelFor(net)}
+                      {suffix}
+                    </option>
+                  );
+                })}
               </select>
             </label>
             <label>
-              <span>Asset</span>
+              <span>{t("formAssetLabel")}</span>
               <select
                 value={asset}
                 onChange={(event) => handleAssetChange(event.target.value)}
@@ -356,21 +474,21 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
               </select>
             </label>
             <label className="private-transfer__wide">
-              <span>Recipient</span>
+              <span>{t("formRecipientLabel")}</span>
               <input
                 value={recipient}
-                placeholder="N..."
+                placeholder={t("formRecipientPlaceholder")}
                 aria-invalid={recipientInvalid || undefined}
                 onChange={(event) => setRecipient(event.target.value)}
               />
               {recipientInvalid && (
                 <small className="private-transfer__field-error">
-                  Enter a valid Neo N3 address.
+                  {t("errorInvalidAddress")}
                 </small>
               )}
             </label>
             <label>
-              <span>Amount</span>
+              <span>{t("formAmountLabel")}</span>
               <input
                 type="number"
                 min="0"
@@ -381,14 +499,12 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
               />
               {amountInvalid && (
                 <small className="private-transfer__field-error">
-                  {isNeo
-                    ? "NEO is indivisible — enter a whole number greater than zero."
-                    : "Enter an amount greater than zero."}
+                  {isNeo ? t("errorInvalidNeoAmount") : t("errorInvalidAmount")}
                 </small>
               )}
               <div
                 className="private-transfer__presets"
-                aria-label="Amount presets"
+                aria-label={t("presetsLabel")}
               >
                 {(isNeo ? NEO_AMOUNT_PRESETS : AMOUNT_PRESETS).map((preset) => (
                   <button
@@ -405,7 +521,7 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
               </div>
             </label>
             <label className="private-transfer__wide">
-              <span>Private memo</span>
+              <span>{t("formMemoLabel")}</span>
               <input
                 value={memo}
                 maxLength={MEMO_MAX_LENGTH}
@@ -423,7 +539,7 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
           </div>
           {!canSeal && (
             <div className="private-transfer__validation" role="status">
-              Add a valid recipient and positive amount to enable local sealing.
+              {t("validationHint")}
             </div>
           )}
           <button
@@ -433,11 +549,11 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
             disabled={submitState.status === "sealing" || !canSeal}
             aria-label={
               submitState.status === "sealing"
-                ? "Sealing private transfer"
-                : "Seal private transfer"
+                ? t("sealAriaBusy")
+                : t("sealAriaIdle")
             }
           >
-            {submitState.status === "sealing" ? "Sealing..." : "Seal private transfer"}
+            {submitState.status === "sealing" ? t("sealing") : t("sealButton")}
           </button>
         </div>
 
@@ -458,21 +574,25 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
               <path d="m9 12 2 2 4-4" />
             </svg>
           </div>
-          <span>Morpheus confidential compute</span>
+          <span>{t("statusBlockHeader")}</span>
           <strong>{submitState.message}</strong>
           {submitState.status === "error" && (
-            <p className="private-transfer__safe-copy">
-              Nothing was sent on-chain. Fix the inputs or try again when the
-              Morpheus service is available.
-            </p>
+            <>
+              <p className="private-transfer__safe-copy">{t("safeCopy")}</p>
+              {submitState.detail && (
+                <p className="private-transfer__error-detail">
+                  {t("errorDetailLabel")}: {submitState.detail}
+                </p>
+              )}
+            </>
           )}
           {submitState.status === "stored" && (
             <dl>
               {(
                 [
-                  ["secretRef", "Secret ref", submitState.secretRef],
-                  ["commitment", "Commitment", submitState.noteCommitment],
-                  ["nullifier", "Nullifier", submitState.nullifier],
+                  ["secretRef", t("resultSecretRef"), submitState.secretRef],
+                  ["commitment", t("resultCommitment"), submitState.noteCommitment],
+                  ["nullifier", t("resultNullifier"), submitState.nullifier],
                 ] as const
               ).map(([field, label, value]) => (
                 <div key={field}>
@@ -485,13 +605,15 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
                       onClick={() => copyValue(field, value)}
                       aria-label={
                         copiedField === field
-                          ? `${label} copied`
-                          : `Copy ${label}`
+                          ? t("copiedAria", { label })
+                          : t("copyAria", { label })
                       }
-                      title={copiedField === field ? "Copied" : "Copy"}
+                      title={copiedField === field ? t("copiedAction") : t("copyAction")}
                     >
                       <span aria-hidden="true">
-                        {copiedField === field ? "✓ Copied" : "⧉ Copy"}
+                        {copiedField === field
+                          ? `✓ ${t("copiedAction")}`
+                          : `⧉ ${t("copyAction")}`}
                       </span>
                     </button>
                   </div>
@@ -503,21 +625,95 @@ export default function PlayArea({ state, setStatus }: PlayAreaProps) {
         )}
       </section>
 
+      <section className="private-transfer__history">
+        <div className="private-transfer__history-head">
+          <div>
+            <span className="private-transfer__eyebrow">{t("historyTitle")}</span>
+            <p className="private-transfer__history-sub">{t("historySubtitle")}</p>
+          </div>
+          {history.length > 0 && (
+            <button
+              type="button"
+              className="private-transfer__history-clear"
+              onClick={handleClearHistory}
+              aria-label={t("historyClearAria")}
+            >
+              {t("historyClear")}
+            </button>
+          )}
+        </div>
+        {history.length === 0 ? (
+          <p className="private-transfer__history-empty">{t("historyEmpty")}</p>
+        ) : (
+          <ul className="private-transfer__history-list">
+            {history.map((intent) => (
+              <li key={`${intent.secretRef}:${intent.ts}`} className="private-transfer__history-item">
+                <div className="private-transfer__history-meta">
+                  <span>
+                    {t("historyMetaNetwork")}: {networkLabelFor(intent.network)}
+                  </span>
+                  <span>
+                    {t("historyMetaAsset")}: {intent.asset}
+                  </span>
+                </div>
+                <dl>
+                  {(
+                    [
+                      ["secretRef", t("resultSecretRef"), intent.secretRef],
+                      ["commitment", t("resultCommitment"), intent.commitment],
+                    ] as const
+                  ).map(([field, label, value]) => {
+                    const rowKey = `${intent.secretRef}:${field}`;
+                    return (
+                      <div key={field}>
+                        <dt>{label}</dt>
+                        <div className="private-transfer__copy-row">
+                          <dd>{value}</dd>
+                          <button
+                            type="button"
+                            className="private-transfer__copy-button"
+                            onClick={() => copyValue(rowKey, value)}
+                            aria-label={
+                              copiedField === rowKey
+                                ? t("copiedAria", { label })
+                                : t("copyAria", { label })
+                            }
+                            title={copiedField === rowKey ? t("copiedAction") : t("copyAction")}
+                          >
+                            <span aria-hidden="true">
+                              {copiedField === rowKey
+                                ? `✓ ${t("copiedAction")}`
+                                : `⧉ ${t("copyAction")}`}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </dl>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <details className="private-transfer__steps" open>
         <summary>
-          <span>How a confidential transfer settles</span>
+          <span>{t("stepsTitle")}</span>
           <span className="private-transfer__steps-chevron" aria-hidden="true">
             ⌄
           </span>
         </summary>
         <div className="private-transfer__steps-grid">
-          {[
-            ["1", "Deposit or wallet intent", "The public side only needs an asset lock or signed payment intent."],
-            ["2", "Local encryption", "The private fields are sealed with X25519-HKDF-SHA256-AES-256-GCM."],
-            ["3", "TEE validation", "Morpheus decrypts, checks nullifier reuse, and signs the settlement envelope."],
-            ["4", "Release or refund", "The user submits the returned settlement intent through the wallet."],
-          ].map(([index, title, body]) => (
-            <article key={title}>
+          {(
+            [
+              ["1", t("step1Title"), t("step1Body")],
+              ["2", t("step2Title"), t("step2Body")],
+              ["3", t("step3Title"), t("step3Body")],
+              ["4", t("step4Title"), t("step4Body")],
+            ] as const
+          ).map(([index, title, body]) => (
+            <article key={index}>
               <span>{index}</span>
               <strong>{title}</strong>
               <p>{body}</p>

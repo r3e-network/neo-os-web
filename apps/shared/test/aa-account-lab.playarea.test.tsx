@@ -18,7 +18,7 @@ afterEach(() => cleanup());
 
 const VERIFIER_HASH = "0x5be915aea3ce85e4752d522632f0a9520e377aaf";
 const HOOK_HASH = "0x0000000000000000000000000000000000000000";
-const BACKUP_OWNER = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
+const BACKUP_OWNER = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
 
 function t(key: string) {
   const messages: Record<string, string> = {
@@ -76,6 +76,11 @@ function t(key: string) {
     mainnetCaution: "You are on mainnet — Register Account is a real write.",
     alreadyRegisteredCaution: "This account already has a verifier registered.",
     noVerifierRegistered: "No verifier registered.",
+    currentEscapeTimelock: "Escape Timelock",
+    currentEscapeStatus: "Escape Status",
+    derivedAccountIdLabel: "Derived AccountId",
+    derivedAccountIdHint: "The contract only accepts this id derived from the parameters above.",
+    backupOwnerMustSign: "The backup owner must sign this transaction.",
   };
   return messages[key] ?? key;
 }
@@ -119,11 +124,11 @@ describe("AA Account Lab PlayArea launch flow", () => {
       />,
     );
 
-    const accountInputs = screen.getAllByLabelText(
-      "AccountId Hash",
-    ) as HTMLInputElement[];
-    expect(accountInputs[0]?.value).toBe("neo-aa-001");
-    expect(accountInputs[1]?.value).toBe("neo-aa-001");
+    // Inspect card keeps the single editable AccountId input prefilled from the
+    // launch param; the register card derives its id from parameters instead.
+    expect(
+      (screen.getByLabelText("AccountId Hash") as HTMLInputElement).value,
+    ).toBe("neo-aa-001");
     expect((screen.getByLabelText("Verifier Hash") as HTMLInputElement).value).toBe(
       VERIFIER_HASH,
     );
@@ -139,6 +144,11 @@ describe("AA Account Lab PlayArea launch flow", () => {
     expect(
       (screen.getByLabelText("Escape Timelock") as HTMLInputElement).value,
     ).toBe("604800");
+
+    // The derived registration accountId preview renders the only id the
+    // contract will accept (a 0x 20-byte hash), not the free seed.
+    const derived = document.querySelector(".account-derived__value");
+    expect(derived?.textContent).toMatch(/^0x[0-9a-f]{40}$/i);
 
     fireEvent.click(screen.getByRole("button", { name: "Register Account" }));
 

@@ -64,3 +64,16 @@
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+.result-empty-title {
+  display: block;
+  padding: 18px 14px 4px;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.result-empty-title + .result-empty {
+  padding-top: 0;
+}

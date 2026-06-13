@@ -197,6 +197,23 @@ $soul-accent-soft: #e4f8f0;
 
 /* Layout-neutral wrapper used only as a scroll anchor for the deep-link issue
    flow; `display: contents` keeps the Issue panel in the workspace flow. */
+/* ── Workspace grid ─────────────────────────────────── */
+/* Issue panel + the two stacks sit side-by-side on wide viewports instead of
+   stacking into a five-card scroll wall. The issue-panel-anchor uses
+   display: contents, so its NeoCard child participates directly in the grid. */
+.certificate-workspace {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .certificate-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
 .issue-panel-anchor {
   display: contents;
 }
@@ -501,6 +518,53 @@ $soul-accent-soft: #e4f8f0;
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--ns-border);
+}
+
+.certificate-detail__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ns-border);
+
+  .token-qr {
+    display: block;
+    width: 132px;
+    height: 132px;
+    border-radius: var(--ns-radius-sm);
+    border: 1px solid var(--ns-border);
+    background: var(--ns-surface);
+    padding: 6px;
+  }
+}
+
+.certificate-detail__qr-caption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted);
+}
+
+.certificate-detail__share {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+
+  .certificate-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.certificate-detail__note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--ns-text-muted);
 }
 
 .template-list {

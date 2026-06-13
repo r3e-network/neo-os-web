@@ -33,9 +33,13 @@ import {
   normalizePoolId,
   parsePool,
   type ClaimLaunchIdentity,
+  type CreatePoolForm,
   type GasLuckyClaim,
   type GasLuckyPool,
   type GasPoolClaimProgress,
+  type GasPoolStatus,
+  type GasPoolSuccessType,
+  type TopUpPoolForm,
   type UseGasLuckyPoolOptions,
 } from "./useGasLuckyPool.shared";
 
@@ -201,7 +205,7 @@ export function useGasLuckyPool({
             bestLuckAmount: 0n,
             expiryTime: 0,
             active: true,
-            status: "active" as const,
+            status: "active" as GasPoolStatus,
           };
         })
         .filter((entry): entry is GasLuckyPool => Boolean(entry))
@@ -278,7 +282,10 @@ export function useGasLuckyPool({
       min,
       max,
       maxClaims,
-      expirySeconds: Math.round(expiryHours * 3600),
+      // CreateRangeGasPool expects the lifetime in MILLISECONDS (Runtime.Time is
+      // ms on Neo N3 — see PlatformSocial.Envelope.RangePool.cs). Sending seconds
+      // made a 24h pool expire in ~86s. 3600 s/h × 1000 ms/s.
+      expiryMs: Math.round(expiryHours * 3600 * 1000),
     };
   }
 
@@ -311,7 +318,7 @@ export function useGasLuckyPool({
           { type: "Integer", value: parsed.min.toString() },
           { type: "Integer", value: parsed.max.toString() },
           { type: "Integer", value: String(parsed.maxClaims) },
-          { type: "Integer", value: String(parsed.expirySeconds) },
+          { type: "Integer", value: String(parsed.expiryMs) },
         ],
         { waitForEvent: "RangeGasPoolCreated", waitTimeoutMs: 30_000 },
       );

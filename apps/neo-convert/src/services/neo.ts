@@ -12,6 +12,8 @@ export type NeoAccount = {
 const HEX_PATTERN = /^[0-9a-f]+$/i;
 const WIF_PREFIX = 0x80;
 const WIF_SUFFIX = 0x01;
+// Neo N3 address version byte (0x35 → addresses start with 'N').
+const ADDRESS_VERSION = 0x35;
 
 const OPCODE_NAME_BY_VALUE = Object.entries(OpCode).reduce<Record<number, string>>((acc, [name, value]) => {
   if (typeof value === "number") {
@@ -90,6 +92,63 @@ const PUSHINT_OPERAND_SIZE: Record<number, number> = {
   [OpCode.PUSHINT64]: 8,
   [OpCode.PUSHINT128]: 16,
   [OpCode.PUSHINT256]: 32,
+};
+
+/**
+ * SYSCALL interop service hashes → names. The hash is sha256(name)[0..4] stored
+ * little-endian in the script, so the operand bytes render as the hex keys
+ * below (e.g. 0x627d5b52 → "627d5b52"). Covers the common interop surface so a
+ * disassembled SYSCALL reads as a name rather than an opaque 4-byte hash.
+ */
+const SYSCALL_NAME_BY_HASH: Record<string, string> = {
+  "627d5b52": "System.Contract.Call",
+  "1af77b67": "System.Contract.CallNative",
+  "95da3a81": "System.Contract.GetCallFlags",
+  cf998702: "System.Contract.CreateStandardAccount",
+  "6a33e909": "System.Contract.CreateMultisigAccount",
+  "56e7b327": "System.Crypto.CheckSig",
+  "9ed0dc3a": "System.Crypto.CheckMultisig",
+  b279fcf6: "System.Runtime.Platform",
+  c5fba0e0: "System.Runtime.GetNetwork",
+  e97d38a0: "System.Runtime.GetTrigger",
+  b7c38803: "System.Runtime.GetTime",
+  "2d510830": "System.Runtime.GetScriptContainer",
+  dbfea874: "System.Runtime.GetExecutingScriptHash",
+  "39536e3c": "System.Runtime.GetCallingScriptHash",
+  f9b4e238: "System.Runtime.GetEntryScriptHash",
+  b30c808f: "System.Runtime.LoadScript",
+  f827ec8c: "System.Runtime.CheckWitness",
+  "84271143": "System.Runtime.GetInvocationCounter",
+  "6bdea928": "System.Runtime.GetRandom",
+  cfe74796: "System.Runtime.Log",
+  "95016f61": "System.Runtime.Notify",
+  "274335f1": "System.Runtime.GetNotifications",
+  "1488d8ce": "System.Runtime.GasLeft",
+  c35a8cbc: "System.Runtime.BurnGas",
+  "4c4992dc": "System.Runtime.GetAddressVersion",
+  "9bf667ce": "System.Storage.GetContext",
+  f6b46be2: "System.Storage.GetReadOnlyContext",
+  "764cbfe9": "System.Storage.AsReadOnly",
+  "925de831": "System.Storage.Get",
+  df30b89a: "System.Storage.Find",
+  e63f1884: "System.Storage.Put",
+  "2f58c5ed": "System.Storage.Delete",
+  "9c08ed9c": "System.Iterator.Next",
+  f354bf1d: "System.Iterator.Value",
+};
+
+/** Decode a fixed-width little-endian operand as a signed two's-complement BigInt. */
+const readSignedLittleEndian = (bytes: Uint8Array, offset: number, length: number): bigint => {
+  let value = 0n;
+  for (let index = length - 1; index >= 0; index -= 1) {
+    value = (value << 8n) | BigInt(bytes[offset + index] ?? 0);
+  }
+  // Apply the sign bit of the most-significant byte (NeoVM integers are signed).
+  const signBitSet = ((bytes[offset + length - 1] ?? 0) & 0x80) !== 0;
+  if (signBitSet) {
+    value -= 1n << BigInt(8 * length);
+  }
+  return value;
 };
 
 /**
@@ -197,6 +256,45 @@ export const convertPrivateKeyToWif = (privateKey: string): string => {
 
 export const convertPublicKeyToAddress = (publicKey: string): string => new PublicKey(publicKey.trim()).getAddress();
 
+/**
+ * A Neo N3 address is base58check(version 0x35 ‖ scriptHash[20]). Validate the
+ * version byte and the 20-byte payload so a paste of a bare base58 string (or a
+ * Neo Legacy 0x17-version address) is rejected rather than mis-converted.
+ */
+export const validateAddress = (value: string): boolean => {
+  try {
+    const payload = decodeBase58Check(value.trim());
+    return payload.length === 21 && payload[0] === ADDRESS_VERSION;
+  } catch (_error: unknown) {
+    return false;
+  }
+};
+
+export interface AddressScriptHash {
+  /** Big-endian display form, e.g. 0x… (the form RPC/explorers print). */
+  bigEndian: string;
+  /** Little-endian form as stored in scripts (the byte order on the VM stack). */
+  littleEndian: string;
+}
+
+/**
+ * Decode a Neo N3 address to its 20-byte script hash in both byte orders. The
+ * base58check payload carries the script hash little-endian; the canonical 0x…
+ * display form is that reversed.
+ */
+export const addressToScriptHash = (address: string): AddressScriptHash => {
+  const payload = decodeBase58Check(address.trim());
+  if (payload.length !== 21 || payload[0] !== ADDRESS_VERSION) {
+    throw new Error("invalid address");
+  }
+  const littleEndianBytes = payload.slice(1);
+  const bigEndianBytes = Uint8Array.from(littleEndianBytes).reverse();
+  return {
+    bigEndian: `0x${bytesToHex(bigEndianBytes)}`,
+    littleEndian: bytesToHex(littleEndianBytes),
+  };
+};
+
 export const disassembleScript = (script: string): string[] => {
   const cleaned = normalizeHex(script);
   if (!isHex(cleaned)) return [];
@@ -240,16 +338,30 @@ export const disassembleScript = (script: string): string[] => {
         continue;
       }
 
-      // Fixed-width integer pushes (PUSHINT8..PUSHINT256).
+      // Fixed-width integer pushes (PUSHINT8..PUSHINT256). Decode the
+      // little-endian operand to a signed decimal value (the raw hex is kept in
+      // parentheses) so the reader doesn't have to byte-swap by hand.
       const pushIntSize = PUSHINT_OPERAND_SIZE[opcode];
       if (pushIntSize !== undefined) {
+        const decimal = readSignedLittleEndian(bytes, cursor + 1, pushIntSize);
         const data = takeBytes(bytes, cursor + 1, pushIntSize);
-        tokens.push(`${opcodeName} ${bytesToHex(data)}`);
+        tokens.push(`${opcodeName} ${decimal.toString()} (0x${bytesToHex(data)})`);
         cursor += pushIntSize;
         continue;
       }
 
-      // Opcodes carrying a fixed immediate operand (jumps, syscall, slots…).
+      // SYSCALL: resolve the 4-byte interop hash to its service name where
+      // known, keeping the raw hash in parentheses for reference.
+      if (opcode === OpCode.SYSCALL) {
+        const data = takeBytes(bytes, cursor + 1, 4);
+        const hashHex = bytesToHex(data);
+        const name = SYSCALL_NAME_BY_HASH[hashHex];
+        tokens.push(name ? `SYSCALL ${name} (0x${hashHex})` : `SYSCALL 0x${hashHex}`);
+        cursor += 4;
+        continue;
+      }
+
+      // Opcodes carrying a fixed immediate operand (jumps, slots…).
       const operandSize = FIXED_OPERAND_SIZE[opcode];
       if (operandSize !== undefined && opcodeName) {
         const data = takeBytes(bytes, cursor + 1, operandSize);

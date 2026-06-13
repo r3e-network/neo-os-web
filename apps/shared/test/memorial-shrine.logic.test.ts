@@ -1,9 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
 import { useMemorialShrine } from "../../memorial-shrine/src/composables/useMemorialShrine";
 
 import { addressToScriptHash } from "../utils/neo";
+
+beforeEach(() => {
+  window.localStorage.clear();
+});
 
 const OWNER = "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu";
 // Little-endian 0x script hash for OWNER — matches addressToScriptHash and the
@@ -93,6 +97,26 @@ function createShrine(options: {
       recordTribute(callArgs),
   );
 
+  function seedMemorial(over: Partial<Record<string, unknown>> = {}) {
+    const id = memorialsById.size + 1;
+    memorialsById.set(id, {
+      id,
+      creator: OWNER_SCRIPT_HASH,
+      deceasedName: `Memorial ${id}`,
+      photoHash: "",
+      relationship: "friend",
+      birthYear: 1950,
+      deathYear: 2024,
+      biography: "",
+      obituary: "",
+      lastTributeTime: 0,
+      incenseCount: 0, candleCount: 0, flowerCount: 0,
+      fruitCount: 0, wineCount: 0, feastCount: 0,
+      ...over,
+    });
+    return id;
+  }
+
   function recordTribute(callArgs: Array<{ value: unknown }>) {
     const visitorHash = OWNER_SCRIPT_HASH.toLowerCase();
     const memorialId = Number(callArgs[1]?.value);
@@ -139,7 +163,7 @@ function createShrine(options: {
     eventBus: events,
     t,
   });
-  return { shrine, chain, events, memorialsById, tributesById };
+  return { shrine, chain, events, memorialsById, tributesById, seedMemorial };
 }
 
 describe("Memorial Shrine logic", () => {
@@ -282,5 +306,58 @@ describe("Memorial Shrine logic", () => {
       ],
       { waitForEvent: "TributePaid", waitTimeoutMs: 30_000 },
     );
+  });
+
+  it("starts Visited empty (no fabricated seeds) and only records real opens", async () => {
+    const { shrine, seedMemorial } = createShrine({ launchNetwork: "testnet" });
+    seedMemorial();
+    seedMemorial();
+    seedMemorial();
+
+    await shrine.loadAll();
+    // A fresh visitor has opened nothing — the stat must be 0, not 2.
+    expect(shrine.visitedMemorials.get()).toHaveLength(0);
+
+    shrine.openMemorial(2);
+    expect(shrine.visitedMemorials.get().map((m) => m.id)).toEqual([2]);
+
+    // The open is persisted and rehydrated on the next session (new composable).
+    const next = createShrine({ launchNetwork: "testnet" });
+    next.seedMemorial();
+    next.seedMemorial();
+    next.seedMemorial();
+    await next.shrine.loadAll();
+    expect(next.shrine.visitedMemorials.get().map((m) => m.id)).toEqual([2]);
+  });
+
+  it("copies the share link to the clipboard when Web Share is unavailable", async () => {
+    const { shrine, events, seedMemorial } = createShrine({ launchNetwork: "testnet" });
+    seedMemorial();
+    await shrine.loadAll();
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const originalShare = (navigator as Navigator & { share?: unknown }).share;
+    Object.defineProperty(navigator, "share", { value: undefined, configurable: true });
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+
+    await shrine.shareMemorial(shrine.memorials.get()[0]);
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(String(writeText.mock.calls[0][0])).toContain("?id=1");
+    // The status surfaces (no longer a silent no-op) and an event is emitted.
+    expect(shrine.shareStatus.get()).toBeTruthy();
+    expect(events.emit).toHaveBeenCalledWith(
+      "memorial:shared",
+      expect.objectContaining({ id: 1 }),
+    );
+
+    if (originalShare === undefined) {
+      delete (navigator as Navigator & { share?: unknown }).share;
+    } else {
+      Object.defineProperty(navigator, "share", { value: originalShare, configurable: true });
+    }
   });
 });

@@ -155,6 +155,77 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
   gap: 18px;
 }
 
+.grave-compose-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  align-self: flex-start;
+}
+
+.grave-compose-tab {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  padding: 7px 16px;
+  border-radius: var(--ns-radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  background: transparent;
+  color: var(--ns-text-muted, #8a92a6);
+  transition: background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+
+  &:hover:not(:disabled) {
+    color: var(--ns-text, #2a2d3d);
+  }
+
+  &.active {
+    background: var(--ns-surface, #ffffff);
+    color: $grave-accent-strong;
+    box-shadow: var(--ns-shadow-sm, 0 1px 2px rgba(20, 22, 38, 0.06));
+  }
+
+  &:focus-visible {
+    outline: 2px solid $grave-accent;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+.grave-local-hash {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: $grave-accent-soft;
+  border: 1px solid rgba(15, 177, 116, 0.18);
+
+  .grave-local-hash-label {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: $grave-accent-strong;
+  }
+
+  .grave-local-hash-value {
+    font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    color: var(--ns-ink, #1e1e2e);
+    word-break: break-all;
+  }
+}
+
 .grave-hash-actions {
   display: flex;
   justify-content: flex-end;
@@ -527,11 +598,88 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .history-card {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 14px;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.history-card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.history-epitaph {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+
+  .history-epitaph-label {
+    margin-right: 6px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ns-text-muted, #8a92a6);
+  }
+}
+
+.history-epitaph-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.history-epitaph-editor-actions,
+.history-forget-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.history-forget-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+
+  .history-forget-fee {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--ns-text-2, #5b6478);
+  }
+}
+
+.history-pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.history-truncated-note {
+  font-size: 11px;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .history-icon {

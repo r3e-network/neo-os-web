@@ -64,6 +64,10 @@ const appMessages = {
   withdrawing: { en: "Withdrawing...", zh: "领取中..." },
   tipsWithdrawn: { en: "Tips withdrawn to your wallet", zh: "打赏已领取到您的钱包" },
   nothingToWithdraw: { en: "No tips to withdraw", zh: "暂无可领取打赏" },
+  // Stranded-tip-credit reclaim (deposit landed, tip step failed).
+  unusedCredit: { en: "Unused tip credit", zh: "未使用打赏额度" },
+  withdrawCredit: { en: "Withdraw credit", zh: "取回额度" },
+  creditWithdrawn: { en: "Tip credit withdrawn to your wallet", zh: "打赏额度已取回到您的钱包" },
   tipPrepaidNoTip: {
     en: "Deposit landed but the tip did not settle. Your credit is held on the contract and reused on your next tip.",
     zh: "已存入但打赏未结算。您的余额已保留在合约中，将用于下次打赏。",

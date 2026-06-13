@@ -28,6 +28,19 @@ defineMiniApp({
     // Load persisted checklist from OS storage on mount
     health.loadChecklist();
 
+    // If the wallet connects via the host AFTER the app is open, the data
+    // loaders (mount-only) would leave balances and the auto gas check at 0.
+    // Refresh when the address transitions from empty to set (mirrors
+    // neo-treasury's address sync).
+    let lastAddress = ctx.services.chain.address.get() ?? "";
+    const stopAddressSync = ctx.services.chain.address.subscribe(() => {
+      const next = ctx.services.chain.address.get() ?? "";
+      if (next && next !== lastAddress) {
+        void health.refreshBalances();
+      }
+      lastAddress = next;
+    });
+
     registerActions(ctx, {
       connectWallet: {
         handler: health.connectWallet,
@@ -46,6 +59,17 @@ defineMiniApp({
         },
         errorKey: "error",
       },
+    });
+
+    // Copy via the shared ClipboardService so we keep its execCommand fallback
+    // (which matters inside the sandboxed iframe) and its standardized toast
+    // channel, instead of a raw navigator.clipboard call that throws when
+    // unavailable. The successKey localizes the toast per copy kind.
+    ctx.registerAction("copy", async (...args: unknown[]) => {
+      const text = typeof args[0] === "string" ? args[0] : "";
+      const successKey = typeof args[1] === "string" ? args[1] : "copied";
+      if (!text) return false;
+      return ctx.services.clipboard.copy(text, successKey);
     });
 
     return {
@@ -73,6 +97,7 @@ defineMiniApp({
           await health.refreshBalances();
         }
       },
+      cleanup: stopAddressSync,
     };
   },
 });

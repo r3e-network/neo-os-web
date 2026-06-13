@@ -30,6 +30,10 @@ export default function PlayArea({
   const listings = val<MarketListing[]>("listings") ?? [];
   const isLoading = bool("isLoading");
   const isSubmitting = bool("isSubmitting");
+  const isUpdatingPrice = bool("isUpdatingPrice");
+  const isCancelling = bool("isCancelling");
+  const isBuying = bool("isBuying");
+  const isRefunding = bool("isRefunding");
   const isWalletConnecting = bool("isWalletConnecting");
   const walletAddress = str("walletAddress");
   const selectedListingId = str("selectedListingId");
@@ -173,7 +177,10 @@ export default function PlayArea({
               <ManageListingCard
                 t={t}
                 selectedListing={selectedListing}
-                isSubmitting={isSubmitting}
+                isUpdatingPrice={isUpdatingPrice}
+                isCancelling={isCancelling}
+                isBuying={isBuying}
+                isRefunding={isRefunding}
                 canManage={canManageSelectedListing}
                 canBuy={canBuySelectedListing}
                 hasPendingRefund={selectedListingHasPendingRefund}

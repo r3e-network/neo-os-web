@@ -53,6 +53,7 @@ import type { ChainService } from "@shared/services/ChainService";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
+import { sha256Hex } from "@shared/utils/hash";
 import type { HistoryItem } from "../types";
 
 // ============================================================================
@@ -147,7 +148,10 @@ const decodeEventString = (value: unknown): string => {
 export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
   const totalDestroyed = createObservable(0);
   // Total burial fees PAID across this wallet's burials, in GAS (display:
-  // "Burial Fees"). Fees are spent, not reclaimed.
+  // "Burial Fees"). Fees are spent, not reclaimed. This is an ESTIMATE: the
+  // contract stores no per-burial fee history, so it is count × the CURRENT
+  // buryFee — labelled as an estimate in the UI so a fee change can't read as
+  // an authoritative lifetime total.
   const burialFeesPaid = createObservable(0);
   const assetHash = createObservable("");
   const memoryType = createObservable(1);
@@ -157,6 +161,28 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
   const showWarningShake = createObservable(false);
   const forgettingId = createObservable<string | null>(null);
   const isLoading = createObservable(false);
+
+  // Compose mode: "hash" = the user pastes a pre-made content hash (legacy);
+  // "write" = the user types their memory and we sha256 it locally, so the raw
+  // text never leaves the device — the same on-device-hash pattern as
+  // time-capsule, giving first-time users a way to produce a burial target.
+  const composeMode = createObservable<"hash" | "write">("write");
+  // Plaintext memory the user types in "write" mode. Hashed locally; never sent.
+  const memoryText = createObservable("");
+
+  // The history row id awaiting a forget confirmation (two-step: the first tap
+  // arms the confirm with the fee shown, the second tap pays). null = none.
+  const forgetConfirmId = createObservable<string | null>(null);
+
+  // Inline epitaph editor: the row id whose epitaph is being edited (or null),
+  // and the in-progress epitaph text. addEpitaph is a free, non-deposit call.
+  const epitaphDraftId = createObservable<string | null>(null);
+  const epitaphText = createObservable("");
+  const epitaphSavingId = createObservable<string | null>(null);
+
+  // When false, the history list is capped at HISTORY_DISPLAY_LIMIT; "Show all"
+  // raises the window (events are already fetched up to HISTORY_EVENT_LIMIT).
+  const showAllHistory = createObservable(false);
 
   // Live fees, sourced from getPlatformStats (GAS base units). Seeded with the
   // deployed defaults so the review panel shows a real fee before the first load.
@@ -173,8 +199,11 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
     { value: 5, label: t("memoryTypeOther") },
   ], []);
 
+  // "Burial Fees" total. The contract keeps no per-burial fee history, so this
+  // is an ESTIMATE (count × current buryFee) — prefix "~" so it never reads as
+  // an exact, authoritative lifetime figure.
   const gasReclaimedDisplay = createDerived(
-    () => `${burialFeesPaid.get()} ${t("tokenGas")}`,
+    () => (burialFeesPaid.get() > 0 ? `~${burialFeesPaid.get()} ${t("tokenGas")}` : `0 ${t("tokenGas")}`),
     [burialFeesPaid],
   );
   const historyCount = createDerived(() => history.get().length, [history]);
@@ -185,11 +214,56 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
     () => `${formatGasAmount(buryFee.get())} ${t("tokenGas")}`,
     [buryFee],
   );
+  // Forget costs the live forgetFee (10× the burial fee at current values); the
+  // per-row confirm surfaces this so a tap never spends 1 GAS unannounced.
+  const forgetFeeDisplay = createDerived(
+    () => `${formatGasAmount(forgetFee.get())} ${t("tokenGas")}`,
+    [forgetFee],
+  );
+  // True when the on-chain burial count exceeds the rows actually shown, so the
+  // UI can footnote that the records list is truncated.
+  const historyTruncated = createDerived(
+    () => totalDestroyed.get() > history.get().length,
+    [totalDestroyed, history],
+  );
 
   const triggerMissingHash = () => {
     showWarningShake.set(true);
     if (shakeTimer) clearTimeout(shakeTimer);
     shakeTimer = setTimeout(() => { showWarningShake.set(false); shakeTimer = null; }, 500);
+  };
+
+  // Monotonic token so a stale async sha256 (user kept typing) can't overwrite a
+  // newer one when it resolves out of order.
+  let memoryHashSeq = 0;
+
+  /**
+   * "Write" mode: the user types their memory; we sha256 it LOCALLY and set that
+   * 64-char hex as the burial target (assetHash). The raw text never leaves the
+   * device — only the hash is ever written on-chain. Empty text clears the
+   * target. This gives a first-time user an in-app way to produce a hash (the
+   * legacy "hash" mode only accepted a pre-made one).
+   */
+  const setMemoryText = async (text: string) => {
+    memoryText.set(text);
+    const seq = ++memoryHashSeq;
+    const trimmed = text.trim();
+    if (!trimmed) {
+      if (seq === memoryHashSeq) assetHash.set("");
+      return;
+    }
+    const digest = await sha256Hex(trimmed);
+    // Ignore if a newer keystroke superseded this one mid-hash.
+    if (seq === memoryHashSeq) assetHash.set(digest);
+  };
+
+  /** Switch compose mode, clearing the other mode's input so the target is unambiguous. */
+  const setComposeMode = (mode: "hash" | "write") => {
+    if (composeMode.get() === mode) return;
+    composeMode.set(mode);
+    memoryText.set("");
+    assetHash.set("");
+    showConfirm.set(false);
   };
 
   const initiateDestroy = () => {
@@ -274,6 +348,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
 
       eventBus.emit("graveyard:buried", { action: t("memoryBuried") });
       assetHash.set("");
+      memoryText.set("");
 
       // Refresh stats + history from chain so counters and the record list
       // reflect the settled burial (and pick up any other wallets' activity).
@@ -366,15 +441,21 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
         });
       }
       mine.reverse();
-      const recent = mine.slice(0, HISTORY_DISPLAY_LIMIT);
+      // Cap the rows we enrich+display: HISTORY_DISPLAY_LIMIT until the user
+      // taps "Show all", which raises the window to the full fetched set (up to
+      // HISTORY_EVENT_LIMIT). Avoids HISTORY_EVENT_LIMIT getMemoryDetails reads
+      // on every load while still letting users see beyond the first 20.
+      const displayLimit = showAllHistory.get() ? HISTORY_EVENT_LIMIT : HISTORY_DISPLAY_LIMIT;
+      const recent = mine.slice(0, displayLimit);
 
       // Enrich each with getMemoryDetails for the live forgotten flag + a
-      // canonical memory type / buried time. Best-effort per row.
+      // canonical memory type / buried time / epitaph. Best-effort per row.
       const entries = await Promise.all(
         recent.map(async (item): Promise<HistoryItem> => {
           let forgotten = false;
           let buriedTime = "";
           let chainType = item.memoryType;
+          let epitaph = "";
           try {
             const details = await chain.read("getMemoryDetails", [
               { type: "Integer", value: item.id },
@@ -388,6 +469,10 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
               }
               const ct = asNumber(d.memoryType);
               if (ct > 0) chainType = ct;
+              const ep = typeof d.epitaph === "string" ? d.epitaph : "";
+              // The epitaph comes back as raw printable text via parseByteLike;
+              // keep only printable values so a byte blob never renders garbage.
+              if (ep && /^[\x20-\x7e -￿]*$/.test(ep)) epitaph = ep;
             }
           } catch (e) {
             console.warn(
@@ -403,6 +488,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
             time: buriedTime,
             forgotten,
             memoryType: chainType || undefined,
+            epitaph,
           };
         }),
       );
@@ -417,18 +503,43 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
   };
 
   /**
+   * Arm the forget confirmation for a row. Forgetting costs the forgetFee (1 GAS
+   * = 10× the burial fee), so it must NOT fire on a single unconfirmed tap; this
+   * surfaces the fee + a Confirm/Cancel before any GAS moves.
+   */
+  const requestForget = (item: HistoryItem) => {
+    if (!item.id || item.forgotten) return;
+    if (forgettingId.get()) throw new Error(t("actionBusy"));
+    forgetConfirmId.set(item.id);
+  };
+
+  /** Dismiss the forget confirmation without paying. */
+  const cancelForget = () => {
+    forgetConfirmId.set(null);
+  };
+
+  /**
    * Forget a memory: deposit the forgetFee in GAS (memo
    * "miniapp-graveyard:memory") then call forgetMemory(owner, memoryId). The
    * forgotten state is recorded on-chain (MemoryForgotten), not a local flag.
+   *
+   * Guarded by an explicit confirmation (requestForget): the paid call only
+   * proceeds for the row the user confirmed, so a 1-GAS spend is never silent.
    */
   const forgetMemory = async (item: HistoryItem) => {
     // Legitimate no-ops: nothing to forget. Return silently (no toast).
     if (!item.id || item.forgotten) return;
+    // Require the explicit confirmation for THIS row before paying.
+    if (forgetConfirmId.get() !== item.id) {
+      requestForget(item);
+      return;
+    }
     // Busy case: a forget is already in flight. Throw so the host surfaces a
     // busy message instead of a misleading "forgotten" success toast — only the
     // in-flight row shows a spinner, so other rows look broken otherwise.
     if (forgettingId.get()) throw new Error(t("actionBusy"));
 
+    forgetConfirmId.set(null);
     forgettingId.set(item.id);
     try {
       const { hash: ownerHash } = await requireWallet();
@@ -458,6 +569,71 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
     }
   };
 
+  // ── Epitaph (free, non-deposit) ─────────────────────────────────────
+
+  const EPITAPH_MAX = 120;
+
+  /** Open the inline epitaph editor for a row, seeded with any existing epitaph. */
+  const startEpitaph = (item: HistoryItem) => {
+    epitaphDraftId.set(item.id);
+    epitaphText.set(item.epitaph ?? "");
+  };
+
+  /** Close the inline epitaph editor without saving. */
+  const cancelEpitaph = () => {
+    epitaphDraftId.set(null);
+    epitaphText.set("");
+  };
+
+  /**
+   * Attach an epitaph to a buried memory via addEpitaph(memoryId, epitaph). This
+   * is a FREE, non-deposit call (no GAS transfer) — only the owner's witness is
+   * required, supplied by the connected wallet's signature. The new epitaph is
+   * read back into the row on the post-call reload.
+   */
+  const saveEpitaph = async (item: HistoryItem) => {
+    const text = epitaphText.get().trim();
+    if (!item.id) return;
+    if (!text) throw new Error(t("epitaphRequired"));
+    if (text.length > EPITAPH_MAX) throw new Error(t("epitaphTooLong"));
+    if (epitaphSavingId.get()) throw new Error(t("actionBusy"));
+
+    epitaphSavingId.set(item.id);
+    try {
+      // Ensure a wallet is connected to sign the owner witness.
+      await requireWallet();
+      await chain.invoke(
+        "addEpitaph",
+        [
+          { type: "Integer", value: String(item.id) },
+          { type: "String", value: text },
+        ],
+        { waitForEvent: "EpitaphAdded" },
+      );
+      // Optimistically reflect locally, then reload for the canonical value.
+      history.set(
+        history.get().map((entry) =>
+          entry.id === item.id ? { ...entry, epitaph: text } : entry,
+        ),
+      );
+      epitaphDraftId.set(null);
+      epitaphText.set("");
+      eventBus.emit("graveyard:epitaph", { action: t("epitaphSaved") });
+      await loadHistory();
+    } catch (e) {
+      eventBus.emit("graveyard:error", { message: e instanceof Error ? e.message : t("error") });
+      throw e;
+    } finally {
+      epitaphSavingId.set(null);
+    }
+  };
+
+  /** Toggle the full-history view; reload so the wider slice is enriched. */
+  const setShowAllHistory = async (value: boolean) => {
+    showAllHistory.set(value);
+    await loadHistory();
+  };
+
   // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
@@ -479,6 +655,14 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
     totalDestroyed, burialFeesPaid, assetHash, memoryType, history,
     showConfirm, isDestroying, showWarningShake, forgettingId, isLoading,
     memoryTypeOptions, gasReclaimedDisplay, burialFeeDisplay, historyCount,
+    // Compose mode (write/hash) + local-hash text
+    composeMode, memoryText, setComposeMode, setMemoryText,
+    // Forget confirmation + fee
+    forgetFeeDisplay, forgetConfirmId, requestForget, cancelForget,
+    // Epitaph editor (free, non-deposit)
+    epitaphDraftId, epitaphText, epitaphSavingId, startEpitaph, cancelEpitaph, saveEpitaph,
+    // History pagination
+    showAllHistory, historyTruncated, setShowAllHistory,
     initiateDestroy, cancelDestroy, executeDestroy, loadStats, loadHistory, forgetMemory,
     loadAll, cleanupTimers,
   };

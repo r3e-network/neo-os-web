@@ -1,12 +1,24 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 import type { ConsoleToolConfig } from "@shared/components-react";
 import { previewId } from "@shared/components-react";
+import { getNetwork } from "@shared/constants/rpc";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-oracle-compute-lab";
 
+/**
+ * Resolve the network label from the launched network instead of a hardcoded
+ * "Morpheus Testnet". Verified 2026-06-12: the Morpheus compute lanes are live
+ * on the mainnet nitro worker while the testnet runtime is still the degraded
+ * emergency runtime — the hero must reflect the actually-live lane the console
+ * opened on (getNetwork() defaults to mainnet).
+ */
+export function resolveNetworkLabel(): string {
+  return getNetwork() === "testnet" ? "Morpheus Testnet" : "Morpheus Mainnet";
+}
+
 export const appMeta = {
-  networkLabel: "Morpheus Testnet",
+  networkLabel: resolveNetworkLabel(),
   endpointLabel: "Compute workflow",
 };
 
@@ -92,12 +104,33 @@ export const consoleConfig: ConsoleToolConfig = {
     const selectedPrivacy = clean(values.privacy, "sealed");
     const privacy = selectedPrivacy === "public" ? "public" : "sealed";
     const input = clean(values.input, "{}");
+    // The input field's contract is a JSON compute payload — validate it so a
+    // typo'd payload is surfaced (non-blocking) instead of silently previewing
+    // as "Compute preview ready" (mirrors the seal/http sibling validation).
+    let inputValid = true;
+    try {
+      JSON.parse(input);
+    } catch {
+      inputValid = false;
+    }
+    // Resolve the selected option labels through t() so the summary reads in the
+    // active language instead of interpolating raw English enum values
+    // ("risk-score sealed 预览已准备").
+    const workflowLabel = t(WORKFLOW_LABEL_KEYS[workflow] ?? "workflowRisk");
+    const privacyLabel = t(privacy === "public" ? "privacyPublic" : "privacySealed");
     const inputDigest = previewId(input);
     const digest = previewId(`${workflow}|${privacy}|${inputDigest}`);
     const basePayload = {
       kind: "oracle.compute.request",
+      // An unparseable input is a validation failure: flag it input_required so
+      // the shared ConsoleToolPanel classifies the preview as a warning (no
+      // green success toast, no Requests increment, digest placeholder kept) —
+      // matching the visible "Input is valid JSON: No" row instead of
+      // contradicting it with a success signal.
+      ...(inputValid ? {} : { status: "input_required" as const }),
       workflow,
       privacy,
+      inputValid,
       inputDigest,
       inputLength: input.length,
       digest,
@@ -119,17 +152,24 @@ export const consoleConfig: ConsoleToolConfig = {
           };
 
     return {
-      status: t("computeReady"),
-      summary: t("computeSummary", { workflow, privacy }),
+      status: inputValid ? t("computeReady") : t("computeInvalidJson"),
+      summary: t("computeSummary", { workflow: workflowLabel, privacy: privacyLabel }),
       rows: [
-        { label: t("workflow"), value: workflow },
-        { label: t("privacy"), value: privacy },
+        { label: t("workflow"), value: workflowLabel },
+        { label: t("privacy"), value: privacyLabel },
+        { label: t("inputValid"), value: inputValid ? t("yes") : t("no") },
         { label: t("inputDigest"), value: inputDigest },
         { label: t("statDigest"), value: digest },
       ],
       payload,
     };
   },
+};
+
+const WORKFLOW_LABEL_KEYS: Record<string, string> = {
+  "risk-score": "workflowRisk",
+  "proof-check": "workflowProof",
+  "batch-transform": "workflowBatch",
 };
 
 const appMessages = {
@@ -152,13 +192,18 @@ const appMessages = {
   privacyPublic: { en: "Public", zh: "公开" },
   input: { en: "Input Payload", zh: "输入载荷" },
   inputPlaceholder: { en: "{\"asset\":\"GAS\"}", zh: "{\"asset\":\"GAS\"}" },
+  inputValid: { en: "Input is valid JSON", zh: "输入为有效 JSON" },
   inputDigest: { en: "Input Digest", zh: "输入摘要" },
   computeReady: { en: "Compute preview ready", zh: "计算预览已准备" },
+  computeInvalidJson: { en: "Enter a valid JSON input payload", zh: "请输入有效的 JSON 输入载荷" },
   computeSummary: { en: "{workflow} {privacy} preview prepared", zh: "{workflow} {privacy} 预览已准备" },
+  yes: { en: "Yes", zh: "是" },
+  no: { en: "No", zh: "否" },
   statNetwork: { en: "Network", zh: "网络" },
   statEndpoint: { en: "Mode", zh: "模式" },
   statRequests: { en: "Requests", zh: "请求数" },
   statDigest: { en: "Digest", zh: "摘要" },
+  digestPlaceholder: { en: "—", zh: "—" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   docsSubtitle: {
     en: "A safe preview surface for Morpheus compute workflows.",

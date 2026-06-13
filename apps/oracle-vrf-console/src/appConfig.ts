@@ -1,14 +1,24 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 import type { ConsoleToolConfig } from "@shared/components-react";
 import { previewId } from "@shared/components-react";
+import { getNetwork } from "@shared/constants/rpc";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-oracle-vrf-console";
 const DEFAULT_CONSUMER = appId;
 const DEFAULT_SALT = "vrf:miniapp-round";
 
+/**
+ * Resolve the network label from the launched network instead of a hardcoded
+ * "Morpheus Testnet". vrf/random is live on the mainnet nitro worker while the
+ * testnet runtime is still degraded (getNetwork() defaults to mainnet).
+ */
+export function resolveNetworkLabel(): string {
+  return getNetwork() === "testnet" ? "Morpheus Testnet" : "Morpheus Mainnet";
+}
+
 export const appMeta = {
-  networkLabel: "Morpheus Testnet",
+  networkLabel: resolveNetworkLabel(),
   endpointLabel: "VRF request",
 };
 
@@ -71,6 +81,11 @@ export const consoleConfig: ConsoleToolConfig = {
   resetActionKey: "reset",
   copyActionKey: "copy",
   copiedKey: "copied",
+  // The session "Requests" tally carries no business meaning here (it counts
+  // local previews, not on-chain draws). The app's manifest already omits
+  // statRequests; hiding it in the shared hero is the supported replacement for
+  // the old (now dead) CSS nth-child hide rule.
+  hideRequestCount: true,
   fields: [
     {
       key: "consumer",
@@ -123,10 +138,14 @@ export const consoleConfig: ConsoleToolConfig = {
     // Clamp rounds to a positive integer so an invalid entry (0, -5, 2.5, blank,
     // or a non-numeric string) never produces a semantically broken request
     // payload that downstream consumers would carry unchecked.
-    const parsedRounds = Number(clean(values.rounds, "1"));
+    const rawRounds = clean(values.rounds, "1");
+    const parsedRounds = Number(rawRounds);
     const rounds = String(
       Number.isFinite(parsedRounds) ? Math.max(1, Math.floor(parsedRounds)) : 1,
     );
+    // Tell the user when their entry was silently adjusted, so a "0 rounds"
+    // request reads honestly as "adjusted to 1" rather than appearing honored.
+    const roundsAdjusted = rawRounds !== rounds;
     const requestId = previewId(`${consumer}|${salt}|${rounds}|${mode}`);
 
     return {
@@ -136,6 +155,9 @@ export const consoleConfig: ConsoleToolConfig = {
         { label: t("consumer"), value: consumer },
         { label: t("salt"), value: salt },
         { label: t("rounds"), value: rounds },
+        ...(roundsAdjusted
+          ? [{ label: t("roundsAdjusted"), value: t("roundsAdjustedValue", { raw: rawRounds, rounds }) }]
+          : []),
         { label: t("clientDigest"), value: requestId },
       ],
       payload: {
@@ -143,6 +165,7 @@ export const consoleConfig: ConsoleToolConfig = {
         consumer,
         salt,
         rounds,
+        roundsAdjusted,
         mode,
         // `digest` is what the shared ConsoleToolPanel.runPreview() reads to
         // populate the bound `lastDigest` observable (hero "Request ID" stat +
@@ -177,6 +200,11 @@ const appMessages = {
   },
   rounds: { en: "Rounds", zh: "轮次" },
   roundsPlaceholder: { en: "1", zh: "1" },
+  roundsAdjusted: { en: "Rounds adjusted", zh: "轮次已调整" },
+  roundsAdjustedValue: {
+    en: "{raw} -> {rounds} (min 1, whole number)",
+    zh: "{raw} -> {rounds}（最少 1，整数）",
+  },
   mode: { en: "Proof Mode", zh: "证明模式" },
   modeSingle: { en: "Single proof", zh: "单次证明" },
   modeBatch: { en: "Batch proof", zh: "批量证明" },
@@ -196,6 +224,7 @@ const appMessages = {
   statEndpoint: { en: "Endpoint", zh: "端点" },
   statRequests: { en: "Requests", zh: "请求数" },
   statDigest: { en: "Request ID", zh: "请求 ID" },
+  digestPlaceholder: { en: "—", zh: "—" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   docsSubtitle: {
     en: "A compact console for Morpheus randomness request planning.",

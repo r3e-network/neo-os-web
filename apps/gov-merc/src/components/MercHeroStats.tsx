@@ -18,7 +18,7 @@ export default function MercHeroStats({
     <>
       <div className="gov-merc-stat">
         <span>{t("totalPool")}</span>
-        <strong>{formatNum(totalPool, 0)} NEO</strong>
+        <strong>{formatNum(totalPool, 0)} {t("tokenNeo")}</strong>
       </div>
       <div className="gov-merc-stat">
         <span>{t("activeBids")}</span>

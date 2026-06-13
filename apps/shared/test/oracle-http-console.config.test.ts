@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { consoleConfig, manifest, messages } from "../../oracle-http-console/src/appConfig";
+import {
+  consoleConfig,
+  isValidJsonPath,
+  manifest,
+  messages,
+} from "../../oracle-http-console/src/appConfig";
 
 type LocalizedMessage = {
   en: string;
@@ -83,5 +88,40 @@ describe("Oracle HTTP Console config", () => {
       t,
     );
     expect(postResult.payload.body).toBe("{\"kept\":true}");
+  });
+
+  it("classifies syntactically valid and invalid JSON paths", () => {
+    expect(isValidJsonPath("$.status")).toBe(true);
+    expect(isValidJsonPath("$.data[0].value")).toBe(true);
+    expect(isValidJsonPath("$..price")).toBe(true);
+    expect(isValidJsonPath("$")).toBe(true);
+    // Missing root, trailing dot, and unbalanced brackets are rejected.
+    expect(isValidJsonPath("$status")).toBe(false);
+    expect(isValidJsonPath("status.")).toBe(false);
+    expect(isValidJsonPath("$.a[")).toBe(false);
+    expect(isValidJsonPath("$.a.")).toBe(false);
+  });
+
+  it("gates an invalid JSON path as input_required with a Path valid row", () => {
+    const result = consoleConfig.buildResult(
+      { ...defaults(), jsonPath: "$status" },
+      t,
+    );
+    expect(result.payload).toMatchObject({
+      status: "input_required",
+      pathValid: false,
+      urlValid: true,
+    });
+    const pathRow = result.rows.find((row) => row.label === t("pathValid"));
+    expect(pathRow?.value).toBe(t("no"));
+    expect(result.status).toBe("Enter a valid JSON path (start with $)");
+  });
+
+  it("shows a Path valid: Yes row on a clean default preview", () => {
+    const result = consoleConfig.buildResult(defaults(), t);
+    const pathRow = result.rows.find((row) => row.label === t("pathValid"));
+    expect(pathRow?.value).toBe(t("yes"));
+    expect(result.payload.pathValid).toBe(true);
+    expect(result.payload.status).toBeUndefined();
   });
 });

@@ -58,6 +58,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const needsLifecycleSync = bool("needsLifecycleSync");
   const isSettling = bool("isSettling");
 
+  // Unused prepaid buy-credit (a deposit that landed but whose buy didn't
+  // complete) — withdrawable via the recovery row.
+  const prepaidCredit = num("prepaidCredit");
+
   // Loading
   const isLoading = bool("isLoading");
 
@@ -66,6 +70,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const [localKeyCount, setLocalKeyCount] = useState("1");
   const formatNum = (n: number) => formatNumber(n, 2);
+  // A fresh round is active on-chain but has no keys sold yet, so it reports
+  // remainingTime 0 — the danger ring/meter must NOT render a pulsing red
+  // CRITICAL 00:00:00 for it. Reserve the live danger styling for a round that
+  // has at least one key (a real running clock); a fresh round shows the calm
+  // accent + an "awaiting the first key" caption instead.
+  const liveDanger = isRoundActive && roundDataAvailable && totalKeys > 0;
+  const awaitingFirstKey = isRoundActive && roundDataAvailable && totalKeys <= 0;
   // Buys are only valid on a live round. An ended round (needsLifecycleSync) is
   // blocked by the contract ("round ended; settle first"), so the affordance is
   // Settle, not Buy.
@@ -137,7 +148,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="hero-heading">
           <span className="hero-badge" aria-hidden="true">&#9201;</span>
           <div className="hero-heading-copy">
-            <span className="hero-eyebrow">{t("roundStatus") || "Round Status"}</span>
+            <span className="hero-eyebrow">{t("roundStatus")}</span>
             <span className="hero-facts">
               <span className="hero-fact-round">{formattedRound}</span>
               <span className="hero-fact-sep" aria-hidden="true">&middot;</span>
@@ -154,14 +165,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           dangerLevel={dangerLevel}
           shouldPulse={shouldPulse}
           formattedPot={formatNum(totalPot)}
-          active={isRoundActive && roundDataAvailable}
+          active={liveDanger}
+          awaitingFirstKey={awaitingFirstKey}
         />
         <DangerMeter
           t={t}
           level={dangerLevel}
           levelText={dangerLevelText}
           progress={dangerProgress}
-          active={isRoundActive && roundDataAvailable}
+          active={liveDanger}
         />
       </div>
 
@@ -170,10 +182,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="last-buyer-badge">
           <span className="last-buyer-icon" aria-hidden="true">★</span>
           <div className="last-buyer-info">
-            <span className="last-buyer-label">{t("lastBuyer") || "CURRENT LEADER"}</span>
+            <span className="last-buyer-label">{t("currentLeader")}</span>
             <span className="last-buyer-address">{formatBuyerAddress(lastBuyer)}</span>
           </div>
-          <span className="last-buyer-hint">{t("timeUntilEvent") || "Wins if timer hits zero"}</span>
+          <span className="last-buyer-hint">{t("winsIfZero")}</span>
         </div>
       )}
 
@@ -200,10 +212,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="round-control-card__body">
             <div className="round-control-card__copy">
               <span className="round-control-card__title">
-                {t("inactiveRound") || "Rollover ready"}
+                {t("inactiveRound")}
               </span>
               <span className="round-control-card__text">
-                {t("refreshRoundHint") || "Refresh the game state before buying keys."}
+                {t("refreshRoundHint")}
               </span>
             </div>
             <NeoButton
@@ -211,9 +223,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               variant="secondary"
               loading={isLoading}
               onClick={handleRefreshRound}
-              aria-label={t("refreshRound") || "Refresh round"}
+              aria-label={t("refreshRound")}
             >
-              {t("refreshRound") || "Refresh Round"}
+              {t("refreshRound")}
             </NeoButton>
           </div>
         </NeoCard>
@@ -234,9 +246,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               loading={isSettling}
               disabled={isSettling}
               onClick={handleSettleRound}
-              aria-label={t("settleRound") || "Settle Round"}
+              aria-label={t("settleRound")}
             >
-              {isSettling ? t("settlingRound") : (t("settleRound") || "Settle Round")}
+              {isSettling ? t("settlingRound") : t("settleRound")}
+            </NeoButton>
+          </div>
+        </NeoCard>
+      )}
+
+      {/* Recovery — unused prepaid buy-credit from a deposit whose buy didn't
+          complete. The contract reuses it on the next buy, or the player can
+          withdraw it back to the wallet here (money-in needs money-out). */}
+      {prepaidCredit > 0 && (
+        <NeoCard variant="erobo" className="survivor-recovery-card">
+          <div className="survivor-recovery-card__body">
+            <div className="survivor-recovery-card__copy">
+              <span className="survivor-recovery-card__title">
+                {t("prepaidCreditLabel")} · {formatNum(prepaidCredit)} {t("tokenGas")}
+              </span>
+              <span className="survivor-recovery-card__text">{t("prepaidCreditHint")}</span>
+            </div>
+            <NeoButton
+              size="sm"
+              variant="secondary"
+              loading={isLoading}
+              disabled={isLoading}
+              onClick={() => dispatch("withdrawCredit")}
+              aria-label={t("withdrawCredit")}
+            >
+              {t("withdrawCredit")}
             </NeoButton>
           </div>
         </NeoCard>
@@ -247,7 +285,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="participation-item">
           <span className="participation-icon" aria-hidden="true">⚷</span>
           <div className="participation-detail">
-            <span className="participation-label">{t("yourKeys") || "YOUR KEYS"}</span>
+            <span className="participation-label">{t("yourKeys")}</span>
             <span className="participation-value">{userKeys}</span>
           </div>
         </div>
@@ -274,7 +312,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Game rules — collapsed tutorial, out of the primary flow */}
       <details className="rules-card">
         <summary className="rules-summary">
-          <span className="rules-title">{t("howItWorks") || "How It Works"}</span>
+          <span className="rules-title">{t("howItWorks")}</span>
           <span className="rules-chevron" aria-hidden="true" />
         </summary>
         <div className="rules-grid">
@@ -306,7 +344,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="history-section">
         <div className="history-section-header">
           <span className="history-section-icon" aria-hidden="true">↺</span>
-          <span className="history-section-title">{t("recentHistory") || "Recent Rounds"}</span>
+          <span className="history-section-title">{t("recentHistory")}</span>
         </div>
         <HistoryList history={history} t={t} />
       </div>

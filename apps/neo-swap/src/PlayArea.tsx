@@ -45,24 +45,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const toToken = val<Token | null>("toToken", null);
   const fromAmount = str("fromAmount", "");
   const toAmount = str("toAmount", "");
-  const exchangeRate = str("exchangeRate", t("rateUnavailable") || "--");
+  const exchangeRate = str("exchangeRate", t("rateUnavailable"));
   const rateLoading = bool("rateLoading");
   const loading = bool("loading");
   const showSelector = bool("showSelector");
   const selectorTarget = str("selectorTarget", "");
   const isSwapping = bool("isSwapping");
-  const availableTokens = val<Token[]>("availableTokens", []);
+  const availableTokens = val<Token[]>("availableTokens", []) ?? [];
   const canSwap = bool("canSwap");
-  const swapButtonText = str("swapButtonText", t("tabSwap") || "Swap");
+  const swapButtonText = str("swapButtonText", t("tabSwap"));
   const slippage = str("slippage", "0.5%");
   const minReceived = str("minReceived", "");
+  // routerAvailable defaults to false: the manifest declares no router, so the
+  // honest baseline is "no on-chain route" unless state says otherwise.
+  const routerAvailable = state.routerAvailable ? bool("routerAvailable") : false;
+  const rateStale = bool("rateStale");
+  const rateAsOf = str("rateAsOf", "");
 
-  const routeHealth = rateLoading
-    ? t("swapRouteSyncing")
-    : exchangeRate
-      ? t("swapRouteReady")
-      : t("swapRouteUnavailable");
-  const routeReady = !rateLoading && !!exchangeRate;
+  // The route badge must reflect the real settlement path. With no router the
+  // swap cannot complete, so the badge says so up front rather than "ready".
+  const routeHealth = !routerAvailable
+    ? t("swapRouteUnavailable")
+    : rateLoading
+      ? t("swapRouteSyncing")
+      : rateStale
+        ? t("rateStale")
+        : exchangeRate
+          ? t("swapRouteReady")
+          : t("swapRouteUnavailable");
+  const routeReady = routerAvailable && !rateLoading && !rateStale && !!exchangeRate;
   const rateDisplay = rateLoading ? t("loadingRate") : exchangeRate || t("rateUnavailable");
   const formattedMinReceived = minReceived || "0.0000";
   const selectorTitle = selectorTarget === "to" ? t("to") : t("from");
@@ -99,7 +110,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
           </div>
 
-          {walletEmpty && (
+          {!routerAvailable && (
+            <div className="neo-swap-router-notice" role="status">
+              <span className="neo-swap-router-notice__title">{t("swapRouterUnavailable")}</span>
+              <span>{t("swapRouterUnavailableHint")}</span>
+            </div>
+          )}
+
+          {routerAvailable && walletEmpty && (
             <div className="neo-swap-wallet-empty">
               <Wallet size={18} aria-hidden="true" />
               <span>{t("step1")}</span>
@@ -124,11 +142,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={fromAmount}
                 type="number"
                 min={0}
-                placeholder={t("enterAmount") || "0.00"}
+                placeholder={t("enterAmount")}
                 onChange={(val) => { void dispatch("setFromAmount", val); }}
               />
               <NeoButton size="sm" variant="secondary" onClick={() => dispatch("setMaxAmount")}>
-                {t("max") || "MAX"}
+                {t("max")}
               </NeoButton>
             </div>
             <span className="neo-swap-balance-line">
@@ -140,7 +158,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoButton
               size="sm"
               variant="ghost"
-              aria-label={t("switchTokens") || "Switch tokens"}
+              aria-label={t("switchTokens")}
               onClick={() => dispatch("swapTokens")}
             >
               <ArrowDownUp size={17} aria-hidden="true" />
@@ -186,6 +204,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </div>
 
+          {rateAsOf && (
+            <p className={`neo-swap-rate-asof${rateStale ? " is-stale" : ""}`}>
+              {rateStale ? t("rateStaleAsOf", { time: rateAsOf }) : t("rateAsOf", { time: rateAsOf })}
+            </p>
+          )}
+
           <NeoButton
             variant="primary"
             block
@@ -193,7 +217,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             disabled={!canSwap}
             onClick={() => dispatch("executeSwap")}
           >
-            {isSwapping ? (t("swapping") || "Swapping...") : swapButtonText}
+            {isSwapping ? t("swapping") : swapButtonText}
           </NeoButton>
           <p className="neo-swap-execute-note">
             {t("minReceived")}: {formattedMinReceived} {toSymbol} · {t("slippage")} {slippage}
@@ -238,7 +262,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoButton
                 size="sm"
                 variant="ghost"
-                aria-label={t("dismiss") || "Close"}
+                aria-label={t("dismiss")}
                 onClick={() => dispatch("closeSelector")}
               >
                 <X size={17} aria-hidden="true" />

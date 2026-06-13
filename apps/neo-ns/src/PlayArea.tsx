@@ -55,52 +55,61 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </svg>
           </div>
           <div className="nns-hero__text">
-            <span className="nns-hero__eyebrow">NAME SERVICE</span>
-            <h2 className="nns-hero__title">{t("title") || "Neo Name Service"}</h2>
+            <span className="nns-hero__eyebrow">{t("eyebrow")}</span>
+            <h2 className="nns-hero__title">{t("title")}</h2>
             <p className="nns-hero__subtitle">
-              {t("docSubtitle") || "Human-readable .neo domain names for Neo addresses"}
+              {t("docSubtitle")}
             </p>
           </div>
           <div className="nns-hero__stats" aria-hidden={false}>
             <div className={`nns-stat${domainCount > 0 ? " nns-stat--active" : ""}`}>
               <span className="nns-stat__value">{domainCount}</span>
-              <span className="nns-stat__label">{t("tabDomains") || "Domains"}</span>
+              <span className="nns-stat__label">{t("tabDomains")}</span>
             </div>
             <div className={`nns-stat${expiringSoon > 0 ? " nns-stat--warn" : ""}`}>
               <span className="nns-stat__value">{expiringSoon}</span>
-              <span className="nns-stat__label">{t("expiringSoon") || "Expiring"}</span>
+              <span className="nns-stat__label">{t("expiringSoon")}</span>
             </div>
             <div className={`nns-stat nns-stat--status${address ? " is-connected" : ""}`}>
               <span className="nns-stat__status">
                 <span className="nns-stat__dot" aria-hidden="true" />
                 <span className="nns-stat__statusText">{walletStatus || "—"}</span>
               </span>
-              <span className="nns-stat__label">{t("walletStatus") || "Wallet"}</span>
+              <span className="nns-stat__label">{t("walletStatus")}</span>
             </div>
           </div>
         </div>
 
-        <div className="search-row">
+        <form
+          className="search-row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void dispatch("searchDomain");
+          }}
+        >
           <NeoInput
             value={searchQuery}
-            label={t("searchDomain") || "Search Domain"}
-            placeholder={t("enterDomainName") || "myname.neo"}
+            label={t("searchDomain")}
+            placeholder={t("enterDomainName")}
             onChange={setSearch}
           />
+          {/* Hidden native submit so pressing Enter in the input runs the
+              search; the visible NeoButton renders type="button". */}
+          <button type="submit" className="nns-visually-hidden" tabIndex={-1} aria-hidden="true" />
           <NeoButton
             variant="primary"
             loading={isSearching}
             onClick={() => dispatch("searchDomain")}
-            aria-label={t("search") || "Search"}
+            aria-label={t("search")}
           >
-            {t("search") || "Search"}
+            {t("search")}
           </NeoButton>
-        </div>
+        </form>
 
         {/* Address Display */}
         {address && (
           <div className="address-bar">
-            <span className="address-label">{t("connectedAddress") || "Address"}</span>
+            <span className="address-label">{t("connectedAddress")}</span>
             <span className="address-value">{address}</span>
           </div>
         )}
@@ -118,20 +127,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             >
               <span className="result-status__dot" aria-hidden="true" />
               {(searchResult as { available?: boolean })?.available
-                ? t("domainAvailable") || "Available"
-                : t("domainTaken") || "Taken"}
+                ? t("domainAvailable")
+                : t("domainTaken")}
             </span>
             {(searchResult as { available?: boolean })?.available ? (
               <div className="register-row">
-                <span className="cost-label">{t("registrationCost") || "Cost"}: {registrationCost} GAS</span>
-                <NeoButton variant="primary" loading={loading} onClick={() => dispatch("registerDomain")} aria-label={t("register") || "Register"}>
-                  {t("register") || "Register"}
+                <span className="cost-label">
+                  {t("registrationCost")}: {registrationCost} GAS {t("perYear")}
+                </span>
+                <NeoButton variant="primary" loading={loading} onClick={() => dispatch("registerDomain")} aria-label={t("register")}>
+                  {t("register")}
                 </NeoButton>
               </div>
             ) : (
               (searchResult as { owner?: string })?.owner && (
                 <div className="result-owner">
-                  <span className="result-owner__label">{t("owner") || "Owner"}</span>
+                  <span className="result-owner__label">{t("owner")}</span>
                   <span className="result-owner__value">{(searchResult as { owner?: string }).owner}</span>
                 </div>
               )

@@ -1,41 +1,67 @@
 /**
  * useGasSponsorApp — Domain logic for Gas Sponsor miniapp
  *
- * Encapsulates gas sponsorship, donate, and send logic.
- * Receives ChainService + EventBus from PlatformServices.
+ * Encapsulates gas sponsorship (platform API), donate, and send logic.
  *
- * Replaces the legacy pattern that wired useContractInteraction + useWallet
- * directly. Now uses ChainService for GAS transfers and EventBus for
- * cross-component notifications.
+ * The sponsorship eligibility/quota/tank come from the platform HTTP API
+ * (VITE_PLATFORM_API). That API is optional and can be unreachable; when it is,
+ * the SDK silently returns a fabricated zero balance. This module never presents
+ * those zeros as fact — it raises an honest service-unavailable notice and falls
+ * back to the REAL on-chain GAS balance (read via ChainService/BalanceService)
+ * to gate the donate/send "pay it forward" transfers, which are pure on-chain
+ * GAS transfers and work independently of the API.
  */
 
 import { createObservable, createDerived, refToObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
+import type { BalanceService } from "@shared/services/BalanceService";
+import type { MiniAppLaunchNetwork } from "@shared/utils/launch-params";
 import { useGasSponsor as useGasSponsorSDK } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { toFixed8 } from "@shared/utils/format";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
-const SPONSOR_POOL_ADDRESS = "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK";
+// Per-network donation pool destination. Donations are pure GAS transfers; the
+// pool wallet differs by network so testnet GAS never lands on the mainnet pool.
+const SPONSOR_POOL_ADDRESS: Record<"mainnet" | "testnet", string> = {
+  mainnet: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK",
+  testnet: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK",
+};
+
 const ELIGIBILITY_THRESHOLD = 0.1;
+
+// Whether the platform HTTP API is configured at all. Mirrors the SDK's own
+// `PLATFORM_API = import.meta.env?.VITE_PLATFORM_API || ""` check so we can tell
+// "API not configured" apart from "wallet has a real zero balance".
+const PLATFORM_API_CONFIGURED = Boolean(import.meta.env?.VITE_PLATFORM_API);
 
 export interface UseGasSponsorAppOptions {
   chain: ChainService;
+  balance: BalanceService;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
+  network?: MiniAppLaunchNetwork | null;
 }
 
-export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions) {
+export function useGasSponsorApp({ chain, balance, eventBus, t, network }: UseGasSponsorAppOptions) {
   const gasSponsorSDK = useGasSponsorSDK();
   const isRequesting = refToObservable(gasSponsorSDK.isRequestingSponsorship);
   const { checkEligibility, requestSponsorship: apiRequest } = gasSponsorSDK;
 
+  const poolAddress = SPONSOR_POOL_ADDRESS[network === "testnet" ? "testnet" : "mainnet"];
+
   const userAddress = createObservable("");
+  // gasBalance / usedQuota / dailyLimit / resetsAt come from the platform API.
   const gasBalance = createObservable("0");
   const usedQuota = createObservable("0");
   const dailyLimit = createObservable("0.1");
   const resetsAt = createObservable("");
+  // chainGasBalance is the REAL on-chain GAS the wallet holds — independent of
+  // the platform API. It drives the donate/send affordances.
+  const chainGasBalance = createObservable(0);
+  // serviceAvailable is false when the sponsorship API is unconfigured or down.
+  const serviceAvailable = createObservable(true);
+  const serviceNotice = createObservable("");
   const loading = createObservable(true);
   const requestAmount = createObservable("0.01");
 
@@ -46,12 +72,19 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
   const isDonating = createObservable(false);
   const isSending = createObservable(false);
 
-  // -- Computed --
-  const isEligible = createDerived(() => parseFloat(gasBalance.get()) < ELIGIBILITY_THRESHOLD, []);
-  const remainingQuota = createDerived(() => Math.max(0, parseFloat(dailyLimit.get()) - parseFloat(usedQuota.get())), []);
+  // -- Computed (sponsorship side — only meaningful when serviceAvailable) --
+  const isEligible = createDerived(
+    () => serviceAvailable.get() && parseFloat(gasBalance.get()) < ELIGIBILITY_THRESHOLD,
+    [],
+  );
+  const remainingQuota = createDerived(
+    () => Math.max(0, parseFloat(dailyLimit.get()) - parseFloat(usedQuota.get())),
+    [],
+  );
   const fuelLevelPercent = createDerived(() => {
-    const balance = parseFloat(gasBalance.get());
-    return Math.min((balance / ELIGIBILITY_THRESHOLD) * 100, 100);
+    if (!serviceAvailable.get()) return 0;
+    const bal = parseFloat(gasBalance.get());
+    return Math.min((bal / ELIGIBILITY_THRESHOLD) * 100, 100);
   }, []);
   const maxRequestAmount = createDerived(() => remainingQuota.get().toFixed(4), []);
   const quickAmounts = createDerived(() => [0.001, 0.005, 0.01, 0.05], []);
@@ -60,10 +93,13 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     const used = parseFloat(usedQuota.get());
     return limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   }, []);
+  // Empty when there is no reset timestamp — the UI defaults to an em-dash.
+  // Never compare against a translated string downstream.
   const resetTime = createDerived(() => {
-    if (!resetsAt.get()) return t("notAvailable");
+    if (!serviceAvailable.get() || !resetsAt.get()) return "";
     const now = Date.now();
     const reset = new Date(resetsAt.get()).getTime();
+    if (!Number.isFinite(reset)) return "";
     const diff = reset - now;
     if (diff <= 0) return t("now");
     const hours = Math.floor(diff / 3600000);
@@ -72,26 +108,41 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
   }, []);
 
   // -- Transfer affordance / inline validation --
-  // Donate & Send move GAS the user already holds, so they only make sense for a
-  // funded wallet. Surface this so the UI can frame them as "pay it forward" and
-  // disable them inline instead of letting the on-chain transfer fail.
-  const isFunded = createDerived(() => parseFloat(gasBalance.get()) > 0, []);
+  // Donate & Send move GAS the user already holds — gate on the REAL chain
+  // balance, not the (possibly fabricated) API balance.
+  const isFunded = createDerived(() => chainGasBalance.get() > 0, []);
   const donateAmountValid = createDerived(() => {
     const amount = parseFloat(donateAmount.get());
-    return Number.isFinite(amount) && amount > 0 && amount <= parseFloat(gasBalance.get());
+    return Number.isFinite(amount) && amount > 0 && amount <= chainGasBalance.get();
   }, []);
   const recipientValid = createDerived(() => isValidNeoAddress(recipientAddress.get()), []);
   const sendAmountValid = createDerived(() => {
     const amount = parseFloat(sendAmount.get());
-    return Number.isFinite(amount) && amount > 0 && amount <= parseFloat(gasBalance.get());
+    return Number.isFinite(amount) && amount > 0 && amount <= chainGasBalance.get();
   }, []);
   const canSend = createDerived(() => recipientValid.get() && sendAmountValid.get(), []);
 
   // -- Display values for manifest --
-  const tankLevelDisplay = createDerived(() => `${Math.round(fuelLevelPercent.get())}%`, []);
-  const gasBalanceDisplay = createDerived(() => gasBalance.get(), []);
-  const remainingQuotaDisplay = createDerived(() => remainingQuota.get().toFixed(4), []);
-  const eligibleDisplay = createDerived(() => isEligible.get() ? t("eligible") : t("notEligible"), []);
+  const tankLevelDisplay = createDerived(
+    () => (serviceAvailable.get() ? `${Math.round(fuelLevelPercent.get())}%` : t("notAvailable")),
+    [],
+  );
+  const gasBalanceDisplay = createDerived(
+    () => (serviceAvailable.get() ? gasBalance.get() : t("notAvailable")),
+    [],
+  );
+  const remainingQuotaDisplay = createDerived(
+    () => (serviceAvailable.get() ? remainingQuota.get().toFixed(4) : t("notAvailable")),
+    [],
+  );
+  const eligibleDisplay = createDerived(
+    () =>
+      serviceAvailable.get() ? (isEligible.get() ? t("eligible") : t("notEligible")) : t("notAvailable"),
+    [],
+  );
+  // The real, chain-read GAS the wallet holds — shown to frame the donate/send
+  // affordances honestly even when the sponsorship API is down.
+  const chainGasBalanceDisplay = createDerived(() => chainGasBalance.get().toFixed(4), []);
 
   // -- Helpers --
 
@@ -100,12 +151,28 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
 
   /**
    * Validate a Neo N3 address by format: a single 'N' prefix (version byte 0x35),
-   * exactly 34 base58 characters, all within the base58 alphabet. This rejects
-   * malformed-but-long strings that the previous length>=30 guard let through.
+   * exactly 34 base58 characters, all within the base58 alphabet.
    */
   const isValidNeoAddress = (address: string): boolean => {
     const trimmed = address.trim();
     return trimmed.length === 34 && trimmed.startsWith("N") && BASE58_ALPHABET.test(trimmed);
+  };
+
+  /**
+   * Read the wallet's real on-chain GAS balance. Best-effort — a chain read
+   * failure leaves the previous value rather than fabricating zero.
+   */
+  const refreshChainBalance = async (address: string) => {
+    if (!address) {
+      chainGasBalance.set(0);
+      return;
+    }
+    try {
+      const gas = await balance.getGasBalance(address);
+      chainGasBalance.set(Number.isFinite(gas) ? gas : 0);
+    } catch {
+      // Keep the last known value; do not zero it out.
+    }
   };
 
   // -- Actions --
@@ -113,13 +180,34 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     loading.set(true);
     try {
       await chain.ensureWallet();
-      userAddress.set(chain.address.get() || "");
+      const address = chain.address.get() || "";
+      userAddress.set(address);
+
+      // Always read the real chain balance — drives donate/send regardless of
+      // the sponsorship API's health.
+      await refreshChainBalance(address);
 
       const statusData = await checkEligibility();
-      gasBalance.set(statusData.gas_balance);
-      usedQuota.set(statusData.used_today);
-      dailyLimit.set(statusData.daily_limit);
-      resetsAt.set(statusData.resets_at);
+      const apiError = gasSponsorSDK.eligibilityError.value;
+      const apiUsable = PLATFORM_API_CONFIGURED && !apiError && Boolean(address);
+
+      if (apiUsable) {
+        gasBalance.set(statusData.gas_balance);
+        usedQuota.set(statusData.used_today);
+        dailyLimit.set(statusData.daily_limit);
+        resetsAt.set(statusData.resets_at);
+        serviceAvailable.set(true);
+        serviceNotice.set("");
+      } else {
+        // Do NOT trust the fabricated zeros. Mark the sponsorship service as
+        // unavailable and surface an honest notice.
+        serviceAvailable.set(false);
+        serviceNotice.set(
+          !PLATFORM_API_CONFIGURED
+            ? t("sponsorServiceUnconfigured")
+            : t("sponsorServiceUnavailable"),
+        );
+      }
       eventBus.emit("userData:loaded", {});
     } catch (e) {
       userAddress.set("");
@@ -127,6 +215,9 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
       usedQuota.set("0");
       dailyLimit.set("0.1");
       resetsAt.set("");
+      chainGasBalance.set(0);
+      serviceAvailable.set(false);
+      serviceNotice.set(t("sponsorServiceUnavailable"));
       eventBus.emit("userData:disconnected", {
         message: formatErrorMessage(e, t("walletNotConnected")),
       });
@@ -136,6 +227,9 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
   };
 
   const requestSponsorship = async () => {
+    if (!serviceAvailable.get()) {
+      throw new Error(t("sponsorServiceUnavailable"));
+    }
     if (!isEligible.get() || remainingQuota.get() <= 0) return;
 
     const amount = parseFloat(requestAmount.get());
@@ -146,7 +240,9 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     try {
       const result = await apiRequest(amount);
       if (!result.success) {
-        throw new Error(gasSponsorSDK.sponsorshipError.value || t("requestFailed"));
+        // Map the SDK's raw error to a localized message.
+        const raw = gasSponsorSDK.sponsorshipError.value;
+        throw new Error(raw ? formatErrorMessage(new Error(raw), t("requestFailed")) : t("requestFailed"));
       }
       const requestId = result.request_id || result.requestId || result.txid || "";
       eventBus.emit("sponsorship:requested", { id: requestId });
@@ -165,7 +261,7 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     if (Number.isNaN(amount) || amount <= 0) {
       throw new Error(t("invalidAmount"));
     }
-    if (amount > parseFloat(gasBalance.get())) {
+    if (amount > chainGasBalance.get()) {
       throw new Error(t("insufficientBalance"));
     }
     isDonating.set(true);
@@ -176,7 +272,7 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
         "transfer",
         [
           { type: "Hash160", value: sender },
-          { type: "Hash160", value: SPONSOR_POOL_ADDRESS },
+          { type: "Hash160", value: poolAddress },
           { type: "Integer", value: toFixed8(donateAmount.get()) },
           { type: "String", value: "" },
         ],
@@ -202,7 +298,7 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     if (Number.isNaN(amount) || amount <= 0) {
       throw new Error(t("invalidAmount"));
     }
-    if (amount > parseFloat(gasBalance.get())) {
+    if (amount > chainGasBalance.get()) {
       throw new Error(t("insufficientBalance"));
     }
     isSending.set(true);
@@ -240,6 +336,9 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     usedQuota,
     dailyLimit,
     resetsAt,
+    chainGasBalance,
+    serviceAvailable,
+    serviceNotice,
     loading,
     requestAmount,
     donateAmount,
@@ -268,6 +367,7 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     gasBalanceDisplay,
     remainingQuotaDisplay,
     eligibleDisplay,
+    chainGasBalanceDisplay,
 
     // -- Actions --
     loadUserData,

@@ -108,6 +108,23 @@ const appMessages = {
   currentVerifier: { en: "Current Verifier", zh: "当前 Verifier" },
   currentHook: { en: "Current Hook", zh: "当前 Hook" },
   currentBackupOwner: { en: "Current Backup Owner", zh: "当前 Backup Owner" },
+  currentEscapeTimelock: { en: "Escape Timelock", zh: "逃生锁定期" },
+  currentEscapeStatus: { en: "Escape Status", zh: "逃生状态" },
+  escapeActive: { en: "Escape active", zh: "逃生进行中" },
+  escapeInactive: { en: "Inactive", zh: "未触发" },
+  timelockDays: { en: "{days} days", zh: "{days} 天" },
+  derivedAccountIdLabel: {
+    en: "Derived AccountId",
+    zh: "派生 AccountId",
+  },
+  derivedAccountIdHint: {
+    en: "The contract only accepts this id derived from the parameters above.",
+    zh: "合约仅接受由上方参数派生出的此 id。",
+  },
+  backupOwnerMustSign: {
+    en: "The backup owner must sign this transaction — connect that wallet or use your own address.",
+    zh: "备份所有者必须签名此交易 —— 请连接该钱包或改用你自己的地址。",
+  },
   registerSuccess: {
     en: "Register transaction submitted",
     zh: "注册交易已提交",

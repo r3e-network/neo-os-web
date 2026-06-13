@@ -46,7 +46,10 @@ describe("useTimestampProofContract", () => {
     const proof = proofApp.proofs.get()[0];
     expect(proof?.id).toBe(1);
     expect(proof?.contentHash).toMatch(/^[0-9a-f]{64}$/);
-    expect(proof?.txHash).toMatch(/^local:/);
+    // A freshly created proof is device-local, NOT a fake on-chain reference:
+    // it carries no synthetic tx-hash-shaped field and is honestly unanchored.
+    expect(proof?.anchored).toBe(false);
+    expect(proof?.anchorTxid).toBe("");
     expect(statuses).toContainEqual({ message: "Proof saved", type: "success" });
 
     await proofApp.verifyProof("1");
@@ -87,7 +90,13 @@ describe("useTimestampProofContract", () => {
     expect(writeText).toHaveBeenCalledWith(proof?.contentHash);
 
     expect(await proofApp.copyProofReference(proof?.id ?? 0)).toBe(true);
-    expect(writeText.mock.calls.at(-1)?.[0]).toContain("\"sha256\"");
+    const reference = String(writeText.mock.calls.at(-1)?.[0] ?? "");
+    expect(reference).toContain("\"sha256\"");
+    // The exported reference must be self-describing and never carry a synthetic
+    // tx-hash-shaped field that a recipient could mistake for an on-chain tx.
+    expect(reference).toContain("\"anchored\": false");
+    expect(reference).not.toContain("txHash");
+    expect(reference).not.toContain("local:");
 
     await proofApp.deleteProof(proof?.id ?? 0);
     expect(proofApp.proofs.get()).toHaveLength(0);

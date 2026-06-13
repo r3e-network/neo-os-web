@@ -41,6 +41,8 @@ function t(key: string, params?: Record<string, string | number>) {
     capsuleRevealed: "Capsule revealed",
     message: "Message:",
     contentUnavailable: "No local message found.",
+    creditWithdrawn: "Withdrew {amount} GAS deposit credit",
+    noCreditToWithdraw: "No reusable deposit credit to withdraw.",
   };
   const base = messages[key] ?? key;
   if (!params) return base;
@@ -84,12 +86,19 @@ interface InvokeCall {
 
 function setup(
   capsules: ChainCapsule[],
-  opts?: { wallet?: string | null; failBury?: boolean },
+  opts?: { wallet?: string | null; failBury?: boolean; credit?: Record<string, string> },
 ) {
   // Authoritative on-chain store keyed by capsule id.
   const store = new Map<string, ChainCapsule>();
   for (const c of capsules) store.set(c.id, c);
   let lastId = capsules.reduce((m, c) => Math.max(m, Number(c.id)), 0);
+
+  // Prepaid deposit credit keyed by owner script hash (base units), mirroring
+  // creditOf(owner). withdraw(account) pays the whole balance and zeroes it.
+  const credits = new Map<string, bigint>();
+  for (const [hash, base] of Object.entries(opts?.credit ?? {})) {
+    credits.set(hash.toLowerCase(), BigInt(base));
+  }
 
   const invokes: InvokeCall[] = [];
 
@@ -105,6 +114,10 @@ function setup(
 
   const read = vi.fn(async (operation: string, args?: ContractArg[]) => {
     if (operation === "lastCapsuleId") return lastId;
+    if (operation === "creditOf") {
+      const ownerHash = String(args?.[0]?.value ?? "").toLowerCase();
+      return (credits.get(ownerHash) ?? 0n).toString();
+    }
     if (operation === "getCapsule") {
       const id = String(args?.[0]?.value ?? "");
       const c = store.get(id);
@@ -175,6 +188,18 @@ function setup(
         const c = store.get(id);
         if (c) store.set(id, { ...c, revealed: true });
         return { txid: "0xreveal", success: true };
+      }
+
+      if (operation === "withdraw") {
+        const ownerHash = String(args[0]?.value ?? "").toLowerCase();
+        const amount = credits.get(ownerHash) ?? 0n;
+        credits.set(ownerHash, 0n);
+        // CreditWithdrawn(account, amount) — amount is state index 1.
+        return {
+          txid: "0xwithdraw",
+          success: true,
+          event: { state: [{ value: ownerHash }, { value: amount.toString() }] },
+        };
       }
 
       throw new Error(`unexpected invoke: ${operation}`);
@@ -299,13 +324,14 @@ describe("useTimeCapsule.createCapsule (deposit + bury vault flow)", () => {
     );
 
     // The deposit transfer was still attempted (credit persists on-chain as
-    // reusable prepaid credit — no refund call, no lost funds).
+    // reusable prepaid credit — withdrawable, no lost funds). createCapsule
+    // rethrows so registerActions surfaces the error toast; the composable does
+    // not double-emit on the notification channel.
     const deposit = invokes.find(
       (c) => c.operation === "transfer" && String(c.args[3]?.value) === "miniapp-timecapsule:bury",
     );
     expect(deposit).toBeTruthy();
-    const err = events.find((e) => e.event === "capsule:error");
-    expect(err?.payload).toEqual({ message: "Deposit prepaid, capsule not buried" });
+    expect(events.some((e) => e.event === "platform:notification")).toBe(false);
   });
 });
 
@@ -327,6 +353,28 @@ describe("useTimeCapsule.openCapsule (reveal returns the deposit)", () => {
     expect(store.get("5")?.revealed).toBe(true);
   });
 
+  it("confirms the reveal (deposit return) on the live notification channel", async () => {
+    const { composable, events } = setup([
+      capsule({ id: "9", owner: ME_HASH, unlockTime: Date.now() - 60_000 }),
+    ]);
+
+    await composable.loadAll();
+    const cap = composable.capsules.get().find((c) => c.id === "9")!;
+    await composable.openCapsule(cap);
+
+    // The dead capsule:opened eventBus channel is replaced by a real
+    // platform:notification success toast confirming the deposit came back.
+    const note = events.find(
+      (e) =>
+        e.event === "platform:notification" &&
+        (e.payload as { type?: string }).type === "success",
+    );
+    expect(note?.payload).toMatchObject({
+      message: "Capsule revealed",
+      type: "success",
+    });
+  });
+
   it("blocks reveal and emits notUnlocked for a still-locked capsule", async () => {
     const { composable, invokes, events } = setup([
       capsule({ id: "6", owner: ME_HASH, unlockTime: Date.now() + 86_400_000 }),
@@ -337,8 +385,11 @@ describe("useTimeCapsule.openCapsule (reveal returns the deposit)", () => {
     await composable.openCapsule(cap);
 
     expect(invokes.some((c) => c.operation === "reveal")).toBe(false);
-    const err = events.find((e) => e.event === "capsule:error");
-    expect(err?.payload).toEqual({ message: "Capsule is still locked" });
+    const note = events.find((e) => e.event === "platform:notification");
+    expect(note?.payload).toMatchObject({
+      message: "Capsule is still locked",
+      type: "error",
+    });
   });
 });
 
@@ -365,8 +416,13 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
     // The contract marks the capsule fished (and tips the owner) in the same tx.
     expect(store.get("200")?.fished).toBe(true);
 
-    const fished = events.find((e) => e.event === "capsule:fished");
-    expect(fished?.payload).toEqual({ message: "Fished capsule 200" });
+    // Dynamic fish feedback rides the live platform notification channel (the
+    // dead capsule:fished eventBus channel had no listener).
+    const fished = events.find((e) => e.event === "platform:notification");
+    expect(fished?.payload).toMatchObject({
+      message: "Fished capsule 200",
+      type: "success",
+    });
   });
 
   it("reports fishNone and charges no fee when nothing is fishable", async () => {
@@ -386,8 +442,11 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
         (c) => c.operation === "transfer" && String(c.args[3]?.value).startsWith("miniapp-timecapsule:fish:"),
       ),
     ).toBe(false);
-    const fished = events.find((e) => e.event === "capsule:fished");
-    expect(fished?.payload).toEqual({ message: "No public capsule found" });
+    const fished = events.find((e) => e.event === "platform:notification");
+    expect(fished?.payload).toMatchObject({
+      message: "No public capsule found",
+      type: "info",
+    });
   });
 
   it("fishes a foreign capsule that has no local title (it maps cleanly with a placeholder)", async () => {
@@ -407,5 +466,91 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
       (c) => c.operation === "transfer" && String(c.args[3]?.value).startsWith("miniapp-timecapsule:fish:"),
     );
     expect(fish?.args[3]?.value).toBe("miniapp-timecapsule:fish:700");
+  });
+});
+
+describe("useTimeCapsule prepaid-deposit credit (money-out path)", () => {
+  it("reads creditOf on load and exposes a withdrawable credit + hasCredit", async () => {
+    const { composable } = setup([], {
+      wallet: ME,
+      credit: { [ME_HASH]: "20000000" }, // 0.2 GAS stranded deposit credit
+    });
+
+    await composable.loadAll();
+
+    expect(composable.reusableCredit.get()).toBe("0.2");
+    expect(composable.hasCredit.get()).toBe(true);
+  });
+
+  it("withdraw() pays the whole credit back, zeroes it, and toasts the amount", async () => {
+    const { composable, invokes, events } = setup([], {
+      wallet: ME,
+      credit: { [ME_HASH]: "20000000" },
+    });
+
+    await composable.loadAll();
+    const { amount } = await composable.withdrawCredit();
+
+    // withdraw(account) is invoked with the owner hash, waiting CreditWithdrawn.
+    const withdraw = invokes.find((c) => c.operation === "withdraw");
+    expect(withdraw).toBeTruthy();
+    expect(withdraw?.args[0]?.value).toBe(ME_HASH);
+    expect(withdraw?.options?.waitForEvent).toBe("CreditWithdrawn");
+
+    expect(amount).toBe("0.2");
+    // Credit is drained on-chain → banner hides.
+    expect(composable.reusableCredit.get()).toBe("0");
+    expect(composable.hasCredit.get()).toBe(false);
+
+    const note = events.find(
+      (e) =>
+        e.event === "platform:notification" &&
+        (e.payload as { type?: string }).type === "success",
+    );
+    expect(note?.payload).toMatchObject({
+      message: "Withdrew 0.2 GAS deposit credit",
+      type: "success",
+    });
+  });
+
+  it("surfaces a clean no-credit message without prompting the wallet when nothing is owed", async () => {
+    const { composable, invokes, events } = setup([], { wallet: ME });
+
+    await composable.loadAll();
+    const { amount } = await composable.withdrawCredit();
+
+    expect(amount).toBe("0");
+    // No on-chain withdraw is attempted on an empty balance (avoids a VM revert).
+    expect(invokes.some((c) => c.operation === "withdraw")).toBe(false);
+    const note = events.find((e) => e.event === "platform:notification");
+    expect(note?.payload).toMatchObject({
+      message: "No reusable deposit credit to withdraw.",
+      type: "info",
+    });
+  });
+
+  it("refreshes the credit banner after a deposit lands but bury reverts", async () => {
+    // failBury reverts AFTER the deposit transfer; the contract credits the
+    // owner. loadCredit (now run in the bury-fail path) should surface it.
+    const { composable } = setup([], {
+      wallet: ME,
+      failBury: true,
+      credit: { [ME_HASH]: "20000000" },
+    });
+
+    composable.newCapsule.set({
+      title: "x",
+      content: "y",
+      days: "10",
+      isPublic: false,
+      category: 1,
+    });
+
+    await expect(composable.createCapsule()).rejects.toThrow(
+      "Deposit prepaid, capsule not buried",
+    );
+
+    expect(composable.hasCredit.get()).toBe(true);
+    expect(composable.reusableCredit.get()).toBe("0.2");
   });
 });

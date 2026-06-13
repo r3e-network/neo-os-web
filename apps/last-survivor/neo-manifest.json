@@ -5,7 +5,7 @@
   "name_zh": "最后生还者",
   "version": "2.0.0",
   "description": "Prize pool grows with every contribution; each key purchase extends the live countdown. Last contributor wins when the timer reaches zero. Pure game-theory tension.",
-  "description_zh": "最后生还者 — 每次投入都让奖池增长并重置24小时倒计时，如果计时归零，最后一个按按钮的人赢得全部奖池。一场纯粹的人性博弈。",
+  "description_zh": "最后生还者 — 每次投入都让奖池增长，每把钥匙为倒计时增加 30 秒（最多 24 小时）；如果计时归零，最后一个购买的人赢得全部奖池。一场纯粹的人性博弈。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
@@ -98,8 +98,8 @@
   "featured_order": 5,
   "technologies": {
     "keeper": {
-      "enabled": true,
-      "description": "Auto-triggers prize distribution when 24h countdown expires",
+      "enabled": false,
+      "description": "Settlement is permissionless: once the countdown expires anyone can call settle() to pay the last buyer the entire pot on-chain and open the next round",
       "conditions": [
         "timer_expiry"
       ]

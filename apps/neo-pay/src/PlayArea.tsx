@@ -12,6 +12,12 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 import type { StreamItem } from "./types";
+import {
+  canClaim,
+  deriveSchedulePreview,
+  isFinalizedStatus,
+  statusLabelKey,
+} from "./streamDisplay";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -257,8 +263,17 @@ export default function PlayArea({
     return { display: "0", positive: false };
   };
 
-  const isFinalized = (stream: Stream): boolean =>
-    stream.status === "cancelled" || stream.status === "completed";
+  // Map the normalized status (always one of active/completed/cancelled) to its
+  // locale key so zh users see translated badges, not raw English strings.
+  const statusLabel = (stream: Stream): string => t(statusLabelKey(stream.status));
+
+  // Live schedule disclosure for the create form: GAS streams release linearly
+  // per day; a sub-1-NEO/day NEO total collapses into a single end-of-term cliff
+  // (deriveSchedule), which is non-obvious — surface it before the deposit.
+  const schedulePreview = useMemo(
+    () => deriveSchedulePreview(amount, duration, token),
+    [amount, duration, token],
+  );
 
   // Both GAS and NEO are supported: the standalone MiniAppNeoPay contract takes
   // base-unit deposits for either token (GAS scaled by 1e8, NEO as an
@@ -287,12 +302,11 @@ export default function PlayArea({
           </div>
           <div className="neopay-hero-text">
             <span className="neopay-hero-eyebrow">
-              {t("ariaStreams") || "Streams"}
+              {t("ariaStreams")}
             </span>
-            <h2 className="neopay-hero-title">{t("title") || "NeoPay"}</h2>
+            <h2 className="neopay-hero-title">{t("title")}</h2>
             <p className="neopay-hero-subtitle">
-              {t("docSubtitle") ||
-                "Scheduled releases for payrolls, subscriptions, and allowances"}
+              {t("docSubtitle")}
             </p>
           </div>
         </div>
@@ -301,13 +315,13 @@ export default function PlayArea({
           <div className="neopay-hero-summary">
             <span className="neopay-hero-metric">
               <strong>{totalStreamCount}</strong>{" "}
-              {t("totalStreams") || "Total Streams"}
+              {t("totalStreams")}
             </span>
             <span className="neopay-hero-metric-sep" aria-hidden="true">
               ·
             </span>
             <span className="neopay-hero-metric">
-              <strong>{activeCount}</strong> {t("active") || "Active"}
+              <strong>{activeCount}</strong> {t("active")}
             </span>
           </div>
         )}
@@ -316,7 +330,7 @@ export default function PlayArea({
       {serviceNotice && (
         <div className="neopay-service-notice" role="status">
           <span className="neopay-service-notice__title">
-            {t("streamListUnavailableTitle") || "Stream index unavailable"}
+            {t("streamListUnavailableTitle")}
           </span>
           <span>{serviceNotice}</span>
         </div>
@@ -325,19 +339,19 @@ export default function PlayArea({
       {/* ==================== Create Stream Form ==================== */}
       <NeoCard
         variant="erobo"
-        title={t("createStream") || "Create Stream"}
+        title={t("createStream")}
       >
         <div className="neopay-form">
           <NeoInput
-            label={t("recipient") || "Recipient Address"}
+            label={t("recipient")}
             placeholder={
-              t("recipientPlaceholder") || "N3 address..."
+              t("recipientPlaceholder")
             }
             value={recipient}
             onChange={setRecipient}
           />
           <NeoInput
-            label={t("amount") || "Amount"}
+            label={t("amount")}
             placeholder="0.00"
             type="number"
             value={amount}
@@ -345,16 +359,16 @@ export default function PlayArea({
             onChange={setAmount}
           />
           <NeoInput
-            label={t("duration") || "Duration"}
-            placeholder={t("durationPlaceholder") || "Number of days"}
+            label={t("duration")}
+            placeholder={t("durationPlaceholder")}
             type="number"
             value={duration}
-            suffix={t("days") || "days"}
+            suffix={t("days")}
             onChange={setDuration}
           />
           <NeoInput
-            label={t("notes") || "Notes (optional)"}
-            placeholder={t("notesPlaceholder") || "Add context for the recipient"}
+            label={t("notes")}
+            placeholder={t("notesPlaceholder")}
             value={notes}
             onChange={setNotes}
           />
@@ -362,7 +376,7 @@ export default function PlayArea({
           {/* Token Selector */}
           <div className="neopay-token-selector">
             <span className="neopay-token-label">
-              {t("token") || "Token"}
+              {t("token")}
             </span>
             <div className="neopay-token-options">
               {tokenOptions.map((tk) => (
@@ -378,6 +392,33 @@ export default function PlayArea({
             </div>
           </div>
 
+          {/* Schedule disclosure: per-day release for the linear case, an
+              explicit cliff warning when a sub-1-NEO/day total collapses to a
+              single end-of-term release. */}
+          {schedulePreview?.kind === "linear" && (
+            <p className="neopay-form-disclosure" role="note">
+              {t("schedulePreview", {
+                amount: schedulePreview.amount,
+                token,
+                days: schedulePreview.days,
+              })}
+            </p>
+          )}
+          {schedulePreview?.kind === "cliff" && (
+            <p className="neopay-form-disclosure neopay-form-disclosure--warn" role="note">
+              {t("neoCliffNotice", {
+                amount: schedulePreview.amount,
+                days: schedulePreview.days,
+              })}
+            </p>
+          )}
+
+          {/* Two-signature disclosure: the standalone contract takes a deposit
+              first, then the createStream call — two wallet prompts. */}
+          <p className="neopay-form-disclosure" role="note">
+            {t("twoStepSignNotice", { token })}
+          </p>
+
           <NeoButton
             variant="primary"
             block
@@ -385,7 +426,7 @@ export default function PlayArea({
             disabled={!recipient || !amount || !duration || isCreating}
             onClick={handleCreateStream}
           >
-            {t("createStream") || "Create Stream"}
+            {t("createStream")}
           </NeoButton>
         </div>
       </NeoCard>
@@ -393,12 +434,12 @@ export default function PlayArea({
       {/* ==================== Your Created Streams ==================== */}
       <NeoCard
         variant="erobo"
-        title={`${t("yourCreatedStreams") || "Your Created Streams"} (${createdStreams.length})`}
+        title={`${t("yourCreatedStreams")} (${createdStreams.length})`}
       >
         {isListLoading ? (
           <div className="neopay-loading">
             <div className="neopay-loading-spinner" />
-            <span>{t("loading") || "Loading..."}</span>
+            <span>{t("loading")}</span>
           </div>
         ) : createdStreams.length === 0 ? (
           <div className="neopay-empty">
@@ -417,7 +458,7 @@ export default function PlayArea({
               </svg>
             </span>
             <span>
-              {t("noCreatedStreams") || "You haven't created any streams yet"}
+              {t("noCreatedStreams")}
             </span>
           </div>
         ) : (
@@ -435,7 +476,7 @@ export default function PlayArea({
                   <span
                     className={`neopay-stream-status neopay-stream-status--${stream.status ?? "active"}`}
                   >
-                    {stream.status ?? (t("active") || "Active")}
+                    {statusLabel(stream)}
                   </span>
                   <div className="neopay-stream-info">
                     <div className="neopay-stream-heading">
@@ -447,7 +488,7 @@ export default function PlayArea({
                     <div className="neopay-stream-details">
                       {recipientAddress && (
                         <span className="neopay-stream-detail">
-                          {t("to") || "To"}:{" "}
+                          {t("to")}:{" "}
                           {formatAddress(recipientAddress)}
                         </span>
                       )}
@@ -484,10 +525,10 @@ export default function PlayArea({
                       variant="danger"
                       size="sm"
                       loading={cancellingId === stream.id}
-                      disabled={isFinalized(stream) || cancellingId === stream.id}
+                      disabled={isFinalizedStatus(stream.status) || cancellingId === stream.id}
                       onClick={() => handleCancel(stream.id)}
                     >
-                      {t("cancel") || "Cancel"}
+                      {t("cancel")}
                     </NeoButton>
                   </div>
                 </div>
@@ -500,12 +541,12 @@ export default function PlayArea({
       {/* ==================== Streams You Receive ==================== */}
       <NeoCard
         variant="erobo"
-        title={`${t("streamsYouReceive") || "Streams You Receive"} (${beneficiaryStreams.length})`}
+        title={`${t("streamsYouReceive")} (${beneficiaryStreams.length})`}
       >
         {isListLoading ? (
           <div className="neopay-loading">
             <div className="neopay-loading-spinner" />
-            <span>{t("loading") || "Loading..."}</span>
+            <span>{t("loading")}</span>
           </div>
         ) : beneficiaryStreams.length === 0 ? (
           <div className="neopay-empty">
@@ -523,7 +564,7 @@ export default function PlayArea({
                 <path d="M12 5v14M19 12l-7 7-7-7" />
               </svg>
             </span>
-            <span>{t("noBeneficiaryStreams") || "No incoming streams"}</span>
+            <span>{t("noBeneficiaryStreams")}</span>
           </div>
         ) : (
           <div className="neopay-stream-list">
@@ -541,7 +582,7 @@ export default function PlayArea({
                   <span
                     className={`neopay-stream-status neopay-stream-status--${stream.status ?? "active"}`}
                   >
-                    {stream.status ?? (t("active") || "Active")}
+                    {statusLabel(stream)}
                   </span>
                   <div className="neopay-stream-info">
                     <div className="neopay-stream-heading">
@@ -553,7 +594,7 @@ export default function PlayArea({
                     <div className="neopay-stream-details">
                       {senderAddress && (
                         <span className="neopay-stream-detail">
-                          {t("from") || "From"}:{" "}
+                          {t("from")}:{" "}
                           {formatAddress(senderAddress)}
                         </span>
                       )}
@@ -584,24 +625,35 @@ export default function PlayArea({
                         {assetSymbol} ({pct.toFixed(0)}%)
                       </span>
                     </div>
-                    {claimable.positive && (
+                    {claimable.positive ? (
                       <div className="neopay-stream-claimable">
-                        {t("claimable") || "Claimable"}:{" "}
+                        {t("claimable")}:{" "}
                         <strong>
                           {claimable.display} {assetSymbol}
                         </strong>
                       </div>
+                    ) : (
+                      !isFinalizedStatus(stream.status) && (
+                        <div className="neopay-stream-claimable neopay-stream-claimable--empty">
+                          {t("claimNothingYet")}
+                        </div>
+                      )
                     )}
                   </div>
                   <div className="neopay-stream-actions">
+                    {/* Gate Claim on a positive claimable: a claim with nothing
+                        vested would revert on-chain after the wallet prompt. */}
                     <NeoButton
                       variant="success"
                       size="sm"
                       loading={claimingId === stream.id}
-                      disabled={isFinalized(stream) || claimingId === stream.id}
+                      disabled={
+                        !canClaim(stream.status, claimable.positive) ||
+                        claimingId === stream.id
+                      }
                       onClick={() => handleClaim(stream.id)}
                     >
-                      {t("claim") || "Claim"}
+                      {t("claim")}
                     </NeoButton>
                   </div>
                 </div>

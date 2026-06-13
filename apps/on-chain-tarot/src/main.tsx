@@ -44,6 +44,18 @@ defineMiniApp({
       await tarot.copyReading();
     });
 
+    ctx.registerAction("withdrawCredit", async () => {
+      await ctx.services.notify.guard(async () => {
+        const { amount } = await tarot.withdrawCredit();
+        if (amount > 0) {
+          ctx.services.notify.success("creditWithdrawn", {
+            amount: Number(amount.toFixed(4)),
+            tokenGas: ctx.t("tokenGas"),
+          });
+        }
+      });
+    });
+
     return {
       state: {
         drawn: tarot.drawn,
@@ -55,6 +67,7 @@ defineMiniApp({
         cardsDrawnCount: tarot.cardsDrawnCount,
         question: tarot.question,
         readingMode: tarot.readingMode,
+        prepaidCredit: tarot.prepaidCredit,
       },
       loadData: tarot.loadAll,
     };

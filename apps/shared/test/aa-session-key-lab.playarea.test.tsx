@@ -172,6 +172,8 @@ describe("AA Session Key Lab PlayArea launch flow", () => {
         "miniapp-aa-session-key-lab",
         "0.2",
       );
+      // Configure now forwards spendingLimit + description too (mainnet needs
+      // them; testnet ignores the extras). Defaults: "0" limit, "" description.
       expect(dispatch).toHaveBeenCalledWith(
         "configureSessionKey",
         "neo-aa-001",
@@ -179,6 +181,8 @@ describe("AA Session Key Lab PlayArea launch flow", () => {
         TARGET_CONTRACT,
         "claimRewards",
         EXPIRES_AT,
+        "0",
+        "",
       );
     });
   });

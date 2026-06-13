@@ -188,6 +188,39 @@
   line-height: 1.45;
 }
 
+.guardian-verifier-diagnostic {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--ns-radius-md, 16px);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.guardian-verifier-diagnostic::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.guardian-verifier-diagnostic--match {
+  border: 1px solid rgba(22, 199, 132, 0.32);
+  background: var(--ns-badge-seafoam-bg, #def5e9);
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.guardian-verifier-diagnostic--mismatch {
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+  color: #b91c1c;
+}
+
 .guardian-flow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

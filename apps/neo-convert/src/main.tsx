@@ -59,8 +59,12 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("toggleSecrets", async () => {
-      convert.toggleSecrets();
+    ctx.registerAction("toggleGeneratedSecrets", async () => {
+      convert.toggleGeneratedSecrets();
+    });
+
+    ctx.registerAction("toggleConversionSecrets", async () => {
+      convert.toggleConversionSecrets();
     });
 
     ctx.registerAction("copy", async (...args: unknown[]) => {
@@ -76,7 +80,8 @@ defineMiniApp({
         isLoading: convert.isLoading,
         generatedAccount: convert.generatedAccount,
         accountsGenerated: convert.formattedAccountsGenerated,
-        showSecrets: convert.showSecrets,
+        showGeneratedSecrets: convert.showGeneratedSecrets,
+        showConversionSecrets: convert.showConversionSecrets,
         hasGeneratedAccount: convert.hasGeneratedAccount,
         inputKey: convert.inputKey,
         conversionResult: convert.conversionResult,
@@ -89,6 +94,7 @@ defineMiniApp({
         formattedNeoBalance: convert.formattedNeoBalance,
         formattedGasBalance: convert.formattedGasBalance,
         balancesLoading: convert.balancesLoading,
+        walletConnected: convert.walletConnected,
       },
       loadData: convert.loadAll,
       cleanup: () => {

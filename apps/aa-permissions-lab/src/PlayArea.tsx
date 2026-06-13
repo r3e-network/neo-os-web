@@ -25,7 +25,7 @@ export default function PlayArea({
   dispatch,
   launchContext,
 }: PlayAreaProps) {
-  const { str, bool } = useStateBindings(state);
+  const { str, bool, num } = useStateBindings(state);
   const launchDefaults = useMemo(
     () => getPermissionsLaunchDefaults(launchContext),
     [launchContext.signature],
@@ -38,6 +38,14 @@ export default function PlayArea({
   const currentVerifier = str("currentVerifier", PLACEHOLDER);
   const currentHook = str("currentHook", PLACEHOLDER);
   const currentBackupOwner = str("currentBackupOwner", PLACEHOLDER);
+  // True only after a successful read — the "configured" chip and detail grid
+  // must reflect fetched state, not merely a typed account id.
+  const hasInspected = bool("hasInspected");
+  const hasPendingVerifier = bool("hasPendingVerifier");
+  const hasPendingHook = bool("hasPendingHook");
+  const pendingVerifierUnlockAt = num("pendingVerifierUnlockAt", 0);
+  const pendingHookUnlockAt = num("pendingHookUnlockAt", 0);
+  const connectedWalletHash = str("connectedWalletDisplay");
 
   const [accountIdHash, setAccountIdHash] = useState(
     launchDefaults.accountIdHash,
@@ -56,10 +64,6 @@ export default function PlayArea({
   }, [launchContext.signature, launchDefaults]);
 
   const accountReady = Boolean(accountIdHash.trim());
-  const canRefresh = accountReady && !isRefreshing;
-  const canUpdateVerifier =
-    accountReady && Boolean(verifierHash.trim()) && !isVerifierBusy;
-  const canUpdateHook = accountReady && Boolean(hookHash.trim()) && !isHookBusy;
 
   const notAvailable = t("notAvailable");
   const normalize = (value: string) => {
@@ -70,14 +74,41 @@ export default function PlayArea({
     return trimmed;
   };
 
+  // The connected wallet must be the account's backup owner to rotate bindings;
+  // the contract enforces this, so disable the write CTAs (with guidance) when
+  // an inspected backup owner is known and does not match the wallet.
+  const walletNormalized = connectedWalletHash.trim().replace(/^0x/i, "").toLowerCase();
+  const ownerNormalized = currentBackupOwner.trim().replace(/^0x/i, "").toLowerCase();
+  const ownerKnown = hasInspected && /^[0-9a-f]{40}$/.test(ownerNormalized);
+  const notBackupOwner =
+    Boolean(walletNormalized) && ownerKnown && ownerNormalized !== walletNormalized;
+
+  const canRefresh = accountReady && !isRefreshing;
+  const canUpdateVerifier =
+    accountReady &&
+    Boolean(verifierHash.trim()) &&
+    !isVerifierBusy &&
+    !notBackupOwner;
+  const canUpdateHook =
+    accountReady && Boolean(hookHash.trim()) && !isHookBusy && !notBackupOwner;
+
+  // Humanize a pending-update unlock timestamp (seconds) into a status line.
+  const pendingUnlockText = (unlockAtSeconds: number): string => {
+    if (!unlockAtSeconds || unlockAtSeconds <= Math.floor(Date.now() / 1000)) {
+      return t("pendingUnlockReady");
+    }
+    const when = new Date(unlockAtSeconds * 1000).toLocaleString();
+    return t("pendingUnlockAt", { time: when });
+  };
+
   const detailItems = [
     {
-      label: t("currentVerifier") || "Current Verifier",
+      label: t("currentVerifier"),
       value: normalize(currentVerifier),
     },
-    { label: t("currentHook") || "Current Hook", value: normalize(currentHook) },
+    { label: t("currentHook"), value: normalize(currentHook) },
     {
-      label: t("currentBackupOwner") || "Backup Owner",
+      label: t("currentBackupOwner"),
       value: normalize(currentBackupOwner),
     },
   ];
@@ -132,10 +163,10 @@ export default function PlayArea({
             <div className="permissions-form">
               <NeoInput
                 value={accountIdHash}
-                label={t("accountId") || "Account ID Hash"}
+                label={t("accountId")}
                 hint={t("accountIdHint")}
                 placeholder={
-                  t("accountIdHashPlaceholder") || "Enter account ID hash"
+                  t("accountIdHashPlaceholder")
                 }
                 onChange={(v) => setAccountIdHash(v)}
               />
@@ -144,17 +175,17 @@ export default function PlayArea({
                   variant="primary"
                   loading={isRefreshing}
                   disabled={!canRefresh}
-                  aria-label={t("inspect") || "Inspect"}
+                  aria-label={t("inspect")}
                   onClick={() => dispatch("refresh", accountIdHash)}
                 >
-                  {t("inspect") || "Inspect"}
+                  {t("inspect")}
                 </NeoButton>
                 <NeoButton
                   variant="secondary"
-                  aria-label={t("connectWallet") || "Connect Wallet"}
+                  aria-label={t("connectWallet")}
                   onClick={() => dispatch("connect")}
                 >
-                  {t("connectWallet") || "Connect Wallet"}
+                  {t("connectWallet")}
                 </NeoButton>
               </div>
               {!canRefresh ? (
@@ -173,14 +204,18 @@ export default function PlayArea({
                 <span>{t("permissionsStateLabel")}</span>
                 <h3>{t("permissionsStateTitle")}</h3>
               </div>
-              {accountReady ? (
-                <strong className="permissions-status permissions-status--active">
-                  {t("configured")}
-                </strong>
-              ) : null}
+              {/* Gate on hasInspected (a completed read), not on a typed id —
+                  a green "configured" chip must not assert unfetched state. */}
+              <strong
+                className={`permissions-status${
+                  hasInspected ? " permissions-status--active" : ""
+                }`}
+              >
+                {hasInspected ? t("configured") : t("notInspected")}
+              </strong>
             </div>
 
-            {accountReady ? (
+            {hasInspected ? (
               <div className="permissions-detail-list">
                 {detailItems.map((item) => (
                   <div key={item.label} className="permissions-detail-row">
@@ -203,30 +238,39 @@ export default function PlayArea({
             <h3>{t("permissionsRiskTitle")}</h3>
           </div>
 
+          {notBackupOwner && (
+            <p
+              className="permissions-caption permissions-caption--warn"
+              role="alert"
+            >
+              {t("notBackupOwner")}
+            </p>
+          )}
+
           <NeoCard
             variant="erobo"
-            title={t("updateVerifier") || "Update Verifier"}
+            title={t("updateVerifier")}
             className="permissions-operation-card"
           >
             <div className="permissions-form">
               <NeoInput
                 value={verifierHash}
-                label={t("verifier") || "Verifier Hash"}
-                placeholder={t("verifierHashPlaceholder") || "0x..."}
+                label={t("verifier")}
+                placeholder={t("verifierHashPlaceholder")}
                 onChange={(v) => setVerifierHash(v)}
               />
               <NeoInput
                 value={verifierParamsHex}
-                label={t("verifierParams") || "Verifier Params (hex)"}
+                label={t("verifierParams")}
                 hint={t("verifierParamsHint")}
-                placeholder={t("verifierParamsPlaceholder") || "0x..."}
+                placeholder={t("verifierParamsPlaceholder")}
                 onChange={(v) => setVerifierParamsHex(v)}
               />
               <NeoButton
                 variant="primary"
                 loading={isVerifierBusy}
                 disabled={!canUpdateVerifier}
-                aria-label={t("updateVerifier") || "Update Verifier"}
+                aria-label={t("updateVerifier")}
                 onClick={() =>
                   dispatch(
                     "submitVerifier",
@@ -236,42 +280,104 @@ export default function PlayArea({
                   )
                 }
               >
-                {t("updateVerifier") || "Update Verifier"}
+                {t("updateVerifier")}
               </NeoButton>
-              {!canUpdateVerifier && !isVerifierBusy ? (
+              {!canUpdateVerifier && !isVerifierBusy && !notBackupOwner ? (
                 <p className="permissions-caption permissions-caption--warn">
                   {t("verifierUpdateBlocked")}
                 </p>
               ) : null}
+              {/* Second phase: a proposed rotation waits out a timelock, then
+                  the owner confirms (or cancels) it. */}
+              {hasPendingVerifier && (
+                <div className="permissions-pending" role="status">
+                  <span className="permissions-pending__title">
+                    {t("pendingVerifierTitle")}
+                  </span>
+                  <span className="permissions-pending__time">
+                    {pendingUnlockText(pendingVerifierUnlockAt)}
+                  </span>
+                  <div className="permissions-pending__actions">
+                    <NeoButton
+                      variant="primary"
+                      loading={isVerifierBusy}
+                      disabled={isVerifierBusy}
+                      aria-label={t("confirmUpdate")}
+                      onClick={() => dispatch("confirmVerifier", accountIdHash)}
+                    >
+                      {t("confirmUpdate")}
+                    </NeoButton>
+                    <NeoButton
+                      variant="secondary"
+                      loading={isVerifierBusy}
+                      disabled={isVerifierBusy}
+                      aria-label={t("cancelUpdate")}
+                      onClick={() => dispatch("cancelVerifier", accountIdHash)}
+                    >
+                      {t("cancelUpdate")}
+                    </NeoButton>
+                  </div>
+                </div>
+              )}
             </div>
           </NeoCard>
 
           <NeoCard
             variant="erobo"
-            title={t("updateHook") || "Update Hook"}
+            title={t("updateHook")}
             className="permissions-operation-card"
           >
             <div className="permissions-form">
               <NeoInput
                 value={hookHash}
-                label={t("hook") || "Hook Hash"}
-                placeholder={t("hookHashPlaceholder") || "0x..."}
+                label={t("hook")}
+                placeholder={t("hookHashPlaceholder")}
                 onChange={(v) => setHookHash(v)}
               />
               <NeoButton
                 variant="secondary"
                 loading={isHookBusy}
                 disabled={!canUpdateHook}
-                aria-label={t("updateHook") || "Update Hook"}
+                aria-label={t("updateHook")}
                 onClick={() => dispatch("submitHook", accountIdHash, hookHash)}
               >
-                {t("updateHook") || "Update Hook"}
+                {t("updateHook")}
               </NeoButton>
-              {!canUpdateHook && !isHookBusy ? (
+              {!canUpdateHook && !isHookBusy && !notBackupOwner ? (
                 <p className="permissions-caption permissions-caption--warn">
                   {t("hookUpdateBlocked")}
                 </p>
               ) : null}
+              {hasPendingHook && (
+                <div className="permissions-pending" role="status">
+                  <span className="permissions-pending__title">
+                    {t("pendingHookTitle")}
+                  </span>
+                  <span className="permissions-pending__time">
+                    {pendingUnlockText(pendingHookUnlockAt)}
+                  </span>
+                  <div className="permissions-pending__actions">
+                    <NeoButton
+                      variant="primary"
+                      loading={isHookBusy}
+                      disabled={isHookBusy}
+                      aria-label={t("confirmUpdate")}
+                      onClick={() => dispatch("confirmHook", accountIdHash)}
+                    >
+                      {t("confirmUpdate")}
+                    </NeoButton>
+                    <NeoButton
+                      variant="secondary"
+                      loading={isHookBusy}
+                      disabled={isHookBusy}
+                      aria-label={t("cancelUpdate")}
+                      onClick={() => dispatch("cancelHook", accountIdHash)}
+                    >
+                      {t("cancelUpdate")}
+                    </NeoButton>
+                  </div>
+                </div>
+              )}
             </div>
           </NeoCard>
         </div>

@@ -171,6 +171,19 @@ const appMessages = {
   withdrawCredit: { en: "Withdraw credit", zh: "提取额度" },
   creditWithdrawn: { en: "Withdrew {amount} {tokenGas} prepaid credit", zh: "已提取预付额度 {amount} {tokenGas}" },
   noCredit: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付额度" },
+  // Success toasts for the money-moving create/claim actions (notify.guard keys).
+  envelopeCreated: { en: "Envelope created — share the link to let friends claim", zh: "红包已创建 — 分享链接让好友领取" },
+  envelopeClaimed: { en: "Packet claimed", zh: "红包已领取" },
+  // Post-create share affordance (the OneGate-QR distribution journey).
+  shareTitle: { en: "Share this envelope", zh: "分享这个红包" },
+  shareHint: {
+    en: "Created envelope #{id}. Copy the claim link and send it to recipients.",
+    zh: "已创建红包 #{id}。复制领取链接并发送给领取者。",
+  },
+  copyShareLink: { en: "Copy claim link", zh: "复制领取链接" },
+  shareLinkCopied: { en: "Claim link copied", zh: "领取链接已复制" },
+  dismiss: { en: "Done", zh: "完成" },
+  you: { en: "You", zh: "你" },
   transferSuccess: { en: "Transferred to {recipient}", zh: "已转让给 {recipient}" },
   transferTo: { en: "Transfer to address", zh: "转让给地址" },
   recipientAddress: { en: "Recipient address", zh: "接收地址" },

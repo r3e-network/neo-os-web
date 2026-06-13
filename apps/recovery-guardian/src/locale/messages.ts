@@ -29,8 +29,8 @@ const appMessages = {
   guardianFlowLabel: { en: "Recovery workflow", zh: "恢复流程" },
   guardianFlowRead: { en: "Read state", zh: "读取状态" },
   guardianFlowReadDesc: {
-    en: "Inspect verifier, threshold, and timelock state before preparing recovery.",
-    zh: "准备恢复前先检查 verifier、threshold 与 timelock 状态。",
+    en: "Inspect verifier, backup owner, recovery timelock, and escape status before preparing recovery.",
+    zh: "准备恢复前先检查 verifier、备份 owner、恢复锁定期与逃生状态。",
   },
   guardianFlowPrepare: { en: "Prepare recovery", zh: "准备恢复" },
   guardianFlowPrepareDesc: {
@@ -60,8 +60,13 @@ const appMessages = {
     zh: "必填，范围 5 到 1440 分钟。",
   },
   verifierHashHint: {
-    en: "Optional Hash160 override for diagnostics.",
-    zh: "可选 Hash160 override，用于诊断。",
+    en: "Optional Hash160. When set it is compared to the bound verifier (match / mismatch is shown after Query State) and carried into the recovery links.",
+    zh: "可选 Hash160。设置后会与绑定的 verifier 比较（查询状态后显示匹配/不匹配），并带入恢复链接。",
+  },
+  verifierOverrideMatch: { en: "Override matches bound verifier", zh: "覆盖值与绑定 verifier 匹配" },
+  verifierOverrideMismatch: {
+    en: "Override differs from bound verifier",
+    zh: "覆盖值与绑定 verifier 不一致",
   },
   recoveryTemplateIdHint: {
     en: "Optional credential template identifier (letters, digits, . _ -).",
@@ -116,8 +121,18 @@ const appMessages = {
   currentVerifier: { en: "Verifier", zh: "Verifier" },
   accountId: { en: "Account ID", zh: "Account ID" },
   backupOwner: { en: "Backup Owner", zh: "备份 Owner" },
-  threshold: { en: "Threshold", zh: "阈值" },
-  timelockLabel: { en: "Timelock", zh: "Timelock" },
+  escapeStatusLabel: { en: "Recovery Escape", zh: "恢复逃生" },
+  escapeActive: { en: "Active", zh: "进行中" },
+  escapeInactive: { en: "Inactive", zh: "未触发" },
+  escapeTriggeredAtLabel: { en: "Escape Triggered", zh: "逃生触发时间" },
+  networkDefaultVerifierLabel: {
+    en: "Network Default Verifier",
+    zh: "网络默认 Verifier",
+  },
+  verifierNotConfigured: { en: "Not configured", zh: "未配置" },
+  timelockLabel: { en: "Recovery Timelock", zh: "恢复锁定期" },
+  timelockSeconds: { en: "{seconds}s", zh: "{seconds} 秒" },
+  digestPlaceholder: { en: "—", zh: "—" },
   checkedAt: { en: "Checked At", zh: "检查时间" },
   queryLoaded: { en: "Recovery state loaded", zh: "恢复状态已加载" },
   queryFailed: { en: "Failed to load recovery state", zh: "加载恢复状态失败" },
@@ -143,10 +158,22 @@ const appMessages = {
   },
   noStateYet: { en: "No recovery state loaded yet.", zh: "尚未加载恢复状态。" },
   noStateHint: {
-    en: "Run Query State above to inspect verifier, threshold, and timelock details here.",
-    zh: "在上方运行“查询状态”，即可在此查看 verifier、threshold 与 timelock 详情。",
+    en: "Run Query State above to inspect verifier, backup owner, recovery timelock, and escape status here.",
+    zh: "在上方运行“查询状态”，即可在此查看 verifier、备份 owner、恢复锁定期与逃生状态。",
   },
   awaitingQuery: { en: "Awaiting query", zh: "等待查询" },
+  // Real documentation content for the manifest docs section (these keys were
+  // previously undefined, so the platform rendered generic base-message
+  // boilerplate for a recovery operator).
+  docSubtitle: {
+    en: "A read-first recovery console for AA accounts: inspect the bound verifier, backup owner, recovery timelock, and escape status before preparing any recovery.",
+    zh: "面向 AA 账户的“先读后写”恢复控制台：在准备任何恢复前，先检查绑定的 verifier、备份 owner、恢复锁定期与逃生状态。",
+  },
+  docDescription: { en: "Recovery preflight", zh: "恢复预检" },
+  step2: {
+    en: "1. Enter the account address or script hash and Query State to read its verifier and backup owner from the AA core. 2. The recovery timelock (seconds) is the delay before a backup owner can finalize an escape; escape status shows whether a recovery is already in progress. 3. Prepare and share preview/credential links only after the account, new owner, and expiry window are valid. The AA identity and app workspaces handle the on-chain recovery execution.",
+    zh: "1. 输入账户地址或 script hash 并点击“查询状态”，从 AA core 读取其 verifier 与备份 owner。2. 恢复锁定期（秒）是备份 owner 在逃生完成前必须等待的延迟；逃生状态显示是否已有恢复在进行。3. 仅在账户、新 owner 与过期窗口有效后，再准备并分享预览/凭证链接。AA 身份与 app 工作区负责链上恢复执行。",
+  },
   feature1Name: { en: "Read First", zh: "先读后写" },
   feature1Desc: {
     en: "Inspect recovery and timelock state before sending any ownership-changing transaction.",

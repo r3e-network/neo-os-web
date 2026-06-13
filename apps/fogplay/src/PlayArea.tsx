@@ -24,14 +24,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const totalWon = num("totalWon");
   const formattedTotalWon = str("formattedTotalWon", "0 GAS");
 
-  // Bet state
+  // Bet state — read the choice LIVE via str() so the highlighted side tracks
+  // the observable on every render. A useMemo([state]) here froze on the
+  // first-render value (state identity never changes), so the card stayed on
+  // "heads" while the bet used the real (possibly "tails") selection.
   const betAmount = str("betAmount", "1");
-  const choice = useMemo(
-    () => (state.choice?.get() ?? "heads") as "heads" | "tails",
-    [state],
-  );
+  const choice = str("choice", "heads") as "heads" | "tails";
   const canBet = bool("canBet");
   const validationError = val<string>("validationError");
+
+  // House cap + recoverable prepaid credit
+  const maxPayableBet = num("maxPayableBet", 0);
+  const formattedMaxPayable = str("formattedMaxPayable", "");
+  const formattedCredit = str("formattedCredit", "");
+  const hasCredit = bool("hasCredit");
 
   // Flip state
   const isFlipping = bool("isFlipping");
@@ -61,32 +67,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </svg>
           </span>
           <div className="play-hero__text">
-            <span className="play-hero__eyebrow">{t("eyebrow") || "ORACLE COIN TOSS"}</span>
-            <h2 className="play-hero__title">{t("title") || "FogPlay"}</h2>
-            <p className="play-hero__subtitle">
-              {t("docSubtitle") || "Oracle-backed coin toss with on-chain escrow"}
-            </p>
+            <span className="play-hero__eyebrow">{t("eyebrow")}</span>
+            <h2 className="play-hero__title">{t("title")}</h2>
+            <p className="play-hero__subtitle">{t("docSubtitle")}</p>
           </div>
         </div>
         <div className="stats-row">
           <div className="stat-cell win">
             <span className="stat-count">{wins}</span>
-            <span className="stat-label">{t("wins") || "Wins"}</span>
+            <span className="stat-label">{t("wins")}</span>
           </div>
           <div className="stat-divider" />
           <div className="stat-cell loss">
             <span className="stat-count">{losses}</span>
-            <span className="stat-label">{t("losses") || "Losses"}</span>
+            <span className="stat-label">{t("losses")}</span>
           </div>
           <div className="stat-divider" />
           <div className="stat-cell total">
             <span className="stat-count">{totalGames}</span>
-            <span className="stat-label">{t("totalGames") || "Games"}</span>
+            <span className="stat-label">{t("totalGames")}</span>
           </div>
           <div className="stat-divider" />
           <div className="stat-cell won">
             <span className="stat-count won-amount">{formattedTotalWon}</span>
-            <span className="stat-label">{t("totalWon") || "Won"}</span>
+            <span className="stat-label">{t("totalWon")}</span>
           </div>
         </div>
       </header>
@@ -105,12 +109,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         canBet={canBet}
         isFlipping={isFlipping}
         validationError={validationError ?? undefined}
+        maxPayable={formattedMaxPayable}
+        maxPayableBet={maxPayableBet}
+        credit={formattedCredit}
+        hasCredit={hasCredit}
         dispatch={dispatch}
       />
 
       <div className="history-section">
         <div className="history-header">
-          <span className="history-title">{t("gameHistory") || "Recent Games"}</span>
+          <span className="history-title">{t("gameHistory")}</span>
         </div>
         {recentHistory.length === 0 ? (
           <NeoCard variant="erobo">
@@ -121,21 +129,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <path d="M12 7v5l3 2" />
                 </svg>
               </span>
-              <span className="history-empty__text">
-                {t("noHistory") || "No games played yet. Place your first bet!"}
-              </span>
+              <span className="history-empty__text">{t("noHistory")}</span>
             </div>
           </NeoCard>
         ) : (
           <NeoCard variant="erobo">
             <div className="history-table-wrap">
-              <table className="history-table" aria-label={t("gameHistory") || "Game History"}>
+              <table className="history-table" aria-label={t("gameHistory")}>
                 <thead>
                   <tr>
-                    <th>{t("choiceHeader") || "Pick"}</th>
-                    <th>{t("outcomeHeader") || "Result"}</th>
-                    <th>{t("betHeader") || "Bet"}</th>
-                    <th>{t("payoutHeader") || "Payout"}</th>
+                    <th>{t("choiceHeader")}</th>
+                    <th>{t("outcomeHeader")}</th>
+                    <th>{t("betHeader")}</th>
+                    <th>{t("payoutHeader")}</th>
                   </tr>
                 </thead>
                 <tbody>

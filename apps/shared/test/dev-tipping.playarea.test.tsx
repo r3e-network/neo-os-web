@@ -67,29 +67,20 @@ describe("Dev Tipping PlayArea", () => {
 
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
+    // With an empty registry the form exposes a manual developer-id field plus
+    // the tip amount. The free-text message and tipper-name inputs were removed
+    // because the on-chain tip() stores neither — so the tip dispatch carries
+    // only (devId, amount, anonymous).
     fireEvent.change(screen.getByLabelText("Developer ID"), {
       target: { value: "7" },
     });
     fireEvent.change(screen.getByLabelText("Tip Amount"), {
       target: { value: "0.05" },
     });
-    fireEvent.change(screen.getByLabelText("Optional Message"), {
-      target: { value: "Thanks for building" },
-    });
-    fireEvent.change(screen.getByLabelText("Your Name (optional)"), {
-      target: { value: "Neo supporter" },
-    });
     fireEvent.click(screen.getByRole("button", { name: "Send Tip" }));
 
     await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith(
-        "sendTip",
-        7,
-        "0.05",
-        "Thanks for building",
-        "Neo supporter",
-        false,
-      );
+      expect(dispatch).toHaveBeenCalledWith("sendTip", 7, "0.05", false);
     });
   });
 

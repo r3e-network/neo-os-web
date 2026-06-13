@@ -151,9 +151,34 @@ const appMessages = {
     zh: "金库 #{id} · {threshold}/{signers}",
   },
   requestHistoryLabel: {
-    en: "{amount} {asset}",
-    zh: "{amount} {asset}",
+    en: "#{id} · {amount} {asset}",
+    zh: "#{id} · {amount} {asset}",
   },
+
+  // ── Signer roster + request-id surfaces ──────────────────────────────────
+  multisigSignerRoster: { en: "Signer roster", zh: "签名人名单" },
+  multisigYouBadge: { en: "You", zh: "你" },
+  multisigRequestIdLabel: { en: "Request ID", zh: "请求 ID" },
+  multisigCopy: { en: "Copy", zh: "复制" },
+  multisigCopied: { en: "Copied", zh: "已复制" },
+  multisigShareRequestId: {
+    en: "Share this request ID with the other signers so they can load and approve it.",
+    zh: "把此请求 ID 分享给其他签名人，便于他们加载并批准。",
+  },
+  // ── Approve / cancel membership gating ───────────────────────────────────
+  multisigNotSignerHint: {
+    en: "Only the vault's signer addresses can approve or cancel this request.",
+    zh: "只有金库的签名人地址才能批准或取消此请求。",
+  },
+  multisigAlreadyApprovedHint: {
+    en: "You have already approved this request.",
+    zh: "你已批准此请求。",
+  },
+  // ── Connected wallet + dynamic signer slots ──────────────────────────────
+  multisigConnectedAs: { en: "Connected as", zh: "已连接" },
+  multisigNotConnected: { en: "Connect a wallet to create or sign", zh: "连接钱包以创建或签名" },
+  multisigAddSigner: { en: "+ Add signer", zh: "+ 添加签名人" },
+  multisigRemoveSigner: { en: "Remove signer", zh: "移除签名人" },
 
   toastInvalidSigners: { en: "Invalid signer set.", zh: "签名人列表无效。" },
   toastInvalidAddress: { en: "Invalid address.", zh: "地址无效。" },

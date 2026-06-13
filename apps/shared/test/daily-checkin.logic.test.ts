@@ -78,6 +78,8 @@ function setup(opts?: {
   user?: Partial<ChainUser>;
   platform?: Partial<PlatformState>;
   wallet?: string | null;
+  checkedInEvents?: unknown[];
+  claimedEvents?: unknown[];
 }) {
   const user: ChainUser = {
     currentStreak: 6,
@@ -214,6 +216,13 @@ function setup(opts?: {
   // ensureWallet connects to ME by default; when the test seeds wallet:null it
   // models a user that declines connection, so it stays unresolved.
   const connectsWallet = !(opts && "wallet" in opts && opts.wallet === null);
+  // The history hydration calls chain.listEvents("CheckedIn"|"RewardsClaimed");
+  // default to the configured fixtures (empty unless a test supplies them).
+  const listEvents = vi.fn(async (eventName: string) => {
+    if (eventName === "CheckedIn") return opts?.checkedInEvents ?? [];
+    if (eventName === "RewardsClaimed") return opts?.claimedEvents ?? [];
+    return [];
+  });
   const chain = {
     address,
     contractAddress,
@@ -223,10 +232,11 @@ function setup(opts?: {
     }),
     read,
     invoke,
+    listEvents,
   } as unknown as ChainService;
 
   const app = useCheckin({ chain, t });
-  return { app, chain, invokes, read, invoke, user, platform };
+  return { app, chain, invokes, read, invoke, user, platform, listEvents };
 }
 
 describe("useCheckin (on-chain wiring)", () => {
@@ -335,10 +345,74 @@ describe("useCheckin (on-chain wiring)", () => {
 
   it("requires a wallet before submitting a check-in", async () => {
     const { app, invokes } = setup({ wallet: null });
-    // No wallet: loadAll returns early leaving the eligible seed, so doCheckIn
-    // passes the eligibility guard and fails at the wallet check.
+    // No wallet: loadAll returns early leaving the unknown (not-yet-loaded)
+    // status, so doCheckIn proceeds past the eligibility guard and fails at the
+    // wallet check.
     await app.loadAll();
     await expect(app.doCheckIn()).rejects.toThrow("Connect your Neo wallet to continue");
     expect(invokes.find((c) => c.operation === "transfer")).toBeUndefined();
+  });
+
+  it("starts with eligibility unknown and only flips after the first load", async () => {
+    const { app } = setup({ user: { canCheckin: true } });
+
+    // Before any load, eligibility is NOT assumed true (so the CTA stays gated).
+    expect(app.hasLoadedStatus.get()).toBe(false);
+    expect(app.canCheckIn.get()).toBe(false);
+
+    await app.loadAll();
+
+    expect(app.hasLoadedStatus.get()).toBe(true);
+    expect(app.canCheckIn.get()).toBe(true);
+  });
+
+  it("hydrates activity history from the on-chain CheckedIn / RewardsClaimed logs", async () => {
+    const { app } = setup({
+      checkedInEvents: [
+        {
+          txid: "0xpastcheckin",
+          block_time: "2026-06-10T08:00:00.000Z",
+          state: [
+            { value: ME_HASH },
+            { value: "5" }, // streak
+            { value: "0" }, // reward
+            { value: "0" },
+          ],
+        },
+        // An event for a DIFFERENT user must be filtered out.
+        {
+          txid: "0xotheruser",
+          block_time: "2026-06-09T08:00:00.000Z",
+          state: [
+            { value: addressToScriptHash("NZeAarn3UMCqNsTymTMF2Pn6X7Yw3GhqDv") },
+            { value: "9" },
+            { value: "0" },
+            { value: "0" },
+          ],
+        },
+      ],
+      claimedEvents: [
+        {
+          txid: "0xpastclaim",
+          block_time: "2026-06-11T08:00:00.000Z",
+          state: [
+            { value: ME_HASH },
+            { value: "100000000" }, // amount (1 GAS)
+            { value: "100000000" },
+          ],
+        },
+      ],
+    });
+
+    await app.loadAll();
+
+    const history = app.checkinHistory.get();
+    const txids = history.map((h) => h.txid);
+    expect(txids).toContain("0xpastcheckin");
+    expect(txids).toContain("0xpastclaim");
+    // The other user's event is never shown.
+    expect(txids).not.toContain("0xotheruser");
+    // Newest-first by block_time: the claim (June 11) precedes the check-in (June 10).
+    expect(history[0]?.txid).toBe("0xpastclaim");
   });
 });

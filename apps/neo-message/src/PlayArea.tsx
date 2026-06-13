@@ -10,6 +10,7 @@ import {
   formatUnlock,
   shortAddress,
   addressesEqual,
+  MAX_BODY_LENGTH,
   type ComposeForm,
   type MessageView,
 } from "./message-logic";
@@ -23,14 +24,24 @@ interface PlayAreaProps {
 
 const EMPTY_FORM: ComposeForm = { recipient: "", body: "", lockMode: "recipient", revealDate: "" };
 
+// Local datetime-local min: now, formatted as YYYY-MM-DDTHH:mm (no seconds/zone)
+// so the native picker rejects past instants up front.
+function localDateTimeMin(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { bool, val } = useStateBindings(state);
 
   const address = val<string>("address", "") ?? "";
   const networkSupported = bool("networkSupported");
+  const hasWallet = bool("hasWallet");
   const isLoading = bool("isLoading");
   const isSending = bool("isSending");
-  const busyId = val<string>("busyId", "") ?? "";
+  const busyIds = val<string[]>("busyIds", []) ?? [];
+  const hasMore = bool("hasMore");
   const inbox = val<MessageView[]>("inbox", []) ?? [];
   const outbox = val<MessageView[]>("outbox", []) ?? [];
   const form = val<ComposeForm>("composeForm", EMPTY_FORM) ?? EMPTY_FORM;
@@ -41,12 +52,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const isTimed = form.lockMode === "timed";
   const connected = address.length > 0;
+  const bodyLength = (form.body ?? "").length;
+  const dateMin = localDateTimeMin();
 
   const renderMessage = (msg: MessageView, box: "inbox" | "outbox") => {
     const status = messageStatus(msg);
     const unlockLabel = formatUnlock(msg.unlockTime);
     const youAreRecipient = addressesEqual(address, msg.recipient);
-    const isBusy = busyId === msg.id;
+    const isBusy = busyIds.includes(msg.id);
     return (
       <div key={`${box}-${msg.id}`} className={`nm-item nm-${status}`}>
         <div className="nm-item-head">
@@ -84,7 +97,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               variant="primary"
               size="sm"
               loading={isBusy}
-              disabled={Boolean(busyId)}
+              disabled={isBusy}
               onClick={() => dispatch("revealRecipient", msg)}
             >
               {t("revealForMe")}
@@ -100,7 +113,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             variant="primary"
             size="sm"
             loading={isBusy}
-            disabled={Boolean(busyId)}
+            disabled={isBusy}
             onClick={() => dispatch("requestTimedReveal", msg)}
           >
             {t("revealOnChain")}
@@ -121,7 +134,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       {!networkSupported ? (
         <NeoCard title={t("networkCardTitle")}>
-          <p className="nm-network-warning">{t("errorWrongNetwork")}</p>
+          <p className="nm-network-warning">
+            {hasWallet ? t("errorWrongNetwork") : t("errorNoEvmWallet")}
+          </p>
+          {hasWallet ? (
+            <NeoButton
+              variant="primary"
+              size="sm"
+              loading={isLoading}
+              disabled={isLoading}
+              onClick={() => dispatch("switchToNeoX")}
+            >
+              {t("switchToNeoX")}
+            </NeoButton>
+          ) : null}
         </NeoCard>
       ) : null}
 
@@ -138,7 +164,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             label={t("messageLabel")}
             placeholder={t("messagePlaceholder")}
             value={form.body ?? ""}
-            onChange={(v) => setForm({ body: v })}
+            hint={t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}
+            error={
+              bodyLength > MAX_BODY_LENGTH ? t("bodyTooLong") : undefined
+            }
+            onChange={(v) => setForm({ body: v.slice(0, MAX_BODY_LENGTH) })}
           />
 
           <div className="nm-mode-toggle" role="radiogroup" aria-label={t("deliveryModeLabel")}>
@@ -167,6 +197,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("revealDateLabel")}</span>
               <input
                 type="datetime-local"
+                min={dateMin}
                 value={form.revealDate ?? ""}
                 onChange={(e) => setForm({ revealDate: e.target.value })}
               />
@@ -206,6 +237,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         ) : (
           <div className="nm-list">{inbox.map((m) => renderMessage(m, "inbox"))}</div>
         )}
+        {connected && hasMore ? (
+          <div className="nm-load-more">
+            <NeoButton
+              variant="secondary"
+              size="sm"
+              loading={isLoading}
+              disabled={isLoading}
+              onClick={() => dispatch("loadOlder")}
+            >
+              {t("loadOlder")}
+            </NeoButton>
+          </div>
+        ) : null}
       </NeoCard>
 
       {outbox.length > 0 ? (

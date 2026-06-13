@@ -20,6 +20,7 @@ import {
 } from "@shared/react";
 import { createDerived } from "@shared/react/context";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -90,6 +91,13 @@ defineMiniApp({
     );
     const activeVault = createObservable<VaultView | null>(null);
     const activeRequest = createObservable<RequestView | null>(null);
+    // Membership gating for Approve/Cancel: whether the connected wallet is a
+    // signer of the active vault, and whether it has already approved the active
+    // request. Both are re-derived whenever the vault/request/wallet changes so
+    // a non-signer or a repeat approver gets a disabled button + reason instead
+    // of a raw on-chain assert.
+    const connectedIsSigner = createObservable(false);
+    const connectedHasApproved = createObservable(false);
     // v2: RequestUnfunded explanation for an auto-cancelled request (keyed by
     // requestId; PlayArea only shows it for the matching active request).
     const unfundedNotice = createObservable<UnfundedNotice | null>(null);
@@ -102,8 +110,47 @@ defineMiniApp({
 
     loadHistory();
 
+    /**
+     * Recompute the Approve/Cancel gating for the connected wallet:
+     *   - connectedIsSigner: is the wallet in the active vault's signer set?
+     *     (signers come back as UInt160 chain values — compared via
+     *     ownerMatchesAddress, which normalizes both sides to a script hash).
+     *   - connectedHasApproved: has the wallet already approved the active
+     *     request? (on-chain hasApproved(reqId, signerHash)).
+     */
+    const refreshGating = async () => {
+      const addr = connectedAddress.get();
+      const vault = activeVault.get();
+      const request = activeRequest.get();
+
+      const isSigner = Boolean(
+        addr &&
+          vault?.signers?.some((signer) => ownerMatchesAddress(signer, addr)),
+      );
+      connectedIsSigner.set(isSigner);
+
+      // Only a signer can have an approval recorded; skip the read otherwise.
+      if (!addr || !request || request.status !== "pending" || !isSigner) {
+        connectedHasApproved.set(false);
+        return;
+      }
+      const signerHash = addressToScriptHash(addr);
+      if (!signerHash) {
+        connectedHasApproved.set(false);
+        return;
+      }
+      try {
+        connectedHasApproved.set(await api.hasApproved(request.id, signerHash));
+      } catch {
+        // A failed read must not enable a button that would revert — default to
+        // "not approved" so the user can still attempt the approval.
+        connectedHasApproved.set(false);
+      }
+    };
+
     const syncConnectedAddress = () => {
       connectedAddress.set(chain.address.get() ?? "");
+      void refreshGating();
     };
     syncConnectedAddress();
     const stopAddressSync = chain.address.subscribe(syncConnectedAddress);
@@ -126,6 +173,7 @@ defineMiniApp({
             ? new Date(vault.createdTime).toISOString()
             : new Date().toISOString(),
         });
+        await refreshGating();
       }
       return vault;
     };
@@ -142,6 +190,7 @@ defineMiniApp({
           vaultId: request.vaultId,
           status: request.status,
           label: ctx.t("requestHistoryLabel", {
+            id: request.id,
             amount: fromBaseUnits(
               request.amount,
               request.assetSymbol === "NEO" ? "NEO" : "GAS",
@@ -174,6 +223,7 @@ defineMiniApp({
             });
           }
         }
+        await refreshGating();
       }
       return request;
     };
@@ -419,6 +469,8 @@ defineMiniApp({
         completedCount,
         totalActions,
         connectedAddress,
+        connectedIsSigner,
+        connectedHasApproved,
         activeVault,
         activeRequest,
         unfundedNotice,

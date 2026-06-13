@@ -93,8 +93,7 @@ function t(key: string) {
     deactivate: "Deactivate",
     activate: "Activate",
     updating: "Updating...",
-    copyIssueLink: "Copy Issue Link",
-    shareIssueLink: "Share Issue Link",
+    copyIssueShortcut: "Copy issuing shortcut",
     emptyTemplateDescription: "No description provided.",
     verifyHelp: "Look up a token ID.",
     verifyTokenId: "Token ID",
@@ -103,6 +102,11 @@ function t(key: string) {
     lookingUp: "Looking up...",
     revoke: "Revoke",
     revoking: "Revoking...",
+    onlyIssuerCanRevoke: "Only the issuing wallet can revoke this certificate.",
+    copyVerifyLink: "Copy verify link",
+    shareVerifyLink: "Share",
+    tokenQrLabel: "Certificate token ID QR code",
+    tokenQrCaption: "Scan to verify by token ID",
     tokenId: "Token ID",
     certificateValid: "Valid",
     certificateRevoked: "Revoked",
@@ -120,6 +124,7 @@ function baseState(
     templates: [template],
     certificates: [certificate],
     verifiedCertificate: certificate,
+    verifiedIsIssuer: true,
     templatesCount: 1,
     certificatesCount: 1,
     activeTemplatesCount: 1,
@@ -136,6 +141,7 @@ function baseState(
     lastSuccess: "",
     deepLinkTemplateId: "",
     deepLinkAutoIssue: false,
+    deepLinkVerifyTokenId: "",
     ...overrides,
   };
   return Object.fromEntries(
@@ -256,5 +262,59 @@ describe("Soulbound Certificate PlayArea", () => {
     expect(container.textContent).not.toContain("openIssueModal");
     expect(container.textContent).not.toContain("soulbound:openIssueModal");
     expect(container.textContent).not.toContain("contractMissing");
+  });
+
+  it("hides Revoke for a non-issuer verifier and explains why", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ verifiedIsIssuer: false })}
+        dispatch={dispatch}
+      />,
+    );
+
+    // The contract only lets the template issuer revoke, so a third-party
+    // verifier must never be shown the destructive action that would revert.
+    expect(screen.queryByRole("button", { name: "Revoke" })).toBeNull();
+    expect(
+      screen.getByText("Only the issuing wallet can revoke this certificate."),
+    ).toBeTruthy();
+  });
+
+  it("shares a permissionless verify link for the verified certificate", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(<PlayArea t={t} state={baseState()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Share" }));
+    expect(dispatch).toHaveBeenCalledWith(
+      "shareVerifyLink",
+      "0x0700000000000001",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy verify link" }));
+    expect(dispatch).toHaveBeenCalledWith(
+      "copyVerifyLink",
+      "0x0700000000000001",
+    );
+  });
+
+  it("prefills and runs the verify lookup from a verify deep link", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ deepLinkVerifyTokenId: "0x0700000000000001" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(dispatch).toHaveBeenCalledWith("verifyCertificate", {
+      tokenId: "0x0700000000000001",
+    });
+    expect(dispatch).toHaveBeenCalledWith("consumeVerifyDeepLink");
   });
 });

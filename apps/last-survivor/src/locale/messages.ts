@@ -13,15 +13,12 @@ const appMessages = {
   round: { en: "Round", zh: "轮次" },
   status: { en: "Status", zh: "状态" },
   lastBuyer: { en: "Last Buyer", zh: "最后购买者" },
+  currentLeader: { en: "Current leader", zh: "当前领先者" },
+  winsIfZero: { en: "Wins if the timer hits zero", zh: "倒计时归零即获胜" },
   roundStatus: { en: "Round Status", zh: "轮次状态" },
   activeRound: { en: "Active", zh: "进行中" },
   inactiveRound: { en: "Rollover ready", zh: "可开启下一轮" },
   buyKeys: { en: "Buy Keys", zh: "购买钥匙" },
-  buyKeysAndRollover: { en: "Buy Keys and Roll Forward", zh: "购买钥匙并推进轮次" },
-  buyKeysRolloverHint: {
-    en: "The next key purchase rolls the expired round forward before applying your bid.",
-    zh: "下一次购钥匙会先推进已过期轮次，再提交你的出价。",
-  },
   buying: { en: "Buying...", zh: "购买中..." },
   keyCountPlaceholder: { en: "1", zh: "1" },
   estimatedCost: { en: "Estimated Cost", zh: "预估花费" },
@@ -50,14 +47,6 @@ const appMessages = {
   keyPurchaseUnavailable: {
     en: "Key purchase services are not configured in this environment yet.",
     zh: "当前环境暂未配置购钥匙服务。",
-  },
-  keyPurchaseRefunded: {
-    en: "Key purchase failed — your GAS deposit was refunded.",
-    zh: "购买钥匙失败——您的 GAS 押金已退回。",
-  },
-  keyPurchaseRecoveryNeeded: {
-    en: "Key purchase failed and the automatic refund did not complete. Please contact support to recover your GAS.",
-    zh: "购买钥匙失败且自动退款未完成。请联系客服以找回您的 GAS。",
   },
   keyPurchaseDepositHeld: {
     en: "Key purchase failed after the deposit landed. Your GAS is held as reusable credit — try buying again.",
@@ -132,10 +121,6 @@ const appMessages = {
     en: "Timer expired. The settlement transaction pays the winner and opens the next live round.",
     zh: "倒计时结束。结算交易会支付赢家，并立即开启下一轮。",
   },
-  lifecycleManaged: {
-    en: "Lifecycle keeper will settle and open the next round automatically.",
-    zh: "生命周期 keeper 会自动结算并开启下一轮。",
-  },
   doomsdayErrorFallback: { en: "Something went wrong", zh: "出现错误" },
   ariaHistory: { en: "History", zh: "历史" },
   sidebarTotalPot: { en: "Total Pot", zh: "奖池总额" },
@@ -149,17 +134,30 @@ const appMessages = {
     en: "Each purchase adds GAS to the prize pool and extends the live countdown.",
     zh: "每次购买都会向奖池加入 GAS，并延长实时倒计时。",
   },
-  ruleTimer: { en: "Timer pressure increases", zh: "倒计时压力递增" },
+  ruleTimer: { en: "Each key extends the clock", zh: "每把钥匙延长倒计时" },
   ruleTimerDesc: {
-    en: "Later bids add less time, so the ending gets more tense as the pool grows.",
-    zh: "越到后期，每次出价增加的时间越少，奖池越大，压力越高。",
+    en: "Every key adds 30 seconds to the countdown, capped at 24 hours — the tension rises as the pool grows.",
+    zh: "每把钥匙为倒计时增加 30 秒，最多 24 小时——奖池越大，压力越高。",
   },
   ruleWin: { en: "Last buyer wins", zh: "最后购买者获胜" },
   ruleWinDesc: {
-    en: "When the timer reaches zero, the last buyer receives the settled prize pool after platform fees.",
-    zh: "倒计时归零时，最后购买钥匙的人获得扣除平台费用后的结算奖池。",
+    en: "When the timer reaches zero, the last buyer wins the entire pot on-chain — no platform fee.",
+    zh: "倒计时归零时，最后购买钥匙的人获得链上全部奖池——无平台费用。",
   },
   recentHistory: { en: "Recent Rounds", zh: "最近轮次" },
+  // ── Exit path (withdraw unused prepaid buy-credit) ─────────────────────
+  prepaidCreditLabel: { en: "Prepaid credit", zh: "预付额度" },
+  prepaidCreditHint: {
+    en: "Unused GAS from a buy that didn't complete. Reused on your next buy, or withdraw it now.",
+    zh: "未完成的购买所剩的 GAS。下次购买会复用，也可立即提取。",
+  },
+  withdrawCredit: { en: "Withdraw credit", zh: "提取额度" },
+  creditWithdrawn: { en: "Withdrew {amount} {tokenGas} prepaid credit", zh: "已提取预付额度 {amount} {tokenGas}" },
+  noCredit: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付额度" },
+  awaitingFirstKey: {
+    en: "Awaiting the first key — buying starts the clock.",
+    zh: "等待第一把钥匙——购买即开始倒计时。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

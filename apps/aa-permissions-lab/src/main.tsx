@@ -77,6 +77,42 @@ defineMiniApp({
       },
     );
 
+    ctx.registerAction("confirmVerifier", async (accountIdHash: unknown) => {
+      lab.form.accountIdHash = String(accountIdHash);
+      await ctx.services.notify.guard(
+        () => lab.confirmVerifier(),
+        "confirmVerifierSuccess",
+        "updateVerifierFailed",
+      );
+    });
+
+    ctx.registerAction("cancelVerifier", async (accountIdHash: unknown) => {
+      lab.form.accountIdHash = String(accountIdHash);
+      await ctx.services.notify.guard(
+        () => lab.cancelVerifier(),
+        "cancelVerifierSuccess",
+        "updateVerifierFailed",
+      );
+    });
+
+    ctx.registerAction("confirmHook", async (accountIdHash: unknown) => {
+      lab.form.accountIdHash = String(accountIdHash);
+      await ctx.services.notify.guard(
+        () => lab.confirmHook(),
+        "confirmHookSuccess",
+        "updateHookFailed",
+      );
+    });
+
+    ctx.registerAction("cancelHook", async (accountIdHash: unknown) => {
+      lab.form.accountIdHash = String(accountIdHash);
+      await ctx.services.notify.guard(
+        () => lab.cancelHook(),
+        "cancelHookSuccess",
+        "updateHookFailed",
+      );
+    });
+
     ctx.registerAction("connect", () =>
       ctx.services.notify.guard(
         () => ctx.services.chain.ensureWallet(),
@@ -90,6 +126,12 @@ defineMiniApp({
         currentVerifier: lab.currentVerifier,
         currentHook: lab.currentHook,
         currentBackupOwner: lab.currentBackupOwner,
+        hasInspected: lab.hasInspected,
+        hasPendingVerifier: lab.hasPendingVerifier,
+        hasPendingHook: lab.hasPendingHook,
+        pendingVerifierUnlockAt: lab.pendingVerifierUnlockAt,
+        pendingHookUnlockAt: lab.pendingHookUnlockAt,
+        connectedWalletDisplay: lab.connectedWalletDisplay,
         isRefreshing: lab.isRefreshing,
         isVerifierBusy: lab.isVerifierBusy,
         isHookBusy: lab.isHookBusy,

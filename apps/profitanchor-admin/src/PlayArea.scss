@@ -210,10 +210,45 @@
   overflow: visible !important;
 }
 
+.anchor-admin-role-banner {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--ns-warning-border, rgba(185, 121, 26, 0.30));
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-warning-soft, #fff3dd);
+
+  &__eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ns-warning-strong, #b9791a);
+  }
+
+  strong {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--ns-ink, #1e1e2e);
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ns-text-2, #5b6478);
+  }
+}
+
 .anchor-admin-command-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
+
+  &.is-readonly {
+    opacity: 0.72;
+  }
 }
 
 .anchor-admin-workflow-card {

@@ -86,8 +86,22 @@ function t(key: string) {
     refreshData: "Refresh Data",
     refreshing: "Refreshing...",
     lastUpdated: "Last updated",
+    treasuryStale: "Showing cached data",
+    treasuryWalletsUnreachable: "{count} wallets unreachable",
+    treasuryPriceFeedUnavailable: "Price feed unavailable — USD totals hidden",
+    treasuryWatchlistNetwork: "Watchlist data: Mainnet",
+    currencySymbol: "$",
+    loading: "Loading...",
+    retry: "Retry",
   };
   return messages[key] ?? key;
+}
+
+// Mirror the interpolating `t` the host provides so {count} resolves like prod.
+function ti(key: string, params?: Record<string, string | number>) {
+  const raw = t(key);
+  if (!params) return raw;
+  return raw.replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? `{${k}}`));
 }
 
 function launch(url: string) {
@@ -200,5 +214,109 @@ describe("Neo Treasury PlayArea", () => {
     expect(
       (screen.getByRole("button", { name: /Sign Disbursement/ }) as HTMLButtonElement).disabled,
     ).toBe(true);
+  });
+
+  function liveData(overrides: Record<string, unknown> = {}) {
+    return {
+      totalUsd: 5000,
+      totalNeo: 100,
+      totalGas: 50,
+      lastUpdated: 0,
+      prices: { neo: 5, gas: 1 },
+      failedCount: 0,
+      categories: [
+        {
+          name: "Da Hongfei",
+          totalNeo: 100,
+          totalGas: 50,
+          totalUsd: 5000,
+          failedCount: 0,
+          wallets: [
+            { label: "Da Wallet 1", address: "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw", neo: 100, gas: 50 },
+          ],
+        },
+      ],
+      ...overrides,
+    };
+  }
+
+  it("shows the amber cached signal (not 'live synced') when serving stale data", () => {
+    render(
+      <PlayArea
+        {...props({
+          t: ti,
+          state: baseState({ data: liveData(), stale: true }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/Showing cached data/)).toBeTruthy();
+    expect(screen.queryByText(/Live balances synced/)).toBeNull();
+  });
+
+  it("warns when wallets are unreachable and marks the failed row with an em-dash", () => {
+    render(
+      <PlayArea
+        {...props({
+          t: ti,
+          state: baseState({
+            data: liveData({
+              failedCount: 1,
+              categories: [
+                {
+                  name: "Da Hongfei",
+                  totalNeo: 0,
+                  totalGas: 0,
+                  totalUsd: 0,
+                  failedCount: 1,
+                  wallets: [
+                    { label: "Da Wallet 1", address: "Nfail", neo: 0, gas: 0, failed: true },
+                  ],
+                },
+              ],
+            }),
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText(/1 wallets unreachable/).length).toBeGreaterThan(0);
+    // The failed wallet row shows em-dashes, not "0 NEO / 0 GAS".
+    expect(screen.getByText("— / —")).toBeTruthy();
+  });
+
+  it("hides USD totals with a notice when the price feed is unavailable", () => {
+    render(
+      <PlayArea
+        {...props({
+          t: ti,
+          state: baseState({
+            data: liveData({
+              totalUsd: null,
+              prices: null,
+              categories: [
+                {
+                  name: "Da Hongfei",
+                  totalNeo: 100,
+                  totalGas: 50,
+                  totalUsd: null,
+                  failedCount: 0,
+                  wallets: [],
+                },
+              ],
+            }),
+          }),
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/Price feed unavailable/)).toBeTruthy();
+  });
+
+  it("labels the watchlist data source as mainnet", () => {
+    render(
+      <PlayArea {...props({ t: ti, state: baseState({ data: liveData() }) })} />,
+    );
+    expect(screen.getByText("Watchlist data: Mainnet")).toBeTruthy();
   });
 });

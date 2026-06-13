@@ -89,6 +89,8 @@ export interface WalletBalance {
   label: string;
   neo: number;
   gas: number;
+  /** True when this wallet's RPC balance read failed (figures are not real 0). */
+  failed?: boolean;
 }
 
 export interface CategoryBalance {
@@ -96,16 +98,23 @@ export interface CategoryBalance {
   wallets: WalletBalance[];
   totalNeo: number;
   totalGas: number;
-  totalUsd: number;
+  /** Null when the price feed was unavailable (render as "—", not $0). */
+  totalUsd: number | null;
+  /** Number of wallets in this group whose balance read failed. */
+  failedCount: number;
 }
 
 export interface TreasuryData {
   categories: CategoryBalance[];
   totalNeo: number;
   totalGas: number;
-  totalUsd: number;
-  prices: PriceData;
+  /** Null when the price feed was unavailable (render as "—", not $0). */
+  totalUsd: number | null;
+  /** Null when the price feed was unavailable. */
+  prices: PriceData | null;
   lastUpdated: number;
+  /** Total wallets across all groups whose balance read failed. */
+  failedCount: number;
 }
 
 // RPC call helper
@@ -183,7 +192,7 @@ const BALANCE_FETCH_CONCURRENCY = 8;
 async function fetchAddressBalances(
   addresses: string[],
   labelPrefix: string
-): Promise<{ wallets: WalletBalance[]; totalNeo: number; totalGas: number }> {
+): Promise<{ wallets: WalletBalance[]; totalNeo: number; totalGas: number; failedCount: number }> {
   const indexed = addresses
     .map((address, index) => ({ address, index }))
     .filter((entry): entry is { address: string; index: number } => Boolean(entry.address));
@@ -210,13 +219,14 @@ async function fetchAddressBalances(
         totalGas += outcome.value.gas;
       } else {
         // A single transient RPC failure must not blank out the other
-        // known-good balances. Record the wallet as 0/0 and continue; only
+        // known-good balances. Flag the wallet as failed (so the UI can mark
+        // it with an em-dash rather than a misleading 0) and continue; only
         // surface an error if EVERY address failed (handled below).
         failedCount += 1;
         const reason = outcome.reason;
         const msg = reason instanceof Error ? reason.message : "Unknown error";
         console.warn(`[neo-treasury] balance fetch failed for ${address}: ${msg}`);
-        wallets.push({ address, label, neo: 0, gas: 0 });
+        wallets.push({ address, label, neo: 0, gas: 0, failed: true });
       }
     });
   }
@@ -226,30 +236,39 @@ async function fetchAddressBalances(
     throw new Error(`Failed to fetch balances for all ${labelPrefix} addresses`);
   }
 
-  return { wallets, totalNeo, totalGas };
+  return { wallets, totalNeo, totalGas, failedCount };
 }
 
-// Fetch Da Hongfei treasury data
-export async function fetchDaHongfeiData(prices: PriceData): Promise<CategoryBalance> {
-  const { wallets, totalNeo, totalGas } = await fetchAddressBalances(DA_HONGFEI_ADDRESSES, "Da");
+// Compute a category's USD total, or null when the price feed is unavailable.
+function categoryUsd(totalNeo: number, totalGas: number, prices: PriceData | null): number | null {
+  if (!prices) return null;
   const neoUsd = prices.usd?.neo ?? prices.neo;
   const gasUsd = prices.usd?.gas ?? prices.gas ?? 0;
-  const totalUsd = totalNeo * neoUsd + totalGas * gasUsd;
-  return { name: "Da Hongfei", wallets, totalNeo, totalGas, totalUsd };
+  return totalNeo * neoUsd + totalGas * gasUsd;
 }
 
-// Fetch Erik Zhang treasury data
-export async function fetchErikZhangData(prices: PriceData): Promise<CategoryBalance> {
-  const { wallets, totalNeo, totalGas } = await fetchAddressBalances(ERIK_ZHANG_ADDRESSES, "Erik");
-  const neoUsd = prices.usd?.neo ?? prices.neo;
-  const gasUsd = prices.usd?.gas ?? prices.gas ?? 0;
-  const totalUsd = totalNeo * neoUsd + totalGas * gasUsd;
-  return { name: "Erik Zhang", wallets, totalNeo, totalGas, totalUsd };
+// Fetch Da Hongfei treasury data. `prices` is null when the feed is unavailable.
+export async function fetchDaHongfeiData(prices: PriceData | null): Promise<CategoryBalance> {
+  const { wallets, totalNeo, totalGas, failedCount } = await fetchAddressBalances(DA_HONGFEI_ADDRESSES, "Da");
+  return { name: "Da Hongfei", wallets, totalNeo, totalGas, totalUsd: categoryUsd(totalNeo, totalGas, prices), failedCount };
+}
+
+// Fetch Erik Zhang treasury data. `prices` is null when the feed is unavailable.
+export async function fetchErikZhangData(prices: PriceData | null): Promise<CategoryBalance> {
+  const { wallets, totalNeo, totalGas, failedCount } = await fetchAddressBalances(ERIK_ZHANG_ADDRESSES, "Erik");
+  return { name: "Erik Zhang", wallets, totalNeo, totalGas, totalUsd: categoryUsd(totalNeo, totalGas, prices), failedCount };
 }
 
 // Fetch all treasury data
 export async function fetchTreasuryData(): Promise<TreasuryData> {
-  const prices = await fetchPrices();
+  // A price-feed failure must not blank the whole dashboard: the balances are
+  // independently fetchable. Proceed with null prices and let USD render as "—".
+  let prices: PriceData | null = null;
+  try {
+    prices = await fetchPrices();
+  } catch (e) {
+    console.warn("[neo-treasury] price feed unavailable, showing balances without USD:", e instanceof Error ? e.message : String(e));
+  }
 
   // Fetch both founders' data in parallel
   const [daData, erikData] = await Promise.all([fetchDaHongfeiData(prices), fetchErikZhangData(prices)]);
@@ -257,9 +276,8 @@ export async function fetchTreasuryData(): Promise<TreasuryData> {
   const categories = [daData, erikData];
   const totalNeo = daData.totalNeo + erikData.totalNeo;
   const totalGas = daData.totalGas + erikData.totalGas;
-  const neoUsd = prices.usd?.neo ?? prices.neo;
-  const gasUsd = prices.usd?.gas ?? prices.gas ?? 0;
-  const totalUsd = totalNeo * neoUsd + totalGas * gasUsd;
+  const totalUsd = categoryUsd(totalNeo, totalGas, prices);
+  const failedCount = daData.failedCount + erikData.failedCount;
 
-  return { categories, totalNeo, totalGas, totalUsd, prices, lastUpdated: Date.now() };
+  return { categories, totalNeo, totalGas, totalUsd, prices, lastUpdated: Date.now(), failedCount };
 }

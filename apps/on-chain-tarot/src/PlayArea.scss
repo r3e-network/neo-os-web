@@ -203,6 +203,7 @@
 .tarot-question-panel,
 .tarot-spread-panel,
 .tarot-verification-panel,
+.tarot-recovery-panel,
 .tarot-reading-summary {
   min-width: 0;
   border-radius: var(--ns-radius-lg, 20px);
@@ -535,7 +536,8 @@
   }
 }
 
-.tarot-verification-panel {
+.tarot-verification-panel,
+.tarot-recovery-panel {
   display: grid;
   gap: 14px;
   letter-spacing: 0;

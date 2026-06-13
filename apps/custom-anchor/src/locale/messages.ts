@@ -82,6 +82,54 @@ const appMessages = {
     zh: "NEO 不可分割，请输入正整数。",
   },
   notAvailable: { en: "Not available", zh: "暂无" },
+
+  // Anchor existence + registration
+  anchorNotRegistered: {
+    en: "This anchor id is not registered yet. Register it below, or pick one from the list.",
+    zh: "该 Anchor ID 尚未注册。可在下方注册，或从列表中选择一个。",
+  },
+  anchorAlreadyRegistered: { en: "That anchor id is already registered.", zh: "该 Anchor ID 已被注册。" },
+  anchorNotRegisteredBadge: { en: "Not registered", zh: "未注册" },
+  registerPanelLabel: { en: "Create anchor", zh: "创建 Anchor" },
+  registerPanelTitle: { en: "Register a custom anchor", zh: "注册自定义 Anchor" },
+  registerPanelBody: {
+    en: "Pick a unique id (custom-anchor:slug:nonce) and a mode. Registration costs a 1 GAS prepaid fee; you become the anchor admin.",
+    zh: "选择唯一 ID（custom-anchor:slug:nonce）和模式。注册需预付 1 GAS 费用；你将成为该 Anchor 管理员。",
+  },
+  registerAnchorAppId: { en: "New anchor appId", zh: "新 Anchor appId" },
+  registerModeTrust: { en: "Trust (voting)", zh: "信任（投票）" },
+  registerModeProfit: { en: "Profit (yield)", zh: "收益" },
+  registerAction: { en: "Register anchor (1 GAS)", zh: "注册 Anchor（1 GAS）" },
+  registerSubmitting: { en: "Registering anchor", zh: "正在注册 Anchor" },
+  registerSubmitted: { en: "Anchor registered", zh: "Anchor 已注册" },
+  registerAgentsNote: {
+    en: "Note: a new anchor starts with 0 of its 21 AA agents. Agent accounts are provisioned by the anchor operator (admin console) — staking and rewards work once agents are registered.",
+    zh: "提示：新 Anchor 的 21 个 AA agent 初始为 0。Agent 账户由 Anchor 运营方（管理员控制台）配置 — agent 注册后即可质押与领取奖励。",
+  },
+
+  // Anchor discovery
+  discoverLabel: { en: "Browse anchors", zh: "浏览 Anchor" },
+  discoverTitle: { en: "Registered anchors", zh: "已注册的 Anchor" },
+  discoverEmpty: { en: "No registered anchors found yet.", zh: "暂未发现已注册的 Anchor。" },
+  discoverRefresh: { en: "Refresh list", zh: "刷新列表" },
+  discoverUse: { en: "Use", zh: "使用" },
+  modeTrust: { en: "Trust", zh: "信任" },
+  modeProfit: { en: "Profit", zh: "收益" },
+
+  // Credit recovery
+  creditTitle: { en: "Contract credits", zh: "合约额度" },
+  creditBody: {
+    en: "Over- or failed deposits are held as recoverable credit. Withdraw them back to your wallet anytime.",
+    zh: "多付或失败的存款会作为可取回额度保留。可随时取回到你的钱包。",
+  },
+  creditNeo: { en: "NEO credit", zh: "NEO 额度" },
+  creditGas: { en: "GAS credit", zh: "GAS 额度" },
+  recoverNeo: { en: "Recover NEO", zh: "取回 NEO" },
+  recoverGas: { en: "Recover GAS", zh: "取回 GAS" },
+  recoverSubmitting: { en: "Recovering credit", zh: "正在取回额度" },
+  recoverSubmitted: { en: "Credit recovered to your wallet", zh: "额度已取回到你的钱包" },
+  noCreditToRecover: { en: "No recoverable credit.", zh: "没有可取回的额度。" },
+
   readyForAnchor: { en: "Anchor ready", zh: "Anchor 已就绪" },
   noAnchorTitle: { en: "Open an anchor link", zh: "打开 Anchor 链接" },
   noAnchorBody: {

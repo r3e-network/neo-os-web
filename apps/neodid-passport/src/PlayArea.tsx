@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, Copy, FileCheck2, Fingerprint, RotateCcw, ShieldCheck, Signature } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, ExternalLink, FileCheck2, Fingerprint, RotateCcw, ShieldCheck, Signature } from "lucide-react";
 import { NeoButton, NeoInput } from "@shared/components-react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react";
+import { getAADocsUrl } from "@shared/constants/rpc";
 import { DEFAULT_SUBJECT_DID } from "./appConfig";
 import type { PassportForm, PassportPayload, PassportProvider } from "./passport";
 import { shortHash } from "./passport";
@@ -49,6 +50,21 @@ export default function PlayArea({
   const proofStatus = str("proofStatus", t("notSignedStatus"));
   const isSigned = Boolean(payload?.proof?.signature);
   const providerHint = form.provider === "wallet" ? t("walletProofHint") : t("apiProofHint");
+  // The host resolver falls back to versionId "unversioned" when the live TEE
+  // runtime metadata is unavailable, silently dropping the verification key a
+  // relying party needs — surface that as a warning on the built passport.
+  const runtimeDegraded =
+    Boolean(payload) && payload?.didDocument.versionId === "unversioned";
+  // github/email providers only PREPARE an attestation package; there is no
+  // in-app completion lane, so point the user at the external attestation docs.
+  const isExternalProvider = form.provider === "github" || form.provider === "email";
+  const attestationDocsUrl = getAADocsUrl();
+
+  function openAttestationDocs() {
+    if (typeof window !== "undefined") {
+      window.open(attestationDocsUrl, "_blank", "noopener,noreferrer");
+    }
+  }
 
   function updateForm(key: keyof PassportForm, value: string) {
     setForm((current) => ({
@@ -174,6 +190,21 @@ export default function PlayArea({
 
           <div className="neodid-passport__hint">{providerHint}</div>
 
+          {isExternalProvider ? (
+            <div className="neodid-passport__external" role="note">
+              <strong>{t("externalVerifierTitle")}</strong>
+              <p>{t("externalVerifierCopy")}</p>
+              <button
+                type="button"
+                className="neodid-passport__external-link"
+                onClick={openAttestationDocs}
+              >
+                <ExternalLink size={14} aria-hidden="true" />
+                <span>{t("externalVerifierLink")}</span>
+              </button>
+            </div>
+          ) : null}
+
           {lastError ? (
             <div className="neodid-passport__alert" role="alert">
               {lastError}
@@ -209,12 +240,25 @@ export default function PlayArea({
                 <div>
                   <span>{t("passportReady")}</span>
                   <strong>{payload.didDocument.id}</strong>
+                  {runtimeDegraded ? (
+                    <span className="neodid-passport__degraded-chip">
+                      <AlertTriangle size={12} aria-hidden="true" />
+                      {t("degradedRuntimeBadge")}
+                    </span>
+                  ) : null}
                 </div>
                 <NeoButton variant="secondary" size="sm" onClick={copyPayload}>
                   <Copy size={16} aria-hidden="true" />
                   <span>{t("copyAction")}</span>
                 </NeoButton>
               </div>
+
+              {runtimeDegraded ? (
+                <div className="neodid-passport__degraded-note" role="status">
+                  <AlertTriangle size={16} aria-hidden="true" />
+                  <span>{t("degradedRuntimeWarning")}</span>
+                </div>
+              ) : null}
 
               <div className="neodid-passport__summary">
                 <div>

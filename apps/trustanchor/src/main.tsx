@@ -72,10 +72,10 @@ defineMiniApp({
     );
     const agentCount = createDerived(
       () => {
-        const count = anchor.stats.get()?.agentCount;
-        return Number.isFinite(count) && (count as number) > 0
-          ? (count as number)
-          : agentAccounts.length;
+        const s = anchor.stats.get();
+        // Only fall back to the candidate-slot total before stats load.
+        // A genuine on-chain 0 must render as 0, not be masked as 21.
+        return s ? s.agentCount : agentAccounts.length;
       },
       [anchor.stats],
     );
@@ -83,10 +83,15 @@ defineMiniApp({
       () => `${formatNum(anchor.pendingWithdraw.get())} ${ctx.t("tokenNeo")}`,
       [anchor.pendingWithdraw],
     );
+    // The on-chain rewardPerNeo accumulator is GAS-datoshi * REWARD_SCALE(1e8)
+    // per NEO, i.e. GAS/NEO * 1e16. Divide before display so one distributed
+    // GAS per NEO renders as "1.00", not 10,000,000,000,000,000.00.
+    const REWARD_PER_NEO_SCALE = 1e16;
     const rewardPerNeoDisplay = createDerived(() => {
       const rps = Number(anchor.stats.get()?.rps ?? 0);
-      return Number.isFinite(rps) ? formatNum(rps) : formatNum(0);
+      return Number.isFinite(rps) ? formatNum(rps / REWARD_PER_NEO_SCALE) : formatNum(0);
     }, [anchor.stats]);
+    const submitting = createObservable(false);
     const recordAction = (item: Omit<AnchorActionHistoryItem, "at">) => {
       actionHistory.set([
         { ...item, at: new Date().toISOString() },
@@ -100,6 +105,11 @@ defineMiniApp({
       run: () => Promise<AnchorTxResult | undefined>,
       amount?: string,
     ) => {
+      // Shared in-flight lock: blocks double-submit across PlayArea and the
+      // manifest-driven operation panel (both render simultaneously). Set
+      // before the first await so a second concurrent NEO transfer can't start.
+      if (submitting.get()) return;
+      submitting.set(true);
       workflowStatus.set(ctx.t("workflowSubmitting"));
       lastError.set("");
       try {
@@ -122,6 +132,8 @@ defineMiniApp({
         workflowStatus.set(ctx.t("workflowFailed"));
         notify.error(error, "anchorActionFailed");
         throw error;
+      } finally {
+        submitting.set(false);
       }
     };
 
@@ -152,7 +164,16 @@ defineMiniApp({
         () => anchor.claimRewards(),
       );
     });
+    ctx.registerAction("recoverNeoCredit", async () => {
+      return runAnchorAction(
+        "recoverCredit",
+        "creditRecovered",
+        () => anchor.recoverNeoCredit(),
+      );
+    });
     ctx.registerAction("refreshAnchor", async () => {
+      if (submitting.get()) return;
+      submitting.set(true);
       workflowStatus.set(ctx.t("workflowSubmitting"));
       lastError.set("");
       try {
@@ -168,6 +189,8 @@ defineMiniApp({
         lastError.set(message);
         workflowStatus.set(ctx.t("workflowFailed"));
         throw error;
+      } finally {
+        submitting.set(false);
       }
     });
 
@@ -185,6 +208,7 @@ defineMiniApp({
         rewardReserveDisplay,
         rewardPerNeoDisplay,
         agentCount,
+        submitting,
         workflowStatus,
         lastTxid,
         lastError,

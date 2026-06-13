@@ -170,6 +170,23 @@ const appMessages = {
     en: "Amount is too small for this duration — increase the amount or shorten the duration.",
     zh: "相对该周期金额过小——请增加金额或缩短周期。",
   },
+  // ── Create-form disclosures (2-signature flow + NEO cliff) ───────────────
+  twoStepSignNotice: {
+    en: "Creating a stream needs two wallet signatures: first the {token} deposit, then the stream setup.",
+    zh: "创建资金流需要两次钱包签名：先存入 {token}，再设置资金流。",
+  },
+  schedulePreview: {
+    en: "Releases {amount} {token}/day for {days} days.",
+    zh: "在 {days} 天内每天释放 {amount} {token}。",
+  },
+  neoCliffNotice: {
+    en: "Less than 1 NEO/day at this duration — all {amount} NEO releases in a single cliff at day {days}, not gradually.",
+    zh: "按此期限每天不足 1 NEO——全部 {amount} NEO 将在第 {days} 天一次性释放，而非逐步释放。",
+  },
+  claimNothingYet: {
+    en: "Nothing to claim yet — funds vest over time.",
+    zh: "暂无可领取——资金会随时间逐步释放。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

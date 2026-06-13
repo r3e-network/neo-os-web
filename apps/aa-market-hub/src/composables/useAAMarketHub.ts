@@ -14,12 +14,18 @@ import {
   createAddressListing,
   formatGasFractions,
   getDefaultAAContractHash,
+  getDefaultMarketHash,
   listAddressListings,
   refundPendingAddressPurchase,
   type MarketListing,
   updateAddressListingPrice,
 } from "../utils/aa-market";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import {
+  addressToScriptHash,
+  normalizeScriptHash,
+  parseHash160,
+} from "@shared/utils/neo";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { useWallet } from "@shared/utils/wallet-sdk";
@@ -50,7 +56,13 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   const totalOnChainListings = createObservable(0);
   const listingsTruncated = createObservable(false);
   const isLoading = createObservable(false);
+  // Shared write flag (used by create) plus per-action flags so the four manage
+  // buttons spin independently instead of all at once.
   const isSubmitting = createObservable(false);
+  const isUpdatingPrice = createObservable(false);
+  const isCancelling = createObservable(false);
+  const isBuying = createObservable(false);
+  const isRefunding = createObservable(false);
   const isWalletConnecting = createObservable(false);
 
   const walletAddress: Observable<string> = {
@@ -286,9 +298,11 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   async function runWriteAction(
     action: (address: string) => Promise<{ txid: string }>,
     successMessage: string,
+    actionFlag?: ReturnType<typeof createObservable<boolean>>,
   ) {
     try {
       isSubmitting.set(true);
+      actionFlag?.set(true);
       const address = await chain.ensureWallet();
       const result = await action(address);
       eventBus.emit("action:success", {
@@ -304,21 +318,47 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
       throw error;
     } finally {
       isSubmitting.set(false);
+      actionFlag?.set(false);
+    }
+  }
+
+  // Pre-check that the account is registered in AA core and owned by the seller
+  // before the create write. createListing aborts "Account not found" on the
+  // contract otherwise; surface a localized reason instead of a raw revert.
+  async function assertCreatable(sellerAddress: string) {
+    const id = accountIdHash.get().trim();
+    const accountId = normalizeScriptHash(id);
+    const owner = await chain.read(
+      "getBackupOwner",
+      [{ type: "Hash160", value: accountId }],
+      { scriptHash: aaContractHash.get() || getDefaultAAContractHash() },
+    );
+    const ownerHash = parseHash160(owner);
+    if (!ownerHash || /^0x0{40}$/i.test(ownerHash)) {
+      throw new Error(t("accountNotRegistered"));
+    }
+    const sellerHash = sellerAddress.startsWith("N")
+      ? addressToScriptHash(sellerAddress)
+      : normalizeScriptHash(sellerAddress);
+    if (
+      ownerHash.replace(/^0x/i, "").toLowerCase() !==
+      sellerHash.replace(/^0x/i, "").toLowerCase()
+    ) {
+      throw new Error(t("notAccountOwner"));
     }
   }
 
   async function submitCreateListing() {
-    const result = await runWriteAction(
-      (address) =>
-        createAddressListing(wallet, marketHash.get(), address, {
-          aaContractHash: aaContractHash.get(),
-          accountIdHash: accountIdHash.get(),
-          priceGas: priceGas.get(),
-          title: listingTitle.get(),
-          metadataUri: metadataUri.get(),
-        }),
-      t("createListingSuccess"),
-    );
+    const result = await runWriteAction(async (address) => {
+      await assertCreatable(address);
+      return createAddressListing(wallet, marketHash.get(), address, {
+        aaContractHash: aaContractHash.get(),
+        accountIdHash: accountIdHash.get(),
+        priceGas: priceGas.get(),
+        title: listingTitle.get(),
+        metadataUri: metadataUri.get(),
+      });
+    }, t("createListingSuccess"));
     accountIdHash.set("");
     priceGas.set("");
     listingTitle.set("");
@@ -338,6 +378,7 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
           nextPriceGas.get(),
         ),
       t("updatePriceSuccess"),
+      isUpdatingPrice,
     );
   }
 
@@ -352,6 +393,7 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
           selectedListing.get()!.id,
         ),
       t("cancelListingSuccess"),
+      isCancelling,
     );
   }
 
@@ -367,6 +409,7 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
           { newBackupOwner: newBackupOwner.get() },
         ),
       t("buyListingSuccess"),
+      isBuying,
     );
   }
 
@@ -381,11 +424,18 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
           selectedListing.get()!.id,
         ),
       t("refundPendingSuccess"),
+      isRefunding,
     );
   }
 
   const loadAll = async () => {
-    marketHash.set(readCachedString(MARKET_HASH_STORAGE_KEY));
+    // Default the market hash to the canonical AAAddressMarket for the active
+    // network (the app's own manifest/registry) so the board loads on first run
+    // instead of showing "enter a market hash". The input stays editable as an
+    // advanced override, and a cached override still wins.
+    marketHash.set(
+      readCachedString(MARKET_HASH_STORAGE_KEY) || getDefaultMarketHash(),
+    );
     aaContractHash.set(
       readCachedString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash(),
     );
@@ -420,6 +470,10 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
     listingsTruncated,
     isLoading,
     isSubmitting,
+    isUpdatingPrice,
+    isCancelling,
+    isBuying,
+    isRefunding,
     isWalletConnecting,
     walletAddress,
     selectedListing,

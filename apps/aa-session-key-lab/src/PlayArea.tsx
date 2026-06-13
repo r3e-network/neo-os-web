@@ -11,6 +11,7 @@ import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
+import { getNetwork } from "@shared/constants/rpc";
 import { getSessionKeyLaunchDefaults } from "./launch";
 import "./PlayArea.scss";
 
@@ -63,6 +64,9 @@ export default function PlayArea({
   );
 
   const isSubmitting = bool("isSubmitting");
+  const isRevoking = bool("isRevoking");
+  const hasOnChainSession = bool("hasOnChainSession");
+  const onChainSession = str("onChainSession");
   const isCheckingSponsorship = bool("isCheckingSponsorship");
   const detailItems =
     val<Array<{ label: string; value: unknown }>>("detailItems") ?? [];
@@ -71,6 +75,9 @@ export default function PlayArea({
   const sessionVerifierDisplay = str("sessionVerifierDisplay");
   const walletDisplay = str("walletDisplay");
   const sponsorStatusDisplay = str("sponsorStatusDisplay");
+
+  // Mainnet SessionKeyVerifier requires spendingLimit + description params.
+  const isMainnet = getNetwork() === "mainnet";
 
   const [accountSeed, setAccountSeed] = useState(launchDefaults.accountSeed);
   const [sessionPublicKey, setSessionPublicKey] = useState(
@@ -83,6 +90,8 @@ export default function PlayArea({
     launchDefaults.allowedMethod,
   );
   const [expiresAt, setExpiresAt] = useState(launchDefaults.expiresAt);
+  const [spendingLimit, setSpendingLimit] = useState("0");
+  const [description, setDescription] = useState("");
   const [dappId, setDappId] = useState(launchDefaults.dappId);
   const [sponsorAmount, setSponsorAmount] = useState(
     launchDefaults.sponsorAmount,
@@ -134,25 +143,38 @@ export default function PlayArea({
   );
   const methodDisplay = allowedMethod.trim() || t("anyMethod");
 
+  // Expiry quick-picks write a computed epoch; the preview humanizes the value
+  // so changing the window no longer requires epoch arithmetic.
+  const setExpiryIn = (seconds: number) => {
+    setExpiresAt(String(Math.floor(Date.now() / 1000) + seconds));
+  };
+  const expiryPreview = useMemo(() => {
+    const parsed = Number.parseInt(expiresAt.trim(), 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) return "";
+    return t("expiryPreview", {
+      date: new Date(parsed * 1000).toLocaleString(),
+    });
+  }, [expiresAt, t]);
+
   // A session is only truly configured once the on-chain submit succeeds; the
   // composable reflects that through sessionStatusDisplay === t("configured").
   const isConfigured = sessionStatusDisplay === t("configured");
 
   const environmentItems = [
     {
-      label: t("aaCore") || "AA Core",
+      label: t("aaCore"),
       value: aaCoreDisplay || DASH,
     },
     {
-      label: t("sessionVerifier") || "Session Verifier",
+      label: t("sessionVerifier"),
       value: sessionVerifierDisplay || DASH,
     },
     {
-      label: t("derivedAccountId") || "Account ID Hash",
+      label: t("derivedAccountId"),
       value: derivedAccountIdHash || DASH,
     },
     {
-      label: t("targetContract") || "Target Contract",
+      label: t("targetContract"),
       value: normalizedTargetContract || DASH,
     },
   ];
@@ -220,7 +242,9 @@ export default function PlayArea({
             </svg>
           </div>
           <div className="session-hero__heading">
-            <span className="session-hero__eyebrow">Session Keys</span>
+            <span className="session-hero__eyebrow">
+              {t("sessionHeroEyebrow")}
+            </span>
             <h2>{t("sessionHeroTitle")}</h2>
             <p>{t("sessionHeroCopy")}</p>
           </div>
@@ -253,45 +277,45 @@ export default function PlayArea({
           className="session-command"
         >
           <div className="session-command__status">
-            <span>{t("wallet") || "Wallet"}</span>
+            <span>{t("wallet")}</span>
             <strong>{walletDisplay || t("notConnected")}</strong>
           </div>
           <div className="session-action-grid">
             <NeoButton
               variant="secondary"
-              aria-label={t("generateKey") || "Generate Key"}
+              aria-label={t("generateKey")}
               onClick={handleGenerateKey}
             >
-              {t("generateKey") || "Generate Key"}
+              {t("generateKey")}
             </NeoButton>
             <NeoButton
               variant="secondary"
               loading={isCheckingSponsorship}
               disabled={isCheckingSponsorship}
-              aria-label={t("checkSponsor") || "Check Sponsor"}
+              aria-label={t("checkSponsor")}
               onClick={() => dispatch("checkSponsor", accountSeed, dappId)}
             >
-              {t("checkSponsor") || "Check Sponsor"}
+              {t("checkSponsor")}
             </NeoButton>
             <NeoButton
               variant="secondary"
               loading={isCheckingSponsorship}
               disabled={isCheckingSponsorship || !sponsorAmountValid}
-              aria-label={t("requestSponsor") || "Request Sponsor"}
+              aria-label={t("requestSponsor")}
               onClick={() => {
                 if (!sponsorAmountValid) return;
                 dispatch("requestSponsor", accountSeed, dappId, sponsorAmount);
               }}
             >
-              {t("requestSponsor") || "Request Sponsor"}
+              {t("requestSponsor")}
             </NeoButton>
           </div>
           <div className="session-form session-form--compact">
             <NeoInput
               value={dappId}
-              label={t("dappId") || "Paymaster dApp ID"}
+              label={t("dappId")}
               placeholder={
-                t("dappIdPlaceholder") || "miniapp-aa-session-key-lab"
+                t("dappIdPlaceholder")
               }
               onChange={(v: string) => setDappId(v)}
             />
@@ -299,8 +323,8 @@ export default function PlayArea({
               type="number"
               min={0}
               value={sponsorAmount}
-              label={t("sponsorAmount") || "Sponsor Amount"}
-              placeholder={t("sponsorAmountPlaceholder") || "0.1"}
+              label={t("sponsorAmount")}
+              placeholder={t("sponsorAmountPlaceholder")}
               error={sponsorAmountError}
               onChange={(v: string) => setSponsorAmount(v)}
             />
@@ -330,7 +354,7 @@ export default function PlayArea({
               </code>
               <NeoButton
                 variant="secondary"
-                aria-label={t("copyPrivateKey") || "Copy Private Key"}
+                aria-label={t("copyPrivateKey")}
                 onClick={handleCopyPrivateKey}
               >
                 {privateKeyCopied ? t("copiedPrivateKey") : t("copyPrivateKey")}
@@ -360,39 +384,84 @@ export default function PlayArea({
           <div className="session-form">
             <NeoInput
               value={accountSeed}
-              label={t("accountSeed") || "Account Seed"}
-              placeholder={t("accountSeedPlaceholder") || "Enter seed"}
+              label={t("accountSeed")}
+              placeholder={t("accountSeedPlaceholder")}
               onChange={(v: string) => setAccountSeed(v)}
             />
             <NeoInput
               value={sessionPublicKey}
-              label={t("sessionPublicKey") || "Session Public Key"}
-              placeholder={t("sessionPublicKeyPlaceholder") || "Public key"}
+              label={t("sessionPublicKey")}
+              placeholder={t("sessionPublicKeyPlaceholder")}
               onChange={(v: string) => setSessionPublicKey(v)}
             />
             <NeoInput
               value={targetContract}
-              label={t("targetContract") || "Target Contract"}
-              placeholder={t("targetContractPlaceholder") || "Contract hash"}
+              label={t("targetContract")}
+              placeholder={t("targetContractPlaceholder")}
               onChange={(v: string) => setTargetContract(v)}
             />
             <NeoInput
               value={allowedMethod}
-              label={t("allowedMethod") || "Allowed Method"}
-              placeholder={t("allowedMethodPlaceholder") || "*"}
+              label={t("allowedMethod")}
+              placeholder={t("allowedMethodPlaceholder")}
               onChange={(v: string) => setAllowedMethod(v)}
             />
             <NeoInput
               value={expiresAt}
-              label={t("expiresAt") || "Expires At"}
-              placeholder={t("expiresAtPlaceholder") || "Unix timestamp"}
+              label={t("expiresAt")}
+              placeholder={t("expiresAtPlaceholder")}
               onChange={(v: string) => setExpiresAt(v)}
             />
+            <div className="session-expiry-quick">
+              <button
+                type="button"
+                className="session-expiry-quick__chip"
+                onClick={() => setExpiryIn(3600)}
+              >
+                {t("expiryQuick1h")}
+              </button>
+              <button
+                type="button"
+                className="session-expiry-quick__chip"
+                onClick={() => setExpiryIn(86400)}
+              >
+                {t("expiryQuick24h")}
+              </button>
+              <button
+                type="button"
+                className="session-expiry-quick__chip"
+                onClick={() => setExpiryIn(604800)}
+              >
+                {t("expiryQuick7d")}
+              </button>
+            </div>
+            {expiryPreview && (
+              <p className="session-hint session-hint--muted">{expiryPreview}</p>
+            )}
+            {isMainnet && (
+              <>
+                <NeoInput
+                  type="number"
+                  min={0}
+                  value={spendingLimit}
+                  label={t("spendingLimit")}
+                  hint={t("spendingLimitHint")}
+                  placeholder={t("spendingLimitPlaceholder")}
+                  onChange={(v: string) => setSpendingLimit(v)}
+                />
+                <NeoInput
+                  value={description}
+                  label={t("sessionDescription")}
+                  placeholder={t("sessionDescriptionPlaceholder")}
+                  onChange={(v: string) => setDescription(v)}
+                />
+              </>
+            )}
             <NeoButton
               variant="primary"
               loading={isSubmitting}
               disabled={!canConfigure}
-              aria-label={t("configureSession") || "Configure"}
+              aria-label={t("configureSession")}
               onClick={() =>
                 dispatch(
                   "configureSessionKey",
@@ -401,11 +470,46 @@ export default function PlayArea({
                   targetContract,
                   allowedMethod,
                   expiresAt,
+                  spendingLimit,
+                  description,
                 )
               }
             >
-              {t("configureSession") || "Configure Session"}
+              {t("configureSession")}
             </NeoButton>
+            {/* Permission-out + inspect paths: read or revoke the delegated key
+                directly on the verifier. */}
+            <div className="session-action-grid session-action-grid--manage">
+              <NeoButton
+                variant="secondary"
+                disabled={!accountSeed.trim()}
+                aria-label={t("inspectSession")}
+                onClick={() => dispatch("inspectSession", accountSeed)}
+              >
+                {t("inspectSession")}
+              </NeoButton>
+              <NeoButton
+                variant="secondary"
+                loading={isRevoking}
+                disabled={!accountSeed.trim() || isRevoking}
+                aria-label={t("revokeSession")}
+                onClick={() => dispatch("revokeSession", accountSeed)}
+              >
+                {t("revokeSession")}
+              </NeoButton>
+            </div>
+            <div className="session-onchain" role="status">
+              <span className="session-onchain__label">
+                {t("onChainSessionTitle")}
+              </span>
+              {hasOnChainSession ? (
+                <code className="session-onchain__value">{onChainSession}</code>
+              ) : (
+                <span className="session-onchain__empty">
+                  {t("noOnChainSession")}
+                </span>
+              )}
+            </div>
           </div>
         </NeoCard>
       </section>

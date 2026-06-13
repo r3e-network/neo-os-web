@@ -9,11 +9,20 @@ interface WagerControlsProps {
   canBet: boolean;
   isFlipping: boolean;
   validationError?: string;
+  /** "house can pay up to X GAS" — empty until the bankroll is read. */
+  maxPayable?: string;
+  /** Numeric max payable bet (GAS) — presets above it are disabled. 0 = unknown. */
+  maxPayableBet?: number;
+  /** Recoverable prepaid bet credit (formatted GAS). */
+  credit?: string;
+  /** Whether the player has prepaid credit to recover. */
+  hasCredit?: boolean;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export default function WagerControls({ t, choice, betAmount, canBet, isFlipping, validationError, dispatch }: WagerControlsProps) {
+export default function WagerControls({ t, choice, betAmount, canBet, isFlipping, validationError, maxPayable, maxPayableBet = 0, credit, hasCredit, dispatch }: WagerControlsProps) {
   const handleFlip = async () => { await dispatch("placeBet"); };
+  const handleWithdraw = async () => { await dispatch("withdrawCredit"); };
   const updateChoice = (side: "heads" | "tails") => { dispatch("setChoice", side); };
   const updateBetAmount = (amount: string) => { dispatch("setBetAmount", amount); };
 
@@ -46,33 +55,52 @@ export default function WagerControls({ t, choice, betAmount, canBet, isFlipping
             <div className="balance-pill"><span className="val">{t("wagerRange")}</span><span className="unit">{t("tokenGas")}</span></div>
           </div>
           <div className="wager-grid">
-            {BET_PRESETS.map((amount) => (
-              <button
-                key={amount}
-                type="button"
-                className={`wager-option${betAmount === amount ? " selected" : ""}`}
-                onClick={() => updateBetAmount(amount)}
-                aria-pressed={betAmount === amount}
-              >
-                <span className="amount-val">{amount}</span><span className="amount-unit">{t("tokenGas")}</span>
-              </button>
-            ))}
+            {BET_PRESETS.map((amount) => {
+              // Grey out presets the house can't currently pay 2x (bankroll cap).
+              const unpayable = maxPayableBet > 0 && Number(amount) > maxPayableBet;
+              return (
+                <button
+                  key={amount}
+                  type="button"
+                  className={`wager-option${betAmount === amount ? " selected" : ""}${unpayable ? " unpayable" : ""}`}
+                  onClick={() => updateBetAmount(amount)}
+                  aria-pressed={betAmount === amount}
+                  disabled={unpayable}
+                  title={unpayable ? t("maxPayableHint", { max: maxPayable ?? "" }) : undefined}
+                >
+                  <span className="amount-val">{amount}</span><span className="amount-unit">{t("tokenGas")}</span>
+                </button>
+              );
+            })}
           </div>
           <div className="custom-bet-inline">
             <NeoInput
               type="number"
-              label={t("customBet") || "Custom Bet Amount"}
+              label={t("customBet")}
               value={betAmount}
               placeholder="1"
-              suffix={t("tokenGas") || "GAS"}
+              suffix={t("tokenGas")}
               min={0.05}
               max={100}
               error={validationError ?? undefined}
               onChange={updateBetAmount}
-              aria-label={t("betAmount") || "Bet amount"}
+              aria-label={t("betAmount")}
             />
           </div>
+          {maxPayable ? (
+            <p className="wager-cap-hint">{t("maxPayableHint", { max: maxPayable })}</p>
+          ) : null}
         </div>
+
+        {hasCredit ? (
+          <div className="credit-chip" role="status">
+            <span className="credit-chip__label">{t("prepaidCredit")}</span>
+            <span className="credit-chip__value">{credit}</span>
+            <NeoButton variant="ghost" size="sm" className="credit-chip__withdraw" disabled={isFlipping} onClick={handleWithdraw}>
+              {t("withdrawCredit")}
+            </NeoButton>
+          </div>
+        ) : null}
 
         <NeoButton variant="primary" size="lg" block disabled={!canBet} loading={isFlipping} className="flip-btn" aria-label={isFlipping ? t("flipping") : t("flipCoin")} onClick={handleFlip}>
           <div className="btn-content"><span>{isFlipping ? t("flipping") : t("flipCoin")}</span></div>

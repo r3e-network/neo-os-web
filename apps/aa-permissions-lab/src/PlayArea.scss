@@ -157,6 +157,36 @@
   color: var(--ns-text-2, #5b6478);
 }
 
+/* Second-phase rotation banner: a proposed update waits out a timelock, then
+   the owner confirms or cancels it. Kept on the single green accent. */
+.permissions-pending {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 13px;
+  border: 1px solid var(--ns-violet-strong, #0fb174);
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-violet-soft, #e4f8f0);
+}
+
+.permissions-pending__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ns-violet-strong, #0fb174);
+}
+
+.permissions-pending__time {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.permissions-pending__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .permissions-state-panel {
   padding: 22px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));

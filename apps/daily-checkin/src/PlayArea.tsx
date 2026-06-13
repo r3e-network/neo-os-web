@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Circle, Lock } from "lucide-react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -40,6 +41,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const totalGlobalRewarded = num("totalGlobalRewarded");
 
   const canCheckIn = bool("canCheckIn");
+  const hasLoadedStatus = bool("hasLoadedStatus");
   const isLoading = bool("isLoading");
   const isClaiming = bool("isClaiming");
   const workflowStatus = str("workflowStatus", t("workflowReady"));
@@ -74,7 +76,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   }, [canCheckIn]);
 
   const streakTier = currentStreak >= 14 ? "blaze" : currentStreak >= 7 ? "spark" : "cold";
-  const checkInDisabled = !canCheckIn || isLoading;
+  // Before the first chain read, eligibility is unknown — keep the CTA disabled
+  // and labelled "Loading…" rather than the misleading "Wait for next" so a
+  // pre-load click can't fire a check-in the contract would fault.
+  const checkInDisabled = !hasLoadedStatus || !canCheckIn || isLoading;
+  const checkInLabel = !hasLoadedStatus
+    ? t("loading")
+    : canCheckIn
+      ? t("checkInNow")
+      : t("waitForNext");
   const hasClaimable = unclaimedRewards > 0;
   const claimDisabled = !hasClaimable || isClaiming;
 
@@ -115,7 +125,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
         <span className={`checkin-tier-badge ${streakTier}`}>
-          {canCheckIn ? t("checkInReady") : t("checkedInToday")}
+          {!hasLoadedStatus ? t("loading") : canCheckIn ? t("checkInReady") : t("checkedInToday")}
         </span>
         <span className="checkin-best-text">{t("bestStreak")}: {highestStreakFormatted}</span>
       </div>
@@ -144,7 +154,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 ].filter(Boolean).join(" ")}
               >
                 <span className="checkin-day-icon" aria-label={checked ? t("dayCompleted") : t("dayPending")}>
-                  {checked ? "✓" : "○"}
+                  {checked ? <Check size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}
                 </span>
                 <span className="checkin-day-label">{t("dayPrefix")}{day}</span>
               </div>
@@ -180,9 +190,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             loading={isLoading}
             className={`checkin-btn${canCheckIn ? " checkin-btn--ready" : ""}`}
             onClick={() => dispatch("doCheckIn")}
-            aria-label={canCheckIn ? t("checkInNow") : t("waitForNext")}
+            aria-label={checkInLabel}
           >
-            {canCheckIn ? t("checkInNow") : t("waitForNext")}
+            {checkInLabel}
           </NeoButton>
           <NeoButton
             variant="primary"
@@ -279,7 +289,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               const next = !reached && currentStreak < milestone.day;
               return (
                 <div key={milestone.day} className={`checkin-milestone${reached ? " reached" : next ? " next" : ""}`}>
-                  <div className="checkin-milestone-icon" aria-hidden="true">{reached ? "✓" : "🔒"}</div>
+                  <div className="checkin-milestone-icon" aria-hidden="true">
+                    {reached ? <Check size={16} /> : <Lock size={16} />}
+                  </div>
                   <span className="checkin-milestone-day">{t("day")} {milestone.day}</span>
                   <span className="checkin-milestone-reward">+{milestone.reward} {t("tokenGas")}</span>
                   <span className="checkin-milestone-cumulative">({milestone.cumulative} {t("total")})</span>

@@ -52,6 +52,7 @@ defineMiniApp({
         currentStreakRaw: checkin.currentStreak,
         highestStreakRaw: checkin.highestStreak,
         canCheckIn: checkin.canCheckIn,
+        hasLoadedStatus: checkin.hasLoadedStatus,
         isLoading: checkin.isLoading,
         isClaiming: checkin.isClaiming,
         workflowStatus: checkin.workflowStatus,

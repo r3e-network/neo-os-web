@@ -15,6 +15,16 @@ import type { Token } from "@/types";
 const NEO_TOKEN_TEMPLATE: Token = { symbol: "NEO", hash: BLOCKCHAIN_CONSTANTS.NEO_HASH, balance: 0, decimals: 0 };
 const GAS_TOKEN_TEMPLATE: Token = { symbol: "GAS", hash: BLOCKCHAIN_CONSTANTS.GAS_HASH, balance: 0, decimals: 8 };
 const SWAP_DEADLINE_SECONDS = 600;
+// A quote whose on-chain dataTimestamp is older than this is treated as stale —
+// the Morpheus feed keeps returning HALT with its last value even when updates
+// have stopped, so the timestamp is the only freshness signal.
+const RATE_STALE_AFTER_MS = 10 * 60 * 1000;
+// GAS reserved for network fees when MAX-ing a GAS balance, so the swap (and the
+// fee) can both settle instead of consuming the entire balance.
+const GAS_FEE_HEADROOM = 0.1;
+// Slippage tolerance: minReceived = output * (1000 - 5) / 1000 = output * 0.995.
+const SLIPPAGE_NUMERATOR = 995n;
+const SLIPPAGE_DENOMINATOR = 1000n;
 
 /** Canonical list of swappable pairs surfaced in the playarea + manifest stats. */
 export const POPULAR_PAIRS: ReadonlyArray<{ id: string; name: string }> = [
@@ -35,6 +45,9 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   const fromAmount = createObservable("");
   const toAmount = createObservable("");
   const exchangeRate = createObservable("");
+  // The older of the two price legs' on-chain dataTimestamp (epoch ms), used to
+  // detect a frozen feed. 0 when no quote is loaded.
+  const rateTimestamp = createObservable(0);
   const rateLoading = createObservable(false);
   const loading = createObservable(false);
   const showSelector = createObservable(false);
@@ -42,6 +55,44 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   const isSwapping = createObservable(false);
   const datafeed = useMorpheusDataFeed();
   let swapAnimTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // The deployed manifest declares NO swap router (contracts: {}). Settlement
+  // cannot complete, so the UI must say so up front rather than offering an
+  // enabled CTA that throws after wallet connect. A non-empty contractAddress
+  // (e.g. a future router deployment) flips this on automatically.
+  const routerAvailable: Observable<boolean> = {
+    get: () => Boolean(chain.contractAddress.get()),
+    set: () => {},
+    subscribe: (fn) => chain.contractAddress.subscribe(fn),
+  };
+
+  // True once a quote exists but its data is older than RATE_STALE_AFTER_MS.
+  const rateStale: Observable<boolean> = {
+    get: () => {
+      const ts = rateTimestamp.get();
+      if (!ts) return false;
+      return Date.now() - ts > RATE_STALE_AFTER_MS;
+    },
+    set: () => {},
+    subscribe: (fn) => rateTimestamp.subscribe(fn),
+  };
+
+  // "as of HH:MM" line for the quote's data timestamp (empty when unknown).
+  const rateAsOf: Observable<string> = {
+    get: () => {
+      const ts = rateTimestamp.get();
+      if (!ts) return "";
+      return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date(ts));
+    },
+    set: () => {},
+    subscribe: (fn) => rateTimestamp.subscribe(fn),
+  };
+
+  const walletConnected: Observable<boolean> = {
+    get: () => Boolean(chain.address.get()),
+    set: () => {},
+    subscribe: (fn) => chain.address.subscribe(fn),
+  };
 
   function applyTokenBalances(neo: number, gas: number) {
     const ft = fromToken.get();
@@ -81,8 +132,34 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     return amount;
   }
 
+  /**
+   * Render an integer base-unit amount as a decimal string with `decimals`
+   * fraction digits (0 for NEO → no fractional part). Trims trailing zeros for
+   * fractional tokens so "1.50000000" displays as "1.5".
+   */
+  function formatBaseUnits(units: bigint, decimals: number): string {
+    if (decimals <= 0) return units.toString();
+    const scale = 10n ** BigInt(decimals);
+    const whole = units / scale;
+    const frac = (units % scale).toString().padStart(decimals, "0").replace(/0+$/, "");
+    return frac ? `${whole}.${frac}` : whole.toString();
+  }
+
+  /**
+   * Quantize a human amount to the token's decimals, returning a clean decimal
+   * string. NEO (0 decimals) is floored to a whole number.
+   */
+  function quantizeToToken(amount: number, decimals: number): string {
+    if (!Number.isFinite(amount) || amount <= 0) return "";
+    const baseUnits = toFixedDecimals(amount.toString(), decimals);
+    return formatBaseUnits(BigInt(baseUnits), decimals);
+  }
+
   const canSwap: Observable<boolean> = {
     get: () => {
+      // No router deployed → swap can never settle. A stale quote must not be
+      // tradable either.
+      if (!routerAvailable.get() || rateStale.get()) return false;
       const rate = parseFloat(exchangeRate.get());
       const hasRate = Number.isFinite(rate) && rate > 0;
       const ft = fromToken.get();
@@ -90,14 +167,26 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       return hasRate && amount !== null && amount <= ft.balance;
     },
     set: () => {},
-    subscribe: (fn) => { const u1 = exchangeRate.subscribe(fn); const u2 = fromAmount.subscribe(fn); const u3 = fromToken.subscribe(fn); return () => { u1(); u2(); u3(); }; },
+    subscribe: (fn) => {
+      const u1 = exchangeRate.subscribe(fn);
+      const u2 = fromAmount.subscribe(fn);
+      const u3 = fromToken.subscribe(fn);
+      const u4 = rateTimestamp.subscribe(fn);
+      const u5 = chain.contractAddress.subscribe(fn);
+      return () => { u1(); u2(); u3(); u4(); u5(); };
+    },
   };
 
   const swapButtonText: Observable<string> = {
     get: () => {
+      // Router state and wallet connection take precedence over amount/rate copy
+      // so the button never claims a swap is possible when it is not.
+      if (!routerAvailable.get()) return t("swapRouterUnavailable");
       if (loading.get()) return t("swapping");
+      if (!walletConnected.get()) return t("connectWallet");
       if (!fromAmount.get()) return t("enterAmount");
       if (rateLoading.get()) return t("loadingRate");
+      if (rateStale.get()) return t("rateStale");
       const rate = parseFloat(exchangeRate.get());
       if (!(Number.isFinite(rate) && rate > 0)) return t("rateUnavailable");
       const ft = fromToken.get();
@@ -111,14 +200,43 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       return `${t("tabSwap")} ${ft.symbol} ${t("swapArrow")} ${toToken.get().symbol}`;
     },
     set: () => {},
-    subscribe: (fn) => { const u1 = loading.subscribe(fn); const u2 = fromAmount.subscribe(fn); const u3 = rateLoading.subscribe(fn); const u4 = exchangeRate.subscribe(fn); const u5 = fromToken.subscribe(fn); const u6 = toToken.subscribe(fn); return () => { u1(); u2(); u3(); u4(); u5(); u6(); }; },
+    subscribe: (fn) => {
+      const u1 = loading.subscribe(fn);
+      const u2 = fromAmount.subscribe(fn);
+      const u3 = rateLoading.subscribe(fn);
+      const u4 = exchangeRate.subscribe(fn);
+      const u5 = fromToken.subscribe(fn);
+      const u6 = toToken.subscribe(fn);
+      const u7 = rateTimestamp.subscribe(fn);
+      const u8 = chain.contractAddress.subscribe(fn);
+      const u9 = chain.address.subscribe(fn);
+      return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9(); };
+    },
   };
 
   const slippage: Observable<string> = { get: () => "0.5%", set: () => {}, subscribe: () => () => {} };
+
+  /**
+   * Minimum received, computed in integer base units to apply the 0.5% slippage
+   * floor without float scientific-notation artifacts. Returns a decimal string
+   * quantized to the receiving token's decimals.
+   */
+  function computeMinReceived(): string {
+    const tt = toToken.get();
+    const outInt = toFixedDecimals(toAmount.get() || "0", tt.decimals);
+    let minInt: bigint;
+    try {
+      minInt = (BigInt(outInt) * SLIPPAGE_NUMERATOR) / SLIPPAGE_DENOMINATOR;
+    } catch {
+      return tt.decimals === 0 ? "0" : (0).toFixed(Math.min(tt.decimals, 4));
+    }
+    return formatBaseUnits(minInt, tt.decimals);
+  }
+
   const minReceived: Observable<string> = {
-    get: () => { const amount = parseFloat(toAmount.get()) || 0; return (amount * 0.995).toFixed(4); },
+    get: () => computeMinReceived(),
     set: () => {},
-    subscribe: (fn) => toAmount.subscribe(fn),
+    subscribe: (fn) => { const u1 = toAmount.subscribe(fn); const u2 = toToken.subscribe(fn); return () => { u1(); u2(); }; },
   };
 
   // Manifest-bound views: header stats + sidebar rows read these keys.
@@ -136,7 +254,13 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   );
 
   function setMaxAmount() {
-    fromAmount.set(fromToken.get().balance.toString());
+    const ft = fromToken.get();
+    let max = ft.balance;
+    // Reserve a little GAS for network fees so the swap + fee can both settle.
+    if (ft.symbol === "GAS") max = Math.max(0, ft.balance - GAS_FEE_HEADROOM);
+    // NEO is indivisible — floor to a whole number.
+    if (ft.decimals === 0) max = Math.floor(max);
+    fromAmount.set(quantizeToToken(max, ft.decimals) || "0");
     onFromAmountChange();
   }
 
@@ -149,14 +273,22 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     if (rateLoading.get()) return;
     rateLoading.set(true);
     exchangeRate.set("");
+    rateTimestamp.set(0);
     try {
-      const [fromPrice, toPrice] = await Promise.all([
-        datafeed.getPrice(fromToken.get().symbol),
-        datafeed.getPrice(toToken.get().symbol),
+      const [fromQuote, toQuote] = await Promise.all([
+        datafeed.getPriceWithMeta(fromToken.get().symbol),
+        datafeed.getPriceWithMeta(toToken.get().symbol),
       ]);
-      const rate = fromPrice / toPrice;
+      const rate = fromQuote.price / toQuote.price;
       if (Number.isFinite(rate) && rate > 0) {
         exchangeRate.set(rate.toFixed(6));
+        // Use the OLDER leg's data timestamp (epoch seconds → ms) as the quote's
+        // freshness. A stale leg makes the whole cross-rate stale.
+        const oldestSec = Math.min(
+          fromQuote.dataTimestamp || 0,
+          toQuote.dataTimestamp || 0,
+        );
+        rateTimestamp.set(oldestSec > 0 ? oldestSec * 1000 : 0);
         onFromAmountChange();
       }
     } catch (e) {
@@ -170,7 +302,9 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     const rate = parseFloat(exchangeRate.get());
     const amount = parseAmount(fromAmount.get(), fromToken.get().decimals);
     if (amount === null || !Number.isFinite(rate) || rate <= 0) { toAmount.set(""); return; }
-    toAmount.set((amount * rate).toFixed(4));
+    // Quantize the output to the receiving token's decimals — NEO outputs are
+    // whole numbers, not fractional.
+    toAmount.set(quantizeToToken(amount * rate, toToken.get().decimals));
   }
 
   function swapTokens() {
@@ -214,11 +348,15 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
         throw new Error(ft.decimals === 0 ? t("neoIntegerOnly") : t("invalidAmount"));
       }
       const amountInt = toFixedDecimals(fromAmount.get(), ft.decimals);
-      const expectedOutput = parseFloat(toAmount.get()) || 0;
-      const minOutputAmount = expectedOutput * 0.995;
-      const minOutputInt = toFixedDecimals(minOutputAmount.toString(), tt.decimals);
+      // Min received in integer base units — apply the 0.5% floor with BigInt so
+      // a tiny output never collapses to "0" via float scientific notation.
+      const outInt = BigInt(toFixedDecimals(toAmount.get() || "0", tt.decimals));
+      const minOutputBig = (outInt * SLIPPAGE_NUMERATOR) / SLIPPAGE_DENOMINATOR;
+      if (minOutputBig <= 0n) throw new Error(t("invalidAmount"));
+      const minOutputInt = minOutputBig.toString();
       const routerAddress = chain.contractAddress.get();
       if (!routerAddress) throw new Error(t("swapRouterUnavailable"));
+      if (rateStale.get()) throw new Error(t("rateStale"));
 
       const deadline = Math.floor(Date.now() / 1000) + SWAP_DEADLINE_SECONDS;
       const path = [
@@ -253,6 +391,7 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     fromToken, toToken, fromAmount, toAmount, exchangeRate, rateLoading, loading,
     showSelector, selectorTarget, isSwapping, availableTokens, canSwap,
     swapButtonText, slippage, minReceived, selectedPairDisplay, pairCount, currentRate,
+    routerAvailable, rateStale, rateAsOf, walletConnected,
     setMaxAmount, setFromAmount, loadExchangeRate,
     swapTokens, openFromSelector, openToSelector, closeSelector, selectToken,
     executeSwap, refreshBalances, loadAll, cleanup,

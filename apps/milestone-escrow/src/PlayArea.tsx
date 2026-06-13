@@ -35,14 +35,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const creatorEscrows = (val("creatorEscrows") ?? []) as Array<{ status: string; id: string; [key: string]: unknown }>;
   const beneficiaryEscrows = (val("beneficiaryEscrows") ?? []) as unknown[];
 
-  const totalEscrows = creatorEscrows.length;
-  const progressPercent = totalEscrows === 0 ? 0 : Math.round((completedCount / totalEscrows) * 100);
+  // Total escrows the wallet is party to — created AND incoming — so a pure
+  // beneficiary's hero tile isn't an empty dash.
+  const totalEscrows = creatorEscrows.length + beneficiaryEscrows.length;
+  // The hero band plots ESCROWS completed (created escrows fully released), not
+  // milestones — completedCount is over the creator's escrows, so the
+  // denominator is the creator escrow count.
+  const createdCount = creatorEscrows.length;
+  const progressPercent = createdCount === 0 ? 0 : Math.round((completedCount / createdCount) * 100);
 
-  const steps = Math.min(totalEscrows || 4, 5);
+  const steps = Math.min(createdCount || 4, 5);
   const milestoneCheckpoints = Array.from({ length: steps }, (_, i) => ({
     position: ((i + 1) / steps) * 100,
     done: i < completedCount,
-    label: `M${i + 1}`,
+    label: `${i + 1}`,
   }));
 
   const statusLabelFn = state.statusLabelFunc?.get() as ((s: string) => string) | undefined;
@@ -58,12 +64,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const MIN_MILESTONES = 1;
   const MAX_MILESTONES = 12;
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [escrowName, setEscrowName] = useState("");
   const [beneficiary, setBeneficiary] = useState("");
   const [asset, setAsset] = useState<"GAS" | "NEO">("GAS");
   const [milestoneAmounts, setMilestoneAmounts] = useState<string[]>([""]);
   const [description, setDescription] = useState("");
 
   const resetForm = () => {
+    setEscrowName("");
     setBeneficiary("");
     setAsset("GAS");
     setMilestoneAmounts([""]);
@@ -111,8 +119,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     // and 1-12 milestones, so each per-milestone amount is wired through as a
     // real array. The composable converts every amount to base units (GAS x 1e8,
     // NEO integer), sums them, and enforces the sum-equals-total invariant.
+    // Title precedence: the dedicated name field, then the description. When
+    // both are empty the title stays blank — the cards render "#<id>" rather
+    // than the beneficiary's raw N-address (a name was never the address).
     const ok = (await dispatch("createEscrow", {
-      name: description.trim() || beneficiary,
+      name: escrowName.trim() || description.trim() || "",
       beneficiary,
       asset,
       notes: description,
@@ -144,16 +155,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Primary action — surfaced immediately after the hero. */}
       {hasAddress && contractReady && (
         <>
-          <NeoButton variant="secondary" onClick={() => setShowCreateForm(!showCreateForm)} aria-label={t("createEscrow") || "Create Escrow"}>
-            {showCreateForm ? (t("cancel") || "Cancel") : (t("createEscrow") || "Create Escrow")}
+          <NeoButton variant="secondary" onClick={() => setShowCreateForm(!showCreateForm)} aria-label={t("createEscrow")}>
+            {showCreateForm ? (t("cancel")) : (t("createEscrow"))}
           </NeoButton>
 
           {showCreateForm && (
             <NeoCard variant="erobo" className="create-form-card">
               <div className="create-form">
-                <NeoInput value={beneficiary} label={t("beneficiaryAddress") || "Beneficiary"} placeholder={t("beneficiaryPlaceholder") || "N-address..."} onChange={setBeneficiary} />
-                <div className="asset-select" role="radiogroup" aria-label={t("assetType") || "Asset"}>
-                  <span className="asset-select__label">{t("assetType") || "Asset"}</span>
+                <NeoInput value={escrowName} label={t("escrowName")} placeholder={t("escrowNamePlaceholder")} onChange={setEscrowName} />
+                <NeoInput value={beneficiary} label={t("beneficiaryAddress")} placeholder={t("beneficiaryPlaceholder")} onChange={setBeneficiary} />
+                <div className="asset-select" role="radiogroup" aria-label={t("assetType")}>
+                  <span className="asset-select__label">{t("assetType")}</span>
                   <div className="asset-select__options">
                     {(["GAS", "NEO"] as const).map((option) => (
                       <button
@@ -164,22 +176,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         className={`asset-select__option${asset === option ? " asset-select__option--active" : ""}`}
                         onClick={() => setAsset(option)}
                       >
-                        {option === "NEO" ? (t("assetNeo") || "NEO") : (t("assetGas") || "GAS")}
+                        {option === "NEO" ? (t("assetNeo")) : (t("assetGas"))}
                       </button>
                     ))}
                   </div>
                 </div>
                 {/* Milestone repeater — 1-12 staged releases, each with its own
                     amount. The sum is shown live and must equal the deposit. */}
-                <div className="milestone-fields" role="group" aria-label={t("milestones") || "Milestones"}>
-                  <span className="milestone-fields__label">{t("milestones") || "Milestones"}</span>
+                <div className="milestone-fields" role="group" aria-label={t("milestones")}>
+                  <span className="milestone-fields__label">{t("milestones")}</span>
                   {milestoneAmounts.map((amt, index) => (
                     <div key={index} className="milestone-row">
                       <div className="milestone-row__input">
                         <NeoInput
                           value={amt}
                           label={t("milestoneLabel", { index: index + 1 }) || `Milestone ${index + 1}`}
-                          placeholder={asset === "NEO" ? "1" : (t("milestoneAmountPlaceholder") || "1.5")}
+                          placeholder={asset === "NEO" ? "1" : (t("milestoneAmountPlaceholder"))}
                           onChange={(value: string) => setMilestoneAmount(index, value)}
                         />
                       </div>
@@ -190,7 +202,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                           aria-label={t("removeMilestone", { index: index + 1 }) || `Remove milestone ${index + 1}`}
                           onClick={() => removeMilestone(index)}
                         >
-                          {t("remove") || "Remove"}
+                          {t("remove")}
                         </button>
                       )}
                     </div>
@@ -202,17 +214,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       disabled={milestoneAmounts.length >= MAX_MILESTONES}
                       onClick={addMilestone}
                     >
-                      + {t("addMilestone") || "Add milestone"}
+                      + {t("addMilestone")}
                     </button>
                     <span className="milestone-total">
-                      <span className="milestone-total__label">{t("totalAmount") || "Total"}</span>
+                      <span className="milestone-total__label">{t("totalAmount")}</span>
                       <span className="milestone-total__value">{totalDisplay} {asset}</span>
                     </span>
                   </div>
                 </div>
-                <NeoInput value={description} type="textarea" label={t("description") || "Description"} placeholder={t("descriptionPlaceholder") || "Milestone description..."} onChange={setDescription} />
-                <NeoButton variant="primary" loading={isCreating} disabled={!canSubmit} onClick={handleCreate} aria-label={t("submit") || "Submit"}>
-                  {t("submit") || "Submit"}
+                <NeoInput value={description} type="textarea" label={t("description")} placeholder={t("descriptionPlaceholder")} onChange={setDescription} />
+                <NeoButton variant="primary" loading={isCreating} disabled={!canSubmit} onClick={handleCreate} aria-label={t("submit")}>
+                  {t("submit")}
                 </NeoButton>
               </div>
             </NeoCard>

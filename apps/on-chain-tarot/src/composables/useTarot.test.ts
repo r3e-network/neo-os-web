@@ -18,6 +18,7 @@ const t = (key: string) => {
     readingUnavailable: "Reading unavailable",
     walletNotConnected: "Connect your wallet to draw",
     depositPrepaidNoReading: "Draw fee prepaid but reading did not complete",
+    noCredit: "No prepaid credit to withdraw",
     yes: "Yes",
     no: "No",
     past: "Past",
@@ -28,6 +29,16 @@ const t = (key: string) => {
   };
   return messages[key] ?? key;
 };
+
+/** A CreditWithdrawn(account, amount) event — amount at state slot 1. */
+function creditWithdrawnEvent(amountBase: string) {
+  return {
+    state: [
+      { type: "Hash160", value: PLAYER_HASH },
+      { type: "Integer", value: amountBase },
+    ],
+  };
+}
 
 /**
  * Build a `ReadingDrawn` event payload:
@@ -61,6 +72,7 @@ function makeChain(
     emitEvent?: boolean;
     drawThrows?: boolean;
     getReadingCards?: [number, number, number];
+    withdrawAmount?: string;
   } = {},
 ) {
   const cards = opts.cards ?? [0, 21, 47];
@@ -76,6 +88,16 @@ function makeChain(
             ? readingDrawnEvent(readingId, cards)
             : undefined;
         return { txid: "0xdraw", event, success: true };
+      }
+      if (op === "withdraw") {
+        return {
+          txid: "0xwithdraw",
+          event:
+            options?.waitForEvent === "CreditWithdrawn"
+              ? creditWithdrawnEvent(opts.withdrawAmount ?? opts.credit ?? "0")
+              : undefined,
+          success: true,
+        };
       }
       // transfer (deposit) and anything else.
       return { txid: "0xtransfer", success: true };
@@ -147,6 +169,8 @@ describe("useTarot (direct MiniAppTarot contract)", () => {
     await tarot.draw();
 
     // Step 1: DEPOSIT — GAS transfer to the contract with the draw memo, base units.
+    // The deposit MUST wait for the contract's Credited event so the draw never
+    // fires before the deposit lands (first-draw race fix).
     const deposit = callFor(invoke, "transfer");
     expect(deposit).toBeTruthy();
     expect(deposit![1]).toEqual([
@@ -155,7 +179,7 @@ describe("useTarot (direct MiniAppTarot contract)", () => {
       { type: "Integer", value: DRAW_FEE },
       { type: "String", value: DRAW_MEMO },
     ]);
-    expect(deposit![2]).toMatchObject({ scriptHash: GAS_HASH });
+    expect(deposit![2]).toMatchObject({ scriptHash: GAS_HASH, waitForEvent: "Credited" });
 
     // Step 2: draw(player) waiting for the ReadingDrawn event.
     const drawCall = callFor(invoke, "draw");
@@ -273,5 +297,34 @@ describe("useTarot (direct MiniAppTarot contract)", () => {
     expect(read.mock.calls.some((c) => c[0] === "playerReadingCount")).toBe(true);
     expect(tarot.readingsCount.get()).toBe(5);
     expect(tarot.cardsDrawnCount.get()).toBe(15);
+  });
+
+  it("loads the connected wallet's prepaid draw-credit into prepaidCredit / hasCredit", async () => {
+    const { tarot } = setup({ credit: "10000000" }); // 0.1 GAS
+    await tarot.loadAll();
+
+    expect(tarot.prepaidCredit.get()).toBeCloseTo(0.1, 8);
+    expect(tarot.hasCredit.get()).toBe(true);
+  });
+
+  it("withdraws the unused prepaid draw-credit, reading the amount from CreditWithdrawn", async () => {
+    const { tarot, invoke } = setup({ credit: "10000000", withdrawAmount: "10000000" });
+    await tarot.loadAll();
+
+    const { amount } = await tarot.withdrawCredit();
+    expect(amount).toBeCloseTo(0.1, 8);
+
+    const withdraw = callFor(invoke, "withdraw");
+    expect(withdraw).toBeTruthy();
+    expect(withdraw![1]).toEqual([{ type: "Hash160", value: PLAYER_HASH }]);
+    expect(withdraw![2]).toMatchObject({ waitForEvent: "CreditWithdrawn" });
+  });
+
+  it("refuses a withdraw when there is no prepaid credit (clean message, no invoke)", async () => {
+    const { tarot, invoke } = setup({ credit: "0" });
+    await tarot.loadAll();
+
+    await expect(tarot.withdrawCredit()).rejects.toThrow("No prepaid credit to withdraw");
+    expect(callFor(invoke, "withdraw")).toBeUndefined();
   });
 });

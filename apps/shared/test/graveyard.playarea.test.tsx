@@ -10,9 +10,27 @@ import type { HistoryItem } from "../../graveyard/src/types";
 
 afterEach(() => cleanup());
 
-function t(key: string) {
+function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     assetHash: "Content hash",
+    composeModeWrite: "Write memory",
+    composeModeHash: "I have a hash",
+    memoryTextLabel: "Your memory",
+    memoryTextPlaceholder: "Write the memory to bury.",
+    memoryTextHint: "The text stays on this device.",
+    hashFromMemory: "Hash (computed locally)",
+    gasReclaimedEstimate: "Burial Fees (est.)",
+    forgetConfirmFee: `Forgetting costs ${params?.fee ?? ""}.`,
+    forgetConfirmAction: "Confirm forget",
+    epitaph: "Epitaph",
+    addEpitaph: "Add epitaph",
+    editEpitaph: "Edit epitaph",
+    epitaphPlaceholder: "A short note for this memory",
+    epitaphSave: "Save epitaph",
+    epitaphFree: "Free — no deposit",
+    showAllRecords: "Show all records",
+    showFewerRecords: "Show fewer",
+    historyTruncatedNote: `Showing the most recent ${params?.shown ?? ""} of ${params?.total ?? ""} burials.`,
     assetHashHint: "Use the encrypted content hash or token identifier you intend to bury.",
     assetHashPlaceholder: "Enter encrypted content hash...",
     assetHashTooShort: "Enter at least 12 characters so the burial target is identifiable.",
@@ -92,7 +110,18 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
   const values = {
     assetHash: "",
     burialFeeDisplay: "0.10 GAS",
+    forgetFeeDisplay: "1 GAS",
     forgettingId: "",
+    forgetConfirmId: "",
+    epitaphDraftId: "",
+    epitaphText: "",
+    epitaphSavingId: "",
+    showAllHistory: false,
+    historyTruncated: false,
+    // Default the compose mode to "hash" so the hash-input flow tests render the
+    // content-hash field directly (the new default in the app is "write").
+    composeMode: "hash",
+    memoryText: "",
     gasReclaimedDisplay: "0 GAS",
     history: [],
     historyCount: 0,
@@ -205,7 +234,7 @@ describe("Graveyard PlayArea", () => {
     expect((screen.getByLabelText("Content hash") as HTMLInputElement).value).toBe("");
   });
 
-  it("dispatches burial, record refresh, and paid forgetting actions", async () => {
+  it("dispatches burial and record refresh, and ARMS a forget confirmation (does not pay on first tap)", async () => {
     const dispatch = vi.fn(async () => undefined);
 
     render(
@@ -224,12 +253,86 @@ describe("Graveyard PlayArea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Bury on-chain" }));
     fireEvent.click(screen.getByRole("button", { name: "Refresh Records" }));
+    // First tap on Forget ARMS the confirmation (requestForget) — it must NOT
+    // fire the paid forgetMemory immediately (forgetting costs 1 GAS).
     fireEvent.click(screen.getByRole("button", { name: "Forget" }));
 
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("executeDestroy");
       expect(dispatch).toHaveBeenCalledWith("refreshRecords");
+      expect(dispatch).toHaveBeenCalledWith("requestForget", historyItem);
+    });
+    expect(dispatch).not.toHaveBeenCalledWith("forgetMemory", historyItem);
+  });
+
+  it("shows the forget fee and pays only after the explicit confirm", async () => {
+    const dispatch = vi.fn(async () => undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          history: [historyItem],
+          historyCount: 1,
+          totalDestroyed: 1,
+          // The row is already armed for confirmation.
+          forgetConfirmId: historyItem.id,
+          forgetFeeDisplay: "1 GAS",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    // The confirmation surfaces the live forget fee before any GAS moves.
+    expect(screen.getByText("Forgetting costs 1 GAS.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm forget" }));
+    await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("forgetMemory", historyItem);
     });
+  });
+
+  it("offers an Add epitaph action and a local-hash 'write memory' compose mode", () => {
+    const dispatch = vi.fn(async () => undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          history: [historyItem],
+          historyCount: 1,
+          totalDestroyed: 1,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    // The epitaph affordance exists on a non-forgotten row (free, non-deposit).
+    fireEvent.click(screen.getByRole("button", { name: "Add epitaph" }));
+    expect(dispatch).toHaveBeenCalledWith("startEpitaph", historyItem);
+
+    // The compose-mode toggle exposes the local-hash "write memory" mode.
+    expect(screen.getByRole("tab", { name: "Write memory" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Write memory" }));
+    expect(dispatch).toHaveBeenCalledWith("setComposeMode", "write");
+  });
+
+  it("renders the write-memory textarea and routes typing through setMemoryText (local hashing)", () => {
+    const dispatch = vi.fn(async () => undefined);
+
+    render(
+      <PlayArea
+        t={t}
+        state={state({ composeMode: "write" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const textarea = screen.getByLabelText("Your memory");
+    expect(textarea).toBeTruthy();
+    fireEvent.change(textarea, { target: { value: "a secret memory" } });
+    expect(dispatch).toHaveBeenCalledWith("setMemoryText", "a secret memory");
+    // No raw content-hash field in write mode — only the locally derived hash.
+    expect(screen.queryByLabelText("Content hash")).toBeNull();
   });
 });

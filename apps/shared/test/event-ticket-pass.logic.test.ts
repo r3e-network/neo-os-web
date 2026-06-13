@@ -9,6 +9,17 @@ const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const OWNER_HASH = addressToScriptHash(OWNER);
 const TOKEN_ID = "1-1";
 
+/**
+ * The little-endian "0x<hex>" form a ByteString Hash160 arrives as over RPC
+ * (ownerOf parses to this). parseHash160 reverses it back to the big-endian
+ * display hash, so the My Tickets scan can match ticket owners.
+ */
+function toLittleEndianHash(displayHash: string): string {
+  const hex = displayHash.replace(/^0x/, "");
+  const reversed = (hex.match(/.{2}/g) ?? []).reverse().join("");
+  return `0x${reversed}`;
+}
+
 function t(key: string) {
   const messages: Record<string, string> = {
     ready: "Ready",
@@ -37,6 +48,7 @@ function t(key: string) {
     contractMissing: "Contract address not configured",
     loadFailed: "Failed to load ticket data",
     walletNotConnected: "Wallet not connected",
+    transferSuccess: "Ticket transferred",
   };
   return messages[key] ?? key;
 }
@@ -99,6 +111,13 @@ function setup(initial?: Partial<ChainState>) {
       case "setEventActive":
         if (chainState.event) chainState.event.active = !chainState.event.active;
         return { txid: "0xtoggle", event: { state: [{ value: "1" }] } };
+      case "transfer":
+        // NEP-11 Transfer(from, to, amount, tokenId)
+        if (chainState.ticket) chainState.ticket.transferred = true;
+        return {
+          txid: "0xtransfer",
+          event: { state: [{ value: OWNER_HASH }, { value: OWNER_HASH }, { value: "1" }, { value: btoa(TOKEN_ID) }] },
+        };
       default:
         return { txid: `0x${operation}` };
     }
@@ -110,8 +129,21 @@ function setup(initial?: Partial<ChainState>) {
         return chainState.event ? [chainState.event.id] : [];
       case "getEventDetails":
         return chainState.event ?? {};
+      case "totalEvents":
+        return chainState.event ? "1" : "0";
+      case "balanceOf":
+        // Reconstruction short-circuit: the holder's ticket count.
+        return chainState.ticket && !chainState.ticket.transferred ? 1 : 0;
+      case "ownerOf":
+        // Single-item owner read (no iterator). The minted ticket belongs to
+        // OWNER until transferred away.
+        return chainState.ticket && !chainState.ticket.transferred
+          ? toLittleEndianHash(OWNER_HASH)
+          : null;
       case "tokensOf":
-        return chainState.ticket ? [chainState.ticket.tokenId] : [];
+        // The real node returns an un-traversable iterator here; the composable
+        // must NOT depend on it.
+        return { type: "InteropInterface", interface: "IIterator" };
       case "getTicketDetails":
         return chainState.ticket ?? {};
       default:
@@ -229,5 +261,56 @@ describe("useEventTicket (chain wiring)", () => {
     const { ticket } = setup();
     ticket.checkinTokenId.set("999-1");
     await expect(ticket.lookupTicket()).rejects.toThrow("Ticket not found");
+  });
+
+  it("reconstructs My Tickets without the tokensOf iterator", async () => {
+    const { ticket, read } = setup();
+    await ticket.createEvent();
+    ticket.issueRecipient.set(OWNER);
+    await ticket.issueTicket();
+
+    // Re-read holdings from chain (clears the optimistic merge first).
+    ticket.tickets.set([]);
+    await ticket.refreshTickets();
+
+    // The iterator read must never be the source of truth for the list.
+    expect(read).not.toHaveBeenCalledWith("tokensOf", expect.anything());
+    expect(ticket.ticketsCount.get()).toBe(1);
+    expect(ticket.tickets.get()[0]?.tokenId).toBe(TOKEN_ID);
+  });
+
+  it("transfers a held ticket via the standard NEP-11 transfer(to, tokenId, data)", async () => {
+    const { ticket, invoke } = setup();
+    await ticket.createEvent();
+    ticket.issueRecipient.set(OWNER);
+    await ticket.issueTicket();
+    expect(ticket.ticketsCount.get()).toBe(1);
+
+    const recipient = "NUVPACMnKFhpuHjsRjhUvXz1XhqfGZYVtY";
+    await ticket.transferTicket({ tokenId: TOKEN_ID, recipient });
+
+    expect(invoke).toHaveBeenCalledWith(
+      "transfer",
+      [
+        { type: "Hash160", value: recipient },
+        { type: "ByteArray", value: expect.any(String) },
+        { type: "ByteArray", value: "" },
+      ],
+      { waitForEvent: "Transfer" },
+    );
+    // The ticket leaves this wallet — optimistically removed, and the chain
+    // re-read (balanceOf now 0) keeps the list empty.
+    expect(ticket.ticketsCount.get()).toBe(0);
+  });
+
+  it("rejects a transfer to an invalid recipient", async () => {
+    const { ticket } = setup();
+    await ticket.createEvent();
+    ticket.issueRecipient.set(OWNER);
+    await ticket.issueTicket();
+
+    await expect(
+      ticket.transferTicket({ tokenId: TOKEN_ID, recipient: "not-an-address" }),
+    ).rejects.toThrow("Recipient address required");
   });
 });

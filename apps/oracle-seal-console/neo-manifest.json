@@ -22,9 +22,10 @@
   },
   "contracts": {},
   "supported_networks": [
+    "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-testnet",
+  "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/oracle-seal-console/index.html",
     "icon": "/miniapps/oracle-seal-console/logo.jpg",

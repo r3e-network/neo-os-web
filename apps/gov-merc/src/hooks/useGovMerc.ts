@@ -80,7 +80,7 @@ import type { ChainService } from "@shared/services/ChainService";
 import { gasToBaseUnits, neoToInteger } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { formatNum } from "@shared/utils/format";
-import { addressToScriptHash } from "@shared/utils/neo";
+import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { combineBusy } from "@shared/utils/observables";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -157,10 +157,19 @@ const isZeroAddress = (value: string): boolean => {
   return /^0x0{40}$/i.test(v);
 };
 
-/** Case-insensitive address equality (base58 + hex script-hash forms). */
+/**
+ * Identity equality across the two forms these values arrive in: contract reads
+ * and decoded events deliver a Hash160 (little-endian 0x hex), while the wallet
+ * supplies a base58 N-address. Plain string compare never matches the two, so
+ * the winner-exclusion guard and "is this my bid" check silently failed —
+ * ownerMatchesAddress normalizes both sides to a script hash before comparing.
+ * (Falls back to a direct/case-insensitive compare for same-form values.)
+ */
 function addressMatches(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false;
-  return a === b || a.toLowerCase() === b.toLowerCase();
+  if (a === b || a.toLowerCase() === b.toLowerCase()) return true;
+  // a is the on-chain hash value, b the wallet address (or vice versa).
+  return ownerMatchesAddress(a, b) || ownerMatchesAddress(b, a);
 }
 
 // ============================================================================
@@ -210,6 +219,12 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
   const epochDurationMs = createObservable(EPOCH_DURATION_FALLBACK_MS);
   /** Current-epoch leaderboard: { address, amount } where amount is whole GAS. */
   const bids = createObservable<{ address: string; amount: number }[]>([]);
+  /**
+   * Whether the live epoch has a bid on-chain — read from highestBid(epoch), the
+   * contract's own settle precondition. Independent of the event-derived
+   * leaderboard so settlement stays reachable even when the events feed degrades.
+   */
+  const hasLiveBid = createObservable(false);
   const lastSettlement = createObservable<SettlementResult | null>(null);
   /** Connected staker's claimable GAS rewards (whole GAS). */
   const pendingRewards = createObservable(0);
@@ -270,6 +285,20 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     } catch (e) {
       console.warn("[useGovMerc] bidding-window read failed:", errorMessage(e));
       epochDeadline.set(0);
+    }
+
+    // Read highestBid(epoch) directly — the contract's own settle precondition —
+    // so the Route Governance button can enable even if the BidPlaced events
+    // feed is empty/stale (the leaderboard alone could wrongly disable settle
+    // while highestBid > 0 proves the epoch is settleable).
+    try {
+      const highestRaw = await chain.read("highestBid", [
+        { type: "Integer", value: String(epoch) },
+      ]);
+      hasLiveBid.set(parseBigInt(highestRaw) > 0n);
+    } catch (e) {
+      console.warn("[useGovMerc] highestBid read failed:", errorMessage(e));
+      hasLiveBid.set(false);
     }
 
     const hash = myHash();
@@ -760,6 +789,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     epochDeadline,
     epochDurationMs,
     bids,
+    hasLiveBid,
     lastSettlement,
     pendingRewards,
     gasCredit,

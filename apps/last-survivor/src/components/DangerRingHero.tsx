@@ -12,6 +12,12 @@ interface DangerRingHeroProps {
    * an alarming red state for an empty timer.
    */
   active?: boolean;
+  /**
+   * A fresh round (active on-chain but with no keys sold yet) reports
+   * remainingTime 0; the ring shows this "awaiting the first key" caption
+   * instead of an alarming red CRITICAL 00:00:00 state.
+   */
+  awaitingFirstKey?: boolean;
 }
 
 export default function DangerRingHero({
@@ -21,6 +27,7 @@ export default function DangerRingHero({
   shouldPulse,
   formattedPot,
   active = true,
+  awaitingFirstKey = false,
 }: DangerRingHeroProps) {
   // Red/amber hues are reserved for a genuinely live round nearing zero.
   // While idle the derived level is "critical" (0s remaining) but that is not
@@ -35,7 +42,9 @@ export default function DangerRingHero({
           <div className="ring-glow" />
           <div className="hero-countdown" aria-live="polite" role="timer">
             <span className="countdown-digits">{countdown}</span>
-            <span className="countdown-label">{t("timeUntilEvent")}</span>
+            <span className="countdown-label">
+              {awaitingFirstKey ? t("awaitingFirstKey") : t("timeUntilEvent")}
+            </span>
           </div>
         </div>
       </div>

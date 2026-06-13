@@ -1,4 +1,9 @@
-import { GAS_HASH, getExternalIntegrationConfig } from "@shared/constants/rpc";
+import {
+  GAS_HASH,
+  getExternalIntegrationConfig,
+  getNetwork,
+  type NeoNetwork,
+} from "@shared/constants/rpc";
 import {
   addressToScriptHash,
   normalizeScriptHash,
@@ -74,6 +79,21 @@ export interface CreateListingInput {
 
 export function getDefaultAAContractHash(): string {
   return normalizeScriptHash(getExternalIntegrationConfig().contracts.aaCore);
+}
+
+// The canonical AAAddressMarket contract for the active network. The runtime
+// integration config carries it on mainnet but not testnet, so fall back to the
+// app's deployment manifest hashes (which declare both) — a first-time user must
+// not face an empty board for a market the app already knows.
+const MARKET_HASH_BY_NETWORK: Record<string, string> = {
+  mainnet: "0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69",
+  testnet: "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf",
+};
+
+export function getDefaultMarketHash(network?: NeoNetwork): string {
+  const fromIntegration = getExternalIntegrationConfig(network).contracts.aaAddressMarket;
+  const resolved = fromIntegration || MARKET_HASH_BY_NETWORK[network ?? getNetwork()] || "";
+  return resolved ? normalizeScriptHash(resolved) : "";
 }
 
 function sanitizeHex(value: unknown): string {

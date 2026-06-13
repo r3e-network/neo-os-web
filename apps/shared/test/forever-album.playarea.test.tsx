@@ -16,17 +16,18 @@ function t(key: string) {
     albumPhoto: "Album photo",
     chooseFiles: "Choose images",
     emptyAction: "Select photos",
-    emptyDesc: "Upload your first memory on-chain.",
+    emptyDesc: "Save your first memory to this device.",
     emptyTipPublicOrPrivate: "Public or encrypted",
     emptyTipSizeSafe: "Up to 5 · <60KB",
     emptyTitle: "No photos yet",
     encryptPhotos: "Encrypt photos",
-    feature1Desc: "Photos are indexed per wallet address with timestamps.",
+    feature1Desc: "Photos are kept per wallet address on this device, with timestamps.",
     feature2Desc: "AES-GCM encryption keeps memories private and local.",
-    feature3Desc: "Guards keep uploads within Neo transaction limits.",
-    lastTransaction: "Last transaction",
+    feature3Desc: "Guards keep uploads within size limits.",
+    localStorageNote:
+      "Photos are saved on this device under your wallet address — not on-chain.",
     payloadSize: "Payload",
-    readyToSign: "Ready to sign the wallet upload.",
+    readyToSave: "Ready to save to this device.",
     refreshAlbum: "Refresh album",
     remove: "Remove",
     selectedCount: "Selected",
@@ -36,24 +37,22 @@ function t(key: string) {
     sizeUnitKbyte: "KB",
     step1: "Select up to five photos and verify the payload stays under 60KB.",
     step2: "Optionally encrypt with a password.",
-    step3: "Sign and broadcast the upload transaction with your wallet.",
+    step3: "Save the album to this device — no transaction, no gas.",
     tapToSelect: "Tap to Select",
     title: "Forever Album",
-    transactionConfirmed: "Submitted",
-    transactionPending: "Pending wallet result",
     upload: "Upload",
     uploadNeedsAttention: "Upload needs attention",
-    vaultHeroSubtitle: "Select photos, choose privacy, and sign.",
-    vaultHeroTitle: "Preserve memories as wallet-signed vault records",
+    vaultHeroSubtitle: "Select photos, choose privacy, and save to this device.",
+    vaultHeroTitle: "Keep memories in a private, wallet-scoped album on your device",
     vaultPrivacyTitle: "Privacy route",
-    vaultPublicNote: "Public photos are readable from the album record.",
-    vaultRouteTitle: "Upload route",
+    vaultPublicNote: "Public photos are stored in the clear on this device.",
+    vaultRouteTitle: "Save route",
     vaultSafetyOne: "Wallet scoped",
     vaultSafetyThree: "Size guarded",
     vaultSafetyTwo: "Local privacy",
-    vaultStatsTitle: "Album vault summary",
+    vaultStatsTitle: "Album summary",
     vaultTimelineOne: "Pick compact images",
-    vaultTimelineThree: "Sign on Neo",
+    vaultTimelineThree: "Save to device",
     vaultTimelineTwo: "Encrypt locally",
     vaultUploadTitle: "Memory upload",
   };
@@ -82,7 +81,7 @@ function state(
     isEncrypted: false,
     password: "",
     totalPayloadSize: 0,
-    lastTx: null,
+    decryptError: "",
     ...overrides,
   };
   return Object.fromEntries(
@@ -103,8 +102,7 @@ describe("Forever Album PlayArea", () => {
       <PlayArea
         t={t}
         state={state({
-          uploadError:
-            "The wallet handoff worked, but this network's Morpheus storage contract is not upgraded for album writes yet.",
+          uploadError: "Image too large for the size limit.",
           selectedImages: [{ id: "photo-1", size: 68 }],
           totalPayloadSize: 68,
         })}
@@ -115,7 +113,7 @@ describe("Forever Album PlayArea", () => {
 
     const alertText = screen.getByRole("alert").textContent ?? "";
     expect(alertText).toContain("Upload needs attention");
-    expect(alertText).toContain("Morpheus storage contract is not upgraded");
+    expect(alertText).toContain("Image too large");
   });
 
   it("applies privacy launch params to the embedded upload workspace", () => {
@@ -150,25 +148,40 @@ describe("Forever Album PlayArea", () => {
     ).toBe(false);
   });
 
-  it("shows the latest wallet transaction receipt after upload", () => {
+  it("states honestly that photos are saved on-device, not on-chain", () => {
     render(
       <PlayArea
         t={t}
         state={state({
           selectedImages: [{ id: "photo-1", size: 68 }],
           totalPayloadSize: 68,
-          lastTx: {
-            txid: "0x1234567890abcdef1234567890abcdef1234567890abcdef",
-            success: true,
-          },
         })}
         dispatch={vi.fn()}
         launchContext={launch("https://neomini.app/miniapps/forever-album")}
       />,
     );
 
-    const receipt = screen.getByText("Last transaction").closest("div");
-    expect(receipt?.textContent).toContain("0x12345678");
-    expect(receipt?.textContent).toContain("Submitted");
+    expect(
+      screen.getByText(
+        "Photos are saved on this device under your wallet address — not on-chain.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("surfaces a decrypt error (wrong password) in the decrypt card", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          showDecrypt: true,
+          decryptError: "Decryption failed.",
+        })}
+        dispatch={vi.fn()}
+        launchContext={launch("https://neomini.app/miniapps/forever-album")}
+      />,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Decryption failed.");
   });
 });
