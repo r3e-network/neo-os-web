@@ -1,0 +1,1289 @@
+[
+ {
+  "app": "dice-game",
+  "verdict": "Looks polished and professional. Desktop is a balanced 3-zone layout (dice stage left, VRF panel right, route + history below); the eyebrow/heading rhythm is clean and the green accent is used with restraint. Mobile stacks cleanly with the dice stage on top. The one soft spot is the left dice stage: a small 168px white cube floats in a much larger 330px dashed-framed teal panel, so there is a lot of dead space inside that frame on first paint.",
+  "round1_held": "Yes. Em-dash placeholder shows for empty Stake ('--'), 'No local roll history yet.' empty state is present, the status bar with localized status + payout reads cleanly, and preset/withdraw affordances survived. No regressions seen.",
+  "findings": [
+   {
+    "title": "Dice stage frame is mostly empty on first paint",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the left teal panel (dashed inner border) is ~330px tall but only holds a small ~168px cube showing '6' and a bottom caption pill, leaving a large empty band above/around the cube. PlayArea.scss:61-98 sets .dice-stage__visual min-height:330px with a min(168px,42vw) cube, so the cube occupies under half the frame height.",
+    "fix": "Either grow the cube (e.g. width min(220px, 56%)) so it better fills the frame, or reduce .dice-stage__visual min-height to ~260px and tighten the dashed inset so the empty band shrinks. Optionally add the chosen-face label or 1/6 odds chip inside the frame to fill it with relevant content."
+   },
+   {
+    "title": "Current-stake caption duplicates the right-panel Stake tile",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop screenshot: the bottom-left caption pill reads 'CURRENT STAKE 0.1 GAS' while the top-right summary already shows a 'Stake 0.1 GAS' tile \u2014 the same value is rendered twice within one viewport. PlayArea.tsx:146-149 (caption) and :240-243 (summary Stake tile).",
+    "fix": "Repurpose the in-stage caption to show something non-redundant (e.g. selected face + potential payout, or the live 'Ready/Rolling' state) so the two zones complement rather than repeat each other."
+   }
+  ]
+ },
+ {
+  "app": "fogplay",
+  "verdict": "Clean, confident coin-flip UI: layered glassy coin with orbit rings, clear Heads/Tails cards, preset chips, and a strong full-width green Flip CTA. Empty 'No games played yet' state with a clock icon is friendly. Desktop renders as a single ~520px centered column, leaving wide empty white margins on both sides on a desktop viewport \u2014 acceptable for a focused game but it reads small. The main clarity gap is the coin/side symbology.",
+  "round1_held": "Yes. Stats row (0 wins/losses/games, 0.00 GAS), house-cap hint ('House can currently pay up to 100.00 GAS'), custom bet input, and empty history all render correctly. The live choice binding fix (str('choice')) is intact. No regressions.",
+  "findings": [
+   {
+    "title": "Coin face uses 'N'/'G' glyphs for Heads/Tails without a legend",
+    "severity": "medium",
+    "dimension": "ux",
+    "evidence": "Desktop + mobile screenshots: the hero coin shows a large 'N' and the choice cards show 'N' (labeled Heads) and 'G' (labeled Tails). Nothing on screen tells the player that N=Neo=Heads and G=Gas=Tails; WagerControls.tsx:44 maps heads->'N', tails->'G'. A first-time player sees a coin reading 'N' and an unlabeled hero and must infer the metaphor.",
+    "fix": "Either render the actual 'Heads'/'Tails' word (or a coin-face icon) on the hero coin instead of a bare 'N', or add a small caption under the coin ('N = Heads / G = Tails') so the brand glyph is decoded. Keeping the N/G on the choice cards is fine since they are labeled, but the standalone hero coin glyph is ambiguous."
+   },
+   {
+    "title": "Hero coin lacks a visible side/state label on first paint",
+    "severity": "low",
+    "dimension": "beauty",
+    "evidence": "Desktop screenshot: the coin sits above a small 'Place Your Bet' pill, but the coin itself shows only 'N' with no caption tying it to the selected side \u2014 on a large desktop the big white arena card around the coin feels under-filled (CoinArena.tsx renders coin + a single status pill).",
+    "fix": "Surface the selected side text near the coin (e.g. 'You picked: Heads') and/or add the 2x payout preview chip inside the arena so the hero communicates the current bet, filling the card and reinforcing the choice."
+   }
+  ]
+ },
+ {
+  "app": "gasbox",
+  "verdict": "The hero (gradient band, 'Live market status' dot, MACHINES/YOUR PULLS/EST. PLAYS metrics with an em-dash for unknown) is clean and on-brand. The empty market state is clear with a good two-button recovery (Refresh Machines / Open Studio). The weak points are the letter-glyph 'G' avatars that read like missing images, and a very tall expanse of blank page below the empty-state card on desktop.",
+  "round1_held": "Yes. MACHINES shows an em-dash placeholder (not 0/N/A), metrics are friendly, 'NO ACTIVE MACHINES LOADED' empty state with dual CTAs is present, and the Create Machine action is visible. No regressions.",
+  "findings": [
+   {
+    "title": "Letter-glyph 'G' avatars read as broken/placeholder images",
+    "severity": "medium",
+    "dimension": "beauty",
+    "evidence": "Desktop + mobile screenshots: the hero badge and the empty-state circle both show a plain bold letter 'G' in a tinted circle. PlayArea.tsx:314 (hero 'G'), :357 (empty-state 'G'), and machineIcon() at :292-297 returns single letters 'G'/'P'/'N'. A solo letter in a circle looks like a fallback for a missing logo rather than an intentional icon.",
+    "fix": "Replace the single-letter glyphs with a real SVG mark (a gachapon/blind-box icon) for the hero and empty state, matching the inline SVG icon style used by sibling apps (e.g. fogplay's coin SVG, last-survivor's timer glyph). Keep letters only where they encode rarity tiers if desired, but the hero/empty avatars should be iconographic."
+   },
+   {
+    "title": "Empty market state leaves a tall blank page below on desktop",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the hero + 'No active machines loaded' card end around y=560, then the rest of the viewport down to ~900px is pure white with no content or footer. The empty state card is short and centered, so the page looks unfinished on a wide screen.",
+    "fix": "Vertically center the empty-state content within the available space, or add a lightweight 'how GasBox works' / sample-machine teaser strip beneath the empty card so the first paint fills the viewport instead of trailing into blank space."
+   }
+  ]
+ },
+ {
+  "app": "gas-lucky-pool",
+  "verdict": "The creator workspace is a tidy two-column form (Create reward pool | Pool controls) with clear uppercase field labels and an em-dash-free, calm look. But the right column has a visual-hierarchy problem: five identical full-width solid-green pill buttons (Inspect pool, Add GAS, Recover remaining GAS, Check credit, Withdraw credit) all shout at equal volume, and there is a large empty gap between the hint box and the first button, leaving the right column unbalanced and button-heavy versus the left form column.",
+  "round1_held": "Yes. The 'Enter a pool ID to inspect, top up, or recover...' hint, the 'RECOVERABLE GAS 0 GAS' credit block, and the collapsed 'Campaign owner setup' details survived. Buttons correctly disabled-styled (lighter green) when no pool target. No regressions.",
+  "findings": [
+   {
+    "title": "Five identical full-width green buttons give no action hierarchy",
+    "severity": "medium",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot: Inspect pool / Add GAS / Recover remaining GAS / Check credit / Withdraw credit are all rendered as the same solid-green rounded pill at full width. PlayArea.tsx:569-615 \u2014 every one uses className='gas-pool-claim-only__button', and .gas-pool-claim-only__button (PlayArea.scss:263-291) is a single solid #16c784 style with no secondary/ghost variant. Nothing signals which is the primary action; the column reads as a wall of green.",
+    "fix": "Differentiate by role: keep 'Inspect pool' as the solid-green primary, demote 'Add GAS' / 'Recover remaining GAS' / 'Check credit' / 'Withdraw credit' to outline or soft-fill secondary variants (green text on tinted bg). This also visually separates the destructive 'Recover' from the benign 'Inspect'."
+   },
+   {
+    "title": "Unbalanced columns: empty gap in right column, short left column",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: in the right 'Pool controls' card there is a tall empty band between the hint box (~y=237) and the first button (~y=290), while the action buttons cluster in the lower half; meanwhile the left 'Create reward pool' card ends well above the right card's bottom. The two cards have visibly different fill density. .gas-pool-actions uses grid 1fr/1fr (PlayArea.scss:563-567) but the buttons render stacked, amplifying the vertical imbalance.",
+    "fix": "Tighten the right column: place Inspect/Add GAS/Recover in a 2-up grid row directly under the inputs (remove the large gap), and group Check/Withdraw credit inside the RECOVERABLE GAS card as a compact pair. Align both card heights or let the form column breathe so the columns read as a balanced pair."
+   }
+  ]
+ },
+ {
+  "app": "last-survivor",
+  "verdict": "Strong game hero: circular countdown ring, TOTAL POT tile, SAFE->CRITICAL danger meter, a clean keys stepper with preset chips, and a tidy YOUR KEYS / TOTAL KEYS / SHARE strip with a '\u2014' share placeholder. The empty 'No events yet' history is fine. The standout problem is redundancy: the first paint stacks three separate 'Refresh Round' prompts, which clutters the otherwise clean flow.",
+  "round1_held": "Yes. The 'Round state unavailable' service notice with localized copy, the SHARE '\u2014' em-dash placeholder, the calm (non-pulsing) fresh-round danger ring, and the disabled Buy Keys with helper text all held. No regressions.",
+  "findings": [
+   {
+    "title": "Three stacked 'Refresh Round' affordances on first paint",
+    "severity": "medium",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot shows, top to bottom: (1) the amber 'Round state unavailable' card with a 'Refresh Round' button, (3) a 'Rollover ready / Refresh the game state before buying keys' card with another 'Refresh Round' button, and (2) the Buy Keys card with 'Refresh the round state before submitting a key purchase' helper + disabled Buy Keys. PlayArea.tsx:125-143 (serviceNotice card), :210-232 (round-control-card, renders when !isRoundActive), and the BuyKeysCard helper buyKeysHelper at :90-94 all surface a refresh prompt simultaneously.",
+    "fix": "Collapse to one refresh entry point. When serviceNotice is present, suppress the separate round-control-card (they both say 'refresh'), and let the Buy Keys helper reference that single notice rather than repeating the instruction. Show at most one 'Refresh Round' button above the fold."
+   },
+   {
+    "title": "Disabled Buy Keys button is low-contrast and reads as inert filler",
+    "severity": "low",
+    "dimension": "usability",
+    "evidence": "Desktop screenshot: the 'Buy Keys' button (below 'Refresh the round state before submitting a key purchase') is a pale grey full-width bar with light grey text, nearly blending into the card background. PlayArea.tsx:194-208 renders BuyKeysCard with disabled={!canBuyKeys}; in the disconnected state it is permanently disabled and visually flat.",
+    "fix": "Give the disabled primary a clearer disabled treatment (e.g. retain a faint green tint + visible label, or swap the disabled CTA for the 'Refresh Round' secondary action so the only enabled control is obvious). Ensure the disabled label keeps AA contrast against the bar."
+   }
+  ]
+ },
+ {
+  "app": "on-chain-tarot",
+  "verdict": "Desktop reads clean and on-brand: soft green hero, a 3-card spread with branded NEO card backs, and a clear question field. The weak spot is the right column \u2014 the 'Transaction safety' panel holds ~3 lines of text but visually stretches tall, leaving a large empty void beside the spread. Mobile reflows well into a single column with the hero, question, and spread stacked.",
+  "round1_held": "Yes. Em-dash placeholders ('\u2014') render in the outer empty card captions, the withdraw-credit recovery panel is wired (prepaidCredit gate), and the friendlier 'Submit a question first' / 'Request ready' labels are present. No regressions.",
+  "findings": [
+   {
+    "title": "Right column collapses to a near-empty tall panel on desktop (unbalanced columns)",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the right 'TRANSACTION SAFETY' card holds only 3 short lines yet the right grid track is as tall as the left workspace, leaving a big empty area under the text. On first paint the recovery panel is gated off (prepaidCredit==0) so the aside has just one short card. PlayArea.scss:24-32 sets `.tarot-shell` to a fixed 2-col grid (0.72fr / 0.44fr) with `align-items: start`, so the side column has nothing to fill its width.",
+    "fix": "On first paint give the side column more substance or let it shrink: either move the READINGS/CARDS-DRAWN metric tiles into the aside so the right column has real content, or reduce the side track width (e.g. minmax(280px, 0.36fr)) and let the main workspace breathe. Alternatively collapse to a single column below ~1200px instead of 900px so the void never appears at common desktop widths."
+   },
+   {
+    "title": "Empty-spread captions mix em-dash and instructional text inconsistently",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop screenshot: the PAST and FUTURE card slots show a bare '\u2014' caption while the center PRESENT slot shows 'Submit a question first'. PlayArea.tsx:153-157 renders the hint only for index===1 and '\u2014' for the others. The three identical card backs with two different caption styles reads slightly uneven.",
+    "fix": "Either show the 'Submit a question first' hint once centered beneath the whole spread (not under the middle card), or give all three slots the same muted caption treatment so the row reads as one consistent empty state."
+   }
+  ]
+ },
+ {
+  "app": "burn-league",
+  "verdict": "Desktop is strong and well-structured: hero stat strip, a clear dormant-season banner, an amber 'data unavailable' notice, a burn form with presets and a 4-up impact strip, and a centered empty leaderboard. Mobile is mostly good but the 4-column impact strip breaks down \u2014 it wraps into a cramped 2x2 where vertical dividers float between items and two-line labels ('PROJECTED TOTAL', 'PRIZE POOL') collide with the values of the row above.",
+  "round1_held": "Yes. The localized 'Burn league data unavailable' service notice, the season lifecycle banner with settle path, the soft-tinted disabled CTA, and the boxed empty leaderboard state all render correctly. No regressions.",
+  "findings": [
+   {
+    "title": "Impact strip wraps into a cramped, divider-littered grid on mobile",
+    "severity": "medium",
+    "dimension": "mobile",
+    "evidence": "Mobile screenshot bottom: the ENTRY AMOUNT / PROJECTED TOTAL / PROJECTED RANK / PRIZE POOL strip wraps to 2x2; the vertical 1px dividers (`.burn-league-impact-divider`, width:1px; margin:2px 16px) stay in the flex flow between wrapped items, and the two-word labels wrap to a second line so 'PROJECTED TOTAL' sits on top of the row below's value. PlayArea.scss:396-437 uses `flex-wrap: wrap` with `flex: 1 1 80px` items plus inline dividers, and there is no mobile rule to convert it to a clean grid.",
+    "fix": "Add a mobile breakpoint (\u2264480px or \u2264560px) that switches `.burn-league-impact-strip` to `display:grid; grid-template-columns: 1fr 1fr; gap:12px` and sets `.burn-league-impact-divider { display:none }`. Give each item a min-height so the wrapped two-line labels don't overlap neighboring values."
+   },
+   {
+    "title": "Hero rank fact never appears, leaving the hero right side stat-only",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "PlayArea.tsx:150-158 only renders the inline 'YOUR RANK' fact when hasRank is true (formattedRank !== '--'). In the disconnected first paint (desktop + mobile screenshots) it is absent, which is correct, but the hero subtitle 'Burn tokens, earn rewards' is the only copy beneath the title \u2014 the hero reads thin next to the three stat tiles. Acceptable as an empty state, just flagging the imbalance.",
+    "fix": "Optional: when there is no rank yet, show a one-line value-prop or 'Be the first to burn this season' microcopy in the hero-copy block so the left side is not just title+subtitle against three populated stat tiles."
+   }
+  ]
+ },
+ {
+  "app": "red-envelope",
+  "verdict": "A tidy claim-first surface: branded envelope hero, three metric tiles, a Claim/Create tab, and a muted 'No active envelopes' panel. The redundant 'ACTIVE ENVELOPES' label (top metric tile and the activity panel heading both say it with '0') and the very pale disabled 'Claim now' button are the two things that pull it down. Mobile stacks the three metric tiles into three full-width rows which eats a lot of vertical space for three zeros.",
+  "round1_held": "Yes. The em-dash/'\u2014' is not used here but the friendly empty-state line, the soft-tinted disabled CTA, the share-link affordance, and the reclaim/withdraw recovery panel (gated) are all in place. No regressions.",
+  "findings": [
+   {
+    "title": "'Active envelopes' label appears twice with the same '0' value",
+    "severity": "medium",
+    "dimension": "consistency",
+    "evidence": "Desktop screenshot: the first metric tile reads 'ACTIVE ENVELOPES 0' and lower the activity panel heading also reads 'ACTIVE ENVELOPES 0'. messages.ts shows `availableEnvelopes` and `availablePools` both resolve to 'Active envelopes' (en), and PlayArea.tsx:201 + :371 render both. Two identical labels/values on one screen reads as a duplication bug.",
+    "fix": "Rename the lower activity-panel heading so it describes the list, e.g. 'Available to claim' or 'Open envelopes' (change the `availablePools` string, not `availableEnvelopes`), so the metric tile and the list section no longer collide on the same words."
+   },
+   {
+    "title": "Disabled 'Claim now' CTA is very low-contrast pale green on first paint",
+    "severity": "low",
+    "dimension": "a11y",
+    "evidence": "Desktop + mobile screenshots: with no envelope ID entered the 'Claim now' button is a faint pale-green-on-pale-green pill (PlayArea.tsx:270 disables it when selectedEnvelopeId is empty; PlayArea.scss:370-377 styles disabled primary as violet-soft bg + violet-strong text at opacity 0.85). The green-text-on-green-soft fill barely meets contrast and reads almost as placeholder, making it unclear it is a button.",
+    "fix": "Bump the disabled-state contrast: use a muted ink text (e.g. --ns-text-muted) on the soft fill instead of accent-green-on-accent-soft, or raise opacity and darken the label so the control is legibly a (currently inactive) button."
+   },
+   {
+    "title": "Three metric tiles stack into three full-width rows on mobile",
+    "severity": "low",
+    "dimension": "mobile",
+    "evidence": "Mobile screenshot: ACTIVE ENVELOPES, CLAIMABLE POOL, RECENT CLAIMS each become a full-width card stacked vertically, consuming ~3 rows of height for three zeros before the user reaches the Claim form. PlayArea.scss:690-695 collapses `.redenv-metrics` to `grid-template-columns: 1fr` at \u2264640px.",
+    "fix": "Keep the metrics as a denser layout on mobile \u2014 e.g. a single horizontal 3-up row of compact tiles (grid-template-columns: repeat(3, 1fr) with smaller padding/font) so the primary Claim action stays above the fold."
+   }
+  ]
+ },
+ {
+  "app": "breakup-contract",
+  "verdict": "Clean and balanced first paint: a green-tinted hero with the social badge and a single full-width 'New Contract' form card with stake/duration preset chips, character counters, and a disabled 'Create Contract' button. It looks like a real product form. The main weakness on wide desktop is the hero \u2014 badge + two short lines sit far left, leaving ~60% of the hero empty since the metrics line is gated off pre-contract.",
+  "round1_held": "Yes. Inline validation (partner/stake/duration), character counters, the action-notice slot, the gated credit-recovery card, and the gated contracts list are all present and the form preserves input on failure. No regressions.",
+  "findings": [
+   {
+    "title": "Hero is left-weighted and mostly empty on wide desktop",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the hero card spans the full 1040px width but only the badge + 'Breakup Contract' + 'Relationship stakes on-chain' sit at the left; the right ~60% is blank because `.breakup-hero-metrics` (PlayArea.tsx:105) is gated behind hasContracts and is absent on first paint. The hero gradient (PlayArea.scss:82) makes the empty right side read as unused space.",
+    "fix": "On the empty/first-paint state, either narrow the hero content max-width so it doesn't stretch the full card, or add a quiet right-aligned value-prop chip (e.g. 'Stake-backed \u00b7 On-chain \u00b7 Refundable') so the hero feels intentional rather than half-filled."
+   },
+   {
+    "title": "Tall empty canvas below the form on desktop",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: below the 'Create Contract' button there is a large blank area to the bottom of the viewport because the contracts list and credit card are both gated off on first paint, and `.breakup-play-area` is `min-height: 100vh` (PlayArea.scss:62). The page reads as a short form floating at the top of a tall empty page.",
+    "fix": "Drop the `min-height: 100vh` on the root (let content define height), or add a lightweight 'How it works / what happens on break' explainer card beneath the form for the empty state so the lower viewport is not a void."
+   }
+  ]
+ },
+ {
+  "app": "dev-tipping",
+  "verdict": "Desktop is a polished two-column layout: hero with three stat tiles, a friendly robot empty state under 'Top Developers' with a 'How it works' disclosure, and a Send Tip form + Developer Zone on the right. It looks good, but the two columns are clearly unbalanced \u2014 the right column (Send Tip + Developer Zone) is noticeably taller than the left, and the disabled 'Send Tip' button is very pale green on first paint. Mobile correctly reorders the Send Tip form above the developer list.",
+  "round1_held": "Yes. The withdraw-tips path, the stranded-credit reclaim row (gated by myCredit), the stale-zero total guard (PlayArea.tsx:50-53), the segmented anonymous toggle, and localized empty-state copy are all present. No regressions.",
+  "findings": [
+   {
+    "title": "Unbalanced two columns leave whitespace beside the empty developer list",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the left column (TOP DEVELOPERS robot empty state + 'How it works' bar) ends well above the right column (Send Tip card + Developer Zone). `.tipping-body` (PlayArea.scss:193-198) is a 1.4fr/1fr grid with `align-items: start`, so on first paint the shorter side leaves an awkward column of empty space, and the overall page bottom is ragged.",
+    "fix": "Balance the first-paint heights: e.g. let the empty-state card grow (min-height to roughly match the right column), or move 'How it works' to span full width beneath both columns, or reduce the left/right ratio so the empty developer panel and the form read as a more even pair."
+   },
+   {
+    "title": "Disabled 'Send Tip' CTA is faint pale-green and reads as non-interactive on first paint",
+    "severity": "low",
+    "dimension": "a11y",
+    "evidence": "Desktop + mobile screenshots: with no developer selected and no amount, 'Send Tip' renders as pale-green text on pale-green fill (TipForm canSubmit false \u2192 disabled; PlayArea.scss:704-710 styles disabled primary as tip-accent-soft bg + tip-accent-strong text at opacity 0.85). The low green-on-green contrast plus no inline 'enter a developer ID first' hint makes it ambiguous why the button is inactive.",
+    "fix": "Raise the disabled-state contrast (muted ink label on the soft fill, or darker text), and add a one-line helper under the form like 'Enter a registered developer ID and amount to tip' so the disabled CTA's reason is explicit in the empty state."
+   }
+  ]
+ },
+ {
+  "app": "milestone-escrow",
+  "verdict": "Clean, centered, well-composed empty state. The hero card (green check badge, ESCROWS eyebrow, title, subtitle, three boxed stat tiles) reads as intentional, and the 'Contract deployment pending' notice below is a tidy icon+title+description card. Desktop and mobile both reflow correctly with no edge-touching or overflow. Looks professional; main weakness is the three identical dash placeholders in the stat row.",
+  "round1_held": "Yes. Em-dash placeholders are present in the stat tiles (no error-like 0), the deployment-pending empty state is friendly and localized, and the column is capped at 760px and centered so the sparse state doesn't read as an under-filled canvas.",
+  "findings": [
+   {
+    "title": "Three hero stat tiles are visually indistinguishable at first paint",
+    "severity": "low",
+    "dimension": "beauty",
+    "evidence": "Desktop+mobile shots: the ESCROWS / ACTIVE / COMPLETED tiles each show the same bold heavy '\u2014' in identical 22px/800 type (MilestoneHero.tsx:34-47, .hero-stat-value at PlayArea.scss:116). Three identical dashes side-by-side read as redundant filler rather than three distinct metrics; the row carries weight but no information.",
+    "fix": "At the empty state, lighten the placeholder dash (use --me-muted color + lighter weight for the '\u2014' specifically, e.g. a .hero-stat-value--empty modifier) so the tiles read as 'awaiting data' rather than three equal bold values; or collapse to a single subtle 'No escrows yet' line until totalEscrows>0, mirroring how the progress band is already hidden when hasEscrows is false."
+   },
+   {
+    "title": "Notice icon and hero badge share the same green circle treatment",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop shot: the hero uses a green check in a soft-green circle, and the 'Contract deployment pending' notice uses an alert (!) glyph in the same soft-green circle (.hero-badge PlayArea.scss:52-61 and .escrow-notice__icon:507-517 share --me-accent-soft bg + --me-accent-strong fg). A blocking/pending notice rendered in the brand's positive green reads as reassuring rather than cautionary.",
+    "fix": "Give the deployment-pending notice icon a neutral/amber tint (e.g. a warning token) instead of brand green so the 'pending/blocked' meaning isn't colored as success; keep green for the hero success badge only."
+   }
+  ]
+ },
+ {
+  "app": "neo-multisig",
+  "verdict": "The richest layout in the cluster and it holds together well: two-column desktop shell (custody form + Signers/Execution route/Recent Activity aside), thin gradient hero with three fact tiles, clean step labels. Mobile stacks correctly. The one thing that genuinely looks off is the primary 'Create Vault' button rendering as a barely-visible pale-green-on-pale-green pill, plus first-paint clutter from \u00d7 buttons on three empty signer rows.",
+  "round1_held": "Yes. 'Connect a wallet to create or sign' line, em-dash placeholders in VAULT BALANCE / REQUEST hero tiles, the contextual blocked-reason hint ('Add at least two signer addresses before creating a vault'), and the soft-tinted disabled CTA are all present.",
+  "findings": [
+   {
+    "title": "Disabled 'Create Vault' primary CTA is too low-contrast to read",
+    "severity": "medium",
+    "dimension": "usability",
+    "evidence": "Desktop+mobile shots: the main 'Create Vault' button is a pale mint pill with light-green text and a faint hairline border \u2014 at first paint it's hard to tell it's the primary action; it nearly disappears into the white form. Source confirms this is the disabled style: .multisig-primary-actions .neo-btn--primary:disabled sets background:--multisig-green-soft, color:--multisig-green-strong, opacity:0.85 (PlayArea.scss:566-572). Green-on-green at 0.85 opacity fails comfortable contrast for button text.",
+    "fix": "Either remove opacity:0.85 and darken the disabled text to --multisig-green-strong at full opacity on a slightly deeper soft-green, or keep the disabled fill but add a visible 1px solid border in --multisig-green so the button shape is unambiguous. The goal: the disabled primary should still clearly read as 'the button you'll press once the form is valid.'"
+   },
+   {
+    "title": "\u00d7 remove buttons clutter three empty signer rows on first paint",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop+mobile shots: all three default signer inputs are empty (placeholder 'Neo N3 address (N...)') yet each carries a square \u00d7 remove button on its right (rendered whenever canRemoveSigner, i.e. signers.length>2 \u2014 PlayArea.tsx:332-341). Removing an already-empty row is a no-op affordance and the three \u00d7's add visual noise to an empty form.",
+    "fix": "Only show the \u00d7 on rows that have content, or hide it on the minimum required rows until a 4th signer is added (e.g. show remove only when signers.length>MIN_SIGNERS AND the row is non-empty). The '+ Add signer' affordance is enough to imply the list is editable."
+   },
+   {
+    "title": "Two identical 'Load' rows (vault / request) sit far apart with low affordance",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop shot bottom: 'Load vault' (Vault ID + Load) and 'Load request' (Request ID + Load) are two near-identical input+button rows; the Load buttons are pale/disabled and the two rows are separated by the full create-vault block, making the relationship unclear. They read as leftover utility rows rather than a deliberate 'resume existing' path.",
+    "fix": "Group the two load rows into one labeled 'Resume / Load' subsection (shared heading) so they read as a pair, and give the disabled Load buttons the same soft-tinted treatment recommended for Create Vault so their state is legible."
+   }
+  ]
+ },
+ {
+  "app": "self-loan",
+  "verdict": "Strong, confident finance UI: gradient hero with three right-aligned stat tiles (TOTAL LOANS / BORROWED / REPAID), a full Borrow card with collateral input, a clear three-up tier selector (Conservative/Balanced/Aggressive), live LTV ratio bar, and a connect-wallet CTA. Desktop and mobile both look polished. The weak spot is the 'ProfitAnchor Vote Route' card consuming primary card weight for static, non-actionable disclosure copy, and an emoji lock in the CTA.",
+  "round1_held": "Yes. Stat tiles show real 0/0.00 values (correct, not dashes), the 'Pool available' and 'Estimated Borrow (after fee)' rows are present, and the disconnected primary affordance is a clear 'Connect wallet to use Self Loan' bar.",
+  "findings": [
+   {
+    "title": "'ProfitAnchor Vote Route' card outranks the actual Borrow interface in the visual hierarchy",
+    "severity": "medium",
+    "dimension": "ux",
+    "evidence": "Desktop shot: directly under the hero, a full-width NeoCard titled 'ProfitAnchor Vote Route' shows only a static 'COLLATERAL VOTE SIGNAL / Operator-selected council candidate' label and a 'VOTE-ONLY DEPENDENCY' badge (PlayArea.tsx:287-304). It carries the same card chrome/weight as the Borrow card but is pure non-actionable disclosure, and it pushes the primary Borrow form lower on the page. A first-time user's eye lands on an opaque governance note before the thing they came to do.",
+    "fix": "Demote this disclosure: render it as a compact inline note/footnote inside or beneath the Borrow card (or a collapsible 'Vote routing' detail) rather than a top-level full-card sibling. Reserve full-card weight for hero + Borrow + Loan Status."
+   },
+   {
+    "title": "Emoji lock glyph in the connect CTA breaks icon consistency",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop shot bottom: the connect bar reads '\ud83d\udd12 Connect wallet to use Self Loan' using an emoji padlock, whereas the rest of the cluster (and this app's hero badge) uses inline stroke SVG icons. The emoji renders at a different weight/baseline than the surrounding text and looks out of place against the Neo Soft icon set.",
+    "fix": "Replace the \ud83d\udd12 emoji with an inline lock SVG sized/colored to match (currentColor, ~16px) so the CTA matches the design system's iconography."
+   },
+   {
+    "title": "'VOTE-ONLY DEPENDENCY' badge label is jargon at first read",
+    "severity": "low",
+    "dimension": "i18n",
+    "evidence": "Desktop shot: the badge text 'VOTE-ONLY DEPENDENCY' (profitAnchorBadge) in all-caps tracked type is cryptic to a user \u2014 it's an internal architectural term, not a user-facing concept, and it's the most prominent text on that card after the value.",
+    "fix": "Reword to something user-meaningful (e.g. 'Voting only \u2014 funds stay in custody') or fold the reassurance into the disclosure copy and drop the badge entirely once the card is demoted per the hierarchy fix."
+   }
+  ]
+ },
+ {
+  "app": "neo-pay",
+  "verdict": "Tidy, readable form-first layout: Create Stream card with recipient/amount/duration/notes, a GAS|NEO token segmented control, the two-signature deposit hint, and two empty-state list cards with centered icons and friendly copy. Mobile reflows cleanly. The one clear weakness is the desktop hero collapsing to a thin left-aligned strip with a large empty right half because the summary metrics are hidden at zero streams.",
+  "round1_held": "Yes. The two-signature deposit-confirmation hint ('Creating a stream needs two wallet signatures: first the GAS deposit, then the stream setup') is present, the empty lists show friendly localized copy ('You haven't created any streams yet' / 'No incoming streams') with icons, and the Create Stream button is correctly disabled when the form is empty.",
+  "findings": [
+   {
+    "title": "Desktop hero is unbalanced \u2014 thin strip with empty right half at zero streams",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop shot: the hero is just a small badge + 'STREAMS / NeoPay / Scheduled releases...' on the left with roughly the right 60% of the card empty white space. The summary metrics that would fill it are gated on totalStreamCount>0 (PlayArea.tsx:314 'totalStreamCount > 0 && ...'), so at first paint nothing balances the right side. Sibling finance apps (self-loan, milestone-escrow) keep placeholder stat tiles in the hero so it never collapses to a strip.",
+    "fix": "At zero streams, render the hero summary with em-dash/zero placeholders (mirroring milestone-escrow's '\u2014' tiles) \u2014 e.g. 'Total streams: \u2014  \u00b7  Active: \u2014' or a couple of boxed stat tiles \u2014 so the hero holds its height and the right side isn't dead space. Alternatively right-align a small illustrative element."
+   },
+   {
+    "title": "Disabled 'Create Stream' button is flat grey, inconsistent with the cluster's soft-tinted disabled CTAs",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop+mobile shots: the disabled 'Create Stream' button renders as a flat light-grey pill with grey text, whereas neo-multisig in the same cluster deliberately uses a soft-green-tinted disabled primary so the brand affordance is preserved (neo-multisig PlayArea.scss:566-572). The grey button reads as inert/secondary rather than 'the primary action, pending input.'",
+    "fix": "Apply the same soft-brand-tinted disabled style to neo-pay's primary CTA for consistency across the finance cluster, so the disabled primary still signals it's the main action."
+   }
+  ]
+ },
+ {
+  "app": "gas-sponsor",
+  "verdict": "Desktop reads as a complete, usable tool: hero with a fuel-tank gauge + GAS BALANCE/TANK LEVEL/REMAINING facts, a Request GAS card with amount input, quick-amount chips, a bright green Request CTA and a usage bar, and a 'Pay It Forward' empty state. The single most jarring element is the fuel-tank gauge at 0% \u2014 it renders as a tall near-empty white box with '0.0000' floating inside and a barely-visible green sliver, looking more broken than 'empty.' Mobile screenshot was not provided (cannot assess reflow).",
+  "round1_held": "Partially. Round 1 added faint fuel-tick guides + a 5px min-height fill so an empty tank 'still reads as a gauge' (PlayArea.scss:152-179) and a 'NEEDS FUEL' status pill \u2014 but at the rgba(20,22,38,0.05) tick opacity the gauge still reads as an empty white rectangle in the render, so the fix only partially achieved its goal.",
+  "findings": [
+   {
+    "title": "Fuel-tank gauge at 0% reads as an empty/broken white box, not a gauge",
+    "severity": "medium",
+    "dimension": "beauty",
+    "evidence": "Desktop shot: the 132x132 tank is an almost-entirely white rounded box with 'GAS / 0.0000' centered and only a thin green line at the very bottom (.fuel-level min-height:5px, PlayArea.scss:175). The intended fuel-tick guides are rgba(20,22,38,0.05) (PlayArea.scss:162-163) and are effectively invisible at render scale, so nothing communicates 'this is a fuel gauge that's empty' \u2014 it looks like a missing/blank widget next to the populated fact rows.",
+    "fix": "Make the empty state legibly a gauge: increase tick contrast (e.g. rgba 0.08-0.10) or add a visible dashed mid-line + a faint 'tank' outline label, and consider a low subtle fill floor (e.g. a 10-15% ghost fill with reduced opacity) so an empty tank still shows fuel-tank shape. Even a small fuel-drop/pump icon inside would disambiguate it from a blank box."
+   },
+   {
+    "title": "Bright-green 'Request GAS' primary CTA is fully enabled in the disconnected/standalone state",
+    "severity": "low",
+    "dimension": "usability",
+    "evidence": "Desktop shot: 'Request GAS' is the most prominent element \u2014 a saturated full-width green button \u2014 and is enabled (it's gated only on !isEligible || remainingQuota<=0, RequestGasCard.tsx:46; isEligible derives from serviceAvailable && balance<threshold, useGasSponsor.ts:76-79, which is true at standalone with a 0 balance). Across the cluster every other primary CTA (neo-pay, milestone-escrow, multisig) is disabled at first paint until a wallet/valid input exists; here the loudest button invites a click that needs a wallet.",
+    "fix": "Gate the Request CTA on a connected address as well (or surface a 'Connect wallet to request' state on the button) so the enabled bright-green primary doesn't promise an action that can't complete pre-connection \u2014 matching sibling behavior."
+   },
+   {
+    "title": "Mobile screenshot missing \u2014 mobile reflow unverified",
+    "severity": "low",
+    "dimension": "mobile",
+    "evidence": "Only /tmp/r2-shots/gas-sponsor.desktop.png exists; gas-sponsor.mobile.png is absent (Read returned 'File does not exist'). The fuel-tank gauge + fact rows are laid out as a horizontal flex on desktop (.gas-hero-gauge, PlayArea.scss:77); whether the 132px tank + facts stack correctly on a narrow viewport could not be judged from the provided assets.",
+    "fix": "Re-capture the gas-sponsor mobile screenshot and verify the gauge+facts stack without crowding; the desktop horizontal layout suggests a stacked mobile variant is needed (.gas-hero-gauge has a mobile override at PlayArea.scss:540 \u2014 confirm it renders well)."
+   }
+  ]
+ },
+ {
+  "app": "gov-merc",
+  "verdict": "Polished green console with a strong hero scoreboard and well-structured action grid; desktop and mobile both render cleanly with no overflow. The weak spot is labeling clarity: the deposit/withdraw/bid action card is headed 'POOL STATS' (it contains forms, not stats), and the phrase 'Route governance' is reused three times, so the page reads slightly confused despite looking good.",
+  "round1_held": "Yes. Em-dash placeholders, the settle-window countdown/closed state, the staker-rewards/reclaim/withdraw-credit exit paths, the over-withdraw field error, and the friendly empty bid-leaderboard state all survive and render correctly.",
+  "findings": [
+   {
+    "title": "Action card mislabeled 'POOL STATS' \u2014 it holds the Deposit/Withdraw/Bid forms, not statistics",
+    "severity": "medium",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot: the card containing the 'Deposit NEO / Withdraw NEO / Place Bid' input forms carries the section eyebrow 'POOL STATS'. The actual pool statistics (TOTAL POOL, ACTIVE BIDS, CURRENT EPOCH) live in the hero scoreboard directly above it. Source: PlayArea.tsx:115 renders `<span>{t(\"poolStats\")}</span>` as the heading of the action panel, and messages.ts has `poolStats: 'Pool Stats'`.",
+    "fix": "Replace the action-panel eyebrow with an action-oriented label, e.g. add a key like `actionsTitle: 'Your actions'` (or 'Manage position') and use it at PlayArea.tsx:115 instead of `t(\"poolStats\")`. Reserve 'Pool Stats' for the scoreboard if a label is wanted there."
+   },
+   {
+    "title": "'Route governance' string reused 3 times (flow step 3, settle panel title, settle button)",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop screenshot shows 'Route governance' as flow step 03 label, as the right-column settle panel eyebrow ('ROUTE GOVERNANCE  #0'), and the settle button is the same text. Source: PlayArea.tsx:146 (`t(\"flowInfluence\")`), :163 (`t(\"settleTitle\")`), and :184 settle button also uses `t(\"flowInfluence\")`; messages.ts has both `settleTitle` and `flowInfluence` = 'Route governance'.",
+    "fix": "Give the settle button its own verb label (e.g. `settleAction: 'Settle epoch'`) at PlayArea.tsx:184 instead of `t(\"flowInfluence\")`, so the actionable button differs from the section title and flow step."
+   }
+  ]
+ },
+ {
+  "app": "council-governance",
+  "verdict": "The strongest app in the cluster. Hero with building icon + 4 stat tiles, a clear read-only access banner, a clean 3-segment tab pill, and a genuinely good loading state (skeleton rows + spinner with 'Loading proposals\u2026 Reading the latest entries from the governance contract'). Desktop and mobile both reflow well with no cramping.",
+  "round1_held": "Yes. The skeleton-based loading state (not a bare spinner), em-dash fallbacks in shortAddress/formatDate, the read-only access banner, and the create/vote/finalize/execute/revoke exit paths all hold up visually.",
+  "findings": []
+ },
+ {
+  "app": "quadratic-funding",
+  "verdict": "Functional grant console, but it is the visual odd-one-out of the cluster: the hero uses a lavender/purple gradient and a heart icon while every sibling app uses the green brand. On desktop the left 'Create Round' form is very tall while the right 'Funding Rounds' column is just a small 'No funding round selected' card, leaving a large empty void down the right side.",
+  "round1_held": "Yes. The success/error status banner, em-dash placeholders, the datetime field affordance, and the empty-ledger states for rounds/projects are present and render.",
+  "findings": [
+   {
+    "title": "Hero uses purple/lavender gradient + heart icon \u2014 breaks the cluster's green brand",
+    "severity": "medium",
+    "dimension": "consistency",
+    "evidence": "Desktop and mobile screenshots: the QF hero panel is tinted lavender and the badge is a heart. Every sibling here is green: gov-merc hero `linear-gradient(135deg,#fff,#e4f8f0)`, neo-swap `#fff\u2192#f1fbf6`, council `--ns-violet-soft` aliased to `#e4f8f0`. Source: PlayArea.scss:54-56 sets `linear-gradient(135deg, rgba(238,234,255,.72)...rgba(238,234,255,.42))`; FundingHero.tsx:34-36 is the heart path `M20.84 4.61...`.",
+    "fix": "In PlayArea.scss:54-56 swap the lavender stops for the brand gradient (`#ffffff 0%, var(--ns-brand-soft,#e4f8f0) 100%`) and recolor `.qf-hero-badge`/`.qf-hero-kicker` to brand-strong green. Replace the heart SVG in FundingHero.tsx with a funding-relevant glyph (coins/sprout/target) to match siblings."
+   },
+   {
+    "title": "Unbalanced columns on desktop: tall form left, near-empty right column",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the left 'Create Round' card runs the full height (title, asset, pool, two datetime fields, description, button) while the right column is a single short card 'No funding round selected' that ends high, leaving ~50% of the right column blank to the bottom of the form. Source: PlayArea.scss:217-219 `qf-content-grid` is `0.82fr / 0.38fr`; RoundList.tsx:55-59 renders only the small empty-ledger when `rounds.length === 0`.",
+    "fix": "When there are no rounds, either move the round list above the form on first paint, or fill the right empty-ledger card with onboarding guidance/example so the right column has comparable height; alternatively let the empty `qf-side-stack` not reserve a 0.38fr column until rounds exist (single-column until first round)."
+   }
+  ]
+ },
+ {
+  "app": "flashloan",
+  "verdict": "Dense, professional DeFi console \u2014 hero with lightning badge, 4-stat row, a two-up request/calculator workspace, liquidity panel, and lookup/history row all render cleanly on desktop and stack correctly on mobile. The one jarring detail is two different 'Unavailable' labels stacked at the top.",
+  "round1_held": "Yes. The amber service-notice ('Live pool stats are temporarily unavailable. Showing the last known values.'), the deposit-receipt field (mainnet), validation error slot, 'No executions yet' empty history, and 'No flash-loan transaction has been submitted in this session' all hold up.",
+  "findings": [
+   {
+    "title": "Two stacked 'Unavailable' labels \u2014 wallet chip value and amber banner title share the generic notAvailable string",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop and mobile screenshots: top-right chip reads 'WALLET REQUIRED / Unavailable', and immediately below the amber banner's bold title is also 'UNAVAILABLE'. Both come from `t(\"notAvailable\")` ('Unavailable'). Source: PlayArea.tsx:235 (`{address || t(\"notAvailable\")}`) and PlayArea.tsx:241 banner title `{t(\"notAvailable\")}`; messages.ts `notAvailable: 'Unavailable'`.",
+    "fix": "Give the amber banner a descriptive title key (e.g. `statsStaleTitle: 'Stats unavailable'` or 'Last known values') at PlayArea.tsx:241 instead of `t(\"notAvailable\")`, and for the disconnected wallet chip use a softer value like '\u2014' or 'Not connected' so the two banners don't both literally say 'Unavailable'."
+   }
+  ]
+ },
+ {
+  "app": "neo-swap",
+  "verdict": "Clean, focused swap UI with a clear router-unavailable notice and a tidy from/to/detail card; mobile stacks well. The main weakness is rate redundancy and a wasteful hero: the rate '1.951957' is shown big in the hero RATE box AND again in the EXCHANGE RATE detail tile AND in the execute note, and the hero RATE box stretches full width with the number on the left and a large empty void to the right.",
+  "round1_held": "Yes. The honest 'Swap router unavailable' route badge + amber notice, the disabled 'Swap router unavailable' CTA, the 'Rate as of HH:MM PM' timestamp/staleness line, and Balance: 0 empty states all render correctly.",
+  "findings": [
+   {
+    "title": "Exchange rate shown three times (hero RATE, detail EXCHANGE RATE, execute note)",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot: '1.951957' appears as the big hero 'RATE' value, and again as 'EXCHANGE RATE 1.951957' in the detail panel below the inputs; the execute note repeats min-received/slippage that already appear in the detail tiles. Source: SwapHero.tsx:46-49 renders the rate, PlayArea.tsx:193-196 renders the same `rateDisplay` as 'exchangeRate', and PlayArea.tsx:222-224 repeats minReceived/slippage.",
+    "fix": "Pick one canonical place for the live rate. Since the swap card already has the EXCHANGE RATE tile (PlayArea.tsx:193-196), drop the redundant hero RATE block (SwapHero.tsx:46-49) or replace it with a non-duplicative metric (e.g. 24h pair label/route), and trim the execute note (PlayArea.tsx:222-224) since min-received/slippage are already in the detail tiles."
+   },
+   {
+    "title": "Hero RATE box is full-width with the value left-aligned, leaving a large empty void",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the hero 'RATE 1.951957' tile spans the entire panel width with the number hard-left and roughly two-thirds of the tile empty to the right; the hero feels unbalanced. Source: SwapHero.scss:103-111 `.swap-hero-quote` is a full-width grid block; the hero panel itself is single-column (PlayArea.scss:46-56).",
+    "fix": "Constrain `.swap-hero-quote` to fit-content / inline-flex so the tile hugs its content, or convert the hero to a two-column layout (intro left, rate tile right) so the rate value isn't isolated in a wide empty box."
+   }
+  ]
+ },
+ {
+  "app": "aa-account-lab",
+  "verdict": "Clean, professional two-card workspace with a tight hero and clear field hierarchy. The one real flaw on desktop is a large empty void in the left 'Account Readiness' column: its 'Account state \u2014' placeholder is force-stretched to match the much taller right Register form, producing a tall dashed grey box that dominates the first paint. Mobile reflows correctly to a single column and looks good.",
+  "round1_held": "Yes. Em-dash placeholders ('Account state \u2014', derived accountId '\u2014'), the derived-accountId preview block, the amber mainnet-write caution, the backup-owner-must-sign alert, and disabled-CTA faded-violet styling are all present and rendering as intended.",
+  "findings": [
+   {
+    "title": "Left column's empty 'Account state' placeholder stretches into a tall dead zone",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the left 'Account Readiness' card shows a dashed grey box ~550px tall containing only the centered text 'Account state \u2014'. It is empty space matching the height of the right Register form (which has ~7 fields). PlayArea.scss:140-146 sets `.account-command .neo-card__content { height: 100% }` + `.account-command .account-form { flex: 1 1 auto }`, and .account-empty:246-261 has `flex: 1 1 auto` \u2014 so the first-paint empty state inflates to the full column height instead of sitting at its natural size.",
+    "fix": "Cap the empty/placeholder height so it doesn't track the taller sibling. Drop `height:100%`/`flex:1 1 auto` on the inspect column when nothing is inspected (e.g. give `.account-empty` a fixed `min-height: 180px; max-height: 240px` and remove the `flex:1 1 auto` that stretches it), or change `.account-workspace` from `align-items: stretch` to `align-items: start` so each card is its natural height."
+   },
+   {
+    "title": "Hero default-verifier hash is full-width but unlabeled as copyable/truncatable",
+    "severity": "low",
+    "dimension": "beauty",
+    "evidence": "Desktop screenshot: the 'DEFAULT VERIFIER' tile spans nearly the full hero width showing the entire 40-hex hash in mono, making the hero feel bottom-heavy and the hash visually shouty next to the small 'NETWORK mainnet' tile. PlayArea.tsx:184-189 uses `account-hero__stat--wide` with `flex: 1 1 220px` (scss:88-90) so it greedily fills the row.",
+    "fix": "Truncate the verifier hash with a middle-ellipsis (it already has `title` for the full value) or constrain `.account-hero__stat--wide` max-width so the two hero tiles read as a balanced pair rather than one tiny + one giant tile."
+   }
+  ]
+ },
+ {
+  "app": "aa-market-hub",
+  "verdict": "Hero with two metric tiles and a soft-green gradient looks polished. But the first paint has two real layout problems on desktop: the 'Load Listings' primary button renders as a bare spinner with no label (auto-load fires on mount), and the right half of the workspace is almost entirely empty \u2014 only a collapsed 'Shell-Only Transfer' disclosure sits alone in a wide column while 'Create Listing' occupies the left. The 'LIVE BOARD / Listings' heading appears at the very bottom with no visible empty-state beneath it. Mobile stacks cleanly and looks better balanced than desktop.",
+  "round1_held": "Yes. Em-dash/not-connected wallet status, invalid-hash inline error on Market Hash, disabled-button neutral styling, and the empty-state cards (badge + title + helper) are all present in code and render correctly.",
+  "findings": [
+   {
+    "title": "'Load Listings' primary button shows only a spinner with no label on first paint",
+    "severity": "high",
+    "dimension": "usability",
+    "evidence": "Desktop screenshot: the right button in the Wallet & Market row is a wide empty pill containing only a small spinner \u2014 no text. main.tsx auto-loads listings on mount so `isLoading=true`, and WalletConnectCard.tsx:63-71 binds `loading={isLoading}` which replaces the 'Load Listings' label with a spinner. A label-less wide button reads as broken/stuck, especially against the host API 404 in standalone where it spins indefinitely.",
+    "fix": "Keep the label visible while loading (render the spinner as an adornment next to the text, not in place of it), or don't auto-trigger the loading spinner on mount when no market is connected. At minimum, when `isLoading` show 'Loading\u2026' text so the control is self-describing."
+   },
+   {
+    "title": "Right workspace column is mostly empty; lone collapsed 'Shell-Only Transfer' floats with huge whitespace",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the `market-side-rail` is a 2-col grid (PlayArea.scss:165-170) \u2014 left holds the full 'Create Listing' form (~7 fields, very tall), right holds only the collapsed `<details>` 'Shell-Only Transfer' summary (PlayArea.tsx:192-196). The result is a single one-line disclosure stranded at the top of a tall empty right column, with ~700px of nothing below it.",
+    "fix": "When no listing is selected (no ManageListingCard), collapse the side-rail to a single column so Create Listing spans full width, or move the 'Shell-Only Transfer' disclosure under Create Listing in the same column. Only split into two columns once a ManageListingCard exists to fill the aux column."
+   },
+   {
+    "title": "'LIVE BOARD / Listings' heading renders with no empty-state visible beneath it",
+    "severity": "medium",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot bottom: the 'LIVE BOARD' eyebrow + 'Listings' heading appear at the very bottom edge with nothing rendered below. The no-market empty-state (`empty-state` with 'AA' badge, PlayArea.tsx:213-219) only renders when `!marketHash.trim()`, but the hero shows a market hash IS prefilled (0xae7afe\u2026), so the empty-state branch is skipped and listings are still loading \u2014 leaving the section heading orphaned with no list and no placeholder.",
+    "fix": "Render a loading-skeleton or 'Loading listings\u2026' placeholder in the list panel while `isLoading` is true so the 'Listings' heading is never followed by blank space. Currently only `!marketHash` and `listings.length===0 && !isLoading` produce visible states \u2014 the `isLoading` case has no placeholder."
+   }
+  ]
+ },
+ {
+  "app": "aa-permissions-lab",
+  "verdict": "The most balanced of the cluster \u2014 soft lavender hero, clear ACCOUNT INSPECTOR / LIVE STATE on the left and a PERMISSION UPDATE WORKFLOW stack (Update Verifier / Update Hook) on the right. Reads as a competent control room. The only desktop weakness is column imbalance: the left column ends well above the right, leaving notable empty space below the 'Current permissions' card. Mobile stacks cleanly.",
+  "round1_held": "Yes. NOT INSPECTED chip, 'Inspect an account to load its permissions' dashed empty-line, warn-style blocked captions, the not-backup-owner alert, and disabled write-CTA styling are all present and rendering correctly.",
+  "findings": [
+   {
+    "title": "Left column ends high, leaving a tall empty gap below 'Current permissions' on desktop",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the right column (Update Verifier card + Update Hook card) extends to ~920px while the left column (Account Inspector + Live State) stops at ~680px, leaving ~240px of empty canvas under the left 'Current permissions' card. `permissions-grid` uses `align-items: start` (PlayArea.scss:14-19) so columns are natural height and the shorter left column reads as unfinished against the taller right.",
+    "fix": "This is acceptable but could be tightened: either let the 'Current permissions' empty-line grow to consume some of the gap (min-height), or accept the natural-height layout. Low priority \u2014 not a broken state, just slight imbalance."
+   },
+   {
+    "title": "Hero eyebrow reuses 'permissionsMetricsLabel' key for a non-metrics header",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop hero eyebrow reads 'AA PERMISSION STATE'. PlayArea.tsx:148-150 sources it from `t(\"permissionsMetricsLabel\")` \u2014 a key named for metrics (an aria-label use elsewhere) but here driving the visible hero eyebrow. The text reads fine, but the semantic mismatch risks future copy edits to 'metrics' breaking the hero.",
+    "fix": "Introduce a dedicated `permissionsHeroEyebrow` locale key for the hero eyebrow instead of borrowing the metrics-label key, mirroring how aa-account-lab uses `accountHeroEyebrow`."
+   }
+  ]
+ },
+ {
+  "app": "aa-relay-console",
+  "verdict": "The strongest app in the cluster. A centered single-column flow (max-width 760px) with a tight hero, a labeled facts strip (NETWORK / RELAY ENDPOINT / AA CORE), and a logically ordered AA-address -> sponsorship -> payload -> submit form. Disabled CTAs read clearly as gated. Nothing looks broken on desktop. Mobile reflows the facts strip into stacked rows; the only nit is the 'AA CORE' fact wrapping its label awkwardly.",
+  "round1_held": "Yes. The single human-readable result line with tone dots (only shown after an action), the JSON-validity gating hint, localized service-unavailable mapping, and em-dash fallbacks for network/endpoint/core facts are all present and correct.",
+  "findings": [
+   {
+    "title": "'AA CORE' fact label wraps to two lines on mobile, misaligning the value",
+    "severity": "low",
+    "dimension": "mobile",
+    "evidence": "Mobile screenshot: in the facts card the third row shows 'AA' on one line and 'CORE' on the next, with the hash '0x0268a387913b250166ddec032b0\u2026' pushed to the right of the wrapped label. The two-word label breaking mid-fact looks unintentional versus the single-line 'NETWORK' and 'RELAY ENDPOINT' rows. `.relay-fact` (PlayArea.scss:89-99) is `display:flex; align-items:baseline` with no `white-space:nowrap` on the label, so the narrow mobile column wraps 'AA CORE'.",
+    "fix": "Add `white-space: nowrap` to the `.relay-fact` label portion (or wrap the label text in a span with nowrap) so 'AA CORE' stays on one line; let the mono hash value truncate with ellipsis instead (it already has `text-overflow: ellipsis` + `max-width`)."
+   }
+  ]
+ },
+ {
+  "app": "aa-session-key-lab",
+  "verdict": "Visually rich \u2014 three-metric status hero (Session / Sponsor / Scope), a two-step flow, expiry quick-chips, and a 'Latest Configuration' summary with a keyed empty-state. But the desktop two-column flow has a glaring imbalance: the left 'Key & Sponsorship' card has a large empty void between its three stacked buttons and the Paymaster/Sponsor fields that are force-pinned to the bottom, because the right 'Configure Session Key' card is far taller. Mobile stacks everything cleanly and actually looks more cohesive than desktop.",
+  "round1_held": "Yes. not-connected wallet status, em-dash metric fallbacks, configure-blocked hint, expiry preview, invalid-sponsor-amount error, the private-key reveal/copy export block, and the keyed 'Latest Configuration' empty-state are all present and rendering correctly.",
+  "findings": [
+   {
+    "title": "Left 'Key & Sponsorship' card has a large empty void from forced bottom-pinning of the sponsor fields",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the left card shows Wallet status + Generate Key + Check/Request Sponsorship buttons clustered at the top, then a big empty gap, then 'Paymaster dApp ID' / 'Sponsor Amount' fields pinned at the very bottom. PlayArea.scss:286-288 sets `.session-command .session-form--compact { margin-top: auto }` specifically to push those fields down to match the taller right column \u2014 but the result reads as two disconnected groups with dead space between, not a 'distributed' card.",
+    "fix": "Remove the `margin-top:auto` bottom-pinning and let the left card sit at its natural height (change `.session-flow-stack` to `align-items: start`), or move the dApp ID / Sponsor Amount inputs up directly beneath the action buttons so the sponsorship controls read as one contiguous group. The forced stretch is worse than a slightly shorter left column."
+   },
+   {
+    "title": "Three stacked full-width buttons in left card read as a heavy button wall",
+    "severity": "low",
+    "dimension": "beauty",
+    "evidence": "Desktop screenshot left card: 'Generate Key', 'Check Sponsorship', 'Request Sponsorship' are three identical full-width secondary buttons stacked vertically with no visual grouping or primary emphasis. `.session-action-grid` stacks them; none is the primary action (the real primary 'Configure Session Key' lives in the right card), so the left card opens with three equal-weight grey buttons and no clear entry point.",
+    "fix": "Group the two sponsorship buttons (Check / Request) into a 2-up row distinct from 'Generate Key' (the first step), and/or give 'Generate Key' subtle accent emphasis as the natural first action, so the left card has a clear visual sequence rather than three undifferentiated buttons."
+   },
+   {
+    "title": "'Configure Session Key' primary CTA contrast looks weak in its faded/disabled state on first paint",
+    "severity": "low",
+    "dimension": "a11y",
+    "evidence": "Desktop screenshot: the green 'Configure Session Key' primary button (right card) renders as faint green text on a very pale green fill while disabled (canConfigure is false until fields are filled). Against the white card it reads as low-contrast and easy to miss as the primary action. PlayArea.tsx:460-463 disables it via `!canConfigure`; the disabled primary uses the faded-violet/green soft fill pattern.",
+    "fix": "Bump the disabled primary CTA's text contrast (use the strong accent ink, e.g. #0fb174 at full weight on the soft fill) so the gated primary still passes ~4.5:1 and remains clearly the main action even before fields are complete."
+   }
+  ]
+ },
+ {
+  "app": "asset-factory",
+  "verdict": "Clean, professional two-column console: left form card, right output stack (Template deployment plan / Deploy checklist / On-chain creations / OneGate URL). Hierarchy reads well, the green diamond badge + DRAFT/DIGEST status box anchor the hero nicely, and the localized blocking-error + checklist 'BLOCKED' chips look intentional. Mobile reflows to a single column cleanly. Genuinely one of the better-looking apps in the cluster.",
+  "round1_held": "Yes. Localized blocking error ('Owner must be a Neo N3 address or Hash160.') renders as a clean bullet, the neutral DRAFT pill (not red 'blocked') is correct first-paint, the live-preview digest 'da325805eb' shows instead of an empty/error placeholder, and the OneGate URL is single-line ellipsised with a Copy affordance. No regressions.",
+  "findings": [
+   {
+    "title": "Right-column output cards repeat near-identical 'BLOCKED' state with no visual de-emphasis on first paint",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot: the Deploy checklist shows four stacked rows EACH with a red 'BLOCKED' chip (Validate inputs / Select on-chain template / Deploy NEP-17 from template / Bind domain and catalog metadata). Four red chips in a vertical run on a brand-new draft reads as an error wall rather than 'not started yet'. The hero already (correctly) shows a neutral grey DRAFT pill, so the red checklist contradicts the hero's calm tone.",
+    "fix": "In FactoryPlayArea.scss, give the first-paint/no-plan 'blocked' step a muted treatment (e.g. when no stored plan exists, render step chips with the neutral .is-draft palette \u2014 grey bg, muted text \u2014 rather than .domain-factory-step--blocked red). Reserve red specifically for steps blocked AFTER a generate attempt. This keeps the 'nothing wrong yet, just incomplete' read consistent with the hero pill."
+   },
+   {
+    "title": "Two disabled action buttons (Sign / Deploy) sit at very low contrast next to the enabled Copy button",
+    "severity": "low",
+    "dimension": "a11y",
+    "evidence": "Desktop screenshot, 'Template deployment plan' card action row: 'Copy template plan' is a solid secondary button while 'Sign template plan' and 'Deploy via factory' are pale grey-on-white. The label text on the two disabled buttons is faint enough that the available next-step (Sign after generate) is hard to perceive as an actual control. FactoryPlayArea.tsx:461-476 gates both on canSign/canExecute which are false at first paint.",
+    "fix": "Disabled buttons here are shared NeoButton styling, but you can add a single-line helper under the action row (FactoryPlayArea.tsx around line 478) that, when !storedPlan, reads e.g. t('generateFirstHint') \u2014 'Generate a template plan to enable signing and deployment.' so the greyed buttons have an explanation instead of just looking inert."
+   }
+  ]
+ },
+ {
+  "app": "nft-factory",
+  "verdict": "Visually identical layout to asset-factory (same shared FactoryPlayArea) and equally polished \u2014 left NEP-11 form (Collection name / Symbol / Max supply / Royalty bps with the '250 bps = 2.5% of each sale' helper / Base URI), right output stack. The royalty helper line is a nice touch and renders correctly. Mobile single-column reflow is clean. Looks professional and consistent with its sibling.",
+  "round1_held": "Yes. Royalty helper text, neutral DRAFT pill, localized 'Owner must be a Neo N3 address or Hash160.' blocking error, and ellipsised OneGate URL all present and correct. No regressions.",
+  "findings": [
+   {
+    "title": "Same first-paint red 'BLOCKED' checklist wall as asset-factory (shared component)",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop screenshot Deploy checklist: four red 'BLOCKED' chips stacked (Validate inputs / Select on-chain template / Deploy NEP-11 from template / Bind domain and catalog metadata) on a fresh draft, contradicting the neutral grey DRAFT hero pill. Identical to asset-factory because both render shared/factory/FactoryPlayArea.tsx.",
+    "fix": "Single fix in FactoryPlayArea.scss benefits all three factory apps: mute the step chip to the neutral .is-draft palette when no plan has been generated; keep red only for post-generate blocked steps."
+   },
+   {
+    "title": "'Royalty bps' helper renders but the relationship between Royalty bps and Max supply column isn't visually grouped",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot left form: 'Symbol' and 'Max supply' share a 2-up row, then 'Royalty bps' is a full-width field directly below with its helper. The eye reads Max supply (top-right) then jumps back left-and-down to Royalty bps, a slightly awkward zigzag for two numeric fields that conceptually pair (supply economics).",
+    "fix": "Optional: in FactoryPlayArea.tsx (nep11 branch, ~line 350-354) consider placing Royalty bps in the same 2-up row as Max supply (both are short numerics) and giving Base URI the full width, so the numeric pair groups visually. Low priority \u2014 current layout is functional."
+   }
+  ]
+ },
+ {
+  "app": "miniapp-factory",
+  "verdict": "Same shared FactoryPlayArea as the other two factories. NOTE: the desktop screenshot (/tmp/r2-shots/miniapp-factory.desktop.png) rendered the entire app into a tiny ~1/3-scale block in the top-left of a 1280px canvas \u2014 this is a standalone-capture scaling artifact, not a layout bug (the mobile shot renders normally and the layout code is byte-shared with asset/nft-factory which captured full-width). Mobile shot is clean: MiniApp Template form (MiniApp ID / MiniApp name / Template kind dropdown / Admin / Needs oracle toggle) under a normal hero. Judged on the mobile render + shared code, it looks consistent and professional.",
+  "round1_held": "Yes (verified via mobile shot + shared code). Neutral DRAFT pill, localized blocking error, template-kind select, em-dash placeholders all intact.",
+  "findings": [
+   {
+    "title": "Desktop screenshot is an unreadable miniature render (capture artifact, flagged for re-shoot)",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "/tmp/r2-shots/miniapp-factory.desktop.png: content occupies only the top-left quadrant at ~1/3 scale on an otherwise blank 1280x1521 canvas; text is too small to read. asset-factory and nft-factory (identical shared layout) captured correctly at full width, so this is a per-shot rendering/scale glitch, not an app defect.",
+    "fix": "No code change needed \u2014 re-capture this app's desktop screenshot. If it reproduces, check that this app's standalone harness mounts at the same root width as the sibling factories (the layout itself is the shared FactoryPlayArea and is sound)."
+   },
+   {
+    "title": "'Needs oracle' / 'Needs OneGate' toggles get less first-paint prominence than the data they gate",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Mobile screenshot bottom: the 'Needs oracle' toggle is an unchecked checkbox in a subtle grey tile, visually the quietest control in the form, yet it materially changes the generated template capability. On the shared form (FactoryPlayArea.tsx:378-381) the two toggles share a row with no description of what enabling oracle does.",
+    "fix": "Add a one-line sub-label under the miniapp toggles (or a hint prop) explaining the consequence, e.g. 'Oracle capability adds a price/data feed to the generated app.' so the toggle's impact is clear before generating the plan."
+   }
+  ]
+ },
+ {
+  "app": "neo-ns",
+  "verdict": "Attractive, restrained search-first console: globe badge + NAME SERVICE eyebrow + title, three stat tiles (0 DOMAINS / 0 EXPIRING / Disconnected WALLET) inline on the right, a prominent search field + green Search button, and a well-crafted empty-state card ('You don't own any domains yet' with centered globe badge + hint). First paint is clear and inviting. Mobile reflows the stats to a 3-up row above the search. This is one of the cleaner apps in the cluster.",
+  "round1_held": "Yes. The wallet status tile shows 'Disconnected' as a dot+text indicator (not a fake number), the search-result/owner rows and renew-confirm price disclosure exist in code, em-dash placeholders used (expiry '\u2014'), and the empty state is graceful and content-sized. No regressions.",
+  "findings": [
+   {
+    "title": "Wallet-status stat tile reads visually lighter/smaller than the two number tiles, breaking the tile row's rhythm",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot hero: 'DOMAINS' and 'EXPIRING' tiles show a bold 18px '0', but the third tile shows 'Disconnected' in 13px text with a small grey dot \u2014 so the third tile's primary line sits lower and lighter than its neighbors, making the row feel slightly unbalanced (the eye reads two strong numbers then a faint word). PlayArea.scss:88-92 sets .nns-stat__statusText to 13px/700 vs .nns-stat__value 18px/800.",
+    "fix": "Either bump .nns-stat__statusText to ~15px and vertically center it to match the numeric tiles' baseline, or visually separate the wallet indicator from the two count tiles (e.g. a thin divider or slightly different bg) so it's read as a status chip rather than a third 'metric' that happens to be undersized."
+   },
+   {
+    "title": "On mobile the 'Search Domain' label floats directly under the stats row with the same gap, so it reads as detached",
+    "severity": "low",
+    "dimension": "mobile",
+    "evidence": "Mobile screenshot: stats 3-up row, then the 'Search Domain' label, then the input+Search button. The row-gap between stats and the form label equals the gap inside the hero, so 'Search Domain' visually clings to the stats block above it instead of clearly heading the input below it.",
+    "fix": "In PlayArea.scss mobile block (@media max-width:640px) add a touch more separation between .nns-hero__stats and the search form (e.g. increase margin-top on .search-row, or move the stats into their own sub-card) so the 'Search Domain' label unambiguously belongs to the input beneath it."
+   }
+  ]
+ },
+ {
+  "app": "custom-anchor",
+  "verdict": "Polished gradient hero (mint-to-white) with the AA orbit badge, a clear WALLET ACTIONS panel, and carded metric tiles (Your stake / Claimable GAS / Reward reserve / Total staked) \u2014 overall a good-looking, well-organized app. BUT the first-paint action panel sends contradictory signals: the anchor input shows a RED invalid border, the primary 'Stake NEO' CTA is disabled-but-tinted-green (looks clickable), and a full-width GREEN 'Ready' status strip sits right below \u2014 so the panel simultaneously says 'error', 'go', and 'ready'. Mobile stacks the four action buttons full-width cleanly but inherits the same mixed-signal problem; the orbit badge shows '\u2014 AA' which looks like a broken glyph.",
+  "round1_held": "Partially. Good round-1 work survived: the anchor id is a true placeholder (not a pre-filled fake that could be submitted), the single filled-green primary CTA pattern, em-dash placeholders (Agents: \u2014, Last tx: \u2014), credit-recovery card gated to when there's something to reclaim, and the hover/focus states. HOWEVER the first-paint state still reads as conflicting (red input + disabled-green CTA + green 'Ready' strip) \u2014 that messaging coherence wasn't resolved.",
+  "findings": [
+   {
+    "title": "First-paint shows a green 'Ready' status strip while the form is non-actionable (empty/invalid anchor, disabled CTA, red input border)",
+    "severity": "medium",
+    "dimension": "ux",
+    "evidence": "Desktop AND mobile screenshots: the ANCHOR APPID input has a red/pink invalid border (aria-invalid, because anchorInput is the empty placeholder), the 'Stake NEO' primary button is rendered in the soft-green DISABLED state, yet a full-width green strip below reads 'Ready'. statusText resolves to workflowReady='Ready' (PlayArea.tsx:83,32) on first paint even though nothing can be submitted. The hero meanwhile says 'Open an anchor link' / 'Waiting for anchor' \u2014 so hero and action strip disagree.",
+    "fix": "When no valid anchor is entered/linked, make statusText reflect that instead of 'Ready', e.g. show t('anchorAwaitingLaunch')/'Enter or open an anchor link to begin' and render the strip in the neutral (non-green) variant. Only show the green 'Ready' strip once looseAnchorValid (or an anchor is linked). This aligns the strip with the hero and the disabled CTA."
+   },
+   {
+    "title": "Red invalid border on the anchor input at first paint with no inline message",
+    "severity": "low",
+    "dimension": "usability",
+    "evidence": "Desktop/mobile: the ANCHOR APPID field renders with a red border on load (aria-invalid={!anchorInputValid}, PlayArea.tsx:213) because the field is empty showing only the 'custom-anchor:team:nonce' placeholder. A red field on first load \u2014 before the user has typed anything \u2014 signals 'you made an error' when they haven't, and there's no helper text saying what a valid id looks like.",
+    "fix": "Only apply aria-invalid / the red border AFTER the user has typed something non-empty (e.g. aria-invalid={anchorInput.length > 0 && !anchorInputValid}, mirroring the pattern already used for the register field at PlayArea.tsx:390). Optionally add a muted format hint under the field ('Format: custom-anchor:team:nonce')."
+   },
+   {
+    "title": "Orbit badge displays '\u2014 AA' which looks like a broken/placeholder glyph",
+    "severity": "low",
+    "dimension": "beauty",
+    "evidence": "Desktop and mobile hero: the circular mint orbit badge shows an em-dash on top of 'AA' (displayedAgentCount is '\u2014' before an anchor is linked, PlayArea.tsx:48,192-194). A lone dash centered in a prominent circle reads as missing/erroring data rather than an intentional 'no agents yet' state, undercutting the otherwise premium hero.",
+    "fix": "Before an anchor is linked, render '0' (with a muted color) or a small AA-cluster icon/glyph in the orbit instead of the bare em-dash, so the badge always looks like a deliberate state. Reserve '\u2014' for inline facts where it reads as 'not applicable', not for the focal hero badge."
+   }
+  ]
+ },
+ {
+  "app": "trustanchor",
+  "verdict": "Desktop first paint is clean and professional: white hero with mint shield badge, a 0.00 NEO 'MY STAKE' score block, a 4-up stat row, and a two-column workspace (action card + ROUTE STATE aside). It reads well, but the ROUTE STATE card has an obvious mid-card vertical void and the empty state stacks three muted 'nothing here yet' rows in a row. Mobile shot was not generated, so mobile reflow could not be visually verified.",
+  "round1_held": "Yes \u2014 em-dash placeholder is used for the route-state heading ('\u2014'), the friendly 'No GAS accrued yet' hint and 'Ready for wallet action' status strip render, the recover-credit (exit-path withdraw) card is wired conditionally, and the action history empty state shows 'No wallet action submitted yet.' No regressions seen.",
+  "findings": [
+   {
+    "title": "ROUTE STATE card has a large empty void between the '\u2014' placeholder and the status rows",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the right ROUTE STATE card shows the eyebrow + a big '\u2014' placeholder at the top, then a wide band of empty mint-tinted space, then Status/Agents/Reward pool/GAS-per-NEO pushed to the very bottom. Code: .anchor-route-card uses align-content:start with min-height:100% (PlayArea.scss:449-453) while its dl has margin-top:auto (PlayArea.scss:485) \u2014 the card stretches to match the tall left status card and the auto margin opens a dead zone in the middle.",
+    "fix": "Remove `margin-top:auto` on `.anchor-route-card dl` (or change `align-content:start` to `space-between` intentionally with a divider) so the status rows sit directly under the placeholder, OR add a small filler (e.g. a one-line route description) between the heading and the dl so the card does not balloon. The cleanest fix is dropping the auto margin so content packs top and the card grows only to its content."
+   },
+   {
+    "title": "Stat chips show '0.00 GAS / 0.00 NEO' on first paint instead of the em-dash placeholder its sibling profitanchor uses",
+    "severity": "medium",
+    "dimension": "consistency",
+    "evidence": "Desktop screenshot: the 4 stat chips read CLAIMABLE GAS 0.00 GAS, TRACKED NEO 0.00 NEO, REWARD RESERVE 0.00 GAS, CLAIMABLE NEO 0.00 NEO before any data loads. Sibling profitanchor renders '\u2014' for the same not-yet-loaded state (profitanchor PlayArea.tsx:108-127 + .stat-value--placeholder). In trustanchor, main.tsx:54-85 derives every display as `formatNum(0)` with no loaded/placeholder distinction, so a genuine on-chain 0 is indistinguishable from data-not-loaded and the first paint looks like real zeros rather than 'waiting'.",
+    "fix": "Mirror profitanchor: gate the hero/stat displays on whether `stats` has loaded and render the em-dash placeholder ('\u2014') until then (e.g. `stats ? formatNum(...) : '\u2014'`), matching profitanchor's hasData pattern so the two sibling staking apps paint consistently."
+   },
+   {
+    "title": "Three stacked muted empty rows below the action buttons feel repetitive",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot: directly under the button grid there are three consecutive low-emphasis grey rows \u2014 'No GAS accrued yet', a status strip 'Ready for wallet action', and the action-history empty card 'No wallet action submitted yet.' Three near-identical muted blocks in a column dilute the visual hierarchy of the primary Stake action. Source: PlayArea.tsx:225-270.",
+    "fix": "Collapse the redundancy \u2014 e.g. only show the 'No GAS accrued yet' hint when the Claim button is the relevant action, and let the status strip OR the history empty-state carry the 'nothing yet' message rather than both. Reducing to one muted empty cue keeps the Stake CTA visually dominant."
+   }
+  ]
+ },
+ {
+  "app": "trustanchor-admin",
+  "verdict": "A genuinely strong operator console: three labelled command cards (Move NEO / Update candidate / Sync vote) on the left, a scrollable 21-agent directory and an Operator-rule safety card on the right, with a clean hero stat strip. Layout, rhythm and density are good on both desktop and mobile. The main blemish is that its hero badge treatment diverges from its sibling profitanchor-admin.",
+  "round1_held": "Yes \u2014 friendly labels and the 'CURRENT VOTE ROUTE None' preview survive, the agent directory shows a populated 21/21 list, and the Operator-rule card with three explicit guarantees renders. Inputs are pre-seeded sensibly. No regressions.",
+  "findings": [
+   {
+    "title": "Hero badge is a flat outline shield while sibling profitanchor-admin uses a gradient filled icon tile",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "trustanchor-admin desktop: the hero badge is a pale mint circle (#e4f8f0) with a thin green outline shield drawn from an inline SVG using currentColor (PlayArea.tsx:125-129, .anchor-admin-hero-badge background var(--anchor-accent-soft), PlayArea.scss:88-97). profitanchor-admin desktop: the badge is a vivid green gradient tile with a solid white up-arrow glyph via the shared <CategoryIcon name=\"finance\"> (profitanchor-admin PlayArea.tsx:93-99). The two sibling admin consoles share the same layout but present two different badge styles.",
+    "fix": "Pick one badge convention for the admin pair. Either give trustanchor-admin a filled gradient CategoryIcon (e.g. a 'security'/'shield' category icon) to match profitanchor-admin's polish, or downgrade profitanchor-admin to the same flat soft-accent inline glyph. Aligning them removes the family inconsistency."
+   },
+   {
+    "title": "Sync-vote 'Agent' field paints empty while the two sibling forms show pre-filled values",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot: Move NEO shows From 1 / To 2, Update candidate shows Agent 1, but the Sync vote Agent input is blank. Code: voteAgentId starts as '' and is only seeded from stats once they load (PlayArea.tsx:40-49); in the standalone/no-stats first paint it stays empty, so the third card looks half-finished next to the two pre-filled cards.",
+    "fix": "Seed voteAgentId with a sensible default (e.g. '1' or the placeholder shown in CURRENT VOTE ROUTE) until live stats arrive, keeping the voteAgentEdited guard so it still snaps to the on-chain route once data loads. This makes the three command cards paint with consistent example values."
+   }
+  ]
+ },
+ {
+  "app": "profitanchor",
+  "verdict": "The most polished of the staking pair: gradient-tinted hero with anchor badge, status pills ('Awaiting route' + '21/21 AA agents registered'), three em-dash stat chips, and a single-column action card with a well-built PREFLIGHT 'Review the wallet effect' panel and a full-width green Stake CTA. Visual hierarchy is clear and it reflows cleanly to mobile. Minor: the preflight left labels are low-contrast and the refresh icon button is easy to miss.",
+  "round1_held": "Yes \u2014 em-dash placeholders on the 3 stat chips, the localized 'Whole NEO amount is ready' inline status, deposit/wallet-effect preflight with the stake memo shown, and the friendly 'Ready for wallet action' status strip all render. No regressions.",
+  "findings": [
+   {
+    "title": "PREFLIGHT row labels are low-contrast muted grey on the subtle panel background",
+    "severity": "low",
+    "dimension": "a11y",
+    "evidence": "Desktop screenshot: in the PREFLIGHT panel the left-hand labels 'Whole NEO', 'AA route', 'Claimable GAS' are noticeably fainter than their right-hand values. Code: .anchor-preflight-summary dt uses color var(--ns-text-muted) #8a92a6 at 12px (PlayArea.scss:293-297) on a var(--ns-surface-subtle) #f7f8fa panel \u2014 roughly a 3.3:1 ratio, under the 4.5:1 AA threshold for normal text.",
+    "fix": "Darken the preflight dt labels to var(--ns-text-2) (#5b6478, ~5.7:1) \u2014 they are scannable metadata labels, not decorative, so they should clear AA. The values already use --ns-ink so the row stays visually weighted to the right."
+   },
+   {
+    "title": "Refresh action is a small bare icon button that reads like a loading spinner",
+    "severity": "low",
+    "dimension": "usability",
+    "evidence": "Desktop screenshot: top-right of the WALLET ACTIONS card is a small circular icon-only control that, at a glance, looks like a spinner rather than an affordance. Code: .anchor-refresh-button renders only the refresh SVG with aria-label/title but no visible text (PlayArea.tsx:210-223). Trustanchor by contrast exposes refresh as a labelled 'Refresh status' button.",
+    "fix": "Either add a visible 'Refresh' text label next to the icon, or give the button a clearer resting affordance (subtle border + hover tooltip is present but the resting state still reads ambiguous). Keeping the icon but adding a small label removes the spinner ambiguity on first paint."
+   }
+  ]
+ },
+ {
+  "app": "profitanchor-admin",
+  "verdict": "Clean, dense operator console with a nice touch the sibling lacks: a vivid gradient finance icon tile in the hero and a brand-tinted '21/21' directory header. Three command cards, a 21-agent directory, and an Operator-rule card all render well on desktop; mobile stacks the hero stats into a 2x2 and the Move NEO form reads cleanly. No notable layout defects.",
+  "round1_held": "Yes \u2014 friendly card copy, the 'CURRENT VOTE ROUTE None' preview, pre-seeded inputs, the agent directory and the three-guarantee safety list all render correctly. No regressions.",
+  "findings": [
+   {
+    "title": "Hero badge / directory-header accent treatment diverges from sibling trustanchor-admin",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "profitanchor-admin desktop shows a saturated green gradient icon tile with a white up-arrow (CategoryIcon name=\"finance\", PlayArea.tsx:93-99) and a green-tinted directory heading; trustanchor-admin desktop shows a flat pale-mint outline shield and a plain heading. Same admin layout, two different visual identities. (Counterpart finding logged on trustanchor-admin.)",
+    "fix": "Align the pair on one badge/header convention \u2014 see the trustanchor-admin finding. No change needed in profitanchor-admin if trustanchor-admin is upgraded to match; otherwise normalize both to the same treatment."
+   }
+  ]
+ },
+ {
+  "app": "neodid-passport",
+  "verdict": "Looks great and purposeful: gradient hero with a fingerprint badge and three metric tiles (Network / Resolver / Passports 0), a clear numbered 3-step route bar (Resolve DID / Build credential / Optional wallet proof), and a two-column workspace with a tidy form on the left and a centered 'Awaiting DID resolution' empty card on the right. Mobile stacks the hero, metrics and steps vertically with good spacing. This is a strong, demanding-designer-approved first paint.",
+  "round1_held": "Yes \u2014 em-dash/friendly empty state ('Awaiting DID resolution' with icon + helper copy), the 'Not signed' proof-status chip, localized alert lane, the disabled Sign Passport CTA (correctly inactive until a payload is built), and the degraded-runtime warning path all survive. No regressions.",
+  "findings": [
+   {
+    "title": "Left form column leaves a tall empty gap below the Reset button because the result panel is taller",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the form column ends at the 'Reset' link while the right result/empty panel (min-height 360px) extends much lower, leaving a visible blank band below the left column. Code: .neodid-passport__workspace uses align-items:start (PlayArea.scss:179) with the empty result panel at min-height:360px (PlayArea.scss:451). The asymmetry is expected behavior, but the void on the left is noticeable on a wide viewport.",
+    "fix": "Optional polish only: this is acceptable as-is (form should not stretch). If tightening is desired, reduce the empty-result min-height a touch (e.g. 300px) or anchor the empty card's vertical centering to the form height so the columns feel more balanced. Low priority \u2014 the empty state itself is well composed."
+   }
+  ]
+ },
+ {
+  "app": "neo-message",
+  "verdict": "Clean, legible compose form with a nice recipient-only/time-locked toggle and correct disconnected empty states. But the hero is the plainest in the cluster \u2014 bare text with no icon badge or eyebrow \u2014 and the 'Network: No EVM wallet detected' notice reads like body copy rather than a warning, so the first paint feels flatter and less branded than its siblings (private-transfer, soulbound, sign-anything all lead with an icon tile).",
+  "round1_held": "Yes. Em-dash placeholders, friendly empty states ('Connect your wallet to view your messages.'), localized network/error copy, and the byte counter (0/2000) all render correctly. No regressions.",
+  "findings": [
+   {
+    "title": "Hero lacks the icon badge + eyebrow every sibling app has",
+    "severity": "medium",
+    "dimension": "consistency",
+    "evidence": "Desktop + mobile shots: the neo-message hero is just an H2 'Encrypted & time-locked messages' over a gray subtitle, with no leading icon tile or uppercase eyebrow. Every other privacy-cluster app (private-transfer 'NEO N3 PRIVATE PAYMENTS' + lock tile, soulbound 'ISSUER WORKSPACE' + glyph, sign-anything 'WALLET-REVIEWED PROOF DESK' + pen tile, recovery-guardian shield tile + 'RECOVERY GUARDIAN') leads with a colored icon badge and eyebrow. PlayArea.tsx:130-133 renders only nm-hero-title + nm-hero-sub.",
+    "fix": "Add a 40-48px rounded accent badge (lock/envelope SVG in the app's #5b6ef5 accent) and an uppercase eyebrow (e.g. 'CONFIDENTIAL MESSAGING') above the H2 in .nm-hero, matching the sibling hero pattern. Wrap title+sub in a copy column beside the badge."
+   },
+   {
+    "title": "'No EVM wallet' network notice has no warning affordance",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop shot: the 'Network' card body 'No EVM wallet detected. Install MetaMask\u2026' is rendered in the same muted gray as ordinary helper text inside a plain white card \u2014 nothing signals it is a blocking precondition. PlayArea.tsx:136-138 uses a neutral NeoCard + .nm-network-warning which in PlayArea.scss:47-51 is just colored text, no border/background/icon.",
+    "fix": "Give .nm-network-warning a soft warning treatment (amber-tinted background like #fff4e5 with a small alert icon and an accent left border) so the disconnected/unsupported state reads as an action item, not body copy. The badge colors #fff4e5/#c47d18 already exist in this stylesheet for the 'locked' badge."
+   },
+   {
+    "title": "Note box muted text contrast is borderline",
+    "severity": "low",
+    "dimension": "a11y",
+    "evidence": "Desktop shot: the privacy note under the mode toggle ('The message is encrypted to the oracle key and stored on-chain\u2026') is very faint gray on a light gray fill. PlayArea.scss:141-149 sets color var --ns-text-faint #8a8fa0 on background #f6f7fb \u2014 roughly 3.2:1, under the 4.5:1 WCAG AA threshold for this 12px body text.",
+    "fix": "Bump the note text to --ns-text-muted (#6b7180) which clears AA on the #f6f7fb fill, keeping it visually secondary without dropping below the contrast floor."
+   }
+  ]
+ },
+ {
+  "app": "private-transfer",
+  "verdict": "The strongest-looking app in the cluster: branded hero with lock tile + eyebrow + green 'No on-chain zk curve dependency' badge, a balanced single-column form (grid--solo before sealing), tidy preset pills, and a clean numbered 4-step explainer. Desktop and mobile both read well. The 'Mainnet \u00b7 Degraded' default correctly surfaces the live oracle outage.",
+  "round1_held": "Yes. Network health badging (Degraded), em-dash/digest placeholders, validation hint dot ('Add a valid recipient and positive amount\u2026'), and the disabled seal button all render as intended. No regressions.",
+  "findings": [
+   {
+    "title": "Sealed-intents empty state is a lone centered line inside a tall card",
+    "severity": "low",
+    "dimension": "beauty",
+    "evidence": "Desktop shot: the 'SEALED INTENTS' card shows only the single dashed line 'Sealed transfer intents will appear here after you seal one.' with generous padding above/below, leaving the card feeling empty next to the dense form above it. PlayArea.tsx:645-647 renders .private-transfer__history-empty as a bare dashed box.",
+    "fix": "Add a small monochrome icon (a 'receipt'/lock glyph in the accent-soft tile already used by the hero/steps) above the empty text and tighten vertical padding, so the empty state matches the polish of the step cards rather than reading as dead space."
+   },
+   {
+    "title": "Network shown as 'Degraded' with no inline explanation in the select",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop shot: the Network select reads 'Mainnet \u00b7 Degraded' but nothing on first paint tells the user what Degraded means or that sealing may fail. The hero badge instead advertises 'No on-chain zk curve dependency' (a positive), so the only health signal is the terse select suffix from PlayArea.tsx:451-456.",
+    "fix": "When the selected network resolves to 'degraded', render a one-line inline hint under the select (reusing the existing __validation pill styling) such as 'Oracle key unavailable on this network \u2014 sealing is paused.' so the state is self-explanatory rather than a cryptic suffix."
+   }
+  ]
+ },
+ {
+  "app": "recovery-guardian",
+  "verdict": "Information-dense but coherent: shield-badge hero with three em-dash metric tiles, a 01/02/03 flow strip, a 'Recovery state' panel with a proper search-icon empty state, and a 'Prepare Recovery' side rail. It holds together, but the side rail is heavy (form + 6 link buttons) and one badge uses a placeholder-looking 'SR' text glyph. Mobile reflows cleanly to a single column.",
+  "round1_held": "Yes. Em-dash placeholders in metric tiles (Account/New Owner '\u2014', Expiry '30'), the 'Enter a valid account address or Hash160 before querying state.' guard hint, and the 'Awaiting query' idle pill all render correctly. No regressions.",
+  "findings": [
+   {
+    "title": "Risk-note badge uses a literal 'SR' text glyph that looks like a placeholder",
+    "severity": "medium",
+    "dimension": "beauty",
+    "evidence": "Desktop shot: the bottom risk note in the Recovery-state panel shows a green rounded tile containing the two letters 'SR' next to the safety copy. PlayArea.tsx:260-261 hardcodes <span>SR</span>; every other badge/tile in the app uses a proper SVG icon (shield, search). The bare initials read as an unfinished avatar stub, not an icon.",
+    "fix": "Replace the 'SR' text with an inline SVG (a shield/alert glyph consistent with the hero shield) inside .guardian-risk-note > span, or drop the tile and use a small warning icon \u2014 so the note matches the iconography used everywhere else in the app."
+   },
+   {
+    "title": "Prepare-Recovery side rail packs six identical secondary buttons in a 2x3 grid",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop shot: under the form the side rail shows six look-alike buttons (Open/Copy/Share Recovery Preview + Open/Copy/Share Recovery Credential) in a uniform grid with no grouping, making it hard to distinguish 'preview' from 'credential' actions at a glance. PlayArea.tsx:98-105 + 321-333 render all six in one .guardian-link-grid.",
+    "fix": "Split into two labeled subgroups ('Recovery preview' / 'Recovery credential'), each a row of Open/Copy/Share, and visually distinguish the primary 'Open' from the Copy/Share utilities (e.g. Open filled-soft, Copy/Share as compact icon buttons) to reduce the wall-of-buttons feel."
+   },
+   {
+    "title": "Hero/flow/workspace breakpoints collapse at 960px but desktop side rail can feel cramped between",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop shot at full width: the workspace right column min is 360px (PlayArea.scss:272 minmax(360px, 440px)) while it must hold a form with four inputs plus the six-button grid; the buttons' labels ('Open Recovery Credential') nearly fill their cells. At intermediate widths just above 960px this column is tightest before the single-column fallback kicks in.",
+    "fix": "Lower the link-grid to a single column when the side rail is under ~400px (a container/width query or an added 760-960px breakpoint), so the longer button labels never truncate or wrap awkwardly between the 960px collapse and full desktop."
+   }
+  ]
+ },
+ {
+  "app": "neo-sign-anything",
+  "verdict": "Polished two-panel signing desk \u2014 Message composer + Proof output side by side, a collapsible flow disclosure, and a right 'Transaction safety' rail with a clear Disconnected pill. The composer and proof cards look great. The one real eyesore is the desktop right column: the 'Transaction safety' card is short and the column beneath it is a large void because the layout aligns to the top instead of filling.",
+  "round1_held": "Yes. Disconnected status pill, 'No signature yet'/'No broadcast yet' empty states with disabled copy buttons, the local-hash file notice, and the 'wallet prompt opens when you sign' reassurance all render correctly. No regressions.",
+  "findings": [
+   {
+    "title": "Desktop right column is mostly empty under the short 'Transaction safety' card",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop shot: the right rail holds only the 'Transaction safety' card (header + two lines + a collapsed 'On-chain broadcast' disclosure), ending around y=250, while the left column runs to y=830 \u2014 leaving ~580px of blank canvas in the right column. PlayArea.scss:33-39 sets .sign-shell to a 2-col grid with align-items: start, so the short aside does not stretch and the gap is left bare.",
+    "fix": "Either expand the safety rail to fill (move the broadcast details inline/expanded, or surface the sign/broadcast route + 0 GAS + privacy rows that are currently hidden inside the <details> so the card has real height), or drop to a single-column stacked layout on desktop so the proof output sits directly under the composer with no dead column."
+   },
+   {
+    "title": "Proof output panel sits empty beside a much taller composer",
+    "severity": "low",
+    "dimension": "beauty",
+    "evidence": "Desktop shot: 'Proof output' shows only two short empty boxes ('No signature yet', 'No broadcast yet') and the panel bottom is blank from ~y=560 down to y=830, mirroring the composer's height only because of the card border. The first-paint balance is composer-heavy, proof-empty.",
+    "fix": "Give the empty Proof output a centered placeholder illustration/icon + one explanatory line ('Sign or broadcast a message to see its proof here.') vertically centered, so the empty panel reads as intentional rather than two stranded boxes at the top."
+   }
+  ]
+ },
+ {
+  "app": "soulbound-certificate",
+  "verdict": "Feature-rich issuer workspace that looks professional \u2014 green gradient identity badge, two-column workspace, a friendly robot 'Wallet not connected' illustration in Your Templates, and a complete Create Template form. The weakness is vertical balance on desktop: the left column's 'Issue Certificate' card is tall with a big empty stretch under the Issue button before 'Verify'/'My Certificates', so the two columns are noticeably uneven.",
+  "round1_held": "Yes. Em-dash placeholders, friendly empty states ('Certificates issued to this wallet will appear here.', 'Connect a wallet to load your certificate templates.'), the disabled Issue/Lookup buttons, and the robot illustration empty state all render correctly. No regressions.",
+  "findings": [
+   {
+    "title": "Uneven column heights leave a large white gap in the left workspace column",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop shot: the left column shows 'Issue Certificate' (ends ~y=1010) then 'Verify' then 'My Certificates', while the right column 'Your Templates' + 'Create Template' ends ~y=1010 \u2014 but the Issue card itself carries a tall empty stretch below its Issue button before Verify begins, and 'My Certificates' (a single empty line) trails far down at ~y=1430 with the right column already finished. The 2-col grid (PlayArea.scss:204-208, align-items: start) lets the columns drift out of balance.",
+    "fix": "Rebalance the masonry: move 'Verify' and/or 'My Certificates' into the right column under 'Create Template' (or use a 3-stack distribution) so neither column has a long empty tail. Alternatively cap the Issue card height and let the disconnected state fill it, removing the gap between Issue and Verify."
+   },
+   {
+    "title": "Disabled Issue / Lookup buttons render as washed pale-green text with weak contrast",
+    "severity": "low",
+    "dimension": "a11y",
+    "evidence": "Desktop shot: the disconnected-state 'Issue' button (pale mint fill, faint green label) and the 'Lookup' button read as very low-contrast \u2014 the green-on-mint label is hard to see and gives little signal that it is intentionally disabled vs. broken. These are the primary NeoButtons at PlayArea.tsx:370-378 / 485-492 in their disabled state.",
+    "fix": "Style the disabled primary state with a neutral gray fill + gray label (clearing ~4.5:1) instead of pale-green-on-mint, so disabled reads unambiguously and the label stays legible; keep the green only for the enabled/active state."
+   },
+   {
+    "title": "Left 'Selected template' chooser and Template-ID input are redundant on first paint",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop shot: the Issue panel shows a 'SELECTED TEMPLATE \u2014 Choose a template or enter an ID' strip, then a greyed 'Connect a wallet to load your certificate templates.' box, then a 'Template ID' input prefilled '1' \u2014 three stacked ways to specify the same template before anything is connected, which is a lot of redundant UI for the empty state. Driven by PlayArea.tsx:282-328 (selected-template + template-picker + templateId field).",
+    "fix": "In the disconnected/empty state, collapse to just the Template ID input (the picker has nothing to show anyway) and reveal the 'Selected template' summary strip only once a template is actually picked, reducing the empty-state clutter."
+   }
+  ]
+ },
+ {
+  "app": "event-ticket-pass",
+  "verdict": "Genuinely strong: a clean white hero with eyebrow/title/subtitle, three pill flow-steps, a wallet status card with a real Connect Wallet button, and a well-balanced two-column create/events workspace. The full-width Issue/Check-in desk and My Tickets panels read clearly even empty. The one real visual flaw is the disabled 'Issue' CTA rendering as a fully-saturated green bar that looks clickable.",
+  "round1_held": "Yes. Em-dash placeholders (short() returns '\u2014'), localized workflow status ('Ready'), wallet-not-connected label, friendly empty states with icons, and the staleness guard that clears a prior lookup when the check-in token id changes are all present and rendering correctly in the screenshots.",
+  "findings": [
+   {
+    "title": "Disabled primary CTAs ('Issue', transfer) stay solid green and read as enabled",
+    "severity": "medium",
+    "dimension": "usability",
+    "evidence": "Desktop screenshot: the 'Issue' button under the Issue Ticket form is a full-width, fully-saturated bright-green bar identical to an enabled CTA, yet with no event selected and no recipient it is disabled (PlayArea.tsx:334 disabled={!canIssueTicket}). The cause: PlayArea.scss:634 `.ticket-play-area .neo-btn--primary{background:var(--tk-accent)}` has higher specificity than the shared `.neo-btn:disabled` grey reset (NeoButton.scss:25), so disabled primaries keep the green fill. Sibling apps timestamp-proof and graveyard explicitly add a soft-green :disabled tint; this app does not, so it's inconsistent and the affordance is misleading.",
+    "fix": "Add a disabled rule mirroring the siblings, e.g. in PlayArea.scss: `.ticket-play-area .neo-btn--primary:disabled{background:var(--tk-accent-soft);color:var(--tk-accent-strong);box-shadow:none;opacity:.85;}` so the disabled Issue/Transfer CTAs read as a soft, non-clickable state."
+   },
+   {
+    "title": "Hero subtitle/body has no text below it, leaving the left hero column visually top-heavy",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the hero left column ends right after the three flow pills, while the right wallet card + Connect button sits noticeably lower, so the two hero columns have unequal visual mass with empty space under the flow pills. The grid is `align-items: stretch` (PlayArea.scss:27) but the content doesn't fill the height.",
+    "fix": "Minor; either vertically center the wallet side (`.ticket-hero__side{justify-content:center}`) or let the flow-pill row anchor to the bottom of the copy column so both columns terminate at a similar baseline."
+   }
+  ]
+ },
+ {
+  "app": "timestamp-proof",
+  "verdict": "Clean and centered at max-width 760px so the desktop canvas doesn't feel empty. Hero card, three stat tiles (0/0/\u2014), Create and Verify cards, and a friendly 'No proofs yet' empty state with an accent badge all render well. The one jarring thing is the duplicated 'Enter content to timestamp' string and the soft-green disabled Create button which together look like a half-broken control.",
+  "round1_held": "Yes. The em-dash for Latest ID (PlayArea.tsx:30 maps 'N/A'/empty to '\u2014'), soft-green disabled CTA tint (PlayArea.scss:79), input-preserved-on-failure create handler, and verify-error clearing are all present and visible.",
+  "findings": [
+   {
+    "title": "'Enter content to timestamp' is shown twice \u2014 as the textarea label and again as a hint under the button",
+    "severity": "medium",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot: the textarea is labelled 'Enter content to timestamp', and directly under the (disabled) Create Proof button the exact same sentence 'Enter content to timestamp' is repeated as bold helper text. Code: PlayArea.tsx:64 uses t('enterContent') as the input label, and PlayArea.tsx:92 renders the same t('enterContent') as the .proof-cta-hint. Reading the identical phrase twice within one card looks like a bug, not guidance.",
+    "fix": "Give the hint its own copy that says why the button is disabled, e.g. a new key like 'createDisabledHint' = 'Add some text above to enable timestamping', instead of reusing t('enterContent') at PlayArea.tsx:92."
+   },
+   {
+    "title": "Disabled Create button hint sits centered and floats with no anchoring to the input",
+    "severity": "low",
+    "dimension": "beauty",
+    "evidence": "Desktop screenshot: the soft-green disabled 'Create Proof' button plus the centered hint below create a stack of three center-aligned green-tinted elements (textarea border, button, hint) that reads slightly unbalanced against the left-aligned label above. The hint (PlayArea.scss:88 text-align:center) doesn't match the left-aligned field label rhythm.",
+    "fix": "If keeping the hint, left-align it under the field or attach it as the NeoInput hint prop so it sits with the input rather than below the CTA."
+   }
+  ]
+ },
+ {
+  "app": "forever-album",
+  "verdict": "The hero is attractive (gradient wash, icon badge, clear 3-step timeline) and the 4-tile vault strip is clean. The weak spot is the 'Memory upload' card's internal two-column layout: a nested 'Album' sub-card (empty, very short) on the left next to a much taller 'Choose images' uploader on the right, producing a lopsided grid with a large empty gap under the Album card and a redundant card-inside-a-card frame.",
+  "round1_held": "Yes. Localized upload readiness states (passwordRequired/totalTooLarge/readyToSave), the upload error alert block, the size meter, em-dash-free byte formatting, and the local-storage note are all present and the bound limit now reads from maxTotalBytes (PlayArea.tsx:69).",
+  "findings": [
+   {
+    "title": "Lopsided columns inside 'Memory upload': short empty Album card vs tall uploader leaves a big empty gap",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: inside the 'Memory upload' card the left 'Album' sub-card shows only the one-line empty placeholder ('No photos yet \u00b7 Save your first memory\u2026') and ends high up, while the right 'Choose images' column (dropzone + 0/60KB + encrypt toggle + note) is roughly 2x taller, so the bottom-left quadrant is a large blank void. Grid defined at PlayArea.scss:230 `grid-template-columns: minmax(0,1fr) minmax(280px,0.62fr); align-items:start`.",
+    "fix": "Either make the Album card span full width above the uploader when empty (stack instead of side-by-side until there are photos), or give the empty AlbumGrid a min-height that matches the uploader column so the two columns terminate together."
+   },
+   {
+    "title": "Card-inside-a-card: 'Album' NeoCard nested inside the 'Memory upload' NeoCard reads as double-framing",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop screenshot: 'Memory upload' is a white bordered card; immediately inside it the AlbumGrid renders another titled white card ('Album') with its own border/shadow (AlbumGrid.tsx:21 NeoCard title=albumTab; AlbumGrid.scss adds border + shadow). Two stacked card chromes inside one card looks heavier than the flat right-hand uploader panel, and the 'Album' title duplicates the section's intent.",
+    "fix": "Render the album area as a plain panel (drop the inner NeoCard border/shadow, keep just the gallery/empty content) so there's a single card frame around the upload workspace."
+   }
+  ]
+ },
+ {
+  "app": "graveyard",
+  "verdict": "Solid and atmospheric: tombstone icon badge, R.I.P eyebrow, three hero stat tiles, a two-column Burial Chamber / Burial Records layout, a clear write/hash toggle, tag chips, and a red 'Permanent record' warning. align-self:start correctly stops the empty Records card from stretching. Reads professional; only small polish items remain.",
+  "round1_held": "Yes. The soft-green disabled burial CTA (PlayArea.scss:488 .destroy-form .neo-btn--primary:disabled tints brand-soft), the danger warning note, the local-hash preview, and the friendly 'No burial records yet' empty state with icon are all present and visible.",
+  "findings": [
+   {
+    "title": "Right column 'Burial Records' empty card is much shorter than the tall left chamber, leaving a long blank right rail",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the left 'Burial Chamber' card runs the full height (toggle + textarea + tags + warning + CTA) while the right 'Burial Records' card is a short box with just the empty-state icon and 'No burial records yet', so the entire lower-right area of the canvas is empty. Grid is two equal columns (PlayArea.scss:130-135) with align-self:start, so the right card floats at the top.",
+    "fix": "Acceptable as-is, but to balance the first paint consider giving the empty records card a taller min-height (~the chamber's) or adding a short helper line under 'No burial records yet' (e.g. 'Buried memories will appear here.') so the right column isn't a near-empty box."
+   },
+   {
+    "title": "'Refresh Records' control is plain low-contrast text with no button affordance",
+    "severity": "low",
+    "dimension": "usability",
+    "evidence": "Desktop screenshot: in the Burial Records header, 'Refresh Records' sits as muted grey text next to a small '0' count chip, with no border, icon, or fill \u2014 it doesn't read as an interactive control compared to the clearly-styled buttons elsewhere in the app.",
+    "fix": "Give the refresh action a ghost-button treatment with a refresh icon (matching event-ticket-pass's 'REFRESH' ghost buttons) so it reads as clickable."
+   }
+  ]
+ },
+ {
+  "app": "memorial-shrine",
+  "verdict": "The hero is well composed \u2014 heart badge, MEMORIALS eyebrow, title, subtitle, a green Create Memorial CTA, and a clean 4-tile stat strip. But the empty first paint is weak on desktop: the hero + a single wide, ultra-short 'No memorials yet' card occupy only the top ~35% of the canvas, leaving a very large blank area below that makes the page feel unfinished.",
+  "round1_held": "Yes. Stats show clean 0s, the dashed em-style empty card with italic 'No memorials yet. Create the first one above.' is present (PlayArea.tsx:340), inline year validation and the chain-receipt block are coded, and the single green accent hue is consistent.",
+  "findings": [
+   {
+    "title": "Empty-state desktop first paint is top-heavy: tiny one-line empty card under the hero with a huge blank canvas below",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: after the hero card, the only other element is a wide, very short dashed card containing a single italic line 'No memorials yet. Create the first one above.'; everything sits in the top third and the lower ~65% of the frame is empty white. The empty card (.empty-memorials, PlayArea.scss:471) has padding 40px/20px but no min-height and no illustration/icon, so it collapses to one text line and looks unbalanced.",
+    "fix": "Match the sibling pattern: give .empty-memorials a centered icon badge (heart glyph) above the text and a larger min-height (e.g. 180px), and/or constrain .memorial-play-area to a narrower max-width on desktop so the empty state doesn't sit in a vast blank canvas. timestamp-proof's .empty-state (badge + text + hint) is a good template."
+   },
+   {
+    "title": "Empty memorials card lacks the inline create affordance the copy promises",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot: the empty card says 'Create the first one above.' pointing back up at the hero's Create Memorial button, but the card itself has no action \u2014 unlike graveyard/forever-album/event-ticket empty states which place a button right in the empty zone. The eye has to travel back up to the hero.",
+    "fix": "Add a small secondary 'Create Memorial' button inside .empty-memorials that calls the same setShowCreateForm(true), so the empty state is self-contained like the sibling apps."
+   }
+  ]
+ },
+ {
+  "app": "time-capsule",
+  "verdict": "Clean, calm two-column form. The left create-capsule form is genuinely nicely laid out; round-1 deposit/storage notes and em-dash placeholders are present. The main rendered flaw is a badly unbalanced desktop grid: the right column (Fish + Your Capsules) is short and the empty 'No capsules yet' card leaves a large white void at bottom-right while the left form runs much longer.",
+  "round1_held": "Yes. Refundable-deposit note ('The 0.2 GAS is a refundable deposit... not a spent fee'), local-storage note, friendly empty state, and disabled CTA soft-tint all present and visible in the screenshot.",
+  "findings": [
+   {
+    "title": "Desktop columns badly unbalanced \u2014 tall form vs short right stack leaves a large empty void",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop shot: left 'Create New Capsule' card runs from ~y240 down past y900 to the CTA, while the right column ('Fish a Capsule' ~y245-410 + 'Your Capsules' ~y440-665) ends at ~y665, leaving roughly 250px of blank canvas under the right column. The two columns terminate at very different heights, making the page look top-heavy on the right.",
+    "fix": "In PlayArea.scss the desktop grid is minmax(0,1.15fr)/minmax(320px,0.85fr). Either (a) make the right .capsule-side-panel align-self:stretch and let 'Your Capsules' min-height grow to fill, or (b) move 'Fish a Capsule' to sit beside the hero / reduce the right column to a single sticky panel. Simplest: add min-height to the empty 'Your Capsules' card so the short empty state visually fills the column, and consider position:sticky;top:16px on .capsule-side-panel so the gap reads intentional."
+   },
+   {
+    "title": "Empty 'Your Capsules' state is a bare tinted circle with no icon or CTA",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop + the CapsuleList empty render: a plain pale-green filled circle sits above 'No capsules yet. Create your first one!' with no glyph inside the circle and no affordance \u2014 it reads as a loading placeholder rather than an intentional empty illustration.",
+    "fix": "In components/CapsuleList give the empty-state circle a lock/capsule SVG glyph (matching the unbreakable-vault empty-state which uses a lock icon) so the empty state looks designed, not mid-load."
+   }
+  ]
+ },
+ {
+  "app": "unbreakable-vault",
+  "verdict": "Hero and create form look sharp. The weak spot is the stat row: the two stat tiles render as a bare big number + tiny caption floating inside full-width white cards with almost no visual weight, so 'MY VAULTS / OPEN VAULTS' read like stray text rather than metric tiles \u2014 noticeably less polished than the boxed stat tiles in sibling apps (time-capsule, daily-checkin). Right column also ends well above the left, leaving empty space.",
+  "round1_held": "Yes. Secret/confirm-secret with mismatch guard, min-bounty note, 'Secret is hashed locally...' note, soft-tinted disabled CTA, and the lock-icon 'No vaults found' empty state are all present.",
+  "findings": [
+   {
+    "title": "Stat tiles read as floating text, not tiles \u2014 number left-aligned in an oversized empty white card",
+    "severity": "medium",
+    "dimension": "beauty",
+    "evidence": "Desktop shot: '0 / MY VAULTS' and '0 / OPEN VAULTS' each occupy a full-width white card (~y150-230) but the content is just a top-left big '0' with a tiny uppercase label under it and a vast empty right side. There's no fill, accent, or centering \u2014 they look like unstyled leftovers compared to the gradient hero directly above and the framed Create/Break cards below.",
+    "fix": ".vault-stat in PlayArea.scss is padding 16-18px on plain white; the cards are far wider than their content. Either constrain the .vault-stats grid width / center it, or restyle .vault-stat with a subtle surface-subtle background + accent number treatment like daily-checkin's .checkin-stat-item, and reduce the tile width so the number and label aren't stranded against a wide blank."
+   },
+   {
+    "title": "Right column (Break + Recent Vaults) ends far above the tall Create form, leaving a blank lower-right",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop shot: left 'Create Vault' card runs to the CTA at ~y965, while the right column 'Break a Vault' (~y250-455) + 'Recent Vaults' (~y480-720) stops at ~y720, leaving ~240px empty under it. Same imbalance pattern as time-capsule.",
+    "fix": "vault-grid is two equal 1fr columns with align-items:start. Consider letting the Recent Vaults panel grow (min-height) or stacking the right column under a sticky position so the void reads intentional; alternatively move Recent Vaults to a full-width row beneath the two-column block."
+   }
+  ]
+ },
+ {
+  "app": "daily-checkin",
+  "verdict": "Information-rich and mostly well composed \u2014 the streak hero, week tracker, Today Plan, milestone ladder and global stats all render cleanly. But the primary action card is broken-looking on first paint: two of the three action buttons show only a bare loading spinner with NO label, flanking the single labeled 'Claim Rewards (0 GAS)' button, so the most important control on the screen looks half-rendered.",
+  "round1_held": "Yes for content \u2014 friendly Today-Plan copy, em-dash-free zero states, milestone ladder, evidence accordion, 'Best: 0 Days' all present. But the round-1 disabled-CTA soft-tint fix is undermined visually because the buttons are stuck in loading (spinner) state, not disabled-tinted state, at first paint.",
+  "findings": [
+   {
+    "title": "Action card shows two unlabeled spinner buttons flanking Claim Rewards on first paint \u2014 looks half-loaded",
+    "severity": "high",
+    "dimension": "usability",
+    "evidence": "Desktop + mobile shots: the action card (the green-tinted card after the week tracker) renders three slots as [spinner] [Claim Rewards (0 GAS)] [spinner] \u2014 the left check-in button and the right refresh button display only a centered loader with no text. PlayArea.tsx passes loading={isLoading} to both the check-in NeoButton (line ~190) and the refresh NeoButton (line ~213), and isLoading is true while the first chain read is in flight, so both labels are replaced by spinners while the hero pill also says 'Loading\u2026'.",
+    "fix": "Don't put the check-in and refresh buttons into spinner state for the initial status load. Gate their `loading` on action-specific flags (e.g. a separate isCheckingIn / isRefreshing) rather than the global isLoading, OR while !hasLoadedStatus render them disabled with their text label ('Check in' / 'Refresh') instead of loading={isLoading}. The text label should never disappear during background hydration."
+   },
+   {
+    "title": "Three-button action grid (1fr 1fr auto) makes Refresh a cramped icon-only-feeling third column",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop shot: grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto means the refresh button (3rd col) is much narrower than the other two; with its label hidden by the spinner it collapses to a tiny ~50px pill at the right edge, visually orphaned from the two wide buttons.",
+    "fix": "Either give the refresh button equal width (3 equal columns) or move it out of the primary action row entirely (e.g. a small text/icon 'Refresh' link in the card header, mirroring automation-copilot's header Refresh), so the primary row is just Check-in + Claim at full width."
+   }
+  ]
+ },
+ {
+  "app": "neo-x-bridge",
+  "verdict": "The most polished of this cluster. Green-accent console reads cleanly: gradient hero, paired Neo N3 <-> Neo X chain cards, route summary strip, Asset/Message/Track segmented control, amount + destination form, and footer doc links all render crisply on both desktop and mobile. No broken or empty-looking regions.",
+  "round1_held": "Yes. Em-dash placeholders for unset DIGEST/AMOUNT/RECIPIENT are present and correct (lastDigest defaults to '\u2014', confirmed in PlayArea.tsx line 97-101); the route summary shows 'Neo N3 -> Neo X' with clean dashes.",
+  "findings": [
+   {
+    "title": "Route-summary strip has four columns but two are filled and two are em-dashes, leaving the right half looking empty before input",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop shot: the top summary row shows ROUTE 'Neo N3 -> Neo X' and BRIDGE TYPE 'Asset Bridge' / STATUS 'Bridge console ready' filled, but DIGEST (far right) is a lone '\u2014'. Lower in the workspace the second summary row (ROUTE / AMOUNT / RECIPIENT) has AMOUNT and RECIPIENT both as '\u2014'. The dashes are correct empty states but two near-identical route-summary strips both leading with 'Neo N3 -> Neo X' is slightly redundant.",
+    "fix": "Optional: drop the DIGEST column from the top hero strip until a handoff is prepared (it only becomes meaningful post-prepare), or merge the two route summaries so 'Neo N3 -> Neo X' isn't repeated twice on first paint. Not a defect, just a redundancy/empty-column tightening."
+   }
+  ]
+ },
+ {
+  "app": "automation-copilot",
+  "verdict": "Clean, professional console. Two-column layout (Recipe Builder left, Trigger Status + numbered Automation Route right) is balanced and the green 'Register Trigger' CTA is the clear primary. Selects, schedule presets (Hourly/Every 6h/Daily), and the empty Trigger Status state with power-icon + 'Register or refresh a trigger...' all render well on desktop and mobile.",
+  "round1_held": "Yes. The honest gateway-fallback note ('Gateway fallbacks are labeled as handoff intents, not successful triggers') is present and the empty Trigger Status uses a friendly icon + copy, not a bare spinner.",
+  "findings": [
+   {
+    "title": "Collapsed 'Payload' card sits alone at the bottom with empty canvas below it on desktop",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop shot: after the two-column block ends (~y730), the full-width 'Payload ... DETAILS v' card appears at ~y790 as a thin collapsed strip, and below it is empty page to the bottom edge (~y870). The collapsed payload bar floating under the much taller two-column block reads as a slightly orphaned footer.",
+    "fix": "Either keep the Payload details open by default (so the bottom region has content), or visually tie the collapsed Payload bar to the workspace card above it (shared container / reduced gap) so it doesn't look like a stranded strip on otherwise empty canvas."
+   }
+  ]
+ },
+ {
+  "app": "explorer",
+  "verdict": "Clean, well-organized first paint: a calm hero with N3 badge, a prominent search card with a real Mainnet/Testnet pill toggle, a tidy 4-up metrics strip and a recent-tx empty state. Desktop looks professional; mobile reflows correctly with the toggle stacking. The weak spots are all in the resting/empty state \u2014 four em-dash tiles plus a bare-label empty card read a touch sparse, and the disabled Search button is very low-contrast.",
+  "round1_held": "Yes. Em-dash placeholders are present across the metrics strip and recent-tx tiles (PENDING_PLACEHOLDER, is-pending styling), the inline 'Please enter a search query' hint renders under the search box, and the recent-transactions empty-state guidance card survives. No regressions visible.",
+  "findings": [
+   {
+    "title": "Disabled Search button is near-invisible \u2014 looks broken, not disabled",
+    "severity": "medium",
+    "dimension": "usability",
+    "evidence": "Desktop screenshot: the full-width 'Search' button below the input renders as light-gray text on a near-white fill \u2014 the label barely reads and the button looks like an empty bar rather than a deliberately disabled CTA. This is the first-paint state (empty query), so it is the first thing a user sees under the search field.",
+    "fix": "In SearchPanel.scss give the disabled primary search button a clearer resting treatment (e.g. a subtle filled surface --ns-surface-subtle with --ns-text-2 label and a 1px border) so it reads as a real, intentionally-inactive control. Alternatively darken the disabled label to meet ~4.5:1 against the fill."
+   },
+   {
+    "title": "Recent-transactions empty state shows three bare word-pills with no instruction",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop screenshot, bottom card: left column reads 'NO RECENT TRANSACTIONS LOADED / Run a search or refresh chain data...', and the right column is three gray boxes containing only 'Tx hash', 'Address', 'Contract' (locale keys explorerTipTx/Address/Contract in messages.ts are single words). With no leading label like 'You can look up:' they look like inert chips rather than guidance on what is searchable.",
+    "fix": "In RecentTransactions.tsx add a small eyebrow above the <ul> (e.g. t('explorerSearchableTypes') = 'Search by') so the three pills read as a captioned 'searchable types' list, or expand each locale string to a short phrase ('Transaction hash', 'Account address', 'Contract hash')."
+   },
+   {
+    "title": "First-paint metrics strip is four identical em-dash tiles \u2014 low information scent",
+    "severity": "low",
+    "dimension": "beauty",
+    "evidence": "Desktop screenshot: BLOCK HEIGHT, TRANSACTIONS, RECENT TXS, SEARCH RESULT all show the same '\u2014'. Four uppercase labels over four identical dashes reads flat and gives no sense the explorer is live before data lands.",
+    "fix": "Acceptable as a standalone empty state, but the strip would feel more alive if the live BLOCK HEIGHT / TRANSACTIONS figures (mainnetHeight/mainnetTxCount already fetched on mount via loadAll) were not also collapsed to '\u2014' by isPendingFigure treating '0' as pending. Consider only collapsing truly-absent ('N/A') values so real chain figures show on first paint when the standalone fetch succeeds."
+   }
+  ]
+ },
+ {
+  "app": "neo-convert",
+  "verdict": "The two cards (hero with Generate action + Convert Key) are clean and the green primary buttons read well, but the page is short \u2014 content ends around 450px and the bottom ~55% of the desktop viewport is empty white space, making the tool feel unfinished/floating. Mobile is well-proportioned. The hero stat tiles (0 ACCOUNTS / \u2014 / \u2014) are a sensible empty state.",
+  "round1_held": "Yes. The em-dash balance placeholders are present (BALANCE_PLACEHOLDER for NEO/GAS when disconnected), the 'Connect a wallet to see live NEO / GAS balances' note renders, and the masked-secret / reveal flow is intact in code. No regressions visible.",
+  "findings": [
+   {
+    "title": "Large dead vertical space below the Convert Key card on desktop",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: both cards stack in the top ~450px and everything below (roughly half the visible canvas) is blank white. With only two short cards the tool looks sparse and bottom-heavy-empty, unlike sibling tools (treasury, wallet-health) that fill the column.",
+    "fix": "Fill the resting state with purposeful content: e.g. a compact 'What you can paste' card (WIF / private key / public key / NeoVM script chips with one-line descriptions), or move the disassembler/opcode hint into a visible info card. Even a short security note ('Keys are generated and converted entirely on-device; nothing leaves your browser') as a styled card would balance the column and reinforce trust."
+   },
+   {
+    "title": "Hero stat tiles repeat the connect message that is also stated just below",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop screenshot: the three hero stats show '0 ACCOUNTS / \u2014 NEO BALANCE / \u2014 GAS BALANCE' and immediately beneath them the line 'Connect a wallet to see live NEO / GAS balances.' The two dash tiles plus the note say the same thing twice in the same card.",
+    "fix": "Either drop the two balance tiles until a wallet is connected (showing only ACCOUNTS in the disconnected state and revealing NEO/GAS on connect), or remove the redundant note and rely on the em-dash tiles + a tooltip. Avoid stating 'no balance' in two adjacent forms."
+   }
+  ]
+ },
+ {
+  "app": "neo-treasury",
+  "verdict": "Strong, dense dashboard: hero with live-synced signal + three big USD/NEO/GAS metrics reads professional, the disbursement console is thorough, and the two-column Da Hongfei / Erik Zhang watchlist at the bottom is information-rich. Desktop looks like a real treasury tool. Mobile stacks cleanly. Main concern is the disbursement form is long and a few label/heading rhythms compete for attention.",
+  "round1_held": "Yes. The 'Live balances synced \u00b7 Last updated 6/13/2026' signal with green dot renders, em-dash placeholders are used for failed/absent figures (formatUsd, wallet.failed), the review panel and collapsible intent panel are present, and stale/price-feed warnings are wired. No regressions visible.",
+  "findings": [
+   {
+    "title": "Disbursement console is a tall stack of same-weight panels with no visual priority",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: under 'Disbursement console' the wallet/network/status strip, the asset+amount+recipient+memo form, the preset chips, the review panel, and the collapsible intent panel all sit as full-width same-color sub-cards. The eye has no anchor \u2014 it is a long uniform ladder before reaching the Connect / Submit buttons.",
+    "fix": "Tighten hierarchy: the read-only wallet/network/status strip and the review panel are both summaries of the same draft \u2014 consider merging or making the review panel visually secondary (smaller, muted) so the editable form is clearly the primary block. Reducing one redundant summary row would shorten the form noticeably."
+   },
+   {
+    "title": "Hero copy column and metrics column are visually unbalanced on desktop",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the left hero copy block (badge + title + description + signal line) is fairly short while the right metrics column has three tall stacked tiles; the right column visually outweighs and ends lower than the left, leaving the left side with trailing empty space below the signal line.",
+    "fix": "Either vertically center the hero copy against the metrics (align-content already center on .treasury-hero__copy \u2014 but the grid align-items: stretch makes the copy column stretch), or move the failedCount/priceFeed warnings and a one-line 'watching N addresses across 2 groups' summary into the copy block to fill the gap and balance heights."
+   }
+  ]
+ },
+ {
+  "app": "wallet-health",
+  "verdict": "The best-looking of the four: a two-column layout (main + sticky safety checklist) that fills the canvas, a conic-gradient score ring, a clean balance strip, and a well-structured 6-item checklist with per-item action buttons. Desktop reads polished and product-grade; mobile stacks the checklist below correctly. The 'High risk / score 0' empty state is honestly the correct disconnected state and looks intentional.",
+  "round1_held": "Yes. Em-dash NEO/GAS placeholders render when disconnected, the 'Connect a Neo N3 wallet to refresh live balances...' hint is present, the report-status aria-live line ('Report ready') shows, and the auto-check item correctly shows 'Connect to check'. No regressions visible.",
+  "findings": [
+   {
+    "title": "Score ring shows a bare '0' that reads as a loading/error glyph at first paint",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop + mobile screenshots: the hero ring renders a lone '0' with an almost-empty green track. Disconnected, the safety score genuinely is 0, but a stark '0' in a near-empty ring next to a red 'High risk' chip can read as a broken/empty meter rather than 'connect to compute your score'.",
+    "fix": "When disconnected (isConnected false / safetyScore 0 with no completed checklist), render the ring with a muted '\u2014' or a small 'Connect' affordance instead of a literal 0, or add a one-line caption under the ring ('Connect to score'). The checklist already drives a real local score, so the 0 is only momentarily meaningful."
+   },
+   {
+    "title": "Two 'Mark done' buttons and one 'Connect to check' pill differ in style mid-list, creating a slight rhythm break",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "Desktop screenshot, safety checklist: item 2 (Keep GAS for fees) shows a green-dotted 'Connect to check' pill while items 1,3,4,5,6 show outlined 'Mark done' buttons. The single differently-styled row in the middle of an otherwise uniform list draws the eye and can read as the odd-one-out rather than an intentional auto-checked item.",
+    "fix": "This is intentional (auto item) and acceptable, but align the auto pill's height/width and corner radius exactly to the Mark done buttons (it uses min-width 96px / min-height 32px vs the buttons' 96px \u2014 verify equal height) so it sits flush in the column, and consider a subtle 'auto' label to explain why it differs."
+   }
+  ]
+ },
+ {
+  "app": "oracle-compute-lab",
+  "verdict": "Clean, calm first paint with a cyan accent that reads well. But the desktop two-column workspace is badly unbalanced: the form fills the left ~380px column while the right result card collapses to a tiny ~110px box holding one cyan pill, leaving a large empty right half and dead space below the card. Mobile stacks cleanly and looks good.",
+  "round1_held": "Yes. Preview-only notice ('dispatching requires a Morpheus runtime token') is present, REQUESTS shows 0 as a clean empty state, digest placeholder is em-dash via digestPlaceholder. No regressions.",
+  "findings": [
+   {
+    "title": "Empty result column leaves a large desktop dead-zone",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the right result card is a short box containing only the cyan 'Run the form to preview the request payload.' pill, while the left form column is ~3x taller. The whole right half below the pill is empty white space. Code: ConsoleToolPanel.scss:150-155 sets the workspace to a 2-col grid (.console-tool__workspace) and ConsoleToolPanel.scss:357-365 caps the empty state at min-height:72px, so the result card never fills its column.",
+    "fix": "In ConsoleToolPanel.scss, give .console-tool__result a min-height that roughly matches the form (e.g. min-height: 100% via align-items: stretch on .console-tool__workspace, or min-height: 260px) and vertically center .console-tool__empty within it, so the waiting state is a deliberately centered card rather than a pill floating at the top of an empty column."
+   },
+   {
+    "title": "Empty-state is a bare pill with no icon or guidance",
+    "severity": "low",
+    "dimension": "ux",
+    "evidence": "Desktop + mobile: the result panel's only content before running is a single rounded pill 'Run the form to preview the request payload.' There is no icon, illustration, or hint about what the preview will contain (digest, payload rows). It reads as a placeholder, not a designed empty state.",
+    "fix": "In ConsoleToolPanel.tsx (the result block at lines 369-373), add a muted icon above the pill (e.g. a FileSearch/Braces lucide glyph) and a one-line subtext describing what appears after running ('Workflow, privacy mode and request digest will appear here'). Style in ConsoleToolPanel.scss .console-tool__empty."
+   }
+  ]
+ },
+ {
+  "app": "oracle-http-console",
+  "verdict": "Visually the strongest of the ConsoleToolPanel set: the form has four fields (Method/URL/JSON Path/Body) so the left column has more height, making the layout feel less empty than its siblings. Green accent is consistent. Still, the right result card collapses to a small pill leaving the right half empty on desktop. Mobile is clean.",
+  "round1_held": "Yes. Preview-only notice present, REQUESTS 0 clean empty state, sensible default URL/JSON path prefilled so first paint is self-explanatory. No regressions.",
+  "findings": [
+   {
+    "title": "Right result column still half-empty on desktop",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the green 'Run the form to preview the request payload.' pill sits in a short card at the top-right; everything below it and to its right is empty white space down to the form's bottom edge. Same shared cause as the other consoles: ConsoleToolPanel.scss:150-155 + 357-365.",
+    "fix": "Same shared fix as compute-lab: stretch/center the empty result state in ConsoleToolPanel.scss so the waiting card fills and centers within its grid column instead of collapsing to 72px at the top."
+   },
+   {
+    "title": "Body textarea placeholder is the only low-contrast element worth noting",
+    "severity": "low",
+    "dimension": "a11y",
+    "evidence": "Desktop: the 'Optional POST body' placeholder in the Body textarea is noticeably lighter than the filled URL/JSON Path values. It's legible but is the faintest text on the screen.",
+    "fix": "This is acceptable for a placeholder; only worth darkening the placeholder token slightly (NeoInput placeholder color) if the design wants stronger contrast. No app-level change required."
+   }
+  ]
+ },
+ {
+  "app": "oracle-neodid-console",
+  "verdict": "The violet 'social' theme gives this console a distinct, pleasant identity vs the green/cyan siblings, and the violet empty pill is subtle and calm. Hero, notice and form read clearly. Desktop still suffers the shared unbalanced two-column dead-zone; mobile stacks well (heading wraps to two lines but is fine).",
+  "round1_held": "Yes. Preview-only notice present, REQUESTS 0 clean, optional callback field clearly marked optional, sensible 'did:neo:testnet:sample-user' default. No regressions.",
+  "findings": [
+   {
+    "title": "Result column dead-zone on desktop (shared)",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: violet 'Run the form to preview the request payload.' pill in a short top-right card, with a large empty area below/right down to the form's bottom. Shared cause: ConsoleToolPanel.scss:150-155 + 357-365.",
+    "fix": "Apply the shared ConsoleToolPanel empty-state stretch/center fix so the waiting card fills its column."
+   },
+   {
+    "title": "Distinct violet theme is the only one diverging from the oracle family hue",
+    "severity": "low",
+    "dimension": "consistency",
+    "evidence": "appConfig.ts:32 sets theme family:'social', accentColor:'#a78bfa' (violet) while compute-lab is cyan, http/vrf are green, price is green. Side by side the six oracle consoles do not read as one family. This is intentional per-app theming and the violet looks good on its own, but flag for a consistency call.",
+    "fix": "If the team wants the six oracle consoles to feel like a suite, align accents to a shared oracle palette (or a small ordered set) in each appConfig.ts theme.accentColor. No change needed if per-app identity is the intent."
+   }
+  ]
+ },
+ {
+  "app": "oracle-price-console",
+  "verdict": "The best-looking console of the six. Full-width, balanced layout with a real live-price hero ($2.1940 NEO/USD), a green 'Fresh \u2014 updated 7m ago' freshness chip, and a clean Query feed card. No dead-zone because it does not use the shared two-column ConsoleToolPanel. Mobile reflows nicely with the three context tiles stacked.",
+  "round1_held": "Yes. Staleness guard is visible and working (freshness chip 'Fresh \u2014 updated 7m ago'), em-dash placeholders for empty feed/network/source, friendly hint 'reads MorpheusDataFeed directly and never exposes a private RPC URL'. No regressions.",
+  "findings": [
+   {
+    "title": "Hero context tiles are right-heavy and slightly redundant with the price card",
+    "severity": "low",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the hero's right side stacks three full-width tiles (Feed 0x03013f49\u2026, Network mainnet, Source on-chain mainnet RPC) while the left side has only the title + one line of copy, leaving the left lower area empty. 'Network mainnet' also partly duplicates info a user infers from the mainnet feed address. Code: PlayArea.tsx:65-78 price-hero__metrics.",
+    "fix": "In PlayArea.scss tighten the hero grid so the metrics column doesn't dominate (narrower max-width on price-hero__metrics, or render them as a compact inline meta row like the ConsoleToolPanel hero-meta), balancing the left/right weight."
+   },
+   {
+    "title": "Feed address truncates to '0x03013f49\u2026' with no copy affordance",
+    "severity": "low",
+    "dimension": "usability",
+    "evidence": "Desktop + mobile: the Feed tile shows a truncated contract hash '0x03013f49\u2026' with no way to copy or reveal the full value. For a 'keep the request path inspectable' tool, the inspectable identifier is partly hidden.",
+    "fix": "Add a copy-to-clipboard button or a title/tooltip with the full feed hash on the Feed metric (PlayArea.tsx:66-69), reusing the shared clipboard service so users can grab the address the console claims is inspectable."
+   }
+  ]
+ },
+ {
+  "app": "oracle-seal-console",
+  "verdict": "Functionally identical layout to the other ConsoleToolPanel consoles, but the amber accent makes the whole first paint read like a warning rather than a calm tool: the hero shield badge, the info-notice icon, and the empty 'Run the form to preview' pill are all yellow/amber. Combined with the same right-side dead-zone, the empty state feels alarming where siblings feel neutral. Mobile same issue.",
+  "round1_held": "Yes. Preview-only notice present, ENVELOPES 0 clean empty state, the description correctly clarifies 'non-cryptographic reference checksum (not encryption)'. No regressions.",
+  "findings": [
+   {
+    "title": "Amber accent makes the neutral empty state read as a warning",
+    "severity": "medium",
+    "dimension": "beauty",
+    "evidence": "Desktop + mobile screenshots: the hero badge, the 'Preview only' notice icon, and the empty-state pill 'Run the form to preview the request payload.' are all amber/yellow (#facc15 from appConfig.ts:29). Amber is the platform's warning color, so a brand-new, error-free console looks like it is flagging a problem \u2014 and it is the only one of the six that does this (siblings use calm green/cyan/violet).",
+    "fix": "Change theme.accentColor in oracle-seal-console/src/appConfig.ts:29 from '#facc15' to a non-warning hue (e.g. a teal/indigo such as the cyan #22d3ee used by compute-lab, or a sealed-input indigo), so the accent reads as 'private/sealed' rather than 'warning'. Reserve amber for actual warning states."
+   },
+   {
+    "title": "Right result column dead-zone on desktop (shared)",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: amber pill in a short top-right card with the right half empty below it, same as the other ConsoleToolPanel consoles. Shared cause: ConsoleToolPanel.scss:150-155 + 357-365.",
+    "fix": "Apply the shared ConsoleToolPanel empty-state stretch/center fix."
+   }
+  ]
+ },
+ {
+  "app": "oracle-vrf-console",
+  "verdict": "Clean green-accented console. Sensibly hides the meaningless 'Requests' counter (hideRequestCount), so the hero meta line shows just Network + Endpoint, which looks tidier than the siblings' '0 requests'. Four prefilled fields give the form decent height. Still has the shared right-side result dead-zone on desktop; mobile is clean.",
+  "round1_held": "Yes. Preview-only notice present, request counter correctly suppressed (hideRequestCount:true) so no '0' noise, defaults prefilled (consumer/salt/rounds/proof). No regressions.",
+  "findings": [
+   {
+    "title": "Result column half-empty on desktop (shared)",
+    "severity": "medium",
+    "dimension": "layout",
+    "evidence": "Desktop screenshot: the green 'Run the form to preview the request payload.' pill sits in a short top-right card; the area below it and to the right is empty down to the form's bottom edge. Shared cause: ConsoleToolPanel.scss:150-155 + 357-365.",
+    "fix": "Apply the shared ConsoleToolPanel empty-state stretch/center fix so the waiting state fills/centers its column."
+   },
+   {
+    "title": "'Rounds' numeric field gives no min/max or unit cue",
+    "severity": "low",
+    "dimension": "usability",
+    "evidence": "Desktop screenshot: the Rounds field shows '1' with no helper text or visible bounds, so a user cannot tell the valid range for repeat count. The hero subtitle mentions 'repeat count' but the field itself has no constraint hint.",
+    "fix": "Add a placeholder or small helper note (e.g. '1-10') to the rounds field config in oracle-vrf-console/src/appConfig.ts, and/or clamp/validate the value in buildResult so an out-of-range repeat count surfaces a friendly warning row."
+   }
+  ]
+ }
+]
