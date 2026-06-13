@@ -1,0 +1,1126 @@
+{
+ "confirmed": [
+  {
+   "title": "Two redundant Supabase Realtime subscriptions + initial fetches on the detail page",
+   "category": "performance",
+   "impact": "high",
+   "effort": "small",
+   "file": "platform/host-app/pages/miniapps/[id].tsx:570",
+   "evidence": "[id].tsx mounts useRealtimeNotifications directly (line 570) AND useActivityFeed (line 553), and useActivityFeed internally mounts useRealtimeNotifications again (useActivityFeed.ts:49) with the same {appId, network}. Both resolve to the identical channelName `miniapp-notifications:<network>:<appId>` (useRealtimeNotifications.ts:254-258), so the page opens two supabase.channel() subscriptions to the same channel and runs two initial fetchInitial() requests to /api/app/{id}/news for identical data.",
+   "proposal": "Mount useRealtimeNotifications once. Either have useActivityFeed accept pre-fetched realtime notifications as a prop, or drop the page-level useRealtimeNotifications (line 570) and surface realtimeNotifications out of useActivityFeed for the news tab. Halves the WebSocket channels and the initial news fetch on every detail open.",
+   "subsystem": "os-bridge-detail",
+   "root": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "Verified against the actual code. `platform/host-app/pages/miniapps/[id].tsx` mounts `useActivityFeed` (line 553/558) AND `useRealtimeNotifications` (line 570), and `useActivityFeed.ts:49` internally mounts `useRealtimeNotifications` again. Both page-side calls pass the same `appId: app?.app_id` and `network: targetNetwork` with no `userId`. In `useRealtimeNotifications.ts:254-258` that resolves to the identical channel name `miniapp-notifications:<network>:<appId>` for both. supabase-js v2 `supabase.channel(name)` does NOT dedup by name \u2014 each `.channel().subscribe()` creates a distinct RealtimeChannel and a separate topic-join over the shared WS, so the page does open two subscriptions to the same channel. Both also independently run `fetchInitial()` \u2192 GET `/api/app/{id}/news` for identical data (each hook has its own `initialFetchDoneRef`, so no cross-hook guard). The duplication is genuine, not already mitigated. The proposal is a sound net improvement, not a lateral move: `useActivityFeed` already holds the realtime notifications internally (line 49) but only merges them into `mergedActivities` and never surfaces the raw list, which is the sole reason the page-level hook exists (to feed the news tab via `realtimeNews`/`liveNotifications`). Surfacing `realtimeNotifications` out of `useActivityFeed` (or accepting them as a prop) cleanly eliminates the second channel + fetch. Blast radius is small and local (one page + one hook return signature; both consumers are known). One correction: impact is overstated as 'high' \u2014 it is a single duplicated WS topic-join + one duplicate REST fetch per detail-page open (not a hot loop or N-scaling cost), so medium is more accurate. Caveat: the page-level hook additionally gates on `showNews`, so refactor must preserve that the news data is fetched/subscribed only when the news tab is shown.",
+    "impact_adjust": "lower"
+   }
+  },
+  {
+   "title": "WifAdapter.invoke and invokeMultiple duplicate ~90 lines of preflight/fee/sign/relay logic",
+   "category": "refactor",
+   "impact": "high",
+   "effort": "medium",
+   "file": "platform/host-app/lib/wallet/adapters/wif.ts:537",
+   "evidence": "invoke() (537-636) and invokeMultiple() (683-797) are near-identical: both fetch [getblockcount, getversion] in parallel, compute networkMagic, run a preflight (the only real difference: invoke uses `invokefunction` with single rpcArgs while invokeMultiple uses `invokescript` on a concatenated script), apply the identical maxSystemFee guard (564-568 \u2261 725-729), build a draft, call `calculatenetworkfee`, build the final tx, and call relaySignedTransaction with an identical stale-rebuild closure (610-625 \u2261 771-786). The fee-estimation try/catch and the rebuild lambda are copied verbatim.",
+   "proposal": "Extract a private `signAndRelay(sdk, network, { script, txSigners, rpcPreflight })` that takes the already-built script + signers + a preflight result and owns blockCount/magic/fee/draft/final/relay/rebuild. Have invoke() build the single-call script + run invokefunction preflight, invokeMultiple() build the concat script + invokescript preflight, then both call signAndRelay. Cuts the file ~120 lines and removes the risk of the two lanes drifting (e.g. a fee-guard fix applied to only one).",
+   "subsystem": "os-wallet",
+   "root": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "Verified in platform/host-app/lib/wallet/adapters/wif.ts. invoke() (537-636) and invokeMultiple() (683-797) are near-identical: both run the parallel [getblockcount, getversion] fetch + getNetworkMagic, the byte-identical maxSystemFee guard (564-568 \u2261 725-729), the identical calculatenetworkfee try/catch, the final-tx build, and a verbatim-copied relaySignedTransaction stale-rebuild closure (610-625 \u2261 771-786). The ONLY substantive difference is the preflight construction (invokefunction+single rpcArgs vs concat-script+invokescript). The shared helpers (createTransaction, serializeTransactionBase64, relaySignedTransaction, normalizeInvocation) already exist, giving a clean extraction seam, and existing tests (wif.adapter.test.ts) cover both lanes incl. stale-rebuild, duplicate relay, and fee-estimation failure, so a behavior-preserving extraction is verifiable. The drift risk on fee-guard/rebuild logic is genuine. Minor: the proposed helper signature also needs systemFee/validUntilBlock plumbing (packaging detail, not a blocker), and 'high' impact is somewhat generous since this is internal single-file cleanup with no user-facing effect.",
+    "impact_adjust": "lower"
+   }
+  },
+  {
+   "title": "Dead helper module duplicated inline by the largest page (template-studio-helpers.ts)",
+   "category": "dead-code",
+   "impact": "high",
+   "effort": "small",
+   "file": "platform/admin-console/src/app/templates/lib/template-studio-helpers.ts",
+   "evidence": "template-studio-helpers.ts (224 lines) exports CATEGORIES, EMPTY_FORM, asObject, parseManifest, parseJSONObject, parseTemplateId, formatDateTime, sourceBadgeVariant, kindBadgeVariant, requestBadgeVariant, stringifyManifest, buildMiniAppInstallDraft. `grep` shows it is imported by NOTHING in src except its own test (TemplateStudioPage.test.tsx). Meanwhile templates/page.tsx (1339 lines, the largest file in the subsystem) re-defines all of these locally (lines 36, 47, 63, 78, 102, 117, 129, 141, 149, 153, 162, 189) with byte-identical bodies (verified CATEGORIES and the helper signatures match). The page never imports the helpers module. So the helpers file is dead, the test exercises code the app does not run (false coverage), and the real logic lives un-extracted inside the page component.",
+   "proposal": "Make templates/page.tsx import these 12 symbols from template-studio-helpers.ts and delete the inline copies. This both removes the dead module's dead-ness AND shrinks the 1339-line page by ~150 lines of pure utility code, and makes the existing test actually cover production code. Net: -150 lines from the god-file, 0 dead modules, real test coverage. If for some reason the helpers were meant to be retired instead, delete the file + its test. Either way the current state (two live-looking copies, one unused) is the worst option.",
+   "subsystem": "os-admin-platform",
+   "root": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "Verified at /Users/jinghuiliao/git/r3e/neo-miniapps-platform/platform/admin-console/src/app/templates/: helpers module template-studio-helpers.ts (224 lines) is imported by NOTHING in src (grep returns zero references \u2014 confirmed dead). page.tsx (1339 lines, lines 36-243) re-defines all 12 symbols (CATEGORIES, EMPTY_FORM, asObject, parseManifest, parseJSONObject, parseTemplateId, formatDateTime, sourceBadgeVariant, kindBadgeVariant, requestBadgeVariant, stringifyManifest, buildMiniAppInstallDraft) with functionally identical bodies \u2014 diff shows only `export` keywords and cosmetic line-wrapping differ. Git: helpers added 2026-05-18 (4b93a4e94), page predates it = abandoned extraction never wired in. All 12 symbols are genuinely used in the page (each \u22652 occurrences), and the private helpers asString/asStringArray travel inside buildMiniAppInstallDraft, so the import refactor is mechanically clean with no unused-import fallout. CORRECTION to the evidence: the claim that TemplateStudioPage.test.tsx imports the helpers module is FALSE \u2014 the test imports `../page` and renders the production component via RTL, exercising real code, not the dead module. So the 'false coverage' rationale is wrong; the dead module has zero coverage and production logic is already covered indirectly. Despite that one error, the core premise (two functionally-identical copies, one fully unused, worst-of-both-worlds state) is TRUE and the fix is a genuine, low-blast-radius improvement (~150 lines off the god-file, zero dead modules). Both proposed resolutions (wire-up import vs delete file+test) are valid.",
+    "impact_adjust": "lower"
+   }
+  },
+  {
+   "title": "~18 host-proxy API routes repeat identical auth\u2192resolve\u2192fetch\u2192parse-error\u2192502 boilerplate",
+   "category": "refactor",
+   "impact": "high",
+   "effort": "medium",
+   "file": "platform/admin-console/src/app/api/miniapps/versions/route.ts",
+   "evidence": "versions/route.ts (lines 13-55) and rollback/route.ts (lines 17-55) \u2014 and 16 other routes that import createProxyHeaders/resolveHostAppBaseURL \u2014 each repeat the same sequence: requireAdminAuth(req) early-return; resolveHostAppBaseURL() + `if(!base) jsonError(\"MINIAPP_HOST_APP_BASE_URL is not configured\",500)`; build `new URL(path, base)`; `fetch(upstream,{headers:createProxyHeaders(req),signal:AbortSignal.timeout(15000|20000)})`; `if(!response.ok){const m=await parseHostErrorPayload(...);return jsonError(m,status)}`; `await response.json().catch(e=>{console.warn(...);return null})`; outer `catch{ return jsonError(\"Failed to reach host-app ... endpoint\",502)}`. That is ~25 nearly-identical lines \u00d7 ~18 files. The 15000ms timeout literal alone appears 32\u00d7 across the subsystem.",
+   "proposal": "Add `proxyToHost(req, { path, method='GET', searchParams?, body?, fallbackError, timeoutMs=HOST_PROXY_TIMEOUT_MS })` to host-admin-proxy.ts that returns a NextResponse (handles auth-base-check, URL build, fetch, !ok\u2192parseHostErrorPayload\u2192jsonError, JSON parse, 502 catch). Each GET route collapses to validate-params \u2192 `return proxyToHost(req,{path,searchParams})`. Centralizes the timeout constant, the error-message shape, and the JSON-parse-with-fallback so they cannot drift. Validation/zod schemas stay per-route (they are genuinely route-specific).",
+   "subsystem": "os-admin-platform",
+   "root": "/Users/jinghuiliao/git/r3e/neo-miniapps-platform",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "Verified against the actual code. The duplication is real: 17 routes (+ the lib) under platform/admin-console/src/app/api/miniapps/ import host-admin-proxy.ts and repeat the same sequence \u2014 requireAdminAuth early-return, resolveHostAppBaseURL() + jsonError(\"MINIAPP_HOST_APP_BASE_URL is not configured\",500), new URL(path, base), fetch with createProxyHeaders + AbortSignal.timeout, !ok\u2192parseHostErrorPayload\u2192jsonError(status), response.json().catch(...console.warn...\u2192fallback), outer catch\u2192jsonError(\"Failed to reach host-app ... endpoint\",502). Confirmed routes: versions, rollback, [id] (GET/DELETE/PATCH), media/upload-url, route.ts, publish-requests/export, import-batch, admin/schema, etc. The timeout literal is genuinely scattered (30\u00d7 15000, 16\u00d7 20000, 4\u00d7 10000 in src/) and is the kind of thing that drifts. A proxyToHost helper centralizing auth/base-check/fetch/error\u2192502/JSON-parse-fallback and the timeout default is a legitimate DRY/maintainability win, not a lateral move. Blast radius is contained to one subsystem and the existing api-routes.test.ts (1467 lines) mocks global fetch and asserts on fetchSpy.mock.calls \u2014 so a proxy refactor is largely transparent to tests and behavior is verifiable.\n\nTwo caveats that temper (not negate) the premise: (1) The proposal's claim that each route collapses to 'validate-params \u2192 return proxyToHost(...)' holds cleanly only for the ~half that are pure proxies. A real subset has divergent success-path shaping that sits between fetch-ok and return: route.ts (list) unwraps data.apps to a raw array AND skips parseHostErrorPayload; [id] GET does a 404 check on data.app and returns the unwrapped .app, also skipping parseHostErrorPayload; publish-requests/export returns CSV via a raw Response with custom headers (not JSON); import-definitions/route.ts don't use parseHostErrorPayload. So the helper needs an optional success-transform/onSuccess hook or a lower-level fetchHost variant for ~4 routes; it cannot absorb 100% of them as written. (2) This is a maintainability/DRY improvement on internal proxy plumbing, not a correctness or performance fix \u2014 impact is more medium-high than 'high'. Still a genuine net improvement worth doing.",
+    "impact_adjust": "lower"
+   }
+  },
+  {
+   "title": "Decompose processEvent: extract the 5 duplicated retry/dead-letter/finalize handlers",
+   "category": "refactor",
+   "impact": "high",
+   "effort": "large",
+   "file": "workers/morpheus-relayer/src/fulfillment.js:839",
+   "evidence": "processEvent spans lines 839-1375 (~535 lines). The same shape \u2014 classifyError(message) -> if permanent-or-over-ceiling recordDeliveryExhaustion(...) else enqueueRetryItem(...) + incrementMetric('retries_scheduled_total') + persistState() + maybeUpsertJob(...) + logger.warn(...) -> return {retry_status} \u2014 is hand-inlined five times: prepared-redelivery (1084-1144), finalize-only (1146-1211), exhausted-then-finalize-then-finalize-fails (1267-1337), and the trailing generic scheduleRetry arm (1340-1373). buildEventKey, kernelIntent, attempts, and the maybeUpsertJob field set are repeated in each. The catch block alone is ~385 lines.",
+   "proposal": "Extract three helpers that already have all the inputs threaded through: scheduleCallbackRetry(config,state,persistState,logger,event,kernelIntent,{nextAttempts,route,errorMessage,extraRetryItemFields,upsertStatus,upsertWorkerResponse}) returning the standard result envelope; handleSettledOutcome and handleTerminalConfigOutcome (lines 991-1082 are themselves two more near-clones of recordDeliveryExhaustion). Have each catch arm compute classifyError once, then call the appropriate helper. Target: shrink processEvent to a dispatcher under ~120 lines. This is the highest-leverage maintainability win on the money path and would let the dead-letter ceiling logic be unit-tested in isolation rather than only via the two end-to-end ceiling tests at fulfillment.test.mjs:451/473.",
+   "subsystem": "or-relayer-core",
+   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "Verified against fulfillment.js:839-1375. The premise is substantially TRUE: processEvent is ~537 lines with a ~385-line catch block, and the retry-scheduling shape (enqueueRetryItem + incrementMetric('retries_scheduled_total') + persistState + maybeUpsertJob + logger.warn + return {retry_status}) is genuinely hand-inlined in three near-identical arms \u2014 prepared-redelivery (1102-1143), finalize-only (1163-1210), and the exhausted\u2192finalize-fails arm (1290-1336) \u2014 each independently recomputing nextAttempts, the resolveCallbackRetryCeiling check, and a bespoke maybeUpsertJob field set. Plus a fourth trailing scheduleRetry-based arm (1340-1373). Extracting a scheduleCallbackRetry helper would meaningfully shrink the function and (correctly per the proposal) let the dead-letter ceiling logic be unit-tested in isolation rather than only via the 4 end-to-end ceiling tests at src/fulfillment.test.mjs:451/473/501/527. The benefit is real and not a lateral move.\n\nHowever the proposal overstates several specifics, which is why I lower impact rather than keep it 'high': (1) recordDeliveryExhaustion is ALREADY extracted (defined at 774-837) and ALREADY called from all three exhaustion sites (1095/1155/1274), so that portion of the claimed win is done. (2) The claim that 'lines 991-1082 are themselves two more near-clones of recordDeliveryExhaustion' is only half right \u2014 1033-1082 (terminal-config) is a genuine near-clone, but 991-1031 is the 'settled' path with a different terminal outcome (info log, status 'settled', no exhaustion metric), not a clone of the exhaustion handler. (3) 'five hand-inlined handlers' is imprecise (3 enqueueRetryItem arms + 1 scheduleRetry arm). Blast radius is moderate (money path) but mitigated by the existing 4 ceiling tests and the fact that the arms differ only in well-defined fields (status string, worker_response shape, finalize_only/terminal_error) that a parameterized helper can preserve. Net: a worthwhile maintainability/testability refactor, but smaller than billed since the highest-value extraction (recordDeliveryExhaustion) already exists.",
+    "impact_adjust": "lower"
+   }
+  },
+  {
+   "title": "Batch the default mainnet block_cursor scan (sequential getapplicationlog per tx)",
+   "category": "performance",
+   "impact": "high",
+   "effort": "medium",
+   "file": "workers/morpheus-relayer/src/neo-n3.js:382",
+   "evidence": "scanNeoN3OracleRequests (382-420) is the mainnet default (config.js:437 sets scanMode='block_cursor' for non-testnet). It loops blocks sequentially (for height...), and for EACH block calls getblock then issues a separate getapplicationlog RPC for EVERY transaction in the block (line 393, inside the per-tx loop) with no contract pre-filter and no concurrency. With maxBlocksPerTick=250 (config.js:301) and busy blocks this is hundreds\u2013thousands of serial round-trips per tick against a single RPC endpoint. The request-cursor and Neo X scans already batch via mapWithConcurrency (neo-n3.js:522, neox.js:228); this path does not. There is also NO test for it (grep confirms scanNeoN3OracleRequests is untested).",
+   "proposal": "Reuse the existing mapWithConcurrency to parallelize at the block level (fetch getblock+per-tx logs under resolveScanConcurrency), preserving ascending order on flatten. getblock with verbosity already returns tx execution triggers \u2014 confirm whether the oracle notification is reachable without a second getapplicationlog (or use the node's getapplicationlog-by-block where available) to drop the per-tx call entirely. At minimum add a bounded-concurrency wrapper and a unit test mirroring neo-n3.test.mjs:272 ('batched scan is equivalent to the sequential path'). Lower risk: document block_cursor as legacy-only and steer mainnet to n3index_notifications/request_cursor, which are already batched.",
+   "subsystem": "or-relayer-core",
+   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "Premise verified against the code. scanNeoN3OracleRequests (workers/morpheus-relayer/src/neo-n3.js:382-420) is exactly as described: nested sequential loop over blocks (for height) calling getblock then a separate getapplicationlog per transaction (line 393), with no contract pre-filter and no concurrency. config.js:437 confirms non-testnet default scanMode='block_cursor', and relayer.js:163-166 routes block_cursor to this function (the else branch). maxBlocksPerTick defaults to 250 (config.js:301) and processChain caps toBlock=fromBlock+249 (request-processor.js:150). The sibling paths are indeed already batched: scanNeoN3OracleRequestsById (neo-n3.js:522) and Neo X use mapWithConcurrency (neo-n3.js:482, order-preserving, fail-fast) with resolveScanConcurrency (default 4, max 8). And there is no test for scanNeoN3OracleRequests \u2014 only scanNeoN3OracleRequestsById is covered (neo-n3.test.mjs:272), so the untested-path claim holds and the proposal even points at the right model test.\n\nThe CORE proposal \u2014 wrap the block-level work in the existing mapWithConcurrency under resolveScanConcurrency, preserve ascending order on flatten, add an equivalence test mirroring neo-n3.test.mjs:272 \u2014 is sound, low-blast-radius (the helper already exists and is proven in this exact file), and closes a real test gap. This is a genuine net improvement, not a lateral move.\n\nTwo caveats that argue against the inflated framing, not against doing it: (1) The aggressive sub-claim that 'getblock with verbosity already returns tx execution triggers' so the per-tx getapplicationlog can be dropped is factually wrong for Neo N3 \u2014 getblock verbose returns headers + tx bodies, not execution notifications; notifications require getapplicationlog, and getapplicationlog-by-block is not a standard C# node method. The proposal hedges this as 'confirm whether' / optional, so it does not sink the opportunity, but the implementer must NOT assume notifications come free from getblock. (2) Impact is catch-up-dominated: in steady state the relayer keeps last_block near tip and Neo N3 mainnet blocks are mostly empty, so the 'hundreds-thousands of serial round-trips per tick' is the cold-start/backfill worst case, not the common case \u2014 'high' is somewhat optimistic but the worst case is real (post-downtime catch-up against a single RPC) and combined with the missing test still justifies the change.\n\nRecommend: implement the minimum (bounded-concurrency wrapper + equivalence/fault-abort tests modeled on neo-n3.test.mjs:272), keep the per-tx getapplicationlog (do not chase the getblock-notification shortcut), and consider adding a contract pre-filter if a cheap one is available.",
+    "impact_adjust": "lower"
+   }
+  },
+  {
+   "title": "feeds.js is a 1523-line god-file mixing 6 distinct concerns",
+   "category": "refactor",
+   "impact": "high",
+   "effort": "large",
+   "file": "workers/nitro-worker/src/oracle/feeds.js",
+   "evidence": "Single module spans: local feed-state file persistence + cache (feedStateCache, loadFeedState/saveFeedState L52-271), Supabase REST snapshot read/write (getSupabaseRestConfig/fetchLatestFeedSnapshots/persistFeedSnapshots L76-164), decimal/integer math (decimalToIntegerString/integerToDecimalString/multiplyDecimalString/transformDecimalString L310-373), Neo JSON-RPC + stack-item decoding (parseNeoStackItem/fetchNeoN3FeedRecords/decodeNeoByteString L694-804), sync-policy/threshold logic (buildSyncPolicy/shouldSubmitFeed L495-884), and N3 batch submission with single-tx fallback (submitQuoteToN3/submitQuotesToN3/submitQuotesToN3WithFallback L1067-1234). handleOracleFeed itself is ~245 lines (L1247-1490) with the quote loop, decision, state mutation and submission inlined. ~30 of the exports are __forTests shims, a sign the internal seams are not real module boundaries. This was explicitly flagged in monorepo-review-2026-05-29.md ('1513 LOC ... split into cohesive modules') and is the one item from that list never actioned.",
+   "proposal": "Behavior-preserving extraction into peer modules under oracle/feeds/: feed-state.js (state file + cache + supabase snapshots), neo-stack-decode.js (parseNeoStackItem/decodeNeoByteString/fetchNeoN3FeedRecords \u2014 also reusable by relayer), decimal.js (the 4 decimal converters, which duplicate logic elsewhere \u2014 see separate finding), sync-policy.js (buildSyncPolicy/shouldSubmitFeed/computeChangeBps/resolvePairThresholdBps), feed-submit.js (submitQuoteToN3/submitQuotesToN3/fallback + the updatefeeds-missing/unauthorized detectors). feeds.js retains only the public handlers and the orchestration loop. Keep all current exports re-exported from feeds.js so capabilities.js/index.js and the test shims are untouched. The 28KB feeds.test.mjs already pins behavior, so the split is verifiable.",
+   "subsystem": "or-worker-oracle",
+   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "Verified against the actual file at /Users/jinghuiliao/git/r3e/neo-morpheus-oracle/workers/nitro-worker/src/oracle/feeds.js. Core premise is TRUE: file is exactly 1523 lines and genuinely mixes 6 cohesive concerns, with cited line ranges accurate (feed-state+cache+supabase L52-271, decimal math L310-373, neo stack decode L694-804, sync-policy L495-884, N3 submission+fallback L1067-1234). handleOracleFeed is ~243 lines (L1247-1490) and inlines the quote loop/decision/state-mutation/submission, calling helpers from every proposed module \u2014 a true orchestrator that the proposal correctly retains. The split is safe and verifiable: the only consumers are index.js (re-exports 8 public fns, all non-test) and feeds.test.mjs (imports 17 __forTests shims directly from feeds.js); the proposed 're-export everything from feeds.js' strategy leaves both untouched. I ran feeds.test.mjs: 22/22 pass, giving a real behavioral pin. The directory already follows the one-concern-per-module + co-located-test convention (crypto.js, fetch.js, message-reveal.js, providers.js, aggregation.js), so the extraction aligns with established structure rather than inventing one. Flagged in monorepo-review-2026-05-29.md L129 and never actioned (the doc cited the pre-migration phala-worker path; same file now under nitro-worker). Caveats that don't sink it: (1) the '~30 __forTests shims' figure is overstated \u2014 actually 17 of 28 exports, though the 'majority are test shims = weak seams' point holds; (2) the secondary 'reusable by relayer' and 'decimal duplicates elsewhere' justifications are speculative/deferred (no live external consumer of the decimal helpers or neo-stack decoders found in this repo beyond index.js re-export) \u2014 but these are side notes, not the core premise. Blast radius is low (internal module move, public + test surface preserved, mechanical errors caught by the existing suite). Genuine maintainability improvement, not a lateral move.",
+    "impact_adjust": "lower"
+   }
+  },
+  {
+   "title": "feed-registry re-clones + JSON.parses the full pair registry on every getter call",
+   "category": "performance",
+   "impact": "high",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/oracle/feed-registry.js",
+   "evidence": "getFeedPairRegistry() (L226) calls deepMerge(DEFAULT_FEED_PAIRS, parseRegistryOverride()) \u2014 a recursive object clone of ~36 pairs PLUS parseRegistryOverride() which JSON.parses env MORPHEUS_FEED_PAIR_REGISTRY_JSON (L207-216) \u2014 and there is no memoization. getFeedPairConfig() (L230) calls it once; getFeedDisplaySymbol/getFeedUnitLabel/getFeedPriceMultiplier/getFeedPriceTransform each call getFeedPairConfig again. resolveQuoteForProvider (feeds.js L927-930) invokes 4 of these getters per quote, plus getFeedStoragePair/getSourceSetIdForProvider, so a single price quote triggers the full deepMerge+JSON.parse 6+ times. handleOracleFeed loops over ~36 default symbols per cycle \u2192 hundreds of redundant clones/parses per feed run, every 2-5 minutes forever.",
+   "proposal": "Memoize the merged registry: cache the result of getFeedPairRegistry() keyed by the raw MORPHEUS_FEED_PAIR_REGISTRY_JSON string (invalidate only when the env string changes), so the deepMerge+JSON.parse runs once per distinct override value instead of per getter. The registry is effectively static at runtime. Drop-in, ~10 lines, no API change, covered by providers/feed tests.",
+   "subsystem": "or-worker-oracle",
+   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "Premise verified against the actual code. `getFeedPairRegistry()` (feed-registry.js:226-228) calls `deepMerge(DEFAULT_FEED_PAIRS, parseRegistryOverride())` with NO memoization (confirmed: grep finds no cache/memo). `parseRegistryOverride()` (L207-216) reads env `MORPHEUS_FEED_PAIR_REGISTRY_JSON` and JSON.parses it; `deepMerge` (L187-205) recursively clones ~36 nested pair objects. The fan-out is real: `getFeedPairConfig`\u2192`getFeedPairRegistry`, and `getFeedDisplaySymbol`/`getFeedUnitLabel`/`getFeedPriceMultiplier`/`getFeedPriceTransform` each re-call `getFeedPairConfig`. feeds.js:927-930 invokes all four per quote inside `resolveQuoteForProvider`, and `handleOracleFeed` (L1307) loops over ~36 default symbols \u00d7 providers \u2192 hundreds of redundant deepMerge+parse calls per feed run.\n\nThe proposed fix is sound and safe: (1) the registry output depends ONLY on the raw `MORPHEUS_FEED_PAIR_REGISTRY_JSON` string (DEFAULT_FEED_PAIRS is a static const), so keying the cache on that raw string fully captures invalidation; (2) the test suite mutates this env var between tests (feeds.test.mjs:154, 265) with DIFFERENT JSON values \u2014 a string-keyed cache yields distinct keys \u2192 cache miss \u2192 recompute, so tests stay correct; (3) all consumers only READ from the returned config (resolvePairThresholdBps L482, applyFeedProviderDefaults spreads into a new object L279-284) \u2014 none mutate it, so sharing a cached object is safe. No API change, ~10 lines, no regression risk.\n\nCaveat: the \"high\" impact rating is overstated. This is a background worker running every 2-5 minutes, not a latency-critical request path. The absolute cost is cloning ~36 small objects a few hundred times per run = sub-millisecond/low-millisecond on V8. The redundancy is genuine and the fix is a clean net improvement worth making, but realistic perf benefit is low, not high.",
+    "impact_adjust": "lower"
+   }
+  },
+  {
+   "title": "Every signed response builds the TEE attestation twice",
+   "category": "performance",
+   "impact": "high",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/chain/signing.js:199-209",
+   "evidence": "buildSignedResultEnvelope() internally calls maybeBuildDstackAttestation (line 200) and returns it as signed.tee_attestation (line 209). But every caller discards signed.tee_attestation and calls maybeBuildDstackAttestation a SECOND time: compute/index.js:712, paymaster/index.js:334, neodid/index.js:477, oracle/vrf.js:9, oracle/feeds.js:956, oracle/fetch.js:371. maybeBuildNitroAttestation (nitro-signer.js:256) does a POST to the enclave /attest endpoint (with a 10s AbortSignal.timeout) whenever shouldEmitAttestation is true \u2014 so each attested request issues two enclave round-trips and computes the same attestation digest twice. The two calls also pass different report inputs in some handlers (signed.output_hash vs result), so the value actually surfaced to the caller can differ from the one baked into the signed envelope.",
+   "proposal": "Make buildSignedResultEnvelope the single source of the attestation: have it return tee_attestation (already does) and have each handler use signed.tee_attestation instead of re-calling maybeBuildDstackAttestation. Standardize the report input on output_hash inside buildSignedResultEnvelope so the signed and surfaced attestation are identical. This halves enclave attestation traffic on the attested lanes and removes a subtle inconsistency, with no change to the response shape.",
+   "subsystem": "or-worker-platform",
+   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "VERIFIED: buildSignedResultEnvelope (workers/nitro-worker/src/chain/signing.js:200) builds the attestation internally and returns it as signed.tee_attestation (line 209), then every handler discards it and re-calls maybeBuildDstackAttestation a second time \u2014 confirmed at compute/index.js:712, paymaster/index.js:334, neodid/index.js:477, oracle/vrf.js:9, oracle/feeds.js:956, oracle/fetch.js:371 (plus a 7th site fetch.js:392). buildNitroAttestation (platform/nitro-signer.js:236-241, file is under platform/ not chain/ as the report states) POSTs to /attest with a 10s AbortSignal.timeout when shouldEmitAttestation is true, so each attested request does make two enclave round-trips and computes the same report digest twice. The dedup (use signed.tee_attestation) is a clean net improvement with low blast radius \u2014 no test asserts the double-build behavior. TWO CORRECTIONS to the report: (1) The \"subtle inconsistency / surfaced value can differ\" justification is FALSE. The envelope passes outputHash (64-hex string), normalizeReportData returns raw bytes of sha256(stableStringify(result)); callers pass the raw object, normalizeReportData returns Buffer.from(sha256Hex(stableStringify(result))) = the identical 32 bytes. Both report_data values are the same; only the enclave-generated nonce/timestamp inside the attestation document differs, which is expected, not a bug. (2) Impact is overstated: shouldEmitAttestation defaults to false (NITRO_EMIT_ATTESTATION unset), so both calls short-circuit to null with zero enclave traffic on the default path. The doubled /attest calls only occur on requests that explicitly opt into attestation, not \"every signed response.\"",
+    "impact_adjust": "lower"
+   }
+  },
+  {
+   "title": "/api/onchain/state has no server cache despite being the hottest polled endpoint (7 RPC calls per hit)",
+   "category": "performance",
+   "impact": "high",
+   "effort": "small",
+   "file": "apps/web/lib/onchain-state.ts",
+   "evidence": "fetchOnchainState() (onchain-state.ts:270) issues 7 RPC reads (Promise.all at :201-217) with cache:'no-store' (:156) and no module-level cache. /api/onchain/state/route.ts:22 calls it on every request with no revalidate/dynamic directive. It is polled by status/page.tsx (every 30s, :166), OverviewTab.tsx (every 20s, :116), and on-mount by StarterStudio + OracleTab + ComputeTab. With M concurrent clients this is M\u00d77 RPC round-trips every 20-30s, all redundant since on-chain feed state changes at most every few minutes. The identical caching pattern already exists in lib/feeds-status.ts:152-162 (getFeedsStatusBody, 30s STATUS_CACHE_TTL_MS) which itself wraps fetchOnchainState(200).",
+   "proposal": "Wrap fetchOnchainState in a per-(network,limit) TTL cache (~10-15s) mirroring feeds-status.ts getFeedsStatusBody, or memoize an in-flight promise to dedupe concurrent polls. Keys must include network and limit. Collapses N\u00d77 RPC calls per interval to ~1 per TTL window across all clients and reduces dashboard poll latency.",
+   "subsystem": "or-web",
+   "root": "/Users/jinghuiliao/git/r3e/neo-morpheus-oracle",
+   "verdict": {
+    "isReal": true,
+    "confidence": "high",
+    "reason": "Verified in code. fetchOnchainState\u2192fetchNeoN3State fires exactly 7 RPC reads via Promise.all (onchain-state.ts:201-217), each with cache:'no-store' (line 156). The route (route.ts:22) calls it per-request with NO revalidate/dynamic/unstable_cache and there is NO module-level cache in onchain-state.ts \u2014 confirmed by grep (Next 15.5). Polling intervals confirmed: status/page.tsx every 30s (limit=1), OverviewTab every 20s (limit=50), plus on-mount in ComputeTab/OracleTab/StarterStudio (limit=20). So M clients = M\u00d77 redundant RPC reads per interval, while feed state changes only every few minutes. The cited precedent is real: feeds-status.ts:152-162 getFeedsStatusBody uses a module-level cachedStatus with 30s TTL + resetFeedsStatusCache() test hook wrapping the same function. The cache-key concern is genuine and the proposal handles it: getSelectedNetwork resolves network deterministically and limit slices/bounds records, so the cache MUST key on (network, limit) \u2014 which the proposal explicitly requires (the existing feeds-status cache is single-slot only because it always calls limit=200). Small blast radius (one wrapper + reset hook for the existing onchain-state-route tests), proven local pattern, clear net win.",
+    "impact_adjust": "keep"
+   }
+  }
+ ],
+ "medium_low": [
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "15s chain-state poll is wall-clock and visibility-agnostic (unlike the activity feed which was already fixed)",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/host-app/components/MiniAppPlayfield.tsx:99",
+   "proposal": "Apply the same visibility guard used in useActivityFeed: skip the interval tick when document.visibilityState === 'hidden' and trigger one refresh on visibilitychange. Optionally back off the interval when the tab has been idle. Eliminates background re-fetch storms for the heaviest readers."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "PlayAreaShared.tsx is a 1470-line god-file mixing the wallet bridge, URL/scope normalization, and ~12 presentational components",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/host-app/components/playarea/PlayAreaShared.tsx:531",
+   "proposal": "Split into playarea/bridge/* (bridge types, normalizers, handleEmbeddedWalletBridgeRequest, useEmbeddedWalletBridge \u2014 the security-critical surface, easiest to unit-test in isolation), playarea/shared-helpers.ts (url/format/tone), and keep PlayAreaShared.tsx as the component barrel. Pure-function bridge normalizers become directly testable without rendering an iframe."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "MiniAppLiveActivity per-app fetchers are a 7-branch switch of near-identical probe-loop bodies",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/host-app/components/playfield/MiniAppLiveActivity.ts:53",
+   "proposal": "Extract a probeRecentEntities({rpcUrl,contractHash,network,total,limit,method,argsFor(id)}) helper returning the {id,map}[] window, then each app fetcher becomes a small config + row-mapper. Removes ~150 duplicated lines and is the natural place to drop in the batched read from finding #1."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "MiniAppDetailPage ([id].tsx) holds ~25 derived booleans/labels and 9 effects inline; action-console state derivation should be a hook",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/host-app/pages/miniapps/[id].tsx:629",
+   "proposal": "Extract useActionConsoleState(app, operations, activeOperation, walletConnected, embeddedWalletResult, ...) returning {statusLabel, statusClass, walletText, requiresWallet}, and extract an <ActionConsole> component for the shared panel body rendered in both the aside and the mobile sheet. Shrinks the page ~150 lines and removes the desktop/mobile drift risk."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "useMiniAppDetailInvoke is a 415-line if-cascade with four near-duplicate adapter.invoke blocks",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/host-app/hooks/useMiniAppDetailInvoke.ts:207",
+   "proposal": "The codebase already has a recipe system (resolveInvokeRecipe/executeInvokeRecipe at line 192). Move the anchor stake/withdraw/claim and the three runtime branches behind recipe/strategy entries (a table of {match, buildInvocation}) so the hook becomes resolve-recipe \u2192 execute. Removes ~200 lines of duplicated adapter boilerplate and centralizes the signer/scope defaults."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "Cross-lane confirmation poll uses a 90s timeout + 5s interval \u2014 up to 18 indexer requests per submit, no early exit on indexer-down",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/pages/miniapps/[id].tsx:83",
+   "proposal": "Tighten to ~30\u201345s timeout (matches the function's own ~2-block default doc) and consider an adaptive interval (poll faster initially, back off). Caps indexer load per submit without losing real confirmations, since the success path early-returns on first event match anyway."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "Sensitive bridge approval uses native window.confirm \u2014 blocks the event loop and is unstyled, while the app already has ConfirmModal",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "medium",
+   "file": "platform/host-app/components/playarea/PlayAreaShared.tsx:517",
+   "proposal": "Promote the approval to a host-level modal: have useEmbeddedWalletBridge dispatch an approval-request event the page resolves through ConfirmModal (same Promise pattern as OperationPanel), keeping window.confirm only as the fail-closed fallback. Unifies approval UX and removes the synchronous main-thread block during a bridge request."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "normalizeBridgeOperation hardcodes a 23-entry kernel-method canonicalization map that is largely an identity table",
+   "category": "dead-code",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/components/playarea/PlayAreaShared.tsx:352",
+   "proposal": "Replace the identity bulk with a lowercase-keyed lookup of the canonical names (build the index once) plus a small explicit alias map for the genuine renames (updateMiniApp\u2192configureMiniApp). Equivalent behavior, ~18 fewer lines, and no double-maintenance when a kernel method is added."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "EmbeddedDappSurface infers appId/network by string-parsing testId and the iframe URL",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/components/playarea/PlayAreaShared.tsx:1221",
+   "proposal": "Make appId and network required props threaded from the playarea registry (which already knows app.app_id and the resolved network) and keep the string-derivation only as a dev-time fallback. Removes a brittle implicit coupling on the bridge identity."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-bridge-detail",
+   "title": "supportsPageCatalogNetwork / resolveNetworkContractHash re-derive the merged contracts map on every render path",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/lib/miniapp-detail-helpers.ts:720",
+   "proposal": "These are pure over (app, network); since app is a stable SSR prop the existing useMemos already bound the cost, but the internal getMiniAppContracts spread can be hoisted/memoized once per app. Minor \u2014 only worth doing alongside the [id].tsx hook extraction (finding #6) to avoid touching this file twice."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-invoke-recipes",
+   "title": "Deposit-then-act recipes repeat notConfiguredError + multiInvokeUnavailableError strings 21/13 times instead of deriving them",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/host-app/lib/miniapp-invoke/recipes.ts:142",
+   "proposal": "Add a small factory in recipes.ts, e.g. `fundedRecipe(appName, noun, buildPlan)` and `simpleRecipe(appName, buildPlan)`, that fills `notConfiguredError = \"${appName} contract is not configured for this network.\"` and `multiInvokeUnavailableError = \"This wallet cannot submit the required funded ${noun} transaction. Open in OneGate or NeoLine.\"`. This removes ~30 lines of repeated string literals and guarantees consistent copy. recoveryAccountRecipe already demonstrates the factory pattern; extend it."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-invoke-recipes",
+   "title": "Positive-GAS-amount validation is hand-rolled 4\u00d7 in recipes.ts (and once in host-api.ts) instead of using the existing values.ts helper",
+   "category": "maintainability",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/host-app/lib/miniapp-invoke/recipes.ts:668",
+   "proposal": "Replace the inline blocks with a `requiredPositiveFixed8Value(values, names, label)` helper (a non-optional wrapper around the existing optionalPositiveFixed8Value that throws when null). This removes the float-based comparison, unifies error copy, and drops ~20 lines. Keep the helper in values.ts next to its optional sibling."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-invoke-recipes",
+   "title": "miniapp-templates.ts is a 1063-line god-file mixing builders, 17 template literals, and the registry",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/host-app/lib/templates/miniapp-templates.ts:1",
+   "proposal": "Split into templates/builders.ts (the op/param helpers + the gaming/content-tab scaffolding factories), templates/apps/*.ts (or grouped by domain: gaming, finance, identity), and templates/index.ts (the registry). Factor the TrustAnchor/ProfitAnchor pair into one `anchorTemplate(name, tone)` factory \u2014 they differ only in display strings. This file is config-only so the change is low-risk and improves diff locality when one template changes."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-invoke-recipes",
+   "title": "Optional-receiptId arg-push and the inline `Array<{ type: string; value: unknown }>` arg builder is repeated across the 3 unbreakable-vault recipes",
+   "category": "refactor",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/lib/miniapp-invoke/recipes.ts:477",
+   "proposal": "Export the element type (e.g. `type InvokeArg = InvokeRecipeInvocation[\"args\"][number]`) from executor.ts and reuse it instead of re-spelling the literal. Add a tiny `appendIf(args, condition, arg)` or accept a trailing-optional-receipt convention in a shared vault-args helper so the three recipes share one builder. Minor, but removes the last hand-typed arg arrays."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-invoke-recipes",
+   "title": "Inline title/length validations duplicate the existing boundedTextValue helper",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/lib/miniapp-invoke/recipes.ts:390",
+   "proposal": "Replace the hand-written `cleanValue(...).trim()` + length-check blocks in those three recipes with boundedTextValue calls (e.g. `boundedTextValue(values, [\"title\",\"capsuleTitle\"], \"Capsule title\", 100, true)`). Consistent error copy, ~15 fewer lines, and one place to change the wording."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-invoke-recipes",
+   "title": "Unguarded EXTERNAL_INTEGRATIONS[targetNetwork] indexing can throw a cryptic TypeError instead of a configured error",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/lib/miniapp-invoke/recipes.ts:617",
+   "proposal": "Read `const integration = EXTERNAL_INTEGRATIONS[targetNetwork]; if (!integration) throw new Error(recipe.notConfiguredError-equivalent)` before dereferencing `.contracts`. Low frequency (NeoNetwork is a closed union today) but cheap insurance and gives a user-meaningful message."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-invoke-recipes",
+   "title": "readNeoInteger has a hard-coded 10s timeout and no retry; the only on-chain read in the invoke path is non-resilient",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/lib/miniapp-invoke/neo-read.ts:45",
+   "proposal": "Extract a shared `NEO_READ_TIMEOUT_MS` constant (and the matching one in host-api.ts) and consider one bounded retry for the read-only path, or at least surface a clearer \"network temporarily unavailable, retry\" message distinct from on-chain HALT failures. Read-only and idempotent, so a retry is safe. Keep it minimal \u2014 this is the only read in the subsystem."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-invoke-recipes",
+   "title": "Self-loan mainnet-vs-testnet branches duplicate full buildInvokeArgs param schemas inline instead of declaring them once",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/lib/miniapp-invoke/recipes.ts:793",
+   "proposal": "Hoist the reusable param descriptors (a `$wallet` hash160 borrower/payer/depositor descriptor, the loanId integer descriptor) to module-level consts in recipes.ts and compose the per-method schemas from them. Removes the throwaway single-element buildInvokeArgs([...])[0] indirection at 846-857 and centralizes the mainnet ABI shapes."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-wallet",
+   "title": "lib/wallet/types.ts and the index barrel are dead code",
+   "category": "dead-code",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/host-app/lib/wallet/types.ts:1",
+   "proposal": "Delete lib/wallet/types.ts and lib/wallet/index.ts (or, if the barrel is wanted as the public entry, re-export the canonical types from base.ts/store.ts instead of the stale duplicates). Removes two divergent definitions of WalletAccount/WalletProvider that can silently mislead future edits."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-wallet",
+   "title": "NEO/GAS contract hashes and fixed-8 helpers duplicated across wallet + vault modules",
+   "category": "maintainability",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/host-app/lib/wallet/adapters/wif.ts:79",
+   "proposal": "Promote the GAS/NEO asset hashes to a single shared const (a `lib/neo-assets.ts` or reuse an existing constants module) and import everywhere. Collapse parseFixed8/parseGasAmount into one `parseFixed8(value, { scaleWholeBy8?: boolean })` or document why both exist. Co-locate the format/parse fixed-8 helpers in one util consumed by both wallet and vault. Low effort, removes a class of copy-edit drift bugs around money math."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-wallet",
+   "title": "Store monkeypatches shared adapter instances to add balance-refresh side effects",
+   "category": "architecture",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/host-app/lib/wallet/store.ts:110",
+   "proposal": "Move the post-invoke balance refresh out of the adapter and into the bridge/invoke call sites that the store owns, or wrap via a thin decorator object (spread + override) rather than mutating the instance in place. This keeps adapters pure value objects and makes the side effect explicit. Medium effort because PlayAreaShared also calls adapter.invoke directly and currently relies on the monkeypatch to refresh \u2014 those call sites would need the refresh hook too."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-wallet",
+   "title": "refreshBalance and account-change handler issue serial network round-trips on a hot/polled path",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/lib/wallet/store.ts:405",
+   "proposal": "In refreshBalance, only re-read network when it's currently null/unknown, or run getBalance and getNetwork via Promise.all (they're independent). In the onAccountChanged handler, parallelize the network + balance reads after connect(). Minor latency/RPC-load win, but it's on the only continuously-polling path in the subsystem."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-wallet",
+   "title": "onegate-vault in-memory and Supabase repositories duplicate the claim state machine",
+   "category": "testability",
+   "impact": "low",
+   "effort": "medium",
+   "file": "platform/host-app/lib/onegate-vault.ts:379",
+   "proposal": "Treat the in-memory repo strictly as a test double and document that the Supabase RPC (onegate_vault_reserve_claim_v3) is the source of truth, OR factor the shared validation predicates (validateLaunchIdentity, status-transition tables) into pure functions both repos call so the invariants live in one place. Reduces the chance the test double and prod diverge in what they reject. No behavior change to the deployed RPC."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-wallet",
+   "title": "Relative cross-boundary import reaches four levels up into sdk/src",
+   "category": "architecture",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/lib/wallet/adapters/nep21.ts:34",
+   "proposal": "Add a path alias (e.g. `@sdk/*` in tsconfig paths) or expose nep21-provider through the sdk package's public entry and import by package name. Makes the wallet\u2192sdk dependency explicit and resilient to file moves, and stops the relative depth from masking the module boundary."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-sdk",
+   "title": "Stale examples/basic-usage.ts demonstrates retired endpoints as working code",
+   "category": "maintainability",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/sdk/examples/basic-usage.ts:144-180,326-354",
+   "proposal": "Either delete the RNG/price workflows from the example and replace with a comment pointing to on-chain Runtime.GetRandom / MorpheusDataFeed (mirroring docs.tsx:551), or add examples to a typecheck-only tsconfig so stale API usage fails CI. Smallest fix: remove the two retired workflows and their call sites."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-sdk",
+   "title": "Retired gateway methods bloat the public type surface and force host re-wrapping",
+   "category": "dead-code",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/sdk/src/types.ts:394-415,439-448",
+   "proposal": "Plan a deprecation: keep the runtime throwers for one release (loud failure is good) but mark the interface members and their exported types `@deprecated` with the replacement guidance already in the JSDoc, then remove in a follow-up. Drop the dead rng/datafeed branches from host-app scopeMiniAppSDK (miniapp-sdk.ts:162-177) now since they add permission-gated indirection in front of an unconditional throw."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-sdk",
+   "title": "Duplicated query-string assembly across list/usage methods",
+   "category": "refactor",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/sdk/src/client.ts:744-786,1022-1036",
+   "proposal": "Add a small helper `buildPath(base, params: Record<string,string|number|undefined>)` that filters undefined/empty and appends `?qs` only when non-empty. Collapses ~30 lines and centralizes the empty-string handling noted in the trailing-? finding below."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-sdk",
+   "title": "events.list / transactions.list with no params produce a trailing '?' path",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/sdk/src/client.ts:766-770,781-785",
+   "proposal": "Use the same guard as getMyUsage, or fold into the buildPath helper which omits `?` when the query is empty. Harmless but removes an inconsistency and a latent edge-server assumption."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-sdk",
+   "title": "payGAS/vote remember the pending invocation, then *AndInvoke immediately deletes it",
+   "category": "refactor",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/sdk/src/client.ts:674-688,706-723",
+   "proposal": "Factor the gateway POST into a private `createPayGASIntent()` that returns the response without touching the pending map; have payGAS() remember it (for the manual invokeIntent flow) and payGASAndInvoke() skip the remember entirely. Removes a needless prune/insert/delete per atomic call and clarifies intent."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-sdk",
+   "title": "No retry/backoff on idempotent GET reads despite a 10s hard timeout",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "medium",
+   "file": "platform/sdk/src/client.ts:561-565,528-608",
+   "proposal": "Add an opt-in bounded retry (e.g. 2 attempts, jittered backoff) for GET requests only, gated so POST intents are never retried (they create on-chain invocations / state). Keep it small and method-aware; do not retry non-idempotent writes. Medium effort because it needs careful scoping to avoid double-spends."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-sdk",
+   "title": "NeoLine invoke fallback loop silently swallows per-candidate errors",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/sdk/src/client.ts:369-407",
+   "proposal": "Detect a user-rejection error code on the first attempt and short-circuit (don't retry the second candidate for an explicit reject). Otherwise keep the fallback but include both candidate errors in the thrown message, not just the last, so the prefix-format failure mode is diagnosable."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-sdk",
+   "title": "Wallet-context resolution re-walks all providers on every wallet operation",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/sdk/src/client.ts:231-266,148-192",
+   "proposal": "Cache the resolved InjectedWalletContext (provider+address) for a short TTL or until an accountchanged/networkchanged event fires (the provider already exposes on/removeListener, nep21-provider.ts:40-41). Invalidate on those events. Avoids redundant getAccounts round-trips on multi-step flows without staleness risk."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "Catalog GET loads the full miniapp definition set twice per request",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/host-app/pages/api/miniapps/catalog.ts:175",
+   "proposal": "Have `loadMiniAppCatalog` optionally return (or accept) the already-loaded `definitionApps` so the route can reuse them for `bundleById` instead of reloading. Alternatively expose the definitions Map from one load. Removes one full directory walk + parse of ~60 manifests per catalog request on the cold path."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "Bulk catalog response is computed fresh every request with no in-process memoization beyond the definitions TTL",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/host-app/pages/api/miniapps/catalog.ts:181",
+   "proposal": "Memoize the fully-merged+compacted catalog payload keyed by (status, scope, network, search='') with a short TTL (e.g. 30-60s) in module scope, since the inputs only change when definitions/Supabase change. The empty-search scope=all variant (what both pages request) is the dominant key and is fully cacheable. Search/appId variants can bypass the cache."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "getBatchStats falls back to sequential per-app RPC fan-out for apps missing a Supabase row",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/host-app/lib/miniapp-stats/service.ts:124",
+   "proposal": "Run the missing-app fills with `Promise.all` (or a small concurrency-limited pool) instead of a sequential await loop, so the chain reads overlap. Bounds total latency to ~max(single RPC) rather than sum. The cache writes inside getMiniAppStats are already keyed per app so parallelism is safe."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "serializeMiniApps duplicated verbatim across the two landing pages",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/host-app/pages/miniapps/index.tsx:256",
+   "proposal": "Extract a single `serializeMiniAppForCatalogProps(app)` into lib (next to compactMiniAppManifestForCatalog) and import it in both pages. Single source of truth for the SSG prop shape; removes ~30 duplicated lines and the field-drift hazard."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "Landing pages re-fetch the network-independent catalog whenever the network query param changes",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/pages/index.tsx:214",
+   "proposal": "Drop `targetNetwork` from the catalog effect dependency array (fetch once on mount). Network changes already re-derive availability via the existing useMemo over targetNetwork; the catalog body never varies by network on scope=all."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "partitionMiniApps recomputed up to 4x per render on the home page",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/pages/index.tsx:292",
+   "proposal": "Wrap the fallback in `useMemo(() => partitionMiniApps(initialApps).flagship, [initialApps])` (or compute the fallback once alongside the featuredApps state init). Minor, but it is on the render hot path of the most-trafficked page."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "rpc/[fn].ts uses an older raw-body reader that 500s on oversized bodies instead of returning 413",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/pages/api/rpc/[fn].ts:132",
+   "proposal": "Reuse edge/[endpoint].ts's `readRawBody` + BodyTooLargeError (extract to lib/raw-body.ts and share), and wrap the call in rpc/[fn].ts in the same try/catch that emits 413. Consistent behavior across the two proxy routes and avoids leaking listeners on the abort path."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "Dead retry machinery in rpc/[fn].ts (MAX_RETRIES=0 makes fetchWithRetry a no-op wrapper)",
+   "category": "dead-code",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/pages/api/rpc/[fn].ts:12",
+   "proposal": "Either delete fetchWithRetry and call fetchWithTimeout directly (the upstream is a single RPC gateway where retrying a non-idempotent POST is unsafe anyway), or, if retries are wanted, set MAX_RETRIES>0 and restrict to idempotent GETs. As-is it is ~30 lines of unexercised code implying behavior that does not occur."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "explorer/recent RPC fallback caps block scan at 8 and can return fewer than requested without signaling truncation",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/pages/api/explorer/recent.ts:37",
+   "proposal": "Either raise the scan cap proportional to limit with a hard ceiling, or include the scanned-block count / a `truncated` flag in the response so the client knows the result is scan-bounded rather than exhaustive. Low impact (fallback path only) but it is a confusing partial-result state."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-pages-api-data",
+   "title": "getMiniAppStats single-app path writes cache only for the DB hit, not for chain-derived stats",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/host-app/lib/miniapp-stats/service.ts:51",
+   "proposal": "After deriving chainStats/sharedStats, `statsCache.set(cacheKey, { stats, timestamp: Date.now() })` before returning, mirroring the DB branch. Turns repeated batch/stat requests for chain-backed apps into cache hits within CACHE_TTL and compounds the parallelization win above."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-admin-platform",
+   "title": "Four demo-data pages hand-roll the same loading lifecycle instead of react-query",
+   "category": "maintainability",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/admin-console/src/app/contracts/page.tsx",
+   "proposal": "Extract a small `useDemoResource<T>(path)` react-query hook (queryFn does the fetch with getAdminAuthHeaders, reads the X-Mock-Data header into `isDemoData`, returns {data,isLoading,error,isDemoData}). Replace the four hand-rolled lifecycles with it. Removes the mountedRef/manual-cancellation boilerplate (react-query handles unmount), unifies error handling, and aligns these pages with the rest of the app. Mutations on contracts stay as direct fetch+invalidate."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-admin-platform",
+   "title": "Three exported data hooks are dead (useUser, useMiniApp, useServiceHealth)",
+   "category": "dead-code",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/admin-console/src/lib/hooks/useServices.ts",
+   "proposal": "Delete useUser, useMiniApp, and useServiceHealth plus their barrel re-exports and any tests that exist solely to cover them. ~60 lines removed and the public hook surface shrinks to what is actually consumed. If useServiceHealth(name) is wanted later, reintroduce it as a `select` over the cached useServicesHealth query rather than a new full fetch."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-admin-platform",
+   "title": "57 raw console.* calls bypass the structured logger; the parse-with-warn idiom is copy-pasted 36\u00d7",
+   "category": "maintainability",
+   "impact": "medium",
+   "effort": "small",
+   "file": "platform/admin-console/src/lib/hooks/useMiniAppList.ts",
+   "proposal": "Add `parseJsonSafe<T>(response, context, fallback)` (or extend api-utils) that wraps response.json().catch with a single logger.warn call, and route the 36 call-sites through it. Replace the 57 raw console.* with logger.* so dev-only chatter is gated and prod logs are consistently prefixed. Pure mechanical change, no behavior change, removes the most-duplicated 3-line block in the subsystem."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-admin-platform",
+   "title": "Four mock-data routes share identical scaffolding (MOCK_HEADERS + GET demo + 501 writes)",
+   "category": "refactor",
+   "impact": "low",
+   "effort": "small",
+   "file": "platform/admin-console/src/app/api/contracts/route.ts",
+   "proposal": "Add a tiny `mockReadOnlyRoute({ data, notImplementedMessage })` factory (or `notImplemented(message)` helper alongside jsonError) in api-utils that returns {GET, POST, DELETE} pre-wired with auth + MOCK_HEADERS + the 501 shape. Each route file drops to the demo payload plus one factory call. Low impact since these are dev-only mocks, but it removes the most boilerplate-dense files and makes the MOCK_HEADERS constant single-sourced (matching the MOCK_DATA_HEADER constant already in DemoDataBanner.tsx)."
+  },
+  {
+   "system": "OS",
+   "subsystem": "os-admin-platform",
+   "title": "templates/page.tsx remains a 1339-line god-file mixing parsing, install-draft logic, and 9 presentational sub-components",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "platform/admin-console/src/app/templates/page.tsx",
+   "proposal": "Move the 9 leaf components (SummaryCard, TemplateListItem, the Field* primitives, the *State components) into templates/components/. The Field*/state primitives are generic and likely reusable by other admin forms. This is a follow-on to the helpers de-dup and would bring the file under ~600 lines without touching behavior. Lower priority than the dead-code item since it is structural, not a correctness or coverage problem."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-core",
+   "title": "De-duplicate mapWithConcurrency (4 copies, 2 behaviors) into a shared util",
+   "category": "dead-code",
+   "impact": "medium",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/queue.js:503",
+   "proposal": "Move the fail-fast variant into the shared package (e.g. @neo-morpheus-oracle/shared/utils, where trimString/parseTimestampMs already live) as mapWithConcurrency(items, limit, worker) and import it in all four sites. The fail-fast semantics are the safer default (abort-the-tick on transport error, which both engine scans already rely on). One definition, one test, consistent behavior."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-core",
+   "title": "Collapse the 3 near-clone outcome recorders (settled / terminal-config / exhaustion)",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "workers/morpheus-relayer/src/fulfillment.js:991",
+   "proposal": "Introduce recordTerminalOutcome(config,state,persistState,logger,event,kernelIntent,{localStatus,durableStatus,route,lastError,metric,logLevel,logMessage,extraMeta}). The 'settled'/'terminal'/'exhausted' arms become three small calls. Bonus: thread the already-computed kernelIntent into recordProcessedEvent so it stops re-deriving it."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-core",
+   "title": "Re-preparing the worker fulfillment on every fresh event but checkpointing before delivery doubles durable writes",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "workers/morpheus-relayer/src/fulfillment.js:901",
+   "proposal": "On the happy path the callback_pending checkpoint is only needed if delivery is slow/fails. Consider deferring checkpointPreparedFulfillment until the first delivery failure (the prepared payload is already in local retry_queue + state, which is persisted), or coalescing the 'processing' and 'callback_pending' upserts. Measure first via the durations_ms already captured (worker/verification/fulfill) plus a new 'durable upserts per event' counter, then cut the redundant writes. Keep failClosed durable-queue mode intact."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-core",
+   "title": "resolveKernelIntent recomputed many times per event from the same requestType string",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/router.js:148",
+   "proposal": "Two low-risk options: (1) memoize resolveKernelIntent with a small Map keyed by the raw requestType (the function is pure), or (2) compute kernelIntent once per event in processEvent/prepareOracleFulfillment and pass it down to recordProcessedEvent/buildRelayerJobRecord (both already accept event and could accept the resolved intent). Option 1 is the smallest diff and benefits every call site at once."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-core",
+   "title": "decodeNeoItem 'auto' hex-vs-base64 sniffing is dead in-repo and a latent correctness trap",
+   "category": "dead-code",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/neo-n3.js:127",
+   "proposal": "Make encoding a required parameter (or drop the 'auto'/'hex' branch and the looksHex heuristic entirely) since the only consumers are this repo's base64 RPC/n3index sources. If decodeNeoItem is exported for external reuse, gate the hex branch behind an explicit encoding==='hex' and delete the sniffing fallback. Removes ~15 lines of unreachable, correctness-sensitive code."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-core",
+   "title": "buildNeoN3EventFromRequestRecord uses positional array destructuring with magic length thresholds",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/neo-n3.js:237",
+   "proposal": "Define the two tuple layouts as named index maps (const KERNEL_REQUEST_FIELDS = {requestId:0, appId:1, ...}) or a single decodeRequestTuple(decoded, layout) helper, so the skipped/holed positions are documented and the alreadySettled/hasOutcome gate is written once. Purely structural; the deployed tuple order is unchanged."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-core",
+   "title": "No unit test for the primary-execution-exhausted -> finalize -> finalize-fails re-enqueue path",
+   "category": "testability",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "workers/morpheus-relayer/src/fulfillment.js:1267",
+   "proposal": "After extracting scheduleCallbackRetry/recordTerminalOutcome (finding 1), add table-driven tests for: (a) worker exhausted -> finalize HALT -> 'failed' recorded once; (b) worker exhausted -> finalize throws transient -> finalize_only re-enqueued with terminal_error preserved; (c) finalize throws permanent -> dead-lettered. Use the existing config.hooks.fulfillNeoRequest seam (fulfillment.js:300) to inject failures without touching chain code."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-core",
+   "title": "Inconsistent RPC timeout/retry surface between Neo N3 read path and confirm-poll loops",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/neo-n3.js:67",
+   "proposal": "Pass a remaining-budget (deadline) into neoRpcCall so per-attempt timeouts are clamped to time left in the confirm window, or cap the confirm-loop neoRpcCall to a single URL (the already-promoted one). Small change, removes a worst-case where one fulfillment confirm wedges the per-tick await far longer than configured."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-core",
+   "title": "trimString is redefined locally in 3 relayer modules despite a shared export",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/neo-n3.js:7",
+   "proposal": "Import trimString (and a shared strip0x) from the shared utils in neo-n3.js and router.js, deleting the local copies. Mechanical, low-risk; keeps one definition of these primitives."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "Manual-action and durable-queue hydration issue one PATCH per row despite an existing chunked bulk-PATCH helper",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "workers/morpheus-relayer/src/queue.js",
+   "proposal": "Extract the chunked event_key=in.(...) PATCH from quarantineRelayerJobsBelowRequestId into a shared patchRelayerJobsByEventKeys(eventKeys, fields, {network}) in persistence.js, then have syncManualActions batch the 'queued' transition for all valid rows in one (chunked) PATCH after the local-state mutations, and have hydrateDurableQueue use it where it needs to write job state. Manual-action rows already share an identical target patch, so grouping is trivial. Keeps the per-row local mutations (removeProcessedEvent/enqueueRetryItem) intact; only collapses the remote writes."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "Metrics server re-reads and JSON-parses the full state file on every Prometheus scrape",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/metrics-server.js",
+   "proposal": "Have the relayer loop publish the already-computed snapshotMetrics(state) (it builds it every tick at relayer.js:196) into a shared in-memory holder (or a small metrics-only sidecar file) and have the metrics server read that instead of re-parsing the whole durable state. Fallback to loadRelayerState only on cold start. Removes a synchronous full-file parse from the hot scrape path and decouples metrics latency from state-file size."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "config.js is a 528-line flat builder with ~80 inline env lookups and heavy Phala-era fallback chains",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "workers/morpheus-relayer/src/config.js",
+   "proposal": "Introduce small typed reader helpers (envInt(names, {default, min, max}), envBool(names, default), envList(names)) to collapse the repeated Math.max/Number/parseBoolean boilerplate, and split the builder into cohesive sub-builders (buildNeoN3Config, buildNeoXConfig, buildDurableQueueConfig, buildAutomationConfig, buildFeedSyncConfig). This is the systemd integration contract for env var *names*, so keep every existing key string verbatim \u2014 the refactor is purely how they are read and grouped, which is safe and testable. Reduces the surface for clamp-floor copy/paste bugs."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "Signer env-key registry and role-matching matrix carry large vestigial Phala-era key lists",
+   "category": "maintainability",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "workers/morpheus-relayer/src/lib/neo-signers.js",
+   "proposal": "Derive the env-key list and role groups from a compact data table keyed by {role, scope: generic|testnet|mainnet, kind: wif|pk|pubkey, source: morpheus|phala} and generate the per-role primary/fallback/public arrays, so adding/removing a key is a one-line change and the 'PHALA' legacy source can be flagged for eventual removal in one place. Keep the resolved key strings identical (they are env contracts). Also short-circuit collectSecrets to stop materializing wallet.Account objects once a pinned primary match is found, avoiding N keypair derivations when one already matches."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "mapWithConcurrency is duplicated verbatim in two modules",
+   "category": "dead-code",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/request-processor.js",
+   "proposal": "Move it to a single shared util (e.g. a relayer-local lib/concurrency.js or the @neo-morpheus-oracle/shared package, which config.js already imports from) and import in both. Removes a copy that will drift."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "Small string/object/network helpers re-declared in nearly every relayer module",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/persistence.js",
+   "proposal": "Replace the local trimString/isPlainObject copies with imports from @neo-morpheus-oracle/shared/utils, and hoist the duplicated resolveSupabaseNetwork into persistence.js as the single exported source (automation.js imports it). Mechanical and low-risk; trims ~6 near-identical helper blocks."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "processAutomationJobs is a 125-line function with nested per-job branching and duplicated record-run/patch pairs",
+   "category": "refactor",
+   "impact": "low",
+   "effort": "medium",
+   "file": "workers/morpheus-relayer/src/automation.js",
+   "proposal": "Extract a processSingleAutomationJob(config, job, ctx) that returns a discriminated outcome ({kind: 'skipped'|'queued'|'failed', run, patch}) and let processAutomationJobs own only the loop + counters + the single recordRun/patchJob application. Collapses the duplicated buildQueuedAutomationPatch+recordRun blocks into one apply path and isolates the claim-recovery reconstruction. Pure refactor; the existing automation.test.mjs and the dep-injection seams (deps.* overrides) make it testable."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "claimAutomationJob uses a DB check-constraint violation as control flow for the paused-marker fallback",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/persistence.js",
+   "proposal": "Detect schema capability once (whether the deployed status enum/check allows 'processing') via a cached probe or config flag, and choose the claim target status up front instead of relying on catching the violation. If keeping the catch, match on the PostgREST error code field rather than a free-text substring of the message. Reduces brittleness and saves a speculative write."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "Per-tick state-file writes still occur even with the persistor coalescer because relayer.js calls saveRelayerState directly",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/relayer.js",
+   "proposal": "Route the tick-boundary writes through the same persistor (or skip the start-of-tick write and fold ticks_total/last_tick_* into the single end-of-tick + maybePersistRun write). The atomic temp+rename is correct but the redundant start/end pair doubles disk churn; collapsing to one trailing write per tick preserves durability of cursors (which are written by the persistor inside the chain processors anyway)."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-relayer-infra",
+   "title": "betterstack-log-sink uses module-global mutable queue/flush state with a coarse drop-during-flush guard",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/morpheus-relayer/src/betterstack-log-sink.js",
+   "proposal": "The splice window is synchronous so queueLocked can never actually be observed as true by another call in a single-threaded event loop \u2014 the guard (and the log-drop it causes) is dead defensive code; remove it and the queueLocked flag. Cache resolveConfig() once at module init (env is fixed for the process lifetime under systemd) instead of re-parsing per log line. Optional: requeue the failed batch head (bounded by maxQueue) instead of dropping on transient network errors. Low impact since it is best-effort logging, but it removes a confusing self-imposed log-loss path."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "Provider response & config caches are unbounded Maps with no eviction",
+   "category": "robustness",
+   "impact": "medium",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/oracle/providers.js",
+   "proposal": "Add a simple bound: either an LRU cap (e.g. 500 entries, evict oldest on insert) or a periodic sweep that drops entries past expiresAt on each set(). Lowest-risk is to prune in the set path: when cache.size exceeds a cap, delete the oldest inserted key (Map preserves insertion order). ~15 lines per cache, no behavioral change for the hot path."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "handleOracleFeed fetches every symbol's providers strictly sequentially",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "workers/nitro-worker/src/oracle/feeds.js",
+   "proposal": "Parallelize the per-symbol fetch phase with a bounded concurrency pool (e.g. Promise pool of 4-6) before the sequential decision/state-mutation phase, which must stay ordered. The state mutation and batch assembly already happen after fetching, so only the fetch fan-out needs to change. Cuts feed-cycle wall time substantially without changing on-chain submission semantics. Gate behind a MORPHEUS_FEED_FETCH_CONCURRENCY env (default 1 to preserve current behavior, then raise) to de-risk."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "getSupabaseRestConfig duplicated verbatim across three oracle modules",
+   "category": "maintainability",
+   "impact": "medium",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/oracle/providers.js",
+   "proposal": "Hoist a single getSupabaseRestConfig() into platform/core.js (or a small oracle/supabase-rest.js) and import it in all three. The env var names stay identical (no integration-contract change), only the JS function is deduplicated. Mechanical, test-covered."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "Decimal<->integer scaling helpers duplicated and split between two implementations",
+   "category": "maintainability",
+   "impact": "medium",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/oracle/feeds.js",
+   "proposal": "Consolidate into one decimal module with a clear contract: BigInt for any value that becomes an on-chain integer (price_units), float only for display transforms (inverse). Document FEED_PRICE_DECIMALS=6 as the single source. At minimum, co-locate all five functions so the float-vs-BigInt boundary is explicit and testable in one place (pairs with the feeds.js split). No behavior change if the same call sequence is preserved."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "submitQuotesToN3WithFallback fans out to N sequential single-tx submits on a recoverable batch failure",
+   "category": "robustness",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "workers/nitro-worker/src/oracle/feeds.js",
+   "proposal": "Make the fallback resilient: collect per-entry {storage_pair, tx|error} with try/catch around each submitQuoteToN3 so one failure doesn't discard successful submissions, and surface partial success in the returned mode:'single_fallback' object (the caller already treats batchTx as opaque metadata). This is a worker-side change only (no contract change) and turns an all-or-nothing fallback into a best-effort one with observable partial state."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "scheduleOracleFeedBackgroundTask uses an unbounded fire-and-forget task set",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/oracle/feeds.js",
+   "proposal": "Add a single-flight or small-cap guard per (network,targetChain) scope: if a background feed cycle for that scope is already running, either coalesce (return the in-flight task) or reject the new fast-ack with 429. This also closes the concurrent-write race on the feed-state file. Small, localized to this module; the existing __drainOracleFeedBackgroundTasksForTests stays valid."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "Inline IIFE for timestamp-seconds conversion duplicated in the submission path",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/oracle/feeds.js",
+   "proposal": "Extract a tiny `quoteTimestampToUnixSeconds(quote)` helper (and a sibling for ms) and use it in both submitQuoteToN3 and the handleOracleFeed loop. Removes the IIFE-in-literal and the duplicated cutoff logic. Trivial, behavior-identical."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "Magic timestamp cutoffs and unit-detection thresholds are unexplained literals",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/oracle/feeds.js",
+   "proposal": "Name them: const SECONDS_VS_MS_CUTOFF_S = 4_102_444_800 // 2100-01-01 in seconds and a matching ms constant with a comment, and use one consistent rule across extractUpstreamTimestamp and normalizeTimestampMs. Reduces the chance of a future off-by-1000 bug in feed timestamps."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "VRF lane still labeled 'vrf' despite being a signed CSPRNG (verifiability expectation gap)",
+   "category": "architecture",
+   "impact": "low",
+   "effort": "medium",
+   "file": "workers/nitro-worker/src/oracle/vrf.js",
+   "proposal": "Not a code bug, an expectation/architecture seam. Either (a) document at the route/capability level that this is enclave-attested CSPRNG, not algorithmic VRF (clearest, low effort), or (b) if downstream contracts need true verifiability, implement an ECVRF proof and emit it alongside randomness. At minimum add a one-line note in capabilities.js where the lane is registered so the name doesn't over-promise. Behavior-preserving for (a)."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-oracle",
+   "title": "handleFeedsPrice recomputes provider inference already done inside fetchPriceQuote",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/oracle/feeds.js",
+   "proposal": "Resolve the provider list once (resolveRequestedProviders) at the top of handleFeedsPrice and pass it down, or have fetchPriceQuote accept a pre-resolved provider. Eliminates the double inference/parse. Small, behavior-identical, test-covered."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-platform",
+   "title": "Capability route is resolved 3 times per request",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/capabilities.js:315-348",
+   "proposal": "Resolve once in worker.js before the guard/overload calls and thread the resolved capability (or at least routeName) into applyRequestGuards and acquireOverloadSlot as a parameter, instead of each re-deriving it. The guards/overload signatures already receive path+payload, so adding an optional resolved arg is a contained change. Alternatively build a Map from exact path \u2192 capability at module load and only fall back to the regex/action scan for the two pattern routes. Low effort, removes ~2/3 of dispatch CPU on every request."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-platform",
+   "title": "Dead duplicate script runner (script-worker.cjs) is never imported",
+   "category": "dead-code",
+   "impact": "medium",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/platform/script-worker.cjs:1-2",
+   "proposal": "Delete script-worker.cjs (and any package.json/test references if present). If a worker_threads-based runner is the intended future direction for the pooling win above, fold it into that effort rather than leaving two divergent sandbox implementations that can drift in their codeGeneration/frozen-intrinsics hardening."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-platform",
+   "title": "compute/jobs endpoint returns a hardcoded fake 'completed' job",
+   "category": "maintainability",
+   "impact": "medium",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/compute/index.js:739-755",
+   "proposal": "Either (a) remove the compute_jobs and compute_jobs_id capabilities (capabilities.js:294-304) since execution is synchronous and there is no job lifecycle, or (b) if a job API is genuinely expected by a frontend, return 404/410 for unknown ids and a clear 'synchronous_only' status rather than fabricating 'completed'. Confirm no client depends on the stubbed shape before removing."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-platform",
+   "title": "Duplicated fork-runner boilerplate between script-runner and wasm-runner",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "workers/nitro-worker/src/platform/wasm-runner.js:19-134",
+   "proposal": "Extract a shared runChildWithTimeout({ childPath, message, timeoutMs, maxResultBytes, memoryEnvPrefix, fsReadDefault }) helper that owns the fork lifecycle, timer, SIGKILL, and result-size guard. Keep script-runner/wasm-runner as thin wrappers that supply their child path, message shape, and env-prefix. Behavior-preserving; collapses the two security-sensitive code paths into one auditable place."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-platform",
+   "title": "executeBuiltinCompute is a 155-line switch that should be a dispatch table",
+   "category": "refactor",
+   "impact": "low",
+   "effort": "medium",
+   "file": "workers/nitro-worker/src/compute/index.js:478-636",
+   "proposal": "Replace the switch with a Map<name, {category, description, run(input)}> so the catalog and the executor are one source of truth (listBuiltinComputeFunctions derives names+descriptions from the same map). Each run() returns just its result object; the common { function: fn, result } envelope and the 'unknown builtin' default are handled once by executeBuiltinCompute. Removes the catalog/switch drift risk and shrinks the file. Low impact since it is pure CPU dispatch, but it improves maintainability of the most-edited part of the 755-line file."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-platform",
+   "title": "persistGuardResult re-clones and JSON-parses the response body on every guarded request",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/platform/request-guards.js:341-365",
+   "proposal": "Thread the already-known body object through the response path (e.g. attach it as a symbol/property on the Response, or return {response, body} from handlers) so persistGuardResult and wrapWorkflowResponse can cache the parsed body instead of clone+text+JSON.parse. If that is too invasive, at minimum skip the parse when the response is a non-cacheable status (isCacheableGuardStatus is checked AFTER the parse at line 347 \u2014 move the status check before the clone/parse so non-cacheable responses pay nothing)."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-platform",
+   "title": "Idempotency lock is released in persistGuardResult, not in the dispatch finally \u2014 a thrown handler leaves the lock held until TTL",
+   "category": "robustness",
+   "impact": "medium",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/platform/request-guards.js:341-364",
+   "proposal": "Release the lock in a finally that always runs: either move the persistGuardResult/lock-delete into the same finally that releases the overload slot (worker.js:192-194), or split lock-release out of persistGuardResult into its own best-effort call invoked from both the success path and the outer catch. The overload slot is already released correctly via finally; mirror that for the idempotency lock."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-worker-platform",
+   "title": "Builtin compute Number()-based numeric/linear-algebra ops silently lose precision and accept NaN",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "workers/nitro-worker/src/compute/index.js:48-92",
+   "proposal": "Add a small assertFiniteNumber helper used by the matrix/vector/polynomial paths that throws on NaN/Infinity/non-numeric elements (the handler already maps thrown errors to a 400 via jsonError, so this fails closed instead of signing nonsense). For evaluatePolynomial, accept x as a decimal string and BigInt() it directly rather than round-tripping through Number/Math.floor."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "Static docs pages declare 'use client' with zero interactivity, shipping needless hydration JS",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "small",
+   "file": "apps/web/app/docs/architecture/page.tsx",
+   "proposal": "Remove the 'use client' directive from the 14 static docs pages so they render as Server Components (no client JS/hydration for static content). They can still render the CodeBlock client component as a child. Keep 'use client' only on feed-status and networks. Largest win on docs-route TTI; near-zero risk (these pages have no client state)."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "CodeBlock imports the full highlight.js (all languages) into the client bundle",
+   "category": "performance",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "apps/web/components/ui/CodeBlock.tsx",
+   "proposal": "Switch to `highlight.js/lib/core` and registerLanguage only the grammars actually used (json, csharp/cs, plaintext, plus bash/javascript if used elsewhere). Falls back to plaintext for unregistered languages (the existing getLanguage check already handles this). Removes most of the highlight.js payload from any route that renders code."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "ethers ^6.16.0 is a declared apps/web dependency with no source usage",
+   "category": "dead-code",
+   "impact": "low",
+   "effort": "small",
+   "file": "apps/web/package.json",
+   "proposal": "Remove ethers from apps/web/package.json dependencies (the web app is Neo N3 / dApi-only; EVM lives in workers). Reduces install surface and avoids ethers accidentally being pulled into the web bundle. Verify with a build that nothing in apps/web transitively requires it (grep already confirms no direct import)."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "Oracle key/state loading + payload/snippet generation duplicated across OracleTab, ComputeTab, StarterStudio",
+   "category": "refactor",
+   "impact": "medium",
+   "effort": "medium",
+   "file": "apps/web/components/dashboard/OracleTab.tsx",
+   "proposal": "Extract a useOracleReadiness(networkKey) hook returning {oracleKeyMeta, oracleKeyStatus, oracleState, oracleStateStatus, reload} and a pure buildNeoRequestSnippets(...) helper, then have all three components consume them. Collapses ~150 duplicated lines, gives the readiness state machine a single tested seam, and keeps the panel sub-components unchanged."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "Snippet helper functions copy-pasted across components (escapeForCSharp \u00d73, encodeUtf8Base64 \u00d73, copyText \u00d72)",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "apps/web/components/dashboard/ComputeTab.tsx",
+   "proposal": "Move escapeForCSharp, encodeUtf8Base64, copyText, and getSelectedNetworkQueryPart into a single lib/neo-snippets.ts (client-safe) and import. Eliminates the SSR-branch drift in encodeUtf8Base64 and gives one place to unit-test the C#/base64 escaping used in generated on-chain snippets."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "trimString re-defined locally in 14 lib files while packages/shared already exports it",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "small",
+   "file": "apps/web/lib/onchain-state.ts",
+   "proposal": "Import trimString (and json/parseTimestampMs where applicable) from @neo-morpheus-oracle/shared in the server-side lib files and delete the local copies. Behavior-identical (shared impl is `typeof v==='string' ? v.trim() : ''`). Low risk; do it as a mechanical pass and rely on the existing test suite + build."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "Secret comparisons in control-plane-auth and cron-auth use === (timing-unsafe) though shared exports timingSafeCompare",
+   "category": "security",
+   "impact": "medium",
+   "effort": "small",
+   "file": "apps/web/lib/control-plane-auth.ts",
+   "proposal": "Replace the === secret comparisons in control-plane-auth.ts and cron-auth.ts with timingSafeCompare from @neo-morpheus-oracle/shared (constant-time over equalized-length buffers). These are server-only auth helpers; change is local and unit-testable. Note: cron-auth.ts:26 also still authorizes dev requests on a 'vercel-cron' User-Agent substring \u2014 confirm the NODE_ENV==='production' guard (line 23) fully gates it before relying on the UA path."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "Long-running poll intervals do not pause on hidden tabs",
+   "category": "performance",
+   "impact": "low",
+   "effort": "small",
+   "file": "apps/web/app/status/page.tsx",
+   "proposal": "Gate the interval callbacks on document.visibilityState==='visible' (or clear/restart the interval on a visibilitychange listener, refetching once on re-show). Cuts background poll traffic with no UX change for active tabs. Pairs well with the onchain-state caching item."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "API-boundary props typed as `any` in dashboard tabs (OverviewTab, OracleTab providers, OverviewTab onchainState/liveQuote)",
+   "category": "maintainability",
+   "impact": "low",
+   "effort": "medium",
+   "file": "apps/web/components/dashboard/OverviewTab.tsx",
+   "proposal": "Export the response types from lib/onchain-state.ts (OnchainState wrapper) and reuse PublicRuntimeStatusSnapshot, then type OverviewTab props ({setOutput: (s:string)=>void}) and the state. Catches field-name drift between API and consumer at compile time on the dashboard's data-display path."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "recordOperationLog is awaited inline on GET read routes, adding Supabase insert latency to responses when not sampled out",
+   "category": "robustness",
+   "impact": "low",
+   "effort": "small",
+   "file": "apps/web/app/api/onchain/state/route.ts",
+   "proposal": "On the GET monitoring-read paths, fire-and-forget the log (drop the await, attach a .catch) since recordOperationLog already swallows its own errors and the response does not depend on it. Keeps the await on mutating routes where forensic completeness matters. Removes DB-insert latency from the rare logged poll."
+  },
+  {
+   "system": "Oracle",
+   "subsystem": "or-web",
+   "title": "attestation.ts (verification logic) and control-plane-auth.ts have no unit tests",
+   "category": "testability",
+   "impact": "low",
+   "effort": "medium",
+   "file": "apps/web/lib/attestation.ts",
+   "proposal": "Add focused vitest cases for attestation.ts (valid envelope, mismatched output/compose/app-id hashes, malformed input) and control-plane-auth (valid/invalid/missing token, the admin-token branch). These are pure functions with clear inputs; gives the verification path a guard before the timingSafeCompare refactor above touches the auth helper."
+  }
+ ]
+}
