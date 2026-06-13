@@ -88,7 +88,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     roundDataAvailable ||
     Boolean(serviceNotice);
   const buyKeysHelper = !roundDataAvailable
-    ? t("roundStateRequired")
+    ? // When the service-notice card is already showing its own "Refresh Round"
+      // entry point, the helper points back to it instead of repeating the
+      // full "refresh before buying" instruction a second time.
+      serviceNotice
+      ? t("roundStateNoticeRef")
+      : t("roundStateRequired")
     : needsLifecycleSync
       ? t("settleBeforeBuy")
       : t("keyPrice");
@@ -207,7 +212,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {!isRoundActive && !needsLifecycleSync && (
+      {/* Round-control prompt — suppressed when the service notice is already
+          showing its own "Refresh Round" entry point, so the first paint
+          surfaces a single refresh affordance instead of two duplicate ones. */}
+      {!isRoundActive && !needsLifecycleSync && !serviceNotice && (
         <NeoCard variant="erobo" className="round-control-card">
           <div className="round-control-card__body">
             <div className="round-control-card__copy">

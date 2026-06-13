@@ -121,6 +121,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Empty-state placeholder dash: lighter + muted so three side-by-side "—"
+   read as "awaiting data" rather than three equal bold values. */
+.hero-stat-value--empty {
+  font-weight: 600;
+  color: var(--me-muted);
+}
+
 .hero-stat-label {
   font-size: 10px;
   font-weight: 700;
@@ -514,6 +521,14 @@
   background: var(--me-accent-soft);
   color: var(--me-accent-strong);
   box-shadow: 0 0 0 6px rgba(22, 199, 132, 0.08);
+}
+
+/* Deployment-pending is a blocking/cautionary state, not a success — give its
+   icon a neutral amber tint so brand green stays reserved for positive states. */
+.escrow-notice__icon--warn {
+  background: var(--ns-warn-soft, #fdf0d9);
+  color: var(--ns-warn-strong, #b7791f);
+  box-shadow: 0 0 0 6px rgba(183, 121, 31, 0.08);
 }
 
 .escrow-notice__title {

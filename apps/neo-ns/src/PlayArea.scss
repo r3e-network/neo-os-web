@@ -70,28 +70,34 @@
   color: var(--ns-text-muted, #8a92a6);
 }
 
-/* Wallet status reads as a connection indicator, not a big number —
-   smaller text + a state dot so long words like "Disconnected" never overflow. */
-.nns-stat--status { min-width: 96px; }
+/* Wallet status reads as a connection indicator, not a big number — a state
+   dot + word, but sized and baseline-aligned to sit level with the two numeric
+   tiles so the stat row keeps an even rhythm (no "two strong numbers + one
+   faint word" imbalance). Long words like "Disconnected" still never overflow. */
+.nns-stat--status { min-width: 112px; }
 
+/* Match the 18px/1.1 height of .nns-stat__value so the status line shares the
+   same baseline as the numeric tiles. */
 .nns-stat__status {
   display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  min-height: calc(18px * 1.1);
 }
 
 .nns-stat__dot {
-  flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%;
+  flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%;
   background: var(--ns-text-muted, #8a92a6);
 }
 
 .nns-stat--status.is-connected .nns-stat__dot { background: var(--ns-brand-strong, #0fb174); }
 
 .nns-stat__statusText {
-  font-size: 13px; font-weight: 700; line-height: 1.15;
-  color: var(--ns-text-2, #5b6478);
+  font-size: 15px; font-weight: 800; line-height: 1.1;
+  color: var(--ns-ink, #1e1e2e);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.nns-stat--status.is-connected .nns-stat__statusText { color: var(--ns-ink, #1e1e2e); }
+/* Connected picks up the green accent to echo the active numeric tiles. */
+.nns-stat--status.is-connected .nns-stat__statusText { color: var(--ns-brand-strong, #0fb174); }
 
 @media (max-width: 640px) {
   .nns-hero__head { grid-template-columns: auto minmax(0, 1fr); row-gap: 14px; }
@@ -100,14 +106,22 @@
   .nns-stat--status { min-width: 0; }
 
   /* Status row may wrap so "Disconnected" reads in full instead of clipping to "Discon…" */
-  .nns-stat__status { flex-wrap: wrap; justify-content: center; gap: 4px 6px; }
+  .nns-stat__status { flex-wrap: wrap; justify-content: center; gap: 4px 6px; min-height: 0; }
   .nns-stat__statusText {
-    font-size: 12px; white-space: normal; overflow: visible; text-overflow: clip;
-    text-align: center;
+    font-size: 13px; white-space: normal; overflow: visible; text-overflow: clip;
+    text-align: center; line-height: 1.2;
   }
 
-  /* Restore the spacing rhythm between the stat tiles and the search field label */
-  .nns-hero.search-card { gap: 20px; }
+  /* Stats sit in their own grouped block; give the search form clear extra
+     separation above the field so the "Search Domain" label unambiguously
+     heads the input below it rather than clinging to the stats row. */
+  .nns-hero.search-card { gap: 18px; }
+  .nns-hero__stats {
+    margin-bottom: 4px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  }
+  .search-row { margin-top: 4px; }
 }
 
 .address-bar {

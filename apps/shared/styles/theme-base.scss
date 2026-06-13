@@ -30,13 +30,21 @@
   --ns-ink: #1e1e2e;
   --ns-text: #2a2d3d;
   --ns-text-2: #5b6478;
-  --ns-text-muted: #8a92a6;
-  --ns-text-faint: #aeb4c2;
+  /* Muted/faint raised to clear the WCAG contrast floor on the common subtle
+     surface fills (#ffffff, #f7f8fa, #f6f7fb, #e4f8f0): --ns-text-muted now
+     reads ≥4.5:1 (body) on white and ≥4.4:1 on tinted fills, and --ns-text-faint
+     clears ≥3:1 (large) everywhere so it is safe for placeholder/disabled labels
+     and ≤12px metadata. Previous values (#8a92a6 / #aeb4c2) fell to ~2-3:1. */
+  --ns-text-muted: #6b7180;
+  --ns-text-faint: #7e859a;
 
   /* Brand & semantic */
   --ns-brand: #16c784;
   --ns-brand-strong: #0fb174;
   --ns-brand-soft: #e4f8f0;
+  /* Deep brand green for legible accent labels on the soft-brand fill (e.g. the
+     shared disabled-primary CTA convention) — 7:1 on #e4f8f0, clears AA body. */
+  --ns-brand-deep: #0b5e3e;
   /* Unified single-accent identity: the ecosystem standardized on the brand
      green as the sole interactive accent. The violet tokens are retained as
      back-compat aliases (185+ references across apps + shared components) and
@@ -211,8 +219,11 @@
   --ns-ink: #f4f6fb;
   --ns-text: #e6e9f2;
   --ns-text-2: #aab2c5;
-  --ns-text-muted: #7e879b;
-  --ns-text-faint: #5c6478;
+  --ns-text-muted: #939bb0;
+  --ns-text-faint: #7b8298;
+  /* --ns-brand-deep is intentionally NOT overridden in dark mode: the
+     soft-brand fill (--ns-brand-soft) stays light (#e4f8f0) across themes, so
+     the disabled-primary label keeps the same deep green for legible contrast. */
 
   --bg-primary: var(--ns-bg);
   --bg-secondary: var(--ns-bg-2);

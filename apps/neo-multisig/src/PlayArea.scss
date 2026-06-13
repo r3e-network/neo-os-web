@@ -562,13 +562,16 @@
 }
 
 // Soft-tinted disabled primary CTA so the brand affordance is preserved
-// instead of collapsing into flat grey that blends into the form.
+// instead of collapsing into flat grey that blends into the form. Full opacity
+// + a deeper soft fill + darkened text keep the label legible (>=4.5:1), and a
+// solid brand border makes the button shape unambiguous so it still reads as
+// "the button you press once the form is valid".
 .multisig-primary-actions .neo-btn--primary:disabled {
-  background: var(--multisig-green-soft);
-  border: 1px solid rgba(22, 199, 132, 0.3);
-  color: var(--multisig-green-strong);
+  background: #d4f3e6;
+  border: 1px solid var(--multisig-green);
+  color: #0a6b48;
   box-shadow: none;
-  opacity: 0.85;
+  opacity: 1;
 }
 
 .multisig-load-box {

@@ -89,8 +89,10 @@ $accent-soft: #e4f8f0;
   margin: -6px 0 0;
   font-size: 12px;
   font-weight: 600;
-  color: var(--ns-text-muted, #8a92a6);
-  text-align: center;
+  // Left-align under the field rhythm (the field label above is left-aligned),
+  // and use the readable body ink so the disabled-state hint clears AA contrast.
+  color: var(--ns-text-2, #5b6478);
+  text-align: left;
 }
 
 .verify-panel {

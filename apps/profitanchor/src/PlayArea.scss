@@ -291,7 +291,10 @@ body { background: var(--anchor-bg, #ffffff); }
   }
 
   dt {
-    color: var(--ns-text-muted, #8a92a6);
+    // Scannable metadata labels (not decorative): use the darker text-2 token
+    // so they clear WCAG AA (~5.7:1) on the subtle preflight panel; the values
+    // stay --ns-ink so the row remains visually weighted to the right.
+    color: var(--ns-text-2, #5b6478);
     font-size: 12px;
     font-weight: 600;
   }

@@ -89,7 +89,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {isCreating ? t("creating") : t("createProof")}
           </NeoButton>
           {!canCreate && !isCreating && (
-            <p className="proof-cta-hint">{t("enterContent")}</p>
+            <p className="proof-cta-hint">{t("createDisabledHint")}</p>
           )}
         </div>
       </NeoCard>

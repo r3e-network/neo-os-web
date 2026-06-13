@@ -205,6 +205,13 @@
   .tipping-col:nth-child(2) {
     order: -1;
   }
+
+  /* Once stacked there is no sibling column to balance, so let the empty card
+     size to its content instead of holding 320px of blank space. */
+  .tipping-empty {
+    min-height: 0;
+    padding: 32px 24px;
+  }
 }
 
 .tipping-col {
@@ -521,7 +528,10 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 36px 24px;
+  /* Grow the empty card so the left column reads as a balanced pair with the
+     taller Send Tip + Developer Zone stack on the right, not a short stub. */
+  min-height: 320px;
+  padding: 40px 24px;
   text-align: center;
   color: var(--ns-text-muted, #8a92a6);
   font-size: 13px;
@@ -700,19 +710,31 @@
   outline-color: var(--tip-accent);
 }
 
-/* ── Send Tip disabled: soft-tinted (not flat grey), affordance preserved ── */
+/* ── Send Tip disabled: muted-ink label on a soft fill keeps the affordance
+   while clearing >=4.5:1 contrast (green-on-green failed AA and read as a
+   placeholder rather than an inactive button). ── */
 .dev-tipping-play-area .neo-btn--primary:disabled {
-  background: var(--tip-accent-soft);
-  border-color: transparent;
-  color: var(--tip-accent-strong);
+  background: var(--ns-surface-subtle, #eef0f4);
+  border-color: rgba(20, 22, 38, 0.1);
+  color: var(--ns-text-2, #5b6478);
   box-shadow: none;
-  opacity: 0.85;
+  opacity: 1;
 }
 
 /* Keep the segmented toggle's unselected (secondary) button quiet, not tinted */
 .dev-tipping-play-area .toggle-row .neo-btn--primary:disabled {
   background: var(--ns-surface-subtle, #f7f8fa);
   color: var(--ns-text-faint, #aeb4c2);
+}
+
+/* Helper line explaining why Send Tip is inactive on the empty/first-paint state */
+.dev-tipping-play-area .tipping-send-hint {
+  margin: 8px 0 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: center;
 }
 
 /* Stranded-tip-credit reclaim row in the Developer Zone */

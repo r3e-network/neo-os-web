@@ -42,6 +42,7 @@ body { background: var(--anchor-bg, #ffffff); }
   border-radius: var(--ns-radius-md, 16px); background: var(--ns-surface-subtle, #f7f8fa); color: var(--ns-ink, #1e1e2e);
 
   span { font-size: 21px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  span.anchor-score__placeholder { color: var(--ns-text-muted, #8a92a6); }
   small { margin-top: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ns-text-muted, #8a92a6); }
 }
 
@@ -67,6 +68,12 @@ body { background: var(--anchor-bg, #ffffff); }
   font-size: 16px; font-weight: 800; letter-spacing: 0;
   color: var(--ns-brand-strong, #0fb174);
   font-variant-numeric: tabular-nums;
+}
+
+.stat-value--placeholder {
+  // Em-dash placeholder before chain data lands, mirroring sibling profitanchor
+  // so the not-yet-loaded state is muted rather than a brand-green "0.00".
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .stat-label {
@@ -482,7 +489,6 @@ body { background: var(--anchor-bg, #ffffff); }
   display: grid;
   gap: 8px;
   margin: 0;
-  margin-top: auto;
   padding-top: 4px;
 }
 

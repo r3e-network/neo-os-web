@@ -62,7 +62,7 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 330px;
+  min-height: 288px;
   border: 1px solid rgba(22, 199, 132, 0.16);
   border-radius: var(--ns-radius-md, 16px);
   background:
@@ -85,8 +85,9 @@
   z-index: 1;
   display: grid;
   place-items: center;
-  width: min(168px, 42vw);
+  width: min(196px, 52%);
   aspect-ratio: 1;
+  margin-bottom: 52px;
   border: 1px solid rgba(22, 199, 132, 0.16);
   border-radius: var(--ns-radius-md, 16px);
   background: #ffffff;
@@ -111,9 +112,9 @@
   left: 16px;
   z-index: 1;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 14px;
   border: 1px solid rgba(22, 199, 132, 0.18);
   border-radius: var(--ns-radius-sm, 12px);
@@ -126,6 +127,16 @@
   letter-spacing: 0.08em;
 }
 
+.dice-stage__caption-cell {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dice-stage__caption-cell--end {
+  text-align: right;
+}
+
 .dice-stage__caption strong {
   color: var(--dice-accent-strong);
   font-size: 15px;
@@ -133,6 +144,7 @@
   text-transform: none;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .dice-stage__details {
@@ -738,6 +750,7 @@
 
   .dice-cube {
     width: 118px;
+    margin-bottom: 44px;
     border-radius: 16px;
   }
 

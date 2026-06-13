@@ -32,17 +32,17 @@ export default function MilestoneHero({ t, progressPercent, checkpoints, hasEscr
           before any escrow exists ("—" placeholders avoid an error-like 0). */}
       <div className="hero-stats" role="group" aria-label={t("escrowsTab")}>
         <div className="hero-stat" style={{ "--i": "0" } as CSSProperties}>
-          <span className="hero-stat-value">{hasEscrows ? totalEscrows : "—"}</span>
+          <span className={`hero-stat-value${hasEscrows ? "" : " hero-stat-value--empty"}`}>{hasEscrows ? totalEscrows : "—"}</span>
           <span className="hero-stat-label">{t("escrowsTab")}</span>
         </div>
         <span className="hero-stat-divider" aria-hidden="true" />
         <div className="hero-stat" style={{ "--i": "1" } as CSSProperties}>
-          <span className="hero-stat-value">{hasEscrows ? activeCount : "—"}</span>
+          <span className={`hero-stat-value${hasEscrows ? "" : " hero-stat-value--empty"}`}>{hasEscrows ? activeCount : "—"}</span>
           <span className="hero-stat-label">{t("statusActive")}</span>
         </div>
         <span className="hero-stat-divider" aria-hidden="true" />
         <div className="hero-stat" style={{ "--i": "2" } as CSSProperties}>
-          <span className="hero-stat-value">{hasEscrows ? completedCount : "—"}</span>
+          <span className={`hero-stat-value${hasEscrows ? "" : " hero-stat-value--empty"}`}>{hasEscrows ? completedCount : "—"}</span>
           <span className="hero-stat-label">{t("statusCompleted")}</span>
         </div>
       </div>

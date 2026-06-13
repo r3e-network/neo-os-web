@@ -24,6 +24,10 @@ const appMessages = {
   anonymousOff: { en: "Show Name", zh: "显示昵称" },
   sending: { en: "Sending...", zh: "发送中..." },
   sendTipBtn: { en: "Send Tip", zh: "发送打赏" },
+  sendTipHint: {
+    en: "Enter a registered developer ID and a tip amount to continue.",
+    zh: "输入已注册的开发者 ID 和打赏金额即可继续。",
+  },
   tipSent: { en: "Tip sent successfully!", zh: "打赏发送成功！" },
   invalidAmount: { en: "Invalid amount", zh: "无效金额" },
   minTip: { en: "Minimum tip is 0.001 GAS", zh: "最低打赏为 0.001 GAS" },

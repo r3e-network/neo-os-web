@@ -569,6 +569,18 @@
   color: var(--ns-danger, #c81e2a);
 }
 
+/* Draft checklist (no plan generated yet): the steps are provisional, so every
+   status chip — including the would-be red "blocked" ones — renders in the
+   neutral draft palette (matching the hero DRAFT pill). The red/green/blue
+   status palettes only apply once a real plan exists. Scoped to the draft
+   modifier (and placed after the status rules) so post-generate blocked steps
+   still read red. */
+.domain-factory-steps--draft li span {
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  color: var(--ns-text-2, #5b6478);
+}
+
 .domain-factory-steps strong {
   display: block;
   font-size: 14px;

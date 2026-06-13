@@ -39,6 +39,22 @@
   &--md { height: 40px; padding: 0 20px; font-size: 13px; }
   &--lg { height: 48px; padding: 0 28px; font-size: 14px; }
 
+  // Shared disabled-primary convention (single source of truth):
+  // a soft-brand fill + FULL-WEIGHT deep-green label + 1px brand border, with
+  // NO opacity dimming, so a disabled primary reads as "inactive but legible —
+  // the button you'll press once the form is valid", not a broken/placeholder
+  // pill. Replaces ~9 per-app green-on-green disabled styles that failed AA
+  // (the deep-green label clears ~7:1 on #e4f8f0). Per-app accent clusters may
+  // still override with their own soft fill via higher specificity.
+  &--primary:disabled,
+  &--success:disabled {
+    opacity: 1;
+    background: var(--ns-brand-soft, #e4f8f0);
+    border-color: var(--ns-brand, #16c784);
+    color: var(--ns-brand-deep, #0b5e3e);
+    box-shadow: none;
+  }
+
   // Variants — light theme
   &--primary {
     background: #16c784;

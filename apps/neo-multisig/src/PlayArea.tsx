@@ -321,26 +321,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
               <div className="multisig-form-grid">
                 <div className="multisig-signer-grid" aria-label={t("ariaSigners")}>
-                  {signers.map((signer, index) => (
-                    <div className="multisig-signer-row" key={index}>
-                      <NeoInput
-                        value={signer}
-                        label={`${t("signerLabel")} ${index + 1}`}
-                        placeholder={t("signerPlaceholder")}
-                        onChange={(value) => updateSigner(index, value)}
-                      />
-                      {canRemoveSigner && (
-                        <button
-                          type="button"
-                          className="multisig-signer-remove"
-                          aria-label={t("multisigRemoveSigner")}
-                          onClick={() => removeSigner(index)}
-                        >
-                          {"×"}
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                  {signers.map((signer, index) => {
+                    // Hide the × on the minimum required rows while they're still
+                    // empty so a blank first-paint form isn't cluttered with
+                    // no-op remove affordances; keep it on populated rows and on
+                    // any extra rows beyond the minimum (which are removable).
+                    const showRemove =
+                      canRemoveSigner &&
+                      (signer.trim().length > 0 || index >= MIN_SIGNERS);
+                    return (
+                      <div className="multisig-signer-row" key={index}>
+                        <NeoInput
+                          value={signer}
+                          label={`${t("signerLabel")} ${index + 1}`}
+                          placeholder={t("signerPlaceholder")}
+                          onChange={(value) => updateSigner(index, value)}
+                        />
+                        {showRemove && (
+                          <button
+                            type="button"
+                            className="multisig-signer-remove"
+                            aria-label={t("multisigRemoveSigner")}
+                            onClick={() => removeSigner(index)}
+                          >
+                            {"×"}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                   {canAddSigner && (
                     <button
                       type="button"

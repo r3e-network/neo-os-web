@@ -168,6 +168,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <span>{t("resultPanelTitle")}</span>
                 <strong>{signature || txHash ? t("ready") : t("awaitingSignature")}</strong>
               </div>
+              {!signature && !txHash && (
+                <div className="sign-result-placeholder">
+                  <span className="sign-result-placeholder__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 12.5 11 14.5 15.5 10" />
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                  </span>
+                  <p>{t("proofEmptyHint")}</p>
+                </div>
+              )}
               <div className="sign-result-stack">
                 <div className={`sign-result-box${signature ? "" : " is-empty"}`}>
                   <span>{t("signatureResult")}</span>
@@ -211,6 +222,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <p>{t("safetyPanelCopy")}</p>
 
+            <div className="sign-signal-grid">
+              <div className="sign-signal-row">
+                <span>{t("signRouteLabel")}</span>
+                <strong>{t("signContractRoute")}</strong>
+              </div>
+              <div className="sign-signal-row">
+                <span>{t("broadcastRouteLabel")}</span>
+                <strong>{t("broadcastContractRoute")}</strong>
+              </div>
+              <div className="sign-signal-row">
+                <span>{t("gasAmountLabel")}</span>
+                <strong>0 GAS</strong>
+              </div>
+              <div className="sign-signal-row">
+                <span>{t("messageBytesLabel")}</span>
+                <strong>
+                  {messageBytes}/1024 {t("bytesUnit")}
+                </strong>
+              </div>
+              <div className="sign-signal-row">
+                <span>{t("privacyLabel")}</span>
+                <strong>{t("privacyValue")}</strong>
+              </div>
+            </div>
+
             <details className="sign-details">
               <summary>
                 <span>{t("broadcastPanelTitle")}</span>
@@ -220,28 +256,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </summary>
               <div className="sign-details__body">
                 <p>{t("broadcastPanelCopy")}</p>
-                <div className="sign-signal-row">
-                  <span>{t("signRouteLabel")}</span>
-                  <strong>{t("signContractRoute")}</strong>
-                </div>
-                <div className="sign-signal-row">
-                  <span>{t("broadcastRouteLabel")}</span>
-                  <strong>{t("broadcastContractRoute")}</strong>
-                </div>
-                <div className="sign-signal-row">
-                  <span>{t("gasAmountLabel")}</span>
-                  <strong>0 GAS</strong>
-                </div>
-                <div className="sign-signal-row">
-                  <span>{t("messageBytesLabel")}</span>
-                  <strong>
-                    {messageBytes}/1024 {t("bytesUnit")}
-                  </strong>
-                </div>
-                <div className="sign-signal-row">
-                  <span>{t("privacyLabel")}</span>
-                  <strong>{t("privacyValue")}</strong>
-                </div>
                 <p className="sign-fee-note">{t("networkFeeNote")}</p>
               </div>
             </details>

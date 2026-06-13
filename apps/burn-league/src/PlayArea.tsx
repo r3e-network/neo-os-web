@@ -147,7 +147,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="burn-league-hero-eyebrow">{t("liveLeague")}</span>
             <h2 className="burn-league-hero-title">{t("title")}</h2>
             <p className="burn-league-hero-subtitle">{t("subtitle")}</p>
-            {hasRank && (
+            {hasRank ? (
               <p className="burn-league-hero-rank">
                 <span className="burn-league-hero-rank-label">{t("yourRank")}</span>
                 <strong className="burn-league-hero-rank-value">{formattedRank}</strong>
@@ -155,6 +155,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {t("outOf", { total: leaderboardSize })}
                 </span>
               </p>
+            ) : (
+              <p className="burn-league-hero-prompt">{t("heroFirstBurnPrompt")}</p>
             )}
           </div>
         </div>

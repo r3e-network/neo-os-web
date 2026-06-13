@@ -188,7 +188,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           {activeTab === "rounds" && (
-            <div className="qf-content-grid">
+            <div
+              className={`qf-content-grid${
+                rounds.length === 0 && !selectedRound ? " qf-content-grid--single" : ""
+              }`}
+            >
               <RoundForm onSubmit={submitCreateRound} resetKey={roundResetKey} t={t} loading={isCreatingRound} />
               <div className="qf-side-stack">
                 <RoundList

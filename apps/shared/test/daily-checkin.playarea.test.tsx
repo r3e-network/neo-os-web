@@ -174,4 +174,48 @@ describe("Daily Check-in PlayArea", () => {
 
     expect((screen.getByRole("button", { name: "Wait for Next" }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("keeps the check-in and refresh button labels during initial hydration (no bare spinners)", () => {
+    // Initial status read in flight: the global isLoading is true, but neither
+    // the user-initiated check-in nor refresh is running. Buttons must stay
+    // labelled (disabled) rather than collapsing to a label-less spinner.
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          hasLoadedStatus: false,
+          isLoading: true,
+          isCheckingIn: false,
+          isRefreshing: false,
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    const checkInBtn = screen.getByRole("button", { name: "Loading..." }) as HTMLButtonElement;
+    expect(checkInBtn.textContent).toContain("Loading...");
+    expect(checkInBtn.disabled).toBe(true);
+    expect(checkInBtn.getAttribute("aria-busy")).toBeNull();
+
+    const refreshBtn = screen.getByRole("button", { name: "Refresh Status" }) as HTMLButtonElement;
+    expect(refreshBtn.textContent).toContain("Refresh Status");
+    expect(refreshBtn.disabled).toBe(true);
+    expect(refreshBtn.getAttribute("aria-busy")).toBeNull();
+  });
+
+  it("shows the spinner only on the action that is actually running", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({ isCheckingIn: true })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    // The check-in button is busy (spinner replaces its label) while the
+    // refresh button keeps its text label intact.
+    expect(screen.getByRole("button", { name: "Refresh Status" }).textContent).toContain(
+      "Refresh Status",
+    );
+  });
 });

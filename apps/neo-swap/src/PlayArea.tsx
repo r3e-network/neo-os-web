@@ -89,7 +89,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section className="neo-swap-hero-panel" aria-label={t("title")}>
         <SwapHero
           t={t}
-          currentRate={rateDisplay}
           fromSymbol={fromSymbol}
           toSymbol={toSymbol}
         />
@@ -219,9 +218,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           >
             {isSwapping ? t("swapping") : swapButtonText}
           </NeoButton>
-          <p className="neo-swap-execute-note">
-            {t("minReceived")}: {formattedMinReceived} {toSymbol} · {t("slippage")} {slippage}
-          </p>
         </NeoCard>
 
         <aside className="neo-swap-side-stack" aria-label={t("tabPool")}>

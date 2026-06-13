@@ -90,6 +90,47 @@
   }
 }
 
+.bet-preview {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: stretch;
+  gap: 18px;
+  margin-top: 14px;
+  padding: 10px 18px;
+  border: 1px solid var(--coin-balance-pill-border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(20, 22, 38, 0.05);
+}
+
+.bet-preview__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    color: var(--coin-text-primary, #1e1e2e);
+    font-size: 15px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.bet-preview__label {
+  color: var(--coin-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bet-preview__divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--coin-balance-pill-border);
+}
+
 .result-banner {
   position: absolute;
   top: 16px;

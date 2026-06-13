@@ -218,6 +218,18 @@ $soul-accent-soft: #e4f8f0;
   display: contents;
 }
 
+/* ── Balanced workspace columns ─────────────────────── */
+/* Each column packs its cards top-down at natural height so neither side
+   leaves a long empty tail (the issue form pairs with My Certificates;
+   templates/create pair with Verify). */
+.certificate-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  align-self: start;
+}
+
 /* ── Tab content stacks ─────────────────────────────── */
 .certificate-stack {
   display: flex;
@@ -337,7 +349,7 @@ $soul-accent-soft: #e4f8f0;
 .templates-card,
 .verify-card,
 .certificates-card {
-  height: 100%;
+  height: auto;
 }
 
 .panel-copy {
@@ -497,16 +509,18 @@ $soul-accent-soft: #e4f8f0;
   color: var(--ns-danger);
 }
 
-/* Soft-tinted disabled primary CTA — keeps the accent affordance instead of
-   collapsing to a flat grey bar that reads as an inactive page. Scoped to the
-   issue/create panels so only the form submit buttons are affected. */
+/* Disabled primary CTA — neutral grey fill with a full-contrast slate label so
+   the inactive state reads unambiguously as disabled (not broken) and the label
+   clears WCAG AA, instead of pale-green-on-mint which fell below the floor.
+   Scoped to the issue/create/verify panels so only the form submit buttons are
+   affected. */
 .certificate-panel,
 .verify-card {
   .neo-btn--primary:disabled {
-    background: $soul-accent-soft;
-    border-color: rgba($soul-accent, 0.28);
-    color: $soul-accent-strong;
-    opacity: 0.85;
+    background: var(--ns-surface-subtle, #eef0f4);
+    border: 1px solid var(--ns-border-strong, #d7dbe3);
+    color: var(--ns-text-2, #5b6478);
+    opacity: 1;
     box-shadow: none;
   }
 }

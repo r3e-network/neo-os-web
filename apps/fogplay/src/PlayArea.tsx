@@ -100,6 +100,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         isFlipping={isFlipping}
         displayOutcome={displayOutcome}
         result={result}
+        choice={choice}
+        betAmount={betAmount}
       />
 
       <WagerControls

@@ -73,6 +73,10 @@ const appMessages = {
   networkStatusLive: { en: "Live", zh: "可用" },
   networkStatusDegraded: { en: "Degraded", zh: "降级" },
   networkStatusChecking: { en: "Checking", zh: "检查中" },
+  networkDegradedHint: {
+    en: "Oracle key unavailable on this network — sealing is paused.",
+    zh: "该网络上预言机密钥不可用——封装已暂停。",
+  },
 
   // Hero
   heroEyebrow: { en: "Neo N3 private payments", zh: "Neo N3 隐私支付" },

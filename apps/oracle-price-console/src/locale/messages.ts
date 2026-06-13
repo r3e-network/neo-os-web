@@ -20,6 +20,7 @@ const appMessages = {
   priceHeroSubtitle: { en: "Choose an asset, read the on-chain feed, and keep the request path inspectable.", zh: "选择资产，读取链上价格源，并保持请求路径可检查。" },
   priceMetrics: { en: "Oracle feed metrics", zh: "预言机价格源指标" },
   priceMetricFeed: { en: "Feed", zh: "价格源" },
+  copyFeedHash: { en: "Copy feed contract hash", zh: "复制价格源合约哈希" },
   priceMetricNetwork: { en: "Network", zh: "网络" },
   priceMetricSource: { en: "Source", zh: "来源" },
   priceOracleSource: { en: "Source", zh: "来源" },

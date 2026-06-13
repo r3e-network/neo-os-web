@@ -122,6 +122,16 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
   color: var(--ns-text-2, #5b6478);
 }
 
+/* Value-prop microcopy shown in place of the rank fact before the user ranks,
+   so the hero copy block does not read thin next to the populated stat strip. */
+.burn-league-hero-prompt {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: $burn-accent-strong;
+}
+
 /* ── Hero stat strip ──────────────────────────────────── */
 .burn-league-hero-stats {
   display: flex;
@@ -711,6 +721,29 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
 @media (max-width: 720px) {
   .burn-league-action-buttons {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Below 560px the 4-up flex strip wraps into a divider-littered 2x2 where
+   two-line labels collide with neighbouring values. Switch to a clean grid. */
+@media (max-width: 560px) {
+  .burn-league-impact-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .burn-league-impact-item {
+    min-height: 56px;
+    justify-content: center;
+    padding: 10px 8px;
+    border-radius: var(--ns-radius-sm, 12px);
+    background: var(--ns-surface, #ffffff);
+  }
+
+  .burn-league-impact-divider {
+    display: none;
   }
 }
 

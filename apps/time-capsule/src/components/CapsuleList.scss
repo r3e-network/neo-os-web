@@ -2,23 +2,31 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   text-align: center;
+  // A taller empty state so the right column reaches closer to the tall create
+  // form instead of stopping high and leaving a blank lower-right void.
+  min-height: 200px;
   padding: 32px 24px;
   color: var(--ns-text-muted, #8a92a6);
   font-size: 14px;
   line-height: 1.5;
 
-  &::before {
-    content: "";
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
-    background: linear-gradient(155deg, #e4f8f0, rgba(22, 199, 132, 0.16));
-    box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.16);
+  // A real capsule glyph inside the badge — the bare pale circle read like a
+  // mid-load placeholder rather than a designed empty illustration.
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--ns-radius-md, 16px);
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-strong, #0fb174);
   }
 
-  span {
+  span:not(.empty-state__badge) {
     max-width: 30ch;
   }
 }

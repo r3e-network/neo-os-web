@@ -26,7 +26,11 @@ export const manifest: MiniAppManifest = {
   icon: "locked",
   category: "oracle",
   shell: "console",
-  theme: { family: "default", accentColor: "#facc15", density: "comfortable" },
+  // A sealed/private indigo, not the platform amber warning hue: a brand-new,
+  // error-free seal console should read as "private input", not "something is
+  // wrong". Amber stays reserved for genuine warning states. Indigo-600 keeps the
+  // badge/pill/notice text >=4.5:1 on the panel's 12%-alpha soft fill.
+  theme: { family: "default", accentColor: "#4f46e5", density: "comfortable" },
   tabs: [{ key: "seal", labelKey: "tabSeal", icon: "locked", default: true }],
   stats: [
     { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },

@@ -33,11 +33,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [moveAmount, setMoveAmount] = useState("1");
   const [candidateAgentId, setCandidateAgentId] = useState("1");
   const [candidatePublicKey, setCandidatePublicKey] = useState("");
-  // Seed the vote field with the live on-chain route once stats arrive, but
-  // stop tracking the moment the operator edits the field so we never clobber
-  // their intent. The useState initializer alone runs when stats is still null,
-  // so without this effect the field would freeze on the placeholder value.
-  const [voteAgentId, setVoteAgentId] = useState("");
+  // Seed the vote field with a sensible default ("1") so the third command card
+  // paints with an example value like its two pre-filled siblings, then snap to
+  // the live on-chain route once stats arrive. The voteAgentEdited guard below
+  // stops tracking the moment the operator edits the field so we never clobber
+  // their intent.
+  const [voteAgentId, setVoteAgentId] = useState("1");
   const [voteAgentEdited, setVoteAgentEdited] = useState(false);
   const selectedAgentId = stats?.selectedAgentId;
 
@@ -122,11 +123,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <main className="anchor-admin-main">
           <section className="anchor-admin-hero">
             <div className="anchor-admin-hero-top">
-              <div className="anchor-admin-hero-badge" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 9-4.1-1.5-7-4.8-7-9V6l7-3z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              <span className="anchor-admin-hero-badge">
+                {/* Gradient-tile shield badge: adopts sibling profitanchor-admin's
+                    filled CategoryIcon convention (rounded green gradient tile +
+                    white glyph) while keeping TrustAnchor's distinct shield mark. */}
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 48 48"
+                  fill="none"
+                  role="img"
+                  aria-label={t("appName")}
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <title>{t("appName")}</title>
+                  <defs>
+                    <linearGradient id="ta-admin-badge" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#4BE2A6" />
+                      <stop offset="1" stopColor="#16C784" />
+                    </linearGradient>
+                    <radialGradient id="ta-admin-sheen" cx="0.3" cy="0.22" r="0.7">
+                      <stop stopColor="#FFFFFF" stopOpacity="0.45" />
+                      <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+                    </radialGradient>
+                  </defs>
+                  <rect x="4" y="4" width="40" height="40" rx="13" fill="url(#ta-admin-badge)" />
+                  <rect x="4" y="4" width="40" height="40" rx="13" fill="url(#ta-admin-sheen)" />
+                  <rect x="4.75" y="4.75" width="38.5" height="38.5" rx="12.25" stroke="#FFFFFF" strokeOpacity="0.25" strokeWidth="1.5" />
+                  <path d="M24 13l8 3.4v5.6c0 4.8-3.3 8.6-8 10.3-4.7-1.7-8-5.5-8-10.3V16.4L24 13Z" fill="#FFFFFF" fillOpacity="0.18" />
+                  <path d="M24 13l8 3.4v5.6c0 4.8-3.3 8.6-8 10.3-4.7-1.7-8-5.5-8-10.3V16.4L24 13Z" stroke="#FFFFFF" strokeWidth="2.4" strokeLinejoin="round" fill="none" />
+                  <path d="M20.5 23.5l2.6 2.6 4.8-5.2" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                 </svg>
-              </div>
+              </span>
               <div className="anchor-admin-hero-copy">
                 <span className="anchor-admin-kicker">{t("appName")}</span>
                 <h2>{t("adminHeroTitle")}</h2>
@@ -258,7 +286,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <section className="anchor-admin-agent-strip" aria-label={t("agentDirectoryTitle")}>
             <div className="anchor-admin-section-heading">
               <span>{t("agentDirectoryTitle")}</span>
-              <strong>{agentCount}</strong>
+              <strong className="anchor-admin-count-pill">{agentCount}</strong>
             </div>
             <div className="anchor-admin-agent-scroll">
               <div className="anchor-admin-agent-list">

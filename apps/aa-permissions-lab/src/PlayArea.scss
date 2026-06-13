@@ -283,6 +283,12 @@
 }
 
 .permissions-empty-line {
+  display: grid;
+  place-items: center;
+  // Give the empty placeholder real height so the left column ends closer to
+  // the taller Update Verifier/Hook stack on the right instead of leaving a
+  // tall blank band beneath "Current permissions".
+  min-height: 180px;
   margin: 0;
   padding: 22px;
   border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.1));

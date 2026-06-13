@@ -52,7 +52,7 @@
   padding: 28px;
   border-radius: var(--ns-radius-xl, 24px);
   background:
-    linear-gradient(135deg, rgba(238, 234, 255, 0.72) 0%, rgba(255, 255, 255, 0.4) 58%, rgba(238, 234, 255, 0.42) 100%),
+    linear-gradient(135deg, rgba(228, 248, 240, 0.85) 0%, rgba(255, 255, 255, 0.4) 58%, rgba(228, 248, 240, 0.5) 100%),
     var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   min-width: 0;
@@ -219,6 +219,14 @@
   grid-template-columns: minmax(0, 0.82fr) minmax(300px, 0.38fr);
   gap: 20px;
   align-items: start;
+}
+
+// Before the first round exists the right column holds only a small empty-state
+// card, leaving a tall blank void beside the full-height create form. Collapse to
+// a single column until there is content, so the round list flows below the form
+// at full width instead of stranding a near-empty sidebar.
+.qf-content-grid--single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .qf-form-panel,

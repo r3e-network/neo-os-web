@@ -1,6 +1,6 @@
 import { useContext, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { Copy, Info, Play, RotateCcw, Send, ShieldCheck } from "lucide-react";
+import { Copy, FileSearch, Info, Play, RotateCcw, Send, ShieldCheck } from "lucide-react";
 import { MiniAppManifestContext } from "../react/context";
 import type { ObservableState } from "../react/context";
 import type { PlatformServices } from "../services";
@@ -368,7 +368,11 @@ export function ConsoleToolPanel({
             </>
           ) : (
             <div className="console-tool__empty">
-              <span>{t("previewWaiting")}</span>
+              <span className="console-tool__empty-icon" aria-hidden="true">
+                <FileSearch size={22} />
+              </span>
+              <span className="console-tool__empty-pill">{t("previewWaiting")}</span>
+              <p className="console-tool__empty-hint">{t("previewWaitingHint")}</p>
             </div>
           )}
         </div>

@@ -39,6 +39,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     total: totalChecklistCount,
   });
   const scoreStyle = { "--score": safetyScore } as CSSProperties;
+  // Disconnected with nothing checked off, the genuine score is 0 — but a stark
+  // "0" in a near-empty ring next to a red "High risk" chip reads as a broken
+  // meter rather than "connect to compute your score". Show a calm "—" and a
+  // "Connect to score" caption instead; the moment the user connects or ticks a
+  // checklist item, a real number drives the ring.
+  const showScorePlaceholder =
+    !isConnected && safetyScore === 0 && completedChecklistCount === 0;
   const riskIconLabel = riskIcon ? riskIcon.replace("-", " ") : riskLabel;
   const visibleRecommendations = recommendations.length > 0
     ? recommendations
@@ -130,12 +137,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="wallet-health-shell">
       <section className="wallet-health-main" aria-label={t("walletHeroTitle")}>
         <NeoCard variant="erobo" className="wallet-health-hero">
-          <div className="wallet-health-score-ring" style={scoreStyle} aria-hidden="true">
-            <span>{safetyScore}</span>
+          <div
+            className={`wallet-health-score-ring${showScorePlaceholder ? " wallet-health-score-ring--empty" : ""}`}
+            style={scoreStyle}
+            aria-hidden="true"
+          >
+            <span>{showScorePlaceholder ? "—" : safetyScore}</span>
           </div>
           <div className="wallet-health-hero-copy">
             <span className="wallet-health-kicker">{networkLabel || "Neo N3"}</span>
             <h2>{t("walletHeroTitle")}</h2>
+            {showScorePlaceholder && (
+              <span className="wallet-health-score-caption">{t("connectToScore")}</span>
+            )}
             <p className="wallet-health-hero-facts">
               <strong className={`wallet-health-risk-chip ${riskClass}`}>
                 <span className="wallet-health-risk-dot" aria-label={riskIconLabel} />

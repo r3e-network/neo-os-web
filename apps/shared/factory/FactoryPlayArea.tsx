@@ -516,7 +516,14 @@ export function FactoryPlayArea({
           </NeoCard>
 
           <NeoCard variant="erobo" title={t("deployChecklist")}>
-            <ol className="domain-factory-steps">
+            {/* Before a plan is generated the checklist shows the live preview's
+                provisional steps; render them in the neutral draft palette
+                (matching the hero's DRAFT pill) so a fresh form doesn't paint a
+                wall of red "BLOCKED" chips. Red is reserved for steps blocked
+                after an actual generate. Purely visual — no logic change. */}
+            <ol
+              className={`domain-factory-steps${storedPlan ? "" : " domain-factory-steps--draft"}`}
+            >
               {currentPlan.steps.map((step) => (
                 <li key={step.key} className={statusClass(step.status)}>
                   <span>{t(STEP_STATUS_KEYS[step.status] ?? "stepStatusManual")}</span>
