@@ -74,6 +74,8 @@ export default function PlayArea({
     launchContext.params.claimKey ?? "",
   );
   const currentPoolId = str("currentPoolId");
+  const currentRange = str("currentRange", t("rewardRangeDefault"));
+  const vaultName = t("vaultName");
   const lastTxid = str("lastTxid");
   const lastClaimAmount = val<bigint>("lastClaimAmount", 0n) ?? 0n;
   const lastClaimKey = str("lastClaimKey", currentClaimKey);
@@ -264,11 +266,11 @@ export default function PlayArea({
                     ? t("claimCongratsBody", {
                         amount: formatGas(lastClaimAmount, 4),
                         claimKey: displayClaimKey,
-                        poolId: "OneGate Vault",
+                        poolId: vaultName,
                       })
                     : t("claimCongratsPending", {
                         claimKey: displayClaimKey,
-                        poolId: "OneGate Vault",
+                        poolId: vaultName,
                       })}
                 </p>
                 {lastClaimLuckPercent && (
@@ -317,7 +319,7 @@ export default function PlayArea({
                   <span className="gas-pool-claim-only__eyebrow">
                     {claimKey ? t("scanClaimReady") : t("oneGateReady")}
                   </span>
-                  <h2>{claimKey ? t("claimReward") : "OneGate Vault"}</h2>
+                  <h2>{claimKey ? t("claimReward") : vaultName}</h2>
                 </div>
               </div>
               <p className="gas-pool-claim-only__copy">
@@ -325,7 +327,7 @@ export default function PlayArea({
               </p>
               <div className="gas-pool-claim-only__range">
                 <span>{t("rewardRange")}</span>
-                <strong>1-50 GAS</strong>
+                <strong>{currentRange}</strong>
               </div>
               <dl
                 className="gas-pool-claim-only__receipt"

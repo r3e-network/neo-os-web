@@ -16,8 +16,8 @@
     "website": "https://neomini.app"
   },
   "contracts": {},
-  "supported_networks": ["neo-n3-testnet"],
-  "default_network": "neo-n3-testnet",
+  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/oracle-http-console/index.html",
     "icon": "/miniapps/oracle-http-console/logo.jpg",

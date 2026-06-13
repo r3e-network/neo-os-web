@@ -23,7 +23,7 @@
     "icon": "/miniapp-assets/nft-factory/logo.svg",
     "banner": "/miniapp-assets/nft-factory/banner.svg"
   },
-  "permissions": ["wallet:sign-message", "read:blockchain"],
+  "permissions": ["invoke:primary", "wallet:sign-message", "read:blockchain"],
   "features": {
     "stateless": true,
     "offlineSupport": true,
@@ -33,7 +33,7 @@
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": false
+    "transactions": true
   },
   "technologies": {
     "aa": {

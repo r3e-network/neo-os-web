@@ -204,6 +204,54 @@
       opacity: 1;
     }
   }
+
+  &.unpayable,
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+
+    &:hover {
+      border-color: rgba(20, 22, 38, 0.08);
+    }
+  }
+}
+
+.wager-cap-hint {
+  margin: 8px 0 0;
+  color: var(--coin-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.credit-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--coin-balance-pill-border);
+  border-radius: 12px;
+  background: var(--coin-balance-pill-bg);
+
+  &__label {
+    color: var(--coin-text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  &__value {
+    color: var(--coin-success);
+    font-size: 14px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__withdraw {
+    margin-left: auto;
+  }
 }
 
 .flip-btn {

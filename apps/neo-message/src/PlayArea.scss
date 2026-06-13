@@ -45,9 +45,15 @@ $accent-soft: #eef0fe;
   }
 
   .nm-network-warning {
-    margin: 0;
+    margin: 0 0 12px;
     color: var(--ns-text-2, #4a4f60);
     font-size: 14px;
+  }
+
+  .nm-load-more {
+    display: flex;
+    justify-content: center;
+    margin-top: 14px;
   }
 
   // ── compose form ──────────────────────────────────────────────────────────
@@ -89,6 +95,12 @@ $accent-soft: #eef0fe;
       &:hover {
         border-color: var(--ns-border-strong, #cfd2e0);
         transform: translateY(-1px);
+      }
+
+      &:focus-visible {
+        outline: none;
+        border-color: $accent;
+        box-shadow: var(--ns-focus-ring, 0 0 0 3px rgba(91, 110, 245, 0.18));
       }
 
       &.active {

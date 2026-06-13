@@ -272,6 +272,44 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
     }
   };
 
+  /**
+   * Reclaim the connected wallet's stranded tip credit via withdraw(account).
+   * A deposit that landed but whose tip step failed persists as reusable prepaid
+   * credit; this returns it to the wallet (CreditWithdrawn event). Returns the
+   * amount paid in human GAS, or 0 if it could not be resolved.
+   */
+  const withdrawCredit = async (onSuccess?: () => void): Promise<number> => {
+    if (isWithdrawing.get()) return 0;
+
+    isWithdrawing.set(true);
+    try {
+      const addr = chain.address.get() || (await chain.ensureWallet());
+      const hash = addressToScriptHash(addr || "");
+      if (!addr || !hash) throw new Error(t("walletNotConnected"));
+
+      const result = await chain.invoke(
+        "withdraw",
+        [{ type: "Hash160", value: hash }],
+        { waitForEvent: "CreditWithdrawn" },
+      );
+
+      // CreditWithdrawn(account, amount) — amount is state slot 1 (base units).
+      const amountBase = parseBigInt(eventValue(result.event, 1));
+      const amount = Number(amountBase) / 1e8;
+
+      eventBus.emit("devtipping:creditwithdrawn", { amount });
+      if (onSuccess) onSuccess();
+      return Number.isFinite(amount) ? amount : 0;
+    } catch (e) {
+      eventBus.emit("devtipping:error", {
+        message: e instanceof Error ? e.message : t("error"),
+      });
+      throw e;
+    } finally {
+      isWithdrawing.set(false);
+    }
+  };
+
   return {
     address: chain.address,
     isLoading,
@@ -280,5 +318,6 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
     sendTip,
     registerDeveloper,
     withdrawTips,
+    withdrawCredit,
   };
 }

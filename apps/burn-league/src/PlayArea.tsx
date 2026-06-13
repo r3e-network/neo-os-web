@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import { formatNumber } from "@shared/utils/format";
 import type { Observable } from "@shared/react/context";
 import "./PlayArea.scss";
 
@@ -23,6 +24,7 @@ interface LeaderboardEntry {
   address: string;
   burned: number;
   rank: number;
+  isUser?: boolean;
 }
 
 const MIN_BURN = 1;
@@ -36,6 +38,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isLoading = bool("isLoading");
   const isBurning = bool("isBurning");
   const isSettling = bool("isSettling");
+  const leagueDataAvailable = bool("leagueDataAvailable");
   const totalBurnedDisplay = str("totalBurnedDisplay", "0");
   const userBurnedDisplay = str("userBurnedDisplay", "0");
   const rewardPoolDisplay = str("rewardPoolDisplay", "0");
@@ -44,11 +47,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const prizePoolDisplay = str("prizePoolDisplay", "0");
   const projectedTotalDisplay = str("projectedTotalBurnedDisplay", "--");
   const burnAmount = str("burnAmount", "");
+  const userBurned = num("userBurned");
   const serviceNotice = str("serviceNotice");
   const actionNotice = str("actionNotice");
   const burnValidationError = val<string>("burnValidationError");
   const lastSubmittedAmount = str("lastSubmittedAmount");
   const leaderboardPreview = val<LeaderboardEntry[]>("leaderboardPreview") ?? [];
+  const prepaidCredit = num("prepaidCredit");
+  const prepaidCreditDisplay = str("prepaidCreditDisplay", "0");
+  const seasonDurationLabel = str("seasonDurationLabel", "--");
   const hasRank = formattedRank !== "--" && formattedRank !== "";
   const hasLeaderboard = leaderboardPreview.length > 0;
 
@@ -71,11 +78,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const presets = ["1", "5", "10", "25"];
   const projectedPosition = useMemo(() => {
     if (!amountIsValid) return "--";
+    // The user's projected season total is their EXISTING burn plus the new
+    // amount — not the new amount alone (which contradicted the adjacent
+    // "Projected total" stat). Their own current leaderboard entry is excluded
+    // so they are never counted as ahead of themselves.
+    const projectedTotal = userBurned + currentBurnAmountNumber;
     const higherEntries = leaderboardPreview.filter(
-      (entry) => Number(entry.burned) > currentBurnAmountNumber,
+      (entry) => !entry.isUser && Number(entry.burned) > projectedTotal,
     );
     return `#${higherEntries.length + 1}`;
-  }, [amountIsValid, currentBurnAmountNumber, leaderboardPreview]);
+  }, [amountIsValid, currentBurnAmountNumber, leaderboardPreview, userBurned]);
   const rangeCopy = t("burnRange", {
     min: MIN_BURN,
     max: MAX_BURN,
@@ -108,12 +120,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  if (isLoading) {
+  // Only the FIRST load replaces the whole UI with a spinner. Post-action
+  // reloads (which also set isLoading) keep the content mounted — otherwise the
+  // form, banner, and leaderboard unmount/remount after every burn or settle,
+  // losing scroll position. Once league data exists, re-loads render in place.
+  if (isLoading && !leagueDataAvailable) {
     return (
       <div className="burn-league-play-area">
         <div className="burn-league-loading">
           <div className="burn-league-loading-spinner" />
-          <span>{t("loading") || "Loading..."}</span>
+          <span>{t("loading")}</span>
         </div>
       </div>
     );
@@ -187,11 +203,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {hasLeader ? leaderLabel : t("noLeaderYet")}
               </strong>
             </div>
+            {seasonDurationLabel !== "--" && (
+              <div className="burn-league-season-fact">
+                <span className="burn-league-season-fact-label">{t("seasonLengthLabel")}</span>
+                <strong className="burn-league-season-fact-value">{seasonDurationLabel}</strong>
+              </div>
+            )}
           </div>
         )}
 
         {seasonPhase === "dormant" && (
-          <p className="burn-league-season-note">{t("seasonDormantHint")}</p>
+          <p className="burn-league-season-note">
+            {seasonDurationLabel !== "--"
+              ? t("seasonDormantHintWithLength", { length: seasonDurationLabel })
+              : t("seasonDormantHint")}
+          </p>
         )}
 
         {seasonPhase === "ended" && (
@@ -363,7 +389,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <span className="burn-league-lb-rank">#{entry.rank}</span>
                 <span className="burn-league-lb-address">{truncateAddress(entry.address)}</span>
                 <span className="burn-league-lb-amount">
-                  <strong>{entry.burned} GAS</strong>
+                  <strong>{formatNumber(entry.burned, 2)} GAS</strong>
                   <small>{t("burned")}</small>
                 </span>
               </div>
@@ -379,6 +405,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
             <p className="burn-league-empty-title">{t("noEntriesTitle")}</p>
             <p className="burn-league-empty-body">{t("noEntries")}</p>
+          </div>
+        </NeoCard>
+      )}
+
+      {/* Recovery — unused prepaid burn-credit from a deposit whose burn didn't
+          complete. The contract reuses it on the next burn, or the player can
+          withdraw it back to the wallet here (money-in needs money-out). */}
+      {prepaidCredit > 0 && (
+        <NeoCard variant="erobo" className="burn-league-recovery-card">
+          <div className="burn-league-recovery-card__body">
+            <div className="burn-league-recovery-card__copy">
+              <span className="burn-league-recovery-card__title">
+                {t("prepaidCreditLabel")} · {prepaidCreditDisplay}
+              </span>
+              <span className="burn-league-recovery-card__text">{t("prepaidCreditHint")}</span>
+            </div>
+            <NeoButton
+              size="md"
+              variant="secondary"
+              loading={isLoading}
+              disabled={isLoading}
+              onClick={() => dispatch("withdrawCredit")}
+              aria-label={t("withdrawCredit")}
+            >
+              {t("withdrawCredit")}
+            </NeoButton>
           </div>
         </NeoCard>
       )}

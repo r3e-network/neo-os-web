@@ -2,7 +2,7 @@ import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService, ContractArg, TxResult } from "@shared/services";
 import { MINIAPP_CONTRACTS } from "@shared/constants/rpc";
-import { parseInvokeResult } from "@shared/utils/neo";
+import { parseInvokeResult, parseHash160, ownerMatchesAddress } from "@shared/utils/neo";
 import { getHostOrigin } from "@shared/utils/runtime-origin";
 
 const APP_ID = "miniapp-council-governance";
@@ -41,7 +41,10 @@ export interface Proposal {
   description: string;
   policyMethod?: string;
   policyValue?: string;
+  /** Raw creator value as read from the contract/mirror (used for matching). */
   creator: string;
+  /** Display-order 0x hash (or mirror name) for the creator — explorer form. */
+  creatorDisplay: string;
   yesVotes: number;
   noVotes: number;
   totalVotes: number;
@@ -163,13 +166,21 @@ function parseProposal(raw: unknown): Proposal | null {
   const expiryTime = toMsTimestamp(data.expiryTime);
   const policy = parsePolicyData(data.policyData);
 
+  // getProposalDetails returns creator as a Hash160 ByteString in chain (LE)
+  // byte order — convert to the display-order 0x hash explorers accept so the
+  // contract rows don't show an unrecognizable little-endian hash next to the
+  // human names of mirror proposals.
+  const creatorRaw = asString(data.creator);
+  const creatorDisplay = parseHash160(data.creator) || creatorRaw;
+
   return {
     id,
     source: "contract",
     type: asNumber(data.type, 0),
     title: asString(data.title, `Proposal #${id}`),
     description: asString(data.description),
-    creator: asString(data.creator),
+    creator: creatorRaw,
+    creatorDisplay,
     ...policy,
     yesVotes: asNumber(data.yesVotes, 0),
     noVotes: asNumber(data.noVotes, 0),
@@ -213,14 +224,21 @@ function parseExplorerProposal(raw: unknown): Proposal | null {
   const statusString = asString(data.status, "active");
   const expiryTime = parseIsoTimestamp(data.endTime);
 
+  // Namespace neo-community ids into the NEGATIVE space so they can never
+  // collide with a real contract proposal id (positive) when both sources are
+  // merged on mainnet — a synthetic char-code sum could otherwise equal a real
+  // contract id and mislabel it (e.g. in hasVotedMap / React keys).
+  const syntheticId =
+    number || Math.abs(externalId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0));
   return {
-    id: number || Math.abs(externalId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)),
+    id: -Math.abs(syntheticId || 1),
     externalId,
     source: "neo-community",
     type: asString(data.type).includes("policy") ? 1 : 0,
     title: asString(data.title, externalId ? `Proposal ${externalId}` : `Proposal #${number}`),
     description: asString(data.summary, asString(data.description, "")),
     creator: asString(data.proposerName, asString(data.proposerOrganizationId, "neo.community")),
+    creatorDisplay: asString(data.proposerName, asString(data.proposerOrganizationId, "neo.community")),
     yesVotes,
     noVotes,
     totalVotes: yesVotes + noVotes + neutralVotes,
@@ -404,37 +422,112 @@ export function useGovernance({
     return tx;
   };
 
+  /**
+   * Execute a finalized, passed policy proposal — applies the proposal's
+   * PolicyContract change. This is a DISTINCT contract method from
+   * finalizeProposal (the previous code aliased the two, so the on-chain policy
+   * effect could never be triggered from the app). Contract-sourced proposals
+   * only — neo.community mirror entries have no executable on-chain action.
+   */
+  const executeProposal = async (proposalId: number) => {
+    if (!proposalId || proposalId <= 0) return null;
+    const tx = await invokeContract("executeProposal", [
+      { type: "Integer", value: String(proposalId) },
+    ]);
+    await loadProposals();
+    return tx;
+  };
+
+  /**
+   * Revoke (withdraw) an own proposal before it resolves. Gated to the creator
+   * + contract source in the UI; the contract additionally enforces the creator
+   * witness. Gives a candidate an exit for a mistaken proposal.
+   */
+  const revokeProposal = async (proposalId: number) => {
+    if (!proposalId || proposalId <= 0) return null;
+    if (!address.get()) throw new Error(t("connectWallet"));
+    const tx = await invokeContract("revokeProposal", [
+      { type: "Hash160", value: address.get() },
+      { type: "Integer", value: String(proposalId) },
+    ]);
+    await loadProposals();
+    return tx;
+  };
+
+  /**
+   * Merge contract-sourced and explorer-sourced proposals into one list:
+   * contract entries first (they are the actionable on-chain ones), then the
+   * neo.community mirror as enrichment. Deduped by source+id so the same
+   * identity never appears twice, and sorted newest-first within each source.
+   */
+  const mergeProposals = (contract: Proposal[], explorer: Proposal[]): Proposal[] => {
+    const seen = new Set<string>();
+    const result: Proposal[] = [];
+    const push = (list: Proposal[]) => {
+      for (const proposal of [...list].sort((a, b) => b.id - a.id)) {
+        const key = `${proposal.source ?? "contract"}:${proposal.externalId ?? proposal.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        result.push(proposal);
+      }
+    };
+    push(contract);
+    push(explorer);
+    return result;
+  };
+
+  /** Read the on-chain proposals (newest 100), or [] when none / unavailable. */
+  const loadContractProposals = async (): Promise<Proposal[]> => {
+    const count = asNumber(await readContract("getProposalCount"), 0);
+    if (count <= 0) return [];
+    const limit = Math.min(count, 100);
+    const first = Math.max(1, count - limit + 1);
+    const reads: Array<Promise<Proposal | null>> = [];
+    for (let id = count; id >= first; id -= 1) {
+      reads.push(
+        readContract("getProposalDetails", [{ type: "Integer", value: String(id) }])
+          .then(parseProposal)
+          .catch(() => null),
+      );
+    }
+    return (await Promise.all(reads)).filter((p): p is Proposal => Boolean(p));
+  };
+
   const loadProposals = async () => {
     try {
       loadingProposals.set(true);
-      if (resolveNetwork(currentChainId.get()) === "mainnet") {
-        const explorerLoaded = await loadExplorerProposals();
-        if (explorerLoaded && proposals.get().length > 0) return;
-      }
-      const count = asNumber(await readContract("getProposalCount"), 0);
-      if (count <= 0) {
-        await loadExplorerProposals();
-        return;
+      const isMainnet = resolveNetwork(currentChainId.get()) === "mainnet";
+
+      // On mainnet the neo.community mirror is enrichment, NOT a replacement —
+      // read the on-chain proposals too and MERGE, so a freshly-created/voted
+      // contract proposal actually appears (the previous explorer-first
+      // short-circuit hid every contract proposal on the default network).
+      if (isMainnet) {
+        const [contract, explorer] = await Promise.all([
+          loadContractProposals().catch(() => [] as Proposal[]),
+          fetchExplorerProposals().catch(() => [] as Proposal[]),
+        ]);
+        const merged = mergeProposals(contract, explorer);
+        if (merged.length > 0) {
+          proposals.set(merged);
+          return;
+        }
       }
 
-      const limit = Math.min(count, 100);
-      const first = Math.max(1, count - limit + 1);
-      const reads: Array<Promise<Proposal | null>> = [];
-      for (let id = count; id >= first; id -= 1) {
-        reads.push(
-          readContract("getProposalDetails", [{ type: "Integer", value: String(id) }])
-            .then(parseProposal)
-            .catch(() => null),
-        );
+      const contract = await loadContractProposals();
+      if (contract.length > 0) {
+        proposals.set(mergeProposals(contract, []));
+        return;
       }
-      const loaded = (await Promise.all(reads)).filter((p): p is Proposal => Boolean(p));
-      if (loaded.length > 0) {
-        proposals.set(loaded.sort((a, b) => b.id - a.id));
-      } else {
-        await loadExplorerProposals();
-      }
+      // No contract proposals (e.g. testnet empty / read failed): fall back to
+      // the mirror alone so the browse view is not blank.
+      const explorer = await fetchExplorerProposals();
+      proposals.set(mergeProposals([], explorer));
     } catch (e) {
-      if (!(await loadExplorerProposals()) && proposals.get().length === 0) {
+      const explorer = await fetchExplorerProposals().catch(() => [] as Proposal[]);
+      if (explorer.length > 0) {
+        proposals.set(mergeProposals([], explorer));
+      } else if (proposals.get().length === 0) {
         console.warn("[useGovernance] loadProposals failed:", e instanceof Error ? e.message : String(e));
       }
     } finally {
@@ -442,20 +535,19 @@ export function useGovernance({
     }
   };
 
-  const loadExplorerProposals = async () => {
+  /** Fetch + parse the neo.community mirror into proposals, or [] on failure. */
+  const fetchExplorerProposals = async (): Promise<Proposal[]> => {
     try {
       const data = await fetchExplorerGovernanceData(
         `${API_HOST}/api/explorer/council-governance?network=${resolveNetwork(currentChainId.get())}`,
       );
       const governance = data as { proposals?: unknown };
-      if (!Array.isArray(governance.proposals)) return false;
-      const mirrored = governance.proposals
+      if (!Array.isArray(governance.proposals)) return [];
+      return governance.proposals
         .map(parseExplorerProposal)
         .filter((proposal: Proposal | null): proposal is Proposal => Boolean(proposal));
-      proposals.set(mirrored.sort((a, b) => b.id - a.id));
-      return true;
     } catch {
-      return false;
+      return [];
     }
   };
 
@@ -489,7 +581,15 @@ export function useGovernance({
       hasVotedMap.set({});
       return;
     }
-    const ids = proposalIds ?? activeProposals.get().map((p) => p.id);
+    // Only contract-sourced proposals have an on-chain hasVoted record; skip
+    // neo-community mirror entries (negative synthetic ids) so we don't waste
+    // RPC round-trips or risk a synthetic id mislabeling a real one.
+    const ids =
+      proposalIds ??
+      activeProposals
+        .get()
+        .filter((p) => p.source !== "neo-community" && p.id > 0)
+        .map((p) => p.id);
     const updates: Record<number, boolean> = { ...hasVotedMap.get() };
     await Promise.all(
       ids.map(async (id) => {
@@ -536,7 +636,8 @@ export function useGovernance({
     selectProposal,
     castVote,
     createProposal,
-    executeProposal: finalizeProposal,
+    executeProposal,
+    revokeProposal,
     finalizeProposal,
     loadProposals,
     refreshCandidateStatus,

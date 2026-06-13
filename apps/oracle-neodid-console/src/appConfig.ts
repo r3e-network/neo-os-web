@@ -1,12 +1,22 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 import type { ConsoleToolConfig } from "@shared/components-react";
 import { previewId } from "@shared/components-react";
+import { getNetwork } from "@shared/constants/rpc";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-oracle-neodid-console";
 
+/**
+ * Resolve the network label from the launched network instead of a hardcoded
+ * "Morpheus Testnet". The NeoDID lanes are live on the mainnet nitro worker
+ * while the testnet runtime is still degraded (getNetwork() defaults to mainnet).
+ */
+export function resolveNetworkLabel(): string {
+  return getNetwork() === "testnet" ? "Morpheus Testnet" : "Morpheus Mainnet";
+}
+
 export const appMeta = {
-  networkLabel: "Morpheus Testnet",
+  networkLabel: resolveNetworkLabel(),
   endpointLabel: "NeoDID verifier",
 };
 
@@ -49,6 +59,20 @@ const clean = (value: string | undefined, fallback: string) => {
   const text = String(value ?? "").trim();
   return text.length > 0 ? text : fallback;
 };
+
+// A DID must follow the did:neo:<method-specific-id> shape; a callback (when
+// provided) must be a 20-byte hash160 — the same type the host operation panel
+// declares for this param (neo-manifest.json callback: hash160).
+const DID_PATTERN = /^did:neo:[a-z0-9:_-]+$/i;
+const HASH160_PATTERN = /^0x[0-9a-f]{40}$/i;
+
+export function isValidDid(did: string): boolean {
+  return DID_PATTERN.test(did);
+}
+
+export function isValidCallback(callback: string): boolean {
+  return callback === "" || HASH160_PATTERN.test(callback);
+}
 
 export const consoleConfig: ConsoleToolConfig = {
   titleKey: "panelTitle",
@@ -93,23 +117,41 @@ export const consoleConfig: ConsoleToolConfig = {
         },
       };
     }
+    // Non-empty but malformed DID / callback are validation failures: surface
+    // them in explicit validity rows and flag the payload input_required so the
+    // shared panel warns instead of previewing junk as a verifiable request.
+    const didValid = isValidDid(did);
+    const callbackValid = isValidCallback(callback);
+    const formatOk = didValid && callbackValid;
+    const status = !didValid
+      ? t("didInvalid")
+      : !callbackValid
+        ? t("callbackInvalid")
+        : t("verifyReady");
     const digest = previewId(`${did}|${provider}|${claim}|${callback}`);
 
     return {
-      status: t("verifyReady"),
-      summary: t("verifySummary", { claim }),
+      status,
+      summary: formatOk ? t("verifySummary", { claim }) : status,
       rows: [
         { label: t("did"), value: did },
+        { label: t("didValid"), value: didValid ? t("yes") : t("no") },
         { label: t("provider"), value: provider },
         { label: t("claim"), value: claim },
+        ...(callback
+          ? [{ label: t("callbackValid"), value: callbackValid ? t("yes") : t("no") }]
+          : []),
         { label: t("statDigest"), value: digest },
       ],
       payload: {
         kind: "oracle.neodid.verify",
+        ...(formatOk ? {} : { status: "input_required" as const }),
         did,
+        didValid,
         provider,
         claim,
         callback,
+        callbackValid,
         digest,
         execution: "preview_only",
         dispatchReady: false,
@@ -139,6 +181,12 @@ const appMessages = {
   claimPlaceholder: { en: DEFAULT_CLAIM, zh: DEFAULT_CLAIM },
   callback: { en: "Callback Contract", zh: "回调合约" },
   callbackPlaceholder: { en: "Optional callback contract hash", zh: "可选回调合约哈希" },
+  didValid: { en: "DID format valid", zh: "DID 格式有效" },
+  didInvalid: { en: "Enter a valid did:neo identifier", zh: "请输入有效的 did:neo 标识符" },
+  callbackValid: { en: "Callback hash valid", zh: "回调哈希有效" },
+  callbackInvalid: { en: "Callback must be a 0x hash160", zh: "回调必须是 0x hash160" },
+  yes: { en: "Yes", zh: "是" },
+  no: { en: "No", zh: "否" },
   inputRequired: { en: "Required fields missing", zh: "缺少必填字段" },
   inputRequiredSummary: {
     en: "Enter a DID and claim before building a NeoDID preview.",
@@ -150,6 +198,7 @@ const appMessages = {
   statEndpoint: { en: "Mode", zh: "模式" },
   statRequests: { en: "Requests", zh: "请求数" },
   statDigest: { en: "Digest", zh: "摘要" },
+  digestPlaceholder: { en: "—", zh: "—" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   docsSubtitle: {
     en: "A clean control surface for identity verification oracle requests.",

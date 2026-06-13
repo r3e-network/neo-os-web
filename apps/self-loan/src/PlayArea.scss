@@ -236,6 +236,37 @@
   gap: 0.75rem;
 }
 
+// ---------- Repay field with Max chip ----------
+.selfloan-repay-field {
+  position: relative;
+
+  .selfloan-max-chip {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sl-accent-strong);
+    background: var(--sl-accent-soft);
+    border: 1px solid var(--sl-accent-line);
+    border-radius: var(--ns-radius-sm, 8px);
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: var(--sl-accent-tint);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+    }
+  }
+}
+
 // ---------- Balance Hint ----------
 .selfloan-balance-hint {
   display: flex;

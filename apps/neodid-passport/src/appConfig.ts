@@ -34,45 +34,10 @@ export const manifest: MiniAppManifest = {
     ],
   },
   features: { walletRequired: false, chainWarning: true },
-  operations: [
-    {
-      key: "buildPassport",
-      titleKey: "panelTitle",
-      descriptionKey: "panelDescription",
-      actionKey: "runAction",
-      actionMethod: "buildPassport",
-      fields: [
-        {
-          key: "subject",
-          type: "text",
-          labelKey: "subject",
-          placeholder: DEFAULT_SUBJECT_DID,
-          required: true,
-          default: DEFAULT_SUBJECT_DID,
-        },
-        {
-          key: "provider",
-          type: "select",
-          labelKey: "provider",
-          default: "wallet",
-          options: [
-            { value: "wallet", labelKey: "walletProvider" },
-            { value: "github", label: "GitHub" },
-            { value: "email", labelKey: "emailProvider" },
-          ],
-        },
-        {
-          key: "claim",
-          type: "text",
-          labelKey: "claim",
-          placeholder: "wallet-ownership",
-          required: true,
-          default: "wallet-ownership",
-        },
-        { key: "audience", type: "text", labelKey: "audience", placeholder: "miniapp-id" },
-      ],
-    },
-  ],
+  // The custom PlayArea form is the single Passport Builder surface. A
+  // manifest.operations entry rendered a SECOND, unsynced copy of the same form
+  // in the focus-mode sidebar (and on mobile) whose independent state
+  // contradicted the center form — removed to keep one source of truth.
   docs: [
     { titleKey: "appName", contentKey: "docsSubtitle", type: "text" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
@@ -152,6 +117,23 @@ const appMessages = {
   lastStatus: { en: "Last Status", zh: "最近状态" },
   proofStatus: { en: "Proof", zh: "证明" },
   copied: { en: "Copied", zh: "已复制" },
+  digestPlaceholder: { en: "—", zh: "—" },
+  statistics: { en: "Passport metrics", zh: "护照指标" },
+  // Degraded-runtime warning chip shown when the resolved document's versionId
+  // is "unversioned" (the live TEE runtime metadata was unavailable).
+  degradedRuntimeWarning: {
+    en: "Runtime attestation metadata unavailable — this passport lacks the TEE verification key a relying party may require.",
+    zh: "运行时证明元数据不可用——此护照缺少依赖方可能需要的 TEE 验证密钥。",
+  },
+  degradedRuntimeBadge: { en: "Degraded", zh: "降级" },
+  // External-verifier guidance for the github/email providers, which only
+  // prepare an attestation package — they have no in-app completion lane.
+  externalVerifierTitle: { en: "Submit to an external verifier", zh: "提交到外部验证器" },
+  externalVerifierCopy: {
+    en: "GitHub and email proofs are not completed in this miniapp. Build the passport, copy the prepared package, then follow the attestation docs to submit it to the Morpheus web3auth verifier for a signed attestation. Switch to Wallet signature to sign in-app instead.",
+    zh: "GitHub 与邮箱证明不会在此小程序内完成。请构建护照、复制已准备的包，然后按证明文档将其提交到 Morpheus web3auth 验证器以获取已签名证明。如需在小程序内签名，请切换为钱包签名。",
+  },
+  externalVerifierLink: { en: "Open attestation docs", zh: "打开证明文档" },
   docsSubtitle: {
     en: "A functional NeoDID passport workbench for resolving identity documents and preparing wallet-signable credentials.",
     zh: "用于解析身份文档并准备可钱包签名凭证的 NeoDID 身份护照工作台。",

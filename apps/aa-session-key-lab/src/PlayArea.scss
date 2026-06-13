@@ -438,6 +438,77 @@
   line-height: 1.45;
 }
 
+.session-hint--muted {
+  background: transparent;
+  border: none;
+  padding: 0 2px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 600;
+}
+
+/* Quick-pick expiry chips so a window can be set without epoch arithmetic. */
+.session-expiry-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.session-expiry-quick__chip {
+  padding: 6px 12px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.1));
+  border-radius: 999px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.session-expiry-quick__chip:hover,
+.session-expiry-quick__chip:focus-visible {
+  border-color: var(--ns-violet-strong, #0fb174);
+  color: var(--ns-violet-strong, #0fb174);
+  outline: none;
+}
+
+/* On-chain session readback (security-critical "what did I delegate?" view). */
+.session-onchain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.session-onchain__label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.session-onchain__value {
+  overflow-wrap: anywhere;
+  font-family: var(--ns-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.session-onchain__empty {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.session-action-grid--manage {
+  grid-template-columns: 1fr 1fr;
+}
+
 .session-form {
   display: flex;
   flex-direction: column;

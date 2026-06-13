@@ -36,8 +36,12 @@
  *        -> capsuleId. Consumes the prepaid credit as the locked amount, so the
  *        deposit MUST land first. If bury fails after a successful deposit the
  *        credit simply remains on the contract as reusable prepaid credit for the
- *        next bury — there is no refund call (and none is needed; funds are not
- *        lost). The new capsule id is read from the "Buried" event (state[0]).
+ *        next bury — it is also reclaimable to the wallet via withdraw(account)
+ *        ("CreditWithdrawn" event), so no funds are lost. The new capsule id is
+ *        read from the "Buried" event (state[0]).
+ *     withdraw(owner) -> amount. Pays the owner's whole unused prepaid deposit
+ *        credit (creditOf(owner)) back to the wallet — the money-out path for a
+ *        deposit that landed but whose bury never completed.
  *     reveal(owner, capsuleId) -> amount. After the unlock time, returns the
  *        locked GAS to the owner atomically and marks it revealed. Guarded so it
  *        cannot double-withdraw.
@@ -76,6 +80,7 @@ import { hexToBytes } from "@shared/utils/format";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { NOTIFICATION_EVENT } from "@shared/services";
 
 // ============================================================================
 // Constants
@@ -244,6 +249,28 @@ export function useTimeCapsule({
   // Local content store for revealing capsules (full message stays on-device).
   const localContent = createObservable<Record<string, string>>({});
 
+  /**
+   * Unused prepaid deposit credit (human GAS decimal string) held on the
+   * contract under the connected wallet — a deposit that landed but whose bury
+   * never completed. Read from creditOf(owner) on every load; surfaced as a
+   * withdraw banner so money-in always has a money-out path.
+   */
+  const reusableCredit = createObservable<string>("0");
+
+  /**
+   * Emit a user-facing toast on the platform notification channel. The composable
+   * runs money-moving actions (reveal returns the deposit, fish tips an owner)
+   * whose feedback is DYNAMIC (capsule id / withdrawn amount), so it cannot ride
+   * a static successKey — MiniAppRoot subscribes to NOTIFICATION_EVENT and renders
+   * the status. This is the channel ctx.services.notify uses internally.
+   */
+  const notify = (
+    message: string,
+    type: "success" | "error" | "info",
+  ) => {
+    eventBus.emit(NOTIFICATION_EVENT, { message, type });
+  };
+
   // ── Computed ──────────────────────────────────────────────────────────
   const totalCapsules: Observable = {
     get: () => capsules.get().length,
@@ -264,6 +291,16 @@ export function useTimeCapsule({
     get: () => isCreating.get() || isProcessing.get(),
     set: () => {},
     subscribe: (listener) => isCreating.subscribe(listener),
+  };
+
+  /** True when the connected wallet has unused prepaid deposit credit to withdraw. */
+  const hasCredit: Observable = {
+    get: () => {
+      const value = Number(reusableCredit.get());
+      return Number.isFinite(value) && value > 0;
+    },
+    set: () => {},
+    subscribe: (listener) => reusableCredit.subscribe(listener),
   };
 
   const canCreate: Observable = {
@@ -485,6 +522,31 @@ export function useTimeCapsule({
     }
   };
 
+  /**
+   * Refresh the connected wallet's unused prepaid deposit credit from
+   * creditOf(owner). Base units → human GAS. A missing wallet yields "0"; a read
+   * failure leaves the last known value (withdrawCredit re-reads before acting).
+   */
+  const loadCredit = async () => {
+    try {
+      const wallet = chainService.address.get();
+      const ownerHash = wallet ? addressToScriptHash(wallet) || null : null;
+      if (!ownerHash) {
+        reusableCredit.set("0");
+        return;
+      }
+      const raw = await chainService.read("creditOf", [
+        { type: "Hash160", value: ownerHash },
+      ]);
+      reusableCredit.set(fromBaseUnits(parseBigInt(raw)));
+    } catch (e) {
+      console.warn(
+        "[useTimeCapsule] creditOf read failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  };
+
   // ── Actions (direct chain invocations) ─────────────────────────────
 
   /**
@@ -574,7 +636,9 @@ export function useTimeCapsule({
           buryErr instanceof Error ? buryErr.message : String(buryErr),
         );
         // Deposit landed, capsule not buried — credit is held under the owner as
-        // reusable prepaid credit for the next bury (no refund needed).
+        // reusable prepaid credit, reusable on the next bury or withdrawable to
+        // the wallet. Refresh it so the recovery banner surfaces the money-out.
+        await loadCredit();
         throw new Error(t("depositPrepaidNoCapsule"));
       }
 
@@ -585,12 +649,11 @@ export function useTimeCapsule({
         saveLocalMeta(capsuleId, { title, category, contentHash });
       }
 
-      eventBus.emit("capsule:created", { action: t("capsuleCreated") });
       newCapsule.set({ title: "", content: "", days: "30", isPublic: false, category: 1 });
 
       capsules.set(await loadCapsules());
+      await loadCredit();
     } catch (e) {
-      eventBus.emit("capsule:error", { message: e instanceof Error ? e.message : t("error") });
       throw e;
     } finally {
       isCreating.set(false);
@@ -607,14 +670,15 @@ export function useTimeCapsule({
    */
   const openCapsule = async (cap: Capsule) => {
     if (!cap.revealed && Date.now() < cap.unlockTime) {
-      eventBus.emit("capsule:error", { message: t("notUnlocked") });
+      notify(t("notUnlocked"), "error");
       return;
     }
     if (isBusy.get()) return;
 
     isProcessing.set(true);
     try {
-      if (!cap.revealed) {
+      const wasSealed = !cap.revealed;
+      if (wasSealed) {
         const ownerAddr = chainService.address.get() || (await chainService.ensureWallet());
         const ownerHash = addressToScriptHash(ownerAddr || "");
         if (!ownerAddr || !ownerHash) throw new Error(t("walletRequired"));
@@ -629,18 +693,21 @@ export function useTimeCapsule({
         );
       }
 
+      // Reveal returns the locked deposit atomically — confirm the money-out, then
+      // surface the message (or an on-device-fallback hash) on the live channel.
+      if (wasSealed) {
+        notify(t("capsuleRevealed"), "success");
+      }
       const content = cap.contentHash ? localContent.get()[cap.contentHash] : "";
       if (content) {
-        eventBus.emit("capsule:opened", { message: `${t("message")} ${content}` });
+        notify(`${t("message")} ${content}`, "info");
       } else if (cap.contentHash) {
-        eventBus.emit("capsule:opened", { message: `${t("contentUnavailable")} ${cap.contentHash}` });
-      } else {
-        eventBus.emit("capsule:opened", { message: t("capsuleRevealed") });
+        notify(`${t("contentUnavailable")} ${cap.contentHash}`, "info");
       }
 
       capsules.set(await loadCapsules());
     } catch (e) {
-      eventBus.emit("capsule:error", { message: e instanceof Error ? e.message : t("error") });
+      notify(e instanceof Error ? e.message : t("error"), "error");
       throw e;
     } finally {
       isProcessing.set(false);
@@ -667,7 +734,7 @@ export function useTimeCapsule({
       const candidate = candidates[0];
 
       if (!candidate) {
-        eventBus.emit("capsule:fished", { message: t("fishNone") });
+        notify(t("fishNone"), "info");
         return;
       }
 
@@ -694,13 +761,63 @@ export function useTimeCapsule({
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Fished" },
       );
 
-      eventBus.emit("capsule:fished", {
-        message: t("fishResult", { id: candidate.id }),
-      });
+      notify(t("fishResult", { id: candidate.id }), "success");
 
       capsules.set(await loadCapsules());
     } catch (e) {
-      eventBus.emit("capsule:error", { message: e instanceof Error ? e.message : t("error") });
+      notify(e instanceof Error ? e.message : t("error"), "error");
+      throw e;
+    } finally {
+      isProcessing.set(false);
+    }
+  };
+
+  /**
+   * Withdraw the connected wallet's unused prepaid deposit credit via
+   * withdraw(owner). The contract pays the WHOLE creditOf(owner) back to the
+   * wallet — the money-out path for a deposit that landed but whose bury never
+   * completed. Returns the withdrawn amount (human GAS) from the "CreditWithdrawn"
+   * event (state[1] = amount). Reads the live credit first so an empty balance
+   * surfaces a clean message instead of a VM revert.
+   */
+  const withdrawCredit = async (): Promise<{ amount: string }> => {
+    if (isBusy.get()) return { amount: "0" };
+
+    isProcessing.set(true);
+    try {
+      const ownerAddr = chainService.address.get() || (await chainService.ensureWallet());
+      const ownerHash = addressToScriptHash(ownerAddr || "");
+      if (!ownerAddr || !ownerHash) throw new Error(t("walletRequired"));
+
+      let creditBase = 0n;
+      try {
+        creditBase = parseBigInt(
+          await chainService.read("creditOf", [{ type: "Hash160", value: ownerHash }]),
+        );
+      } catch {
+        creditBase = 0n;
+      }
+      if (creditBase <= 0n) {
+        notify(t("noCreditToWithdraw"), "info");
+        reusableCredit.set("0");
+        return { amount: "0" };
+      }
+
+      const result = await chainService.invoke(
+        "withdraw",
+        [{ type: "Hash160", value: ownerHash }],
+        { waitForEvent: "CreditWithdrawn" },
+      );
+
+      // CreditWithdrawn(account, amount) — amount is state index 1.
+      const withdrawnBase = parseBigInt(eventValue(result.event, 1));
+      const amount = fromBaseUnits(withdrawnBase > 0n ? withdrawnBase : creditBase);
+
+      notify(t("creditWithdrawn", { amount }), "success");
+      await loadCredit();
+      return { amount };
+    } catch (e) {
+      notify(e instanceof Error ? e.message : t("error"), "error");
       throw e;
     } finally {
       isProcessing.set(false);
@@ -714,6 +831,7 @@ export function useTimeCapsule({
     isLoading.set(true);
     try {
       capsules.set(await loadCapsules());
+      await loadCredit();
     } finally {
       isLoading.set(false);
     }
@@ -728,17 +846,21 @@ export function useTimeCapsule({
     isBusy,
     newCapsule,
     localContent,
+    reusableCredit,
 
     // ── Computed ─────────────────────────────────────────────────────
     totalCapsules,
     lockedCount,
     revealedCount,
     canCreate,
+    hasCredit,
 
     // ── Actions ─────────────────────────────────────────────────────
     createCapsule,
     openCapsule,
     fishCapsule,
+    withdrawCredit,
+    loadCredit,
     loadAll,
   };
 }

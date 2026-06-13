@@ -19,13 +19,19 @@ function t(key: string, params?: Record<string, string | number>) {
     amount: "Amount",
     amountPlaceholder: "1.5",
     approve: "Approve",
+    approveMilestone: "Approve M{n} — {amount}",
+    approving: "Approving...",
     assetType: "Asset",
     assetGas: "GAS",
     assetNeo: "NEO",
     beneficiaryAddress: "Beneficiary",
     beneficiaryPlaceholder: "N-address...",
     cancel: "Cancel",
+    cancelling: "Cancelling...",
     claim: "Claim",
+    claimMilestone: "Claim M{n} — {amount}",
+    claiming: "Claiming...",
+    confirmCancelRefund: "Confirm cancel — refunds {amount}",
     createdByYou: "Created by you",
     createEscrow: "Create Escrow",
     description: "Description",
@@ -281,13 +287,21 @@ describe("Milestone Escrow PlayArea", () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    // Action buttons are now labelled with the specific milestone they release
+    // (the next approvable / claimable one) and its amount, not a bare verb.
+    // Creator escrow has milestoneApproved [false, true] -> M1 is next approvable.
+    fireEvent.click(screen.getByRole("button", { name: /^Approve M1 —/ }));
     expect(dispatch).toHaveBeenCalledWith("approveMilestone", expect.objectContaining({ id: "esc-1" }));
 
+    // Cancel is now a two-step confirm (it refunds remaining funds): the first
+    // click only arms the confirm; the second confirm click dispatches.
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(dispatch).not.toHaveBeenCalledWith("cancelEscrow", expect.anything());
+    fireEvent.click(screen.getByRole("button", { name: /^Confirm cancel —/ }));
     expect(dispatch).toHaveBeenCalledWith("cancelEscrow", expect.objectContaining({ id: "esc-1" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+    // Beneficiary escrow has milestoneApproved [false, true] -> M2 is claimable.
+    fireEvent.click(screen.getByRole("button", { name: /^Claim M2 —/ }));
     expect(dispatch).toHaveBeenCalledWith("claimMilestone", expect.objectContaining({ id: "esc-1" }));
   });
 

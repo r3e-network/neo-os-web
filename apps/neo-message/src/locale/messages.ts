@@ -47,6 +47,9 @@ const appMessages = {
   notConnected: { en: "Not connected", zh: "未连接" },
   connectToView: { en: "Connect your wallet to view your messages.", zh: "连接钱包以查看你的消息。" },
   inboxEmpty: { en: "No messages yet.", zh: "暂无消息。" },
+  switchToNeoX: { en: "Switch to Neo X", zh: "切换到 Neo X" },
+  loadOlder: { en: "Load older", zh: "加载更早" },
+  bodyCounter: { en: "{count}/{max}", zh: "{count}/{max}" },
 
   // message states / actions
   statusBadgeSealed: { en: "Sealed", zh: "已封存" },
@@ -76,6 +79,10 @@ const appMessages = {
   errorWrongNetwork: {
     en: "Neo Message runs on Neo X Mainnet. Switch your wallet to Neo X Mainnet to continue.",
     zh: "Neo Message 运行于 Neo X 主网。请将钱包切换到 Neo X 主网后继续。",
+  },
+  errorNoEvmWallet: {
+    en: "No EVM wallet detected. Install MetaMask (or any EVM wallet) and connect to Neo X Mainnet.",
+    zh: "未检测到 EVM 钱包。请安装 MetaMask（或任意 EVM 钱包）并连接到 Neo X 主网。",
   },
   errorNotRecipient: { en: "Connected wallet is not the recipient of this message.", zh: "当前钱包不是该消息的收件人。" },
   invalidRecipient: { en: "Enter a valid Neo X (0x) address.", zh: "请输入有效的 Neo X（0x）地址。" },

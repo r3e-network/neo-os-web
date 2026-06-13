@@ -52,6 +52,7 @@ function t(key: string) {
     errBridgeGeneric: "Bridge handoff could not be prepared.",
     errMessageForm:
       "Enter a valid target contract, payload, and a gas limit of at least 21000.",
+    errSourceTx: "Enter a 0x-prefixed 64-character transaction hash.",
   };
   return messages[key] ?? key;
 }
@@ -212,5 +213,32 @@ describe("Neo X Bridge PlayArea", () => {
     expect((screen.getByLabelText("Destination address") as HTMLInputElement).value).toBe(
       N3_RECIPIENT,
     );
+  });
+
+  it("validates the source tx as a hash256 and disables tracking on a malformed hash", () => {
+    render(<PlayArea {...props()} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Track" }));
+    const sourceInput = screen.getByLabelText("Source transaction");
+
+    // A typo'd (non-hash256) value surfaces an inline error and blocks tracking.
+    fireEvent.change(sourceInput, { target: { value: "0xnot-a-hash" } });
+    expect(
+      screen.getByText("Enter a 0x-prefixed 64-character transaction hash."),
+    ).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Refresh tracking" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+
+    // A well-formed hash256 clears the error and re-enables tracking.
+    fireEvent.change(sourceInput, {
+      target: { value: `0x${"a".repeat(64)}` },
+    });
+    expect(
+      screen.queryByText("Enter a 0x-prefixed 64-character transaction hash."),
+    ).toBeNull();
+    expect(
+      (screen.getByRole("button", { name: "Refresh tracking" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
   });
 });

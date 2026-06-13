@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import type { MarketListing } from "../utils/aa-market";
+import { statusLabel } from "./ListingCard";
 import "./ManageListingCard.scss";
 
 interface ManageListingCardProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   selectedListing: MarketListing | null;
-  isSubmitting: boolean;
+  isUpdatingPrice: boolean;
+  isCancelling: boolean;
+  isBuying: boolean;
+  isRefunding: boolean;
   canManage: boolean;
   canBuy: boolean;
   hasPendingRefund: boolean;
@@ -14,7 +18,7 @@ interface ManageListingCardProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export function ManageListingCard({ t, selectedListing, isSubmitting, canManage, canBuy, hasPendingRefund, walletAddress, dispatch }: ManageListingCardProps) {
+export function ManageListingCard({ t, selectedListing, isUpdatingPrice, isCancelling, isBuying, isRefunding, canManage, canBuy, hasPendingRefund, walletAddress, dispatch }: ManageListingCardProps) {
   const [nextPriceGas, setNextPriceGas] = useState("");
   const [newBackupOwner, setNewBackupOwner] = useState("");
 
@@ -34,7 +38,7 @@ export function ManageListingCard({ t, selectedListing, isSubmitting, canManage,
             <div className="selection-summary__meta">
               <span>#{selectedListing.id}</span>
               <span>{selectedListing.priceGas} {t("tokenGas")}</span>
-              <span>{selectedListing.status}</span>
+              <span>{statusLabel(selectedListing.status, t)}</span>
             </div>
           </div>
 
@@ -48,13 +52,13 @@ export function ManageListingCard({ t, selectedListing, isSubmitting, canManage,
           />
 
           {canManage && (
-            <NeoButton variant="primary" loading={isSubmitting} disabled={!nextPriceGas.trim()} aria-label={t("updatePriceCta")} onClick={() => dispatch("updatePrice", nextPriceGas)}>
+            <NeoButton variant="primary" loading={isUpdatingPrice} disabled={!nextPriceGas.trim() || isUpdatingPrice} aria-label={t("updatePriceCta")} onClick={() => dispatch("updatePrice", nextPriceGas)}>
               {t("updatePriceCta")}
             </NeoButton>
           )}
 
           {canManage && (
-            <NeoButton variant="secondary" loading={isSubmitting} aria-label={t("cancelListingCta")} onClick={() => dispatch("cancelSelected")}>
+            <NeoButton variant="secondary" loading={isCancelling} disabled={isCancelling} aria-label={t("cancelListingCta")} onClick={() => dispatch("cancelSelected")}>
               {t("cancelListingCta")}
             </NeoButton>
           )}
@@ -70,13 +74,13 @@ export function ManageListingCard({ t, selectedListing, isSubmitting, canManage,
           )}
 
           {canBuy && (
-            <NeoButton variant="primary" loading={isSubmitting} aria-label={t("buyListingCta")} onClick={() => dispatch("buySelected", newBackupOwner)}>
+            <NeoButton variant="primary" loading={isBuying} disabled={isBuying} aria-label={t("buyListingCta")} onClick={() => dispatch("buySelected", newBackupOwner)}>
               {t("buyListingCta")}
             </NeoButton>
           )}
 
           {hasPendingRefund && (
-            <NeoButton variant="secondary" loading={isSubmitting} aria-label={t("refundPendingCta")} onClick={() => dispatch("refundSelected")}>
+            <NeoButton variant="secondary" loading={isRefunding} disabled={isRefunding} aria-label={t("refundPendingCta")} onClick={() => dispatch("refundSelected")}>
               {t("refundPendingCta")}
             </NeoButton>
           )}

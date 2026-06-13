@@ -42,10 +42,14 @@ defineMiniApp({
       breakup.duration.set(String(form.duration ?? ""));
       breakup.contractTitle.set(String(form.title ?? ""));
       breakup.contractTerms.set(String(form.terms ?? ""));
-      await ctx.services.notify.guard(
+      // Surface the guard result so PlayArea only clears its (local) form fields
+      // on an actual success — a validation/chain failure keeps the user's input
+      // for retry (guard swallows failures into error toasts).
+      const result = await ctx.services.notify.guard(
         () => breakup.createContract(),
         "contractCreated",
       );
+      return result === true;
     });
     ctx.registerAction("signContract", (contract: unknown) =>
       ctx.services.notify.guard(
@@ -65,6 +69,20 @@ defineMiniApp({
         "contractSettled",
       ),
     );
+    // breakPact handles BOTH the active-break and the pending-cancel cases on the
+    // contract, so the pending-cancel affordance reuses breakContract.
+    ctx.registerAction("cancelContract", (contract: unknown) =>
+      ctx.services.notify.guard(
+        () => breakup.breakContract(contract as { id?: number; pactId?: string }),
+        "contractCancelled",
+      ),
+    );
+    ctx.registerAction("withdrawCredit", () =>
+      ctx.services.notify.guard(
+        () => breakup.withdrawCredit(),
+        "creditRecovered",
+      ),
+    );
 
     return {
       state: refsToObservables({
@@ -78,6 +96,8 @@ defineMiniApp({
         serviceNotice: breakup.serviceNotice,
         actionNotice: breakup.actionNotice,
         lastSubmittedTitle: breakup.lastSubmittedTitle,
+        creditBalance: breakup.creditBalance,
+        hasCredit: breakup.hasCredit,
       }),
       loadData: breakup.loadContracts,
     };

@@ -64,8 +64,25 @@ function t(key: string) {
     submitRelay: "Submit Relay Payload",
     notAvailable: "Not available",
     unset: "unset",
+    sponsorCheckComplete: "Sponsor check complete.",
+    sponsorEligible: "Eligible for sponsorship.",
+    serviceUnavailable: "Sponsorship service is currently unavailable.",
+    latestRelay: "Latest Relay Response",
+    aaAddressInvalid: "Enter a valid Neo address or 0x script hash.",
   };
-  return messages[key] ?? key;
+  let value = messages[key] ?? key;
+  return value;
+}
+
+function tParams(
+  key: string,
+  params?: Record<string, string | number>,
+): string {
+  const base = t(key);
+  if (key === "sponsorEligibleSummary") {
+    return `Eligible — ${params?.remaining} GAS of ${params?.dailyLimit} remaining today.`;
+  }
+  return base;
 }
 
 function launch(url: string) {
@@ -174,5 +191,70 @@ describe("AA Relay Console PlayArea", () => {
         .disabled,
     ).toBe(true);
     expect(screen.getByText("Fix the JSON payload before submitting.")).toBeTruthy();
+  });
+
+  it("promotes the eligibility answer to the result headline", () => {
+    render(
+      <PlayArea
+        t={tParams}
+        state={baseState({
+          sponsorState: JSON.stringify({
+            eligible: true,
+            remaining: "4",
+            dailyLimit: "10",
+          }),
+        })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          `https://neomini.app/miniapps/aa-relay-console?aaAddress=${AA_ADDRESS}`,
+        )}
+      />,
+    );
+    expect(
+      screen.getByText("Eligible — 4 GAS of 10 remaining today."),
+    ).toBeTruthy();
+  });
+
+  it("maps a host service-outage error to an honest unavailable message", () => {
+    render(
+      <PlayArea
+        t={tParams}
+        state={baseState({
+          sponsorState: JSON.stringify({
+            error: { code: "FORBIDDEN", message: "function not allowed" },
+          }),
+        })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          `https://neomini.app/miniapps/aa-relay-console?aaAddress=${AA_ADDRESS}`,
+        )}
+      />,
+    );
+    // The headline reads as a localized "unavailable" sentence; the raw body
+    // still lives in the collapsed <details> for debugging.
+    const headline = document.querySelector(".relay-result__text");
+    expect(headline?.textContent).toBe(
+      "Sponsorship service is currently unavailable.",
+    );
+  });
+
+  it("flags an invalid AA address inline", () => {
+    render(
+      <PlayArea
+        t={tParams}
+        state={baseState()}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          "https://neomini.app/miniapps/aa-relay-console?aaAddress=abc",
+        )}
+      />,
+    );
+    expect(
+      screen.getByText("Enter a valid Neo address or 0x script hash."),
+    ).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: "Check Sponsorship" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 });

@@ -278,6 +278,9 @@ describe("neo-multisig vault service", () => {
 
     await api.deposit({ from: SIGNER_A, vaultId: 7, amount: "1", asset: "GAS" });
 
+    // v2: the transfer settles on the contract's Deposited event so the success
+    // toast + refreshVault reflect a CONFIRMED, in-block balance change rather
+    // than a fire-and-forget transfer that reports success on stale balances.
     expect(chain.invoke).toHaveBeenCalledWith(
       "transfer",
       [
@@ -286,7 +289,7 @@ describe("neo-multisig vault service", () => {
         { type: "Integer", value: "100000000" },
         { type: "Integer", value: "7" },
       ],
-      { scriptHash: GAS_HASH },
+      { scriptHash: GAS_HASH, waitForEvent: "Deposited" },
     );
   });
 

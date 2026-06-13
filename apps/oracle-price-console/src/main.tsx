@@ -10,6 +10,12 @@ import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { usePriceConsole } from "./hooks/usePriceConsole";
 
+/**
+ * Sanitize a deep-link asset to a feed base symbol (e.g. `?asset=ETH-USD` ->
+ * `ETH`). The select is populated from the live on-chain catalog (listPairs),
+ * so any symbol-shaped value is accepted here; an unsupported pair surfaces a
+ * clean localized "feed not found" error on fetch rather than a silent no-op.
+ */
 function launchAsset(params: Record<string, string>) {
   const raw = String(
     params.asset || params.symbol || params.feed || params.endpoint || "",
@@ -18,7 +24,7 @@ function launchAsset(params: Record<string, string>) {
     .replace(/^TWELVEDATA:/i, "")
     .toUpperCase();
   const asset = raw.split(/[-/]/)[0] || "";
-  return ["NEO", "GAS", "BTC"].includes(asset) ? asset : "";
+  return /^[A-Z0-9]{1,12}$/.test(asset) ? asset : "";
 }
 
 defineMiniApp({
@@ -53,6 +59,9 @@ defineMiniApp({
       state: {
         asset: price.asset,
         priceDisplay: price.priceDisplay,
+        freshness: price.freshness,
+        freshnessLabel: price.freshnessLabel,
+        availablePairs: price.availablePairs,
         networkDisplay: price.networkDisplay,
         datafeedHash: price.datafeedHash,
         datafeedShort: price.datafeedShort,

@@ -4,6 +4,7 @@ import type { StatsDisplayItem } from "@shared/components";
 import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
+import { computeQuadraticMatches } from "@/composables/quadraticMatch";
 import { formatAddress } from "@shared/utils/format";
 
 export function useQuadraticFundingPage(t: (key: string) => string) {
@@ -14,21 +15,26 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     rounds,
     selectedRoundId,
     selectedRound,
+    isAdmin,
     isRefreshingRounds,
     isCreatingRound,
     isAddingMatching,
     isFinalizing,
     isClaimingUnused,
+    isCancelling,
     canManageSelectedRound,
     canFinalizeSelectedRound,
     canClaimUnused,
+    canCancelSelectedRound,
     status: roundsStatus,
     refreshRounds,
     selectRound,
     createRound,
     addMatching,
     finalizeRound,
+    finalizeSuggested,
     claimUnused,
+    cancelRound,
     roundStatusLabel,
     formatSchedule,
     formatAmount,
@@ -74,6 +80,45 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     if (!round) return t("notAvailable");
     return `${formatAmount(round.assetSymbol || "GAS", round.matchingPool)} ${round.assetSymbol || "GAS"}`;
   }, [rounds, selectedRoundId]);
+
+  // Suggested quadratic matches for the selected round, computed from each
+  // project's on-chain aggregates. Drives the finalize preview table and the
+  // pre-filled parallel arrays so operators no longer hand-type JSON.
+  const suggestedMatches = createDerived(() => {
+    const round = selectedRound.get();
+    const list = projects.get();
+    if (!round || list.length === 0) {
+      return [] as Array<{
+        id: string;
+        name: string;
+        contributedDisplay: string;
+        donors: string;
+        matchDisplay: string;
+        matchBaseUnits: string;
+      }>;
+    }
+    const symbol = round.assetSymbol || "GAS";
+    const matches = computeQuadraticMatches(
+      list.map((project) => ({
+        id: project.id,
+        totalContributed: project.totalContributed,
+        contributorCount: project.contributorCount,
+      })),
+      round.matchingPool,
+    );
+    const matchById = new Map(matches.map((entry) => [entry.id, entry.match]));
+    return list.map((project) => {
+      const match = matchById.get(project.id) ?? 0n;
+      return {
+        id: project.id,
+        name: project.name || `#${project.id}`,
+        contributedDisplay: `${formatAmount(symbol, project.totalContributed)} ${symbol}`,
+        donors: String(project.contributorCount),
+        matchDisplay: `${formatAmount(symbol, match)} ${symbol}`,
+        matchBaseUnits: match.toString(),
+      };
+    });
+  }, [rounds, selectedRoundId, projects]);
 
   const appState = createDerived(() => ({
     roundCount: roundCount.get(),
@@ -124,8 +169,13 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
 
   const handleAddMatching = async (amount: string) => { await addMatching(amount).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
   const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) => { await finalizeRound(projectIdsRaw, matchedRaw).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
+  const handleFinalizeSuggested = async () => {
+    const entries = suggestedMatches.get().map((entry) => ({ id: entry.id, matchBaseUnits: entry.matchBaseUnits }));
+    await finalizeSuggested(entries).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); });
+  };
   const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => { await claimProject(project).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
   const handleClaimUnused = async () => { await claimUnused().catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
+  const handleCancelRound = async () => { await cancelRound().catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
   const handleSelectRound = async (round: Parameters<typeof selectRound>[0]) => {
     selectRound(round);
     await refreshProjects();
@@ -153,9 +203,13 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     isAddingMatching,
     isFinalizing,
     isClaimingUnused,
+    isCancelling,
+    isAdmin,
     canManageSelectedRound,
     canFinalizeSelectedRound,
     canClaimUnused,
+    canCancelSelectedRound,
+    suggestedMatches,
     roundsStatus,
     refreshRounds,
     selectRound,
@@ -192,8 +246,10 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     handleSelectRound,
     handleAddMatching,
     handleFinalize,
+    handleFinalizeSuggested,
     handleClaimProject,
     handleClaimUnused,
+    handleCancelRound,
     onTabChange,
   };
 }

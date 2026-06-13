@@ -16,20 +16,18 @@ const proof: TimestampProof = {
   contentHash: "7f83b1657ff1fc53b92dc18148a1d65dfa13583b2d4f4f6bdad4f3f4f7c2e6aa",
   timestamp: 1780300000000,
   creator: "local",
-  txHash: "local:7f83b1657ff1fc53",
+  anchorTxid: "",
+  anchored: false,
 };
 
 function t(key: string) {
   const messages: Record<string, string> = {
     title: "Timestamp Proof",
-    docSubtitle: "Device-local SHA-256 proof journal",
+    docSubtitle: "SHA-256 proof journal with optional on-chain anchor",
     totalProofs: "Total Proofs",
-    yourProofs: "Your Proofs",
-    latestProof: "Latest proof",
+    anchoredProofs: "Anchored",
     latestId: "Latest ID",
-    localOnlyLabel: "Saved locally",
-    hashAlgorithm: "Hash",
-    proofWorkspace: "Timestamp proof workspace",
+    proofStats: "Proof Stats",
     createProof: "Create Proof",
     creating: "Creating...",
     enterContent: "Enter content to timestamp",
@@ -41,6 +39,7 @@ function t(key: string) {
     validProof: "Proof Found",
     invalidProof: "Invalid Proof",
     verifyEmpty: "No proof selected",
+    proofId: "Proof ID",
     proofDigest: "SHA-256 digest",
     timestamp: "Timestamp",
     contentPreview: "Content preview",
@@ -49,13 +48,16 @@ function t(key: string) {
     clearAllProofs: "Clear all",
     noProofs: "No proofs yet",
     noProofsHint: "Saved proof entries will appear here.",
-    localReference: "Local reference",
-    creatorLabel: "Creator",
-    sourceLocal: "Local",
     copyDigest: "Copy digest",
     copyReference: "Copy proof reference",
     deleteProof: "Delete proof",
     verify: "Verify",
+    anchorStatus: "Status",
+    anchorOnChain: "Anchor on-chain",
+    anchorShort: "Anchor",
+    anchoredOnChain: "Anchored on-chain",
+    localOnly: "Local only",
+    anchorTxid: "Anchor transaction",
     notAvailable: "N/A",
   };
   return messages[key] ?? key;
@@ -64,9 +66,11 @@ function t(key: string) {
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const values: Record<string, unknown> = {
     totalProofs: 1,
-    yourProofs: 1,
+    anchoredProofs: 0,
     isCreating: false,
     isVerifying: false,
+    isAnchoring: false,
+    anchoringId: 0,
     proofs: [proof],
     verifiedProof: proof,
     verifyError: false,
@@ -117,13 +121,51 @@ describe("Timestamp Proof PlayArea", () => {
     expect(dispatch).toHaveBeenCalledWith("clearProofs");
   });
 
-  it("does not render blockchain anchoring promises for the local proof flow", () => {
+  it("offers an on-chain anchor for an unanchored proof and marks it local", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    // The honest status badge tells the verifier this proof is device-local.
+    expect(screen.getAllByText("Local only").length).toBeGreaterThan(0);
+
+    // Anchoring the proof is one click away (the namesake third-party journey).
+    // The affordance appears on both the verified-result card and the list row.
+    const anchorButtons = screen.getAllByRole("button", { name: "Anchor on-chain" });
+    expect(anchorButtons.length).toBeGreaterThan(0);
+    fireEvent.click(anchorButtons[0]);
+    expect(dispatch).toHaveBeenCalledWith("anchorProof", 3);
+  });
+
+  it("shows an anchored proof's on-chain status instead of an anchor button", () => {
+    const anchoredProof: TimestampProof = {
+      ...proof,
+      anchored: true,
+      anchorTxid: "0xabc123",
+    };
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          proofs: [anchoredProof],
+          verifiedProof: anchoredProof,
+          anchoredProofs: 1,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText("Anchored on-chain").length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole("button", { name: "Anchor on-chain" }),
+    ).toBeNull();
+  });
+
+  it("keeps raw action keys out of the rendered workspace", () => {
     const { container } = render(
       <PlayArea t={t} state={state({ proofs: [], verifiedProof: null, totalProofs: 0 })} dispatch={vi.fn()} />,
     );
 
-    expect(container.textContent).not.toContain("Anchor timestamp");
-    expect(container.textContent).not.toContain("Record block");
     expect(container.textContent).not.toContain("contractMissing");
+    expect(container.textContent).not.toContain("anchorProof");
   });
 });

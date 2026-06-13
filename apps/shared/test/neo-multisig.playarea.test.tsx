@@ -311,12 +311,18 @@ describe("Neo Multisig PlayArea", () => {
   it("renders request status + approval progress and approves", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
 
+    // v2 gates Approve on signer membership: the connected wallet must be a
+    // vault signer who has not yet approved (both read back on-chain) — a
+    // non-signer / already-approved approve would otherwise revert.
     render(
       <PlayArea
         t={t}
         state={baseState({
           activeVault: vault(),
           activeRequest: request({ approvalCount: 1 }),
+          connectedAddress: SIGNER_B,
+          connectedIsSigner: true,
+          connectedHasApproved: false,
         })}
         dispatch={dispatch}
       />,
@@ -369,6 +375,8 @@ describe("Neo Multisig PlayArea", () => {
 
     // The connected wallet is a co-signer, NOT the request creator. v2 lets any
     // vault signer cancel, so the affordance must stay enabled and dispatch.
+    // Cancel is membership-gated (any signer, not creator-only): the connected
+    // wallet is flagged as a vault signer (read back on-chain as connectedIsSigner).
     render(
       <PlayArea
         t={t}
@@ -376,6 +384,7 @@ describe("Neo Multisig PlayArea", () => {
           activeVault: vault(),
           activeRequest: request({ approvalCount: 1 }),
           connectedAddress: SIGNER_B,
+          connectedIsSigner: true,
         })}
         dispatch={dispatch}
       />,

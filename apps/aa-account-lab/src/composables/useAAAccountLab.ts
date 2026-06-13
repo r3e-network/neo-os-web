@@ -9,9 +9,14 @@ import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import {
-  deriveAAAccountIdHash,
+  addressToScriptHash,
+  normalizeScriptHash,
+  parseHash160,
+  parseInvokeResult,
+} from "@shared/utils/neo";
+import {
+  deriveRegistrationAccountIdHash,
   AA_REGISTRATION_MIN_ESCAPE_TIMELOCK_SECONDS,
   AA_REGISTRATION_MAX_ESCAPE_TIMELOCK_SECONDS,
 } from "@shared/utils/aa-account";
@@ -47,6 +52,10 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
   const currentVerifier = createObservable(t("notAvailable"));
   const currentHook = createObservable(t("notAvailable"));
   const currentBackupOwner = createObservable(t("notAvailable"));
+  // Escape recovery posture (configured at registration). Read alongside the
+  // bindings so the recovery window this app is about can actually be verified.
+  const currentEscapeTimelock = createObservable(t("notAvailable"));
+  const currentEscapeActive = createObservable(t("notAvailable"));
   // Explicit flag: true once a read has completed successfully, regardless of
   // whether the account has a verifier set. Distinguishes "not inspected yet"
   // from "inspected, verifier is empty".
@@ -75,13 +84,27 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
     subscribe: () => () => {},
   };
 
+  // Connected wallet as a 0x script hash so the PlayArea can prefill the backup
+  // owner and flag a mismatch (the backup owner must witness registerAccount).
+  const connectedWalletDisplay: Observable<string> = {
+    get: () => {
+      const hash = connectedWalletHash();
+      return hash ? `0x${hash}` : "";
+    },
+    set: () => {},
+    subscribe: (fn) => chain.address.subscribe(fn),
+  };
+
   // Helpers
-  function deriveAccountIdHash(input: string): string {
-    try {
-      return deriveAAAccountIdHash(input);
-    } catch {
+  // Inspect accepts a literal 20-byte accountId (the value the contract stores).
+  // V3 ids are registration-parameter hashes, so a free seed can never map to a
+  // registered account — only a canonical 0x/40-hex hash is meaningful here.
+  function normalizeAccountIdHash(input: string): string {
+    const normalized = normalizeScriptHash(String(input || "").trim()).replace(/^0x/, "");
+    if (!/^[0-9a-f]{40}$/i.test(normalized)) {
       throw new Error(t("invalidAccountId"));
     }
+    return normalized.toLowerCase();
   }
 
   function normalizeHashOrZero(value: string): string {
@@ -96,6 +119,21 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
     const normalized = value.trim().startsWith("N") ? addressToScriptHash(value.trim()) : normalizeScriptHash(value.trim());
     if (!/^0x[0-9a-f]{40}$/i.test(normalized)) throw new Error(t("invalidBackupOwner"));
     return normalized;
+  }
+
+  // The connected wallet as a bare (no 0x) lowercase script hash, or "" when no
+  // wallet/derivation. registerAccount aborts "Backup owner witness required"
+  // unless the backup owner signs, so the backup owner must equal the connected
+  // wallet.
+  function connectedWalletHash(): string {
+    const addr = chain.address.get();
+    if (!addr) return "";
+    try {
+      const hash = addressToScriptHash(addr).replace(/^0x/, "").toLowerCase();
+      return /^[0-9a-f]{40}$/.test(hash) ? hash : "";
+    } catch {
+      return "";
+    }
   }
 
   // Parse + validate the escape timelock before any chain round-trip. Rejects
@@ -127,21 +165,47 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
     return normalized;
   }
 
+  // Hash160 reads come back as little-endian ByteStrings; parseHash160 reverses
+  // them to the canonical 0x display form so they match the hashes the user
+  // typed (parseInvokeResult would otherwise show the byte-reversed value or, if
+  // every byte is printable, garbage text). Empty/zero reads fall back to "—".
+  function formatHash160Read(result: unknown): string {
+    const display = parseHash160(result);
+    if (!display || /^0x0{40}$/i.test(display)) return t("notAvailable");
+    return display;
+  }
+
+  function humanizeEscapeTimelock(seconds: number): string {
+    if (!Number.isFinite(seconds) || seconds <= 0) return t("notAvailable");
+    const days = seconds / 86400;
+    const rounded = Number.isInteger(days) ? String(days) : days.toFixed(1);
+    return t("timelockDays", { days: rounded });
+  }
+
   const inspectAccount = async () => {
     try {
       isInspecting.set(true);
-      const accountIdHash = deriveAccountIdHash(inspectForm.accountIdInput);
+      const accountIdHash = normalizeAccountIdHash(inspectForm.accountIdInput);
       const accountId = `0x${accountIdHash}`;
 
-      const [verifierResult, hookResult, backupResult] = await Promise.all([
-        chain.read("getVerifier", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
-        chain.read("getHook", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
-        chain.read("getBackupOwner", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
-      ]);
+      const [verifierResult, hookResult, backupResult, timelockResult, escapeActiveResult] =
+        await Promise.all([
+          chain.read("getVerifier", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
+          chain.read("getHook", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
+          chain.read("getBackupOwner", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
+          chain.read("getEscapeTimelock", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
+          chain.read("isEscapeActive", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
+        ]);
 
-      currentVerifier.set(String(parseInvokeResult(verifierResult) || t("notAvailable")));
-      currentHook.set(String(parseInvokeResult(hookResult) || t("notAvailable")));
-      currentBackupOwner.set(String(parseInvokeResult(backupResult) || t("notAvailable")));
+      currentVerifier.set(formatHash160Read(verifierResult));
+      currentHook.set(formatHash160Read(hookResult));
+      currentBackupOwner.set(formatHash160Read(backupResult));
+
+      const timelockSeconds = Number(parseInvokeResult(timelockResult) ?? 0);
+      currentEscapeTimelock.set(humanizeEscapeTimelock(timelockSeconds));
+      currentEscapeActive.set(
+        parseInvokeResult(escapeActiveResult) ? t("escapeActive") : t("escapeInactive"),
+      );
       // The read succeeded: surface the detail grid even when verifier/hook are
       // empty, rather than masking it behind the "not inspected" placeholder.
       hasInspected.set(true);
@@ -162,12 +226,30 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
   const submitRegister = async () => {
     try {
       isSubmitting.set(true);
-      const accountIdHash = deriveAccountIdHash(registerForm.accountIdInput);
       const verifierHash = normalizeHashOrZero(registerForm.verifierHash);
       const hookHash = normalizeHashOrZero(registerForm.hookHash);
       const backupOwner = normalizeBackupOwner(registerForm.backupOwner);
       const escapeTimelock = parseEscapeTimelock(registerForm.escapeTimelock);
       const verifierParams = sanitizeVerifierParams(registerForm.verifierParamsHex);
+
+      // The backup owner must witness registerAccount (contract aborts "Backup
+      // owner witness required" otherwise). Only the connected wallet can sign,
+      // so block any backup owner that is not the connected wallet before the
+      // user pays a doomed transaction.
+      const walletHash = connectedWalletHash();
+      if (walletHash && backupOwner.replace(/^0x/, "").toLowerCase() !== walletHash) {
+        throw new Error(t("backupOwnerMustSign"));
+      }
+
+      // Derive the only accountId the contract will accept (the seed text is
+      // carried into verifierParams, matching computeRegistrationAccountId).
+      const accountIdHash = deriveRegistrationAccountIdHash({
+        verifierContractHash: verifierHash,
+        verifierParamsHex: verifierParams,
+        hookContractHash: hookHash,
+        backupOwnerAddress: backupOwner,
+        escapeTimelock,
+      });
 
       await chain.invoke(
         "registerAccount",
@@ -189,12 +271,42 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
         escapeTimelock,
         registeredAt: Date.now(),
       }).catch(() => {});
+
+      // Pin the registered id back into the inspect form and confirm on-chain:
+      // poll getVerifier a few times so the inspector flips to the fresh state
+      // (or surfaces "pending confirmation") instead of holding stale/empty data.
+      inspectForm.accountIdInput = `0x${accountIdHash}`;
+      await confirmRegistration(accountIdHash);
     } catch (error: unknown) {
       throw error;
     } finally {
       isSubmitting.set(false);
     }
   };
+
+  // Poll getVerifier after a register broadcast so the inspector reflects the
+  // freshly registered account. RPC nodes lag behind the tx, so retry a few
+  // times; a non-empty read means the registration executed.
+  async function confirmRegistration(accountIdHash: string): Promise<void> {
+    const accountId = `0x${accountIdHash}`;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 4000 : 5000));
+      try {
+        const verifier = await chain.read(
+          "getVerifier",
+          [{ type: "Hash160", value: accountId }],
+          { scriptHash: aaCore },
+        );
+        const display = parseHash160(verifier);
+        if (display && !/^0x0{40}$/i.test(display)) {
+          await inspectAccount();
+          return;
+        }
+      } catch {
+        // RPC hiccup or node lag — keep retrying within the attempt budget.
+      }
+    }
+  }
 
   const loadAll = async () => {};
 
@@ -204,12 +316,15 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
     currentVerifier,
     currentHook,
     currentBackupOwner,
+    currentEscapeTimelock,
+    currentEscapeActive,
     hasInspected,
     isInspecting,
     isSubmitting,
     aaCoreDisplay,
     defaultVerifierDisplay,
     networkDisplay,
+    connectedWalletDisplay,
     aaCore,
     inspectAccount,
     submitRegister,

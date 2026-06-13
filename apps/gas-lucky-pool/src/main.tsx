@@ -89,7 +89,7 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("claimPool", async (...args: unknown[]) => {
+    const handleClaim = async (...args: unknown[]) => {
       const first = args[0];
       const params =
         typeof first === "object" && first !== null
@@ -132,7 +132,15 @@ defineMiniApp({
         isClaimLaunch ? undefined : "claimSubmitted",
         "claimFailed",
       );
-    });
+    };
+
+    ctx.registerAction("claimPool", handleClaim);
+    // The host operation_panel "Claim Reward" button dispatches the manifest's
+    // declared method name (claimOneGateVault); without this alias the host
+    // primary button silently no-ops (MiniAppRoot console.warns on the missing
+    // handler). Reuse the exact claimPool body so both entry points behave the
+    // same.
+    ctx.registerAction("claimOneGateVault", handleClaim);
 
     ctx.registerAction("checkClaimStatus", async (...args: unknown[]) => {
       const first = args[0];

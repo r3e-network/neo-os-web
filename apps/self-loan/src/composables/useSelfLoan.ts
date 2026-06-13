@@ -158,6 +158,16 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
   const neoPriceBase = createObservable(0n);
   /** NEO price expressed in WHOLE GAS per NEO (for value-normalized metrics). */
   const neoPrice = createObservable(0);
+  /** Lending pool liquidity available to disburse — WHOLE GAS (÷1e8). */
+  const poolGas = createObservable(0);
+
+  // Monotonic per-action success nonces. They increment ONLY when the action
+  // resolves successfully, so the PlayArea can clear its local inputs on a real
+  // success and preserve them after a swallowed failure (notify.guard resolves
+  // to undefined on error, so the caller cannot otherwise distinguish the two).
+  const borrowOkNonce = createObservable(0);
+  const repayOkNonce = createObservable(0);
+  const addCollateralOkNonce = createObservable(0);
 
   const platformStats = createObservable<PlatformStats>({
     ltvTier1Bps: 2000,
@@ -297,6 +307,25 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
   [loan]);
 
   const neoBalanceDisplay = createDerived(() => fmt(neoBalance.get(), 0), [neoBalance]);
+
+  /** True when the connected wallet already holds an active loan. */
+  const hasActiveLoan = createDerived(() => loan.get().active, [loan]);
+
+  /**
+   * The configured NEO price as "1 NEO = X GAS". Empty when no price is set so
+   * the UI can hide the rate row rather than show a misleading 0.
+   */
+  const neoPriceDisplay = createDerived(() => {
+    const price = neoPrice.get();
+    return price > 0 ? `${fmt(price, 4)} ${t("tokenGas")}` : "";
+  }, [neoPrice]);
+
+  /** Pool liquidity available to disburse, formatted as WHOLE GAS. */
+  const poolDisplay = createDerived(
+    () => `${fmt(poolGas.get())} ${t("tokenGas")}`,
+    [poolGas],
+  );
+
   const totalLoans = createDerived(() => stats.get().totalLoans, [stats]);
   const totalBorrowedDisplay = createDerived(() => fmt(stats.get().totalBorrowed), [stats]);
   const totalRepaidDisplay = createDerived(() => fmt(stats.get().totalRepaid), [stats]);
@@ -365,6 +394,21 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       console.warn("[useSelfLoan] loadNeoPrice failed:", errorMessage(e));
       neoPriceBase.set(0n);
       neoPrice.set(0);
+    }
+  };
+
+  /**
+   * Load the owner-funded GAS lending pool. The contract returns GAS BASE UNITS;
+   * divide by 1e8 for display. Pool exhaustion is what makes a borrow revert
+   * post-deposit, so surfacing it lets the UI pre-flight the disbursement.
+   */
+  const loadPool = async () => {
+    try {
+      const raw = await chain.read("pool", []);
+      poolGas.set(Math.max(0, gasFromBaseUnits(parseBigInt(raw))));
+    } catch (e) {
+      console.warn("[useSelfLoan] loadPool failed:", errorMessage(e));
+      poolGas.set(0);
     }
   };
 
@@ -485,11 +529,30 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
   const takeLoan = async () => {
     if (isBusy.get()) return;
 
+    // One loan per address: the contract asserts "loan already active" only in
+    // step 2 — AFTER the NEO deposit lands — so block up front to keep the NEO
+    // out of the credit-reclaim detour for a failure the UI can foresee.
+    if (loan.get().active) throw new Error(t("loanAlreadyActiveHint"));
+
     const validation = validateCollateral(collateralAmount.get(), neoBalance.get());
     if (validation) throw new Error(validation);
 
     const neoInt = neoToInteger(collateralAmount.get());
     if (neoInt <= 0n) throw new Error(t("neoMustBeInteger"));
+
+    // Pre-flight the pool: the contract disburses (gross − fee) GAS from pool()
+    // and reverts post-deposit when it is short. Block here when a price is
+    // configured (so the expected disbursement is known) and the pool cannot
+    // cover it, sparing the user the credit-held detour.
+    const price = neoPrice.get();
+    const pool = poolGas.get();
+    if (price > 0) {
+      const grossGas = Number(neoInt) * price * (selectedLtvPercent.get() / 100);
+      const netGas = grossGas - (grossGas * platformStats.get().platformFeeBps) / 10000;
+      if (netGas > pool) {
+        throw new Error(t("insufficientPool", { pool: fmt(pool) }));
+      }
+    }
 
     const addr = address.get() || (await chain.ensureWallet());
     const hash = addr ? addressToScriptHash(addr) : null;
@@ -563,6 +626,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       }
 
       collateralAmount.set("");
+      borrowOkNonce.set(borrowOkNonce.get() + 1);
       await loadAll();
     } finally {
       isLoading.set(false);
@@ -659,6 +723,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
         throw new Error(errorMessage(addErr) || t("error"));
       }
 
+      addCollateralOkNonce.set(addCollateralOkNonce.get() + 1);
       await loadAll();
     } finally {
       isAddingCollateral.set(false);
@@ -747,6 +812,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
         throw new Error(errorMessage(repayErr) || t("error"));
       }
 
+      repayOkNonce.set(repayOkNonce.get() + 1);
       await loadAll();
     } finally {
       isRepaying.set(false);
@@ -814,6 +880,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
     await Promise.all([
       loadPlatformStats(),
       loadNeoPrice(),
+      loadPool(),
       loadBalance(),
       loadLoanPosition(),
       loadReclaimable(),
@@ -834,6 +901,13 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
     neoBalance,
     neoPrice,
     neoPriceBase,
+    neoPriceDisplay,
+    poolGas,
+    poolDisplay,
+    hasActiveLoan,
+    borrowOkNonce,
+    repayOkNonce,
+    addCollateralOkNonce,
     platformStats,
     loan,
     collateralAmount,

@@ -14,27 +14,33 @@ import {
   type PassportPayload,
 } from "./passport";
 
+const KNOWN_ERROR_KEYS = [
+  "passportInvalidDid",
+  "passportMissingClaim",
+  "resolverFailed",
+  "resolverUnavailable",
+  "walletSignFailed",
+];
+
 function translateKnownError(
   error: unknown,
   t: (key: string, params?: Record<string, string | number>) => string,
 ) {
   const raw = error instanceof Error ? error.message : String(error || "");
   const key = raw || "resolverFailed";
-  if (
-    [
-      "passportInvalidDid",
-      "passportMissingClaim",
-      "resolverFailed",
-      "resolverUnavailable",
-      "walletSignFailed",
-    ].includes(key)
-  ) {
+  if (KNOWN_ERROR_KEYS.includes(key)) {
     return t(key);
   }
   if (/failed to fetch|networkerror|load failed|404|not found/i.test(key)) {
     return t("resolverUnavailable");
   }
-  return key;
+  // Never surface raw upstream text (e.g. "worker signer drift: no usable
+  // worker signer configured") in the alert/status tiles — log it for support
+  // and show a stable, localized fallback instead.
+  if (raw) {
+    console.warn("[neodid-passport] resolver error:", raw);
+  }
+  return t("resolverFailed");
 }
 
 defineMiniApp({
@@ -48,12 +54,12 @@ defineMiniApp({
       networkLabel: createObservable(network === "mainnet" ? "Morpheus Mainnet" : appMeta.networkLabel),
       endpointLabel: createObservable(appMeta.endpointLabel),
       lastStatus: createObservable(ctx.t("statusReady")),
-      lastDigest: createObservable(ctx.t("notAvailable")),
+      lastDigest: createObservable(ctx.t("digestPlaceholder")),
       requestCount: createObservable(0),
       proofStatus: createObservable(ctx.t("notSignedStatus")),
       resolverStatus: createObservable(ctx.t("statusReady")),
-      documentId: createObservable(ctx.t("notAvailable")),
-      documentVersion: createObservable(ctx.t("notAvailable")),
+      documentId: createObservable(ctx.t("digestPlaceholder")),
+      documentVersion: createObservable(ctx.t("digestPlaceholder")),
       serviceCount: createObservable(0),
       passportPayload: createObservable<PassportPayload | null>(null),
       lastError: createObservable(""),
@@ -63,11 +69,11 @@ defineMiniApp({
 
     function resetState() {
       state.lastStatus.set(ctx.t("statusReady"));
-      state.lastDigest.set(ctx.t("notAvailable"));
+      state.lastDigest.set(ctx.t("digestPlaceholder"));
       state.proofStatus.set(ctx.t("notSignedStatus"));
       state.resolverStatus.set(ctx.t("statusReady"));
-      state.documentId.set(ctx.t("notAvailable"));
-      state.documentVersion.set(ctx.t("notAvailable"));
+      state.documentId.set(ctx.t("digestPlaceholder"));
+      state.documentVersion.set(ctx.t("digestPlaceholder"));
       state.serviceCount.set(0);
       state.passportPayload.set(null);
       state.lastError.set("");
@@ -152,7 +158,7 @@ defineMiniApp({
         ctx.setStatus(ctx.t("passportSigned"), "success");
         return signedPayload;
       } catch (error) {
-        const message = translateKnownError(error, ctx.t) || ctx.t("walletSignFailed");
+        const message = translateKnownError(error, ctx.t);
         state.lastError.set(message);
         state.lastStatus.set(message);
         ctx.setStatus(message, "error");

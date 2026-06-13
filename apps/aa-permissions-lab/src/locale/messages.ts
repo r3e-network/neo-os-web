@@ -14,10 +14,26 @@ const appMessages = {
   currentHook: { en: "Current Hook", zh: "当前 Hook" },
   currentBackupOwner: { en: "Current Backup Owner", zh: "当前 Backup Owner" },
   successVerifier: {
-    en: "Verifier update submitted",
-    zh: "Verifier 更新已提交",
+    en: "Verifier update proposed — confirm after the timelock",
+    zh: "Verifier 更新已提议 —— 锁定期结束后确认",
   },
-  successHook: { en: "Hook update submitted", zh: "Hook 更新已提交" },
+  successHook: {
+    en: "Hook update proposed — confirm after the timelock",
+    zh: "Hook 更新已提议 —— 锁定期结束后确认",
+  },
+  confirmVerifierSuccess: {
+    en: "Verifier rotation confirmed",
+    zh: "Verifier 轮换已确认",
+  },
+  cancelVerifierSuccess: {
+    en: "Pending verifier update cancelled",
+    zh: "已取消待处理的 Verifier 更新",
+  },
+  confirmHookSuccess: { en: "Hook rotation confirmed", zh: "Hook 轮换已确认" },
+  cancelHookSuccess: {
+    en: "Pending hook update cancelled",
+    zh: "已取消待处理的 Hook 更新",
+  },
   docsSubtitle: {
     en: "Update AA verifier and hook bindings",
     zh: "更新 AA verifier 与 hook 绑定",
@@ -126,6 +142,26 @@ const appMessages = {
     en: "Verifier params must be an even-length hex string (optional 0x prefix).",
     zh: "Verifier 参数必须是偶数长度的十六进制字符串（可选 0x 前缀）。",
   },
+  notInspected: { en: "not inspected", zh: "未检查" },
+  notBackupOwner: {
+    en: "Connect the backup-owner wallet to rotate this account's bindings.",
+    zh: "请连接备份所有者钱包，才能轮换该账户的绑定。",
+  },
+  pendingVerifierTitle: {
+    en: "Pending verifier rotation",
+    zh: "待确认的 Verifier 轮换",
+  },
+  pendingHookTitle: { en: "Pending hook rotation", zh: "待确认的 Hook 轮换" },
+  pendingUnlockReady: {
+    en: "Timelock elapsed — confirm to finalize.",
+    zh: "锁定期已过 —— 确认以完成。",
+  },
+  pendingUnlockAt: {
+    en: "Unlocks at {time}.",
+    zh: "{time} 解锁。",
+  },
+  confirmUpdate: { en: "Confirm", zh: "确认" },
+  cancelUpdate: { en: "Cancel", zh: "取消" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

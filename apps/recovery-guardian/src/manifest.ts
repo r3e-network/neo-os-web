@@ -21,7 +21,7 @@ export const manifest: MiniAppManifest = {
   stats: [
     { labelKey: "accountId", valueKey: "accountId", format: "text", icon: "user" },
     { labelKey: "currentVerifier", valueKey: "verifierHash", format: "text", icon: "shield" },
-    { labelKey: "threshold", valueKey: "threshold", format: "text", icon: "sliders" },
+    { labelKey: "timelockLabel", valueKey: "timelock", format: "text", icon: "clock" },
   ],
 
   sidebar: {
@@ -29,7 +29,7 @@ export const manifest: MiniAppManifest = {
     items: [
       { labelKey: "accountId", valueKey: "accountId", format: "text" },
       { labelKey: "currentVerifier", valueKey: "verifierHash", format: "text" },
-      { labelKey: "threshold", valueKey: "threshold", format: "text" },
+      { labelKey: "escapeStatusLabel", valueKey: "escapeStatus", format: "text" },
       { labelKey: "timelockLabel", valueKey: "timelock", format: "text" },
     ],
   },

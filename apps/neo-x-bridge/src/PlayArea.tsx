@@ -33,6 +33,14 @@ const DIRECTION_OPTIONS: Array<{ value: DirectionValue; labelKey: string }> = [
 const STRICT_DECIMAL = /^\d+(\.\d+)?$/;
 const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const NEO_N3_ADDRESS = /^N[1-9A-HJ-NP-Za-km-z]{33}$/;
+const HASH256 = /^0x[0-9a-fA-F]{64}$/;
+/** Em-dash placeholder used fleet-wide for empty preview values. */
+const EM_DASH = "—";
+
+/** Map a bridge kind enum to its short localized label. */
+function kindLabel(t: PlayAreaProps["t"], kind: string): string {
+  return kind === "message" ? t("messageBridge") : t("assetBridge");
+}
 
 function isPositiveAmount(value: string) {
   const text = value.trim();
@@ -134,6 +142,10 @@ export default function PlayArea({
     !isValidTargetAddress(messageDirection, targetContract);
   const messagePayloadInvalid =
     messagePayloadTouched && messagePayload.trim().length === 0;
+  // The operation panel declares sourceTx as hash256; validate it so a typo'd
+  // hash cannot flip the timeline's first steps to done/active.
+  const sourceTxInvalid =
+    sourceTx.trim().length > 0 && !HASH256.test(sourceTx.trim());
   const canPrepareAsset =
     isPositiveAmount(assetAmount) &&
     isValidTargetAddress(assetDirection, assetRecipient);
@@ -142,7 +154,8 @@ export default function PlayArea({
     messagePayload.trim().length > 0 &&
     parsedGasLimit !== null &&
     parsedGasLimit >= 21000;
-  const canTrack = operationId.trim().length > 0 || sourceTx.trim().length > 0;
+  const canTrack =
+    (operationId.trim().length > 0 || sourceTx.trim().length > 0) && !sourceTxInvalid;
 
   const runWorkspaceAction = useCallback(
     async (
@@ -377,7 +390,7 @@ export default function PlayArea({
         </span>
         <span className="strip-metric">
           <small>{t("bridgeKind")}</small>
-          <strong>{lastKind}</strong>
+          <strong>{kindLabel(t, lastKind)}</strong>
         </span>
         <span className="strip-metric">
           <small>{t("metricStatus")}</small>
@@ -472,8 +485,8 @@ export default function PlayArea({
             <BridgeActionPreview
               items={[
                 [t("previewRoute"), bridgeRouteLabel(t, assetDirection)],
-                [t("previewAmount"), isPositiveAmount(assetAmount) ? `${assetAmount} GAS` : "--"],
-                [t("previewRecipient"), assetRecipient || "--"],
+                [t("previewAmount"), isPositiveAmount(assetAmount) ? `${assetAmount} GAS` : EM_DASH],
+                [t("previewRecipient"), assetRecipient || EM_DASH],
               ]}
             />
             <NeoButton
@@ -546,8 +559,8 @@ export default function PlayArea({
             <BridgeActionPreview
               items={[
                 [t("previewRoute"), bridgeRouteLabel(t, messageDirection)],
-                [t("previewTarget"), targetContract || "--"],
-                [t("previewPayload"), messagePayload ? t("previewReady") : "--"],
+                [t("previewTarget"), targetContract || EM_DASH],
+                [t("previewPayload"), messagePayload ? t("previewReady") : EM_DASH],
               ]}
             />
             <NeoButton
@@ -601,13 +614,14 @@ export default function PlayArea({
               label={t("sourceTx")}
               placeholder="0x..."
               value={sourceTx}
+              error={sourceTxInvalid ? t("errSourceTx") : ""}
               onChange={setSourceTx}
             />
             <BridgeActionPreview
               items={[
                 [t("previewBridge"), trackKind === "message" ? t("messageBridge") : t("assetBridge")],
                 [t("previewRoute"), bridgeRouteLabel(t, trackDirection)],
-                [t("previewSourceTx"), sourceTx ? compactHash(sourceTx) : "--"],
+                [t("previewSourceTx"), sourceTx ? compactHash(sourceTx) : EM_DASH],
               ]}
             />
             <NeoButton
@@ -668,8 +682,8 @@ export default function PlayArea({
                   )}
                 </span>
                 <span className="timeline-copy">
-                  <strong>{step.label}</strong>
-                  <small>{step.detail}</small>
+                  <strong>{t(step.labelKey)}</strong>
+                  <small>{t(step.detailKey, step.detailParams)}</small>
                 </span>
               </div>
             ))}
@@ -690,7 +704,7 @@ export default function PlayArea({
           <div className="recent-operation-list">
             {operations.map((operation) => (
               <div key={operation.id} className="recent-operation">
-                <span className="recent-kind">{operation.kind}</span>
+                <span className="recent-kind">{kindLabel(t, operation.kind)}</span>
                 <span className="recent-title">{operation.title}</span>
                 <code>{compactHash(operation.digest)}</code>
               </div>

@@ -143,6 +143,26 @@ defineMiniApp({
       );
     });
 
+    ctx.registerAction("topUpPool", async (...args: unknown[]) => {
+      const id = String(args[0] ?? "");
+      const amount = String(args[1] ?? "");
+      if (!id || !amount) return;
+      await ctx.services.notify.guard(
+        () => gasbox.topUpPool(id, amount),
+        "poolToppedUp",
+      );
+    });
+
+    ctx.registerAction("setMachineActive", async (...args: unknown[]) => {
+      const id = String(args[0] ?? "");
+      const active = args[1] === true;
+      if (!id) return;
+      await ctx.services.notify.guard(
+        () => gasbox.setMachineActive(id, active),
+        active ? "machineActivated" : "machineDeactivated",
+      );
+    });
+
     ctx.registerAction("resetResult", async () => {
       gasbox.resetResult();
     });
@@ -153,7 +173,7 @@ defineMiniApp({
 
     ctx.registerAction("openStudio", async () => {
       gasbox.openStudio();
-      ctx.setStatus(ctx.t("studioGuidance") || "Open Studio to create, fund, or activate machines.", "info");
+      ctx.setStatus(ctx.t("studioGuidance"), "info");
     });
 
     ctx.registerAction("closeStudio", async () => {
@@ -190,6 +210,8 @@ defineMiniApp({
         selectedMachineName: gasbox.selectedMachineName,
         showResult: gasbox.showResult,
         studioOpen: gasbox.studioOpen,
+        hasPlayCredit: gasbox.hasPlayCredit,
+        formattedPlayCredit: gasbox.formattedPlayCredit,
         // Connected wallet address — the view shows the creator-only Withdraw
         // Revenue control when this matches the selected machine's creatorHash.
         walletAddress: gasbox.address,

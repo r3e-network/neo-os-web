@@ -63,8 +63,39 @@ const appMessages = {
         zh: "这台机器尚未启用。请选择已启用机器，或打开工作室更新。",
     },
     gasboxPullBlockedInventory: {
-        en: "Prize inventory is not escrow-ready. Refresh the market or fund prizes in Studio.",
-        zh: "奖品库存尚未完成托管。请刷新市场，或在工作室补充奖品。",
+        en: "Prize inventory is not escrow-ready. Refresh the market or choose another machine.",
+        zh: "奖品库存尚未完成托管。请刷新市场或选择其他机器。",
+    },
+    gasboxPullBlockedInactiveCreator: {
+        en: "This machine is inactive. Use the controls below to fund the pool and reactivate it.",
+        zh: "这台机器尚未启用。请使用下方的控制项补充奖池并重新启用。",
+    },
+    gasboxPullBlockedInventoryCreator: {
+        en: "The prize pool no longer covers the largest prize. Top it up below, then reactivate the machine.",
+        zh: "奖池已无法覆盖最大奖品。请在下方补充奖池，然后重新启用机器。",
+    },
+    gasboxMachineControlsTitle: { en: "Machine controls", zh: "机器控制" },
+    gasboxMachineControlsDesc: {
+        en: "Fund the prize pool or activate/deactivate this machine — only you, the creator, can.",
+        zh: "为奖池注资或启用/停用此机器 — 仅创作者本人可操作。",
+    },
+    gasboxPoolBalance: { en: "Prize pool / max prize", zh: "奖池 / 最大奖品" },
+    gasboxTopUpLabel: { en: "Top up amount ({asset})", zh: "注资金额（{asset}）" },
+    gasboxTopUpPlaceholder: { en: "Amount", zh: "数量" },
+    gasboxTopUpAction: { en: "Top up pool", zh: "注资奖池" },
+    gasboxActivateAction: { en: "Activate machine", zh: "启用机器" },
+    gasboxDeactivateAction: { en: "Deactivate machine", zh: "停用机器" },
+    playPrepaidNoPull: {
+        en: "Play credit prepaid but the pull didn't settle — your credit is held and reused on your next pull",
+        zh: "游玩余额已预付但本次抽取未结算 — 你的余额已保留，下次抽取会自动使用",
+    },
+    poolToppedUp: { en: "Prize pool funded.", zh: "奖池已注资。" },
+    machineActivated: { en: "Machine activated.", zh: "机器已启用。" },
+    machineDeactivated: { en: "Machine deactivated.", zh: "机器已停用。" },
+    gasboxPlayCreditLabel: { en: "Prepaid credit", zh: "预付余额" },
+    gasboxPlayCreditHint: {
+        en: "Your next pull uses it automatically.",
+        zh: "下次抽取会自动使用。",
     },
     gasboxWalletIntent: {
         en: "The wallet confirms the GAS pull and records the selected machine.",
@@ -268,8 +299,8 @@ const appMessages = {
     tokenIdPlaceholder: { en: "Token ID (optional)", zh: "Token ID（可选）" },
     totalProbabilityLabel: { en: "Total Probability", zh: "总概率" },
     inventoryNote: {
-        en: "Publishing funds the prize pool to cover the largest prize and activates the machine on-chain. The play price is always paid in GAS.",
-        zh: "发布会注资奖池以覆盖最大奖品，并在链上激活机器。游玩价格始终以 GAS 支付。",
+        en: "Publishing funds the prize pool to cover the largest prize and activates the machine on-chain. The play price is always paid in GAS. Pool deposits are non-recoverable — they pay out only as player prizes, so fund only what you intend to award.",
+        zh: "发布会注资奖池以覆盖最大奖品，并在链上激活机器。游玩价格始终以 GAS 支付。奖池注资不可取回 — 只会作为玩家奖品支付，请仅注入你打算发放的金额。",
     },
     removeItem: { en: "Remove item {index}", zh: "移除物品 {index}" },
     createMachineAction: { en: "Create Machine", zh: "创建机器" },

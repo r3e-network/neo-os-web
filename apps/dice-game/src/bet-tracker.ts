@@ -68,6 +68,23 @@ export function createBetTracker() {
   const recordRow = (row: Omit<RollHistoryItem, "id">): string => unshiftRow(row);
 
   /**
+   * Seed the history from already-settled chain rows (e.g. on reload, so a
+   * refresh during the resolve loop doesn't lose the payout that DID land
+   * on-chain). Rows arrive newest-first and only seed when the history is empty,
+   * so a live session's in-memory rows are never overwritten. Returns the count
+   * seeded.
+   */
+  const seedSettled = (rows: Array<Omit<RollHistoryItem, "id">>): number => {
+    if (rollHistory.get().length > 0 || rows.length === 0) return 0;
+    const seeded = rows.slice(0, HISTORY_LIMIT).map((row) => {
+      seq += 1;
+      return { id: `bet-${seq}`, ...row };
+    });
+    rollHistory.set(seeded);
+    return seeded.length;
+  };
+
+  /**
    * Settle a bet into ITS OWN history row (matched by id — a later bet may
    * occupy row 0 by now). The reveal state only updates when the settling bet
    * is still the active one; returns whether it was, so the caller can scope
@@ -110,6 +127,7 @@ export function createBetTracker() {
     beginBet,
     recordRow,
     settleBet,
+    seedSettled,
     markUnresolved,
   };
 }

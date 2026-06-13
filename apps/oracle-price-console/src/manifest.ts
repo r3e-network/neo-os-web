@@ -22,7 +22,9 @@ export const manifest: MiniAppManifest = {
 
   // -- Stats ------------------------------------------------------------------
   stats: [
-    { labelKey: "network", valueKey: "networkDisplay", format: "text", icon: "globe" },
+    // labelKey must resolve in the locale map — "network" had no key and rendered
+    // as a blank label in production; use the existing priceMetricNetwork key.
+    { labelKey: "priceMetricNetwork", valueKey: "networkDisplay", format: "text", icon: "globe" },
     { labelKey: "heroFeed", valueKey: "datafeedShort", format: "text", icon: "activity" },
     { labelKey: "latestPrice", valueKey: "priceDisplay", format: "text", variant: "accent" },
     { labelKey: "priceMetricSource", valueKey: "sourceLabel", format: "text" },

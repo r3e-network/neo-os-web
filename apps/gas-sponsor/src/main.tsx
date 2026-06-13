@@ -3,6 +3,7 @@
  */
 
 import { defineMiniApp, refsToObservables } from "@shared/react";
+import { readMiniAppLaunchContext } from "@shared/utils/launch-params";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -17,14 +18,16 @@ defineMiniApp({
   setup(ctx) {
     const sponsor = useGasSponsorApp({
       chain: ctx.services.chain,
+      balance: ctx.services.balance,
       eventBus: ctx.services.events,
       t: ctx.t,
+      network: readMiniAppLaunchContext("miniapp-gas-sponsor").network,
     });
 
     const { notify } = ctx.services;
 
-    ctx.registerAction("requestSponsorship", async (amount: string) => {
-      sponsor.requestAmount.set(amount);
+    ctx.registerAction("requestSponsorship", async (...args: unknown[]) => {
+      sponsor.requestAmount.set(String(args[0] ?? ""));
       notify.info("requestingSponsorship");
       const result = await notify.guard(
         () => sponsor.requestSponsorship(),
@@ -39,14 +42,14 @@ defineMiniApp({
       }
     });
 
-    ctx.registerAction("donate", async (amount: string) => {
-      sponsor.donateAmount.set(amount);
+    ctx.registerAction("donate", async (...args: unknown[]) => {
+      sponsor.donateAmount.set(String(args[0] ?? ""));
       await notify.guard(() => sponsor.handleDonate(), "donateSuccess", "donateFailed");
     });
 
-    ctx.registerAction("send", async (recipient: string, amount: string) => {
-      sponsor.recipientAddress.set(recipient);
-      sponsor.sendAmount.set(amount);
+    ctx.registerAction("send", async (...args: unknown[]) => {
+      sponsor.recipientAddress.set(String(args[0] ?? ""));
+      sponsor.sendAmount.set(String(args[1] ?? ""));
       await notify.guard(() => sponsor.handleSend(), "sendSuccess", "sendFailed");
     });
 
@@ -80,6 +83,9 @@ defineMiniApp({
         gasBalanceDisplay: sponsor.gasBalanceDisplay,
         remainingQuotaDisplay: sponsor.remainingQuotaDisplay,
         eligibleDisplay: sponsor.eligibleDisplay,
+        chainGasBalanceDisplay: sponsor.chainGasBalanceDisplay,
+        serviceAvailable: sponsor.serviceAvailable,
+        serviceNotice: sponsor.serviceNotice,
       }),
       loadData: sponsor.loadAll,
     };

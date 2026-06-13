@@ -10,17 +10,28 @@ const ACCOUNT_ID_HASH = "0x1111111111111111111111111111111111111111";
 function t(key: string) {
   const messages: Record<string, string> = {
     notAvailable: "Not available",
+    notBackupOwner:
+      "Connect the backup-owner wallet to rotate this account's bindings.",
   };
   return messages[key] ?? key;
 }
 
 function makeChain(isConnected = false) {
+  // refreshState now reads 7 values: verifier/hook/backupOwner (Hash160) plus
+  // the two-phase pending flags and times. parseHash160 reverses Hash160 bytes;
+  // repeated-byte hashes (0x22.., 0x33.., 0x44..) reverse to themselves.
   return {
     isConnected: createObservable(isConnected),
-    read: vi.fn()
+    address: createObservable<string | null>(null),
+    read: vi
+      .fn()
       .mockResolvedValueOnce("0x2222222222222222222222222222222222222222")
       .mockResolvedValueOnce("0x3333333333333333333333333333333333333333")
-      .mockResolvedValueOnce("0x4444444444444444444444444444444444444444"),
+      .mockResolvedValueOnce("0x4444444444444444444444444444444444444444")
+      .mockResolvedValueOnce(false) // hasPendingVerifierUpdate
+      .mockResolvedValueOnce(false) // hasPendingHookUpdate
+      .mockResolvedValueOnce(0) // getPendingVerifierUpdateTime
+      .mockResolvedValueOnce(0), // getPendingHookUpdateTime
     invoke: vi.fn(),
   } as unknown as ChainService & { read: ReturnType<typeof vi.fn> };
 }
@@ -40,10 +51,12 @@ describe("AA Permissions Lab composable", () => {
     lab.form.accountIdHash = ACCOUNT_ID_HASH;
     await lab.refreshState();
 
-    expect(chain.read).toHaveBeenCalledTimes(3);
+    expect(chain.read).toHaveBeenCalledTimes(7);
     expect(lab.currentVerifier.get()).toBe(
       "0x2222222222222222222222222222222222222222",
     );
+    expect(lab.hasInspected.get()).toBe(true);
+    expect(lab.hasPendingVerifier.get()).toBe(false);
     expect(storage.set).not.toHaveBeenCalled();
   });
 
@@ -62,6 +75,61 @@ describe("AA Permissions Lab composable", () => {
         hook: "0x3333333333333333333333333333333333333333",
         backupOwner: "0x4444444444444444444444444444444444444444",
       }),
+    );
+  });
+
+  it("blocks a verifier rotation when the wallet is not the backup owner", async () => {
+    const chain = makeChain(true);
+    // Connected wallet differs from the inspected backup owner (0x4444...).
+    (chain as unknown as { address: ReturnType<typeof createObservable> }).address.set(
+      "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+    );
+    const lab = useAAPermissionsLab({ chain, storageService: makeStorage(), t });
+    lab.form.accountIdHash = ACCOUNT_ID_HASH;
+    await lab.refreshState();
+
+    lab.form.verifierHash = "0x5555555555555555555555555555555555555555";
+    lab.form.verifierParamsHex = "";
+    await expect(lab.submitVerifier()).rejects.toThrow(
+      "Connect the backup-owner wallet to rotate this account's bindings.",
+    );
+    expect((chain as unknown as { invoke: ReturnType<typeof vi.fn> }).invoke).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a pending verifier rotation and confirms it in a second phase", async () => {
+    const chain = {
+      isConnected: createObservable(true),
+      address: createObservable<string | null>(null),
+      read: vi
+        .fn()
+        .mockResolvedValueOnce("0x2222222222222222222222222222222222222222")
+        .mockResolvedValueOnce("0x3333333333333333333333333333333333333333")
+        .mockResolvedValueOnce("0x4444444444444444444444444444444444444444")
+        .mockResolvedValueOnce(true) // hasPendingVerifierUpdate
+        .mockResolvedValueOnce(false) // hasPendingHookUpdate
+        .mockResolvedValueOnce(1_900_000_000) // getPendingVerifierUpdateTime
+        .mockResolvedValueOnce(0)
+        // second refreshState after confirm
+        .mockResolvedValue("0x2222222222222222222222222222222222222222"),
+      invoke: vi.fn().mockResolvedValue({ txid: "0xtx" }),
+    } as unknown as ChainService & {
+      read: ReturnType<typeof vi.fn>;
+      invoke: ReturnType<typeof vi.fn>;
+    };
+    const lab = useAAPermissionsLab({ chain, storageService: makeStorage(), t });
+    lab.form.accountIdHash = ACCOUNT_ID_HASH;
+    await lab.refreshState();
+
+    expect(lab.hasPendingVerifier.get()).toBe(true);
+    expect(lab.pendingVerifierUnlockAt.get()).toBe(1_900_000_000);
+
+    await lab.confirmVerifier();
+    expect(
+      (chain as unknown as { invoke: ReturnType<typeof vi.fn> }).invoke,
+    ).toHaveBeenCalledWith(
+      "confirmVerifierUpdate",
+      [{ type: "Hash160", value: ACCOUNT_ID_HASH }],
+      expect.objectContaining({ scriptHash: expect.any(String) }),
     );
   });
 });

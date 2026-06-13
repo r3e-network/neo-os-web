@@ -70,8 +70,25 @@ const appMessages = {
   vaultNotFound: { en: "Vault not found", zh: "未找到保险库" },
   vaultCreateFailed: { en: "Create failed", zh: "创建失败" },
   vaultAttemptFailed: { en: "Attempt failed", zh: "破解失败" },
+  vaultAttemptConfirming: {
+    en: "Attempt submitted — confirming the outcome on-chain. Reload the vault in a moment to see the result.",
+    zh: "尝试已提交——正在链上确认结果。稍后重新加载保险库即可查看结果。",
+  },
   loadFailed: { en: "Failed to load vault", zh: "加载保险库失败" },
   myVaults: { en: "My Vaults", zh: "我的保险库" },
+  invalidDifficulty: { en: "Choose a difficulty (Easy, Medium, or Hard).", zh: "请选择难度（简单、中等或困难）。" },
+  secretRequired: { en: "Enter a secret phrase to lock the vault.", zh: "请输入用于锁定保险库的密钥短语。" },
+  increaseBounty: { en: "Add Bounty", zh: "追加悬赏" },
+  increaseBountyLabel: { en: "Increase Bounty (GAS)", zh: "追加悬赏（GAS）" },
+  increaseBountyPlaceholder: { en: "Amount of GAS to add", zh: "要追加的 GAS 数量" },
+  increaseBountySuccess: { en: "Added {amount} {tokenGas} to the bounty", zh: "已向悬赏追加 {amount} {tokenGas}" },
+  increaseBountyFailed: { en: "Failed to increase bounty", zh: "追加悬赏失败" },
+  increaseBountyInvalidId: { en: "Load a vault before adding to its bounty.", zh: "请先加载保险库再追加悬赏。" },
+  increaseBountyInvalidAmount: { en: "Enter a positive GAS amount.", zh: "请输入正的 GAS 数量。" },
+  mainnetVaultNote: {
+    en: "On mainnet, the GAS deposit and contract call are batched by the host's operation panel. Use the operation panel to create vaults, attempt breaks, or add bounty here.",
+    zh: "在主网上，GAS 存入与合约调用由主程序的操作面板合并提交。请通过操作面板创建保险库、尝试破解或追加悬赏。",
+  },
 
   docSubtitle: {
     en: "Hacker bounty vaults secured by on-chain hashes",

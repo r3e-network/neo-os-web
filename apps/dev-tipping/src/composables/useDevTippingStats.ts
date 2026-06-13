@@ -239,6 +239,25 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
     }
   };
 
+  /**
+   * Read the connected wallet's stranded tip credit (deposited GAS not yet
+   * applied to a tip) in human GAS — drives the reclaim affordance. The contract
+   * exposes creditOf(account) in base units.
+   */
+  const creditOf = async (address: string): Promise<number> => {
+    const hash = addressToScriptHash(address || "");
+    if (!hash) return 0;
+    try {
+      return fromFixed8(parseBigInt(await chain.read("creditOf", [{ type: "Hash160", value: hash }])));
+    } catch (e) {
+      console.warn(
+        "[useDevTippingStats] creditOf failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+      return 0;
+    }
+  };
+
   return {
     developers,
     recentTips,
@@ -248,5 +267,6 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
     loadDevelopers,
     loadRecentTips,
     developerIdOf,
+    creditOf,
   };
 }

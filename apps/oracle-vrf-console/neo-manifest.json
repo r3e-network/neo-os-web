@@ -16,8 +16,8 @@
     "website": "https://neomini.app"
   },
   "contracts": {},
-  "supported_networks": ["neo-n3-testnet"],
-  "default_network": "neo-n3-testnet",
+  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/oracle-vrf-console/index.html",
     "icon": "/miniapps/oracle-vrf-console/logo.jpg",

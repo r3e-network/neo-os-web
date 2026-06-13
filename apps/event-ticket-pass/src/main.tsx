@@ -111,6 +111,27 @@ defineMiniApp({
         );
       }
     });
+    ctx.registerAction("startTransfer", async (item: unknown) => {
+      ticket.startTransfer(item);
+    });
+    ctx.registerAction("copyTokenId", async (tokenId: unknown) => {
+      const value = String(tokenId ?? "");
+      if (!value) return;
+      await ctx.services.clipboard.copy(value, "tokenIdCopied");
+    });
+    ctx.registerAction("transferTicket", async (input: unknown) => {
+      try {
+        await ticket.transferTicket(
+          input as { tokenId?: string; recipient?: string } | undefined,
+        );
+        ctx.setStatus(ctx.t("transferSuccess"), "success");
+      } catch (error) {
+        ctx.setStatus(
+          error instanceof Error ? error.message : ctx.t("contractMissing"),
+          "error",
+        );
+      }
+    });
 
     return {
       state: refsToObservables({
@@ -134,11 +155,14 @@ defineMiniApp({
         issueSeat: ticket.issueSeat,
         issueMemo: ticket.issueMemo,
         checkinTokenId: ticket.checkinTokenId,
+        transferTokenId: ticket.transferTokenId,
+        transferRecipient: ticket.transferRecipient,
         eventsCount: ticket.eventsCount,
         ticketsCount: ticket.ticketsCount,
         activeEventsCount: ticket.activeEventsCount,
         canIssueTicket: ticket.canIssueTicket,
         canCheckInTicket: ticket.canCheckInTicket,
+        canTransferTicket: ticket.canTransferTicket,
         isLoading: ticket.isLoading,
         isRefreshing: ticket.isRefreshing,
         isRefreshingTickets: ticket.isRefreshingTickets,
@@ -146,6 +170,8 @@ defineMiniApp({
         isIssuing: ticket.isIssuing,
         isCheckingIn: ticket.isCheckingIn,
         isLookingUp: ticket.isLookingUp,
+        isTransferring: ticket.isTransferring,
+        transferringTokenId: ticket.transferringTokenId,
         togglingId: ticket.togglingId,
       }),
       loadData: ticket.loadAll,

@@ -1,16 +1,24 @@
 import { createObservable, defineMiniApp } from "@shared/react";
-import { formatHash, toFixed8 } from "@shared/utils/format";
+import { formatHash, toFixed8, fromFixed8 } from "@shared/utils/format";
+import { parseBigInt } from "@shared/utils/parsers";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { gasToWei, evmCall, decodeReturnWord } from "@shared/utils/evm-chain";
 import type { EvmNetwork } from "@shared/utils/evm-chain";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { chainLabelOf, maxStakeOf, evmStatusToOutcome } from "./dice-logic";
+import { chainLabelOf, maxStakeOf, evmStatusToOutcome, maxPayableStakeOf } from "./dice-logic";
 import type { RollOutcome } from "./dice-logic";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import { createBetTracker } from "./bet-tracker";
 
 const appId = "miniapp-dice-game";
 const PAYOUT_MULTIPLIER = 5.7;
+// The contract requires liquidity >= stake * 6 * 95% before paying a win
+// (PlatformGame.Dice asserts GAS.BalanceOf(contract) >= amount*6*95/100 inside
+// placeDiceBet). Mirror that exact multiple here so the pre-flight check refuses
+// a stake the house cannot cover BEFORE the deposit lands and strands the GAS.
+const LIQUIDITY_COVER_MULTIPLE = 6 * 0.95; // = 5.7
 
 // Neo X (EVM) dice deployment. The Neo N3 path uses the kernel contract resolved
 // by the host; the EVM path calls this contract directly.
@@ -86,17 +94,109 @@ defineMiniApp({
     // Multi-chain state.
     const chainLabel = createObservable("");
     const maxStake = createObservable(20);
+    // House liquidity (GAS) and the player's standing app-scoped credit (GAS),
+    // read on Neo N3. They drive the pre-flight max-payable-stake guard and the
+    // recoverable-credit banner. The EVM path is atomic (a revert returns funds),
+    // so these stay 0 there and the guard is skipped.
+    const houseLiquidity = createObservable(0);
+    const directCredit = createObservable(0);
+    const maxPayableStake = createObservable(0);
+
+    /**
+     * Read the house GAS balance and the player's direct GAS credit on Neo N3.
+     * The contract refuses (after the deposit lands) a stake it cannot pay 5.7x,
+     * so quoting the live payable cap here lets the UI refuse first and surfaces
+     * any stranded credit. Best-effort: a read failure leaves the prior values.
+     */
+    const refreshLiquidity = async (network: string): Promise<void> => {
+      if (ctx.services.chain.isEvmNetwork(network)) {
+        houseLiquidity.set(0);
+        directCredit.set(0);
+        maxPayableStake.set(0);
+        return;
+      }
+      const contractHash = ctx.services.chain.contractAddress.get();
+      let liquidity = 0;
+      let credit = 0;
+      try {
+        if (contractHash) {
+          const balRaw = await ctx.services.chain.read(
+            "balanceOf",
+            [{ type: "Hash160", value: contractHash }],
+            { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+          );
+          liquidity = fromFixed8(parseBigInt(balRaw));
+        }
+      } catch {
+        liquidity = houseLiquidity.get();
+      }
+      try {
+        const player = ctx.services.chain.address.get();
+        if (player) {
+          const creditRaw = await ctx.services.chain.read("getDirectGasCredit", [
+            { type: "String", value: appId },
+            { type: "Hash160", value: player },
+          ]);
+          credit = fromFixed8(parseBigInt(creditRaw));
+        }
+      } catch {
+        credit = directCredit.get();
+      }
+      houseLiquidity.set(liquidity);
+      directCredit.set(credit);
+      maxPayableStake.set(maxPayableStakeOf(liquidity, credit, LIQUIDITY_COVER_MULTIPLE));
+    };
 
     const refreshNetwork = async (): Promise<string> => {
       try {
         const net = await ctx.services.chain.detectNetwork();
         chainLabel.set(chainLabelOf(net));
         maxStake.set(maxStakeOf(net));
+        await refreshLiquidity(net);
         return net;
       } catch {
         chainLabel.set(chainLabelOf("neo-n3"));
         maxStake.set(20);
         return "neo-n3";
+      }
+    };
+
+    /**
+     * On (re)load, seed history from the connected player's settled DiceBetResolved
+     * events so a refresh during the resolve loop doesn't lose a payout that DID
+     * land on-chain. DiceBetResolved params (verified against the PlatformGame
+     * ABI): appId(0) player(1) chosenNumber(2) rolledNumber(3) payout(4) won(5)
+     * betId(6). Only seeds when the in-memory history is empty (a fresh load).
+     */
+    const hydrateHistory = async (network: string): Promise<void> => {
+      if (ctx.services.chain.isEvmNetwork(network)) return;
+      const player = ctx.services.chain.address.get();
+      if (!player || rollHistory.get().length > 0) return;
+      try {
+        const events = await ctx.services.chain.listEvents("DiceBetResolved", { limit: 60 });
+        const mine = events
+          .filter((ev) => ownerMatchesAddress(eventStateValue(ev, 1), player))
+          // Newest first — the indexer returns oldest-first, so reverse.
+          .reverse()
+          .map((ev) => {
+            const won = asBool(eventStateValue(ev, 5));
+            const rolled = Number(eventStateValue(ev, 3)) || 0;
+            const face = String(eventStateValue(ev, 2) ?? "");
+            const payoutGas = fromFixed8(parseBigInt(eventStateValue(ev, 4)));
+            const label = won ? ctx.t("outcomeWon") : ctx.t("outcomeLost");
+            return {
+              face,
+              stake: "",
+              result: rolled ? `${label} · 🎲 ${rolled}` : label,
+              payout: won ? `${payoutGas.toFixed(2)} GAS` : "0 GAS",
+              outcome: (won ? "won" : "lost") as RollOutcome,
+              rolled: rolled ? String(rolled) : "",
+              at: "",
+            };
+          });
+        tracker.seedSettled(mine);
+      } catch {
+        /* indexer unreachable — history just starts empty */
       }
     };
 
@@ -184,6 +284,41 @@ defineMiniApp({
       tracker.markUnresolved(rowId);
     };
 
+    // Host operation-panel "Fund Stake": pre-fund app-scoped GAS credit by
+    // transferring GAS to the game contract with the same memo placeDiceBet uses
+    // (miniapp-dice-game:stake). The credit funds subsequent rolls and recovers
+    // any GAS left stranded by a post-deposit bet failure. Neo N3 only — the EVM
+    // path is atomic (no pre-funded credit).
+    ctx.registerAction("fundGameCredit", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as { amount?: unknown };
+      const network = await refreshNetwork();
+      if (ctx.services.chain.isEvmNetwork(network)) {
+        ctx.setStatus(ctx.t("statusNeoXNoCredit"), "error");
+        return;
+      }
+      const amount = sanitizeAmount(form.amount, maxStake.get());
+      const amountFixed8 = toFixed8(amount);
+      const contractHash = ctx.services.chain.contractAddress.get();
+      if (!contractHash) {
+        ctx.setStatus(ctx.t("statusFailed"), "error");
+        return;
+      }
+      await ctx.services.notify.guard(async () => {
+        const player = await ctx.services.chain.ensureWallet();
+        await ctx.services.chain.invoke(
+          "transfer",
+          [
+            { type: "Hash160", value: player },
+            { type: "Hash160", value: contractHash },
+            { type: "Integer", value: amountFixed8 },
+            { type: "String", value: `${appId}:stake` },
+          ],
+          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+        );
+        await refreshLiquidity(network);
+      }, "statusCreditFunded");
+    });
+
     ctx.registerAction("placeDiceBet", async (...args: unknown[]) => {
       if (isSubmitting.get()) return;
       const form = (args[0] ?? {}) as { chosenNumber?: unknown; amount?: unknown };
@@ -191,19 +326,34 @@ defineMiniApp({
       isSubmitting.set(true);
       lastStatus.set(ctx.t("statusSubmitting"));
       let stakeSent = false;
+      // Hoisted so the catch can re-read credit on the same network.
+      let network = "neo-n3";
       try {
         // Auto-detect the chain from the connected wallet (also refreshes the UI
-        // chain badge + per-network stake cap), then clamp the stake to that cap.
-        const network = await refreshNetwork();
+        // chain badge + per-network stake cap + house liquidity).
+        network = await refreshNetwork();
+        const submittedAmount = sanitizeAmount(form.amount, maxStake.get());
         const { nextFace, nextAmount } = syncSelection(form.chosenNumber, form.amount);
         const amountFixed8 = toFixed8(nextAmount);
+
+        // The stake was silently clamped to the network cap (e.g. 10 GAS typed on
+        // N3 then the wallet switched to Neo X's 2 GAS cap). Abort rather than bet
+        // a different amount than the user asked for.
+        if (Number(submittedAmount) !== Number(nextAmount)) {
+          throw new Error(
+            ctx.t("statusStakeClamped", {
+              cap: maxStake.get().toString(),
+              network: chainLabel.get(),
+            }),
+          );
+        }
 
         let result;
         let resolver: (rowId: string) => void;
         if (ctx.services.chain.isEvmNetwork(network)) {
           const address = DICE_EVM_ADDRESS[network as EvmNetwork];
           if (!address) {
-            throw new Error("Neo X dice is live on mainnet only. Switch to Neo X Mainnet or use Neo N3 for testnet play.");
+            throw new Error(ctx.t("statusNeoXMainnetOnly"));
           }
           await ctx.services.chain.ensureEvmWallet(network as EvmNetwork);
           // EVM placeBet is atomic: the stake (value) is sent with the call, so a
@@ -219,6 +369,20 @@ defineMiniApp({
           resolver = (rowId) => void resolveEvmBet(rowId, address, requestId, nextAmount);
         } else {
           const player = await ctx.services.chain.ensureWallet();
+          // PRE-FLIGHT: the contract asserts house liquidity >= stake * 5.7 INSIDE
+          // placeDiceBet — i.e. after the deposit already landed. With the live
+          // liquidity (re-read here for freshness), refuse a stake the house
+          // cannot pay BEFORE depositing, so the GAS is never stranded as credit.
+          await refreshLiquidity(network);
+          const cap = maxPayableStake.get();
+          if (cap > 0 && Number(nextAmount) > cap) {
+            throw new Error(
+              ctx.t("statusStakeOverLiquidity", {
+                max: cap.toFixed(2),
+                tokenGas: ctx.t("tokenGas"),
+              }),
+            );
+          }
           // stakeSent flips the moment the stake transfer broadcasts; a pre-transfer
           // failure stays a plain failure, a post-broadcast one is recoverable.
           result = await ctx.services.chain.invokeWithPayment(
@@ -266,6 +430,15 @@ defineMiniApp({
         // This bet never started resolving, so the tracker's reveal state is
         // left alone — a still-pending earlier bet keeps its rolling banner.
         if (stakeSent) {
+          // The deposit landed but the bet didn't settle — the GAS is now held as
+          // app-scoped credit on the contract and auto-funds the next roll (the
+          // contract exposes no withdraw, so "credit" — not "refund" — is honest).
+          // Re-read the credit so the banner shows the real standing amount.
+          try {
+            await refreshLiquidity(network);
+          } catch {
+            /* keep the prior credit value */
+          }
           const recoverable = ctx.t("statusFundsRecoverable");
           lastStatus.set(recoverable);
           tracker.recordRow({
@@ -298,12 +471,16 @@ defineMiniApp({
         rollHistory,
         chainLabel,
         maxStake,
+        houseLiquidity,
+        directCredit,
+        maxPayableStake,
         lastRoll,
         lastOutcome,
         isResolving,
       },
       loadData: async () => {
-        await refreshNetwork();
+        const net = await refreshNetwork();
+        await hydrateHistory(net);
       },
     };
   },

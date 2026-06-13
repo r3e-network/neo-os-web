@@ -43,6 +43,9 @@ function t(key: string, params?: Record<string, string | number>) {
     reportGeneratedAt: "Generated at",
     reportReady: "Report ready",
     reportTitle: "Wallet Health Report",
+    reportDone: "DONE",
+    reportPending: "PENDING",
+    checklistConnectToCheck: "Connect to check",
     refreshBalances: "Refresh balances",
     riskInsights: "Risk insights",
     sectionChecklist: "Safety Checklist",
@@ -187,9 +190,10 @@ describe("Wallet Health PlayArea", () => {
   });
 
   it("copies address and exports a business-ready wallet health report", async () => {
+    // Copy now routes through the shared ClipboardService via the host "copy"
+    // action (so the iframe execCommand fallback + standardized toast apply),
+    // not a raw navigator.clipboard call — assert via the dispatched action.
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal("navigator", { clipboard: { writeText } });
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       value: vi.fn(() => "blob:wallet-health-report"),
@@ -237,15 +241,22 @@ describe("Wallet Health PlayArea", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Copy address" }));
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith(TEST_ADDRESS));
+    await waitFor(() =>
+      expect(dispatch).toHaveBeenCalledWith("copy", TEST_ADDRESS, "addressCopied"),
+    );
     expect(screen.getByText("Address copied")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Copy report" }));
     await waitFor(() => {
-      const report = String(writeText.mock.calls.at(-1)?.[0] ?? "");
+      const reportCall = dispatch.mock.calls.find(
+        (c) => c[0] === "copy" && c[2] === "reportCopied",
+      );
+      expect(reportCall).toBeTruthy();
+      const report = String(reportCall?.[1] ?? "");
       expect(report).toContain("Wallet Health Report");
       expect(report).toContain(`Wallet address: ${TEST_ADDRESS}`);
-      expect(report).toContain("Safety Score: 100");
+      // Score now carries the % suffix everywhere.
+      expect(report).toContain("Safety Score: 100%");
       expect(report).toContain("DONE: Backup phrase stored");
       expect(report).toContain("Revoke stale app approvals.");
     });

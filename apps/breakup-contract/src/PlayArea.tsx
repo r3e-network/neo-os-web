@@ -27,6 +27,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const serviceNotice = str("serviceNotice");
   const actionNotice = str("actionNotice");
   const lastSubmittedTitle = str("lastSubmittedTitle");
+  const creditBalance = str("creditBalance");
+  const hasCredit = bool("hasCredit");
 
   const [partner, setPartner] = useState("");
   const [stake, setStake] = useState("");
@@ -64,18 +66,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const handleCreate = async () => {
     if (!canSubmit) return;
-    await dispatch("createContract", {
+    // dispatch resolves to the action's result (true only on a real success);
+    // notify.guard swallows failures into error toasts, so a validation/chain
+    // failure must NOT wipe the form — keep the input for retry.
+    const ok = (await dispatch("createContract", {
       partnerAddress: partner,
       stakeAmount: stake,
       duration: days,
       title,
       terms,
-    });
-    setPartner("");
-    setStake("");
-    setDays("90");
-    setTitle("");
-    setTerms("");
+    })) as unknown as boolean;
+    if (ok) {
+      setPartner("");
+      setStake("");
+      setDays("90");
+      setTitle("");
+      setTerms("");
+    }
   };
 
   return (
@@ -84,13 +91,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="breakup-hero">
         <div className="breakup-hero-head">
           <div className="breakup-hero-badge">
-            <CategoryIcon name="social" size={40} title={t("title") || "Breakup Contract"} />
+            <CategoryIcon name="social" size={40} title={t("title")} />
           </div>
           <div className="breakup-hero-copy">
-            <span className="breakup-hero-eyebrow">{t("contractTitle") || "RELATIONSHIP STAKE"}</span>
-            <h1 className="breakup-hero-title">{t("title") || "Breakup Contract"}</h1>
+            <span className="breakup-hero-eyebrow">{t("contractTitle")}</span>
+            <h1 className="breakup-hero-title">{t("title")}</h1>
             <p className="breakup-hero-subtitle">
-              {t("subtitle") || "Relationship stakes on-chain"}
+              {t("subtitle")}
             </p>
           </div>
         </div>
@@ -98,32 +105,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         {hasContracts && (
           <div className="breakup-hero-metrics" role="group">
             <span className="breakup-metric">
-              <strong>{activeCount}</strong> {t("active") || "Active"}
+              <strong>{activeCount}</strong> {t("active")}
             </span>
             <span className="breakup-metric-sep" aria-hidden="true" />
             <span className="breakup-metric">
-              <strong>{pendingCount}</strong> {t("pending") || "Pending"}
+              <strong>{pendingCount}</strong> {t("pending")}
             </span>
             <span className="breakup-metric-sep" aria-hidden="true" />
             <span className="breakup-metric">
-              <strong>{brokenCount}</strong> {t("broken") || "Broken"}
+              <strong>{brokenCount}</strong> {t("broken")}
             </span>
             <span className="breakup-metric-sep" aria-hidden="true" />
             <span className="breakup-metric">
-              <strong>{contractCount}</strong> {t("total") || "Total"}
+              <strong>{contractCount}</strong> {t("total")}
             </span>
           </div>
         )}
       </div>
 
       {/* Primary action — Create Contract form, surfaced immediately */}
-      <NeoCard title={t("newContract") || "New Contract"} className="breakup-create-card">
+      <NeoCard title={t("newContract")} className="breakup-create-card">
         <div className="create-contract-section">
           <p className="contract-description">
-            {t("contractDescription") || "Create an on-chain breakup contract. Both parties stake tokens as commitment."}
+            {t("contractDescription")}
           </p>
           <NeoInput
-            label={t("partnerAddress") || "Partner Address"}
+            label={t("partnerAddress")}
             placeholder="N..."
             value={partner}
             error={partnerLooksInvalid ? t("partnerInvalid") : ""}
@@ -132,7 +139,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="create-contract-grid">
             <div className="breakup-field-stack">
               <NeoInput
-                label={t("stakeAmount") || "Stake (GAS)"}
+                label={t("stakeAmount")}
                 placeholder="5"
                 type="number"
                 suffix="GAS"
@@ -141,7 +148,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 error={stakeLooksInvalid ? t("stakeOrDurationInvalid") : ""}
                 onChange={setStake}
               />
-              <div className="breakup-presets" aria-label={t("stakeLabel") || "Stake Amount"}>
+              <div className="breakup-presets" aria-label={t("stakeLabel")}>
                 {stakePresets.map((preset) => (
                   <button
                     key={preset}
@@ -156,16 +163,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <div className="breakup-field-stack">
               <NeoInput
-                label={t("durationDays") || "Duration (days)"}
+                label={t("durationDays")}
                 placeholder="90"
                 type="number"
-                suffix={t("daysSuffix") || "Days"}
+                suffix={t("daysSuffix")}
                 min={30}
                 value={days}
                 error={daysLooksInvalid ? t("stakeOrDurationInvalid") : ""}
                 onChange={setDays}
               />
-              <div className="breakup-presets" aria-label={t("durationLabel") || "Contract Duration"}>
+              <div className="breakup-presets" aria-label={t("durationLabel")}>
                 {durationPresets.map((preset) => (
                   <button
                     key={preset}
@@ -173,15 +180,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     className={`breakup-preset${days === preset ? " is-active" : ""}`}
                     onClick={() => setDays(preset)}
                   >
-                    {preset} {t("daysSuffix") || "Days"}
+                    {preset} {t("daysSuffix")}
                   </button>
                 ))}
               </div>
             </div>
           </div>
           <NeoInput
-            label={t("titleLabel") || "Contract Title"}
-            placeholder={t("contractTitlePlaceholder") || "Our covenant"}
+            label={t("titleLabel")}
+            placeholder={t("contractTitlePlaceholder")}
             value={title}
             required
             error={titleTooLong ? t("titleTooLong") : ""}
@@ -189,8 +196,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             onChange={setTitle}
           />
           <NeoInput
-            label={t("contractTerms") || "Terms"}
-            placeholder={t("contractTermsPlaceholder") || "Optional notes (max 2000 chars)"}
+            label={t("contractTerms")}
+            placeholder={t("contractTermsPlaceholder")}
             type="textarea"
             value={terms}
             error={termsTooLong ? t("termsTooLong") : ""}
@@ -208,17 +215,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             block
             loading={isLoading}
             disabled={!canSubmit}
-            aria-label={isLoading ? t("contractPreparing", { title: title || "contract", amount: `${stake || "0"} GAS` }) : t("createContract") || "Create Contract"}
+            aria-label={isLoading ? t("contractPreparing", { title: title || "contract", amount: `${stake || "0"} GAS` }) : t("createContract")}
             onClick={handleCreate}
           >
-            {t("createContract") || "Create Contract"}
+            {t("createContract")}
           </NeoButton>
         </div>
       </NeoCard>
 
+      {/* Stranded stake-credit recovery — a deposit that landed without its
+          create/sign completing (e.g. a rejected second prompt) is held as
+          reusable prepaid credit; withdraw returns it to the wallet. Shown only
+          when there is recoverable credit. */}
+      {hasCredit && (
+        <NeoCard title={t("creditRecoveryTitle")} className="breakup-credit-card">
+          <p className="breakup-credit-copy">{t("creditRecoveryCopy")}</p>
+          <div className="breakup-credit-row">
+            <span className="breakup-credit-amount">
+              <strong>{creditBalance}</strong> GAS
+            </span>
+            <NeoButton
+              variant="primary"
+              size="sm"
+              loading={isLoading}
+              disabled={isLoading}
+              onClick={() => dispatch("withdrawCredit")}
+            >
+              {t("recoverCredit")}
+            </NeoButton>
+          </div>
+        </NeoCard>
+      )}
+
       {/* Contracts — only shown once there is something to list */}
       {(hasContracts || lastSubmittedTitle || serviceNotice) && (
-        <NeoCard title={t("contracts") || "Contracts"} className="breakup-list-card">
+        <NeoCard title={t("contracts")} className="breakup-list-card">
           {lastSubmittedTitle && (
             <div className="breakup-last-submit" role="status">
               {t("lastSubmittedContract", { title: lastSubmittedTitle })}
@@ -226,7 +257,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           )}
           {serviceNotice && (
             <p className="breakup-service-hint" role="status">
-              <strong>{t("contractServiceUnavailableTitle") || "Contract index unavailable"}</strong>
+              <strong>{t("contractServiceUnavailableTitle")}</strong>
               <span>{serviceNotice}</span>
             </p>
           )}
@@ -235,13 +266,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             address={address || null}
             onSign={(c: unknown) => dispatch("signContract", c)}
             onBreak={(c: unknown) => dispatch("breakContract", c)}
+            onCancel={(c: unknown) => dispatch("cancelContract", c)}
             onSettle={(c: unknown) => dispatch("settleContract", c)}
             busy={isLoading}
             t={t}
           />
           {contracts.length === 0 && !isLoading && !serviceNotice && (
             <p className="breakup-list-empty">
-              {t("noContractsHint") || "Created or signed relationship agreements will appear here once the contract index is available."}
+              {t("noContractsHint")}
             </p>
           )}
         </NeoCard>

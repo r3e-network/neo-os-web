@@ -19,21 +19,26 @@ import {
   type TreasuryDisbursementPreview,
   type TreasuryTransferIntent,
 } from "./utils/treasuryOperations";
+import TreasuryLoadingState from "./components/TreasuryLoadingState";
 import "./PlayArea.scss";
 
 interface TreasuryData {
-  totalUsd: number;
+  totalUsd: number | null;
   totalNeo: number;
   totalGas: number;
   lastUpdated: number | string;
-  prices: Record<string, unknown>;
+  prices: Record<string, unknown> | null;
+  failedCount?: number;
   categories: Array<{
     name: string;
+    failedCount?: number;
+    totalUsd?: number | null;
     wallets?: Array<{
       address?: string;
       label?: string;
       neo?: number;
       gas?: number;
+      failed?: boolean;
     }>;
     [key: string]: unknown;
   }>;
@@ -73,6 +78,7 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
 
   const data = val<TreasuryData>("data");
   const loading = bool("loading");
+  const stale = bool("stale");
   const error = str("error");
   const address = str("address");
   const disbursementSubmitting = bool("disbursementSubmitting");
@@ -84,14 +90,21 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
   const totalNeoDisplay = str("totalNeoDisplay");
   const totalGasDisplay = str("totalGasDisplay");
   const hasLiveData = Boolean(data);
+  // Cached figures from a failed fresh fetch are shown with an amber "cached"
+  // signal, not the green "live synced" one (which would imply fresh data).
+  const isStale = hasLiveData && stale;
+  const failedCount = Number(data?.failedCount ?? 0);
+  const priceFeedDown = hasLiveData && data?.totalUsd == null;
   const watchedAddressCount =
     DA_HONGFEI_ADDRESSES.length + ERIK_ZHANG_ADDRESSES.length;
   const lastUpdated = formatLastUpdated(data?.lastUpdated);
-  const signalLabel = hasLiveData
-    ? t("treasuryLiveSynced")
-    : loading
-      ? t("treasuryLiveLoading")
-      : t("treasuryLivePending");
+  const signalLabel = isStale
+    ? t("treasuryStale")
+    : hasLiveData
+      ? t("treasuryLiveSynced")
+      : loading
+        ? t("treasuryLiveLoading")
+        : t("treasuryLivePending");
   const isRefreshing = loading && hasLiveData;
   const [asset, setAsset] = useState<TreasuryAsset>("GAS");
   const [amount, setAmount] = useState("");
@@ -138,21 +151,30 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
   const submitBlocked = submitDisabled || Boolean(draftReview.error);
   const submitLabel = address ? t("submitDisbursement") : t("connectAndSignDisbursement");
 
+  // Use the same currency prefix as the hero metric (t('currencySymbol')) and
+  // render the em-dash when USD is unavailable (price feed down).
+  const currencySymbol = t("currencySymbol");
+  const formatUsd = (value: number | null | undefined) =>
+    typeof value === "number" ? `${currencySymbol}${formatNumber(value, 2)}` : "—";
+  const PLACEHOLDER = "—";
+
   const watchGroups = data?.categories?.length
     ? data.categories.map((category) => ({
         name: String(category.name || t("treasuryGroup")),
         addresses: Array.isArray(category.wallets)
           ? category.wallets.length
           : 0,
+        failedCount: Number(category.failedCount ?? 0),
         neo: `${formatNumber(category.totalNeo, 4)} NEO`,
         gas: `${formatNumber(category.totalGas, 4)} GAS`,
-        usd: `$${formatNumber(category.totalUsd, 2)}`,
+        usd: formatUsd(category.totalUsd),
         wallets: Array.isArray(category.wallets)
           ? category.wallets.map((wallet, index) => ({
               label: wallet.label || `${t("wallet")} ${index + 1}`,
               address: wallet.address || "",
-              neo: `${formatNumber(wallet.neo, 4)} NEO`,
-              gas: `${formatNumber(wallet.gas, 4)} GAS`,
+              // A failed RPC read is shown as an em-dash, not a misleading 0.
+              neo: wallet.failed ? PLACEHOLDER : `${formatNumber(wallet.neo, 4)} NEO`,
+              gas: wallet.failed ? PLACEHOLDER : `${formatNumber(wallet.gas, 4)} GAS`,
             }))
           : [],
       }))
@@ -160,6 +182,7 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
         {
           name: "Da Hongfei",
           addresses: DA_HONGFEI_ADDRESSES.length,
+          failedCount: 0,
           neo: t("treasuryLivePending"),
           gas: t("treasuryLivePending"),
           usd: t("treasuryLivePending"),
@@ -168,6 +191,7 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
         {
           name: "Erik Zhang",
           addresses: ERIK_ZHANG_ADDRESSES.length,
+          failedCount: 0,
           neo: t("treasuryLivePending"),
           gas: t("treasuryLivePending"),
           usd: t("treasuryLivePending"),
@@ -214,13 +238,27 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
             <span
               className={[
                 "treasury-hero__dot",
-                hasLiveData ? "treasury-hero__dot--live" : "",
+                isStale
+                  ? "treasury-hero__dot--stale"
+                  : hasLiveData
+                    ? "treasury-hero__dot--live"
+                    : "",
               ].filter(Boolean).join(" ")}
               aria-hidden="true"
             />
             {signalLabel}
             {lastUpdated ? ` · ${t("lastUpdated")} ${lastUpdated}` : ""}
           </p>
+          {failedCount > 0 && (
+            <p className="treasury-hero__warning" role="status">
+              {t("treasuryWalletsUnreachable", { count: failedCount })}
+            </p>
+          )}
+          {priceFeedDown && (
+            <p className="treasury-hero__warning" role="status">
+              {t("treasuryPriceFeedUnavailable")}
+            </p>
+          )}
         </div>
         <div className="treasury-hero__metrics" aria-label={t("treasuryInfo")}>
           <div className="treasury-metric">
@@ -423,7 +461,20 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
         </NeoCard>
       </section>
 
+      {/* Initial-load skeleton (and retry-on-error) — fills the gap where the
+          watchlist would otherwise paint empty "Live data pending" placeholders
+          before the first fetch resolves. */}
+      <TreasuryLoadingState
+        t={t}
+        loading={loading && !hasLiveData}
+        error={!hasLiveData ? error : ""}
+        hasData={hasLiveData}
+        onRetry={handleRefresh}
+      />
+
+      {!(loading && !hasLiveData) && (
       <section className="treasury-watchlist" aria-label={t("treasuryWatchlist")}>
+        <p className="treasury-watchlist__tag">{t("treasuryWatchlistNetwork")}</p>
         {watchGroups.map((group) => (
           <NeoCard variant="erobo" className="treasury-group-card" key={group.name}>
             <div className="treasury-group-header">
@@ -431,6 +482,11 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
               <strong>
                 {group.addresses} {t("addresses")}
               </strong>
+              {group.failedCount > 0 && (
+                <span className="treasury-group-warning" role="status">
+                  {t("treasuryWalletsUnreachable", { count: group.failedCount })}
+                </span>
+              )}
             </div>
             <dl>
               <div>
@@ -472,6 +528,7 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
           </NeoCard>
         ))}
       </section>
+      )}
 
       <NeoCard variant="erobo" className="treasury-action-card">
         <div className="treasury-readonly-note">

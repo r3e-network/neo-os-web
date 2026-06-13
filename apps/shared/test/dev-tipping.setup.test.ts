@@ -27,6 +27,7 @@ const harness = vi.hoisted(() => {
     loadDevelopers: vi.fn(),
     loadRecentTips: vi.fn(),
     developerIdOf: vi.fn(),
+    creditOf: vi.fn(),
   };
 
   const reset = () => {
@@ -70,6 +71,7 @@ const harness = vi.hoisted(() => {
       ]);
     });
     state.developerIdOf = vi.fn(async () => 0);
+    state.creditOf = vi.fn(async () => 0);
   };
 
   reset();
@@ -97,6 +99,7 @@ vi.mock("../../dev-tipping/src/composables/useDevTippingStats", () => ({
     loadDevelopers: harness.state.loadDevelopers,
     loadRecentTips: harness.state.loadRecentTips,
     developerIdOf: harness.state.developerIdOf,
+    creditOf: harness.state.creditOf,
   })),
 }));
 
@@ -175,14 +178,18 @@ describe("Dev Tipping setup", () => {
     await setup?.(buildCtx(registeredActions));
 
     const sendTip = registeredActions.get("sendTip");
-    const ok = await sendTip?.(1, "0.5", "thanks", "Ada", false);
+    // The on-chain tip() stores only devId, amount and anonymous — the message
+    // and tipper-name inputs were removed, so the action takes (devId, amount,
+    // anonymous) and forwards empty strings for the composable's UI-only message
+    // and name parameters.
+    const ok = await sendTip?.(1, "0.5", false);
 
     expect(harness.state.walletSendTip).toHaveBeenCalledTimes(1);
     expect(harness.state.walletSendTip).toHaveBeenCalledWith(
       1,
       "0.5",
-      "thanks",
-      "Ada",
+      "",
+      "",
       false,
       expect.any(Function),
     );

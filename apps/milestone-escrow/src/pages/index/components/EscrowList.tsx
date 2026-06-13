@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 export interface EscrowItem {
   id: string; creator: string; beneficiary: string; assetSymbol: "NEO" | "GAS";
   totalAmount: bigint; releasedAmount: bigint; status: "active" | "completed" | "cancelled";
@@ -45,6 +47,11 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
   const created = creatorEscrows as EscrowItem[];
   const incoming = beneficiaryEscrows as EscrowItem[];
 
+  // Two-step cancel: the first click arms a confirm (which refunds remaining
+  // funds and ends the escrow irreversibly); a second click within the window
+  // dispatches it. Clicking elsewhere / a timeout disarms it.
+  const [confirmingCancelId, setConfirmingCancelId] = useState<string | null>(null);
+
   if (created.length === 0 && incoming.length === 0) {
     return (
       <div className="escrow-empty">
@@ -78,6 +85,52 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
     );
   };
 
+  /** Per-milestone breakdown: index, amount, and an approved/claimed pill, so
+      Approve/Claim act on a visible amount rather than "the next" milestone. */
+  const renderMilestones = (escrow: EscrowItem) => {
+    if (escrow.milestoneAmounts.length <= 1) return null;
+    return (
+      <ul className="escrow-milestones" aria-label={tr("milestonesLabel")}>
+        {escrow.milestoneAmounts.map((amount, i) => {
+          const claimed = escrow.milestoneClaimed[i];
+          const approved = escrow.milestoneApproved[i];
+          const stateKey = claimed ? "milestoneClaimedPill" : approved ? "milestoneApprovedPill" : "milestonePendingPill";
+          return (
+            <li key={i} className={`escrow-milestone escrow-milestone--${claimed ? "claimed" : approved ? "approved" : "pending"}`}>
+              <span className="escrow-milestone__label">{tr("milestoneNumber", { n: i + 1 })}</span>
+              <span className="escrow-milestone__amount">
+                {formatAmountFunc(escrow.assetSymbol, amount)} {escrow.assetSymbol}
+              </span>
+              <span className="escrow-milestone__pill">{tr(stateKey)}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
+  /** Label the approve action with the milestone it releases. */
+  const approveLabel = (escrow: EscrowItem, idx: number, busy: boolean): string => {
+    if (busy) return tr("approving");
+    const amount = escrow.milestoneAmounts[idx];
+    if (idx < 0 || amount === undefined) return tr("approve");
+    return tr("approveMilestone", {
+      n: idx + 1,
+      amount: `${formatAmountFunc(escrow.assetSymbol, amount)} ${escrow.assetSymbol}`,
+    });
+  };
+
+  /** Label the claim action with the milestone it releases. */
+  const claimLabel = (escrow: EscrowItem, idx: number, busy: boolean): string => {
+    if (busy) return tr("claiming");
+    const amount = escrow.milestoneAmounts[idx];
+    if (idx < 0 || amount === undefined) return tr("claim");
+    return tr("claimMilestone", {
+      n: idx + 1,
+      amount: `${formatAmountFunc(escrow.assetSymbol, amount)} ${escrow.assetSymbol}`,
+    });
+  };
+
   return (
     <div className="escrow-list">
       {created.length > 0 && (
@@ -94,6 +147,7 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
                 <span className="escrow-subtitle">{formatAddressFunc(escrow.beneficiary)}</span>
                 <span className={`escrow-status escrow-status--${escrow.status}`}>{statusLabelFunc(escrow.status)}</span>
                 {renderDetails(escrow)}
+                {renderMilestones(escrow)}
                 {escrow.status === "active" && (
                   <div className="escrow-actions">
                     <button
@@ -103,16 +157,35 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
                       title={canApprove ? undefined : tr("noMilestoneToApprove")}
                       onClick={() => onApprove(escrow)}
                     >
-                      {approveBusy ? tr("approving") : tr("approve")}
+                      {approveLabel(escrow, approveIdx, approveBusy)}
                     </button>
-                    <button
-                      type="button"
-                      className="escrow-action escrow-action--cancel"
-                      disabled={cancelBusy}
-                      onClick={() => onCancel(escrow)}
-                    >
-                      {cancelBusy ? tr("cancelling") : tr("cancel")}
-                    </button>
+                    {confirmingCancelId === escrow.id ? (
+                      <button
+                        type="button"
+                        className="escrow-action escrow-action--cancel is-confirming"
+                        disabled={cancelBusy}
+                        onClick={() => {
+                          setConfirmingCancelId(null);
+                          onCancel(escrow);
+                        }}
+                        onBlur={() => setConfirmingCancelId((id) => (id === escrow.id ? null : id))}
+                      >
+                        {cancelBusy
+                          ? tr("cancelling")
+                          : tr("confirmCancelRefund", {
+                              amount: `${formatAmountFunc(escrow.assetSymbol, escrow.totalAmount - escrow.releasedAmount)} ${escrow.assetSymbol}`,
+                            })}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="escrow-action escrow-action--cancel"
+                        disabled={cancelBusy}
+                        onClick={() => setConfirmingCancelId(escrow.id)}
+                      >
+                        {tr("cancel")}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -133,6 +206,7 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
                 <span className="escrow-subtitle">{formatAddressFunc(escrow.creator)}</span>
                 <span className={`escrow-status escrow-status--${escrow.status}`}>{statusLabelFunc(escrow.status)}</span>
                 {renderDetails(escrow)}
+                {renderMilestones(escrow)}
                 {escrow.status === "active" && (
                   <div className="escrow-actions">
                     <button
@@ -142,7 +216,7 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
                       title={canClaim ? undefined : tr("noMilestoneToClaim")}
                       onClick={() => onClaim(escrow)}
                     >
-                      {claimBusy ? tr("claiming") : tr("claim")}
+                      {claimLabel(escrow, claimIdx, claimBusy)}
                     </button>
                   </div>
                 )}

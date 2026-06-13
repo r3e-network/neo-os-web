@@ -714,3 +714,56 @@
   background: var(--ns-surface-subtle, #f7f8fa);
   color: var(--ns-text-faint, #aeb4c2);
 }
+
+/* Stranded-tip-credit reclaim row in the Developer Zone */
+.dev-tipping-play-area .tipping-credit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+
+  .tipping-credit-label {
+    font-size: 0.8125rem;
+    color: var(--ns-text-2, #5b6478);
+
+    strong {
+      color: var(--tip-accent-strong);
+      font-weight: 700;
+    }
+  }
+
+  .tipping-credit-withdraw {
+    flex: 0 0 auto;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tip-accent-strong);
+    background: var(--tip-accent-soft);
+    border: 1px solid transparent;
+    border-radius: var(--ns-radius-sm, 8px);
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover:not(:disabled) {
+      background: var(--tip-accent);
+      color: #ffffff;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+    }
+  }
+}

@@ -61,6 +61,10 @@ export interface VaultDetails {
   difficultyName: string;
   expiryTime: number;
   remainingDays: number;
+  /** Creator-set title — the name of what the challenger is trying to break. */
+  title: string;
+  /** Creator-set public hint / lore shown to challengers before they pay. */
+  description: string;
 }
 
 export interface RecentVault {
@@ -157,6 +161,8 @@ function toVaultDetails(detail: ChainVaultDetails): VaultDetails {
     difficultyName: detail.difficultyName,
     expiryTime: detail.expiryTime,
     remainingDays: remainingDaysFrom(detail.expiryTime),
+    title: detail.title,
+    description: detail.description,
   };
 }
 
@@ -288,44 +294,66 @@ export function useVaultBreaker({
    * Returns `{ success }` so the registered host action can surface a status
    * toast. Returns `undefined` when the attempt is skipped (guard not satisfied).
    */
-  const attemptBreak = async (): Promise<{ success: boolean } | undefined> => {
+  const attemptBreak = async (): Promise<
+    { success: boolean; confirming?: boolean } | undefined
+  > => {
     if (!canAttempt.get() || isLoading.get()) return undefined;
     isLoading.set(true);
     try {
       const attemptFee = resolveAttemptFeeBase();
       const attacker = await chainService.ensureWallet();
+      const targetId = vaultIdInput.get();
 
       const result = await chainService.invokeWithPayment(
         attemptFee,
         ATTEMPT_MEMO,
         "attemptBreak",
         [
-          { type: "Integer", value: vaultIdInput.get() },
+          { type: "Integer", value: targetId },
           { type: "Hash160", value: attacker },
           { type: "ByteArray", value: utf8ToBase64(attemptSecret.get().trim()) },
         ],
         { waitForEvent: "AttemptMade" },
       );
 
-      // AttemptMade(vaultId, attacker, success, attemptNumber) — slot 2 is the
-      // boolean success flag, definitive at HALT.
-      const successSlot = eventSlot(result.event, 2);
-      const success =
-        successSlot === true ||
-        successSlot === "true" ||
-        successSlot === 1 ||
-        successSlot === "1";
-
-      if (success) {
-        eventBus.emit("vault:broken", { action: t("broken") });
-      } else {
-        eventBus.emit("vault:attempt_failed", { message: t("vaultAttemptFailed") });
-      }
-
       attemptSecret.set("");
       await loadVault();
       await loadRecentVaults();
-      return { success };
+
+      // AttemptMade(vaultId, attacker, success, attemptNumber) — slot 2 is the
+      // boolean success flag, definitive at HALT.
+      if (result.event) {
+        const successSlot = eventSlot(result.event, 2);
+        const success =
+          successSlot === true ||
+          successSlot === "true" ||
+          successSlot === 1 ||
+          successSlot === "1";
+
+        if (success) {
+          eventBus.emit("vault:broken", { action: t("broken") });
+        } else {
+          eventBus.emit("vault:attempt_failed", { message: t("vaultAttemptFailed") });
+        }
+        return { success };
+      }
+
+      // The event wait timed out (indexer lag) — the tx may have HALTed and even
+      // WON. Do NOT declare a failed (wrong-secret) attempt. Re-read the vault and
+      // check whether THIS wallet became the winner before deciding.
+      const refreshed = vaultDetails.get();
+      const wonByMe =
+        !!refreshed &&
+        refreshed.status === "broken" &&
+        Boolean(refreshed.winner) &&
+        ownerMatchesAddress(refreshed.winner, attacker);
+      if (wonByMe) {
+        eventBus.emit("vault:broken", { action: t("broken") });
+        return { success: true };
+      }
+      // Outcome still unconfirmed — surface a "confirming" state, not "failed".
+      eventBus.emit("vault:attempt_confirming", { message: t("vaultAttemptConfirming") });
+      return { success: false, confirming: true };
     } catch (e) {
       eventBus.emit("vault:error", {
         message: e instanceof Error ? e.message : t("vaultAttemptFailed"),

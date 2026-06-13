@@ -1,26 +1,39 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
+import type { BalanceService } from "../services/BalanceService";
 import { EventBus } from "../services/EventBus";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
+
+// Shared mutable handle so each test can drive the SDK's eligibility result and
+// error independently (the composable reads gasSponsorSDK.eligibilityError).
+const sdkState = {
+  eligibilityError: { value: "" as string },
+  sponsorshipError: { value: "" as string },
+  eligibility: {
+    gas_balance: "0",
+    used_today: "0",
+    daily_limit: "0.1",
+    resets_at: "",
+  },
+};
 
 // The composable pulls eligibility/request plumbing from the wallet SDK at
 // construction; stub it so the donate/send transfer paths run standalone.
 vi.mock("@shared/utils/wallet-sdk", () => ({
   useGasSponsor: () => ({
     isRequestingSponsorship: { value: false },
-    sponsorshipError: { value: "" },
-    checkEligibility: vi.fn(async () => ({
-      eligible: false,
-      gas_balance: "0",
-      used_today: "0",
-      daily_limit: "0.1",
-      resets_at: "",
-    })),
+    eligibilityError: sdkState.eligibilityError,
+    sponsorshipError: sdkState.sponsorshipError,
+    checkEligibility: vi.fn(async () => sdkState.eligibility),
     requestSponsorship: vi.fn(async () => ({ success: true })),
   }),
 }));
 
+// import.meta.env.VITE_PLATFORM_API is undefined under vitest, so the composable
+// treats the sponsorship API as unconfigured. The donate/send tests below seed
+// the chain-read balance directly, which is exactly the path that must keep
+// working when the API is down.
 import { useGasSponsorApp } from "../../gas-sponsor/src/composables/useGasSponsor";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
@@ -48,12 +61,19 @@ function makeChain() {
   return chain;
 }
 
+/** BalanceService stand-in returning a fixed chain GAS balance. */
+function makeBalance(gas: number) {
+  return {
+    getGasBalance: vi.fn(async () => gas),
+  } as unknown as BalanceService;
+}
+
 describe("gas-sponsor base-unit scaling", () => {
   it("converts donate amounts with the shared float-free toFixed8 (truncates beyond 8 decimals)", async () => {
     const chain = makeChain();
-    const app = useGasSponsorApp({ chain, eventBus: new EventBus(), t });
+    const app = useGasSponsorApp({ chain, balance: makeBalance(10), eventBus: new EventBus(), t });
 
-    app.gasBalance.set("10");
+    app.chainGasBalance.set(10);
     // 9 decimal places: float math (parseFloat * 1e8 + round) yields
     // 400000001 — MORE base units than the user typed. The shared
     // string-parsing toFixed8 truncates to exactly 8 decimals.
@@ -68,9 +88,9 @@ describe("gas-sponsor base-unit scaling", () => {
 
   it("preserves precision float math loses on large send amounts", async () => {
     const chain = makeChain();
-    const app = useGasSponsorApp({ chain, eventBus: new EventBus(), t });
+    const app = useGasSponsorApp({ chain, balance: makeBalance(2_000_000_000), eventBus: new EventBus(), t });
 
-    app.gasBalance.set("2000000000");
+    app.chainGasBalance.set(2_000_000_000);
     app.recipientAddress.set(ALICE);
     // 1e9 GAS + 1 base unit is not representable as a double: the float
     // path silently drops the final base unit.
@@ -81,5 +101,66 @@ describe("gas-sponsor base-unit scaling", () => {
     expect(op).toBe("transfer");
     expect(args[1]).toEqual({ type: "Hash160", value: ALICE });
     expect(args[2]).toEqual({ type: "Integer", value: "100000000000000001" });
+  });
+});
+
+describe("gas-sponsor honest service state + chain-read gate", () => {
+  it("marks the sponsorship service unavailable when the platform API is unconfigured", async () => {
+    sdkState.eligibilityError.value = "";
+    sdkState.eligibility = { gas_balance: "0", used_today: "0", daily_limit: "0.1", resets_at: "" };
+    const chain = makeChain();
+    const app = useGasSponsorApp({ chain, balance: makeBalance(5), eventBus: new EventBus(), t });
+
+    await app.loadUserData();
+
+    expect(app.serviceAvailable.get()).toBe(false);
+    expect(app.serviceNotice.get()).toBe("sponsorServiceUnconfigured");
+    // Eligibility is NOT presented as a fabricated "eligible" when unknown.
+    expect(app.isEligible.get()).toBe(false);
+    expect(app.eligibleDisplay.get()).toBe("notAvailable");
+    expect(app.gasBalanceDisplay.get()).toBe("notAvailable");
+  });
+
+  it("gates donate/send on the real chain balance, not the API balance", async () => {
+    const chain = makeChain();
+    const app = useGasSponsorApp({ chain, balance: makeBalance(3), eventBus: new EventBus(), t });
+
+    // API is down (zeros), but the wallet really holds 3 GAS on-chain.
+    await app.loadUserData();
+
+    expect(app.chainGasBalance.get()).toBe(3);
+    expect(app.isFunded.get()).toBe(true);
+
+    app.donateAmount.set("1");
+    expect(app.donateAmountValid.get()).toBe(true);
+    app.donateAmount.set("9"); // exceeds chain balance
+    expect(app.donateAmountValid.get()).toBe(false);
+  });
+
+  it("refuses sponsorship requests while the service is unavailable", async () => {
+    const chain = makeChain();
+    const app = useGasSponsorApp({ chain, balance: makeBalance(0), eventBus: new EventBus(), t });
+
+    await app.loadUserData();
+    await expect(app.requestSponsorship()).rejects.toThrow("sponsorServiceUnavailable");
+  });
+
+  it("routes donations to the testnet pool when launched on testnet", async () => {
+    const chain = makeChain();
+    const app = useGasSponsorApp({
+      chain,
+      balance: makeBalance(5),
+      eventBus: new EventBus(),
+      t,
+      network: "testnet",
+    });
+
+    app.chainGasBalance.set(5);
+    app.donateAmount.set("1");
+    await app.handleDonate();
+
+    const [, args] = chain.invoke.mock.calls[0];
+    // Per-network pool destination (testnet entry).
+    expect(args[1]).toEqual({ type: "Hash160", value: "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK" });
   });
 });

@@ -23,3 +23,28 @@ export function chainLabelOf(network: string): string {
 export function maxStakeOf(network: string): number {
   return network.startsWith("neo-x") ? 2 : 20;
 }
+
+/**
+ * The largest stake (GAS) the house can currently pay a win on, given its
+ * liquidity and the player's standing app-scoped credit. The contract asserts
+ * liquidity >= stake * coverMultiple (6 * 95% = 5.7), so:
+ *
+ *   maxPayableStake = (liquidity + credit) / coverMultiple
+ *
+ * The player's credit is added because the stake is consumed from credit first
+ * (only the shortfall is deposited), so the effective house exposure is reduced
+ * by the credit already held. Floored to 2 decimals (GAS display precision) and
+ * never negative. coverMultiple defaults to 5.7.
+ */
+export function maxPayableStakeOf(
+  liquidityGas: number,
+  creditGas = 0,
+  coverMultiple = 6 * 0.95,
+): number {
+  if (!Number.isFinite(liquidityGas) || liquidityGas <= 0) return 0;
+  const credit = Number.isFinite(creditGas) && creditGas > 0 ? creditGas : 0;
+  const payable = (liquidityGas + credit) / coverMultiple;
+  if (!Number.isFinite(payable) || payable <= 0) return 0;
+  // Floor to 2 decimals so the quoted cap never exceeds the real payable amount.
+  return Math.floor(payable * 100) / 100;
+}

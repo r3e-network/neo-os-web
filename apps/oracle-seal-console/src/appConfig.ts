@@ -1,12 +1,22 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 import type { ConsoleToolConfig } from "@shared/components-react";
 import { previewId } from "@shared/components-react";
+import { getNetwork } from "@shared/constants/rpc";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-oracle-seal-console";
 
+/**
+ * Resolve the network label from the launched network instead of a hardcoded
+ * "Morpheus Testnet". The privacy_oracle / oracle/public-key lanes are live on
+ * the mainnet nitro worker; testnet stays degraded (getNetwork() → mainnet).
+ */
+export function resolveNetworkLabel(): string {
+  return getNetwork() === "testnet" ? "Morpheus Testnet" : "Morpheus Mainnet";
+}
+
 export const appMeta = {
-  networkLabel: "Morpheus Testnet",
+  networkLabel: resolveNetworkLabel(),
   endpointLabel: "Sealed envelope",
 };
 
@@ -81,7 +91,7 @@ export const consoleConfig: ConsoleToolConfig = {
     const recipient = clean(values.recipient, "");
     const payload = clean(values.payload, "{}");
     // The field's contract is "private JSON payload": validate it so malformed
-    // input is surfaced (non-blocking) instead of being silently packaged.
+    // input is surfaced instead of being silently packaged.
     let payloadValid = true;
     try {
       JSON.parse(payload);
@@ -96,15 +106,24 @@ export const consoleConfig: ConsoleToolConfig = {
       summary: t("sealSummary", { purpose }),
       rows: [
         { label: t("purpose"), value: purpose },
-        { label: t("recipient"), value: recipient },
+        // Show an em-dash for an empty recipient so the row never renders blank.
+        { label: t("recipient"), value: recipient || t("digestPlaceholder") },
         { label: t("payloadValid"), value: payloadValid ? t("yes") : t("no") },
         { label: t("payloadDigest"), value: payloadDigest },
         { label: t("statDigest"), value: digest },
       ],
       payload: {
         kind: "oracle.seal.envelope",
+        // Invalid JSON is a validation failure: flag it input_required so the
+        // shared panel classifies the preview as a warning (no green toast, no
+        // Requests increment, digest placeholder preserved) — matching the
+        // visible "Payload is valid JSON: No" row instead of contradicting it
+        // with a success signal (the http console's pattern).
+        ...(payloadValid ? {} : { status: "input_required" as const }),
         purpose,
-        recipient,
+        // Distinguish a blank recipient (null) from a present one so two
+        // envelopes that differ only by blank-vs-set recipient are comparable.
+        recipient: recipient || null,
         payloadValid,
         payloadDigest,
         envelopeVersion: "morpheus-seal-v1",

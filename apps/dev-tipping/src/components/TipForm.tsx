@@ -2,14 +2,17 @@ import { NeoInput, NeoButton } from "@shared/components-react";
 import type { Developer } from "../composables/useDevTippingStats";
 
 interface TipFormProps {
-  developers: Developer[]; selectedDevId: number | null; amount: string; message: string;
-  tipperName: string; anonymous: boolean; isLoading: boolean;
+  developers: Developer[]; selectedDevId: number | null; amount: string;
+  anonymous: boolean; isLoading: boolean;
   onSelectDev: (id: number | null) => void; onAmountChange: (val: string) => void;
-  onMessageChange: (val: string) => void; onTipperNameChange: (val: string) => void;
   onAnonymousChange: (val: boolean) => void; onSubmit: () => void; t: (key: string) => string;
 }
 
-export default function TipForm({ developers, selectedDevId, amount, message, tipperName, anonymous, isLoading, onSelectDev, onAmountChange, onMessageChange, onTipperNameChange, onAnonymousChange, onSubmit, t }: TipFormProps) {
+// The on-chain Tipped event carries only devId, tipper, amount and anonymous —
+// there is no off-chain store for a message or tipper name, so those inputs are
+// intentionally omitted (they were silently discarded). The anonymous toggle is
+// the only identity control the contract actually honors.
+export default function TipForm({ developers, selectedDevId, amount, anonymous, isLoading, onSelectDev, onAmountChange, onAnonymousChange, onSubmit, t }: TipFormProps) {
   const canSubmit = selectedDevId !== null && amount && !isLoading;
   const handleManualDeveloperId = (value: string) => {
     const devId = Number.parseInt(value, 10);
@@ -38,8 +41,6 @@ export default function TipForm({ developers, selectedDevId, amount, message, ti
         />
       )}
       <NeoInput value={amount} type="number" label={t("tipAmount")} placeholder={t("customAmount")} onChange={onAmountChange} />
-      <NeoInput value={message} label={t("optionalMessage")} placeholder={t("messagePlaceholder")} onChange={onMessageChange} />
-      <NeoInput value={tipperName} label={t("tipperName")} placeholder={t("tipperNamePlaceholder")} disabled={anonymous} onChange={onTipperNameChange} />
       <div className="toggle-field">
         <span className="toggle-field__label">{t("anonymousLabel")}</span>
         <div className="toggle-row" role="group" aria-label={t("anonymousLabel")}>

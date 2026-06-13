@@ -1,6 +1,5 @@
 import {
   createDerived,
-  createObservable,
   defineMiniApp,
 } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
@@ -10,6 +9,12 @@ import { useTrustAnchor } from "../../trustanchor/src/hooks/useTrustAnchor";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./messages";
+
+function shortAddress(value: string): string {
+  if (!value) return "";
+  if (value.length <= 16) return value;
+  return `${value.slice(0, 8)}…${value.slice(-6)}`;
+}
 
 defineMiniApp({
   appId: "miniapp-trustanchor-admin",
@@ -30,16 +35,56 @@ defineMiniApp({
       () => `${formatNum(anchor.stats.get()?.totalStaked ?? 0)} NEO`,
       [anchor.stats],
     );
+    const reserveDisplay = createDerived(
+      () => `${formatNum(anchor.stats.get()?.rewardReserve ?? 0)} GAS`,
+      [anchor.stats],
+    );
     const selectedAgentDisplay = createDerived(
       () =>
         anchor.stats.get()?.selectedAgentId
           ? `#${anchor.stats.get()?.selectedAgentId}`
-          : "None",
+          : ctx.t("noneFallback"),
       [anchor.stats],
     );
     const agentCountDisplay = createDerived(
-      () => `${anchor.stats.get()?.agentCount || agentAccounts.length} / 21`,
+      () => {
+        const s = anchor.stats.get();
+        // Only fall back to the static roster size before stats load. A real
+        // on-chain count of 0 must render as 0, not be masked as 21.
+        const count = s ? s.agentCount : agentAccounts.length;
+        return `${count} / 21`;
+      },
       [anchor.stats],
+    );
+    // On-chain agent directory (ground truth) with the static roster as a
+    // pre-load fallback so the directory is never empty on first paint.
+    const agentDirectory = createDerived<Array<Record<string, unknown>>>(
+      () => {
+        const live = anchor.agents.get();
+        if (live.length > 0) {
+          return live.map((agent) => ({ ...agent }));
+        }
+        return agentAccounts.map((agent) => ({ ...agent }));
+      },
+      [anchor.agents],
+    );
+    // Admin-role state: null while loading, true/false once admin() + getAppAdmin
+    // resolve. Drives the read-only banner for non-operators.
+    const adminState = createDerived<"loading" | "admin" | "denied">(
+      () => {
+        const result = anchor.isAdmin();
+        if (result === null) return "loading";
+        return result ? "admin" : "denied";
+      },
+      [anchor.adminInfo, ctx.services.chain.address],
+    );
+    const expectedAdminDisplay = createDerived(
+      () => {
+        const info = anchor.adminInfo.get();
+        if (!info) return "";
+        return shortAddress(info.appAdmin || info.platformAdmin);
+      },
+      [anchor.adminInfo],
     );
 
     ctx.registerAction("transferAgentNeo", async (...args: unknown[]) => {
@@ -72,10 +117,13 @@ defineMiniApp({
     return {
       state: {
         stats: anchor.stats,
-        agentAccounts: createObservable(agentAccounts),
+        agentAccounts: agentDirectory as Observable,
         totalNeoDisplay,
+        reserveDisplay,
         selectedAgentDisplay,
         agentCountDisplay,
+        adminState,
+        expectedAdminDisplay,
       } satisfies Record<string, Observable>,
       loadData: anchor.loadAll,
     };

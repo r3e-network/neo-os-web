@@ -34,6 +34,7 @@ function t(key: string) {
     mainnet: "Mainnet",
     testnet: "Testnet",
     notAvailable: "N/A",
+    loading: "Loading...",
     explorerReadOnly: "Read-only chain lookup",
     explorerMainnetHint: "Production network",
     explorerTestnetHint: "Testing network",
@@ -50,6 +51,17 @@ function t(key: string) {
     contractCalls: "Indexed Calls",
     contractNotFound: "Contract not found",
     noResults: "No results found",
+    searchUnknownTitle: "Unrecognized identifier",
+    searchUnknownDesc: "That doesn't look like a Neo N3 tx hash, address, or contract.",
+    transactionNotFound: "Transaction not found on this network",
+    blockNotFound: "Block not found on this network",
+    addressNoActivity: "No indexed activity for this address",
+    hash: "Hash:",
+    block: "Block:",
+    time: "Time:",
+    sender: "Sender:",
+    addressLabel: "Address:",
+    transactionsLabel: "Transactions:",
   };
   return messages[key] ?? key;
 }
@@ -186,6 +198,24 @@ describe("Explorer composable — network toggle refetches recent txs (explorer-
 
     explorer.stopPolling();
   });
+
+  // explorer-5: switching networks must also clear the previous network's search
+  // result so the metrics-strip "Search result" tile doesn't imply the new
+  // network returned the old hit.
+  it("clears the stale search result when the network is toggled", async () => {
+    const explorer = useExplorer(deps());
+    explorer.stopPolling();
+    await explorer.loadAll();
+    explorer.stopPolling();
+
+    explorer.searchResult.set({ type: "contract", found: true });
+    expect(explorer.searchResult.get()).not.toBeNull();
+
+    explorer.selectedNetwork.set("testnet");
+    expect(explorer.searchResult.get()).toBeNull();
+
+    explorer.stopPolling();
+  });
 });
 
 /**
@@ -240,5 +270,71 @@ describe("Explorer SearchResultDisplay — contract renderer (explorer-3)", () =
 
     expect(screen.getByText("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd")).toBeTruthy();
     expect(screen.getByText("Contract not found")).toBeTruthy();
+  });
+});
+
+/**
+ * explorer-4: the API returns {type:'unknown'} for malformed queries and
+ * {type:'transaction'|'block'|'address', found:false} for valid-shaped-but-
+ * missing ones. SearchResultDisplay had no 'unknown' branch (title-only, blank
+ * card) and rendered tx/block/address cards full of blank rows when found:false.
+ * Both must now surface an explicit, type-aware not-found notice.
+ */
+describe("Explorer SearchResultDisplay — unknown / not-found branches (explorer-4)", () => {
+  const formatTime = (v: unknown) => String(v ?? "");
+
+  it("guides the user on an unrecognized identifier instead of an empty card", () => {
+    const result = { type: "unknown", found: false, query: "garbage" };
+    render(<SearchResultDisplay t={t} result={result} formatTime={formatTime} />);
+
+    expect(screen.getByText("Unrecognized identifier")).toBeTruthy();
+    expect(
+      screen.getByText("That doesn't look like a Neo N3 tx hash, address, or contract."),
+    ).toBeTruthy();
+  });
+
+  it("shows a transaction-not-found notice (not a card of blank rows) for found:false", () => {
+    const result = { type: "transaction", found: false, network: "mainnet" };
+    render(<SearchResultDisplay t={t} result={result} formatTime={formatTime} />);
+
+    expect(screen.getByText("Transaction not found on this network")).toBeTruthy();
+    // No blank tx field labels should render.
+    expect(screen.queryByText("Hash:")).toBeNull();
+    expect(screen.queryByText("Sender:")).toBeNull();
+  });
+
+  it("shows a block-not-found notice for a missing block", () => {
+    const result = { type: "block", found: false, network: "mainnet", query: "999999999" };
+    render(<SearchResultDisplay t={t} result={result} formatTime={formatTime} />);
+
+    expect(screen.getByText("Block not found on this network")).toBeTruthy();
+    expect(screen.queryByText("Block:")).toBeNull();
+  });
+
+  it("shows a no-activity notice for an address with no indexed transactions", () => {
+    const result = {
+      type: "address",
+      found: false,
+      address: "Nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      tx_count: 0,
+      transactions: [],
+    };
+    render(<SearchResultDisplay t={t} result={result} formatTime={formatTime} />);
+
+    expect(screen.getByText("No indexed activity for this address")).toBeTruthy();
+    // The blank address-card rows must not render.
+    expect(screen.queryByText("Address:")).toBeNull();
+  });
+
+  it("still renders the normal transaction card when found:true", () => {
+    const result = {
+      type: "transaction",
+      found: true,
+      data: { hash: "0xdeadbeef", block_index: 42, sender: "Nsender" },
+    };
+    render(<SearchResultDisplay t={t} result={result} formatTime={formatTime} />);
+
+    expect(screen.getByText("0xdeadbeef")).toBeTruthy();
+    expect(screen.getByText("Nsender")).toBeTruthy();
   });
 });

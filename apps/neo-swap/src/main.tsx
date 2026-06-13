@@ -56,7 +56,7 @@ defineMiniApp({
         swap.loadExchangeRate().catch(() => {});
         return;
       }
-      ctx.setStatus(ctx.t("pairUnavailable") || `Pair ${pairId} unavailable`, "info");
+      ctx.setStatus(ctx.t("pairUnavailable", { pair: pairId.toUpperCase() }), "info");
     });
 
     return {
@@ -79,6 +79,10 @@ defineMiniApp({
         selectedPairDisplay: swap.selectedPairDisplay,
         pairCount: swap.pairCount,
         currentRate: swap.currentRate,
+        routerAvailable: swap.routerAvailable,
+        rateStale: swap.rateStale,
+        rateAsOf: swap.rateAsOf,
+        walletConnected: swap.walletConnected,
       },
       loadData: swap.loadAll,
       cleanup: () => { swap.cleanup(); },

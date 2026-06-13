@@ -1,14 +1,20 @@
 import { NeoInput, NeoButton } from "@shared/components-react";
 
 interface RequestGasCardProps {
+  serviceAvailable: boolean; serviceNotice: string;
   isEligible: boolean; remainingQuota: number; requestAmount: string; maxRequestAmount: string;
   isRequesting: boolean; quickAmounts: number[];
   onRequestAmountChange: (val: string) => void; onRequest: () => void; t: (key: string) => string;
 }
 
-export default function RequestGasCard({ isEligible, remainingQuota, requestAmount, maxRequestAmount, isRequesting, quickAmounts, onRequestAmountChange, onRequest, t }: RequestGasCardProps) {
+export default function RequestGasCard({ serviceAvailable, serviceNotice, isEligible, remainingQuota, requestAmount, maxRequestAmount, isRequesting, quickAmounts, onRequestAmountChange, onRequest, t }: RequestGasCardProps) {
   const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
 
+  // When the sponsorship API is unconfigured or down, do not present a "balance
+  // exceeds threshold" / enabled request that throws — state it honestly.
+  if (!serviceAvailable) {
+    return <div className="not-eligible-msg"><span className="warning-title">{t("sponsorServiceTitle")}</span><span className="warning-desc">{serviceNotice || t("sponsorServiceUnavailable")}</span></div>;
+  }
   if (!isEligible) {
     return <div className="not-eligible-msg"><span className="warning-title">{t("notEligibleTitle")}</span><span className="warning-desc">{t("balanceExceeds")}</span></div>;
   }

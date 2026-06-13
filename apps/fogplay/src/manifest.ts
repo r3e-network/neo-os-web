@@ -20,7 +20,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // -- Identity ---------------------------------------------------------------
   name: "FogPlay",
-  description: "Oracle-backed coin toss with on-chain escrow",
+  description: "Instant on-chain coin toss with a 2x payout",
   icon: "coin",
   category: "game",
   shell: "game",

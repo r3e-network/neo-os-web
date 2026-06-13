@@ -30,8 +30,15 @@ export const ATTEMPT_MEMO = "miniapp-unbreakablevault:attempt";
 /** Default attempt fee fallback in GAS base units (0.1 GAS = Easy tier). */
 export const DEFAULT_ATTEMPT_FEE_BASE = "10000000";
 
-/** How many of the newest vaults to enumerate per catalog refresh. */
+/** How many of the newest vaults to enumerate for the public catalog. */
 export const MAX_RECENT_VAULTS = 12;
+
+/**
+ * How deep to enumerate when filtering by creator ("My Vaults"). The contract
+ * has no per-creator index, so a creator's older vaults disappear from a shallow
+ * 12-vault scan; scan deeper so reclaim stays discoverable.
+ */
+export const MAX_MY_VAULTS_SCAN = 200;
 
 /** Hard cap on how many vaults to enumerate (defensive). */
 const MAX_ENUMERATE = 200;

@@ -10,6 +10,7 @@
  */
 
 import { defineMiniApp, createObservable, refsToObservables } from "@shared/react";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -43,6 +44,8 @@ defineMiniApp({
     // developer's claimable balance in human GAS — drive the register/withdraw UI.
     const myDeveloperId = createObservable(0);
     const myClaimableBalance = createObservable(0);
+    // Connected wallet's stranded tip credit (human GAS) — drives the reclaim row.
+    const myCredit = createObservable(0);
 
     const { notify } = ctx.services;
 
@@ -52,9 +55,14 @@ defineMiniApp({
       const mine = devId > 0 ? stats.developers.get().find((dev) => dev.id === devId) : undefined;
       myClaimableBalance.set(mine ? mine.balance : 0);
       // Defensive: if the registry resolves the wallet's dev by address but the
-      // id lookup hasn't run yet, keep balance consistent with the registry.
+      // id lookup hasn't run yet, keep balance consistent with the registry. The
+      // developer wallet comes back as a Hash160 ('0x…' hex) while addr is the
+      // base58 address — ownerMatchesAddress normalizes both before comparing (a
+      // raw `dev.wallet === addr` never matched, so this branch was dead).
       if (devId <= 0 && addr) {
-        const byWallet = stats.developers.get().find((dev) => dev.wallet === addr);
+        const byWallet = stats.developers.get().find(
+          (dev) => dev.wallet && ownerMatchesAddress(dev.wallet, addr),
+        );
         if (byWallet) {
           myDeveloperId.set(byWallet.id);
           myClaimableBalance.set(byWallet.balance);
@@ -72,8 +80,10 @@ defineMiniApp({
       const addr = wallet.address.get();
       if (addr) {
         myDeveloperId.set(await stats.developerIdOf(addr));
+        myCredit.set(await stats.creditOf(addr));
       } else {
         myDeveloperId.set(0);
+        myCredit.set(0);
       }
       syncMyDeveloper();
     };
@@ -81,13 +91,12 @@ defineMiniApp({
     ctx.registerAction("sendTip", async (...args: unknown[]) => {
       const devId = args[0] as number;
       const amount = args[1] as string;
-      const message = args[2] as string;
-      const tipperName = args[3] as string;
-      const anonymous = args[4] as boolean;
-      // Surface the guard result so PlayArea can distinguish success (truthy)
-      // from failure (undefined) and reset the form only on success.
+      const anonymous = args[2] as boolean;
+      // The contract stores no message/tipper name (those inputs were removed);
+      // pass empty strings for the composable's UI-only parameters. Surface the
+      // guard result so PlayArea resets the form only on success.
       const result = await notify.guard(
-        () => wallet.sendTip(devId, amount, message, tipperName, anonymous, () => void refresh()),
+        () => wallet.sendTip(devId, amount, "", "", anonymous, () => void refresh()),
         "tipSent",
       );
       return result === true;
@@ -114,6 +123,14 @@ defineMiniApp({
       return typeof result === "number" && result > 0;
     });
 
+    ctx.registerAction("withdrawCredit", async () => {
+      const result = await notify.guard(
+        () => wallet.withdrawCredit(() => void refresh()),
+        "creditWithdrawn",
+      );
+      return typeof result === "number" && result > 0;
+    });
+
     return {
       state: refsToObservables({
         developers: stats.developers,
@@ -128,6 +145,7 @@ defineMiniApp({
         recentTipCount,
         myDeveloperId,
         myClaimableBalance,
+        myCredit,
       }),
       loadData: refresh,
     };

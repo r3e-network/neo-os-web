@@ -34,12 +34,16 @@
  *        rising bonding-curve price, adds the cost to the round pot, makes the
  *        player the last buyer, and extends the countdown. If buyKeys fails
  *        after a successful deposit the credit simply remains on the contract as
- *        reusable prepaid credit for the next buy — there is no refund call (and
- *        none is needed; the funds are not lost).
+ *        reusable prepaid credit for the next buy — the deposit nets against any
+ *        existing creditOf(player), and a stranded balance is reclaimable via
+ *        withdraw (no funds are lost).
  *     settle() -> pot. PERMISSIONLESS. Once the round's countdown has expired it
  *        pays the recorded last buyer the entire pot atomically and advances to
  *        a fresh round. Anyone may call it; the on-chain last buyer is always the
  *        winner, regardless of who triggers the settle.
+ *     withdraw(account) -> credit. Pays the whole unused prepaid buy-credit back
+ *        to the wallet ("CreditWithdrawn" event, state[1] = amount) — the
+ *        recovery path when a deposit landed but buyKeys never completed.
  *
  * AMOUNT CONVENTION: the contract takes/returns BASE UNITS. GAS = human × 1e8.
  * getCurrentRound.endTime is MILLISECONDS (Runtime.Time units); remainingTime is
@@ -57,7 +61,8 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
-import { formatNumber, formatAddress } from "@shared/utils/format";
+import { formatNumber, formatAddress, fromFixed8 } from "@shared/utils/format";
+import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -195,6 +200,8 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
   const totalKeysInRound = createObservable(0n);
   const roundDataAvailable = createObservable(false);
   const serviceNotice = createObservable("");
+  /** Connected wallet's unused prepaid buy-credit (human GAS). */
+  const prepaidCredit = createObservable(0);
 
   // Connected wallet address (synced from main.tsx / chain).
   const address = createObservable<string | null>(chain.address.get() ?? null);
@@ -281,6 +288,9 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
     );
   }, []);
 
+  /** True when the connected wallet has unused prepaid buy-credit to withdraw. */
+  const hasCredit = createDerived(() => prepaidCredit.get() > 0, [prepaidCredit]);
+
   // ── Key cost formula (pure frontend math, mirrors the contract) ────
   const calculateKeyCostFormula = (count: bigint, currentTotalKeys: bigint): bigint => {
     if (count <= 0n) return 0n;
@@ -354,6 +364,29 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
     } catch (e) {
       console.warn("[useLastSurvivor] loadUserKeys failed:", errorMessage(e));
       userKeys.set(0);
+    }
+  };
+
+  /**
+   * Refresh the connected wallet's unused prepaid buy-credit from
+   * creditOf(account). Base units → human GAS. A missing wallet yields 0; a read
+   * failure leaves the last known value (the withdraw path re-reads before
+   * acting anyway).
+   */
+  const loadCredit = async () => {
+    const walletAddr = address.get();
+    const walletHash = walletAddr ? addressToScriptHash(walletAddr) || null : null;
+    if (!walletHash) {
+      prepaidCredit.set(0);
+      return;
+    }
+    try {
+      const raw = await chain.read("creditOf", [
+        { type: "Hash160", value: walletHash },
+      ]);
+      prepaidCredit.set(fromFixed8(parseBigInt(raw)));
+    } catch (e) {
+      console.warn("[useLastSurvivor] creditOf read failed:", errorMessage(e));
     }
   };
 
@@ -438,6 +471,7 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       const endTimeMs = remainingSeconds > 0 ? Date.now() + remainingSeconds * 1000 : 0;
       endTime.set(endTimeMs);
       await loadUserKeys();
+      await loadCredit();
       await loadHistory();
     } finally {
       isLoading.set(false);
@@ -511,22 +545,40 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
       }
       if (costBase <= 0n) throw new Error(t("invalidKeyCount"));
 
-      // Step 1: DEPOSIT — GAS transfer to the contract with the buy memo so
-      // OnNEP17Payment credits the player's prepaid balance.
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: playerHash },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: costBase.toString() },
-          { type: "String", value: BUY_MEMO },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
+      // Step 1: DEPOSIT — top up only the SHORTFALL beyond any prepaid credit
+      // left from a previous aborted buy, so stale credit is consumed instead of
+      // accumulating. When the existing credit already covers the cost the
+      // deposit is skipped entirely.
+      let credit = 0n;
+      try {
+        credit = parseBigInt(
+          await chain.read("creditOf", [{ type: "Hash160", value: playerHash }]),
+        );
+      } catch {
+        credit = 0n;
+      }
+
+      if (credit < costBase) {
+        // Wait for the contract's "Credited" event so the deposit is confirmed
+        // in a block before buyKeys consumes it — an unconfirmed deposit lets the
+        // buy execute first and fault on "insufficient deposit credit" with the
+        // funds already in flight (the shared invokeWithPayment path exists
+        // precisely because intra-block ordering is fee/hash-based).
+        await chain.invoke(
+          "transfer",
+          [
+            { type: "Hash160", value: playerHash },
+            { type: "Hash160", value: contractHash },
+            { type: "Integer", value: (costBase - credit).toString() },
+            { type: "String", value: BUY_MEMO },
+          ],
+          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
+        );
+      }
 
       // Step 2: buyKeys — consumes the prepaid credit. If this fails the credit
       // persists on the contract under the player and is reusable on the next
-      // buy (no refund needed; funds are not lost).
+      // buy (or withdrawable via withdrawCredit; funds are not lost).
       try {
         await chain.invoke(
           "buyKeys",
@@ -587,6 +639,52 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
     }
   };
 
+  /**
+   * Withdraw the connected wallet's unused prepaid buy-credit via
+   * withdraw(account). The contract pays the WHOLE credit back to the wallet —
+   * the recovery path when a deposit landed but buyKeys never completed. Returns
+   * the withdrawn amount in human GAS (from the "CreditWithdrawn" event,
+   * state[1] = amount).
+   */
+  const withdrawCredit = async (): Promise<{ amount: number }> => {
+    if (isLoading.get()) return { amount: 0 };
+
+    const accountAddr = address.get() || (await chain.ensureWallet());
+    const accountHash = addressToScriptHash(accountAddr || "");
+    if (!accountAddr || !accountHash) throw new Error(t("walletNotConnected"));
+    setAddress(accountAddr);
+
+    isLoading.set(true);
+    try {
+      // Read the live credit first — the contract reverts "no credit" on an empty
+      // balance, so surface a clean message before prompting the wallet.
+      let credit = 0n;
+      try {
+        credit = parseBigInt(
+          await chain.read("creditOf", [{ type: "Hash160", value: accountHash }]),
+        );
+      } catch {
+        credit = 0n;
+      }
+      if (credit <= 0n) throw new Error(t("noCredit"));
+
+      const result = await chain.invoke(
+        "withdraw",
+        [{ type: "Hash160", value: accountHash }],
+        { waitForEvent: "CreditWithdrawn" },
+      );
+
+      // OnCreditWithdrawn(account, amount) — amount is state index 1.
+      const amountBase = parseBigInt(eventValue(result.event, 1));
+      const amount = amountBase > 0n ? fromFixed8(amountBase) : fromFixed8(credit);
+
+      await loadAll();
+      return { amount };
+    } finally {
+      isLoading.set(false);
+    }
+  };
+
   return {
     // ── Raw State ───────────────────────────────────────────────────
     roundId,
@@ -603,6 +701,8 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
     roundDataAvailable,
     serviceNotice,
     totalKeysInRound,
+    prepaidCredit,
+    hasCredit,
     address,
 
     // ── Timer State ─────────────────────────────────────────────────
@@ -629,8 +729,10 @@ export function useLastSurvivor({ chain, t }: UseLastSurvivorOptions) {
     setAddress,
     buyKeys,
     settleRound,
+    withdrawCredit,
     loadAll,
     loadUserKeys,
+    loadCredit,
   };
 }
 

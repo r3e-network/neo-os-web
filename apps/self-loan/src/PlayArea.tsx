@@ -6,7 +6,7 @@
  * repay section, and add-collateral section.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -72,6 +72,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const totalLoans = num("totalLoans");
 
   const neoBalanceDisplay = str("neoBalanceDisplay");
+  const neoPriceDisplay = str("neoPriceDisplay");
+  const poolDisplay = str("poolDisplay");
+  const hasActiveLoan = bool("hasActiveLoan");
+  const borrowOkNonce = num("borrowOkNonce");
+  const repayOkNonce = num("repayOkNonce");
+  const addCollateralOkNonce = num("addCollateralOkNonce");
   const hasLoanDisplay = str("hasLoanDisplay");
   const healthFactorDisplay = str("healthFactorDisplay");
   const healthMetricLabel = str("healthMetricLabel");
@@ -94,12 +100,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [localAddCollateral, setLocalAddCollateral] = useState("");
 
   /* ---------- Handlers ---------- */
+  // Inputs are cleared by the success-nonce effects below (not after dispatch),
+  // so a swallowed failure (notify.guard resolves to undefined) preserves what
+  // the user typed instead of forcing a full re-entry.
   const handleBorrow = async () => {
-    if (!localCollateralAmt) return;
+    if (!localCollateralAmt || hasActiveLoan) return;
     await dispatch("borrow", {
       collateralAmount: localCollateralAmt,
     });
-    setLocalCollateralAmt("");
   };
 
   const handleSelectTier = (tier: number) => {
@@ -109,14 +117,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleRepay = async () => {
     if (!localRepayAmt) return;
     await dispatch("repay", localRepayAmt);
-    setLocalRepayAmt("");
   };
 
   const handleAddCollateral = async () => {
     if (!localAddCollateral) return;
     await dispatch("addCollateral", localAddCollateral);
-    setLocalAddCollateral("");
   };
+
+  /* Clear each form's local input only when its action actually succeeded — the
+     composable bumps a per-action nonce on success (and never on a swallowed
+     failure), so the effect runs on real completions only. */
+  useEffect(() => {
+    if (borrowOkNonce > 0) setLocalCollateralAmt("");
+  }, [borrowOkNonce]);
+  useEffect(() => {
+    if (repayOkNonce > 0) setLocalRepayAmt("");
+  }, [repayOkNonce]);
+  useEffect(() => {
+    if (addCollateralOkNonce > 0) setLocalAddCollateral("");
+  }, [addCollateralOkNonce]);
 
   const handleSetCollateralAmount = (v: string) => {
     setLocalCollateralAmt(v);
@@ -138,10 +157,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const healthPercent = Math.min(hf / 3, 1) * 100;
   const healthLabel =
     hf >= 2
-      ? t("safe") || "Safe"
+      ? t("safe")
       : hf >= 1.2
-        ? t("caution") || "Caution"
-        : t("danger") || "Danger";
+        ? t("caution")
+        : t("danger");
 
   /* ---------- Derived LTV ---------- */
   const ltvPct = selectedLtvPercent > 0 ? selectedLtvPercent : currentLTV;
@@ -167,9 +186,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const displayNeoBalance =
     neoBalanceDisplay || (neoBalance > 0 ? neoBalance.toFixed(2) : "0");
   const displayHealthFactor =
-    healthFactorDisplay || (hf > 0 ? hf.toFixed(2) : "--");
+    healthFactorDisplay || (hf > 0 ? hf.toFixed(2) : "—");
   const displayCurrentLTV =
-    currentLTVDisplay || (currentLTV > 0 ? `${currentLTV.toFixed(1)}%` : "--");
+    currentLTVDisplay || (currentLTV > 0 ? `${currentLTV.toFixed(1)}%` : "—");
   const displayCollateral =
     collateralDisplay ||
     ((loan as LoanData)?.collateral?.toLocaleString() ?? "0");
@@ -196,21 +215,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     Boolean((loan as LoanData | null)?.active) ||
     Boolean((loan as LoanData | null)?.borrowed);
 
+  /* Outstanding GAS debt (whole GAS) drives the repay "Max" chip. The repay
+     validation accepts up to 8 decimals, so trim the fill value to 8 dp and
+     drop trailing zeros to match what the user would type. */
+  const outstandingDebt = Math.max(0, Number((loan as LoanData | null)?.borrowed ?? 0));
+  const outstandingDebtInput =
+    outstandingDebt > 0
+      ? outstandingDebt.toFixed(8).replace(/\.?0+$/, "")
+      : "";
+
   return (
     <div className="selfloan-play-area">
       {/* ==================== Hero ==================== */}
       <div className="selfloan-hero">
         <div className="selfloan-hero-lead">
           <span className="selfloan-hero-badge" aria-hidden="true">
-            {"$"}
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="7" width="18" height="13" rx="2" />
+              <path d="M3 11h18" />
+              <path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
+              <circle cx="12" cy="15" r="1.5" />
+            </svg>
           </span>
           <div className="selfloan-hero-copy">
             <span className="selfloan-hero-eyebrow">
-              {t("eyebrow") || "SELF LOAN"}
+              {t("eyebrow")}
             </span>
-            <h2 className="selfloan-hero-title">{t("title") || "SelfLoan"}</h2>
+            <h2 className="selfloan-hero-title">{t("title")}</h2>
             <p className="selfloan-hero-subtitle">
-              {t("docSubtitle") || "Tiered LTV self-loans with auto-repayment"}
+              {t("docSubtitle")}
             </p>
           </div>
         </div>
@@ -220,7 +262,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {displayTotalLoans}
             </span>
             <span className="selfloan-hero-stat-label">
-              {t("totalLoans") || "Total Loans"}
+              {t("totalLoans")}
             </span>
           </div>
           <div className="selfloan-hero-stat">
@@ -228,7 +270,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {displayTotalBorrowed}
             </span>
             <span className="selfloan-hero-stat-label">
-              {t("totalBorrowed") || "Total Borrowed"}
+              {t("totalBorrowed")}
             </span>
           </div>
           <div className="selfloan-hero-stat">
@@ -236,7 +278,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {displayTotalRepaid}
             </span>
             <span className="selfloan-hero-stat-label">
-              {t("totalRepaid") || "Total Repaid"}
+              {t("totalRepaid")}
             </span>
           </div>
         </div>
@@ -244,19 +286,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <NeoCard
         variant="erobo"
-        title={t("profitAnchorTitle") || "ProfitAnchor Vote Route"}
+        title={t("profitAnchorTitle")}
       >
         <div className="selfloan-profit-anchor">
           <div>
             <span className="selfloan-profit-anchor-label">
-              {t("profitAnchorStatus") || "Collateral vote signal"}
+              {t("profitAnchorStatus")}
             </span>
             <span className="selfloan-profit-anchor-value">
-              {t("profitAnchorValue") || "Operator-selected council candidate"}
+              {t("profitAnchorValue")}
             </span>
           </div>
           <div className="selfloan-profit-anchor-badge">
-            {t("profitAnchorBadge") || "Vote-only dependency"}
+            {t("profitAnchorBadge")}
           </div>
         </div>
       </NeoCard>
@@ -265,13 +307,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {hasLoan && (
         <NeoCard
           variant="erobo"
-          title={t("loanStatus") || "Your Loan"}
+          title={t("loanStatus")}
         >
           <div className="selfloan-status">
             <div className="selfloan-status-row">
               <div className="selfloan-status-item">
                 <span className="selfloan-status-label">
-                  {t("collateral") || "Collateral"}
+                  {t("collateral")}
                 </span>
                 <span className="selfloan-status-value">
                   {displayCollateral} NEO
@@ -279,7 +321,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
               <div className="selfloan-status-item">
                 <span className="selfloan-status-label">
-                  {t("borrowed") || "Borrowed"}
+                  {t("borrowed")}
                 </span>
                 <span className="selfloan-status-value">
                   {displayBorrowed} GAS
@@ -287,7 +329,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
               <div className="selfloan-status-item">
                 <span className="selfloan-status-label">
-                  {t("currentLTV") || "Current LTV"}
+                  {t("currentLTV")}
                 </span>
                 <span className="selfloan-status-value">
                   {displayCurrentLTV}
@@ -299,7 +341,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="selfloan-health">
               <div className="selfloan-health-header">
                 <span className="selfloan-health-label">
-                  {healthMetricLabel || t("healthFactor") || "Health Factor"}
+                  {healthMetricLabel || t("healthFactor")}
                 </span>
                 <span
                   className="selfloan-health-value"
@@ -317,12 +359,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   }}
                 />
               </div>
+              {/* Endpoint labels describe the ratio extremes, not a liquidation
+                  event — this product never force-liquidates, so the low end is
+                  "Under-collateralized", not "Liquidation". */}
               <div className="selfloan-health-markers">
-                <span>{t("liquidation") || "Liquidation"}</span>
+                <span>{t("underCollateralized")}</span>
                 <span className="selfloan-health-status-label" style={{ color: healthColor }}>
                   {healthLabel}
                 </span>
-                <span>{t("safe") || "Safe"}</span>
+                <span>{t("safe")}</span>
               </div>
             </div>
           </div>
@@ -332,15 +377,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* ==================== Borrow Form ==================== */}
       <NeoCard
         variant="erobo"
-        title={t("borrow") || "Borrow"}
+        title={t("borrow")}
       >
         <div className="selfloan-form">
           <div className="selfloan-balance-hint">
-            {t("yourBalance") || "Your Balance"}:{" "}
+            {t("yourBalance")}:{" "}
             <strong>{displayNeoBalance} NEO</strong>
           </div>
           <NeoInput
-            label={t("collateralAmount") || "Collateral (NEO)"}
+            label={t("collateralAmount")}
             placeholder="0.00"
             type="number"
             value={localCollateralAmt || collateralAmount}
@@ -348,7 +393,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             onChange={handleSetCollateralAmount}
           />
           {/* LTV Tier Selector */}
-          <div className="selfloan-ltv-tiers" role="group" aria-label={t("ltvTier") || "LTV Tier"}>
+          <div className="selfloan-ltv-tiers" role="group" aria-label={t("ltvTier")}>
             {ltvOptions.map((option) => (
               <button
                 key={option.tier}
@@ -366,12 +411,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             ))}
           </div>
 
+          {/* Rate the debt is sized by + pool liquidity available to disburse.
+              Both come straight from the contract (neoPrice / pool); hidden when
+              no price is configured so the borrow math stays honest. */}
+          {neoPriceDisplay && (
+            <div className="selfloan-balance-hint">
+              {t("rateLabel")}:{" "}
+              <strong>{t("rateValue", { price: neoPriceDisplay })}</strong>
+            </div>
+          )}
+          <div className="selfloan-balance-hint">
+            {t("poolAvailable")}: <strong>{poolDisplay}</strong>
+          </div>
+
           {/* Expected borrow (collateral × LTV, net of origination fee) */}
           <div className="selfloan-balance-hint">
-            {(feeBps > 0
-              ? t("estimatedBorrowNet")
-              : t("estimatedBorrow")) ||
-              "Estimated Borrow"}
+            {feeBps > 0 ? t("estimatedBorrowNet") : t("estimatedBorrow")}
             :{" "}
             <strong>
               {expectedBorrow > 0 ? expectedBorrow.toFixed(2) : "0.00"} GAS
@@ -379,8 +434,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           {feeBps > 0 && grossBorrow > 0 && (
             <div className="selfloan-balance-hint">
-              {t("originationFee", { percent: feePercent }) ||
-                "Origination fee"}
+              {t("originationFee", { percent: feePercent })}
               : <strong>{feeAmount.toFixed(2)} GAS</strong>
             </div>
           )}
@@ -388,13 +442,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           {/* LTV Selector / Indicator */}
           <div className="selfloan-ltv-indicator">
             <span className="selfloan-ltv-label">
-              {t("selectedLTV") || "LTV Ratio"}
+              {t("selectedLTV")}
             </span>
             <span
               className="selfloan-ltv-value"
               style={{ color: ltvColor }}
             >
-              {ltvPct > 0 ? `${ltvPct}%` : "--"}
+              {ltvPct > 0 ? `${ltvPct}%` : "—"}
             </span>
             <div className="selfloan-ltv-track">
               <div
@@ -406,13 +460,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
             </div>
             <div className="selfloan-ltv-hints">
-              <span>{t("conservative") || "Conservative"}</span>
-              <span>{t("aggressive") || "Aggressive"}</span>
+              <span>{t("conservative")}</span>
+              <span>{t("aggressive")}</span>
             </div>
           </div>
 
           <div className="selfloan-cta">
-            {isConnected ? (
+            {!isConnected ? (
+              <div className="selfloan-connect-prompt" role="note">
+                <span className="selfloan-connect-prompt-icon" aria-hidden="true">
+                  {"🔒"}
+                </span>
+                <span className="selfloan-connect-prompt-text">
+                  {t("connectWalletToUse")}
+                </span>
+              </div>
+            ) : hasActiveLoan ? (
+              /* One loan per address — block the Borrow path up front (the
+                 contract would otherwise revert in step 2, AFTER the NEO
+                 deposit lands) and point at Add Collateral / Repay. */
+              <div className="selfloan-connect-prompt" role="note">
+                <span className="selfloan-connect-prompt-icon" aria-hidden="true">
+                  {"ℹ️"}
+                </span>
+                <span className="selfloan-connect-prompt-text">
+                  {t("loanAlreadyActiveHint")}
+                </span>
+              </div>
+            ) : (
               <NeoButton
                 variant="primary"
                 block
@@ -420,17 +495,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 disabled={!localCollateralAmt || isBorrowing}
                 onClick={handleBorrow}
               >
-                {t("borrow") || "Borrow"}
+                {t("borrow")}
               </NeoButton>
-            ) : (
-              <div className="selfloan-connect-prompt" role="note">
-                <span className="selfloan-connect-prompt-icon" aria-hidden="true">
-                  {"🔒"}
-                </span>
-                <span className="selfloan-connect-prompt-text">
-                  {t("connectWalletToUse") || "Connect wallet to use Self Loan"}
-                </span>
-              </div>
             )}
           </div>
         </div>
@@ -440,17 +506,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {hasLoan && (
         <NeoCard
           variant="erobo"
-          title={t("repay") || "Repay Loan"}
+          title={t("repay")}
         >
           <div className="selfloan-form">
-            <NeoInput
-              label={t("repayAmount") || "Repay Amount"}
-              placeholder="0.00"
-              type="number"
-              value={localRepayAmt}
-              suffix="GAS"
-              onChange={setLocalRepayAmt}
-            />
+            <div className="selfloan-repay-field">
+              <NeoInput
+                label={t("repayAmount")}
+                placeholder="0.00"
+                type="number"
+                value={localRepayAmt}
+                suffix="GAS"
+                onChange={setLocalRepayAmt}
+              />
+              {/* Max chip fills the exact outstanding debt so the user need not
+                  copy the Borrowed figure to repay in full. */}
+              {outstandingDebt > 0 && (
+                <button
+                  type="button"
+                  className="selfloan-max-chip"
+                  onClick={() => setLocalRepayAmt(outstandingDebtInput)}
+                >
+                  {t("maxRepay")}
+                </button>
+              )}
+            </div>
             <NeoButton
               variant="success"
               block
@@ -458,7 +537,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               disabled={!localRepayAmt || isRepaying}
               onClick={handleRepay}
             >
-              {t("repay") || "Repay"}
+              {t("repay")}
             </NeoButton>
           </div>
         </NeoCard>
@@ -468,15 +547,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {hasLoan && (
         <NeoCard
           variant="erobo"
-          title={t("addCollateral") || "Add Collateral"}
+          title={t("addCollateral")}
         >
           <div className="selfloan-form">
             <div className="selfloan-balance-hint">
-              {t("availableBalance") || "Available"}:{" "}
+              {t("availableBalance")}:{" "}
               <strong>{displayNeoBalance} NEO</strong>
             </div>
             <NeoInput
-              label={t("addCollateralAmount") || "Additional Collateral"}
+              label={t("addCollateralAmount")}
               placeholder="0.00"
               type="number"
               value={localAddCollateral}
@@ -490,7 +569,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               disabled={!localAddCollateral || isAddingCollateral}
               onClick={handleAddCollateral}
             >
-              {t("addCollateral") || "Add Collateral"}
+              {t("addCollateral")}
             </NeoButton>
           </div>
         </NeoCard>
@@ -502,14 +581,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           never borrowed against, or a GAS repay-deposit that was never applied).
           These cards give the user an explicit recovery path so no funds strand. */}
       {hasCollateralCredit && (
-        <NeoCard variant="erobo" title={t("reclaimCollateralTitle") || "Reclaim Collateral"}>
+        <NeoCard variant="erobo" title={t("reclaimCollateralTitle")}>
           <div className="selfloan-form">
             <div className="selfloan-balance-hint">
-              {t("reclaimCollateralCopy") ||
-                "You have NEO credited as collateral that was never borrowed against."}
+              {t("reclaimCollateralCopy")}
             </div>
             <div className="selfloan-balance-hint">
-              {t("reclaimable") || "Reclaimable"}:{" "}
+              {t("reclaimable")}:{" "}
               <strong>{collateralCreditDisplay}</strong>
             </div>
             <NeoButton
@@ -519,21 +597,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               disabled={isProcessing}
               onClick={handleReclaimCollateral}
             >
-              {t("reclaimCollateral") || "Reclaim Collateral"}
+              {t("reclaimCollateral")}
             </NeoButton>
           </div>
         </NeoCard>
       )}
 
       {hasRepayCredit && (
-        <NeoCard variant="erobo" title={t("reclaimRepayTitle") || "Reclaim Repay Credit"}>
+        <NeoCard variant="erobo" title={t("reclaimRepayTitle")}>
           <div className="selfloan-form">
             <div className="selfloan-balance-hint">
-              {t("reclaimRepayCopy") ||
-                "You have GAS deposited as repay credit that was never applied to a loan."}
+              {t("reclaimRepayCopy")}
             </div>
             <div className="selfloan-balance-hint">
-              {t("reclaimable") || "Reclaimable"}:{" "}
+              {t("reclaimable")}:{" "}
               <strong>{repayCreditDisplay}</strong>
             </div>
             <NeoButton
@@ -543,7 +620,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               disabled={isProcessing}
               onClick={handleReclaimRepayCredit}
             >
-              {t("reclaimRepayCredit") || "Reclaim Repay Credit"}
+              {t("reclaimRepayCredit")}
             </NeoButton>
           </div>
         </NeoCard>
@@ -553,7 +630,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {isLoading && (
         <div className="selfloan-loading-overlay">
           <div className="selfloan-loading-spinner" />
-          <span>{t("loading") || "Loading..."}</span>
+          <span>{t("loading")}</span>
         </div>
       )}
     </div>

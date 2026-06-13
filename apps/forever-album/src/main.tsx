@@ -18,9 +18,6 @@ defineMiniApp({
   setup(ctx) {
     const album = useForeverAlbum({
       chainService: ctx.services.chain,
-      nftService: ctx.os.nft,
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
@@ -79,6 +76,10 @@ defineMiniApp({
       album.removeImage(id as string);
     });
 
+    ctx.registerAction("deletePhoto", async (id: unknown) => {
+      await notify.guard(() => album.deletePhoto(id as string), "photoDeleted");
+    });
+
     ctx.registerAction("addFiles", async (...args: unknown[]) => {
       const files = args[0] as File[] | FileList | undefined;
       if (!files) return;
@@ -100,13 +101,13 @@ defineMiniApp({
         decryptTarget: album.decryptTarget,
         decrypting: album.decrypting,
         decryptedPreview: album.decryptedPreview,
+        decryptError: album.decryptError,
         showUpload: album.showUpload,
         selectedImages: album.selectedImages,
         isEncrypted: album.isEncrypted,
         password: album.password,
         totalPayloadSize: album.totalPayloadSize,
         maxTotalBytes: album.maxTotalBytes,
-        lastTx: album.lastTx,
       },
       loadData: album.loadPhotos,
     };

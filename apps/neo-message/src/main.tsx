@@ -14,9 +14,11 @@ import {
   decodeUintArray,
   decodeMessageStruct,
   utf8ToBytes,
+  hasEvmWallet,
 } from "@shared/utils/evm-chain";
 import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
 import { encryptTextWithOraclePublicKey } from "@shared/utils/morpheus-confidential-envelope";
+import { safeReadJSON, safeWriteJSON } from "@shared/utils/safe-storage";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -38,6 +40,32 @@ const appId = "miniapp-neo-message";
 
 const DEFAULT_FORM: ComposeForm = { recipient: "", body: "", lockMode: "recipient", revealDate: "" };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Cap the per-refresh getMessage fan-out: ids are monotonically increasing, so
+// the newest PAGE_SIZE rows are the relevant ones; a heavy account would
+// otherwise fire hundreds of parallel wallet-provider RPCs on every refresh.
+const PAGE_SIZE = 50;
+
+// Recipient-only plaintext is decrypted off-chain (never written on-chain), so
+// a refresh re-reads chain state with revealed=false and wipes it. Persist the
+// decrypted plaintext on-device, keyed by contract:id:recipient, and overlay it
+// back onto rows where the connected wallet is the recipient.
+const PLAINTEXT_KEY = `${MESSAGE_EVM_ADDRESS.toLowerCase()}:plaintext:v1`;
+
+function plaintextCacheKey(id: string, recipient: string): string {
+  return `${id}:${recipient.toLowerCase()}`;
+}
+
+function readPlaintextCache(): Record<string, string> {
+  const raw = safeReadJSON<Record<string, string>>(PLAINTEXT_KEY);
+  return raw && typeof raw === "object" ? raw : {};
+}
+
+function cachePlaintext(id: string, recipient: string, plaintext: string): void {
+  const cache = readPlaintextCache();
+  cache[plaintextCacheKey(id, recipient)] = plaintext;
+  safeWriteJSON(PLAINTEXT_KEY, cache);
+}
 
 let cachedOraclePublicKey = "";
 async function getOraclePublicKey(): Promise<string> {
@@ -61,15 +89,28 @@ defineMiniApp({
   setup(ctx) {
     const address = createObservable("");
     const networkSupported = createObservable(false);
+    const hasWallet = createObservable(hasEvmWallet());
     const inbox = createObservable<MessageView[]>([]);
     const outbox = createObservable<MessageView[]>([]);
     const isLoading = createObservable(false);
     const isSending = createObservable(false);
-    const busyId = createObservable(""); // message id currently revealing
+    // Ids whose reveal is in flight — per-row so one slow poll does not disable
+    // every other reveal button.
+    const busyIds = createObservable<string[]>([]);
+    // Whether more inbox/outbox ids exist beyond the loaded page.
+    const hasMore = createObservable(false);
+    const pageSize = createObservable(PAGE_SIZE);
     const lastStatus = createObservable(ctx.t("statusReady"));
     const composeForm = createObservable<ComposeForm>({ ...DEFAULT_FORM });
 
     const setForm = (patch: Partial<ComposeForm>) => composeForm.set({ ...composeForm.get(), ...patch });
+
+    const addBusy = (id: string) => {
+      if (!busyIds.get().includes(id)) busyIds.set([...busyIds.get(), id]);
+    };
+    const removeBusy = (id: string) => {
+      busyIds.set(busyIds.get().filter((x) => x !== id));
+    };
 
     const readMessage = async (id: string): Promise<MessageView | null> => {
       try {
@@ -90,32 +131,64 @@ defineMiniApp({
       }
     };
 
-    const loadIdsFor = async (selector: string, who: string): Promise<MessageView[]> => {
+    // Overlay any device-cached recipient-only plaintext back onto a row so a
+    // just-decrypted message survives a refresh without a fresh signature +
+    // oracle round-trip (only for rows the connected wallet can decrypt).
+    const overlayCachedPlaintext = (rows: MessageView[], who: string): MessageView[] => {
+      const cache = readPlaintextCache();
+      return rows.map((row) => {
+        if (row.revealed || row.plaintext || !addressesEqual(who, row.recipient)) {
+          return row;
+        }
+        const cached = cache[plaintextCacheKey(row.id, row.recipient)];
+        return cached ? { ...row, plaintext: cached, revealed: true } : row;
+      });
+    };
+
+    const loadIdsFor = async (
+      selector: string,
+      who: string,
+    ): Promise<{ rows: MessageView[]; total: number }> => {
       const argsHex = encodeParams([{ t: "address", v: who }]);
       const raw = await evmCallEncoded(MESSAGE_EVM_ADDRESS, selector, argsHex);
-      const ids = decodeUintArray(raw).map((n) => n.toString());
-      const rows = await Promise.all(ids.map((id) => readMessage(id)));
-      // newest first
-      return rows.filter((r): r is MessageView => r !== null).sort((a, b) => Number(b.id) - Number(a.id));
+      const allIds = decodeUintArray(raw).map((n) => n.toString());
+      // Slice to the newest page before fetching (ids are monotonic) so we never
+      // fan out an unbounded number of getMessage calls.
+      const limit = pageSize.get();
+      const pageIds = [...allIds].sort((a, b) => Number(b) - Number(a)).slice(0, limit);
+      const fetched = await Promise.all(pageIds.map((id) => readMessage(id)));
+      const rows = fetched
+        .filter((r): r is MessageView => r !== null)
+        .sort((a, b) => Number(b.id) - Number(a.id));
+      return { rows, total: allIds.length };
     };
 
     const refreshLists = async (who: string) => {
-      const [inboxRows, outboxRows] = await Promise.all([
+      const [inboxResult, outboxResult] = await Promise.all([
         loadIdsFor(SELECTORS.inboxOf, who),
         loadIdsFor(SELECTORS.outboxOf, who),
       ]);
-      inbox.set(inboxRows);
-      outbox.set(outboxRows);
+      inbox.set(overlayCachedPlaintext(inboxResult.rows, who));
+      outbox.set(outboxResult.rows);
+      const limit = pageSize.get();
+      hasMore.set(inboxResult.total > limit || outboxResult.total > limit);
     };
 
     const ensureNeoX = async (): Promise<string> => {
-      const net = await ctx.services.chain.detectNetwork();
-      if (!ctx.services.chain.isEvmNetwork(net)) {
+      // If an EVM wallet is present, prompt it to switch/add Neo X directly
+      // rather than dead-ending a MetaMask user on Ethereum (or an N3-default
+      // wallet exposing an EVM provider) with "switch manually". The static
+      // wrong-network card is reserved for when no EVM provider exists at all.
+      if (!hasEvmWallet()) {
         networkSupported.set(false);
-        throw new Error(ctx.t("errorWrongNetwork"));
+        hasWallet.set(false);
+        throw new Error(ctx.t("errorNoEvmWallet"));
       }
-      networkSupported.set(true);
+      hasWallet.set(true);
+      // ensureEvmWallet → ensureNeoXNetwork (wallet_switchEthereumChain /
+      // wallet_addEthereumChain) then connectEvm.
       const addr = await ctx.services.chain.ensureEvmWallet(NEO_X_MAINNET);
+      networkSupported.set(true);
       address.set(addr);
       return addr;
     };
@@ -188,8 +261,8 @@ defineMiniApp({
     // off-chain through the oracle edge. Plaintext is shown locally only.
     ctx.registerAction("revealRecipient", async (row: unknown) => {
       const msg = row as MessageView;
-      if (!msg?.id || busyId.get()) return;
-      busyId.set(msg.id);
+      if (!msg?.id || busyIds.get().includes(msg.id)) return;
+      addBusy(msg.id);
       lastStatus.set(ctx.t("statusRevealing"));
       ctx.setStatus(ctx.t("statusRevealing"), "info");
       try {
@@ -209,10 +282,13 @@ defineMiniApp({
         if (!res.ok || typeof body.plaintext !== "string") {
           throw new Error(body.error || ctx.t("statusFailed"));
         }
-        // Show plaintext locally without writing it on-chain.
+        const plaintext = body.plaintext;
+        // Show plaintext locally without writing it on-chain, and cache it so a
+        // refresh does not force another signature + oracle round-trip.
+        cachePlaintext(msg.id, msg.recipient, plaintext);
         inbox.set(
           inbox.get().map((r) =>
-            r.id === msg.id ? { ...r, plaintext: body.plaintext as string, revealed: true } : r,
+            r.id === msg.id ? { ...r, plaintext, revealed: true } : r,
           ),
         );
         lastStatus.set(ctx.t("statusRevealed"));
@@ -222,16 +298,54 @@ defineMiniApp({
         lastStatus.set(m);
         ctx.setStatus(m, "error");
       } finally {
-        busyId.set("");
+        removeBusy(msg.id);
       }
     });
 
     // Time-locked reveal: trigger the on-chain requestReveal; the relayer
     // decrypts and posts plaintext on-chain. Poll until revealed.
+    // Track ids already under a background recheck so we never stack timers.
+    const backgroundRechecks = new Set<string>();
+
+    const patchRevealed = (id: string, updated: MessageView) => {
+      inbox.set(inbox.get().map((r) => (r.id === id ? updated : r)));
+      outbox.set(outbox.get().map((r) => (r.id === id ? updated : r)));
+    };
+
+    // After the foreground poll window, keep checking at a low frequency (every
+    // 30s for up to 10 min) so a slow relayer's reveal patches the row without a
+    // manual Refresh. Stops on the first revealed read.
+    const scheduleBackgroundRecheck = (id: string) => {
+      if (backgroundRechecks.has(id)) return;
+      backgroundRechecks.add(id);
+      let attempts = 0;
+      const tick = async () => {
+        if (attempts >= 20) {
+          backgroundRechecks.delete(id);
+          return;
+        }
+        attempts += 1;
+        try {
+          const updated = await readMessage(id);
+          if (updated?.revealed) {
+            patchRevealed(id, updated);
+            backgroundRechecks.delete(id);
+            lastStatus.set(ctx.t("statusRevealed"));
+            ctx.setStatus(ctx.t("statusRevealed"), "success");
+            return;
+          }
+        } catch {
+          /* transient read error — try again next tick */
+        }
+        setTimeout(() => void tick(), 30000);
+      };
+      setTimeout(() => void tick(), 30000);
+    };
+
     ctx.registerAction("requestTimedReveal", async (row: unknown) => {
       const msg = row as MessageView;
-      if (!msg?.id || busyId.get()) return;
-      busyId.set(msg.id);
+      if (!msg?.id || busyIds.get().includes(msg.id)) return;
+      addBusy(msg.id);
       lastStatus.set(ctx.t("statusRequestingReveal"));
       ctx.setStatus(ctx.t("statusRequestingReveal"), "info");
       try {
@@ -248,8 +362,7 @@ defineMiniApp({
           await sleep(5000);
           const updated = await readMessage(msg.id);
           if (updated?.revealed) {
-            inbox.set(inbox.get().map((r) => (r.id === msg.id ? updated : r)));
-            outbox.set(outbox.get().map((r) => (r.id === msg.id ? updated : r)));
+            patchRevealed(msg.id, updated);
             lastStatus.set(ctx.t("statusRevealed"));
             ctx.setStatus(ctx.t("statusRevealed"), "success");
             return;
@@ -257,12 +370,48 @@ defineMiniApp({
         }
         lastStatus.set(ctx.t("statusRevealPending"));
         ctx.setStatus(ctx.t("statusRevealPending"), "info");
+        // The relayer is taking >3 min: keep checking in the background so the
+        // row patches itself instead of going stale until a manual Refresh.
+        scheduleBackgroundRecheck(msg.id);
       } catch (e) {
         const m = e instanceof Error ? e.message : ctx.t("statusFailed");
         lastStatus.set(m);
         ctx.setStatus(m, "error");
       } finally {
-        busyId.set("");
+        removeBusy(msg.id);
+      }
+    });
+
+    ctx.registerAction("switchToNeoX", async () => {
+      if (isLoading.get()) return;
+      isLoading.set(true);
+      try {
+        const addr = await ensureNeoX();
+        await refreshLists(addr);
+        lastStatus.set(ctx.t("statusInboxLoaded"));
+        ctx.setStatus(ctx.t("statusInboxLoaded"), "success");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : ctx.t("error");
+        lastStatus.set(msg);
+        ctx.setStatus(msg, "error");
+      } finally {
+        isLoading.set(false);
+      }
+    });
+
+    ctx.registerAction("loadOlder", async () => {
+      const who = address.get();
+      if (!who || isLoading.get()) return;
+      isLoading.set(true);
+      try {
+        pageSize.set(pageSize.get() + PAGE_SIZE);
+        await refreshLists(who);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : ctx.t("error");
+        lastStatus.set(msg);
+        ctx.setStatus(msg, "error");
+      } finally {
+        isLoading.set(false);
       }
     });
 
@@ -274,16 +423,19 @@ defineMiniApp({
       state: {
         address,
         networkSupported,
+        hasWallet,
         inbox,
         outbox,
         isLoading,
         isSending,
-        busyId,
+        busyIds,
+        hasMore,
         lastStatus,
         composeForm,
       },
       loadData: async () => {
         try {
+          hasWallet.set(hasEvmWallet());
           const net = await ctx.services.chain.detectNetwork();
           const supported = ctx.services.chain.isEvmNetwork(net);
           networkSupported.set(supported);

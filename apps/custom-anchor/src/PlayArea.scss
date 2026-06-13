@@ -378,6 +378,195 @@
   line-height: 1.5;
 }
 
+/* Discover + register share the collapsible card chrome of the model panel. */
+.custom-anchor-discover,
+.custom-anchor-register {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface, #fff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+
+  summary {
+    display: block;
+    min-height: 24px;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::after {
+      content: "+";
+      float: right;
+      color: var(--ns-brand-strong, #0fb174);
+      font-weight: 800;
+    }
+  }
+
+  &[open] summary::after {
+    content: "−";
+  }
+
+  &__body {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+}
+
+.custom-anchor-discover__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  span {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ns-text-muted, #8a92a6);
+  }
+}
+
+.custom-anchor-discover__empty {
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 13px;
+}
+
+.custom-anchor-discover__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    border-radius: var(--ns-radius-md, 14px);
+    background: var(--ns-surface-subtle, #f7f8fa);
+  }
+}
+
+.custom-anchor-discover__id {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  font-size: 12px;
+  color: var(--ns-ink, #1e1e2e);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-anchor-discover__mode {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.custom-anchor-mode-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  align-self: flex-start;
+}
+
+.custom-anchor-mode {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  padding: 7px 16px;
+  border-radius: var(--ns-radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 700;
+  background: transparent;
+  color: var(--ns-text-muted, #8a92a6);
+
+  &.active {
+    background: var(--ns-surface, #fff);
+    color: var(--ns-brand-strong, #0fb174);
+    box-shadow: var(--ns-shadow-sm, 0 1px 2px rgba(20, 22, 38, 0.06));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ns-brand, #16c784);
+    outline-offset: 2px;
+  }
+}
+
+.custom-anchor-register__note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* Stranded credit recovery card. */
+.custom-anchor-credit-card {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface, #fff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.custom-anchor-credit-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.custom-anchor-credit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  border: 1px solid rgba(15, 177, 116, 0.18);
+
+  span {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ns-text-2, #5b6478);
+  }
+
+  strong {
+    flex: 1 1 auto;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--ns-brand-strong, #0fb174);
+  }
+}
+
 @media (max-width: 860px) {
   .custom-anchor-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));

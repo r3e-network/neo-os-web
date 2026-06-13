@@ -51,7 +51,8 @@ import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import { formatGas } from "@shared/utils/format";
-import { addressToScriptHash } from "@shared/utils/neo";
+import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
+import { eventValue } from "@shared/utils/chain-events";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
@@ -68,6 +69,26 @@ export const CHECKIN_MEMO = "miniapp-dailycheckin:checkin";
 
 /** Default check-in fee in base units (0.001 GAS) until the contract reports one. */
 const DEFAULT_CHECKIN_FEE = 100_000;
+
+/** How many on-chain events to scan when hydrating the activity history. */
+const HISTORY_EVENT_LIMIT = 100;
+/** Newest-first cap on the rendered history list (matches addHistory's cap). */
+const HISTORY_DISPLAY_LIMIT = 10;
+
+/** Parse an indexer event's block_time (ISO string or epoch) to an ISO string. */
+const eventTimeToIso = (value: unknown): string => {
+  if (value == null) return new Date(0).toISOString();
+  const raw = typeof value === "number" ? value : String(value);
+  // Numeric epoch (seconds or ms) → normalize to ms; otherwise parse the string.
+  if (typeof raw === "number" || /^\d+$/.test(raw)) {
+    const n = Number(raw);
+    const ms = n > 10_000_000_000 ? n : n * 1000;
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? new Date(0).toISOString() : d.toISOString();
+  }
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? new Date(0).toISOString() : d.toISOString();
+};
 
 export interface CheckinHistoryItem {
   streak: number;
@@ -169,7 +190,13 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
   // timestamp (ms). These drive the eligibility window because the contract day
   // unit is not a JS calendar day.
   const chainCurrentDay = createObservable(0);
-  const chainCanCheckin = createObservable(true);
+  // Eligibility is UNKNOWN until the first chain read — starting it `true` let a
+  // user who already checked in today (opening disconnected) fire a check-in
+  // that the contract faults at test-invoke with a confusing raw error. The CTA
+  // stays disabled until hasLoadedStatus flips, and doCheckIn re-reads status
+  // when it had to connect first.
+  const chainCanCheckin = createObservable(false);
+  const hasLoadedStatus = createObservable(false);
   const nextEligibleTs = createObservable(0);
 
   const checkinHistory = createObservable<CheckinHistoryItem[]>([]);
@@ -378,6 +405,74 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     ].slice(0, 10));
   };
 
+  /**
+   * Hydrate the activity history from the on-chain CheckedIn / RewardsClaimed
+   * event logs for the connected wallet, so a fresh open shows real history
+   * (the in-session addHistory only captured actions taken this session).
+   *
+   * Best-effort: a failed indexer read leaves any session history intact.
+   */
+  const hydrateHistory = async (address: string) => {
+    if (!address) return;
+    try {
+      const [checkins, claims] = await Promise.all([
+        chain.listEvents("CheckedIn", { limit: HISTORY_EVENT_LIMIT }),
+        chain.listEvents("RewardsClaimed", { limit: HISTORY_EVENT_LIMIT }),
+      ]);
+
+      const hydrated: CheckinHistoryItem[] = [];
+
+      // CheckedIn(user, streak, reward, nextEligibleTs).
+      for (const event of checkins) {
+        if (!ownerMatchesAddress(String(eventValue(event, 0) ?? ""), address)) continue;
+        const ev = event as { txid?: string; block_time?: unknown };
+        hydrated.push({
+          action: "checkin",
+          streak: intFromValue(eventValue(event, 1)),
+          reward: intFromValue(eventValue(event, 2)),
+          time: eventTimeToIso(ev.block_time),
+          txid: ev.txid || "",
+        });
+      }
+
+      // RewardsClaimed(user, amount, totalClaimed).
+      for (const event of claims) {
+        if (!ownerMatchesAddress(String(eventValue(event, 0) ?? ""), address)) continue;
+        const ev = event as { txid?: string; block_time?: unknown };
+        hydrated.push({
+          action: "claim",
+          streak: 0,
+          reward: intFromValue(eventValue(event, 1)),
+          time: eventTimeToIso(ev.block_time),
+          txid: ev.txid || "",
+        });
+      }
+
+      if (hydrated.length === 0) return;
+
+      // Merge: prefer the on-chain rows but keep any session rows whose txid the
+      // indexer hasn't picked up yet. De-dupe by txid, newest-first by time.
+      const byTxid = new Map<string, CheckinHistoryItem>();
+      const noTxid: CheckinHistoryItem[] = [];
+      const ingest = (item: CheckinHistoryItem) => {
+        if (item.txid) {
+          if (!byTxid.has(item.txid)) byTxid.set(item.txid, item);
+        } else {
+          noTxid.push(item);
+        }
+      };
+      hydrated.forEach(ingest);
+      checkinHistory.get().forEach(ingest);
+
+      const merged = [...byTxid.values(), ...noTxid].sort(
+        (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime(),
+      );
+      checkinHistory.set(merged.slice(0, HISTORY_DISPLAY_LIMIT));
+    } catch (e) {
+      console.warn("[useCheckin] history hydration failed:", e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const loadAll = async (options: LoadOptions = {}) => {
     const shouldRecord = options.record === true;
     // A load is already running — coalesce to avoid two concurrent reads racing
@@ -401,6 +496,10 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
       }
       const data = await readChainState(userHash);
       applyChainState(data);
+      hasLoadedStatus.set(true);
+      // Hydrate the activity history from the on-chain event log so a fresh
+      // open shows real past check-ins/claims (best-effort, address-scoped).
+      await hydrateHistory(chain.address.get() ?? "");
       if (shouldRecord) {
         recordSuccess("refreshStatus", t("statusLoaded"), {
           currentStreak: currentStreak.get(),
@@ -426,7 +525,11 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
 
   const doCheckIn = async () => {
     if (isLoading.get()) return;
-    if (!canCheckIn.get()) {
+    // Eligibility is only authoritative once the chain status has loaded. When
+    // it has and the contract says ineligible, bail with the friendly message.
+    // When it hasn't (user opened disconnected then clicked), the post-connect
+    // re-read inside the try block makes the real decision.
+    if (hasLoadedStatus.get() && !canCheckIn.get()) {
       recordSuccess("doCheckIn", t("checkinUnavailable"), null);
       return;
     }
@@ -440,6 +543,17 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     try {
       const userHash = await resolveUserHash();
       if (!userHash) throw new Error(t("walletRequired"));
+
+      // If resolveUserHash performed a first-time connect (status never loaded),
+      // read the live eligibility before invoking so an already-checked-in user
+      // gets the friendly "wait for next" state instead of a faulted test-invoke.
+      if (!hasLoadedStatus.get()) {
+        await loadAll({ record: false }).catch(() => undefined);
+        if (!canCheckIn.get()) {
+          recordSuccess("doCheckIn", t("checkinUnavailable"), null);
+          return;
+        }
+      }
 
       const contractHash = chain.contractAddress.get();
       if (!contractHash) throw new Error(t("contractNotReady"));
@@ -600,6 +714,7 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     latestResult,
 
     canCheckIn,
+    hasLoadedStatus,
     utcTimeDisplay,
     nextUtcMidnight,
     currentUtcDay,

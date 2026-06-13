@@ -65,6 +65,14 @@ function t(key: string) {
       "Enter an AccountId hash and verifier contract hash before submitting.",
     hookUpdateBlocked:
       "Enter an AccountId hash and hook contract hash before submitting.",
+    notInspected: "not inspected",
+    pendingVerifierTitle: "Pending verifier rotation",
+    pendingHookTitle: "Pending hook rotation",
+    pendingUnlockReady: "Timelock elapsed — confirm to finalize.",
+    confirmUpdate: "Confirm",
+    cancelUpdate: "Cancel",
+    notBackupOwner:
+      "Connect the backup-owner wallet to rotate this account's bindings.",
   };
   return messages[key] ?? key;
 }
@@ -166,6 +174,54 @@ describe("AA Permissions Lab PlayArea launch flow", () => {
       (screen.getByRole("button", { name: "Update Hook" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it("shows 'not inspected' until a read completes, then 'configured'", () => {
+    const { rerender } = render(
+      <PlayArea
+        t={t}
+        state={baseState()}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}`,
+        )}
+      />,
+    );
+    // Typing an account id alone must NOT assert configured state.
+    expect(screen.getByText("not inspected")).toBeTruthy();
+    expect(screen.queryByText("configured")).toBeNull();
+
+    rerender(
+      <PlayArea
+        t={t}
+        state={baseState({ hasInspected: true })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}`,
+        )}
+      />,
+    );
+    expect(screen.getByText("configured")).toBeTruthy();
+  });
+
+  it("surfaces a confirm/cancel banner for a pending verifier rotation", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ hasInspected: true, hasPendingVerifier: true })}
+        dispatch={dispatch}
+        launchContext={launch(
+          `https://neomini.app/miniapps/aa-permissions-lab?accountIdHash=${ACCOUNT_ID_HASH}`,
+        )}
+      />,
+    );
+
+    expect(screen.getByText("Pending verifier rotation")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("confirmVerifier", ACCOUNT_ID_HASH);
+    });
   });
 
   it("refreshes visible fields when launch params change in the same mount", () => {

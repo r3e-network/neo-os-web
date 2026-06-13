@@ -51,7 +51,7 @@ defineMiniApp({
       const first = args[0];
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
-      if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired") || "Envelope ID is required");
+      if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired"));
       await ctx.services.notify.guard(
         () => envelope.handleClaimFromPool(id),
         "envelopeClaimed",
@@ -62,7 +62,7 @@ defineMiniApp({
       const first = args[0];
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
-      if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired") || "Envelope ID is required");
+      if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired"));
       await ctx.services.notify.guard(async () => {
         const { amount } = await envelope.reclaimEnvelope(id);
         if (amount > 0) {
@@ -88,6 +88,23 @@ defineMiniApp({
 
     ctx.registerAction("dismissOverlay", async () => {
       envelope.luckyMessage.set(null);
+    });
+
+    // Copy a OneGate-claimable deep link for the freshly created envelope —
+    // the distribution step the product is named for. The recipient opens the
+    // link and the envelope id prefills their claim field (see PlayArea launch
+    // params: envelopeId/poolId/id/packet).
+    ctx.registerAction("shareEnvelope", async (...args: unknown[]) => {
+      const first = args[0];
+      const form = first && typeof first === "object" ? (first as Record<string, unknown>) : null;
+      const id = String(form?.envelopeId ?? first ?? envelope.lastCreatedEnvelopeId.get() ?? "").trim();
+      if (!id) return;
+      const deeplink = `neomainapp://red-envelope?envelopeId=${id}`;
+      await ctx.services.clipboard.copy(deeplink, "shareLinkCopied");
+    });
+
+    ctx.registerAction("dismissShare", async () => {
+      envelope.lastCreatedEnvelopeId.set("");
     });
 
     // Synthetic stats (composable doesn't expose totalCreated/totalClaimed yet)
@@ -117,6 +134,7 @@ defineMiniApp({
         claimCount: envelope.claimCount,
         poolCount: envelope.poolCount,
         prepaidCredit: envelope.prepaidCredit,
+        lastCreatedEnvelopeId: envelope.lastCreatedEnvelopeId,
         totalCreated,
         totalClaimed,
         createAmount,

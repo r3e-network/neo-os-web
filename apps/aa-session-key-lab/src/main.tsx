@@ -83,12 +83,20 @@ defineMiniApp({
         targetContract: unknown,
         allowedMethod: unknown,
         expiresAt: unknown,
+        spendingLimit: unknown,
+        description: unknown,
       ) => {
         lab.form.accountSeed = String(accountSeed);
         lab.form.sessionPublicKey = String(sessionPublicKey);
         lab.form.targetContract = String(targetContract);
         lab.form.allowedMethod = String(allowedMethod);
         lab.form.expiresAt = String(expiresAt);
+        if (spendingLimit !== undefined) {
+          lab.form.spendingLimit = String(spendingLimit);
+        }
+        if (description !== undefined) {
+          lab.form.description = String(description);
+        }
         await ctx.services.notify.guard(
           () => lab.configureSessionKey(),
           "sessionConfigured",
@@ -97,9 +105,30 @@ defineMiniApp({
       },
     );
 
+    ctx.registerAction("inspectSession", async (accountSeed: unknown) => {
+      lab.form.accountSeed = String(accountSeed);
+      await ctx.services.notify.guard(
+        () => lab.inspectSessionKey(),
+        "sessionInspected",
+        "sessionInspectFailed",
+      );
+    });
+
+    ctx.registerAction("revokeSession", async (accountSeed: unknown) => {
+      lab.form.accountSeed = String(accountSeed);
+      await ctx.services.notify.guard(
+        () => lab.revokeSessionKey(),
+        "sessionRevoked",
+        "sessionRevokeFailed",
+      );
+    });
+
     return {
       state: {
         isSubmitting: lab.isSubmitting,
+        isRevoking: lab.isRevoking,
+        hasOnChainSession: lab.hasOnChainSession,
+        onChainSession: lab.onChainSession,
         isCheckingSponsorship: lab.isCheckingSponsorship,
         detailItems: lab.detailItems,
         derivedAccountIdHash: lab.derivedAccountIdHash,

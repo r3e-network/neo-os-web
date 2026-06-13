@@ -212,6 +212,7 @@
   background: var(--ns-text-muted);
 }
 
+/* Loaded + fresh: green (within the staleness threshold). */
 .price-status--live {
   color: var(--ns-brand-strong);
   background: var(--ns-brand-soft);
@@ -220,6 +221,31 @@
 
 .price-status--live .price-status__dot {
   background: var(--ns-brand);
+}
+
+/* Stale: amber warning (read succeeded but the feed has not updated within the
+   threshold) so a frozen feed is never presented as a live price. The
+   data-freshness attribute overrides the --live green above. Uses the canonical
+   Neo Soft warning tokens. */
+.price-status[data-freshness="stale"] {
+  color: var(--ns-warning-strong, #b9791a);
+  background: var(--ns-warning-soft, #fff3dd);
+  box-shadow: none;
+}
+
+.price-status[data-freshness="stale"] .price-status__dot {
+  background: var(--ns-warning, #f5a623);
+}
+
+.price-stale-note {
+  padding: 11px 15px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-warning-soft, #fff3dd);
+  color: var(--ns-warning-strong, #b9791a);
+  box-shadow: inset 0 0 0 1px rgba(245, 166, 35, 0.28);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .price-action-panel {

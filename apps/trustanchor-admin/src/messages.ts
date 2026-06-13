@@ -2,6 +2,28 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   tabOverview: { en: "Overview", zh: "概览" },
+  appName: { en: "TrustAnchor Admin", zh: "TrustAnchor 管理台" },
+  noneFallback: { en: "None", zh: "无" },
+  operatorRequiredEyebrow: { en: "Read-only", zh: "只读" },
+  operatorRequiredTitle: {
+    en: "Operator wallet required",
+    zh: "需要运营方钱包",
+  },
+  operatorRequiredBody: {
+    en: "Connect the TrustAnchor operator wallet ({address}) to move NEO, update candidates, or sync votes. Controls are read-only for other wallets.",
+    zh: "请连接 TrustAnchor 运营方钱包（{address}）以调仓、更新候选人或同步投票。其他钱包下控制项为只读。",
+  },
+  operatorRequiredBodyNoAddress: {
+    en: "Connect the TrustAnchor operator wallet to move NEO, update candidates, or sync votes. Controls are read-only for other wallets.",
+    zh: "请连接 TrustAnchor 运营方钱包以调仓、更新候选人或同步投票。其他钱包下控制项为只读。",
+  },
+  invalidAmount: { en: "NEO is indivisible — enter a whole number", zh: "NEO 不可分割 — 请输入整数" },
+  invalidAgentId: { en: "Agent ID must be a whole number from 1 to 21", zh: "Agent ID 必须是 1 到 21 之间的整数" },
+  invalidCandidateKey: { en: "Candidate must be a 33-byte compressed public key", zh: "候选人必须是 33 字节压缩公钥" },
+  invalidVerificationHash: { en: "Verification script hash must be even-length hex", zh: "Verification script hash 必须是偶数长度的十六进制" },
+  invalidAgentAccount: { en: "Agent account must be a Neo address or Hash160", zh: "Agent 账户必须是 Neo 地址或 Hash160" },
+  sameAgent: { en: "Choose two different agents", zh: "请选择两个不同的 agent" },
+  missingContract: { en: "PlatformAnchor contract is not configured", zh: "PlatformAnchor 合约尚未配置" },
   adminHeroTitle: { en: "Move. Target. Vote.", zh: "调仓。定向。投票。" },
   adminHeroSubtitle: {
     en: "Manual NEO routing only. Prepare every TrustAnchor AA agent transfer, candidate update, and vote sync from one operator console.",

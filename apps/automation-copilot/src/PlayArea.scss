@@ -272,6 +272,112 @@
   gap: 12px;
 }
 
+/* Schedule presets — quick-fill chips below the cron field. */
+.automation-schedule-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.automation-schedule-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.automation-preset {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.1));
+  background: var(--ns-surface, #fff);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ns-text-muted, #8a92a6);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+  &:hover { border-color: var(--ns-brand, #16c784); color: var(--ns-brand-strong, #0fb174); }
+  &:focus-visible { outline: none; box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18)); }
+
+  &--active {
+    background: var(--ns-brand-soft, #e4f8f0);
+    border-color: var(--ns-brand, #16c784);
+    color: var(--ns-brand-strong, #0fb174);
+  }
+}
+
+/* Manage Triggers — full list with select + delete (was only the latest). */
+.automation-trigger-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.08));
+}
+.automation-trigger-list__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+.automation-trigger-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--ns-radius-sm, 12px);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.08));
+  background: var(--ns-surface, #fff);
+
+  &--active {
+    border-color: var(--ns-brand, #16c784);
+    background: var(--ns-brand-soft, #e4f8f0);
+  }
+}
+.automation-trigger-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+
+  &:focus-visible { outline: none; box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18)); }
+}
+.automation-trigger-row__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ns-ink, #1e1e2e);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.automation-trigger-row__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.automation-trigger-row__state {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &--on { color: var(--ns-brand-strong, #0fb174); }
+  &--off { color: var(--ns-text-muted, #8a92a6); }
+}
+.automation-trigger-row__active {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
 .automation-details__config {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

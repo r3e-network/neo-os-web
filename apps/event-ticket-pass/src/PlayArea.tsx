@@ -3,15 +3,19 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardCheck,
+  Copy,
   QrCode,
   RefreshCw,
   ScanLine,
+  Send,
   Ticket,
   UserPlus,
+  X,
 } from "lucide-react";
 import { NeoButton, NeoInput, NeoSelect } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import TokenQr from "./components/TokenQr";
 import type { EventItem, TicketItem } from "./types";
 import "./PlayArea.scss";
 
@@ -67,6 +71,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const issueSeat = str("issueSeat");
   const issueMemo = str("issueMemo");
   const checkinTokenId = str("checkinTokenId");
+  const transferTokenId = str("transferTokenId");
+  const transferRecipient = str("transferRecipient");
   const workflowStatus = str("workflowStatus", t("ready"));
   const lastError = str("lastError");
   const isLoading = bool("isLoading");
@@ -76,8 +82,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isIssuing = bool("isIssuing");
   const isLookingUp = bool("isLookingUp");
   const isCheckingIn = bool("isCheckingIn");
+  const isTransferring = bool("isTransferring");
+  const transferringTokenId = str("transferringTokenId");
   const canIssueTicket = bool("canIssueTicket");
   const canCheckInTicket = bool("canCheckInTicket");
+  const canTransferTicket = bool("canTransferTicket");
   const togglingId = str("togglingId");
   const requestJson = json(latestRequest);
   const resultJson = json(latestResult);
@@ -202,7 +211,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="ticket-panel__head ticket-panel__head--row">
             <div>
               <span>{t("yourEvents")}</span>
-              <strong>{events.length ? t("eventSelected") : t("emptyEvents")}</strong>
+              <strong>
+                {events.length
+                  ? selectedEvent?.name || t("eventsCountLabel", { count: events.length })
+                  : t("emptyEvents")}
+              </strong>
             </div>
             <NeoButton variant="ghost" size="sm" loading={isRefreshing} onClick={() => dispatch("refreshEvents")}>
               <RefreshCw size={15} aria-hidden="true" />
@@ -386,18 +399,106 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         {tickets.length ? (
           <div className="ticket-grid">
-            {tickets.map((ticket) => (
-              <article key={ticket.tokenId} className="ticket-pass">
-                <div>
-                  <span>{ticket.eventName || ticket.eventId}</span>
-                  <strong>{ticket.seat || t("seatFallback")}</strong>
-                </div>
-                <span className={`ticket-badge ${ticket.used ? "used" : "valid"}`}>
-                  {ticket.used ? t("ticketUsed") : t("ticketValid")}
-                </span>
-                <code>{ticket.tokenId}</code>
-              </article>
-            ))}
+            {tickets.map((ticket) => {
+              const isTransferTarget = transferTokenId === ticket.tokenId;
+              const isThisTransferring = transferringTokenId === ticket.tokenId;
+              return (
+                <article key={ticket.tokenId} className="ticket-pass">
+                  <div className="ticket-pass__head">
+                    <div>
+                      <span>{ticket.eventName || ticket.eventId}</span>
+                      <strong>{ticket.seat || t("seatFallback")}</strong>
+                    </div>
+                    <span className={`ticket-badge ${ticket.used ? "used" : "valid"}`}>
+                      {ticket.used ? t("ticketUsed") : t("ticketValid")}
+                    </span>
+                  </div>
+
+                  {/* Show the token-ID QR the door/check-in flow expects, so an
+                      attendee can present it instead of reading the id aloud. */}
+                  <div className="ticket-pass__qr">
+                    <TokenQr value={ticket.tokenId} label={t("ticketQrLabel")} />
+                  </div>
+
+                  <div className="ticket-pass__id">
+                    <code>{ticket.tokenId}</code>
+                    <button
+                      type="button"
+                      className="ticket-icon-button"
+                      aria-label={t("copyTokenId")}
+                      title={t("copyTokenId")}
+                      onClick={() => dispatch("copyTokenId", ticket.tokenId)}
+                    >
+                      <Copy size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+
+                  {!ticket.used && (
+                    <div className="ticket-pass__transfer">
+                      {isTransferTarget ? (
+                        <form
+                          className="ticket-transfer-form"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void dispatch("transferTicket", {
+                              tokenId: ticket.tokenId,
+                              recipient: transferRecipient,
+                            });
+                          }}
+                        >
+                          <NeoInput
+                            value={transferRecipient}
+                            label={t("transferRecipient")}
+                            placeholder={t("transferRecipientPlaceholder")}
+                            onChange={(value) =>
+                              state.transferRecipient?.set(value)
+                            }
+                          />
+                          <div className="ticket-transfer-form__actions">
+                            <NeoButton
+                              variant="primary"
+                              size="sm"
+                              loading={isThisTransferring}
+                              disabled={!canTransferTicket || isTransferring}
+                              onClick={() =>
+                                dispatch("transferTicket", {
+                                  tokenId: ticket.tokenId,
+                                  recipient: transferRecipient,
+                                })
+                              }
+                            >
+                              <Send size={14} aria-hidden="true" />
+                              <span>{t("transferTicket")}</span>
+                            </NeoButton>
+                            <NeoButton
+                              variant="ghost"
+                              size="sm"
+                              disabled={isThisTransferring}
+                              onClick={() =>
+                                state.transferTokenId?.set("")
+                              }
+                            >
+                              <X size={14} aria-hidden="true" />
+                              <span>{t("cancel")}</span>
+                            </NeoButton>
+                          </div>
+                        </form>
+                      ) : (
+                        <NeoButton
+                          variant="secondary"
+                          size="sm"
+                          disabled={isTransferring}
+                          onClick={() => dispatch("startTransfer", ticket)}
+                        >
+                          <Send size={14} aria-hidden="true" />
+                          <span>{t("transferTicket")}</span>
+                        </NeoButton>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="ticket-empty">

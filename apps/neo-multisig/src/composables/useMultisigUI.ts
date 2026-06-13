@@ -25,10 +25,12 @@ export function useMultisigUI() {
   const formatDate = (ts: string) => {
     const date = new Date(ts);
     if (Number.isNaN(date.getTime())) return "";
+    // Use the runtime locale (undefined) rather than a hardcoded "en" so zh
+    // users see locale-formatted dates in the activity panel.
     return (
-      date.toLocaleDateString("en") +
+      date.toLocaleDateString(undefined) +
       " " +
-      date.toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" })
+      date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
     );
   };
 

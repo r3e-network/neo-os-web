@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Copy, Share2 } from "lucide-react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable, ObservableState } from "@shared/react/context";
 import { formatHash } from "@shared/utils/format";
 import TemplateList from "./components/TemplateList";
+import TokenQr from "./components/TokenQr";
 import type { CertificateItem, TemplateItem } from "./types";
 import "./PlayArea.scss";
 
@@ -80,6 +82,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     "verifiedCertificate",
     null,
   );
+  const verifiedIsIssuer = bool("verifiedIsIssuer");
   const address = str("address", "");
   const isConnecting = bool("isConnecting");
   const isRefreshing = bool("isRefreshing");
@@ -94,6 +97,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const lastSuccess = str("lastSuccess", "");
   const deepLinkTemplateId = str("deepLinkTemplateId", "");
   const deepLinkAutoIssue = bool("deepLinkAutoIssue");
+  const deepLinkVerifyTokenId = str("deepLinkVerifyTokenId", "");
 
   const [createForm, setCreateForm] = useState({
     name: "Neo Course Completion",
@@ -113,6 +117,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const issuePanelRef = useRef<HTMLDivElement | null>(null);
   const deepLinkApplied = useRef(false);
+  const verifyDeepLinkApplied = useRef(false);
 
   // Read side of the Copy/Share Issue Link deep-link: when the app is opened
   // with ?issueTemplateId=…, preselect that template in the Issue panel (and
@@ -141,6 +146,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
     void dispatch("consumeDeepLink");
   }, [deepLinkTemplateId, deepLinkAutoIssue, dispatch]);
+
+  // Recipient-facing verify deep-link (?verifyTokenId=…): prefill and run the
+  // permissionless Verify lookup once so a shared certificate opens already
+  // resolved instead of on the empty default state.
+  useEffect(() => {
+    if (verifyDeepLinkApplied.current) return;
+    const linkedTokenId = deepLinkVerifyTokenId.trim();
+    if (!linkedTokenId) return;
+    verifyDeepLinkApplied.current = true;
+    setVerifyTokenId(linkedTokenId);
+    void dispatch("verifyCertificate", { tokenId: linkedTokenId });
+    void dispatch("consumeVerifyDeepLink");
+  }, [deepLinkVerifyTokenId, dispatch]);
 
   const selectedTemplate = useMemo(
     () => templates.find((template) => template.id === issueForm.templateId),
@@ -202,7 +220,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section className="certificate-hero" aria-label={t("title")}>
         <div className="hero-lead">
           <div className="hero-badge">
-            <IdentityGlyph title={t("title") || "Soulbound Certificate"} />
+            <IdentityGlyph title={t("title")} />
           </div>
           <div className="hero-copy">
             <span className="hero-eyebrow">{t("issuerWorkspaceTitle")}</span>
@@ -373,7 +391,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             onIssue={selectTemplateForIssue}
             onToggle={(template) => dispatch("toggleTemplate", template)}
             onCopyIssueLink={(template) => dispatch("copyIssueLink", template)}
-            onShareIssueLink={(template) => dispatch("shareIssueLink", template)}
             t={t}
           />
 
@@ -530,7 +547,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       </div>
                     )}
                 </dl>
-                {!verifiedCertificate.revoked && (
+
+                <div className="certificate-detail__qr">
+                  <TokenQr
+                    value={verifiedCertificate.tokenId}
+                    label={t("tokenQrLabel")}
+                  />
+                  <span className="certificate-detail__qr-caption">
+                    {t("tokenQrCaption")}
+                  </span>
+                </div>
+
+                <div className="certificate-detail__share">
+                  <button
+                    type="button"
+                    className="certificate-button"
+                    onClick={() =>
+                      dispatch("copyVerifyLink", verifiedCertificate.tokenId)
+                    }
+                  >
+                    <Copy size={15} aria-hidden="true" />
+                    <span>{t("copyVerifyLink")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="certificate-button"
+                    onClick={() =>
+                      dispatch("shareVerifyLink", verifiedCertificate.tokenId)
+                    }
+                  >
+                    <Share2 size={15} aria-hidden="true" />
+                    <span>{t("shareVerifyLink")}</span>
+                  </button>
+                </div>
+
+                {!verifiedCertificate.revoked && verifiedIsIssuer && (
                   <div className="certificate-detail__revoke">
                     <NeoButton
                       size="sm"
@@ -542,6 +593,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       {isRevoking ? t("revoking") : t("revoke")}
                     </NeoButton>
                   </div>
+                )}
+                {!verifiedCertificate.revoked && !verifiedIsIssuer && (
+                  <p className="certificate-detail__note">
+                    {t("onlyIssuerCanRevoke")}
+                  </p>
                 )}
               </div>
             ) : (

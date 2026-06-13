@@ -67,7 +67,7 @@ defineMiniApp({
           : String(input.streamId ?? "");
       const stream = findStreamById(id);
       if (!stream) {
-        ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
+        ctx.setStatus(ctx.t("streamNotFound"), "error");
         return;
       }
       await ctx.services.notify.guard(
@@ -84,7 +84,7 @@ defineMiniApp({
           : String(input.streamId ?? "");
       const stream = findStreamById(id);
       if (!stream) {
-        ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
+        ctx.setStatus(ctx.t("streamNotFound"), "error");
         return;
       }
       await ctx.services.notify.guard(

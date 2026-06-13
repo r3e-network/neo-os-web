@@ -119,6 +119,18 @@
   background: var(--ns-brand-strong, #0fb174);
 }
 
+.treasury-hero__dot--stale {
+  background: var(--ns-warning, #f5a623);
+}
+
+.treasury-hero__warning {
+  margin: 6px 0 0 !important;
+  color: var(--ns-warning-strong, #b9791a) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+}
+
 .treasury-hero__metrics {
   display: grid;
   gap: 12px;
@@ -421,6 +433,22 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+}
+
+.treasury-watchlist__tag {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.treasury-group-warning {
+  color: var(--ns-warning-strong, #b9791a);
+  font-size: 0.6875rem;
+  font-weight: 700;
 }
 
 .treasury-group-card {

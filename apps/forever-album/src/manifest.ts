@@ -2,7 +2,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Forever Album",
-  description: "Store photos permanently on the blockchain",
+  description: "A private, wallet-scoped photo album kept on your device, with optional local encryption",
   icon: "camera",
   category: "social",
   shell: "launcher",

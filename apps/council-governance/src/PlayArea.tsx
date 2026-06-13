@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -26,6 +27,7 @@ interface Proposal {
   quorumRequired: number;
   quorumReached: boolean;
   creator: string;
+  creatorDisplay?: string;
   createTime: number;
   expiryTime: number;
   policyMethod?: string;
@@ -146,8 +148,26 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
   };
 
   const handleFinalize = async (proposalId: number) => {
+    await dispatch("finalizeProposal", proposalId);
+  };
+
+  // Execute a finalized, passed POLICY proposal — applies the on-chain
+  // PolicyContract change (a distinct step from finalize).
+  const handleExecute = async (proposalId: number) => {
     await dispatch("executeProposal", proposalId);
   };
+
+  // Revoke an own, still-active proposal (creator-gated below).
+  const handleRevoke = async (proposalId: number) => {
+    await dispatch("revokeProposal", proposalId);
+  };
+
+  // A proposal is the connected wallet's own when the creator script hash
+  // matches — compared via ownerMatchesAddress so the contract's LE hash lines
+  // up with the wallet address. neo-community mirror entries are never ownable.
+  const isOwnProposal = (proposal: Proposal): boolean =>
+    proposal.source !== "neo-community" &&
+    ownerMatchesAddress(proposal.creator, walletAddress);
 
   const handleCreateProposal = async () => {
     // dispatch forwards the action payload at runtime (typed Promise<void>);
@@ -391,7 +411,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
 
                     <div className="council-proposal-meta">
                       <span>{t("quorum")}: {proposal.totalVotes}/{proposal.quorumRequired || "—"}</span>
-                      <span>{t("creator")}: {shortAddress(proposal.creator)}</span>
+                      <span>{t("creator")}: {shortAddress(proposal.creatorDisplay ?? proposal.creator)}</span>
                       <span>{t("votingEnds")}: {formatDate(proposal.expiryTime)}</span>
                     </div>
 
@@ -471,6 +491,36 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             </NeoButton>
           )}
 
+          {/* Execute the on-chain PolicyContract change for a passed POLICY
+              proposal — a distinct step from finalize (previously unreachable,
+              the action was aliased to finalize). */}
+          {selectedProposal.type === 1 &&
+            selectedProposal.statusKey === "passed" &&
+            selectedProposal.source !== "neo-community" && (
+              <NeoButton
+                variant="secondary"
+                size="md"
+                block
+                disabled={!canWrite}
+                onClick={() => handleExecute(selectedProposal.id)}
+              >
+                {t("executeProposal")}
+              </NeoButton>
+            )}
+
+          {/* Revoke an own, still-active proposal (creator exit path). */}
+          {selectedProposal.statusKey === "active" && isOwnProposal(selectedProposal) && (
+            <NeoButton
+              variant="danger"
+              size="md"
+              block
+              disabled={!walletAddress}
+              onClick={() => handleRevoke(selectedProposal.id)}
+            >
+              {t("revokeProposal")}
+            </NeoButton>
+          )}
+
           <details className="council-more-details">
             <summary>{t("proposalDetails")}</summary>
             <dl className="council-details-grid">
@@ -478,7 +528,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                 <dt>{t("proposalId")}</dt>
                 <dd>{selectedProposal.externalId ? `#${selectedProposal.id} · ${selectedProposal.externalId}` : `#${selectedProposal.id}`}</dd>
               </div>
-              <div><dt>{t("creator")}</dt><dd>{shortAddress(selectedProposal.creator)}</dd></div>
+              <div><dt>{t("creator")}</dt><dd>{shortAddress(selectedProposal.creatorDisplay ?? selectedProposal.creator)}</dd></div>
               {selectedProposal.policyMethod && (
                 <div><dt>{t("policyMethod")}</dt><dd>{selectedProposal.policyMethod}</dd></div>
               )}

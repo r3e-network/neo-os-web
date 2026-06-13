@@ -13,7 +13,6 @@
   --sign-accent-soft: var(--ns-brand-soft, #e4f8f0);
   --sign-badge-bg: var(--ns-brand-soft, #e4f8f0);
   --sign-badge-fg: var(--ns-brand-strong, #0fb174);
-  --sign-purple: var(--ns-violet, #16c784);
   --sign-danger: var(--ns-down, #ea3943);
   --sign-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   --sign-shadow-sm: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
@@ -350,8 +349,54 @@
 }
 
 .sign-message-field textarea:focus {
-  border-color: var(--sign-purple);
+  border-color: var(--sign-accent);
   box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+}
+
+.sign-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sign-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sign-file-note {
+  flex: 1;
+  min-width: 0;
+  color: var(--sign-label);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.sign-fee-note {
+  margin: 8px 0 0;
+  color: var(--sign-label);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.sign-result-meta {
+  display: block;
+  margin-top: 4px;
+  color: var(--sign-label);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--ns-font-mono, "SFMono-Regular", Consolas, monospace);
 }
 
 .sign-action-grid {

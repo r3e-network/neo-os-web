@@ -58,6 +58,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const rollHistory = val<RollHistoryItem[]>("rollHistory", []) ?? [];
   const chainLabel = str("chainLabel");
   const maxStake = val<number>("maxStake", 20) ?? 20;
+  const houseLiquidity = val<number>("houseLiquidity", 0) ?? 0;
+  const directCredit = val<number>("directCredit", 0) ?? 0;
+  const maxPayableStake = val<number>("maxPayableStake", 0) ?? 0;
   const lastRoll = str("lastRoll");
   const lastOutcome = (str("lastOutcome") || "") as RollOutcome;
   const isResolving = bool("isResolving");
@@ -65,8 +68,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [faceInput, setFaceInput] = useState(selectedFace);
   const [amountInput, setAmountInput] = useState(amountFromStake(stakeAmount));
   const [formError, setFormError] = useState("");
-  const stakeIsValid = useMemo(() => isValidStake(amountInput, maxStake), [amountInput, maxStake]);
-  const activePayout = payoutFor(amountInput, payoutPreview, maxStake);
+  // The effective cap is the smaller of the network stake cap and what the house
+  // can currently pay a win on (maxPayableStake, read on Neo N3). When liquidity
+  // is unknown (0, e.g. EVM or pre-load) the network cap stands alone.
+  const effectiveMaxStake = useMemo(
+    () => (maxPayableStake > 0 ? Math.min(maxStake, maxPayableStake) : maxStake),
+    [maxStake, maxPayableStake],
+  );
+  const stakeIsValid = useMemo(
+    () => isValidStake(amountInput, effectiveMaxStake),
+    [amountInput, effectiveMaxStake],
+  );
+  const activePayout = payoutFor(amountInput, payoutPreview, effectiveMaxStake);
   const normalizedAmount = useMemo(() => normalizeAmount(amountInput), [amountInput]);
   const numericStake = Number(normalizedAmount);
   const netPayout =
@@ -197,6 +210,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {MIN_STAKE}-{maxStake} GAS
                 </strong>
               </span>
+              {houseLiquidity > 0 && (
+                <span title={t("maxPayableLabel")}>
+                  {t("houseLiquidityLabel")}
+                  <strong>{houseLiquidity.toFixed(2)} GAS</strong>
+                </span>
+              )}
             </div>
             <div className="dice-rule-strip" aria-label={t("diceRoundSummary")}>
               <span>{t("diceRuleCommit")}</span>
@@ -253,7 +272,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 type="number"
                 inputMode="decimal"
                 min={MIN_STAKE}
-                max={maxStake}
+                max={effectiveMaxStake}
                 step="0.01"
                 value={amountInput}
                 aria-label={t("stakeAmount")}
@@ -264,21 +283,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <em>
                 {stakeIsValid
                   ? `${t("stakeHelp")} ${activePayout}`
-                  : `${t("invalidStake")} · ${t("maxStakeNote")} ${maxStake} GAS`}
+                  : `${t("invalidStake")} · ${t("maxStakeNote")} ${effectiveMaxStake} GAS`}
               </em>
             </label>
 
             <div className="dice-stake-presets" aria-label={t("stakePresets")}>
-              {STAKE_PRESETS.filter((preset) => Number(preset) <= maxStake).map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  disabled={isSubmitting}
-                  onClick={() => setAmountInput(preset)}
-                >
-                  {preset} GAS
-                </button>
-              ))}
+              {STAKE_PRESETS.map((preset) => {
+                // Grey out presets above the network cap OR above what the house
+                // can currently pay — pressing one would strand the GAS as credit.
+                const unpayable = Number(preset) > effectiveMaxStake;
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    className={unpayable ? "dice-preset--unpayable" : undefined}
+                    disabled={isSubmitting || unpayable}
+                    title={
+                      unpayable && maxPayableStake > 0
+                        ? t("statusStakeOverLiquidity", {
+                            max: maxPayableStake.toFixed(2),
+                            tokenGas: t("tokenGas"),
+                          })
+                        : undefined
+                    }
+                    onClick={() => setAmountInput(preset)}
+                  >
+                    {preset} GAS
+                  </button>
+                );
+              })}
             </div>
 
             <button
@@ -289,6 +322,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {isSubmitting ? t("statusSubmitting") : t("rollAction")}
             </button>
           </form>
+
+          {directCredit > 0 && (
+            <div className="dice-credit-banner" role="status">
+              {t("directCreditBanner", {
+                amount: directCredit.toFixed(2),
+                tokenGas: t("tokenGas"),
+              })}
+            </div>
+          )}
 
           <div className={`dice-status-bar${formError ? " dice-status-bar--error" : ""}`} aria-live="polite">
             <span>{formError || lastStatus}</span>

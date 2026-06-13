@@ -27,20 +27,10 @@ type SelectedImage = {
   size?: number;
 };
 
-type TxReceipt = {
-  txid?: string;
-  success?: boolean;
-};
-
 function formatBytes(value: number, t: PlayAreaProps["t"]) {
   if (!Number.isFinite(value) || value <= 0) return `0 ${t("sizeUnitByte")}`;
   if (value < 1024) return `${value} ${t("sizeUnitByte")}`;
   return `${(value / 1024).toFixed(1)} ${t("sizeUnitKbyte")}`;
-}
-
-function compactTxId(txid: string) {
-  if (txid.length <= 18) return txid;
-  return `${txid.slice(0, 10)}...${txid.slice(-8)}`;
 }
 
 export default function PlayArea({
@@ -67,11 +57,11 @@ export default function PlayArea({
   const password = str("password", "");
   const uploadError = str("uploadError", "");
   const decryptedPreview = str("decryptedPreview", "");
+  const decryptError = str("decryptError", "");
   const totalPayloadSize = num("totalPayloadSize");
   const photos = val<PhotoView[]>("photos") ?? [];
   const viewingPhoto = val<PhotoView | null>("viewingPhoto", null);
   const selectedImages = val<SelectedImage[]>("selectedImages") ?? [];
-  const lastTx = val<TxReceipt | null>("lastTx", null);
   // Source the disable gate from the composable's hard limit (MAX_TOTAL_BYTES,
   // bound as `maxTotalBytes`) so the Upload button and meter agree exactly with
   // uploadPhotos()'s `totalSize > MAX_TOTAL_BYTES` check. Falls back to 60000
@@ -99,7 +89,7 @@ export default function PlayArea({
       : payloadTooLarge
         ? t("totalTooLarge")
         : selectedImages.length > 0
-          ? t("readyToSign")
+          ? t("readyToSave")
           : isEncrypted
             ? t("encryptionNote")
             : t("vaultPublicNote");
@@ -314,21 +304,7 @@ export default function PlayArea({
               </NeoButton>
             </div>
 
-            {lastTx?.txid && (
-              <div
-                className="forever-album-tx-receipt"
-                role="status"
-                aria-live="polite"
-              >
-                <span>{t("lastTransaction")}</span>
-                <strong title={lastTx.txid}>{compactTxId(lastTx.txid)}</strong>
-                <em>
-                  {lastTx.success === false
-                    ? t("transactionPending")
-                    : t("transactionConfirmed")}
-                </em>
-              </div>
-            )}
+            <p className="forever-album-storage-note">{t("localStorageNote")}</p>
           </div>
         </NeoCard>
 
@@ -406,6 +382,15 @@ export default function PlayArea({
               {new Date(viewingPhoto.createdAt).toLocaleDateString()}
             </span>
           </div>
+          <div className="viewer-footer">
+            <NeoButton
+              variant="danger"
+              onClick={() => dispatch("deletePhoto", viewingPhoto.id)}
+              aria-label={t("deletePhoto")}
+            >
+              {t("deletePhoto")}
+            </NeoButton>
+          </div>
         </NeoCard>
       )}
 
@@ -436,6 +421,11 @@ export default function PlayArea({
           >
             {t("decrypt")}
           </NeoButton>
+          {decryptError && (
+            <p className="forever-album-decrypt-error" role="alert">
+              {decryptError}
+            </p>
+          )}
           {decryptedPreview && (
             <img
               src={decryptedPreview}

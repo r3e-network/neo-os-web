@@ -185,6 +185,18 @@ describe("useRedEnvelope — create() deposit (shortfall-only, Credited settle w
       "depositPrepaidNoEnvelope",
     );
     expect(callFor(invoke, "transfer")).toBeTruthy();
+    // A failed create leaves no share id (no completed envelope to share).
+    expect(app.lastCreatedEnvelopeId.get()).toBe("");
+  });
+
+  it("captures the new envelope id from EnvelopeCreated so the UI can offer a share link", async () => {
+    const { app } = setup({ credit: "100000000" });
+    expect(app.lastCreatedEnvelopeId.get()).toBe("");
+
+    await app.create({ amount: "1", count: "4", expiryHours: "24" });
+
+    // The id (EnvelopeCreated state[0] = "1") is captured for the share card.
+    expect(app.lastCreatedEnvelopeId.get()).toBe("1");
   });
 });
 

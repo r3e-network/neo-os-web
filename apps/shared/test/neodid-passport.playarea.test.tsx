@@ -46,6 +46,13 @@ function t(key: string) {
     subjectPlaceholder: "did:morpheus:neo_n3:service:neodid",
     walletProvider: "Wallet signature",
     walletProofHint: "Wallet signatures do not broadcast.",
+    statistics: "Passport metrics",
+    degradedRuntimeBadge: "Degraded",
+    degradedRuntimeWarning: "Runtime attestation metadata unavailable.",
+    externalVerifierTitle: "Submit to an external verifier",
+    externalVerifierCopy: "GitHub and email proofs are prepared for an external verifier.",
+    externalVerifierLink: "Open attestation docs",
+    emailProvider: "Email attestation",
   };
   return messages[key] ?? key;
 }
@@ -183,5 +190,45 @@ describe("NeoDID Passport PlayArea", () => {
     );
 
     expect(screen.getByRole("button", { name: /Sign Passport/i }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("warns when the built passport carries an unversioned (degraded-runtime) document", () => {
+    const { container } = render(
+      <PlayArea
+        {...props({
+          state: state({
+            passportPayload: payload({
+              didDocument: {
+                ...payload().didDocument,
+                versionId: "unversioned",
+              },
+            }),
+          }),
+        })}
+      />,
+    );
+    // The degraded chip + warning note appear only for unversioned documents.
+    expect(screen.getByText("Runtime attestation metadata unavailable.")).toBeTruthy();
+    expect(container.querySelector(".neodid-passport__degraded-chip")).toBeTruthy();
+
+    // A normally-versioned document shows no warning.
+    cleanup();
+    const { container: ok } = render(<PlayArea {...props({ state: state({ passportPayload: payload() }) })} />);
+    expect(ok.querySelector(".neodid-passport__degraded-note")).toBeNull();
+  });
+
+  it("shows external-verifier guidance for github/email providers", () => {
+    render(<PlayArea {...props()} />);
+    // Wallet provider (default) shows no external-verifier card.
+    expect(screen.queryByText("Submit to an external verifier")).toBeNull();
+
+    // Switching to GitHub surfaces the external-verifier guidance + docs link.
+    fireEvent.change(screen.getByLabelText("Proof Provider"), {
+      target: { value: "github" },
+    });
+    expect(screen.getByText("Submit to an external verifier")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Open attestation docs/i }),
+    ).toBeTruthy();
   });
 });

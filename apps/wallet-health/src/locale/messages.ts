@@ -78,6 +78,13 @@ const appMessages = {
   recommendationGasLow: { en: "Top up GAS to avoid failed transactions.", zh: "补充 GAS 以避免交易失败。" },
   recommendationBackup: { en: "Backup your seed phrase immediately.", zh: "请立即备份助记词。" },
   recommendationPermissions: { en: "Audit dApp permissions and revoke unused approvals.", zh: "检查授权并撤销闲置授权。" },
+  recommendationDevice: { en: "Only sign on a trusted, private device.", zh: "仅在可信的私人设备上签名。" },
+  recommendationHardware: { en: "Move large balances to a hardware wallet.", zh: "将大额资产转移到硬件钱包保管。" },
+  recommendation2fa: { en: "Enable 2FA on exchange accounts tied to this wallet.", zh: "为关联此钱包的交易所账户启用双重验证。" },
+  checklistGasPending: { en: "Connect a wallet to check your GAS balance.", zh: "连接钱包以检查 GAS 余额。" },
+  checklistConnectToCheck: { en: "Connect to check", zh: "连接后检查" },
+  reportDone: { en: "DONE", zh: "已完成" },
+  reportPending: { en: "PENDING", zh: "待办" },
 
   docsSubtitle: { en: "Wallet safety checklist for Neo users", zh: "Neo 用户钱包安全检查清单" },
   docsDescription: {

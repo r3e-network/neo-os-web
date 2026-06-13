@@ -138,6 +138,19 @@ const appMessages = {
     en: "You have no outstanding loan to repay",
     zh: "您没有需要偿还的未结贷款",
   },
+  loanAlreadyActiveHint: {
+    en: "One loan per address — repay or add collateral to your active loan first",
+    zh: "每个地址仅限一笔贷款——请先偿还或为现有贷款追加抵押品",
+  },
+  insufficientPool: {
+    en: "Pool can't cover this borrow — only {pool} GAS available. Try a lower amount or LTV tier.",
+    zh: "资金池无法覆盖此次借款——仅剩 {pool} GAS 可用。请降低金额或 LTV 档位。",
+  },
+  rateLabel: { en: "Rate", zh: "汇率" },
+  rateValue: { en: "1 NEO = {price}", zh: "1 NEO = {price}" },
+  poolAvailable: { en: "Pool available", zh: "可借资金池" },
+  maxRepay: { en: "Max", zh: "最大" },
+  underCollateralized: { en: "Under-collateralized", zh: "抵押不足" },
   // ── Action success toasts (notify.guard keys) ───────────────────────────
   borrowSuccess: { en: "Loan taken — GAS disbursed to your wallet", zh: "贷款成功——GAS 已发放至您的钱包" },
   collateralAdded: { en: "Collateral added to your loan", zh: "抵押品已追加到您的贷款" },

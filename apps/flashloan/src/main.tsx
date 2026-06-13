@@ -3,6 +3,7 @@
  */
 
 import { defineMiniApp, createDerived } from "@shared/react/defineMiniApp";
+import { readMiniAppLaunchContext } from "@shared/utils/launch-params";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -19,6 +20,7 @@ defineMiniApp({
       chainService: ctx.services.chain,
       badgeService: ctx.os.badge,
       t: ctx.t,
+      network: readMiniAppLaunchContext("miniapp-flashloan").network,
     });
 
     flash.setAddress(ctx.services.chain.address?.get?.() ?? "");
@@ -43,6 +45,26 @@ defineMiniApp({
       );
     });
 
+    ctx.registerAction("provideLiquidity", async (...args: unknown[]) => {
+      const data = (args[0] ?? {}) as { amount?: string; receiptId?: string };
+      await ctx.services.notify.guard(
+        () =>
+          flash.provideLiquidity(
+            String(data.amount ?? ""),
+            data.receiptId == null ? undefined : String(data.receiptId),
+          ),
+        "liquidityDeposited",
+      );
+    });
+
+    ctx.registerAction("withdrawLiquidity", async (...args: unknown[]) => {
+      const data = (args[0] ?? {}) as { amount?: string };
+      await ctx.services.notify.guard(
+        () => flash.withdrawLiquidity(String(data.amount ?? "")),
+        "liquidityWithdrawn",
+      );
+    });
+
     ctx.registerAction("connectWallet", async () => {
       await ctx.services.notify.guard(async () => {
         const addr = await flash.connect();
@@ -53,7 +75,9 @@ defineMiniApp({
     ctx.registerAction("lookupLoan", async (...args: unknown[]) => {
       const id = String(args[0] ?? "");
       if (!id) return;
-      await flash.lookupLoan(id);
+      // Guard the read so a faulting / non-existent loan surfaces the mapped
+      // loanNotFound message instead of a raw VM exception in the toast.
+      await ctx.services.notify.guard(() => flash.lookupLoan(id), undefined, "loanNotFound");
     });
 
     // Surface stats fields individually for the manifest's sidebar bindings.
@@ -88,6 +112,8 @@ defineMiniApp({
         loanDetails: flash.loanDetails,
         stats: flash.stats,
         contractStats: flash.contractStats,
+        providerStats: flash.providerStats,
+        serviceNotice: flash.serviceNotice,
         totalLoans,
         totalVolume,
         totalFees,

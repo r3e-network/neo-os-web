@@ -163,7 +163,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {(isSearching || isLoading) && (
         <div className="loading" role="status" aria-live="polite">
           <div className="loading-spinner" />
-          <span>{t("searching")}</span>
+          {/* The first mount runs loadAll (isLoading) before the user has typed
+              anything — show "Loading…" there, reserving "Searching…" for an
+              actual in-flight search so the label always matches the action. */}
+          <span>{isSearching ? t("searching") : t("loading")}</span>
         </div>
       )}
 

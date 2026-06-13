@@ -20,9 +20,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
 
   const totalProofs = num("totalProofs");
-  const yourProofs = num("yourProofs");
+  const anchoredProofs = num("anchoredProofs");
   const isCreating = bool("isCreating");
   const isVerifying = bool("isVerifying");
+  const isAnchoring = bool("isAnchoring");
+  const anchoringId = num("anchoringId");
   const verifyError = bool("verifyError");
   const rawLatestId = str("latestId", "—");
   const latestId = !rawLatestId || rawLatestId === "N/A" ? "—" : rawLatestId;
@@ -36,32 +38,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="proof-play-area">
-      <ProofHero t={t} totalProofs={totalProofs} yourProofs={yourProofs} latestId={latestId} />
+      <ProofHero t={t} />
 
-      {/* Stat tiles — boxed family rhythm (shows 0 / — when empty) */}
-      <div className="proof-stats" role="group" aria-label={t("proofStats") || "Proof Stats"}>
+      {/* Stat tiles — the single stat surface (shows 0 / — when empty) */}
+      <div className="proof-stats" role="group" aria-label={t("proofStats")}>
         <div className="proof-stat">
-          <span className="proof-stat__label">{t("totalProofs") || "Total Proofs"}</span>
+          <span className="proof-stat__label">{t("totalProofs")}</span>
           <span className="proof-stat__value">{totalProofs}</span>
         </div>
         <div className="proof-stat">
-          <span className="proof-stat__label">{t("yourProofs") || "Your Proofs"}</span>
-          <span className="proof-stat__value">{yourProofs}</span>
+          <span className="proof-stat__label">{t("anchoredProofs")}</span>
+          <span className="proof-stat__value">{anchoredProofs}</span>
         </div>
         <div className="proof-stat">
-          <span className="proof-stat__label">{t("latestId") || "Latest ID"}</span>
+          <span className="proof-stat__label">{t("latestId")}</span>
           <span className="proof-stat__value proof-stat__value--mono">{latestId}</span>
         </div>
       </div>
 
       {/* Primary action — create a proof */}
-      <NeoCard title={t("createProof") || "Create Proof"}>
+      <NeoCard title={t("createProof")}>
         <div className="proof-form">
           <NeoInput
             value={content}
             type="textarea"
-            label={t("enterContent") || "Enter content to timestamp"}
-            placeholder={t("contentPlaceholder") || "Enter text, hash, or data to create an immutable timestamp proof..."}
+            label={t("enterContent")}
+            placeholder={t("contentPlaceholder")}
             onChange={(val) => setContent(val)}
           />
           <NeoButton
@@ -71,7 +73,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             className="proof-cta"
             loading={isCreating}
             disabled={!canCreate}
-            aria-label={t("createProof") || "Create Proof"}
+            aria-label={t("createProof")}
             onClick={async () => {
               // Preserve the user's input until the proof is actually saved.
               // Clearing synchronously before the async dispatch resolves would
@@ -84,23 +86,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               }
             }}
           >
-            {isCreating ? t("creating") || "Creating..." : t("createProof") || "Create Proof"}
+            {isCreating ? t("creating") : t("createProof")}
           </NeoButton>
           {!canCreate && !isCreating && (
-            <p className="proof-cta-hint">{t("enterContent") || "Enter content to timestamp"}</p>
+            <p className="proof-cta-hint">{t("enterContent")}</p>
           )}
         </div>
       </NeoCard>
 
       {/* Secondary action — verify by id, digest, or original content */}
-      <NeoCard title={t("verifyProof") || "Verify Proof"}>
+      <NeoCard title={t("verifyProof")}>
         <div className="proof-form verify-panel__body">
           <NeoInput
             value={verifyId}
             type="text"
-            label={t("proofLookup") || "Proof lookup"}
-            placeholder={t("verifyPlaceholder") || "Proof ID, SHA-256 digest, or original content"}
-            error={verifyError ? t("invalidProof") || "Invalid Proof" : ""}
+            label={t("proofLookup")}
+            placeholder={t("verifyPlaceholder")}
+            error={verifyError ? t("invalidProof") : ""}
             onChange={(val) => {
               setVerifyId(val);
               if (verifyError) dispatch("clearVerifyError");
@@ -111,33 +113,59 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             block
             loading={isVerifying}
             disabled={!verifyId.trim()}
-            aria-label={t("verifyProof") || "Verify Proof"}
+            aria-label={t("verifyProof")}
             onClick={() => dispatch("verifyProof", verifyId)}
           >
-            {isVerifying ? t("verifying") || "Verifying..." : t("verifyProof") || "Verify Proof"}
+            {isVerifying ? t("verifying") : t("verifyProof")}
           </NeoButton>
           {verifiedProof ? (
             <div className="verify-result">
-              <span className="verify-result__label">{t("validProof") || "Proof Found"}</span>
+              <span className="verify-result__label">{t("validProof")}</span>
               <div className="verify-result__row">
-                <span>{t("proofId") || "Proof ID"}</span>
+                <span>{t("proofId")}</span>
                 <span className="mono">#{verifiedProof.id}</span>
               </div>
               <div className="verify-result__row">
-                <span>{t("timestamp") || "Timestamp"}</span>
+                <span>{t("timestamp")}</span>
                 <span className="mono">{new Date(verifiedProof.timestamp).toLocaleString()}</span>
               </div>
               <div className="verify-result__row">
-                <span>{t("proofDigest") || "SHA-256 digest"}</span>
+                <span>{t("proofDigest")}</span>
                 <span className="mono verify-result__hash">{verifiedProof.contentHash}</span>
               </div>
               <div className="verify-result__row">
-                <span>{t("contentPreview") || "Content preview"}</span>
+                <span>{t("anchorStatus")}</span>
+                <span
+                  className={`proof-anchor-badge ${verifiedProof.anchored ? "is-anchored" : "is-local"}`}
+                >
+                  {verifiedProof.anchored ? t("anchoredOnChain") : t("localOnly")}
+                </span>
+              </div>
+              {verifiedProof.anchored && verifiedProof.anchorTxid && (
+                <div className="verify-result__row">
+                  <span>{t("anchorTxid")}</span>
+                  <span className="mono verify-result__hash">{verifiedProof.anchorTxid}</span>
+                </div>
+              )}
+              <div className="verify-result__row">
+                <span>{t("contentPreview")}</span>
                 <span className="verify-result__preview">{verifiedProof.content}</span>
               </div>
+              {!verifiedProof.anchored && (
+                <NeoButton
+                  variant="primary"
+                  size="sm"
+                  loading={isAnchoring && anchoringId === verifiedProof.id}
+                  disabled={isAnchoring}
+                  aria-label={t("anchorOnChain")}
+                  onClick={() => dispatch("anchorProof", verifiedProof.id)}
+                >
+                  {t("anchorOnChain")}
+                </NeoButton>
+              )}
             </div>
           ) : (
-            <p className="verify-result__empty">{t("verifyEmpty") || "No proof selected"}</p>
+            <p className="verify-result__empty">{t("verifyEmpty")}</p>
           )}
         </div>
       </NeoCard>
@@ -148,20 +176,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <span className="empty-badge" aria-hidden="true">
             <span className="empty-icon">&#x2726;</span>
           </span>
-          <span className="empty-text">{t("noProofs") || "No proofs yet"}</span>
-          <span className="empty-hint">{t("noProofsHint") || "Saved proof entries will appear here."}</span>
+          <span className="empty-text">{t("noProofs")}</span>
+          <span className="empty-hint">{t("noProofsHint")}</span>
         </div>
       ) : (
         <NeoCard
-          title={t("recentProofs") || "Recent Proofs"}
+          title={t("recentProofs")}
           header={
             <NeoButton
               variant="ghost"
               size="sm"
-              aria-label={t("clearAllProofs") || "Clear all"}
+              aria-label={t("clearAllProofs")}
               onClick={() => dispatch("clearProofs")}
             >
-              {t("clearAllProofs") || "Clear all"}
+              {t("clearAllProofs")}
             </NeoButton>
           }
         >
@@ -172,20 +200,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <span className="proof-list__id mono">#{proof.id}</span>
                   <span className="proof-list__hash mono">{proof.contentHash}</span>
                   <span className="proof-list__time">{new Date(proof.timestamp).toLocaleString()}</span>
+                  <span
+                    className={`proof-anchor-badge ${proof.anchored ? "is-anchored" : "is-local"}`}
+                  >
+                    {proof.anchored ? t("anchoredOnChain") : t("localOnly")}
+                  </span>
                 </div>
                 <div className="proof-list__actions">
                   <NeoButton
                     variant="secondary"
                     size="sm"
-                    aria-label={t("verify") || "Verify"}
+                    aria-label={t("verify")}
                     onClick={() => dispatch("verifyProof", String(proof.id))}
                   >
-                    {t("verify") || "Verify"}
+                    {t("verify")}
                   </NeoButton>
+                  {!proof.anchored && (
+                    <NeoButton
+                      variant="ghost"
+                      size="sm"
+                      loading={isAnchoring && anchoringId === proof.id}
+                      disabled={isAnchoring}
+                      aria-label={t("anchorOnChain")}
+                      onClick={() => dispatch("anchorProof", proof.id)}
+                    >
+                      {t("anchorShort")}
+                    </NeoButton>
+                  )}
                   <NeoButton
                     variant="ghost"
                     size="sm"
-                    aria-label={t("copyDigest") || "Copy digest"}
+                    aria-label={t("copyDigest")}
                     onClick={() => dispatch("copyProofDigest", proof.id)}
                   >
                     &#x2398;
@@ -193,7 +238,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <NeoButton
                     variant="ghost"
                     size="sm"
-                    aria-label={t("copyReference") || "Copy proof reference"}
+                    aria-label={t("copyReference")}
                     onClick={() => dispatch("copyProofReference", proof.id)}
                   >
                     &#x29C9;
@@ -201,7 +246,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <NeoButton
                     variant="ghost"
                     size="sm"
-                    aria-label={t("deleteProof") || "Delete proof"}
+                    aria-label={t("deleteProof")}
                     onClick={() => dispatch("deleteProof", proof.id)}
                   >
                     &#x2715;

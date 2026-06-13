@@ -1,6 +1,6 @@
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { EmptyStateArt } from "@shared/components-react/illustrations";
-import { Copy, Share2 } from "lucide-react";
+import { Copy } from "lucide-react";
 import type { TemplateItem } from "../types";
 
 interface TemplateListProps {
@@ -14,7 +14,6 @@ interface TemplateListProps {
   onIssue: (template: TemplateItem) => void;
   onToggle: (template: TemplateItem) => void;
   onCopyIssueLink: (template: TemplateItem) => void;
-  onShareIssueLink: (template: TemplateItem) => void;
   t: (key: string) => string;
 }
 
@@ -33,7 +32,6 @@ export default function TemplateList({
   onIssue,
   onToggle,
   onCopyIssueLink,
-  onShareIssueLink,
   t,
 }: TemplateListProps) {
   return (
@@ -132,19 +130,10 @@ export default function TemplateList({
                     type="button"
                     className="certificate-icon-button"
                     onClick={() => onCopyIssueLink(template)}
-                    aria-label={t("copyIssueLink")}
-                    title={t("copyIssueLink")}
+                    aria-label={t("copyIssueShortcut")}
+                    title={t("copyIssueShortcut")}
                   >
                     <Copy size={16} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    className="certificate-icon-button"
-                    onClick={() => onShareIssueLink(template)}
-                    aria-label={t("shareIssueLink")}
-                    title={t("shareIssueLink")}
-                  >
-                    <Share2 size={16} aria-hidden="true" />
                   </button>
                 </div>
               </article>

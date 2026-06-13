@@ -7,6 +7,7 @@ import {
 } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import { parseHash160, ownerMatchesAddress } from "@shared/utils/neo";
 import { useMultisigUI } from "./composables/useMultisigUI";
 import type { HistoryItem } from "./composables/useMultisigHistory";
 import {
@@ -36,17 +37,22 @@ interface UnfundedNotice {
   asset: string;
 }
 
-const SIGNER_SLOTS = 3;
+/** Default signer slots on first paint (a common 2-of-3 board). */
+const INITIAL_SIGNER_SLOTS = 3;
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { bool, val } = useStateBindings(state);
+  const { bool, str, val } = useStateBindings(state);
   const { statusLabel, shorten, formatDate } = useMultisigUI();
 
-  // Create-vault form
+  // Create-vault form. The signer list is DYNAMIC: rows can be added up to the
+  // contract's MAX_SIGNERS (16) and removed down to MIN_SIGNERS (2), so common
+  // 3-of-4 / 4-of-5 boards are configurable (the old fixed 3-slot grid capped
+  // every vault at 3 signers).
   const [signers, setSigners] = useState(() =>
-    Array.from({ length: SIGNER_SLOTS }, () => ""),
+    Array.from({ length: INITIAL_SIGNER_SLOTS }, () => ""),
   );
   const [threshold, setThreshold] = useState("2");
+  const [copiedRequestId, setCopiedRequestId] = useState(false);
 
   // Deposit + propose form
   const [depositAsset, setDepositAsset] = useState<VaultAsset>("GAS");
@@ -64,6 +70,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const activeVault = val<VaultView>("activeVault");
   const activeRequest = val<RequestView>("activeRequest");
   const unfundedNotice = val<UnfundedNotice>("unfundedNotice");
+  const connectedAddress = str("connectedAddress");
+  const connectedIsSigner = bool("connectedIsSigner");
+  const connectedHasApproved = bool("connectedHasApproved");
   const isCreatingVault = bool("isCreatingVault");
   const isDepositing = bool("isDepositing");
   const isProposing = bool("isProposing");
@@ -142,10 +151,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     !isProposing;
 
   const requestPending = activeRequest?.status === "pending";
-  const canApprove = !!activeRequest && requestPending && !isApproving;
+  // Approve/Cancel are membership-gated: only a vault signer may call them, and
+  // a signer who already approved cannot approve again — both would otherwise
+  // revert on-chain with a raw assert. hasApproved/connectedIsSigner are read
+  // back from the contract when a request/vault loads.
+  const canApprove =
+    !!activeRequest &&
+    requestPending &&
+    connectedIsSigner &&
+    !connectedHasApproved &&
+    !isApproving;
   // v2 contract: ANY vault signer may cancel a pending request (previously
-  // creator-only) — so the cancel affordance is NOT gated to the creator.
-  const canCancel = !!activeRequest && requestPending && !isCancelling;
+  // creator-only) — still gated to signers (a non-signer cancel reverts).
+  const canCancel =
+    !!activeRequest && requestPending && connectedIsSigner && !isCancelling;
+
+  // Reason shown under the action row when Approve is blocked for a gating
+  // reason (not merely a busy/non-pending state).
+  const approveBlockedReason =
+    activeRequest && requestPending && connectedAddress
+      ? !connectedIsSigner
+        ? t("multisigNotSignerHint")
+        : connectedHasApproved
+          ? t("multisigAlreadyApprovedHint")
+          : ""
+      : "";
   // v2: a threshold approval that found the vault underfunded auto-cancelled
   // the request — explain that instead of leaving a bare "Cancelled" status.
   const showUnfundedNotice =
@@ -168,6 +198,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         signerIndex === index ? value : signer,
       ),
     );
+  }
+
+  // Dynamic signer slots: add up to MAX_SIGNERS (16), remove down to
+  // MIN_SIGNERS (2) so any M-of-N board the contract supports is configurable.
+  const canAddSigner = signers.length < MAX_SIGNERS;
+  const canRemoveSigner = signers.length > MIN_SIGNERS;
+  function addSigner() {
+    setSigners((current) =>
+      current.length < MAX_SIGNERS ? [...current, ""] : current,
+    );
+  }
+  function removeSigner(index: number) {
+    setSigners((current) =>
+      current.length > MIN_SIGNERS
+        ? current.filter((_, signerIndex) => signerIndex !== index)
+        : current,
+    );
+  }
+
+  async function copyRequestId() {
+    if (!activeRequest) return;
+    try {
+      await navigator.clipboard?.writeText(String(activeRequest.id));
+      setCopiedRequestId(true);
+      window.setTimeout(() => setCopiedRequestId(false), 1500);
+    } catch {
+      // Clipboard can be unavailable (permissions/insecure context); the id is
+      // still visible for manual copy, so silently ignore.
+    }
   }
 
   function createVault() {
@@ -244,6 +303,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <strong>{heroRequestLabel}</strong>
               </span>
             </div>
+            <p className="multisig-hero-connected">
+              {connectedAddress
+                ? `${t("multisigConnectedAs")}: ${shorten(connectedAddress)}`
+                : t("multisigNotConnected")}
+            </p>
           </div>
 
           <div className="multisig-workspace">
@@ -258,14 +322,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="multisig-form-grid">
                 <div className="multisig-signer-grid" aria-label={t("ariaSigners")}>
                   {signers.map((signer, index) => (
-                    <NeoInput
-                      key={index}
-                      value={signer}
-                      label={`${t("signerLabel")} ${index + 1}`}
-                      placeholder={t("signerPlaceholder")}
-                      onChange={(value) => updateSigner(index, value)}
-                    />
+                    <div className="multisig-signer-row" key={index}>
+                      <NeoInput
+                        value={signer}
+                        label={`${t("signerLabel")} ${index + 1}`}
+                        placeholder={t("signerPlaceholder")}
+                        onChange={(value) => updateSigner(index, value)}
+                      />
+                      {canRemoveSigner && (
+                        <button
+                          type="button"
+                          className="multisig-signer-remove"
+                          aria-label={t("multisigRemoveSigner")}
+                          onClick={() => removeSigner(index)}
+                        >
+                          {"×"}
+                        </button>
+                      )}
+                    </div>
                   ))}
+                  {canAddSigner && (
+                    <button
+                      type="button"
+                      className="multisig-signer-add"
+                      onClick={addSigner}
+                    >
+                      {t("multisigAddSigner")}
+                    </button>
+                  )}
                 </div>
 
                 <div className="multisig-form-row">
@@ -443,6 +527,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
               {activeRequest && (
                 <>
+                  <div className="multisig-request-id-row" aria-live="polite">
+                    <span>{t("multisigRequestIdLabel")}</span>
+                    <strong>#{activeRequest.id}</strong>
+                    <button
+                      type="button"
+                      className="multisig-copy-btn"
+                      onClick={copyRequestId}
+                    >
+                      {copiedRequestId ? t("multisigCopied") : t("multisigCopy")}
+                    </button>
+                  </div>
+                  <p className="multisig-request-hint">
+                    {t("multisigShareRequestId")}
+                  </p>
+
                   <div className="multisig-request-details">
                     <div>
                       <span>{t("statusLabel")}</span>
@@ -484,6 +583,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         available: unfundedNotice.available,
                         asset: unfundedNotice.asset,
                       })}
+                    </p>
+                  )}
+
+                  {approveBlockedReason && (
+                    <p className="multisig-request-hint" aria-live="polite">
+                      {approveBlockedReason}
                     </p>
                   )}
 
@@ -532,6 +637,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
                 {activeVault && (
                   <>
+                    {/* Signer roster: the vault loads the signers as UInt160
+                        chain values — render each as its display-order 0x hash
+                        and flag the connected wallet so a signer can confirm
+                        their own membership at a glance. */}
+                    {activeVault.signers.length > 0 && (
+                      <div className="multisig-roster" aria-label={t("multisigSignerRoster")}>
+                        <span className="multisig-roster-title">
+                          {t("multisigSignerRoster")}
+                        </span>
+                        {activeVault.signers.map((signer, index) => {
+                          const isYou = ownerMatchesAddress(signer, connectedAddress);
+                          const display = parseHash160(signer) || signer;
+                          return (
+                            <div
+                              key={`${signer}:${index}`}
+                              className={
+                                "multisig-roster-row" + (isYou ? " is-you" : "")
+                              }
+                            >
+                              <span className="multisig-roster-hash">
+                                {shorten(display)}
+                              </span>
+                              {isYou && (
+                                <span className="multisig-roster-you">
+                                  {t("multisigYouBadge")}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     <div className="multisig-signal-row">
                       <span>{t("assetGas")}</span>
                       <strong>{vaultGas}</strong>

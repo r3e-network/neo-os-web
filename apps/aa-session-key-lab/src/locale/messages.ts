@@ -85,6 +85,51 @@ const appMessages = {
     en: "Expiry must be a future Unix timestamp.",
     zh: "过期时间必须是未来的 Unix 时间戳。",
   },
+  invalidSpendingLimit: {
+    en: "Spending limit must be a non-negative number.",
+    zh: "支出上限必须是非负数。",
+  },
+  sessionHeroEyebrow: { en: "Session Keys", zh: "会话密钥" },
+  spendingLimit: { en: "Spending Limit (GAS)", zh: "支出上限（GAS）" },
+  spendingLimitPlaceholder: { en: "0 = unlimited", zh: "0 = 不限" },
+  spendingLimitHint: {
+    en: "Mainnet only. 0 leaves the session key without a GAS cap.",
+    zh: "仅主网。0 表示该 session key 不设 GAS 上限。",
+  },
+  sessionDescription: { en: "Description", zh: "描述" },
+  sessionDescriptionPlaceholder: {
+    en: "e.g. rewards bot",
+    zh: "例如：奖励机器人",
+  },
+  sessionNotConfirmed: {
+    en: "Configuration broadcast but not yet confirmed on-chain — the session key was not stored.",
+    zh: "配置已广播但链上尚未确认 —— session key 未被存储。",
+  },
+  sessionVerifierMissing: {
+    en: "No session-key verifier is configured for this network.",
+    zh: "当前网络未配置 session-key 校验器。",
+  },
+  inspectSession: { en: "Inspect Session Key", zh: "查询 Session Key" },
+  sessionInspected: { en: "Session key state loaded.", zh: "已加载 Session key 状态。" },
+  sessionInspectFailed: {
+    en: "Failed to read the session key.",
+    zh: "读取 Session key 失败。",
+  },
+  revokeSession: { en: "Revoke Session Key", zh: "撤销 Session Key" },
+  sessionRevoked: { en: "Session key revoked.", zh: "Session key 已撤销。" },
+  sessionRevokeFailed: {
+    en: "Failed to revoke the session key.",
+    zh: "撤销 Session key 失败。",
+  },
+  onChainSessionTitle: { en: "On-chain session key", zh: "链上 Session Key" },
+  noOnChainSession: {
+    en: "No session key is active for this account.",
+    zh: "该账户当前没有激活的 session key。",
+  },
+  expiryQuick1h: { en: "+1h", zh: "+1 小时" },
+  expiryQuick24h: { en: "+24h", zh: "+24 小时" },
+  expiryQuick7d: { en: "+7d", zh: "+7 天" },
+  expiryPreview: { en: "Expires {date}", zh: "{date} 过期" },
   sessionKeyGenerated: {
     en: "Session key generated locally.",
     zh: "已在本地生成 Session key。",

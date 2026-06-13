@@ -11,7 +11,7 @@ export default function VaultHero({ t }: VaultHeroProps) {
         </svg>
       </div>
       <div className="vault-hero-text">
-        <span className="vault-hero-eyebrow">{t("feature1Name") || "Hash-Locked Security"}</span>
+        <span className="vault-hero-eyebrow">{t("feature1Name")}</span>
         <span className="vault-hero-title">{t("title")}</span>
         <span className="vault-hero-subtitle">{t("docSubtitle")}</span>
       </div>

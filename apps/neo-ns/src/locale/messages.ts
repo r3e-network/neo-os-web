@@ -96,11 +96,23 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   domainSuffix: { en: ".neo", zh: ".neo" },
   search: { en: "Search", zh: "搜索" },
   enterDomainName: { en: "myname.neo", zh: "myname.neo" },
+  enterDomainNameError: {
+    en: "Enter a domain name to search",
+    zh: "请输入要搜索的域名",
+  },
   connectedAddress: { en: "Address", zh: "地址" },
   domainAvailable: { en: "Available", zh: "可用" },
   domainTaken: { en: "Taken", zh: "已被占用" },
   registrationCost: { en: "Cost", zh: "费用" },
   register: { en: "Register", zh: "注册" },
+  eyebrow: { en: "Name Service", zh: "域名服务" },
+  // Renewal confirmation (renew fires a paid wallet tx — disclose cost first).
+  renewConfirm: {
+    en: "Renew {name} for {cost} GAS (+1 year)?",
+    zh: "续费 {name}，费用 {cost} GAS（+1 年）？",
+  },
+  confirmRenew: { en: "Confirm renew", zh: "确认续费" },
+  cancel: { en: "Cancel", zh: "取消" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

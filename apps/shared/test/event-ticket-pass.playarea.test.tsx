@@ -84,6 +84,12 @@ function t(key: string) {
     walletNotConnected: "Wallet not connected",
     workflow: "Ticket workflow",
     yourEvents: "Your Events",
+    copyTokenId: "Copy Token ID",
+    ticketQrLabel: "Ticket token ID QR code",
+    transferTicket: "Transfer",
+    transferRecipient: "Transfer to",
+    transferRecipientPlaceholder: "Neo N3 address",
+    cancel: "Cancel",
   };
   return messages[key] ?? key;
 }
@@ -110,11 +116,14 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     issueSeat: "General",
     issueMemo: "Standard admission",
     checkinTokenId: "",
+    transferTokenId: "",
+    transferRecipient: "",
     eventsCount: 0,
     ticketsCount: 0,
     activeEventsCount: 0,
     canIssueTicket: false,
     canCheckInTicket: false,
+    canTransferTicket: false,
     isLoading: false,
     isRefreshing: false,
     isRefreshingTickets: false,
@@ -122,6 +131,8 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     isIssuing: false,
     isCheckingIn: false,
     isLookingUp: false,
+    isTransferring: false,
+    transferringTokenId: "",
     togglingId: null,
     ...overrides,
   };
@@ -191,5 +202,70 @@ describe("Event Ticket Pass PlayArea", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Check-in/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Lookup$/i }));
     expect(dispatch).toHaveBeenCalledWith("lookupTicket");
+  });
+
+  it("surfaces copy-token-id and transfer affordances on a held ticket", () => {
+    const dispatch = vi.fn(async () => undefined);
+    const heldTicket = {
+      tokenId: "1-1",
+      eventId: "1",
+      owner: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+      eventName: "Neo Summit",
+      venue: "Neo Hall",
+      startTime: 1781955600,
+      endTime: 1781988000,
+      seat: "A-12",
+      memo: "",
+      issuedTime: 1781500000,
+      used: false,
+      usedTime: 0,
+    };
+    const appState = state({
+      tickets: [heldTicket],
+      ticketsCount: 1,
+      address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+    });
+    render(<PlayArea t={t} state={appState} dispatch={dispatch} />);
+
+    // The token id is copyable (door QR + copy affordance) instead of read-only.
+    fireEvent.click(screen.getByRole("button", { name: "Copy Token ID" }));
+    expect(dispatch).toHaveBeenCalledWith("copyTokenId", "1-1");
+
+    // Starting a transfer opens the recipient form for THIS token.
+    fireEvent.click(screen.getByRole("button", { name: /^Transfer$/i }));
+    expect(dispatch).toHaveBeenCalledWith("startTransfer", heldTicket);
+  });
+
+  it("submits a NEP-11 transfer once a recipient is entered", () => {
+    const dispatch = vi.fn(async () => undefined);
+    const heldTicket = {
+      tokenId: "1-1",
+      eventId: "1",
+      owner: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+      eventName: "Neo Summit",
+      venue: "Neo Hall",
+      startTime: 1781955600,
+      endTime: 1781988000,
+      seat: "A-12",
+      memo: "",
+      issuedTime: 1781500000,
+      used: false,
+      usedTime: 0,
+    };
+    const appState = state({
+      tickets: [heldTicket],
+      ticketsCount: 1,
+      address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+      transferTokenId: "1-1",
+      transferRecipient: "NUVPACMnKFhpuHjsRjhUvXz1XhqfGZYVtY",
+      canTransferTicket: true,
+    });
+    render(<PlayArea t={t} state={appState} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Transfer$/i }));
+    expect(dispatch).toHaveBeenCalledWith("transferTicket", {
+      tokenId: "1-1",
+      recipient: "NUVPACMnKFhpuHjsRjhUvXz1XhqfGZYVtY",
+    });
   });
 });

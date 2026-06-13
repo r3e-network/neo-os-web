@@ -4,7 +4,7 @@
  * Key conversion, account generation, and balance checking tool.
  */
 
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -29,6 +29,8 @@ interface ConversionView {
   privateKey?: string;
   wif?: string;
   opcodes?: string[];
+  scriptHash?: string;
+  scriptHashLE?: string;
 }
 
 type ResultRow = {
@@ -54,37 +56,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hasGeneratedAccount = bool("hasGeneratedAccount");
   const generatedAccount = val<NeoAccountSummary | null>("generatedAccount") ?? null;
   const hasConversionResult = bool("hasConversionResult");
-  const showSecrets = bool("showSecrets");
+  const showGeneratedSecrets = bool("showGeneratedSecrets");
+  const showConversionSecrets = bool("showConversionSecrets");
   const accountsGenerated = str("accountsGenerated", "0");
-  const conversionResult = str("conversionResult");
   const conversionView = val<ConversionView | null>("conversionResult", null);
   const conversionStatus = str("conversionStatus");
   const conversionStatusType = str("conversionStatusType");
   const copyStatus = str("copyStatus");
-  const formattedNeoBalance = str("formattedNeoBalance", "0");
-  const formattedGasBalance = str("formattedGasBalance", "0");
+  const walletConnected = bool("walletConnected");
+  // Without a connected wallet the balance refs hold their createObservable(0)
+  // defaults — show the calm em-dash placeholder instead of "0 NEO / 0 GAS",
+  // which reads as a real zero balance.
+  const BALANCE_PLACEHOLDER = "—";
+  const formattedNeoBalance = walletConnected ? str("formattedNeoBalance", "0") : BALANCE_PLACEHOLDER;
+  const formattedGasBalance = walletConnected ? str("formattedGasBalance", "0") : BALANCE_PLACEHOLDER;
   const generatedRows: ResultRow[] =
     hasGeneratedAccount && generatedAccount
       ? [
           {
             key: "address",
-            label: t("address") || "Address",
+            label: t("address"),
             value: generatedAccount.address ?? "",
           },
           {
             key: "publicKey",
-            label: t("pubKey") || "Public key",
+            label: t("pubKey"),
             value: generatedAccount.publicKey ?? "",
           },
           {
             key: "privateKey",
-            label: t("privKeyLabel") || "Private key",
+            label: t("privKeyLabel"),
             value: generatedAccount.privateKey ?? "",
             sensitive: true,
           },
           {
             key: "wif",
-            label: t("wifLabel") || "WIF",
+            label: t("wifLabel"),
             value: generatedAccount.wif ?? "",
             sensitive: true,
           },
@@ -94,40 +101,64 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     ? [
         {
           key: "address",
-          label: t("address") || "Address",
+          label: t("address"),
           value: conversionView.address ?? "",
         },
         {
+          key: "scriptHash",
+          label: t("scriptHashLabel"),
+          value: conversionView.scriptHash ?? "",
+        },
+        {
+          key: "scriptHashLE",
+          label: t("scriptHashLeLabel"),
+          value: conversionView.scriptHashLE ?? "",
+        },
+        {
           key: "publicKey",
-          label: t("pubKey") || "Public key",
+          label: t("pubKey"),
           value: conversionView.publicKey ?? "",
         },
         {
           key: "privateKey",
-          label: t("privKeyLabel") || "Private key",
+          label: t("privKeyLabel"),
           value: conversionView.privateKey ?? "",
           sensitive: true,
         },
         {
           key: "wif",
-          label: t("wifLabel") || "WIF",
+          label: t("wifLabel"),
           value: conversionView.wif ?? "",
           sensitive: true,
         },
         {
           key: "opcodes",
-          label: t("disassembledOpcodes") || "Disassembled opcodes",
+          label: t("disassembledOpcodes"),
           value: conversionView.opcodes?.join("\n") ?? "",
           multiline: true,
         },
       ].filter((row) => row.value)
     : [];
   const hasSensitiveConversion = conversionRows.some((row) => row.sensitive);
-  const statusLabel = conversionStatus
-    ? t(conversionStatus) || conversionStatus
-    : "";
+  // conversionStatus is always one of the detected*/unknownFormat message keys,
+  // all of which are defined in the locale — translate it directly.
+  const statusLabel = conversionStatus ? t(conversionStatus) : "";
+  // The conversion-status box must also render the error state. unknownFormat
+  // clears the result (so hasConversionResult is false), which previously left
+  // the only error feedback as a 3s toast and the panel looking untouched.
+  const showConversionStatus = hasConversionResult || conversionStatusType === "error";
 
-  const renderResultRows = (rows: ResultRow[]) => (
+  // Enter-to-submit for the converter input. The shared NeoInput renders a real
+  // <input> whose keydown bubbles to this wrapper, so catch it here rather than
+  // modifying the shared component.
+  const handleConvertKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter") return;
+    if (!keyInput.trim() || isLoading) return;
+    event.preventDefault();
+    void dispatch("convert", keyInput);
+  };
+
+  const renderResultRows = (rows: ResultRow[], showSecrets: boolean) => (
     <div className="convert-result-list">
       {rows.map((row) => {
         const hidden = Boolean(row.sensitive && !showSecrets);
@@ -151,7 +182,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 variant="ghost"
                 onClick={() => dispatch("copy", row.value)}
               >
-                {t("copy") || "Copy"}
+                {t("copy")}
               </NeoButton>
             )}
           </div>
@@ -182,27 +213,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </svg>
           </div>
           <div className="convert-hero__text">
-            <span className="convert-hero__eyebrow">{t("appTitle") || "Neo N3 Converter"}</span>
-            <h2 className="convert-hero__title">{t("heroTitle") || "Neo N3 Toolset"}</h2>
+            <span className="convert-hero__eyebrow">{t("appTitle")}</span>
+            <h2 className="convert-hero__title">{t("heroTitle")}</h2>
             <p className="convert-hero__subtitle">
-              {t("heroSubtitle") || "Securely generate accounts and convert keys client-side."}
+              {t("heroSubtitle")}
             </p>
           </div>
           <div className="convert-hero__stats">
             <div className="convert-stat">
               <span className="convert-stat__value">{accountsGenerated}</span>
-              <span className="convert-stat__label">{t("accountsGenerated") || "Accounts"}</span>
+              <span className="convert-stat__label">{t("accountsGenerated")}</span>
             </div>
             <div className="convert-stat">
               <span className="convert-stat__value">{formattedNeoBalance}</span>
-              <span className="convert-stat__label">{t("neoBalance") || "NEO Balance"}</span>
+              <span className="convert-stat__label">{t("neoBalance")}</span>
             </div>
             <div className="convert-stat">
               <span className="convert-stat__value">{formattedGasBalance}</span>
-              <span className="convert-stat__label">{t("gasBalance") || "GAS Balance"}</span>
+              <span className="convert-stat__label">{t("gasBalance")}</span>
             </div>
           </div>
         </div>
+
+        {!walletConnected && (
+          <p className="convert-balance-note">{t("connectForBalances")}</p>
+        )}
 
         <div className="convert-section">
           <NeoButton
@@ -211,30 +246,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             loading={isLoading}
             onClick={() => dispatch("generate")}
           >
-            {t("generateNewAccount") || "Generate New Account"}
+            {t("generateNewAccount")}
           </NeoButton>
           {hasGeneratedAccount && generatedAccount && (
             <div className="generated-result">
-              {renderResultRows(generatedRows)}
+              {renderResultRows(generatedRows, showGeneratedSecrets)}
               <NeoButton
                 size="sm"
                 variant="secondary"
-                onClick={() => dispatch("toggleSecrets")}
+                onClick={() => dispatch("toggleGeneratedSecrets")}
               >
-                {showSecrets ? t("hideSecrets") || "Hide" : t("showSecrets") || "Show Secrets"}
+                {showGeneratedSecrets ? t("hideSecrets") : t("showSecrets")}
               </NeoButton>
               <NeoButton
                 size="sm"
                 variant="secondary"
-                disabled={!showSecrets}
+                disabled={!showGeneratedSecrets}
                 onClick={() => dispatch("downloadPaperWallet")}
               >
-                {t("downloadPdf") || "Download Paper Wallet (PDF)"}
+                {t("downloadPdf")}
               </NeoButton>
-              {!showSecrets && (
+              {!showGeneratedSecrets && (
                 <span className="convert-secret-note">
-                  {t("paperWalletRequiresReveal") ||
-                    "Reveal secrets before exporting the WIF-backed paper wallet."}
+                  {t("paperWalletRequiresReveal")}
                 </span>
               )}
               {copyStatus && <span className="convert-copy-status">{copyStatus}</span>}
@@ -243,17 +277,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </NeoCard>
 
-      <NeoCard variant="erobo" title={t("convertKey") || "Convert Key"}>
+      <NeoCard variant="erobo" title={t("convertKey")}>
         <div className="convert-section">
           <p className="convert-hint">
-            {t("convertHint") ||
-              "Paste a WIF, private key, public key, or NeoVM script — everything is processed on your device."}
+            {t("convertHint")}
           </p>
-          <NeoInput
-            value={keyInput}
-            onChange={(v) => setKeyInput(v)}
-            placeholder={t("enterKeyPlaceholder") || "Enter WIF, hex, or address..."}
-          />
+          <div onKeyDown={handleConvertKeyDown}>
+            <NeoInput
+              value={keyInput}
+              onChange={(v) => setKeyInput(v)}
+              placeholder={t("enterKeyPlaceholder")}
+            />
+          </div>
           <NeoButton
             variant="primary"
             block
@@ -261,9 +296,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             disabled={!keyInput.trim()}
             onClick={() => dispatch("convert", keyInput)}
           >
-            {t("convert") || "Convert"}
+            {t("convert")}
           </NeoButton>
-          {hasConversionResult && (
+          {showConversionStatus && (
             <div className={`conversion-status conversion-status--${conversionStatusType}`}>
               <div className="conversion-status__head">
                 <span>{statusLabel}</span>
@@ -271,17 +306,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <NeoButton
                     size="sm"
                     variant="secondary"
-                    onClick={() => dispatch("toggleSecrets")}
+                    onClick={() => dispatch("toggleConversionSecrets")}
                   >
-                    {showSecrets ? t("hideSecrets") || "Hide" : t("showSecrets") || "Show Secrets"}
+                    {showConversionSecrets ? t("hideSecrets") : t("showSecrets")}
                   </NeoButton>
                 )}
               </div>
-              {conversionRows.length > 0 ? (
-                renderResultRows(conversionRows)
-              ) : (
-                <pre className="conversion-result">{conversionResult}</pre>
-              )}
+              {/* Success rows when present; an error (e.g. unknownFormat) shows
+                  only the localized status head above with no result body. */}
+              {conversionRows.length > 0 && renderResultRows(conversionRows, showConversionSecrets)}
             </div>
           )}
         </div>
@@ -290,7 +323,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {balancesLoading && (
         <div className="loading-state">
           <div className="loading-spinner" />
-          <span>{t("loadingBalances") || "Loading balances..."}</span>
+          <span>{t("loadingBalances")}</span>
         </div>
       )}
     </div>

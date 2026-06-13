@@ -46,7 +46,7 @@ export interface VaultChain {
   invoke(
     operation: string,
     args: ChainArg[],
-    options?: { scriptHash?: string },
+    options?: { scriptHash?: string; waitForEvent?: string },
   ): Promise<{ txid: string; success: boolean }>;
   read(
     operation: string,
@@ -137,8 +137,13 @@ export function createVaultApi(chain: VaultChain) {
         amount: input.amount,
         asset: input.asset,
       });
+      // Wait for the contract's Deposited event so the success toast and the
+      // refreshVault read reflect a CONFIRMED, in-block balance change — a
+      // fire-and-forget transfer otherwise reports success while balances are
+      // still stale (the user has to reload to see the deposit).
       return chain.invoke("transfer", toChainArgs(args), {
         scriptHash: assetHash(input.asset),
+        waitForEvent: "Deposited",
       });
     },
 

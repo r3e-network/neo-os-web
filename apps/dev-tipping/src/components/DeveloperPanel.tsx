@@ -10,7 +10,8 @@ interface DeveloperPanelProps {
   claimableBalance: number;
   isRegistering: boolean;
   isWithdrawing: boolean;
-  onRegister: (name: string, role: string) => void;
+  /** Resolves true on a confirmed registration so inputs clear only on success. */
+  onRegister: (name: string, role: string) => Promise<boolean>;
   onWithdraw: () => void;
   formatNum: (n: number | string) => string;
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -77,11 +78,15 @@ export default function DeveloperPanel({
   const trimmedName = name.trim();
   const canRegister = trimmedName.length > 0 && trimmedName.length <= 64 && !isRegistering;
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!canRegister) return;
-    onRegister(trimmedName, role.trim());
-    setName("");
-    setRole("");
+    // Clear the inputs ONLY on a confirmed registration — a failed register
+    // (wallet reject / revert) keeps the typed name + role for an easy retry.
+    const ok = await onRegister(trimmedName, role.trim());
+    if (ok) {
+      setName("");
+      setRole("");
+    }
   };
 
   return (

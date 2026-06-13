@@ -158,10 +158,14 @@ describe("Quadratic Funding PlayArea", () => {
     expect(screen.getByText("Round created")).toBeTruthy();
   });
 
-  it("shows the round's known project IDs and prefills them into finalize", () => {
+  it("shows the round's known project IDs and prefills them into the advanced finalize inputs", () => {
     render(<PlayArea t={t} state={baseState({ activeTab: "rounds" })} dispatch={vi.fn(async () => undefined)} />);
 
-    // Known IDs surfaced as guidance for the admin.
+    // The hand-typed JSON path is now an advanced fallback behind a toggle.
+    expect(screen.queryByLabelText("Project IDs (JSON)")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "finalizeShowAdvanced" }));
+
+    // Known IDs surfaced as guidance for the admin once advanced is open.
     expect(screen.getByText("7, 9")).toBeTruthy();
 
     const projectIdsInput = screen.getByLabelText("Project IDs (JSON)") as HTMLInputElement;

@@ -59,12 +59,12 @@
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import type { EventBus } from "@shared/services";
+import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { formatNum, fromFixed8, formatGas } from "@shared/utils/format";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 // ============================================================================
 // Constants
@@ -153,6 +153,35 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
   const losses = createObservable(0);
   const totalWon = createObservable(0);
   const totalGames = createDerived(() => wins.get() + losses.get(), []);
+
+  // -- House bankroll + prepaid credit (base units) ---------------------------
+  // bankroll caps the maximum payable bet (the contract refuses any bet it
+  // cannot cover 2x); prepaid credit is reusable GAS sitting on the contract
+  // under the player after an aborted flip — surfaced so it never looks lost.
+  const bankrollBase = createObservable(0n);
+  const creditBase = createObservable(0n);
+
+  /** Maximum playable bet in GAS = min(MAX_BET, bankroll / 2x payout). */
+  const maxPayableBet = createDerived(() => {
+    const bank = bankrollBase.get();
+    if (bank <= 0n) return MAX_BET;
+    // Payout is 2x; the house must hold at least the payout to settle a win.
+    const payable = fromFixed8(bank) / 2;
+    return Math.min(MAX_BET, payable);
+  }, [bankrollBase]);
+
+  /** Live "house can pay up to X GAS" hint shown next to the wager input. */
+  const formattedMaxPayable = createDerived(
+    () => `${maxPayableBet.get().toFixed(2)} ${t("tokenGas")}`,
+    [bankrollBase],
+  );
+
+  /** Prepaid bet credit in GAS, surfaced to the player as a recoverable chip. */
+  const formattedCredit = createDerived(
+    () => `${fromFixed8(creditBase.get()).toFixed(2)} ${t("tokenGas")}`,
+    [creditBase],
+  );
+  const hasCredit = createDerived(() => creditBase.get() > 0n, [creditBase]);
 
   // -- History ----------------------------------------------------------------
   const gameHistory = createObservable<GameHistoryItem[]>([]);
@@ -312,12 +341,45 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
   };
 
   /**
-   * Load all data (player stats, game history).
+   * Read the house bankroll (caps the max payable bet) and the player's prepaid
+   * bet credit (reusable GAS held on the contract). Both feed pre-flight checks
+   * and the recoverable-credit chip, so the user never deposits more than the
+   * house can pay and always sees stranded credit.
+   */
+  const loadBankrollAndCredit = async () => {
+    try {
+      bankrollBase.set(parseBigInt(await chain.read("bankroll", [])));
+    } catch (e) {
+      console.warn(
+        "[useCoinFlip] bankroll read failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+    const playerAddr = address.get();
+    const playerHash = playerAddr ? addressToScriptHash(playerAddr) || null : null;
+    if (!playerHash) {
+      creditBase.set(0n);
+      return;
+    }
+    try {
+      creditBase.set(
+        parseBigInt(await chain.read("creditOf", [{ type: "Hash160", value: playerHash }])),
+      );
+    } catch (e) {
+      console.warn(
+        "[useCoinFlip] creditOf read failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  };
+
+  /**
+   * Load all data (player stats, game history, bankroll + prepaid credit).
    * Called by defineMiniApp on mount and when the wallet connects.
    */
   const loadAll = async () => {
     setAddress(chain.address.get() ?? null);
-    await Promise.all([loadStats(), loadHistory()]);
+    await Promise.all([loadStats(), loadHistory(), loadBankrollAndCredit()]);
   };
 
   // -- Actions (direct on-chain deposit + flip) -------------------------------
@@ -349,7 +411,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
    * When the house bankroll cannot cover the bet, the flip fault is surfaced as
    * a clear "house bankroll too low" message (with the bankroll cap if readable).
    */
-  const placeBet = async () => {
+  const placeBet = async (): Promise<GameResult> => {
     // -- Validate ---
     const validation = validateBetAmount(betAmount.get());
     if (validation) {
@@ -357,8 +419,6 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
       throw new Error(validation);
     }
     validationError.set(null);
-
-    if (isFlipping.get() || !canBet.get()) return;
 
     const amountBase = toBaseUnits(betAmount.get());
     if (amountBase <= 0n) {
@@ -387,46 +447,47 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
         throw new Error(t("gameErrorFallback"));
       }
 
-      // Step 1: DEPOSIT — only top up when existing bet credit can't cover the
-      // wager (credit may persist from a prior aborted flip).
-      let credit = 0n;
-      try {
-        credit = parseBigInt(
-          await chain.read("creditOf", [{ type: "Hash160", value: playerHash }]),
+      // Pre-flight: read the live bankroll + prepaid credit and refuse a bet the
+      // house cannot pay 2x BEFORE depositing, so the wager is never stranded as
+      // non-recoverable-without-a-button credit on a guaranteed-to-revert flip.
+      await loadBankrollAndCredit();
+      const bankroll = bankrollBase.get();
+      // The house must hold the full 2x payout to settle a win.
+      if (bankroll > 0n && amountBase * 2n > bankroll) {
+        throw new Error(
+          t("bankrollTooLowCap", {
+            max: maxPayableBet.get().toFixed(2),
+            tokenGas: t("tokenGas"),
+          }),
         );
-      } catch {
-        credit = 0n;
       }
 
-      let depositSettled = false;
-      if (credit < amountBase) {
-        await chain.invoke(
-          "transfer",
-          [
-            { type: "Hash160", value: playerHash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: amountBase.toString() },
-            { type: "String", value: BET_MEMO },
-          ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-        );
-        depositSettled = true;
-      }
+      // Step 1+2: DEPOSIT then flip. Only top up when existing bet credit can't
+      // cover the wager (credit may persist from a prior aborted flip). The
+      // prepaid path waits for the deposit to confirm in a block before flip()
+      // runs, so the consuming call never test-invokes against pre-deposit state
+      // (the deposit→flip race that forced a second click).
+      const credit = creditBase.get();
+      const flipArgs = [
+        { type: "Hash160" as const, value: playerHash },
+        { type: "Integer" as const, value: String(choiceInt) },
+        { type: "Integer" as const, value: amountBase.toString() },
+      ];
 
-      // Step 2: flip — settles ON-CHAIN and pays 2x on a win in this tx. Read
-      // the outcome/won/payout from the Flipped event. If the deposit landed but
-      // this reverts, the credit persists as reusable prepaid credit.
       let txResult;
       try {
-        txResult = await chain.invoke(
-          "flip",
-          [
-            { type: "Hash160", value: playerHash },
-            { type: "Integer", value: String(choiceInt) },
-            { type: "Integer", value: amountBase.toString() },
-          ],
-          { waitForEvent: "Flipped" },
-        );
+        if (credit < amountBase) {
+          txResult = await chain.prepayAndInvoke(
+            amountBase.toString(),
+            BET_MEMO,
+            "flip",
+            flipArgs,
+            { waitForEvent: "Flipped" },
+          );
+        } else {
+          // Credit already covers the wager — flip directly, no deposit.
+          txResult = await chain.invoke("flip", flipArgs, { waitForEvent: "Flipped" });
+        }
       } catch (flipErr) {
         const raw = flipErr instanceof Error ? flipErr.message : String(flipErr);
         // The house bankroll could not cover this bet — surface a clear,
@@ -434,10 +495,10 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
         if (/bankroll cannot cover/i.test(raw)) {
           throw new Error(await bankrollTooLowMessage());
         }
-        // Deposit landed, flip did not — credit is held under the player and is
-        // reused on the next bet (no refund needed). Note that distinctly when
-        // the deposit settled this round.
-        if (depositSettled) {
+        // Deposit confirmed but flip reverted — credit is held under the player,
+        // reusable on the next bet AND withdrawable. Point the user at recovery.
+        if (flipErr instanceof DepositConfirmedActionFailedError) {
+          await loadBankrollAndCredit();
           throw new Error(t("betPrepaidNoFlip"));
         }
         throw new Error(raw || t("flipFailed"));
@@ -458,7 +519,8 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
       // Update UI.
       displayOutcome.set(outcome);
       isFlipping.set(false);
-      result.set({ won, outcome: outcome.toUpperCase() });
+      const gameResult: GameResult = { won, outcome: outcome.toUpperCase() };
+      result.set(gameResult);
 
       if (won) {
         const payoutGas = fromFixed8(payoutBase);
@@ -469,14 +531,38 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
         eventBus.emit("coinflip:loss", { action: t("youLost") });
       }
 
-      // Reconcile stats + history from the contract's authoritative state.
+      // Reconcile stats + history + bankroll/credit from authoritative state.
       await loadAll();
+      return gameResult;
     } catch (e) {
       const message = e instanceof Error ? e.message : t("flipFailed");
       eventBus.emit("coinflip:error", { message });
       isFlipping.set(false);
       throw new Error(message);
     }
+  };
+
+  /**
+   * Withdraw the player's prepaid bet credit back to their wallet via the
+   * contract's withdraw(account) method, then reconcile the credit chip. Used
+   * to recover GAS stranded by an aborted flip (money-in with money-out).
+   */
+  const withdrawCredit = async (): Promise<void> => {
+    const playerAddr = address.get() || (await chain.ensureWallet());
+    const playerHash = addressToScriptHash(playerAddr || "");
+    if (!playerAddr || !playerHash) {
+      throw new Error(t("connectWallet"));
+    }
+    setAddress(playerAddr);
+    if (creditBase.get() <= 0n) {
+      throw new Error(t("noCreditToWithdraw"));
+    }
+    await chain.invoke(
+      "withdraw",
+      [{ type: "Hash160", value: playerHash }],
+      { waitForEvent: "CreditWithdrawn" },
+    );
+    await loadBankrollAndCredit();
   };
 
   /**
@@ -517,11 +603,17 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
     totalWon,
     gameHistory,
     address,
+    bankrollBase,
+    creditBase,
 
     // -- Computed --------------------------------------------------------------
     totalGames,
     canBet,
     formattedTotalWon,
+    maxPayableBet,
+    formattedMaxPayable,
+    formattedCredit,
+    hasCredit,
 
     // -- Constants ------------------------------------------------------------
     MIN_BET,
@@ -530,6 +622,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
 
     // -- Actions --------------------------------------------------------------
     placeBet,
+    withdrawCredit,
     setBetAmount,
     setAddress,
     resetGame,

@@ -25,10 +25,26 @@ defineMiniApp({
       t: ctx.t,
     });
 
+    // Reload the owned-domain list whenever the connected account changes, so
+    // switching wallets in the host no longer strands the previous account's
+    // (or empty) list until a write action happens. Debounced to coalesce the
+    // connect→address bursts a wallet emits.
+    let lastAddress = ctx.services.chain.address.get();
+    let accountChangeTimer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribeAddress = ctx.services.chain.address.subscribe(() => {
+      const next = ctx.services.chain.address.get();
+      if (next === lastAddress) return;
+      lastAddress = next;
+      if (accountChangeTimer) clearTimeout(accountChangeTimer);
+      accountChangeTimer = setTimeout(() => {
+        void ns.loadAll();
+      }, 300);
+    });
+
     ctx.registerAction("searchDomain", async () => {
       const query = (ns.searchQuery.get() as string).trim();
       if (!query) {
-        ctx.setStatus(ctx.t("enterDomainName"), "error");
+        ctx.setStatus(ctx.t("enterDomainNameError"), "error");
         return;
       }
       ns.searchDomain();
@@ -36,6 +52,15 @@ defineMiniApp({
 
     ctx.registerAction("registerDomain", async () => {
       await ctx.services.notify.guard(() => ns.registerDomain(), "registered");
+    });
+
+    ctx.registerAction("fetchRenewPrice", async (domain: unknown) => {
+      if (!domain) return 0;
+      try {
+        return await ns.getRenewPrice(domain as Domain);
+      } catch {
+        return 0;
+      }
     });
 
     ctx.registerAction("handleRenew", async (domain: unknown) => {
@@ -83,7 +108,11 @@ defineMiniApp({
         registrationCost: ns.registrationCost,
       },
       loadData: ns.loadAll,
-      cleanup: () => { ns.cleanup(); },
+      cleanup: () => {
+        ns.cleanup();
+        if (accountChangeTimer) clearTimeout(accountChangeTimer);
+        unsubscribeAddress?.();
+      },
     };
   },
 });

@@ -29,6 +29,18 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
   swapSuccess: { en: "Swapped", zh: "兑换成功" },
   swapFailed: { en: "Swap failed", zh: "兑换失败" },
   swapRouterUnavailable: { en: "Swap router unavailable", zh: "兑换路由不可用" },
+  swapRouterUnavailableHint: {
+    en: "No on-chain swap router is deployed for this network yet. Quotes are live, but on-chain settlement is not available.",
+    zh: "本网络尚未部署链上兑换路由。报价为实时数据，但暂时无法在链上结算。",
+  },
+  rateStale: { en: "Rate may be stale", zh: "汇率可能已过期" },
+  rateAsOf: { en: "Rate as of {time}", zh: "汇率截至 {time}" },
+  rateStaleAsOf: {
+    en: "Rate as of {time} — may be out of date",
+    zh: "汇率截至 {time} — 可能已过期",
+  },
+  pairUnavailable: { en: "Pair {pair} is unavailable", zh: "交易对 {pair} 不可用" },
+  dismiss: { en: "Close", zh: "关闭" },
   tabSwap: { en: "Swap", zh: "兑换" },
   switchTokens: { en: "Switch tokens", zh: "切换代币" },
   swapArrow: { en: "→", zh: "→" },
@@ -98,7 +110,6 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
   popularPairs: { en: "Popular Pairs", zh: "热门交易对" },
     sidebarRate: { en: "Rate", zh: "汇率" },
   tokenNeo: { en: "NEO", zh: "NEO" },
-  neoGasRate: { en: "1 NEO ≈ 8.5 GAS", zh: "1 NEO ≈ 8.5 GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

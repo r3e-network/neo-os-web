@@ -344,6 +344,29 @@
   }
 }
 
+.neopay-stream-claimable--empty {
+  color: var(--ns-text-muted, #8a92a6);
+  font-style: italic;
+}
+
+// ---------- Create-form disclosures (schedule preview + 2-signature) ----------
+.neopay-form-disclosure {
+  margin: 0;
+  font-size: 0.78125rem;
+  line-height: 1.4;
+  color: var(--ns-text-2, #5b6478);
+  padding: 0.5rem 0.75rem;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+}
+
+.neopay-form-disclosure--warn {
+  color: var(--ns-warning-strong, #b25e09);
+  background: var(--ns-warning-soft, #fff4e5);
+  border-color: var(--ns-warning-line, rgba(245, 158, 11, 0.28));
+}
+
 // ---------- Actions ----------
 .neopay-stream-actions {
   display: flex;
