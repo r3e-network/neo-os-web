@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
 import {
-  createProxyHeaders,
-  parseHostErrorPayload,
+  HOST_PROXY_TIMEOUTS,
+  proxyToHost,
   resolveHostAppBaseURL,
 } from "@/lib/host-admin-proxy";
 
@@ -31,38 +30,14 @@ export async function POST(req: Request) {
     return jsonError("Invalid JSON body", 400);
   }
 
-  try {
-    const upstream = new URL(
-      "/api/miniapps/admin/definition-preview",
-      hostAppBaseURL,
-    );
-    const response = await fetch(upstream.toString(), {
-      method: "POST",
-      headers: createProxyHeaders(req),
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10_000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(
-        response,
-        "Failed to preview definition",
-      );
-      return jsonError(message, response.status);
-    }
-
-    const data = await response.json().catch((e: unknown) => {
-      console.warn(
-        "[admin/definition-preview] failed to parse response JSON:",
-        e instanceof Error ? e.message : String(e),
-      );
-      return {};
-    });
-    return NextResponse.json(data, { status: response.status });
-  } catch {
-    return jsonError(
-      "Failed to reach host-app definition preview endpoint",
-      502,
-    );
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/definition-preview",
+    method: "POST",
+    body: payload,
+    timeoutMs: HOST_PROXY_TIMEOUTS.SHORT,
+    notOkError: "Failed to preview definition",
+    fallbackError: "Failed to reach host-app definition preview endpoint",
+    logLabel: "[admin/definition-preview]",
+  });
 }

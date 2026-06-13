@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const updateStatusSchema = z.object({
   appId: z.string().min(1, "appId is required").regex(/^[a-z0-9][a-z0-9._-]*$/, "invalid appId format"),
@@ -30,22 +30,16 @@ export async function POST(req: Request) {
 
   const { appId, status } = payload;
 
-  try {
-    const response = await fetch(new URL("/api/miniapps/admin/status", hostAppBaseURL).toString(), {
-      method: "POST",
-      headers: createProxyHeaders(req),
-      body: JSON.stringify({ app_id: appId, status }),
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to update MiniApp status");
-      return jsonError(message, response.status);
-    }
-
-    const data = await response.json().catch((e: unknown) => { console.warn("[update-status] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { success: true }; });
-    return Response.json(data);
-  } catch {
-    return jsonError("Failed to reach host-app admin endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/status",
+    method: "POST",
+    body: { app_id: appId, status },
+    timeoutMs: HOST_PROXY_TIMEOUTS.SHORT,
+    notOkError: "Failed to update MiniApp status",
+    fallbackError: "Failed to reach host-app admin endpoint",
+    logLabel: "[update-status]",
+    parseFallback: { success: true },
+    onSuccess: (data) => Response.json(data),
+  });
 }

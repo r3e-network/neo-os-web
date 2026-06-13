@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
 import { miniAppConfigBaseSchema } from "@/lib/schemas";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 export async function POST(req: Request) {
   const authError = requireAdminAuth(req);
@@ -29,26 +29,17 @@ export async function POST(req: Request) {
     return jsonError("Invalid JSON body", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/upsert", hostAppBaseURL);
-    const response = await fetch(upstream.toString(), {
-      method: "POST",
-      headers: createProxyHeaders(req),
-      body: JSON.stringify({
-        ...payload,
-        action,
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to create MiniApp");
-      return jsonError(message, response.status);
-    }
-
-    const data = await response.json().catch((e: unknown) => { console.warn("[miniapps/create] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return null; });
-    return NextResponse.json(data || { success: true }, { status: response.status });
-  } catch {
-    return jsonError("Failed to reach host-app admin endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/upsert",
+    method: "POST",
+    body: { ...payload, action },
+    timeoutMs: HOST_PROXY_TIMEOUTS.STANDARD,
+    notOkError: "Failed to create MiniApp",
+    fallbackError: "Failed to reach host-app admin endpoint",
+    logLabel: "[miniapps/create]",
+    parseFallback: null,
+    onSuccess: (data, response) =>
+      NextResponse.json(data || { success: true }, { status: response.status }),
+  });
 }

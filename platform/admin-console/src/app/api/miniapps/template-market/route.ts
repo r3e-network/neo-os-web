@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const KIND_SET = new Set(["all", "frontend", "contract"]);
 const MODE_SET = new Set(["templates", "requests"]);
@@ -88,66 +88,62 @@ export async function GET(req: Request) {
     return jsonError("Invalid template_id format", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/template-market", hostAppBaseURL);
-    upstream.searchParams.set("mode", mode);
-    if (kind !== "all") upstream.searchParams.set("kind", kind);
-    if (category) upstream.searchParams.set("category", category);
-    if (templateId) upstream.searchParams.set("template_id", templateId);
-    if (active !== "all") upstream.searchParams.set("active", active);
-    if (verified !== "all") upstream.searchParams.set("verified", verified);
-    if (status !== "all") upstream.searchParams.set("status", status);
-    upstream.searchParams.set("limit", String(limit));
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/template-market",
+    searchParams: {
+      mode,
+      kind: kind !== "all" ? kind : undefined,
+      category: category || undefined,
+      template_id: templateId || undefined,
+      active: active !== "all" ? active : undefined,
+      verified: verified !== "all" ? verified : undefined,
+      status: status !== "all" ? status : undefined,
+      limit: String(limit),
+    },
+    timeoutMs: HOST_PROXY_TIMEOUTS.EXTENDED,
+    notOkError: "Failed to load template market data",
+    fallbackError: "Failed to reach host-app template market endpoint",
+    logLabel: "[template-market]",
+    onSuccess: (data) => {
+      const payload = data as Record<string, unknown>;
 
-    const response = await fetch(upstream.toString(), {
-      headers: createProxyHeaders(req),
-      signal: AbortSignal.timeout(20000),
-    });
+      if (mode === "templates") {
+        const templates = Array.isArray(payload.templates) ? payload.templates : [];
+        const filtered = templates
+          .filter((item) => {
+            if (!item || typeof item !== "object") return false;
+            const row = item as Record<string, unknown>;
+            const rowSource = asNormalized(String(row.source_type || ""));
+            if (source !== "all" && rowSource !== source) return false;
+            if (!search) return true;
 
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to load template market data");
-      return jsonError(message, response.status);
-    }
+            const text = [
+              row.template_id,
+              row.name,
+              row.description,
+              row.category,
+              ...(Array.isArray(row.tags) ? row.tags : []),
+            ]
+              .map((value) => String(value || "").toLowerCase())
+              .join(" ");
+            return text.includes(search.toLowerCase());
+          })
+          .slice(0, limit);
 
-    const payload = (await response.json().catch((e: unknown) => { console.warn("[template-market] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return ({}); })) as Record<string, unknown>;
-
-    if (mode === "templates") {
-      const templates = Array.isArray(payload.templates) ? payload.templates : [];
-      const filtered = templates
-        .filter((item) => {
-          if (!item || typeof item !== "object") return false;
-          const row = item as Record<string, unknown>;
-          const rowSource = asNormalized(String(row.source_type || ""));
-          if (source !== "all" && rowSource !== source) return false;
-          if (!search) return true;
-
-          const text = [
-            row.template_id,
-            row.name,
-            row.description,
-            row.category,
-            ...(Array.isArray(row.tags) ? row.tags : []),
-          ]
-            .map((value) => String(value || "").toLowerCase())
-            .join(" ");
-          return text.includes(search.toLowerCase());
-        })
-        .slice(0, limit);
+        return NextResponse.json({
+          mode: "templates",
+          templates: filtered,
+          approval_required: Boolean(payload.approval_required),
+        });
+      }
 
       return NextResponse.json({
-        mode: "templates",
-        templates: filtered,
-        approval_required: Boolean(payload.approval_required),
+        mode: "requests",
+        requests: Array.isArray(payload.requests) ? payload.requests : [],
       });
-    }
-
-    return NextResponse.json({
-      mode: "requests",
-      requests: Array.isArray(payload.requests) ? payload.requests : [],
-    });
-  } catch {
-    return jsonError("Failed to reach host-app template market endpoint", 502);
-  }
+    },
+  });
 }
 
 export async function POST(req: Request) {
@@ -170,23 +166,15 @@ export async function POST(req: Request) {
     return jsonError("Invalid JSON body", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/template-market", hostAppBaseURL);
-    const response = await fetch(upstream.toString(), {
-      method: "POST",
-      headers: createProxyHeaders(req),
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Template market request failed");
-      return jsonError(message, response.status);
-    }
-
-    const data = await response.json().catch((e: unknown) => { console.warn("[template-market POST] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { success: true }; });
-    return NextResponse.json(data, { status: response.status });
-  } catch {
-    return jsonError("Failed to reach host-app template market endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/template-market",
+    method: "POST",
+    body: payload,
+    timeoutMs: HOST_PROXY_TIMEOUTS.EXTENDED,
+    notOkError: "Template market request failed",
+    fallbackError: "Failed to reach host-app template market endpoint",
+    logLabel: "[template-market POST]",
+    parseFallback: { success: true },
+  });
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const STATUS_SET = new Set(["all", "pending", "approved", "rejected", "applied", "cancelled"]);
@@ -37,26 +37,20 @@ export async function GET(req: Request) {
     return jsonError("Invalid status filter", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/publish-requests", hostAppBaseURL);
-    if (appId) upstream.searchParams.set("app_id", appId);
-    if (status !== "all") upstream.searchParams.set("status", status);
-
-    const response = await fetch(upstream.toString(), {
-      headers: createProxyHeaders(req),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to load publish requests");
-      return jsonError(message, response.status);
-    }
-
-    const payload = await response.json().catch((e: unknown) => { console.warn("[publish-requests] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { requests: [] }; });
-    return NextResponse.json(payload);
-  } catch {
-    return jsonError("Failed to reach host-app publish request endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/publish-requests",
+    searchParams: {
+      app_id: appId || undefined,
+      status: status !== "all" ? status : undefined,
+    },
+    timeoutMs: HOST_PROXY_TIMEOUTS.STANDARD,
+    notOkError: "Failed to load publish requests",
+    fallbackError: "Failed to reach host-app publish request endpoint",
+    logLabel: "[publish-requests]",
+    parseFallback: { requests: [] },
+    onSuccess: (payload) => NextResponse.json(payload),
+  });
 }
 
 export async function POST(req: Request) {
@@ -79,23 +73,16 @@ export async function POST(req: Request) {
     return jsonError("Invalid JSON body", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/publish-requests", hostAppBaseURL);
-    const response = await fetch(upstream.toString(), {
-      method: "POST",
-      headers: createProxyHeaders(req),
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to review publish request");
-      return jsonError(message, response.status);
-    }
-
-    const data = await response.json().catch((e: unknown) => { console.warn("[publish-requests POST] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { success: true }; });
-    return NextResponse.json(data);
-  } catch {
-    return jsonError("Failed to reach host-app publish request endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/publish-requests",
+    method: "POST",
+    body: payload,
+    timeoutMs: HOST_PROXY_TIMEOUTS.EXTENDED,
+    notOkError: "Failed to review publish request",
+    fallbackError: "Failed to reach host-app publish request endpoint",
+    logLabel: "[publish-requests POST]",
+    parseFallback: { success: true },
+    onSuccess: (data) => NextResponse.json(data),
+  });
 }

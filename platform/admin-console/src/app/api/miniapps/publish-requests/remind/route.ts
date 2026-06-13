@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 function parseDryRun(value: unknown): boolean {
   if (typeof value === "boolean") return value;
@@ -28,23 +28,16 @@ export async function POST(req: Request) {
     console.warn("[publish-requests/remind] dry_run parse failed:", _e instanceof Error ? _e.message : String(_e));
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/publish-reminders", hostAppBaseURL);
-    const response = await fetch(upstream.toString(), {
-      method: "POST",
-      headers: createProxyHeaders(req),
-      body: JSON.stringify({ dry_run: dryRun }),
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to trigger publish reminders");
-      return jsonError(message, response.status);
-    }
-
-    const payload = await response.json().catch((e: unknown) => { console.warn("[publish-requests/remind] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { success: true, reminders: [] }; });
-    return NextResponse.json(payload);
-  } catch {
-    return jsonError("Failed to reach host-app publish reminder endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/publish-reminders",
+    method: "POST",
+    body: { dry_run: dryRun },
+    timeoutMs: HOST_PROXY_TIMEOUTS.EXTENDED,
+    notOkError: "Failed to trigger publish reminders",
+    fallbackError: "Failed to reach host-app publish reminder endpoint",
+    logLabel: "[publish-requests/remind]",
+    parseFallback: { success: true, reminders: [] },
+    onSuccess: (payload) => NextResponse.json(payload),
+  });
 }

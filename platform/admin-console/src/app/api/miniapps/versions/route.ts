@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const RELEASE_CHANNELS = new Set(["all", "draft", "published"]);
@@ -30,27 +30,19 @@ export async function GET(req: Request) {
     return jsonError("Invalid release_channel filter", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/versions", hostAppBaseURL);
-    upstream.searchParams.set("app_id", appId);
-    upstream.searchParams.set("include_payload", "true");
-    if (releaseChannel !== "all") {
-      upstream.searchParams.set("release_channel", releaseChannel);
-    }
-
-    const response = await fetch(upstream.toString(), {
-      headers: createProxyHeaders(req),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to fetch miniapp versions");
-      return jsonError(message, response.status);
-    }
-
-    const payload = await response.json().catch((e: unknown) => { console.warn("[miniapps/versions] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return null; });
-    return NextResponse.json(payload || { app_id: appId, versions: [] });
-  } catch {
-    return jsonError("Failed to reach host-app versions endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/versions",
+    searchParams: {
+      app_id: appId,
+      include_payload: "true",
+      release_channel: releaseChannel !== "all" ? releaseChannel : undefined,
+    },
+    timeoutMs: HOST_PROXY_TIMEOUTS.STANDARD,
+    notOkError: "Failed to fetch miniapp versions",
+    fallbackError: "Failed to reach host-app versions endpoint",
+    logLabel: "[miniapps/versions]",
+    parseFallback: null,
+    onSuccess: (payload) => NextResponse.json(payload || { app_id: appId, versions: [] }),
+  });
 }
