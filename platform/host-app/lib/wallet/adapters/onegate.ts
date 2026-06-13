@@ -38,6 +38,11 @@ export class OneGateAdapter implements WalletAdapter {
     return this.nep21.connect();
   }
 
+  async connectSilently(): Promise<WalletAccount | null> {
+    if (!this.isInstalled()) return null;
+    return this.nep21.connectSilently();
+  }
+
   async disconnect(): Promise<void> {
     await this.nep21.disconnect();
   }

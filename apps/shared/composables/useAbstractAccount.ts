@@ -128,6 +128,45 @@ async function resolveToken(resolver?: TokenResolver): Promise<string | undefine
   return trimmed || undefined;
 }
 
+/**
+ * Reduce a non-2xx response body to a single human-readable sentence.
+ *
+ * Edge/relay services answer errors as JSON envelopes like
+ * `{"error":{"code":"FORBIDDEN","message":"function not allowed"}}` — without
+ * this, the verbatim JSON leaks into user-facing toasts. Extraction order:
+ * `error.message` → `error.code` → top-level `error` string → top-level
+ * `message`. Non-JSON (or shapeless JSON) bodies fall back to the raw text.
+ */
+function summarizeErrorBody(text: string): string {
+  const trimmed = String(text ?? "").trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (parsed && typeof parsed === "object") {
+      const obj = parsed as Record<string, unknown>;
+      const nested = obj.error;
+      if (nested && typeof nested === "object") {
+        const detail = nested as Record<string, unknown>;
+        if (typeof detail.message === "string" && detail.message.trim()) {
+          return detail.message.trim();
+        }
+        if (typeof detail.code === "string" && detail.code.trim()) {
+          return detail.code.trim();
+        }
+      }
+      if (typeof nested === "string" && nested.trim()) {
+        return nested.trim();
+      }
+      if (typeof obj.message === "string" && obj.message.trim()) {
+        return obj.message.trim();
+      }
+    }
+  } catch (_e) {
+    // Not JSON — fall through to the raw text.
+  }
+  return trimmed;
+}
+
 async function requestJson<T>(
   url: string,
   options: {
@@ -157,7 +196,9 @@ async function requestJson<T>(
 
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(text || `${options.method} ${url} failed (${response.status})`);
+    throw new Error(
+      summarizeErrorBody(text) || `${options.method} ${url} failed (${response.status})`,
+    );
   }
 
   if (!text) {

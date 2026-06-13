@@ -53,6 +53,14 @@ export interface WalletAdapter {
   /** Connect to wallet and get account */
   connect(): Promise<WalletAccount>;
 
+  /**
+   * Reconnect to an already-authorized account without prompting the user
+   * (e.g. via the dAPI `getAccounts` call). Resolves `null` when the wallet
+   * has no silently readable account; implementations must never trigger an
+   * authentication prompt from this path.
+   */
+  connectSilently?(): Promise<WalletAccount | null>;
+
   /** Disconnect from wallet */
   disconnect(): Promise<void>;
 

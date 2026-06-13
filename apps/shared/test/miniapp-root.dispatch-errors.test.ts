@@ -51,6 +51,7 @@ async function mountWithHandlers(
   document.body.appendChild(container);
   const root = createRoot(container);
 
+  let setupComplete = false;
   root.render(
     React.createElement(MiniAppRoot, {
       appId,
@@ -61,6 +62,12 @@ async function mountWithHandlers(
         for (const [key, handler] of Object.entries(handlers)) {
           ctx.registerAction(key, handler);
         }
+        // The PlayArea captures `dispatch` as soon as it renders, which can
+        // happen before this async setup finishes registering handlers. Flip
+        // a sentinel last so the test only dispatches once every handler above
+        // is live — otherwise dispatch() early-returns on an unregistered name
+        // and resolves undefined instead of rejecting (a worker-scheduling race).
+        setupComplete = true;
         return {};
       },
     }),
@@ -68,6 +75,7 @@ async function mountWithHandlers(
 
   await vi.waitFor(() => {
     expect(capturedDispatch).not.toBeNull();
+    expect(setupComplete).toBe(true);
   });
 
   return {

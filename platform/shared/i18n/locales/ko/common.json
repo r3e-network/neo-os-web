@@ -86,7 +86,14 @@
     "notConnected": "지갑 미연결",
     "insufficientBalance": "잔액 부족",
     "pleaseConnect": "계속하려면 지갑을 연결하세요",
-    "optionAlt": "{wallet} 지갑"
+    "optionAlt": "{wallet} 지갑",
+    "menu": "지갑 메뉴",
+    "copyAddress": "주소 복사",
+    "viewOnExplorer": "익스플로러에서 보기",
+    "accountSettings": "계정 설정",
+    "reconnect": "다시 연결",
+    "reconnectWallet": "지갑 다시 연결",
+    "dismissSavedSession": "저장된 지갑 세션 무시"
   },
   "auth": {
     "connected": "연결됨",

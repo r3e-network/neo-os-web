@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { Copy, Play, RotateCcw, ShieldCheck } from "lucide-react";
+import { useContext, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
+import { Copy, Info, Play, RotateCcw, Send, ShieldCheck } from "lucide-react";
+import { MiniAppManifestContext } from "../react/context";
 import type { ObservableState } from "../react/context";
 import type { PlatformServices } from "../services";
 import type { MiniAppLaunchContext } from "../utils/launch-params";
@@ -44,11 +46,43 @@ export interface ConsoleToolConfig {
   resetActionKey: string;
   copyActionKey: string;
   copiedKey: string;
+  /**
+   * i18n key for the live-dispatch button label.
+   * Defaults to the shared "consoleExecuteAction" base message.
+   */
+  executeActionKey?: string;
+  /**
+   * i18n key for the preview-only notice shown when no execute hook is
+   * configured. Defaults to the shared "consolePreviewNotice" base message.
+   */
+  previewNoticeKey?: string;
+  /**
+   * Hide the session "Requests" counter in the hero meta line for consoles
+   * where the tally carries no business meaning (e.g. the VRF console).
+   */
+  hideRequestCount?: boolean;
   fields: ConsoleField[];
   buildResult: (
     values: Record<string, string>,
     t: (key: string, params?: Record<string, string | number>) => string,
   ) => ConsoleResult;
+  /**
+   * OPT-IN live dispatch. When provided, the panel renders a secondary
+   * "Send live request" button that awaits this hook and applies the returned
+   * ConsoleResult exactly like a preview (status, digest, request counter,
+   * toast). Probed 2026-06-12: the restored mainnet worker
+   * (oracle.meshmini.app/mainnet) rejects every tokenless POST lane
+   * (oracle/query, oracle/smart-fetch, compute/execute → 401) and gates
+   * vrf/random behind Turnstile (403), but serves tokenless GETs for
+   * feeds/price/:symbol, feeds/catalog, neodid/providers and
+   * oracle/public-key — so consoles should wire this hook to those read
+   * lanes only. Without the hook the panel shows an honest preview-only
+   * notice instead of a silent dead-end.
+   */
+  execute?: (
+    values: Record<string, string>,
+    t: (key: string, params?: Record<string, string | number>) => string,
+  ) => Promise<ConsoleResult>;
 }
 
 export interface ConsoleToolPanelProps {
@@ -91,6 +125,32 @@ export function previewId(seed: string) {
   return `0x${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
+const HEX_ACCENT_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/**
+ * Derive the panel's accent custom properties from the manifest accentColor so
+ * the console chrome (badge, status pill, focus ring) follows each app's
+ * declared accent instead of the host's hardcoded violet. Falls back to the
+ * --ns-violet-* aliases (declared in the SCSS) when the manifest has no valid
+ * hex accent.
+ */
+export function consoleAccentVars(
+  accentColor: string | undefined | null,
+): CSSProperties | undefined {
+  if (!accentColor || !HEX_ACCENT_PATTERN.test(accentColor)) return undefined;
+  const hex =
+    accentColor.length === 4
+      ? `#${accentColor[1]}${accentColor[1]}${accentColor[2]}${accentColor[2]}${accentColor[3]}${accentColor[3]}`
+      : accentColor;
+  const red = parseInt(hex.slice(1, 3), 16);
+  const green = parseInt(hex.slice(3, 5), 16);
+  const blue = parseInt(hex.slice(5, 7), 16);
+  return {
+    "--console-accent": hex,
+    "--console-accent-soft": `rgba(${red}, ${green}, ${blue}, 0.12)`,
+  } as CSSProperties;
+}
+
 export function ConsoleToolPanel({
   config,
   t,
@@ -99,10 +159,16 @@ export function ConsoleToolPanel({
   setStatus,
   launchContext = null,
 }: ConsoleToolPanelProps) {
+  const manifest = useContext(MiniAppManifestContext);
+  const accentVars = useMemo(
+    () => consoleAccentVars(manifest?.theme?.accentColor),
+    [manifest],
+  );
   const [values, setValues] = useState(() =>
     initialValues(config.fields, launchContext?.params),
   );
   const [result, setResult] = useState<ConsoleResult | null>(null);
+  const [executing, setExecuting] = useState(false);
   // Capture the app-provided initial status/digest once, so Reset restores the
   // exact placeholders each app seeded (e.g. "—" vs "N/A") instead of a single
   // hardcoded key. Computed once at mount before any preview mutates the state.
@@ -124,12 +190,12 @@ export function ConsoleToolPanel({
     setValues((current) => ({ ...current, [key]: value }));
   }
 
-  function runPreview() {
-    const next = config.buildResult(values, t);
+  function applyResult(next: ConsoleResult) {
     setResult(next);
-    // A buildResult that returns payload.status === "input_required" signals a
-    // validation failure (no real preview produced). Treat it as a warning so the
-    // host does not render a green "success" toast, keep counters/digest honest.
+    // A result carrying payload.status === "input_required" signals a
+    // validation failure (no real preview/dispatch produced). Treat it as a
+    // warning so the host does not render a green "success" toast, keep
+    // counters/digest honest.
     const ok = next.payload.status !== "input_required";
     setObservable(state, "lastStatus", next.status);
     const digest = next.payload.digest ?? next.payload.requestId;
@@ -146,8 +212,32 @@ export function ConsoleToolPanel({
     setStatus(next.status, ok ? "success" : "warning");
   }
 
+  function runPreview() {
+    applyResult(config.buildResult(values, t));
+  }
+
+  async function runExecute() {
+    if (!config.execute || executing) return;
+    setExecuting(true);
+    try {
+      applyResult(await config.execute(values, t));
+    } catch (err) {
+      // Live dispatch failed — keep the last preview/result intact and surface
+      // an honest error toast. Apps localize their own thrown messages; only
+      // an empty/non-Error rejection falls back to the shared key.
+      const message =
+        err instanceof Error && err.message ? err.message : t("unexpectedError");
+      setStatus(message, "error");
+    } finally {
+      setExecuting(false);
+    }
+  }
+
   function reset() {
-    setValues(initialValues(config.fields));
+    // Re-apply deep-link launch params (when present) so Reset returns a
+    // deep-linked console to the launch payload it opened with, not to the
+    // bare field defaults.
+    setValues(initialValues(config.fields, launchContext?.params));
     setResult(null);
     // Restore the same initial values the app seeded so Reset returns the surface
     // to a genuinely fresh state: status/digest placeholders match first load and
@@ -164,7 +254,7 @@ export function ConsoleToolPanel({
   }
 
   return (
-    <div className="console-tool">
+    <div className="console-tool" style={accentVars}>
       <section className="console-tool__hero" aria-labelledby="console-title">
         <div className="console-tool__intro">
           <span className="console-tool__hero-badge" aria-hidden="true">
@@ -179,9 +269,18 @@ export function ConsoleToolPanel({
         <div className="console-tool__hero-meta" aria-label={t("statistics")}>
           <span>{t("statNetwork")} <strong>{networkLabel}</strong></span>
           <span>{t("statEndpoint")} <strong>{endpointLabel}</strong></span>
-          <span>{t("statRequests")} <strong>{requestCount}</strong></span>
+          {config.hideRequestCount ? null : (
+            <span>{t("statRequests")} <strong>{requestCount}</strong></span>
+          )}
         </div>
       </section>
+
+      {!config.execute && (
+        <p className="console-tool__notice" role="note">
+          <Info size={16} aria-hidden="true" />
+          <span>{t(config.previewNoticeKey ?? "consolePreviewNotice")}</span>
+        </p>
+      )}
 
       <section className="console-tool__workspace">
         <div className="console-tool__form" aria-label={t(config.titleKey)}>
@@ -221,6 +320,19 @@ export function ConsoleToolPanel({
               <Play size={18} aria-hidden="true" />
               <span>{t(config.primaryActionKey)}</span>
             </NeoButton>
+            {config.execute ? (
+              <NeoButton
+                variant="secondary"
+                size="lg"
+                loading={executing}
+                onClick={() => {
+                  void runExecute();
+                }}
+              >
+                <Send size={18} aria-hidden="true" />
+                <span>{t(config.executeActionKey ?? "consoleExecuteAction")}</span>
+              </NeoButton>
+            ) : null}
             <NeoButton variant="ghost" size="lg" onClick={reset}>
               <RotateCcw size={18} aria-hidden="true" />
               <span>{t(config.resetActionKey)}</span>

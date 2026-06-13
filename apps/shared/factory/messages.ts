@@ -84,7 +84,185 @@ export const factoryMessages = {
   },
   docSafetyModel: { en: "Safety model", zh: "安全模型" },
   docSafetyModelBody: {
-    en: "The plan digest is deterministic and signer-bound. The factory method receives template ID plus init params only; raw NEF and manifest artifacts must be preloaded and governed by the Factory contract.",
-    zh: "计划摘要是确定性的，并可由钱包签名绑定。Factory 方法只接收模板 ID 和初始化参数；原始 NEF 和 manifest 必须提前由 Factory 合约预置和治理。",
+    en: "The plan digest is a deterministic SHA-256 commitment over the canonical plan payload and is wallet-signable. The factory method receives template ID plus init params only; raw NEF and manifest artifacts must be preloaded and governed by the Factory contract.",
+    zh: "计划摘要是对规范化计划载荷的确定性 SHA-256 承诺，可由钱包签名。Factory 方法只接收模板 ID 和初始化参数；原始 NEF 和 manifest 必须提前由 Factory 合约预置和治理。",
   },
+
+  // ── Validation errors (plan blocking) ──
+  errNameLength: { en: "Name must be 3-64 characters.", zh: "名称需为 3-64 个字符。" },
+  errCollectionNameLength: { en: "Collection name must be 3-64 characters.", zh: "集合名称需为 3-64 个字符。" },
+  errSymbolFormat: {
+    en: "Symbol must be 2-12 uppercase letters or digits and start with a letter.",
+    zh: "符号需为 2-12 位大写字母或数字，且以字母开头。",
+  },
+  errDecimalsRange: { en: "Decimals must be an integer from 0 to 8.", zh: "精度需为 0-8 的整数。" },
+  errInitialSupplyPositive: { en: "Initial supply must be greater than zero.", zh: "初始供应量必须大于零。" },
+  errInitialSupplyPrecision: {
+    en: "Initial supply has more decimals than the token allows.",
+    zh: "初始供应量的小数位超过代币精度。",
+  },
+  errInitialSupplyFormat: {
+    en: "Initial supply must be a positive decimal number.",
+    zh: "初始供应量需为正的十进制数。",
+  },
+  errOwnerAddress: { en: "Owner must be a Neo N3 address or Hash160.", zh: "Owner 需为 Neo N3 地址或 Hash160。" },
+  errTreasuryAddress: { en: "Treasury must be a Neo N3 address or Hash160.", zh: "金库需为 Neo N3 地址或 Hash160。" },
+  errMaxSupplyRange: { en: "Max supply must be 1-1,000,000.", zh: "最大供应量需为 1-1,000,000。" },
+  errRoyaltyRange: { en: "Royalty must be 0-1000 bps.", zh: "版税需为 0-1000 个基点 (bps)。" },
+  errBaseUri: {
+    en: "Base URI must be an HTTPS URL ending with '/'.",
+    zh: "基础 URI 需为以 '/' 结尾的 HTTPS 链接。",
+  },
+  errAppIdFormat: {
+    en: "MiniApp ID must start with miniapp- and use lowercase slugs.",
+    zh: "小程序 ID 需以 miniapp- 开头并使用小写短横线格式。",
+  },
+  errAppNameLength: { en: "MiniApp name must be 3-64 characters.", zh: "小程序名称需为 3-64 个字符。" },
+  errTemplateKind: { en: "Choose a supported template kind.", zh: "请选择支持的模板类型。" },
+  errAdminAddress: { en: "Admin must be a Neo N3 address or Hash160.", zh: "管理员需为 Neo N3 地址或 Hash160。" },
+  errFactoryNotConfigured: {
+    en: "Factory contract is not configured for this network. Sync the deployed template registry hash before execution.",
+    zh: "当前网络尚未配置 Factory 合约。执行前请同步已部署的模板注册表合约地址。",
+  },
+  errFactoryInvalid: {
+    en: "Factory contract hash is invalid. Configure a Neo N3 Hash160 before execution.",
+    zh: "Factory 合约地址无效。执行前请配置有效的 Neo N3 Hash160。",
+  },
+
+  // ── Warnings ──
+  warnMainnetReview: {
+    en: "Mainnet packages require signer, GAS, domain, and registry review before submission.",
+    zh: "主网部署包在提交前需要复核签名者、GAS、域名和注册表配置。",
+  },
+  warnCatalogRegistration: {
+    en: "The generated catalog patch must be synchronized to Notion and platform registries after deployment.",
+    zh: "部署后需将生成的目录补丁同步到 Notion 和平台注册表。",
+  },
+
+  // ── Deploy checklist steps ──
+  stepValidateTitle: { en: "Validate inputs", zh: "校验输入" },
+  stepValidateReady: {
+    en: "Names, symbols, owner, and parameter bounds are valid.",
+    zh: "名称、符号、Owner 和参数范围均有效。",
+  },
+  stepValidateBlocked: { en: "Fix blocking errors before deployment.", zh: "部署前请先修复阻断错误。" },
+  stepTemplateTitle: { en: "Select on-chain template", zh: "选择链上模板" },
+  stepTemplateBlocked: {
+    en: "Template metadata is deterministic, but the factory contract must be configured before execution.",
+    zh: "模板元数据是确定性的，但执行前必须配置 Factory 合约。",
+  },
+  stepTemplateArtifactReady: {
+    en: "Live-verified: the NEF and manifest artifact is preloaded on the Factory contract.",
+    zh: "已链上验证：NEF 和 manifest 工件已预置在 Factory 合约中。",
+  },
+  stepTemplateMetadataOnly: {
+    en: "Live-verified: only template metadata is registered — no deployable artifact exists on-chain yet.",
+    zh: "已链上验证：当前仅注册了模板元数据，链上尚无可部署的工件。",
+  },
+  stepTemplateUnverified: {
+    en: "Artifact status not verified yet — generate a plan to check the factory contract.",
+    zh: "尚未验证工件状态——生成计划后将查询 Factory 合约。",
+  },
+  stepTemplateRecordDetail: {
+    en: "MiniApp templates register an on-chain instance record; no artifact deployment is involved.",
+    zh: "小程序模板登记链上实例记录，不涉及工件部署。",
+  },
+  stepDeployTitleNep17: { en: "Deploy NEP-17 from template", zh: "基于模板部署 NEP-17" },
+  stepDeployTitleNep11: { en: "Deploy NEP-11 from template", zh: "基于模板部署 NEP-11" },
+  stepDeployTitleMiniapp: { en: "Create platform miniapp from template", zh: "基于模板创建平台小程序" },
+  stepDeployBlocked: {
+    en: "Resolve the blocking errors above, then submit the deployment call.",
+    zh: "请先解决上方阻断错误，再提交部署调用。",
+  },
+  stepDeployReadyDetail: {
+    en: "Submit template ID and initialization parameters from this console — the factory deploys the preloaded artifact.",
+    zh: "直接在本控制台提交模板 ID 和初始化参数，Factory 将部署预置工件。",
+  },
+  stepDeployArtifactMissing: {
+    en: "Blocked: the template artifact is not registered on-chain yet, so no contract can be created. A factory admin must run registerTemplateArtifact first.",
+    zh: "已阻断：模板工件尚未在链上注册，无法创建合约。需要 Factory 管理员先执行 registerTemplateArtifact。",
+  },
+  stepDeployUnverifiedDetail: {
+    en: "Generate a plan to live-verify the template artifact before submitting.",
+    zh: "请先生成计划以在线验证模板工件，再提交。",
+  },
+  stepDeployRecordDetail: {
+    en: "Submit the registration from this console — the factory stores the miniapp instance record.",
+    zh: "直接在本控制台提交登记，Factory 将存储小程序实例记录。",
+  },
+  stepDeployTemplateMissing: {
+    en: "Blocked: this template id is not registered on the factory contract.",
+    zh: "已阻断：该模板 ID 未在 Factory 合约中注册。",
+  },
+  stepBindTitle: { en: "Bind domain and catalog metadata", zh: "绑定域名与目录元数据" },
+  stepBindDetail: {
+    en: "Record contract hash, NeoNS domain, network, and OneGate launch URL in the shared registry.",
+    zh: "在共享注册表中记录合约地址、NeoNS 域名、网络和 OneGate 启动链接。",
+  },
+  stepStatusReady: { en: "Ready", zh: "就绪" },
+  stepStatusManual: { en: "Manual", zh: "人工" },
+  stepStatusBlocked: { en: "Blocked", zh: "阻断" },
+
+  // ── Execution ──
+  executeDeployAction: { en: "Deploy via factory", zh: "通过 Factory 部署" },
+  executeRecordAction: { en: "Register on-chain", zh: "链上登记" },
+  executeSubmitted: {
+    en: "Transaction submitted — confirmation pending.",
+    zh: "交易已提交，等待链上确认。",
+  },
+  executeConfirmed: { en: "Factory execution confirmed on-chain.", zh: "Factory 执行已在链上确认。" },
+  executeFailed: { en: "Factory execution failed.", zh: "Factory 执行失败。" },
+  alreadyExecuted: {
+    en: "This exact plan was already submitted. Change the inputs and regenerate to create a new package.",
+    zh: "该计划已提交过。请修改输入并重新生成以创建新部署包。",
+  },
+  artifactNotRegistered: {
+    en: "Template artifact not registered on-chain yet — deploying now would only store a record without creating a contract. Execution stays blocked until a factory admin preloads the artifact.",
+    zh: "模板工件尚未在链上注册——现在部署只会存储记录而不会创建合约。在 Factory 管理员预置工件之前，执行保持阻断。",
+  },
+  artifactUnverified: {
+    en: "The template artifact status could not be verified on-chain. Check your connection and regenerate the plan.",
+    zh: "无法在链上验证模板工件状态。请检查网络连接并重新生成计划。",
+  },
+  templateNotRegistered: {
+    en: "This template is not registered on the factory contract for the selected network.",
+    zh: "所选网络的 Factory 合约中未注册该模板。",
+  },
+  lastTxidLabel: { en: "Transaction", zh: "交易" },
+  deployedContractLabel: { en: "Deployed contract", zh: "已部署合约" },
+  estimatedFee: { en: "Estimated network fee", zh: "预估网络费用" },
+  estimatedFeeValue: { en: "≈ {amount} GAS", zh: "≈ {amount} GAS" },
+
+  // ── Template artifact status ──
+  artifactStatusLabel: { en: "Template artifact", zh: "模板工件" },
+  artifactStatusPreloaded: { en: "Preloaded on-chain", zh: "已链上预置" },
+  artifactStatusMetadataOnly: { en: "Metadata only", zh: "仅元数据" },
+  artifactStatusNotRegistered: { en: "Not registered", zh: "未注册" },
+  artifactStatusUnverified: { en: "Unverified", zh: "未验证" },
+
+  // ── On-chain creations ──
+  myDeployments: { en: "On-chain creations", zh: "链上创建记录" },
+  deploymentsCount: { en: "{count} recorded on-chain", zh: "链上共 {count} 条记录" },
+  refreshAction: { en: "Refresh", zh: "刷新" },
+  loadingDeployments: { en: "Loading on-chain records…", zh: "正在加载链上记录…" },
+  deploymentsError: { en: "Could not load on-chain records.", zh: "无法加载链上记录。" },
+  retryAction: { en: "Retry", zh: "重试" },
+  noDeploymentsYet: { en: "No packages recorded on-chain yet.", zh: "链上还没有部署包记录。" },
+  mineTag: { en: "Yours", zh: "我的" },
+  recordOnly: { en: "Record only — no contract deployed", zh: "仅记录——未部署合约" },
+  copyContractHash: { en: "Copy contract hash", zh: "复制合约地址" },
+
+  // ── Form & misc ──
+  useMyAddress: { en: "Use my address", zh: "使用我的地址" },
+  royaltyHelper: { en: "{bps} bps = {percent}% of each sale", zh: "{bps} bps = 每笔销售的 {percent}%" },
+  draft: { en: "Draft", zh: "草稿" },
+  networkTestnet: { en: "Testnet", zh: "测试网" },
+  networkMainnet: { en: "Mainnet", zh: "主网" },
+  networkOptionTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
+  networkOptionMainnet: { en: "Neo N3 Mainnet", zh: "Neo N3 主网" },
+  templateKindRewardVault: { en: "Reward vault", zh: "奖励金库" },
+  templateKindTicketPass: { en: "Event ticket pass", zh: "活动门票通行证" },
+  templateKindCertificate: { en: "Soulbound certificate", zh: "灵魂绑定证书" },
+  templateKindOracleConsole: { en: "Oracle console", zh: "预言机控制台" },
+  copySignature: { en: "Copy signature", zh: "复制签名" },
 } as const;

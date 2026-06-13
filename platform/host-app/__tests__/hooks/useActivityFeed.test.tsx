@@ -42,7 +42,8 @@ function setVisibilityState(state: DocumentVisibilityState) {
 }
 
 function emptyPayloads() {
-  fetchJSONMock.mockImplementation(async (url: string) => {
+  fetchJSONMock.mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
     if (url.includes("/api/activity/events")) return { events: [] };
     return { transactions: [] };
   });
@@ -145,7 +146,8 @@ describe("useActivityFeed polling", () => {
   });
 
   it("merges fetched events into the activity list", async () => {
-    fetchJSONMock.mockImplementation(async (url: string) => {
+    fetchJSONMock.mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input);
       if (url.includes("/api/activity/events")) {
         return {
           events: [

@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { ChevronDown, ChevronUp, Wallet, X } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Wallet,
+  X,
+} from "lucide-react";
 import { AppDetailHeader, OperationPanel } from "../../components";
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
 import type { OperationEntry } from "../../components/types";
@@ -10,7 +17,10 @@ import {
   resolvePlayAreaOperationNetworkDefaults,
 } from "../../components/playarea/PlayAreaOperationFallbacks";
 import {
+  HOST_PLAYFIELD_REFRESH,
+  HOST_WALLET_BRIDGE_ERROR,
   HOST_WALLET_BRIDGE_RESULT,
+  type EmbeddedWalletBridgeErrorDetail,
   type EmbeddedWalletBridgeResultDetail,
 } from "../../components/playarea/PlayAreaShared";
 import {
@@ -35,6 +45,7 @@ import {
   resolveCustomAnchorOperations,
   resolveDirectMiniAppSlug,
   resolveNetworkContractHash,
+  resolveNetworkOperationMethod,
   resolveOneGateDappId,
   resolvePageCatalogNetwork,
   supportsPageCatalogNetwork,
@@ -42,8 +53,12 @@ import {
 } from "../../lib/miniapp-detail-helpers";
 import { Layout } from "../../components/layout";
 import { BRAND } from "@/lib/brand";
+import { useFocusTrap } from "@/lib/design-system/a11y";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
-import { useMiniAppDetailInvoke } from "../../hooks/useMiniAppDetailInvoke";
+import {
+  useMiniAppDetailInvoke,
+  type MiniAppInvokeFeedback,
+} from "../../hooks/useMiniAppDetailInvoke";
 import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
 import { isSharedModeApp } from "../../lib/chain";
 import { useWalletStore } from "../../lib/wallet/store";
@@ -62,9 +77,13 @@ import {
   buildOneGateDirectMiniAppUrl,
   buildOneGateLaunchUrl,
 } from "../../../../apps/shared/utils/onegate-launch";
+import { waitForTransactionStatus } from "../../../../apps/shared/utils/n3index";
 
-const DAILY_CHECKIN_APP_ID = "miniapp-dailycheckin";
-const DAILY_CHECKIN_MEMO = "miniapp-dailycheckin:checkin";
+const DORA_TX_BASE = "https://dora.coz.io/transaction/neo3";
+const TX_CONFIRMATION_TIMEOUT_MS = 90_000;
+const TX_CONFIRMATION_POLL_MS = 5_000;
+
+type TxConfirmationState = "idle" | "pending" | "confirmed" | "settled";
 
 function shortTxId(value: string) {
   return value.length > 18
@@ -72,18 +91,133 @@ function shortTxId(value: string) {
     : value;
 }
 
+function getTransactionExplorerUrl(
+  network: "mainnet" | "testnet",
+  txid: string,
+) {
+  const segment = network === "testnet" ? "testnet" : "mainnet";
+  return `${DORA_TX_BASE}/${segment}/${encodeURIComponent(txid)}`;
+}
+
+function normalizeContractHash(value: string | null | undefined) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^0x/, "");
+}
+
+function normalizeMethodToken(value: string | null | undefined) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+type ConsoleOperationTarget = {
+  chainMethod: string;
+  contractHash: string | null;
+};
+
+/**
+ * Cross-lane double-submit guard: a write submitted from the embedded
+ * workspace locks the matching host-console operation until it confirms.
+ * Matching is generic — by resolved chain method + contract hash for direct
+ * contract writes, and by the "<appId>:<action>" transfer memo for
+ * deposit-then-act recipes — instead of keying on one hardcoded app.
+ */
 function isEmbeddedSubmittedOperation(
   appId: string | undefined,
   operation: OperationEntry | null | undefined,
   result: EmbeddedWalletBridgeResultDetail | null,
+  target: ConsoleOperationTarget,
 ) {
   if (!appId || !operation || !result) return false;
-  if (result.appId !== appId) return false;
+  if (result.appId !== appId || !result.txid) return false;
+
+  // Lane 1: direct contract write — the embedded workspace invoked the same
+  // resolved chain method on the same contract the console would target.
+  if (
+    target.contractHash &&
+    normalizeContractHash(result.contractHash) ===
+      normalizeContractHash(target.contractHash) &&
+    normalizeMethodToken(result.operation) ===
+      normalizeMethodToken(target.chainMethod)
+  ) {
+    return true;
+  }
+
+  // Lane 2: deposit-then-act recipe — a NEP-17 transfer carrying the
+  // "<appId>:<action>" memo duplicates the console operation whose method
+  // normalizes to the same action token (e.g. checkIn ↔ checkin).
+  if (normalizeMethodToken(result.operation) === "transfer") {
+    const memo = String(result.memo || "");
+    const prefix = `${appId.toLowerCase()}:`;
+    if (memo.toLowerCase().startsWith(prefix)) {
+      const action = memo.slice(prefix.length);
+      if (
+        action &&
+        normalizeMethodToken(action) === normalizeMethodToken(operation.method)
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function InvokeFeedbackNotice({
+  feedback,
+  txid,
+  confirmation,
+  network,
+}: {
+  feedback: MiniAppInvokeFeedback;
+  txid: string | null;
+  confirmation: TxConfirmationState;
+  network: "mainnet" | "testnet";
+}) {
+  const success = feedback.type === "success";
   return (
-    appId === DAILY_CHECKIN_APP_ID &&
-    operation.method === "checkIn" &&
-    result.memo === DAILY_CHECKIN_MEMO &&
-    Boolean(result.txid)
+    <div
+      className={`mt-3 rounded-xl border px-3 py-2 text-xs break-words ${
+        success
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-red-200 bg-red-50 text-red-700"
+      }`}
+      data-testid="invoke-feedback"
+    >
+      <span className="block">{feedback.message}</span>
+      {success && txid && (
+        <span
+          className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1"
+          data-testid="invoke-feedback-tx"
+        >
+          <span className="font-mono font-semibold">{shortTxId(txid)}</span>
+          <a
+            href={getTransactionExplorerUrl(network, txid)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 font-semibold underline underline-offset-2 transition hover:text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40"
+          >
+            View on explorer
+            <ExternalLink className="h-3 w-3" aria-hidden="true" />
+          </a>
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+            {confirmation === "confirmed" ? (
+              <>
+                <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                Confirmed
+              </>
+            ) : confirmation === "pending" ? (
+              "Confirming…"
+            ) : (
+              "Submitted"
+            )}
+          </span>
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -97,18 +231,22 @@ export default function MiniAppDetailPage({
 }: AppDetailPageProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("workflow");
-  const [invokeFeedback, setInvokeFeedback] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
+  const [invokeFeedback, setInvokeFeedback] =
+    useState<MiniAppInvokeFeedback | null>(null);
   const [mobileActionOpen, setMobileActionOpen] = useState(false);
   const [activeOperationKey, setActiveOperationKey] = useState("");
   const [embeddedWalletResult, setEmbeddedWalletResult] =
     useState<EmbeddedWalletBridgeResultDetail | null>(null);
+  const [bridgeErrorNotice, setBridgeErrorNotice] = useState<string | null>(
+    null,
+  );
+  const [txConfirmation, setTxConfirmation] =
+    useState<TxConfirmationState>("idle");
 
   const walletConnected = useWalletStore((state) => state.connected);
   const walletAddress = useWalletStore((state) => state.address);
   const walletNetwork = useWalletStore((state) => state.network);
+  const refreshWalletBalance = useWalletStore((state) => state.refreshBalance);
   const routerPath = typeof router.asPath === "string" ? router.asPath : "";
   const launchContext = useMemo(
     () => parseMiniAppLaunchContext(routerPath, app?.app_id),
@@ -226,6 +364,21 @@ export default function MiniAppDetailPage({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [mobileActionOpen]);
+  // Mobile action sheet a11y: lock body scroll while the sheet is open (same
+  // pattern as the connect modal) and trap focus inside the dialog.
+  useEffect(() => {
+    if (!mobileActionOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileActionOpen]);
+  const mobileSheetRef = useFocusTrap({
+    active: mobileActionOpen,
+    initialFocus: "[data-mobile-action-close]",
+    returnFocus: true,
+  });
   useEffect(() => {
     const handleEmbeddedWalletResult = (event: Event) => {
       const detail = (event as CustomEvent<EmbeddedWalletBridgeResultDetail>)
@@ -236,8 +389,9 @@ export default function MiniAppDetailPage({
       setInvokeFeedback({
         type: "success",
         message: detail.txid
-          ? `Embedded workspace submitted transaction: ${detail.txid}`
+          ? `Embedded workspace submitted transaction: ${shortTxId(detail.txid)}`
           : "Embedded workspace submitted transaction.",
+        ...(detail.txid ? { txid: detail.txid } : {}),
       });
     };
 
@@ -251,6 +405,33 @@ export default function MiniAppDetailPage({
         handleEmbeddedWalletResult,
       );
   }, [app?.app_id, targetNetwork]);
+  // Rejected/failed sensitive bridge requests surface as a short-lived host
+  // notice so the user who just dismissed the approval prompt gets an
+  // acknowledgment even when the embedded app swallows the error.
+  useEffect(() => {
+    const handleEmbeddedWalletError = (event: Event) => {
+      const detail = (event as CustomEvent<EmbeddedWalletBridgeErrorDetail>)
+        .detail;
+      if (!detail || detail.appId !== app?.app_id) return;
+      if (detail.network !== targetNetwork) return;
+      setBridgeErrorNotice(
+        detail.rejected
+          ? "Request rejected — nothing was submitted."
+          : `${detail.message || "Embedded wallet request failed."} Nothing was submitted.`,
+      );
+    };
+    window.addEventListener(HOST_WALLET_BRIDGE_ERROR, handleEmbeddedWalletError);
+    return () =>
+      window.removeEventListener(
+        HOST_WALLET_BRIDGE_ERROR,
+        handleEmbeddedWalletError,
+      );
+  }, [app?.app_id, targetNetwork]);
+  useEffect(() => {
+    if (!bridgeErrorNotice) return undefined;
+    const timeout = window.setTimeout(() => setBridgeErrorNotice(null), 8000);
+    return () => window.clearTimeout(timeout);
+  }, [bridgeErrorNotice]);
   const runtimeDisabledReason =
     resolvedRuntime?.mode === "platform"
       ? resolvedRuntime.disabledReason
@@ -263,6 +444,25 @@ export default function MiniAppDetailPage({
     networkGuardReason ||
     runtimeDisabledReason ||
     walletRequiredReason;
+  // The contract the action console targets on this network — used both for
+  // the cross-lane double-submit guard and for confirmation polling.
+  const consoleContractHash =
+    resolvedRuntime?.mode === "platform"
+      ? resolvedRuntime.contractHash || directContractHash
+      : directContractHash;
+  const consoleOperationTarget = useCallback(
+    (operation: OperationEntry): ConsoleOperationTarget => ({
+      chainMethod: app?.app_id
+        ? resolveNetworkOperationMethod(
+            app.app_id,
+            operation.method || "",
+            targetNetwork,
+          )
+        : operation.method || "",
+      contractHash: consoleContractHash,
+    }),
+    [app?.app_id, consoleContractHash, targetNetwork],
+  );
   const getOperationDisabledReason = useCallback(
     (operation: OperationEntry) => {
       if (isFrontendLocalOperation(operation.method)) return null;
@@ -275,6 +475,7 @@ export default function MiniAppDetailPage({
           app?.app_id,
           operation,
           embeddedWalletResult,
+          consoleOperationTarget(operation),
         )
       ) {
         return `Already submitted from the embedded workspace: ${shortTxId(
@@ -285,11 +486,66 @@ export default function MiniAppDetailPage({
     },
     [
       app?.app_id,
+      consoleOperationTarget,
       embeddedWalletResult,
       networkAvailabilityReason,
       operationDisabledReason,
     ],
   );
+  // Once a submitted transaction confirms, push fresh chain state into the
+  // playfield, refresh the wallet balance, and lift the cross-lane lock.
+  const handleTxConfirmed = useCallback(() => {
+    window.dispatchEvent(new CustomEvent(HOST_PLAYFIELD_REFRESH));
+    if (typeof refreshWalletBalance === "function") {
+      void refreshWalletBalance();
+    }
+    setEmbeddedWalletResult(null);
+  }, [refreshWalletBalance]);
+  const invokeFeedbackTxId =
+    invokeFeedback?.type === "success"
+      ? (invokeFeedback.txid ??
+        invokeFeedback.message.match(/0x[0-9a-f]{64}/i)?.[0] ??
+        null)
+      : null;
+  useEffect(() => {
+    if (!invokeFeedbackTxId || !consoleContractHash) {
+      setTxConfirmation("idle");
+      return undefined;
+    }
+    if (typeof fetch !== "function") {
+      setTxConfirmation("settled");
+      return undefined;
+    }
+    let cancelled = false;
+    setTxConfirmation("pending");
+    waitForTransactionStatus(
+      targetNetwork,
+      invokeFeedbackTxId,
+      consoleContractHash,
+      TX_CONFIRMATION_TIMEOUT_MS,
+      TX_CONFIRMATION_POLL_MS,
+    )
+      .then((result) => {
+        if (cancelled) return;
+        if (result.status === "confirmed") {
+          setTxConfirmation("confirmed");
+          handleTxConfirmed();
+        } else {
+          setTxConfirmation("settled");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTxConfirmation("settled");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    consoleContractHash,
+    handleTxConfirmed,
+    invokeFeedbackTxId,
+    targetNetwork,
+  ]);
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
 
@@ -398,10 +654,14 @@ export default function MiniAppDetailPage({
   const handleActiveOperationChange = useCallback((operation: OperationEntry) => {
     setActiveOperationKey(`${operation.method || ""}:${operation.name || ""}`);
   }, []);
-  const activeOperationSubmittedFromEmbed = isEmbeddedSubmittedOperation(
-    app?.app_id,
-    activeOperation,
-    embeddedWalletResult,
+  const activeOperationSubmittedFromEmbed = Boolean(
+    activeOperation &&
+      isEmbeddedSubmittedOperation(
+        app?.app_id,
+        activeOperation,
+        embeddedWalletResult,
+        consoleOperationTarget(activeOperation),
+      ),
   );
   const actionConsoleStatusLabel = actionConsoleUsesLocalContext
     ? "Workspace Preview"
@@ -487,9 +747,6 @@ export default function MiniAppDetailPage({
     operations[0]?.method === "prepareMiniAppOperation"
       ? "Open workspace"
       : operations[0]?.name || operationTitle;
-  const mobileActionVerb = /^claim\b/i.test(primaryOperationLabel)
-    ? "Claim"
-    : "Open";
   const hasClaimOnlyServerPayout = operations.some(
     isOneGateVaultPayoutOperation,
   );
@@ -672,14 +929,21 @@ export default function MiniAppDetailPage({
                 )}
 
                 {invokeFeedback && (
+                  <InvokeFeedbackNotice
+                    feedback={invokeFeedback}
+                    txid={invokeFeedbackTxId}
+                    confirmation={txConfirmation}
+                    network={targetNetwork}
+                  />
+                )}
+
+                {bridgeErrorNotice && (
                   <div
-                    className={`mt-3 rounded-xl border px-3 py-2 text-xs break-words ${
-                      invokeFeedback.type === "success"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-red-200 bg-red-50 text-red-700"
-                    }`}
+                    className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
+                    data-testid="bridge-error-notice"
+                    role="status"
                   >
-                    {invokeFeedback.message}
+                    {bridgeErrorNotice}
                   </div>
                 )}
 
@@ -725,8 +989,9 @@ export default function MiniAppDetailPage({
                       {primaryOperationLabel}
                     </span>
                   </span>
-                  <span className="flex shrink-0 items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-bold text-emerald-900">
-                    {mobileActionVerb}
+                  {/* The chevron alone signals the bottom sheet; a verb pill
+                      ("Open"/"Claim") mislabeled non-claim actions as navigation. */}
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-emerald-900">
                     <ChevronUp className="h-4 w-4" aria-hidden="true" />
                   </span>
                 </button>
@@ -735,6 +1000,7 @@ export default function MiniAppDetailPage({
               {mobileActionOpen && (
                 <div
                   id="mobile-action-sheet"
+                  ref={mobileSheetRef}
                   className="fixed inset-0 z-[80] xl:hidden"
                   role="dialog"
                   aria-modal="true"
@@ -775,6 +1041,7 @@ export default function MiniAppDetailPage({
                           className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                           onClick={() => setMobileActionOpen(false)}
                           aria-label="Close actions"
+                          data-mobile-action-close
                         >
                           <X className="h-5 w-5" aria-hidden="true" />
                         </button>
@@ -835,14 +1102,21 @@ export default function MiniAppDetailPage({
                     )}
 
                     {invokeFeedback && (
+                      <InvokeFeedbackNotice
+                        feedback={invokeFeedback}
+                        txid={invokeFeedbackTxId}
+                        confirmation={txConfirmation}
+                        network={targetNetwork}
+                      />
+                    )}
+
+                    {bridgeErrorNotice && (
                       <div
-                        className={`mt-3 rounded-xl border px-3 py-2 text-xs break-words ${
-                          invokeFeedback.type === "success"
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-red-200 bg-red-50 text-red-700"
-                        }`}
+                        className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
+                        data-testid="bridge-error-notice"
+                        role="status"
                       >
-                        {invokeFeedback.message}
+                        {bridgeErrorNotice}
                       </div>
                     )}
                   </section>

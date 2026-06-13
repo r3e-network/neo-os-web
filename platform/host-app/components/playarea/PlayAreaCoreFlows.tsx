@@ -52,15 +52,32 @@ export function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
       <div>
         {needsRollover && (
           <div
-            className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-900"
-            title={
-              legacyMainnetDeployment
-                ? "This legacy mainnet deployment needs a one-time contract update or admin restart. The updated PlatformGame rolls future expirations into the next live countdown automatically."
-                : "The lifecycle keeper settles expired rounds automatically. New key purchases also roll the game forward before applying the bid."
-            }
+            className="border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-900"
+            data-testid="last-survivor-rollover-banner"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            Next round is ready to start
+            <div className="flex items-center gap-2 font-semibold">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+              Next round is ready to start
+            </div>
+            {/* The explanation must be visible (touch users never see a
+                title tooltip), so it renders as secondary text in the banner. */}
+            <p className="m-0 mt-0.5 pl-3.5 font-medium leading-4 text-amber-800">
+              {legacyMainnetDeployment
+                ? "This legacy mainnet deployment needs a one-time contract update or admin restart before the next countdown can begin."
+                : "The lifecycle keeper settles expired rounds automatically — new key purchases also roll the game forward before applying the bid."}
+            </p>
+            {legacyMainnetDeployment && (
+              <details className="mt-0.5 pl-3.5">
+                <summary className="cursor-pointer list-none font-semibold underline decoration-amber-400 underline-offset-2">
+                  More about the legacy deployment
+                </summary>
+                <p className="m-0 mt-0.5 font-medium leading-4 text-amber-800">
+                  The updated PlatformGame rolls future expirations into the
+                  next live countdown automatically once the contract update
+                  lands.
+                </p>
+              </details>
+            )}
           </div>
         )}
         <EmbeddedDappSurface

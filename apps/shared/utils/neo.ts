@@ -48,6 +48,100 @@ function parseByteLike(value: unknown): unknown {
   return `0x${bytesToHex(bytes)}`;
 }
 
+function hexToBytes(hex: string): Uint8Array | null {
+  if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length % 2 !== 0) return null;
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+const HASH160_BYTE_LENGTH = 20;
+
+function extractHash160Bytes(value: unknown): Uint8Array | null {
+  if (value instanceof Uint8Array) {
+    return value.length === HASH160_BYTE_LENGTH ? value : null;
+  }
+  if (typeof value !== "string" || !value) return null;
+
+  // 1. Hex form ("0x" optional). parseByteLike emits "0x<40 hex>" for
+  //    non-printable byte strings — checked before base64 because 40 hex
+  //    chars are also base64-decodable (to 30 bytes, which would fail).
+  const hex = value.startsWith("0x") || value.startsWith("0X") ? value.slice(2) : value;
+  if (hex.length === HASH160_BYTE_LENGTH * 2) {
+    const fromHex = hexToBytes(hex);
+    if (fromHex) return fromHex;
+  }
+
+  // 2. Raw RPC ByteString value (base64 of the 20 bytes).
+  const fromBase64 = decodeBase64Bytes(value);
+  if (fromBase64 && fromBase64.length === HASH160_BYTE_LENGTH) return fromBase64;
+
+  // 3. parseByteLike's printable-text path: when all 20 bytes happen to be
+  //    printable, the hash arrives as a 20-char string — recover the bytes
+  //    from the char codes (only valid while every char fits in one byte).
+  if (value.length === HASH160_BYTE_LENGTH) {
+    const bytes = new Uint8Array(HASH160_BYTE_LENGTH);
+    for (let i = 0; i < value.length; i += 1) {
+      const code = value.charCodeAt(i);
+      if (code > 0xff) return null;
+      bytes[i] = code;
+    }
+    return bytes;
+  }
+
+  return null;
+}
+
+/**
+ * Convert a Hash160 value as it arrives from chain reads into the 0x display
+ * hex that explorers, `invokefunction` params and {@link addressToScriptHash}
+ * use.
+ *
+ * Neo VM ByteStrings carry UInt160 values in reversed (chain) byte order, so
+ * `parseStackItem`/`parseByteLike` renders them either as the byte-reversed
+ * `0x…` hex of the display hash or — when all 20 bytes are printable — as a
+ * garbage text string. This helper accepts all the shapes a Hash160 read can
+ * take and normalizes to the display form:
+ *
+ * - a raw stack item (`{ type: "ByteString", value: "<base64>" }`)
+ * - the raw base64 ByteString value
+ * - a 40-char hex string in chain byte order (with or without `0x`)
+ * - the 20-char printable-text output of `parseByteLike`
+ * - a 20-byte `Uint8Array`
+ *
+ * The input is always interpreted as chain (reversed) byte order — do not
+ * pass values that are already in display order.
+ *
+ * Real-node fixture: `getOwner` on MiniAppSelfLoan (testnet) returns
+ * ByteString base64 `ODf0EwY4dOXBDMmxnUaR3fZWBm0=`, which displays as
+ * `0x6d0656f6dd91469db1c90cc1e574380613f43738` (address
+ * `NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32`).
+ *
+ * @param value - Hash160 in any chain-read shape (see above)
+ * @returns Display-order `0x` hex (lowercase), or `""` when the input is not
+ *          a 20-byte hash-like value
+ */
+export function parseHash160(value: unknown): string {
+  let candidate = value;
+  if (
+    candidate &&
+    typeof candidate === "object" &&
+    !(candidate instanceof Uint8Array) &&
+    "type" in candidate
+  ) {
+    const typed = candidate as { type: string; value?: unknown };
+    if (typed.type !== "ByteString" && typed.type !== "ByteArray" && typed.type !== "Buffer") {
+      return "";
+    }
+    candidate = typed.value;
+  }
+  const bytes = extractHash160Bytes(candidate);
+  if (!bytes) return "";
+  return `0x${bytesToHex(Uint8Array.from(bytes).reverse())}`;
+}
+
 function parseMapEntry(entry: unknown): [unknown, unknown] | null {
   if (Array.isArray(entry) && entry.length === 2) {
     return [entry[0], entry[1]];

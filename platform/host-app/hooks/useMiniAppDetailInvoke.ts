@@ -42,6 +42,12 @@ import {
 export type MiniAppInvokeFeedback = {
   type: "success" | "error";
   message: string;
+  /**
+   * Transaction id for txid-bearing successes so the page can render a
+   * structured receipt (short txid, explorer link, confirmation tracking)
+   * instead of a raw string.
+   */
+  txid?: string;
 };
 
 type UseMiniAppDetailInvokeParams = {
@@ -462,7 +468,8 @@ export function useMiniAppDetailInvoke({
 
         setInvokeFeedback({
           type: "success",
-          message: `Transaction submitted: ${txid}`,
+          message: "Transaction submitted.",
+          txid,
         });
       } catch (invokeError) {
         const message =

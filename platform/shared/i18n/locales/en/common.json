@@ -86,7 +86,14 @@
     "notConnected": "Wallet Not Connected",
     "insufficientBalance": "Insufficient Balance",
     "pleaseConnect": "Please connect your wallet to continue",
-    "optionAlt": "{wallet} wallet"
+    "optionAlt": "{wallet} wallet",
+    "menu": "Wallet menu",
+    "copyAddress": "Copy address",
+    "viewOnExplorer": "View on explorer",
+    "accountSettings": "Account settings",
+    "reconnect": "Reconnect",
+    "reconnectWallet": "Reconnect wallet",
+    "dismissSavedSession": "Dismiss saved wallet session"
   },
   "auth": {
     "connected": "Connected",

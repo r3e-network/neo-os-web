@@ -1,9 +1,26 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { ChevronDown, Edit3 } from "lucide-react";
 import { MiniAppLaunchContext, OperationEntry, OperationParam } from "./types";
 import { cn } from "@/lib/utils";
+import { ConfirmModal } from "@/components/ui/modal";
 import { buildLaunchParamValues } from "@/lib/miniapp-launch-params";
 import { isSensitiveFrontendOperationParam } from "@/lib/miniapp-detail-helpers";
+
+type WorkflowStage = "configure" | "preview" | "submit" | "result";
+
+const WORKFLOW_STEPS: Array<{ label: string; stage: WorkflowStage }> = [
+  { label: "Configure", stage: "configure" },
+  { label: "Preview", stage: "preview" },
+  { label: "Submit", stage: "submit" },
+  { label: "Result", stage: "result" },
+];
+
+const WORKFLOW_STAGE_INDEX: Record<WorkflowStage, number> = {
+  configure: 0,
+  preview: 1,
+  submit: 2,
+  result: 3,
+};
 
 type Props = {
   operations: OperationEntry[];
@@ -41,10 +58,16 @@ export function OperationPanel({
     [launchContext?.operation, operations],
   );
   const [activeTabIdx, setActiveTabIdx] = useState(requestedOperationIndex);
+  const [workflowStage, setWorkflowStage] =
+    useState<WorkflowStage>("configure");
 
   useEffect(() => {
     setActiveTabIdx(requestedOperationIndex);
   }, [requestedOperationIndex]);
+
+  const handleWorkflowStageChange = useCallback((stage: WorkflowStage) => {
+    setWorkflowStage(stage);
+  }, []);
 
   const tabGroups = useMemo(
     () => splitOperationTabs(operations, requestedOperationIndex),
@@ -156,24 +179,36 @@ export function OperationPanel({
           className="grid grid-cols-4 gap-1.5"
           aria-label="Transaction workflow steps"
         >
-          {["Configure", "Preview", "Submit", "Result"].map((step, index) => (
-            <div key={step} className="min-w-0">
+          {WORKFLOW_STEPS.map((step, index) => {
+            const reached = index <= WORKFLOW_STAGE_INDEX[workflowStage];
+            return (
               <div
-                className={cn(
-                  "h-1.5 rounded-full",
-                  index === 0 ? "bg-emerald-600" : "bg-gray-200",
-                )}
-              />
-              <span
-                className={cn(
-                  "mt-1 block truncate text-[10px] font-black uppercase tracking-wide",
-                  index === 0 ? "text-emerald-700" : "text-gray-400",
-                )}
+                key={step.label}
+                className="min-w-0"
+                data-testid={`workflow-step-${step.stage}`}
+                aria-current={
+                  index === WORKFLOW_STAGE_INDEX[workflowStage]
+                    ? "step"
+                    : undefined
+                }
               >
-                {step}
-              </span>
-            </div>
-          ))}
+                <div
+                  className={cn(
+                    "h-1.5 rounded-full",
+                    reached ? "bg-emerald-600" : "bg-gray-200",
+                  )}
+                />
+                <span
+                  className={cn(
+                    "mt-1 block truncate text-[10px] font-black uppercase tracking-wide",
+                    reached ? "text-emerald-700" : "text-gray-400",
+                  )}
+                >
+                  {step.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -188,6 +223,7 @@ export function OperationPanel({
           compact={embedded}
           fieldIdPrefix={panelIdPrefix}
           showInvokeError={showInvokeError}
+          onWorkflowStageChange={handleWorkflowStageChange}
         />
       </div>
     </div>
@@ -330,6 +366,7 @@ function OperationForm({
   compact,
   fieldIdPrefix,
   showInvokeError,
+  onWorkflowStageChange,
 }: {
   op: OperationEntry;
   onInvoke: Props["onInvoke"];
@@ -339,6 +376,7 @@ function OperationForm({
   compact?: boolean;
   fieldIdPrefix: string;
   showInvokeError: boolean;
+  onWorkflowStageChange?: (stage: WorkflowStage) => void;
 }) {
   const initialValues = useMemo(
     () => buildLaunchParamValues(op.params ?? [], launchContext?.params),
@@ -347,6 +385,10 @@ function OperationForm({
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [settled, setSettled] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    resolve: (approved: boolean) => void;
+  } | null>(null);
   const serverPayoutOperation = isServerPayoutOperation(op);
   const submitLabel = submitting
     ? operationSubmittingLabel(op)
@@ -375,14 +417,38 @@ function OperationForm({
   useEffect(() => {
     setValues(initialValues);
     setError(null);
+    setSettled(false);
   }, [initialValues]);
 
   const effectiveDisabledReason = getDisabledReason
     ? getDisabledReason(op)
     : disabledReason;
 
+  // Honest workflow stage for the panel's Configure → Preview → Submit →
+  // Result strip: required params missing = Configure, ready to send =
+  // Preview, in flight = Submit, resolved/rejected = Result.
+  const requiredParamsFilled = (op.params ?? []).every(
+    (param) => !param.required || String(values[param.name] ?? "").trim(),
+  );
+  const workflowStage: WorkflowStage = submitting
+    ? "submit"
+    : settled
+      ? "result"
+      : requiredParamsFilled
+        ? "preview"
+        : "configure";
+  useEffect(() => {
+    onWorkflowStageChange?.(workflowStage);
+  }, [onWorkflowStageChange, workflowStage]);
+
+  const setParamValue = (name: string, value: string) => {
+    // Editing after a submit walks the workflow back from Result.
+    setSettled(false);
+    setValues((current) => ({ ...current, [name]: value }));
+  };
+
   const handleSubmit = async () => {
-    if (submitting) return;
+    if (submitting || pendingConfirm) return;
     if (effectiveDisabledReason) {
       setError(effectiveDisabledReason);
       return;
@@ -396,7 +462,15 @@ function OperationForm({
       return;
     }
 
-    if (op.confirm_message && !window.confirm(op.confirm_message)) return;
+    if (op.confirm_message) {
+      // Manifest-supplied confirmations (typically destructive withdraw /
+      // cancel operations) go through the shared ConfirmModal instead of the
+      // unstyled native confirm dialog.
+      const approved = await new Promise<boolean>((resolve) =>
+        setPendingConfirm({ resolve }),
+      );
+      if (!approved) return;
+    }
 
     try {
       setSubmitting(true);
@@ -421,6 +495,7 @@ function OperationForm({
       }
     } finally {
       setSubmitting(false);
+      setSettled(true);
     }
   };
 
@@ -487,12 +562,7 @@ function OperationForm({
             value={values[firstChoiceParam.name] ?? ""}
             tone={tone}
             fieldIdPrefix={fieldIdPrefix}
-            onChange={(value) =>
-              setValues((current) => ({
-                ...current,
-                [firstChoiceParam.name]: value,
-              }))
-            }
+            onChange={(value) => setParamValue(firstChoiceParam.name, value)}
           />
         )}
 
@@ -501,12 +571,7 @@ function OperationForm({
             param={primaryValueParam}
             value={values[primaryValueParam.name] ?? ""}
             fieldIdPrefix={fieldIdPrefix}
-            onChange={(value) =>
-              setValues((current) => ({
-                ...current,
-                [primaryValueParam.name]: value,
-              }))
-            }
+            onChange={(value) => setParamValue(primaryValueParam.name, value)}
           />
         )}
 
@@ -518,9 +583,7 @@ function OperationForm({
                 param={param}
                 value={values[param.name] ?? ""}
                 fieldIdPrefix={fieldIdPrefix}
-                onChange={(value) =>
-                  setValues((current) => ({ ...current, [param.name]: value }))
-                }
+                onChange={(value) => setParamValue(param.name, value)}
               />
             ))}
           </div>
@@ -569,6 +632,21 @@ function OperationForm({
           <span className="min-w-0 text-center">{submitLabel}</span>
         </button>
       </div>
+
+      {op.confirm_message && (
+        <ConfirmModal
+          isOpen={Boolean(pendingConfirm)}
+          title={op.name || "Confirm operation"}
+          message={op.confirm_message}
+          confirmText={op.name || "Confirm"}
+          confirmVariant={tone.variant === "danger" ? "danger" : "primary"}
+          onConfirm={() => pendingConfirm?.resolve(true)}
+          onCancel={() => {
+            pendingConfirm?.resolve(false);
+            setPendingConfirm(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -599,6 +677,7 @@ function operationTone(op: OperationEntry) {
     `${op.button_style || ""} ${op.name || ""} ${op.method || ""}`.toLowerCase();
   if (/danger|withdraw|refund|cancel|remove|delete/.test(text)) {
     return {
+      variant: "danger" as const,
       activeChoice:
         "border-red-500 bg-red-500 text-white shadow-sm shadow-red-500/20",
       inactiveChoice:
@@ -609,6 +688,7 @@ function operationTone(op: OperationEntry) {
   }
   if (/secondary|edit|view|read|search|query/.test(text)) {
     return {
+      variant: "neutral" as const,
       activeChoice:
         "border-gray-950 bg-gray-950 text-white shadow-sm shadow-gray-950/15",
       inactiveChoice:
@@ -618,6 +698,7 @@ function operationTone(op: OperationEntry) {
     };
   }
   return {
+    variant: "primary" as const,
     activeChoice:
       "border-emerald-700 bg-emerald-700 text-white shadow-sm shadow-emerald-700/20",
     inactiveChoice:
