@@ -13,6 +13,7 @@ import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
 import { getNetwork } from "@shared/constants/rpc";
 import { getSessionKeyLaunchDefaults } from "./launch";
+import type { OnChainSessionView } from "./composables/useAASessionKeyLab";
 import "./PlayArea.scss";
 
 /** Live Account ID Hash preview for the seed the user is typing. */
@@ -67,6 +68,9 @@ export default function PlayArea({
   const isRevoking = bool("isRevoking");
   const hasOnChainSession = bool("hasOnChainSession");
   const onChainSession = str("onChainSession");
+  const onChainSessionView = val<OnChainSessionView | null>(
+    "onChainSessionView",
+  );
   const isCheckingSponsorship = bool("isCheckingSponsorship");
   const detailItems =
     val<Array<{ label: string; value: unknown }>>("detailItems") ?? [];
@@ -331,6 +335,12 @@ export default function PlayArea({
           </div>
           {generatedPrivateKey && (
             <div className="session-private-export">
+              <p
+                className="session-private-export__caution"
+                role="alert"
+              >
+                {t("privateKeyCaution")}
+              </p>
               <div className="session-private-export__head">
                 <span className="session-private-export__label">
                   {t("privateKeyReady")}
@@ -406,6 +416,11 @@ export default function PlayArea({
               placeholder={t("allowedMethodPlaceholder")}
               onChange={(v: string) => setAllowedMethod(v)}
             />
+            {!allowedMethod.trim() && (
+              <p className="session-hint session-hint--warn" role="status">
+                {t("anyMethodCaution")}
+              </p>
+            )}
             <NeoInput
               value={expiresAt}
               label={t("expiresAt")}
@@ -503,7 +518,47 @@ export default function PlayArea({
                 {t("onChainSessionTitle")}
               </span>
               {hasOnChainSession ? (
-                <code className="session-onchain__value">{onChainSession}</code>
+                onChainSessionView ? (
+                  <div className="session-onchain__fields">
+                    <div className="session-onchain__field">
+                      <span>{t("targetContract")}</span>
+                      <strong>
+                        {onChainSessionView.decoded.targetContract || DASH}
+                      </strong>
+                    </div>
+                    <div className="session-onchain__field">
+                      <span>{t("onChainScopeLabel")}</span>
+                      <strong>
+                        {onChainSessionView.decoded.method ||
+                          t("anyMethod")}
+                      </strong>
+                    </div>
+                    <div className="session-onchain__field">
+                      <span>{t("onChainExpiryLabel")}</span>
+                      <strong>
+                        {onChainSessionView.decoded.expiryDisplay || DASH}
+                      </strong>
+                    </div>
+                    <div className="session-onchain__field">
+                      <span>{t("onChainSpendLabel")}</span>
+                      <strong>
+                        {onChainSessionView.decoded.spendingLimitUnlimited
+                          ? t("spendValueUnlimited", {
+                              spent: onChainSessionView.spentGas || "0",
+                            })
+                          : t("spendValue", {
+                              spent: onChainSessionView.spentGas || "0",
+                              limit:
+                                onChainSessionView.decoded.spendingLimitGas,
+                            })}
+                      </strong>
+                    </div>
+                  </div>
+                ) : (
+                  <code className="session-onchain__value">
+                    {onChainSession}
+                  </code>
+                )
               ) : (
                 <span className="session-onchain__empty">
                   {t("noOnChainSession")}

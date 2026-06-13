@@ -152,3 +152,13 @@ export function shortAddress(addr: string | undefined | null): string {
   if (a.length <= 12) return a;
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
 }
+
+/**
+ * Whether the Send action is blocked pending an explicit public-reveal
+ * acknowledgement. Time-locked messages post their plaintext on-chain publicly,
+ * so the user must acknowledge that before sending; recipient-only messages
+ * never become public and need no acknowledgement. Pure so it can be unit-tested.
+ */
+export function needsPublicRevealAck(lockMode: LockMode | undefined, acknowledged: boolean): boolean {
+  return lockMode === "timed" && !acknowledged;
+}

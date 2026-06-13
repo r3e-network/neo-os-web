@@ -10,6 +10,19 @@ const appMessages = {
   bountyLabel: { en: "Bounty", zh: "悬赏金" },
   bountyPlaceholder: { en: "Minimum 1", zh: "至少 1" },
   minBountyNote: { en: "Minimum bounty: 1 GAS", zh: "最低悬赏：1 GAS" },
+  netPayoutLabel: { en: "You win (after 2% fee)", zh: "你将获得（扣除 2% 手续费后）" },
+  bountyGrowthNote: {
+    en: "Each failed attempt adds its fee to this bounty — it grows as more people try.",
+    zh: "每次失败的尝试都会把费用加入此悬赏——尝试的人越多，悬赏越大。",
+  },
+  createFeeNote: {
+    en: "On a successful break, a 2% platform fee is deducted from the bounty before it is paid to the winner.",
+    zh: "破解成功时，悬赏会先扣除 2% 平台手续费再支付给获胜者。",
+  },
+  difficultyFeeNote: {
+    en: "Difficulty sets the per-attempt fee that challengers pay (Easy 0.1 / Medium 0.5 / Hard 1 GAS). You only fund the bounty.",
+    zh: "难度决定挑战者每次尝试支付的费用（简单 0.1 / 中等 0.5 / 困难 1 GAS）。你只需出资悬赏。",
+  },
   titleLabel: { en: "Vault Title", zh: "保险库标题" },
   titlePlaceholder: { en: "Give your vault a name", zh: "给保险库起个名字" },
   descriptionLabel: { en: "Description", zh: "描述" },

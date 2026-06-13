@@ -4,8 +4,8 @@
   "name": "Neo X Bridge",
   "name_zh": "Neo X 跨链桥",
   "version": "1.0.0",
-  "description": "Prepare official Neo N3 / Neo X bridge handoffs and track operation status in one console.",
-  "description_zh": "在一个控制台里准备官方 Neo N3 / Neo X 跨链桥交接载荷并追踪操作状态。",
+  "description": "Prepare official Neo N3 / Neo X bridge handoffs and preview the cross-chain lifecycle. No funds move here — you submit the prepared intent on the official bridge.",
+  "description_zh": "准备官方 Neo N3 / Neo X 跨链桥交接载荷并预览跨链生命周期。此处不转移任何资金——你需在官方跨链桥提交已准备的意图。",
   "category": "defi",
   "category_name": "DeFi",
   "category_name_zh": "DeFi",
@@ -108,9 +108,9 @@
         ]
       },
       {
-        "name": "Track Operation",
+        "name": "Lifecycle Preview",
         "method": "trackBridgeOperation",
-        "description": "Track a lock, relay, or release transaction.",
+        "description": "Preview the local lifecycle for a lock, relay, or release transaction. This is not a live status lookup — confirm real progress on the official bridge.",
         "button_style": "secondary",
         "params": [
           {

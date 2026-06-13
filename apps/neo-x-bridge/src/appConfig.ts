@@ -206,12 +206,12 @@ const appMessages = {
     zh: "为 BaneLabs MessageBridge SDK 构造任意跨链消息载荷。",
   },
   opMessageAction: { en: "Prepare Message Intent", zh: "生成消息桥意图" },
-  opTrackTitle: { en: "Operation Status", zh: "操作状态" },
+  opTrackTitle: { en: "Lifecycle Preview", zh: "生命周期预览" },
   opTrackDesc: {
-    en: "Track the local lifecycle from source transaction to destination finalization.",
-    zh: "追踪从源链交易到目标链完成的本地生命周期。",
+    en: "Preview the local lifecycle from source transaction to destination finalization. This is not a live status lookup — confirm real progress on the official bridge.",
+    zh: "预览从源链交易到目标链完成的本地生命周期。这不是实时状态查询——请在官方跨链桥确认真实进度。",
   },
-  opTrackAction: { en: "Refresh Tracking", zh: "刷新追踪" },
+  opTrackAction: { en: "Refresh Preview", zh: "刷新预览" },
   statNetwork: { en: "Network", zh: "网络" },
   statEndpoint: { en: "Console", zh: "控制台" },
   statRequests: { en: "Operations", zh: "操作数" },
@@ -220,8 +220,8 @@ const appMessages = {
   lastRoute: { en: "Route", zh: "路径" },
   emptyPayload: { en: "No bridge intent prepared yet.", zh: "还没有生成跨链意图。" },
   emptyPayloadHint: {
-    en: "Prepare an asset or message intent from the operation panel to generate the signed bridge handoff.",
-    zh: "在操作面板中准备资产或消息意图，即可生成已签名的跨链交接载荷。",
+    en: "Prepare an asset or message intent from the operation panel to generate a bridge handoff intent you then submit on the official bridge.",
+    zh: "在操作面板中准备资产或消息意图，生成可在官方跨链桥提交的跨链交接意图。",
   },
   statusReady: { en: "Bridge console ready", zh: "跨链控制台已就绪" },
   statusAssetReady: { en: "Asset bridge handoff prepared", zh: "资产桥交接载荷已生成" },
@@ -312,6 +312,10 @@ const appMessages = {
     en: "Prepare official bridge handoff payloads, arbitrary MessageBridge intents, and preview the cross-chain lifecycle from source transaction to destination finalization.",
     zh: "准备官方跨链交接载荷、任意 MessageBridge 意图，并预览从源链交易到目标链完成的跨链生命周期。",
   },
+  heroNoFunds: {
+    en: "No funds move from this console — it only prepares a handoff you submit on the official bridge.",
+    zh: "本控制台不会转移任何资金——它只生成你需在官方跨链桥提交的交接载荷。",
+  },
   heroAria: { en: "Neo X bridge overview", zh: "Neo X 跨链桥概览" },
 
   // Route card
@@ -358,15 +362,31 @@ const appMessages = {
   btnRefreshTracking: { en: "Refresh tracking", zh: "刷新追踪" },
 
   // Output cards
-  outputTitle: { en: "Generated bridge handoff", zh: "生成的跨链交接载荷" },
-  statusCardTitle: { en: "Operation status", zh: "操作状态" },
+  outputTitle: { en: "Prepared bridge intent", zh: "已准备的跨链意图" },
+  statusCardTitle: { en: "Lifecycle preview", zh: "生命周期预览" },
   recentTitle: { en: "Recent operations", zh: "最近操作" },
   copyLabel: { en: "Copy", zh: "复制" },
   copyAria: { en: "Copy generated JSON", zh: "复制生成的 JSON" },
 
+  // Next-step handoff (the bridge actually happens on the official bridge app)
+  nextStepTitle: { en: "Next step — bridge on the official app", zh: "下一步——在官方应用桥接" },
+  nextStepBody: {
+    en: "This console only prepared the handoff (no funds moved). Open the official bridge, paste this intent, and sign there to actually move funds.",
+    zh: "本控制台仅生成了交接载荷（未转移资金）。请打开官方跨链桥，粘贴此意图，并在那里签名以真正转移资金。",
+  },
+  btnOpenOfficialBridge: { en: "Open official bridge to submit", zh: "打开官方跨链桥提交" },
+
+  // Lifecycle-preview honesty + the one real fact (source tx) the user can verify
+  trackPreviewNote: {
+    en: "This is a local lifecycle preview from your inputs, not a live bridge status. Confirm real progress on the official bridge.",
+    zh: "这是根据你的输入生成的本地生命周期预览，并非实时桥接状态。请在官方跨链桥确认真实进度。",
+  },
+  viewSourceTxExplorer: { en: "View source tx on explorer", zh: "在区块浏览器查看源链交易" },
+
   // Resources
   resourcesAria: { en: "Bridge resources", zh: "跨链资源" },
   resTestnetBridge: { en: "Testnet Bridge", zh: "测试网跨链桥" },
+  resOfficialBridge: { en: "Official Bridge", zh: "官方跨链桥" },
   resAssetBridgeDocs: { en: "Asset Bridge Docs", zh: "资产桥文档" },
   resMessageBridgeDocs: { en: "MessageBridge Docs", zh: "MessageBridge 文档" },
   resBridgeSdk: { en: "BaneLabs SDK", zh: "BaneLabs SDK" },

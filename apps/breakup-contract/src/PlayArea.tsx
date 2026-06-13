@@ -134,6 +134,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <p className="contract-description">
             {t("contractDescription")}
           </p>
+          <p className="contract-economics-note">
+            {t("clause1")}
+          </p>
           <NeoInput
             label={t("partnerAddress")}
             placeholder="N..."

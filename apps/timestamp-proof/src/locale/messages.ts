@@ -23,10 +23,20 @@ const appMessages = {
   anchoredOnChain: { en: "Anchored on-chain", zh: "已上链锚定" },
   localOnly: { en: "Local only", zh: "仅本地" },
   anchorTxid: { en: "Anchor transaction", zh: "锚定交易" },
+  viewOnExplorer: { en: "View on explorer", zh: "在区块浏览器查看" },
   proofAnchored: { en: "Proof anchored on-chain", zh: "证明已上链锚定" },
   anchorFailed: { en: "Anchoring failed", zh: "锚定失败" },
   alreadyAnchored: { en: "Proof is already anchored", zh: "证明已锚定" },
   connectWalletToAnchor: { en: "Connect a wallet to anchor on-chain", zh: "连接钱包以上链锚定" },
+  anchorCostNote: {
+    en: "Anchoring writes the digest into a public Neo transaction (small network fee). Local proofs stay private and free.",
+    zh: "锚定会将摘要写入一笔公开的 Neo 交易（仅需少量网络费）。本地证明则保持私密且免费。",
+  },
+  howToVerifyTitle: { en: "How to verify on-chain", zh: "如何在链上核验" },
+  howToVerifyBody: {
+    en: "Open the anchor transaction on the explorer: anyone can read \"timestamp-proof:<digest>\" in the transaction data, and the block time is the proof time. No app or device is needed to confirm it.",
+    zh: "在区块浏览器中打开锚定交易：任何人都能在交易数据中读取 “timestamp-proof:<摘要>”，区块时间即为证明时间。无需依赖本应用或设备即可核验。",
+  },
 
   verifyProof: { en: "Verify Proof", zh: "验证证明" },
   proofLookup: { en: "Proof lookup", zh: "证明查询" },

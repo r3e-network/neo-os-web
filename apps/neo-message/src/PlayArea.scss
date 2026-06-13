@@ -200,6 +200,49 @@ $accent-soft: #eef0fe;
     padding: 10px 12px;
   }
 
+  // ── time-locked public-reveal warning + acknowledgement ────────────────────
+  .nm-public-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    font-weight: 600;
+    color: #b42318;
+    background: #fef3f2;
+    border: 1px solid #fda29b;
+
+    svg {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      margin-top: 1px;
+    }
+  }
+
+  .nm-ack {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ns-text-2, #4a4f60);
+    cursor: pointer;
+
+    input {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+  }
+
+  .nm-device-note {
+    margin-top: 4px;
+    font-style: italic;
+  }
+
   // ── inbox / outbox ─────────────────────────────────────────────────────────
   .nm-inbox-head {
     display: flex;

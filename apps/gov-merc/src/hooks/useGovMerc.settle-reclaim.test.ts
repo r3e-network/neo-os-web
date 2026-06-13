@@ -82,6 +82,8 @@ describe("useGovMerc — settle gate reads highestBid, not only events", () => {
     // contract read proves the epoch is settleable.
     expect(app.bids.get().length).toBe(0);
     expect(app.hasLiveBid.get()).toBe(true);
+    // The top bid is surfaced as whole GAS (÷1e8) for the "Current top bid" stat.
+    expect(app.highestBid.get()).toBe(5);
   });
 
   it("reports no live bid when highestBid is zero", async () => {
@@ -90,6 +92,7 @@ describe("useGovMerc — settle gate reads highestBid, not only events", () => {
     app.setAddress(ALICE);
     await app.loadData();
     expect(app.hasLiveBid.get()).toBe(false);
+    expect(app.highestBid.get()).toBe(0);
   });
 });
 

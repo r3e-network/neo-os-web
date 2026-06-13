@@ -8,6 +8,7 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ProofHero from "./components/ProofHero";
 import type { TimestampProof } from "./composables/useTimestampProof";
+import { explorerTxUrl } from "./utils/explorer";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -142,26 +143,43 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </span>
               </div>
               {verifiedProof.anchored && verifiedProof.anchorTxid && (
-                <div className="verify-result__row">
-                  <span>{t("anchorTxid")}</span>
-                  <span className="mono verify-result__hash">{verifiedProof.anchorTxid}</span>
-                </div>
+                <>
+                  <div className="verify-result__row">
+                    <span>{t("anchorTxid")}</span>
+                    <a
+                      className="mono verify-result__hash verify-result__txlink"
+                      href={explorerTxUrl(verifiedProof.anchorTxid)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={t("viewOnExplorer")}
+                    >
+                      {verifiedProof.anchorTxid}
+                    </a>
+                  </div>
+                  <div className="verify-result__note">
+                    <strong>{t("howToVerifyTitle")}</strong>
+                    <span>{t("howToVerifyBody")}</span>
+                  </div>
+                </>
               )}
               <div className="verify-result__row">
                 <span>{t("contentPreview")}</span>
                 <span className="verify-result__preview">{verifiedProof.content}</span>
               </div>
               {!verifiedProof.anchored && (
-                <NeoButton
-                  variant="primary"
-                  size="sm"
-                  loading={isAnchoring && anchoringId === verifiedProof.id}
-                  disabled={isAnchoring}
-                  aria-label={t("anchorOnChain")}
-                  onClick={() => dispatch("anchorProof", verifiedProof.id)}
-                >
-                  {t("anchorOnChain")}
-                </NeoButton>
+                <>
+                  <p className="verify-result__cost-note">{t("anchorCostNote")}</p>
+                  <NeoButton
+                    variant="primary"
+                    size="sm"
+                    loading={isAnchoring && anchoringId === verifiedProof.id}
+                    disabled={isAnchoring}
+                    aria-label={t("anchorOnChain")}
+                    onClick={() => dispatch("anchorProof", verifiedProof.id)}
+                  >
+                    {t("anchorOnChain")}
+                  </NeoButton>
+                </>
               )}
             </div>
           ) : (

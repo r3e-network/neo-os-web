@@ -12,6 +12,8 @@ interface MercActionCardsProps {
   userDeposits: number;
   /** v2 contract: the epoch's bidding window has ended — bids are rejected. */
   biddingClosed: boolean;
+  /** Minimum first bid in whole GAS (mirrors the contract's MIN_BID). */
+  minBid: number;
   onAmountChange: (key: AmountField, value: string) => void;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
@@ -29,6 +31,7 @@ export default function MercActionCards({
   bidAmount,
   userDeposits,
   biddingClosed,
+  minBid,
   onAmountChange,
   dispatch,
 }: MercActionCardsProps) {
@@ -93,14 +96,14 @@ export default function MercActionCards({
       <div className="gov-merc-action-card">
         <div>
           <span>{t("placeBid")}</span>
-          <p>{t("actionBidHint")}</p>
+          <p>{t("actionBidHint", { min: minBid, tokenGas: t("tokenGas") })}</p>
         </div>
         <NeoInput
           value={bidAmount}
           type="number"
-          min={0}
+          min={minBid}
           suffix="GAS"
-          placeholder={t("enterAmount")}
+          placeholder={String(minBid)}
           label={t("bidAmount")}
           onChange={(value) => onAmountChange("bidAmount", value)}
         />

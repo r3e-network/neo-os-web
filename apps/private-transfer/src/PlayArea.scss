@@ -291,6 +291,27 @@
   background: var(--ns-accent, #0f8f86);
 }
 
+.private-transfer__no-funds {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  border: 1px solid rgba(180, 130, 22, 0.28);
+  border-radius: var(--ns-radius-md, 14px);
+  padding: 11px 14px;
+  background: #fff8ec;
+  color: #8a6212;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.private-transfer__no-funds::before {
+  content: "ℹ";
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
 .private-transfer__seal-button {
   display: inline-flex;
   align-items: center;
@@ -428,6 +449,14 @@
   min-width: 0;
 }
 
+.private-transfer__result-hint {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+}
+
 .private-transfer__copy-button {
   flex: 0 0 auto;
   margin-top: 4px;
@@ -525,6 +554,44 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--ns-ink, #1e1e2e);
+}
+
+/* Override the generic `article span` number-chip styling for the in-app /
+   not-in-app tag so it reads as a small pill, not the numbered badge. */
+.private-transfer__steps article span.private-transfer__step-tag {
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  margin: 6px 0 0;
+  padding: 2px 9px;
+  place-items: initial;
+  border-radius: 999px;
+  background: #f1f2f5;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.private-transfer__steps article span.private-transfer__step-tag.is-in-app {
+  background: var(--ns-accent-soft, #e4f8f0);
+  color: var(--ns-accent-strong, #0fb174);
+}
+
+/* Dim the steps that this app does not perform so the legible boundary is
+   visual, not only textual. */
+.private-transfer__steps article.is-external {
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.private-transfer__steps article.is-external strong {
+  color: var(--ns-text-2, #5b6478);
+}
+
+.private-transfer__steps article.is-external span:not(.private-transfer__step-tag) {
+  background: #f1f2f5;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .private-transfer__steps article p {

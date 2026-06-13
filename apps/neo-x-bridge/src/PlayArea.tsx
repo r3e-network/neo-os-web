@@ -13,6 +13,8 @@ import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import {
   BRIDGE_RESOURCES,
   compactHash,
+  sourceExplorerUrl,
+  type BridgeEnvironment,
   type BridgeOperation,
   type TimelineStep,
 } from "./bridgeConsole";
@@ -94,6 +96,11 @@ export default function PlayArea({
   const { str, val } = useStateBindings(state);
   const lastRoute = str("lastRoute", "Neo N3 -> Neo X");
   const lastKind = str("lastKind", "asset");
+  // Active bridge environment + the official-bridge URL (network-derived), so the
+  // required "Open official bridge" next step and the source-tx explorer link
+  // target mainnet/testnet correctly rather than a hardcoded testnet literal.
+  const bridgeEnvironment = str("bridgeEnvironment", "mainnet") as BridgeEnvironment;
+  const officialBridgeUrl = str("bridgeAppUrl", BRIDGE_RESOURCES.bridgeAppMainnet);
   const rawDigest = str("lastDigest", "—");
   const notAvailableLabel = t("notAvailable");
   const lastDigest =
@@ -374,6 +381,9 @@ export default function PlayArea({
           <span className="bridge-eyebrow">{t("heroEyebrow")}</span>
           <h2>{t("heroTitle")}</h2>
           <p>{t("heroBody")}</p>
+          <p className="bridge-hero-disclaimer" role="note">
+            {t("heroNoFunds")}
+          </p>
         </div>
         <div className="bridge-route-card" aria-label={t("routeAria")}>
           <div className="route-node">
@@ -673,9 +683,27 @@ export default function PlayArea({
             <strong>{activeOperation.title}</strong>
           </div>
           <pre className="payload-preview">{payload}</pre>
+          <div className="bridge-next-step" role="note">
+            <div className="bridge-next-step__copy">
+              <strong>{t("nextStepTitle")}</strong>
+              <small>{t("nextStepBody")}</small>
+            </div>
+            <a
+              className="bridge-next-step__cta"
+              href={officialBridgeUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span>{t("btnOpenOfficialBridge")}</span>
+              <ExternalLink size={15} aria-hidden="true" />
+            </a>
+          </div>
         </NeoCard>
 
         <NeoCard variant="erobo" title={t("statusCardTitle")} className="bridge-status-card">
+          <p className="bridge-preview-note" role="note">
+            {t("trackPreviewNote")}
+          </p>
           <div className="timeline-list">
             {timeline.map((step) => (
               <div key={step.key} className={`timeline-step timeline-step--${step.state}`}>
@@ -695,12 +723,27 @@ export default function PlayArea({
               </div>
             ))}
           </div>
+          {activeOperation.sourceTx && HASH256.test(activeOperation.sourceTx) && (
+            <a
+              className="bridge-source-explorer"
+              href={sourceExplorerUrl(
+                activeOperation.direction,
+                bridgeEnvironment,
+                activeOperation.sourceTx,
+              )}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span>{t("viewSourceTxExplorer")}</span>
+              <ExternalLink size={14} aria-hidden="true" />
+            </a>
+          )}
         </NeoCard>
         </div>
       )}
 
       <div className="bridge-resource-row" aria-label={t("resourcesAria")}>
-        <ResourceLink label={t("resTestnetBridge")} href={BRIDGE_RESOURCES.bridgeAppTestnet} />
+        <ResourceLink label={t("resOfficialBridge")} href={officialBridgeUrl} />
         <ResourceLink label={t("resAssetBridgeDocs")} href={BRIDGE_RESOURCES.assetBridgeDocs} />
         <ResourceLink label={t("resMessageBridgeDocs")} href={BRIDGE_RESOURCES.messageBridgeDocs} />
         <ResourceLink label={t("resBridgeSdk")} href={BRIDGE_RESOURCES.bridgeSdk} />

@@ -6,7 +6,7 @@ import MercHeroStats from "./components/MercHeroStats";
 import MercActionCards, { type AmountField } from "./components/MercActionCards";
 import MercBidsList from "./components/MercBidsList";
 import MercStakerPanel, { type ReclaimableBid } from "./components/MercStakerPanel";
-import { epochWindowPhase, EPOCH_DURATION_FALLBACK_MS } from "./hooks/useGovMerc";
+import { epochWindowPhase, EPOCH_DURATION_FALLBACK_MS, MIN_BID } from "./hooks/useGovMerc";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -56,6 +56,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const pendingRewards = val<number>("pendingRewards", 0) ?? 0;
   const gasCredit = val<number>("gasCredit", 0) ?? 0;
   const reclaimableBids = val<ReclaimableBid[]>("reclaimableBids", []) ?? [];
+  const highestBid = val<number>("highestBid", 0) ?? 0;
+  const lastDistributed = val<number>("lastDistributed", 0) ?? 0;
 
   const setAmountValue = (key: AmountField, value: string) => {
     state[key]?.set(value);
@@ -106,6 +108,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               totalPool={totalPool}
               bidCount={bidCount}
               currentEpoch={currentEpoch}
+              highestBid={highestBid}
+              lastDistributed={lastDistributed}
             />
           </div>
         </div>
@@ -124,6 +128,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               bidAmount={bidAmount}
               userDeposits={userDeposits}
               biddingClosed={biddingClosed}
+              minBid={MIN_BID}
               onAmountChange={setAmountValue}
               dispatch={dispatch}
             />
@@ -147,6 +152,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <p>{t("flowInfluenceCopy")}</p>
           </div>
         </div>
+
+        {/* Honest disclosure: the winner gets an on-chain "influence title" and
+            the staked NEO weights the reward split — the contract does NOT cast
+            or delegate a vote, so vote execution happens off-contract. */}
+        <div className="gov-merc-influence-note" role="note">
+          <strong>{t("influenceUseTitle")}</strong>
+          <p>{t("influenceUseCopy")}</p>
+        </div>
       </section>
 
       <aside className="gov-merc-side" aria-label={t("bidLeaderboard")}>
@@ -164,6 +177,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <strong>{`#${currentEpoch}`}</strong>
           </div>
           <p>{t("settleCopy")}</p>
+          <div className="gov-merc-signal-row">
+            <span>{t("currentTopBid")}</span>
+            <strong>{`${highestBid.toFixed(2)} ${t("tokenGas")}`}</strong>
+          </div>
           <div
             className={`gov-merc-settle-window${biddingClosed ? " is-closed" : ""}`}
             aria-live="polite"

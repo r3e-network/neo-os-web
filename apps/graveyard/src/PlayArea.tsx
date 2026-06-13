@@ -218,6 +218,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <dd>{burialFeeDisplay}</dd>
                   </div>
                 </dl>
+                <p className="grave-sunk-fee-note">{t("sunkFeeNote")}</p>
               </section>
             )}
             <div className="grave-warning-note">

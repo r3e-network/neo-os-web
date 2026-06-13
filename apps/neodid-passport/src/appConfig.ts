@@ -56,6 +56,12 @@ const appMessages = {
     en: "Resolve a Morpheus NeoDID document, build a portable credential payload, and optionally bind it to the connected wallet signature.",
     zh: "解析 Morpheus NeoDID 文档，构建可携带凭证载荷，并可选择绑定已连接钱包签名。",
   },
+  // Up-front no-transaction mental model: signing is off-chain and the passport
+  // is a portable JSON handed to a relying party, not an on-chain registration.
+  offChainNote: {
+    en: "Builds a portable credential and an off-chain wallet proof — nothing is broadcast on-chain.",
+    zh: "生成可携带凭证和链下钱包证明——不会向链上广播任何交易。",
+  },
   runAction: { en: "Resolve and Build", zh: "解析并生成" },
   signAction: { en: "Sign Passport", zh: "签名护照" },
   copyAction: { en: "Copy Payload", zh: "复制载荷" },

@@ -217,6 +217,14 @@
   @include pm.card;
 }
 
+.participation-share-hint {
+  margin: 8px 2px 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: pm.$text-muted;
+}
+
 .participation-divider {
   display: none;
 }

@@ -57,6 +57,7 @@ export default function DeveloperPanel({
             {formatNum(claimableBalance)} {t("tokenGas")}
           </span>
         </div>
+        <p className="dev-panel__hint">{t("claimableHint")}</p>
         <NeoButton
           variant="primary"
           size="lg"

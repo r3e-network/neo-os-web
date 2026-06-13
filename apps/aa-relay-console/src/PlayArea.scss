@@ -194,6 +194,48 @@
   line-height: 1.45;
 }
 
+/* Plain-language explainers (paymaster benefit, direction of value, relay vs.
+   direct) rendered at the point of action so the gasless-sponsorship model is
+   legible rather than opaque payload plumbing. */
+.relay-explainer {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.relay-explainer--muted {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+/* Verifiable on-chain reference when the relayer returns a txid/hash. */
+.relay-result__tx {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.relay-result__tx-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.relay-result__tx code {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
 /* ── Result line (only after an action runs) ──────────── */
 .relay-result {
   display: flex;

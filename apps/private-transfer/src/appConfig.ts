@@ -80,10 +80,10 @@ const appMessages = {
 
   // Hero
   heroEyebrow: { en: "Neo N3 private payments", zh: "Neo N3 隐私支付" },
-  heroTitle: { en: "Confidential transfer desk", zh: "隐私转账工作台" },
+  heroTitle: { en: "Seal a private transfer intent", zh: "封装隐私转账意图" },
   heroBody: {
-    en: "Seal recipient, amount, memo, and note secret in the browser, then Morpheus runs the private compute path.",
-    zh: "在浏览器中封装收款方、金额、备注与 note secret，随后由 Morpheus 执行隐私计算路径。",
+    en: "Seal recipient, amount, memo, and note secret in the browser for Morpheus confidential compute. This produces an encrypted intent reference — no funds are moved by this app.",
+    zh: "在浏览器中封装收款方、金额、备注与 note secret，交由 Morpheus 隐私计算处理。本步骤生成一个加密意图引用 — 本应用不会转移任何资金。",
   },
   heroBadge: { en: "No on-chain zk curve dependency", zh: "无需链上 zk 曲线依赖" },
 
@@ -109,10 +109,16 @@ const appMessages = {
   },
 
   // Seal button + busy state
-  sealButton: { en: "Seal private transfer", zh: "封装隐私转账" },
+  sealButton: { en: "Seal private transfer intent", zh: "封装隐私转账意图" },
   sealing: { en: "Sealing...", zh: "封装中…" },
-  sealAriaIdle: { en: "Seal private transfer", zh: "封装隐私转账" },
-  sealAriaBusy: { en: "Sealing private transfer", zh: "正在封装隐私转账" },
+  sealAriaIdle: { en: "Seal private transfer intent", zh: "封装隐私转账意图" },
+  sealAriaBusy: { en: "Sealing private transfer intent", zh: "正在封装隐私转账意图" },
+  // Always-visible disclosure above the seal button: this app only seals an
+  // encrypted intent; it has no contract and never moves funds.
+  noFundsBanner: {
+    en: "No funds were moved — this seals an encrypted intent for Morpheus confidential compute, not a payment.",
+    zh: "未转移任何资金 — 本步骤为 Morpheus 隐私计算封装加密意图，并非一笔支付。",
+  },
 
   // Submit status
   statusInitial: { en: "Ready to seal private transfer details locally.", zh: "可在本地封装隐私转账细节。" },
@@ -123,8 +129,8 @@ const appMessages = {
   statusSealingShort: { en: "Sealing private transfer", zh: "正在封装隐私转账" },
   statusSealedToast: { en: "Private transfer sealed", zh: "隐私转账已封装" },
   statusStored: {
-    en: "Ciphertext stored. Morpheus confidential compute can now decrypt and validate the private transfer payload inside the TEE.",
-    zh: "密文已存储。Morpheus 隐私计算可在 TEE 内解密并校验隐私转账载荷。",
+    en: "Intent sealed — ciphertext stored. Morpheus confidential compute can decrypt and validate this payload inside the TEE. No funds were moved by this app; the references below identify the sealed intent.",
+    zh: "意图已封装 — 密文已存储。Morpheus 隐私计算可在 TEE 内解密并校验该载荷。本应用未转移任何资金；下方引用用于标识该已封装意图。",
   },
   statusBlockHeader: { en: "Morpheus confidential compute", zh: "Morpheus 隐私计算" },
   safeCopy: {
@@ -161,6 +167,19 @@ const appMessages = {
   resultSecretRef: { en: "Secret ref", zh: "密文引用" },
   resultCommitment: { en: "Commitment", zh: "承诺" },
   resultNullifier: { en: "Nullifier", zh: "作废符" },
+  // One-line purpose captions so the sealed-intent output is legible.
+  resultSecretRefHint: {
+    en: "Keep this to retrieve or settle the sealed intent later via Morpheus.",
+    zh: "请保留此引用，以便稍后通过 Morpheus 找回或结算该已封装意图。",
+  },
+  resultCommitmentHint: {
+    en: "Public anchor a verifier can check without seeing the private fields.",
+    zh: "公开锚点，验证方无需查看隐私字段即可核验。",
+  },
+  resultNullifierHint: {
+    en: "Prevents the same sealed intent from being used twice.",
+    zh: "防止同一已封装意图被重复使用。",
+  },
   copyAction: { en: "Copy", zh: "复制" },
   copiedAction: { en: "Copied", zh: "已复制" },
   copyAria: { en: "Copy {label}", zh: "复制 {label}" },
@@ -181,17 +200,21 @@ const appMessages = {
   historyMetaNetwork: { en: "Network", zh: "网络" },
   historyMetaAsset: { en: "Asset", zh: "资产" },
 
-  // Steps explainer
-  stepsTitle: { en: "How a confidential transfer settles", zh: "隐私转账如何结算" },
+  // Steps explainer. Steps 1 and 4 are NOT performed in this app (it has no
+  // contract and moves no funds) — they are badged so the user is not told to
+  // act on a button that does not exist.
+  stepsTitle: { en: "Where a confidential transfer fits", zh: "隐私转账的流程定位" },
+  stepInApp: { en: "In this app", zh: "本应用内" },
+  stepNotInApp: { en: "Not in this app", zh: "不在本应用内" },
   step1Title: { en: "Deposit or wallet intent", zh: "存入或钱包意图" },
   step1Body: {
-    en: "The public side only needs an asset lock or signed payment intent.",
-    zh: "公开侧仅需一笔资产锁定或一份已签名的支付意图。",
+    en: "Handled by your wallet and the settlement service — this app does not lock funds or sign a payment.",
+    zh: "由您的钱包与结算服务处理 — 本应用不会锁定资金或签署支付。",
   },
   step2Title: { en: "Local encryption", zh: "本地加密" },
   step2Body: {
-    en: "The private fields are sealed with X25519-HKDF-SHA256-AES-256-GCM.",
-    zh: "隐私字段使用 X25519-HKDF-SHA256-AES-256-GCM 封装。",
+    en: "The private fields are sealed in your browser with X25519-HKDF-SHA256-AES-256-GCM.",
+    zh: "隐私字段在您的浏览器中使用 X25519-HKDF-SHA256-AES-256-GCM 封装。",
   },
   step3Title: { en: "TEE validation", zh: "TEE 校验" },
   step3Body: {
@@ -200,8 +223,8 @@ const appMessages = {
   },
   step4Title: { en: "Release or refund", zh: "释放或退款" },
   step4Body: {
-    en: "The user submits the returned settlement intent through the wallet.",
-    zh: "用户通过钱包提交返回的结算意图。",
+    en: "Handled by your wallet and the settlement service — this app does not release or refund funds.",
+    zh: "由您的钱包与结算服务处理 — 本应用不会释放或退款资金。",
   },
   heroFacts: { en: "{network} · {asset}", zh: "{network} · {asset}" },
 } as const;

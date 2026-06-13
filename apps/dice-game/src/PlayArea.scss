@@ -948,6 +948,31 @@
   background: var(--dice-warning);
   color: #ffffff;
 }
+.dice-result--pending {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+  color: #8a6200;
+}
+.dice-recheck-button {
+  border: 1px solid var(--dice-accent);
+  background: var(--dice-accent-soft);
+  color: var(--dice-accent-strong);
+  font-weight: 800;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: var(--ns-radius-full, 999px);
+  cursor: pointer;
+}
+.dice-recheck-button:hover {
+  background: var(--dice-accent);
+  color: #ffffff;
+}
+.dice-trust-line {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dice-text-2);
+}
 
 /* history outcome accents */
 .dice-history-row--won {

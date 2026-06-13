@@ -62,8 +62,8 @@ const appMessages = {
         zh: "Neo N3 离线密钥工具"
     },
     docDescription: {
-        en: "Generate Neo N3 accounts locally, convert between WIF/private/public keys, derive addresses, and disassemble scripts. Everything runs on-device with no server calls, making it suitable for cold storage preparation and quick format checks.",
-        zh: "在本地生成 Neo N3 账户，支持 WIF/私钥/公钥互转、地址派生与脚本反汇编。所有操作在设备本地完成，无需服务器请求，适用于冷存储准备与格式校验。"
+        en: "Generate Neo N3 accounts locally, convert between WIF/private/public keys, derive addresses, and disassemble scripts. Key generation and conversion run on-device with no server calls, making it suitable for cold storage preparation and quick format checks. The optional balance view makes read-only RPC calls when a wallet is connected.",
+        zh: "在本地生成 Neo N3 账户，支持 WIF/私钥/公钥互转、地址派生与脚本反汇编。密钥的生成与转换在设备本地完成，无需服务器请求，适用于冷存储准备与格式校验。仅当连接钱包查看余额时，才会发起只读 RPC 调用。"
     },
     docStep1: {
         en: "Open the Generate tab to create a new account and keep the private key/WIF offline.",
@@ -294,8 +294,14 @@ const appMessages = {
         zh: "验证脚本十六进制——反汇编为操作码。"
     },
     onDeviceNote: {
-        en: "Keys are generated and converted entirely on your device — nothing is ever sent over the network.",
-        zh: "密钥完全在您的设备上生成与转换——任何数据都不会通过网络发送。"
+        en: "Key generation and conversion run entirely on your device — keys are never transmitted. The optional balance view makes read-only RPC calls when a wallet is connected.",
+        zh: "密钥的生成与转换完全在您的设备上运行——密钥永不外传。仅当连接钱包查看余额时，才会发起只读 RPC 调用。"
+    },
+    // Inline caveat on the balance tiles: this is the one feature that talks to
+    // a node, in contrast to the fully on-device key tooling.
+    balanceRpcNote: {
+        en: "Balances are read live from a Neo RPC node — this is the only feature that uses the network.",
+        zh: "余额通过 Neo RPC 节点实时读取——这是唯一使用网络的功能。"
     },
     showSecrets: { en: "Show secrets", zh: "显示密钥" },
     hideSecrets: { en: "Hide secrets", zh: "隐藏密钥" },

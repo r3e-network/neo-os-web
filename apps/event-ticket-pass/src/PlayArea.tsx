@@ -16,6 +16,7 @@ import { NeoButton, NeoInput, NeoSelect } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import TokenQr from "./components/TokenQr";
+import { explorerTxUrl } from "./utils/explorer";
 import type { EventItem, TicketItem } from "./types";
 import "./PlayArea.scss";
 
@@ -90,6 +91,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const togglingId = str("togglingId");
   const requestJson = json(latestRequest);
   const resultJson = json(latestResult);
+  const resultTxid = String((latestResult as { txid?: unknown } | undefined)?.txid ?? "").trim();
 
   const hasMetrics = eventsCount > 0 || ticketsCount > 0 || activeEventsCount > 0;
   const hasEvidence = Boolean(requestJson || resultJson);
@@ -335,6 +337,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <Ticket size={17} aria-hidden="true" />
               <span>{t("issue")}</span>
             </NeoButton>
+            <p className="ticket-free-note">{t("freePassesNote")}</p>
           </form>
         ) : (
           <form
@@ -524,6 +527,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <span>{t("latestResult")}</span>
                 <strong>{resultJson ? t("serviceStatus") : t("payloadEmpty")}</strong>
               </div>
+              {resultTxid ? (
+                <a
+                  className="ticket-evidence__txlink"
+                  href={explorerTxUrl(resultTxid)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("viewOnExplorer")}
+                </a>
+              ) : null}
               {resultJson ? <pre>{resultJson}</pre> : <div className="ticket-empty ticket-empty--line">{t("resultEmpty")}</div>}
             </div>
           </div>

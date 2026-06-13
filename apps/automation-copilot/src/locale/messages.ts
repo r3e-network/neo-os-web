@@ -94,6 +94,26 @@ const appMessages = {
     en: "Enable and disable controls unlock only after the gateway returns a verified trigger.",
     zh: "只有网关返回已验证触发器后，启停操作才会解锁。",
   },
+  executorUnavailableTitle: {
+    en: "Automation executor unavailable",
+    zh: "自动化执行器不可用",
+  },
+  executorUnavailableBody: {
+    en: "This recipe was saved as a draft handoff intent — it will NOT run on schedule. No keeper is registered to execute it yet. Copy the payload and register it once the automation gateway is back.",
+    zh: "此配方已保存为草稿交接意图——它不会按计划运行。目前尚无 keeper 注册执行。请复制载荷，待自动化网关恢复后再注册。",
+  },
+  nextExecutionNotScheduled: {
+    en: "Not scheduled (draft)",
+    zh: "未排程（草稿）",
+  },
+  priceFreshnessCaption: {
+    en: "On-chain feed — verify freshness. The trigger only acts when an executor re-reads the feed at run time.",
+    zh: "链上价格源——请自行确认时效。触发器仅在执行器运行时重新读取价格源后才会动作。",
+  },
+  executionCostHint: {
+    en: "How execution works: when the condition is met, the host keeper runs your action on schedule. The target action (e.g. self-loan repay) must already have the funds/permissions it needs, and execution may require your session key — confirm the cost model with the host before relying on it.",
+    zh: "执行方式：条件满足时，宿主 keeper 会按计划执行你的动作。目标动作（例如自借贷偿还）必须已具备所需资金/权限，执行可能需要你的会话密钥——在依赖前请向宿主确认费用模型。",
+  },
   triggerRequestEmpty: {
     en: "Build or register a trigger to inspect the exact gateway request.",
     zh: "生成或注册触发器后，可检查准确的网关请求。",
@@ -105,8 +125,8 @@ const appMessages = {
   feedPriorityValue: { en: "Highest", zh: "最高" },
   feedContract: { en: "Datafeed", zh: "Datafeed" },
   publicApi: { en: "Public API", zh: "公共 API" },
-  feature1Name: { en: "Live Inputs", zh: "实时输入" },
-  feature1Desc: { en: "Pull live prices while building user-facing automation recipes.", zh: "在构建用户自动化配方时拉取实时报价。" },
+  feature1Name: { en: "On-chain feed (verify freshness)", zh: "链上价格源（请验证时效）" },
+  feature1Desc: { en: "Reads the on-chain feed while building recipes. Confirm the price is fresh before relying on a threshold — the trigger fires only when an executor re-reads the feed at run time.", zh: "在构建配方时读取链上价格源。在依赖阈值前请确认价格时效——触发器仅在执行器运行时重新读取价格源后才会触发。" },
   feature2Name: { en: "Recipe Builder", zh: "配方生成器" },
   feature2Desc: { en: "Model trigger, schedule, and action in one compact payload.", zh: "把触发器、调度和动作压缩到一个紧凑 payload 里。" },
   feature3Name: { en: "Execution Separation", zh: "执行隔离" },

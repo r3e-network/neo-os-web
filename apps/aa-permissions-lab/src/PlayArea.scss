@@ -181,6 +181,13 @@
   color: var(--ns-text-2, #5b6478);
 }
 
+.permissions-pending__purpose {
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+}
+
 .permissions-pending__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

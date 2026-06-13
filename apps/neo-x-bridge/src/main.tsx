@@ -1,8 +1,10 @@
 import { defineMiniApp } from "@shared/react/defineMiniApp";
 import { createObservable } from "@shared/react/context";
+import { getNetwork } from "@shared/constants/rpc";
 import PlayArea from "./PlayArea";
 import { appId, appMeta, manifest, messages } from "./appConfig";
 import {
+  bridgeAppUrl,
   buildAssetBridgeIntent,
   buildMessageBridgeIntent,
   buildStatusTimeline,
@@ -10,6 +12,7 @@ import {
   normalizeDirection,
   stableDigest,
   stringifyPayload,
+  type BridgeEnvironment,
   type BridgeOperation,
   type TimelineStep,
 } from "./bridgeConsole";
@@ -20,6 +23,11 @@ defineMiniApp({
   manifest,
   messages,
   setup(ctx) {
+    // Derive the bridge environment from the launched network so the prepared
+    // intent / resource links / digest reflect mainnet vs testnet instead of a
+    // hardcoded testnet literal.
+    const bridgeEnvironment: BridgeEnvironment =
+      getNetwork() === "testnet" ? "testnet" : "mainnet";
     const lastStatus = createObservable(ctx.t("statusReady"));
     const lastDigest = createObservable(ctx.t("notAvailable"));
     const requestCount = createObservable(0);
@@ -50,13 +58,21 @@ defineMiniApp({
     };
 
     ctx.registerAction("prepareAssetBridge", async (formData) => {
-      const intent = buildAssetBridgeIntent(formData as Record<string, unknown>);
+      const intent = buildAssetBridgeIntent(
+        formData as Record<string, unknown>,
+        undefined,
+        bridgeEnvironment,
+      );
       recordIntent(intent);
       ctx.setStatus(ctx.t("statusAssetReady"), "success");
     });
 
     ctx.registerAction("prepareMessageBridge", async (formData) => {
-      const intent = buildMessageBridgeIntent(formData as Record<string, unknown>);
+      const intent = buildMessageBridgeIntent(
+        formData as Record<string, unknown>,
+        undefined,
+        bridgeEnvironment,
+      );
       recordIntent(intent);
       ctx.setStatus(ctx.t("statusMessageReady"), "success");
     });
@@ -107,6 +123,11 @@ defineMiniApp({
       state: {
         networkLabel: createObservable(appMeta.networkLabel),
         endpointLabel: createObservable(appMeta.endpointLabel),
+        // Surface the active bridge environment + official-bridge URL so the
+        // PlayArea can render the required "Open official bridge to submit" next
+        // step and a network-correct source-tx explorer link.
+        bridgeEnvironment: createObservable<BridgeEnvironment>(bridgeEnvironment),
+        bridgeAppUrl: createObservable(bridgeAppUrl(bridgeEnvironment)),
         lastStatus,
         lastDigest,
         requestCount,

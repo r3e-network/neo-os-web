@@ -65,6 +65,7 @@ defineMiniApp({
         quickAmounts: sponsor.quickAmounts,
         loading: sponsor.loading,
         userAddress: sponsor.userAddress,
+        poolAddress: sponsor.poolAddress,
         usedQuota: sponsor.usedQuota,
         dailyLimit: sponsor.dailyLimit,
         quotaPercent: sponsor.quotaPercent,

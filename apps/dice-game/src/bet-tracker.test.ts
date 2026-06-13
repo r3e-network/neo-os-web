@@ -98,11 +98,44 @@ describe("createBetTracker — interleaved bets settle into their own rows", () 
     // An older bet timing out must not hide the newer bet's rolling state.
     tracker.markUnresolved(first);
     expect(tracker.isResolving.get()).toBe(true);
+    expect(tracker.isUnresolved.get()).toBe(false);
 
     tracker.markUnresolved(second);
     expect(tracker.isResolving.get()).toBe(false);
     // Rows are untouched — both stay "rolling" in history.
     expect(tracker.rollHistory.get().every((r) => r.outcome === "pending")).toBe(true);
+  });
+
+  it("flags the active bet unresolved on timeout and clears it on re-poll/settle", () => {
+    const tracker = createBetTracker();
+
+    const bet = tracker.beginBet(pendingRow("4", "0.5"));
+    expect(tracker.isResolving.get()).toBe(true);
+    expect(tracker.isUnresolved.get()).toBe(false);
+
+    // Poll gave up — definite "settlement pending" state, not a frozen spinner.
+    tracker.markUnresolved(bet);
+    expect(tracker.isResolving.get()).toBe(false);
+    expect(tracker.isUnresolved.get()).toBe(true);
+
+    // The oracle finally calls back (e.g. via "Check again"): the unresolved flag
+    // clears and the row reveals its result.
+    tracker.settleBet(bet, { outcome: "won", rolled: 4, result: "Won · 🎲 4", payout: "2.85 GAS" });
+    expect(tracker.isUnresolved.get()).toBe(false);
+    expect(tracker.isResolving.get()).toBe(false);
+    expect(tracker.lastOutcome.get()).toBe("won");
+  });
+
+  it("clears a prior unresolved flag when a new bet begins", () => {
+    const tracker = createBetTracker();
+
+    const first = tracker.beginBet(pendingRow("1", "0.1"));
+    tracker.markUnresolved(first);
+    expect(tracker.isUnresolved.get()).toBe(true);
+
+    tracker.beginBet(pendingRow("2", "0.1"));
+    expect(tracker.isUnresolved.get()).toBe(false);
+    expect(tracker.isResolving.get()).toBe(true);
   });
 
   it("caps history at 6 rows and ignores settlement of an evicted row", () => {

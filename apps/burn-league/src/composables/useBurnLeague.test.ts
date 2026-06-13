@@ -57,6 +57,8 @@ function makeChain(
     burnThrows?: boolean;
     burnError?: string;
     withdrawAmount?: string;
+    minBurn?: string;
+    maxBurn?: string;
   } = {},
 ) {
   const invoke = vi.fn(
@@ -89,6 +91,10 @@ function makeChain(
     if (op === "seasonDuration") return opts.seasonDuration ?? "120000"; // 120s
     if (op === "userBurned") return "0";
     if (op === "creditOf") return opts.credit ?? "0";
+    // minBurn/maxBurn default to {} (unreadable) so the composable falls back to
+    // the contract literals unless a test supplies explicit bounds.
+    if (op === "minBurn") return opts.minBurn ?? {};
+    if (op === "maxBurn") return opts.maxBurn ?? {};
     return {};
   });
 
@@ -201,5 +207,31 @@ describe("useBurnLeague (direct MiniAppBurnLeague contract)", () => {
 
     await expect(burn.withdrawCredit()).rejects.toThrow("No prepaid credit to withdraw");
     expect(callFor(invoke, "withdraw")).toBeUndefined();
+  });
+
+  it("binds burn bounds to the on-chain minBurn()/maxBurn() reads and validates against them", async () => {
+    // Contract reports a 2..50 GAS window (base units), differing from the
+    // literal 1..1000 fallback.
+    const { burn } = setup({ minBurn: "200000000", maxBurn: "5000000000" });
+    await burn.loadAll();
+
+    expect(burn.minBurnGas.get()).toBe(2);
+    expect(burn.maxBurnGas.get()).toBe(50);
+    // 1 GAS is below the live minimum, 60 above the live maximum, 10 is valid.
+    expect(burn.validateBurnAmount("1")).toContain("Minimum burn is 2");
+    expect(burn.validateBurnAmount("60")).toContain("Maximum burn is 50");
+    expect(burn.validateBurnAmount("10")).toBeNull();
+  });
+
+  it("falls back to the contract literals when the bound reads are unavailable", async () => {
+    // minBurn/maxBurn return {} (unreadable) → keep the 1..1000 literals.
+    const { burn } = setup({ credit: "0" });
+    await burn.loadAll();
+
+    expect(burn.minBurnGas.get()).toBe(1);
+    expect(burn.maxBurnGas.get()).toBe(1000);
+    expect(burn.validateBurnAmount("0.5")).toContain("Minimum burn is 1");
+    expect(burn.validateBurnAmount("1001")).toContain("Maximum burn is 1000");
+    expect(burn.validateBurnAmount("500")).toBeNull();
   });
 });

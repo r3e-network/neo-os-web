@@ -4,15 +4,14 @@
   "name": "GASBOX",
   "name_zh": "GASBOX",
   "version": "2.0.0",
-  "description": "Ultra-low-cost spins (e.g. 0.1 GAS) for chances to win NEO, rare NFTs, or points. Addictive gacha-style fun with provably fair randomness.",
-  "description_zh": "GAS盲盒 — 超低成本抽取（0.1 GAS 起），赢取 NEO、稀有 NFT 或平台积分。可验证公平的去中心化盲盒经济。",
+  "description": "Ultra-low-cost pulls (e.g. 0.1 GAS) for a chance to win NEO or GAS from on-chain prize pools. Addictive gacha-style fun with provably-fair, weighted on-chain draws.",
+  "description_zh": "GAS盲盒 — 超低成本抽取（0.1 GAS 起），从链上奖池中赢取 NEO 或 GAS。可验证公平、按权重链上抽取的去中心化盲盒玩法。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
   "tags": [
     "gacha",
     "blind-box",
-    "nft",
     "randomness",
     "gaming"
   ],

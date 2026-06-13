@@ -257,6 +257,77 @@ $accent-soft: #e4f8f0;
   color: $accent-strong;
 }
 
+// Browsable list of public, tippable ("fishable") capsules from other users.
+// Lets the user pick a target (id / category / unlock date) before paying the
+// 0.05 GAS tip, instead of blindly tipping the newest.
+.capsule-fish-candidates {
+  display: grid;
+  gap: 8px;
+}
+
+.capsule-fish-candidates__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.capsule-fish-candidates__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ns-text, #2a2d3d);
+}
+
+.capsule-fish-candidates__refresh {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: $accent-strong;
+  cursor: pointer;
+
+  &:disabled {
+    color: var(--ns-text-muted, #8a92a6);
+    cursor: default;
+  }
+}
+
+.capsule-fish-candidates__empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.capsule-fish-candidates__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.capsule-fish-candidates__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.08));
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-surface, #ffffff);
+}
+
+.capsule-fish-candidates__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
 .capsule-grid {
   display: flex;
   flex-direction: column;

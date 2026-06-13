@@ -114,6 +114,38 @@ const appMessages = {
     en: "Note: a new anchor starts with 0 of its 21 AA agents. Agent accounts are provisioned by the anchor operator (admin console) — staking and rewards work once agents are registered.",
     zh: "提示：新 Anchor 的 21 个 AA agent 初始为 0。Agent 账户由 Anchor 运营方（管理员控制台）配置 — agent 注册后即可质押与领取奖励。",
   },
+  registerModeTrustDesc: {
+    en: "Staked NEO is routed to vote for council candidates via the anchor's 21 agents.",
+    zh: "质押的 NEO 通过 Anchor 的 21 个 agent 投票给 council 候选人。",
+  },
+  registerModeProfitDesc: {
+    en: "Staked NEO earns GAS yield from agent voting, without a governance mandate.",
+    zh: "质押的 NEO 通过 agent 投票获得 GAS 收益，不承担治理职责。",
+  },
+
+  // No-agent (inert anchor) callout + stake gate
+  noAgentsTitle: { en: "0/21 agents provisioned", zh: "0/21 个 agent 已配置" },
+  noAgentsBody: {
+    en: "This anchor has no AA agents yet, so staked NEO will not vote or earn GAS until the operator provisions agents in the admin console.",
+    zh: "该 Anchor 尚无 AA agent，在运营方于管理员控制台配置 agent 之前，质押的 NEO 不会投票，也不会产生 GAS。",
+  },
+  noAgentsConfirm: {
+    en: "Stake anyway — I understand this anchor earns nothing yet",
+    zh: "仍然质押——我已了解该 Anchor 目前不产生收益",
+  },
+  noAgentsConfirmActive: { en: "Confirmed — staking enabled", zh: "已确认——可以质押" },
+
+  // Reward-model explainer
+  rewardModelTitle: { en: "How rewards work", zh: "奖励如何产生" },
+  rewardModelBody: {
+    en: "Staked NEO votes via the anchor's agents; the GAS those holdings generate is pooled in the reward reserve and shared pro-rata by stake. Rewards are variable and depend on the anchor being funded/harvested by its operator.",
+    zh: "质押的 NEO 通过 Anchor 的 agent 投票；这些持仓产生的 GAS 汇入奖励储备，并按质押比例分配。奖励是浮动的，取决于运营方是否注入/收割该 Anchor 的收益。",
+  },
+  rewardPerNeoLabel: { en: "GAS / NEO (cumulative)", zh: "每 NEO GAS（累计）" },
+  rewardPerNeoCaption: {
+    en: "Cumulative GAS distributed per NEO since launch — not a current rate. 0 means the anchor has not distributed yet.",
+    zh: "自上线以来每 NEO 累计分配的 GAS——并非当前收益率。为 0 表示该 Anchor 尚未分配过。",
+  },
 
   // Anchor discovery
   discoverLabel: { en: "Browse anchors", zh: "浏览 Anchor" },
@@ -147,8 +179,8 @@ const appMessages = {
   agentModel: { en: "21-agent AA model", zh: "21 个 AA agent 模型" },
   routingDetails: { en: "Routing details", zh: "调仓细节" },
   agentModelBody: {
-    en: "Every custom anchor owns its own 21 deterministic AA agent accounts. User actions stay simple; agent transfers and candidate changes are admin-only.",
-    zh: "每个自定义 Anchor 都有自己的 21 个确定性 AA agent。用户只做质押、赎回、领取；agent 调仓和候选人变更只在管理员侧处理。",
+    en: "Every custom anchor can hold up to 21 deterministic AA agent accounts, but a newly registered anchor starts with 0 — its operator provisions agents in the admin console. User actions stay simple; agent transfers and candidate changes are admin-only.",
+    zh: "每个自定义 Anchor 最多可拥有 21 个确定性 AA agent，但新注册的 Anchor 初始为 0——由运营方在管理员控制台配置。用户只做质押、赎回、领取；agent 调仓和候选人变更只在管理员侧处理。",
   },
   docPurpose: { en: "What this app does", zh: "用途" },
   docPurposeBody: {

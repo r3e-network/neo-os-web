@@ -91,8 +91,8 @@ const appMessages = {
   statusSubmitted: { en: "Roll submitted", zh: "掷骰已提交" },
   statusFailed: { en: "Roll failed", zh: "掷骰失败" },
   statusFundsRecoverable: {
-    en: "Stake sent but the roll did not settle. Your GAS is held as game credit and automatically funds your next roll.",
-    zh: "筹码已发送但掷骰未结算。你的 GAS 已保留为游戏余额，下次掷骰会自动使用。",
+    en: "Stake sent but the roll did not settle. Your GAS is held as roll credit on the contract — it can only be re-spent on a future roll and cannot be withdrawn back to your wallet.",
+    zh: "筹码已发送但掷骰未结算。你的 GAS 已作为掷骰余额保留在合约中——只能用于后续掷骰，无法提回到你的钱包。",
   },
   statusStakeOverLiquidity: {
     en: "The house can currently pay a win on up to {max} {tokenGas}. Lower your stake to within that cap.",
@@ -113,12 +113,25 @@ const appMessages = {
   statusCreditFunded: { en: "Game credit funded.", zh: "游戏余额已充值。" },
   houseLiquidityLabel: { en: "House liquidity", zh: "庄家流动性" },
   maxPayableLabel: { en: "Max payable stake", zh: "最大可赔下注" },
-  directCreditLabel: { en: "Game credit", zh: "游戏余额" },
+  directCreditLabel: { en: "Roll credit (not withdrawable)", zh: "掷骰余额（不可提取）" },
   directCreditBanner: {
-    en: "You have {amount} {tokenGas} game credit — it funds your next roll automatically.",
-    zh: "你有 {amount} {tokenGas} 游戏余额 — 下次掷骰会自动使用。",
+    en: "You have {amount} {tokenGas} roll credit — it funds your next roll automatically. It can only be re-spent on a roll and cannot be withdrawn to your wallet.",
+    zh: "你有 {amount} {tokenGas} 掷骰余额 — 下次掷骰会自动使用。它只能用于掷骰，无法提回到你的钱包。",
   },
   statusRolling: { en: "Rolling — oracle is settling your bet…", zh: "掷骰中——预言机正在结算…" },
+  vrfTrustLine: {
+    en: "Settlement waits for the Morpheus VRF oracle callback. If it is delayed, your stake is held as roll credit on the contract (not withdrawable) until the oracle resolves the roll.",
+    zh: "结算需等待 Morpheus VRF 预言机回调。若回调延迟，你的筹码会作为掷骰余额保留在合约中（不可提取），直到预言机完成结算。",
+  },
+  statusSettlementPending: {
+    en: "Settlement pending — the oracle has not resolved this roll yet.",
+    zh: "等待结算——预言机尚未结算本次掷骰。",
+  },
+  settlementPendingBody: {
+    en: "The Morpheus VRF callback has not arrived yet. Your stake stays on-chain as roll credit until it settles — press Check again to re-poll.",
+    zh: "Morpheus VRF 回调尚未到达。在结算前，你的筹码会作为掷骰余额保留在链上——点击「重新查询」可再次轮询。",
+  },
+  checkAgain: { en: "Check again", zh: "重新查询" },
   statusWon: { en: "You won! 🎉", zh: "你赢了！🎉" },
   statusLost: { en: "No win this time", zh: "这次未中" },
   statusRefunded: { en: "Bet refunded", zh: "下注已退款" },

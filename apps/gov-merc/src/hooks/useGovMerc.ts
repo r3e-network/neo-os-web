@@ -225,6 +225,11 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
    * leaderboard so settlement stays reachable even when the events feed degrades.
    */
   const hasLiveBid = createObservable(false);
+  /**
+   * The live epoch's highest bid in whole GAS — the prize a mercenary must beat
+   * and the GAS stakers will receive this epoch. Read from highestBid(epoch).
+   */
+  const highestBid = createObservable(0);
   const lastSettlement = createObservable<SettlementResult | null>(null);
   /** Connected staker's claimable GAS rewards (whole GAS). */
   const pendingRewards = createObservable(0);
@@ -295,10 +300,15 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
       const highestRaw = await chain.read("highestBid", [
         { type: "Integer", value: String(epoch) },
       ]);
-      hasLiveBid.set(parseBigInt(highestRaw) > 0n);
+      const highestBase = parseBigInt(highestRaw);
+      hasLiveBid.set(highestBase > 0n);
+      // Surface the live top bid (whole GAS) so bidders see the prize to beat and
+      // stakers see the incoming yield without scanning the leaderboard.
+      highestBid.set(gasFromBaseUnits(highestBase));
     } catch (e) {
       console.warn("[useGovMerc] highestBid read failed:", errorMessage(e));
       hasLiveBid.set(false);
+      highestBid.set(0);
     }
 
     const hash = myHash();
@@ -790,6 +800,7 @@ export function useGovMerc({ chain, t }: UseGovMercOptions) {
     epochDurationMs,
     bids,
     hasLiveBid,
+    highestBid,
     lastSettlement,
     pendingRewards,
     gasCredit,

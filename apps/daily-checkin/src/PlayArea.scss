@@ -477,6 +477,34 @@ $amber: #f59e0b;
   }
 }
 
+.checkin-notice {
+  padding: 12px 16px;
+  border-radius: $ns-radius;
+  border: 1px solid rgba(200, 30, 42, 0.18);
+  background: #fdf3e7;
+  color: #9a5a12;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: $ns-shadow;
+
+  &--paused {
+    border-color: rgba(200, 30, 42, 0.22);
+    background: #fde7e9;
+    color: #c81e2a;
+  }
+
+  &--unfunded {
+    border-color: rgba(180, 120, 20, 0.22);
+    background: #fdf3e7;
+    color: #9a5a12;
+  }
+}
+
+.checkin-stat-item--warn .checkin-stat-value {
+  color: #9a5a12;
+}
+
 .reward-preview {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

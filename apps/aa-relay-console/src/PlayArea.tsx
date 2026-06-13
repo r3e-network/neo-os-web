@@ -11,6 +11,7 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 import { DEFAULT_RELAY_PAYLOAD, getRelayLaunchDefaults } from "./launch";
+import { explorerTxUrl } from "./utils/explorer";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -116,6 +117,25 @@ export default function PlayArea({
   const sponsorResult = parseStateJson(sponsorState);
   const activeResult = relayResult ?? sponsorResult;
   const resultRaw = relayResult ? relayResponse : sponsorState;
+
+  // The relay broadcasts on-chain on the account's behalf, so if the relayer
+  // returns a transaction id/hash, surface it as the verifiable on-chain
+  // reference instead of leaving it buried in the raw JSON. The relay response
+  // shape is set by the relayer, so accept the common field names.
+  const relayTxid =
+    relayResult &&
+    (() => {
+      const candidate =
+        relayResult.txid ??
+        relayResult.txId ??
+        relayResult.txHash ??
+        relayResult.tx_hash ??
+        relayResult.transactionHash ??
+        relayResult.hash;
+      return typeof candidate === "string" && candidate.trim()
+        ? candidate.trim()
+        : null;
+    })();
 
   let resultTone: "ok" | "warn" | "info" = "info";
   let resultText = "";
@@ -241,6 +261,7 @@ export default function PlayArea({
         className="relay-command"
       >
         <div className="relay-form">
+          <p className="relay-explainer">{t("relayPaymasterExplainer")}</p>
           {/* Step 1: AA address + sponsorship preflight */}
           <NeoInput
             value={aaAddress}
@@ -290,6 +311,9 @@ export default function PlayArea({
               </NeoButton>
             </div>
           </div>
+          <p className="relay-explainer relay-explainer--muted">
+            {t("sponsorDirectionNote")}
+          </p>
           {!canCheckSponsor && (
             <p className="relay-hint">{t("sponsorBlocked")}</p>
           )}
@@ -316,6 +340,9 @@ export default function PlayArea({
             aria-label={t("payloadJson")}
             onChange={(val) => setPayloadJsonLocal(val)}
           />
+          <p className="relay-explainer relay-explainer--muted">
+            {t("relaySubmitExplainer")}
+          </p>
           {(!hasAAAddress || !payloadJsonIsValid) && (
             <p className="relay-hint">
               {payloadJsonIsValid ? t("relayBlocked") : t("payloadInvalid")}
@@ -341,6 +368,19 @@ export default function PlayArea({
                 <span className="relay-result__text">{resultText}</span>
                 <span className="relay-result__scope">{draftAAAddress}</span>
               </div>
+              {relayTxid && (
+                <a
+                  className="relay-result__tx"
+                  href={explorerTxUrl(relayTxid)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span className="relay-result__tx-label">
+                    {t("relayTxLabel")}
+                  </span>
+                  <code>{relayTxid}</code>
+                </a>
+              )}
               <details className="relay-result__raw">
                 <summary>{t("latestRelay")}</summary>
                 <pre>{resultRaw}</pre>

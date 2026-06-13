@@ -32,14 +32,14 @@ const appMessages = {
   },
   verifier: { en: "Verifier Hash", zh: "Verifier Hash" },
   verifierHint: {
-    en: "Required. Defaults to the shared Web3Auth verifier.",
-    zh: "必填，默认使用共享 Web3Auth verifier。",
+    en: "Required. The verifier contract decides who can authorize transactions for this account. Defaults to the shared Web3Auth verifier.",
+    zh: "必填。verifier 合约决定谁可以为此账户授权交易。默认使用共享 Web3Auth verifier。",
   },
   verifierPlaceholder: { en: "0x...", zh: "0x..." },
   verifierParams: { en: "Verifier Params Hex", zh: "Verifier 参数 Hex" },
   verifierParamsHint: {
-    en: "Optional constructor payload, encoded as hex without spaces.",
-    zh: "可选构造负载，使用无空格 hex 编码。",
+    en: "Constructor payload (hex, no spaces) that usually binds the account to your specific identity/key. Leaving it empty may produce an account nobody can use — or anyone can — depending on the verifier.",
+    zh: "构造负载（无空格 hex），通常将账户绑定到你的特定身份/密钥。留空可能产生无人可用——或人人可用——的账户，具体取决于 verifier。",
   },
   verifierParamsPlaceholder: { en: "hex payload", zh: "hex 负载" },
   hook: { en: "Hook Hash", zh: "Hook Hash" },
@@ -60,11 +60,23 @@ const appMessages = {
     zh: "必填秒数，表示 backup recovery 可执行前的锁定时间。",
   },
   timelockPlaceholder: { en: "2592000", zh: "2592000" },
+  timelockExplainer: {
+    en: "If you lose the primary key, the backup owner can take over the account after this delay. Shorter = faster recovery but less protection if the backup owner is compromised; longer = safer but slower lockout recovery.",
+    zh: "若你丢失主密钥，备份所有者可在此延迟后接管账户。延迟越短=恢复越快，但备份所有者被攻破时保护越弱；延迟越长=越安全，但锁定恢复越慢。",
+  },
+  escapeStatusExplainer: {
+    en: "Escape active = a backup recovery is currently in progress for this account (the account is being seized via the recovery path).",
+    zh: "逃生进行中 = 该账户当前正在进行备份恢复（账户正通过恢复路径被接管）。",
+  },
   inspect: { en: "Inspect Account", zh: "查询账户" },
   register: { en: "Register Account", zh: "注册账户" },
   connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   inspectorTitle: { en: "AA Core Inspector", zh: "AA Core 查询器" },
   registerTitle: { en: "Register New Account", zh: "注册新账户" },
+  registerPermanentNote: {
+    en: "Registering creates a real, permanent AA account at the derived id — not a throwaway sandbox object. It will hold value and carry the recovery posture you set here forever.",
+    zh: "注册会在派生 id 上创建一个真实、永久的 AA 账户——而非一次性沙盒对象。它将持有资产，并永久保留你在此设置的恢复策略。",
+  },
   accountFlowLabel: { en: "AA account workflow", zh: "AA 账户流程" },
   accountFlowInspect: { en: "Read live state", zh: "读取链上状态" },
   accountFlowInspectDesc: {

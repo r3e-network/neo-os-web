@@ -531,6 +531,14 @@
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 }
 
+.guardian-link-preview__note {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ns-text-muted, rgba(20, 22, 38, 0.62));
+}
+
 @media (max-width: 960px) {
   .guardian-hero,
   .guardian-workspace,

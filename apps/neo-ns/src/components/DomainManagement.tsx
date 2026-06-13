@@ -68,11 +68,17 @@ export default function DomainManagement({ t, domains, dispatch }: DomainManagem
     <div className="domain-list">
       {domains.map((domain) => {
         const isConfirming = renewTarget === domain.name;
+        // A domain whose expiry timestamp is in the past has lapsed — flag it
+        // distinctly so the holder knows renewal may no longer keep ownership.
+        const isExpired = domain.expiry > 0 && domain.expiry < Date.now();
         return (
           <NeoCard key={domain.name} variant="erobo">
             <div className="domain-row">
               <div className="domain-info">
-                <span className="domain-name">{domain.name}</span>
+                <span className="domain-name">
+                  {domain.name}
+                  {isExpired && <span className="domain-expired-badge">{t("expired")}</span>}
+                </span>
                 <span className="domain-expiry">
                   {t("expires")}: {domain.expiry > 0 ? new Date(domain.expiry).toLocaleDateString() : "—"}
                 </span>
@@ -84,6 +90,7 @@ export default function DomainManagement({ t, domains, dispatch }: DomainManagem
                 )}
               </div>
             </div>
+            {isExpired && <p className="domain-expired-hint">{t("expiredHint")}</p>}
             {isConfirming && (
               <div className="renew-confirm" role="group">
                 <span className="renew-confirm__prompt">

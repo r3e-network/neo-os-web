@@ -252,6 +252,23 @@
   word-break: break-all;
 }
 
+/* ── Expired domain badge + hint (post-expiry lifecycle state) ── */
+.domain-expired-badge {
+  display: inline-block; margin-left: 8px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b42318; background: #fef3f2; border: 1px solid #fda29b;
+  vertical-align: middle;
+}
+
+.domain-expired-hint {
+  margin: 10px 0 0; padding-top: 10px;
+  border-top: 1px solid var(--ns-border, #e4e7ef);
+  font-size: 12px; line-height: 1.5;
+  color: #b42318;
+}
+
 .domain-expiry {
   font-size: 12px; line-height: 1.4;
   color: var(--ns-text-muted, #8a92a6);

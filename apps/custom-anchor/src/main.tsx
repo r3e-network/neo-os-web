@@ -96,6 +96,18 @@ function fromWholeNeo(value: unknown): string {
   return Math.trunc(amount).toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
+/**
+ * The getRewardPerNeo accumulator is GAS-datoshi * REWARD_SCALE(1e8) per NEO,
+ * i.e. cumulative GAS-per-NEO * 1e16, so one distributed GAS per NEO would read
+ * as 1e16. Divide by 1e16 so it renders as a legible GAS/NEO figure.
+ */
+const REWARD_PER_NEO_SCALE = 100_000_000 * 100_000_000;
+function fromRewardPerNeo(value: unknown): string {
+  const amount = stackNumber(value) / REWARD_PER_NEO_SCALE;
+  if (!Number.isFinite(amount)) return "0";
+  return amount.toLocaleString(undefined, { maximumFractionDigits: 8 });
+}
+
 defineMiniApp({
   appId,
   playArea: PlayArea,
@@ -110,6 +122,10 @@ defineMiniApp({
     const userStake = createObservable("0");
     const pendingRewards = createObservable("0");
     const agentCount = createObservable(0);
+    // Cumulative GAS distributed per NEO since launch (getRewardPerNeo). The
+    // on-chain accumulator is GAS-datoshi * REWARD_SCALE(1e8) per NEO, i.e.
+    // GAS/NEO * 1e16; divide before display. "0" when the anchor is unfunded.
+    const rewardPerNeo = createObservable("0");
     const lastTxid = createObservable("");
     const workflowStatus = createObservable(ctx.t("workflowReady"));
     const lastError = createObservable("");
@@ -184,19 +200,21 @@ defineMiniApp({
         anchorMode.set(mode);
         if (mode <= 0) {
           totalStaked.set("0"); rewardReserve.set("0"); agentCount.set(0);
-          userStake.set("0"); pendingRewards.set("0");
+          userStake.set("0"); pendingRewards.set("0"); rewardPerNeo.set("0");
           workflowStatus.set(ctx.t("anchorNotRegistered"));
           return;
         }
 
-        const [total, reserve, agents] = await Promise.all([
+        const [total, reserve, agents, rps] = await Promise.all([
           ctx.services.chain.read("getTotalStaked", [{ type: "String", value: target }], anchorOptions()),
           ctx.services.chain.read("getRewardReserve", [{ type: "String", value: target }], anchorOptions()),
           ctx.services.chain.read("getAgentCount", [{ type: "String", value: target }], anchorOptions()),
+          ctx.services.chain.read("getRewardPerNeo", [{ type: "String", value: target }], anchorOptions()),
         ]);
         totalStaked.set(fromWholeNeo(total));
         rewardReserve.set(fromFixed8(reserve));
         agentCount.set(stackNumber(agents));
+        rewardPerNeo.set(fromRewardPerNeo(rps));
 
         const address = ctx.services.chain.address.get();
         if (address) {
@@ -412,6 +430,7 @@ defineMiniApp({
         userStake,
         pendingRewards,
         agentCount,
+        rewardPerNeo,
         lastTxid,
         workflowStatus,
         lastError,

@@ -170,6 +170,34 @@
   color: var(--ns-ink, #1e1e2e);
 }
 
+/* Power-user / LP framing banner above the borrow workspace. */
+.flashloan-instruction {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 18px;
+  padding: 0.875rem 1.125rem;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.flashloan-instruction__badge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.flashloan-instruction__note {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--ns-text-2, #5b6478);
+}
+
 /* ============================================================
  *  Workspace layout
  * ============================================================ */
@@ -506,6 +534,12 @@
   font-size: 0.8125rem;
   line-height: 1.55;
   color: var(--ns-text-2, #5b6478);
+}
+
+/* Provider fee-share / distributeFees disclosure — subtly emphasized. */
+.flashloan-liquidity-info--share {
+  margin-top: -0.5rem;
+  font-weight: 500;
 }
 
 .flashloan-liquidity-stats {

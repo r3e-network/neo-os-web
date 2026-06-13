@@ -32,6 +32,10 @@ function t(key: string, params?: Record<string, string | number>) {
     days: "Days",
     rewardClaimed: "Reward claimed",
     rewardsUnavailable: "No rewards available to claim",
+    rewardPoolEmpty:
+      "Reward pool is too low to pay this reward right now — try again after it is topped up.",
+    contractPausedStatus:
+      "Daily check-in is temporarily paused by the operator. Check-in and claim are unavailable until it resumes.",
     statusLoaded: "Status loaded",
     tokenGas: "GAS",
     walletRequired: "Connect your Neo wallet to continue",
@@ -80,6 +84,9 @@ function setup(opts?: {
   wallet?: string | null;
   checkedInEvents?: unknown[];
   claimedEvents?: unknown[];
+  /** Contract GAS balance (base units) the reward pool pays claims from. Defaults solvent. */
+  poolBalance?: number;
+  paused?: boolean;
 }) {
   const user: ChainUser = {
     currentStreak: 6,
@@ -145,6 +152,12 @@ function setup(opts?: {
           currentUtcDay: String(platform.currentDay),
           nextMidnight: String(platform.nextMidnight),
         };
+      case "isPaused":
+        return opts?.paused ?? false;
+      case "balanceOf":
+        // The contract's own GAS balance = the reward pool. Default solvent so
+        // the happy-path claim is dispatched; tests can starve it via poolBalance.
+        return String(opts?.poolBalance ?? 100_000_000_000);
       default:
         throw new Error(`unexpected read: ${operation}`);
     }
@@ -332,6 +345,20 @@ describe("useCheckin (on-chain wiring)", () => {
 
     expect(invokes.find((c) => c.operation === "claimRewards")).toBeUndefined();
     expect(app.latestResult.get()?.summary).toBe("No rewards available to claim");
+  });
+
+  it("blocks the claim when the contract reward pool cannot cover it (no claim dispatched)", async () => {
+    const { app, invokes } = setup({ user: { unclaimed: 100_000_000 }, poolBalance: 1 });
+    await app.loadAll();
+
+    expect(app.unclaimedRewards.get()).toBe(100_000_000);
+
+    await app.claimRewards();
+
+    expect(invokes.find((c) => c.operation === "claimRewards")).toBeUndefined();
+    expect(app.latestResult.get()?.summary).toBe(
+      "Reward pool is too low to pay this reward right now — try again after it is topped up.",
+    );
   });
 
   it("surfaces the next eligible timestamp from getPlatformStats for the countdown", async () => {

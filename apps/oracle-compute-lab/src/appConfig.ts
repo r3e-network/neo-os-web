@@ -19,7 +19,11 @@ export function resolveNetworkLabel(): string {
 
 export const appMeta = {
   networkLabel: resolveNetworkLabel(),
-  endpointLabel: "Compute workflow",
+  // The lab only builds a local preview (execution: "preview_only",
+  // dispatchReady: false); it never calls the network. Mark the endpoint stat
+  // as a preview builder so the live network label reads as the intended
+  // dispatch target, not a completed compute call.
+  endpointLabel: "Compute preview builder (not dispatched)",
 };
 
 export const manifest: MiniAppManifest = {
@@ -218,7 +222,7 @@ const appMessages = {
   feature2Name: { en: "Deterministic", zh: "确定性" },
   feature2Desc: { en: "The same request produces the same local digest.", zh: "同一请求会产生相同的本地摘要。" },
   feature3Name: { en: "Dispatch Aware", zh: "分发感知" },
-  feature3Desc: { en: "The preview package is ready for a later Morpheus dispatch flow.", zh: "预览包可用于后续 Morpheus 分发流程。" },
+  feature3Desc: { en: "Copy this package into your Morpheus dispatch call (e.g. submitMiniAppRequest); the digest lets you confirm the bound on-chain request matches this preview. Dispatching requires a Morpheus runtime token — it does not happen here.", zh: "把此包复制到你的 Morpheus 分发调用（例如 submitMiniAppRequest）；摘要可用于确认绑定的链上请求与此预览一致。分发需要 Morpheus 运行时令牌——不会在此处发生。" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

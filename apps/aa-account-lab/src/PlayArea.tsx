@@ -237,6 +237,9 @@ export default function PlayArea({
                     </div>
                   ))}
                 </div>
+                <p className="account-note account-note--muted">
+                  {t("escapeStatusExplainer")}
+                </p>
                 {verifierUnset && (
                   <p className="account-hint">{t("noVerifierRegistered")}</p>
                 )}
@@ -253,6 +256,7 @@ export default function PlayArea({
           className="account-register-card"
         >
           <div className="account-form">
+            <p className="account-note">{t("registerPermanentNote")}</p>
             {!canRegister && (
               <p className="account-hint">{t("registerBlocked")}</p>
             )}
@@ -299,6 +303,9 @@ export default function PlayArea({
               placeholder={t("timelockPlaceholder")}
               onChange={(v) => setEscapeTimelock(v)}
             />
+            <p className="account-note account-note--muted">
+              {t("timelockExplainer")}
+            </p>
             {/* Read-only preview of the deterministic accountId the contract
                 computes from these parameters — the only id registerAccount
                 accepts (a free seed would always revert). */}

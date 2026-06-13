@@ -61,6 +61,7 @@ defineMiniApp({
         priceDisplay: price.priceDisplay,
         freshness: price.freshness,
         freshnessLabel: price.freshnessLabel,
+        freshnessTimestamp: price.freshnessTimestamp,
         availablePairs: price.availablePairs,
         networkDisplay: price.networkDisplay,
         datafeedHash: price.datafeedHash,

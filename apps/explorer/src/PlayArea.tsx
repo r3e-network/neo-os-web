@@ -176,6 +176,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         t={t}
         result={searchResult}
         formatTime={formatTime}
+        network={selectedNetwork === "testnet" ? "testnet" : "mainnet"}
       />
 
       {/* Recent transactions — when empty, RecentTransactions renders the

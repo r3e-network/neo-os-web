@@ -5,9 +5,9 @@
   "name_zh": "OneGate 金库",
   "name_ja": "OneGate Vault",
   "version": "1.0.0",
-  "description": "Claim a server-backed 1-50 GAS random reward by scanning a OneGate QR code with an embedded single-use key.",
-  "description_zh": "通过 OneGate 扫码打开带一次性 key 的奖励页面，由后端随机发放 1-50 GAS 奖励。",
-  "description_ja": "OneGate QRコードをスキャンして、埋め込まれた一回限りのkeyでサーバー管理の1〜50 GASランダム報酬を受け取ります。",
+  "description": "Random-GAS rewards with two roles. Recipients claim a 1-50 GAS random reward by scanning a OneGate QR with an embedded single-use key (paid by the campaign's reward server). Campaign owners create, fund, top up, and recover random-GAS reward pools and share the QR claim links.",
+  "description_zh": "随机 GAS 奖励，含两种角色。领取人通过 OneGate 扫码（带一次性 key）领取 1-50 GAS 随机奖励（由活动的奖励服务器发放）。活动发起者创建、注资、补充并取回随机 GAS 奖励池，并分享扫码领取链接。",
+  "description_ja": "2つの役割を持つランダムGAS報酬。受取人は一回限りのkeyが埋め込まれたOneGate QRをスキャンして1〜50 GASのランダム報酬を受け取ります（キャンペーンの報酬サーバーが支払い）。キャンペーン管理者はランダムGAS報酬プールを作成・資金提供・追加・回収し、QR受取リンクを共有します。",
   "languages": [
     "en",
     "zh",

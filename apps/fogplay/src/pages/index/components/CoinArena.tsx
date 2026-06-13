@@ -61,6 +61,7 @@ export default function CoinArena({ displayOutcome, isFlipping, result, choice, 
               <span className="bet-preview__label">{t("payoutPreviewLabel")}</span>
               <strong>{payoutPreview}</strong>
             </span>
+            <span className="bet-preview__odds">{t("oddsChip")}</span>
           </div>
         )}
         {result && !isFlipping && (

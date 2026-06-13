@@ -1137,6 +1137,86 @@ body {
   gap: 1rem;
 }
 
+// Role-orienting header on the creator workspace + the two distribution paths.
+.gas-pool-role-header {
+  padding: 0.95rem 1.1rem 1rem;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: rgba(22, 199, 132, 0.06);
+
+  > strong {
+    display: block;
+    color: var(--ns-text-1, #14162a);
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  > p {
+    margin: 0.3rem 0 0;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+}
+
+.gas-pool-role-paths {
+  margin-top: 0.7rem;
+
+  &__title {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ns-brand-strong, #0fb174);
+  }
+
+  ul {
+    margin: 0.4rem 0 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  li {
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.76rem;
+    line-height: 1.45;
+  }
+}
+
+.gas-pool-claim-only__server-note {
+  margin: 0.4rem 0 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.gas-pool-claim-only__explorer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  color: var(--ns-brand-strong, #0fb174);
+  text-decoration: none;
+
+  code {
+    word-break: break-all;
+  }
+
+  &:hover .gas-pool-claim-only__explorer-cta {
+    text-decoration: underline;
+  }
+}
+
+.gas-pool-claim-only__explorer-cta {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
 .gas-pool-form {
   padding: 1.1rem 1.15rem 1.2rem;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));

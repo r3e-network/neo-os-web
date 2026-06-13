@@ -22,7 +22,10 @@ export function resolveNetworkLabel(): string {
 
 export const appMeta = {
   networkLabel: resolveNetworkLabel(),
-  endpointLabel: "VRF request",
+  // The console only builds a request payload locally; it never dispatches a
+  // draw. Mark the endpoint stat as a preview builder so the live network label
+  // doesn't read as "a randomness draw was requested on mainnet".
+  endpointLabel: "Request builder (preview)",
 };
 
 export const manifest: MiniAppManifest = {
@@ -192,8 +195,8 @@ const appMessages = {
   panelEyebrow: { en: "Verifiable randomness", zh: "可验证随机数" },
   panelTitle: { en: "VRF Request Builder", zh: "VRF 请求构建器" },
   panelDescription: {
-    en: "Prepare randomness requests with consumer, salt, proof mode, and repeat count.",
-    zh: "用消费者、盐值、证明模式和轮次准备随机数请求。",
+    en: "Prepare randomness requests with consumer, salt, proof mode, and repeat count. This request id is what you submit to the Morpheus VRF lane (or your consumer contract); the returned proof matches back to this id — the draw and verification happen there, not in this preview.",
+    zh: "用消费者、盐值、证明模式和轮次准备随机数请求。此请求 ID 即你提交给 Morpheus VRF 通道（或你的消费者合约）的标识；返回的证明会与该 ID 对应——抽取与验证发生在那里，而非本预览中。",
   },
   runAction: { en: "Build VRF Request", zh: "生成 VRF 请求" },
   consumer: { en: "Consumer", zh: "消费者" },
@@ -255,8 +258,8 @@ const appMessages = {
   },
   feature3Name: { en: "Proof Aware", zh: "证明感知" },
   feature3Desc: {
-    en: "Proof mode is explicit in the payload before submission.",
-    zh: "提交前即可看到载荷中的证明模式。",
+    en: "Proof mode is explicit in the payload. Submit this request id to the Morpheus VRF lane; the returned randomness proof can be matched back to it. The draw and proof verification happen on that lane, not here.",
+    zh: "载荷中明确包含证明模式。把此请求 ID 提交到 Morpheus VRF 通道；返回的随机数证明可与之对应。抽取与证明验证在该通道完成，而非此处。",
   },
 } as const;
 

@@ -53,6 +53,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const pendingRewardsDisplay = str("pendingRewardsDisplay", "0 GAS");
   const pendingWithdrawDisplay = str("pendingWithdrawDisplay", "0 NEO");
   const rewardReserveDisplay = str("rewardReserveDisplay", "0 GAS");
+  const rewardPerNeoDisplay = str("rewardPerNeoDisplay", "0");
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
   const lastTxid = str("lastTxid");
@@ -82,7 +83,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const stakeMemo = "stake:miniapp-profitanchor";
   const selectedAgent = stats?.selectedAgentId ? `#${stats.selectedAgentId}` : t("routeAwaiting");
   const claimReady = pendingRewards > 0;
-  const preflightChecks = [
+  const preflightChecks: Array<{
+    key: string;
+    label: string;
+    value: string;
+    done: boolean;
+    info?: string;
+  }> = [
     {
       key: "amount",
       label: t("preflightAmount"),
@@ -93,7 +100,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       key: "route",
       label: t("preflightRoute"),
       value: selectedAgent,
-      done: Boolean(stats?.selectedAgentId),
+      // The route row is informational only: staking does not require a
+      // selected agent route, so mark it ready so "Awaiting route" does not
+      // read as a precondition blocking the stake.
+      done: true,
+      info: !stats?.selectedAgentId ? t("preflightRouteInfo") : undefined,
     },
     {
       key: "claim",
@@ -123,6 +134,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       key: "reserve",
       value: hasData ? rewardReserveDisplay : placeholder,
       label: t("rewardReserve"),
+    },
+    {
+      key: "rps",
+      value: hasData ? rewardPerNeoDisplay : placeholder,
+      label: t("rewardPerNeo"),
     },
   ];
 
@@ -196,10 +212,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {metric.value}
               </span>
               <span className="stat-label">{metric.label}</span>
+              {metric.key === "rps" && (
+                <span className="stat-caption">{t("rewardPerNeoCaption")}</span>
+              )}
             </div>
           ))}
         </div>
       )}
+
+      <section className="anchor-earn-card" aria-label={t("earnTitle")}>
+        <span className="anchor-earn-card__title">{t("earnTitle")}</span>
+        <ul className="anchor-earn-card__list">
+          <li>{t("earnLine1")}</li>
+          <li>{t("earnLine2")}</li>
+          <li>{t("earnLine3")}</li>
+        </ul>
+        <p className="anchor-earn-card__note">{t("selfLoanNote")}</p>
+      </section>
 
       <section className="anchor-status-card" aria-label={t("stakingWorkspaceLabel")}>
         <div className="anchor-section-head">
@@ -260,7 +289,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   className={`anchor-preflight-row${check.done ? " is-ready" : ""}`}
                 >
                   <dt>{check.label}</dt>
-                  <dd>{check.value}</dd>
+                  <dd>
+                    {check.value}
+                    {check.info && (
+                      <em className="anchor-preflight-row__info">{check.info}</em>
+                    )}
+                  </dd>
                 </div>
               ))}
             </dl>

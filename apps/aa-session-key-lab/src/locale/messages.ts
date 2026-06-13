@@ -24,6 +24,10 @@ const appMessages = {
   generatedPrivateKey: { en: "Generated Private Key", zh: "生成的私钥" },
   sessionPrivateKey: { en: "Session Private Key", zh: "Session 私钥" },
   privateKeyReady: { en: "Ready for one-time copy", zh: "可一次性复制" },
+  privateKeyCaution: {
+    en: "This private key can authorize transactions for the account within the scope you set below, until it expires or you revoke it. It is shown once and never stored — copy it somewhere safe and share it only with the automation you trust.",
+    zh: "此私钥可在你下方设置的作用域内为账户授权交易，直到它过期或被你撤销为止。它仅显示一次且永不被存储——请妥善保存，并仅与你信任的自动化程序共享。",
+  },
   copyPrivateKey: { en: "Copy Private Key", zh: "复制私钥" },
   copiedPrivateKey: { en: "Copied", zh: "已复制" },
   showPrivateKey: { en: "Show", zh: "显示" },
@@ -173,6 +177,19 @@ const appMessages = {
   wallet: { en: "Wallet", zh: "钱包" },
   sponsor: { en: "Sponsor", zh: "赞助商" },
   anyMethod: { en: "Any method", zh: "任意方法" },
+  anyMethodCaution: {
+    en: "Allowed Method is blank — this session key will be allowed to call ANY method on the target contract. Specify a single method to narrow the scope.",
+    zh: "“允许方法”为空——此 session key 将被允许调用目标合约上的任意方法。请填写单个方法以收窄作用域。",
+  },
+  onChainScopeLabel: { en: "Allowed Method", zh: "允许方法" },
+  onChainExpiryLabel: { en: "Expires", zh: "过期" },
+  onChainSpendLabel: { en: "Spent / Limit", zh: "已花费 / 上限" },
+  spendUnlimited: { en: "unlimited", zh: "不限" },
+  spendValue: { en: "{spent} / {limit} GAS", zh: "{spent} / {limit} GAS" },
+  spendValueUnlimited: {
+    en: "{spent} GAS spent (no limit)",
+    zh: "已花费 {spent} GAS（无上限）",
+  },
   sessionHeroTitle: {
     en: "Scoped session keys for safer AA actions",
     zh: "为 AA 操作配置更安全的作用域 Session Key",

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  BRIDGE_RESOURCES,
+  bridgeAppUrl,
   buildAssetBridgeIntent,
   buildMessageBridgeIntent,
   buildStatusTimeline,
+  sourceExplorerUrl,
   stableDigest,
 } from "../src/bridgeConsole";
 
@@ -149,6 +152,65 @@ describe("neo-x bridge console intent builders", () => {
     // The source step interpolates the compacted source tx.
     expect(timeline[1]?.detailKey).toBe("tlSourceCaptured");
     expect(timeline[1]?.detailParams.sourceTx).toMatch(/^0x[0-9a-f]+\.\.\.[0-9a-f]+$/i);
+  });
+
+  it("derives environment + official bridge resources from the launched network (no testnet literal on mainnet)", () => {
+    const mainnet = buildAssetBridgeIntent(
+      {
+        direction: "n3-to-neox",
+        asset: "GAS",
+        amount: "1",
+        recipient: "0x1111111111111111111111111111111111111111",
+      },
+      "2026-05-03T00:00:00.000Z",
+      "mainnet",
+    );
+    const testnet = buildAssetBridgeIntent(
+      {
+        direction: "n3-to-neox",
+        asset: "GAS",
+        amount: "1",
+        recipient: "0x1111111111111111111111111111111111111111",
+      },
+      "2026-05-03T00:00:00.000Z",
+      "testnet",
+    );
+
+    expect(mainnet.operation.payload.environment).toBe("mainnet");
+    expect(mainnet.operation.payload.fundsMoved).toBe(false);
+    expect(mainnet.operation.payload.digestKind).toBe("local-reference");
+    expect((mainnet.operation.payload.resources as { bridgeApp: string }).bridgeApp).toBe(
+      BRIDGE_RESOURCES.bridgeAppMainnet,
+    );
+    expect(testnet.operation.payload.environment).toBe("testnet");
+    expect((testnet.operation.payload.resources as { bridgeApp: string }).bridgeApp).toBe(
+      BRIDGE_RESOURCES.bridgeAppTestnet,
+    );
+    // The environment is bound into the digest, so the two differ.
+    expect(mainnet.operation.digest).not.toBe(testnet.operation.digest);
+  });
+
+  it("defaults to testnet environment when none is supplied (back-compat)", () => {
+    const intent = buildAssetBridgeIntent({
+      direction: "n3-to-neox",
+      asset: "GAS",
+      amount: "1",
+      recipient: "0x1111111111111111111111111111111111111111",
+    });
+    expect(intent.operation.payload.environment).toBe("testnet");
+    expect(bridgeAppUrl("testnet")).toBe(BRIDGE_RESOURCES.bridgeAppTestnet);
+    expect(bridgeAppUrl("mainnet")).toBe(BRIDGE_RESOURCES.bridgeAppMainnet);
+  });
+
+  it("builds a source-chain explorer URL matching the direction's source chain + environment", () => {
+    // n3-to-neox: source is Neo N3.
+    expect(sourceExplorerUrl("n3-to-neox", "mainnet", "0xabc")).toContain("onegate.space");
+    expect(sourceExplorerUrl("n3-to-neox", "testnet", "0xabc")).toContain("testnet.explorer.onegate.space");
+    // neox-to-n3: source is Neo X.
+    expect(sourceExplorerUrl("neox-to-n3", "mainnet", "0xabc")).toContain("xexplorer.neo.org");
+    expect(sourceExplorerUrl("neox-to-n3", "testnet", "0xabc")).toContain("xt4scan.ngd.network");
+    // The tx hash is appended.
+    expect(sourceExplorerUrl("n3-to-neox", "mainnet", "0xdeadbeef")).toContain("0xdeadbeef");
   });
 
   it("exposes a statusKey on built intents so the metrics strip can localize the status", () => {
