@@ -244,6 +244,30 @@
   color: var(--ns-text-2);
 }
 
+.automation-panel__alert--warn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--ns-warning-soft, #fff3dd);
+  color: var(--ns-warning-strong, #b9791a);
+}
+
+.automation-panel__alert--warn strong {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.automation-hero__fact-caption {
+  display: block;
+  margin-top: 4px;
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .automation-actions {
   display: flex;
   flex-wrap: wrap;

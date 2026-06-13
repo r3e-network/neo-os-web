@@ -547,6 +547,9 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
               {t("validationHint")}
             </div>
           )}
+          <div className="private-transfer__no-funds" role="note">
+            {t("noFundsBanner")}
+          </div>
           <button
             type="button"
             className="private-transfer__seal-button"
@@ -595,11 +598,11 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
             <dl>
               {(
                 [
-                  ["secretRef", t("resultSecretRef"), submitState.secretRef],
-                  ["commitment", t("resultCommitment"), submitState.noteCommitment],
-                  ["nullifier", t("resultNullifier"), submitState.nullifier],
+                  ["secretRef", t("resultSecretRef"), submitState.secretRef, t("resultSecretRefHint")],
+                  ["commitment", t("resultCommitment"), submitState.noteCommitment, t("resultCommitmentHint")],
+                  ["nullifier", t("resultNullifier"), submitState.nullifier, t("resultNullifierHint")],
                 ] as const
-              ).map(([field, label, value]) => (
+              ).map(([field, label, value, hint]) => (
                 <div key={field}>
                   <dt>{label}</dt>
                   <div className="private-transfer__copy-row">
@@ -622,6 +625,7 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
                       </span>
                     </button>
                   </div>
+                  <p className="private-transfer__result-hint">{hint}</p>
                 </div>
               ))}
             </dl>
@@ -729,15 +733,25 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
         <div className="private-transfer__steps-grid">
           {(
             [
-              ["1", t("step1Title"), t("step1Body")],
-              ["2", t("step2Title"), t("step2Body")],
-              ["3", t("step3Title"), t("step3Body")],
-              ["4", t("step4Title"), t("step4Body")],
+              ["1", t("step1Title"), t("step1Body"), false],
+              ["2", t("step2Title"), t("step2Body"), true],
+              ["3", t("step3Title"), t("step3Body"), true],
+              ["4", t("step4Title"), t("step4Body"), false],
             ] as const
-          ).map(([index, title, body]) => (
-            <article key={index}>
+          ).map(([index, title, body, inApp]) => (
+            <article
+              key={index}
+              className={inApp ? "is-in-app" : "is-external"}
+            >
               <span>{index}</span>
               <strong>{title}</strong>
+              <span
+                className={`private-transfer__step-tag${
+                  inApp ? " is-in-app" : ""
+                }`}
+              >
+                {inApp ? t("stepInApp") : t("stepNotInApp")}
+              </span>
               <p>{body}</p>
             </article>
           ))}

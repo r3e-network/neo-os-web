@@ -11,6 +11,7 @@ const appMessages = {
   placeBet: { en: "Place Your Bet", zh: "请下注" },
   youPicked: { en: "You picked", zh: "你选择" },
   payoutPreviewLabel: { en: "2x payout", zh: "2 倍赔付" },
+  oddsChip: { en: "50% chance · pays 2x · no house edge", zh: "50% 胜率 · 2 倍赔付 · 无庄家抽水" },
   wager: { en: "Wager Amount", zh: "下注金额" },
   betAmountPlaceholder: { en: "0.05", zh: "0.05" },
   heads: { en: "Heads", zh: "正面" },

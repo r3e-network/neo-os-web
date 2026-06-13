@@ -4,8 +4,8 @@
   "name": "FogPlay",
   "name_zh": "迷雾对决",
   "version": "2.0.0",
-  "description": "Fast oracle-backed coin flips on Neo N3. Pick heads or tails, place a GAS wager, and wait for the on-chain callback to settle the round.",
-  "description_zh": "迷雾对决是一款基于预言机回调的 Neo N3 链上猜硬币游戏。选择正面或反面、下注 GAS，并等待链上回调完成结算。",
+  "description": "Instant on-chain coin flip on Neo N3. Pick heads or tails (50% chance) and place a GAS wager — Neo's native randomness settles each flip and pays 2x in the same transaction, with no oracle callback to wait for.",
+  "description_zh": "Neo N3 上的即时链上抛硬币游戏。选择正面或反面（50% 胜率）并下注 GAS——Neo 原生随机数在同一笔交易内完成结算并支付 2 倍赔付，无需等待任何预言机回调。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
@@ -13,7 +13,6 @@
     "fogplay",
     "gambling",
     "randomness",
-    "oracle",
     "betting"
   ],
   "developer": {
@@ -66,8 +65,8 @@
   "featured_order": 3,
   "technologies": {
     "oracle": {
-      "enabled": true,
-      "description": "Morpheus Oracle randomness callbacks settle each flip on-chain"
+      "enabled": false,
+      "description": "No oracle — each flip settles atomically on-chain using Neo's native Runtime.GetRandom in the same transaction"
     },
     "aa": {
       "enabled": false,

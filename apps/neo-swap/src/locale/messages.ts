@@ -2,8 +2,11 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
     // App translations
-title: { en: "Neo Swap", zh: "Neo 兑换" },
-  subtitle: { en: "Swap NEO ↔ GAS with route preview", zh: "通过路由预览兑换 NEO ↔ GAS" },
+title: { en: "Neo Swap — live NEO/GAS rate & trade preview", zh: "Neo 兑换 — 实时 NEO/GAS 汇率与交易预览" },
+  subtitle: {
+    en: "Preview the live NEO ↔ GAS rate, slippage, and minimum received — settle in your wallet/DEX when a route is available",
+    zh: "预览实时 NEO ↔ GAS 汇率、滑点与最少收到数量 — 待路由可用后在您的钱包/DEX 中结算",
+  },
   from: { en: "From", zh: "从" },
   to: { en: "To", zh: "到" },
   balance: { en: "Balance", zh: "余额" },
@@ -69,12 +72,12 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
   addLiquidity: { en: "Review Route", zh: "审阅路由" },
   tokenIcon: { en: "Token icon", zh: "代币图标" },
   docSubtitle: {
-    en: "NEO/GAS swaps with route preview",
-    zh: "带路由预览的 NEO/GAS 兑换",
+    en: "Live NEO/GAS rate & trade preview",
+    zh: "实时 NEO/GAS 汇率与交易预览",
   },
   docDescription: {
-    en: "Neo Swap provides direct swaps between NEO and GAS. Prices are fetched through the data feed and settlement is prepared for wallet submission.",
-    zh: "Neo Swap 提供 NEO 与 GAS 的直接兑换。价格通过数据源获取，结算通过共享钱包操作台发起。",
+    en: "Neo Swap previews the live NEO/GAS rate from the Morpheus data feed with slippage and minimum-received context. No on-chain swap router is deployed yet, so this app shows a planning quote — execute the trade in your wallet or a DEX when a route is available.",
+    zh: "Neo 兑换基于 Morpheus 数据源预览实时 NEO/GAS 汇率，并展示滑点与最少收到数量。当前尚未部署链上兑换路由，因此本应用提供的是规划报价 — 待路由可用后请在您的钱包或 DEX 中执行交易。",
   },
   step1: {
     en: "Connect your Neo wallet and select tokens to swap",
@@ -85,12 +88,12 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
     zh: "输入金额并查看汇率和价格影响",
   },
   step3: {
-    en: "Confirm the swap transaction in your wallet",
-    zh: "在钱包中确认兑换交易",
+    en: "Review the live rate, slippage, and minimum received",
+    zh: "查看实时汇率、滑点与最少收到数量",
   },
   step4: {
-    en: "Receive tokens instantly - no waiting period required",
-    zh: "即时收到代币 - 无需等待期",
+    en: "Settle in your wallet or a DEX when a swap route is available — no router is deployed here yet",
+    zh: "待兑换路由可用后，在您的钱包或 DEX 中结算 — 本应用尚未部署路由",
   },
   feature1Name: { en: "Best Rates", zh: "最佳汇率" },
   feature1Desc: {
@@ -102,14 +105,27 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
     en: "Deep liquidity pools ensure minimal price impact on your trades.",
     zh: "深度流动性池确保您的交易价格影响最小。",
   },
-  feature3Name: { en: "On-Chain Routing", zh: "链上路由" },
+  feature3Name: { en: "Live Data-Feed Quotes", zh: "实时数据源报价" },
   feature3Desc: {
-    en: "Swaps are reviewed in the MiniApp and submitted through the shared wallet flow.",
-    zh: "兑换先在小程序中审阅，再通过共享钱包流程提交。",
+    en: "Quotes come from the Morpheus data feed; on-chain settlement is pending a deployed swap router.",
+    zh: "报价来自 Morpheus 数据源；链上结算需待部署兑换路由后方可进行。",
   },
   popularPairs: { en: "Popular Pairs", zh: "热门交易对" },
     sidebarRate: { en: "Rate", zh: "汇率" },
   tokenNeo: { en: "NEO", zh: "NEO" },
+  // Shown on the (disabled) Swap button when no router is deployed so the CTA
+  // reads as an honest "cannot settle here" state instead of a teasing action.
+  settlementUnavailable: { en: "Settlement unavailable", zh: "暂不可结算" },
+  // Names the quote's price source so the quote-only product is transparent
+  // about where its single deliverable comes from.
+  rateSourceAsOf: {
+    en: "Rate via Morpheus data feed, as of {time}",
+    zh: "汇率来自 Morpheus 数据源，截至 {time}",
+  },
+  rateSourceStaleAsOf: {
+    en: "Rate via Morpheus data feed, as of {time} — may be out of date",
+    zh: "汇率来自 Morpheus 数据源，截至 {time} — 可能已过期",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

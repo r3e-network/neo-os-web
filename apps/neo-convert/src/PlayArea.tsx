@@ -243,8 +243,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
 
-        {!walletConnected && (
+        {!walletConnected ? (
           <p className="convert-balance-note">{t("connectForBalances")}</p>
+        ) : (
+          <p className="convert-balance-note">{t("balanceRpcNote")}</p>
         )}
 
         <div className="convert-section">

@@ -38,6 +38,10 @@ const appMessages = {
     en: "This feed has not updated within the last hour. Treat the price as historical, not live.",
     zh: "该价格源在过去一小时内未更新。请将此价格视为历史值，而非实时值。",
   },
+  priceOnChainTime: {
+    en: "On-chain feed time: {time}",
+    zh: "链上价格源时间：{time}",
+  },
   priceSignalTitle: { en: "Feed signal", zh: "价格源信号" },
   priceSignalIdle: { en: "Awaiting read", zh: "等待读取" },
   priceSignalSynced: { en: "Synced", zh: "已同步" },

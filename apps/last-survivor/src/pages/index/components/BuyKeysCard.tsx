@@ -76,6 +76,7 @@ export default function BuyKeysCard({
       >
         {isPaying ? t("buying") : (submitLabel ?? t("buyKeys"))}
       </NeoButton>
+      <span className="buy-keys-risk-note">{t("nonRefundableNote")}</span>
     </>
   );
 }

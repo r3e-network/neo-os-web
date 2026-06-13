@@ -79,6 +79,21 @@ const appMessages = {
   asset: { en: "Asset", zh: "资产" },
   amount: { en: "Amount", zh: "金额" },
   recipient: { en: "Recipient", zh: "收款地址" },
+  // Source/destination clarity: the payout is funded by the connected wallet,
+  // NOT the watched foundation treasury, and can go to any Neo address.
+  fromYourWallet: { en: "From: your connected wallet", zh: "来源：你已连接的钱包" },
+  recipientCaption: {
+    en: "Any Neo address — paid from your wallet, not the watched treasury.",
+    zh: "任意 Neo 地址 —— 由你的钱包支付，而非被监控的国库。",
+  },
+  yourWalletHeading: { en: "Your wallet", zh: "你的钱包" },
+  useAsRecipient: { en: "Use as recipient", zh: "用作收款人" },
+  // Price dashboard source disclosure — USD totals come from a Morpheus data
+  // feed that may lag the live market.
+  priceFeedSourceNote: {
+    en: "USD totals use a Morpheus on-chain price feed and may be delayed or stale.",
+    zh: "美元总额来自 Morpheus 链上价格源，可能存在延迟或过期。",
+  },
   memo: { en: "Memo", zh: "备注" },
   amountPresets: { en: "Amount presets", zh: "金额预设" },
   intentTitle: { en: "Signing intent", zh: "签名意图" },

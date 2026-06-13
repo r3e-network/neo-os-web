@@ -3,11 +3,11 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   // App translations
   title: { en: "Gov Merc", zh: "治理雇佣兵" },
-  subtitle: { en: "Bid for governance influence", zh: "竞价治理影响力" },
-  govHeroTitle: { en: "Governance Influence Market", zh: "治理影响力市场" },
+  subtitle: { en: "Stake NEO for yield, bid GAS for the title", zh: "质押 NEO 赚收益，竞价 GAS 抢称号" },
+  govHeroTitle: { en: "Governance Influence Auction", zh: "治理影响力竞拍" },
   govHeroSubtitle: {
-    en: "Pool NEO voting weight, compete with GAS bids, and route each epoch through a transparent market workflow.",
-    zh: "汇聚 NEO 投票权、用 GAS 竞价，并通过透明市场流程分配每个周期的治理影响力。",
+    en: "Stake NEO to earn each epoch's winning GAS bid pro-rata; bid GAS to win the epoch's influence title.",
+    zh: "质押 NEO，按比例分得每个周期的获胜 GAS 竞价；竞价 GAS，赢得本周期的影响力称号。",
   },
   marketSignalTitle: { en: "Neo N3 governance desk", zh: "Neo N3 治理台" },
   marketReady: { en: "Ready", zh: "就绪" },
@@ -19,23 +19,23 @@ const appMessages = {
   totalPool: { en: "Total Pool", zh: "总池子" },
   currentEpoch: { en: "Current Epoch", zh: "当前周期" },
   yourDeposits: { en: "Your Deposits", zh: "你的存入" },
-  depositNeo: { en: "Deposit NEO", zh: "存入 NEO" },
-  withdrawNeo: { en: "Withdraw NEO", zh: "提取 NEO" },
-  depositAmount: { en: "Deposit amount", zh: "存入金额" },
-  withdrawAmount: { en: "Withdraw amount", zh: "提取金额" },
+  depositNeo: { en: "Stake NEO", zh: "质押 NEO" },
+  withdrawNeo: { en: "Unstake NEO", zh: "取消质押 NEO" },
+  depositAmount: { en: "Stake amount", zh: "质押金额" },
+  withdrawAmount: { en: "Unstake amount", zh: "取消质押金额" },
   placeBid: { en: "Place Bid", zh: "提交竞价" },
   bidAmount: { en: "Bid amount", zh: "竞价金额" },
   actionDepositHint: {
-    en: "Add NEO voting power to the shared pool for future epochs.",
-    zh: "向共享池增加 NEO 投票权，用于后续周期。",
+    en: "Stake NEO to weight your share of the auction yield. NEO stakers split every epoch's winning GAS bid pro-rata.",
+    zh: "质押 NEO 以决定你分得竞拍收益的份额。NEO 质押者按比例分享每个周期的获胜 GAS 竞价。",
   },
   actionWithdrawHint: {
-    en: "Release unused pool deposits when you no longer want exposure.",
-    zh: "不再参与时，可释放未使用的池内存款。",
+    en: "Release staked NEO when you no longer want a reward share.",
+    zh: "不再需要收益份额时，可取出已质押的 NEO。",
   },
   actionBidHint: {
-    en: "Commit GAS to compete for the right to steer the epoch.",
-    zh: "投入 GAS 竞价，争取本周期的治理指向权。",
+    en: "Commit GAS to compete for this epoch's influence title. Minimum first bid: {min} {tokenGas}.",
+    zh: "投入 GAS 竞争本周期的影响力称号。首次竞价至少 {min} {tokenGas}。",
   },
   bidLeaderboard: { en: "Bid Leaderboard", zh: "竞价榜" },
   noBids: { en: "No bids yet", zh: "暂无竞价" },
@@ -45,20 +45,25 @@ const appMessages = {
     zh: "第一笔有效 GAS 竞价会成为本周期的市场信号。",
   },
   flowTitle: { en: "Epoch flow", zh: "周期流程" },
-  flowDeposit: { en: "Pool voting weight", zh: "汇聚投票权" },
+  flowDeposit: { en: "Stake NEO for yield", zh: "质押 NEO 赚收益" },
   flowDepositCopy: {
-    en: "Depositors contribute NEO influence while their position remains tracked.",
-    zh: "存入者贡献 NEO 影响力，同时保留可追踪仓位。",
+    en: "Stakers lock NEO to weight their pro-rata share of the auction revenue.",
+    zh: "质押者锁定 NEO，按比例决定其分得竞拍收益的份额。",
   },
   flowBid: { en: "Run GAS auction", zh: "运行 GAS 竞价" },
   flowBidCopy: {
-    en: "Bidders compete for the active epoch with transparent amounts.",
-    zh: "竞价者用透明金额争夺当前周期。",
+    en: "Mercenaries bid GAS to compete for the active epoch's influence title.",
+    zh: "雇佣兵竞价 GAS，争夺当前周期的影响力称号。",
   },
-  flowInfluence: { en: "Route governance", zh: "路由治理权" },
+  flowInfluence: { en: "Settle & pay stakers", zh: "结算并分配给质押者" },
   flowInfluenceCopy: {
-    en: "Winning bid directs the pooled influence for that epoch.",
-    zh: "获胜竞价决定该周期池子的治理指向。",
+    en: "Settlement records the top bidder as the epoch winner and pays their GAS bid to stakers pro-rata.",
+    zh: "结算将最高出价者记录为该周期获胜者，并将其 GAS 竞价按比例分配给质押者。",
+  },
+  influenceUseTitle: { en: "How influence is used", zh: "影响力如何使用" },
+  influenceUseCopy: {
+    en: "Settlement records the winning bidder as the epoch's influence holder on-chain and pays their bid to stakers. The staked NEO is not delegated or voted by the contract — any vote execution happens off-contract.",
+    zh: "结算在链上记录获胜者为该周期的影响力持有者，并将其竞价支付给质押者。质押的 NEO 不会被合约委托或投票——任何投票执行均在合约外进行。",
   },
   riskNoteTitle: { en: "Operator readiness", zh: "操作就绪度" },
   riskNoteCopy: {
@@ -86,12 +91,13 @@ const appMessages = {
     en: "Amount exceeds your deposits",
     zh: "金额超过你的存入余额",
   },
-  settleTitle: { en: "Route governance", zh: "路由治理权" },
+  settleTitle: { en: "Settle epoch", zh: "结算周期" },
   settleAction: { en: "Settle epoch", zh: "结算周期" },
   settleCopy: {
-    en: "Settle the live epoch: the top GAS bid wins and directs the pooled NEO influence, then the epoch advances.",
-    zh: "结算当前周期：最高 GAS 竞价获胜并指向汇聚的 NEO 影响力，随后周期推进。",
+    en: "Settle the live epoch: the top GAS bidder is recorded as the epoch winner, their bid is paid to NEO stakers pro-rata, then the epoch advances.",
+    zh: "结算当前周期：最高 GAS 出价者被记录为该周期获胜者，其竞价按比例分配给 NEO 质押者，随后周期推进。",
   },
+  currentTopBid: { en: "Current top bid", zh: "当前最高竞价" },
   settleLastLabel: { en: "Last settled", zh: "上次结算" },
   settleNone: { en: "No epoch settled yet", zh: "尚未结算任何周期" },
   settleSummary: {
@@ -107,8 +113,8 @@ const appMessages = {
     zh: "在路由本周期治理权之前，请至少提交一笔 GAS 竞价。",
   },
   settleSuccess: {
-    en: "Epoch settled — governance routed",
-    zh: "周期已结算 —— 治理权已路由",
+    en: "Epoch settled — winning bid paid to stakers",
+    zh: "周期已结算 —— 获胜竞价已分配给质押者",
   },
 
   // ── v2 bidding window (first bid opens a fixed window; settle after it) ──
@@ -188,45 +194,46 @@ const appMessages = {
   unusedCredit: { en: "Unused bid credit", zh: "未使用的竞价额度" },
 
   docSubtitle: {
-    en: "Governance mercenary pool with competitive bidding",
-    zh: "基于竞价的治理雇佣池",
+    en: "Stake NEO for auction yield; bid GAS for the epoch title",
+    zh: "质押 NEO 赚竞拍收益；竞价 GAS 抢周期称号",
   },
   docDescription: {
-    en: "Gov Merc aggregates NEO into a shared pool and runs GAS-based bids each epoch. The winning bidder directs the pooled governance influence for that epoch while deposits remain tracked on-chain.",
-    zh: "Gov Merc 将 NEO 汇聚到共享池，并按周期进行 GAS 竞价。获胜者在该周期内获得池子的治理影响力，存入资金全程链上记录。",
+    en: "Gov Merc is a two-sided auction. NEO stakers split each epoch's winning GAS bid pro-rata. Mercenaries bid GAS to win the epoch's influence title — recorded on-chain, with vote execution handled off-contract. The staked NEO is held as reward weight and is not voted by the contract.",
+    zh: "Gov Merc 是一个双边竞拍。NEO 质押者按比例分得每个周期的获胜 GAS 竞价。雇佣兵竞价 GAS 以赢得本周期的影响力称号——该称号链上记录，投票执行在合约外进行。质押的 NEO 仅作为收益权重，合约不会用其投票。",
   },
   step1: {
     en: "Connect your Neo wallet and review the current epoch.",
     zh: "连接 Neo 钱包并查看当前周期。",
   },
   step2: {
-    en: "Deposit NEO to add voting power to the pool.",
-    zh: "存入 NEO，为资金池提供治理投票力量。",
+    en: "Stake NEO to earn a pro-rata share of the auction yield.",
+    zh: "质押 NEO，按比例分得竞拍收益。",
   },
   step3: {
-    en: "Place a GAS bid to compete for epoch influence.",
-    zh: "提交 GAS 竞价，争夺本周期影响力。",
+    en: "Bid GAS to compete for the epoch's influence title.",
+    zh: "竞价 GAS，争夺本周期的影响力称号。",
   },
   step4: {
-    en: "Track bids, results, and withdraw deposits when needed.",
-    zh: "链上跟踪竞价结果，必要时可提取存入。",
+    en: "Settle the epoch to pay the winning bid to stakers; claim rewards or unstake anytime.",
+    zh: "结算周期将获胜竞价分配给质押者；可随时领取收益或取消质押。",
   },
   feature1Name: { en: "Epoch Bidding", zh: "周期竞价" },
   feature1Desc: {
     en: "Competitive GAS bids determine each epoch's winner.",
     zh: "使用 GAS 竞价决定周期赢家。",
   },
-  feature2Name: { en: "Shared Pool", zh: "共享池" },
+  feature2Name: { en: "Staker Yield", zh: "质押收益" },
   feature2Desc: {
-    en: "Deposited NEO aggregates voting power on-chain.",
-    zh: "存入 NEO 汇聚链上投票力量。",
+    en: "Staked NEO earns the winning GAS bid pro-rata each epoch (weight only — not voted by the contract).",
+    zh: "质押的 NEO 按比例分得每个周期的获胜 GAS 竞价（仅作权重，合约不会用其投票）。",
   },
   feature3Name: { en: "On-chain Ledger", zh: "链上账本" },
   feature3Desc: {
-    en: "Bids, deposits, and epoch status are transparent.",
-    zh: "竞价、存入与周期状态全程透明。",
+    en: "Bids, stakes, and epoch status are transparent.",
+    zh: "竞价、质押与周期状态全程透明。",
   },
   activeBids: { en: "Active Bids", zh: "活跃竞价" },
+  lastDistributed: { en: "Last GAS to stakers", zh: "上期分给质押者的 GAS" },
   tokenNeo: { en: "NEO", zh: "NEO" },
 } as const;
 

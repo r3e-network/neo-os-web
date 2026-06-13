@@ -179,6 +179,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
+      <section className="anchor-earn-card" aria-label={t("earnTitle")}>
+        <span className="anchor-earn-card__title">{t("earnTitle")}</span>
+        <ul className="anchor-earn-card__list">
+          <li>{t("earnLine1")}</li>
+          <li>{t("earnLine2")}</li>
+          <li>{t("earnLine3")}</li>
+        </ul>
+      </section>
+
       <section className="anchor-workspace" aria-label={t("stakingWorkspaceLabel")}>
         <div className="anchor-status-card">
           <div className="anchor-section-head">
@@ -237,6 +246,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {busyAction === "refreshAnchor" ? t("workflowSubmitting") : t("refreshStatus")}
               </button>
             </div>
+            <p className="anchor-redeem-note">{t("redeemTimingNote")}</p>
             {canRecoverCredit && (
               <div className="anchor-recover-card">
                 <div className="anchor-recover-card__copy">
@@ -307,6 +317,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <dd>{hasData ? rewardPerNeoDisplay : placeholder}</dd>
             </div>
           </dl>
+          <p className="anchor-route-card__caption">{t("rewardReserveHint")}</p>
+          <p className="anchor-route-card__caption">{t("rewardPerNeoCaption")}</p>
         </aside>
       </section>
 

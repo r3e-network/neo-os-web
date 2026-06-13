@@ -306,7 +306,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
         <div className="participation-divider" />
-        <div className="participation-item">
+        <div className="participation-item" title={t("shareHint")}>
           <span className="participation-icon" aria-hidden="true">%</span>
           <div className="participation-detail">
             <span className="participation-label">{t("share")}</span>
@@ -316,6 +316,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
       </div>
+      <p className="participation-share-hint">{t("shareHint")}</p>
 
       {/* Game rules — collapsed tutorial, out of the primary flow */}
       <details className="rules-card">

@@ -147,9 +147,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="wallet-health-hero-copy">
             <span className="wallet-health-kicker">{networkLabel || "Neo N3"}</span>
             <h2>{t("walletHeroTitle")}</h2>
-            {showScorePlaceholder && (
-              <span className="wallet-health-score-caption">{t("connectToScore")}</span>
-            )}
+            <span className="wallet-health-score-caption">
+              {showScorePlaceholder ? t("connectToScore") : t("scoreSelfAssessCaption")}
+            </span>
             <p className="wallet-health-hero-facts">
               <strong className={`wallet-health-risk-chip ${riskClass}`}>
                 <span className="wallet-health-risk-dot" aria-label={riskIconLabel} />

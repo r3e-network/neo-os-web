@@ -111,6 +111,21 @@ export function usePriceConsole({ t }: UsePriceConsoleOptions) {
     subscribe: (fn) => lastTimestamp.subscribe(fn),
   };
 
+  // Absolute on-chain write time (local-formatted) of the displayed price. This
+  // is the precise datum a user needs to independently verify freshness against
+  // the chain — the relative "x ago" label alone cannot be cross-checked. Empty
+  // when the feed omitted a timestamp or no read has happened yet.
+  const freshnessTimestamp: Observable<string> = {
+    get: () => {
+      if (latestPrice.get() == null) return "";
+      const ts = lastTimestamp.get();
+      if (ts <= 0) return "";
+      return new Date(ts * 1000).toLocaleString();
+    },
+    set: () => {},
+    subscribe: (fn) => lastTimestamp.subscribe(fn),
+  };
+
   const datafeedHash: Observable<string> = {
     get: () => integration.contracts.morpheusDatafeed,
     set: () => {},
@@ -191,6 +206,7 @@ export function usePriceConsole({ t }: UsePriceConsoleOptions) {
     priceDisplay,
     freshness,
     freshnessLabel,
+    freshnessTimestamp,
     datafeedHash,
     datafeedShort,
     networkDisplay,

@@ -37,10 +37,14 @@ const appMessages = {
     en: "Require the account, new owner, and expiry window before generating links.",
     zh: "生成链接前必须补齐账户、新 owner 与过期窗口。",
   },
-  guardianFlowCredential: { en: "Share credential", zh: "分享凭证" },
+  guardianFlowCredential: { en: "Continue in AA workspace", zh: "在 AA 工作区继续" },
   guardianFlowCredentialDesc: {
-    en: "Open, copy, or share preview and credential links only after preflight.",
-    zh: "只有预检通过后才打开、复制或分享预览和凭证链接。",
+    en: "Open, copy, or share the prepared links, then open them in the AA identity workspace to sign the recovery — it is not executed here.",
+    zh: "打开、复制或分享准备好的链接，然后在 AA 身份工作区中打开它们以签署恢复——此处不执行恢复。",
+  },
+  guardianLinkHandoffNote: {
+    en: "Open this link in the AA identity workspace to sign the recovery. The recovery transaction is not executed here.",
+    zh: "在 AA 身份工作区中打开此链接以签署恢复。恢复交易不会在此处执行。",
   },
   guardianStateLabel: { en: "Guardian Runtime", zh: "Guardian 运行态" },
   guardianStateTitle: { en: "Recovery state", zh: "恢复状态" },

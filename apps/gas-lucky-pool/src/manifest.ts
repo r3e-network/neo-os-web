@@ -2,7 +2,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "OneGate Vault",
-  description: "Server-backed 1-50 GAS rewards claimed through OneGate QR keys",
+  description: "Random 1-50 GAS rewards: recipients claim via OneGate QR keys; campaign owners create, fund, and recover the reward pools",
   icon: "gift",
   category: "social",
   shell: "launcher",

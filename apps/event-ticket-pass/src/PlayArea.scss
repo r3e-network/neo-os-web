@@ -601,6 +601,25 @@
   gap: 4px;
 }
 
+.ticket-evidence__txlink {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tk-accent-strong);
+  text-decoration: underline;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+.ticket-free-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--tk-muted);
+}
+
 .ticket-evidence__head span {
   color: var(--tk-muted);
   font-size: 11px;

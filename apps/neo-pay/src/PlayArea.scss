@@ -334,6 +334,12 @@
   overflow-wrap: anywhere;
 }
 
+/* Per-day release rate — slightly emphasized so the schedule reads clearly. */
+.neopay-stream-detail--rate {
+  font-weight: 600;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
 .neopay-stream-note {
   margin-top: 0.5rem;
   font-size: 0.8125rem;

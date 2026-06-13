@@ -179,6 +179,22 @@
   line-height: 1.45;
 }
 
+/* Always-visible product explainers (permanent-account note, timelock /
+   escape-status meaning). Lighter than a caution but more present than a
+   field hint, so the security tradeoff is legible at the decision point. */
+.account-note {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.account-note--muted {
+  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 500;
+}
+
 /* Read-only preview of the contract-derived accountId — the only id the
    register call will accept. Framed as a labelled, monospace block so users can
    verify/copy it before paying. */

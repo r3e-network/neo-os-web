@@ -490,6 +490,11 @@
   color: var(--multisig-green-strong);
 }
 
+/* Informational pooled-balance disclosure — softer weight than a gating hint. */
+.multisig-request-hint--info {
+  font-weight: 500;
+}
+
 /* v2 RequestUnfunded notice: a threshold approval found the vault underfunded
    and the contract auto-cancelled the request — amber warning treatment. */
 .multisig-request-hint--unfunded {

@@ -4,8 +4,8 @@
   "name": "Oracle Seal Console",
   "name_zh": "预言机加密封装控制台",
   "version": "1.0.0",
-  "description": "Package sensitive oracle input as a sealed envelope preview.",
-  "description_zh": "把敏感预言机输入打包为加密封装预览。",
+  "description": "Organize oracle request details into a reference envelope (a non-cryptographic checksum — this tool does not encrypt).",
+  "description_zh": "把预言机请求细节整理为引用信封（非加密校验值——本工具不进行加密）。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -50,20 +50,20 @@
     ]
   },
   "operation_panel": {
-    "title": "Seal Console",
-    "subtitle": "Seal sensitive oracle input and inspect the encrypted reference.",
+    "title": "Envelope Reference Console",
+    "subtitle": "Organize oracle request details into a reference envelope (not encrypted).",
     "operations": [
       {
-        "name": "Seal Payload",
-        "method": "sealOracleRequest",
-        "description": "Encrypt a sensitive payload for Morpheus confidential handling.",
+        "name": "Build Reference",
+        "method": "buildOracleReference",
+        "description": "Build an envelope reference with a non-cryptographic checksum — this tool does not encrypt the payload.",
         "button_style": "success",
         "params": [
           {
             "name": "endpoint",
             "type": "string",
-            "label": "Payload",
-            "placeholder": "sensitive oracle input",
+            "label": "Payload (not encrypted)",
+            "placeholder": "oracle request payload — kept as a plain reference",
             "sensitive": true,
             "required": true
           }

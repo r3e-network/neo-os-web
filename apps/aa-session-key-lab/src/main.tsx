@@ -129,6 +129,7 @@ defineMiniApp({
         isRevoking: lab.isRevoking,
         hasOnChainSession: lab.hasOnChainSession,
         onChainSession: lab.onChainSession,
+        onChainSessionView: lab.onChainSessionView,
         isCheckingSponsorship: lab.isCheckingSponsorship,
         detailItems: lab.detailItems,
         derivedAccountIdHash: lab.derivedAccountIdHash,

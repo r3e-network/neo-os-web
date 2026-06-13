@@ -4,6 +4,7 @@ import {
   canClaim,
   deriveSchedulePreview,
   isFinalizedStatus,
+  releasePerDayDisplay,
   statusLabelKey,
 } from "./streamDisplay";
 import { deriveSchedule } from "./composables/deriveSchedule";
@@ -68,5 +69,31 @@ describe("neo-pay schedule disclosure mirrors deriveSchedule (NEO cliff)", () =>
     expect(deriveSchedulePreview("10", "", "GAS")).toBeNull();
     expect(deriveSchedulePreview("0", "30", "GAS")).toBeNull();
     expect(deriveSchedulePreview("10", "0", "GAS")).toBeNull();
+  });
+});
+
+describe("neo-pay created-stream per-day release", () => {
+  it("treats a 1-day interval rate as the per-day GAS amount", () => {
+    // 1 GAS/day = 1e8 base units, intervalDays 1.
+    expect(releasePerDayDisplay(100000000n, 1, "GAS")).toBe("1");
+  });
+
+  it("divides a multi-day GAS interval into a per-day figure", () => {
+    // 3 GAS over a 3-day interval -> 1 GAS/day.
+    expect(releasePerDayDisplay(300000000n, 3, "GAS")).toBe("1");
+  });
+
+  it("shows whole NEO/day for an integer NEO rate", () => {
+    expect(releasePerDayDisplay(2n, 1, "NEO")).toBe("2");
+  });
+
+  it("omits the per-day figure for a sub-1-NEO/day cliff", () => {
+    // 5 NEO over a 30-day cliff interval -> < 1 NEO/day, not shown.
+    expect(releasePerDayDisplay(5n, 30, "NEO")).toBeNull();
+  });
+
+  it("returns null when there is no parsed rate", () => {
+    expect(releasePerDayDisplay(undefined, 1, "GAS")).toBeNull();
+    expect(releasePerDayDisplay(0n, 1, "GAS")).toBeNull();
   });
 });

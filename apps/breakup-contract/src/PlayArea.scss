@@ -281,6 +281,18 @@ $tone-warning-soft: #fff3dd;
   color: $ns-text-2;
 }
 
+.contract-economics-note {
+  margin: 0 0 4px;
+  padding: 10px 12px;
+  border: 1px solid $ns-border;
+  border-radius: 12px;
+  background: $ns-subtle;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: $ns-text-2;
+}
+
 /* Group stake + duration into a balanced 2-up row */
 .create-contract-grid {
   display: grid;

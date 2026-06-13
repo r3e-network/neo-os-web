@@ -32,7 +32,19 @@ const appMessages = {
     en: "The message stays sealed until the reveal time. After it, anyone can trigger the reveal and the oracle posts the plaintext on-chain for everyone.",
     zh: "消息在解锁时间前保持封存。到时之后，任何人都可触发揭示，预言机会将明文发布到链上供所有人查看。",
   },
+  // Prominent public-reveal warning + explicit acknowledgement shown when the
+  // user picks the time-locked mode (its privacy guarantee is the inverse of
+  // recipient-only — the cleartext is posted on-chain for everyone).
+  timedPublicWarning: {
+    en: "Public reveal: after the unlock time the message body is posted on-chain in cleartext, readable by anyone — not just the recipient.",
+    zh: "公开揭示：到达解锁时间后，消息正文将以明文发布到链上，任何人都可读取——不仅仅是收件人。",
+  },
+  timedAcknowledge: {
+    en: "I understand this message will become public on-chain at the reveal time.",
+    zh: "我了解这条消息将在解锁时间于链上公开。",
+  },
   sendButton: { en: "Encrypt & send", zh: "加密并发送" },
+  sendButtonTimed: { en: "Schedule public reveal", zh: "安排公开揭示" },
   sending: { en: "Sending…", zh: "发送中……" },
 
   // inbox / outbox
@@ -61,6 +73,12 @@ const appMessages = {
   revealOnChain: { en: "Reveal on-chain", zh: "在链上揭示" },
   onlyRecipientCanRead: { en: "Only the recipient can read this.", zh: "只有收件人能读取。" },
   notUnlockedYet: { en: "Not unlocked yet", zh: "尚未解锁" },
+  // After a recipient-only reveal the plaintext is cached on this device only —
+  // it is re-derivable via a fresh wallet signature, not stored as readable text.
+  decryptedOnDevice: {
+    en: "Decrypted on this device. Re-open with your wallet to read again elsewhere.",
+    zh: "已在本设备解密。在其他设备上需用钱包重新打开以再次读取。",
+  },
 
   // statuses
   statusReady: { en: "Ready", zh: "就绪" },

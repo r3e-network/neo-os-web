@@ -329,7 +329,9 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
   const totalLoans = createDerived(() => stats.get().totalLoans, [stats]);
   const totalBorrowedDisplay = createDerived(() => fmt(stats.get().totalBorrowed), [stats]);
   const totalRepaidDisplay = createDerived(() => fmt(stats.get().totalRepaid), [stats]);
-  const profitAnchorValue = createObservable(t("profitAnchorValue"));
+  // Collateral simply sits in the contract and is returned on repayment — there
+  // is no voting/ProfitAnchor path on-chain, so this surfaces the real disposition.
+  const custodyValue = createObservable(t("custodyValue"));
 
   // ── Reclaim affordances ──────────────────────────────────────────────
   const hasCollateralCredit = createDerived(() => collateralCredit.get() > 0, [collateralCredit]);
@@ -949,7 +951,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
     totalLoans,
     totalBorrowedDisplay,
     totalRepaidDisplay,
-    profitAnchorValue,
+    custodyValue,
 
     // Actions
     takeLoan,

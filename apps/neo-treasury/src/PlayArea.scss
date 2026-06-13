@@ -584,6 +584,57 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Right column: balance line + "Use as recipient" affordance. Overrides the
+   generic `.treasury-wallet-row div { display: grid }` for right alignment. */
+.treasury-wallet-row__right {
+  justify-items: end;
+  gap: 6px !important;
+  text-align: right;
+
+  > span {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.treasury-use-recipient {
+  padding: 4px 10px;
+  border: 1px solid var(--ns-border, #e4e7ec);
+  border-radius: 999px;
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+
+  &:hover,
+  &:focus-visible {
+    border-color: rgba(15, 177, 116, 0.4);
+    background: #e4f8f0;
+  }
+}
+
+/* Recipient caption + price-source note — muted helper text. */
+.treasury-recipient-caption {
+  margin: -6px 0 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.treasury-hero__source {
+  margin: 6px 0 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
 .treasury-action-card .neo-card__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -654,6 +705,15 @@
   .treasury-wallet-row > span {
     text-align: left;
     white-space: normal;
+  }
+
+  .treasury-wallet-row__right {
+    justify-items: start;
+    text-align: left;
+
+    > span {
+      white-space: normal;
+    }
   }
 
   .op-btn {

@@ -196,6 +196,9 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
       {incoming.length > 0 && (
         <div className="escrow-group">
           <div className="section-label">{tr("forYou")} <span className="section-label__count">{incoming.length}</span></div>
+          {/* Role clarity: a beneficiary's payout is gated on the creator
+              approving each milestone — the locked total is not guaranteed. */}
+          <p className="escrow-group__note" role="note">{tr("beneficiaryApprovalNote")}</p>
           {incoming.map((escrow) => {
             const claimIdx = nextClaimableIndex(escrow);
             const canClaim = claimIdx >= 0;

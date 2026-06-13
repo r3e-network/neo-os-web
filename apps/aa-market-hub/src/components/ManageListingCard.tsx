@@ -63,6 +63,16 @@ export function ManageListingCard({ t, selectedListing, isUpdatingPrice, isCance
             </NeoButton>
           )}
 
+          {canManage && (
+            <p className="manage-seller-note">{t("sellerSettlementNote")}</p>
+          )}
+
+          {canBuy && (
+            <p className="manage-buy-caveat" role="note">
+              {t("buyShellOnlyCaveat")}
+            </p>
+          )}
+
           {canBuy && (
             <NeoInput
               value={newBackupOwner}
@@ -71,6 +81,12 @@ export function ManageListingCard({ t, selectedListing, isUpdatingPrice, isCance
               placeholder={t("newBackupOwnerPlaceholder")}
               onChange={(val) => setNewBackupOwner(val)}
             />
+          )}
+
+          {canBuy && (
+            <p className="manage-buy-escrow">
+              {t("buyEscrowExplainer", { price: selectedListing.priceGas })}
+            </p>
           )}
 
           {canBuy && (

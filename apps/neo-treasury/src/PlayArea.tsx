@@ -259,6 +259,13 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
               {t("treasuryPriceFeedUnavailable")}
             </p>
           )}
+          {/* Price source disclosure: USD totals come from a Morpheus on-chain
+              data feed that can lag the live market. */}
+          {hasLiveData && !priceFeedDown && (
+            <p className="treasury-hero__source" role="note">
+              {t("priceFeedSourceNote")}
+            </p>
+          )}
         </div>
         <div className="treasury-hero__metrics" aria-label={t("treasuryInfo")}>
           <div className="treasury-metric">
@@ -286,7 +293,9 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
 
           <div className="treasury-wallet-strip">
             <div>
-              <span>{t("wallet")}</span>
+              {/* Source clarity: payouts are funded by the connected wallet, not
+                  the watched foundation treasury. */}
+              <span>{t("fromYourWallet")}</span>
               <strong title={address || t("walletRequired")}>
                 {address ? compactAddress(address) : t("walletRequired")}
               </strong>
@@ -326,6 +335,9 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
               required
               onChange={setRecipient}
             />
+            <p className="treasury-form-grid__wide treasury-recipient-caption">
+              {t("recipientCaption")}
+            </p>
             <NeoInput
               className="treasury-form-grid__wide"
               label={t("memo")}
@@ -509,9 +521,23 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
                         {compactAddress(wallet.address)}
                       </code>
                     </div>
-                    <span>
-                      {wallet.neo} / {wallet.gas}
-                    </span>
+                    <div className="treasury-wallet-row__right">
+                      <span>
+                        {wallet.neo} / {wallet.gas}
+                      </span>
+                      {/* Connects the dashboard to the payout console: fill the
+                          recipient with this watched address (pays TO it from
+                          your wallet). */}
+                      {wallet.address && (
+                        <button
+                          type="button"
+                          className="treasury-use-recipient"
+                          onClick={() => setRecipient(wallet.address)}
+                        >
+                          {t("useAsRecipient")}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

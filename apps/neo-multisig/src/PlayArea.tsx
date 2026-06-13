@@ -503,6 +503,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       })}
                     </p>
                   )}
+                  {/* Pooled-balance disclosure: a proposal doesn't reserve
+                      funds, so two pending requests can race the same balance. */}
+                  <p className="multisig-request-hint multisig-request-hint--info">
+                    {t("multisigPooledBalanceNote")}
+                  </p>
                   <div className="multisig-primary-actions">
                     <NeoButton
                       variant="primary"

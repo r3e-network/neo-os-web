@@ -3,10 +3,35 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   appName: { en: "TrustAnchor", zh: "TrustAnchor" },
   title: { en: "TrustAnchor", zh: "TrustAnchor" },
-  heroTitle: { en: "Stake. Redeem. Claim.", zh: "质押 · 赎回 · 领取" },
+  heroTitle: { en: "Governance-aligned NEO staking", zh: "治理优先的 NEO 质押" },
   heroDescription: {
-    en: "Stake NEO, redeem NEO, and claim GAS rewards. Manual 21-agent routing is handled separately in TrustAnchor Admin.",
-    zh: "质押 NEO、赎回 NEO、领取 GAS 奖励。21 个 AA agent 的手动调仓由 TrustAnchor Admin 单独处理。",
+    en: "The governance-aligned anchor: your staked NEO is voted by 21 anchor agents toward council stability, and you claim the GAS those votes earn. This is a separate pool from ProfitAnchor — manual 21-agent routing is handled in TrustAnchor Admin.",
+    zh: "治理优先的锚点：你质押的 NEO 由 21 个锚点 agent 投票以维护 council 稳定，你领取这些投票产生的 GAS。这是与 ProfitAnchor 独立的资金池——21 个 AA agent 的手动调仓由 TrustAnchor Admin 处理。",
+  },
+  earnTitle: { en: "How you earn", zh: "你如何赚取收益" },
+  earnLine1: {
+    en: "Your staked NEO is voted by the anchor's 21 AA agents for Neo council candidates.",
+    zh: "你质押的 NEO 由锚点的 21 个 AA agent 投票给 Neo council 候选人。",
+  },
+  earnLine2: {
+    en: "The GAS those votes generate is funded into the reward reserve and split across stakers by share of total NEO.",
+    zh: "这些投票产生的 GAS 注入奖励储备，并按各自占总质押 NEO 的比例分配给质押者。",
+  },
+  earnLine3: {
+    en: "Rewards are variable and accrue only when the reserve is funded — there is no fixed APR or guaranteed rate.",
+    zh: "奖励是浮动的，仅在储备被注入时才累积——没有固定 APR 或保证收益率。",
+  },
+  rewardReserveHint: {
+    en: "Claimable GAS pool that current claims draw from.",
+    zh: "当前领取从中提取的可领取 GAS 池。",
+  },
+  rewardPerNeoCaption: {
+    en: "Cumulative GAS distributed per NEO since launch — not a current rate.",
+    zh: "自上线以来每 NEO 累计分配的 GAS——并非当前收益率。",
+  },
+  redeemTimingNote: {
+    en: "Redeem returns your NEO once the on-chain transaction confirms. Claim your GAS first — it stays claimable, but redeeming does not auto-claim it.",
+    zh: "赎回会在链上交易确认后退回你的 NEO。请先领取 GAS——它会保持可领取状态，但赎回不会自动领取。",
   },
   contractLiquidityLabel: { en: "Core Liquidity", zh: "核心池流动性" },
   agentAccountsLabel: { en: "Agent Accounts", zh: "Agent 账户" },

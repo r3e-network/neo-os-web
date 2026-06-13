@@ -420,6 +420,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           )}
 
+          {/* Honest disclosure: the borrow size is derived from an operator-set
+              neoPrice (not a market oracle), and the 0.5% fee is the pool's
+              revenue — both are read straight from the contract above. */}
+          <p className="selfloan-rate-fee-note" role="note">
+            {t("rateFeeNote")}
+          </p>
+
           {/* LTV Selector / Indicator */}
           <div className="selfloan-ltv-indicator">
             <span className="selfloan-ltv-label">
@@ -506,15 +513,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             )}
           </div>
 
-          {/* Vote-routing disclosure — demoted from a top-level card to a compact
-              footnote so it no longer outranks the Borrow form it qualifies.
-              It's pure non-actionable reassurance about where collateral votes. */}
+          {/* Custody disclosure — the locked collateral simply sits in the
+              SelfLoan contract and is returned in full on repayment. The
+              contract has NO voting/ProfitAnchor path, so this states the real
+              disposition of the funds rather than implying they earn/vote. */}
           <div className="selfloan-vote-route" role="note">
             <span className="selfloan-vote-route-eyebrow">
-              {t("profitAnchorTitle")}
+              {t("custodyTitle")}
             </span>
             <p className="selfloan-vote-route-copy">
-              <strong>{t("profitAnchorValue")}</strong> · {t("profitAnchorBadge")}
+              <strong>{t("custodyValue")}</strong> · {t("custodyBadge")}
             </p>
           </div>
         </div>

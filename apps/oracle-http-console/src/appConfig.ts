@@ -20,7 +20,10 @@ export function resolveNetworkLabel(): string {
 
 export const appMeta = {
   networkLabel: resolveNetworkLabel(),
-  endpointLabel: "HTTP data request",
+  // buildResult does no network I/O — it only computes a local digest. Mark the
+  // endpoint stat as a preview builder so the live network label doesn't read as
+  // "the HTTP read already executed".
+  endpointLabel: "Request builder (preview)",
 };
 
 export const manifest: MiniAppManifest = {
@@ -179,8 +182,8 @@ const appMessages = {
   panelEyebrow: { en: "HTTP data feed", zh: "HTTP 数据源" },
   panelTitle: { en: "HTTP Oracle Request", zh: "HTTP 预言机请求" },
   panelDescription: {
-    en: "Prepare a clear web-data request for Morpheus before binding it to an on-chain callback.",
-    zh: "绑定链上回调前，先准备清晰的 Morpheus Web 数据请求。",
+    en: "Prepare a clear web-data request for Morpheus before binding it to an on-chain callback. This is a preview builder — it computes the request digest locally and does not call the URL; the actual fetch runs on the Morpheus lane after you bind the request.",
+    zh: "绑定链上回调前，先准备清晰的 Morpheus Web 数据请求。这是预览构建器——它在本地计算请求摘要，不会调用该 URL；实际抓取在绑定请求后由 Morpheus 通道执行。",
   },
   runAction: { en: "Preview Request", zh: "预览请求" },
   method: { en: "Method", zh: "方法" },

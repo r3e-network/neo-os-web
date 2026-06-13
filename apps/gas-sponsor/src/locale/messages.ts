@@ -92,10 +92,26 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
     en: "Your donation helps new users cover transaction fees.",
     zh: "您的捐赠帮助新用户支付交易费用。",
   },
+  // Make the funding loop explicit: donations top up the very pool that
+  // sponsors new-user GAS requests.
+  donateLoopNote: {
+    en: "Donations top up the sponsorship pool that funds new-user GAS requests.",
+    zh: "捐赠会充值赞助资金池，该资金池用于为新用户的 GAS 请求提供赞助。",
+  },
+  poolAddressLabel: {
+    en: "Sponsorship pool",
+    zh: "赞助资金池",
+  },
   // Send tab
   tabSend: { en: "Send", zh: "发送" },
   sendTitle: { en: "Send GAS to Address", zh: "发送 GAS 到地址" },
   sendSubtitle: { en: "Help someone with low GAS balance", zh: "帮助 GAS 余额不足的人" },
+  // Send is a plain peer-to-peer transfer — it does not route through the pool
+  // and is not counted toward the sponsorship faucet.
+  sendDirectNote: {
+    en: "Direct peer transfer — this does not go through the sponsorship pool or count toward the faucet.",
+    zh: "点对点直接转账——不会经过赞助资金池，也不计入水龙头额度。",
+  },
   recipientAddress: { en: "Recipient Address", zh: "接收地址" },
   recipientPlaceholder: { en: "Enter Neo N3 address...", zh: "输入 Neo N3 地址..." },
   sendAmount: { en: "Amount to Send", zh: "发送金额" },
@@ -159,6 +175,12 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
   sponsorServiceUnconfigured: {
     en: "The sponsorship service is not configured for this deployment. You can still donate or send GAS below.",
     zh: "本部署未配置赞助服务。您仍然可以在下方捐赠或发送 GAS。",
+  },
+  // Hero subtitle shown when the faucet API is offline so the headline doesn't
+  // promise "Get free GAS" with no working path for the target low-balance user.
+  subtitleOffline: {
+    en: "Free GAS faucet is temporarily offline — check back, or ask a funded wallet to Send you GAS.",
+    zh: "免费 GAS 水龙头暂时离线——请稍后再试，或请一个有余额的钱包向您发送 GAS。",
   },
 } as const;
 

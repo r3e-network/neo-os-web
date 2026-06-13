@@ -39,6 +39,19 @@ const appMessages = {
     en: "Contribution calls are signed against the selected round and project ID.",
     zh: "捐助交易会按已选轮次和项目 ID 发起签名。",
   },
+  qfAmplifyTitle: { en: "Why your donation is amplified", zh: "为什么你的捐助会被放大" },
+  qfAmplifyCopy: {
+    en: "This round's matching pool tops up each project based on the breadth of its donors. Each unique donor increases a project's match — many small donations are amplified more than one large one.",
+    zh: "本轮的匹配资金池会根据每个项目的捐助者广度进行追加。每位独立捐助者都会提升项目的匹配额——众多小额捐助比单笔大额捐助被放大得更多。",
+  },
+  qfProjectMatchEstimate: {
+    en: "Estimated match for project #{id}: {match} (approx.)",
+    zh: "项目 #{id} 的预估匹配额：{match}（约值）",
+  },
+  qfProjectMatchHint: {
+    en: "Approximate, based on current on-chain donor breadth — the final match is set by the operator at round close.",
+    zh: "基于当前链上捐助者广度的近似值——最终匹配额由运营方在轮次结束时确定。",
+  },
   tabRounds: { en: "Rounds", zh: "轮次" },
   tabProjects: { en: "Projects", zh: "项目" },
   tabContribute: { en: "Contribute", zh: "捐助" },
@@ -110,6 +123,10 @@ const appMessages = {
     zh: "结算仅限平台管理员，且需在轮次结束后进行。",
   },
   finalizeSuggested: { en: "Finalize with suggested matches", zh: "按建议匹配结算" },
+  matchApproxCaveat: {
+    en: "Suggested matches are an approximation of quadratic matching computed from on-chain aggregates (donor count × total), not exact per-donor CLR. Review and override the amounts before finalizing real funds.",
+    zh: "建议匹配额是基于链上汇总数据（捐助人数 × 总额）对二次方匹配的近似估算，并非按每位捐助者精确计算的 CLR。结算真实资金前请复核并按需修改金额。",
+  },
   finalizeNoProjects: {
     en: "Register projects and gather contributions before finalizing.",
     zh: "结算前请先登记项目并积累捐助。",

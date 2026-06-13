@@ -130,6 +130,7 @@ export function CreateListingCard({
           }
           onChange={(val) => setPriceGas(val)}
         />
+        <p className="create-no-fee-note">{t("createNoFeeNote")}</p>
         <NeoInput
           value={listingTitle}
           label={t("titleInput")}

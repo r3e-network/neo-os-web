@@ -39,6 +39,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const totalGlobalCheckins = num("totalGlobalCheckins");
   const totalGlobalUsers = num("totalGlobalUsers");
   const totalGlobalRewarded = num("totalGlobalRewarded");
+  const rewardPoolBalance = num("rewardPoolBalance");
+  const isPaused = bool("isPaused");
+  const rewardsUnderfunded = bool("rewardsUnderfunded");
+  const claimableButUnfunded = bool("claimableButUnfunded");
 
   const canCheckIn = bool("canCheckIn");
   const hasLoadedStatus = bool("hasLoadedStatus");
@@ -81,14 +85,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Before the first chain read, eligibility is unknown — keep the CTA disabled
   // and labelled "Loading…" rather than the misleading "Wait for next" so a
   // pre-load click can't fire a check-in the contract would fault.
-  const checkInDisabled = !hasLoadedStatus || !canCheckIn || isLoading;
-  const checkInLabel = !hasLoadedStatus
-    ? t("loading")
-    : canCheckIn
-      ? t("checkInNow")
-      : t("waitForNext");
+  const checkInDisabled = !hasLoadedStatus || !canCheckIn || isLoading || isPaused;
+  const checkInLabel = isPaused
+    ? t("contractPaused")
+    : !hasLoadedStatus
+      ? t("loading")
+      : canCheckIn
+        ? t("checkInNow")
+        : t("waitForNext");
   const hasClaimable = unclaimedRewards > 0;
-  const claimDisabled = !hasClaimable || isClaiming;
+  // Block claiming when the contract is paused or the reward pool cannot cover
+  // the accrued amount, so the CTA never invites a transaction that will fault.
+  const claimBlocked = isPaused || claimableButUnfunded;
+  const claimDisabled = !hasClaimable || isClaiming || claimBlocked;
+  const claimLabel = isPaused
+    ? t("contractPaused")
+    : claimableButUnfunded
+      ? t("claimUnfunded")
+      : `${t("claimRewards")} (${formatGas(unclaimedRewards)} ${t("tokenGas")})`;
 
   // "Today plan" facts — derived from the same state the actions use, so the
   // panel narrates exactly what the buttons will do this UTC cycle.
@@ -177,6 +191,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
+      {/* Honesty banners — surface a paused contract or an unfunded reward pool
+          so the user knows whether milestone GAS rewards can actually be paid
+          before they spend the daily check-in fee. */}
+      {isPaused ? (
+        <div className="checkin-notice checkin-notice--paused" role="status">
+          {t("contractPausedStatus")}
+        </div>
+      ) : rewardsUnderfunded ? (
+        <div className="checkin-notice checkin-notice--unfunded" role="status">
+          {t("rewardsUnfundedBanner")}
+        </div>
+      ) : null}
+
       {/* Primary action — surfaced right after the hero, with inline status */}
       <NeoCard variant="erobo" className="checkin-action-card">
         {showStatusPill && (
@@ -205,7 +232,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             onClick={() => dispatch("claimRewards")}
             aria-label={t("claimRewards")}
           >
-            {t("claimRewards")} ({formatGas(unclaimedRewards)} {t("tokenGas")})
+            {claimLabel}
           </NeoButton>
           <NeoButton
             variant="secondary"
@@ -337,6 +364,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="checkin-stat-item">
             <span className="checkin-stat-value">{formatGas(totalGlobalRewarded)}</span>
             <span className="checkin-stat-label">{t("totalRewarded")}</span>
+          </div>
+          <div className={`checkin-stat-item${rewardsUnderfunded ? " checkin-stat-item--warn" : ""}`}>
+            <span className="checkin-stat-value">{formatGas(rewardPoolBalance)}</span>
+            <span className="checkin-stat-label">{t("rewardPool")}</span>
           </div>
         </div>
       </NeoCard>

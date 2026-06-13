@@ -27,8 +27,10 @@ interface LeaderboardEntry {
   isUser?: boolean;
 }
 
-const MIN_BURN = 1;
-const MAX_BURN = 1000;
+// Fallback burn bounds (the contract's compile-time MIN_BURN/MAX_BURN). The live
+// minBurn()/maxBurn() reads (exposed via state) take precedence when available.
+const MIN_BURN_FALLBACK = 1;
+const MAX_BURN_FALLBACK = 1000;
 
 type SeasonPhase = "dormant" | "active" | "ended";
 
@@ -56,6 +58,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const prepaidCredit = num("prepaidCredit");
   const prepaidCreditDisplay = str("prepaidCreditDisplay", "0");
   const seasonDurationLabel = str("seasonDurationLabel", "--");
+  // Burn bounds bound to the on-chain minBurn()/maxBurn() reads, falling back to
+  // the contract's compile-time literals until the reads land.
+  const minBurn = num("minBurnGas") || MIN_BURN_FALLBACK;
+  const maxBurn = num("maxBurnGas") || MAX_BURN_FALLBACK;
   const hasRank = formattedRank !== "--" && formattedRank !== "";
   const hasLeaderboard = leaderboardPreview.length > 0;
 
@@ -73,8 +79,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const currentBurnAmountNumber = Number(currentBurnAmount);
   const amountIsValid =
     Number.isFinite(currentBurnAmountNumber) &&
-    currentBurnAmountNumber >= MIN_BURN &&
-    currentBurnAmountNumber <= MAX_BURN;
+    currentBurnAmountNumber >= minBurn &&
+    currentBurnAmountNumber <= maxBurn;
   const presets = ["1", "5", "10", "25"];
   const projectedPosition = useMemo(() => {
     if (!amountIsValid) return "--";
@@ -89,8 +95,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     return `#${higherEntries.length + 1}`;
   }, [amountIsValid, currentBurnAmountNumber, leaderboardPreview, userBurned]);
   const rangeCopy = t("burnRange", {
-    min: MIN_BURN,
-    max: MAX_BURN,
+    min: minBurn,
+    max: maxBurn,
   });
 
   // Burns are blocked while a season has ended and is awaiting settle.
@@ -265,12 +271,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             placeholder={t("enterAmount")}
             label={t("amount")}
             suffix="GAS"
-            min={MIN_BURN}
-            max={MAX_BURN}
+            min={minBurn}
+            max={maxBurn}
             hint={rangeCopy}
             error={
               currentBurnAmount && !amountIsValid
-                ? t("burnRangeError", { min: MIN_BURN, max: MAX_BURN })
+                ? t("burnRangeError", { min: minBurn, max: maxBurn })
                 : ""
             }
             onChange={handleBurnAmountChange}

@@ -1,6 +1,6 @@
 # Gov Merc
 
-Governance mercenary - vote rental marketplace like Curve War
+Governance influence auction — stake NEO to earn the GAS auction yield; bid GAS to win the epoch's influence title.
 
 ## Overview
 
@@ -75,32 +75,30 @@ npm run build
 
 ## Usage
 
-### Creating Vote Listings
+### Stakers (earn yield)
 
-1. **Connect Wallet**: Link your Neo N3 wallet with governance tokens
-2. **Create Offer**: Specify how many votes you're willing to sell/rent
-3. **Set Price**: Determine the GAS price per vote
-4. **Set Duration**: Define the rental period or sale terms
-5. **Publish**: List your votes on the marketplace
+1. **Connect Wallet**: Link your Neo N3 wallet holding NEO.
+2. **Stake NEO**: Transfer whole NEO into the pool (memo `govmerc:stake`). Your stake weights your pro-rata share of the auction revenue.
+3. **Earn**: When an epoch settles, the winning GAS bid is distributed to stakers in proportion to stake.
+4. **Claim / Unstake**: Claim accrued GAS rewards or unstake your NEO at any time.
 
-### Acquiring Votes
+### Mercenaries (bid for the title)
 
-1. Browse available vote listings from council members
-2. Select a listing that meets your needs
-3. Prepay the specified GAS amount directly to the MiniApp contract
-4. Use acquired votes to influence governance proposals
-5. Votes automatically return to owner after rental period
+1. Place a GAS bid for the current epoch (first bid must be at least 1 GAS).
+2. The highest bidder when the bidding window closes wins the epoch's influence title.
+3. Anyone can settle the epoch after the window closes; the winning bid is paid to stakers.
+4. Losing bidders reclaim their bids from settled epochs.
 
 ## How It Works
 
-Gov Merc creates a marketplace for governance voting power:
+Gov Merc is a two-sided auction over governance influence:
 
-1. **Vote Tokenization**: Governance voting rights are represented as transferable tokens
-2. **Marketplace Matching**: Sellers list votes; buyers browse and purchase voting power
-3. **Smart Contract Escrow**: Votes are held in escrow during the rental period
-4. **Automatic Return**: Rented votes automatically return to the owner after expiry
-5. **Curve War Mechanics**: Projects can acquire voting power to influence protocol decisions
-6. **Transparency**: All listings and transactions are visible on-chain
+1. **Stake → reward weight**: Staked NEO is held as a reward-share weight; the contract does NOT delegate or cast a vote with it.
+2. **Bid → influence title**: Mercenaries bid GAS each epoch to win the epoch's influence title.
+3. **Settlement**: The top bidder is recorded on-chain as the epoch winner and their bid is distributed to stakers pro-rata.
+4. **Off-contract execution**: The on-chain record is the influence title; any vote execution happens off-contract.
+5. **Permissionless settle**: Anyone can settle a closed epoch.
+6. **Transparency**: Stakes, bids, and settlements are visible on-chain.
 
 ## Assets
 

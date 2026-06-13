@@ -4,8 +4,8 @@
   "name": "SelfLoan",
   "name_zh": "自我借贷",
   "version": "2.0.0",
-  "description": "Lock NEO to borrow GAS upfront against future staking rewards. Collateral can follow ProfitAnchor's selected manual route while staying in SelfLoan custody.",
-  "description_zh": "自我借贷 — 锁定 NEO 预借 GAS，抵押品可跟随 ProfitAnchor 选定的人工路由，同时仍由 SelfLoan 托管。",
+  "description": "Lock NEO to borrow GAS instantly across 20/30/40% LTV tiers. No liquidation, no interest, repay anytime — collateral is held in SelfLoan custody and returned in full on repayment (no third-party voting).",
+  "description_zh": "自我借贷 — 锁定 NEO 即时借出 GAS，支持 20/30/40% 三档 LTV。无清算、无利息、随时可还——抵押品由 SelfLoan 托管，还款后全额退回（不参与任何第三方投票）。",
   "category": "finance",
   "category_name": "Finance",
   "category_name_zh": "金融",
@@ -15,7 +15,7 @@
     "collateral",
     "self-loan",
     "neo",
-    "profitanchor"
+    "no-liquidation"
   ],
   "developer": {
     "name": "Yiwu",
@@ -72,8 +72,7 @@
   },
   "permissions": [
     "invoke:primary",
-    "read:blockchain",
-    "governance:vote"
+    "read:blockchain"
   ],
   "features": {
     "stateless": true,
@@ -104,11 +103,6 @@
       "conditions": [
         "health_factor_threshold"
       ]
-    },
-    "profitAnchor": {
-      "enabled": true,
-      "dependency": "miniapp-profitanchor",
-      "description": "Reads ProfitAnchor selected-candidate routing and votes collateralized NEO from SelfLoan custody."
     }
   }
 }

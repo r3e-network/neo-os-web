@@ -4,17 +4,17 @@
   "name": "Neo Swap",
   "name_zh": "Neo 兑换",
   "version": "1.0.0",
-  "description": "Preview NEO and GAS conversions with live pricefeed quotes, slippage context, and wallet-ready settlement notes",
-  "description_zh": "Neo 兑换 — 基于实时价格源预览 NEO/GAS 兑换、滑点与钱包结算说明",
+  "description": "Live NEO/GAS rate & trade preview — see the Morpheus data-feed rate, slippage, and minimum received. No on-chain swap router is deployed yet, so settle in your wallet or a DEX when a route is available.",
+  "description_zh": "实时 NEO/GAS 汇率与交易预览 — 查看 Morpheus 数据源汇率、滑点与最少收到数量。当前尚未部署链上兑换路由，待路由可用后请在您的钱包或 DEX 中结算。",
   "category": "finance",
   "category_name": "Finance",
   "category_name_zh": "金融",
   "tags": [
-    "swap",
-    "dex",
+    "rate",
+    "quote",
     "neo",
     "gas",
-    "exchange"
+    "preview"
   ],
   "developer": {
     "name": "Yiwu",

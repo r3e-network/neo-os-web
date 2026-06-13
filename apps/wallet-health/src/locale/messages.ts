@@ -9,6 +9,10 @@ const appMessages = {
   refreshFailed: { en: "Failed to refresh balances", zh: "刷新余额失败" },
   walletHeroTitle: { en: "Wallet Health", zh: "钱包健康" },
   connectToScore: { en: "Connect to score", zh: "连接后计算评分" },
+  scoreSelfAssessCaption: {
+    en: "Self-assessment score — based on your checklist, not an on-chain audit.",
+    zh: "自评分数——基于你的清单填写，并非链上审计。",
+  },
   walletHeroSubtitle: {
     en: "Review balances, network readiness, and signing hygiene before moving assets or approving app requests.",
     zh: "转账或授权前，集中检查余额、网络状态与签名安全习惯。",
@@ -66,8 +70,8 @@ const appMessages = {
   checklistBackupDesc: { en: "Store your seed phrase offline and in multiple safe locations.", zh: "将助记词离线保存并妥善备份。" },
   checklistGas: { en: "Keep GAS for fees", zh: "预留 GAS 手续费" },
   checklistGasDesc: { en: "Maintain at least 0.1 GAS for future transactions.", zh: "至少保留 0.1 GAS 以便支付交易费。" },
-  checklistPermissions: { en: "Review app permissions", zh: "检查应用授权" },
-  checklistPermissionsDesc: { en: "Revoke unused dApps and token approvals regularly.", zh: "定期撤销不再使用的 dApp 授权。" },
+  checklistPermissions: { en: "Review app permissions in your wallet", zh: "在钱包中检查应用授权" },
+  checklistPermissionsDesc: { en: "This tool can't read your approvals. Open your wallet app's connected-apps / approvals screen and revoke any you no longer use.", zh: "本工具无法读取你的授权。请打开钱包应用的「已连接应用 / 授权」页面，撤销不再使用的授权。" },
   checklistDevice: { en: "Trusted device only", zh: "可信设备使用" },
   checklistDeviceDesc: { en: "Avoid signing transactions on shared devices.", zh: "避免在共享设备上签名交易。" },
   checklistHardware: { en: "Hardware wallet for large funds", zh: "大额使用硬件钱包" },
@@ -78,7 +82,7 @@ const appMessages = {
 
   recommendationGasLow: { en: "Top up GAS to avoid failed transactions.", zh: "补充 GAS 以避免交易失败。" },
   recommendationBackup: { en: "Backup your seed phrase immediately.", zh: "请立即备份助记词。" },
-  recommendationPermissions: { en: "Audit dApp permissions and revoke unused approvals.", zh: "检查授权并撤销闲置授权。" },
+  recommendationPermissions: { en: "Review approvals in your wallet app — this tool can't read or revoke them for you.", zh: "在你的钱包应用中检查授权——本工具无法替你读取或撤销。" },
   recommendationDevice: { en: "Only sign on a trusted, private device.", zh: "仅在可信的私人设备上签名。" },
   recommendationHardware: { en: "Move large balances to a hardware wallet.", zh: "将大额资产转移到硬件钱包保管。" },
   recommendation2fa: { en: "Enable 2FA on exchange accounts tied to this wallet.", zh: "为关联此钱包的交易所账户启用双重验证。" },

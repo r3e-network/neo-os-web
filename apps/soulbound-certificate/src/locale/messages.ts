@@ -98,6 +98,13 @@ const appMessages = {
   },
   certificateRevoked: { en: "Revoked", zh: "已撤销" },
   certificateValid: { en: "Valid", zh: "有效" },
+  // Surface the defining trust guarantee at the point of verification: the
+  // certificate is a soulbound NEP-11 that cannot be transferred or sold.
+  soulboundBadge: { en: "Soulbound", zh: "灵魂绑定" },
+  soulboundNote: {
+    en: "Soulbound — this certificate is bound to the owner wallet and cannot be transferred or sold.",
+    zh: "灵魂绑定——该证书与持有人钱包绑定，无法转让或出售。",
+  },
   tokenId: { en: "Token ID", zh: "Token ID" },
   verifyTokenId: { en: "Token ID", zh: "Token ID" },
   verifyTokenIdPlaceholder: { en: "Enter token ID", zh: "输入 Token ID" },

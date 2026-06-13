@@ -49,6 +49,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isRequesting = bool("isRequesting");
   const freshness = (val<Freshness>("freshness", "idle") ?? "idle") as Freshness;
   const freshnessLabel = str("freshnessLabel", t("priceStatusReady"));
+  // Absolute on-chain write time of the displayed price (local-formatted). Empty
+  // when the feed omitted a timestamp; surfaced as a tooltip + caption so a user
+  // can independently verify freshness against the chain, not just "x ago".
+  const freshnessTimestamp = str("freshnessTimestamp", "");
+  const onChainTimeLabel = freshnessTimestamp
+    ? t("priceOnChainTime", { time: freshnessTimestamp })
+    : "";
   const pairs = val<string[]>("availablePairs", ["NEO", "GAS", "BTC"]) ?? [
     "NEO",
     "GAS",
@@ -143,11 +150,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           className={`price-status${priceLoaded ? " price-status--live" : ""}`}
           data-freshness={freshness}
           aria-label={t("priceSignalTitle")}
+          title={onChainTimeLabel || undefined}
         >
           <i className="price-status__dot" aria-hidden="true" />
           {freshnessLabel}
         </span>
       </section>
+
+      {onChainTimeLabel && (
+        <div className="price-onchain-time" role="note">
+          {onChainTimeLabel}
+        </div>
+      )}
 
       {isStale && (
         <div className="price-stale-note" role="status">

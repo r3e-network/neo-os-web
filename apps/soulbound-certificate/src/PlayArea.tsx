@@ -542,6 +542,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     {verifiedCertificate.templateName ||
                       tokenLabel(verifiedCertificate.tokenId)}
                   </strong>
+                  <span className="cert-badge soulbound">{t("soulboundBadge")}</span>
                   <span
                     className={`cert-badge ${
                       verifiedCertificate.revoked ? "revoked" : "valid"
@@ -552,6 +553,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       : t("certificateValid")}
                   </span>
                 </div>
+                <p className="certificate-detail__soulbound-note">{t("soulboundNote")}</p>
                 <dl>
                   <div>
                     <dt>{t("tokenId")}</dt>

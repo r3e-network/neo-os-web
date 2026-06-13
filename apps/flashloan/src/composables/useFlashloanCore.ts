@@ -34,6 +34,9 @@ const DEFAULT_CONTRACT_STATS = {
   feeBasisPoints: FLASH_FEE_BPS,
   cooldownMs: 300_000,
   maxDailyLoans: 10,
+  // Percent of each loan fee paid to liquidity providers (the rest is protocol
+  // revenue). Read from the contract; default mirrors the deployed constant.
+  providerFeeShare: 80,
 };
 
 type LoanStatus = "pending" | "success" | "failed";
@@ -267,6 +270,10 @@ export function useFlashloanCore({
       cooldownMs:
         toNumber(rawStats.loanCooldownSeconds) * 1000 || DEFAULT_CONTRACT_STATS.cooldownMs,
       maxDailyLoans: toNumber(rawStats.maxDailyLoans) || DEFAULT_CONTRACT_STATS.maxDailyLoans,
+      // providerFeeShare is a percent (0-100); 0 would be a non-sensical read,
+      // so fall back to the deployed default when the field is absent/zero.
+      providerFeeShare:
+        toNumber(rawStats.providerFeeShare) || DEFAULT_CONTRACT_STATS.providerFeeShare,
     });
 
     return totalLoans;

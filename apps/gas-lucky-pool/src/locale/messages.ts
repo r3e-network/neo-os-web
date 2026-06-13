@@ -35,6 +35,26 @@ const appMessagesBase = {
   createPool: { en: "Create pool", zh: "创建奖池" },
   creatingPool: { en: "Creating pool", zh: "创建奖池中" },
   ownerWorkspaceTitle: { en: "Reward pool workspace", zh: "奖励池工作台" },
+  workspaceRoleTitle: {
+    en: "Campaign owner?",
+    zh: "活动发起者？",
+  },
+  workspaceRoleCopy: {
+    en: "Fund a random-GAS reward pool here, then share OneGate QR claim links. Recipients who open a claim QR see only the claim screen.",
+    zh: "在此为随机 GAS 奖励池注资，然后分享 OneGate 扫码领取链接。通过领取二维码打开的领取人只会看到领取页面。",
+  },
+  distributionPathsTitle: {
+    en: "Two ways to distribute",
+    zh: "两种发放方式",
+  },
+  pathOnChain: {
+    en: "On-chain pool — recipients call claimRangeGasPool against the pool you fund here.",
+    zh: "链上奖池——领取人对你在此注资的奖池调用 claimRangeGasPool。",
+  },
+  pathServerKey: {
+    en: "OneGate claim keys — paid by the campaign's reward server (off-chain payout wallet), not from this on-chain pool.",
+    zh: "OneGate 领取 key——由活动的奖励服务器（链下发放钱包）支付，而非来自此链上奖池。",
+  },
   poolControlsTitle: { en: "Pool controls", zh: "奖池管理" },
   poolIdLabel: { en: "Pool ID", zh: "奖池 ID" },
   poolIdPlaceholder: { en: "e.g. 42", zh: "例如 42" },
@@ -86,6 +106,11 @@ const appMessagesBase = {
   networkMainnet: { en: "Neo N3 MainNet", zh: "Neo N3 主网" },
   networkTestnet: { en: "Neo N3 TestNet", zh: "Neo N3 测试网" },
   transactionIdLabel: { en: "Transaction ID", zh: "交易 ID" },
+  viewOnExplorer: { en: "View on explorer", zh: "在区块浏览器查看" },
+  serverPaysNote: {
+    en: "The reward amount is decided and paid by the campaign's reward server. Verify the payout on-chain after claiming.",
+    zh: "奖励金额由活动的奖励服务器决定并发放。领取后可在链上核验该笔发放。",
+  },
   claimCongratsTitle: {
     en: "Congratulations, reward received",
     zh: "恭喜，奖励已到账",
@@ -253,6 +278,14 @@ const jaMessages = {
   createPool: "プールを作成",
   creatingPool: "プールを作成中",
   ownerWorkspaceTitle: "報酬プールのワークスペース",
+  workspaceRoleTitle: "キャンペーン管理者の方へ",
+  workspaceRoleCopy:
+    "ここでランダムGAS報酬プールに資金を入れ、OneGate QRの受取リンクを共有します。受取QRから開いた受取人には受取画面のみが表示されます。",
+  distributionPathsTitle: "2つの配布方法",
+  pathOnChain:
+    "オンチェーンプール — 受取人はここで資金提供したプールに対して claimRangeGasPool を呼び出します。",
+  pathServerKey:
+    "OneGate受取key — このオンチェーンプールではなく、キャンペーンの報酬サーバー（オフチェーンの送金ウォレット）が支払います。",
   poolControlsTitle: "プール管理",
   poolIdLabel: "プールID",
   poolIdPlaceholder: "例: 42",
@@ -296,6 +329,9 @@ const jaMessages = {
   networkMainnet: "Neo N3 メインネット",
   networkTestnet: "Neo N3 テストネット",
   transactionIdLabel: "トランザクションID",
+  viewOnExplorer: "エクスプローラーで確認",
+  serverPaysNote:
+    "報酬額はキャンペーンの報酬サーバーが決定し送金します。受け取り後、オンチェーンで送金を確認できます。",
   claimCongratsTitle: "おめでとうございます。報酬を受け取りました",
   claimCongratsBody: "Claim key {claimKey} に {amount} GAS が付与されました。",
   luckPercentLabel: "あなたの運は上位{percent}%相当です。",

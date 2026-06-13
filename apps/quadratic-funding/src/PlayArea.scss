@@ -126,6 +126,54 @@
   line-height: 1.5;
 }
 
+// Donor amplification value-prop on the contribute tab.
+.qf-amplify-note {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--ns-radius-sm, 12px);
+  background: rgba(99, 102, 241, 0.06);
+
+  > strong {
+    display: block;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  > p {
+    margin: 4px 0 0;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}
+
+.qf-amplify-estimate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.qf-amplify-estimate-hint {
+  color: var(--ns-text-3, #8a90a2);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+// Honest caveat under the suggested-match table in the admin panel.
+.qf-match-approx-caveat {
+  padding: 8px 10px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--ns-text-2, #5b6478);
+}
+
 .qf-hero-facts {
   display: flex;
   flex-wrap: wrap;

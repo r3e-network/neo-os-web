@@ -171,6 +171,7 @@ export default function HistoryTab({
                   {isConfirmingForget && (
                     <div className="history-forget-confirm" role="status">
                       <p className="history-forget-fee">{t("forgetConfirmFee", { fee: forgetFeeDisplay })}</p>
+                      <p className="history-forget-ritual">{t("forgetRitualNote")}</p>
                       <div className="history-forget-confirm-actions">
                         <NeoButton size="sm" variant="ghost" disabled={isForgetting} onClick={onCancelForget}>
                           {t("cancel")}

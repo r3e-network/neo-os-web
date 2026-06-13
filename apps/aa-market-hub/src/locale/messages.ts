@@ -62,6 +62,14 @@ const appMessages = {
     zh: "创建 Listing 前请先连接钱包。",
   },
   createListingSuccess: { en: "Listing submitted", zh: "Listing 已提交" },
+  createNoFeeNote: {
+    en: "The buyer pays the full listed price to you — the market charges no platform fee (only network GAS applies).",
+    zh: "买家向你支付完整的挂单价格——市场不收取任何平台费用（仅需网络 GAS）。",
+  },
+  sellerSettlementNote: {
+    en: "A sale completes only when a buyer settles. Until then your listing stays active — buyer payments are escrowed and refundable by the buyer, so they are not shown or refundable here.",
+    zh: "只有买家完成结算后交易才算成交。在此之前你的挂单保持活跃——买家的付款由其托管并可由买家退款，因此不会在此显示或退款。",
+  },
   manageListingTitle: { en: "Manage Selected Listing", zh: "管理当前 Listing" },
   aaContractInput: { en: "AA Contract Hash", zh: "AA 合约哈希" },
   aaContractHint: {
@@ -103,6 +111,14 @@ const appMessages = {
   newBackupOwnerPlaceholder: {
     en: "Neo address or 0x...",
     zh: "Neo 地址或 0x...",
+  },
+  buyShellOnlyCaveat: {
+    en: "You are buying only the address shell. Its current verifier, hook, and backup-owner settings are cleared on sale — you must reconfigure control after purchase.",
+    zh: "你购买的仅是地址外壳。其现有的验证器、Hook 和备份所有者设置会在成交时被清空——购买后你必须重新配置控制权。",
+  },
+  buyEscrowExplainer: {
+    en: "Pays {price} GAS into the market escrow; released to the seller only when the address transfers to you. If settlement fails, use Refund Pending Payment to recover it.",
+    zh: "将 {price} GAS 付入市场托管；只有地址成功转给你时才会释放给卖家。若结算失败，可用“退回待处理付款”取回。",
   },
   buyListingCta: { en: "Buy Listing", zh: "购买 Listing" },
   buyListingSuccess: { en: "Purchase submitted", zh: "购买已提交" },

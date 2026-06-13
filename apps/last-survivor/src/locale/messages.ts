@@ -30,7 +30,15 @@ const appMessages = {
   yourStake: { en: "Your Stake", zh: "您的质押" },
   players: { en: "Players", zh: "参与者" },
   totalKeys: { en: "Total Keys", zh: "钥匙总数" },
-  share: { en: "Share", zh: "占比" },
+  share: { en: "Key share", zh: "钥匙占比" },
+  shareHint: {
+    en: "Participation only — your key share does not entitle you to the pot. Only the last buyer wins everything.",
+    zh: "仅代表参与度——钥匙占比不代表你对奖池的分配权。只有最后购买者赢得全部奖池。",
+  },
+  nonRefundableNote: {
+    en: "Key purchases are non-refundable and added to the pot. If another player buys after you, you forfeit your spend — only the final last buyer wins.",
+    zh: "购买钥匙不可退款，并计入奖池。若在你之后有人购买，你将损失这笔花费——只有最终的最后购买者获胜。",
+  },
   eventHistory: { en: "Event History", zh: "事件历史" },
   noHistory: { en: "No events yet", zh: "暂无事件记录" },
   failedToLoad: { en: "Failed to load data", zh: "加载数据失败" },

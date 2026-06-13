@@ -285,6 +285,16 @@
   }
 }
 
+// ---------- Rate / fee honesty note ----------
+// A quiet caption clarifying the operator-set price + fee destination so the
+// borrow math is not mistaken for a live market oracle.
+.selfloan-rate-fee-note {
+  margin: 4px 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--ns-text-3, #8a90a2);
+}
+
 // ---------- Vote-routing disclosure (demoted footnote inside Borrow card) ----------
 // Compact, low-weight note so it reads as a qualifier to the Borrow form above
 // it rather than a peer card competing for the eye.

@@ -42,12 +42,20 @@ const appMessages = {
   howItWorks: { en: "How it works", zh: "使用说明" },
   defaultDevName: { en: "Dev #{id}", zh: "开发者 #{id}" },
   defaultDevRole: { en: "Neo Developer", zh: "Neo 开发者" },
+  tipRecipientHint: {
+    en: "Recipient developer (from the on-chain Tipped event's developer ID)",
+    zh: "接收方开发者（来自链上 Tipped 事件的开发者 ID）",
+  },
 
   // Developer self-service (register + withdraw)
   developerZone: { en: "Developer Zone", zh: "开发者专区" },
   registerHint: {
     en: "Register your wallet to receive tips from supporters.",
     zh: "注册您的钱包，即可接收支持者的打赏。",
+  },
+  claimableHint: {
+    en: "Tips accumulate as a claimable on-chain balance shown here — tap Withdraw Tips to move them to your wallet.",
+    zh: "打赏会以可领取的链上余额累积在此处 — 点击「领取打赏」即可转入您的钱包。",
   },
   registerConnectHint: {
     en: "Connect your wallet to register as a developer.",
@@ -85,8 +93,8 @@ const appMessages = {
     zh: "用 GAS 打赏直接支持开发者",
   },
   docDescription: {
-    en: "Dev Tipping sends GAS directly to developer wallets with optional notes and on-chain receipts. Support open source builders, stay anonymous if you want, and track every contribution in your history.",
-    zh: "Dev Tipping 直接将 GAS 打赏发送到开发者钱包，并支持留言与链上收据。可匿名支持开源建设者，并在历史中追踪每一次贡献。",
+    en: "Dev Tipping records GAS tips on-chain with optional notes. 100% of each tip (no platform fee) accrues to the developer's claimable on-chain balance, which they withdraw to their wallet. Support open source builders, stay anonymous if you want, and track every contribution in your history.",
+    zh: "Dev Tipping 将 GAS 打赏记录在链上，并支持留言。每笔打赏 100%（无平台费）累积到开发者的链上可领取余额，由开发者自行领取到钱包。可匿名支持开源建设者，并在历史中追踪每一次贡献。",
   },
   step1: {
     en: "Connect your Neo wallet",
@@ -101,13 +109,13 @@ const appMessages = {
     zh: "输入打赏金额和可选留言",
   },
   step4: {
-    en: "Confirm transaction - tips go directly to developer",
-    zh: "确认交易 - 打赏直接发送给开发者",
+    en: "Confirm transaction - your tip accrues to the developer's claimable balance",
+    zh: "确认交易 - 打赏累积到开发者的可领取余额",
   },
-  feature1Name: { en: "Direct Payments", zh: "直接支付" },
+  feature1Name: { en: "Full-Value Tips", zh: "全额打赏" },
   feature1Desc: {
-    en: "100% of your tip goes directly to the developer's wallet.",
-    zh: "您的打赏 100% 直接进入开发者钱包。",
+    en: "100% of your tip (no platform fee) accrues to the developer's on-chain balance, which they withdraw to their wallet.",
+    zh: "您的打赏 100%（无平台费）累积到开发者的链上余额，由开发者自行领取到钱包。",
   },
   feature2Name: { en: "Contribution Tracking", zh: "贡献追踪" },
   feature2Desc: {

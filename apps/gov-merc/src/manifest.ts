@@ -8,7 +8,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Gov Merc",
-  description: "Neo governance mercenary pool for vote renting",
+  description: "Stake NEO to earn the GAS auction yield; bid GAS to win the epoch's influence title",
   icon: "shield",
   category: "governance",
   shell: "launcher",

@@ -501,6 +501,30 @@
   font-weight: 600;
 }
 
+.sign-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.sign-result-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: var(--ns-radius-full, 9999px);
+  color: var(--sign-accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
 .sign-result-box button {
   min-height: 36px;
   padding: 0 16px;

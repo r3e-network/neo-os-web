@@ -98,6 +98,9 @@ export default function RoundAdminPanel({
                 ))}
               </tbody>
             </table>
+            <p className="qf-finalize-note qf-match-approx-caveat">
+              {t("matchApproxCaveat")}
+            </p>
             <NeoButton
               size="sm"
               variant="primary"
