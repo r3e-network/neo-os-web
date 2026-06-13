@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const schema = z.object({
   app_id: z.string().trim().regex(/^[a-z0-9][a-z0-9._-]*$/, "Invalid app_id format"),
@@ -35,23 +34,14 @@ export async function POST(req: Request) {
     return jsonError("Invalid JSON body", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/media/upload-url", hostAppBaseURL);
-    const response = await fetch(upstream.toString(), {
-      method: "POST",
-      headers: createProxyHeaders(req),
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to generate media upload URL");
-      return jsonError(message, response.status);
-    }
-
-    const data = await response.json().catch((e: unknown) => { console.warn("[media/upload-url] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return ({}); });
-    return NextResponse.json(data, { status: response.status });
-  } catch {
-    return jsonError("Failed to reach host-app media upload endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/media/upload-url",
+    method: "POST",
+    body: payload,
+    timeoutMs: HOST_PROXY_TIMEOUTS.EXTENDED,
+    notOkError: "Failed to generate media upload URL",
+    fallbackError: "Failed to reach host-app media upload endpoint",
+    logLabel: "[media/upload-url]",
+  });
 }

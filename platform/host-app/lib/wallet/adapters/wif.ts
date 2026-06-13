@@ -389,6 +389,92 @@ function isAlreadyAcceptedRelayError(message: string): boolean {
   return /already\s*exists|alreadyinpool|duplicate/i.test(message);
 }
 
+// Shared sign+relay pipeline for both the single-call (`invoke`) and batched
+// (`invokeMultiple`) lanes. The caller is responsible for fetching block
+// height + version, building the contract script, running its lane-specific
+// preflight (`invokefunction` vs `invokescript`), and deriving `systemFee` /
+// `validUntilBlock`. This helper owns the parts that were verbatim copies
+// across the two lanes: the developer-key fee guard, draft + network-fee
+// estimation, the final signed transaction, relay, and the stale-rebuild
+// retry closure. Collapsing them removes the drift risk between the lanes.
+async function signAndRelay(
+  sdk: NeoBrowserSdk,
+  network: NeoNetwork,
+  options: {
+    script: Uint8Array;
+    txSigners: TxSigner[];
+    systemFee: bigint;
+    validUntilBlock: number;
+    networkMagic: number;
+    wif: string;
+  },
+): Promise<string> {
+  const { script, txSigners, systemFee, validUntilBlock, networkMagic, wif } = options;
+
+  const maxSystemFee = getMaxSystemFee();
+  if (systemFee > maxSystemFee) {
+    throw new Error(
+      `estimated system fee ${formatFixed8(systemFee)} GAS exceeds developer key limit ${formatFixed8(maxSystemFee)} GAS`,
+    );
+  }
+
+  const draft = createTransaction(sdk, {
+    script,
+    signers: txSigners,
+    systemFee,
+    networkFee: 0n,
+    validUntilBlock,
+    networkMagic,
+    wif,
+  });
+
+  let networkFee: bigint;
+  try {
+    const fee = await neoRpc<NeoRpcNetworkFeeResult>(network, "calculatenetworkfee", [
+      serializeTransactionBase64(sdk, draft),
+    ]);
+    networkFee = parseFixed8(fee.networkfee || "0");
+  } catch (error) {
+    throw new Error(
+      `network fee estimation failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
+  const finalTransaction = createTransaction(sdk, {
+    script,
+    signers: txSigners,
+    systemFee,
+    networkFee,
+    validUntilBlock,
+    networkMagic,
+    wif,
+  });
+  const txBase64 = serializeTransactionBase64(sdk, finalTransaction);
+  return relaySignedTransaction(
+    network,
+    txBase64,
+    finalTransaction.hash(),
+    async () => {
+      const freshBlockCount = await neoRpc<number>(network, "getblockcount");
+      const rebuilt = createTransaction(sdk, {
+        script,
+        signers: txSigners,
+        systemFee,
+        networkFee,
+        validUntilBlock: Number(freshBlockCount) + VALID_UNTIL_BLOCK_DELTA,
+        networkMagic,
+        wif,
+      });
+      return {
+        txBase64: serializeTransactionBase64(sdk, rebuilt),
+        fallbackTxid: rebuilt.hash(),
+      };
+    },
+  );
+}
+
 async function relaySignedTransaction(
   network: NeoNetwork,
   txBase64: string,
@@ -560,70 +646,15 @@ export class WifAdapter implements WalletAdapter {
       }
 
       const systemFee = parseFixed8(preflight.gasconsumed || "0");
-      const maxSystemFee = getMaxSystemFee();
-      if (systemFee > maxSystemFee) {
-        throw new Error(
-          `estimated system fee ${formatFixed8(systemFee)} GAS exceeds developer key limit ${formatFixed8(maxSystemFee)} GAS`,
-        );
-      }
-
       const validUntilBlock = Number(blockCount) + VALID_UNTIL_BLOCK_DELTA;
-      const draft = createTransaction(sdk, {
+      const txid = await signAndRelay(sdk, network, {
         script: invocation.script,
-        signers: invocation.txSigners,
+        txSigners: invocation.txSigners,
         systemFee,
-        networkFee: 0n,
         validUntilBlock,
         networkMagic,
         wif: this.wif,
       });
-
-      let networkFee: bigint;
-      try {
-        const fee = await neoRpc<NeoRpcNetworkFeeResult>(network, "calculatenetworkfee", [
-          serializeTransactionBase64(sdk, draft),
-        ]);
-        networkFee = parseFixed8(fee.networkfee || "0");
-      } catch (error) {
-        throw new Error(
-          `network fee estimation failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-
-      const wif = this.wif;
-      const finalTransaction = createTransaction(sdk, {
-        script: invocation.script,
-        signers: invocation.txSigners,
-        systemFee,
-        networkFee,
-        validUntilBlock,
-        networkMagic,
-        wif,
-      });
-      const txBase64 = serializeTransactionBase64(sdk, finalTransaction);
-      const txid = await relaySignedTransaction(
-        network,
-        txBase64,
-        finalTransaction.hash(),
-        async () => {
-          const freshBlockCount = await neoRpc<number>(network, "getblockcount");
-          const rebuilt = createTransaction(sdk, {
-            script: invocation.script,
-            signers: invocation.txSigners,
-            systemFee,
-            networkFee,
-            validUntilBlock: Number(freshBlockCount) + VALID_UNTIL_BLOCK_DELTA,
-            networkMagic,
-            wif,
-          });
-          return {
-            txBase64: serializeTransactionBase64(sdk, rebuilt),
-            fallbackTxid: rebuilt.hash(),
-          };
-        },
-      );
 
       return {
         txid,
@@ -721,70 +752,15 @@ export class WifAdapter implements WalletAdapter {
       }
 
       const systemFee = parseFixed8(preflight.gasconsumed || "0");
-      const maxSystemFee = getMaxSystemFee();
-      if (systemFee > maxSystemFee) {
-        throw new Error(
-          `estimated system fee ${formatFixed8(systemFee)} GAS exceeds developer key limit ${formatFixed8(maxSystemFee)} GAS`,
-        );
-      }
-
       const validUntilBlock = Number(blockCount) + VALID_UNTIL_BLOCK_DELTA;
-      const draft = createTransaction(sdk, {
+      const txid = await signAndRelay(sdk, network, {
         script,
-        signers: txSigners,
+        txSigners,
         systemFee,
-        networkFee: 0n,
         validUntilBlock,
         networkMagic,
         wif: this.wif,
       });
-
-      let networkFee: bigint;
-      try {
-        const fee = await neoRpc<NeoRpcNetworkFeeResult>(network, "calculatenetworkfee", [
-          serializeTransactionBase64(sdk, draft),
-        ]);
-        networkFee = parseFixed8(fee.networkfee || "0");
-      } catch (error) {
-        throw new Error(
-          `network fee estimation failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
-      }
-
-      const wif = this.wif;
-      const finalTransaction = createTransaction(sdk, {
-        script,
-        signers: txSigners,
-        systemFee,
-        networkFee,
-        validUntilBlock,
-        networkMagic,
-        wif,
-      });
-      const txBase64 = serializeTransactionBase64(sdk, finalTransaction);
-      const txid = await relaySignedTransaction(
-        network,
-        txBase64,
-        finalTransaction.hash(),
-        async () => {
-          const freshBlockCount = await neoRpc<number>(network, "getblockcount");
-          const rebuilt = createTransaction(sdk, {
-            script,
-            signers: txSigners,
-            systemFee,
-            networkFee,
-            validUntilBlock: Number(freshBlockCount) + VALID_UNTIL_BLOCK_DELTA,
-            networkMagic,
-            wif,
-          });
-          return {
-            txBase64: serializeTransactionBase64(sdk, rebuilt),
-            fallbackTxid: rebuilt.hash(),
-          };
-        },
-      );
 
       return {
         txid,

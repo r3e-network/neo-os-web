@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const ALLOWED_STATUS = new Set(["active", "pending", "disabled"]);
@@ -33,25 +33,18 @@ export async function GET(req: Request) {
     return jsonError("Invalid status filter", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/catalog", hostAppBaseURL);
-    if (status) upstream.searchParams.set("status", status);
-    if (appId) upstream.searchParams.set("app_id", appId);
-    if (search) upstream.searchParams.set("search", search);
-
-    const response = await fetch(upstream.toString(), {
-      headers: createProxyHeaders(req),
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!response.ok) {
-      return jsonError("Failed to fetch miniapps", response.status);
-    }
-
-    const data = await response.json().catch((e: unknown) => { console.warn("[miniapps] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return ({}); });
-    const apps = Array.isArray(data?.apps) ? data.apps : [];
-    return NextResponse.json(apps);
-  } catch {
-    return jsonError("Failed to reach host-app catalog endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/catalog",
+    searchParams: { status, app_id: appId, search },
+    timeoutMs: HOST_PROXY_TIMEOUTS.STANDARD,
+    parseHostError: false,
+    notOkError: "Failed to fetch miniapps",
+    fallbackError: "Failed to reach host-app catalog endpoint",
+    logLabel: "[miniapps]",
+    onSuccess: (data) => {
+      const apps = Array.isArray((data as { apps?: unknown })?.apps) ? (data as { apps: unknown[] }).apps : [];
+      return NextResponse.json(apps);
+    },
+  });
 }

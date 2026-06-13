@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
 import { miniAppConfigBaseSchema } from "@/lib/schemas";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 
@@ -21,24 +21,23 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return jsonError("Invalid app_id format", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/catalog", hostAppBaseURL);
-    upstream.searchParams.set("app_id", appId);
-    const response = await fetch(upstream.toString(), {
-      headers: createProxyHeaders(_req),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) {
-      return jsonError("Failed to fetch", response.status);
-    }
-    const data = await response.json().catch((e: unknown) => { console.warn("[miniapps/id GET] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return ({}); });
-    if (!data || !data.app || typeof data.app !== "object") {
-      return jsonError("Not found", 404);
-    }
-    return NextResponse.json(data.app);
-  } catch {
-    return jsonError("Failed to reach host-app catalog endpoint", 502);
-  }
+  return proxyToHost(_req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/catalog",
+    searchParams: { app_id: appId },
+    timeoutMs: HOST_PROXY_TIMEOUTS.STANDARD,
+    parseHostError: false,
+    notOkError: "Failed to fetch",
+    fallbackError: "Failed to reach host-app catalog endpoint",
+    logLabel: "[miniapps/id GET]",
+    onSuccess: (data) => {
+      const app = (data as { app?: unknown })?.app;
+      if (!data || !app || typeof app !== "object") {
+        return jsonError("Not found", 404);
+      }
+      return NextResponse.json(app);
+    },
+  });
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -56,23 +55,17 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return jsonError("Invalid app_id format", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/status", hostAppBaseURL);
-    const response = await fetch(upstream.toString(), {
-      method: "POST",
-      headers: createProxyHeaders(req),
-      body: JSON.stringify({ app_id: appId, status: "disabled" }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to disable miniapp");
-      return jsonError(message, response.status);
-    }
-    await response.json().catch((e: unknown) => { console.warn("[miniapps/id DELETE] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); });
-    return NextResponse.json({ success: true });
-  } catch {
-    return jsonError("Failed to reach host-app admin endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/status",
+    method: "POST",
+    body: { app_id: appId, status: "disabled" },
+    timeoutMs: HOST_PROXY_TIMEOUTS.STANDARD,
+    notOkError: "Failed to disable miniapp",
+    fallbackError: "Failed to reach host-app admin endpoint",
+    logLabel: "[miniapps/id DELETE]",
+    onSuccess: () => NextResponse.json({ success: true }),
+  });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -108,24 +101,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return jsonError("Invalid app_id format", 400);
   }
 
-  try {
-    const response = await fetch(new URL("/api/miniapps/admin/upsert", hostAppBaseURL).toString(), {
-      method: "POST",
-      headers: createProxyHeaders(req),
-      body: JSON.stringify({
-        ...partial.data,
-        app_id: appId,
-        action,
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to update miniapp");
-      return jsonError(message, response.status);
-    }
-    await response.json().catch((e: unknown) => { console.warn("[miniapps/id PATCH] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); });
-    return NextResponse.json({ success: true });
-  } catch {
-    return jsonError("Failed to reach host-app admin endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/upsert",
+    method: "POST",
+    body: { ...partial.data, app_id: appId, action },
+    timeoutMs: HOST_PROXY_TIMEOUTS.STANDARD,
+    notOkError: "Failed to update miniapp",
+    fallbackError: "Failed to reach host-app admin endpoint",
+    logLabel: "[miniapps/id PATCH]",
+    onSuccess: () => NextResponse.json({ success: true }),
+  });
 }
