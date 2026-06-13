@@ -45,7 +45,8 @@ test("On-Chain Tarot renders a complete wallet-style oracle reading workspace", 
     "tarot-main",
     "tarot-hero",
     "tarot-hero-eyebrow",
-    "tarot-hero-metrics",
+    "tarot-hero-meta",
+    "tarot-side-metrics",
     "tarot-question-panel",
     "tarot-spread-panel",
     "tarot-reading-grid",
@@ -53,7 +54,8 @@ test("On-Chain Tarot renders a complete wallet-style oracle reading workspace", 
     "tarot-verification-panel",
     "tarot-reading-summary",
   ]) {
-    assert.match(playArea, new RegExp(`className="[^"]*${className}`));
+    // Tolerate both static className="…" and template-literal className={`…`}.
+    assert.match(playArea, new RegExp(`className=(?:"|\\{\`)[^"\`]*${className}`));
   }
 
   assert.match(playArea, /dispatch\("setQuestion",\s*event\.currentTarget\.value\)/);
@@ -82,13 +84,15 @@ test("On-Chain Tarot renders a complete wallet-style oracle reading workspace", 
   }
 
   assert.match(styles, /\.tarot-play-area\s*\{[^}]*#f7f8fb/s);
+  // Two-column workspace shell: main reading column + fixed-min side rail.
   assert.match(
     styles,
-    /\.tarot-shell\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*0\.72fr\)\s+minmax\(320px,\s*0\.44fr\)/s,
+    /\.tarot-shell\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(280px,\s*0\.34fr\)/s,
   );
+  // Hero is a single-column grid band (copy stacked, no inset side panel).
   assert.match(
     styles,
-    /\.tarot-hero\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*0\.4fr\)/s,
+    /\.tarot-hero\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s,
   );
   // Neo Soft light hero: dark ink heading on the light gradient, not white text.
   assert.match(
@@ -104,9 +108,10 @@ test("On-Chain Tarot renders a complete wallet-style oracle reading workspace", 
     styles,
     /\.tarot-hero-copy \.tarot-hero-eyebrow\s*\{[^}]*letter-spacing:\s*0\.12em/s,
   );
+  // Side-rail metrics render as a two-up stat grid (readings + cards drawn).
   assert.match(
     styles,
-    /\.tarot-hero-metrics\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
+    /\.tarot-side-metrics\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
   );
   assert.match(
     styles,
@@ -117,7 +122,8 @@ test("On-Chain Tarot renders a complete wallet-style oracle reading workspace", 
     styles,
     /\.tarot-hero\s*\{[^}]*linear-gradient\(160deg,\s*var\(--tarot-violet-soft\)/s,
   );
-  assert.match(styles, /@media \(max-width: 900px\)[\s\S]*\.tarot-shell[\s\S]*grid-template-columns:\s*1fr/s);
+  // Two-column shell collapses to a single column at the narrow breakpoint.
+  assert.match(styles, /@media \(max-width: 1200px\)[\s\S]*\.tarot-shell[\s\S]*grid-template-columns:\s*1fr/s);
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.tarot-card-position[\s\S]*letter-spacing:\s*0\.04em/s);
 
   assertNeoSoftLetterSpacing(styles);

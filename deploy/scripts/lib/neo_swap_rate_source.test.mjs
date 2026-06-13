@@ -20,10 +20,14 @@ test("Neo Swap quotes use the Morpheus DataFeed instead of a missing wallet SDK 
 
   assert.match(hook, /import \{ useMorpheusDataFeed \} from "@shared\/composables\/useMorpheusDataFeed";/);
   assert.match(hook, /const datafeed = useMorpheusDataFeed\(\);/);
-  assert.match(hook, /const \[fromPrice, toPrice\] = await Promise\.all\(\[/);
-  assert.match(hook, /datafeed\.getPrice\(fromToken\.get\(\)\.symbol\),/);
-  assert.match(hook, /datafeed\.getPrice\(toToken\.get\(\)\.symbol\),/);
-  assert.match(hook, /const rate = fromPrice \/ toPrice;/);
+  // Both price legs are fetched in parallel from the Morpheus datafeed. The hook
+  // now binds quote objects (getPriceWithMeta returns price + freshness metadata)
+  // rather than bare numbers; getPrice is the metadata-less shorthand. Accept
+  // either binding/accessor so a future revert to a wallet-SDK helper still fails.
+  assert.match(hook, /const \[from\w+, to\w+\] = await Promise\.all\(\[/);
+  assert.match(hook, /datafeed\.getPrice(?:WithMeta)?\(fromToken\.get\(\)\.symbol\),/);
+  assert.match(hook, /datafeed\.getPrice(?:WithMeta)?\(toToken\.get\(\)\.symbol\),/);
+  assert.match(hook, /const rate = from\w+(?:\.price)? \/ to\w+(?:\.price)?;/);
   assert.match(hook, /function setFromAmount\(value: string\)/);
   assert.match(hook, /fromAmount\.set\(value\);[\s\S]*onFromAmountChange\(\);/);
   assert.match(playArea, /dispatch\("setFromAmount", val\)/);

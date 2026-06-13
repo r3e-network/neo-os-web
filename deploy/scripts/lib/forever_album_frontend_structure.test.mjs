@@ -42,7 +42,12 @@ test("Forever Album renders a complete wallet-style on-chain memory vault", () =
     "forever-album-howto",
     "forever-album-safety-strip",
   ]) {
-    assert.match(playArea, new RegExp(`className="[^"]*${className}`));
+    // Accept both the static `className="…"` form and the template-literal
+    // `className={`…`}` form. The workspace NeoCard now appends a
+    // `forever-album-workspace--empty` modifier via a template literal, so a
+    // strict double-quote-only guard no longer fits while the class is still
+    // rendered. Either an opening `"` or an opening backtick may precede it.
+    assert.match(playArea, new RegExp(`className=\\{?["\`][^"\`]*${className}`));
   }
 
   assert.match(playArea, /dispatch\("refreshPhotos"\)/);

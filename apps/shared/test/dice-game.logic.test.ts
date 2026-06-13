@@ -23,18 +23,23 @@ describe("maxStakeOf", () => {
 });
 
 describe("maxPayableStakeOf", () => {
-  it("returns the stake the house can pay a win on (liquidity / 5.7), floored to 2 decimals", () => {
-    // The mainnet strand case: 1.4479 GAS liquidity → ~0.25 GAS max stake.
-    expect(maxPayableStakeOf(1.4479)).toBe(0.25);
-    // 5.7 GAS liquidity pays exactly a 1 GAS win.
-    expect(maxPayableStakeOf(5.7)).toBe(1);
-    // 11.4 GAS → 2 GAS.
-    expect(maxPayableStakeOf(11.4)).toBe(2);
+  it("returns the stake the house can cover a win on (bankroll / 4.7), floored to 2 decimals", () => {
+    // The contract guard is bankroll >= stake * 47/10: a win returns the stake
+    // and the house tops up the extra (5.7 - 1 = 4.7), so only the bankroll
+    // covers a win. 4.7 GAS bankroll pays exactly a 1 GAS stake's win.
+    expect(maxPayableStakeOf(4.7)).toBe(1);
+    // 9.4 GAS → 2 GAS.
+    expect(maxPayableStakeOf(9.4)).toBe(2);
+    // The mainnet strand case: 1.4479 GAS bankroll → 0.30 GAS max stake.
+    expect(maxPayableStakeOf(1.4479)).toBe(0.3);
   });
 
-  it("adds the player's standing credit (the stake is consumed from credit first)", () => {
-    // 1 GAS liquidity + 4.7 GAS credit covers a 1 GAS stake's 5.7 GAS exposure.
-    expect(maxPayableStakeOf(1, 4.7)).toBe(1);
+  it("derives the cap from the bankroll alone (a custom cover multiple is honoured)", () => {
+    // The stake is held in the player's CREDIT (not the bankroll) and consumed
+    // on the roll, so only the bankroll covers a win — there is no credit term.
+    // The second argument is the cover multiple (defaults to 4.7), not credit.
+    expect(maxPayableStakeOf(4.7)).toBe(1);
+    expect(maxPayableStakeOf(10, 5)).toBe(2);
   });
 
   it("returns 0 for non-positive or non-finite liquidity (no quote, refuse all)", () => {
@@ -44,8 +49,8 @@ describe("maxPayableStakeOf", () => {
   });
 
   it("never quotes a cap above the real payable amount (floors, not rounds)", () => {
-    // 1.99 / 5.7 = 0.349… → floored to 0.34, not rounded to 0.35.
-    expect(maxPayableStakeOf(1.99)).toBe(0.34);
+    // 1.99 / 4.7 = 0.4234… → floored to 0.42, not rounded to 0.43.
+    expect(maxPayableStakeOf(1.99)).toBe(0.42);
   });
 });
 

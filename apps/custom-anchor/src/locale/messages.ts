@@ -111,8 +111,32 @@ const appMessages = {
   registerSubmitting: { en: "Registering anchor", zh: "正在注册 Anchor" },
   registerSubmitted: { en: "Anchor registered", zh: "Anchor 已注册" },
   registerAgentsNote: {
-    en: "Note: a new anchor starts with 0 of its 21 AA agents. Agent accounts are provisioned by the anchor operator (admin console) — staking and rewards work once agents are registered.",
-    zh: "提示：新 Anchor 的 21 个 AA agent 初始为 0。Agent 账户由 Anchor 运营方（管理员控制台）配置 — agent 注册后即可质押与领取奖励。",
+    en: "Registering provisions all 21 AA agents in the same flow (3 wallet transactions: AA accounts → anchor app → agent council), so your anchor starts earning immediately. Externally-created anchors that skipped this stay at 0/21 until their operator provisions agents.",
+    zh: "注册会在同一流程中配置全部 21 个 AA agent（3 笔钱包交易：AA 账户 → Anchor app → agent council），因此你的 Anchor 立即开始产生收益。未经此流程在外部创建的 Anchor 会停留在 0/21，直到运营方配置 agent。",
+  },
+
+  // Candidate council (21 compressed public keys) for agent provisioning
+  registerCandidatesLabel: { en: "Council candidates (21 public keys)", zh: "Council 候选人（21 个公钥）" },
+  registerCandidatesHint: {
+    en: "One compressed public key (02/03 + 64 hex) per line — exactly 21. These are the council candidates your anchor's 21 agents vote for.",
+    zh: "每行一个压缩公钥（02/03 + 64 位十六进制），共 21 个。这些是你的 Anchor 的 21 个 agent 所投票的 council 候选人。",
+  },
+  registerCandidatesPlaceholder: {
+    en: "02abc...\n03def...\n(21 lines)",
+    zh: "02abc...\n03def...\n（共 21 行）",
+  },
+  registerCandidatesUseDefault: { en: "Use default candidate set", zh: "使用默认候选集" },
+  registerCandidatesCount: { en: "{count}/21 valid candidate keys", zh: "{count}/21 个有效候选公钥" },
+  registerCandidatesInvalid: {
+    en: "Enter exactly 21 compressed public keys (02/03 + 64 hex), one per line.",
+    zh: "请输入正好 21 个压缩公钥（02/03 + 64 位十六进制），每行一个。",
+  },
+  registerProvisioningAccounts: { en: "Step 1/3 — registering AA agent accounts", zh: "第 1/3 步 — 注册 AA agent 账户" },
+  registerProvisioningApp: { en: "Step 2/3 — registering the anchor app", zh: "第 2/3 步 — 注册 Anchor app" },
+  registerProvisioningAgents: { en: "Step 3/3 — provisioning the 21 agents", zh: "第 3/3 步 — 配置 21 个 agent" },
+  registerProvisionedNote: {
+    en: "Profit mode defaults to a ready-to-use candidate set; switch to your own keys for Trust (governance) voting.",
+    zh: "收益模式默认使用现成的候选集；如需信任（治理）投票，请换成你自己的公钥。",
   },
   registerModeTrustDesc: {
     en: "Staked NEO is routed to vote for council candidates via the anchor's 21 agents.",

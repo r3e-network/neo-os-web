@@ -50,9 +50,13 @@ test("Anchor admin miniapps render a complete wallet-style operator console", ()
       "anchor-admin-agent-strip",
       "anchor-admin-safety-card",
     ]) {
+      // Accept both the static className="…" form and the template-literal
+      // className={`…`} form: anchor-admin-command-grid now appends a
+      // conditional " is-readonly" modifier (admin-role gating) via a template
+      // literal, while the other containers remain static attributes.
       assert.match(
         playArea,
-        new RegExp(`className="[^"]*${className}`),
+        new RegExp("className=(?:\"[^\"]*|\\{`[^`]*)" + className),
         `${app.name} missing ${className}`,
       );
     }

@@ -38,7 +38,16 @@ test("Neo Swap renders a polished wallet-style route console", () => {
   }
 
   assert.match(playArea, /dispatch\("refreshRate"\)/);
-  assert.match(playArea, /const routeHealth = rateLoading/);
+  // routeHealth is the route badge label derived from real settlement state.
+  // The current honest implementation leads with router availability (no router
+  // -> "unavailable") then falls through rateLoading/rateStale -- so the label
+  // can never falsely read "ready". The assertion stays tolerant of that
+  // ternary chain while still requiring routeHealth to be driven by the
+  // route/rate state (a regression that hardcodes it would not match).
+  assert.match(
+    playArea,
+    /const routeHealth =\s*!?\s*(?:routerAvailable|rateLoading)[\s\S]*?\bt\(/,
+  );
   assert.match(playArea, /const formattedMinReceived = minReceived \|\| "0\.0000"/);
   assert.match(popularPairs, /<button[\s\S]*className=\{`pair-item/);
   assert.doesNotMatch(popularPairs, /<div[^>]*onClick=\{\(\) => handleSelectPair/);

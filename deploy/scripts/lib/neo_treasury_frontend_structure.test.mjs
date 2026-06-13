@@ -71,8 +71,10 @@ test("Neo Treasury renders a complete wallet-style dashboard even before live ba
   // brand-strong status dot toggled by the hasLiveData state.
   assert.match(styles, /\.treasury-hero__dot--live\s*\{[^}]*background:\s*var\(--ns-brand-strong,\s*#0fb174\)/s);
   assert.match(styles, /\.treasury-watchlist\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
-  // Pre-redesign "treasury-route" 3-col grid → now the wallet-strip / review-panel rows.
-  assert.match(styles, /\.treasury-wallet-strip,\s*\.treasury-review-panel\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
+  // Pre-redesign "treasury-route" 3-col grid → the standalone "treasury-review-panel"
+  // selector was dropped; the 3-up balance layout now lives on the treasury-wallet-strip
+  // (tolerant to it being a standalone selector or grouped with sibling selectors).
+  assert.match(styles, /\.treasury-wallet-strip\b[^{]*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s);
   assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.treasury-hero[\s\S]*grid-template-columns:\s*1fr/s);
   assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.treasury-watchlist[\s\S]*grid-template-columns:\s*1fr/s);
   assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.treasury-wallet-strip,[\s\S]*grid-template-columns:\s*1fr/s);

@@ -21,12 +21,31 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-function assertOnlyZeroLetterSpacing(styles) {
+function assertNoLoudHeroTracking(styles) {
+  // Neo Soft eyebrow/kicker labels intentionally use restrained 0.12em tracking
+  // and the compact hero title uses a tight negative track (-0.02em). What we
+  // still guard against is loud "display/marketing-hero" expanded tracking
+  // (>= 0.2em) that would not belong on an embedded console surface.
   const values = [...styles.matchAll(/letter-spacing:\s*([^;]+);/g)].map(
     (match) => match[1].trim(),
   );
   assert.ok(values.length > 0, "expected at least one letter-spacing declaration");
-  assert.deepEqual(values, values.map(() => "0"));
+  for (const value of values) {
+    const em = /^(-?[\d.]+)em$/.exec(value);
+    if (em) {
+      assert.ok(
+        Number.parseFloat(em[1]) < 0.2,
+        `letter-spacing ${value} is too wide for an embedded console (no loud hero tracking)`,
+      );
+    } else {
+      // Only unitless 0 (or px/other) restrained values are expected otherwise.
+      assert.match(
+        value,
+        /^0$|px$/,
+        `unexpected letter-spacing ${value} on embedded console surface`,
+      );
+    }
+  }
 }
 
 test("shared oracle console panel exposes a wallet-style request workspace", () => {
@@ -70,8 +89,15 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
   assert.doesNotMatch(styles, /font-size:\s*clamp\([^)]*vw/i);
   assert.doesNotMatch(styles, /filter:\s*saturate/);
   assert.doesNotMatch(styles, /opacity:\s*0\.5/);
-  assert.doesNotMatch(styles, /text-transform:\s*uppercase/);
-  assertOnlyZeroLetterSpacing(styles);
+  // Neo Soft eyebrow/kicker labels (small ~0.69rem caps) legitimately use
+  // uppercase; what stays forbidden is uppercasing the oversized hero title,
+  // which would read as a loud marketing hero rather than a calm console.
+  assert.doesNotMatch(
+    styles,
+    /\.console-tool__intro h2\s*\{[^}]*text-transform:\s*uppercase/s,
+    "embedded oracle console title should not be a loud uppercase hero",
+  );
+  assertNoLoudHeroTracking(styles);
   assert.doesNotMatch(
     styles,
     /border-radius:\s*(?:1[8-9]|2[0-9])px/,

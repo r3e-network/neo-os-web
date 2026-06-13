@@ -8,9 +8,9 @@ import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
 /**
  * These tests drive the migrated useCheckin against a FAKE ChainService that
- * mirrors the standalone daily-checkin contract on testnet
- * 0xaba84da240a55410d284a656fc8dae044e6ec1a5. The composable now talks directly
- * to the chain — no OS proxies:
+ * mirrors the self-contained, owner-fundable daily-checkin contract on testnet
+ * 0x25db219a701a2b23130788723fcf9a2e76857235 (same NEF + deployer ⇒ same hash on
+ * mainnet). The composable now talks directly to the chain — no OS proxies:
  *   - check-in = a GAS transfer of the fee with the memo
  *     "miniapp-dailycheckin:checkin" (OnNEP17Payment records it; CheckedIn event)
  *   - claim = claimRewards(user) direct call (RewardsClaimed event)
@@ -20,7 +20,7 @@ import { BLOCKCHAIN_CONSTANTS } from "../constants";
  */
 
 const ME = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-const CONTRACT = "0xaba84da240a55410d284a656fc8dae044e6ec1a5";
+const CONTRACT = "0x25db219a701a2b23130788723fcf9a2e76857235";
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const ME_HASH = addressToScriptHash(ME);
 
@@ -154,9 +154,13 @@ function setup(opts?: {
         };
       case "isPaused":
         return opts?.paused ?? false;
+      case "rewardPool":
+        // The contract's authoritative reward-pool report (preferred read).
+        // Default solvent so the happy-path claim is dispatched; tests can
+        // starve it via poolBalance to exercise the empty-pool claim guard.
+        return String(opts?.poolBalance ?? 100_000_000_000);
       case "balanceOf":
-        // The contract's own GAS balance = the reward pool. Default solvent so
-        // the happy-path claim is dispatched; tests can starve it via poolBalance.
+        // Legacy fallback: the contract's own GAS balance equals the pool.
         return String(opts?.poolBalance ?? 100_000_000_000);
       default:
         throw new Error(`unexpected read: ${operation}`);

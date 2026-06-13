@@ -356,10 +356,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           {directCredit > 0 && (
             <div className="dice-credit-banner" role="status">
-              {t("directCreditBanner", {
-                amount: directCredit.toFixed(2),
-                tokenGas: t("tokenGas"),
-              })}
+              <span>
+                {t("directCreditBanner", {
+                  amount: directCredit.toFixed(2),
+                  tokenGas: t("tokenGas"),
+                })}
+              </span>
+              {!isEvmChain && (
+                <button
+                  type="button"
+                  className="dice-credit-withdraw"
+                  disabled={isSubmitting}
+                  onClick={() => void dispatch("withdrawCredit", {})}
+                >
+                  {t("withdrawCredit")}
+                </button>
+              )}
             </div>
           )}
 

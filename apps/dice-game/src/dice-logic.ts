@@ -26,24 +26,24 @@ export function maxStakeOf(network: string): number {
 
 /**
  * The largest stake (GAS) the house can currently pay a win on, given its
- * liquidity and the player's standing app-scoped credit. The contract asserts
- * liquidity >= stake * coverMultiple (6 * 95% = 5.7), so:
+ * bankroll. The standalone MiniAppDiceGame asserts `bankroll >= stake *
+ * coverMultiple` (47/10 = 4.7) inside roll(): a win pays 5.70x, of which the
+ * player's own staked amount is returned and the house tops up the extra
+ * (5.7 - 1 = 4.7). The stake is held in the player's app-scoped CREDIT (not the
+ * bankroll) and is consumed on the roll, so standing credit does NOT raise the
+ * cap — only the house bankroll covers a win. Therefore:
  *
- *   maxPayableStake = (liquidity + credit) / coverMultiple
+ *   maxPayableStake = bankroll / coverMultiple
  *
- * The player's credit is added because the stake is consumed from credit first
- * (only the shortfall is deposited), so the effective house exposure is reduced
- * by the credit already held. Floored to 2 decimals (GAS display precision) and
- * never negative. coverMultiple defaults to 5.7.
+ * Floored to 2 decimals (GAS display precision) so the quoted cap never exceeds
+ * the real payable amount, and never negative. coverMultiple defaults to 4.7.
  */
 export function maxPayableStakeOf(
   liquidityGas: number,
-  creditGas = 0,
-  coverMultiple = 6 * 0.95,
+  coverMultiple = 47 / 10,
 ): number {
   if (!Number.isFinite(liquidityGas) || liquidityGas <= 0) return 0;
-  const credit = Number.isFinite(creditGas) && creditGas > 0 ? creditGas : 0;
-  const payable = (liquidityGas + credit) / coverMultiple;
+  const payable = liquidityGas / coverMultiple;
   if (!Number.isFinite(payable) || payable <= 0) return 0;
   // Floor to 2 decimals so the quoted cap never exceeds the real payable amount.
   return Math.floor(payable * 100) / 100;

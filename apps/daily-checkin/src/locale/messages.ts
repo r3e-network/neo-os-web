@@ -140,14 +140,14 @@ const appMessages = {
   rewardPool: { en: "Reward pool", zh: "奖励池" },
   rewardPoolBalanceLabel: { en: "Reward pool balance", zh: "奖励池余额" },
   rewardsUnfundedBanner: {
-    en: "Rewards are currently unfunded — your check-in still records your streak, but milestone GAS rewards cannot be paid until the reward pool is topped up.",
-    zh: "奖励池当前未注资 — 签到仍会记录你的连续天数，但在奖励池补充前无法发放里程碑 GAS 奖励。",
+    en: "The reward pool is running low right now — your check-in still records your streak, and milestone GAS rewards become claimable again once the pool is topped up.",
+    zh: "奖励池余额暂时偏低 — 签到仍会记录你的连续天数，待奖励池补充后即可继续领取里程碑 GAS 奖励。",
   },
   rewardPoolEmpty: {
     en: "Reward pool is too low to pay this reward right now — try again after it is topped up.",
     zh: "奖励池余额不足，暂时无法发放该奖励 — 请在补充后重试。",
   },
-  claimUnfunded: { en: "Pool unfunded", zh: "奖励池未注资" },
+  claimUnfunded: { en: "Pool topping up", zh: "奖励池待补充" },
   contractPaused: { en: "Check-in paused", zh: "签到已暂停" },
   contractPausedStatus: {
     en: "Daily check-in is temporarily paused by the operator. Check-in and claim are unavailable until it resumes.",

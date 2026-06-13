@@ -448,6 +448,30 @@
   color: var(--dice-text-2);
   font-size: 0.8125rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dice-credit-withdraw {
+  flex-shrink: 0;
+  border: 1px solid var(--dice-accent);
+  background: var(--dice-accent-soft);
+  color: var(--dice-accent-strong);
+  font-weight: 800;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: var(--ns-radius-full, 999px);
+  cursor: pointer;
+}
+.dice-credit-withdraw:hover:not(:disabled) {
+  background: var(--dice-accent);
+  color: #ffffff;
+}
+.dice-credit-withdraw:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .dice-roll-button {

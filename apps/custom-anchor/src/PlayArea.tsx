@@ -2,7 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import type { SyntheticEvent } from "react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import {
+  ANCHOR_AGENT_COUNT,
+  defaultProfitCandidates,
+} from "@shared/utils/anchor-agents";
 import "./PlayArea.scss";
+
+const COMPRESSED_PUBLIC_KEY = /^(02|03)[0-9a-fA-F]{64}$/;
+
+/** Split candidate textarea into trimmed, non-empty tokens. */
+function splitCandidateKeys(value: string): string[] {
+  return String(value || "")
+    .split(/[\s,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 function truncate(value: string): string {
   if (value.length <= 34) return value;
@@ -63,6 +77,10 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   const [amountInput, setAmountInput] = useState("1");
   const [registerInput, setRegisterInput] = useState("");
   const [registerMode, setRegisterMode] = useState(1);
+  // Council candidates (one compressed pubkey per line). Defaulted to the
+  // ready-to-use Profit candidate set on first switch to Profit so a first-time
+  // operator can register a yield-earning anchor without sourcing 21 keys.
+  const [candidatesInput, setCandidatesInput] = useState("");
   const [busyAction, setBusyAction] = useState("");
   const [formError, setFormError] = useState("");
   // Explicit acknowledgement required to stake into a 0-agent (inert) anchor.
@@ -146,6 +164,30 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   };
 
   const registerInputValid = useMemo(() => isValidAnchorId(registerInput), [registerInput]);
+  const candidateKeys = useMemo(() => splitCandidateKeys(candidatesInput), [candidatesInput]);
+  const validCandidateCount = useMemo(
+    () => candidateKeys.filter((key) => COMPRESSED_PUBLIC_KEY.test(key)).length,
+    [candidateKeys],
+  );
+  // Provisioning needs EXACTLY 21 valid compressed pubkeys (duplicates allowed —
+  // the on-chain RegisterAgents accepts repeats, mirroring the deploy default).
+  const candidatesValid =
+    candidateKeys.length === ANCHOR_AGENT_COUNT && validCandidateCount === ANCHOR_AGENT_COUNT;
+  const registerDisabled = busy || !registerInputValid || !candidatesValid;
+
+  const fillDefaultCandidates = () => {
+    setCandidatesInput(defaultProfitCandidates().join("\n"));
+  };
+
+  // Switching to Profit seeds the ready-to-use default candidate set when the
+  // field is still empty (friction-free yield anchor); Trust leaves it blank so
+  // the operator supplies their own governance candidates.
+  const handleSelectMode = (mode: number) => {
+    setRegisterMode(mode);
+    if (mode === 2 && splitCandidateKeys(candidatesInput).length === 0) {
+      fillDefaultCandidates();
+    }
+  };
 
   const handleRegister = async (event: SyntheticEvent) => {
     event.preventDefault();
@@ -154,9 +196,17 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
       setFormError(t("invalidAnchorId"));
       return;
     }
+    if (!candidatesValid) {
+      setFormError(t("registerCandidatesInvalid"));
+      return;
+    }
     setBusyAction("register");
     try {
-      await dispatch("register", { anchorAppId: registerInput.trim(), mode: registerMode });
+      await dispatch("register", {
+        anchorAppId: registerInput.trim(),
+        mode: registerMode,
+        candidates: candidateKeys,
+      });
       setAnchorInput(registerInput.trim());
     } catch (error) {
       setFormError(error instanceof Error ? error.message : String(error));
@@ -500,7 +550,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
                 role="radio"
                 aria-checked={registerMode === 1}
                 className={`custom-anchor-mode${registerMode === 1 ? " active" : ""}`}
-                onClick={() => setRegisterMode(1)}
+                onClick={() => handleSelectMode(1)}
               >
                 {t("registerModeTrust")}
               </button>
@@ -509,7 +559,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
                 role="radio"
                 aria-checked={registerMode === 2}
                 className={`custom-anchor-mode${registerMode === 2 ? " active" : ""}`}
-                onClick={() => setRegisterMode(2)}
+                onClick={() => handleSelectMode(2)}
               >
                 {t("registerModeProfit")}
               </button>
@@ -517,15 +567,54 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
             <p className="custom-anchor-mode-desc">
               {registerMode === 2 ? t("registerModeProfitDesc") : t("registerModeTrustDesc")}
             </p>
+            <div className="custom-anchor-field">
+              <label>
+                <span>{t("registerCandidatesLabel")}</span>
+                <textarea
+                  className="custom-anchor-candidates"
+                  value={candidatesInput}
+                  onChange={(event) => setCandidatesInput(event.currentTarget.value)}
+                  placeholder={t("registerCandidatesPlaceholder")}
+                  rows={6}
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  aria-invalid={candidatesInput.trim().length > 0 && !candidatesValid}
+                  aria-describedby="custom-anchor-candidates-hint"
+                />
+              </label>
+              <div className="custom-anchor-candidates__meta">
+                <small id="custom-anchor-candidates-hint" className="custom-anchor-field-hint">
+                  {t("registerCandidatesHint")}
+                </small>
+                <div className="custom-anchor-candidates__controls">
+                  <span
+                    className={`custom-anchor-candidates__count${candidatesValid ? " valid" : ""}`}
+                    aria-live="polite"
+                  >
+                    {t("registerCandidatesCount").replace("{count}", String(validCandidateCount))}
+                  </span>
+                  <button
+                    type="button"
+                    className="custom-anchor-button custom-anchor-button--ghost"
+                    disabled={busy}
+                    onClick={fillDefaultCandidates}
+                  >
+                    {t("registerCandidatesUseDefault")}
+                  </button>
+                </div>
+              </div>
+            </div>
             <button
               type="submit"
               className="custom-anchor-button custom-anchor-button--primary"
-              disabled={busy || !registerInputValid}
+              disabled={registerDisabled}
             >
               {busyAction === "register" ? t("submitting") : t("registerAction")}
             </button>
           </form>
           <p className="custom-anchor-register__note">{t("registerAgentsNote")}</p>
+          <p className="custom-anchor-register__note">{t("registerProvisionedNote")}</p>
         </div>
       </details>
 

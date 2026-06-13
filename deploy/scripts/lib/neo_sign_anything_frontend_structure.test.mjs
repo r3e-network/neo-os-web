@@ -35,7 +35,11 @@ test("Neo Sign Anything renders a complete light wallet-style signature workspac
     assert.match(playArea, new RegExp(`className="[^"]*${className}`));
   }
 
-  assert.match(playArea, /useState\(""\)/);
+  // State now lives in the shared observable store via useStateBindings; the
+  // string slots are read with an empty-string default (e.g. str("message", "")),
+  // replacing the old local useState("") initialization.
+  assert.match(playArea, /useStateBindings\(state\)/);
+  assert.match(playArea, /str\("message",\s*""\)/);
   assert.match(playArea, /messageBytes/);
   assert.match(playArea, /signaturePreview/);
   assert.match(playArea, /txHashPreview/);
