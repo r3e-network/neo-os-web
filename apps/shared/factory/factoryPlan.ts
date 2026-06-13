@@ -1,10 +1,24 @@
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 import { buildOneGateLaunchUrl } from "@shared/utils/onegate-launch";
+import { sha256 } from "../shims/noble-hashes-sha256.js";
 
 export type FactoryKind = "nep17" | "nep11" | "miniapp";
 export type FactoryNetwork = "neo-n3-mainnet" | "neo-n3-testnet";
 export type FactoryStepStatus = "ready" | "manual" | "blocked";
-export type FactoryTemplateStatus = "preloaded-on-chain";
+/**
+ * Honest template-artifact state. "preloaded-on-chain" and "metadata-only"
+ * are LIVE-verified via getTemplate().HasArtifact; "not-registered" means the
+ * template id is unknown to the factory contract; "unverified" means no live
+ * read has happened yet (the default for pure/offline plan builds).
+ */
+export type FactoryTemplateStatus =
+  | "preloaded-on-chain"
+  | "metadata-only"
+  | "not-registered"
+  | "unverified";
+
+/** Live artifact presence as reported by the chain (see factoryChain.ts). */
+export type FactoryArtifactPresence = "present" | "missing" | "not-registered" | "unknown";
 
 export interface FactoryContractArg {
   type: "String" | "Integer" | "Boolean" | "Hash160" | "ByteArray";
@@ -13,9 +27,22 @@ export interface FactoryContractArg {
 
 export interface FactoryStep {
   key: string;
-  title: string;
-  detail: string;
+  titleKey: string;
+  detailKey: string;
   status: FactoryStepStatus;
+}
+
+export interface FactoryExecution {
+  /** What a successful execute produces for this kind+template. */
+  outcome: "contract-deployment" | "registry-record";
+  /** True when the in-app execute action may run for this plan. */
+  available: boolean;
+  /** i18n key explaining why execute is blocked ("" when available). */
+  blockedReasonKey: "" | "artifactNotRegistered" | "artifactUnverified" | "templateNotRegistered";
+  /** Event emitted by the factory contract on success. */
+  confirmingEvent: "TokenDeployed" | "MiniAppCreated";
+  /** Creator account used for read-only fee estimation (owner/admin field). */
+  signerHint: string;
 }
 
 export interface FactoryPlan {
@@ -37,6 +64,7 @@ export interface FactoryPlan {
     operation: string;
     args: FactoryContractArg[];
   };
+  execution: FactoryExecution;
   packageId: string;
   digest: string;
   publishable: boolean;
@@ -147,7 +175,13 @@ interface FactoryTemplateDefinition {
   version: string;
   standard: string;
   deployOperation: "deployFromTemplate" | "createMiniAppFromTemplate";
-  artifact: FactoryPlan["templateArtifact"];
+  /**
+   * Expected artifact hashes from the governed template registry. The
+   * artifact STATUS is intentionally not part of this static registry — it
+   * is read live from the factory contract (getTemplate().HasArtifact) so
+   * the UI never claims an artifact is preloaded when the chain disagrees.
+   */
+  artifact: Omit<FactoryPlan["templateArtifact"], "status">;
 }
 
 const TEMPLATE_REGISTRY = {
@@ -157,7 +191,6 @@ const TEMPLATE_REGISTRY = {
     standard: "NEP-17",
     deployOperation: "deployFromTemplate",
     artifact: {
-      status: "preloaded-on-chain",
       nefHash: "0x7fd0a6dd1aef5521a8c86d06bca2fc13c5d7e7fa32a9ae47dd9b1e51abef1701",
       manifestHash: "0x58d47f4f719f0a6726c63fd0b1540e8bd7cb846a92467a3700ec0f76f6719ad2",
       configSchemaHash: "0x9f6b1a29b79b6e8e30600f7f1d9728b7d7c920a48f6d6274557a63116a68253f",
@@ -169,7 +202,6 @@ const TEMPLATE_REGISTRY = {
     standard: "NEP-11",
     deployOperation: "deployFromTemplate",
     artifact: {
-      status: "preloaded-on-chain",
       nefHash: "0xf3a4a2e81b725c4d7a53fda7de4ff3ef2328e514edce6e868b6b978561c4e4d0",
       manifestHash: "0xad4cc0d3c5a45efddbbd0ed60bb9f9dc6dfc0917df77426a06605da4d1115c67",
       configSchemaHash: "0x36f9e031c5a6623cc1f53f7c2f5e945a174a4ac5bbcc6d09979faf222f353917",
@@ -182,7 +214,6 @@ const TEMPLATE_REGISTRY = {
       standard: "Neo MiniApp",
       deployOperation: "createMiniAppFromTemplate",
       artifact: {
-        status: "preloaded-on-chain",
         nefHash: "0x17a7d94bd969018f7644412e3ff5f1c7982fbd7acc2be2d79380bd1042f1762d",
         manifestHash: "0xf717dbde778da5c89e7f2ef620b75e58454f4170fe2a5f7c36e545858162c624",
         configSchemaHash: "0x23dc67244fcba5d1642ed3e5e95e510f9f514621aa3522bd55e5f9e66992c25a",
@@ -194,7 +225,6 @@ const TEMPLATE_REGISTRY = {
       standard: "Neo MiniApp",
       deployOperation: "createMiniAppFromTemplate",
       artifact: {
-        status: "preloaded-on-chain",
         nefHash: "0x79bfaa31d82cd3673c7dbcb535a4fd5bd3517e1c352877a893570821ce9c2e11",
         manifestHash: "0xb783e18c90120e07ea6709c7822d22f4f80c5c40a8e4ea0e27424f6ae9e27310",
         configSchemaHash: "0x6d541c11bb7241a9508617720a8ad49df972cd6293455fdf57f314ef0abb8e47",
@@ -206,7 +236,6 @@ const TEMPLATE_REGISTRY = {
       standard: "Neo MiniApp",
       deployOperation: "createMiniAppFromTemplate",
       artifact: {
-        status: "preloaded-on-chain",
         nefHash: "0xa8e1becd9e8ff599fe35a721820bf8bbbfedb99092f2747597dc637c27c8b080",
         manifestHash: "0xf091bc1d11454a7c9463fdcbbeb48dccd7ddf2b2d2acfd33cc51322a91765d21",
         configSchemaHash: "0xcfe61ba9e4993186e9b5859eac6a10658626f9d14f77622c4572872a547b33b0",
@@ -218,7 +247,6 @@ const TEMPLATE_REGISTRY = {
       standard: "Neo MiniApp",
       deployOperation: "createMiniAppFromTemplate",
       artifact: {
-        status: "preloaded-on-chain",
         nefHash: "0x28f46b78a401fe283fa4e489aa9e9b6d54ac89f6f9b8baf40432e0e2a5d1f0da",
         manifestHash: "0xb6be4c6ca95a219b14e38d3957f378e1223ccca838e54032792e9ed31c68d40f",
         configSchemaHash: "0x5b3961f1a19811f610d2c31af61cf8c63f434dcc857eb4f6f80a3cda37649fb3",
@@ -292,24 +320,40 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
+/**
+ * SHA-256 over the canonical (stable-keyed) JSON encoding of the plan
+ * payload. The digest is wallet-signed and travels with the exported
+ * package, so it must be collision-resistant — the previous FNV-1a 64-bit
+ * checksum was not a cryptographic commitment.
+ */
 function digestPayload(value: unknown): string {
   const canonical = stableJson(value);
-  let hash = 0xcbf29ce484222325n;
-  const prime = 0x100000001b3n;
-  const mask = 0xffffffffffffffffn;
-  for (let index = 0; index < canonical.length; index += 1) {
-    hash ^= BigInt(canonical.charCodeAt(index));
-    hash = (hash * prime) & mask;
+  const hash = sha256(new TextEncoder().encode(canonical));
+  let hex = "";
+  for (const byte of hash) {
+    hex += byte.toString(16).padStart(2, "0");
   }
-  return `nf_${hash.toString(16).padStart(16, "0")}`;
+  return `0x${hex}`;
 }
 
 function requiredText(value: string, minLength: number, maxLength: number): boolean {
   return value.length >= minLength && value.length <= maxLength;
 }
 
-function getFactoryContract(kind: FactoryKind, network: FactoryNetwork): string {
+/** Configured factory contract hash for a kind+network ("" when unset). */
+export function factoryContractFor(kind: FactoryKind, network: FactoryNetwork): string {
   return DOMAIN_FACTORY_CONTRACTS[kind]?.[network] || FACTORY_CONTRACTS[network] || "";
+}
+
+/** Template id used by a kind (and templateKind for the miniapp factory). */
+export function factoryTemplateIdFor(kind: FactoryKind, templateKind?: string): string {
+  if (kind === "miniapp") {
+    const resolved = TEMPLATE_REGISTRY.miniapp[
+      (templateKind ?? "reward-vault") as MiniAppDraft["templateKind"]
+    ];
+    return (resolved ?? TEMPLATE_REGISTRY.miniapp["reward-vault"]).id;
+  }
+  return TEMPLATE_REGISTRY[kind].id;
 }
 
 function parseInteger(value: string, min: number, max: number): number | null {
@@ -336,33 +380,117 @@ export function parseDecimalToUnits(value: string, decimals: number): bigint {
   return whole * factor + fraction;
 }
 
-function makeSteps(errors: string[], deployTitle: string): FactoryStep[] {
+function artifactStatusFrom(presence: FactoryArtifactPresence | undefined): FactoryTemplateStatus {
+  if (presence === "present") return "preloaded-on-chain";
+  if (presence === "missing") return "metadata-only";
+  if (presence === "not-registered") return "not-registered";
+  return "unverified";
+}
+
+function makeExecution(
+  kind: FactoryKind,
+  publishable: boolean,
+  presence: FactoryArtifactPresence | undefined,
+  signerHint: string,
+): FactoryExecution {
+  if (kind === "miniapp") {
+    // The miniapp factory's designed on-chain outcome IS the registry record
+    // (createMiniAppFromTemplate); no artifact deploy is involved. Only a
+    // template the contract has never seen blocks execution outright.
+    return {
+      outcome: "registry-record",
+      available: publishable && presence !== "not-registered",
+      blockedReasonKey: presence === "not-registered" ? "templateNotRegistered" : "",
+      confirmingEvent: "MiniAppCreated",
+      signerHint,
+    };
+  }
+  // Asset/NFT factories promise a real contract deployment. Without a
+  // live-verified on-chain artifact, deployFromTemplate would only store a
+  // DeploymentRecord and return UInt160.Zero — so execution stays blocked
+  // with an honest reason instead of pretending a token could be minted.
+  return {
+    outcome: "contract-deployment",
+    available: publishable && presence === "present",
+    blockedReasonKey: !publishable
+      ? ""
+      : presence === "present"
+        ? ""
+        : presence === "missing" || presence === "not-registered"
+          ? "artifactNotRegistered"
+          : "artifactUnverified",
+    confirmingEvent: "TokenDeployed",
+    signerHint,
+  };
+}
+
+function makeSteps(
+  errors: string[],
+  kind: FactoryKind,
+  presence: FactoryArtifactPresence | undefined,
+): FactoryStep[] {
   const blocked = errors.length > 0;
+  const record = kind === "miniapp";
+  const deployTitleKey =
+    kind === "nep17" ? "stepDeployTitleNep17" : kind === "nep11" ? "stepDeployTitleNep11" : "stepDeployTitleMiniapp";
+
+  const templateDetailKey = blocked
+    ? "stepTemplateBlocked"
+    : record
+      ? "stepTemplateRecordDetail"
+      : presence === "present"
+        ? "stepTemplateArtifactReady"
+        : presence === "missing" || presence === "not-registered"
+          ? "stepTemplateMetadataOnly"
+          : "stepTemplateUnverified";
+
+  const deployStatus: FactoryStepStatus = blocked
+    ? "blocked"
+    : record
+      ? presence === "not-registered"
+        ? "blocked"
+        : "ready"
+      : presence === "present"
+        ? "ready"
+        : presence === "missing" || presence === "not-registered"
+          ? "blocked"
+          : "manual";
+
+  const deployDetailKey = blocked
+    ? "stepDeployBlocked"
+    : record
+      ? presence === "not-registered"
+        ? "stepDeployTemplateMissing"
+        : "stepDeployRecordDetail"
+      : presence === "present"
+        ? "stepDeployReadyDetail"
+        : presence === "missing" || presence === "not-registered"
+          ? "stepDeployArtifactMissing"
+          : "stepDeployUnverifiedDetail";
+
   return [
     {
       key: "validate",
-      title: "Validate inputs",
-      detail: blocked ? "Fix blocking errors before deployment." : "Names, symbols, owner, and parameter bounds are valid.",
+      titleKey: "stepValidateTitle",
+      detailKey: blocked ? "stepValidateBlocked" : "stepValidateReady",
       status: blocked ? "blocked" : "ready",
     },
     {
       key: "template",
-      title: "Select on-chain template",
-      detail: blocked
-        ? "Template metadata is deterministic, but the factory contract must be configured before execution."
-        : "Use the preloaded NEF and manifest stored by the Factory contract.",
+      titleKey: "stepTemplateTitle",
+      detailKey: templateDetailKey,
       status: blocked ? "blocked" : "ready",
     },
     {
       key: "deploy",
-      title: deployTitle,
-      detail: "Submit only template ID and initialization parameters to the Factory contract.",
-      status: blocked ? "blocked" : "manual",
+      titleKey: deployTitleKey,
+      detailKey: deployDetailKey,
+      status: deployStatus,
     },
     {
       key: "bind",
-      title: "Bind domain and catalog metadata",
-      detail: "Record contract hash, NeoNS domain, network, and OneGate launch URL in the shared registry.",
+      titleKey: "stepBindTitle",
+      detailKey: "stepBindDetail",
       status: blocked ? "blocked" : "manual",
     },
   ];
@@ -377,10 +505,11 @@ function planEnvelope(
   errors: string[],
   warnings: string[],
   initParams: Record<string, unknown>,
-  deployTitle: string,
+  signerHint: string,
   launcherAppId: string,
+  artifactPresence: FactoryArtifactPresence | undefined,
 ): FactoryPlan {
-  const factoryContract = getFactoryContract(kind, network);
+  const factoryContract = factoryContractFor(kind, network);
   const blockingErrors = [...errors];
   if (!factoryContract) blockingErrors.push("factory_contract_not_configured");
   else if (!HASH160.test(factoryContract)) blockingErrors.push("factory_contract_invalid");
@@ -390,6 +519,9 @@ function planEnvelope(
     templateVersion: template.version,
     initParams,
   };
+  // The digest commits to the registry artifact HASHES only — never the live
+  // artifact status — so the same inputs always reproduce the same digest
+  // whether or not the chain has been read yet.
   const digest = digestPayload({
     kind,
     network,
@@ -401,6 +533,7 @@ function planEnvelope(
   });
   const packageId = `${template.id.replace(/\./g, "-")}-${digest.slice(-10)}`;
   const initParamsJson = JSON.stringify(initParams);
+  const publishable = blockingErrors.length === 0;
   const oneGateParams = {
     operation,
     template: kind,
@@ -417,7 +550,10 @@ function planEnvelope(
     templateRef: template.id,
     templateId: template.id,
     templateVersion: template.version,
-    templateArtifact: template.artifact,
+    templateArtifact: {
+      status: artifactStatusFrom(artifactPresence),
+      ...template.artifact,
+    },
     operation,
     deploymentCall: {
       scriptHash: factoryContract,
@@ -429,13 +565,14 @@ function planEnvelope(
         { type: "String", value: initParamsJson },
       ],
     },
+    execution: makeExecution(kind, publishable, artifactPresence, signerHint),
     packageId,
     digest,
-    publishable: blockingErrors.length === 0,
+    publishable,
     blockingErrors,
     warnings,
     payload,
-    steps: makeSteps(blockingErrors, deployTitle),
+    steps: makeSteps(blockingErrors, kind, artifactPresence),
     oneGate: {
       url: buildOneGateLaunchUrl(launcherAppId, oneGateParams),
       params: oneGateParams,
@@ -444,7 +581,11 @@ function planEnvelope(
   };
 }
 
-function buildNep17Plan(input: Record<string, unknown>, launcherAppId: string): FactoryPlan {
+function buildNep17Plan(
+  input: Record<string, unknown>,
+  launcherAppId: string,
+  artifactPresence: FactoryArtifactPresence | undefined,
+): FactoryPlan {
   const name = safeString(input.name, 64);
   const symbol = safeString(input.symbol, 16).toUpperCase();
   const decimalsRaw = safeString(input.decimals || "8", 4);
@@ -501,12 +642,17 @@ function buildNep17Plan(input: Record<string, unknown>, launcherAppId: string): 
     errors,
     warnings,
     initParams,
-    "Deploy NEP-17 from template",
+    owner,
     launcherAppId,
+    artifactPresence,
   );
 }
 
-function buildNep11Plan(input: Record<string, unknown>, launcherAppId: string): FactoryPlan {
+function buildNep11Plan(
+  input: Record<string, unknown>,
+  launcherAppId: string,
+  artifactPresence: FactoryArtifactPresence | undefined,
+): FactoryPlan {
   const collectionName = safeString(input.collectionName || input.name, 64);
   const symbol = safeString(input.symbol, 16).toUpperCase();
   const maxSupplyRaw = safeString(input.maxSupply || "0", 20);
@@ -547,12 +693,17 @@ function buildNep11Plan(input: Record<string, unknown>, launcherAppId: string): 
     errors,
     warnings,
     initParams,
-    "Deploy NEP-11 from template",
+    owner,
     launcherAppId,
+    artifactPresence,
   );
 }
 
-function buildMiniAppPlan(input: Record<string, unknown>, launcherAppId: string): FactoryPlan {
+function buildMiniAppPlan(
+  input: Record<string, unknown>,
+  launcherAppId: string,
+  artifactPresence: FactoryArtifactPresence | undefined,
+): FactoryPlan {
   const appId = safeString(input.appId, 80).toLowerCase();
   const appName = safeString(input.appName || input.name, 64);
   const templateKind = safeString(input.templateKind || "reward-vault", 40);
@@ -607,20 +758,21 @@ function buildMiniAppPlan(input: Record<string, unknown>, launcherAppId: string)
     errors,
     warnings,
     initParams,
-    "Create platform miniapp from template",
+    admin,
     launcherAppId,
+    artifactPresence,
   );
 }
 
 export function buildFactoryPlan(
   kind: FactoryKind,
   input: Record<string, unknown>,
-  options: { appId?: string } = {},
+  options: { appId?: string; artifactPresence?: FactoryArtifactPresence } = {},
 ): FactoryPlan {
   const appId = options.appId || FACTORY_APP_IDS[kind] || DEFAULT_FACTORY_APP_ID;
-  if (kind === "nep17") return buildNep17Plan(input, appId);
-  if (kind === "nep11") return buildNep11Plan(input, appId);
-  return buildMiniAppPlan(input, appId);
+  if (kind === "nep17") return buildNep17Plan(input, appId, options.artifactPresence);
+  if (kind === "nep11") return buildNep11Plan(input, appId, options.artifactPresence);
+  return buildMiniAppPlan(input, appId, options.artifactPresence);
 }
 
 function pickKind(context: MiniAppLaunchContext): FactoryKind {

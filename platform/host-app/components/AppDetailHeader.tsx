@@ -1,6 +1,6 @@
 import React from "react";
 import { MiniAppInfo } from "./types";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MoreHorizontal } from "lucide-react";
 import { isFlagshipMiniApp } from "@/lib/miniapp-showcase";
 import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 
@@ -13,7 +13,9 @@ type Props = {
  * Polymarket-style compact detail header.
  * One sticky row, ~48px tall, so the play area stays above the fold.
  *   [< back] [icon] AppName · category · status   [appSurface chip]
- * The full description and banner live in the page status board / dApp itself.
+ * The status dot stays visible at every width (it answers "is this real and
+ * live?" first); category / Flagship / surface fold into an overflow chip on
+ * phones. The full description and banner live in the page status board.
  */
 export function AppDetailHeader({ app, onBack }: Props) {
   const isFlagship = isFlagshipMiniApp(app.app_id);
@@ -74,7 +76,10 @@ export function AppDetailHeader({ app, onBack }: Props) {
           {app.category}
         </span>
         <span className="hidden h-4 w-px shrink-0 bg-gray-200 sm:block" />
-        <span className="hidden items-center gap-1.5 text-xs font-semibold sm:inline-flex">
+        <span
+          className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold"
+          data-testid="app-header-status"
+        >
           <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
           <span className={statusTextClass}>{statusLabel}</span>
         </span>
@@ -83,6 +88,31 @@ export function AppDetailHeader({ app, onBack }: Props) {
             Flagship
           </span>
         )}
+
+        <details
+          className="relative ml-auto shrink-0 sm:hidden"
+          data-testid="app-header-overflow"
+        >
+          <summary
+            className="flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-md text-gray-500 transition-colors marker:content-none hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            aria-label="More app details"
+          >
+            <MoreHorizontal size={16} aria-hidden="true" />
+          </summary>
+          <div className="absolute right-0 top-full z-30 mt-1 flex w-max max-w-[80vw] flex-col items-start gap-1.5 rounded-md border border-gray-200 bg-white p-2 shadow-sm">
+            <span className="text-xs font-semibold capitalize text-gray-500">
+              {app.category}
+            </span>
+            {isFlagship && (
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                Flagship
+              </span>
+            )}
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+              {appSurface}
+            </span>
+          </div>
+        </details>
 
         <div className="ml-auto hidden items-center gap-2 sm:flex">
           <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">

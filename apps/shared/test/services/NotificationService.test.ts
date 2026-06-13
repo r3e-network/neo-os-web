@@ -1,12 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Mock } from "vitest";
 import { EventBus } from "@shared/services/EventBus";
-import { NotificationService, NOTIFICATION_EVENT } from "@shared/services/NotificationService";
+import {
+  NotificationService,
+  NOTIFICATION_EVENT,
+  classifyChainError,
+  mapChainError,
+} from "@shared/services/NotificationService";
 import type { Notification } from "@shared/services/NotificationService";
 
 describe("NotificationService", () => {
   let bus: EventBus;
   let notify: NotificationService;
-  let t: ReturnType<typeof vi.fn>;
+  let t: Mock<(key: string, params?: Record<string, string | number>) => string>;
   let emitted: Notification[];
 
   beforeEach(() => {
@@ -112,14 +118,16 @@ describe("NotificationService", () => {
     });
 
     it("should show error on reject and return undefined", async () => {
-      const fn = vi.fn().mockRejectedValue(new Error("Network timeout"));
+      // Unrecognized (possibly app-localized) messages keep passing through
+      // verbatim — only known chain/RPC families are mapped (see below).
+      const fn = vi.fn().mockRejectedValue(new Error("Stream not found"));
 
       const result = await notify.guard(fn, "success", "fallbackErr");
 
       expect(result).toBeUndefined();
       expect(emitted).toHaveLength(1);
       expect(emitted[0]).toEqual({
-        message: "Network timeout",
+        message: "Stream not found",
         type: "error",
       });
     });
@@ -158,7 +166,7 @@ describe("NotificationService", () => {
     });
 
     it("should return {ok: false, error} and emit error toast on reject without throwing", async () => {
-      const failure = new Error("Network timeout");
+      const failure = new Error("Stream not found");
       const fn = vi.fn().mockRejectedValue(failure);
 
       const result = await notify.guardResult(fn, "success", "fallbackErr");
@@ -166,7 +174,7 @@ describe("NotificationService", () => {
       expect(result).toEqual({ ok: false, error: failure });
       expect(emitted).toHaveLength(1);
       expect(emitted[0]).toEqual({
-        message: "Network timeout",
+        message: "Stream not found",
         type: "error",
       });
     });
@@ -182,6 +190,101 @@ describe("NotificationService", () => {
 
       expect(voidSuccess.ok).toBe(true);
       expect(swallowedFailure.ok).toBe(false);
+    });
+  });
+
+  describe("chain error mapping", () => {
+    let debugSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      debugSpy = vi.spyOn(console, "debug").mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      debugSpy.mockRestore();
+    });
+
+    it.each([
+      ["User rejected the request", "userRejected"],
+      ["Transaction cancelled by user", "userRejected"],
+      ["USER_REJECTED", "userRejected"],
+      ["Contract not configured for this network", "contractUnavailable"],
+      ["no contract hash for neo-n3-testnet", "contractUnavailable"],
+      ["FAULT: insufficient prepaid gas", "insufficientGas"],
+      ["Insufficient funds for network fee", "insufficientGas"],
+      ["not enough GAS to cover fees", "insufficientGas"],
+      ["Request to https://rpc.example timed out after 10000ms", "networkTimeout"],
+      ["Failed to fetch", "networkTimeout"],
+      ["NetworkError when attempting to fetch resource", "networkTimeout"],
+      ["getLatest FAULT: An unhandled exception was thrown", "transactionFailed"],
+      ["System.Contract.Call failed: method not found: getEscrow/1", "transactionFailed"],
+    ] as const)("classifies %j as %s", (message, expected) => {
+      expect(classifyChainError(new Error(message))).toBe(expected);
+      expect(classifyChainError(message)).toBe(expected);
+    });
+
+    it("classifies AbortSignal.timeout DOMException by name", () => {
+      const timeoutError = new Error("The operation was aborted.");
+      timeoutError.name = "TimeoutError";
+      expect(classifyChainError(timeoutError)).toBe("networkTimeout");
+    });
+
+    it("returns null for unrecognized and app-localized messages", () => {
+      expect(classifyChainError(new Error("Stream not found"))).toBeNull();
+      expect(classifyChainError("余额不足")).toBeNull();
+      expect(classifyChainError(42)).toBeNull();
+      expect(classifyChainError(null)).toBeNull();
+      expect(classifyChainError(new Error(""))).toBeNull();
+    });
+
+    it("mapChainError translates known families and returns null otherwise", () => {
+      expect(mapChainError(new Error("insufficient prepaid gas"), t)).toBe(
+        "translated:insufficientGas",
+      );
+      expect(mapChainError(new Error("Custom business assert"), t)).toBeNull();
+    });
+
+    it("error() replaces known chain failures with localized copy and debug-logs the raw text", () => {
+      notify.error(new Error("FAULT: insufficient prepaid gas"));
+
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0]).toEqual({
+        message: "translated:insufficientGas",
+        type: "error",
+      });
+      expect(debugSpy).toHaveBeenCalledTimes(1);
+      expect(String(debugSpy.mock.calls[0][0])).toContain(
+        "FAULT: insufficient prepaid gas",
+      );
+    });
+
+    it("guard() and guardResult() route rejections through the mapper", async () => {
+      await notify.guard(async () => {
+        throw new Error("Network timeout");
+      });
+      const result = await notify.guardResult(async () => {
+        throw new Error("User rejected the transaction");
+      });
+
+      expect(result.ok).toBe(false);
+      expect(emitted.map((n) => n.message)).toEqual([
+        "translated:networkTimeout",
+        "translated:userRejected",
+      ]);
+      expect(emitted.every((n) => n.type === "error")).toBe(true);
+    });
+
+    it("error() keeps the legacy contract for unmapped values", () => {
+      notify.error(new Error("Stream not found"));
+      notify.error("custom string");
+      notify.error({ weird: true }, "unexpectedError");
+
+      expect(emitted.map((n) => n.message)).toEqual([
+        "Stream not found",
+        "custom string",
+        "translated:unexpectedError",
+      ]);
+      expect(debugSpy).not.toHaveBeenCalled();
     });
   });
 });

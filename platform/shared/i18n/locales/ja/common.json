@@ -86,7 +86,14 @@
     "notConnected": "ウォレット未接続",
     "insufficientBalance": "残高不足",
     "pleaseConnect": "続行するにはウォレットを接続してください",
-    "optionAlt": "{wallet} ウォレット"
+    "optionAlt": "{wallet} ウォレット",
+    "menu": "ウォレットメニュー",
+    "copyAddress": "アドレスをコピー",
+    "viewOnExplorer": "エクスプローラーで表示",
+    "accountSettings": "アカウント設定",
+    "reconnect": "再接続",
+    "reconnectWallet": "ウォレットを再接続",
+    "dismissSavedSession": "保存されたウォレットセッションを破棄"
   },
   "auth": {
     "connected": "接続済み",

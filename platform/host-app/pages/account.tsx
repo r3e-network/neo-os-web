@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { Layout, PageHero } from "@/components/layout";
@@ -14,39 +15,79 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Link2, Shield, Wallet } from "lucide-react";
+import { BookOpen, Check, Link2, Shield, Wallet } from "lucide-react";
 import { useWalletStore } from "@/lib/wallet/store";
 import { oauthProviders, useOAuthStore } from "@/lib/oauth/store";
+import { BRAND } from "@/lib/brand";
+import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/react";
 
 export default function AccountPage() {
+  const { t } = useI18n();
   const { address } = useWalletStore();
   const { accounts, loading, linkAccount, unlinkAccount } = useOAuthStore();
+  const [addressCopied, setAddressCopied] = useState(false);
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimer.current !== null) {
+        clearTimeout(copyResetTimer.current);
+      }
+    };
+  }, []);
+
   const connectedProviders = accounts.length;
+  const walletStatus = address
+    ? t("account.connected", "host")
+    : t("account.notConnected", "host");
   const shortAddress = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
-    : "Not connected";
+    : "—";
+
+  const handleCopyAddress = () => {
+    if (!address) return;
+    navigator.clipboard
+      .writeText(address)
+      .then(() => {
+        setAddressCopied(true);
+        if (copyResetTimer.current !== null) {
+          clearTimeout(copyResetTimer.current);
+        }
+        copyResetTimer.current = setTimeout(() => {
+          copyResetTimer.current = null;
+          setAddressCopied(false);
+        }, 2000);
+      })
+      .catch((e: unknown) => {
+        console.warn(
+          "[account] clipboard write failed:",
+          e instanceof Error ? e.message : String(e),
+        );
+      });
+  };
 
   return (
     <Layout>
       <Head>
-        <title>Account - Yiwu</title>
+        <title>{`${t("account.pageTitle", "host")} - ${BRAND.productName}`}</title>
       </Head>
 
       <div className="pb-16 pt-20">
         <PageHero
-          eyebrow="Identity"
-          title="Profile Settings"
-          description="Manage your Neo wallet identity, linked social accounts, and the current host-app frontend access policy in one place."
+          eyebrow={t("account.eyebrow", "host")}
+          title={t("account.heroTitle", "host")}
+          description={t("account.heroDescription", "host")}
           stats={[
             {
-              label: "Wallet",
-              value: address ? "Connected" : "Not connected",
+              label: t("account.statWallet", "host"),
+              value: walletStatus,
               hint: shortAddress,
             },
             {
-              label: "Linked socials",
+              label: t("account.statLinkedSocials", "host"),
               value: String(connectedProviders),
-              hint: "OAuth providers available",
+              hint: t("account.statLinkedSocialsHint", "host"),
             },
           ]}
         />
@@ -59,17 +100,21 @@ export default function AccountPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-gray-900">
-                        Neo Wallet
+                        {t("account.walletCardTitle", "host")}
                       </CardTitle>
                       <CardDescription>
-                        Your primary on-chain identity
+                        {t("account.walletCardDescription", "host")}
                       </CardDescription>
                     </div>
                     <Badge
                       variant="outline"
-                      className="border-neo/20 bg-neo/10 text-neo"
+                      className={cn(
+                        address
+                          ? "border-neo/20 bg-neo/10 text-neo"
+                          : "border-gray-200 bg-gray-100 text-gray-500",
+                      )}
                     >
-                      Connected
+                      {walletStatus}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -83,7 +128,9 @@ export default function AccountPage() {
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-500">Wallet Address</p>
+                      <p className="text-sm text-gray-500">
+                        {t("account.walletAddress", "host")}
+                      </p>
                       <p className="truncate text-lg font-mono text-gray-900">
                         {shortAddress}
                       </p>
@@ -91,22 +138,21 @@ export default function AccountPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-gray-500 hover:text-gray-900"
+                      className={cn(
+                        "text-gray-500 hover:text-gray-900",
+                        addressCopied && "text-neo hover:text-neo",
+                      )}
                       disabled={!address}
-                      onClick={() => {
-                        if (address) {
-                          navigator.clipboard
-                            .writeText(address)
-                            .catch((e: unknown) => {
-                              console.warn(
-                                "[account] clipboard write failed:",
-                                e instanceof Error ? e.message : String(e),
-                              );
-                            });
-                        }
-                      }}
+                      onClick={handleCopyAddress}
                     >
-                      Copy
+                      {addressCopied && (
+                        <Check
+                          size={14}
+                          className="mr-1.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                      )}
+                      {addressCopied ? t("actions.copied") : t("actions.copy")}
                     </Button>
                   </div>
                 </CardContent>
@@ -115,10 +161,10 @@ export default function AccountPage() {
               <Card className="glass-card">
                 <CardHeader>
                   <CardTitle className="text-gray-900">
-                    Social Connections
+                    {t("account.socialTitle", "host")}
                   </CardTitle>
                   <CardDescription>
-                    Bind your accounts for OAuth and extra rewards
+                    {t("account.socialDescription", "host")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -153,29 +199,37 @@ export default function AccountPage() {
                         className="text-emerald-500"
                         aria-hidden="true"
                       />
-                      Access Summary
+                      {t("account.accessSummary", "host")}
                     </CardTitle>
-                    <Badge className="border-emerald-500/30 bg-emerald-500/20 text-emerald-600">
-                      {address ? "Ready" : "Connect"}
+                    <Badge
+                      className={cn(
+                        address
+                          ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-600"
+                          : "border-gray-200 bg-gray-100 text-gray-500",
+                      )}
+                    >
+                      {address
+                        ? t("account.ready", "host")
+                        : t("account.connect", "host")}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-4">
                   <AccountInfoRow
-                    label="Wallet"
-                    value={address ? "Connected" : "Not connected"}
+                    label={t("account.rowWallet", "host")}
+                    value={walletStatus}
                   />
                   <AccountInfoRow
-                    label="Linked social accounts"
+                    label={t("account.rowLinkedSocials", "host")}
                     value={String(connectedProviders)}
                   />
                   <AccountInfoRow
-                    label="Ratings and comments"
-                    value="Available in each miniapp"
+                    label={t("account.rowRatings", "host")}
+                    value={t("account.rowRatingsValue", "host")}
                   />
                   <AccountInfoRow
-                    label="Platform statistics"
-                    value="Hidden from frontend"
+                    label={t("account.rowPlatformStats", "host")}
+                    value={t("account.rowPlatformStatsValue", "host")}
                   />
                 </CardContent>
               </Card>
@@ -188,7 +242,7 @@ export default function AccountPage() {
                       className="text-amber-500"
                       aria-hidden="true"
                     />
-                    Next actions
+                    {t("account.nextActions", "host")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -196,13 +250,13 @@ export default function AccountPage() {
                     href="/miniapps"
                     className="block rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:border-neo/30 hover:bg-neo/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
-                    Browse live miniapps
+                    {t("account.browseMiniapps", "host")}
                   </Link>
                   <Link
                     href="/docs"
                     className="block rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:border-neo/30 hover:bg-neo/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
-                    Read integration docs
+                    {t("account.readDocs", "host")}
                   </Link>
                 </CardContent>
               </Card>
@@ -215,19 +269,12 @@ export default function AccountPage() {
                       className="text-indigo-400"
                       aria-hidden="true"
                     />
-                    Frontend policy
+                    {t("account.policyTitle", "host")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-xs leading-relaxed text-gray-500">
-                  <p>
-                    The account page now focuses on identity, wallet access, and
-                    connected providers.
-                  </p>
-                  <p>
-                    Platform statistics remain hidden until the data pipeline is
-                    rebuilt. Reviews and comments stay enabled inside each
-                    miniapp.
-                  </p>
+                  <p>{t("account.policyBody1", "host")}</p>
+                  <p>{t("account.policyBody2", "host")}</p>
                 </CardContent>
               </Card>
 
@@ -238,11 +285,10 @@ export default function AccountPage() {
                     className="text-indigo-400"
                     aria-hidden="true"
                   />
-                  Security Tip
+                  {t("account.securityTipTitle", "host")}
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                  Connect multiple socials to ensure you can always recover your
-                  account access.
+                  {t("account.securityTipBody", "host")}
                 </p>
               </div>
             </div>

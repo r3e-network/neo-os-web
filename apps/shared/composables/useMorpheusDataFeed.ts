@@ -24,10 +24,31 @@ export interface UseMorpheusDataFeedConfig {
   rpcUrl?: string;
 }
 
+/**
+ * A price read together with the feed's own freshness metadata, so callers
+ * can tell a live quote from a frozen feed (the on-chain record keeps
+ * returning HALT with its last value even when updates stopped months ago).
+ */
+export interface MorpheusPriceQuote {
+  /** Price in quote-currency units (on-chain integer descaled by 10^6). */
+  price: number;
+  /**
+   * When the upstream source produced the value (epoch seconds, field [1]
+   * of the on-chain struct). `0` when the contract omits it.
+   */
+  dataTimestamp: number;
+  /**
+   * When the value was written on-chain (epoch seconds, field [3] of the
+   * on-chain struct). `0` when the contract omits it.
+   */
+  recordTimestamp: number;
+}
+
 export interface MorpheusDataFeedHandle {
   network: NeoNetwork;
   error: Observable<string | null>;
   getPrice: (asset: string) => Promise<number>;
+  getPriceWithMeta: (asset: string) => Promise<MorpheusPriceQuote>;
   listPairs: () => Promise<string[]>;
 }
 
@@ -92,7 +113,13 @@ export function useMorpheusDataFeed(
 
   const error: Observable<string | null> = createObservable<string | null>(null);
 
-  const getPrice = async (asset: string): Promise<number> => {
+  const parseTimestampField = (field: NeoStackItem | undefined): number => {
+    if (!field || field.type !== "Integer") return 0;
+    const parsed = Number(String(field.value ?? "0"));
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  };
+
+  const getPriceWithMeta = async (asset: string): Promise<MorpheusPriceQuote> => {
     error.set(null);
     if (!contractHash) {
       const msg = `MorpheusDataFeed not deployed on ${network}`;
@@ -111,6 +138,7 @@ export function useMorpheusDataFeed(
       }
       const top = result.stack?.[0];
       // Returns Struct: [pair, dataTimestamp, price, recordTimestamp, signature, version_or_active_flag]
+      // Timestamps are epoch SECONDS (verified live against the mainnet feed).
       // Note: field [5] looks like an active/version flag (observed value = 1),
       // NOT decimals. TwelveData publishes prices on-chain at a fixed 6-decimal
       // scale (confirmed by the gateway response shape: `decimals: 6,
@@ -129,12 +157,21 @@ export function useMorpheusDataFeed(
       if (!Number.isFinite(priceNumber)) {
         throw new Error(`price overflow for ${pair}: ${priceField.value}`);
       }
-      return priceNumber;
+      return {
+        price: priceNumber,
+        dataTimestamp: parseTimestampField(fields[1]),
+        recordTimestamp: parseTimestampField(fields[3]),
+      };
     } catch (e) {
       const msg = e instanceof Error ? e.message : "DataFeed read failed";
       error.set(msg);
       throw e instanceof Error ? e : new Error(msg);
     }
+  };
+
+  const getPrice = async (asset: string): Promise<number> => {
+    const quote = await getPriceWithMeta(asset);
+    return quote.price;
   };
 
   const listPairs = async (): Promise<string[]> => {
@@ -162,6 +199,7 @@ export function useMorpheusDataFeed(
     network,
     error,
     getPrice,
+    getPriceWithMeta,
     listPairs,
   };
 }

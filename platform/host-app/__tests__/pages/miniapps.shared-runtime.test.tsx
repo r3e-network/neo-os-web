@@ -422,7 +422,18 @@ describe("MiniAppDetailPage shared runtime", () => {
       "Already submitted from the embedded workspace: 0x4b53a363...f0c7c7c4",
     );
     expect(
-      screen.getByText(`Embedded workspace submitted transaction: ${txid}`),
+      screen.getByText(
+        "Embedded workspace submitted transaction: 0x4b53a363...f0c7c7c4",
+      ),
     ).toBeInTheDocument();
+    // The success notice is a structured receipt: short txid + explorer link.
+    const explorerLinks = screen.getAllByRole("link", {
+      name: /view on explorer/i,
+    });
+    expect(explorerLinks.length).toBeGreaterThan(0);
+    expect(explorerLinks[0]).toHaveAttribute(
+      "href",
+      `https://dora.coz.io/transaction/neo3/testnet/${txid}`,
+    );
   });
 });

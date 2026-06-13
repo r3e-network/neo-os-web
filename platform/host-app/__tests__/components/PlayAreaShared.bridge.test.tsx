@@ -2,7 +2,11 @@ import React, { useRef } from "react";
 import { render, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
-import { useEmbeddedWalletBridge } from "../../components/playarea/PlayAreaShared";
+import {
+  HOST_WALLET_BRIDGE_ERROR,
+  useEmbeddedWalletBridge,
+  type EmbeddedWalletBridgeErrorDetail,
+} from "../../components/playarea/PlayAreaShared";
 
 const HOST_WALLET_BRIDGE_REQUEST = "neo-miniapp-wallet-bridge:request";
 const HOST_WALLET_BRIDGE_RESPONSE = "neo-miniapp-wallet-bridge:response";
@@ -361,5 +365,100 @@ describe("useEmbeddedWalletBridge origin gating", () => {
 
     const { message } = await lastReply(postSpy);
     expect(message).toMatchObject({ ok: true });
+  });
+
+  it("broadcasts a host-side error event when a sensitive request is rejected", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    confirmSpy.mockReturnValue(false);
+    const errorEvents: EmbeddedWalletBridgeErrorDetail[] = [];
+    const onBridgeError = (event: Event) => {
+      errorEvents.push(
+        (event as CustomEvent<EmbeddedWalletBridgeErrorDetail>).detail,
+      );
+    };
+    window.addEventListener(HOST_WALLET_BRIDGE_ERROR, onBridgeError);
+    try {
+      render(<BridgeHarness frame={frame} />);
+
+      dispatchBridgeMessage({
+        origin: "null",
+        source: frameWindow,
+        data: bridgeRequest("invoke", {
+          invocations: [
+            { hash: TARGET_CONTRACT, operation: "transfer", args: [] },
+          ],
+        }),
+      });
+
+      await lastReply(postSpy);
+      expect(errorEvents).toHaveLength(1);
+      expect(errorEvents[0]).toMatchObject({
+        appId: "miniapp-demo",
+        network: "testnet",
+        requestMethod: "invoke",
+        message: "User rejected the request.",
+        rejected: true,
+      });
+    } finally {
+      window.removeEventListener(HOST_WALLET_BRIDGE_ERROR, onBridgeError);
+    }
+  });
+
+  it("broadcasts a host-side error event when a sensitive request fails", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    mockAdapter.invoke.mockRejectedValue(new Error("Wallet exploded."));
+    const errorEvents: EmbeddedWalletBridgeErrorDetail[] = [];
+    const onBridgeError = (event: Event) => {
+      errorEvents.push(
+        (event as CustomEvent<EmbeddedWalletBridgeErrorDetail>).detail,
+      );
+    };
+    window.addEventListener(HOST_WALLET_BRIDGE_ERROR, onBridgeError);
+    try {
+      render(<BridgeHarness frame={frame} />);
+
+      dispatchBridgeMessage({
+        origin: "null",
+        source: frameWindow,
+        data: bridgeRequest("invoke", {
+          invocations: [
+            { hash: TARGET_CONTRACT, operation: "transfer", args: [] },
+          ],
+        }),
+      });
+
+      const { message } = await lastReply(postSpy);
+      expect(message).toMatchObject({ ok: false });
+      expect(errorEvents).toHaveLength(1);
+      expect(errorEvents[0]).toMatchObject({
+        message: "Wallet exploded.",
+        rejected: false,
+      });
+    } finally {
+      window.removeEventListener(HOST_WALLET_BRIDGE_ERROR, onBridgeError);
+    }
+  });
+
+  it("does not broadcast host-side errors for failed reads", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    const errorEvents: Event[] = [];
+    const onBridgeError = (event: Event) => errorEvents.push(event);
+    window.addEventListener(HOST_WALLET_BRIDGE_ERROR, onBridgeError);
+    try {
+      render(<BridgeHarness frame={frame} />);
+
+      dispatchBridgeMessage({
+        origin: "null",
+        source: frameWindow,
+        // Missing invocation payload makes the read request fail.
+        data: bridgeRequest("call", {}),
+      });
+
+      const { message } = await lastReply(postSpy);
+      expect(message).toMatchObject({ ok: false });
+      expect(errorEvents).toHaveLength(0);
+    } finally {
+      window.removeEventListener(HOST_WALLET_BRIDGE_ERROR, onBridgeError);
+    }
   });
 });

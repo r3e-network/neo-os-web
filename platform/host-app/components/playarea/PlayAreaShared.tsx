@@ -44,10 +44,22 @@ export type PlayAreaComponent = (props: PlayAreaRegistryProps) => JSX.Element;
 export type NativePlayAreaKind = "custom" | "oracle" | "profiled";
 
 const EMBEDDED_DAPP_SETTLE_MS = 800;
+// If the embedded dApp iframe never fires onLoad (network error, bad
+// entry_url), surface a recovery state instead of spinning forever.
+const EMBEDDED_DAPP_LOAD_TIMEOUT_MS = 15_000;
 const HOST_WALLET_BRIDGE_REQUEST = "neo-miniapp-wallet-bridge:request";
 const HOST_WALLET_BRIDGE_RESPONSE = "neo-miniapp-wallet-bridge:response";
 export const HOST_WALLET_BRIDGE_RESULT =
   "neo-miniapp-wallet-bridge:result";
+// Host-side notice lane for rejected/failed sensitive bridge requests. The
+// error is always posted back to the iframe, but if the miniapp swallows it
+// the user who just dismissed the approval prompt would otherwise see no
+// acknowledgment that nothing was submitted.
+export const HOST_WALLET_BRIDGE_ERROR = "neo-miniapp-wallet-bridge:error";
+// Detail-page broadcast asking mounted playareas to re-read chain state now
+// (e.g. right after a submitted transaction confirms) instead of waiting for
+// the next 15s poll. ChainStateStrip subscribes and calls its onRefresh.
+export const HOST_PLAYFIELD_REFRESH = "neo-miniapp-host:playfield-refresh";
 const MAINNET_MAGIC = 860833102;
 const TESTNET_MAGIC = 894710606;
 const NEO_ASSET_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
@@ -111,6 +123,14 @@ export type EmbeddedWalletBridgeResultDetail = {
   operation: string;
   contractHash: string;
   memo: string;
+  at: string;
+};
+export type EmbeddedWalletBridgeErrorDetail = {
+  appId: string;
+  network: "mainnet" | "testnet";
+  requestMethod: string;
+  message: string;
+  rejected: boolean;
   at: string;
 };
 type BridgeInvocation = {
@@ -654,12 +674,27 @@ export function useEmbeddedWalletBridge({
         );
       };
 
+      const dispatchBridgeError = (message: string, rejected: boolean) => {
+        const detail: EmbeddedWalletBridgeErrorDetail = {
+          appId,
+          network,
+          requestMethod: method,
+          message,
+          rejected,
+          at: new Date().toISOString(),
+        };
+        window.dispatchEvent(
+          new CustomEvent(HOST_WALLET_BRIDGE_ERROR, { detail }),
+        );
+      };
+
       // Audit fix (confirmation hardening): require explicit user approval before any signing
       // or fund-moving wallet operation requested by the embedded miniapp.
       if (
         SENSITIVE_BRIDGE_METHODS.has(method) &&
         !confirmSensitiveBridgeOperation(appId, method, data.payload)
       ) {
+        dispatchBridgeError("User rejected the request.", true);
         reply({ ok: false, error: { message: "User rejected the request." } });
         return;
       }
@@ -680,15 +715,16 @@ export function useEmbeddedWalletBridge({
           }
           reply({ ok: true, result });
         })
-        .catch((error: unknown) =>
-          reply({
-            ok: false,
-            error: {
-              message:
-                error instanceof Error ? error.message : String(error),
-            },
-          }),
-        );
+        .catch((error: unknown) => {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          // Only sensitive (signing / fund-moving) failures get the host-side
+          // notice; read failures stay scoped to the miniapp's own UI.
+          if (SENSITIVE_BRIDGE_METHODS.has(method)) {
+            dispatchBridgeError(message, false);
+          }
+          reply({ ok: false, error: { message } });
+        });
     };
 
     window.addEventListener("message", onMessage);
@@ -934,6 +970,16 @@ export function ChainStateStrip({
   PlayAreaRegistryProps,
   "loading" | "error" | "contractHash" | "network" | "onRefresh"
 >) {
+  // Let the detail page push an immediate chain re-read (e.g. once a submitted
+  // transaction confirms) instead of waiting for the playfield's 15s poll.
+  const onRefreshRef = useRef(onRefresh);
+  onRefreshRef.current = onRefresh;
+  useEffect(() => {
+    const handleHostRefresh = () => onRefreshRef.current();
+    window.addEventListener(HOST_PLAYFIELD_REFRESH, handleHostRefresh);
+    return () =>
+      window.removeEventListener(HOST_PLAYFIELD_REFRESH, handleHostRefresh);
+  }, []);
   return (
     <div className="space-y-2 text-xs">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1196,6 +1242,8 @@ export function EmbeddedDappSurface({
   void tone;
   const [frameLoaded, setFrameLoaded] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
+  const [frameAttempt, setFrameAttempt] = useState(0);
   const loadingTitle = frameTitle.replace(/\s+dApp$/i, "");
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -1204,7 +1252,8 @@ export function EmbeddedDappSurface({
   useEffect(() => {
     setFrameLoaded(false);
     setShowLoading(true);
-  }, [url]);
+    setLoadTimedOut(false);
+  }, [url, frameAttempt]);
 
   useEffect(() => {
     if (!frameLoaded) return undefined;
@@ -1215,6 +1264,20 @@ export function EmbeddedDappSurface({
     return () => window.clearTimeout(timeout);
   }, [frameLoaded]);
 
+  // Load-failure watchdog: if onLoad never fires, swap the branded spinner for
+  // a recovery card with Retry and an always-reachable pop-out escape hatch.
+  useEffect(() => {
+    if (frameLoaded) return undefined;
+    const timeout = window.setTimeout(
+      () => setLoadTimedOut(true),
+      EMBEDDED_DAPP_LOAD_TIMEOUT_MS,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [frameLoaded, url, frameAttempt]);
+
+  const retryFrameLoad = () => setFrameAttempt((attempt) => attempt + 1);
+  const showLoadFailure = showLoading && loadTimedOut && !frameLoaded;
+
   return (
     <section className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5">
       <a
@@ -1223,7 +1286,7 @@ export function EmbeddedDappSurface({
         rel="noreferrer"
         aria-label="Open dApp in a new window"
         title="Open in a new window"
-        className="absolute right-1.5 top-1.5 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white/95 p-0 text-[11px] font-semibold text-gray-600 opacity-0 shadow-sm backdrop-blur transition hover:text-gray-900 group-hover:opacity-100 focus:opacity-100 sm:right-2 sm:top-2 sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1"
+        className="absolute right-1.5 top-1.5 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white/95 p-0 text-[11px] font-semibold text-gray-600 opacity-90 shadow-sm backdrop-blur transition hover:text-gray-900 focus:opacity-100 sm:right-2 sm:top-2 sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <ArrowRightLeft className="h-3 w-3" aria-hidden="true" />
         <span className="hidden sm:inline">New window</span>
@@ -1233,6 +1296,7 @@ export function EmbeddedDappSurface({
           intentionally omitted so a malicious miniapp cannot read window.parent.* or
           lift sb-access-token from sessionStorage. */}
       <iframe
+        key={`${url}#${frameAttempt}`}
         ref={iframeRef}
         title={frameTitle}
         src={url}
@@ -1249,7 +1313,48 @@ export function EmbeddedDappSurface({
            not via shared same-origin storage. */
         sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
       />
-      {showLoading && (
+      {showLoadFailure ? (
+        <div
+          className="absolute inset-0 grid place-items-center bg-[#f7f8fb] px-6 text-center"
+          data-testid={`${testId}-load-error`}
+          aria-live="polite"
+        >
+          <div className="w-full max-w-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-white shadow-md shadow-gray-950/10 ring-1 ring-gray-200">
+              <div className="grid h-11 w-11 place-items-center rounded-xl bg-amber-500 text-white shadow-inner">
+                <Radio className="h-5 w-5" aria-hidden="true" />
+              </div>
+            </div>
+            <p className="m-0 mt-5 text-base font-black text-gray-950">
+              Still loading {loadingTitle}…
+            </p>
+            <p className="m-0 mt-2 text-sm leading-6 text-gray-600">
+              The embedded MiniApp has not responded yet. Retry, or open it in
+              a new window.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={retryFrameLoad}
+                className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-700 px-3.5 py-1.5 text-sm font-bold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                data-testid={`${testId}-retry`}
+              >
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                Retry
+              </button>
+              <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3.5 py-1.5 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              >
+                <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                Open in new window
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : showLoading ? (
         <div
           className="absolute inset-0 grid place-items-center bg-[#f7f8fb] px-6 text-center"
           data-testid={`${testId}-loading`}
@@ -1274,7 +1379,7 @@ export function EmbeddedDappSurface({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

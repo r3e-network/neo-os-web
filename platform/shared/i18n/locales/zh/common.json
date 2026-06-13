@@ -86,7 +86,14 @@
     "notConnected": "钱包未连接",
     "insufficientBalance": "余额不足",
     "pleaseConnect": "请连接钱包以继续",
-    "optionAlt": "{wallet} 钱包"
+    "optionAlt": "{wallet} 钱包",
+    "menu": "钱包菜单",
+    "copyAddress": "复制地址",
+    "viewOnExplorer": "在区块浏览器查看",
+    "accountSettings": "账户设置",
+    "reconnect": "重新连接",
+    "reconnectWallet": "重新连接钱包",
+    "dismissSavedSession": "忽略已保存的钱包会话"
   },
   "auth": {
     "connected": "已连接",

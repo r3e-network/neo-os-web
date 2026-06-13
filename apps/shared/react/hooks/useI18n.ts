@@ -32,6 +32,17 @@ type MergedMessages<T extends TranslationMap> = BaseMessages & T;
 const interpolate = (value: string, args: InterpolationArgs): string =>
   value.replace(/\{(\w+)\}/g, (_, key) => String(args[key] ?? `{${key}}`));
 
+// Dev-only missing-key reporting, deduplicated so a key rendered in a list
+// or on every re-render warns once per session instead of flooding the
+// console. Production stays silent (and keeps the legacy "" return).
+const warnedMissingKeys = new Set<string>();
+const warnMissingKey = (key: string): void => {
+  if (!import.meta.env?.DEV) return;
+  if (warnedMissingKeys.has(key)) return;
+  warnedMissingKeys.add(key);
+  console.warn(`[i18n] Missing translation key: "${key}"`);
+};
+
 // Module-level shared locale so all hook instances stay in sync
 let sharedLocale: Locale = typeof window !== "undefined" ? getLocale() : "en";
 const localeListeners = new Set<() => void>();
@@ -127,9 +138,11 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
       (key: keyof MergedMessages<T>, args?: InterpolationArgs): string => {
         const entry = mergedRef.current[key];
         if (!entry) {
-          // Dev-only: surface the missing key instead of rendering a blank
-          // string so absent locale entries are visible during development.
-          // Production keeps "" so `t(key) || fallback` chains still apply.
+          // Dev-only: warn and surface the missing key instead of rendering a
+          // blank string so absent locale entries are visible during
+          // development. Production keeps "" so `t(key) || fallback` chains
+          // still apply.
+          warnMissingKey(String(key));
           return import.meta.env?.DEV ? String(key) : "";
         }
 
