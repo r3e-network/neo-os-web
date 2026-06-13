@@ -358,6 +358,18 @@
     letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
+
+  .redenv-per-packet-note {
+    display: block;
+    margin-top: 6px;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 10.5px;
+    font-weight: 600;
+    font-style: normal;
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: none;
+  }
 }
 
 .redenv-action-panel .neo-btn {

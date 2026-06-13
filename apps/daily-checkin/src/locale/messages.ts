@@ -43,8 +43,8 @@ const appMessages = {
   error: { en: "Error occurred", zh: "发生错误" },
   docSubtitle: { en: "Earn GAS by checking in daily", zh: "每日签到赚取 GAS" },
   docDescription: {
-    en: "Check in every day to build your streak. Day 7 pays 1 GAS, day 14 pays 2 GAS, then the streak cycle resets and starts over with collectible badge progress intact.",
-    zh: "每天签到累积连续天数。第7天奖励1 GAS，第14天奖励2 GAS，随后连续周期重置并重新开始，同时保留你的徽章成长进度。",
+    en: "Check in every day to build your streak. Day 7 pays 1 GAS, day 14 pays 2 GAS (paid from the contract's reward pool), then the streak cycle resets and starts over.",
+    zh: "每天签到累积连续天数。第7天奖励1 GAS，第14天奖励2 GAS（由合约奖励池支付），随后连续周期重置并重新开始。",
   },
   step2: { en: "Check in once per UTC day", zh: "每个 UTC 日签到一次" },
   step3: { en: "Build your streak to earn rewards", zh: "累积连续天数获得奖励" },
@@ -137,6 +137,22 @@ const appMessages = {
   rewardClaimed: { en: "Reward claimed", zh: "奖励已领取" },
   checkinUnavailable: { en: "Already checked in for this UTC day", zh: "当前 UTC 日已完成签到" },
   rewardsUnavailable: { en: "No rewards available to claim", zh: "暂无可领取奖励" },
+  rewardPool: { en: "Reward pool", zh: "奖励池" },
+  rewardPoolBalanceLabel: { en: "Reward pool balance", zh: "奖励池余额" },
+  rewardsUnfundedBanner: {
+    en: "Rewards are currently unfunded — your check-in still records your streak, but milestone GAS rewards cannot be paid until the reward pool is topped up.",
+    zh: "奖励池当前未注资 — 签到仍会记录你的连续天数，但在奖励池补充前无法发放里程碑 GAS 奖励。",
+  },
+  rewardPoolEmpty: {
+    en: "Reward pool is too low to pay this reward right now — try again after it is topped up.",
+    zh: "奖励池余额不足，暂时无法发放该奖励 — 请在补充后重试。",
+  },
+  claimUnfunded: { en: "Pool unfunded", zh: "奖励池未注资" },
+  contractPaused: { en: "Check-in paused", zh: "签到已暂停" },
+  contractPausedStatus: {
+    en: "Daily check-in is temporarily paused by the operator. Check-in and claim are unavailable until it resumes.",
+    zh: "每日签到已被运营方临时暂停。恢复前无法签到或领取。",
+  },
   walletRequired: { en: "Connect your Neo wallet to continue", zh: "请连接 Neo 钱包以继续" },
   contractNotReady: { en: "Check-in contract is not ready", zh: "签到合约尚未就绪" },
   evidence: { en: "Request and result evidence", zh: "请求与结果证据" },

@@ -339,6 +339,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <span>{t("sidebarSelectedRound")}</span>
                 <strong>{selectedRound ? selectedRoundDisplay : t("qfNoRoundTitle")}</strong>
               </div>
+              {/* Donor value-prop at the moment of contributing: the matching pool
+                  amplifies donations by donor breadth — surfaced here (not just in
+                  the admin panel) so a donor sees WHY many small donations win. */}
+              <div className="qf-amplify-note" role="note">
+                <strong>{t("qfAmplifyTitle")}</strong>
+                <p>{t("qfAmplifyCopy")}</p>
+                {(() => {
+                  const id = contributeProjectId.trim();
+                  if (!id) return null;
+                  const match = suggestedMatches.find((m) => m.id === id);
+                  if (!match) return null;
+                  return (
+                    <p className="qf-amplify-estimate">
+                      {t("qfProjectMatchEstimate", {
+                        id,
+                        match: match.matchDisplay,
+                      })}
+                      <span className="qf-amplify-estimate-hint">
+                        {t("qfProjectMatchHint")}
+                      </span>
+                    </p>
+                  );
+                })()}
+              </div>
               <p className="qf-panel-hint">
                 {selectedRound ? t("qfContributionHint") : t("selectRoundFirst")}
               </p>

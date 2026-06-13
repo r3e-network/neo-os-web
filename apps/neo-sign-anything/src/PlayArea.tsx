@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import { explorerTxUrl } from "./utils/explorer";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -44,6 +45,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : txPending
       ? t("txPending")
       : t("noBroadcastYet");
+
+  // A self-describing verify bundle: everything a third party needs to confirm
+  // authorship off-chain (address ⇄ public key ⇄ message ⇄ signature). The
+  // signature alone is not enough — the verifier also needs the message and the
+  // signer's public key/address.
+  const verifyBundle = JSON.stringify(
+    {
+      address,
+      message,
+      signature,
+      ...(publicKey ? { publicKey } : {}),
+    },
+    null,
+    2,
+  );
 
   return (
     <div className="sign-play-area">
@@ -188,24 +204,49 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       {t("publicKeyLabel")}: {shortValue(publicKey)}
                     </span>
                   )}
-                  <button
-                    type="button"
-                    disabled={!signature}
-                    onClick={() => dispatch("copyToClipboard", signature)}
-                  >
-                    {t("copySignature")}
-                  </button>
+                  <div className="sign-result-actions">
+                    <button
+                      type="button"
+                      disabled={!signature}
+                      onClick={() => dispatch("copyToClipboard", signature)}
+                    >
+                      {t("copySignature")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!signature}
+                      title={t("verifyBundleHint")}
+                      onClick={() => dispatch("copyToClipboard", verifyBundle)}
+                    >
+                      {t("copyVerifyBundle")}
+                    </button>
+                  </div>
+                  {signature && (
+                    <span className="sign-result-meta">{t("verifyBundleHint")}</span>
+                  )}
                 </div>
                 <div className={`sign-result-box${txHash ? "" : " is-empty"}`}>
                   <span>{t("broadcastResult")}</span>
                   <strong>{txHashPreview}</strong>
-                  <button
-                    type="button"
-                    disabled={!txHash}
-                    onClick={() => dispatch("copyToClipboard", txHash)}
-                  >
-                    {t("copyTxHash")}
-                  </button>
+                  <div className="sign-result-actions">
+                    <button
+                      type="button"
+                      disabled={!txHash}
+                      onClick={() => dispatch("copyToClipboard", txHash)}
+                    >
+                      {t("copyTxHash")}
+                    </button>
+                    {txHash && (
+                      <a
+                        className="sign-result-link"
+                        href={explorerTxUrl(txHash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {t("viewOnExplorer")}
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </NeoCard>

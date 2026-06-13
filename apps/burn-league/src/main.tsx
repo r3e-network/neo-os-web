@@ -90,6 +90,8 @@ defineMiniApp({
         burnCount: burn.burnCount,
         leaderboard: burn.leaderboard,
         burnAmount: burn.burnAmount,
+        minBurnGas: burn.minBurnGas,
+        maxBurnGas: burn.maxBurnGas,
         isBurning: burn.isBurning,
         isSettling: burn.isSettling,
         isLoading: burn.isLoading,

@@ -2,6 +2,7 @@
  * PlayArea.tsx — Neo Message UI (compose + inbox/outbox).
  */
 
+import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -10,6 +11,7 @@ import {
   formatUnlock,
   shortAddress,
   addressesEqual,
+  needsPublicRevealAck,
   MAX_BODY_LENGTH,
   type ComposeForm,
   type MessageView,
@@ -55,6 +57,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const bodyLength = (form.body ?? "").length;
   const dateMin = localDateTimeMin();
 
+  // Time-locked messages post their plaintext publicly on-chain, so require an
+  // explicit acknowledgement before sending. Local UI state — never touches the
+  // send path or the on-chain payload.
+  const [publicRevealAck, setPublicRevealAck] = useState(false);
+  const sendBlockedByAck = needsPublicRevealAck(form.lockMode, publicRevealAck);
+
   const renderMessage = (msg: MessageView, box: "inbox" | "outbox") => {
     const status = messageStatus(msg);
     const unlockLabel = formatUnlock(msg.unlockTime);
@@ -88,6 +96,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
         {msg.revealed && msg.plaintext ? (
           <p className="nm-plaintext">{msg.plaintext}</p>
+        ) : null}
+
+        {/* Recipient-only plaintext is cached on this device only — it is
+            re-derivable via a fresh wallet signature, not stored as readable
+            text. Time-locked reveals are genuinely public on-chain, so the note
+            applies only to recipient-only rows the connected wallet decrypted. */}
+        {msg.revealed && msg.plaintext && !msg.timeLocked && youAreRecipient ? (
+          <p className="nm-hint nm-device-note">{t("decryptedOnDevice")}</p>
         ) : null}
 
         {/* Recipient-only, not yet locally revealed: only the recipient can read */}
@@ -225,15 +241,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           {isTimed ? (
-            <label className="nm-date-field">
-              <span>{t("revealDateLabel")}</span>
-              <input
-                type="datetime-local"
-                min={dateMin}
-                value={form.revealDate ?? ""}
-                onChange={(e) => setForm({ revealDate: e.target.value })}
-              />
-            </label>
+            <>
+              <div className="nm-public-warning" role="alert">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span>{t("timedPublicWarning")}</span>
+              </div>
+              <label className="nm-date-field">
+                <span>{t("revealDateLabel")}</span>
+                <input
+                  type="datetime-local"
+                  min={dateMin}
+                  value={form.revealDate ?? ""}
+                  onChange={(e) => setForm({ revealDate: e.target.value })}
+                />
+              </label>
+              <label className="nm-ack">
+                <input
+                  type="checkbox"
+                  checked={publicRevealAck}
+                  onChange={(e) => setPublicRevealAck(e.target.checked)}
+                />
+                <span>{t("timedAcknowledge")}</span>
+              </label>
+            </>
           ) : null}
 
           <p className="nm-note">{isTimed ? t("timedNote") : t("recipientNote")}</p>
@@ -243,10 +285,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             size="lg"
             block
             loading={isSending}
-            disabled={isSending}
+            disabled={isSending || sendBlockedByAck}
             onClick={() => dispatch("sendMessage")}
           >
-            {isSending ? t("sending") : t("sendButton")}
+            {isSending ? t("sending") : isTimed ? t("sendButtonTimed") : t("sendButton")}
           </NeoButton>
         </div>
       </NeoCard>

@@ -17,6 +17,13 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
     zh: "在上方搜索名称，认领您的第一个 .neo 域名。",
   },
   expires: { en: "Expires", zh: "到期时间" },
+  // Post-expiry state: a lapsed domain shows an Expired badge + a hint that
+  // renewal may no longer guarantee ownership (the name can be re-claimed).
+  expired: { en: "Expired", zh: "已过期" },
+  expiredHint: {
+    en: "This name has lapsed. Renewing may no longer keep it — once expired, the name can be re-registered by anyone.",
+    zh: "该域名已过期。续费可能无法保留它——过期后，任何人都可以重新注册该名称。",
+  },
   manage: { en: "Manage", zh: "管理" },
   renew: { en: "Renew", zh: "续费" },
   registered: { en: "registered!", zh: "已注册！" },

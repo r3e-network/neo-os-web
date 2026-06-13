@@ -65,18 +65,55 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   }, [selectedAgentId]);
 
+  const visibleAgents = agentAccounts.slice(0, 21);
+  // Resolve an agent's on-chain NEO balance (read in main.tsx) by agent id.
+  const agentBalanceById = (id: string): number | null => {
+    const numeric = Number(id);
+    if (!Number.isInteger(numeric)) return null;
+    const match = visibleAgents.find(
+      (agent, idx) => Number(agent.agentId ?? idx + 1) === numeric,
+    );
+    if (!match) return null;
+    const raw = (match as Record<string, unknown>).neoBalance;
+    return typeof raw === "number" ? raw : null;
+  };
+  // Pre-validate the move against the SOURCE agent's NEO balance so the operator
+  // is not submitting a transfer the contract would revert (insufficient NEO).
+  const sourceBalance = agentBalanceById(fromAgentId);
+  const moveAmountNum = Number(moveAmount);
+  const moveExceedsBalance =
+    sourceBalance !== null &&
+    Number.isFinite(moveAmountNum) &&
+    moveAmountNum > 0 &&
+    moveAmountNum > sourceBalance;
+  // Account address for the agent whose vote is being synced (for the AA-witness note).
+  const voteAgentAccount = (() => {
+    const numeric = Number(voteAgentId);
+    if (!Number.isInteger(numeric)) return "";
+    const match = visibleAgents.find(
+      (agent, idx) => Number(agent.agentId ?? idx + 1) === numeric,
+    );
+    if (!match) return "";
+    return String(match.account ?? match.accountAddress ?? match.address ?? "");
+  })();
+  const shortVoteAccount = voteAgentAccount
+    ? voteAgentAccount.length <= 16
+      ? voteAgentAccount
+      : `${voteAgentAccount.slice(0, 8)}…${voteAgentAccount.slice(-6)}`
+    : "";
+
   const canMove =
     !controlsDisabled &&
     Boolean(fromAgentId.trim()) &&
     Boolean(toAgentId.trim()) &&
     Boolean(moveAmount.trim()) &&
-    fromAgentId.trim() !== toAgentId.trim();
+    fromAgentId.trim() !== toAgentId.trim() &&
+    !moveExceedsBalance;
   const canUpdateCandidate =
     !controlsDisabled &&
     Boolean(candidateAgentId.trim()) &&
     Boolean(candidatePublicKey.trim());
   const canSyncVote = !controlsDisabled && Boolean(voteAgentId.trim());
-  const visibleAgents = agentAccounts.slice(0, 21);
   const routeItems = [
     { label: t("selectedRoute"), value: selectedAgent },
     { label: t("agentCount"), value: agentCount },
@@ -159,6 +196,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   onChange={setMoveAmount}
                 />
               </div>
+              {sourceBalance !== null && (
+                <p className="anchor-admin-move-hint">
+                  {t("moveBalanceHint")}{" "}
+                  <strong>
+                    #{fromAgentId.trim()}: {sourceBalance} {t("agentBalanceLabel")}
+                  </strong>
+                </p>
+              )}
+              {moveExceedsBalance && (
+                <p className="anchor-admin-move-error" role="alert">
+                  {t("moveExceedsBalance")}
+                </p>
+              )}
               <NeoButton
                 block
                 variant="primary"
@@ -222,6 +272,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={voteAgentId}
                 onChange={setVoteAgentIdManual}
               />
+              {voteAgentId.trim() && (
+                <p className="anchor-admin-witness-note" role="note">
+                  <strong>{t("voteWitnessTitle")}</strong>
+                  <span>
+                    {t("voteWitnessNote", {
+                      agent: voteAgentId.trim(),
+                      account: shortVoteAccount || t("agentBalanceUnknown"),
+                    })}
+                  </span>
+                </p>
+              )}
               <NeoButton
                 block
                 variant="primary"
@@ -255,10 +316,43 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       agent.name ??
                       `agent-${idx + 1}`,
                   );
+                  const rawBalance = (agent as Record<string, unknown>).neoBalance;
+                  const balance =
+                    typeof rawBalance === "number" ? rawBalance : null;
+                  const hasActiveFlag = "active" in agent;
+                  const isActive = Boolean(
+                    (agent as Record<string, unknown>).active,
+                  );
+                  const candidate = String(
+                    (agent as Record<string, unknown>).candidate ?? "",
+                  );
+                  const shortCandidate = candidate
+                    ? candidate.length <= 16
+                      ? candidate
+                      : `${candidate.slice(0, 8)}…${candidate.slice(-6)}`
+                    : "";
                   return (
                     <div key={idx} className="anchor-admin-agent-row">
-                      <span>#{String(agent.agentId ?? idx + 1)}</span>
+                      <div className="anchor-admin-agent-row__top">
+                        <span>#{String(agent.agentId ?? idx + 1)}</span>
+                        <strong className="anchor-admin-agent-row__balance">
+                          {balance !== null
+                            ? `${balance} ${t("agentBalanceLabel")}`
+                            : t("agentBalanceUnknown")}
+                        </strong>
+                        {hasActiveFlag && (
+                          <span
+                            className={`anchor-admin-agent-row__flag${isActive ? " is-active" : ""}`}
+                          >
+                            {isActive ? t("agentActive") : t("agentInactive")}
+                          </span>
+                        )}
+                      </div>
                       <code title={address}>{address}</code>
+                      <span className="anchor-admin-agent-row__candidate">
+                        {t("agentCandidateLabel")}:{" "}
+                        {shortCandidate || t("agentCandidateNone")}
+                      </span>
                     </div>
                   );
                 })
@@ -272,6 +366,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <strong>{t("manualOnly")}</strong>
             </div>
             <p>{t("operatorRuleDesc")}</p>
+            <p className="anchor-admin-yield-causality">{t("yieldCausality")}</p>
             <div className="anchor-admin-safety-list">
               <span>{t("safetyMove")}</span>
               <span>{t("safetyTarget")}</span>

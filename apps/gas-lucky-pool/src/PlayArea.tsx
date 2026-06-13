@@ -7,6 +7,7 @@ import {
   type MiniAppLaunchContext,
 } from "@shared/utils/launch-params";
 import { normalizeClaimKey } from "./composables/useGasLuckyPool";
+import { explorerTxUrl } from "./utils/explorer";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -305,7 +306,24 @@ export default function PlayArea({
                   <div className="gas-pool-claim-only__summary-row--txid">
                     <dt>{t("transactionIdLabel")}</dt>
                     <dd>
-                      <code>{lastTxid}</code>
+                      {/* The server decides + pays the amount, so an explorer
+                          link is the recipient's independent verification of the
+                          GAS transfer. */}
+                      {explorerTxUrl(lastTxid, launchContext.network) ? (
+                        <a
+                          className="gas-pool-claim-only__explorer-link"
+                          href={explorerTxUrl(lastTxid, launchContext.network)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <code>{lastTxid}</code>
+                          <span className="gas-pool-claim-only__explorer-cta">
+                            {t("viewOnExplorer")}
+                          </span>
+                        </a>
+                      ) : (
+                        <code>{lastTxid}</code>
+                      )}
                     </dd>
                   </div>
                 </dl>
@@ -329,6 +347,9 @@ export default function PlayArea({
                 <span>{t("rewardRange")}</span>
                 <strong>{currentRange}</strong>
               </div>
+              <p className="gas-pool-claim-only__server-note">
+                {t("serverPaysNote")}
+              </p>
               <dl
                 className="gas-pool-claim-only__receipt"
                 aria-label={t("claimReceiptTitle")}
@@ -467,6 +488,23 @@ export default function PlayArea({
           className="gas-pool-workspace"
           aria-label={t("ownerWorkspaceTitle")}
         >
+          {/* Role-orienting header: opening the app directly (no claim QR) lands
+              on this campaign-builder, so state who it is for + that it powers the
+              QR rewards before the forms. */}
+          <div className="gas-pool-role-header" role="note">
+            <strong>{t("workspaceRoleTitle")}</strong>
+            <p>{t("workspaceRoleCopy")}</p>
+            <div className="gas-pool-role-paths">
+              <span className="gas-pool-role-paths__title">
+                {t("distributionPathsTitle")}
+              </span>
+              <ul>
+                <li>{t("pathOnChain")}</li>
+                <li>{t("pathServerKey")}</li>
+              </ul>
+            </div>
+          </div>
+
           <div className="gas-pool-grid">
             <div className="gas-pool-form">
               <h2>{t("createPoolTitle")}</h2>

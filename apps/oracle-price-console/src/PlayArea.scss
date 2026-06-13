@@ -299,6 +299,14 @@
   line-height: 1.5;
 }
 
+.price-onchain-time {
+  padding: 6px 14px;
+  color: var(--ns-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
 .price-action-panel {
   min-width: 0;
 }

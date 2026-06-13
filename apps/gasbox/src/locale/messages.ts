@@ -94,8 +94,8 @@ const appMessages = {
     machineDeactivated: { en: "Machine deactivated.", zh: "机器已停用。" },
     gasboxPlayCreditLabel: { en: "Prepaid credit", zh: "预付余额" },
     gasboxPlayCreditHint: {
-        en: "Your next pull uses it automatically.",
-        zh: "下次抽取会自动使用。",
+        en: "Your next pull uses it automatically. It is spendable on a future pull only and cannot be withdrawn back to your wallet.",
+        zh: "下次抽取会自动使用。它只能用于后续抽取，无法提回到你的钱包。",
     },
     gasboxWalletIntent: {
         en: "The wallet confirms the GAS pull and records the selected machine.",

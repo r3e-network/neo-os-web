@@ -279,6 +279,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 <strong>{selectedOffering.costGas}</strong>
               </div>
             </div>
+            <p className="tribute-disclosure" role="note">{t("offeringDisclosure")}</p>
             {isMainnet && (
               <>
                 <p className="tribute-mainnet-note" role="note">{t("mainnetTributeNote")}</p>

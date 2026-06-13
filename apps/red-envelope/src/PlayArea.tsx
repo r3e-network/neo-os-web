@@ -308,6 +308,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   <div>
                     <span>{t("perPacketLabel")}</span>
                     <strong>{formatGas(perPacketGas)}</strong>
+                    <em className="redenv-per-packet-note">{t("perPacketRandomNote")}</em>
                   </div>
                   <div>
                     <span>{t("expiryHours")}</span>

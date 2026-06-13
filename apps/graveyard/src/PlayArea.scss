@@ -432,6 +432,14 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
   overflow-wrap: anywhere;
 }
 
+// Sunk-fee disclosure under the burial fee — the fee is spent, never reclaimed.
+.grave-sunk-fee-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+}
+
 .grave-warning-note {
   display: flex;
   flex-direction: column;
@@ -693,6 +701,15 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
     font-size: 12px;
     line-height: 1.55;
     color: var(--ns-text-2, #5b6478);
+  }
+
+  // Ritual framing — explains why forgetting deliberately costs more.
+  .history-forget-ritual {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--ns-text-muted, #8a92a6);
+    font-style: italic;
   }
 }
 

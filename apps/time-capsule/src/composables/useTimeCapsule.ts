@@ -250,6 +250,17 @@ export function useTimeCapsule({
   const localContent = createObservable<Record<string, string>>({});
 
   /**
+   * Public, unrevealed, not-yet-fished capsules owned by OTHER users — the pool
+   * the current wallet can tip ("fish"). Surfaced as a browsable list so the
+   * user picks a target (id, category, unlock date) before paying the tip,
+   * instead of blindly tipping the newest. Refreshed on demand via
+   * loadFishCandidates(); each entry is read on-chain (loadPublicCandidates).
+   */
+  const fishCandidates = createObservable<Capsule[]>([]);
+  /** True while loadPublicCandidates() is scanning the contract. */
+  const isLoadingCandidates = createObservable(false);
+
+  /**
    * Unused prepaid deposit credit (human GAS decimal string) held on the
    * contract under the connected wallet — a deposit that landed but whose bury
    * never completed. Read from creditOf(owner) on every load; surfaced as a
@@ -715,23 +726,46 @@ export function useTimeCapsule({
   };
 
   /**
-   * Fish a public capsule by paying the discovery fee.
-   *
-   * Picks a public, unrevealed, not-fished capsule owned by ANOTHER user (via
-   * loadPublicCandidates, a full 1..lastCapsuleId scan). The fee is paid with a
-   * one-shot GAS transfer carrying the "miniapp-timecapsule:fish:<id>" memo; the
-   * contract forwards it to the capsule's owner as a TIP in the same tx and
-   * marks the capsule fished. If no other-owner candidate exists we report
-   * fishNone without charging the fee (a user cannot fish their own capsule —
-   * the contract rejects it).
+   * Refresh the browsable list of public, tippable ("fishable") capsules from
+   * other users, so the UI can show the pool and let the user pick a target
+   * before paying the tip. Read-only over loadPublicCandidates().
    */
-  const fishCapsule = async () => {
+  const loadFishCandidates = async (): Promise<Capsule[]> => {
+    if (isLoadingCandidates.get()) return fishCandidates.get();
+    isLoadingCandidates.set(true);
+    try {
+      const list = await loadPublicCandidates();
+      fishCandidates.set(list);
+      return list;
+    } finally {
+      isLoadingCandidates.set(false);
+    }
+  };
+
+  /**
+   * Tip ("fish") a public capsule by paying the 0.05 GAS tip.
+   *
+   * This is a TIP, not a reveal: the fee is forwarded on-chain to the capsule's
+   * owner as encouragement and the capsule is marked fished, but the message
+   * stays sealed (the fisher never sees the content). Targets a public,
+   * unrevealed, not-fished capsule owned by ANOTHER user. When `targetId` is
+   * given (the user picked one from the browsable list) it tips that capsule;
+   * otherwise it falls back to the newest tippable capsule (loadPublicCandidates
+   * is newest-first). If no other-owner candidate exists we report fishNone
+   * without charging the fee (a user cannot tip their own capsule — the contract
+   * rejects it).
+   */
+  const fishCapsule = async (targetId?: string) => {
     if (isBusy.get()) return;
 
     isProcessing.set(true);
     try {
       const candidates = await loadPublicCandidates();
-      const candidate = candidates[0];
+      fishCandidates.set(candidates);
+      const wanted = targetId ? String(targetId) : "";
+      const candidate = wanted
+        ? candidates.find((c) => c.id === wanted)
+        : candidates[0];
 
       if (!candidate) {
         notify(t("fishNone"), "info");
@@ -764,6 +798,8 @@ export function useTimeCapsule({
       notify(t("fishResult", { id: candidate.id }), "success");
 
       capsules.set(await loadCapsules());
+      // The tipped capsule is now flagged fished — drop it from the browsable list.
+      fishCandidates.set(await loadPublicCandidates());
     } catch (e) {
       notify(e instanceof Error ? e.message : t("error"), "error");
       throw e;
@@ -847,6 +883,8 @@ export function useTimeCapsule({
     newCapsule,
     localContent,
     reusableCredit,
+    fishCandidates,
+    isLoadingCandidates,
 
     // ── Computed ─────────────────────────────────────────────────────
     totalCapsules,
@@ -859,6 +897,7 @@ export function useTimeCapsule({
     createCapsule,
     openCapsule,
     fishCapsule,
+    loadFishCandidates,
     withdrawCredit,
     loadCredit,
     loadAll,

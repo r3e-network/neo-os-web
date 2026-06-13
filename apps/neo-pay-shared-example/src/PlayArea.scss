@@ -423,6 +423,12 @@
   span {
     overflow-wrap: anywhere;
   }
+
+  /* Per-day release rate — emphasized so the schedule reads clearly. */
+  .shared-pay-stream__rate {
+    font-weight: 600;
+    color: var(--ns-brand-strong, #0fb174);
+  }
 }
 
 .shared-pay-stream__note {

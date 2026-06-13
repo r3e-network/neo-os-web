@@ -205,19 +205,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           {rateAsOf && (
             <p className={`neo-swap-rate-asof${rateStale ? " is-stale" : ""}`}>
-              {rateStale ? t("rateStaleAsOf", { time: rateAsOf }) : t("rateAsOf", { time: rateAsOf })}
+              {rateStale
+                ? t("rateSourceStaleAsOf", { time: rateAsOf })
+                : t("rateSourceAsOf", { time: rateAsOf })}
             </p>
           )}
 
-          <NeoButton
-            variant="primary"
-            block
-            loading={isSwapping || loading}
-            disabled={!canSwap}
-            onClick={() => dispatch("executeSwap")}
-          >
-            {isSwapping ? t("swapping") : swapButtonText}
-          </NeoButton>
+          {routerAvailable ? (
+            <NeoButton
+              variant="primary"
+              block
+              loading={isSwapping || loading}
+              disabled={!canSwap}
+              onClick={() => dispatch("executeSwap")}
+            >
+              {isSwapping ? t("swapping") : swapButtonText}
+            </NeoButton>
+          ) : (
+            <>
+              {/* No router deployed: the real deliverable is the quote, so the
+                  primary CTA refreshes it and the Swap action is a plainly
+                  labeled "Settlement unavailable" disabled state rather than a
+                  teasing primary button. */}
+              <NeoButton
+                variant="primary"
+                block
+                loading={rateLoading}
+                onClick={() => dispatch("refreshRate")}
+              >
+                <RefreshCw size={16} aria-hidden="true" />
+                {t("refreshRate")}
+              </NeoButton>
+              <NeoButton variant="secondary" block disabled>
+                {t("settlementUnavailable")}
+              </NeoButton>
+            </>
+          )}
         </NeoCard>
 
         <aside className="neo-swap-side-stack" aria-label={t("tabPool")}>

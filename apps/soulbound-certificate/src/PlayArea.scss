@@ -803,13 +803,22 @@ $soul-accent-soft: #e4f8f0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
 
   strong {
     min-width: 0;
     overflow-wrap: anywhere;
+    margin-right: auto;
   }
+}
+
+.certificate-detail__soulbound-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ns-brand-strong);
 }
 
 .cert-info {
@@ -846,6 +855,10 @@ $soul-accent-soft: #e4f8f0;
   &.revoked {
     background: var(--ns-danger-soft);
     color: var(--ns-danger);
+  }
+  &.soulbound {
+    background: var(--ns-brand-soft, rgba(99, 102, 241, 0.12));
+    color: var(--ns-brand-strong);
   }
 }
 

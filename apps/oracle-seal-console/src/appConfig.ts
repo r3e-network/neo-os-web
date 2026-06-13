@@ -17,12 +17,12 @@ export function resolveNetworkLabel(): string {
 
 export const appMeta = {
   networkLabel: resolveNetworkLabel(),
-  endpointLabel: "Sealed envelope",
+  endpointLabel: "Envelope reference (not encrypted)",
 };
 
 export const manifest: MiniAppManifest = {
   name: "Oracle Seal Console",
-  description: "Package sensitive oracle input as a sealed envelope preview.",
+  description: "Organize oracle request details into a reference envelope (a non-cryptographic checksum — this tool does not encrypt).",
   icon: "locked",
   category: "oracle",
   shell: "console",
@@ -109,6 +109,10 @@ export const consoleConfig: ConsoleToolConfig = {
       status: payloadValid ? t("sealReady") : t("sealInvalidJson"),
       summary: t("sealSummary", { purpose }),
       rows: [
+        // Surface the "not encrypted / reference only" truth on the result
+        // itself (not just buried in docs), so the lock branding does not
+        // over-promise at the moment a preview is produced.
+        { label: t("protectionLabel"), value: t("protectionValue") },
         { label: t("purpose"), value: purpose },
         // Show an em-dash for an empty recipient so the row never renders blank.
         { label: t("recipient"), value: recipient || t("digestPlaceholder") },
@@ -141,25 +145,33 @@ const appMessages = {
   appName: { en: "Oracle Seal Console", zh: "预言机加密封装控制台" },
   title: { en: "Oracle Seal", zh: "预言机封装" },
   tabSeal: { en: "Seal", zh: "封装" },
-  panelEyebrow: { en: "Private oracle input", zh: "私密预言机输入" },
-  panelTitle: { en: "Sealed Envelope Builder", zh: "加密封装构建器" },
+  panelEyebrow: { en: "Oracle request envelope reference", zh: "预言机请求信封引用" },
+  panelTitle: { en: "Request Envelope Reference Builder", zh: "请求信封引用构建器" },
   panelDescription: {
-    en: "Organize request details into an envelope preview with a stable non-cryptographic reference checksum (not encryption).",
-    zh: "把请求细节整理为信封预览，并附带稳定的非加密引用校验值（不是加密）。",
+    en: "Organize request details into an envelope reference with a stable non-cryptographic checksum. The checksum is not encryption — the payload is not sealed, hidden, or tamper-proof.",
+    zh: "把请求细节整理为信封引用，并附带稳定的非加密校验值。该校验值不是加密——载荷不会被封装、隐藏或防篡改。",
   },
-  runAction: { en: "Build Envelope", zh: "生成封装" },
+  runAction: { en: "Build Reference", zh: "生成引用" },
   purpose: { en: "Purpose", zh: "用途" },
   purposeInput: { en: "Oracle input", zh: "预言机输入" },
   purposeCallback: { en: "Callback secret", zh: "回调密钥" },
   purposeAttestation: { en: "Attestation", zh: "证明材料" },
   recipient: { en: "Recipient", zh: "接收方" },
   recipientPlaceholder: { en: "Enter recipient or oracle route", zh: "输入接收方或预言机路由" },
-  payload: { en: "Sensitive Payload", zh: "敏感载荷" },
-  payloadPlaceholder: { en: "Paste the private JSON payload to seal", zh: "粘贴需要封装的私密 JSON 载荷" },
+  payload: { en: "Request Payload (not encrypted)", zh: "请求载荷（未加密）" },
+  payloadPlaceholder: {
+    en: "Paste the JSON payload — NOT encrypted by this tool, kept as a plain reference",
+    zh: "粘贴 JSON 载荷——本工具不会加密，仅作为明文引用保留",
+  },
   payloadDigest: { en: "Payload Checksum", zh: "载荷校验值" },
+  protectionLabel: { en: "Protection", zh: "保护" },
+  protectionValue: {
+    en: "Not encrypted — reference checksum only",
+    zh: "未加密——仅为引用校验值",
+  },
   sealReady: { en: "Envelope preview ready", zh: "封装预览已生成" },
   sealInvalidJson: { en: "Preview ready (payload is not valid JSON)", zh: "预览已生成（载荷不是有效 JSON）" },
-  sealSummary: { en: "{purpose} envelope prepared", zh: "{purpose} 封装已准备" },
+  sealSummary: { en: "{purpose} envelope reference prepared", zh: "{purpose} 信封引用已准备" },
   payloadValid: { en: "Payload is valid JSON", zh: "载荷为有效 JSON" },
   yes: { en: "Yes", zh: "是" },
   no: { en: "No", zh: "否" },
@@ -170,12 +182,12 @@ const appMessages = {
   digestPlaceholder: { en: "—", zh: "—" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
   docsSubtitle: {
-    en: "A focused surface for sealing sensitive oracle inputs before dispatch.",
-    zh: "面向敏感预言机输入封装的清晰工作台。",
+    en: "A focused surface for organizing oracle request references before dispatch (no encryption is performed here).",
+    zh: "面向预言机请求引用整理的清晰工作台（此处不进行加密）。",
   },
   docSubtitle: {
-    en: "A focused surface for sealing sensitive oracle inputs before dispatch.",
-    zh: "面向敏感预言机输入封装的清晰工作台。",
+    en: "A focused surface for organizing oracle request references before dispatch (no encryption is performed here).",
+    zh: "面向预言机请求引用整理的清晰工作台（此处不进行加密）。",
   },
   feature1Name: { en: "Reference Only", zh: "仅作引用" },
   feature1Desc: { en: "The payload is summarized by a short non-cryptographic checksum for reference — it is not encrypted, hidden, or tamper-proof.", zh: "载荷由一个简短的非加密校验值进行引用——并未加密、隐藏或防篡改。" },

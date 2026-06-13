@@ -76,6 +76,12 @@ const appMessages = {
   broadcastResult: { en: "Transaction Hash", zh: "交易哈希" },
   copySignature: { en: "Copy signature", zh: "复制签名" },
   copyTxHash: { en: "Copy transaction hash", zh: "复制交易哈希" },
+  copyVerifyBundle: { en: "Copy verify bundle", zh: "复制验证包" },
+  verifyBundleHint: {
+    en: "Copies address + message + signature + public key as one block — everything a verifier needs to prove authorship.",
+    zh: "将地址 + 信息 + 签名 + 公钥复制为一个整体 — 验证署名所需的全部信息。",
+  },
+  viewOnExplorer: { en: "View on explorer", zh: "在区块浏览器查看" },
   copySuccess: { en: "Copied", zh: "已复制" },
   publicKeyLabel: { en: "Public key", zh: "公钥" },
   bytesUnit: { en: "bytes", zh: "字节" },

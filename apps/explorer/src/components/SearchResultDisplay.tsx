@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import { NeoCard } from "@shared/components-react";
 import "./SearchResultDisplay.scss";
 
@@ -5,9 +6,49 @@ interface SearchResultDisplayProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   result: Record<string, unknown> | null;
   formatTime: (time: unknown) => string;
+  /** Active network, so the full-record link targets the right explorer. */
+  network?: "mainnet" | "testnet";
 }
 
-export default function SearchResultDisplay({ t, result, formatTime }: SearchResultDisplayProps) {
+/**
+ * Canonical OneGate explorer base for the active network. The miniapp renders a
+ * trimmed projection of each record; this links out to the full on-chain detail
+ * (transfers, notifications, complete ABI) the projection omits.
+ */
+function explorerBase(network: "mainnet" | "testnet"): string {
+  return network === "testnet"
+    ? "https://testnet.explorer.onegate.space"
+    : "https://explorer.onegate.space";
+}
+
+/** Build the canonical full-record URL for a matched identifier + type. */
+function fullRecordUrl(
+  network: "mainnet" | "testnet",
+  type: string,
+  identifier: string,
+): string {
+  const base = explorerBase(network);
+  const id = encodeURIComponent(String(identifier ?? "").trim());
+  switch (type) {
+    case "transaction":
+      return `${base}/transactionInfo/${id}`;
+    case "block":
+      return `${base}/blockheightInfo/${id}`;
+    case "address":
+      return `${base}/accountprofile/${id}`;
+    case "contract":
+      return `${base}/contractinfo/${id}`;
+    default:
+      return base;
+  }
+}
+
+export default function SearchResultDisplay({
+  t,
+  result,
+  formatTime,
+  network = "mainnet",
+}: SearchResultDisplayProps) {
   if (!result) return null;
 
   const data = result.data as Record<string, unknown> | undefined;
@@ -96,6 +137,10 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
               <span className="value">{formatTime(read("time"))}</span>
             </div>
           </div>
+          <FullRecordLink
+            label={t("viewFullRecord")}
+            href={fullRecordUrl(network, "block", String(read("index")))}
+          />
         </NeoCard>
       )}
 
@@ -119,6 +164,10 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
               <span className="value mono">{String(read("sender"))}</span>
             </div>
           </div>
+          <FullRecordLink
+            label={t("viewFullRecord")}
+            href={fullRecordUrl(network, "transaction", String(read("hash")))}
+          />
         </NeoCard>
       )}
 
@@ -138,6 +187,14 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
               </span>
             </div>
           </div>
+          <FullRecordLink
+            label={t("viewFullRecord")}
+            href={fullRecordUrl(
+              network,
+              "address",
+              String(data?.address ?? result.address ?? ""),
+            )}
+          />
         </NeoCard>
       )}
 
@@ -183,8 +240,28 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
               </>
             )}
           </div>
+          {contractHash && (
+            <FullRecordLink
+              label={t("viewFullRecord")}
+              href={fullRecordUrl(network, "contract", contractHash)}
+            />
+          )}
         </NeoCard>
       )}
     </div>
+  );
+}
+
+function FullRecordLink({ label, href }: { label: string; href: string }) {
+  return (
+    <a
+      className="result-full-record"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+    >
+      <span>{label}</span>
+      <ExternalLink size={13} aria-hidden="true" />
+    </a>
   );
 }

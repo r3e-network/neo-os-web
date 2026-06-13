@@ -29,8 +29,11 @@ const appMessages = {
   step4: { en: "All records stored on blockchain forever", zh: "所有记录永久保存于区块链" },
   feature1Name: { en: "Eternal Storage", zh: "永恒存储" },
   feature1Desc: { en: "Memorials preserved on blockchain forever", zh: "灵位永久保存于区块链" },
-  feature2Name: { en: "Non-Profit", zh: "公益服务" },
-  feature2Desc: { en: "Fees only cover blockchain costs", zh: "费用仅覆盖区块链成本" },
+  feature2Name: { en: "Symbolic Offerings", zh: "象征性祭品" },
+  feature2Desc: {
+    en: "Offerings are symbolic on-chain tributes. The GAS is not paid to the family; it is consumed as a permanent record of your tribute and is non-refundable.",
+    zh: "祭品是象征性的链上致意。GAS 不会支付给逝者家属；它会作为你致意的永久记录被消耗，且不可退还。",
+  },
   feature3Name: { en: "Tribute History", zh: "祭拜记录" },
   feature3Desc: { en: "Offerings and messages are recorded on-chain.", zh: "祭品与留言记录上链留存。" },
   // Offerings
@@ -54,6 +57,10 @@ const appMessages = {
   tributeMessagePlaceholder: { en: "Leave a short tribute message", zh: "写下一句追思留言" },
   offeringType: { en: "Offering", zh: "祭品" },
   offeringCost: { en: "Offering cost", zh: "祭品费用" },
+  offeringDisclosure: {
+    en: "Tributes are permanent and non-refundable. The offering is recorded on-chain, not transferred to anyone — it is not income to the family.",
+    zh: "致意为永久且不可退还。祭品会记录在链上，不会转给任何人——也不是逝者家属的收入。",
+  },
   receiptId: { en: "Payment receipt ID", zh: "支付收据 ID" },
   receiptIdPlaceholder: { en: "Required for mainnet tribute", zh: "主网祭拜必填" },
   receiptIdRequired: { en: "Mainnet tribute requires a payment receipt ID.", zh: "主网祭拜需要支付收据 ID。" },

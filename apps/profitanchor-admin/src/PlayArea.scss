@@ -340,9 +340,8 @@
 }
 
 .anchor-admin-agent-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  gap: 6px;
   min-width: 0;
   padding: 12px 14px;
   border-radius: var(--ns-radius-md);
@@ -358,12 +357,51 @@
   color: var(--ns-ink);
 }
 
+.anchor-admin-agent-row__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .anchor-admin-agent-row span {
   flex-shrink: 0;
   color: var(--ns-text-muted);
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.anchor-admin-agent-row__balance {
+  margin-left: auto;
+  color: var(--ns-ink) !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.anchor-admin-agent-row__flag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(138, 146, 166, 0.16);
+  color: var(--ns-text-muted) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  &.is-active {
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-strong, #0fb174) !important;
+  }
+}
+
+.anchor-admin-agent-row__candidate {
+  color: var(--ns-text-muted) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  overflow-wrap: anywhere;
 }
 
 .anchor-admin-agent-row code {
@@ -376,6 +414,59 @@
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.anchor-admin-move-hint {
+  margin: 0 0 4px;
+  color: var(--ns-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+
+  strong {
+    color: var(--ns-ink);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.anchor-admin-move-error {
+  margin: 0 0 4px;
+  color: #b42318;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.anchor-admin-witness-note {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0;
+  padding: 10px 12px;
+  border-radius: var(--ns-radius-md, 14px);
+  background: #fff7ed;
+  border: 1px solid rgba(217, 119, 6, 0.26);
+
+  strong {
+    color: #b45309;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  span {
+    color: var(--ns-text-2);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+}
+
+.anchor-admin-yield-causality {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .anchor-admin-agent-empty {

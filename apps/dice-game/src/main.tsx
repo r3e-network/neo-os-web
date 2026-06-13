@@ -90,7 +90,12 @@ defineMiniApp({
     // pinned to the ACTIVE (most recent) bet so interleaved bets never stomp
     // each other's row or banner.
     const tracker = createBetTracker();
-    const { rollHistory, lastRoll, lastOutcome, isResolving } = tracker;
+    const { rollHistory, lastRoll, lastOutcome, isResolving, isUnresolved } = tracker;
+    // Re-run handle for the ACTIVE bet's settlement poll. When the poll times out
+    // (the VRF oracle has not called back yet) the player can press "Check again"
+    // to poll once more rather than face a frozen spinner. Only the most recent
+    // bet's resolver is retained (older bets settle silently into their rows).
+    let recheckActiveBet: (() => void) | null = null;
     // Multi-chain state.
     const chainLabel = createObservable("");
     const maxStake = createObservable(20);
@@ -422,6 +427,9 @@ defineMiniApp({
           `${ctx.t("statusRolling")}${result.txid ? `: ${formatHash(result.txid, 10, 8)}` : ""}`,
           "info",
         );
+        // Retain a re-run handle so a timed-out (unresolved) settlement can be
+        // re-polled from the UI's "Check again" action.
+        recheckActiveBet = () => resolver(rowId);
         // Reveal the outcome asynchronously so the user can keep playing.
         resolver(rowId);
         return result;
@@ -460,6 +468,18 @@ defineMiniApp({
       }
     });
 
+    // "Check again": re-run the active bet's settlement poll after it timed out
+    // unresolved (the VRF oracle had not called back yet). Re-runs the same
+    // resolver, which flips back to "rolling" while it re-polls and settles the
+    // row if the oracle has since resolved it.
+    ctx.registerAction("recheckSettlement", async () => {
+      if (!recheckActiveBet || isResolving.get()) return;
+      isUnresolved.set(false);
+      isResolving.set(true);
+      lastStatus.set(ctx.t("statusRolling"));
+      recheckActiveBet();
+    });
+
     return {
       state: {
         selectedFace,
@@ -477,6 +497,7 @@ defineMiniApp({
         lastRoll,
         lastOutcome,
         isResolving,
+        isUnresolved,
       },
       loadData: async () => {
         const net = await refreshNetwork();

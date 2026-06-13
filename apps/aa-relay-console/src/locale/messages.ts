@@ -15,6 +15,19 @@ const appMessages = {
   },
   relayEndpointMetric: { en: "Relay Endpoint", zh: "Relay Endpoint" },
   relayCommandTitle: { en: "Sponsor Preflight", zh: "赞助预检" },
+  relayPaymasterExplainer: {
+    en: "A paymaster can pay the network GAS for this account so it can transact without holding GAS. Check whether this address is covered, request coverage, then submit the relayed transaction.",
+    zh: "paymaster 可以为此账户支付网络 GAS，使其无需持有 GAS 即可交易。先检查该地址是否被覆盖、请求覆盖额度，再提交经 relay 的交易。",
+  },
+  sponsorDirectionNote: {
+    en: "The paymaster grants this GAS to cover the account's fees — you are not charged for requesting it. It draws against a shared daily limit, so run Check Sponsorship first to see the remaining budget.",
+    zh: "paymaster 授予此 GAS 以覆盖账户的手续费——请求本身不向你收费。它从共享的每日额度中扣减，因此请先运行“检查赞助”以查看剩余额度。",
+  },
+  relaySubmitExplainer: {
+    en: "Submit sends the payload to a relayer that broadcasts the transaction on-chain on the account's behalf (paid by the paymaster) — it is not signed or sent by your own wallet.",
+    zh: "提交会把 payload 发送给 relayer，由其代表账户在链上广播交易（由 paymaster 付费）——不会由你自己的钱包签名或发送。",
+  },
+  relayTxLabel: { en: "On-chain transaction", zh: "链上交易" },
   aaCoreLabel: { en: "AA Core", zh: "AA Core" },
   aaAddress: { en: "AA Address", zh: "AA 地址" },
   aaAddressHint: {

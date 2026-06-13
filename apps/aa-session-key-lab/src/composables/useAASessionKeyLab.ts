@@ -26,6 +26,18 @@ import {
   DEFAULT_SESSION_SPONSOR_AMOUNT,
   getDefaultSessionExpiryTimestamp,
 } from "../launch";
+import {
+  decodeSessionKey,
+  formatGasBaseUnits,
+  type DecodedSessionKey,
+} from "../utils/sessionKeyDecode";
+
+/** Decoded on-chain session key plus accrued spend, for the labeled detail view. */
+export interface OnChainSessionView {
+  decoded: DecodedSessionKey;
+  /** Accrued spend (getSpentAmount) in GAS decimal, "" when unread. */
+  spentGas: string;
+}
 
 type SessionConfiguration = {
   txid: string;
@@ -78,6 +90,9 @@ export function useAASessionKeyLab({
   // The on-chain session key read back from the verifier (or null when none).
   const onChainSession = createObservable<string | null>(null);
   const hasOnChainSession = createObservable(false);
+  // Decoded labeled view of the on-chain session key + accrued spend, so the
+  // owner can verify scope/expiry/spend instead of reading raw JSON.
+  const onChainSessionView = createObservable<OnChainSessionView | null>(null);
 
   // Helpers
   function normalizeHashOrAddress(value: string): string {
@@ -483,6 +498,29 @@ export function useAASessionKeyLab({
       !(Array.isArray(read) && read.length === 0);
     onChainSession.set(present ? JSON.stringify(read) : null);
     hasOnChainSession.set(present);
+
+    // Decode the struct into labeled fields and read the accrued spend so the
+    // budget half of the safety model (spent vs limit) is visible — a pure
+    // added read against the same verifier; failures degrade to no-view.
+    if (present) {
+      const decoded = decodeSessionKey(read);
+      let spentGas = "";
+      try {
+        const spentRaw = await chain.read(
+          "getSpentAmount",
+          [{ type: "Hash160", value: accountId }],
+          { scriptHash: sessionVerifier },
+        );
+        spentGas = formatGasBaseUnits(spentRaw);
+      } catch {
+        // getSpentAmount unavailable / RPC lag — leave spend blank, still show scope.
+        spentGas = "";
+      }
+      onChainSessionView.set(decoded ? { decoded, spentGas } : null);
+    } else {
+      onChainSessionView.set(null);
+    }
+
     eventBus.emit("session:inspected", { present });
   }
 
@@ -507,6 +545,7 @@ export function useAASessionKeyLab({
       });
       onChainSession.set(null);
       hasOnChainSession.set(false);
+      onChainSessionView.set(null);
       lastConfigured.set(null);
       eventBus.emit("session:revoked", {});
     } catch (error: unknown) {
@@ -529,6 +568,7 @@ export function useAASessionKeyLab({
     isRevoking,
     onChainSession,
     hasOnChainSession,
+    onChainSessionView,
     sponsorState,
     derivedAccountIdHash,
     normalizedAllowedMethod,

@@ -102,6 +102,13 @@ defineMiniApp({
       set: () => {},
       subscribe: (fn) => pool.gasCredit.subscribe(fn),
     };
+    // GAS paid to stakers in the most recently settled epoch — the staker-yield
+    // proof, derived from the same settlementAmount read already loaded.
+    const lastDistributed: Observable<number> = {
+      get: () => pool.lastSettlement.get()?.amount ?? 0,
+      set: () => {},
+      subscribe: (fn) => pool.lastSettlement.subscribe(fn),
+    };
 
     ctx.registerAction("depositNeo", async () => {
       await ctx.services.notify.guard(() => pool.depositNeo(), "depositSuccess");
@@ -137,6 +144,7 @@ defineMiniApp({
         epochDurationMs: pool.epochDurationMs,
         userDeposits: pool.userDeposits,
         bids: pool.bids,
+        highestBid: pool.highestBid,
         pendingRewards: pool.pendingRewards,
         gasCredit: pool.gasCredit,
         reclaimableBids: pool.reclaimableBids,
@@ -156,6 +164,7 @@ defineMiniApp({
         lastSettlementDisplay,
         pendingRewardsDisplay,
         gasCreditDisplay,
+        lastDistributed,
       },
       loadData: pool.loadData,
       cleanup: () => {

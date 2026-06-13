@@ -102,6 +102,7 @@ export default function PlayArea({
             <span className="neodid-passport__eyebrow">{t("identityRoute")}</span>
             <h2 id="neodid-passport-title">{t("panelTitle")}</h2>
             <p>{t("panelDescription")}</p>
+            <span className="neodid-passport__offchain-chip">{t("offChainNote")}</span>
           </div>
         </div>
         <div className="neodid-passport__metrics" aria-label={t("statistics")}>

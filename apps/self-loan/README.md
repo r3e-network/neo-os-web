@@ -46,9 +46,9 @@ The frontend executes both steps for you.
 | **Language**      | C# (Neo N3 Smart Contract)            |
 | **Blockchain**    | Neo N3                                |
 | **LTV Tiers**     | Tier 1: 20%, Tier 2: 30%, Tier 3: 40% |
-| **Platform Fee**  | 0.5% (50 bps) origination             |
-| **Min Duration**  | 24 hours                              |
-| **Collateral**    | NEO (whole numbers only)              |
+| **Platform Fee**  | 0.5% (50 bps) origination, retained by the lending pool |
+| **Min Duration**  | None — repay anytime, no interest     |
+| **Collateral**    | NEO (whole numbers only); held in custody and returned on repayment (no third-party voting) |
 | **Borrow Asset**  | GAS                                   |
 
 ### Service Layer Technologies

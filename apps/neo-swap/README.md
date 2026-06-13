@@ -1,6 +1,6 @@
 # Neo Swap
 
-Preview NEO and GAS conversions with live pricefeed quotes and wallet-ready settlement notes
+Live NEO/GAS rate & trade preview. No on-chain swap router is deployed, so the app shows a planning quote — execute the trade in your wallet or a DEX when a route is available.
 
 ## Overview
 
@@ -13,16 +13,16 @@ Preview NEO and GAS conversions with live pricefeed quotes and wallet-ready sett
 
 ## Summary
 
-Fast, secure token swap planning on Neo N3
+NEO/GAS rate & trade planning on Neo N3
 
-Neo Swap provides NEO/GAS quote preview, slippage review, route context, and wallet-ready settlement notes from the unified MiniApp detail page. Prices come from the platform data feed. The app no longer binds to any legacy third-party swap router contract.
+Neo Swap provides NEO/GAS quote preview, slippage review, and route context from the unified MiniApp detail page. Prices come from the Morpheus data feed. No on-chain swap router is deployed, so the app does not settle the trade — it shows a planning quote you execute in your wallet or a DEX when a route is available.
 
 ## Features
 
-- **Instant route preview**: Direct NEO/GAS quote flow with sub-minute wallet settlement expectations
-- **Live price quotes**: Real-time exchange rates from the platform data feed
-- **Slippage review**: Minimum received, price impact, and tolerance controls before submission
-- **Wallet-ready execution notes**: The app prepares a quote and settlement checklist, but does not invoke a platform-owned swap contract
+- **Live rate preview**: Direct NEO/GAS quote from the Morpheus data feed (settlement pending a deployed router)
+- **Live price quotes**: Real-time exchange rates from the Morpheus data feed, with an "as of" freshness stamp
+- **Slippage review**: Minimum received, price impact, and tolerance controls shown alongside the quote
+- **Honest settlement state**: The app prepares a quote only; with no router deployed the Swap action shows a clearly-labeled "Settlement unavailable" state rather than a teasing button
 - **Route context**: Liquidity and route details for planning larger trades
 - **Rate display**: Clear visualization of exchange rates and minimum received amounts
 - **Modern UI**: Clean, intuitive interface designed for both beginners and advanced users
@@ -33,8 +33,8 @@ Neo Swap provides NEO/GAS quote preview, slippage review, route context, and wal
 ### Getting Started
 
 1. **Open the App**: Open Neo Swap from your Neo MiniApp dashboard
-2. **Connect Wallet**: Connect your Neo N3 wallet to enable trading
-3. **Select Swap Direction**: Choose whether to swap NEO→GAS or GAS→NEO
+2. **Connect Wallet**: Connect your Neo N3 wallet to read balances for the preview
+3. **Select Swap Direction**: Choose whether to preview NEO→GAS or GAS→NEO
 
 ### Making a Swap
 

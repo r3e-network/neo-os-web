@@ -104,6 +104,9 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
           <span className="automation-hero__fact">
             <span className="automation-hero__fact-label">{t("currentPrice")}</span>
             <strong>{hasPrice ? currentPrice : "—"}</strong>
+            {hasPrice ? (
+              <small className="automation-hero__fact-caption">{t("priceFreshnessCaption")}</small>
+            ) : null}
           </span>
           <span className={`automation-hero__fact automation-hero__fact--status automation-hero__fact--${statusTone}`}>
             <span className="automation-hero__fact-label">{t("triggerStatus")}</span>
@@ -220,6 +223,9 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
           <div className="automation-panel__hint automation-panel__hint--info">
             {t("automationGatewayHint")}
           </div>
+          <div className="automation-panel__hint">
+            {t("executionCostHint")}
+          </div>
         </form>
 
         <div className="automation-panel automation-panel--status">
@@ -245,7 +251,16 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                 </div>
                 <div>
                   <span>{t("nextExecution")}</span>
-                  <strong>{hasNextExecution ? nextExecution : "—"}</strong>
+                  {/* A handoff-only intent has no keeper, so it has no real
+                      scheduled run — say so instead of showing a next-execution
+                      time that implies the automation will fire. */}
+                  <strong>
+                    {handoffOnly
+                      ? t("nextExecutionNotScheduled")
+                      : hasNextExecution
+                        ? nextExecution
+                        : "—"}
+                  </strong>
                 </div>
               </div>
 
@@ -270,9 +285,15 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
               </div>
 
               {handoffOnly ? (
-                <div className="automation-panel__note">
-                  {t("verifyBeforeOperate")}
-                </div>
+                <>
+                  <div className="automation-panel__alert automation-panel__alert--warn" role="alert">
+                    <strong>{t("executorUnavailableTitle")}</strong>
+                    <span>{t("executorUnavailableBody")}</span>
+                  </div>
+                  <div className="automation-panel__note">
+                    {t("verifyBeforeOperate")}
+                  </div>
+                </>
               ) : null}
             </>
           ) : (

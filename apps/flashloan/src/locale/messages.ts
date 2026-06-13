@@ -21,6 +21,12 @@ const appMessages = {
     en: "Flash loans remain a power-user flow. This miniapp helps you inspect pool state and submit callback-based executions.",
     zh: "闪电贷仍然是高级用户流程。本应用用于查看池子状态并提交基于回调合约的执行。",
   },
+  // Borrowing needs a deployed onFlashLoan callback contract; non-developers
+  // can still use the Provide Liquidity card below to earn fees.
+  instructionLpHint: {
+    en: "Borrowing requires a deployed contract that implements onFlashLoan. No callback contract? Provide liquidity below instead to earn a share of the loan fees.",
+    zh: "借款需要已部署并实现 onFlashLoan 的合约。没有回调合约？可改为在下方提供流动性，赚取借款手续费分成。",
+  },
   flashLoanFlow: { en: "Flash Loan Flow", zh: "闪电贷流程" },
   borrow: { en: "Borrow", zh: "借款" },
   execute: { en: "Execute", zh: "执行" },
@@ -190,6 +196,13 @@ const appMessages = {
   liquidityInfo: {
     en: "Deposit GAS to back flash loans and earn a share of the 0.09% fee. You can withdraw up to what you deposited at any time.",
     zh: "存入 GAS 为闪电贷提供流动性，并赚取 0.09% 手续费的分成。你随时可以提取不超过存入金额的部分。",
+  },
+  // LP fee economics: providers get providerFeeShare% of each fee; the rest is
+  // protocol revenue. Fees are credited to providers when distributeFees runs,
+  // so "Fees Earned" can lag pool activity until distribution.
+  liquidityFeeShareNote: {
+    en: "Liquidity providers earn {share}% of each 0.09% loan fee ({protocol}% is protocol revenue). Fees are credited to providers when distributeFees runs, so Fees Earned can lag recent loans.",
+    zh: "流动性提供者可获得每笔 0.09% 手续费的 {share}%（其余 {protocol}% 为协议收入）。手续费在调用 distributeFees 时结算给提供者，因此“已赚取手续费”可能滞后于近期借款。",
   },
   liquidityAmount: { en: "Amount", zh: "金额" },
   liquidityAmountPlaceholder: { en: "Enter GAS amount", zh: "输入 GAS 金额" },

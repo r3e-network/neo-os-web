@@ -62,6 +62,22 @@ const appMessages = {
     en: "Your funds were prepaid to the escrow contract, but the escrow was not created. Your credit is held under your address and the escrow can be created again (retry).",
     zh: "资金已预付至托管合约，但托管未创建。您的额度仍记在您的地址下，可重新发起创建（请重试）。",
   },
+  // Two-signature disclosure — the standalone contract takes a deposit first,
+  // then the createEscrow call (two wallet prompts), mirroring neo-pay.
+  twoStepSignNotice: {
+    en: "Creating an escrow needs two wallet signatures: first the {asset} deposit, then the escrow setup.",
+    zh: "创建托管需要两次钱包签名：先存入 {asset}，再完成托管设置。",
+  },
+  // No-fee value prop — surfaced near the submit action and in the hero/docs.
+  noFeeNotice: {
+    en: "No platform fee — beneficiaries receive the full milestone amount; you only pay network gas.",
+    zh: "无平台费用——受益人可领取完整的里程碑金额，您只需支付网络 gas。",
+  },
+  // Beneficiary-side note — payout depends on the creator approving each milestone.
+  beneficiaryApprovalNote: {
+    en: "Funds release only after the creator approves each milestone.",
+    zh: "资金仅在创建者批准对应里程碑后才会释放。",
+  },
 
   createdByYou: { en: "Created by you", zh: "我创建的" },
   forYou: { en: "For you", zh: "我受益的" },

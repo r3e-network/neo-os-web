@@ -53,6 +53,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hasCredit = bool("hasCredit");
   const reusableCredit = val<string>("reusableCredit", "0") ?? "0";
   const capsules = val<unknown[]>("capsules") ?? [];
+  const fishCandidates = val<Array<Record<string, unknown>>>("fishCandidates") ?? [];
+  const isLoadingCandidates = bool("isLoadingCandidates");
   const newCapsule =
     val<CapsuleFormState>("newCapsule", { title: "", content: "", days: "30", isPublic: false, category: 1 }) ??
     { title: "", content: "", days: "30", isPublic: false, category: 1 };
@@ -171,18 +173,64 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="capsule-side-panel">
         <div className="capsule-actions">
           <p className="capsule-actions-eyebrow">{t("fish")}</p>
-          <NeoButton
-            variant="secondary"
-            size="lg"
-            block
-            loading={isProcessing}
-            disabled={isBusy}
-            aria-label={t("fishButton")}
-            onClick={() => dispatch("fishCapsule")}
-          >
-            {isProcessing ? t("fishing") : t("fishButton")}
-          </NeoButton>
           <p className="capsule-fish-note">{t("fishDescription")}</p>
+
+          <div className="capsule-fish-candidates">
+            <div className="capsule-fish-candidates__head">
+              <span className="capsule-fish-candidates__title">{t("fishCandidatesTitle")}</span>
+              <button
+                type="button"
+                className="capsule-fish-candidates__refresh"
+                disabled={isLoadingCandidates || isBusy}
+                onClick={() => dispatch("loadFishCandidates")}
+              >
+                {isLoadingCandidates ? t("fishCandidatesLoading") : t("fishCandidatesRefresh")}
+              </button>
+            </div>
+            <p className="capsule-fish-note">{t("fishCandidatesHint")}</p>
+            {fishCandidates.length === 0 ? (
+              <p className="capsule-fish-candidates__empty">
+                {isLoadingCandidates ? t("fishCandidatesLoading") : t("fishCandidatesEmpty")}
+              </p>
+            ) : (
+              <ul className="capsule-fish-candidates__list">
+                {fishCandidates.map((cap) => {
+                  const id = String(cap.id);
+                  const categoryKey = CATEGORY_LABEL_KEYS[Number(cap.category)];
+                  const unlockTimeMs = normalizeUnlockTimeMs(
+                    cap.unlockTimestamp ?? cap.unlockTime,
+                  );
+                  const unlockDateLabel =
+                    unlockTimeMs > 0 ? new Date(unlockTimeMs).toLocaleDateString() : null;
+                  return (
+                    <li key={id} className="capsule-fish-candidates__item">
+                      <div className="capsule-fish-candidates__meta">
+                        <span className="capsule-id">#{id}</span>
+                        {categoryKey ? (
+                          <span className="capsule-category-badge">{t(categoryKey)}</span>
+                        ) : null}
+                        {unlockDateLabel ? (
+                          <span className="capsule-unlock-meta">
+                            {t("unlocks")} {unlockDateLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                      <NeoButton
+                        variant="secondary"
+                        size="sm"
+                        loading={isProcessing}
+                        disabled={isBusy}
+                        aria-label={t("fishTipThis")}
+                        onClick={() => dispatch("fishCapsule", id)}
+                      >
+                        {t("fishTipThis")}
+                      </NeoButton>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </div>
 
         <NeoCard title={t("yourCapsules")}>

@@ -121,7 +121,7 @@ defineMiniApp({
         totalLoans: loan.totalLoans,
         totalBorrowedDisplay: loan.totalBorrowedDisplay,
         totalRepaidDisplay: loan.totalRepaidDisplay,
-        profitAnchorValue: loan.profitAnchorValue,
+        custodyValue: loan.custodyValue,
         // Reclaim affordances (deposit-then-act recovery paths)
         collateralCredit: loan.collateralCredit,
         repayCredit: loan.repayCredit,

@@ -92,7 +92,7 @@ describe("Private Transfer PlayArea", () => {
     render(<PlayArea {...props()} />);
 
     const sealButton = screen.getByRole("button", {
-      name: "Seal private transfer",
+      name: "Seal private transfer intent",
     }) as HTMLButtonElement;
     expect(sealButton.disabled).toBe(true);
 
@@ -112,6 +112,23 @@ describe("Private Transfer PlayArea", () => {
     expect(sealButton.disabled).toBe(false);
   });
 
+  it("always shows the no-funds-moved disclosure and badges off-app lifecycle steps", () => {
+    render(<PlayArea {...props()} />);
+
+    // The honest framing: this app seals an intent and never moves funds, so
+    // the disclosure must be visible up front (not only inside an error state).
+    expect(
+      screen.getByText(
+        "No funds were moved — this seals an encrypted intent for Morpheus confidential compute, not a payment.",
+      ),
+    ).toBeTruthy();
+
+    // Steps 1 (Deposit) and 4 (Release/refund) are not performed here, so they
+    // are badged "Not in this app"; the local-encryption/TEE steps are "In this app".
+    expect(screen.getAllByText("Not in this app")).toHaveLength(2);
+    expect(screen.getAllByText("In this app")).toHaveLength(2);
+  });
+
   it("rejects fractional NEO amounts because NEO is indivisible", () => {
     render(<PlayArea {...props()} />);
 
@@ -126,7 +143,7 @@ describe("Private Transfer PlayArea", () => {
     fireEvent.change(amountInput, { target: { value: "0.5" } });
 
     const sealButton = screen.getByRole("button", {
-      name: "Seal private transfer",
+      name: "Seal private transfer intent",
     }) as HTMLButtonElement;
     expect(sealButton.disabled).toBe(true);
     expect(
@@ -161,7 +178,7 @@ describe("Private Transfer PlayArea", () => {
       target: { value: VALID_NEO_ADDRESS },
     });
     fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
-    fireEvent.click(screen.getByRole("button", { name: "Seal private transfer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Seal private transfer intent" }));
 
     await waitFor(() => {
       expect(
@@ -253,7 +270,7 @@ describe("Private Transfer PlayArea", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Seal private transfer" }),
+      screen.getByRole("button", { name: "Seal private transfer intent" }),
     );
 
     // The secret ref appears both in the result aside and the persisted
@@ -295,7 +312,7 @@ describe("Private Transfer PlayArea", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Seal private transfer" }),
+      screen.getByRole("button", { name: "Seal private transfer intent" }),
     );
 
     // The secret ref is written to safe-storage so it survives a remount.
@@ -347,7 +364,7 @@ describe("Private Transfer PlayArea", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
     fireEvent.click(
-      screen.getByRole("button", { name: "Seal private transfer" }),
+      screen.getByRole("button", { name: "Seal private transfer intent" }),
     );
 
     await waitFor(() => {

@@ -33,9 +33,15 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   const lastError = str("lastError");
   const neoCredit = str("neoCredit", "0");
   const gasCredit = str("gasCredit", "0");
+  const rewardPerNeo = str("rewardPerNeo", "0");
   const discoveredAnchors = val<DiscoveredAnchor[]>("discoveredAnchors") ?? [];
   const anchorLinked = Boolean(anchorAppId);
   const anchorNotRegistered = anchorLinked && anchorMode === 0;
+  // A registered anchor with 0 AA agents is inert: staked NEO cannot vote or
+  // earn GAS until the operator provisions agents. Surface this before staking
+  // and gate the stake action behind an explicit acknowledgement.
+  const hasNoAgents =
+    anchorLinked && !anchorNotRegistered && anchorMode > 0 && agentCount === 0;
   const anchorStatus = !anchorLinked
     ? t("anchorMissing")
     : anchorNotRegistered
@@ -59,6 +65,8 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   const [registerMode, setRegisterMode] = useState(1);
   const [busyAction, setBusyAction] = useState("");
   const [formError, setFormError] = useState("");
+  // Explicit acknowledgement required to stake into a 0-agent (inert) anchor.
+  const [noAgentConfirmed, setNoAgentConfirmed] = useState(false);
 
   useEffect(() => {
     if (anchorAppId && anchorAppId !== anchorInput) setAnchorInput(anchorAppId);
@@ -76,8 +84,17 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
     return v.length >= 1 && v.length <= 64;
   }, [anchorInput]);
   const busy = isLoading || Boolean(busyAction);
+  // Reset the inert-anchor acknowledgement whenever the typed anchor id changes,
+  // so a confirmation for one anchor never silently carries to another.
+  useEffect(() => {
+    setNoAgentConfirmed(false);
+  }, [anchorInput]);
   // Stake mints into an anchor (strict shape); other actions accept any valid id.
-  const stakeDisabled = busy || !anchorInputValid || !amountValid;
+  // Additionally gate staking into a 0-agent anchor behind an explicit confirm —
+  // such an anchor cannot vote or earn GAS, so a stake there earns nothing.
+  const stakeBlockedByNoAgents = hasNoAgents && !noAgentConfirmed;
+  const stakeDisabled =
+    busy || !anchorInputValid || !amountValid || stakeBlockedByNoAgents;
   const redeemDisabled = busy || !looseAnchorValid || !amountValid;
   const looseActionDisabled = busy || !looseAnchorValid;
   // Only flag the input as invalid once the user has typed something; an empty
@@ -266,6 +283,22 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
               aria-invalid={!amountValid}
             />
           </label>
+          {hasNoAgents && (
+            <div className="custom-anchor-no-agents" role="alert">
+              <strong>{t("noAgentsTitle")}</strong>
+              <p>{t("noAgentsBody")}</p>
+              <label className="custom-anchor-no-agents__confirm">
+                <input
+                  type="checkbox"
+                  checked={noAgentConfirmed}
+                  onChange={(event) => setNoAgentConfirmed(event.currentTarget.checked)}
+                />
+                <span>
+                  {noAgentConfirmed ? t("noAgentsConfirmActive") : t("noAgentsConfirm")}
+                </span>
+              </label>
+            </div>
+          )}
           <div className="custom-anchor-action-grid">
             <button
               type="submit"
@@ -339,6 +372,22 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
         </div>
       </section>
 
+      {/* Reward model — explain where claimable GAS comes from before users stake. */}
+      <section className="custom-anchor-reward-model" aria-label={t("rewardModelTitle")}>
+        <div className="custom-anchor-reward-model__head">
+          <span>{t("rewardModelTitle")}</span>
+          {anchorLinked && !anchorNotRegistered && (
+            <span className="custom-anchor-reward-model__rate">
+              {t("rewardPerNeoLabel")}: <strong>{rewardPerNeo}</strong>
+            </span>
+          )}
+        </div>
+        <p>{t("rewardModelBody")}</p>
+        {anchorLinked && !anchorNotRegistered && (
+          <p className="custom-anchor-reward-model__caption">{t("rewardPerNeoCaption")}</p>
+        )}
+      </section>
+
       {/* Stranded contract-credit recovery — shown only when there is something to reclaim. */}
       {hasAnyCredit && (
         <section className="custom-anchor-credit-card" aria-label={t("creditTitle")}>
@@ -401,7 +450,14 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
               {discoveredAnchors.map((entry) => (
                 <li key={entry.appId}>
                   <span className="custom-anchor-discover__id">{truncate(entry.appId)}</span>
-                  <span className="custom-anchor-discover__mode">
+                  <span
+                    className="custom-anchor-discover__mode"
+                    title={
+                      entry.mode === 2
+                        ? t("registerModeProfitDesc")
+                        : t("registerModeTrustDesc")
+                    }
+                  >
                     {entry.mode === 2 ? t("modeProfit") : t("modeTrust")}
                   </span>
                   <button
@@ -458,6 +514,9 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
                 {t("registerModeProfit")}
               </button>
             </div>
+            <p className="custom-anchor-mode-desc">
+              {registerMode === 2 ? t("registerModeProfitDesc") : t("registerModeTrustDesc")}
+            </p>
             <button
               type="submit"
               className="custom-anchor-button custom-anchor-button--primary"

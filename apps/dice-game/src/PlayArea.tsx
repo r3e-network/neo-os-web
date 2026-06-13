@@ -64,6 +64,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const lastRoll = str("lastRoll");
   const lastOutcome = (str("lastOutcome") || "") as RollOutcome;
   const isResolving = bool("isResolving");
+  const isUnresolved = bool("isUnresolved");
+  // The N3 (non-EVM) path is the one whose VRF settlement waits on the Morpheus
+  // oracle callback and can leave non-withdrawable roll credit; the EVM path is
+  // atomic. The chain badge is set from the detected network.
+  const isEvmChain = chainLabel.startsWith("Neo X");
 
   const [faceInput, setFaceInput] = useState(selectedFace);
   const [amountInput, setAmountInput] = useState(amountFromStake(stakeAmount));
@@ -171,24 +176,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <h2>
               {isResolving
                 ? t("resolvingTitle")
-                : showResult
-                  ? outcomeLabel
-                  : t("readyTitle")}
+                : isUnresolved
+                  ? t("statusSettlementPending")
+                  : showResult
+                    ? outcomeLabel
+                    : t("readyTitle")}
             </h2>
             <p>
               {isResolving
                 ? t("resolvingBody")
-                : showResult
-                  ? outcomeBody
-                  : t("diceHeroSubtitle")}
+                : isUnresolved
+                  ? t("settlementPendingBody")
+                  : showResult
+                    ? outcomeBody
+                    : t("diceHeroSubtitle")}
             </p>
 
-            {(isResolving || showResult) && (
-              <div className={`dice-result dice-result--${stageState}`} role="status">
+            {(isResolving || isUnresolved || showResult) && (
+              <div
+                className={`dice-result dice-result--${isUnresolved ? "pending" : stageState}`}
+                role="status"
+              >
                 {isResolving ? (
                   <>
                     <span className="dice-result__spinner" aria-hidden="true" />
                     <span className="dice-result__label">{t("statusRolling")}</span>
+                  </>
+                ) : isUnresolved ? (
+                  <>
+                    <span className="dice-result__label">{t("statusSettlementPending")}</span>
+                    <button
+                      type="button"
+                      className="dice-recheck-button"
+                      onClick={() => void dispatch("recheckSettlement", {})}
+                    >
+                      {t("checkAgain")}
+                    </button>
                   </>
                 ) : (
                   <>
@@ -327,6 +350,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             >
               {isSubmitting ? t("statusSubmitting") : t("rollAction")}
             </button>
+
+            {!isEvmChain && <p className="dice-trust-line">{t("vrfTrustLine")}</p>}
           </form>
 
           {directCredit > 0 && (

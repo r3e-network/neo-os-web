@@ -199,6 +199,14 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
   // ── Local UI state managed by the composable ─────────────────────────
   const burnAmount = createObservable("1");
 
+  // On-chain burn bounds (whole GAS). Default to the contract's compile-time
+  // MIN_BURN/MAX_BURN literals and are overwritten by the live minBurn()/maxBurn()
+  // reads in loadStats — so validation and the burnRange copy track the contract
+  // even if the deployed bounds ever differ from the literals. Fall back to the
+  // literals when the read is unavailable.
+  const minBurnGas = createObservable(MIN_BURN);
+  const maxBurnGas = createObservable(MAX_BURN);
+
   // Connected wallet address (synced from main.tsx / chain).
   const resolveAddress = (): string | null =>
     (getAddress?.() ?? chain.address.get()) ?? null;
@@ -338,6 +346,8 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
         topBurnerRaw,
         topBurnedRaw,
         durationRaw,
+        minBurnRaw,
+        maxBurnRaw,
       ] = await Promise.all([
         chain.read("currentSeason", []),
         chain.read("seasonEnd", []),
@@ -346,6 +356,8 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
         chain.read("topBurner", []),
         chain.read("topBurned", []),
         chain.read("seasonDuration", []),
+        chain.read("minBurn", []),
+        chain.read("maxBurn", []),
       ]);
 
       seasonId.set(Number(parseBigInt(seasonRaw)));
@@ -353,6 +365,13 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
       // Disclose the season length so a first burner knows how long the round
       // they open will run (live mainnet value is currently 120s).
       seasonDurationMs.set(Number(parseBigInt(durationRaw)));
+
+      // Bind the burn bounds to the live contract values (base units → whole
+      // GAS), keeping the literals when a read returns a non-positive value.
+      const minGas = fromBaseUnits(parseBigInt(minBurnRaw));
+      const maxGas = fromBaseUnits(parseBigInt(maxBurnRaw));
+      if (minGas > 0) minBurnGas.set(minGas);
+      if (maxGas > 0) maxBurnGas.set(maxGas);
 
       const poolGas = fromBaseUnits(parseBigInt(poolRaw));
       // TotalBurned() == RewardPool() on the contract — both are the season pool.
@@ -477,11 +496,15 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
   const validateBurnAmount = (burnAmountInput?: string) => {
     const amountStr = burnAmountInput ?? burnAmount.get();
     const amount = parseBurnAmount(amountStr);
-    if (!Number.isFinite(amount) || amount < MIN_BURN) {
-      return t("minBurn", { amount: MIN_BURN, tokenGas: t("tokenGas") });
+    // Validate against the live on-chain bounds (with the literals as the
+    // fallback the observables default to).
+    const min = minBurnGas.get();
+    const max = maxBurnGas.get();
+    if (!Number.isFinite(amount) || amount < min) {
+      return t("minBurn", { amount: min, tokenGas: t("tokenGas") });
     }
-    if (amount > MAX_BURN) {
-      return t("maxBurn", { amount: MAX_BURN, tokenGas: t("tokenGas") });
+    if (amount > max) {
+      return t("maxBurn", { amount: max, tokenGas: t("tokenGas") });
     }
     return null;
   };
@@ -743,6 +766,8 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
 
     // ── Local UI state ──────────────────────────────────────────────
     burnAmount,
+    minBurnGas,
+    maxBurnGas,
 
     // ── Formatted values (for manifest stat/sidebar bindings) ────────
     totalBurnedDisplay,

@@ -1,6 +1,6 @@
 # Recovery Guardian
 
-AA recovery console for guardian policy, NeoDID recovery tickets, timelock review, and final recovery execution.
+Read-first AA recovery console for guardian policy, NeoDID recovery tickets, and timelock review. It inspects on-chain recovery state and prepares guarded recovery links — the actual on-chain recovery execution happens in the AA workspace.
 
 ## Scope
 

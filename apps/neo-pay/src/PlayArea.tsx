@@ -16,6 +16,7 @@ import {
   canClaim,
   deriveSchedulePreview,
   isFinalizedStatus,
+  releasePerDayDisplay,
   statusLabelKey,
 } from "./streamDisplay";
 import "./PlayArea.scss";
@@ -248,6 +249,18 @@ export default function PlayArea({
     return "var(--ns-brand, #16c784)";
   };
 
+  // Per-day release the creator committed to (rateAmount over its interval),
+  // surfaced on created-stream cards so the ongoing release rate is visible —
+  // mirroring the create-form schedulePreview. Returns undefined when the
+  // stream lacks a meaningful per-day figure (so the row is simply omitted).
+  const getReleasePerDay = (
+    stream: Stream,
+  ): { amount: string; token: string } | undefined => {
+    const assetSymbol = getAssetSymbol(stream) === "NEO" ? "NEO" : "GAS";
+    const amount = releasePerDayDisplay(stream.rateAmount, stream.intervalDays, assetSymbol);
+    return amount === null ? undefined : { amount, token: assetSymbol };
+  };
+
   const getClaimable = (stream: Stream): { display: string; positive: boolean } => {
     const assetSymbol = getAssetSymbol(stream);
     if (typeof stream.claimable === "bigint") {
@@ -476,6 +489,7 @@ export default function PlayArea({
               const recipientAddress = getPrimaryAddress(stream, "to");
               const durationDays = getDurationDays(stream);
               const title = getStreamTitle(stream);
+              const releasePerDay = getReleasePerDay(stream);
               return (
                 <div key={stream.id} className="neopay-stream-item">
                   <span
@@ -503,6 +517,17 @@ export default function PlayArea({
                       {durationDays !== undefined && (
                         <span className="neopay-stream-detail">
                           {durationDays}d
+                        </span>
+                      )}
+                      {/* The per-day release the creator configured — visible
+                          here so the ongoing schedule isn't only on the
+                          create form. */}
+                      {releasePerDay && (
+                        <span className="neopay-stream-detail neopay-stream-detail--rate">
+                          {t("releasePerDayValue", {
+                            amount: releasePerDay.amount,
+                            token: releasePerDay.token,
+                          })}
                         </span>
                       )}
                     </div>

@@ -40,6 +40,7 @@ type SharedStream = {
   releasedAmount?: bigint | number | string;
   remainingAmount?: bigint | number | string;
   claimable?: bigint | number | string;
+  rateAmount?: bigint | number | string;
 };
 
 type LaunchDefaults = {
@@ -266,6 +267,31 @@ function isFinal(stream: SharedStream): boolean {
   return status === "cancelled" || status === "completed";
 }
 
+/**
+ * Per-day release for a created stream, derived from the on-chain rateAmount
+ * (base units) over its intervalDays, so the ongoing release rate the creator
+ * configured is visible on the card (not only in the create-form preview).
+ * Returns null when there is no meaningful per-day figure (no rate, or a
+ * sub-1-NEO/day cliff where a fractional NEO/day would mislead).
+ */
+function releasePerDayText(stream: SharedStream, asset: string): string | null {
+  const rate = asBigInt(stream.rateAmount);
+  if (rate === null || rate <= 0n) return null;
+  const days =
+    typeof stream.intervalDays === "number" && stream.intervalDays > 0
+      ? stream.intervalDays
+      : 1;
+  if (asset === "NEO") {
+    const perDay = days === 1 ? rate : rate / BigInt(days);
+    if (perDay < 1n) return null;
+    return perDay.toString();
+  }
+  // GAS rateAmount is in 1e8 base units.
+  const perDay = Number(rate) / Number(FIXED8_SCALE) / days;
+  if (!(perDay > 0)) return null;
+  return formatDisplayNumber(perDay);
+}
+
 function statusClass(status: string): string {
   return status.trim().toLowerCase().replace(/[^a-z0-9-]/gu, "-") || "active";
 }
@@ -478,6 +504,10 @@ export default function PlayArea({
           const status = String(stream.status || copy("active", "Active"));
           const counterparty = streamCounterparty(stream, direction);
           const claimable = claimableInfo(stream, asset);
+          // Only the creator (outgoing) cards surface the per-day release the
+          // creator committed to; the beneficiary side shows Claimable instead.
+          const perDay =
+            direction === "outgoing" ? releasePerDayText(stream, asset) : null;
           const label =
             streamTitle(stream) || `${copy("streamSingular", "Stream")} #${stream.id ?? index + 1}`;
 
@@ -507,6 +537,13 @@ export default function PlayArea({
                   <span>{total} {asset}</span>
                   {(stream.duration || stream.intervalDays) && (
                     <span>{stream.duration || stream.intervalDays}d</span>
+                  )}
+                  {perDay && (
+                    <span className="shared-pay-stream__rate">
+                      {copy("releasePerDayValue", `${perDay} ${asset} / day`)
+                        .replace("{amount}", perDay)
+                        .replace("{token}", asset)}
+                    </span>
                   )}
                 </div>
                 {stream.notes && (

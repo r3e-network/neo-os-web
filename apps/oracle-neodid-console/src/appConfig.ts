@@ -17,7 +17,10 @@ export function resolveNetworkLabel(): string {
 
 export const appMeta = {
   networkLabel: resolveNetworkLabel(),
-  endpointLabel: "NeoDID verifier",
+  // buildResult only computes a local digest; it never calls the verifier. Mark
+  // the endpoint stat as a preview builder so "NeoDID verifier" on the live
+  // network label does not read as "identity verified".
+  endpointLabel: "Verification preview builder",
 };
 
 const DEFAULT_DID = "did:neo:testnet:sample-user";
@@ -167,18 +170,18 @@ const appMessages = {
   panelEyebrow: { en: "Identity oracle", zh: "身份预言机" },
   panelTitle: { en: "NeoDID Verification Preview", zh: "NeoDID 校验预览" },
   panelDescription: {
-    en: "Prepare a reviewable NeoDID verification package before Morpheus dispatch.",
-    zh: "在 Morpheus 分发前准备可复核的 NeoDID 校验包。",
+    en: "Prepare a reviewable NeoDID verification package before Morpheus dispatch. This is a preview builder — it computes a local digest and does not verify identity. The provider/claim options below are example shapes; confirm the exact provider id and claim type against the live Morpheus NeoDID catalog (GET /neodid/providers) before you dispatch.",
+    zh: "在 Morpheus 分发前准备可复核的 NeoDID 校验包。这是预览构建器——它计算本地摘要，不会验证身份。下方的提供方/声明选项为示例形态；分发前请对照 Morpheus NeoDID 实时目录（GET /neodid/providers）确认确切的提供方 id 与声明类型。",
   },
   runAction: { en: "Preview Verification", zh: "预览校验" },
   did: { en: "DID", zh: "DID" },
   didPlaceholder: { en: DEFAULT_DID, zh: DEFAULT_DID },
-  provider: { en: "Provider", zh: "提供方" },
+  provider: { en: "Provider (example — verify against live catalog)", zh: "提供方（示例——请对照实时目录核实）" },
   providerRegistry: { en: "NeoDID registry", zh: "NeoDID 注册表" },
   providerWallet: { en: "Wallet signature", zh: "钱包签名" },
   providerSocial: { en: "Social attestation", zh: "社交证明" },
   claim: { en: "Claim", zh: "声明" },
-  claimPlaceholder: { en: DEFAULT_CLAIM, zh: DEFAULT_CLAIM },
+  claimPlaceholder: { en: "e.g. profile.kyc — match a live provider claim type", zh: "例如 profile.kyc——需与实时提供方声明类型匹配" },
   callback: { en: "Callback Contract", zh: "回调合约" },
   callbackPlaceholder: { en: "Optional callback contract hash", zh: "可选回调合约哈希" },
   didValid: { en: "DID format valid", zh: "DID 格式有效" },

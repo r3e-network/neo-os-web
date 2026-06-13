@@ -467,6 +467,39 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
     );
     expect(fish?.args[3]?.value).toBe("miniapp-timecapsule:fish:700");
   });
+
+  it("loadFishCandidates exposes a browsable list of other users' public capsules (newest-first, own excluded)", async () => {
+    const { composable } = setup([
+      capsule({ id: "1", owner: ME_HASH }), // own — excluded
+      capsule({ id: "2", owner: OTHER_HASH }), // tippable
+      capsule({ id: "3", owner: OTHER_HASH }), // tippable (newer)
+      capsule({ id: "4", owner: OTHER_HASH, revealed: true }), // revealed — excluded
+    ]);
+
+    await composable.loadFishCandidates();
+    const ids = composable.fishCandidates.get().map((c) => c.id);
+    // Newest-first, own + revealed excluded.
+    expect(ids).toEqual(["3", "2"]);
+  });
+
+  it("fishCapsule(targetId) tips the chosen capsule, not just the newest", async () => {
+    const { composable, invokes, store } = setup([
+      capsule({ id: "2", owner: OTHER_HASH }),
+      capsule({ id: "3", owner: OTHER_HASH }), // newest — the blind default
+    ]);
+
+    await composable.loadAll();
+    // User picked the OLDER capsule (2) from the browsable list.
+    await composable.fishCapsule("2");
+
+    const fish = invokes.find(
+      (c) => c.operation === "transfer" && String(c.args[3]?.value).startsWith("miniapp-timecapsule:fish:"),
+    );
+    // The chosen target is tipped, not the newest (3).
+    expect(fish?.args[3]?.value).toBe("miniapp-timecapsule:fish:2");
+    expect(store.get("2")?.fished).toBe(true);
+    expect(store.get("3")?.fished).toBe(false);
+  });
 });
 
 describe("useTimeCapsule prepaid-deposit credit (money-out path)", () => {

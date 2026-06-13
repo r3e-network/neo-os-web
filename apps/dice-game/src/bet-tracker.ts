@@ -40,6 +40,11 @@ export function createBetTracker() {
   const lastRoll = createObservable(""); // the active bet's settled face (1..6), revealed
   const lastOutcome = createObservable<RollOutcome>("");
   const isResolving = createObservable(false); // active bet placed, awaiting settlement
+  // The active bet's settlement poll gave up without a result (the VRF oracle
+  // has not called back yet). Distinct from isResolving so the UI can show a
+  // definite "settlement pending — check again" state instead of a frozen
+  // spinner. Cleared whenever a new active bet begins or the active bet settles.
+  const isUnresolved = createObservable(false);
 
   let seq = 0;
   let activeBetId: string | null = null;
@@ -61,6 +66,7 @@ export function createBetTracker() {
     lastRoll.set("");
     lastOutcome.set("pending");
     isResolving.set(true);
+    isUnresolved.set(false);
     return id;
   };
 
@@ -104,6 +110,7 @@ export function createBetTracker() {
       lastRoll.set(rolled ? String(rolled) : "");
       lastOutcome.set(outcome);
       isResolving.set(false);
+      isUnresolved.set(false);
     }
     return isActive;
   };
@@ -116,6 +123,7 @@ export function createBetTracker() {
   const markUnresolved = (id: string) => {
     if (id === activeBetId) {
       isResolving.set(false);
+      isUnresolved.set(true);
     }
   };
 
@@ -124,6 +132,7 @@ export function createBetTracker() {
     lastRoll,
     lastOutcome,
     isResolving,
+    isUnresolved,
     beginBet,
     recordRow,
     settleBet,

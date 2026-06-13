@@ -129,6 +129,29 @@
   text-transform: uppercase;
 }
 
+// Durability disclaimer chip — overrides the "Forever" name's implied
+// permanence: photos live only in this browser's local storage.
+.forever-album-durability-chip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-warning-soft, #fff4e0);
+  border: 1px solid var(--ns-warning, #f3a847);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--ns-warning, #f3a847);
+  }
+}
+
 .forever-album-actions,
 .forever-album-panel-footer {
   display: flex;

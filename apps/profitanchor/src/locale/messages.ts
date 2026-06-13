@@ -3,10 +3,36 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   appName: { en: "ProfitAnchor", zh: "ProfitAnchor" },
   title: { en: "ProfitAnchor", zh: "ProfitAnchor" },
-  heroTitle: { en: "Stake. Redeem. Claim.", zh: "质押 · 赎回 · 领取" },
+  heroTitle: { en: "Yield-maximizing NEO staking", zh: "收益优先的 NEO 质押" },
   heroDescription: {
-    en: "Stake NEO, redeem NEO, and claim GAS rewards. Manual 21-agent routing is handled separately in ProfitAnchor Admin.",
-    zh: "质押 NEO、赎回 NEO、领取 GAS 奖励。21 个 AA agent 的手动调仓由 ProfitAnchor Admin 单独处理。",
+    en: "The yield-maximizing anchor: your staked NEO is voted by 21 anchor agents under a profit policy, and you claim the GAS those votes earn. ProfitAnchor is a distinct pool from TrustAnchor, and its selected route is readable by SelfLoan without ceding custody. Manual 21-agent routing is handled in ProfitAnchor Admin.",
+    zh: "收益优先的锚点：你质押的 NEO 由 21 个锚点 agent 按收益策略投票，你领取这些投票产生的 GAS。ProfitAnchor 与 TrustAnchor 是独立资金池，其选定路由可被 SelfLoan 读取且无需转移托管权。21 个 AA agent 的手动调仓由 ProfitAnchor Admin 处理。",
+  },
+  earnTitle: { en: "How yield works", zh: "收益如何产生" },
+  earnLine1: {
+    en: "Your staked NEO is voted by the anchor's 21 AA agents for Neo council candidates under ProfitAnchor's profit policy.",
+    zh: "你质押的 NEO 由锚点的 21 个 AA agent 按 ProfitAnchor 的收益策略投票给 Neo council 候选人。",
+  },
+  earnLine2: {
+    en: "The GAS those votes generate is funded into the reward reserve and split across stakers by share of total NEO.",
+    zh: "这些投票产生的 GAS 注入奖励储备，并按各自占总质押 NEO 的比例分配给质押者。",
+  },
+  earnLine3: {
+    en: "Yield is variable and accrues only when the reserve is funded — there is no fixed APR or guaranteed rate.",
+    zh: "收益是浮动的，仅在储备被注入时才累积——没有固定 APR 或保证收益率。",
+  },
+  rewardPerNeo: { en: "GAS / NEO (cumulative)", zh: "每 NEO GAS（累计）" },
+  rewardPerNeoCaption: {
+    en: "Cumulative GAS distributed per NEO since launch — not a current rate.",
+    zh: "自上线以来每 NEO 累计分配的 GAS——并非当前收益率。",
+  },
+  selfLoanNote: {
+    en: "Composability: ProfitAnchor's selected route is published on-chain for SelfLoan to follow — without transferring your collateral custody.",
+    zh: "可组合性：ProfitAnchor 选定的路由发布在链上供 SelfLoan 跟随——且无需转移你的抵押品托管权。",
+  },
+  preflightRouteInfo: {
+    en: "Informational — a selected route is not required to stake.",
+    zh: "仅供参考——质押不需要先选定路由。",
   },
   contractLiquidityLabel: { en: "Core Liquidity", zh: "核心池流动性" },
   agentAccountsLabel: { en: "Agent Accounts", zh: "Agent 账户" },

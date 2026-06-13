@@ -1,14 +1,28 @@
 import {
   createDerived,
+  createObservable,
   defineMiniApp,
 } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { formatNumber } from "@shared/utils/format";
 import { TRUSTANCHOR_AGENT_ACCOUNTS } from "../../trustanchor/src/pages/index/data/agentAccounts";
 import { useTrustAnchor } from "../../trustanchor/src/hooks/useTrustAnchor";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./messages";
+
+/** Coerce a NEP-17 balanceOf stack item (number/bigint/string/{value}) to a number. */
+function balanceToNumber(input: unknown): number {
+  if (typeof input === "number") return input;
+  if (typeof input === "bigint") return Number(input);
+  if (typeof input === "string") return Number(input) || 0;
+  if (input && typeof input === "object") {
+    const record = input as Record<string, unknown>;
+    return balanceToNumber(record.value ?? record.integer ?? record.result);
+  }
+  return 0;
+}
 
 function shortAddress(value: string): string {
   if (!value) return "";
@@ -31,6 +45,40 @@ defineMiniApp({
     });
     const agentAccounts = TRUSTANCHOR_AGENT_ACCOUNTS;
     const formatNum = (n: number | string) => formatNumber(n, 2);
+
+    // Per-agent NEO balances, keyed by agent account address. NEO sits in each
+    // agent's own account (not in PlatformAnchor), so balance is a read-only
+    // NEO.balanceOf(agentAccount) against the native NEO contract. This turns the
+    // blind Move-NEO form into one where the operator sees source balances.
+    const agentBalances = createObservable<Record<string, number>>({});
+    const loadAgentBalances = async () => {
+      const live = anchor.agents.get();
+      if (live.length === 0) return;
+      try {
+        const entries = await Promise.all(
+          live.map(async (agent) => {
+            if (!agent.account) return [agent.account, 0] as const;
+            try {
+              const raw = await ctx.services.chain.read(
+                "balanceOf",
+                [{ type: "Hash160", value: agent.account }],
+                { scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH },
+              );
+              return [agent.account, balanceToNumber(raw)] as const;
+            } catch {
+              return [agent.account, 0] as const;
+            }
+          }),
+        );
+        const next: Record<string, number> = {};
+        for (const [account, balance] of entries) {
+          if (account) next[account] = balance;
+        }
+        agentBalances.set(next);
+      } catch {
+        // Balances are an advisory display; never block the console on them.
+      }
+    };
     const totalNeoDisplay = createDerived(
       () => `${formatNum(anchor.stats.get()?.totalStaked ?? 0)} NEO`,
       [anchor.stats],
@@ -57,16 +105,22 @@ defineMiniApp({
       [anchor.stats],
     );
     // On-chain agent directory (ground truth) with the static roster as a
-    // pre-load fallback so the directory is never empty on first paint.
+    // pre-load fallback so the directory is never empty on first paint. Live
+    // rows carry the on-chain account/candidate/active flag plus the read NEO
+    // balance so the operator sees source balances before a Move.
     const agentDirectory = createDerived<Array<Record<string, unknown>>>(
       () => {
         const live = anchor.agents.get();
         if (live.length > 0) {
-          return live.map((agent) => ({ ...agent }));
+          const balances = agentBalances.get();
+          return live.map((agent) => ({
+            ...agent,
+            neoBalance: agent.account ? (balances[agent.account] ?? null) : null,
+          }));
         }
         return agentAccounts.map((agent) => ({ ...agent }));
       },
-      [anchor.agents],
+      [anchor.agents, agentBalances],
     );
     // Admin-role state: null while loading, true/false once admin() + getAppAdmin
     // resolve. Drives the read-only banner for non-operators.
@@ -125,7 +179,10 @@ defineMiniApp({
         adminState,
         expectedAdminDisplay,
       } satisfies Record<string, Observable>,
-      loadData: anchor.loadAll,
+      loadData: async () => {
+        await anchor.loadAll();
+        await loadAgentBalances();
+      },
     };
   },
 });

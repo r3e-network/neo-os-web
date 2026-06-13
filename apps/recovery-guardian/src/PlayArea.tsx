@@ -404,6 +404,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <strong>{credentialUrl}</strong>
             </div>
           )}
+          <p className="guardian-link-preview__note">
+            {t("guardianLinkHandoffNote")}
+          </p>
         </section>
       )}
     </div>

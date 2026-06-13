@@ -39,16 +39,20 @@ const appMessages = {
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
   emptyEvents: { en: "No events yet", zh: "暂无活动" },
   emptyEventsHint: {
-    en: "Create an event to open the organizer workflow: issue attendee tickets, pause sales, and check people in at the door.",
-    zh: "创建活动后即可进入主办方流程：签发门票、暂停售票并在现场核验入场。",
+    en: "Create an event to open the organizer workflow: issue passes to attendee addresses, pause issuance, and check people in at the door.",
+    zh: "创建活动后即可进入主办方流程：向参与者地址签发通行证、暂停签发，并在现场核验入场。",
+  },
+  freePassesNote: {
+    en: "Free passes — issued to the addresses you choose. No payment is taken on-chain.",
+    zh: "免费通行证 — 由您指定地址签发，链上不收取任何费用。",
   },
   venueFallback: { en: "Venue TBD", zh: "场地待定" },
 
   statusActive: { en: "Active", zh: "进行中" },
   statusInactive: { en: "Inactive", zh: "已停用" },
   eventSchedule: { en: "Schedule", zh: "时间" },
-  minted: { en: "Minted", zh: "已签发" },
-  soldOut: { en: "Sold out", zh: "已售罄" },
+  minted: { en: "Issued", zh: "已签发" },
+  soldOut: { en: "All passes issued", zh: "通行证已全部签发" },
   issueTicket: { en: "Issue Ticket", zh: "签发门票" },
   selectEventFirst: { en: "Select an event first", zh: "请先选择活动" },
   eventInactive: { en: "Selected event is inactive", zh: "所选活动已停用" },
@@ -141,6 +145,7 @@ const appMessages = {
   evidence: { en: "Request and result evidence", zh: "请求与结果证据" },
   latestRequest: { en: "Latest Request", zh: "最新请求" },
   latestResult: { en: "Latest Result", zh: "最新结果" },
+  viewOnExplorer: { en: "View transaction on explorer", zh: "在区块浏览器查看交易" },
   payloadEmpty: { en: "No action submitted yet", zh: "尚未提交操作" },
   requestEmpty: {
     en: "Create an event, issue a ticket, or check in a token to inspect the exact OS service request.",

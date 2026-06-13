@@ -296,6 +296,15 @@
   margin-top: 14px;
 }
 
+/* No-platform-fee / net-proceeds statement under the Create price input. */
+.create-no-fee-note {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+}
+
 .market-caveat {
   padding: 12px 16px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));

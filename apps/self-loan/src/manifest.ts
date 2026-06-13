@@ -10,7 +10,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // ── Identity ─────────────────────────────────────────────────────────
   name: "SelfLoan",
-  description: "Lock NEO, borrow GAS, and route collateral voting through ProfitAnchor",
+  description: "Lock NEO, borrow GAS instantly, and repay anytime — collateral held in custody, no liquidation",
   icon: "dollar-sign",
   category: "defi",
   shell: "launcher",
@@ -27,7 +27,7 @@ export const manifest: MiniAppManifest = {
     { labelKey: "collateralLocked", valueKey: "collateralDisplay", format: "text", icon: "lock" },
     { labelKey: "healthFactor", valueKey: "healthFactorDisplay", format: "text", icon: "heart" },
     { labelKey: "currentLTV", valueKey: "currentLTVDisplay", format: "text", icon: "percent" },
-    { labelKey: "profitAnchorTitle", valueKey: "profitAnchorValue", format: "text", icon: "trending-up" },
+    { labelKey: "custodyTitle", valueKey: "custodyValue", format: "text", icon: "lock" },
     { labelKey: "totalLoans", valueKey: "totalLoans", format: "number", icon: "list" },
     { labelKey: "totalBorrowed", valueKey: "totalBorrowedDisplay", format: "gas", icon: "dollar-sign" },
     { labelKey: "totalRepaid", valueKey: "totalRepaidDisplay", format: "gas", icon: "check-circle" },
@@ -41,7 +41,7 @@ export const manifest: MiniAppManifest = {
       { labelKey: "sidebarNeoBalance", valueKey: "neoBalanceDisplay", format: "number" },
       { labelKey: "healthFactor", valueKey: "healthFactorDisplay", format: "text" },
       { labelKey: "currentLTV", valueKey: "currentLTVDisplay", format: "text" },
-      { labelKey: "profitAnchorStatus", valueKey: "profitAnchorValue", format: "text" },
+      { labelKey: "custodyStatus", valueKey: "custodyValue", format: "text" },
     ],
   },
 
@@ -57,7 +57,7 @@ export const manifest: MiniAppManifest = {
     { titleKey: "title", contentKey: "docSubtitle", type: "text" },
     { titleKey: "docDescription", contentKey: "step2", type: "steps" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
-    { titleKey: "profitAnchorTitle", contentKey: "profitAnchorStatus", type: "features" },
+    { titleKey: "custodyTitle", contentKey: "custodyValue", type: "features" },
   ],
 
   // ── Contract ──────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 export type BridgeDirection = "n3-to-neox" | "neox-to-n3";
 export type BridgeKind = "asset" | "message";
 export type TimelineState = "done" | "active" | "waiting";
+/** Which official bridge deployment the prepared intent targets. */
+export type BridgeEnvironment = "mainnet" | "testnet";
 
 export interface AssetBridgeForm {
   direction?: string;
@@ -72,6 +74,44 @@ export const BRIDGE_RESOURCES = {
   messageBridgeDocs: "https://xdocs.ngd.network/bridge/messaging-bridge",
   bridgeSdk: "https://github.com/bane-labs/bridge-sdk-ts",
 } as const;
+
+/** The official bridge app URL for the given environment. */
+export function bridgeAppUrl(environment: BridgeEnvironment): string {
+  return environment === "mainnet"
+    ? BRIDGE_RESOURCES.bridgeAppMainnet
+    : BRIDGE_RESOURCES.bridgeAppTestnet;
+}
+
+const SOURCE_EXPLORERS: Record<
+  BridgeDirection,
+  Record<BridgeEnvironment, string>
+> = {
+  // n3-to-neox: the source tx is signed on Neo N3.
+  "n3-to-neox": {
+    mainnet: "https://explorer.onegate.space/transactionInfo/",
+    testnet: "https://testnet.explorer.onegate.space/transactionInfo/",
+  },
+  // neox-to-n3: the source tx is signed on Neo X (EVM).
+  "neox-to-n3": {
+    mainnet: "https://xexplorer.neo.org/tx/",
+    testnet: "https://xt4scan.ngd.network/tx/",
+  },
+};
+
+/**
+ * Canonical explorer URL for the SOURCE-chain transaction of a bridge op. The
+ * source chain depends on direction (Neo N3 for n3-to-neox, Neo X for
+ * neox-to-n3); the only fact this console can truly surface is that one source
+ * tx, so let the user open it on the right explorer.
+ */
+export function sourceExplorerUrl(
+  direction: BridgeDirection,
+  environment: BridgeEnvironment,
+  sourceTx: string,
+): string {
+  const base = SOURCE_EXPLORERS[direction][environment];
+  return `${base}${String(sourceTx ?? "").trim()}`;
+}
 
 const DIRECTION_META: Record<
   BridgeDirection,
@@ -172,6 +212,7 @@ export function operationId(kind: BridgeKind, digest: string): string {
 export function buildAssetBridgeIntent(
   form: AssetBridgeForm,
   createdAt = new Date().toISOString(),
+  environment: BridgeEnvironment = "testnet",
 ): BuiltBridgeIntent {
   const direction = normalizeDirection(form.direction);
   const meta = DIRECTION_META[direction];
@@ -193,11 +234,20 @@ export function buildAssetBridgeIntent(
     );
   }
 
-  const digest = stableDigest(["asset", direction, asset, amount, recipient]);
+  // Bind the digest to the environment too so a mainnet vs testnet intent for
+  // otherwise-identical inputs is distinguishable.
+  const digest = stableDigest(["asset", environment, direction, asset, amount, recipient]);
   const payload = {
     kind: "axlabs.assetBridge.intent",
     provider: "BaneLabs Native Bridge",
-    environment: "testnet",
+    // Derive from the launched network instead of a testnet literal so a mainnet
+    // user gets a mainnet-labeled intent pointing at the mainnet bridge app.
+    environment,
+    // This console does not sign or submit anything: it is a local intent the
+    // user carries to the official bridge app to actually move funds.
+    execution: "intent_only",
+    fundsMoved: false,
+    nextStep: bridgeAppUrl(environment),
     route: meta.route,
     sourceChain: meta.source,
     targetChain: meta.target,
@@ -208,9 +258,12 @@ export function buildAssetBridgeIntent(
     expectedSettlement: "1-2 minutes after source transaction confirmation",
     walletRequirement: meta.wallet,
     resources: {
-      bridgeApp: BRIDGE_RESOURCES.bridgeAppTestnet,
+      bridgeApp: bridgeAppUrl(environment),
       docs: BRIDGE_RESOURCES.assetBridgeDocs,
     },
+    // The digest is a local FNV reference for matching/copy, NOT a cryptographic
+    // signature and not chain-verifiable.
+    digestKind: "local-reference",
     digest,
   };
   const operation: BridgeOperation = {
@@ -236,6 +289,7 @@ export function buildAssetBridgeIntent(
 export function buildMessageBridgeIntent(
   form: MessageBridgeForm,
   createdAt = new Date().toISOString(),
+  environment: BridgeEnvironment = "testnet",
 ): BuiltBridgeIntent {
   const direction = normalizeDirection(form.direction);
   const meta = DIRECTION_META[direction];
@@ -259,11 +313,16 @@ export function buildMessageBridgeIntent(
   }
 
   const payloadDigest = stableDigest(["message-body", payloadBody]);
-  const digest = stableDigest(["message", direction, targetContract, method, payloadDigest, gasLimit]);
+  const digest = stableDigest(["message", environment, direction, targetContract, method, payloadDigest, gasLimit]);
   const payload = {
     kind: "axlabs.messageBridge.intent",
     provider: "BaneLabs MessageBridge",
     sdkPackage: "@bane-labs/bridge-sdk-ts",
+    // Derive from the launched network instead of a testnet literal.
+    environment,
+    // This console only builds the SDK handoff; it does not sign or send.
+    execution: "intent_only",
+    fundsMoved: false,
     route: meta.route,
     sourceChain: meta.source,
     targetChain: meta.target,
@@ -281,6 +340,8 @@ export function buildMessageBridgeIntent(
       docs: BRIDGE_RESOURCES.messageBridgeDocs,
       sdk: BRIDGE_RESOURCES.bridgeSdk,
     },
+    // Local FNV reference, not a cryptographic signature.
+    digestKind: "local-reference",
     digest,
   };
   const operation: BridgeOperation = {

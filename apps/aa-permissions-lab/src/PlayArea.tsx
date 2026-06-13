@@ -238,6 +238,8 @@ export default function PlayArea({
             <h3>{t("permissionsRiskTitle")}</h3>
           </div>
 
+          <p className="permissions-caption">{t("twoPhaseExplainer")}</p>
+
           {notBackupOwner && (
             <p
               className="permissions-caption permissions-caption--warn"
@@ -282,6 +284,7 @@ export default function PlayArea({
               >
                 {t("updateVerifier")}
               </NeoButton>
+              <p className="permissions-caption">{t("proposeVerifierHint")}</p>
               {!canUpdateVerifier && !isVerifierBusy && !notBackupOwner ? (
                 <p className="permissions-caption permissions-caption--warn">
                   {t("verifierUpdateBlocked")}
@@ -296,6 +299,9 @@ export default function PlayArea({
                   </span>
                   <span className="permissions-pending__time">
                     {pendingUnlockText(pendingVerifierUnlockAt)}
+                  </span>
+                  <span className="permissions-pending__purpose">
+                    {t("timelockPurpose")}
                   </span>
                   <div className="permissions-pending__actions">
                     <NeoButton
@@ -343,6 +349,7 @@ export default function PlayArea({
               >
                 {t("updateHook")}
               </NeoButton>
+              <p className="permissions-caption">{t("proposeHookHint")}</p>
               {!canUpdateHook && !isHookBusy && !notBackupOwner ? (
                 <p className="permissions-caption permissions-caption--warn">
                   {t("hookUpdateBlocked")}
@@ -355,6 +362,9 @@ export default function PlayArea({
                   </span>
                   <span className="permissions-pending__time">
                     {pendingUnlockText(pendingHookUnlockAt)}
+                  </span>
+                  <span className="permissions-pending__purpose">
+                    {t("timelockPurpose")}
                   </span>
                   <div className="permissions-pending__actions">
                     <NeoButton

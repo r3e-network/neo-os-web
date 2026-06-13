@@ -81,6 +81,55 @@ body { background: var(--anchor-bg, #ffffff); }
   color: var(--ns-text-muted, #8a92a6);
 }
 
+.anchor-earn-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(135deg, var(--ns-brand-soft, #e4f8f0) 0%, rgba(228, 248, 240, 0) 64%),
+    var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+
+  &__title {
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  &__list {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding-left: 18px;
+
+    li {
+      color: var(--ns-text-2, #5b6478);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  }
+}
+
+.anchor-redeem-note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.anchor-route-card__caption {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
 .anchor-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);

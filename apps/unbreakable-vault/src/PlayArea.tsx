@@ -36,6 +36,22 @@ function baseUnitsToGas(value: unknown): string {
   return (n / 1e8).toFixed(8).replace(/\.?0+$/, "");
 }
 
+/**
+ * The deployed MiniAppUnbreakableVault takes a fixed 2% platform fee
+ * (platformFeeBps=200, frozen on-chain) off the bounty when a vault is broken —
+ * VaultBroken(vaultId, winner, reward) pays reward = bounty × 0.98. Surface the
+ * net so a challenger sees what they actually win, not just the gross bounty.
+ */
+const PLATFORM_FEE_BPS = 200;
+
+/** Net winning payout (base units → trimmed GAS): bounty minus the 2% fee. */
+function netPayoutGas(bountyBase: unknown): string {
+  const n = Number(bountyBase);
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  const net = Math.floor((n * (10_000 - PLATFORM_FEE_BPS)) / 10_000);
+  return baseUnitsToGas(net);
+}
+
 export default function PlayArea({ t, state, dispatch, setStatus, launchContext }: PlayAreaProps) {
   const { num, str, bool, val } = useStateBindings(state);
 
@@ -154,6 +170,7 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
   const detailTitle = vaultDetails?.title ? String(vaultDetails.title) : "";
   const detailHint = vaultDetails?.description ? String(vaultDetails.description) : "";
   const detailBountyGas = vaultDetails ? baseUnitsToGas(vaultDetails.bounty) : "0";
+  const detailNetPayoutGas = vaultDetails ? netPayoutGas(vaultDetails.bounty) : "0";
   const detailAttempts = vaultDetails ? Number(vaultDetails.attempts ?? 0) : 0;
   const detailRemainingDays = vaultDetails ? Number(vaultDetails.remainingDays ?? 0) : 0;
   const detailWinner = vaultDetails?.winner ? String(vaultDetails.winner) : "";
@@ -220,6 +237,7 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
               </svg>
             </div>
           </label>
+          <p className="vault-secret-note">{t("difficultyFeeNote")}</p>
           <NeoInput
             label={t("secretLabel")}
             type="password"
@@ -238,6 +256,7 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
             <p className="vault-field-error" role="alert">{t("secretMismatch")}</p>
           )}
           <p className="vault-secret-note">{t("secretNote")}</p>
+          <p className="vault-secret-note">{t("createFeeNote")}</p>
           <NeoButton
             variant="primary"
             size="lg"
@@ -285,6 +304,16 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
               <div className="vault-detail-row">
                 <span className="detail-label">{t("bountyLabel")}</span>
                 <span className="detail-value detail-value--accent">{detailBountyGas} {t("tokenGas")}</span>
+              </div>
+              {/* Failed attempt fees fold into the bounty on-chain — connect the
+                  displayed bounty to the live attempt count below. */}
+              <p className="vault-secret-note">{t("bountyGrowthNote")}</p>
+              {/* What the winner actually receives: bounty minus the fixed 2%
+                  platform fee. Surfaced beside the gross so the challenger can
+                  weigh the attempt fee against the real prize. */}
+              <div className="vault-detail-row">
+                <span className="detail-label">{t("netPayoutLabel")}</span>
+                <span className="detail-value detail-value--accent">{detailNetPayoutGas} {t("tokenGas")}</span>
               </div>
               {detailDifficulty && (
                 <div className="vault-detail-row">

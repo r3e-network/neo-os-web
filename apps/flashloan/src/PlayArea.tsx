@@ -43,6 +43,7 @@ interface ContractStats {
   feeBasisPoints: number;
   cooldownMs: number;
   maxDailyLoans: number;
+  providerFeeShare?: number;
 }
 
 interface ProviderStats {
@@ -110,6 +111,7 @@ export default function PlayArea({
     feeBasisPoints: FEE_BPS,
     cooldownMs: 300000,
     maxDailyLoans: 10,
+    providerFeeShare: 80,
   })!;
   const providerStats = val<ProviderStats>("providerStats", {
     currentBalance: 0,
@@ -118,6 +120,8 @@ export default function PlayArea({
   })!;
 
   const feeBps = contractStats.feeBasisPoints || FEE_BPS;
+  // Percent of each loan fee paid to liquidity providers (rest is protocol).
+  const providerFeeShare = contractStats.providerFeeShare ?? 80;
   const isMainnet = launchContext?.network === "mainnet";
 
   const [loanAmount, setLoanAmount] = useState("");
@@ -261,6 +265,16 @@ export default function PlayArea({
           </div>
         </div>
       </NeoCard>
+
+      {/* Power-user framing: borrowing requires a deployed onFlashLoan callback
+          contract, so flag the developer prerequisite up front and point
+          non-developers to the Provide Liquidity card below (which they CAN use). */}
+      <div className="flashloan-instruction" role="note">
+        <span className="flashloan-instruction__badge">{t("instructionMode")}</span>
+        <p className="flashloan-instruction__note">
+          {t("instructionNote")} {t("instructionLpHint")}
+        </p>
+      </div>
 
       <div className="flashloan-workspace">
         <NeoCard variant="erobo" className="flashloan-request-card">
@@ -415,6 +429,14 @@ export default function PlayArea({
           <span className="flashloan-method-pill">deposit / withdraw</span>
         </div>
         <p className="flashloan-liquidity-info">{t("liquidityInfo")}</p>
+        {/* LP fee economics: surface the on-chain provider fee share + that
+            fees are credited on distributeFees, so an LP can read actual yield. */}
+        <p className="flashloan-liquidity-info flashloan-liquidity-info--share">
+          {t("liquidityFeeShareNote", {
+            share: providerFeeShare,
+            protocol: 100 - providerFeeShare,
+          })}
+        </p>
         <div className="flashloan-liquidity-stats">
           <div className="flashloan-preview-item">
             <span>{t("yourLiquidity")}</span>

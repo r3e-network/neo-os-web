@@ -49,6 +49,9 @@ export function useGasSponsorApp({ chain, balance, eventBus, t, network }: UseGa
   const { checkEligibility, requestSponsorship: apiRequest } = gasSponsorSDK;
 
   const poolAddress = SPONSOR_POOL_ADDRESS[network === "testnet" ? "testnet" : "mainnet"];
+  // Surface the pool destination so the donate form can show donors where their
+  // GAS lands (the same pool that funds new-user sponsorship requests).
+  const poolAddressObservable = createObservable(poolAddress);
 
   const userAddress = createObservable("");
   // gasBalance / usedQuota / dailyLimit / resetsAt come from the platform API.
@@ -332,6 +335,7 @@ export function useGasSponsorApp({ chain, balance, eventBus, t, network }: UseGa
   return {
     // -- State --
     userAddress,
+    poolAddress: poolAddressObservable,
     gasBalance,
     usedQuota,
     dailyLimit,

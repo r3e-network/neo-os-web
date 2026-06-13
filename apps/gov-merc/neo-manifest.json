@@ -12,8 +12,8 @@
   },
   "createdAt": "2026-01-01T00:00:00Z",
   "default_network": "neo-n3-mainnet",
-  "description": "Marketplace for governance voting power delegation",
-  "description_zh": "治理雇佣兵 — 委托投票市场，让你的治理投票权产生价值",
+  "description": "Two-sided governance influence auction: stake NEO to earn each epoch's winning GAS bid pro-rata, or bid GAS to win the epoch's influence title (recorded on-chain; vote execution off-contract).",
+  "description_zh": "治理雇佣兵 — 双边影响力竞拍：质押 NEO 按比例分得每个周期的获胜 GAS 竞价，或竞价 GAS 赢得本周期的影响力称号（链上记录，投票执行在合约外）。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -49,8 +49,9 @@
   ],
   "tags": [
     "governance",
-    "delegation",
-    "marketplace"
+    "staking",
+    "auction",
+    "yield"
   ],
   "updatedAt": "2026-06-12T00:00:00Z",
   "urls": {

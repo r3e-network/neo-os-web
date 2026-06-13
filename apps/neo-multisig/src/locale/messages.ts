@@ -214,6 +214,13 @@ const appMessages = {
     en: "Auto-cancelled at threshold: the vault was underfunded (needed {required} {asset}, held {available}). Deposit again, then propose a new request.",
     zh: "达到阈值时金库余额不足，已自动取消（需要 {required} {asset}，仅有 {available}）。请先补充存入，再重新发起请求。",
   },
+  // Pooled-balance disclosure: proposing does NOT escrow/earmark funds — the
+  // vault balance is shared across all pending requests until one reaches its
+  // threshold and debits, so two pending proposals can collide.
+  multisigPooledBalanceNote: {
+    en: "Vault balance is shared across all pending requests — funds aren't reserved until a request reaches its threshold, so an approved request can still auto-cancel if another spent the balance first.",
+    zh: "金库余额由所有待处理请求共享——在请求达到阈值前不会预留资金，因此若另一请求先行支出，已批准的请求仍可能自动取消。",
+  },
   toastLoadFailed: { en: "Failed to load.", zh: "加载失败。" },
 
   docTitle: { en: "Neo Multisig", zh: "Neo 多重签名" },

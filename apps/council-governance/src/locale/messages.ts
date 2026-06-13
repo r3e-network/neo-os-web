@@ -161,6 +161,13 @@ title: { en: "Council Governance", zh: "议会治理" },
     quickActions: { en: "Quick Actions", zh: "快捷操作" },
     totalProposals: { en: "Total Proposals", zh: "提案总数" },
     votingPower: { en: "Voting Power", zh: "投票权重" },
+  // The eligibility stat means "are you 1 of the 21 council members" — surface it
+  // as a seat status, not a bare 1/0 weight a newcomer can't interpret.
+  councilSeat: { en: "Council Seat", zh: "议会席位" },
+  seatVerified: { en: "Verified", zh: "已验证" },
+  seatReadOnly: { en: "Read-only", zh: "只读" },
+  // Council size used as the quorum denominator when the contract returns none.
+  councilOf21: { en: "Council of 21", zh: "21 人议会" },
   tokenNeo: { en: "NEO", zh: "NEO" },
 } as const;
 

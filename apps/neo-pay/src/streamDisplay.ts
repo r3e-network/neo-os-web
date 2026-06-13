@@ -35,6 +35,34 @@ export function canClaim(status: string | undefined, claimablePositive: boolean)
   return !isFinalizedStatus(status) && claimablePositive;
 }
 
+/**
+ * Per-day release amount for a created stream, derived from the on-chain
+ * rateAmount (base units) over its intervalDays — so the ongoing release rate
+ * the creator committed to is visible on the stream cards, not only on the
+ * create form. Returns null when there is no meaningful per-day figure (no
+ * rate, or a sub-1-NEO/day cliff where a fractional NEO/day would mislead).
+ *
+ * intervalDays === 1 (the common linear case) means rateAmount IS the per-day
+ * amount; a longer interval is divided to express an equivalent per-day value.
+ */
+export function releasePerDayDisplay(
+  rateAmount: bigint | undefined,
+  intervalDays: number | undefined,
+  assetSymbol: "NEO" | "GAS",
+): string | null {
+  if (typeof rateAmount !== "bigint" || rateAmount <= 0n) return null;
+  const days = typeof intervalDays === "number" && intervalDays > 0 ? intervalDays : 1;
+  if (assetSymbol === "NEO") {
+    const perDay = days === 1 ? rateAmount : rateAmount / BigInt(days);
+    if (perDay < 1n) return null;
+    return perDay.toString();
+  }
+  // GAS rateAmount is in 1e8 base units.
+  const perDay = Number(rateAmount) / 100000000 / days;
+  if (!(perDay > 0)) return null;
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 8 }).format(perDay);
+}
+
 export type SchedulePreview =
   | { kind: "linear"; amount: string; days: string }
   | { kind: "cliff"; amount: string; days: string }

@@ -277,6 +277,14 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
   color: var(--ns-text-2, #5b6478);
 }
 
+// Honest disclosure: the offering GAS is non-refundable and routed to no one.
+.tribute-disclosure {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
 .create-form-card { margin-bottom: 4px; }
 .create-form { display: flex; flex-direction: column; gap: 12px; }
 .create-form__head {

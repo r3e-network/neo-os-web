@@ -74,6 +74,15 @@ defineMiniApp({
       () => `${formatNum(anchor.pendingWithdraw.get())} ${ctx.t("tokenNeo")}`,
       [anchor.pendingWithdraw],
     );
+    // The on-chain rewardPerNeo accumulator is GAS-datoshi * REWARD_SCALE(1e8)
+    // per NEO, i.e. GAS/NEO * 1e16. Divide before display so one distributed
+    // GAS per NEO renders as "1.00", not 10,000,000,000,000,000.00. Mirrors
+    // trustanchor's derivation so the cumulative yield figure is legible.
+    const REWARD_PER_NEO_SCALE = 1e16;
+    const rewardPerNeoDisplay = createDerived(() => {
+      const rps = Number(anchor.stats.get()?.rps ?? 0);
+      return Number.isFinite(rps) ? formatNum(rps / REWARD_PER_NEO_SCALE) : formatNum(0);
+    }, [anchor.stats]);
     const agentCount = createDerived(
       () => {
         const s = anchor.stats.get();
@@ -199,6 +208,7 @@ defineMiniApp({
         pendingWithdrawDisplay,
         totalNeoDisplay,
         rewardReserveDisplay,
+        rewardPerNeoDisplay,
         agentCount,
         ingressCount,
         submitting,

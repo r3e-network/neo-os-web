@@ -52,6 +52,10 @@ const POLICY_METHODS = [
 const DEFAULT_POLICY_METHOD = POLICY_METHODS[0]?.key ?? "FeePerByte";
 const DEFAULT_DURATION_MS = DURATION_OPTIONS[1]?.value ?? 7 * 24 * 60 * 60 * 1000;
 
+// Neo's council is the top-21 candidates. Used as the quorum denominator when
+// the contract returns no explicit quorumRequired so the pass bar stays legible.
+const COUNCIL_SIZE = 21;
+
 const TAB_ICONS: Record<"active" | "create" | "history", JSX.Element> = {
   active: (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -98,6 +102,14 @@ function voteShare(proposal: Proposal) {
   return Math.round((proposal.yesVotes / total) * 100);
 }
 
+// The quorum denominator. When the contract returns no explicit quorumRequired
+// (0/empty), fall back to the known council size so the pass bar reads as
+// "X/21" instead of "X/—". Returns the value and whether it's the fallback.
+function quorumDenominator(proposal: Proposal): { value: number; isFallback: boolean } {
+  if (proposal.quorumRequired > 0) return { value: proposal.quorumRequired, isFallback: false };
+  return { value: COUNCIL_SIZE, isFallback: true };
+}
+
 export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
@@ -110,7 +122,6 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
   const totalProposals = num("totalProposals");
   const activeCount = num("activeCount");
   const historyCount = num("historyCount");
-  const votingPower = num("votingPower");
   const proposals = val<Proposal[]>("proposals", []) ?? [];
   const activeProposals = val<Proposal[]>("activeProposals", []) ?? [];
   const historyProposals = val<Proposal[]>("historyProposals", []) ?? [];
@@ -227,8 +238,14 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <label>{t("historyProposals")}</label>
           </div>
           <div className="council-stat">
-            <span>{votingPower}</span>
-            <label>{t("votingPower")}</label>
+            <span>
+              {!walletAddress || !candidateLoaded
+                ? "—"
+                : isCandidate
+                  ? t("seatVerified")
+                  : t("seatReadOnly")}
+            </span>
+            <label>{t("councilSeat")}</label>
           </div>
         </div>
       </section>
@@ -410,7 +427,10 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                     </div>
 
                     <div className="council-proposal-meta">
-                      <span>{t("quorum")}: {proposal.totalVotes}/{proposal.quorumRequired || "—"}</span>
+                      <span>
+                        {t("quorum")}: {proposal.totalVotes}/{quorumDenominator(proposal).value}
+                        {quorumDenominator(proposal).isFallback && ` · ${t("councilOf21")}`}
+                      </span>
                       <span>{t("creator")}: {shortAddress(proposal.creatorDisplay ?? proposal.creator)}</span>
                       <span>{t("votingEnds")}: {formatDate(proposal.expiryTime)}</span>
                     </div>
@@ -475,7 +495,10 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <div><dt>{t("proposalCreated")}</dt><dd>{formatDate(selectedProposal.createTime)}</dd></div>
             <div>
               <dt>{t("quorum")}</dt>
-              <dd>{selectedProposal.totalVotes}/{selectedProposal.quorumRequired || "—"}</dd>
+              <dd>
+                {selectedProposal.totalVotes}/{quorumDenominator(selectedProposal).value}
+                {quorumDenominator(selectedProposal).isFallback && ` · ${t("councilOf21")}`}
+              </dd>
             </div>
           </dl>
 

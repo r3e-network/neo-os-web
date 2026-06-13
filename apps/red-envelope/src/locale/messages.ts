@@ -20,6 +20,10 @@ const appMessages = {
   needsEnvelopeId: { en: "Needs envelope ID", zh: "需要红包 ID" },
   createPreviewTitle: { en: "Envelope preview", zh: "红包预览" },
   perPacketLabel: { en: "Average packet", zh: "平均红包" },
+  perPacketRandomNote: {
+    en: "Average only — each recipient draws a random share, not this exact amount.",
+    zh: "仅为平均值——每位领取者随机抽取一份，并非恰好这个金额。",
+  },
   claimFlowTitle: { en: "Claim flow", zh: "领取流程" },
   claimRouteOne: { en: "Select envelope", zh: "选择红包" },
   claimRouteOneCopy: {
@@ -159,13 +163,9 @@ const appMessages = {
   connectAndOpen: { en: "Connect Wallet & Open", zh: "连接钱包并打开" },
   opening: { en: "Opening...", zh: "开启中..." },
   openNow: { en: "Open Now", zh: "立即打开" },
-  // NFT pass-along model keys
-  myEnvelopes: { en: "My NFTs", zh: "我的 NFT" },
-  noEnvelopesHeld: { en: "You don't hold any envelope NFTs", zh: "你没有持有任何红包 NFT" },
-  openEnvelope: { en: "Open Envelope", zh: "打开红包" },
-  transferEnvelope: { en: "Transfer", zh: "转让" },
+  // "My Envelopes" tab (live: the creator's own created envelopes)
+  myEnvelopes: { en: "My Envelopes", zh: "我的红包" },
   reclaimEnvelope: { en: "Reclaim", zh: "回收" },
-  reclaimSuccess: { en: "Reclaimed {amount} {tokenGas}", zh: "已回收 {amount} {tokenGas}" },
   reclaimableTitle: { en: "Reclaim expired envelopes", zh: "回收过期红包" },
   prepaidCreditLabel: { en: "Prepaid credit", zh: "预付额度" },
   withdrawCredit: { en: "Withdraw credit", zh: "提取额度" },
@@ -184,47 +184,7 @@ const appMessages = {
   shareLinkCopied: { en: "Claim link copied", zh: "领取链接已复制" },
   dismiss: { en: "Done", zh: "完成" },
   you: { en: "You", zh: "你" },
-  transferSuccess: { en: "Transferred to {recipient}", zh: "已转让给 {recipient}" },
-  transferTo: { en: "Transfer to address", zh: "转让给地址" },
-  recipientAddress: { en: "Recipient address", zh: "接收地址" },
-  recipientIneligible: { en: "Recipient does not meet NEO requirements", zh: "接收者不满足 NEO 要求" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
-  // NEO eligibility keys
-  neoRequirement: { en: "NEO Requirement", zh: "NEO 要求" },
-  minNeoPlaceholder: { en: "Min NEO required (default 100)", zh: "最低 NEO 要求（默认 100）" },
-  minHoldDaysPlaceholder: { en: "Min hold days (default 2)", zh: "最低持有天数（默认 2）" },
-  neoBalance: { en: "NEO Balance", zh: "NEO 余额" },
-  holdingDays: { en: "Holding Days", zh: "持有天数" },
-  eligible: { en: "Eligible", zh: "符合条件" },
-  ineligible: { en: "Ineligible", zh: "不符合条件" },
-  insufficientNeo: { en: "Insufficient NEO balance", zh: "NEO 余额不足" },
-  holdDurationNotMet: { en: "NEO hold duration not met", zh: "NEO 持有时间不足" },
-  notNftHolder: { en: "You are not the NFT holder", zh: "你不是 NFT 持有者" },
-  envelopeNotActive: { en: "Envelope is not active", zh: "红包未激活" },
-  envelopeDepleted: { en: "All packets opened", zh: "所有红包已打开" },
-  neoGate: { en: "NEO Gate: {neoAmount} {tokenNeo}, {days} days", zh: "NEO 门槛: {neoAmount} {tokenNeo}, {days} 天" },
-  holder: { en: "Holder", zh: "持有者" },
-  packets: { en: "{opened}/{total} opened", zh: "已打开 {opened}/{total}" },
-
-  // Dual-type envelope system
-  typeSpreading: { en: "Spreading", zh: "传递红包" },
-  typeLucky: { en: "Lucky Money", zh: "拼手气红包" },
-  typeSpreadingDesc: {
-    en: "One NFT passed along, each holder opens for random GAS",
-    zh: "一个 NFT 依次传递，每位持有者打开获得随机 GAS",
-  },
-  typeLuckyDesc: {
-    en: "Pool of GAS, anyone can claim an NFT and open it",
-    zh: "GAS 奖池，任何人可领取 NFT 并打开",
-  },
-  flowBannerSpreading: {
-    en: "Send GAS → Mint NFT → Pass Along → Open for GAS → Auto-burn",
-    zh: "发送 GAS → 铸造 NFT → 传递 → 打开领 GAS → 自动销毁",
-  },
-  flowBannerLucky: {
-    en: "Send GAS → Create Pool → Others Claim NFTs → Open for GAS",
-    zh: "发送 GAS → 创建奖池 → 他人领取 NFT → 打开领 GAS",
-  },
 
   // Claim tab
   claimTabLabel: { en: "Claim", zh: "领取" },
@@ -238,19 +198,7 @@ const appMessages = {
   claimedCount: { en: "{claimed}/{total} claimed", zh: "已领取 {claimed}/{total}" },
   poolCreator: { en: "Created by", zh: "创建者" },
 
-  // My Envelopes sections
-  sectionSpreading: { en: "Spreading Envelopes", zh: "传递红包" },
-  sectionPools: { en: "Pools I Created", zh: "我创建的奖池" },
-  sectionClaims: { en: "Claimed NFTs", zh: "已领取的 NFT" },
-  noPoolsCreated: { en: "No pools created yet", zh: "暂未创建奖池" },
-  unopened: { en: "Unopened", zh: "未打开" },
-  claimedGas: { en: "Claimed {amount} {tokenGas}", zh: "已领取 {amount} {tokenGas}" },
-  fromPool: { en: "From Pool #{poolId}", zh: "来自奖池 #{poolId}" },
-  poolLabel: { en: "Pool #{poolId}", zh: "奖池 #{poolId}" },
-  reclaimPool: { en: "Reclaim Pool", zh: "回收奖池" },
-  openClaim: { en: "Open", zh: "打开" },
-  transferClaim: { en: "Transfer", zh: "转让" },
-  noClaims: { en: "No claimed NFTs yet", zh: "暂无领取的 NFT" },
+  // My Envelopes section
   poolProgress: { en: "Pool Progress", zh: "奖池进度" },
   sidebarEnvelopes: { en: "Envelopes", zh: "红包" },
   sidebarClaims: { en: "Claims", zh: "领取" },

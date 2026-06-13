@@ -223,6 +223,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </div>
                 </div>
                 <NeoInput value={description} type="textarea" label={t("description")} placeholder={t("descriptionPlaceholder")} onChange={setDescription} />
+                {/* No-fee value prop + two-signature disclosure: the standalone
+                    contract takes a deposit first, then the createEscrow call. */}
+                <p className="create-form__note" role="note">{t("noFeeNotice")}</p>
+                <p className="create-form__note" role="note">{t("twoStepSignNotice", { asset })}</p>
                 <NeoButton variant="primary" loading={isCreating} disabled={!canSubmit} onClick={handleCreate} aria-label={t("submit")}>
                   {t("submit")}
                 </NeoButton>

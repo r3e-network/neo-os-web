@@ -200,6 +200,20 @@
   background: var(--ns-accent-soft, #e4f8f0);
 }
 
+/* Security caution surfaced at the one-time private-key export — the key can
+   authorize spending within scope, so warn before the user copies it. */
+.session-private-export__caution {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #f0a23a;
+  border-radius: var(--ns-radius-sm, 10px);
+  background: #fdf3e3;
+  color: #a35a00;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .session-private-export__head {
   display: flex;
   align-items: center;
@@ -435,6 +449,13 @@
   font-weight: 600;
 }
 
+/* Scope-widening caution (blank Allowed Method = ANY method). */
+.session-hint--warn {
+  border-color: #f0a23a;
+  background: #fdf3e3;
+  color: #a35a00;
+}
+
 /* Quick-pick expiry chips so a window can be set without epoch arithmetic. */
 .session-expiry-quick {
   display: flex;
@@ -485,6 +506,37 @@
   font-family: var(--ns-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 12px;
   font-weight: 600;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+/* Decoded labeled fields (target/method/expiry/spent-vs-limit) so the owner
+   can verify the delegated scope instead of reading raw JSON. */
+.session-onchain__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-onchain__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.session-onchain__field span {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.session-onchain__field strong {
+  overflow-wrap: anywhere;
+  font-family: var(--ns-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  font-weight: 700;
   color: var(--ns-ink, #1e1e2e);
 }
 

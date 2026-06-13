@@ -154,12 +154,20 @@ const appMessages = {
     zh: "原文仅保留在本设备。我们埋葬其 SHA-256 哈希，从而在不泄露内容的情况下完成承诺。",
   },
   hashFromMemory: { en: "Hash (computed locally)", zh: "哈希（本地计算）" },
-  gasReclaimedEstimate: { en: "Burial Fees (est.)", zh: "埋葬费用（估算）" },
+  gasReclaimedEstimate: { en: "GAS spent on burials (est.)", zh: "埋葬花费 GAS（估算）" },
+  sunkFeeNote: {
+    en: "This fee is spent (not refundable) — it pays for the permanent on-chain record. There is no payout or reclaim.",
+    zh: "此费用为花费（不可退还）——用于支付永久的链上记录。没有任何回款或取回。",
+  },
 
   // Forget confirmation (paid, 10× the burial fee).
   forgetConfirmFee: {
     en: "Forgetting costs {fee}. This records a paid state change on-chain and cannot be reversed.",
     zh: "遗忘需花费 {fee}。这会在链上记录一次付费状态变更且不可撤销。",
+  },
+  forgetRitualNote: {
+    en: "Forgetting is a deliberate, paid act of letting go — it costs more than burying because the record stays as proof you chose to release it. The fee is spent, not refunded.",
+    zh: "遗忘是一次刻意的、付费的放手行为——它的费用高于埋葬，因为记录会被保留，作为你选择释怀的证明。该费用为花费，不予退还。",
   },
   forgetConfirmAction: { en: "Confirm forget", zh: "确认遗忘" },
 

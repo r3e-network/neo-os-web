@@ -169,6 +169,13 @@ interface ChainCheckinState {
   totalGlobalCheckins: number;
   totalGlobalUsers: number;
   totalGlobalRewarded: number;
+  /** Milestone reward amounts (base units) the contract reports. */
+  weekReward: number;
+  twoWeekReward: number;
+  /** The contract's own GAS balance (base units) — the reward pool. */
+  rewardPoolBalance: number;
+  /** Whether the contract is paused (no check-ins / claims accepted). */
+  paused: boolean;
 }
 
 export function useCheckin({ chain, t }: UseCheckinOptions) {
@@ -191,6 +198,17 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
   const totalGlobalCheckins = createObservable(0);
   const totalGlobalUsers = createObservable(0);
   const totalGlobalRewarded = createObservable(0);
+
+  // Reward-pool solvency + pause state. claimRewards pays from the contract's
+  // OWN GAS balance, so the advertised milestone rewards are only claimable when
+  // that balance covers them. isPaused gates check-in / claim contract-side; we
+  // surface both so the UI is honest about whether the value-prop is currently
+  // deliverable rather than letting a claim fault with a raw error.
+  const rewardPoolBalance = createObservable(0);
+  const weekReward = createObservable(MILESTONES[0].reward * FIXED8);
+  const twoWeekReward = createObservable(MILESTONES[1].reward * FIXED8);
+  const isPaused = createObservable(false);
+  const hasLoadedPool = createObservable(false);
 
   // The contract's own "current day" counter and its next-eligible wall-clock
   // timestamp (ms). These drive the eligibility window because the contract day
@@ -294,6 +312,46 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     subscribe: (fn) => totalGlobalRewarded.subscribe(fn),
   };
 
+  const formattedRewardPool: Observable<string> = {
+    get: () => `${formatGas(rewardPoolBalance.get())} ${t("tokenGas")}`,
+    set: () => {},
+    subscribe: (fn) => rewardPoolBalance.subscribe(fn),
+  };
+
+  // The pool is "underfunded" when it cannot cover the smallest milestone reward
+  // (so a streak that reaches a milestone would accrue a reward the contract
+  // can't pay). Only assert this once the pool has actually been read, so the
+  // banner never flashes on the seed/zero state before the first chain read.
+  const rewardsUnderfunded: Observable<boolean> = {
+    get: () =>
+      hasLoadedPool.get() &&
+      rewardPoolBalance.get() < weekReward.get(),
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = rewardPoolBalance.subscribe(fn);
+      const u2 = weekReward.subscribe(fn);
+      const u3 = hasLoadedPool.subscribe(fn);
+      return () => { u1(); u2(); u3(); };
+    },
+  };
+
+  // The connected user's accrued reward cannot currently be paid out because the
+  // pool balance is below what they hold unclaimed — gates the Claim CTA so a
+  // claim doesn't fault on an empty pool.
+  const claimableButUnfunded: Observable<boolean> = {
+    get: () =>
+      hasLoadedPool.get() &&
+      unclaimedRewards.get() > 0 &&
+      rewardPoolBalance.get() < unclaimedRewards.get(),
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = rewardPoolBalance.subscribe(fn);
+      const u2 = unclaimedRewards.subscribe(fn);
+      const u3 = hasLoadedPool.subscribe(fn);
+      return () => { u1(); u2(); u3(); };
+    },
+  };
+
   const recordRequest = (
     action: string,
     summary: string,
@@ -357,11 +415,23 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
 
   /** Read the full on-chain state for a user into a normalized snapshot. */
   const readChainState = async (userHash: string): Promise<ChainCheckinState> => {
-    const [frontend, status, details, platform] = await Promise.all([
+    const contractHash = chain.contractAddress.get();
+    const [frontend, status, details, platform, paused, poolBalance] = await Promise.all([
       chain.read("getCheckInStateForFrontend", [{ type: "Hash160", value: userHash }]),
       chain.read("getCheckinStatus", [{ type: "Hash160", value: userHash }]),
       chain.read("getUserStatsDetails", [{ type: "Hash160", value: userHash }]),
       chain.read("getPlatformStats", []),
+      // Pause flag — best-effort; an older ABI without isPaused just returns
+      // unpaused (false) so the UI degrades to the prior behaviour.
+      chain.read("isPaused", []).catch(() => false),
+      // The contract's own GAS balance is the reward pool claimRewards pays from.
+      contractHash
+        ? chain
+            .read("balanceOf", [{ type: "Hash160", value: contractHash }], {
+              scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+            })
+            .catch(() => 0)
+        : Promise.resolve(0),
     ]);
 
     const f = (frontend && typeof frontend === "object" ? frontend : {}) as Record<string, unknown>;
@@ -370,6 +440,8 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     const p = (platform && typeof platform === "object" ? platform : {}) as Record<string, unknown>;
 
     const fee = intFromValue(p.checkInFee, DEFAULT_CHECKIN_FEE);
+    const week = intFromValue(p.weekReward, MILESTONES[0].reward * FIXED8);
+    const twoWeek = intFromValue(p.twoWeekReward, MILESTONES[1].reward * FIXED8);
 
     return {
       currentStreak: intFromValue(f.currentStreak),
@@ -385,6 +457,10 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
       totalGlobalCheckins: intFromValue(p.totalCheckins),
       totalGlobalUsers: intFromValue(p.totalUsers),
       totalGlobalRewarded: intFromValue(p.totalRewarded),
+      weekReward: week > 0 ? week : MILESTONES[0].reward * FIXED8,
+      twoWeekReward: twoWeek > 0 ? twoWeek : MILESTONES[1].reward * FIXED8,
+      rewardPoolBalance: Math.max(0, intFromValue(poolBalance)),
+      paused: boolFromValue(paused),
     };
   };
 
@@ -402,6 +478,11 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     totalGlobalUsers.set(data.totalGlobalUsers);
     totalGlobalRewarded.set(data.totalGlobalRewarded);
     if (data.checkInFee > 0) checkInFee.set(data.checkInFee);
+    rewardPoolBalance.set(data.rewardPoolBalance);
+    weekReward.set(data.weekReward);
+    twoWeekReward.set(data.twoWeekReward);
+    isPaused.set(data.paused);
+    hasLoadedPool.set(true);
   };
 
   const addHistory = (entry: CheckinHistoryItem) => {
@@ -536,6 +617,12 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
 
   const doCheckIn = async () => {
     if (isLoading.get()) return;
+    // A paused contract rejects the check-in transfer; surface a clear paused
+    // state up-front rather than letting the wallet fault with a raw revert.
+    if (isPaused.get()) {
+      recordSuccess("doCheckIn", t("contractPausedStatus"), null);
+      return;
+    }
     // Eligibility is only authoritative once the chain status has loaded. When
     // it has and the contract says ineligible, bail with the friendly message.
     // When it hasn't (user opened disconnected then clicked), the post-connect
@@ -634,6 +721,18 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     const claimAmount = unclaimedRewards.get();
     if (claimAmount <= 0) {
       recordSuccess("claimRewards", t("rewardsUnavailable"), null);
+      return;
+    }
+    // The contract pays from its own GAS balance; if the pool can't cover the
+    // accrued reward the claim would fault. Surface a clear, honest status
+    // instead of letting the wallet show a raw revert.
+    if (hasLoadedPool.get() && rewardPoolBalance.get() < claimAmount) {
+      recordSuccess("claimRewards", t("rewardPoolEmpty"), null);
+      return;
+    }
+    // Block claims while the contract is paused so the user gets a clear state.
+    if (isPaused.get()) {
+      recordSuccess("claimRewards", t("contractPausedStatus"), null);
       return;
     }
 
@@ -739,6 +838,12 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     formattedUnclaimed,
     formattedTotalClaimed,
     formattedTotalRewarded,
+    formattedRewardPool,
+
+    rewardPoolBalance,
+    isPaused,
+    rewardsUnderfunded,
+    claimableButUnfunded,
 
     milestones: MILESTONES,
     MS_PER_DAY,

@@ -48,6 +48,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const sendAmountValid = bool("sendAmountValid");
   const canSend = bool("canSend");
   const tankLevelDisplay = str("tankLevelDisplay", "0%");
+  const poolAddress = str("poolAddress");
 
   // Track "touched" from real user interaction — never infer it from a
   // pre-filled default value (which would open the form already showing an
@@ -72,7 +73,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </span>
           <div className="gas-hero-copy">
             <h2 className="gas-hero-title">{t("title")}</h2>
-            <p className="gas-hero-subtitle">{t("subtitle")}</p>
+            <p className="gas-hero-subtitle">{serviceAvailable ? t("subtitle") : t("subtitleOffline")}</p>
           </div>
         </div>
 
@@ -160,6 +161,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="donate-form">
               <span className="pay-forward-section-label">{t("donate")}</span>
               <p className="form-hint">{t("donateSubtitle")}</p>
+              <p className="form-hint">{t("donateLoopNote")}</p>
+              {poolAddress && (
+                <p className="form-hint pool-address">
+                  {t("poolAddressLabel")}: <code>{poolAddress}</code>
+                </p>
+              )}
               <NeoInput
                 value={donateAmount}
                 type="number"
@@ -190,6 +197,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="send-form">
               <span className="pay-forward-section-label">{t("sendGas")}</span>
               <p className="form-hint">{t("sendSubtitle")}</p>
+              <p className="form-hint">{t("sendDirectNote")}</p>
               <NeoInput
                 value={recipientAddress}
                 label={t("recipient")}

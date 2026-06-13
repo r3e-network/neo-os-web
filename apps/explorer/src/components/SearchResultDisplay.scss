@@ -77,3 +77,18 @@
 .result-empty-title + .result-empty {
   padding-top: 0;
 }
+
+.result-full-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--ns-violet-strong, #6d28d9);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.result-full-record:hover {
+  text-decoration: underline;
+}
