@@ -1,0 +1,50 @@
+export type {
+  BridgeRecord,
+  BridgeRequest,
+  BridgeInvocation,
+  BridgeSigner,
+  SendCapableWalletAdapter,
+  EmbeddedWalletBridgeResultDetail,
+  EmbeddedWalletBridgeErrorDetail,
+} from "./types";
+
+export {
+  HOST_WALLET_BRIDGE_REQUEST,
+  HOST_WALLET_BRIDGE_RESPONSE,
+  HOST_WALLET_BRIDGE_RESULT,
+  HOST_WALLET_BRIDGE_ERROR,
+} from "./events";
+
+export {
+  MAINNET_MAGIC,
+  TESTNET_MAGIC,
+  NEO_ASSET_HASH,
+  GAS_ASSET_HASH,
+  isBridgeRecord,
+  asBridgeString,
+  bridgeNetworkMagic,
+  normalizeBridgeScope,
+  stringArray,
+  normalizeBridgeSigners,
+  invocationContractHash,
+  firstBridgeInvocation,
+  bridgeResultTxId,
+  bridgeInvocationMemo,
+  buildEmbeddedWalletBridgeResultDetail,
+  normalizeBridgeArgs,
+  resolveSenderArgs,
+  normalizeBridgeOperation,
+  bridgeInvocationToParams,
+  bridgeScopeLabel,
+  describeBridgeSignerScopes,
+  describeSensitiveBridgeOperation,
+} from "./normalizers";
+
+export {
+  SENSITIVE_BRIDGE_METHODS,
+  requireBridgeWallet,
+  confirmSensitiveBridgeOperation,
+  handleEmbeddedWalletBridgeRequest,
+} from "./request-handler";
+
+export { useEmbeddedWalletBridge } from "./use-embedded-wallet-bridge";

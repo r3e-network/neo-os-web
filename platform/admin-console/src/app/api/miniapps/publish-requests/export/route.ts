@@ -1,6 +1,6 @@
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const STATUS_SET = new Set(["all", "pending", "approved", "rejected", "applied", "cancelled"]);
@@ -77,38 +77,33 @@ export async function GET(req: Request) {
     return jsonError("Invalid status filter", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/publish-requests", hostAppBaseURL);
-    if (appId) upstream.searchParams.set("app_id", appId);
-    if (status !== "all") upstream.searchParams.set("status", status);
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/publish-requests",
+    searchParams: {
+      app_id: appId || undefined,
+      status: status !== "all" ? status : undefined,
+    },
+    timeoutMs: HOST_PROXY_TIMEOUTS.STANDARD,
+    notOkError: "Failed to load publish requests for export",
+    fallbackError: "Failed to reach host-app publish request endpoint",
+    logLabel: "[publish-requests/export]",
+    parseFallback: { requests: [] },
+    onSuccess: (data) => {
+      const payload = data as { requests?: Array<Record<string, unknown>> };
+      const requests = Array.isArray(payload.requests) ? payload.requests : [];
 
-    const response = await fetch(upstream.toString(), {
-      headers: createProxyHeaders(req),
-      signal: AbortSignal.timeout(15000),
-    });
+      const csv = toCsv(requests);
+      const now = new Date().toISOString().replace(/[:.]/g, "-");
 
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to load publish requests for export");
-      return jsonError(message, response.status);
-    }
-
-    const payload = await response.json().catch((e: unknown) => { console.warn("[publish-requests/export] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { requests: [] }; }) as {
-      requests?: Array<Record<string, unknown>>;
-    };
-    const requests = Array.isArray(payload.requests) ? payload.requests : [];
-
-    const csv = toCsv(requests);
-    const now = new Date().toISOString().replace(/[:.]/g, "-");
-
-    return new Response(csv, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="miniapp-publish-requests-${now}.csv"`,
-        "Cache-Control": "no-store, private",
-      },
-    });
-  } catch {
-    return jsonError("Failed to reach host-app publish request endpoint", 502);
-  }
+      return new Response(csv, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="miniapp-publish-requests-${now}.csv"`,
+          "Cache-Control": "no-store, private",
+        },
+      });
+    },
+  });
 }

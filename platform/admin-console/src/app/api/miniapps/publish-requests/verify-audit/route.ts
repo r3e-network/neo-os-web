@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import { HOST_PROXY_TIMEOUTS, proxyToHost, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
 const REQUEST_ID_PATTERN = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
@@ -31,25 +31,19 @@ export async function GET(req: Request) {
     return jsonError("Invalid request_id format", 400);
   }
 
-  try {
-    const upstream = new URL("/api/miniapps/admin/publish-audit-verify", hostAppBaseURL);
-    if (appId) upstream.searchParams.set("app_id", appId);
-    if (requestId) upstream.searchParams.set("request_id", requestId);
-    if (limit) upstream.searchParams.set("limit", limit);
-
-    const response = await fetch(upstream.toString(), {
-      headers: createProxyHeaders(req),
-      signal: AbortSignal.timeout(20000),
-    });
-
-    if (!response.ok) {
-      const message = await parseHostErrorPayload(response, "Failed to verify audit chain");
-      return jsonError(message, response.status);
-    }
-
-    const payload = await response.json().catch((e: unknown) => { console.warn("[verify-audit] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { ok: false, issues: [] }; });
-    return NextResponse.json(payload);
-  } catch {
-    return jsonError("Failed to reach host-app audit verify endpoint", 502);
-  }
+  return proxyToHost(req, {
+    hostAppBaseURL,
+    path: "/api/miniapps/admin/publish-audit-verify",
+    searchParams: {
+      app_id: appId || undefined,
+      request_id: requestId || undefined,
+      limit: limit || undefined,
+    },
+    timeoutMs: HOST_PROXY_TIMEOUTS.EXTENDED,
+    notOkError: "Failed to verify audit chain",
+    fallbackError: "Failed to reach host-app audit verify endpoint",
+    logLabel: "[verify-audit]",
+    parseFallback: { ok: false, issues: [] },
+    onSuccess: (payload) => NextResponse.json(payload),
+  });
 }
