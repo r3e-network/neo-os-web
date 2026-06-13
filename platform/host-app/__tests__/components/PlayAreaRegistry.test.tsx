@@ -1275,7 +1275,9 @@ describe("PlayAreaRegistry", () => {
       operation?.params?.find((param) => param.name === "targetContract"),
     ).toMatchObject({
       type: "hash160",
-      default_value: "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+      // Self-contained MiniAppDailyCheckin (replaces the old kernel-era
+      // 0xaba84da2…); resolved from the shared MINIAPP_CONTRACTS registry.
+      default_value: "0x25db219a701a2b23130788723fcf9a2e76857235",
       required: true,
     });
     expect(

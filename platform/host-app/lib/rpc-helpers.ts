@@ -2,9 +2,11 @@
  * RPC helpers for reading on-chain state from the host-app.
  *
  * Two modes:
- * 1. CUSTOM CONTRACT apps (9) — read directly from their deployed contract
- * 2. KERNEL-REGISTERED apps (17+) — read from Morpheus Oracle kernel state
+ * 1. CUSTOM CONTRACT apps — read directly from their deployed contract
+ *    (resolved from the shared MINIAPP_CONTRACTS registry)
+ * 2. KERNEL-REGISTERED apps — read from Morpheus Oracle kernel state
  */
+import { MINIAPP_CONTRACTS } from "../../../apps/shared/constants/rpc";
 
 // Neo3Fura/N3Index is the platform-owned Neo N3 gateway. It provides JSON-RPC
 // pass-through plus indexed read APIs behind the same Cloudflare edge.
@@ -21,40 +23,14 @@ const MORPHEUS_KERNEL_TESTNET = "0x4b882e94ed766807c4fd728768f972e13008ad52";
 
 type NeoNetwork = "mainnet" | "testnet";
 
-/** Apps with their own deployed smart contracts (atomic GAS handling) */
-const CUSTOM_CONTRACT_HASHES: Record<NeoNetwork, Record<string, string>> = {
-  mainnet: {
-    "miniapp-last-survivor": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-    "miniapp-gasbox": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-    "miniapp-dice-game": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-    "miniapp-redenvelope": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
-    "miniapp-fogplay": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-    "miniapp-self-loan": "0x942da575b31f39cbb59e64b5813b128739b44c25",
-    "miniapp-neo-pay": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
-    "miniapp-dailycheckin": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
-    "miniapp-flashloan": "0xb5d8fb0dc2319edc4be3104304b4136b925df6e4",
-    "miniapp-unbreakablevault": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
-    "miniapp-council-governance": "0xc7e50e67589df63302cbea1a6b00beb649ee74d8",
-    "miniapp-profitanchor": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
-    "miniapp-trustanchor": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
-    "miniapp-profitanchor-admin": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
-    "miniapp-trustanchor-admin": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
-    "miniapp-custom-anchor": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
-  },
-  testnet: {
-    "miniapp-last-survivor": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
-    "miniapp-dice-game": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
-    "miniapp-dailycheckin": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
-    "miniapp-flashloan": "0xde8e595d8d3c293731db499367ee2a768e1e458b",
-    "miniapp-self-loan": "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada",
-    "miniapp-council-governance": "0x4c61e5575ae9e151027f6724d07fac127d4cc25f",
-    "miniapp-profitanchor": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
-    "miniapp-trustanchor": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
-    "miniapp-profitanchor-admin": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
-    "miniapp-trustanchor-admin": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
-    "miniapp-custom-anchor": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
-  },
-};
+// Apps with their own deployed smart contracts (atomic GAS handling) resolve
+// straight from the shared, drift-guarded registry (generated from each app's
+// neo-manifest.json). Sourcing from MINIAPP_CONTRACTS — the same map the
+// miniapp runtimes use — guarantees the host can never drift from the deployed
+// contracts (a hand-maintained copy here had gone stale across the OS-path
+// standalone-contract migrations). Apps absent from the registry have no
+// standalone contract and read from the Morpheus kernel.
+const CUSTOM_CONTRACT_HASHES = MINIAPP_CONTRACTS;
 
 function getTargetNetwork(): NeoNetwork {
   const raw = String(
