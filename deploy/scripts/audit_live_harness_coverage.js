@@ -27,6 +27,7 @@ const LIVE_CHAIN_FLOWS = new Map([
   ["miniapp-council-governance", { script: "deploy/scripts/live_validate_council_governance.js", target: "council" }],
   ["miniapp-dailycheckin", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "dailyCheckin" }],
   ["miniapp-dev-tipping", { script: "deploy/scripts/live_validate_remaining_contracts_part1.js", target: "devtipping" }],
+  ["miniapp-dice-game", { script: "deploy/scripts/live_validate_dicegame.mjs", target: "dicegame" }],
   ["miniapp-event-ticket-pass", { script: "deploy/scripts/live_validate_remaining_contracts_part2.js", target: "eventticket" }],
   ["miniapp-flashloan", { script: "deploy/scripts/live_validate_selected_miniapps.js", target: "flashloan" }],
   ["miniapp-fogplay", { script: "deploy/scripts/live_validate_flagship_user_flows.js", target: "fogPlay" }],

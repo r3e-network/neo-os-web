@@ -555,6 +555,76 @@
   line-height: 1.5;
 }
 
+/* Council candidates textarea (21 compressed public keys, one per line). */
+.custom-anchor-candidates {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-ink, #1e1e2e);
+  font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition:
+    border-color var(--ns-t-fast, 150ms) ease,
+    box-shadow var(--ns-t-fast, 150ms) ease,
+    background var(--ns-t-fast, 150ms) ease;
+
+  &:hover:not(:focus) {
+    border-color: rgba(22, 199, 132, 0.4);
+  }
+
+  &:focus {
+    border-color: var(--ns-brand, #16c784);
+    background: var(--ns-surface, #fff);
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.18);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: rgba(200, 30, 42, 0.35);
+  }
+}
+
+.custom-anchor-candidates__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-anchor-candidates__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.custom-anchor-candidates__count {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ns-text-muted, #8a92a6);
+
+  &.valid {
+    color: var(--ns-brand-strong, #0fb174);
+  }
+}
+
+/* Ghost button: low-emphasis inline action (e.g. "Use default candidate set"). */
+.custom-anchor-button--ghost {
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 12px;
+  background: var(--ns-brand-soft, #e4f8f0);
+  border-color: rgba(22, 199, 132, 0.28);
+  color: var(--ns-brand-strong, #0fb174);
+}
+
 .custom-anchor-register__note {
   margin: 0;
   padding: 10px 12px;

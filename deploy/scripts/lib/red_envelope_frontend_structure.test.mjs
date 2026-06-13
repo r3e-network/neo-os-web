@@ -97,9 +97,13 @@ test("Red Envelope renders a complete wallet-style claim and creator workspace",
     styles,
     /\.redenv-selected-card\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s,
   );
-  // Mobile breakpoint collapses the multi-column regions to a single column.
-  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.redenv-metrics[\s\S]*grid-template-columns:\s*1fr/s);
+  // Mobile breakpoint collapses the stacked multi-column regions (the create
+  // summary / selected-card / activity grid) to a single column. The 3-up hero
+  // metrics strip is intentionally kept as a compact horizontal row on mobile
+  // (only its gap tightens) so the primary Claim action stays above the fold.
+  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.redenv-create-summary[\s\S]*grid-template-columns:\s*1fr/s);
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.redenv-activity-grid[\s\S]*grid-template-columns:\s*1fr/s);
+  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.redenv-metrics\s*\{[^}]*gap:\s*6px/s);
   assert.match(styles, /\.redenv-row\s*\{[^}]*min-height:\s*44px/s);
 
   // Neo Soft adopts uppercase eyebrow labels with 0.12em tracking and tightened

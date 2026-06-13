@@ -48,11 +48,17 @@ test("Anchor staking miniapps share the Neo Soft staking surface", () => {
       /runAmountAction = async \(action: "stakeNeo" \| "withdrawNeo"\)/,
       app.name,
     );
+    // runSimpleAction routes the non-amount staking actions through dispatch.
+    // Contract-migration work added the credit-recovery action ("recoverNeoCredit"),
+    // and the signature may be wrapped across multiple lines, so tolerate extra
+    // union members and intervening whitespace while still anchoring on the
+    // claimRewards/refreshAnchor pair.
     assert.match(
       playArea,
-      /runSimpleAction = async \(action: "claimRewards" \| "refreshAnchor"\)/,
+      /runSimpleAction = async \(\s*action:\s*"claimRewards"\s*\|\s*"refreshAnchor"(?:\s*\|\s*"recoverNeoCredit")?,?\s*\)/s,
       app.name,
     );
+    assert.match(playArea, /void runSimpleAction\("recoverNeoCredit"\)/, app.name);
     assert.match(playArea, /dispatch\(action, \{ amount: normalizedAmount \}\)/, app.name);
     assert.match(playArea, /void runAmountAction\("stakeNeo"\)/, app.name);
     assert.match(playArea, /void runAmountAction\("withdrawNeo"\)/, app.name);

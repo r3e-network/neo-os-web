@@ -28,7 +28,18 @@ test("Recovery Guardian exposes a guarded wallet-style recovery workspace", () =
   assert.match(playArea, /disabled=\{!canQueryState/);
   assert.match(playArea, /disabled=\{!canPrepareRecovery/);
   assert.match(styles, /\.guardian-play-area button:disabled/);
-  assert.doesNotMatch(styles, /radial-gradient|::before|::after/);
+  // Neo Soft flat-design guard: no decorative gradient ornamentation.
+  assert.doesNotMatch(styles, /radial-gradient/);
+  // Pseudo-elements must stay minimal/functional. The only sanctioned one is the
+  // verifier-diagnostic status dot; any other ::before/::after is decorative drift.
+  const pseudoElements = styles.match(/[^\s{};]+::(?:before|after)\b/g) ?? [];
+  for (const selector of pseudoElements) {
+    assert.match(
+      selector,
+      /\.guardian-verifier-diagnostic::before/,
+      `Unexpected decorative pseudo-element: ${selector}`,
+    );
+  }
   assert.match(main, /recoveryNewOwner\.get\(\)/);
   assert.match(main, /recoveryExpiryMinutes\.get\(\)/);
   assert.match(messages, /guardianHeroTitle/);

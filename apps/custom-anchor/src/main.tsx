@@ -1,13 +1,28 @@
 import { defineMiniApp, createObservable } from "@shared/react/defineMiniApp";
 import type { MiniAppSetupContext, MiniAppSetupResult } from "@shared/react/defineMiniApp";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { getMiniAppContractHash } from "@shared/constants/rpc";
+import { EXTERNAL_INTEGRATIONS, getMiniAppContractHash, resolveNeoNetwork } from "@shared/constants/rpc";
 import { eventValue } from "@shared/utils/chain-events";
 import { parseBigInt } from "@shared/utils/parsers";
+import {
+  buildAnchorRegistrationInvocations,
+  parseAnchorCandidateKeys,
+  type AnchorContractArg,
+} from "@shared/utils/anchor-agents";
 import { waitForDepositConfirmation } from "@shared/composables/useContractInteraction";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
+
+/**
+ * The standalone chain service's static ContractArg type narrows `value` to
+ * scalars; the runtime SDK tolerates nested Array values. Widen at the invoke
+ * boundary (mirrors neo-multisig's toChainArgs).
+ */
+type ChainArg = { type: string; value: string | number | boolean };
+function toChainArgs(args: AnchorContractArg[]): ChainArg[] {
+  return args as unknown as ChainArg[];
+}
 
 const appId = "miniapp-custom-anchor";
 
@@ -335,10 +350,17 @@ defineMiniApp({
       await loadData();
     });
 
-    // Register a NEW custom anchor: deposit the 1-GAS registration-fee credit
-    // (a bare GAS transfer credits the wallet via OnNEP17Payment), then call
-    // registerCustomAnchorApp(appId, mode, appAdmin) which consumes it. The
-    // appAdmin witness is the connected wallet.
+    // Register a NEW custom anchor AND provision its 21 AA agents so it earns
+    // immediately. The host detail page does this atomically via the wallet's
+    // invokeMultiple; the standalone chain service has no batch invoke, so we
+    // submit the calls as SEQUENTIAL transactions with a deposit-confirmation
+    // wait between each:
+    //   1. deposit the 1-GAS registration-fee credit (OnNEP17Payment, no event)
+    //   2. registerCustomAnchorApp(appId, mode, appAdmin)   — mint the anchor
+    //   3. aaCore.registerAccounts(...)                     — register AA agents
+    //   4. anchor.registerAgents(appId, accounts, candidates, scriptHashes)
+    // Without steps 3-4 the anchor is born at agentCount = 0 (inert): staked
+    // NEO neither votes nor earns. The appAdmin witness is the connected wallet.
     ctx.registerAction("register", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       const target = strictAnchorId(form.anchorAppId);
@@ -346,6 +368,36 @@ defineMiniApp({
       if (!contract) throw new Error("PlatformAnchor contract is not configured.");
       const user = await ctx.services.chain.ensureWallet();
       const mode = stackNumber(form.mode) === 2 ? 2 : MODE_TRUST;
+      // Exactly 21 valid compressed council candidate public keys (duplicates
+      // allowed — RegisterAgents accepts repeats; mirrors the deploy default).
+      const candidateKeys = parseAnchorCandidateKeys(
+        Array.isArray(form.candidates)
+          ? (form.candidates as unknown[]).map((key) => String(key)).join("\n")
+          : String(form.candidates ?? ""),
+      );
+
+      // Source the AA core contract for the wallet's active network so the
+      // agent accounts register against the right deployment.
+      const network = resolveNeoNetwork(await ctx.services.chain.detectNetwork());
+      const aaCoreHash = EXTERNAL_INTEGRATIONS[network].contracts.aaCore;
+      if (!/^0x[0-9a-fA-F]{40}$/.test(aaCoreHash)) {
+        throw new Error("AA core contract is not configured for this network.");
+      }
+
+      // Build the provisioning plan up front so a bad input fails before any
+      // money/credit is spent. The derived agent accounts + invocation args are
+      // byte-identical to the host detail page.
+      const plan = buildAnchorRegistrationInvocations({
+        appId: target,
+        mode,
+        ownerAddress: user,
+        candidateKeys,
+      });
+      const registerAccountsCall = plan.invocations.find((i) => i.operation === "registerAccounts");
+      const registerAgentsCall = plan.invocations.find((i) => i.operation === "registerAgents");
+      if (!registerAccountsCall || !registerAgentsCall) {
+        throw new Error("Failed to build anchor agent provisioning plan.");
+      }
 
       // Reject re-registering an already-registered anchor before spending the fee.
       const existing = stackNumber(
@@ -373,19 +425,41 @@ defineMiniApp({
           contractHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
         });
       }
-      // Step 2: register, consuming the prepaid credit.
+      // Step 2: register the anchor app, consuming the prepaid credit.
       const result = await ctx.services.chain.invoke("registerCustomAnchorApp", [
         { type: "String", value: target },
         { type: "Integer", value: String(mode) },
         { type: "Hash160", value: user },
       ], anchorOptions({ waitForEvent: "AnchorAppRegistered" }));
-
       anchorAppId.set(target);
       lastTxid.set(result.txid);
+
+      // Step 3: register the 21 AA agent accounts with the AA core. No anchor
+      // event fires here, so confirm the tx on-chain before binding agents.
+      workflowStatus.set(ctx.t("registerProvisioningAccounts"));
+      const accountsTx = await ctx.services.chain.invoke(
+        registerAccountsCall.operation,
+        toChainArgs(registerAccountsCall.args),
+        { scriptHash: aaCoreHash },
+      );
+      lastTxid.set(accountsTx.txid);
+      await waitForDepositConfirmation(accountsTx.txid, { contractHash: aaCoreHash, network });
+
+      // Step 4: bind the 21 agents (account, candidate, script hash) to the
+      // anchor. AnchorAgentRegistered fires per agent — wait on it so the
+      // post-write refresh reads the settled agentCount.
+      workflowStatus.set(ctx.t("registerProvisioningAgents"));
+      const agentsTx = await ctx.services.chain.invoke(
+        registerAgentsCall.operation,
+        toChainArgs(registerAgentsCall.args),
+        anchorOptions({ waitForEvent: "AnchorAgentRegistered" }),
+      );
+      lastTxid.set(agentsTx.txid);
+
       workflowStatus.set(ctx.t("registerSubmitted"));
       await loadData();
       await loadDiscovered();
-      return result;
+      return agentsTx;
     });
 
     // Reclaim stranded contract credit (NEO or GAS) via withdrawCredit.

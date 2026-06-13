@@ -43,7 +43,11 @@ test("Custom Anchor renders a complete wallet-style anchor workspace", () => {
   assert.match(playArea, /useStateBindings/);
   assert.match(playArea, /lastTxid/);
   assert.match(playArea, /agentCount/);
-  assert.match(playArea, /displayedAgentCount = anchorAppId \? String\(agentCount\)/);
+  // The displayed agent count is derived directly from the on-chain `agentCount`
+  // via String(agentCount) — a real 0 is never masked. The guard now keys off the
+  // linked + registered anchor state (anchorLinked && !anchorNotRegistered) rather
+  // than the raw anchorAppId, so accept any leading condition before String(agentCount).
+  assert.match(playArea, /displayedAgentCount =[^;]*\?\s*String\(agentCount\)/);
   assert.match(playArea, /"stake" \| "withdraw" \| "claimRewards" \| "refreshAnchor"/);
   assert.match(playArea, /await dispatch\(action, payload\)/);
 

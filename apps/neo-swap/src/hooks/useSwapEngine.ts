@@ -15,9 +15,13 @@ import type { Token } from "@/types";
 const NEO_TOKEN_TEMPLATE: Token = { symbol: "NEO", hash: BLOCKCHAIN_CONSTANTS.NEO_HASH, balance: 0, decimals: 0 };
 const GAS_TOKEN_TEMPLATE: Token = { symbol: "GAS", hash: BLOCKCHAIN_CONSTANTS.GAS_HASH, balance: 0, decimals: 8 };
 const SWAP_DEADLINE_SECONDS = 600;
-// A quote whose on-chain dataTimestamp is older than this is treated as stale —
-// the Morpheus feed keeps returning HALT with its last value even when updates
-// have stopped, so the timestamp is the only freshness signal.
+// A quote whose on-chain recordTimestamp (the time the feed last WROTE on-chain)
+// is older than this is treated as stale — the Morpheus feed keeps returning
+// HALT with its last value even when updates have stopped, so the on-chain write
+// time is the freshness signal. dataTimestamp (when the upstream SOURCE produced
+// the value) is used only for the "as of" display: on testnet the source
+// dataTimestamp can lag far behind while the feed still writes fresh on-chain
+// records, which would otherwise raise a false "stale" banner.
 const RATE_STALE_AFTER_MS = 10 * 60 * 1000;
 // GAS reserved for network fees when MAX-ing a GAS balance, so the swap (and the
 // fee) can both settle instead of consuming the entire balance.
@@ -45,9 +49,14 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   const fromAmount = createObservable("");
   const toAmount = createObservable("");
   const exchangeRate = createObservable("");
-  // The older of the two price legs' on-chain dataTimestamp (epoch ms), used to
-  // detect a frozen feed. 0 when no quote is loaded.
+  // The older of the two price legs' upstream-source dataTimestamp (epoch ms),
+  // used ONLY for the "as of" display line. 0 when no quote is loaded.
   const rateTimestamp = createObservable(0);
+  // The older of the two price legs' on-chain recordTimestamp (epoch ms) — the
+  // time the feed last wrote on-chain. This is the freshness/staleness signal:
+  // a frozen feed stops writing records, so this stops advancing. 0 when no
+  // quote is loaded.
+  const rateRecordTimestamp = createObservable(0);
   const rateLoading = createObservable(false);
   const loading = createObservable(false);
   const showSelector = createObservable(false);
@@ -66,18 +75,23 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     subscribe: (fn) => chain.contractAddress.subscribe(fn),
   };
 
-  // True once a quote exists but its data is older than RATE_STALE_AFTER_MS.
+  // True once a quote exists but its on-chain record (the time the feed last
+  // wrote on-chain) is older than RATE_STALE_AFTER_MS. Keyed on the on-chain
+  // recordTimestamp, NOT the upstream-source dataTimestamp, so a fresh feed with
+  // a lagging source timestamp (e.g. on testnet) is not falsely flagged stale.
   const rateStale: Observable<boolean> = {
     get: () => {
-      const ts = rateTimestamp.get();
+      const ts = rateRecordTimestamp.get();
       if (!ts) return false;
       return Date.now() - ts > RATE_STALE_AFTER_MS;
     },
     set: () => {},
-    subscribe: (fn) => rateTimestamp.subscribe(fn),
+    subscribe: (fn) => rateRecordTimestamp.subscribe(fn),
   };
 
-  // "as of HH:MM" line for the quote's data timestamp (empty when unknown).
+  // "as of HH:MM" line for the quote's upstream-source data timestamp (empty
+  // when unknown). This describes when the source produced the value, which is
+  // what the "Rate ... as of {time}" copy communicates.
   const rateAsOf: Observable<string> = {
     get: () => {
       const ts = rateTimestamp.get();
@@ -171,7 +185,7 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       const u1 = exchangeRate.subscribe(fn);
       const u2 = fromAmount.subscribe(fn);
       const u3 = fromToken.subscribe(fn);
-      const u4 = rateTimestamp.subscribe(fn);
+      const u4 = rateRecordTimestamp.subscribe(fn);
       const u5 = chain.contractAddress.subscribe(fn);
       return () => { u1(); u2(); u3(); u4(); u5(); };
     },
@@ -207,7 +221,7 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       const u4 = exchangeRate.subscribe(fn);
       const u5 = fromToken.subscribe(fn);
       const u6 = toToken.subscribe(fn);
-      const u7 = rateTimestamp.subscribe(fn);
+      const u7 = rateRecordTimestamp.subscribe(fn);
       const u8 = chain.contractAddress.subscribe(fn);
       const u9 = chain.address.subscribe(fn);
       return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); u8(); u9(); };
@@ -274,6 +288,7 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     rateLoading.set(true);
     exchangeRate.set("");
     rateTimestamp.set(0);
+    rateRecordTimestamp.set(0);
     try {
       const [fromQuote, toQuote] = await Promise.all([
         datafeed.getPriceWithMeta(fromToken.get().symbol),
@@ -282,13 +297,23 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       const rate = fromQuote.price / toQuote.price;
       if (Number.isFinite(rate) && rate > 0) {
         exchangeRate.set(rate.toFixed(6));
-        // Use the OLDER leg's data timestamp (epoch seconds → ms) as the quote's
-        // freshness. A stale leg makes the whole cross-rate stale.
-        const oldestSec = Math.min(
+        // Freshness is the OLDER leg's on-chain recordTimestamp (epoch seconds →
+        // ms): a stale leg makes the whole cross-rate stale. recordTimestamp is
+        // when the feed last WROTE on-chain, so a frozen feed stops advancing it
+        // — unlike dataTimestamp, which can lag on testnet even while the feed
+        // keeps writing fresh records.
+        const oldestRecordSec = Math.min(
+          fromQuote.recordTimestamp || 0,
+          toQuote.recordTimestamp || 0,
+        );
+        rateRecordTimestamp.set(oldestRecordSec > 0 ? oldestRecordSec * 1000 : 0);
+        // Keep the older leg's upstream-source dataTimestamp for the "as of"
+        // display line only.
+        const oldestDataSec = Math.min(
           fromQuote.dataTimestamp || 0,
           toQuote.dataTimestamp || 0,
         );
-        rateTimestamp.set(oldestSec > 0 ? oldestSec * 1000 : 0);
+        rateTimestamp.set(oldestDataSec > 0 ? oldestDataSec * 1000 : 0);
         onFromAmountChange();
       }
     } catch (e) {

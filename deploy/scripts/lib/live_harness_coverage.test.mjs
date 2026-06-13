@@ -30,15 +30,20 @@ test("live harness coverage summary exposes fix lists", () => {
   const summary = summarizeCoverage(rows);
 
   assert.equal(summary.totalActive, 61);
-  // miniapp-neo-multisig now ships a deployed testnet contract (v2:
-  // 0xa361cdc792e97c4d8ddf42048cf48f3283ea7178, replacing the v1
-  // 0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e which stays live for user
-  // exits) but has no registered live-chain
-  // harness in LIVE_CHAIN_FLOWS, so the audit correctly classifies it as
-  // missing-live-chain-harness. This is a real coverage gap (a dedicated
-  // deploy/scripts/live_validate_* flow for the on-chain approval contract is still
-  // missing), not a misclassification — the expectation is pinned to the exact known
-  // gap so any further drift (a new uncovered app, or this gap being closed) fails here.
+  // Two apps now ship a deployed testnet contract but have no registered live-chain
+  // harness in LIVE_CHAIN_FLOWS, so the audit correctly classifies each as
+  // missing-live-chain-harness (the testnet-hash branch fires before the
+  // stateless-ui-flow fallback, which is intended — an on-chain contract should be
+  // exercised by a live-flow script, not treated as a pure UI flow):
+  //   - miniapp-neo-multisig: v2 contract 0xa361cdc792e97c4d8ddf42048cf48f3283ea7178
+  //     (replacing v1 0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e which stays live for
+  //     user exits); the on-chain approval flow still needs a dedicated
+  //     deploy/scripts/live_validate_* script.
+  // (miniapp-dice-game now has a registered harness — deploy/scripts/live_validate_dicegame.mjs
+  // for the self-contained MiniAppDiceGame 0x2c6134f9… — so it is no longer a gap.)
+  // This is a real coverage gap, not a misclassification — the expectation is pinned to
+  // the exact known set (sorted by app slug, matching readActiveManifests' ordering) so
+  // any further drift (a new uncovered app, or the gap being closed) fails here.
   assert.deepEqual(summary.missingLiveChainHarness, ["miniapp-neo-multisig"]);
   assert.deepEqual(summary.blockedNoTestnetContract, []);
 });

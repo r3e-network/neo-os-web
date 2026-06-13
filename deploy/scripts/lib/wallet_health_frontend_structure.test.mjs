@@ -31,7 +31,9 @@ test("Wallet Health renders a complete wallet-style safety workspace", () => {
     "wallet-health-checklist-panel",
     "wallet-health-recommendations-panel",
   ]) {
-    assert.match(playArea, new RegExp(`className="[^"]*${className}`));
+    // Tolerate both static (className="…") and template-literal
+    // (className={`…`}) class attributes — the score ring is computed.
+    assert.match(playArea, new RegExp("className=(?:\"|\\{`)[^\"`]*" + className));
   }
 
   assert.match(playArea, /checklistItems/);

@@ -3,16 +3,15 @@
   "id": "miniapp-dice-game",
   "name": "Dice Game",
   "name_zh": "骰子游戏",
-  "version": "1.0.0",
-  "description": "A focused Morpheus VRF dice game for Neo N3 and Neo X mainnet. Pick one face (1-in-6 chance) and stake GAS; a matching VRF roll pays 5.70x after a 5% house edge. Preview the stake, submit, and reveal the on-chain result.",
-  "description_zh": "面向 Neo N3 与 Neo X 主网的 Morpheus VRF 骰子游戏。选择一个点数（1/6 命中率）并下注 GAS；VRF 命中后在扣除 5% 庄家抽水后按 5.70 倍赔付。预览筹码、提交交易并查看链上结果。",
+  "version": "2.0.0",
+  "description": "A focused on-chain dice game for Neo N3 and Neo X mainnet. Pick one face (1-in-6 chance) and stake GAS; a matching roll pays 5.70x after a 5% house edge. On Neo N3 the roll settles atomically on-chain with Neo's native randomness — instant result, no oracle callback to wait for.",
+  "description_zh": "面向 Neo N3 与 Neo X 主网的链上骰子游戏。选择一个点数（1/6 命中率）并下注 GAS；命中后在扣除 5% 庄家抽水后按 5.70 倍赔付。在 Neo N3 上，掷骰使用 Neo 原生随机数原子化链上结算——即时出结果，无需等待预言机回调。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
   "tags": [
     "dice",
-    "vrf",
-    "oracle",
+    "randomness",
     "gas",
     "game"
   ],
@@ -22,8 +21,8 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-    "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+    "neo-n3-mainnet": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
+    "neo-n3-testnet": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
     "neo-x-mainnet": "0xFA795F814d38F218153d21838360096f3F5cb774"
   },
   "supported_networks": [
@@ -35,34 +34,15 @@
   "deployment": {
     "neo-n3-mainnet": {
       "status": "deployed",
-      "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
       "registered": true,
-      "domain": "dicegame.miniapp.neo",
-      "deployed_at": "2026-05-08T13:07:29Z",
-      "report": "contracts/build/mainnet_game_deployment.json"
+      "deployed_at": "2026-06-14T00:00:00Z"
+    },
+    "neo-n3-testnet": {
+      "status": "deployed",
+      "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
+      "registered": true
     }
-  },
-  "runtime": {
-    "mode": "platform",
-    "modules": [
-      {
-        "binding": "platform-game",
-        "platform": "PlatformGame",
-        "appId": "miniapp-dice-game",
-        "moduleType": 4,
-        "networks": {
-          "neo-n3-mainnet": {
-            "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-            "registered": true,
-            "domain": "dicegame.miniapp.neo"
-          },
-          "neo-n3-testnet": {
-            "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
-            "registered": true
-          }
-        }
-      }
-    ]
   },
   "urls": {
     "entry": "/miniapps/dice-game/index.html",
@@ -80,7 +60,7 @@
   },
   "operation_panel": {
     "title": "Roll Dice",
-    "subtitle": "Fund GAS credit, pick one face, then roll with Morpheus VRF.",
+    "subtitle": "Fund GAS credit, pick one face, then roll — settled atomically on-chain.",
     "operations": [
       {
         "name": "Fund Stake",
@@ -119,7 +99,7 @@
       {
         "name": "Roll",
         "method": "placeDiceBet",
-        "description": "Choose one face from 1 to 6. A matching VRF roll pays 5.70x after the platform fee.",
+        "description": "Choose one face from 1 to 6. A matching on-chain roll pays 5.70x after the platform fee.",
         "button_style": "success",
         "priority": "primary",
         "params": [
@@ -195,15 +175,12 @@
   "featured": false,
   "technologies": {
     "oracle": {
-      "enabled": true,
-      "description": "Morpheus VRF supplies the on-chain dice roll."
+      "enabled": false,
+      "description": "No oracle — on Neo N3 the dice roll is drawn on-chain with Neo's native Runtime.GetRandom and settled atomically in the bet transaction."
     },
     "aa": {
       "enabled": false,
       "description": "Direct OneGate and NeoLine signing flow is used for the initial release."
     }
-  },
-  "contract_domains": {
-    "neo-n3-mainnet": "dicegame.miniapp.neo"
   }
 }

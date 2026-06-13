@@ -82,13 +82,13 @@ npm run build
 
 | Network | Address                                      |
 | ------- | -------------------------------------------- |
-| Testnet | `0xaba84da240a55410d284a656fc8dae044e6ec1a5` |
-| Mainnet | `0xbd4f3646e189350b9c11a659655854e6f03f9be4` |
+| Testnet | `0x25db219a701a2b23130788723fcf9a2e76857235` |
+| Mainnet | `0x25db219a701a2b23130788723fcf9a2e76857235` |
 
 ### Explorer Links
 
-- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xaba84da240a55410d284a656fc8dae044e6ec1a5)
-- **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xbd4f3646e189350b9c11a659655854e6f03f9be4)
+- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x25db219a701a2b23130788723fcf9a2e76857235)
+- **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x25db219a701a2b23130788723fcf9a2e76857235)
 
 ## Domains
 

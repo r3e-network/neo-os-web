@@ -6,9 +6,10 @@
  * proxy (ctx.os.checkin -> EdgeClient -> /api/edge -> Morpheus kernel), which is
  * non-operational, so the app was broken at runtime.
  *
- * Contract interaction model (verified against the deployed ABI on testnet
- * 0xaba84da240a55410d284a656fc8dae044e6ec1a5 and the live-validate harness
- * deploy/scripts/live_validate_flagship_user_flows.js → runDailyCheckin):
+ * Contract interaction model (verified against the self-contained, owner-
+ * fundable MiniAppDailyCheckin deployed + live-validated on testnet
+ * 0x25db219a701a2b23130788723fcf9a2e76857235 — same NEF + deployer ⇒ same hash
+ * on mainnet; see claudedocs/daily-checkin-abi.md):
  *
  *   READS (chain.read, default app contract script hash):
  *     getCheckInStateForFrontend(user) -> Map{
@@ -22,6 +23,8 @@
  *     getPlatformStats()               -> Map{
  *       totalUsers, totalCheckins, totalRewarded, checkInFee, weekReward,
  *       twoWeekReward, resetAfterDays, currentUtcDay, nextMidnight }
+ *     rewardPool()                     -> Integer (the GAS-backed reward pool
+ *       claimRewards pays from; equals the contract's GAS balance)
  *
  *   CHECK-IN (deposit-then-act, single tx): the check-in is performed by the
  *     prepaid-GAS deposit itself — a GAS transfer of the check-in fee to the
@@ -416,23 +419,28 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
   /** Read the full on-chain state for a user into a normalized snapshot. */
   const readChainState = async (userHash: string): Promise<ChainCheckinState> => {
     const contractHash = chain.contractAddress.get();
-    const [frontend, status, details, platform, paused, poolBalance] = await Promise.all([
-      chain.read("getCheckInStateForFrontend", [{ type: "Hash160", value: userHash }]),
-      chain.read("getCheckinStatus", [{ type: "Hash160", value: userHash }]),
-      chain.read("getUserStatsDetails", [{ type: "Hash160", value: userHash }]),
-      chain.read("getPlatformStats", []),
-      // Pause flag — best-effort; an older ABI without isPaused just returns
-      // unpaused (false) so the UI degrades to the prior behaviour.
-      chain.read("isPaused", []).catch(() => false),
-      // The contract's own GAS balance is the reward pool claimRewards pays from.
-      contractHash
-        ? chain
-            .read("balanceOf", [{ type: "Hash160", value: contractHash }], {
-              scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
-            })
-            .catch(() => 0)
-        : Promise.resolve(0),
-    ]);
+    const [frontend, status, details, platform, paused, poolReported, poolBalance] =
+      await Promise.all([
+        chain.read("getCheckInStateForFrontend", [{ type: "Hash160", value: userHash }]),
+        chain.read("getCheckinStatus", [{ type: "Hash160", value: userHash }]),
+        chain.read("getUserStatsDetails", [{ type: "Hash160", value: userHash }]),
+        chain.read("getPlatformStats", []),
+        // Pause flag — best-effort; an older ABI without isPaused just returns
+        // unpaused (false) so the UI degrades to the prior behaviour.
+        chain.read("isPaused", []).catch(() => false),
+        // The reward pool claimRewards pays from. The contract exposes it
+        // directly via rewardPool(); read that as the authoritative value.
+        chain.read("rewardPool", []).catch(() => null),
+        // Fallback: the contract's own GAS balance equals the reward pool (the
+        // contract holds the backing GAS), used only if rewardPool() is absent.
+        contractHash
+          ? chain
+              .read("balanceOf", [{ type: "Hash160", value: contractHash }], {
+                scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+              })
+              .catch(() => 0)
+          : Promise.resolve(0),
+      ]);
 
     const f = (frontend && typeof frontend === "object" ? frontend : {}) as Record<string, unknown>;
     const s = (status && typeof status === "object" ? status : {}) as Record<string, unknown>;
@@ -442,6 +450,11 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     const fee = intFromValue(p.checkInFee, DEFAULT_CHECKIN_FEE);
     const week = intFromValue(p.weekReward, MILESTONES[0].reward * FIXED8);
     const twoWeek = intFromValue(p.twoWeekReward, MILESTONES[1].reward * FIXED8);
+
+    // Prefer the contract's own rewardPool() report; fall back to its GAS
+    // balanceOf (which equals the pool, since the contract holds the backing
+    // GAS) when an older ABI doesn't expose rewardPool().
+    const pool = poolReported != null ? intFromValue(poolReported) : intFromValue(poolBalance);
 
     return {
       currentStreak: intFromValue(f.currentStreak),
@@ -459,7 +472,7 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
       totalGlobalRewarded: intFromValue(p.totalRewarded),
       weekReward: week > 0 ? week : MILESTONES[0].reward * FIXED8,
       twoWeekReward: twoWeek > 0 ? twoWeek : MILESTONES[1].reward * FIXED8,
-      rewardPoolBalance: Math.max(0, intFromValue(poolBalance)),
+      rewardPoolBalance: Math.max(0, pool),
       paused: boolFromValue(paused),
     };
   };

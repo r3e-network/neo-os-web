@@ -3,11 +3,15 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
+import { defaultProfitCandidates } from "../utils/anchor-agents";
 import PlayArea from "../../custom-anchor/src/PlayArea";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
+
+/** 21 distinct valid compressed candidate keys for register tests. */
+const TEST_CANDIDATES = Array.from({ length: 21 }, (_, index) => `02${String(index + 1).padStart(64, "0")}`);
 
 function t(key: string) {
   const messages: Record<string, string> = {
@@ -54,6 +58,17 @@ function t(key: string) {
     userStake: "Your stake",
     withdrawAction: "Redeem NEO",
     workflowReady: "Ready",
+    registerCandidatesLabel: "Council candidates (21 public keys)",
+    registerCandidatesHint: "One compressed public key per line — exactly 21.",
+    registerCandidatesPlaceholder: "02abc...",
+    registerCandidatesUseDefault: "Use default candidate set",
+    registerCandidatesCount: "{count}/21 valid candidate keys",
+    registerCandidatesInvalid: "Enter exactly 21 compressed public keys.",
+    noAgentsTitle: "0/21 agents provisioned",
+    noAgentsBody: "This anchor has no AA agents yet.",
+    noAgentsConfirm: "Stake anyway",
+    noAgentsConfirmActive: "Confirmed — staking enabled",
+    anchorNotRegisteredBadge: "Not registered",
   };
   return messages[key] ?? key;
 }
@@ -154,20 +169,70 @@ describe("Custom Anchor PlayArea", () => {
     expect(screen.getByText("anchorNotRegistered")).toBeTruthy();
   });
 
-  it("registers a new anchor with the chosen mode", async () => {
+  it("registers a new anchor with the chosen mode AND the 21 council candidates", async () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea t={t} state={state()} dispatch={dispatch} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
 
     fireEvent.change(screen.getByLabelText("registerAnchorAppId"), {
       target: { value: "custom-anchor:newteam:001" },
     });
+    // Provisioning requires exactly 21 valid candidate keys before the register
+    // button enables — fill them in.
+    fireEvent.change(screen.getByLabelText("Council candidates (21 public keys)"), {
+      target: { value: TEST_CANDIDATES.join("\n") },
+    });
     fireEvent.click(screen.getByRole("button", { name: "registerAction" }));
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("register", {
         anchorAppId: "custom-anchor:newteam:001",
         mode: 1,
+        candidates: TEST_CANDIDATES,
       });
     });
+  });
+
+  it("keeps the register button disabled until exactly 21 valid candidates are entered", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+
+    fireEvent.change(screen.getByLabelText("registerAnchorAppId"), {
+      target: { value: "custom-anchor:newteam:001" },
+    });
+    const registerButton = screen.getByRole("button", { name: "registerAction" }) as HTMLButtonElement;
+    // Valid id but no candidates yet → still disabled.
+    expect(registerButton.disabled).toBe(true);
+
+    // Only 20 candidates → still disabled.
+    fireEvent.change(screen.getByLabelText("Council candidates (21 public keys)"), {
+      target: { value: TEST_CANDIDATES.slice(0, 20).join("\n") },
+    });
+    expect(registerButton.disabled).toBe(true);
+
+    // All 21 → enabled.
+    fireEvent.change(screen.getByLabelText("Council candidates (21 public keys)"), {
+      target: { value: TEST_CANDIDATES.join("\n") },
+    });
+    expect(registerButton.disabled).toBe(false);
+  });
+
+  it("fills the default candidate set on demand and when switching to Profit mode", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+
+    const candidatesField = screen.getByLabelText("Council candidates (21 public keys)") as HTMLTextAreaElement;
+    expect(candidatesField.value).toBe("");
+
+    // The explicit "Use default candidate set" button fills 21 keys.
+    fireEvent.click(screen.getByRole("button", { name: "Use default candidate set" }));
+    expect(candidatesField.value).toBe(defaultProfitCandidates().join("\n"));
+    expect(candidatesField.value.split("\n")).toHaveLength(21);
+  });
+
+  it("seeds default candidates when switching to Profit mode while the field is empty", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+
+    const candidatesField = screen.getByLabelText("Council candidates (21 public keys)") as HTMLTextAreaElement;
+    expect(candidatesField.value).toBe("");
+    fireEvent.click(screen.getByRole("radio", { name: "registerModeProfit" }));
+    expect(candidatesField.value).toBe(defaultProfitCandidates().join("\n"));
   });
 
   it("lists discovered anchors and dispatches selectAnchor on Use", async () => {
@@ -206,6 +271,39 @@ describe("Custom Anchor PlayArea", () => {
     fireEvent.click(screen.getByRole("button", { name: "recoverGas" }));
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("recoverCredit", "GAS");
+    });
+  });
+
+  // The 0/21 callout + stake-gate is the fallback for externally-created anchors
+  // that were registered WITHOUT the standalone's agent provisioning. It must
+  // keep blocking a stake until the user explicitly acknowledges the anchor
+  // earns nothing yet.
+  it("keeps the 0/21 stake-gate as a fallback for an externally-created anchor with no agents", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state({ anchorMode: 1, agentCount: 0 })} dispatch={dispatch} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+
+    // The 0/21 callout is surfaced.
+    expect(screen.getByText("0/21 agents provisioned")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Anchor appId"), {
+      target: { value: "custom-anchor:ext:round3" },
+    });
+    fireEvent.change(screen.getByLabelText("NEO amount"), { target: { value: "5" } });
+
+    // Stake stays blocked until the inert-anchor acknowledgement is checked.
+    const stakeButton = screen.getByRole("button", { name: "Stake NEO" }) as HTMLButtonElement;
+    expect(stakeButton.disabled).toBe(true);
+
+    const confirm = screen.getByRole("checkbox") as HTMLInputElement;
+    fireEvent.click(confirm);
+    expect(stakeButton.disabled).toBe(false);
+
+    fireEvent.click(stakeButton);
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("stake", {
+        anchorAppId: "custom-anchor:ext:round3",
+        amount: "5",
+      });
     });
   });
 });

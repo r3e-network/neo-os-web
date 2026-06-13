@@ -172,6 +172,12 @@ export function createLiveRpc(options = {}) {
     signers,
     validUntilOffset = 50,
     timeoutMs = confirmTimeoutMs,
+    // Extra system fee (base units) added on top of the test-invoke estimate.
+    // Needed for contracts whose gas cost is non-deterministic between the
+    // fee-estimation test-invoke and the real execution (e.g. Runtime.GetRandom
+    // games where a win adds a payout transfer the estimate may have missed).
+    // Paid by the signer, not the contract, so it never affects solvency math.
+    systemFeeBuffer = 0,
   }) {
     const step = stepLabel || operation;
     if (!account) throw new Error(`${step}: account is required`);
@@ -195,7 +201,9 @@ export function createLiveRpc(options = {}) {
     if (preview.state !== "HALT") {
       throw new Error(`${step} test-invoke FAULT: ${preview.exception}`);
     }
-    txn.systemFee = neon.u.BigInteger.fromNumber(preview.gasconsumed);
+    txn.systemFee = neon.u.BigInteger.fromNumber(
+      systemFeeBuffer ? Number(preview.gasconsumed) + systemFeeBuffer : preview.gasconsumed
+    );
     txn.sign(account, networkMagic); // provisional witness so the size is right for fee calc
     txn.networkFee = neon.u.BigInteger.fromNumber(
       await retry((c) => c.calculateNetworkFee(txn), `${step}.calculateNetworkFee`)
