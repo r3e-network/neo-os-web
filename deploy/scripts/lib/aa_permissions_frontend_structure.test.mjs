@@ -47,9 +47,12 @@ test("AA Permissions Lab exposes a guarded wallet-style permissions workspace", 
 
   assert.match(playArea, /className="permissions-hero"/);
   // Neo Soft redesign: hero metrics grid replaced by an uppercase eyebrow
-  // label that renders the permission-state metrics copy.
+  // label that renders the permission-state copy. The visible eyebrow now
+  // binds its own dedicated key (permissionsHeroEyebrow) so an edit to the
+  // metrics aria-label (permissionsMetricsLabel) can't silently rewrite the
+  // header — assert the eyebrow span still renders the permission-state copy.
   assert.match(playArea, /className="permissions-hero__eyebrow"/);
-  assert.match(playArea, /\{t\("permissionsMetricsLabel"\)\}/);
+  assert.match(playArea, /\{t\("permissionsHeroEyebrow"\)\}/);
   // The permission-update "flow" heading is now the write-column heading
   // (renders permissionsFlowLabel); the two-column workspace is the grid.
   assert.match(playArea, /className="permissions-write-heading"/);

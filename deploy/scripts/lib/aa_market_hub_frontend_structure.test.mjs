@@ -28,7 +28,13 @@ test("AA Market Hub exposes wallet-style market overview and guarded listing loa
   assert.match(playArea, /className="market-hero"/);
   assert.match(playArea, /className="market-hero__metrics"/);
   assert.match(playArea, /className="market-workspace"/);
-  assert.match(playArea, /className="market-side-rail"/);
+  // The side rail now collapses to a single column when no listing is
+  // selected, so its className is a template literal
+  // (`market-side-rail${selected ? "" : " market-side-rail--single"}`)
+  // rather than a static string. Tolerate both static className="market-side-rail"
+  // and template-literal className={`market-side-rail...`} forms while still
+  // requiring the rail to exist.
+  assert.match(playArea, /className=(?:"market-side-rail"|\{`market-side-rail)/);
   assert.match(playArea, /className="market-section-heading"/);
   assert.match(walletCard, /canLoadListings/);
   assert.match(walletCard, /disabled=\{!canLoad\b/);

@@ -5,7 +5,7 @@ import type { ChainService } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-const CONTRACT = "0xaba84da240a55410d284a656fc8dae044e6ec1a5";
+const CONTRACT = "0x25db219a701a2b23130788723fcf9a2e76857235";
 const ALICE_HASH = addressToScriptHash(ALICE);
 
 const t = (key: string, params?: Record<string, string | number>) =>
@@ -66,8 +66,11 @@ function makeChain(s: ChainFixtures) {
         };
       case "isPaused":
         return s.paused ?? false;
+      case "rewardPool":
+        // The contract's authoritative reward-pool report (preferred read).
+        return String(s.poolBalance ?? 0);
       case "balanceOf":
-        // GAS balanceOf(contract) — the reward pool.
+        // GAS balanceOf(contract) — the legacy fallback, equals the pool.
         return String(s.poolBalance ?? 0);
       default:
         return "0";

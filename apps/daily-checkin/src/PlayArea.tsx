@@ -191,9 +191,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
-      {/* Honesty banners — surface a paused contract or an unfunded reward pool
-          so the user knows whether milestone GAS rewards can actually be paid
-          before they spend the daily check-in fee. */}
+      {/* Honesty banners — surface a paused contract or a reward pool that is
+          temporarily too low to cover the next milestone, so the user knows
+          whether milestone GAS rewards can be paid before they spend the daily
+          check-in fee. The pool is owner-fundable, so this only shows when the
+          pool is actually short, not as a permanent state. */}
       {isPaused ? (
         <div className="checkin-notice checkin-notice--paused" role="status">
           {t("contractPausedStatus")}
