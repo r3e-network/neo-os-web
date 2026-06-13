@@ -80,7 +80,21 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   const stakeDisabled = busy || !anchorInputValid || !amountValid;
   const redeemDisabled = busy || !looseAnchorValid || !amountValid;
   const looseActionDisabled = busy || !looseAnchorValid;
-  const statusText = formError || lastError || status?.msg || workflowStatus;
+  // Only flag the input as invalid once the user has typed something; an empty
+  // field on first paint is "not started", not an error (mirrors the register
+  // field's pattern). Reserve the red border for a non-empty malformed id.
+  const anchorInputTouched = anchorInput.trim().length > 0;
+  const anchorInputErrored = anchorInputTouched && !anchorInputValid;
+  // The action strip should agree with the hero and the disabled CTA: stay
+  // neutral until there is a usable anchor (linked, or a valid id typed), and
+  // only paint the green "Ready" once an action can actually be taken.
+  const anchorReady = anchorLinked || looseAnchorValid;
+  const hasStatusError = Boolean(formError || lastError);
+  const statusText = hasStatusError
+    ? formError || lastError
+    : anchorReady
+      ? status?.msg || workflowStatus
+      : t("anchorAwaitingInput");
 
   const runAction = async (
     event: SyntheticEvent,
@@ -189,7 +203,30 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
           </div>
         </div>
         <div className="custom-anchor-orbit" aria-hidden="true">
-          <span>{displayedAgentCount}</span>
+          {anchorLinked && !anchorNotRegistered ? (
+            <span>{displayedAgentCount}</span>
+          ) : (
+            // Before an anchor is linked there is no real agent count yet — show
+            // a deliberate AA-cluster glyph instead of a bare em-dash so the
+            // focal badge never reads as missing/errored data.
+            <svg
+              className="custom-anchor-orbit__glyph"
+              viewBox="0 0 24 24"
+              width="30"
+              height="30"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" />
+              <circle cx="12" cy="4.4" r="1.7" fill="currentColor" stroke="none" />
+              <circle cx="18.6" cy="15.8" r="1.7" fill="currentColor" stroke="none" />
+              <circle cx="5.4" cy="15.8" r="1.7" fill="currentColor" stroke="none" />
+              <path d="M12 6.6v3M13.9 13.1l2.9 1.7M10.1 13.1l-2.9 1.7" opacity="0.55" />
+            </svg>
+          )}
           <small>AA</small>
         </div>
       </section>
@@ -203,16 +240,22 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
         </div>
 
         <form className="custom-anchor-form" onSubmit={(event) => runAction(event, "stake")}>
-          <label>
-            <span>{t("anchorAppId")}</span>
-            <input
-              value={anchorInput}
-              onChange={(event) => setAnchorInput(event.currentTarget.value)}
-              placeholder="custom-anchor:team:nonce"
-              autoComplete="off"
-              aria-invalid={!anchorInputValid}
-            />
-          </label>
+          <div className="custom-anchor-field">
+            <label>
+              <span>{t("anchorAppId")}</span>
+              <input
+                value={anchorInput}
+                onChange={(event) => setAnchorInput(event.currentTarget.value)}
+                placeholder="custom-anchor:team:nonce"
+                autoComplete="off"
+                aria-invalid={anchorInputErrored}
+                aria-describedby="custom-anchor-id-hint"
+              />
+            </label>
+            <small id="custom-anchor-id-hint" className="custom-anchor-field-hint">
+              {t("anchorIdHint")}
+            </small>
+          </div>
           <label>
             <span>{t("neoAmount")}</span>
             <input
@@ -264,7 +307,12 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
           </div>
         )}
 
-        <div className={`custom-anchor-status-strip${formError || lastError ? " error" : ""}`}>
+        <div
+          className={`custom-anchor-status-strip${
+            hasStatusError ? " error" : anchorReady ? "" : " neutral"
+          }`}
+          role="status"
+        >
           <span>{statusText}</span>
         </div>
       </section>

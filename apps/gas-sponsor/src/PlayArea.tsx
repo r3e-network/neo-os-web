@@ -16,6 +16,8 @@ interface PlayAreaProps {
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num } = useStateBindings(state);
 
+  const userAddress = str("userAddress");
+  const isConnected = userAddress.trim().length > 0;
   const gasBalance = str("gasBalance", "0");
   const gasBalanceDisplay = str("gasBalanceDisplay", "0.0000");
   const chainGasBalanceDisplay = str("chainGasBalanceDisplay", "0.0000");
@@ -106,6 +108,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <RequestGasCard
           serviceAvailable={serviceAvailable}
           serviceNotice={serviceNotice}
+          isConnected={isConnected}
           isEligible={isEligible}
           remainingQuota={remainingQuota}
           requestAmount={requestAmount}

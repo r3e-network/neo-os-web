@@ -192,7 +192,9 @@ export default function PlayArea({
 
         <NeoCard
           title={t("vaultUploadTitle")}
-          className="forever-album-workspace"
+          className={`forever-album-workspace${
+            photos.length === 0 && !loadingPhotos ? " forever-album-workspace--empty" : ""
+          }`}
         >
           <AlbumGrid
             t={t}

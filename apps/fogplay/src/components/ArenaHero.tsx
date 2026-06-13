@@ -7,9 +7,11 @@ interface ArenaHeroProps {
   isFlipping: boolean;
   displayOutcome: "heads" | "tails" | null;
   result: GameResult | null;
+  choice: "heads" | "tails";
+  betAmount: string;
 }
 
-export default function ArenaHero({ t, isFlipping, displayOutcome, result }: ArenaHeroProps) {
+export default function ArenaHero({ t, isFlipping, displayOutcome, result, choice, betAmount }: ArenaHeroProps) {
   return (
     <div className="arena-hero">
       <div className="hero-arena-bg">
@@ -18,7 +20,7 @@ export default function ArenaHero({ t, isFlipping, displayOutcome, result }: Are
         <div className={`arena-ambient${isFlipping ? " flipping" : ""}`} />
       </div>
       <div className="coin-stage">
-        <CoinArena displayOutcome={displayOutcome} isFlipping={isFlipping} result={result} t={t} />
+        <CoinArena displayOutcome={displayOutcome} isFlipping={isFlipping} result={result} choice={choice} betAmount={betAmount} t={t} />
       </div>
       {result && !isFlipping && (
         <div className={`result-flash ${result.won ? "win" : "lose"}`}>

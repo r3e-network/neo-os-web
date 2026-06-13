@@ -605,15 +605,47 @@
 }
 
 .private-transfer__history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   margin: 14px 0 0;
   border: 1px dashed var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-md, 14px);
-  padding: 18px;
+  padding: 16px 18px;
   text-align: center;
   color: var(--ns-text-muted, #8a92a6);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.5;
+}
+
+.private-transfer__history-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-accent-strong, #0fb174);
+}
+
+.private-transfer__history-empty-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.private-transfer__history-empty p {
+  margin: 0;
+}
+
+.private-transfer__network-hint {
+  display: block;
+  margin-top: 6px;
+  color: #8a5a14;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .private-transfer__history-list {

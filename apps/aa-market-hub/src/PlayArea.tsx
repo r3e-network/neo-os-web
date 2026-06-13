@@ -148,7 +148,9 @@ export default function PlayArea({
       </section>
 
       <section className="market-workspace">
-        <aside className="market-side-rail">
+        <aside
+          className={`market-side-rail${selectedListing ? "" : " market-side-rail--single"}`}
+        >
           <div className="market-side-rail__primary">
             <CreateListingCard
               t={t}
@@ -170,10 +172,21 @@ export default function PlayArea({
               initialSignature={launchContext.signature}
               dispatch={dispatch}
             />
+
+            {/* The Shell-Only Transfer note belongs under Create Listing in the
+                same column. It used to float alone in a wide aux column,
+                stranding a tall empty band whenever no listing was selected. */}
+            <details className="market-caveat">
+              <summary>{t("feature2Name")}</summary>
+              <p>{t("hubSummary")}</p>
+            </details>
           </div>
 
-          <div className="market-side-rail__aux">
-            {selectedListing && (
+          {/* The aux column only appears once a listing is selected — until then
+              the rail collapses to a single column so Create Listing spans the
+              full width instead of leaving an empty right half. */}
+          {selectedListing && (
+            <div className="market-side-rail__aux">
               <ManageListingCard
                 t={t}
                 selectedListing={selectedListing}
@@ -187,13 +200,8 @@ export default function PlayArea({
                 walletAddress={walletAddress}
                 dispatch={dispatch}
               />
-            )}
-
-            <details className="market-caveat">
-              <summary>{t("feature2Name")}</summary>
-              <p>{t("hubSummary")}</p>
-            </details>
-          </div>
+            </div>
+          )}
         </aside>
 
         <div className="market-list-panel">
@@ -215,6 +223,17 @@ export default function PlayArea({
               <span className="empty-state__badge">AA</span>
               <strong>{t("emptyStateTitle")}</strong>
               <span>{t("emptyStateEnterHash")}</span>
+            </div>
+          )}
+
+          {/* A market hash is prefilled, so the board auto-loads on mount; show a
+              loading placeholder beneath the "Listings" heading so it is never
+              left orphaned above blank space while the read is in flight. */}
+          {marketHash.trim() && listings.length === 0 && isLoading && (
+            <div className="empty-state empty-state--loading" aria-busy="true">
+              <span className="empty-state__spinner" aria-hidden="true" />
+              <strong>{t("emptyStateLoadingTitle")}</strong>
+              <span>{t("emptyStateLoading")}</span>
             </div>
           )}
 

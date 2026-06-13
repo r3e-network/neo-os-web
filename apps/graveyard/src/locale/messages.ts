@@ -43,6 +43,10 @@ const appMessages = {
   destroyed: { en: "Buried", zh: "已埋葬" },
   forgotten: { en: "Forgotten", zh: "已遗忘" },
   noDestructions: { en: "No burial records yet", zh: "暂无埋葬记录" },
+  noDestructionsHint: {
+    en: "Buried memories will appear here.",
+    zh: "埋葬的记忆将显示在此处。",
+  },
   tabStats: { en: "Stats", zh: "统计" },
   confirmTitle: { en: "Confirm Burial", zh: "确认埋葬" },
   confirmText: { en: "Are you absolutely sure? The hash will be permanent.", zh: "您确定吗？哈希将永久保留。" },

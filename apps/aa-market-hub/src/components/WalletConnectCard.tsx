@@ -60,14 +60,17 @@ export function WalletConnectCard({
           >
             {walletAddress ? t("walletConnected") : t("connectWallet")}
           </NeoButton>
+          {/* While listings load (incl. the auto-load on mount) keep the text
+              label visible instead of replacing it with a bare spinner — a
+              label-less wide pill reads as a broken/stuck control. The button is
+              disabled during the read so it stays inert without losing meaning. */}
           <NeoButton
             variant="primary"
-            loading={isLoading}
-            disabled={!canLoad}
-            aria-label={t("loadListings")}
+            disabled={!canLoad || isLoading}
+            aria-label={isLoading ? t("loadingListings") : t("loadListings")}
             onClick={onLoadListings}
           >
-            {t("loadListings")}
+            {isLoading ? t("loadingListings") : t("loadListings")}
           </NeoButton>
         </div>
       </div>

@@ -4,6 +4,7 @@ const appMessages = {
   appName: { en: "AA Market Hub", zh: "AA 地址市场" },
   marketHash: { en: "Market Hash", zh: "市场合约哈希" },
   loadListings: { en: "Load Listings", zh: "加载列表" },
+  loadingListings: { en: "Loading…", zh: "加载中…" },
   totalListings: { en: "Total Listings", zh: "总 Listings" },
   activeListings: { en: "Active Listings", zh: "活跃 Listings" },
   docsSubtitle: {
@@ -169,6 +170,11 @@ const appMessages = {
   emptyStateNoListings: {
     en: "No listings found for the current market hash.",
     zh: "未找到当前市场哈希的 Listings。",
+  },
+  emptyStateLoadingTitle: { en: "Loading listings…", zh: "正在加载挂单…" },
+  emptyStateLoading: {
+    en: "Reading the market contract for the current hash.",
+    zh: "正在读取当前哈希的市场合约。",
   },
   hubSummary: {
     en: "Trade deterministic Neo Abstract Account addresses through a trustless GAS escrow market. Settlement transfers only the AA shell. Existing verifier, hook, and backup-owner configuration must be reattached by the buyer after purchase.",

@@ -37,6 +37,8 @@ function t(key: string) {
     emptyStateEnterHash: "Enter a market hash.",
     emptyStateNoListingsTitle: "No listings",
     emptyStateNoListings: "No listings found.",
+    emptyStateLoadingTitle: "Loading listings…",
+    emptyStateLoading: "Reading the market contract for the current hash.",
     walletConnected: "Wallet connected",
     walletNotConnected: "Wallet not connected",
     marketHash: "Market Hash",
@@ -44,6 +46,7 @@ function t(key: string) {
     marketHashPlaceholder: "0x...",
     connectWallet: "Connect Wallet",
     loadListings: "Load listings",
+    loadingListings: "Loading…",
     createListingTitle: "Create listing",
     createListingMarketRequired: "Paste a market contract hash first.",
     createListingWalletRequired: "Connect a wallet before creating a listing.",
@@ -387,5 +390,44 @@ describe("AA Market Hub PlayArea launch flow", () => {
       );
       expect(dispatch).toHaveBeenCalledWith("refundSelected");
     });
+  });
+
+  it("keeps the Load Listings button labelled (not a bare spinner) while listings load", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ marketHash: MARKET_HASH, isLoading: true })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,
+        )}
+      />,
+    );
+
+    const loadBtn = screen.getByRole("button", { name: "Loading…" }) as HTMLButtonElement;
+    expect(loadBtn.textContent).toContain("Loading…");
+    expect(loadBtn.disabled).toBe(true);
+    // No standalone "Load listings" pill is left empty alongside it.
+    expect(screen.queryByRole("button", { name: "Load listings" })).toBeNull();
+  });
+
+  it("renders a loading placeholder beneath the Listings heading while loading a prefilled market", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({ marketHash: MARKET_HASH, listings: [], isLoading: true })}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,
+        )}
+      />,
+    );
+
+    // The Listings heading is never orphaned above blank space — a loading
+    // placeholder fills the panel while the read is in flight.
+    expect(screen.getByText("Loading listings…")).toBeTruthy();
+    expect(
+      screen.getByText("Reading the market contract for the current hash."),
+    ).toBeTruthy();
   });
 });

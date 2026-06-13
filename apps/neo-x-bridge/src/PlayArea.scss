@@ -107,8 +107,9 @@
 }
 
 .bridge-metrics-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  // Flex (not a fixed 4-col grid) so the strip stays evenly filled whether the
+  // DIGEST column is present (post-prepare) or hidden (resting 3-fact state).
+  display: flex;
   gap: 0;
   padding: 14px 8px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -119,6 +120,7 @@
 
 .strip-metric {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
@@ -562,8 +564,12 @@
   }
 
   .bridge-metrics-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-wrap: wrap;
     gap: 16px 0;
+  }
+
+  .bridge-metrics-strip .strip-metric {
+    flex: 1 1 50%;
   }
 
   .strip-metric:nth-child(odd) {
@@ -593,13 +599,17 @@
   }
 
   .bridge-route-card,
-  .bridge-metrics-strip,
   .bridge-form-grid,
   .bridge-action-preview {
     grid-template-columns: 1fr;
   }
 
+  .bridge-metrics-strip {
+    flex-direction: column;
+  }
+
   .strip-metric {
+    flex: 1 1 auto;
     border-left: 0;
   }
 

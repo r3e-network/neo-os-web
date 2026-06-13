@@ -556,13 +556,33 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
   font-variant-numeric: tabular-nums;
 }
 
+/* Give the ghost Refresh control a real (outlined + icon) affordance so it
+   reads as clickable rather than inert muted text next to the count chip. */
+.history-refresh-btn {
+  gap: 6px;
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+
+  &:hover:not(:disabled) {
+    color: $grave-accent-strong;
+    border-color: $grave-accent-strong;
+    background: $grave-accent-soft;
+  }
+}
+
+.history-refresh-btn__icon {
+  flex-shrink: 0;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
   text-align: center;
+  // A taller min-height so the empty Records card doesn't collapse to a short
+  // box that leaves the whole lower-right canvas blank next to the tall chamber.
+  min-height: 280px;
   padding: 40px 24px;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
@@ -585,7 +605,14 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
 }
 
 .empty-text {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.empty-hint {
+  margin-top: -4px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--ns-text-muted, #8a92a6);
 }

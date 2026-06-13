@@ -270,6 +270,33 @@ const appMessages = {
         en: "Connect a wallet to see live NEO / GAS balances.",
         zh: "连接钱包以查看实时 NEO / GAS 余额。"
     },
+    // "What you can paste" reference card — fills the resting lower viewport
+    // with purposeful guidance instead of leaving a large blank canvas.
+    formatsTitle: { en: "What you can paste", zh: "可粘贴的格式" },
+    formatWifLabel: { en: "WIF", zh: "WIF" },
+    formatWifDesc: {
+        en: "Wallet Import Format private key (starts with K/L).",
+        zh: "钱包导入格式私钥（以 K/L 开头）。"
+    },
+    formatPrivateKeyLabel: { en: "Private key", zh: "私钥" },
+    formatPrivateKeyDesc: {
+        en: "64-character hex private key.",
+        zh: "64 位十六进制私钥。"
+    },
+    formatPublicKeyLabel: { en: "Public key", zh: "公钥" },
+    formatPublicKeyDesc: {
+        en: "Compressed public key — derives address and script hash.",
+        zh: "压缩公钥——可推导地址与脚本哈希。"
+    },
+    formatScriptLabel: { en: "NeoVM script", zh: "NeoVM 脚本" },
+    formatScriptDesc: {
+        en: "Verification script hex — disassembled into opcodes.",
+        zh: "验证脚本十六进制——反汇编为操作码。"
+    },
+    onDeviceNote: {
+        en: "Keys are generated and converted entirely on your device — nothing is ever sent over the network.",
+        zh: "密钥完全在您的设备上生成与转换——任何数据都不会通过网络发送。"
+    },
     showSecrets: { en: "Show secrets", zh: "显示密钥" },
     hideSecrets: { en: "Hide secrets", zh: "隐藏密钥" },
     copyAddress: { en: "Copy address", zh: "复制地址" },

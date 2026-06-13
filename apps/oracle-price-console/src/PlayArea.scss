@@ -26,9 +26,12 @@
 
 .price-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.9fr);
-  gap: 24px;
-  align-items: stretch;
+  // The left copy column (title + one line) is light, so the metrics column is
+  // narrowed and capped (was minmax(220px, 0.9fr)) to stop the three tiles from
+  // dominating the right half and leaving the left lower area empty.
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+  gap: 24px 32px;
+  align-items: center;
   padding: 28px;
   border-radius: var(--ns-radius-xl);
   background:
@@ -88,6 +91,11 @@
   grid-template-columns: 1fr;
   gap: 10px;
   align-content: center;
+  // Keep the metric stack compact and right-aligned so a few short rows don't
+  // stretch into a heavy block opposite the light copy column.
+  width: 100%;
+  max-width: 340px;
+  margin-left: auto;
 }
 
 .price-metric {
@@ -102,7 +110,7 @@
   box-shadow: inset 0 0 0 1px var(--ns-border);
 }
 
-.price-metric span {
+.price-metric > span {
   flex: 0 0 auto;
   color: var(--ns-text-muted);
   font-size: 12px;
@@ -119,6 +127,49 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The Feed metric is a copy button: reveal the full inspectable feed hash. */
+.price-metric--copy {
+  appearance: none;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.price-metric--copy:hover:not(:disabled) {
+  background: var(--ns-surface);
+  box-shadow: inset 0 0 0 1px var(--ns-border-strong);
+}
+
+.price-metric--copy:focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring);
+}
+
+.price-metric--copy:disabled {
+  cursor: default;
+}
+
+.price-metric__value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.price-metric__copy-cue {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--ns-text-muted);
+}
+
+.price-metric--copy:hover:not(:disabled) .price-metric__copy-cue {
+  color: var(--ns-violet-strong);
 }
 
 .price-balance-card {
@@ -298,6 +349,11 @@
 
   .price-hero h2 {
     font-size: 28px;
+  }
+
+  .price-hero__metrics {
+    max-width: none;
+    margin-left: 0;
   }
 
   .price-balance-card {

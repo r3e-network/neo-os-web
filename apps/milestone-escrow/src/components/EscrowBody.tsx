@@ -26,8 +26,8 @@ export default function EscrowBody(props: EscrowBodyProps) {
 
   if (!contractReady) {
     return (
-      <div className="escrow-notice">
-        <div className="escrow-notice__icon" aria-hidden="true">
+      <div className="escrow-notice escrow-notice--warn">
+        <div className="escrow-notice__icon escrow-notice__icon--warn" aria-hidden="true">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="9" />
             <path d="M12 8v4" />

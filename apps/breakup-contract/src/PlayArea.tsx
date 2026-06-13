@@ -100,6 +100,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {t("subtitle")}
             </p>
           </div>
+          <div className="breakup-hero-tags" aria-hidden="true">
+            <span className="breakup-hero-tag">{t("heroTagStakeBacked")}</span>
+            <span className="breakup-hero-tag">{t("heroTagOnChain")}</span>
+            <span className="breakup-hero-tag">{t("heroTagRefundable")}</span>
+          </div>
         </div>
 
         {hasContracts && (
@@ -222,6 +227,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </NeoButton>
         </div>
       </NeoCard>
+
+      {/* How-it-works explainer — fills the empty/first-paint viewport with the
+          pact lifecycle so the lower page is not a void. Hidden once there are
+          real contracts (or a result/notice) to show in the list below. */}
+      {!hasContracts && !lastSubmittedTitle && !serviceNotice && (
+        <NeoCard title={t("howItWorksTitle")} className="breakup-howitworks-card">
+          <ol className="breakup-howitworks">
+            <li className="breakup-howitworks-step">
+              <span className="breakup-howitworks-num" aria-hidden="true">1</span>
+              <div className="breakup-howitworks-text">
+                <strong>{t("howItWorksStakeTitle")}</strong>
+                <span>{t("howItWorksStakeCopy")}</span>
+              </div>
+            </li>
+            <li className="breakup-howitworks-step">
+              <span className="breakup-howitworks-num" aria-hidden="true">2</span>
+              <div className="breakup-howitworks-text">
+                <strong>{t("howItWorksBreakTitle")}</strong>
+                <span>{t("howItWorksBreakCopy")}</span>
+              </div>
+            </li>
+            <li className="breakup-howitworks-step">
+              <span className="breakup-howitworks-num" aria-hidden="true">3</span>
+              <div className="breakup-howitworks-text">
+                <strong>{t("howItWorksSettleTitle")}</strong>
+                <span>{t("howItWorksSettleCopy")}</span>
+              </div>
+            </li>
+          </ol>
+        </NeoCard>
+      )}
 
       {/* Stranded stake-credit recovery — a deposit that landed without its
           create/sign completing (e.g. a rejected second prompt) is held as

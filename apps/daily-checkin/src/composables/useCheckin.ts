@@ -181,6 +181,12 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
   const totalUserCheckins = createObservable(0);
   const isLoading = createObservable(false);
   const isClaiming = createObservable(false);
+  // Action-scoped spinners, kept separate from the global `isLoading` coordinator.
+  // The buttons bind their spinner to these so a background status hydration
+  // (which flips `isLoading`) never blanks the check-in / refresh labels — only
+  // an actual user-initiated check-in or refresh shows a spinner in its button.
+  const isCheckingIn = createObservable(false);
+  const isRefreshing = createObservable(false);
 
   const totalGlobalCheckins = createObservable(0);
   const totalGlobalUsers = createObservable(0);
@@ -520,7 +526,12 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
   };
 
   const refreshStatus = async () => {
-    await loadAll({ record: true });
+    isRefreshing.set(true);
+    try {
+      await loadAll({ record: true });
+    } finally {
+      isRefreshing.set(false);
+    }
   };
 
   const doCheckIn = async () => {
@@ -539,6 +550,7 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
       checkInFee: formatGas(checkInFee.get()),
     });
 
+    isCheckingIn.set(true);
     isLoading.set(true);
     try {
       const userHash = await resolveUserHash();
@@ -613,6 +625,7 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
       throw e;
     } finally {
       isLoading.set(false);
+      isCheckingIn.set(false);
     }
   };
 
@@ -708,6 +721,8 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     checkinHistory,
     isLoading,
     isClaiming,
+    isCheckingIn,
+    isRefreshing,
     workflowStatus,
     lastError,
     latestRequest,

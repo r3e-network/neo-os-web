@@ -162,6 +162,8 @@ const appMessages = {
     zh: "确保你的回调合约原子化偿还贷款 + 0.09% 手续费",
   },
   notAvailable: { en: "Unavailable", zh: "不可用" },
+  walletNotConnected: { en: "Not connected", zh: "未连接" },
+  statsStaleTitle: { en: "Stats unavailable", zh: "数据不可用" },
   live: { en: "LIVE", zh: "实时" },
 
   // Service-state notice (read failure — keep last good snapshot, never zeros)

@@ -7,6 +7,9 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const appId = "miniapp-oracle-vrf-console";
 const DEFAULT_CONSUMER = appId;
 const DEFAULT_SALT = "vrf:miniapp-round";
+// Upper bound for the repeat count; surfaced to the user as the "1-10" field
+// hint and enforced in buildResult so an out-of-range entry is honestly clamped.
+const MAX_ROUNDS = 10;
 
 /**
  * Resolve the network label from the launched network instead of a hardcoded
@@ -102,8 +105,11 @@ export const consoleConfig: ConsoleToolConfig = {
       defaultValue: DEFAULT_SALT,
     },
     {
+      // Field label carries the supported "1-10" range as an always-visible hint
+      // (the placeholder is hidden because the field defaults to "1"). The plain
+      // `rounds` key is kept for the result-row label so it reads "Rounds: 3".
       key: "rounds",
-      labelKey: "rounds",
+      labelKey: "roundsLabel",
       placeholderKey: "roundsPlaceholder",
       type: "number",
       defaultValue: "1",
@@ -135,13 +141,15 @@ export const consoleConfig: ConsoleToolConfig = {
         },
       };
     }
-    // Clamp rounds to a positive integer so an invalid entry (0, -5, 2.5, blank,
-    // or a non-numeric string) never produces a semantically broken request
-    // payload that downstream consumers would carry unchecked.
+    // Clamp rounds to the supported 1-10 window so an invalid entry (0, -5, 2.5,
+    // 50, blank, or a non-numeric string) never produces a semantically broken
+    // request payload that downstream consumers would carry unchecked.
     const rawRounds = clean(values.rounds, "1");
     const parsedRounds = Number(rawRounds);
     const rounds = String(
-      Number.isFinite(parsedRounds) ? Math.max(1, Math.floor(parsedRounds)) : 1,
+      Number.isFinite(parsedRounds)
+        ? Math.min(MAX_ROUNDS, Math.max(1, Math.floor(parsedRounds)))
+        : 1,
     );
     // Tell the user when their entry was silently adjusted, so a "0 rounds"
     // request reads honestly as "adjusted to 1" rather than appearing honored.
@@ -199,11 +207,12 @@ const appMessages = {
     zh: "唯一回合或请求盐值",
   },
   rounds: { en: "Rounds", zh: "轮次" },
-  roundsPlaceholder: { en: "1", zh: "1" },
+  roundsLabel: { en: "Rounds (1-10)", zh: "轮次（1-10）" },
+  roundsPlaceholder: { en: "1-10", zh: "1-10" },
   roundsAdjusted: { en: "Rounds adjusted", zh: "轮次已调整" },
   roundsAdjustedValue: {
-    en: "{raw} -> {rounds} (min 1, whole number)",
-    zh: "{raw} -> {rounds}（最少 1，整数）",
+    en: "{raw} -> {rounds} (1-10, whole number)",
+    zh: "{raw} -> {rounds}（1-10，整数）",
   },
   mode: { en: "Proof Mode", zh: "证明模式" },
   modeSingle: { en: "Single proof", zh: "单次证明" },

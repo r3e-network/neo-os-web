@@ -348,20 +348,11 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
             ))}
           </div>
 
-          <div className="treasury-review-panel" aria-label={t("reviewTitle")}>
-            <div>
-              <span>{t("reviewAsset")}</span>
-              <strong>{asset}</strong>
-            </div>
-            <div>
-              <span>{t("reviewAmount")}</span>
-              <strong>{amount || "—"}</strong>
-            </div>
-            <div>
-              <span>{t("reviewRecipient")}</span>
-              <strong title={recipient}>{recipient ? compactAddress(recipient) : "—"}</strong>
-            </div>
-          </div>
+          {/* The Asset/Amount/Recipient "Transfer review" strip was a verbatim
+              echo of the form fields directly above it. The derived signing
+              intent below (contract / fixed-8 amount / recipient hash) is the
+              non-redundant summary, so the duplicate review row is dropped to
+              shorten the console and give the editable form clear priority. */}
 
           <details
             className={[

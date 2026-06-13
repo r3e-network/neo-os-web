@@ -337,7 +337,24 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
           </div>
         </section>
       ) : (
-        <div className="empty-memorials"><p>{t("noMemorials")}</p></div>
+        <div className="empty-memorials">
+          <span className="empty-memorials__badge" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21s-6.5-4.35-9-8.5C1.5 9.5 3 6 6.5 6 9 6 10.5 7.5 12 9.5 13.5 7.5 15 6 17.5 6 21 6 22.5 9.5 21 12.5 18.5 16.65 12 21 12 21Z" />
+            </svg>
+          </span>
+          <p>{t("noMemorials")}</p>
+          {!showCreateForm && (
+            <NeoButton
+              variant="secondary"
+              size="sm"
+              className="empty-memorials__cta"
+              onClick={() => setShowCreateForm(true)}
+            >
+              {t("createMemorial")}
+            </NeoButton>
+          )}
+        </div>
       )}
     </div>
   );

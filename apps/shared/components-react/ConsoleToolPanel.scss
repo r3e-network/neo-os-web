@@ -151,7 +151,11 @@
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
   gap: 16px;
-  align-items: start;
+  /* stretch (not start) so the result card tracks the form column height — the
+     empty/waiting card centers its content instead of collapsing to a short
+     pill that left a tall dead-zone beside the form (the console dead-space the
+     review flagged across all 6 oracle consoles). */
+  align-items: stretch;
 }
 
 .console-tool__form,
@@ -356,15 +360,30 @@
 
 .console-tool__empty {
   display: grid;
-  min-height: 72px;
+  /* Fill the result card height (which now stretches to the form) and center
+     the waiting content vertically so the aside reads as a deliberate empty
+     state, not a stranded pill above a void. */
+  height: 100%;
+  min-height: 260px;
   place-content: center;
   justify-items: center;
   gap: 12px;
-  padding: 18px 20px;
+  padding: 28px 24px;
   text-align: center;
 }
 
-.console-tool__empty span {
+.console-tool__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--ns-radius-full);
+  color: var(--console-accent, var(--ns-violet-strong));
+  background: var(--console-accent-soft, var(--ns-violet-soft));
+}
+
+.console-tool__empty-pill {
   display: inline-flex;
   align-items: center;
   padding: 4px 12px;
@@ -374,6 +393,14 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0;
+}
+
+.console-tool__empty-hint {
+  max-width: 22rem;
+  margin: 0;
+  color: var(--ns-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 860px) {

@@ -1,8 +1,12 @@
+// The album sits *inside* the "Memory upload" workspace card, so drop the heavy
+// card chrome (shadow + full border) and render it as a flat subtle panel —
+// avoids the card-inside-a-card double-framing that read heavier than the
+// adjacent flat uploader panel.
 .forever-album-grid-card {
-  border-color: var(--ns-border, #e2eaf1);
-  border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  border: 1px solid var(--ns-border, #e2eaf1);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  box-shadow: none;
   letter-spacing: 0;
 }
 

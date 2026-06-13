@@ -20,6 +20,14 @@ const appMessages = {
   anchorLinked: { en: "Anchor linked", zh: "Anchor 已连接" },
   anchorMissing: { en: "Waiting for anchor", zh: "等待 Anchor" },
   anchorAwaitingLaunch: { en: "Open a OneGate anchor link", zh: "打开 OneGate Anchor 链接" },
+  anchorAwaitingInput: {
+    en: "Enter or open an anchor link to begin",
+    zh: "输入或打开 Anchor 链接以开始",
+  },
+  anchorIdHint: {
+    en: "Format: custom-anchor:slug:nonce",
+    zh: "格式：custom-anchor:slug:nonce",
+  },
   anchorWorkspaceLabel: { en: "Transaction route", zh: "交易路径" },
   anchorWorkspaceTitle: { en: "Anchor routing workspace", zh: "Anchor 路由工作台" },
   anchorWorkspaceBody: {

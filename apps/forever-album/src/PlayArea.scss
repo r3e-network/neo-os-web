@@ -234,6 +234,12 @@
   align-items: start;
 }
 
+// Empty album: stack the (short) album panel full-width above the uploader so
+// there's no tall blank void beside it. Reverts to two columns once photos land.
+.forever-album-workspace--empty .neo-card__content {
+  grid-template-columns: 1fr;
+}
+
 .forever-album-uploader {
   display: flex;
   flex-direction: column;

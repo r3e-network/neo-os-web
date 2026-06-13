@@ -284,25 +284,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
-      <NeoCard
-        variant="erobo"
-        title={t("profitAnchorTitle")}
-      >
-        <div className="selfloan-profit-anchor">
-          <div>
-            <span className="selfloan-profit-anchor-label">
-              {t("profitAnchorStatus")}
-            </span>
-            <span className="selfloan-profit-anchor-value">
-              {t("profitAnchorValue")}
-            </span>
-          </div>
-          <div className="selfloan-profit-anchor-badge">
-            {t("profitAnchorBadge")}
-          </div>
-        </div>
-      </NeoCard>
-
       {/* ==================== Loan Status Card ==================== */}
       {hasLoan && (
         <NeoCard
@@ -469,7 +450,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {!isConnected ? (
               <div className="selfloan-connect-prompt" role="note">
                 <span className="selfloan-connect-prompt-icon" aria-hidden="true">
-                  {"🔒"}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="4" y="11" width="16" height="9" rx="2" />
+                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                  </svg>
                 </span>
                 <span className="selfloan-connect-prompt-text">
                   {t("connectWalletToUse")}
@@ -481,7 +474,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                  deposit lands) and point at Add Collateral / Repay. */
               <div className="selfloan-connect-prompt" role="note">
                 <span className="selfloan-connect-prompt-icon" aria-hidden="true">
-                  {"ℹ️"}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 11v5" />
+                    <path d="M12 8h.01" />
+                  </svg>
                 </span>
                 <span className="selfloan-connect-prompt-text">
                   {t("loanAlreadyActiveHint")}
@@ -498,6 +504,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {t("borrow")}
               </NeoButton>
             )}
+          </div>
+
+          {/* Vote-routing disclosure — demoted from a top-level card to a compact
+              footnote so it no longer outranks the Borrow form it qualifies.
+              It's pure non-actionable reassurance about where collateral votes. */}
+          <div className="selfloan-vote-route" role="note">
+            <span className="selfloan-vote-route-eyebrow">
+              {t("profitAnchorTitle")}
+            </span>
+            <p className="selfloan-vote-route-copy">
+              <strong>{t("profitAnchorValue")}</strong> · {t("profitAnchorBadge")}
+            </p>
           </div>
         </div>
       </NeoCard>

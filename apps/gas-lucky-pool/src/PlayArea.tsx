@@ -573,7 +573,7 @@ export default function PlayArea({
                 </button>
                 <button
                   type="button"
-                  className="gas-pool-claim-only__button"
+                  className="gas-pool-claim-only__button gas-pool-claim-only__button--soft"
                   onClick={submitTopUp}
                   disabled={isFunding || !hasPoolTarget}
                 >
@@ -581,7 +581,7 @@ export default function PlayArea({
                 </button>
                 <button
                   type="button"
-                  className="gas-pool-claim-only__button"
+                  className="gas-pool-claim-only__button gas-pool-claim-only__button--outline gas-pool-actions__recover"
                   onClick={submitRefund}
                   disabled={isRefunding || !hasPoolTarget}
                 >
@@ -595,7 +595,7 @@ export default function PlayArea({
                 <div className="gas-pool-credit__actions">
                   <button
                     type="button"
-                    className="gas-pool-claim-only__button"
+                    className="gas-pool-claim-only__button gas-pool-claim-only__button--soft"
                     onClick={checkGasCredit}
                     disabled={isCreditLoading}
                   >
@@ -605,7 +605,7 @@ export default function PlayArea({
                   </button>
                   <button
                     type="button"
-                    className="gas-pool-claim-only__button"
+                    className="gas-pool-claim-only__button gas-pool-claim-only__button--outline"
                     onClick={withdrawGasCredit}
                     disabled={isWithdrawingCredit}
                   >

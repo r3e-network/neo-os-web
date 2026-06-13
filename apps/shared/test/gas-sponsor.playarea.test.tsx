@@ -59,6 +59,7 @@ function t(key: string, params?: Record<string, string | number>) {
     sponsorServiceTitle: "Sponsorship unavailable",
     sponsorServiceUnavailable: "The sponsorship service is temporarily unavailable.",
     notAvailable: "Unavailable",
+    connectToRequest: "Connect wallet to request",
   };
   return messages[key] ?? key;
 }
@@ -247,13 +248,23 @@ describe("Gas Sponsor PlayArea — pay-it-forward gating", () => {
     expect(screen.queryByText("Your GAS balance exceeds 0.1 GAS.")).toBeNull();
   });
 
-  it("still dispatches the primary requestSponsorship flow for eligible users", async () => {
+  it("still dispatches the primary requestSponsorship flow for eligible, connected users", async () => {
     const dispatch = vi.fn(async () => undefined);
-    render(<PlayArea t={t} state={state({ isEligible: true, remainingQuota: 0.1 })} dispatch={dispatch} />);
+    render(<PlayArea t={t} state={state({ isEligible: true, remainingQuota: 0.1, userAddress: VALID_ADDR })} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Request GAS" }));
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("requestSponsorship", "0.01");
     });
+  });
+
+  it("gates the request CTA behind a connected wallet (relabeled + disabled when disconnected)", () => {
+    render(<PlayArea t={t} state={state({ isEligible: true, remainingQuota: 0.1, userAddress: "" })} dispatch={vi.fn(async () => undefined)} />);
+
+    // The loud primary is relabeled and disabled until a wallet is connected, so
+    // it never promises an action that can't complete pre-connection.
+    const cta = screen.getByRole("button", { name: "Connect wallet to request" }) as HTMLButtonElement;
+    expect(cta.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Request GAS" })).toBeNull();
   });
 });

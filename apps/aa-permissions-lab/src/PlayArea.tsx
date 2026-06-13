@@ -146,7 +146,7 @@ export default function PlayArea({
         </span>
         <div className="permissions-hero__copy">
           <span className="permissions-hero__eyebrow">
-            {t("permissionsMetricsLabel")}
+            {t("permissionsHeroEyebrow")}
           </span>
           <h2>{t("permissionsHeroTitle")}</h2>
           <p>{t("permissionsHeroCopy")}</p>

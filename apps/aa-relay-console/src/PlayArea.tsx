@@ -215,19 +215,19 @@ export default function PlayArea({
 
         <div className="relay-hero__facts" aria-label={t("relayMetricsLabel")}>
           <span className="relay-fact">
-            {t("network")}
+            <span className="relay-fact__label">{t("network")}</span>
             <strong>{networkDisplay || "—"}</strong>
           </span>
           <span className="relay-hero__divider" aria-hidden="true" />
           <span className="relay-fact">
-            {t("relayEndpointMetric")}
+            <span className="relay-fact__label">{t("relayEndpointMetric")}</span>
             <strong title={relayUrlDisplay || "—"}>
               <code>{relayUrlDisplay || "—"}</code>
             </strong>
           </span>
           <span className="relay-hero__divider" aria-hidden="true" />
           <span className="relay-fact">
-            {t("aaCoreLabel")}
+            <span className="relay-fact__label">{t("aaCoreLabel")}</span>
             <strong title={aaCoreDisplay || "—"}>
               <code>{aaCoreDisplay || "—"}</code>
             </strong>

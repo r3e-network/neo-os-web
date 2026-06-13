@@ -644,7 +644,9 @@ $amber: #f59e0b;
 
 .checkin-actions-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  // Three equal columns so the Refresh control reads as a peer action rather
+  // than a cramped icon-width sliver wedged at the right edge.
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 

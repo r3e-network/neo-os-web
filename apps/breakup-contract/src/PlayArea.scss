@@ -59,7 +59,6 @@ $tone-warning-soft: #fff3dd;
   padding: 24px 20px 32px;
   max-width: 1040px;
   margin: 0 auto;
-  min-height: 100vh;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: $ns-text;
   background: $ns-subtle;
@@ -86,8 +85,35 @@ $tone-warning-soft: #fff3dd;
 
 .breakup-hero-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 18px;
+}
+
+/* Right-aligned value-prop chips keep the wide hero from reading half-empty
+   before any contract exists. */
+.breakup-hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.breakup-hero-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid $ac-border;
+  background: rgba(255, 255, 255, 0.72);
+  color: $ac-strong;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .breakup-hero-badge {
@@ -109,7 +135,8 @@ $tone-warning-soft: #fff3dd;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
+  min-width: 200px;
+  flex: 1 1 auto;
 }
 
 .breakup-hero-eyebrow {
@@ -131,7 +158,8 @@ $tone-warning-soft: #fff3dd;
 }
 
 .breakup-create-card,
-.breakup-list-card {
+.breakup-list-card,
+.breakup-howitworks-card {
   min-width: 0;
 
   // Tighten the shared card title to match the premium type scale
@@ -140,6 +168,60 @@ $tone-warning-soft: #fff3dd;
     font-weight: 700;
     letter-spacing: -0.01em;
     color: $ns-ink;
+  }
+}
+
+/* How-it-works explainer (empty-state filler) */
+.breakup-howitworks {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.breakup-howitworks-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.breakup-howitworks-num {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: $ac-soft;
+  color: $ac-strong;
+  border: 1px solid $ac-border;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.breakup-howitworks-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+
+  strong {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: $ns-ink;
+    line-height: 1.25;
+  }
+
+  span {
+    font-size: 13px;
+    font-weight: 500;
+    color: $ns-text-2;
+    line-height: 1.5;
   }
 }
 
@@ -541,5 +623,11 @@ $tone-warning-soft: #fff3dd;
   .create-contract-grid,
   .contract-meta {
     grid-template-columns: 1fr;
+  }
+
+  .breakup-hero-tags {
+    margin-left: 0;
+    justify-content: flex-start;
+    width: 100%;
   }
 }

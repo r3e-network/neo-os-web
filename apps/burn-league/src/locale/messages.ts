@@ -31,6 +31,10 @@ const appMessages = {
   },
   seasonStatus: { en: "Season status", zh: "赛季状态" },
   liveLeague: { en: "Live league", zh: "实时联赛" },
+  heroFirstBurnPrompt: {
+    en: "Be the first to burn this season and top the leaderboard.",
+    zh: "成为本赛季首位燃烧者，登上排行榜榜首。",
+  },
   localPreview: { en: "Data pending", zh: "数据待同步" },
   seasonStatusHint: {
     en: "Stats refresh when the league service is available.",

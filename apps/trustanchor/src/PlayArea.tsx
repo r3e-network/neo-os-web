@@ -84,6 +84,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     () => normalizeNeoAmount(amountInput),
     [amountInput],
   );
+  // Gate hero/stat displays on whether chain stats have loaded, mirroring
+  // sibling profitanchor: show the em-dash placeholder until data lands so a
+  // genuine on-chain 0 is distinguishable from data-not-loaded.
+  const placeholder = "—";
+  const hasData = Boolean(stats);
   const statusText = localError || lastError || workflowStatus;
   // Reflect the shared in-flight lock so PlayArea buttons disable while a
   // submission started from the manifest operation panel is still in flight.
@@ -138,28 +143,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
         <div className="anchor-score">
-          <span>{myStakeDisplay}</span>
+          <span className={hasData ? undefined : "anchor-score__placeholder"}>
+            {hasData ? myStakeDisplay : placeholder}
+          </span>
           <small>{t("myStake")}</small>
         </div>
       </section>
 
       <div className="anchor-stat-grid">
         <div className="stat-chip">
-          <span className="stat-value">{pendingRewardsDisplay}</span>
+          <span className={`stat-value${hasData ? "" : " stat-value--placeholder"}`}>
+            {hasData ? pendingRewardsDisplay : placeholder}
+          </span>
           <span className="stat-label">{t("pendingRewards")}</span>
         </div>
         <div className="stat-chip">
-          <span className="stat-value">
-            {totalNeoDisplay || `${stats?.totalStaked ?? 0} NEO`}
+          <span className={`stat-value${hasData ? "" : " stat-value--placeholder"}`}>
+            {hasData
+              ? totalNeoDisplay || `${stats?.totalStaked ?? 0} NEO`
+              : placeholder}
           </span>
           <span className="stat-label">{t("totalNeoTracked")}</span>
         </div>
         <div className="stat-chip">
-          <span className="stat-value">{rewardReserveDisplay}</span>
+          <span className={`stat-value${hasData ? "" : " stat-value--placeholder"}`}>
+            {hasData ? rewardReserveDisplay : placeholder}
+          </span>
           <span className="stat-label">{t("rewardReserve")}</span>
         </div>
         <div className="stat-chip">
-          <span className="stat-value">{pendingWithdrawDisplay}</span>
+          <span className={`stat-value${hasData ? "" : " stat-value--placeholder"}`}>
+            {hasData ? pendingWithdrawDisplay : placeholder}
+          </span>
           <span className="stat-label">{t("pendingWithdraw")}</span>
         </div>
       </div>
@@ -222,9 +237,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {busyAction === "refreshAnchor" ? t("workflowSubmitting") : t("refreshStatus")}
               </button>
             </div>
-            {!claimReady && (
-              <p className="anchor-action-hint">{t("noRewardsHint")}</p>
-            )}
             {canRecoverCredit && (
               <div className="anchor-recover-card">
                 <div className="anchor-recover-card__copy">
@@ -251,23 +263,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {lastTxid && <code>{t("lastTxid")}: {formatTx(lastTxid)}</code>}
           </div>
 
-          <div className="anchor-action-history" aria-label={t("actionHistory")}>
-            <div className="anchor-action-history__head">
-              <span>{t("actionHistory")}</span>
-              <strong>{stats?.selectedAgentId ? selectedAgent : "—"}</strong>
-            </div>
-            {actionHistory.length === 0 ? (
-              <p>{t("actionHistoryEmpty")}</p>
-            ) : (
-              actionHistory.slice(0, 4).map((item) => (
+          {actionHistory.length > 0 && (
+            <div className="anchor-action-history" aria-label={t("actionHistory")}>
+              <div className="anchor-action-history__head">
+                <span>{t("actionHistory")}</span>
+                <strong>{stats?.selectedAgentId ? selectedAgent : "—"}</strong>
+              </div>
+              {actionHistory.slice(0, 4).map((item) => (
                 <div className="anchor-history-row" key={`${item.action}-${item.at ?? item.txid ?? item.amount ?? "local"}`}>
                   <span>{item.action}</span>
                   <strong>{item.amount ? `${item.amount} NEO` : item.status}</strong>
                   {item.txid && <code>{formatTx(item.txid)}</code>}
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <aside className="anchor-route-card" aria-label={t("routeStateLabel")}>
@@ -290,11 +300,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <div>
               <dt>{t("rewardPoolLabel")}</dt>
-              <dd>{rewardReserveDisplay}</dd>
+              <dd>{hasData ? rewardReserveDisplay : placeholder}</dd>
             </div>
             <div>
               <dt>{t("rewardPerNeo")}</dt>
-              <dd>{rewardPerNeoDisplay}</dd>
+              <dd>{hasData ? rewardPerNeoDisplay : placeholder}</dd>
             </div>
           </dl>
         </aside>

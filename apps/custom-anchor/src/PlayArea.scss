@@ -89,6 +89,11 @@
   letter-spacing: -0.02em;
 }
 
+.custom-anchor-orbit__glyph {
+  display: block;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
 .custom-anchor-orbit small {
   font-size: 11px;
   font-weight: 700;
@@ -170,6 +175,14 @@
   min-width: 0;
 }
 
+/* Wraps the anchor-id label + its format hint as a single grid cell so the
+   hint stays out of the label's accessible name. */
+.custom-anchor-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
 .custom-anchor-form label > span {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
@@ -208,6 +221,16 @@
 
 .custom-anchor-form input[aria-invalid="true"] {
   border-color: rgba(200, 30, 42, 0.35);
+}
+
+.custom-anchor-field-hint {
+  display: block;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
 }
 
 .custom-anchor-action-grid {
@@ -295,6 +318,15 @@
   border-color: rgba(200, 30, 42, 0.22);
   background: #fde7e9;
   color: #c81e2a;
+}
+
+/* Neutral state — first paint before a usable anchor exists. Avoids the green
+   "Ready" read while the form is non-actionable; agrees with the disabled CTA. */
+.custom-anchor-status-strip.neutral {
+  border-color: var(--ns-border, rgba(20, 22, 38, 0.08));
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
+  font-weight: 700;
 }
 
 .custom-anchor-section-head {
@@ -607,6 +639,11 @@
 
   .custom-anchor-orbit span {
     font-size: 20px;
+  }
+
+  .custom-anchor-orbit__glyph {
+    width: 22px;
+    height: 22px;
   }
 
   .custom-anchor-orbit small {

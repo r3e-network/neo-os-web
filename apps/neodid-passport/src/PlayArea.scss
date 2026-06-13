@@ -448,7 +448,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 360px;
+  // Trimmed from 360px so the result column sits closer to the form column
+  // height, reducing the blank band the left column leaves on wide viewports.
+  min-height: 300px;
   gap: 10px;
   padding: 32px;
   border: 1px solid var(--ns-border);

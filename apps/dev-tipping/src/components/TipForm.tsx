@@ -51,6 +51,9 @@ export default function TipForm({ developers, selectedDevId, amount, anonymous, 
       <NeoButton variant="primary" size="lg" block loading={isLoading} disabled={!canSubmit} onClick={onSubmit}>
         {isLoading ? t("sending") : t("sendTipBtn")}
       </NeoButton>
+      {!canSubmit && !isLoading && (
+        <p className="tipping-send-hint">{t("sendTipHint")}</p>
+      )}
     </div>
   );
 }

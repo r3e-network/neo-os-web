@@ -285,49 +285,36 @@
   }
 }
 
-// ---------- ProfitAnchor Dependency ----------
-.selfloan-profit-anchor {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
-  flex-wrap: wrap;
-  padding: 14px 16px;
+// ---------- Vote-routing disclosure (demoted footnote inside Borrow card) ----------
+// Compact, low-weight note so it reads as a qualifier to the Borrow form above
+// it rather than a peer card competing for the eye.
+.selfloan-vote-route {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--sl-accent-tint);
   border: 1px solid var(--sl-accent-line);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--sl-accent-soft);
 }
 
-.selfloan-profit-anchor-label {
+.selfloan-vote-route-eyebrow {
   display: block;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--sl-accent-strong);
-}
-
-.selfloan-profit-anchor-value {
-  display: block;
-  margin-top: 0.3rem;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--ns-ink, #1e1e2e);
-}
-
-.selfloan-profit-anchor-badge {
-  flex-shrink: 0;
-  align-self: center;
-  padding: 0.4rem 0.7rem;
-  border-radius: 999px;
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   color: var(--sl-accent-strong);
-  text-align: center;
+}
+
+.selfloan-vote-route-copy {
+  margin: 3px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+
+  strong {
+    font-weight: 700;
+    color: var(--ns-ink, #1e1e2e);
+  }
 }
 
 // ---------- LTV Indicator ----------
@@ -467,8 +454,11 @@
 }
 
 .selfloan-connect-prompt-icon {
-  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
+  color: var(--sl-accent-strong);
 }
 
 .selfloan-connect-prompt-text {

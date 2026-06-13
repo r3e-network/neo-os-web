@@ -128,15 +128,47 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="nm-play-area">
       <div className="nm-hero">
-        <h2 className="nm-hero-title">{t("heroTitle")}</h2>
-        <p className="nm-hero-sub">{t("heroSubtitle")}</p>
+        <div className="nm-hero-badge" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="m3 7 9 6 9-6" />
+            <rect x="14.5" y="11.5" width="7" height="6" rx="1.4" fill="currentColor" stroke="none" />
+            <path d="M16 11.5v-1.2a2 2 0 0 1 4 0v1.2" />
+          </svg>
+        </div>
+        <div className="nm-hero-copy">
+          <span className="nm-hero-eyebrow">{t("heroEyebrow")}</span>
+          <h2 className="nm-hero-title">{t("heroTitle")}</h2>
+          <p className="nm-hero-sub">{t("heroSubtitle")}</p>
+        </div>
       </div>
 
       {!networkSupported ? (
         <NeoCard title={t("networkCardTitle")}>
-          <p className="nm-network-warning">
-            {hasWallet ? t("errorWrongNetwork") : t("errorNoEvmWallet")}
-          </p>
+          <div className="nm-network-warning" role="status">
+            <svg
+              className="nm-network-warning-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span>{hasWallet ? t("errorWrongNetwork") : t("errorNoEvmWallet")}</span>
+          </div>
           {hasWallet ? (
             <NeoButton
               variant="primary"

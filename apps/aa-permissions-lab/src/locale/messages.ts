@@ -76,6 +76,9 @@ const appMessages = {
     en: "Inspect the current verifier, hook, and backup-owner state before rotating authentication or policy bindings on the shared AA core.",
     zh: "在共享 AA Core 上切换认证或策略绑定前，先检查当前 verifier、hook 与 backup-owner 状态。",
   },
+  // Hero eyebrow has its own key so a future edit to the metrics aria-label
+  // can't silently rewrite the visible header (and vice-versa).
+  permissionsHeroEyebrow: { en: "AA permission state", zh: "AA 权限状态" },
   permissionsMetricsLabel: { en: "AA permission state", zh: "AA 权限状态" },
   permissionsMetricVerifier: { en: "Verifier", zh: "Verifier" },
   permissionsMetricHook: { en: "Hook", zh: "Hook" },

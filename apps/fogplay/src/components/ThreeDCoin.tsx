@@ -4,9 +4,13 @@ import "./ThreeDCoin.scss";
 interface ThreeDCoinProps {
   result: "heads" | "tails" | null;
   flipping: boolean;
+  /** Localized label for the heads face (e.g. "Heads"). */
+  headsLabel?: string;
+  /** Localized label for the tails face (e.g. "Tails"). */
+  tailsLabel?: string;
 }
 
-export default function ThreeDCoin({ result, flipping }: ThreeDCoinProps) {
+export default function ThreeDCoin({ result, flipping, headsLabel, tailsLabel }: ThreeDCoinProps) {
   const coinStyle = useMemo(() => {
     if (flipping) return { animation: "coin-spin-infinite 0.5s linear infinite" };
     const rotation = result === "tails" ? 180 : 0;
@@ -16,8 +20,14 @@ export default function ThreeDCoin({ result, flipping }: ThreeDCoinProps) {
   return (
     <div className="coin-scene">
       <div className={`coin-container${flipping ? " flipping" : ""}`} style={coinStyle}>
-        <div className="coin-face front"><div className="coin-symbol">N</div></div>
-        <div className="coin-face back"><div className="coin-symbol">G</div></div>
+        <div className="coin-face front">
+          <div className="coin-symbol">N</div>
+          {headsLabel ? <span className="coin-face-label">{headsLabel}</span> : null}
+        </div>
+        <div className="coin-face back">
+          <div className="coin-symbol">G</div>
+          {tailsLabel ? <span className="coin-face-label">{tailsLabel}</span> : null}
+        </div>
       </div>
       <div className={`coin-shadow${flipping ? " is-flipping" : ""}`} />
     </div>

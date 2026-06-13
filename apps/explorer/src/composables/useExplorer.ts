@@ -44,8 +44,11 @@ export interface TransactionRecord {
 }
 
 export interface ExplorerStats {
-  mainnet: { height: number; txCount: number | null };
-  testnet: { height: number; txCount: number | null };
+  // `null` = not yet loaded (renders the "—" placeholder); a real number — even
+  // a genuine `0` — renders verbatim, so a live figure is never collapsed to a
+  // dash just because the initial default happened to be zero.
+  mainnet: { height: number | null; txCount: number | null };
+  testnet: { height: number | null; txCount: number | null };
 }
 
 export interface UseExplorerOptions {
@@ -110,9 +113,11 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
   const isSearching = createObservable(false);
   const searchResult = createObservable<Record<string, unknown> | null>(null);
   const recentTxs = createObservable<TransactionRecord[]>([]);
+  // Start unloaded (null), not zero, so the first paint shows the "—"
+  // placeholder rather than a literal "0" before the on-mount fetch lands.
   const stats = createObservable<ExplorerStats>({
-    mainnet: { height: 0, txCount: 0 },
-    testnet: { height: 0, txCount: 0 },
+    mainnet: { height: null, txCount: null },
+    testnet: { height: null, txCount: null },
   });
 
   // ── Formatted values for manifest bindings ───────────────────────────

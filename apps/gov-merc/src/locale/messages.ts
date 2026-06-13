@@ -15,6 +15,7 @@ const appMessages = {
   rent: { en: "Pool", zh: "池子" },
   market: { en: "Bids", zh: "竞价" },
   poolStats: { en: "Pool Stats", zh: "池子统计" },
+  actionsTitle: { en: "Your actions", zh: "你的操作" },
   totalPool: { en: "Total Pool", zh: "总池子" },
   currentEpoch: { en: "Current Epoch", zh: "当前周期" },
   yourDeposits: { en: "Your Deposits", zh: "你的存入" },
@@ -86,6 +87,7 @@ const appMessages = {
     zh: "金额超过你的存入余额",
   },
   settleTitle: { en: "Route governance", zh: "路由治理权" },
+  settleAction: { en: "Settle epoch", zh: "结算周期" },
   settleCopy: {
     en: "Settle the live epoch: the top GAS bid wins and directs the pooled NEO influence, then the epoch advances.",
     zh: "结算当前周期：最高 GAS 竞价获胜并指向汇聚的 NEO 影响力，随后周期推进。",

@@ -233,7 +233,7 @@ const appMessages = {
   claimButton: { en: "Claim now", zh: "立即领取" },
   claiming: { en: "Claiming...", zh: "领取中..." },
   claimSuccess: { en: "Claim submitted", zh: "领取已提交" },
-  availablePools: { en: "Active envelopes", zh: "可领取红包" },
+  availablePools: { en: "Open envelopes", zh: "可领取的红包" },
   noPools: { en: "No active envelopes", zh: "暂无可领取红包" },
   claimedCount: { en: "{claimed}/{total} claimed", zh: "已领取 {claimed}/{total}" },
   poolCreator: { en: "Created by", zh: "创建者" },

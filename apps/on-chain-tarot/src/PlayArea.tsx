@@ -69,16 +69,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </span>
               </div>
             </div>
-            <div className="tarot-hero-metrics" aria-label={t("readings")}>
-              <div>
-                <strong>{readingsCount}</strong>
-                <span>{t("readings")}</span>
-              </div>
-              <div>
-                <strong>{cardsDrawnCount}</strong>
-                <span>{t("cardsDrawnCount")}</span>
-              </div>
-            </div>
           </div>
 
           <div className="tarot-workspace">
@@ -150,16 +140,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         </span>
                       </span>
                       <span className="tarot-card-caption tarot-card-caption--empty">
-                        {index === 1 ? (
-                          <small>{t("submitQuestionFirst")}</small>
-                        ) : (
-                          <span aria-hidden="true">—</span>
-                        )}
+                        <span aria-hidden="true">—</span>
                       </span>
                     </div>
                   );
                 })}
               </div>
+              {!hasDrawn && (
+                <p className="tarot-spread-empty-hint">{t("submitQuestionFirst")}</p>
+              )}
             </NeoCard>
           </div>
 
@@ -197,12 +186,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </section>
 
         <aside className="tarot-side" aria-label={t("verificationPanelTitle")}>
+          <div className="tarot-side-metrics" aria-label={t("readings")}>
+            <div>
+              <strong>{readingsCount}</strong>
+              <span>{t("readings")}</span>
+            </div>
+            <div>
+              <strong>{cardsDrawnCount}</strong>
+              <span>{t("cardsDrawnCount")}</span>
+            </div>
+          </div>
+
           <NeoCard variant="erobo" className="tarot-verification-panel">
             <div className="tarot-section-heading">
               <span>{t("verificationPanelTitle")}</span>
               <strong>{oracleReady ? t("oracleVerifiedShort") : t("oraclePendingShort")}</strong>
             </div>
             <p>{t("verificationPanelCopy")}</p>
+            <ul className="tarot-verification-list">
+              <li>{t("verificationPointFee")}</li>
+              <li>{t("verificationPointRandom")}</li>
+              <li>{t("verificationPointWallet")}</li>
+            </ul>
           </NeoCard>
 
           {/* Recovery — unused prepaid draw-credit from a deposit whose draw

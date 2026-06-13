@@ -224,14 +224,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span className="convert-stat__value">{accountsGenerated}</span>
               <span className="convert-stat__label">{t("accountsGenerated")}</span>
             </div>
-            <div className="convert-stat">
-              <span className="convert-stat__value">{formattedNeoBalance}</span>
-              <span className="convert-stat__label">{t("neoBalance")}</span>
-            </div>
-            <div className="convert-stat">
-              <span className="convert-stat__value">{formattedGasBalance}</span>
-              <span className="convert-stat__label">{t("gasBalance")}</span>
-            </div>
+            {/* The NEO/GAS balance tiles only carry meaning once a wallet is
+                connected. Disconnected they would read as two "—" tiles that
+                merely repeat the connect note below them, so reveal them on
+                connect and let the note carry the disconnected state. */}
+            {walletConnected && (
+              <>
+                <div className="convert-stat">
+                  <span className="convert-stat__value">{formattedNeoBalance}</span>
+                  <span className="convert-stat__label">{t("neoBalance")}</span>
+                </div>
+                <div className="convert-stat">
+                  <span className="convert-stat__value">{formattedGasBalance}</span>
+                  <span className="convert-stat__label">{t("gasBalance")}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -318,6 +326,46 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           )}
         </div>
+      </NeoCard>
+
+      {/* Reference card — anchors the resting page with purposeful guidance on
+          the accepted input formats plus the on-device security note, instead
+          of leaving the lower half of the viewport blank. */}
+      <NeoCard variant="erobo" title={t("formatsTitle")} className="convert-formats">
+        <ul className="convert-formats__list">
+          <li>
+            <span className="convert-formats__label">{t("formatWifLabel")}</span>
+            <span className="convert-formats__desc">{t("formatWifDesc")}</span>
+          </li>
+          <li>
+            <span className="convert-formats__label">{t("formatPrivateKeyLabel")}</span>
+            <span className="convert-formats__desc">{t("formatPrivateKeyDesc")}</span>
+          </li>
+          <li>
+            <span className="convert-formats__label">{t("formatPublicKeyLabel")}</span>
+            <span className="convert-formats__desc">{t("formatPublicKeyDesc")}</span>
+          </li>
+          <li>
+            <span className="convert-formats__label">{t("formatScriptLabel")}</span>
+            <span className="convert-formats__desc">{t("formatScriptDesc")}</span>
+          </li>
+        </ul>
+        <p className="convert-formats__note">
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span>{t("onDeviceNote")}</span>
+        </p>
       </NeoCard>
 
       {balancesLoading && (
