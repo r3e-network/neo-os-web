@@ -21,7 +21,7 @@ import {
   sortMiniApps,
 } from "@/lib/miniapp-showcase";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
-import { compactMiniAppManifestForCatalog } from "@/lib/miniapp-catalog-view";
+import { serializeMiniAppsForCatalogProps } from "@/lib/miniapp-catalog-props";
 import {
   getCategoryLabel,
   getLocalizedMiniAppDescription,
@@ -87,45 +87,6 @@ function withNetworkQuery(href: string, network: HomeNetwork): string {
   return `${href}${separator}network=${network}`;
 }
 
-function toSerializableRecord(
-  value: Record<string, unknown> | null | undefined,
-): Record<string, unknown> | null {
-  if (!value) return null;
-  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
-}
-
-function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
-  return apps.map((app) => ({
-    app_id: app.app_id,
-    name: app.name,
-    name_en: app.name_en ?? null,
-    name_zh: app.name_zh ?? null,
-    name_ja: app.name_ja ?? null,
-    name_ko: app.name_ko ?? null,
-    description: app.description,
-    description_en: app.description_en ?? null,
-    description_zh: app.description_zh ?? null,
-    description_ja: app.description_ja ?? null,
-    description_ko: app.description_ko ?? null,
-    icon: app.icon,
-    category_name: app.category_name ?? null,
-    category_name_zh: app.category_name_zh ?? null,
-    category_name_ja: app.category_name_ja ?? null,
-    category_name_ko: app.category_name_ko ?? null,
-    logo_url: app.logo_url ?? null,
-    banner_url: app.banner_url ?? null,
-    category: app.category,
-    entry_url: app.entry_url,
-    contract_hash: app.contract_hash ?? null,
-    status: app.status ?? null,
-    source: app.source ?? "miniapp",
-    permissions: toSerializableRecord(
-      app.permissions ?? {},
-    ) as MiniAppInfo["permissions"],
-    manifest: compactMiniAppManifestForCatalog(app.manifest),
-  }));
-}
-
 function isExpectedCatalogRefreshAbort(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   const name = err.name.toLowerCase();
@@ -147,7 +108,7 @@ export const getStaticProps: GetStaticProps<LandingPageProps> = async () => {
 
   return {
     props: {
-      initialApps: serializeMiniApps(initialApps),
+      initialApps: serializeMiniAppsForCatalogProps(initialApps),
     },
     revalidate: 60,
   };
@@ -182,6 +143,10 @@ export default function LandingPage({
   );
   const networkLabel = getNetworkLabel(targetNetwork, t);
 
+  // The scope=all catalog body is network-independent (it returns the full
+  // definition set, not a per-network view), so this fetch runs once on mount.
+  // targetNetwork is intentionally NOT a dependency — switching the network
+  // query must not refetch an identical catalog.
   useEffect(() => {
     let active = true;
     (async () => {
@@ -211,7 +176,8 @@ export default function LandingPage({
     return () => {
       active = false;
     };
-  }, [targetNetwork]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const categories = useMemo(() => {
     const counts = buildCategoryCounts(catalogApps);

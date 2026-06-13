@@ -45,6 +45,7 @@ import type {
   InvokeRecipe,
   InvokeRecipeInvocation,
 } from "./executor";
+import { fundedRecipe, simpleRecipe } from "./recipe-factories";
 import { readNeoInteger } from "./neo-read";
 import {
   accountIdByteArrayValue,
@@ -109,10 +110,9 @@ function neoTransfer(
 }
 
 function recoveryAccountRecipe(label: string): InvokeRecipe {
-  return {
-    notConfiguredError:
-      "Recovery Guardian verifier is not configured for this network.",
-    buildPlan: ({ operation, values, walletAddress, targetHash }) => ({
+  return simpleRecipe(
+    "Recovery Guardian verifier",
+    ({ operation, values, walletAddress, targetHash }) => ({
       invocation: {
         scriptHash: targetHash,
         operation: operation.method,
@@ -129,7 +129,7 @@ function recoveryAccountRecipe(label: string): InvokeRecipe {
       },
       successMessage: (txid) => `${label}: ${txid}`,
     }),
-  };
+  );
 }
 
 /**
@@ -138,12 +138,10 @@ function recoveryAccountRecipe(label: string): InvokeRecipe {
  * executed through the single executor in ./executor.ts.
  */
 export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
-  [`${DEV_TIPPING_APP_ID}:sendTip`]: {
-    notConfiguredError:
-      "Dev Tipping contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded tip transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ values, walletAddress, targetHash }) => {
+  [`${DEV_TIPPING_APP_ID}:sendTip`]: fundedRecipe(
+    "Dev Tipping contract",
+    "funded tip transaction",
+    ({ values, walletAddress, targetHash }) => {
       const devId = positiveWholeValue(
         values,
         ["devId", "developerId", "id"],
@@ -185,12 +183,11 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Tip sent: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${MEMORIAL_SHRINE_APP_ID}:createMemorial`]: {
-    notConfiguredError:
-      "Memorial Shrine contract is not configured for this network.",
-    buildPlan: ({ values, walletAddress, targetHash }) => {
+  [`${MEMORIAL_SHRINE_APP_ID}:createMemorial`]: simpleRecipe(
+    "Memorial Shrine contract",
+    ({ values, walletAddress, targetHash }) => {
       const name = boundedTextValue(
         values,
         ["name", "memorialName", "deceasedName"],
@@ -249,14 +246,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Memorial created: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${MEMORIAL_SHRINE_APP_ID}:payTribute`]: {
-    notConfiguredError:
-      "Memorial Shrine contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded tribute transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ values, walletAddress, targetHash, targetNetwork }) => {
+  [`${MEMORIAL_SHRINE_APP_ID}:payTribute`]: fundedRecipe(
+    "Memorial Shrine contract",
+    "funded tribute transaction",
+    ({ values, walletAddress, targetHash, targetNetwork }) => {
       const memorialId = positiveWholeValue(
         values,
         ["memorialId", "id"],
@@ -327,12 +322,11 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Tribute paid: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${RECOVERY_GUARDIAN_APP_ID}:requestRecoveryTicket`]: {
-    notConfiguredError:
-      "Recovery Guardian verifier is not configured for this network.",
-    buildPlan: ({ values, walletAddress, targetHash }) => {
+  [`${RECOVERY_GUARDIAN_APP_ID}:requestRecoveryTicket`]: simpleRecipe(
+    "Recovery Guardian verifier",
+    ({ values, walletAddress, targetHash }) => {
       const accountId = accountIdByteArrayValue(
         values,
         ["accountId", "account", "accountAddress"],
@@ -368,7 +362,7 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Recovery ticket requested: ${txid}`,
       };
     },
-  },
+  ),
 
   [`${RECOVERY_GUARDIAN_APP_ID}:cancelRecovery`]:
     recoveryAccountRecipe("Recovery cancelled"),
@@ -376,12 +370,10 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
   [`${RECOVERY_GUARDIAN_APP_ID}:finalizeRecovery`]:
     recoveryAccountRecipe("Recovery finalized"),
 
-  [`${TIME_CAPSULE_APP_ID}:sealCapsule`]: {
-    notConfiguredError:
-      "Time Capsule contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded capsule transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ values, walletAddress, targetHash }) => {
+  [`${TIME_CAPSULE_APP_ID}:sealCapsule`]: fundedRecipe(
+    "Time Capsule contract",
+    "funded capsule transaction",
+    ({ values, walletAddress, targetHash }) => {
       const contentHash = normalizedSha256Hash(values, [
         "contentHash",
         "messageHash",
@@ -427,14 +419,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Capsule sealed: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${UNBREAKABLE_VAULT_APP_ID}:createVault`]: {
-    notConfiguredError:
-      "Unbreakable Vault contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded vault transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ values, walletAddress, targetHash, targetNetwork }) => {
+  [`${UNBREAKABLE_VAULT_APP_ID}:createVault`]: fundedRecipe(
+    "Unbreakable Vault contract",
+    "funded vault transaction",
+    ({ values, walletAddress, targetHash, targetNetwork }) => {
       const bountyAmount = optionalPositiveFixed8Value(
         values,
         ["bountyGas", "bounty", "amount"],
@@ -502,14 +492,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Vault created: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${UNBREAKABLE_VAULT_APP_ID}:attemptBreak`]: {
-    notConfiguredError:
-      "Unbreakable Vault contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded break attempt. Open in OneGate or NeoLine.",
-    buildPlan: ({ values, walletAddress, targetHash, targetNetwork }) => {
+  [`${UNBREAKABLE_VAULT_APP_ID}:attemptBreak`]: fundedRecipe(
+    "Unbreakable Vault contract",
+    "funded break attempt",
+    ({ values, walletAddress, targetHash, targetNetwork }) => {
       const vaultId = positiveWholeValue(values, ["vaultId", "id"], "Vault ID");
       const secret = cleanValue(values, [
         "secret",
@@ -551,14 +539,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Break attempt submitted: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${UNBREAKABLE_VAULT_APP_ID}:increaseBounty`]: {
-    notConfiguredError:
-      "Unbreakable Vault contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded bounty increase. Open in OneGate or NeoLine.",
-    buildPlan: ({ values, walletAddress, targetHash, targetNetwork }) => {
+  [`${UNBREAKABLE_VAULT_APP_ID}:increaseBounty`]: fundedRecipe(
+    "Unbreakable Vault contract",
+    "funded bounty increase",
+    ({ values, walletAddress, targetHash, targetNetwork }) => {
       const vaultId = positiveWholeValue(values, ["vaultId", "id"], "Vault ID");
       const amount = optionalPositiveFixed8Value(
         values,
@@ -593,12 +579,11 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Bounty increased: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${UNBREAKABLE_VAULT_APP_ID}:claimExpiredVault`]: {
-    notConfiguredError:
-      "Unbreakable Vault contract is not configured for this network.",
-    buildPlan: ({ values, targetHash }) => {
+  [`${UNBREAKABLE_VAULT_APP_ID}:claimExpiredVault`]: simpleRecipe(
+    "Unbreakable Vault contract",
+    ({ values, targetHash }) => {
       const vaultId = positiveWholeValue(values, ["vaultId", "id"], "Vault ID");
       return {
         invocation: {
@@ -609,11 +594,11 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Expired vault claimed: ${txid}`,
       };
     },
-  },
+  ),
 
-  "*:fundOracleRequestFee": {
-    notConfiguredError: "Game contract is not configured for this network.",
-    buildPlan: async ({ walletAddress, targetHash, targetNetwork }) => {
+  "*:fundOracleRequestFee": simpleRecipe(
+    "Game contract",
+    async ({ walletAddress, targetHash, targetNetwork }) => {
       const oracleHash =
         EXTERNAL_INTEGRATIONS[targetNetwork].contracts.morpheusOracle;
       if (!oracleHash) {
@@ -659,11 +644,11 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
           `Oracle fee funded: ${txid} (${formatFixed8Amount(missingFee)} GAS)`,
       };
     },
-  },
+  ),
 
-  "*:fundGameCredit": {
-    notConfiguredError: "Game contract is not configured for this network.",
-    buildPlan: ({ appId, values, walletAddress, targetHash }) => {
+  "*:fundGameCredit": simpleRecipe(
+    "Game contract",
+    ({ appId, values, walletAddress, targetHash }) => {
       const amountText = String(values.amount || "").trim();
       if (!/^\d+(?:\.\d+)?$/.test(amountText) || Number(amountText) <= 0) {
         throw new Error("Funding amount must be a positive GAS value.");
@@ -679,14 +664,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Game credit funded: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${RED_ENVELOPE_APP_ID}:createEnvelope`]: {
-    notConfiguredError:
-      "Red Envelope contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded create transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ appId, operation, values, walletAddress, targetHash, targetNetwork }) => {
+  [`${RED_ENVELOPE_APP_ID}:createEnvelope`]: fundedRecipe(
+    "Red Envelope contract",
+    "funded create transaction",
+    ({ appId, operation, values, walletAddress, targetHash, targetNetwork }) => {
       const amountText = String(values.amount || "").trim();
       if (!/^\d+(?:\.\d+)?$/.test(amountText) || Number(amountText) <= 0) {
         throw new Error("Envelope amount must be a positive GAS value.");
@@ -724,13 +707,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Envelope created: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${NEO_PAY_APP_ID}:createStream`]: {
-    notConfiguredError: "NeoPay contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded stream transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ appId, operation, values, walletAddress, targetHash, targetNetwork }) => {
+  [`${NEO_PAY_APP_ID}:createStream`]: fundedRecipe(
+    "NeoPay contract",
+    "funded stream transaction",
+    ({ appId, operation, values, walletAddress, targetHash, targetNetwork }) => {
       const totalAmountText = String(values.totalAmount || "").trim();
       if (
         !/^\d+(?:\.\d+)?$/.test(totalAmountText) ||
@@ -788,13 +770,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Stream created: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${SELF_LOAN_APP_ID}:createLoan`]: {
-    notConfiguredError: "SelfLoan contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded loan transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ values, walletAddress, targetHash, targetNetwork }) => {
+  [`${SELF_LOAN_APP_ID}:createLoan`]: fundedRecipe(
+    "SelfLoan contract",
+    "funded loan transaction",
+    ({ values, walletAddress, targetHash, targetNetwork }) => {
       const collateralNeo = positiveWholeValue(
         values,
         ["collateralNeo", "collateralAmount", "neoAmount", "amount"],
@@ -883,13 +864,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Loan created: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${SELF_LOAN_APP_ID}:repayLoan`]: {
-    notConfiguredError: "SelfLoan contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded repayment transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ operation, values, walletAddress, targetHash, targetNetwork }) => {
+  [`${SELF_LOAN_APP_ID}:repayLoan`]: fundedRecipe(
+    "SelfLoan contract",
+    "funded repayment transaction",
+    ({ operation, values, walletAddress, targetHash, targetNetwork }) => {
       const repayGas = optionalPositiveFixed8Value(
         values,
         ["repayGas", "amount", "repayAmount"],
@@ -944,13 +924,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Loan repayment submitted: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${SELF_LOAN_APP_ID}:addCollateral`]: {
-    notConfiguredError: "SelfLoan contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required collateral transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ operation, values, walletAddress, targetHash, targetNetwork }) => {
+  [`${SELF_LOAN_APP_ID}:addCollateral`]: fundedRecipe(
+    "SelfLoan contract",
+    "collateral transaction",
+    ({ operation, values, walletAddress, targetHash, targetNetwork }) => {
       const collateralNeo = positiveWholeValue(
         values,
         ["collateralNeo", "collateralAmount", "neoAmount", "amount"],
@@ -1007,13 +986,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Collateral added: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${GRAVEYARD_APP_ID}:buryMemory`]: {
-    notConfiguredError: "Graveyard contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded burial transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ values, walletAddress, targetHash }) => {
+  [`${GRAVEYARD_APP_ID}:buryMemory`]: fundedRecipe(
+    "Graveyard contract",
+    "funded burial transaction",
+    ({ values, walletAddress, targetHash }) => {
       const contentHash = normalizedSha256Hash(values, [
         "contentHash",
         "assetHash",
@@ -1048,13 +1026,12 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Memory buried: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${GRAVEYARD_APP_ID}:forgetMemory`]: {
-    notConfiguredError: "Graveyard contract is not configured for this network.",
-    multiInvokeUnavailableError:
-      "This wallet cannot submit the required funded forgetting transaction. Open in OneGate or NeoLine.",
-    buildPlan: ({ values, walletAddress, targetHash }) => {
+  [`${GRAVEYARD_APP_ID}:forgetMemory`]: fundedRecipe(
+    "Graveyard contract",
+    "funded forgetting transaction",
+    ({ values, walletAddress, targetHash }) => {
       const memoryId = positiveWholeValue(values, ["memoryId", "id"], "Memory ID");
       const feeAmount =
         optionalPositiveFixed8Value(
@@ -1077,12 +1054,11 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         successMessage: (txid) => `Memory forgotten: ${txid}`,
       };
     },
-  },
+  ),
 
-  [`${DAILY_CHECKIN_APP_ID}:checkIn`]: {
-    notConfiguredError:
-      "Daily Check-in contract is not configured for this network.",
-    buildPlan: ({ walletAddress, targetHash }) => ({
+  [`${DAILY_CHECKIN_APP_ID}:checkIn`]: simpleRecipe(
+    "Daily Check-in contract",
+    ({ walletAddress, targetHash }) => ({
       invocation: gasTransfer(
         walletAddress,
         targetHash,
@@ -1091,7 +1067,7 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
       ),
       successMessage: (txid) => `Check-in transaction submitted: ${txid}`,
     }),
-  },
+  ),
 };
 
 /**

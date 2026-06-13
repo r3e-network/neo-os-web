@@ -59,7 +59,6 @@ import {
   useMiniAppDetailInvoke,
   type MiniAppInvokeFeedback,
 } from "../../hooks/useMiniAppDetailInvoke";
-import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
 import { isSharedModeApp } from "../../lib/chain";
 import { useWalletStore } from "../../lib/wallet/store";
 import { getRpcNetwork } from "../../lib/rpc-helpers";
@@ -549,28 +548,25 @@ export default function MiniAppDetailPage({
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
 
-  // App-specific activity feed (events + transactions poll, notifications via Realtime)
+  // App-specific activity feed (events + transactions poll, notifications via
+  // Realtime). The single realtime subscription it owns also backs the news tab
+  // below — `newsEnabled` keeps it on the showNews gate so we never open a
+  // duplicate channel / news fetch. The notifications subscription stays scoped
+  // to the news tab being visible.
   const {
     activities: appActivities,
     loading: activityLoading,
     error: activityError,
     isConnected: activityConnected,
+    notifications: realtimeNews,
+    notificationsLoading: newsLoading,
+    notificationsConnected: newsConnected,
   } = useActivityFeed({
     appId: app?.app_id,
     network: targetNetwork,
     pollInterval: 5000,
     enabled: Boolean(app?.app_id),
-  });
-
-  // Realtime notifications for the news tab (replaces SSR-only notifications prop)
-  const {
-    notifications: realtimeNews,
-    loading: newsLoading,
-    isConnected: newsConnected,
-  } = useRealtimeNotifications({
-    appId: app?.app_id,
-    network: targetNetwork,
-    enabled: Boolean(app?.app_id) && showNews,
+    newsEnabled: Boolean(app?.app_id) && showNews,
   });
 
   // Use realtime notifications if available, fall back to SSR-provided notifications
