@@ -224,6 +224,33 @@ export class Nep21Adapter implements WalletAdapter {
     }
   }
 
+  async connectSilently(): Promise<WalletAccount | null> {
+    let provider: DapiProvider;
+    try {
+      provider = await this.getProvider();
+    } catch (_e: unknown) {
+      return null;
+    }
+    let accounts: DapiAccount[] = [];
+    try {
+      accounts = await provider.getAccounts();
+    } catch (_e: unknown) {
+      // The provider requires an explicit auth prompt; silent restore is not
+      // possible, and we intentionally never call authenticate() here.
+      return null;
+    }
+    const account = accounts.find((entry) => entry.isDefault) ?? accounts[0];
+    if (!account?.hash) return null;
+    this.accountHash = account.hash;
+    this.address = account.address || account.hash;
+    return {
+      address: this.address,
+      publicKey: "",
+      label: account.label,
+      network: normalizeNeoNetwork(provider.network),
+    };
+  }
+
   async disconnect(): Promise<void> {
     this.accountHash = null;
     this.address = null;

@@ -41,6 +41,28 @@ export const baseMessages = {
   contractUnavailable: { en: "Contract unavailable", zh: "合约不可用" },
   receiptMissing: { en: "Payment receipt missing", zh: "支付凭证缺失" },
 
+  // --- Chain error families (mapChainError in NotificationService) ---
+  transactionFailed: {
+    en: "Transaction failed. Please try again.",
+    zh: "交易失败，请重试。",
+  },
+  networkTimeout: {
+    en: "Network request timed out. Please check your connection and retry.",
+    zh: "网络请求超时，请检查连接后重试。",
+  },
+  userRejected: {
+    en: "Request cancelled in wallet.",
+    zh: "已在钱包中取消请求。",
+  },
+  insufficientGas: {
+    en: "Insufficient GAS to complete this action.",
+    zh: "GAS 不足，无法完成此操作。",
+  },
+
+  // --- Common boolean labels ---
+  yes: { en: "Yes", zh: "是" },
+  no: { en: "No", zh: "否" },
+
   // --- Common status keys ---
   success: { en: "Success", zh: "成功" },
   creating: { en: "Creating...", zh: "创建中..." },
@@ -84,6 +106,11 @@ export const baseMessages = {
   },
   consoleSignal: { en: "Oracle signal", zh: "预言机信号" },
   consolePayload: { en: "Payload", zh: "载荷" },
+  consolePreviewNotice: {
+    en: "Preview only — dispatching requires a Morpheus runtime token.",
+    zh: "仅预览 — 派发请求需要 Morpheus 运行时令牌。",
+  },
+  consoleExecuteAction: { en: "Send live request", zh: "发送实时请求" },
   errorTitle: { en: "Something went wrong", zh: "出现错误" },
   unexpectedError: { en: "An unexpected error occurred", zh: "发生了意外错误" },
 

@@ -261,18 +261,18 @@ export function GenericPlayArea(props: PlayAreaRegistryProps) {
           frameTitle={`${app.name} dApp`}
           testId={`generic-dapp-frame-${app.app_id}`}
         />
-        <ActionBoard
-          title="Primary task"
-          subtitle="Use the live MiniApp above for the complete business flow; this row only summarizes the platform operation wiring."
-          rows={buildGenericActionRows(app)}
-          tone="emerald"
-        />
         <SecondaryInfo
           title="Activity and details"
           description="Optional activity, raw metrics, and diagnostic context."
           meta="secondary"
         >
           <div className="space-y-3">
+            <ActionBoard
+              title="Primary task"
+              subtitle="Use the live MiniApp above for the complete business flow; this row only summarizes the platform operation wiring."
+              rows={buildGenericActionRows(app)}
+              tone="emerald"
+            />
             <ActivityPanel activity={activity} />
             <MetricGrid stats={stats} />
           </div>

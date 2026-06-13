@@ -1,32 +1,10 @@
 import { useAuthStore } from "@/lib/auth/store";
 import { WalletProvider, walletOptions } from "@/lib/wallet/store";
+import { socialLoginProviders } from "@/components/features/wallet/social-providers";
+import { BRAND } from "@/lib/brand";
 import { interpolate } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/react";
 import Head from "next/head";
-
-const socialProviders = [
-  {
-    id: "google",
-    name: "Google",
-    iconSrc: "/brand/oauth-google.svg",
-    bg: "bg-white border border-gray-300 hover:bg-gray-50 transition-colors",
-    text: "text-gray-800",
-  },
-  {
-    id: "twitter",
-    name: "Twitter",
-    iconSrc: "/brand/oauth-x.svg",
-    bg: "bg-sky-500 hover:bg-sky-600 transition-colors",
-    text: "text-white",
-  },
-  {
-    id: "github",
-    name: "GitHub",
-    iconSrc: "/brand/oauth-github.svg",
-    bg: "bg-white border border-gray-300 hover:bg-gray-50 transition-colors",
-    text: "text-gray-800",
-  },
-];
 
 export default function LoginPage() {
   const { t } = useI18n();
@@ -36,7 +14,7 @@ export default function LoginPage() {
   return (
     <>
       <Head>
-        <title>{t("auth.login")}</title>
+        <title>{`${t("auth.login")} - ${BRAND.productName}`}</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-[#f4f5f7] px-4">
         <div className="w-full max-w-sm space-y-6 rounded-2xl border border-gray-100 bg-white p-8 shadow-md">
@@ -45,13 +23,13 @@ export default function LoginPage() {
           </h1>
 
           <div className="space-y-3">
-            {socialProviders.map((p) => (
+            {socialLoginProviders.map((p) => (
               <button
                 type="button"
                 key={p.id}
                 onClick={() => loginSocial(p.id)}
                 disabled={loading}
-                className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:ring-offset-2 ${p.bg} ${p.text}`}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:ring-offset-2 ${p.loginButtonClass} ${p.loginTextClass}`}
               >
                 <img
                   src={p.iconSrc}

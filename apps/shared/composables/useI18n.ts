@@ -24,6 +24,17 @@ const normalizeLocale = (lang?: string | null): Locale => {
 const interpolate = (value: string, args: InterpolationArgs): string =>
   value.replace(/\{(\w+)\}/g, (_, key) => String(args[key] ?? `{${key}}`));
 
+// Dev-only missing-key reporting, deduplicated so a key rendered in a list
+// or on every re-render warns once per session instead of flooding the
+// console. Production stays silent (and keeps the legacy return values).
+const warnedMissingKeys = new Set<string>();
+const warnMissingKey = (key: string): void => {
+  if (!import.meta.env?.DEV) return;
+  if (warnedMissingKeys.has(key)) return;
+  warnedMissingKeys.add(key);
+  console.warn(`[i18n] Missing translation key: "${key}"`);
+};
+
 export function createUseI18n<T extends TranslationMap>(messages: T) {
   // Base messages provide defaults; app-specific messages override on conflict
   const mergedMessages = {
@@ -33,7 +44,10 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
 
   const t = (key: keyof MergedMessages<T>, args?: InterpolationArgs) => {
     const entry = mergedMessages[key];
-    if (!entry) return String(key);
+    if (!entry) {
+      warnMissingKey(String(key));
+      return String(key);
+    }
 
     let str = "";
     if (typeof entry === "string") {

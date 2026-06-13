@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/modal";
@@ -15,12 +16,25 @@ import {
   walletOptionsById,
   WalletProvider,
 } from "@/lib/wallet/store";
+import { getAddressExplorerUrl } from "@/lib/wallet/explorer";
 import { useAuthStore } from "@/lib/auth/store";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { interpolate } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/react";
-import { Eye, EyeOff, KeyRound, LogOut, Wallet, X } from "lucide-react";
+import { socialLoginProviders } from "./social-providers";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LogOut,
+  UserRound,
+  Wallet,
+  X,
+} from "lucide-react";
 
 function canUseDirectWif(): boolean {
   if (process.env.NEXT_PUBLIC_ENABLE_WIF_WALLET === "true") return true;
@@ -41,9 +55,40 @@ export function ConnectButton() {
   const [directWifEnabled, setDirectWifEnabled] = useState(false);
   const [wifValue, setWifValue] = useState("");
   const [wifVisible, setWifVisible] = useState(false);
+  const [addressCopied, setAddressCopied] = useState(false);
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setDirectWifEnabled(canUseDirectWif());
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimer.current !== null) {
+        clearTimeout(copyResetTimer.current);
+      }
+    };
+  }, []);
+
+  const handleCopyAddress = useCallback((value: string) => {
+    navigator.clipboard
+      .writeText(value)
+      .then(() => {
+        setAddressCopied(true);
+        if (copyResetTimer.current !== null) {
+          clearTimeout(copyResetTimer.current);
+        }
+        copyResetTimer.current = setTimeout(() => {
+          copyResetTimer.current = null;
+          setAddressCopied(false);
+        }, 2000);
+      })
+      .catch((e: unknown) => {
+        console.warn(
+          "[wallet] clipboard write failed:",
+          e instanceof Error ? e.message : String(e),
+        );
+      });
   }, []);
 
   useEffect(() => {
@@ -96,6 +141,31 @@ export function ConnectButton() {
     };
   }, [showConnectModal, closeConnectModal]);
 
+  const errorToast =
+    (wallet.error || auth.error) && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            role="alert"
+            className="fixed bottom-6 right-6 z-[1010] w-80 rounded-xl border border-red-200 bg-red-50/90 backdrop-blur-xl p-4 shadow-xl animate-in slide-in-from-bottom-5"
+          >
+            <p className="text-sm font-semibold text-red-600 leading-tight mb-3">
+              {wallet.error || auth.error}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                wallet.clearError();
+                auth.clearError();
+              }}
+              className="block w-full text-center py-2 cursor-pointer text-xs font-bold text-red-500 hover:text-white hover:bg-red-500 transition-colors rounded-lg border border-red-200"
+            >
+              {t("auth.dismiss")}
+            </button>
+          </div>,
+          document.body,
+        )
+      : null;
+
   if (user) {
     return (
       <>
@@ -140,41 +210,113 @@ export function ConnectButton() {
       wallet.provider && wallet.provider !== "wif"
         ? walletOptionsById[wallet.provider]
         : null;
+    const menuItemClass =
+      "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50";
     return (
       <>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3 rounded-xl bg-white/60 border border-gray-200/80 px-4 py-2 backdrop-blur-xl shadow-sm hover:border-neo/30 transition-colors group cursor-pointer">
-            <div className="relative grid h-8 w-8 place-items-center rounded-lg border border-gray-200 bg-white shadow-sm">
-              {connectedWallet ? (
-                <img
-                  src={connectedWallet.icon}
-                  alt={interpolate(t("wallet.optionAlt"), {
-                    wallet: t(`walletOptions.${connectedWallet.id}.name`),
-                  })}
-                  className="h-5 w-5 object-contain"
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <KeyRound className="h-4 w-4 text-amber-700" />
-              )}
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-white bg-neo shadow-[0_0_8px_rgba(22,199,132,0.8)]" />
-            </div>
-            <div className="flex flex-col">
-              <span
-                className="text-[13px] font-bold text-gray-900 group-hover:text-neo transition-colors leading-tight"
-                title={address}
-              >
-                {address.slice(0, 6)}...{address.slice(-4)}
-              </span>
-              {wallet.balance && (
-                <span className="text-[10px] font-semibold text-gray-500 uppercase ">
-                  {wallet.provider === "wif"
-                    ? t("auth.wifTest")
-                    : `${wallet.balance.gas} GAS`}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setShowMenu((open) => !open)}
+              aria-haspopup="menu"
+              aria-expanded={showMenu}
+              aria-label={t("wallet.menu")}
+              data-testid="wallet-chip"
+              className="flex items-center gap-3 rounded-xl bg-white/60 border border-gray-200/80 px-4 py-2 backdrop-blur-xl shadow-sm hover:border-neo/30 transition-colors group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            >
+              <div className="relative grid h-8 w-8 place-items-center rounded-lg border border-gray-200 bg-white shadow-sm">
+                {connectedWallet ? (
+                  <img
+                    src={connectedWallet.icon}
+                    alt={interpolate(t("wallet.optionAlt"), {
+                      wallet: t(`walletOptions.${connectedWallet.id}.name`),
+                    })}
+                    className="h-5 w-5 object-contain"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <KeyRound className="h-4 w-4 text-amber-700" />
+                )}
+                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-white bg-neo shadow-[0_0_8px_rgba(22,199,132,0.8)]" />
+              </div>
+              <div className="flex flex-col items-start">
+                <span
+                  className="text-[13px] font-bold text-gray-900 group-hover:text-neo transition-colors leading-tight"
+                  title={address}
+                >
+                  {address.slice(0, 6)}...{address.slice(-4)}
                 </span>
-              )}
-            </div>
+                {wallet.balance && (
+                  <span className="text-[10px] font-semibold text-gray-500 uppercase ">
+                    {wallet.provider === "wif"
+                      ? t("auth.wifTest")
+                      : `${wallet.balance.gas} GAS`}
+                  </span>
+                )}
+              </div>
+            </button>
+            {showMenu && (
+              <div
+                role="menu"
+                aria-label={t("wallet.menu")}
+                data-testid="wallet-chip-menu"
+                className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-150"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleCopyAddress(address)}
+                  className={menuItemClass}
+                >
+                  {addressCopied ? (
+                    <Check size={15} className="shrink-0 text-neo" />
+                  ) : (
+                    <Copy size={15} className="shrink-0 text-gray-400" />
+                  )}
+                  {addressCopied
+                    ? t("actions.copied")
+                    : t("wallet.copyAddress")}
+                </button>
+                <a
+                  role="menuitem"
+                  href={getAddressExplorerUrl(wallet.network, address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setShowMenu(false)}
+                  className={menuItemClass}
+                >
+                  <ExternalLink size={15} className="shrink-0 text-gray-400" />
+                  {t("wallet.viewOnExplorer")}
+                </a>
+                <Link
+                  role="menuitem"
+                  href="/account"
+                  onClick={() => setShowMenu(false)}
+                  className={menuItemClass}
+                >
+                  <UserRound size={15} className="shrink-0 text-gray-400" />
+                  {t("wallet.accountSettings")}
+                </Link>
+                <div className="my-1 border-t border-gray-100" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setShowMenu(false);
+                    setShowDisconnectConfirm(true);
+                  }}
+                  className={cn(
+                    menuItemClass,
+                    "text-rose-600 hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-rose-500/50",
+                  )}
+                >
+                  <LogOut size={15} className="shrink-0" />
+                  {t("actions.disconnect")}
+                </button>
+              </div>
+            )}
           </div>
           <button
             type="button"
@@ -197,6 +339,49 @@ export function ConnectButton() {
           onConfirm={() => auth.logout()}
           onCancel={() => setShowDisconnectConfirm(false)}
         />
+      </>
+    );
+  }
+
+  // A persisted wallet session exists but silent restore was not possible:
+  // surface a one-click resume chip instead of pretending the user logged out.
+  if (wallet.restorePending && wallet.address && wallet.provider) {
+    const resumeProvider = wallet.provider;
+    const busy = wallet.loading || auth.loading;
+    return (
+      <>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void auth.loginWallet(resumeProvider)}
+            disabled={busy}
+            aria-label={t("wallet.reconnectWallet")}
+            data-testid="wallet-resume-chip"
+            className="flex items-center gap-3 rounded-xl bg-amber-50/80 border border-amber-200 px-4 py-2 backdrop-blur-xl shadow-sm transition-colors hover:border-amber-400 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
+          >
+            <span className="relative inline-flex h-2 w-2 shrink-0 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+            <span className="flex flex-col items-start">
+              <span
+                className="text-[13px] font-bold leading-tight text-gray-900"
+                title={wallet.address}
+              >
+                {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+              </span>
+              <span className="text-[10px] font-semibold uppercase text-amber-700">
+                {busy ? t("auth.connecting") : t("wallet.reconnect")}
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => wallet.disconnect()}
+            aria-label={t("wallet.dismissSavedSession")}
+            className="p-2 rounded-xl border border-transparent text-gray-400 transition-colors hover:border-gray-200 hover:bg-gray-50 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+          >
+            <X size={14} />
+          </button>
+        </div>
+        {errorToast}
       </>
     );
   }
@@ -262,38 +447,27 @@ export function ConnectButton() {
                   <p className="text-xs font-bold uppercase text-gray-600 px-1">
                     {t("auth.emailSocial")}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => auth.loginSocial("google")}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-                  >
-                    <img
-                      src="/brand/oauth-google.svg"
-                      className="h-5 w-5 shrink-0 object-contain"
-                      alt=""
-                      aria-hidden="true"
-                      data-testid="oauth-google-logo"
-                      loading="eager"
-                      decoding="sync"
-                    />
-                    {interpolate(t("auth.continueWith"), { provider: "Google" })}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => auth.loginSocial("github")}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-                  >
-                    <img
-                      src="/brand/oauth-github.svg"
-                      className="h-5 w-5 shrink-0 object-contain"
-                      alt=""
-                      aria-hidden="true"
-                      data-testid="oauth-github-logo"
-                      loading="eager"
-                      decoding="sync"
-                    />
-                    {interpolate(t("auth.continueWith"), { provider: "GitHub" })}
-                  </button>
+                  {socialLoginProviders.map((provider) => (
+                    <button
+                      key={provider.id}
+                      type="button"
+                      onClick={() => auth.loginSocial(provider.id)}
+                      className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                    >
+                      <img
+                        src={provider.iconSrc}
+                        className="h-5 w-5 shrink-0 object-contain"
+                        alt=""
+                        aria-hidden="true"
+                        data-testid={`oauth-${provider.id}-logo`}
+                        loading="eager"
+                        decoding="sync"
+                      />
+                      {interpolate(t("auth.continueWith"), {
+                        provider: provider.name,
+                      })}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="relative flex items-center py-4">
@@ -418,31 +592,6 @@ export function ConnectButton() {
                 {t("auth.terms")}
               </p>
             </div>
-          </div>,
-          document.body,
-        )
-      : null;
-
-  const errorToast =
-    (wallet.error || auth.error) && typeof document !== "undefined"
-      ? createPortal(
-          <div
-            role="alert"
-            className="fixed bottom-6 right-6 z-[1010] w-80 rounded-xl border border-red-200 bg-red-50/90 backdrop-blur-xl p-4 shadow-xl animate-in slide-in-from-bottom-5"
-          >
-            <p className="text-sm font-semibold text-red-600 leading-tight mb-3">
-              {wallet.error || auth.error}
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                wallet.clearError();
-                auth.clearError();
-              }}
-              className="block w-full text-center py-2 cursor-pointer text-xs font-bold text-red-500 hover:text-white hover:bg-red-500 transition-colors rounded-lg border border-red-200"
-            >
-              {t("auth.dismiss")}
-            </button>
           </div>,
           document.body,
         )
