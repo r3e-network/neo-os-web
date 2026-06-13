@@ -3,6 +3,14 @@ import { factoryMessages } from "@shared/factory/messages";
 
 const appMessages = {
   ...factoryMessages,
+  // Make the oracle toggle's consequence explicit at the control itself: the
+  // shared form renders the toggle's label inline, so the label carries the
+  // "what enabling this does" hint (adds a price/data feed to the generated
+  // app) rather than leaving it the quietest, unexplained control in the form.
+  needsOracle: {
+    en: "Needs oracle — adds a price/data feed",
+    zh: "需要预言机 — 增加价格/数据源",
+  },
   title: { en: "MiniApp Factory", zh: "小程序工厂" },
   subtitle: {
     en: "Create focused platform miniapps from governed templates, with NEP-21 launch links, catalog metadata, and optional oracle capability.",

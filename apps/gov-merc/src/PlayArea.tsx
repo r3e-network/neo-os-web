@@ -112,7 +112,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
         <NeoCard variant="erobo" className="gov-merc-action-panel">
           <div className="gov-merc-section-heading">
-            <span>{t("poolStats")}</span>
+            <span>{t("actionsTitle")}</span>
             <strong>{shortAddress}</strong>
           </div>
           <div className="gov-merc-action-grid">
@@ -181,7 +181,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             disabled={isBusy || !canSettleNow}
             onClick={() => dispatch("settleEpoch")}
           >
-            {t("flowInfluence")}
+            {t("settleAction")}
           </NeoButton>
           {!canSettle && !isBusy ? (
             <p className="gov-merc-settle-hint">{t("settleNoBidsHint")}</p>

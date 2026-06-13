@@ -44,6 +44,10 @@ const appMessages = {
     en: "Refresh the round state before submitting a key purchase.",
     zh: "提交购钥匙前需要先刷新轮次状态。",
   },
+  roundStateNoticeRef: {
+    en: "Key purchase opens once the round state above is refreshed.",
+    zh: "刷新上方轮次状态后即可购买钥匙。",
+  },
   keyPurchaseUnavailable: {
     en: "Key purchase services are not configured in this environment yet.",
     zh: "当前环境暂未配置购钥匙服务。",

@@ -106,7 +106,10 @@
 .ticket-hero__side {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  // Center the wallet card against the copy column so both hero columns
+  // terminate at a similar baseline instead of the right card floating below
+  // the flow pills, leaving empty space under the left column.
+  justify-content: center;
   gap: 12px;
   min-width: min(260px, 100%);
 }
@@ -638,6 +641,18 @@
   &:hover:not(:disabled) {
     background: var(--tk-accent-strong);
     box-shadow: 0 4px 16px rgba(22, 199, 132, 0.3);
+  }
+
+  // Disabled primaries (Issue/Transfer before an event + recipient are set)
+  // get a soft-green resting state instead of the fully-saturated green bar,
+  // mirroring sibling apps (timestamp-proof, graveyard) so the affordance
+  // reads as deliberately inactive rather than clickable.
+  &:disabled {
+    background: var(--tk-accent-soft);
+    border-color: transparent;
+    color: var(--tk-accent-strong);
+    box-shadow: none;
+    opacity: 0.85;
   }
 }
 

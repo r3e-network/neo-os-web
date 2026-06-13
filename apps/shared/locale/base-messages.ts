@@ -96,6 +96,10 @@ export const baseMessages = {
     en: "Run the form to preview the request payload.",
     zh: "运行表单以预览请求载荷。",
   },
+  previewWaitingHint: {
+    en: "The decoded request and its digest will appear here so you can review it before dispatch.",
+    zh: "解码后的请求及其摘要将显示在此处，便于您在派发前进行检查。",
+  },
   consoleFlow: { en: "Request flow", zh: "请求流程" },
   consoleFlowInput: { en: "Input", zh: "输入" },
   consoleFlowPreview: { en: "Preview", zh: "预览" },

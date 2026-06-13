@@ -74,6 +74,37 @@ const formatPercent = (value: number, pendingLabel: string) => {
   return `${rounded}%`;
 };
 
+/**
+ * Inline gachapon / blind-box mark — a capsule machine with a dispensed
+ * capsule, in the Neo Soft line-icon style (single accent hue via
+ * currentColor). Replaces the bare letter-"G" avatars that read as broken
+ * image fallbacks.
+ */
+function GachaMark({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="4" y="3" width="16" height="13" rx="3" />
+      <path d="M4 9.5h16" />
+      <circle cx="9.5" cy="6.4" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="6.4" r="1.1" fill="currentColor" stroke="none" />
+      <rect x="9" y="11.5" width="6" height="2.2" rx="1.1" />
+      <path d="M8 16v2.4a1.6 1.6 0 0 0 1.6 1.6h4.8a1.6 1.6 0 0 0 1.6-1.6V16" />
+      <circle cx="12" cy="20" r="1.4" />
+    </svg>
+  );
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
@@ -311,7 +342,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="gasbox-play-area">
       <section className="gasbox-hero" aria-label={t("title")}>
         <div className="gasbox-hero__main">
-          <div className="gasbox-hero__badge" aria-hidden="true">G</div>
+          <div className="gasbox-hero__badge" aria-hidden="true">
+            <GachaMark />
+          </div>
           <div className="gasbox-hero__copy">
             <span className="gasbox-eyebrow">{t("docSubtitle")}</span>
             <h2>{t("title")}</h2>
@@ -338,7 +371,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </section>
 
-      <section className="gasbox-machines-card">
+      <section className={`gasbox-machines-card${machines.length === 0 ? " gasbox-machines-card--empty" : ""}`}>
         <div className="gasbox-section-header gasbox-section-header--with-action">
           <div className="gasbox-section-header__copy">
             <span>{t("market")}</span>
@@ -354,7 +387,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         {machines.length === 0 ? (
           <div className="gasbox-market-empty">
-            <span className="gasbox-market-empty__icon" aria-hidden="true">G</span>
+            <span className="gasbox-market-empty__icon" aria-hidden="true">
+              <GachaMark />
+            </span>
             <div className="gasbox-market-empty__copy">
               <span>{t("gasboxMarketEmptyTitle")}</span>
               <strong>{t("gasboxMarketEmptyDesc")}</strong>

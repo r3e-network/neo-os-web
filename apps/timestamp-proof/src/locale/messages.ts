@@ -7,6 +7,10 @@ const appMessages = {
 
   createProof: { en: "Create Proof", zh: "创建证明" },
   enterContent: { en: "Enter content to timestamp", zh: "输入要时间戳的内容" },
+  createDisabledHint: {
+    en: "Add some text above to enable timestamping.",
+    zh: "在上方输入内容即可生成时间戳。",
+  },
   contentPlaceholder: { en: "Paste your text, document hash, or idea...", zh: "粘贴您的文本、文档哈希或想法..." },
   createSuccess: { en: "Proof saved to this device.", zh: "证明已保存到当前设备。" },
   proofId: { en: "Proof ID", zh: "证明ID" },

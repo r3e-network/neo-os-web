@@ -27,7 +27,7 @@ const appMessages = {
   profitAnchorTitle: { en: "ProfitAnchor Vote Route", zh: "ProfitAnchor 投票路由" },
   profitAnchorStatus: { en: "Collateral vote signal", zh: "抵押投票信号" },
   profitAnchorValue: { en: "Operator-selected council candidate", zh: "管理员选择的委员会候选人" },
-  profitAnchorBadge: { en: "Vote-only dependency", zh: "仅投票依赖" },
+  profitAnchorBadge: { en: "Voting only — funds stay in custody", zh: "仅用于投票——资金仍由托管保管" },
   enterAmount: { en: "Enter 1-{max} {tokenNeo}", zh: "请输入 1-{max} {tokenNeo}" },
   loanApproved: { en: "Loan created: {amount} {tokenGas} borrowed", zh: "贷款已创建：已借 {amount} {tokenGas}" },
   paymentFailed: { en: "Transaction failed", zh: "交易失败" },

@@ -8,6 +8,7 @@ const appMessages = {
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
   refreshFailed: { en: "Failed to refresh balances", zh: "刷新余额失败" },
   walletHeroTitle: { en: "Wallet Health", zh: "钱包健康" },
+  connectToScore: { en: "Connect to score", zh: "连接后计算评分" },
   walletHeroSubtitle: {
     en: "Review balances, network readiness, and signing hygiene before moving assets or approving app requests.",
     zh: "转账或授权前，集中检查余额、网络状态与签名安全习惯。",

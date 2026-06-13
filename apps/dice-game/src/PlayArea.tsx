@@ -144,8 +144,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{cubeFace}</span>
             </div>
             <div className="dice-stage__caption">
-              <span>{t("diceWalletLabel")}</span>
-              <strong>{stakeIsValid ? `${normalizedAmount} GAS` : stakeAmount}</strong>
+              <span className="dice-stage__caption-cell">
+                {t("selectedFace")}
+                <strong>{faceInput}</strong>
+              </span>
+              <span className="dice-stage__caption-cell dice-stage__caption-cell--end">
+                {t("payoutPreview")}
+                <strong>{activePayout}</strong>
+              </span>
             </div>
           </div>
 

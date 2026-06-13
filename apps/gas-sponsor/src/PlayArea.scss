@@ -145,11 +145,27 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   height: 132px;
   border-radius: 16px;
   background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  /* Slightly stronger border so the gauge has a defined outline even when empty
+     (an empty white box with a hairline border read as a missing widget). */
+  border: 1.5px solid rgba(15, 177, 116, 0.22);
   box-shadow: inset 0 1px 3px rgba(20, 22, 38, 0.05);
   overflow: hidden;
 
-  /* Subtle fuel-tick guides so an empty tank still reads as a gauge */
+  /* Ghost-fill floor: a faint always-present fuel band at the base so an empty
+     tank still shows the fuel-tank shape (real fuel-level overlays this). */
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 14%;
+    background: linear-gradient(180deg, rgba(22, 199, 132, 0.16) 0%, rgba(15, 177, 116, 0.24) 100%);
+    pointer-events: none;
+  }
+
+  /* Fuel-tick guides so an empty tank still reads as a gauge — raised contrast
+     so the graduations are actually visible at render scale. */
   &::after {
     content: "";
     position: absolute;
@@ -159,8 +175,8 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
       180deg,
       transparent 0,
       transparent 31px,
-      rgba(20, 22, 38, 0.05) 31px,
-      rgba(20, 22, 38, 0.05) 32px
+      rgba(20, 22, 38, 0.1) 31px,
+      rgba(20, 22, 38, 0.1) 32px
     );
   }
 }
@@ -173,6 +189,7 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   background: linear-gradient(180deg, $gas-accent 0%, $gas-accent-strong 100%);
   transition: height 0.5s var(--ns-ease-smooth, ease);
   min-height: 5px;
+  z-index: 1;
   /* No own radius: the tank-body's overflow:hidden + 16px radius clips the fill
      cleanly. A self-radius larger than the fill height rendered as a cut-off bar
      at low levels (the "clipped gauge" defect). */

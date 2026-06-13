@@ -3,10 +3,30 @@
 
 .gasbox-play-area {
   display: grid;
+  grid-auto-rows: max-content;
   gap: 20px;
   padding: 24px 16px 32px;
   background: var(--ns-bg, #f4f5f7);
   color: var(--ns-text, #2a2d3d);
+}
+
+/* When the market is empty there is only the hero + this card, so make the
+   page at least fill the viewport and let the card absorb the remaining
+   height — centering its content instead of trailing into a tall blank band
+   below on wide desktop screens. Falls back gracefully where :has() is
+   unsupported (the page simply hugs its content as before). */
+.gasbox-play-area:has(.gasbox-machines-card--empty) {
+  min-height: calc(100vh - 56px);
+  grid-template-rows: max-content minmax(0, 1fr);
+}
+
+.gasbox-machines-card--empty {
+  grid-template-rows: max-content minmax(0, 1fr);
+}
+
+.gasbox-machines-card--empty .gasbox-market-empty {
+  align-content: center;
+  justify-content: center;
 }
 
 .gasbox-play-area .neo-card {
@@ -64,8 +84,11 @@
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-brand-soft, #e4f8f0);
   color: var(--ns-brand-strong, #0fb174);
-  font-size: 1.2rem;
-  font-weight: 800;
+}
+
+.gasbox-hero__badge svg {
+  width: 24px;
+  height: 24px;
 }
 
 .gasbox-hero__copy {
@@ -209,8 +232,11 @@
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-brand-soft, #e4f8f0);
   color: var(--ns-brand-strong, #0fb174);
-  font-size: 1.2rem;
-  font-weight: 800;
+}
+
+.gasbox-market-empty__icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 .gasbox-market-empty__copy,

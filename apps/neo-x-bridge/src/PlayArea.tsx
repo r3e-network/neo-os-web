@@ -100,6 +100,11 @@ export default function PlayArea({
     rawDigest && rawDigest !== notAvailableLabel && rawDigest !== "N/A"
       ? rawDigest
       : "—";
+  // The digest only becomes meaningful once a handoff is prepared; before then
+  // it is a lone "—" that leaves the top summary strip half-empty, so keep the
+  // strip to its three live facts (route / type / status) and surface DIGEST
+  // only after a real digest exists.
+  const hasDigest = lastDigest !== "—";
   const lastStatus = str("lastStatus", t("statusReady"));
   const payload = str("lastPayload", t("emptyPayload"));
   const operations = val<BridgeOperation[]>("operationsLog", EMPTY_OPERATIONS) ?? EMPTY_OPERATIONS;
@@ -396,10 +401,12 @@ export default function PlayArea({
           <small>{t("metricStatus")}</small>
           <strong>{lastStatus}</strong>
         </span>
-        <span className="strip-metric">
-          <small>{t("statDigest")}</small>
-          <strong className="strip-metric--mono">{compactHash(lastDigest)}</strong>
-        </span>
+        {hasDigest && (
+          <span className="strip-metric">
+            <small>{t("statDigest")}</small>
+            <strong className="strip-metric--mono">{compactHash(lastDigest)}</strong>
+          </span>
+        )}
       </div>
 
       <NeoCard variant="erobo" className="bridge-action-card">

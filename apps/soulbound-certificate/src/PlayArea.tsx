@@ -275,44 +275,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       )}
 
       <div className="certificate-workspace">
+        <div className="certificate-column">
         <div className="issue-panel-anchor" ref={issuePanelRef}>
         <NeoCard title={t("issueCertificate")} className="certificate-panel">
           <p className="panel-copy">{t("issueHelp")}</p>
 
-          <div
-            className={`selected-template${selectedTemplate ? "" : " is-empty"}`}
-          >
-            <span>{t("selectedTemplate")}</span>
-            <strong>
-              {selectedTemplate
-                ? `${selectedTemplate.name} #${selectedTemplate.id}`
-                : t("noTemplateSelected")}
-            </strong>
-          </div>
+          {selectedTemplate && (
+            <div className="selected-template">
+              <span>{t("selectedTemplate")}</span>
+              <strong>{`${selectedTemplate.name} #${selectedTemplate.id}`}</strong>
+            </div>
+          )}
 
-          {!selectedTemplate && (
-            issuableTemplates.length > 0 ? (
-              <div className="template-picker" role="list">
-                {issuableTemplates.map((template) => (
-                  <button
-                    key={template.id}
-                    type="button"
-                    role="listitem"
-                    className="template-chip"
-                    onClick={() => selectTemplateForIssue(template)}
-                  >
-                    <span className="template-chip__name">
-                      {template.name || `#${template.id}`}
-                    </span>
-                    <span className="template-chip__meta">#{template.id}</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-note">
-                {hasAddress ? t("emptyTemplatesHint") : t("walletNotConnectedHint")}
-              </div>
-            )
+          {!selectedTemplate && issuableTemplates.length > 0 && (
+            <div className="template-picker" role="list">
+              {issuableTemplates.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  role="listitem"
+                  className="template-chip"
+                  onClick={() => selectTemplateForIssue(template)}
+                >
+                  <span className="template-chip__name">
+                    {template.name || `#${template.id}`}
+                  </span>
+                  <span className="template-chip__meta">#{template.id}</span>
+                </button>
+              ))}
+            </div>
           )}
 
           <div className="certificate-form-grid">
@@ -379,7 +370,54 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
         </div>
 
-        <div className="certificate-stack">
+          <NeoCard
+            title={t("certificatesTab")}
+            variant="default"
+            className="certificates-card"
+          >
+            {certificates.length > 0 ? (
+              <div className="certificates-grid">
+                {certificates.map((cert, idx) => (
+                  <div key={cert.tokenId || String(idx)} className="cert-item">
+                    <div className="cert-info">
+                      <span className="cert-name">
+                        {cert.templateName || `#${idx + 1}`}
+                      </span>
+                      <span className="cert-recipient">
+                        {cert.recipientName || tokenLabel(cert.tokenId)}
+                      </span>
+                    </div>
+                    <div className="cert-row-actions">
+                      <span
+                        className={`cert-badge ${cert.revoked ? "revoked" : "valid"}`}
+                      >
+                        {cert.revoked
+                          ? t("certificateRevoked")
+                          : t("certificateValid")}
+                      </span>
+                      <button
+                        type="button"
+                        className="certificate-button"
+                        onClick={() => {
+                          setVerifyTokenId(cert.tokenId);
+                          void dispatch("verifyCertificate", {
+                            tokenId: cert.tokenId,
+                          });
+                        }}
+                      >
+                        {t("lookup")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-note">{t("emptyCertificatesHint")}</div>
+            )}
+          </NeoCard>
+        </div>
+
+        <div className="certificate-column">
           <TemplateList
             templates={templates}
             refreshing={isRefreshing}
@@ -468,9 +506,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {isCreatingTemplate ? t("creating") : t("createTemplate")}
             </NeoButton>
           </NeoCard>
-        </div>
 
-        <div className="certificate-stack">
           <NeoCard title={t("verifyTab")} variant="default" className="verify-card">
             <p className="panel-copy">{t("verifyHelp")}</p>
             <div className="verify-row">
@@ -602,52 +638,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
             ) : (
               <div className="empty-note">{t("certificateNotFoundHint")}</div>
-            )}
-          </NeoCard>
-
-          <NeoCard
-            title={t("certificatesTab")}
-            variant="default"
-            className="certificates-card"
-          >
-            {certificates.length > 0 ? (
-              <div className="certificates-grid">
-                {certificates.map((cert, idx) => (
-                  <div key={cert.tokenId || String(idx)} className="cert-item">
-                    <div className="cert-info">
-                      <span className="cert-name">
-                        {cert.templateName || `#${idx + 1}`}
-                      </span>
-                      <span className="cert-recipient">
-                        {cert.recipientName || tokenLabel(cert.tokenId)}
-                      </span>
-                    </div>
-                    <div className="cert-row-actions">
-                      <span
-                        className={`cert-badge ${cert.revoked ? "revoked" : "valid"}`}
-                      >
-                        {cert.revoked
-                          ? t("certificateRevoked")
-                          : t("certificateValid")}
-                      </span>
-                      <button
-                        type="button"
-                        className="certificate-button"
-                        onClick={() => {
-                          setVerifyTokenId(cert.tokenId);
-                          void dispatch("verifyCertificate", {
-                            tokenId: cert.tokenId,
-                          });
-                        }}
-                      >
-                        {t("lookup")}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-note">{t("emptyCertificatesHint")}</div>
             )}
           </NeoCard>
         </div>

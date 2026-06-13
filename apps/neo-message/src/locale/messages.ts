@@ -6,6 +6,7 @@ const appMessages = {
   inboxTab: { en: "Inbox", zh: "收件箱" },
 
   // hero
+  heroEyebrow: { en: "Confidential messaging", zh: "机密消息" },
   heroTitle: { en: "Encrypted & time-locked messages", zh: "加密与定时解锁消息" },
   heroSubtitle: {
     en: "Send a message only the recipient can read, or seal one that unlocks on-chain at a future time — secured by the Morpheus confidential oracle on Neo X.",

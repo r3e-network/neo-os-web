@@ -215,3 +215,34 @@ export function formatNum(value: number | string, decimals = 2): string {
 export function formatCurrency(value: number | string, symbol = "GAS", decimals = 2): string {
   return `${formatNumber(value, decimals)} ${symbol}`;
 }
+
+/** Em-dash placeholder shown for a stat whose data has not loaded yet. */
+export const STAT_PLACEHOLDER = "—";
+
+/**
+ * Render a stat value with a consistent loaded/not-loaded convention so sibling
+ * apps stop diverging (one showing real `0.00` while another shows `—` for the
+ * same not-yet-loaded state). The em-dash means "data not loaded"; once loaded,
+ * the real value is shown — including a genuine `0`/`0.00`.
+ *
+ * Pass `loaded=false` while hydrating to render the placeholder; pass `true`
+ * once the value is real. A pre-formatted string is returned verbatim when
+ * loaded; numbers are run through `formatNumber(value, decimals)`.
+ *
+ * @example
+ * formatStat(0, true)              // "0.00"   (loaded zero is real)
+ * formatStat(0, false)             // "—"      (not loaded yet)
+ * formatStat(12.5, true)           // "12.50"
+ * formatStat("0.7 GAS", true)      // "0.7 GAS" (already-formatted string)
+ * formatStat(undefined, false)     // "—"
+ */
+export function formatStat(
+  value: number | string | null | undefined,
+  loaded: boolean,
+  decimals = 2,
+): string {
+  if (!loaded) return STAT_PLACEHOLDER;
+  if (value == null) return STAT_PLACEHOLDER;
+  if (typeof value === "string") return value;
+  return formatNumber(value, decimals);
+}

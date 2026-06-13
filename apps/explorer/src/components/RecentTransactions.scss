@@ -31,6 +31,14 @@
   min-width: 0;
 }
 
+/* Caption the searchable-type pills so they read as guidance ("Search by:
+   Tx hash / Address / Contract") rather than three inert chips. */
+.recent-empty-state__types {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
 .recent-empty-state span {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;

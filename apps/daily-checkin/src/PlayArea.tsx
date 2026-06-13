@@ -44,6 +44,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hasLoadedStatus = bool("hasLoadedStatus");
   const isLoading = bool("isLoading");
   const isClaiming = bool("isClaiming");
+  const isCheckingIn = bool("isCheckingIn");
+  const isRefreshing = bool("isRefreshing");
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
 
@@ -187,7 +189,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             variant={canCheckIn ? "success" : "secondary"}
             size="lg"
             disabled={checkInDisabled}
-            loading={isLoading}
+            loading={isCheckingIn}
             className={`checkin-btn${canCheckIn ? " checkin-btn--ready" : ""}`}
             onClick={() => dispatch("doCheckIn")}
             aria-label={checkInLabel}
@@ -209,7 +211,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             variant="secondary"
             size="lg"
             disabled={isLoading || isClaiming}
-            loading={isLoading}
+            loading={isRefreshing}
             onClick={() => dispatch("refreshStatus")}
             aria-label={t("refreshStatus")}
           >

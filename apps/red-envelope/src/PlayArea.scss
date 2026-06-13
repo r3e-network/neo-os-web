@@ -366,13 +366,15 @@
   letter-spacing: 0;
 }
 
-/* Soft-tinted disabled CTA -- awaiting input, not broken */
+/* Soft-tinted disabled CTA -- awaiting input, not broken. Muted-ink label on
+   the soft fill keeps it legibly a (currently inactive) button at >=4.5:1
+   instead of low-contrast green-on-green. */
 .redenv-action-panel .neo-btn--primary:disabled,
 .redenv-action-panel .neo-btn--secondary:disabled {
-  background: var(--ns-violet-soft, #e4f8f0);
-  border-color: rgba(22, 199, 132, 0.18);
-  color: var(--ns-violet-strong, #0fb174);
-  opacity: 0.85;
+  background: var(--ns-surface-subtle, #eef0f4);
+  border-color: rgba(20, 22, 38, 0.1);
+  color: var(--ns-text-2, #5b6478);
+  opacity: 1;
   box-shadow: none;
 }
 
@@ -687,11 +689,31 @@
     line-height: 1.1;
   }
 
-  .redenv-metrics,
   .redenv-selected-card,
   .redenv-create-summary,
   .redenv-activity-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Keep the three metrics as a compact horizontal 3-up row on mobile so the
+     primary Claim action stays above the fold instead of three stacked cards. */
+  .redenv-metrics {
+    gap: 6px;
+  }
+
+  .redenv-metrics div {
+    padding: 10px 8px;
+    text-align: center;
+    justify-items: center;
+  }
+
+  .redenv-metrics span {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+
+  .redenv-metrics strong {
+    font-size: 15px;
   }
 
   .redenv-section-heading {

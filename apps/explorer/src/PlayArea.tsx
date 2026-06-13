@@ -69,9 +69,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // repeating "Sync pending" across every tile (which reads error-ish).
   const PENDING_PLACEHOLDER = "—";
   const notAvailable = t("notAvailable");
-  // A pre-formatted figure string counts as pending when the source value was
-  // absent ("N/A") or hasn't synced yet ("0"); otherwise show the live string.
-  const isPendingFigure = (s: string) => !s || s === notAvailable || s === "0";
+  // A pre-formatted figure string counts as pending only when the source value
+  // is genuinely absent (empty or the "N/A" placeholder). A real fetched figure
+  // — even a genuine "0" — is shown verbatim, so live chain stats land on first
+  // paint instead of collapsing to "—" because the figure happened to be zero.
+  const isPendingFigure = (s: string) => !s || s === notAvailable;
   const displayFigure = (s: string) => (isPendingFigure(s) ? PENDING_PLACEHOLDER : s);
 
   const activeNetworkLabel = selectedNetwork === "mainnet" ? t("mainnet") : t("testnet");

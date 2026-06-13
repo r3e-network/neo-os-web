@@ -105,21 +105,26 @@ describe("Explorer PlayArea — live figures (explorer-1)", () => {
     expect(screen.getByText("98,765,432")).toBeTruthy();
   });
 
-  it("falls back to the '—' placeholder only when a figure is genuinely unavailable", () => {
+  it("falls back to the '—' placeholder only when a figure is genuinely unavailable, and shows a loaded zero verbatim", () => {
     render(
       <PlayArea
         t={t}
         state={playState({
+          // null source = not loaded yet → the calm em-dash placeholder.
           mainnetHeight: formattedFigure(null),
+          // a real fetched 0 = loaded-and-genuinely-zero → shown as "0", never
+          // collapsed to a dash (em-dash means data-not-loaded, real 0 is real).
           mainnetTxCount: formattedFigure(0),
         })}
         dispatch={vi.fn(async () => undefined)}
       />,
     );
 
-    // "N/A" (null source) and "0" (unsynced) both collapse to the calm em-dash.
     expect(screen.queryByText("N/A")).toBeNull();
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    // The unavailable block height collapses to "—" (plus the search-result tile).
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
+    // The loaded zero tx-count renders as a real "0".
+    expect(screen.getByText("0")).toBeTruthy();
   });
 
   it("switches the inline figures to the testnet values when that network is active", () => {

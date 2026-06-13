@@ -260,31 +260,20 @@
 }
 
 // Linear setup flow: step 1 (key + sponsorship) → step 2 (configure scope).
-// Stretch both columns to equal height so the shorter left card fills the
-// available space instead of leaving a large dead gap beneath it.
+// Each card sits at its natural height — the shorter left card no longer
+// stretches to match the taller Configure form, which previously forced a
+// large dead gap between the action buttons and the sponsor fields.
 .session-flow-stack {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .session-flow-stack > .neo-card {
   display: flex;
   min-width: 0;
   flex-direction: column;
-}
-
-// Let the card body grow to fill the stretched column height (body and content
-// are the same element on NeoCard).
-.session-flow-stack > .neo-card .neo-card__body {
-  flex: 1 1 auto;
-}
-
-// Push the sponsorship form to the bottom so the left card distributes its
-// content across the full height rather than clustering at the top.
-.session-command .session-form--compact {
-  margin-top: auto;
 }
 
 // Configured summary block (header + result/empty + environment disclosure)
@@ -521,15 +510,18 @@
   gap: 12px;
 }
 
-// Disabled primary CTA keeps a soft violet affordance rather than reading as a
+// Disabled primary CTA keeps a soft accent affordance rather than reading as a
 // broken flat-grey button — it still signals "this is the action to complete".
+// Uses a darker accent ink (#087a4f, 4.86:1 on the soft fill) at full weight
+// and no opacity fade so the gated label clears AA instead of reading as the
+// washed-out green-on-green (#0fb174 was only 2.5:1) it was before.
 .session-play-area button:disabled {
   border-color: transparent !important;
   background: var(--ns-accent-soft, #e4f8f0) !important;
   box-shadow: none !important;
-  color: var(--ns-accent-strong, #0fb174) !important;
+  color: #087a4f !important;
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 1;
 }
 
 @media (max-width: 1080px) {

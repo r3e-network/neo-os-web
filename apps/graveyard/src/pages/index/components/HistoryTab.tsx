@@ -74,7 +74,11 @@ export default function HistoryTab({
         <span className="history-label">{t("recentDestructions")}</span>
         <div className="history-header-actions">
           <span className="history-count">{history.length}</span>
-          <NeoButton size="sm" variant="ghost" loading={isLoading} onClick={onRefresh}>
+          <NeoButton size="sm" variant="ghost" loading={isLoading} onClick={onRefresh} className="history-refresh-btn">
+            <svg className="history-refresh-btn__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v6h-6" />
+            </svg>
             {t("refreshRecords")}
           </NeoButton>
         </div>
@@ -88,6 +92,7 @@ export default function HistoryTab({
             </svg>
           </span>
           <span className="empty-text">{t("noDestructions")}</span>
+          <span className="empty-hint">{t("noDestructionsHint")}</span>
         </div>
       ) : (
         <>

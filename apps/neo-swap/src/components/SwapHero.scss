@@ -100,34 +100,6 @@
   line-height: 1.2;
 }
 
-.swap-hero-quote {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-  padding: 16px 18px;
-  border: 1px solid rgba(20, 22, 38, 0.06);
-  border-radius: 16px;
-  background: #f7f8fa;
-}
-
-.swap-hero-quote span {
-  color: #8a92a6;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.swap-hero-quote strong {
-  color: #1e1e2e;
-  font-size: 1.85rem;
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-
 @media (max-width: 520px) {
   .swap-hero-content {
     gap: 16px;
@@ -145,9 +117,5 @@
 
   .swap-hero-token {
     justify-content: flex-start;
-  }
-
-  .swap-hero-quote strong {
-    font-size: 1.5rem;
   }
 }

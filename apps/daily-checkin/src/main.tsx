@@ -55,6 +55,8 @@ defineMiniApp({
         hasLoadedStatus: checkin.hasLoadedStatus,
         isLoading: checkin.isLoading,
         isClaiming: checkin.isClaiming,
+        isCheckingIn: checkin.isCheckingIn,
+        isRefreshing: checkin.isRefreshing,
         workflowStatus: checkin.workflowStatus,
         lastError: checkin.lastError,
         latestRequest: checkin.latestRequest,

@@ -311,20 +311,25 @@ export default function PlayArea({
           </div>
         </div>
 
-        {totalStreamCount > 0 && (
-          <div className="neopay-hero-summary">
-            <span className="neopay-hero-metric">
-              <strong>{totalStreamCount}</strong>{" "}
-              {t("totalStreams")}
+        {/* Boxed stat tiles — always present so the hero holds its height even
+            before any stream exists. At zero streams the values fall back to a
+            muted "—" placeholder (matching the finance cluster) rather than
+            collapsing the hero to a left strip with empty right half. */}
+        <div className="neopay-hero-summary" role="group" aria-label={t("ariaStreams")}>
+          <div className="neopay-hero-stat">
+            <span className={`neopay-hero-stat-value${totalStreamCount > 0 ? "" : " neopay-hero-stat-value--empty"}`}>
+              {totalStreamCount > 0 ? totalStreamCount : "—"}
             </span>
-            <span className="neopay-hero-metric-sep" aria-hidden="true">
-              ·
-            </span>
-            <span className="neopay-hero-metric">
-              <strong>{activeCount}</strong> {t("active")}
-            </span>
+            <span className="neopay-hero-stat-label">{t("totalStreams")}</span>
           </div>
-        )}
+          <span className="neopay-hero-stat-divider" aria-hidden="true" />
+          <div className="neopay-hero-stat">
+            <span className={`neopay-hero-stat-value${totalStreamCount > 0 ? "" : " neopay-hero-stat-value--empty"}`}>
+              {totalStreamCount > 0 ? activeCount : "—"}
+            </span>
+            <span className="neopay-hero-stat-label">{t("active")}</span>
+          </div>
+        </div>
       </div>
 
       {serviceNotice && (

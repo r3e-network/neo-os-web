@@ -95,13 +95,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : []),
   ];
 
-  const linkActions = [
-    { key: "openRecoveryPreviewLink", label: t("openRecoveryPreview") },
-    { key: "copyRecoveryPreviewLink", label: t("copyRecoveryLink") },
-    { key: "shareRecoveryPreviewLink", label: t("shareRecoveryLink") },
-    { key: "openRecoveryCredentialLink", label: t("openRecoveryCredential") },
-    { key: "copyRecoveryCredentialLink", label: t("copyRecoveryCredential") },
-    { key: "shareRecoveryCredentialLink", label: t("shareRecoveryCredential") },
+  const linkGroups = [
+    {
+      title: t("recoveryPreviewGroup"),
+      actions: [
+        { key: "openRecoveryPreviewLink", label: t("linkActionOpen"), aria: t("openRecoveryPreview"), primary: true },
+        { key: "copyRecoveryPreviewLink", label: t("linkActionCopy"), aria: t("copyRecoveryLink"), primary: false },
+        { key: "shareRecoveryPreviewLink", label: t("linkActionShare"), aria: t("shareRecoveryLink"), primary: false },
+      ],
+    },
+    {
+      title: t("recoveryCredentialGroup"),
+      actions: [
+        { key: "openRecoveryCredentialLink", label: t("linkActionOpen"), aria: t("openRecoveryCredential"), primary: true },
+        { key: "copyRecoveryCredentialLink", label: t("linkActionCopy"), aria: t("copyRecoveryCredential"), primary: false },
+        { key: "shareRecoveryCredentialLink", label: t("linkActionShare"), aria: t("shareRecoveryCredential"), primary: false },
+      ],
+    },
   ];
 
   return (
@@ -258,7 +268,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           )}
 
           <div className="guardian-risk-note">
-            <span>SR</span>
+            <span aria-hidden="true">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </span>
             <div>
               <strong>{t("guardianRiskTitle")}</strong>
               <p>{t("guardianRiskCopy")}</p>
@@ -318,17 +342,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 hint={t("recoveryTemplateIdHint")}
                 placeholder={t("recoveryTemplateIdPlaceholder")}
               />
-              <div className="guardian-link-grid">
-                {linkActions.map((action) => (
-                  <NeoButton
-                    key={action.key}
-                    variant="secondary"
-                    disabled={!canPrepareRecovery}
-                    onClick={() => handleAction(action.key)}
-                    aria-label={action.label}
-                  >
-                    {action.label}
-                  </NeoButton>
+              <div className="guardian-link-groups">
+                {linkGroups.map((group) => (
+                  <div key={group.title} className="guardian-link-group">
+                    <span className="guardian-link-group__title">{group.title}</span>
+                    <div className="guardian-link-row">
+                      {group.actions.map((action) => (
+                        <NeoButton
+                          key={action.key}
+                          variant={action.primary ? "primary" : "secondary"}
+                          size="sm"
+                          className={
+                            action.primary
+                              ? "guardian-link-btn guardian-link-btn--open"
+                              : "guardian-link-btn"
+                          }
+                          disabled={!canPrepareRecovery}
+                          onClick={() => handleAction(action.key)}
+                          aria-label={action.aria}
+                        >
+                          {action.label}
+                        </NeoButton>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

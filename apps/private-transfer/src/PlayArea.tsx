@@ -462,6 +462,11 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
                   );
                 })}
               </select>
+              {networkHealth[network] === "degraded" && (
+                <small className="private-transfer__network-hint" role="status">
+                  {t("networkDegradedHint")}
+                </small>
+              )}
             </label>
             <label>
               <span>{t("formAssetLabel")}</span>
@@ -643,7 +648,24 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
           )}
         </div>
         {history.length === 0 ? (
-          <p className="private-transfer__history-empty">{t("historyEmpty")}</p>
+          <div className="private-transfer__history-empty">
+            <span className="private-transfer__history-empty-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 3h11l3 3v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+                <path d="M8 9h8M8 13h8M8 17h5" />
+                <circle cx="17.5" cy="17.5" r="3" />
+                <path d="m17.5 16.2.001 1.4 1 .7" />
+              </svg>
+            </span>
+            <p>{t("historyEmpty")}</p>
+          </div>
         ) : (
           <ul className="private-transfer__history-list">
             {history.map((intent) => (

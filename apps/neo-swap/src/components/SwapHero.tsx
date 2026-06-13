@@ -7,14 +7,12 @@ import "./SwapHero.scss";
 
 interface SwapHeroProps {
   t: (key: string, params?: Record<string, string | number>) => string;
-  currentRate: string;
   fromSymbol: string;
   toSymbol: string;
 }
 
 export default function SwapHero({
   t,
-  currentRate,
   fromSymbol,
   toSymbol,
 }: SwapHeroProps) {
@@ -41,11 +39,6 @@ export default function SwapHero({
           <span>{toSymbol.slice(0, 1)}</span>
           <strong>{toSymbol}</strong>
         </div>
-      </div>
-
-      <div className="swap-hero-quote">
-        <span>{t("sidebarRate")}</span>
-        <strong>{currentRate}</strong>
       </div>
     </div>
   );

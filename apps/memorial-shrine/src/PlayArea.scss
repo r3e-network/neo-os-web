@@ -470,17 +470,38 @@ $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 /* ── Empty state ── */
 .empty-memorials {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
+  gap: 14px;
+  // A centered badge + min-height so the first paint isn't a single italic
+  // line floating under the hero with a vast blank canvas below it.
+  min-height: 200px;
   padding: 40px 20px;
+  text-align: center;
   color: var(--ns-text-muted, #8a92a6);
-  font-style: italic;
   background: var(--ns-surface, #ffffff);
   border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.12));
   border-radius: 20px;
 }
-.empty-memorials p { margin: 0; font-size: 13px; }
+.empty-memorials__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+}
+.empty-memorials p {
+  margin: 0;
+  font-size: 13px;
+  font-style: italic;
+}
+.empty-memorials__cta {
+  font-style: normal;
+}
 
 @media (max-width: 520px) {
   .memorial-play-area {

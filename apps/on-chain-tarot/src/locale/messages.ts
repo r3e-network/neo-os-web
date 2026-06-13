@@ -73,6 +73,18 @@ const appMessages = {
     en: "The miniapp talks directly to the on-chain tarot contract through the wallet. Every draw is a wallet-reviewed GAS transfer plus a draw call — no silent raw transaction is built inside the play area.",
     zh: "小程序通过钱包直接与链上塔罗合约交互。每次抽牌都是经钱包确认的 GAS 转账加一次抽牌调用，不会在 play area 内静默构造原始交易。",
   },
+  verificationPointFee: {
+    en: "0.1 GAS draw fee is shown in the wallet before you approve.",
+    zh: "0.1 GAS 抽牌费用会在你确认前显示在钱包中。",
+  },
+  verificationPointRandom: {
+    en: "Cards are picked on-chain via Runtime.GetRandom — not by this app.",
+    zh: "卡牌由链上 Runtime.GetRandom 抽取，而非本应用。",
+  },
+  verificationPointWallet: {
+    en: "The result is recorded in the ReadingDrawn event for auditing.",
+    zh: "结果记录在 ReadingDrawn 事件中以供审计。",
+  },
   contractRouteLabel: { en: "Contract route", zh: "合约路径" },
   tarotContractRoute: { en: "transfer -> draw()", zh: "transfer -> draw()" },
   feeLabel: { en: "Draw fee", zh: "抽牌费用" },

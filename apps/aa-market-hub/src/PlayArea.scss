@@ -169,6 +169,12 @@
   align-items: start;
 }
 
+/* No listing selected yet → collapse to a single column so Create Listing
+   spans the full width and the aux column never strands an empty right half. */
+.market-side-rail--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .market-side-rail__primary,
 .market-side-rail__aux {
   display: flex;
@@ -238,6 +244,28 @@
   color: var(--ns-violet-strong, #0fb174);
   font-size: 16px;
   font-weight: 800;
+}
+
+.empty-state__spinner {
+  width: 28px;
+  height: 28px;
+  max-width: none;
+  border-radius: 50%;
+  border: 3px solid var(--ns-violet-soft, #e4f8f0);
+  border-top-color: var(--ns-violet-strong, #0fb174);
+  animation: market-empty-spin 0.8s linear infinite;
+}
+
+@keyframes market-empty-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-state__spinner {
+    animation: none;
+  }
 }
 
 .listings {

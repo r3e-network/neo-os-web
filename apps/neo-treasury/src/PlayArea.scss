@@ -191,7 +191,6 @@
 
 .treasury-section-heading span,
 .treasury-wallet-strip span,
-.treasury-review-panel span,
 .treasury-tx-receipt span {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.6875rem;
@@ -217,15 +216,13 @@
   line-height: 1.45;
 }
 
-.treasury-wallet-strip,
-.treasury-review-panel {
+.treasury-wallet-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
 .treasury-wallet-strip > div,
-.treasury-review-panel > div,
 .treasury-tx-receipt {
   display: grid;
   gap: 5px;
@@ -236,7 +233,6 @@
 }
 
 .treasury-wallet-strip strong,
-.treasury-review-panel strong,
 .treasury-tx-receipt strong {
   min-width: 0;
   overflow: hidden;
@@ -641,7 +637,6 @@
   }
 
   .treasury-wallet-strip,
-  .treasury-review-panel,
   .treasury-intent-panel dl,
   .treasury-form-grid {
     grid-template-columns: 1fr;

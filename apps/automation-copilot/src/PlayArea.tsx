@@ -342,7 +342,7 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
       </section>
 
       {hasDetails || datafeedHash || oracleHash ? (
-        <details className="automation-details">
+        <details className="automation-details" open>
           <summary className="automation-details__summary">
             <span>{t("payload")}</span>
             <span className="automation-details__hint">{t("detailsLabel")}</span>

@@ -19,11 +19,14 @@ export default function RecentTransactions({ t, transactions, formatTime, trunca
             <span>{t("explorerRecentEmptyTitle")}</span>
             <strong>{t("explorerRecentEmptyDesc")}</strong>
           </div>
-          <ul aria-label={t("explorerWorkflowTitle")}>
-            <li>{t("explorerTipTx")}</li>
-            <li>{t("explorerTipAddress")}</li>
-            <li>{t("explorerTipContract")}</li>
-          </ul>
+          <div className="recent-empty-state__types">
+            <span>{t("explorerSearchableTypes")}</span>
+            <ul aria-label={t("explorerSearchableTypes")}>
+              <li>{t("explorerTipTx")}</li>
+              <li>{t("explorerTipAddress")}</li>
+              <li>{t("explorerTipContract")}</li>
+            </ul>
+          </div>
         </NeoCard>
       ) : (
         transactions.map((tx) => (

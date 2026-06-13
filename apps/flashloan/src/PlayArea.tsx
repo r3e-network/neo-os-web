@@ -232,13 +232,13 @@ export default function PlayArea({
               {address ? t("walletConnected") : t("walletRequired")}
             </span>
             <span className="flashloan-wallet__value">
-              {address || t("notAvailable")}
+              {address || t("walletNotConnected")}
             </span>
           </div>
         </div>
         {serviceNotice && (
           <div className="flashloan-service-notice" role="status">
-            <span className="flashloan-service-notice__title">{t("notAvailable")}</span>
+            <span className="flashloan-service-notice__title">{t("statsStaleTitle")}</span>
             <span>{serviceNotice}</span>
           </div>
         )}

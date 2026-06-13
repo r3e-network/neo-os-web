@@ -2,12 +2,13 @@ import { NeoInput, NeoButton } from "@shared/components-react";
 
 interface RequestGasCardProps {
   serviceAvailable: boolean; serviceNotice: string;
+  isConnected: boolean;
   isEligible: boolean; remainingQuota: number; requestAmount: string; maxRequestAmount: string;
   isRequesting: boolean; quickAmounts: number[];
   onRequestAmountChange: (val: string) => void; onRequest: () => void; t: (key: string) => string;
 }
 
-export default function RequestGasCard({ serviceAvailable, serviceNotice, isEligible, remainingQuota, requestAmount, maxRequestAmount, isRequesting, quickAmounts, onRequestAmountChange, onRequest, t }: RequestGasCardProps) {
+export default function RequestGasCard({ serviceAvailable, serviceNotice, isConnected, isEligible, remainingQuota, requestAmount, maxRequestAmount, isRequesting, quickAmounts, onRequestAmountChange, onRequest, t }: RequestGasCardProps) {
   const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
 
   // When the sponsorship API is unconfigured or down, do not present a "balance
@@ -43,8 +44,10 @@ export default function RequestGasCard({ serviceAvailable, serviceNotice, isElig
           </button>
         ))}
       </div>
-      <NeoButton variant="primary" size="lg" block loading={isRequesting} disabled={!isEligible || remainingQuota <= 0} aria-label={t("requestGas")} onClick={onRequest}>
-        {isRequesting ? t("requesting") : t("requestGas")}
+      {/* Gate the loud primary on a connected wallet so it never promises an
+          action that can't complete pre-connection (matches sibling apps). */}
+      <NeoButton variant="primary" size="lg" block loading={isRequesting} disabled={!isConnected || !isEligible || remainingQuota <= 0} aria-label={isConnected ? t("requestGas") : t("connectToRequest")} onClick={onRequest}>
+        {isRequesting ? t("requesting") : isConnected ? t("requestGas") : t("connectToRequest")}
       </NeoButton>
     </div>
   );

@@ -73,23 +73,34 @@
 }
 
 .vault-stat {
+  // Restyled from a bare number floating in an oversized white card to a real
+  // metric tile: an accent number badge + label on a subtle surface fill, so it
+  // reads as a designed stat tile (mirrors daily-checkin's stat items) instead
+  // of stray text against a wide blank card.
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 14px;
   padding: 16px 18px;
-  background: var(--ns-surface, #ffffff);
+  background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-sm, 12px);
-  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+  border-radius: var(--ns-radius-md, 16px);
 }
 
 .vault-stat-value {
-  font-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 48px;
+  padding: 0 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--vault-accent-soft);
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--vault-accent-strong);
   font-variant-numeric: tabular-nums;
-  line-height: 1.05;
+  line-height: 1;
 }
 
 .vault-stat-label {
@@ -400,6 +411,10 @@
   justify-content: center;
   gap: 10px;
   text-align: center;
+  // A taller empty state so the right column (Break + Recent Vaults) reaches
+  // closer to the tall Create form, instead of stopping high and leaving a
+  // large blank lower-right area.
+  min-height: 200px;
   padding: 32px 24px;
   color: var(--ns-text-muted, #8a92a6);
   font-size: 14px;

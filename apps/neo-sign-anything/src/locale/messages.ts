@@ -46,6 +46,10 @@ const appMessages = {
   privacyLabel: { en: "Privacy", zh: "隐私" },
   privacyValue: { en: "No secrets", zh: "不要写入机密" },
   resultPanelTitle: { en: "Proof output", zh: "证明输出" },
+  proofEmptyHint: {
+    en: "Sign or broadcast a message to see its proof here.",
+    zh: "签名或广播一条消息，其证明会显示在这里。",
+  },
   noSignatureYet: { en: "No signature yet", zh: "尚无签名" },
   noBroadcastYet: { en: "No broadcast yet", zh: "尚无广播" },
   awaitingSignature: { en: "Waiting", zh: "等待中" },
