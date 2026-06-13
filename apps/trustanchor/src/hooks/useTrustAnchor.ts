@@ -9,6 +9,7 @@ import { createObservable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
 import { getMiniAppContractHash } from "@shared/constants/rpc";
+import { addressToScriptHash, parseHash160 } from "@shared/utils/neo";
 
 const APP_ID = "miniapp-trustanchor";
 const GAS_DECIMALS = TOKEN_CONSTANTS.GAS_MULTIPLIER;
@@ -21,11 +22,27 @@ export interface TrustAnchorStats {
   selectedAgentId?: number;
 }
 
+/** On-chain agent record from getAgent(appId, id). */
+export interface AnchorAgent {
+  agentId: number;
+  account: string;
+  candidate: string;
+  active: boolean;
+}
+
+/** Resolved admin authority for the app, from admin() + getAppAdmin(appId). */
+export interface AnchorAdminInfo {
+  platformAdmin: string;
+  appAdmin: string;
+}
+
 export interface UseTrustAnchorOptions {
   chain: ChainService;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
+
+type Translate = (key: string, params?: Record<string, string | number>) => string;
 
 type StackLike = { value?: unknown; key?: unknown };
 
@@ -62,43 +79,43 @@ function asMapValue(input: unknown, key: string): unknown {
   return undefined;
 }
 
-function normalizeWholeNeo(input: unknown): number {
+function normalizeWholeNeo(input: unknown, t: Translate): number {
   const amount = Number(input);
   if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
-    throw new Error("NEO is indivisible -- enter a positive whole number.");
+    throw new Error(t("invalidAmount"));
   }
   return amount;
 }
 
-function normalizeAgentId(input: unknown): number {
+function normalizeAgentId(input: unknown, t: Translate): number {
   const id = Number(input);
   if (!Number.isInteger(id) || id < 1 || id > 21) {
-    throw new Error("Agent id must be an integer from 1 to 21.");
+    throw new Error(t("invalidAgentId"));
   }
   return id;
 }
 
-function normalizePublicKey(input: unknown): string {
+function normalizePublicKey(input: unknown, t: Translate): string {
   const value = String(input ?? "")
     .trim()
     .replace(/^0x/i, "");
   if (!/^(02|03)[0-9a-f]{64}$/i.test(value)) {
-    throw new Error("Candidate must be a 33-byte compressed public key.");
+    throw new Error(t("invalidCandidateKey"));
   }
   return value;
 }
 
-function normalizeHex(input: unknown, label: string): string {
+function normalizeHex(input: unknown, t: Translate): string {
   const value = String(input ?? "")
     .trim()
     .replace(/^0x/i, "");
   if (!/^[0-9a-f]*$/i.test(value) || value.length % 2 !== 0) {
-    throw new Error(`${label} must be even-length hex.`);
+    throw new Error(t("invalidVerificationHash"));
   }
   return value;
 }
 
-function normalizeHash160OrAddress(input: unknown, label: string): string {
+function normalizeHash160OrAddress(input: unknown, t: Translate): string {
   const value = String(input ?? "").trim();
   if (
     /^0x[0-9a-f]{40}$/i.test(value) ||
@@ -107,16 +124,18 @@ function normalizeHash160OrAddress(input: unknown, label: string): string {
   ) {
     return value;
   }
-  throw new Error(`${label} must be a Neo address or Hash160.`);
+  throw new Error(t("invalidAgentAccount"));
 }
 
-export function useTrustAnchor({ chain, eventBus }: UseTrustAnchorOptions) {
+export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   const isLoading = createObservable(false);
   const error = createObservable<string | null>(null);
   const myStake = createObservable(0);
   const pendingRewards = createObservable(0);
   const pendingWithdraw = createObservable(0);
   const stats = createObservable<TrustAnchorStats | null>(null);
+  const agents = createObservable<AnchorAgent[]>([]);
+  const adminInfo = createObservable<AnchorAdminInfo | null>(null);
   const anchorOptions = <T extends Record<string, unknown>>(options?: T) => {
     const scriptHash = getMiniAppContractHash(APP_ID);
     return { ...(options ?? {}), ...(scriptHash ? { scriptHash } : {}) };
@@ -203,6 +222,75 @@ export function useTrustAnchor({ chain, eventBus }: UseTrustAnchorOptions) {
     }
   };
 
+  // Ground-truth admin authority: admin() is the platform operator, getAppAdmin
+  // is the per-app operator. Either witness authorizes the admin console paths.
+  const loadAdmin = async () => {
+    try {
+      const [platform, app] = await Promise.all([
+        chain.read("admin", [], anchorOptions()),
+        chain.read(
+          "getAppAdmin",
+          [{ type: "String", value: APP_ID }],
+          anchorOptions(),
+        ),
+      ]);
+      adminInfo.set({
+        platformAdmin: parseHash160(platform),
+        appAdmin: parseHash160(app),
+      });
+    } catch (e) {
+      console.warn(
+        "[useTrustAnchor] loadAdmin failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  };
+
+  // On-chain agent directory: getAgent(appId, id) for 1..agentCount. Replaces
+  // the static compile-time roster so candidate/account rotations show as truth.
+  const loadAgents = async () => {
+    try {
+      const count = asNumber(
+        await chain.read(
+          "getAgentCount",
+          [{ type: "String", value: APP_ID }],
+          anchorOptions(),
+        ),
+      );
+      if (!Number.isInteger(count) || count <= 0) {
+        agents.set([]);
+        return;
+      }
+      const reads = [];
+      for (let id = 1; id <= count; id += 1) {
+        reads.push(
+          chain.read(
+            "getAgent",
+            [
+              { type: "String", value: APP_ID },
+              { type: "Integer", value: id },
+            ],
+            anchorOptions(),
+          ),
+        );
+      }
+      const results = await Promise.all(reads);
+      agents.set(
+        results.map((result, idx) => ({
+          agentId: asNumber(asMapValue(result, "agentId")) || idx + 1,
+          account: parseHash160(asMapValue(result, "account")),
+          candidate: String(asMapValue(result, "candidate") ?? ""),
+          active: Boolean(valueOf(asMapValue(result, "active"))),
+        })),
+      );
+    } catch (e) {
+      console.warn(
+        "[useTrustAnchor] loadAgents failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  };
+
   const loadAll = async () => {
     isLoading.set(true);
     error.set(null);
@@ -212,18 +300,34 @@ export function useTrustAnchor({ chain, eventBus }: UseTrustAnchorOptions) {
         loadPendingRewards(),
         loadPendingWithdraw(),
         loadStats(),
+        loadAdmin(),
+        loadAgents(),
       ]);
     } finally {
       isLoading.set(false);
     }
   };
 
+  // Compare the connected wallet against on-chain admin authority. Returns
+  // null while admin info is still loading (caller renders a neutral state).
+  const isAdmin = (): boolean | null => {
+    const info = adminInfo.get();
+    if (!info) return null;
+    const addr = chain.address.get();
+    if (!addr) return false;
+    const myHash = addressToScriptHash(addr).toLowerCase();
+    if (!myHash) return false;
+    return (
+      myHash === info.platformAdmin.toLowerCase() ||
+      myHash === info.appAdmin.toLowerCase()
+    );
+  };
+
   const stakeNeo = async (amountInput: unknown) => {
     const user = await chain.ensureWallet();
     const contract = getMiniAppContractHash(APP_ID) || chain.contractAddress.get();
-    if (!contract)
-      throw new Error("PlatformAnchor contract is not configured.");
-    const amount = normalizeWholeNeo(amountInput);
+    if (!contract) throw new Error(t("missingContract"));
+    const amount = normalizeWholeNeo(amountInput, t);
     const result = await chain.invoke(
       "transfer",
       [
@@ -245,7 +349,7 @@ export function useTrustAnchor({ chain, eventBus }: UseTrustAnchorOptions) {
 
   const withdrawNeo = async (amountInput: unknown) => {
     const user = await chain.ensureWallet();
-    const amount = normalizeWholeNeo(amountInput);
+    const amount = normalizeWholeNeo(amountInput, t);
     const result = await chain.invoke(
       "withdraw",
       [
@@ -283,17 +387,39 @@ export function useTrustAnchor({ chain, eventBus }: UseTrustAnchorOptions) {
     return result;
   };
 
+  // Recover a bare NEO deposit that landed as credit (a NEO transfer without
+  // the "stake:<appId>" memo). withdrawCredit(user,"NEO",amount) is witness-
+  // gated to the user and transfers the NEO back from the contract balance.
+  const recoverNeoCredit = async () => {
+    const user = await chain.ensureWallet();
+    const amount = pendingWithdraw.get();
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new Error(t("invalidAmount"));
+    }
+    const result = await chain.invoke(
+      "withdrawCredit",
+      [
+        { type: "Hash160", value: user },
+        { type: "String", value: "NEO" },
+        { type: "Integer", value: amount },
+      ],
+      anchorOptions(),
+    );
+    eventBus.emit("anchor:credit-recovered", { appId: APP_ID, amount });
+    await loadAll();
+    return result;
+  };
+
   const transferAgentNeo = async (
     fromAgentIdInput: unknown,
     toAgentIdInput: unknown,
     amountInput: unknown,
   ) => {
     await chain.ensureWallet();
-    const fromAgentId = normalizeAgentId(fromAgentIdInput);
-    const toAgentId = normalizeAgentId(toAgentIdInput);
-    const amount = normalizeWholeNeo(amountInput);
-    if (fromAgentId === toAgentId)
-      throw new Error("Choose two different agents.");
+    const fromAgentId = normalizeAgentId(fromAgentIdInput, t);
+    const toAgentId = normalizeAgentId(toAgentIdInput, t);
+    const amount = normalizeWholeNeo(amountInput, t);
+    if (fromAgentId === toAgentId) throw new Error(t("sameAgent"));
     await chain.invoke(
       "transferAgentNeo",
       [
@@ -318,8 +444,8 @@ export function useTrustAnchor({ chain, eventBus }: UseTrustAnchorOptions) {
     candidateInput: unknown,
   ) => {
     await chain.ensureWallet();
-    const agentId = normalizeAgentId(agentIdInput);
-    const candidate = normalizePublicKey(candidateInput);
+    const agentId = normalizeAgentId(agentIdInput, t);
+    const candidate = normalizePublicKey(candidateInput, t);
     await chain.invoke(
       "setAgentCandidate",
       [
@@ -339,7 +465,7 @@ export function useTrustAnchor({ chain, eventBus }: UseTrustAnchorOptions) {
 
   const voteAgent = async (agentIdInput: unknown) => {
     await chain.ensureWallet();
-    const agentId = normalizeAgentId(agentIdInput);
+    const agentId = normalizeAgentId(agentIdInput, t);
     await chain.invoke(
       "voteAgent",
       [
@@ -358,15 +484,9 @@ export function useTrustAnchor({ chain, eventBus }: UseTrustAnchorOptions) {
     verificationScriptHashInput: unknown,
   ) => {
     await chain.ensureWallet();
-    const agentAccount = normalizeHash160OrAddress(
-      agentAccountInput,
-      "Agent account",
-    );
-    const candidate = normalizePublicKey(candidateInput);
-    const verificationScriptHash = normalizeHex(
-      verificationScriptHashInput,
-      "Verification script hash",
-    );
+    const agentAccount = normalizeHash160OrAddress(agentAccountInput, t);
+    const candidate = normalizePublicKey(candidateInput, t);
+    const verificationScriptHash = normalizeHex(verificationScriptHashInput, t);
     await chain.invoke(
       "registerAgent",
       [
@@ -392,10 +512,14 @@ export function useTrustAnchor({ chain, eventBus }: UseTrustAnchorOptions) {
     pendingRewards,
     pendingWithdraw,
     stats,
+    agents,
+    adminInfo,
+    isAdmin,
     loadAll,
     stakeNeo,
     withdrawNeo,
     claimRewards,
+    recoverNeoCredit,
     transferAgentNeo,
     setAgentCandidate,
     voteAgent,

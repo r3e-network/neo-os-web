@@ -123,5 +123,26 @@ const appMessages = {
   relayError: { en: "Relay transaction failed", zh: "Relay 交易失败" },
   sponsorCheckError: { en: "Sponsor check failed", zh: "赞助检查失败" },
   sponsorRequestError: { en: "Sponsor request failed", zh: "赞助请求失败" },
+  aaAddressInvalid: {
+    en: "Enter a valid Neo address (N...) or 0x script hash.",
+    zh: "请输入有效的 Neo 地址（N...）或 0x 脚本哈希。",
+  },
+  sponsorEligible: { en: "Eligible for sponsorship.", zh: "符合赞助资格。" },
+  sponsorEligibleSummary: {
+    en: "Eligible — {remaining} GAS of {dailyLimit} remaining today.",
+    zh: "符合资格 —— 今日还剩 {remaining} / {dailyLimit} GAS。",
+  },
+  sponsorNotEligible: {
+    en: "Not eligible for sponsorship.",
+    zh: "不符合赞助资格。",
+  },
+  sponsorNotEligibleReason: {
+    en: "Not eligible: {reason}",
+    zh: "不符合资格：{reason}",
+  },
+  serviceUnavailable: {
+    en: "Sponsorship service is currently unavailable. The relay endpoint is not configured on this deployment.",
+    zh: "赞助服务当前不可用。该部署尚未配置 relay 端点。",
+  },
 } as const;
 export const messages = mergeMessages(appMessages);

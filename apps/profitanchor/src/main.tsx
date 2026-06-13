@@ -70,6 +70,10 @@ defineMiniApp({
       () => `${formatNum(anchor.stats.get()?.rewardReserve ?? 0)} GAS`,
       [anchor.stats],
     );
+    const pendingWithdrawDisplay = createDerived(
+      () => `${formatNum(anchor.pendingWithdraw.get())} ${ctx.t("tokenNeo")}`,
+      [anchor.pendingWithdraw],
+    );
     const agentCount = createDerived(
       () => {
         const s = anchor.stats.get();
@@ -153,6 +157,13 @@ defineMiniApp({
         () => anchor.claimRewards(),
       );
     });
+    ctx.registerAction("recoverNeoCredit", async () => {
+      return runAnchorAction(
+        "recoverCredit",
+        "creditRecovered",
+        () => anchor.recoverNeoCredit(),
+      );
+    });
     ctx.registerAction("refreshAnchor", async () => {
       if (submitting.get()) return;
       submitting.set(true);
@@ -185,6 +196,7 @@ defineMiniApp({
         agentAccounts: createObservable(agentAccounts),
         myStakeDisplay,
         pendingRewardsDisplay,
+        pendingWithdrawDisplay,
         totalNeoDisplay,
         rewardReserveDisplay,
         agentCount,

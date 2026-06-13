@@ -5,8 +5,10 @@ import {
   validatePrivateKey,
   validatePublicKey,
   validateHexScript,
+  validateAddress,
   convertPrivateKeyToWif,
   convertPublicKeyToAddress,
+  addressToScriptHash,
   disassembleScript,
   getPublicKey,
   getPrivateKeyFromWIF,
@@ -21,6 +23,10 @@ export interface ConversionResult {
   wif: string;
   privateKey: string;
   opcodes: string[];
+  /** Script hash (big-endian 0x… display form) — populated for address input. */
+  scriptHash: string;
+  /** Script hash (little-endian) — the byte order used inside scripts. */
+  scriptHashLE: string;
 }
 
 const EMPTY_RESULT: ConversionResult = {
@@ -29,6 +35,8 @@ const EMPTY_RESULT: ConversionResult = {
   wif: "",
   privateKey: "",
   opcodes: [],
+  scriptHash: "",
+  scriptHashLE: "",
 };
 
 /** Converts between Neo key formats (WIF, private key, public key) and disassembles scripts. */
@@ -80,36 +88,48 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
         const priv = getPrivateKeyFromWIF(val)!;
         const pub = getPublicKey(priv);
         const addr = convertPublicKeyToAddress(pub);
-        result.set({ address: addr, publicKey: pub, wif: val, privateKey: priv, opcodes: [] });
+        result.set({ ...EMPTY_RESULT, address: addr, publicKey: pub, wif: val, privateKey: priv });
         return;
       }
 
-      // 2. Try Public Key (66 hex)
+      // 2. Try Neo N3 address → script hash (advertised by the input
+      //    placeholder). Checked before the key formats because a base58
+      //    address never matches the hex/WIF validators, so it would otherwise
+      //    fall through to "Unknown format".
+      if (validateAddress(val)) {
+        statusMsg.set("detectedAddress");
+        statusType.set("success");
+        const { bigEndian, littleEndian } = addressToScriptHash(val);
+        result.set({ ...EMPTY_RESULT, address: val, scriptHash: bigEndian, scriptHashLE: littleEndian });
+        return;
+      }
+
+      // 3. Try Public Key (66 hex)
       if (validatePublicKey(val)) {
         statusMsg.set("detectedPubKey");
         statusType.set("success");
         const address = convertPublicKeyToAddress(val);
-        result.set({ address, publicKey: val, wif: "", privateKey: "", opcodes: [] });
+        result.set({ ...EMPTY_RESULT, address, publicKey: val });
         return;
       }
 
-      // 3. Try Private Key (64 hex)
+      // 4. Try Private Key (64 hex)
       if (validatePrivateKey(val)) {
         statusMsg.set("detectedPrivKey");
         statusType.set("success");
         const pub = getPublicKey(val);
         const addr = convertPublicKeyToAddress(pub);
         const wif = convertPrivateKeyToWif(val);
-        result.set({ address: addr, publicKey: pub, wif, privateKey: val, opcodes: [] });
+        result.set({ ...EMPTY_RESULT, address: addr, publicKey: pub, wif, privateKey: val });
         return;
       }
 
-      // 4. Try Hex Script
+      // 5. Try Hex Script
       if (validateHexScript(val)) {
         statusMsg.set("detectedScript");
         statusType.set("success");
         const ops = disassembleScript(val);
-        result.set({ address: "", publicKey: "", wif: "", privateKey: "", opcodes: ops });
+        result.set({ ...EMPTY_RESULT, opcodes: ops });
         return;
       }
 

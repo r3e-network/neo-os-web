@@ -43,12 +43,20 @@ defineMiniApp({
       await qf.handleFinalize(projectIdsRaw, matchedRaw);
     });
 
+    ctx.registerAction("finalizeSuggested", async () => {
+      await qf.handleFinalizeSuggested();
+    });
+
     ctx.registerAction("claimProject", async (...args: unknown[]) => {
       await qf.handleClaimProject(args[0] as ProjectItem);
     });
 
     ctx.registerAction("claimUnused", async () => {
       await qf.handleClaimUnused();
+    });
+
+    ctx.registerAction("cancelRound", async () => {
+      await qf.handleCancelRound();
     });
 
     ctx.registerAction("refreshRounds", async () => {
@@ -76,9 +84,13 @@ defineMiniApp({
         isAddingMatching: qf.isAddingMatching,
         isFinalizing: qf.isFinalizing,
         isClaimingUnused: qf.isClaimingUnused,
+        isCancelling: qf.isCancelling,
+        isAdmin: qf.isAdmin,
         canManageSelectedRound: qf.canManageSelectedRound,
         canFinalizeSelectedRound: qf.canFinalizeSelectedRound,
         canClaimUnused: qf.canClaimUnused,
+        canCancelSelectedRound: qf.canCancelSelectedRound,
+        suggestedMatches: qf.suggestedMatches,
         roundsStatus: qf.roundsStatus,
         projects: qf.projects,
         isRefreshingProjects: qf.isRefreshingProjects,

@@ -40,7 +40,7 @@ import { toFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import {
   CREATE_MEMO,
-  MAX_RECENT_VAULTS,
+  MAX_MY_VAULTS_SCAN,
   readRecentVaultDetails,
   type ChainVaultDetails,
 } from "./vaultChain";
@@ -149,7 +149,9 @@ export function useVaultCreator({
         myVaults.set([]);
         return;
       }
-      const details = await readRecentVaultDetails(chainService, MAX_RECENT_VAULTS);
+      // Scan deep so a creator's older vaults (past the newest 12) stay
+      // discoverable for reclaim — the contract has no per-creator index.
+      const details = await readRecentVaultDetails(chainService, MAX_MY_VAULTS_SCAN);
       const mine = details
         .filter((detail) => ownerMatchesAddress(detail.creator, wallet))
         .map(toMyVault)
@@ -178,15 +180,19 @@ export function useVaultCreator({
     try {
       const amount = Number.parseFloat(form.bounty);
       if (!Number.isFinite(amount) || amount < 1) {
-        throw new Error(t("vaultCreateFailed"));
+        // Disclose the undisclosed minimum instead of a generic "Create failed".
+        throw new Error(t("minBountyNote"));
       }
       const bountyFixed8 = toFixed8(form.bounty);
       if (bountyFixed8 === "0") {
-        throw new Error(t("vaultCreateFailed"));
+        throw new Error(t("minBountyNote"));
       }
       const difficulty = Number(form.difficulty);
       if (!Number.isInteger(difficulty) || difficulty < 1 || difficulty > 3) {
-        throw new Error(t("vaultCreateFailed"));
+        throw new Error(t("invalidDifficulty"));
+      }
+      if (!form.secretHash && !form.secret.trim()) {
+        throw new Error(t("secretRequired"));
       }
       const hash = form.secretHash || (await sha256Hex(form.secret));
       const creator = await chainService.ensureWallet();
@@ -229,6 +235,58 @@ export function useVaultCreator({
     }
   };
 
+  /**
+   * Top up an existing vault's bounty via the deposit-then-act flow:
+   *   transfer(GAS, "miniapp-unbreakablevault:create") » increaseBounty(vaultId, amount).
+   *
+   * Anyone may grow any active vault's bounty (the contract has no creator
+   * gate). The amount is GAS; we convert to base units and reuse the create memo
+   * the contract's OnNEP17Payment validates. Returns the topped-up vault id so the
+   * caller can refresh + toast.
+   */
+  const increaseBounty = async (
+    vaultId: string,
+    amountGas: string,
+    onDone?: () => Promise<void>,
+  ): Promise<{ vaultId: string; amountGas: string }> => {
+    if (isCreating.get()) return { vaultId, amountGas: "0" };
+    const id = String(vaultId ?? "").trim();
+    if (!/^[1-9]\d*$/.test(id)) throw new Error(t("increaseBountyInvalidId"));
+    const amount = Number.parseFloat(amountGas);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error(t("increaseBountyInvalidAmount"));
+    }
+    const amountFixed8 = toFixed8(amountGas);
+    if (amountFixed8 === "0") throw new Error(t("increaseBountyInvalidAmount"));
+
+    isCreating.set(true);
+    try {
+      await chainService.ensureWallet();
+      await chainService.invokeWithPayment(
+        amountFixed8,
+        CREATE_MEMO,
+        "increaseBounty",
+        [
+          { type: "Integer", value: id },
+          { type: "Integer", value: amountFixed8 },
+        ],
+        { waitForEvent: "BountyIncreased" },
+      );
+
+      eventBus.emit("vault:bounty_increased", { vaultId: id, amountGas });
+      if (onDone) await onDone();
+      await loadMyVaults();
+      return { vaultId: id, amountGas };
+    } catch (e) {
+      eventBus.emit("vault:error", {
+        message: e instanceof Error ? e.message : t("increaseBountyFailed"),
+      });
+      throw e;
+    } finally {
+      isCreating.set(false);
+    }
+  };
+
   return {
     address: createObservable(""),
     isCreating,
@@ -236,6 +294,7 @@ export function useVaultCreator({
     createdVaultId,
     loadMyVaults,
     createVault,
+    increaseBounty,
   };
 }
 

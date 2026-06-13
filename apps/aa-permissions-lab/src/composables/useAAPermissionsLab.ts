@@ -6,9 +6,14 @@
  */
 
 import { createObservable } from "@shared/react/context";
-import type { ChainService } from "@shared/services";
+import type { ChainService, ContractArg } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import { normalizeScriptHash } from "@shared/utils/neo";
+import {
+  addressToScriptHash,
+  normalizeScriptHash,
+  parseHash160,
+  parseInvokeResult,
+} from "@shared/utils/neo";
 import {
   getExternalIntegrationConfig,
   getNetwork,
@@ -35,15 +40,52 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
   const currentHook = createObservable(t("notAvailable"));
   const currentBackupOwner = createObservable(t("notAvailable"));
 
+  // True once a read completes — gates the "configured" chip and the detail
+  // grid so typing junk hex never asserts unfetched state.
+  const hasInspected = createObservable(false);
+
+  // Two-phase rotation state (UnifiedSmartWalletV3 uses propose -> timelock ->
+  // confirm). When a pending update exists the UI shows a confirm/cancel banner.
+  const hasPendingVerifier = createObservable(false);
+  const hasPendingHook = createObservable(false);
+  const pendingVerifierUnlockAt = createObservable(0);
+  const pendingHookUnlockAt = createObservable(0);
+
   const isRefreshing = createObservable(false);
   const isVerifierBusy = createObservable(false);
   const isHookBusy = createObservable(false);
 
+  // Hash160 reads come back little-endian; parseHash160 reverses them to the
+  // canonical 0x display form so they match the hashes the user types directly
+  // below. Empty/zero reads collapse to the localized placeholder.
   const formatPermissionValue = (value: unknown) => {
-    if (value === null || value === undefined || value === "") {
+    const display = parseHash160(value);
+    if (!display || /^0x0{40}$/i.test(display)) {
       return t("notAvailable");
     }
-    return String(value);
+    return display;
+  };
+
+  // The connected wallet as a bare lowercase script hash, "" when disconnected.
+  const connectedWalletHash = (): string => {
+    const addr = chain.address.get();
+    if (!addr) return "";
+    try {
+      const hash = addressToScriptHash(addr).replace(/^0x/, "").toLowerCase();
+      return /^[0-9a-f]{40}$/.test(hash) ? hash : "";
+    } catch {
+      return "";
+    }
+  };
+
+  // Reactive 0x display of the connected wallet, for the authorization check.
+  const connectedWalletDisplay = {
+    get: () => {
+      const hash = connectedWalletHash();
+      return hash ? `0x${hash}` : "";
+    },
+    set: () => {},
+    subscribe: (fn: () => void) => chain.address.subscribe(fn),
   };
 
   // 20-byte script hash, optional 0x prefix (e.g. 0x + 40 hex chars).
@@ -74,14 +116,32 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
       isRefreshing.set(true);
       requireScriptHash(form.accountIdHash);
       const accountId = normalizeScriptHash(form.accountIdHash).replace(/^0x/, "");
-      const [verifier, hook, backup] = await Promise.all([
-        chain.read("getVerifier", [{ type: "Hash160", value: `0x${accountId}` }], { scriptHash: aaCore }),
-        chain.read("getHook", [{ type: "Hash160", value: `0x${accountId}` }], { scriptHash: aaCore }),
-        chain.read("getBackupOwner", [{ type: "Hash160", value: `0x${accountId}` }], { scriptHash: aaCore }),
+      const idArg: ContractArg[] = [{ type: "Hash160", value: `0x${accountId}` }];
+      const [
+        verifier,
+        hook,
+        backup,
+        pendingVerifier,
+        pendingHook,
+        pendingVerifierTime,
+        pendingHookTime,
+      ] = await Promise.all([
+        chain.read("getVerifier", idArg, { scriptHash: aaCore }),
+        chain.read("getHook", idArg, { scriptHash: aaCore }),
+        chain.read("getBackupOwner", idArg, { scriptHash: aaCore }),
+        chain.read("hasPendingVerifierUpdate", idArg, { scriptHash: aaCore }),
+        chain.read("hasPendingHookUpdate", idArg, { scriptHash: aaCore }),
+        chain.read("getPendingVerifierUpdateTime", idArg, { scriptHash: aaCore }),
+        chain.read("getPendingHookUpdateTime", idArg, { scriptHash: aaCore }),
       ]);
       currentVerifier.set(formatPermissionValue(verifier));
       currentHook.set(formatPermissionValue(hook));
       currentBackupOwner.set(formatPermissionValue(backup));
+      hasPendingVerifier.set(Boolean(parseInvokeResult(pendingVerifier)));
+      hasPendingHook.set(Boolean(parseInvokeResult(pendingHook)));
+      pendingVerifierUnlockAt.set(Number(parseInvokeResult(pendingVerifierTime) ?? 0));
+      pendingHookUnlockAt.set(Number(parseInvokeResult(pendingHookTime) ?? 0));
+      hasInspected.set(true);
 
       if (chain.isConnected.get()) {
         storageService.set(`permissions:${accountId}`, {
@@ -98,12 +158,27 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
     }
   };
 
+  // Block a write when the connected wallet is not the account's backup owner.
+  // The contract enforces owner authorization, so an unauthorized signer would
+  // otherwise hit a raw on-chain ABORT after signing. Only enforced once a read
+  // resolved the backup owner and a wallet is connected; an unknown owner (read
+  // not yet done) lets the contract be the final authority.
+  const assertAuthorized = () => {
+    const wallet = connectedWalletHash();
+    const owner = currentBackupOwner.get().replace(/^0x/i, "").toLowerCase();
+    if (!wallet || !/^[0-9a-f]{40}$/.test(owner)) return;
+    if (owner !== wallet) {
+      throw new Error(t("notBackupOwner"));
+    }
+  };
+
   const submitVerifier = async () => {
     try {
       isVerifierBusy.set(true);
       requireScriptHash(form.accountIdHash);
       requireScriptHash(form.verifierHash);
       requireHexBytes(form.verifierParamsHex);
+      assertAuthorized();
       await chain.invoke("updateVerifier", [
         { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
         { type: "Hash160", value: normalizeScriptHash(form.verifierHash) },
@@ -122,6 +197,7 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
       isHookBusy.set(true);
       requireScriptHash(form.accountIdHash);
       requireScriptHash(form.hookHash);
+      assertAuthorized();
       await chain.invoke("updateHook", [
         { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
         { type: "Hash160", value: normalizeScriptHash(form.hookHash) },
@@ -134,6 +210,31 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
     }
   };
 
+  // Second phase of the two-step rotation: confirm/cancel a pending proposal.
+  // The same account-id Hash160 arg drives all four contract calls.
+  const runPendingAction = async (
+    operation: string,
+    busy: ReturnType<typeof createObservable<boolean>>,
+  ) => {
+    try {
+      busy.set(true);
+      requireScriptHash(form.accountIdHash);
+      await chain.invoke(operation, [
+        { type: "Hash160", value: normalizeScriptHash(form.accountIdHash) },
+      ], { scriptHash: aaCore });
+      await refreshState();
+    } catch (error: unknown) {
+      throw error;
+    } finally {
+      busy.set(false);
+    }
+  };
+
+  const confirmVerifier = () => runPendingAction("confirmVerifierUpdate", isVerifierBusy);
+  const cancelVerifier = () => runPendingAction("cancelVerifierUpdate", isVerifierBusy);
+  const confirmHook = () => runPendingAction("confirmHookUpdate", isHookBusy);
+  const cancelHook = () => runPendingAction("cancelHookUpdate", isHookBusy);
+
   const loadAll = async () => {};
 
   return {
@@ -141,12 +242,22 @@ export function useAAPermissionsLab({ chain, storageService, t }: UseAAPermissio
     currentVerifier,
     currentHook,
     currentBackupOwner,
+    hasInspected,
+    hasPendingVerifier,
+    hasPendingHook,
+    pendingVerifierUnlockAt,
+    pendingHookUnlockAt,
+    connectedWalletDisplay,
     isRefreshing,
     isVerifierBusy,
     isHookBusy,
     aaCore,
     refreshState,
     submitVerifier,
+    confirmVerifier,
+    cancelVerifier,
+    confirmHook,
+    cancelHook,
     submitHook,
     loadAll,
   };

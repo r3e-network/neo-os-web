@@ -85,4 +85,41 @@ describe("Oracle Compute Lab config", () => {
     expect(visibleCopy).not.toMatch(/confidential execution/i);
     expect(visibleCopy).not.toMatch(/verify the confidential package/i);
   });
+
+  it("surfaces a JSON validity row and gates invalid input as input_required", () => {
+    const valid = consoleConfig.buildResult(
+      { workflow: "risk-score", privacy: "sealed", input: "{\"asset\":\"GAS\"}" },
+      t,
+    );
+    const validRow = valid.rows.find((row) => row.label === t("inputValid"));
+    expect(validRow?.value).toBe(t("yes"));
+    expect(valid.payload.inputValid).toBe(true);
+    expect(valid.payload.status).toBeUndefined();
+    expect(valid.status).toBe("Compute preview ready");
+
+    const invalid = consoleConfig.buildResult(
+      { workflow: "risk-score", privacy: "sealed", input: "{not json" },
+      t,
+    );
+    const invalidRow = invalid.rows.find((row) => row.label === t("inputValid"));
+    expect(invalidRow?.value).toBe(t("no"));
+    expect(invalid.payload.inputValid).toBe(false);
+    // A malformed payload must NOT count as a success — the shared panel gates on
+    // payload.status === "input_required".
+    expect(invalid.payload.status).toBe("input_required");
+    expect(invalid.status).toBe("Enter a valid JSON input payload");
+  });
+
+  it("renders localized workflow/privacy labels in the summary instead of raw enum values", () => {
+    const result = consoleConfig.buildResult(
+      { workflow: "risk-score", privacy: "sealed", input: "{}" },
+      t,
+    );
+    // The summary must use the human labels ("Risk score", "Sealed"), never the
+    // raw enum slugs ("risk-score", "sealed") that produced mixed-language zh.
+    expect(result.summary).toBe("Risk score Sealed preview prepared");
+    expect(result.summary).not.toContain("risk-score");
+    const workflowRow = result.rows.find((row) => row.label === t("workflow"));
+    expect(workflowRow?.value).toBe("Risk score");
+  });
 });

@@ -90,6 +90,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const totalCreated = val<number>("totalCreated", 0) ?? 0;
   const totalClaimed = val<number>("totalClaimed", 0) ?? 0;
   const prepaidCredit = val<number>("prepaidCredit", 0) ?? 0;
+  const lastCreatedEnvelopeId = val<string>("lastCreatedEnvelopeId", "") ?? "";
   const launchedEnvelopeId = getLaunchEnvelopeId(launchContext);
   const launchedCreateForm = getLaunchCreateForm(launchContext);
   const [selectedEnvelopeId, setSelectedEnvelopeId] = useState(launchedEnvelopeId);
@@ -328,6 +329,38 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 >
                   {t("sendRedEnvelope")}
                 </NeoButton>
+
+                {/* Post-create share affordance — the OneGate-QR distribution
+                    journey the product is named for. The recipient opens the
+                    copied deep link and the envelope id prefills their claim. */}
+                {lastCreatedEnvelopeId && (
+                  <div className="redenv-share-card" role="status">
+                    <div className="redenv-share-copy">
+                      <span className="redenv-share-title">{t("shareTitle")}</span>
+                      <span className="redenv-share-hint">
+                        {t("shareHint", { id: lastCreatedEnvelopeId })}
+                      </span>
+                    </div>
+                    <div className="redenv-share-actions">
+                      <NeoButton
+                        variant="primary"
+                        size="sm"
+                        onClick={() =>
+                          dispatch("shareEnvelope", { envelopeId: lastCreatedEnvelopeId })
+                        }
+                      >
+                        {t("copyShareLink")}
+                      </NeoButton>
+                      <NeoButton
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => dispatch("dismissShare")}
+                      >
+                        {t("dismiss")}
+                      </NeoButton>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </NeoCard>
@@ -363,7 +396,14 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   <div className="redenv-list">
                     {recentClaims.map((claim) => (
                       <div key={claim.id} className="redenv-row redenv-row--static">
-                        <span>{claim.holder || claim.claimer ? shortId(String(claim.holder || claim.claimer)) : "Wallet"}</span>
+                        {/* These are always the connected wallet's own claims;
+                            label them by envelope id + a localized "You" instead
+                            of a noisy raw script hash (and no English fallback). */}
+                        <span>
+                          {claim.poolId || claim.envelopeId
+                            ? `#${claim.poolId ?? claim.envelopeId} · ${t("you")}`
+                            : t("you")}
+                        </span>
                         <strong>{formatGas(claim.amount)}</strong>
                       </div>
                     ))}
@@ -459,12 +499,12 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
           <div className="redenv-modal">
             <div className="redenv-modal-content">
               <div className="redenv-modal-icon" aria-hidden="true" />
-              <h3 className="redenv-modal-title">{t("congratulations") || "Congratulations"}</h3>
+              <h3 className="redenv-modal-title">{t("congratulations")}</h3>
               <p className="redenv-modal-message">
-                {(t("claimReceivedMessage") || "You received {amount} GAS").replace("{amount}", String(luckyMessage.amount ?? "?"))}
+                {t("claimReceivedMessage", { amount: String(luckyMessage.amount ?? "?") })}
               </p>
               <button className="redenv-modal-button" type="button" onClick={() => dispatch("dismissOverlay")}>
-                {t("confirm") || "OK"}
+                {t("confirm")}
               </button>
             </div>
           </div>

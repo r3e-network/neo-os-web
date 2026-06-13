@@ -48,6 +48,18 @@ defineMiniApp({
       await game.loadAll();
     });
 
+    ctx.registerAction("withdrawCredit", async () => {
+      await ctx.services.notify.guard(async () => {
+        const { amount } = await game.withdrawCredit();
+        if (amount > 0) {
+          ctx.services.notify.success("creditWithdrawn", {
+            amount: Number(amount.toFixed(4)),
+            tokenGas: ctx.t("tokenGas"),
+          });
+        }
+      });
+    });
+
     ctx.registerAction("setKeyCount", async (value: unknown) => {
       game.keyCount.set(String(value));
     });
@@ -67,6 +79,7 @@ defineMiniApp({
         isLoading: game.isLoading,
         roundDataAvailable: game.roundDataAvailable,
         serviceNotice: game.serviceNotice,
+        prepaidCredit: game.prepaidCredit,
         countdown: game.countdown,
         dangerLevel: game.dangerLevel,
         dangerLevelText: game.dangerLevelText,

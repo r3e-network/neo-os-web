@@ -1,9 +1,23 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
 import type { AAService, ChainService, EventBus } from "../services";
 import { useAASessionKeyLab } from "../../aa-session-key-lab/src/composables/useAASessionKeyLab";
 import { getSessionKeyLaunchDefaults } from "../../aa-session-key-lab/src/launch";
+
+// Mockable wallet so configure/revoke tests can capture invokeContract args.
+const invokeContractMock = vi.fn();
+vi.mock("../utils/wallet-sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../utils/wallet-sdk")>();
+  return {
+    ...actual,
+    useWallet: () => ({
+      address: { value: "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32" },
+      connect: vi.fn().mockResolvedValue(undefined),
+      invokeContract: invokeContractMock,
+    }),
+  };
+});
 
 function t(key: string) {
   return key;
@@ -115,5 +129,78 @@ describe("AA Session Key Lab logic", () => {
         2,
       ),
     );
+  });
+
+  describe("session key configuration arity (frozen verifier contracts)", () => {
+    const PUBLIC_KEY = `03${"11".repeat(32)}`;
+    const TARGET = "0xaba84da240a55410d284a656fc8dae044e6ec1a5";
+
+    beforeEach(() => {
+      invokeContractMock.mockReset();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function setupLab() {
+      const aa = {
+        checkSponsorship: vi.fn(),
+        requestSponsorship: vi.fn(),
+        isCheckingSponsorship: createObservable(false),
+      } as unknown as AAService;
+      // chain.read is the verifier confirmation poll; echo the pubKey so the
+      // configure flow confirms immediately.
+      const chain = {
+        read: vi.fn().mockResolvedValue({ key: PUBLIC_KEY }),
+      } as unknown as ChainService;
+      const eventBus = { emit: vi.fn() } as unknown as EventBus;
+      return useAASessionKeyLab({ aa, chain, eventBus, t });
+    }
+
+    it("forwards 7 inner setSessionKey args on the mainnet default network", async () => {
+      vi.useFakeTimers();
+      invokeContractMock.mockResolvedValue({ txid: "0xtx" });
+      const lab = setupLab();
+      lab.form.accountSeed = "neo-aa-001";
+      lab.form.sessionPublicKey = PUBLIC_KEY;
+      lab.form.targetContract = TARGET;
+      lab.form.allowedMethod = "claimRewards";
+      lab.form.expiresAt = String(Math.floor(Date.now() / 1000) + 3600);
+      lab.form.spendingLimit = "1.5";
+      lab.form.description = "rewards bot";
+
+      const pending = lab.configureSessionKey();
+      await vi.runAllTimersAsync();
+      await pending;
+
+      const call = invokeContractMock.mock.calls[0][0];
+      expect(call.operation).toBe("callVerifier");
+      // The inner setSessionKey arg array carries 7 entries on mainnet.
+      const innerArray = call.args[2];
+      expect(innerArray.type).toBe("Array");
+      expect(innerArray.value).toHaveLength(7);
+      // spendingLimit converted to base units (1.5 GAS -> 150000000).
+      expect(innerArray.value[5]).toEqual({
+        type: "Integer",
+        value: "150000000",
+      });
+      expect(innerArray.value[6]).toEqual({
+        type: "String",
+        value: "rewards bot",
+      });
+    });
+
+    it("revokes via clearSessionKey on the verifier", async () => {
+      invokeContractMock.mockResolvedValue({ txid: "0xtx" });
+      const lab = setupLab();
+      lab.form.accountSeed = "neo-aa-001";
+
+      await lab.revokeSessionKey();
+
+      const call = invokeContractMock.mock.calls[0][0];
+      expect(call.operation).toBe("callVerifier");
+      expect(call.args[1]).toEqual({ type: "String", value: "clearSessionKey" });
+      expect(lab.hasOnChainSession.get()).toBe(false);
+    });
   });
 });

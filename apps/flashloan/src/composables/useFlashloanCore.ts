@@ -1,20 +1,33 @@
 /**
  * useFlashloanCore — Domain logic for the Flash Loan miniapp.
  *
- * The flash-loan contract owns pool state, loan lookup, stats, and atomic
- * request execution. Storage services are only for secondary indexing and must
- * not be used as the primary submit path.
+ * Wired against the DEPLOYED MiniAppFlashLoan contract (verified live on both
+ * networks, mainnet 0xb5d8fb0d / testnet 0xde8e595d). Its ABI is appId-free:
+ *   - requestLoan(borrower, amount, callbackContract, callbackMethod) -> Integer
+ *   - getLoanDetails(loanId) -> Map   /   getLoan(loanId) -> Array
+ *   - getPlatformStats() -> Map  (totalLoans/totalBorrowed/totalFees/poolBalance/
+ *     minLoan/maxLoan/feeBasisPoints/loanCooldownSeconds/maxDailyLoans/...)
+ *   - getPoolBalance() -> Integer  /  getFlashLoanConstants() -> Map
+ *   - getBorrowerEligibility(borrower) -> Map (cooldownRemaining/dailyLoansRemaining)
+ *   - deposit(depositor, amount, receiptId)  /  withdraw(provider, amount)
+ *   - getProviderStatsDetails(provider) -> Map
+ *
+ * The contract is frozen; this module adapts to it. A read failure raises a
+ * serviceNotice and preserves the last good snapshot rather than presenting
+ * fabricated zeros as fact.
  */
 
 import { createObservable } from "@shared/react/context";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
+import type { MiniAppLaunchNetwork } from "@shared/utils/launch-params";
 import { formatAddress, formatGas, fromFixed8, toFixed8, toSafeNumber } from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
 
 const APP_ID = "miniapp-flashloan";
 const CALLBACK_METHOD = "onFlashLoan";
 const FLASH_FEE_BPS = 9;
+const DEPOSIT_MEMO = `${APP_ID}:deposit`;
 const DEFAULT_CONTRACT_STATS = {
   minLoan: 1,
   maxLoan: 100_000,
@@ -55,6 +68,18 @@ type FlashLoanRequestResult = {
   callbackMethod: string;
 };
 
+type ProviderStats = {
+  currentBalance: number;
+  totalDeposited: number;
+  totalFeesEarned: number;
+};
+
+const EMPTY_PROVIDER_STATS: ProviderStats = {
+  currentBalance: 0,
+  totalDeposited: 0,
+  totalFeesEarned: 0,
+};
+
 export interface UseFlashloanCoreOptions {
   /** Shared chain service for contract reads and wallet invocations */
   chainService: ChainService;
@@ -62,12 +87,15 @@ export interface UseFlashloanCoreOptions {
   badgeService: BadgeProxy;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** Launch network (mainnet requires an explicit deposit receipt id) */
+  network?: MiniAppLaunchNetwork | null;
 }
 
 export function useFlashloanCore({
   chainService,
   badgeService,
   t,
+  network,
 }: UseFlashloanCoreOptions) {
   const poolBalance = createObservable(0);
   const loanDetails = createObservable<LoanDetails | null>(null);
@@ -75,9 +103,13 @@ export function useFlashloanCore({
   const contractStats = createObservable<FlashContractStats>(DEFAULT_CONTRACT_STATS);
   const recentLoans = createObservable<ExecutedLoan[]>([]);
   const lastRequest = createObservable<FlashLoanRequestResult | null>(null);
+  const providerStats = createObservable<ProviderStats>(EMPTY_PROVIDER_STATS);
   const isLoading = createObservable(false);
   const validationError = createObservable<string | null>(null);
+  const serviceNotice = createObservable("");
   const address = createObservable("");
+
+  const isMainnet = network === "mainnet";
 
   // -- Helpers --------------------------------------------------------------
 
@@ -115,6 +147,9 @@ export function useFlashloanCore({
       : {};
   };
 
+  // The deployed contract exposes both getLoanDetails (Map) and getLoan (Array).
+  // We read the Map form (named fields) for clarity, but stay tolerant of an
+  // Array payload so a legacy node response still parses.
   const normalizeLoanPayload = (raw: unknown): Record<string, unknown> => {
     if (Array.isArray(raw)) {
       return {
@@ -197,91 +232,135 @@ export function useFlashloanCore({
     return null;
   };
 
-  const statsArgs = (): ContractArg[] => [
-    { type: "String", value: APP_ID },
-  ];
+  const validateLiquidityAmount = (amount: string): string | null => {
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      return t("invalidLiquidityAmount");
+    }
+    return null;
+  };
 
   const loanArgs = (loanId: number): ContractArg[] => [
-    { type: "String", value: APP_ID },
     { type: "Integer", value: String(loanId) },
   ];
 
   // -- Data loading (via FlashLoan contract) --------------------------------
 
-  const loadLoanStats = async () => {
-    try {
-      const rawStats = asRecord(
-        await chainService.read("getFlashLoanStats", statsArgs(), {
-          cache: true,
-          cacheTtlMs: 30_000,
-        }),
-      );
+  const applyPlatformStats = (rawStats: Record<string, unknown>) => {
+    const totalLoans = toNumber(rawStats.totalLoans);
+    const totalVolume = fixed8ToDecimal(rawStats.totalBorrowed);
+    const totalFees = fixed8ToDecimal(rawStats.totalFees);
+    const pool = fixed8ToDecimal(rawStats.poolBalance);
 
-      const totalLoans = toNumber(rawStats.totalLoans);
-      const totalVolume = fixed8ToDecimal(rawStats.totalBorrowed);
-      const totalFees = fixed8ToDecimal(rawStats.totalFees);
-      const pool = fixed8ToDecimal(rawStats.poolBalance);
+    poolBalance.set(pool);
+    stats.set({ totalLoans, totalVolume, totalFees });
+    contractStats.set({
+      minLoan: fixed8ToDecimal(rawStats.minLoan) || DEFAULT_CONTRACT_STATS.minLoan,
+      maxLoan: fixed8ToDecimal(rawStats.maxLoan) || DEFAULT_CONTRACT_STATS.maxLoan,
+      // getPlatformStats uses feeBasisPoints; getFlashLoanConstants uses
+      // feesBasisPoints. Accept either so the source of the fee is the chain.
+      feeBasisPoints:
+        toNumber(rawStats.feeBasisPoints ?? rawStats.feesBasisPoints) ||
+        DEFAULT_CONTRACT_STATS.feeBasisPoints,
+      // The deployed contract reports loanCooldownSeconds (seconds), not a
+      // cooldownMs field. Convert to ms for the UI.
+      cooldownMs:
+        toNumber(rawStats.loanCooldownSeconds) * 1000 || DEFAULT_CONTRACT_STATS.cooldownMs,
+      maxDailyLoans: toNumber(rawStats.maxDailyLoans) || DEFAULT_CONTRACT_STATS.maxDailyLoans,
+    });
 
-      poolBalance.set(pool);
-      stats.set({ totalLoans, totalVolume, totalFees });
-      contractStats.set({
-        minLoan: fixed8ToDecimal(rawStats.minLoan) || DEFAULT_CONTRACT_STATS.minLoan,
-        maxLoan: fixed8ToDecimal(rawStats.maxLoan) || DEFAULT_CONTRACT_STATS.maxLoan,
-        feeBasisPoints: toNumber(rawStats.feeBasisPoints) || DEFAULT_CONTRACT_STATS.feeBasisPoints,
-        cooldownMs: toNumber(rawStats.cooldownMs) || DEFAULT_CONTRACT_STATS.cooldownMs,
-        maxDailyLoans: toNumber(rawStats.maxDailyLoans) || DEFAULT_CONTRACT_STATS.maxDailyLoans,
-      });
+    return totalLoans;
+  };
 
-      const start = Math.max(1, totalLoans - 4);
-      const ids: number[] = [];
-      for (let id = totalLoans; id >= start; id -= 1) ids.push(id);
+  const loadRecentLoans = async (totalLoans: number) => {
+    const start = Math.max(1, totalLoans - 4);
+    const ids: number[] = [];
+    for (let id = totalLoans; id >= start; id -= 1) ids.push(id);
 
-      const entries = await Promise.all(
-        ids.map(async (id) =>
-          buildLoanDetails(
-            await chainService.read("getFlashLoan", loanArgs(id), {
-              cache: true,
-              cacheTtlMs: 30_000,
-            }),
-            id,
-          ),
-        ),
-      );
-
-      const loans: ExecutedLoan[] = [];
-      ids.forEach((id, index) => {
-        const entry = entries[index];
-        if (!entry) return;
-        loans.push({
+    const entries = await Promise.all(
+      ids.map(async (id) =>
+        buildLoanDetails(
+          await chainService.read("getLoanDetails", loanArgs(id), {
+            cache: true,
+            cacheTtlMs: 30_000,
+          }),
           id,
-          amount: Number.parseFloat(entry.amount) || 0,
-          fee: Number.parseFloat(entry.fee) || 0,
-          status: entry.status === "failed" ? "failed" : "success",
-          timestamp: entry.timestamp,
-        });
+        ),
+      ),
+    );
+
+    const loans: ExecutedLoan[] = [];
+    ids.forEach((id, index) => {
+      const entry = entries[index];
+      if (!entry) return;
+      loans.push({
+        id,
+        amount: Number.parseFloat(entry.amount) || 0,
+        fee: Number.parseFloat(entry.fee) || 0,
+        status: entry.status === "failed" ? "failed" : "success",
+        timestamp: entry.timestamp,
       });
-      recentLoans.set(loans);
-    } catch (e) {
-      console.warn("[useFlashloanCore] loadLoanStats failed:", e instanceof Error ? e.message : String(e));
-      stats.set({ totalLoans: 0, totalVolume: 0, totalFees: 0 });
-      contractStats.set(DEFAULT_CONTRACT_STATS);
-      poolBalance.set(0);
-      recentLoans.set([]);
+    });
+    recentLoans.set(loans);
+  };
+
+  const loadLoanStats = async () => {
+    const rawStats = asRecord(
+      await chainService.read("getPlatformStats", [], {
+        cache: true,
+        cacheTtlMs: 30_000,
+      }),
+    );
+
+    const totalLoans = applyPlatformStats(rawStats);
+    await loadRecentLoans(totalLoans);
+  };
+
+  const loadProviderStats = async () => {
+    const addr = address.get();
+    if (!addr) {
+      providerStats.set(EMPTY_PROVIDER_STATS);
+      return;
     }
+    const providerHash = normalizeHash160Input(addr);
+    if (!providerHash) {
+      providerStats.set(EMPTY_PROVIDER_STATS);
+      return;
+    }
+    const raw = asRecord(
+      await chainService.read("getProviderStatsDetails", [{ type: "Hash160", value: providerHash }], {
+        cache: true,
+        cacheTtlMs: 30_000,
+      }),
+    );
+    providerStats.set({
+      currentBalance: fixed8ToDecimal(raw.currentBalance),
+      totalDeposited: fixed8ToDecimal(raw.totalDeposited),
+      totalFeesEarned: fixed8ToDecimal(raw.totalFeesEarned),
+    });
   };
 
   const loadData = async () => {
     try {
       await loadLoanStats();
+      // Provider stats are wallet-scoped and best-effort; a failure here must
+      // not blank the pool/stats hero.
+      await loadProviderStats().catch(() => {});
+      serviceNotice.set("");
     } catch (e) {
-      console.warn("[useFlashloanCore] loadData failed:", e instanceof Error ? e.message : String(e));
+      // Preserve the last good snapshot — never present zeros as fact.
+      console.warn(
+        "[useFlashloanCore] loadData failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+      serviceNotice.set(t("statsUnavailable"));
     }
   };
 
   // -- Actions (via FlashLoan contract) -------------------------------------
 
   /**
-   * Look up a loan by ID through getFlashLoan(appId, loanId).
+   * Look up a loan by ID through getLoanDetails(loanId).
    */
   const lookupLoan = async (loanIdValue: string) => {
     const validation = validateLoanId(loanIdValue);
@@ -295,7 +374,7 @@ export function useFlashloanCore({
     isLoading.set(true);
 
     try {
-      const parsed = await chainService.read("getFlashLoan", loanArgs(loanId));
+      const parsed = await chainService.read("getLoanDetails", loanArgs(loanId));
       const details = buildLoanDetails(parsed, loanId);
       if (!details) {
         loanDetails.set(null);
@@ -309,8 +388,8 @@ export function useFlashloanCore({
   };
 
   /**
-   * Request a flash loan through requestFlashLoan(appId, borrower, amount,
-   * callbackContract, "onFlashLoan").
+   * Request a flash loan through
+   * requestLoan(borrower, amount, callbackContract, "onFlashLoan").
    */
   const requestLoan = async (data: { amount: string; callbackContract: string; callbackMethod: string }) => {
     const validation = validateLoanRequest(data);
@@ -330,14 +409,14 @@ export function useFlashloanCore({
       address.set(borrower);
 
       const result: TxResult = await chainService.invoke(
-        "requestFlashLoan",
+        "requestLoan",
         [
-          { type: "String", value: APP_ID },
           { type: "Hash160", value: borrower },
           { type: "Integer", value: amountFixed8 },
           { type: "Hash160", value: callbackContract },
           { type: "String", value: CALLBACK_METHOD },
         ],
+        { waitForEvent: "LoanExecuted", waitTimeoutMs: 30_000 },
       );
 
       lastRequest.set({
@@ -361,6 +440,98 @@ export function useFlashloanCore({
     }
   };
 
+  /**
+   * Provide liquidity to the pool via deposit(depositor, amount, receiptId).
+   *
+   * On testnet the GAS is bundled with the call through invokeWithPayment (the
+   * memo creates the credit the contract consumes). On mainnet the host wallet
+   * cannot bundle a settled prepaid transfer, so the caller pre-transfers GAS
+   * with the deposit memo and supplies the resulting receipt id.
+   */
+  const provideLiquidity = async (amount: string, receiptId?: string) => {
+    const validation = validateLiquidityAmount(amount);
+    if (validation) {
+      validationError.set(validation);
+      throw new Error(validation);
+    }
+    validationError.set(null);
+
+    isLoading.set(true);
+    try {
+      const provider = await chainService.ensureWallet();
+      address.set(provider);
+      const amountFixed8 = toFixed8(amount);
+
+      let result: TxResult;
+      if (isMainnet) {
+        const normalizedReceiptId = String(receiptId ?? "").trim();
+        if (!/^[1-9]\d*$/.test(normalizedReceiptId)) {
+          throw new Error(t("receiptIdRequired"));
+        }
+        result = await chainService.invoke(
+          "deposit",
+          [
+            { type: "Hash160", value: provider },
+            { type: "Integer", value: amountFixed8 },
+            { type: "Integer", value: normalizedReceiptId },
+          ],
+          { waitForEvent: "LiquidityDeposited", waitTimeoutMs: 30_000 },
+        );
+      } else {
+        result = await chainService.invokeWithPayment(
+          amountFixed8,
+          DEPOSIT_MEMO,
+          "deposit",
+          [
+            { type: "Hash160", value: provider },
+            { type: "Integer", value: amountFixed8 },
+            { type: "Integer", value: "0" },
+          ],
+          { waitForEvent: "LiquidityDeposited", waitTimeoutMs: 30_000 },
+        );
+      }
+
+      await loadData();
+      return result;
+    } finally {
+      isLoading.set(false);
+    }
+  };
+
+  /**
+   * Withdraw previously deposited liquidity via withdraw(provider, amount).
+   * A provider can only withdraw up to what they deposited (enforced on-chain).
+   */
+  const withdrawLiquidity = async (amount: string) => {
+    const validation = validateLiquidityAmount(amount);
+    if (validation) {
+      validationError.set(validation);
+      throw new Error(validation);
+    }
+    validationError.set(null);
+
+    isLoading.set(true);
+    try {
+      const provider = await chainService.ensureWallet();
+      address.set(provider);
+      const amountFixed8 = toFixed8(amount);
+
+      const result: TxResult = await chainService.invoke(
+        "withdraw",
+        [
+          { type: "Hash160", value: provider },
+          { type: "Integer", value: amountFixed8 },
+        ],
+        { waitForEvent: "LiquidityWithdrawn", waitTimeoutMs: 30_000 },
+      );
+
+      await loadData();
+      return result;
+    } finally {
+      isLoading.set(false);
+    }
+  };
+
   return {
     // State
     address,
@@ -370,8 +541,10 @@ export function useFlashloanCore({
     contractStats,
     recentLoans,
     lastRequest,
+    providerStats,
     isLoading,
     validationError,
+    serviceNotice,
 
     // Methods
     connect: async () => {
@@ -382,6 +555,8 @@ export function useFlashloanCore({
     loadData,
     lookupLoan,
     requestLoan,
+    provideLiquidity,
+    withdrawLiquidity,
 
     /**
      * Set the wallet address. Called from main.ts to track the

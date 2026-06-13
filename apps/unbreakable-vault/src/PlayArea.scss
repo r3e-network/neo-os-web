@@ -256,6 +256,62 @@
   }
 }
 
+/* Accent + monospace value variants for the vault detail rows. */
+.detail-value--accent { color: var(--vault-accent-strong); }
+.detail-value--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What you are breaking — title + public hint, before paying the fee. */
+.vault-detail-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ns-ink, #1e1e2e);
+}
+.vault-detail-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+}
+
+/* Field-level validation error (e.g. secret mismatch). */
+.vault-field-error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ns-danger, #d84a4a);
+}
+
+/* Honest mainnet handoff notice — the deposit-then-act path is host-only there. */
+.vault-mainnet-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--ns-radius-xs, 8px);
+  background: var(--vault-accent-soft);
+  border: 1px solid rgba(22, 199, 132, 0.22);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+}
+
+/* Bounty top-up row — input + add button on an active vault. */
+.vault-topup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--ns-border, rgba(20, 22, 38, 0.08));
+}
+
 .vault-list-container {
   background: var(--ns-surface-subtle, #f7f8fa);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));

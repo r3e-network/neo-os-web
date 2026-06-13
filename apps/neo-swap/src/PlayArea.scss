@@ -181,6 +181,39 @@
   color: var(--ns-green-strong);
 }
 
+.neo-swap-router-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--ns-warning-soft, #fff3dd);
+  color: var(--ns-warning, #b9791a);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.neo-swap-router-notice__title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.neo-swap-rate-asof {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ns-muted);
+  font-variant-numeric: tabular-nums;
+
+  &.is-stale {
+    color: var(--ns-warning, #b9791a);
+  }
+}
+
 .neo-swap-execute-note {
   margin: 0;
   color: var(--ns-muted);

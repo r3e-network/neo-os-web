@@ -264,7 +264,8 @@
 
 .buy-keys-card,
 .claim-card,
-.round-control-card {
+.round-control-card,
+.survivor-recovery-card {
   padding: 0 !important;
   background: transparent !important;
   border: 0 !important;
@@ -273,31 +274,36 @@
 
 .buy-keys-card > *,
 .claim-card > *,
-.round-control-card > * {
+.round-control-card > *,
+.survivor-recovery-card > * {
   @include pm.card;
   padding: 20px 22px;
 }
 
-.round-control-card__body {
+.round-control-card__body,
+.survivor-recovery-card__body {
   display: flex;
   align-items: center;
   gap: 14px;
   justify-content: space-between;
 }
 
-.round-control-card__copy {
+.round-control-card__copy,
+.survivor-recovery-card__copy {
   display: grid;
   gap: 4px;
   min-width: 0;
 }
 
-.round-control-card__title {
+.round-control-card__title,
+.survivor-recovery-card__title {
   font-size: 13px;
   font-weight: 700;
   color: pm.$text;
 }
 
-.round-control-card__text {
+.round-control-card__text,
+.survivor-recovery-card__text {
   font-size: 12px;
   line-height: 1.45;
   color: pm.$text-muted;
@@ -488,7 +494,8 @@
 
   .last-buyer-badge,
   .survivor-service-notice,
-  .round-control-card__body {
+  .round-control-card__body,
+  .survivor-recovery-card__body {
     display: grid;
     grid-template-columns: 1fr;
     align-items: start;

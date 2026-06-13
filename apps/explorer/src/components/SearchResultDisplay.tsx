@@ -34,6 +34,20 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
   const contractCallCount =
     typeof rawCallCount === "number" || typeof rawCallCount === "string" ? String(rawCallCount) : "0";
 
+  // A valid-shaped identifier that the indexer/RPC couldn't resolve comes back
+  // as {type:'transaction'|'block'|'address', found:false} with no `data`, which
+  // would otherwise render a card of entirely blank rows. Surface an explicit,
+  // type-aware not-found notice instead so the result never looks broken.
+  const notFound = result.found === false;
+  const notFoundMessage =
+    result.type === "transaction"
+      ? t("transactionNotFound")
+      : result.type === "block"
+        ? t("blockNotFound")
+        : result.type === "address"
+          ? t("addressNoActivity")
+          : t("noResults");
+
   return (
     <div className="result-section">
       <span className="section-title">{t("searchResult")}</span>
@@ -44,7 +58,25 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
         </NeoCard>
       )}
 
-      {result.type === "block" && (
+      {/* The API returns {type:'unknown'} for a malformed identifier — guide the
+          user back to a recognized format rather than rendering an empty card. */}
+      {result.type === "unknown" && (
+        <NeoCard variant="erobo" className="result-card result-card--empty">
+          <span className="result-empty-title">{t("searchUnknownTitle")}</span>
+          <span className="result-empty">{t("searchUnknownDesc")}</span>
+        </NeoCard>
+      )}
+
+      {/* Valid-shaped-but-missing tx/block/address: one calm not-found card. The
+          contract branch keeps its own found:false handling (it still surfaces
+          the looked-up hash), so it is excluded here. */}
+      {notFound && result.type !== "contract" && result.type !== "unknown" && result.type !== "none" && (
+        <NeoCard variant="erobo" className="result-card result-card--empty">
+          <span className="result-empty">{notFoundMessage}</span>
+        </NeoCard>
+      )}
+
+      {result.type === "block" && !notFound && (
         <NeoCard variant="erobo" className="result-card">
           <div className="result-rows">
             <div className="result-row">
@@ -67,7 +99,7 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
         </NeoCard>
       )}
 
-      {result.type === "transaction" && (
+      {result.type === "transaction" && !notFound && (
         <NeoCard variant="erobo" className="result-card">
           <div className="result-rows">
             <div className="result-row">
@@ -90,7 +122,7 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
         </NeoCard>
       )}
 
-      {result.type === "address" && (
+      {result.type === "address" && !notFound && (
         <NeoCard variant="erobo" className="result-card">
           <div className="result-rows">
             <div className="result-row">

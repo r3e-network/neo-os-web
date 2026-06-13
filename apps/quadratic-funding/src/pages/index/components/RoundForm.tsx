@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NeoCard, NeoInput, NeoButton } from "@shared/components-react";
+import { NeoCard, NeoInput, NeoButton, NeoSelect } from "@shared/components-react";
 
 interface RoundFormProps {
   onSubmit: (...args: unknown[]) => void;
@@ -12,6 +12,7 @@ interface RoundFormProps {
 export default function RoundForm({ onSubmit, t, loading = false, resetKey = 0 }: RoundFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [asset, setAsset] = useState("GAS");
   const [matchingPool, setMatchingPool] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -23,6 +24,7 @@ export default function RoundForm({ onSubmit, t, loading = false, resetKey = 0 }
     if (resetKey === 0) return;
     setTitle("");
     setDescription("");
+    setAsset("GAS");
     setMatchingPool("");
     setStartTime("");
     setEndTime("");
@@ -37,6 +39,15 @@ export default function RoundForm({ onSubmit, t, loading = false, resetKey = 0 }
           label={t("roundTitle")}
           placeholder={t("roundTitlePlaceholder")}
           onChange={setTitle}
+        />
+        <NeoSelect
+          value={asset}
+          label={t("assetSelect")}
+          options={[
+            { value: "GAS", label: t("assetGas") },
+            { value: "NEO", label: t("assetNeo") },
+          ]}
+          onChange={setAsset}
         />
         <NeoInput
           value={matchingPool}
@@ -78,7 +89,7 @@ export default function RoundForm({ onSubmit, t, loading = false, resetKey = 0 }
             onSubmit({
               title,
               description,
-              asset: "GAS",
+              asset,
               matchingPool,
               startTime,
               endTime,

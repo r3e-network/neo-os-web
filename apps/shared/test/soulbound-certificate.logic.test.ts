@@ -7,6 +7,17 @@ import { useSoulbound } from "../../soulbound-certificate/src/composables/useSou
 const OWNER = "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX";
 const OWNER_HASH = addressToScriptHash(OWNER);
 
+/**
+ * The little-endian "0x<hex>" form a ByteString Hash160 arrives as over RPC
+ * (ownerOf parses to this shape). parseHash160 reverses it back to the
+ * big-endian display hash, so the My Certificates scan can match owners.
+ */
+function toLittleEndianHash(displayHash: string): string {
+  const hex = displayHash.replace(/^0x/, "");
+  const reversed = (hex.match(/.{2}/g) ?? []).reverse().join("");
+  return `0x${reversed}`;
+}
+
 function t(key: string) {
   const messages: Record<string, string> = {
     templateCreated: "Template created",
@@ -205,6 +216,106 @@ describe("useSoulbound contract intents", () => {
     // Status strip must reflect the actual revocation status, never "Valid".
     expect(soulbound.lastSuccess.get()).toBe("Revoked");
     expect(soulbound.lastSuccess.get()).not.toBe("Valid");
+  });
+});
+
+describe("useSoulbound My Certificates reconstruction", () => {
+  // tokensOf returns a session iterator the public RPC cannot traverse, so the
+  // holdings are reconstructed from balanceOf + totalTemplates + ownerOf instead.
+  function setupHolder(options: { ownsToken?: boolean; balance?: string } = {}) {
+    const { ownsToken = true, balance = "1" } = options;
+    const ownerOfHash = ownsToken
+      ? toLittleEndianHash(OWNER_HASH)
+      : toLittleEndianHash("0x00112233445566778899aabbccddeeff00112233");
+    const read = vi.fn(async (operation: string, args?: unknown[]) => {
+      if (operation === "tokensOf") {
+        // The real node returns an un-traversable iterator here; the composable
+        // must NOT rely on it.
+        return { type: "InteropInterface", interface: "IIterator" };
+      }
+      if (operation === "balanceOf") return Number(balance);
+      if (operation === "totalTemplates") return "1";
+      if (operation === "getTemplateDetails") {
+        return {
+          id: "1",
+          issuer: OWNER_HASH,
+          name: "Neo Builder Graduate",
+          issuerName: "Neo Academy",
+          category: "Course",
+          maxSupply: "1000",
+          issued: "2",
+          description: "Issued to builders.",
+          active: true,
+        };
+      }
+      if (operation === "ownerOf") return ownerOfHash;
+      if (operation === "getCertificateDetails") {
+        const tokenIdArg = (args?.[0] as { value?: string } | undefined)?.value ?? "";
+        return {
+          tokenId: "1-1",
+          templateId: "1",
+          owner: OWNER_HASH,
+          templateName: "Neo Builder Graduate",
+          issuerName: "Neo Academy",
+          category: "Course",
+          description: "Issued to builders.",
+          recipientName: "Alex Chen",
+          achievement: "Advanced track",
+          memo: tokenIdArg ? "Cohort 1" : "",
+          issuedTime: 1780300000,
+          revoked: false,
+          revokedTime: 0,
+        };
+      }
+      if (operation === "getIssuerTemplates") return ["1"];
+      return null;
+    });
+    const soulbound = useSoulbound({
+      nftService: { validate: vi.fn() } as never,
+      storageService: { list: vi.fn(async () => ({})) } as never,
+      badgeService: { award: vi.fn(async () => undefined) } as never,
+      clipboard: { copy: vi.fn(async () => true) } as never,
+      eventBus: { emit: vi.fn() },
+      chain: {
+        address: createObservable(OWNER),
+        ensureWallet: vi.fn(async () => OWNER),
+        invoke: vi.fn(),
+        read,
+      },
+      t,
+    });
+    return { soulbound, read };
+  }
+
+  it("reconstructs a holder's certificates without the tokensOf iterator", async () => {
+    const { soulbound, read } = setupHolder();
+
+    await soulbound.refreshCertificates();
+
+    // The iterator read must never be used as the source of truth.
+    expect(read).not.toHaveBeenCalledWith("tokensOf", expect.anything());
+    const certs = soulbound.certificates.get();
+    expect(certs).toHaveLength(1);
+    expect(certs[0]?.tokenId).toBe("1-1");
+    expect(certs[0]?.recipientName).toBe("Alex Chen");
+  });
+
+  it("short-circuits to an empty list when balanceOf is zero", async () => {
+    const { soulbound, read } = setupHolder({ balance: "0" });
+
+    await soulbound.refreshCertificates();
+
+    expect(soulbound.certificates.get()).toEqual([]);
+    // No template/owner scan once the balance is known to be zero.
+    expect(read).not.toHaveBeenCalledWith("ownerOf", expect.anything());
+  });
+
+  it("excludes tokens owned by other wallets", async () => {
+    const { soulbound } = setupHolder({ ownsToken: false });
+
+    await soulbound.refreshCertificates();
+
+    expect(soulbound.certificates.get()).toEqual([]);
   });
 });
 

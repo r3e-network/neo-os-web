@@ -10,6 +10,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../private-transfer/src/PlayArea";
+import { messages as privateTransferMessages } from "../../private-transfer/src/appConfig";
+import {
+  clearSealedIntents,
+  readSealedIntents,
+} from "../../private-transfer/src/history";
 
 // The seal flow's real X25519-HKDF-AES envelope relies on WebCrypto X25519,
 // which jsdom does not provide. Mock the envelope module so the copy-affordance
@@ -30,18 +35,29 @@ vi.mock("../utils/morpheus-confidential-envelope", () => ({
 const VALID_NEO_ADDRESS = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
 const originalFetch = globalThis.fetch;
 
+// Resolve t() against the app's real English locale (with {param} interpolation)
+// so the UI renders the same copy a user sees instead of raw key names.
+const en = privateTransferMessages as Record<string, { en: string }>;
+function t(key: string, params?: Record<string, string | number>): string {
+  const value = en[key]?.en ?? key;
+  if (!params) {
+    return value;
+  }
+  return value.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? `{${name}}`));
+}
+
 function state(): ObservableState {
   return {
     requestCount: createObservable(0),
     lastStatus: createObservable("Ready"),
-    lastDigest: createObservable("N/A"),
-    networkLabel: createObservable("Neo N3"),
+    lastDigest: createObservable("—"),
+    networkLabel: createObservable("Mainnet"),
   };
 }
 
 function props(setStatus = vi.fn(), appState: ObservableState = state()) {
   return {
-    t: (key: string) => key,
+    t,
     state: appState,
     dispatch: vi.fn(async () => undefined),
     services: {},
@@ -55,7 +71,7 @@ function props(setStatus = vi.fn(), appState: ObservableState = state()) {
       source: "url",
       operation: null,
       tab: null,
-      network: "testnet",
+      network: "mainnet",
       params: {},
       keys: [],
       hasParams: false,
@@ -68,6 +84,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   globalThis.fetch = originalFetch;
+  clearSealedIntents();
 });
 
 describe("Private Transfer PlayArea", () => {
@@ -164,18 +181,26 @@ describe("Private Transfer PlayArea", () => {
   });
 
   it("keeps the network stat tile in sync with the in-form network select", () => {
+    // No chain service is injected, so the form defaults to mainnet — the lane
+    // that currently serves a live Morpheus key — rather than the degraded
+    // testnet default.
+    globalThis.fetch = vi.fn(async () => ({
+      ok: false,
+      json: async () => ({}),
+    })) as unknown as typeof fetch;
     const appState = state();
     render(<PlayArea {...props(vi.fn(), appState)} />);
 
-    // Seeds to the active selection on mount instead of staying at "Neo N3".
-    expect(appState.networkLabel?.get()).toBe("Testnet");
-
-    const networkSelect = screen.getByDisplayValue("Testnet") as HTMLSelectElement;
-    fireEvent.change(networkSelect, { target: { value: "mainnet" } });
+    // Seeds to the active (mainnet) selection on mount instead of "Neo N3".
     expect(appState.networkLabel?.get()).toBe("Mainnet");
 
+    const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
+    const networkSelect = selects[0];
     fireEvent.change(networkSelect, { target: { value: "testnet" } });
     expect(appState.networkLabel?.get()).toBe("Testnet");
+
+    fireEvent.change(networkSelect, { target: { value: "mainnet" } });
+    expect(appState.networkLabel?.get()).toBe("Mainnet");
   });
 
   it("re-floors a fractional amount when switching from GAS to NEO", () => {
@@ -231,14 +256,111 @@ describe("Private Transfer PlayArea", () => {
       screen.getByRole("button", { name: "Seal private transfer" }),
     );
 
-    const copyButton = await screen.findByRole("button", {
+    // The secret ref appears both in the result aside and the persisted
+    // "Sealed intents" history card; copy the first (the result aside).
+    const copyButtons = await screen.findAllByRole("button", {
       name: "Copy Secret ref",
     });
-    fireEvent.click(copyButton);
+    fireEvent.click(copyButtons[0]);
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(secretRef);
     });
     await screen.findByRole("button", { name: "Secret ref copied" });
+  });
+
+  it("persists a successful seal to local history and renders the Sealed intents card", async () => {
+    const secretRef = "secret-ref-persisted";
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("public-key")) {
+        return {
+          ok: true,
+          json: async () => ({
+            public_key: "0".repeat(64),
+            algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ secret_ref: secretRef }),
+      };
+    }) as unknown as typeof fetch;
+
+    const appState = state();
+    render(<PlayArea {...props(vi.fn(), appState)} />);
+    fireEvent.change(screen.getByPlaceholderText("N..."), {
+      target: { value: VALID_NEO_ADDRESS },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Seal private transfer" }),
+    );
+
+    // The secret ref is written to safe-storage so it survives a remount.
+    await waitFor(() => {
+      expect(readSealedIntents()).toHaveLength(1);
+    });
+    expect(readSealedIntents()[0].secretRef).toBe(secretRef);
+
+    // requestCount stat tracks the persisted count, not in-memory state only.
+    expect(appState.requestCount?.get()).toBe(1);
+    // The Sealed intents history card is now rendered.
+    expect(screen.getByText("Sealed intents")).toBeTruthy();
+
+    // Clearing the history wipes storage and resets the count.
+    fireEvent.click(screen.getByRole("button", { name: "Clear sealed intents history" }));
+    expect(readSealedIntents()).toHaveLength(0);
+    expect(appState.requestCount?.get()).toBe(0);
+  });
+
+  it("surfaces the upstream store detail when the proxy returns an inline fallback", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("public-key")) {
+        return {
+          ok: true,
+          json: async () => ({
+            public_key: "0".repeat(64),
+            algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
+          }),
+        };
+      }
+      // The host proxy converts an upstream 404 into a 200 inline fallback.
+      return {
+        ok: true,
+        json: async () => ({
+          status: "inline_fallback",
+          inline_fallback: true,
+          store_available: false,
+          upstream_status: 404,
+          error: "not found",
+        }),
+      };
+    }) as unknown as typeof fetch;
+
+    render(<PlayArea {...props()} />);
+    fireEvent.change(screen.getByPlaceholderText("N..."), {
+      target: { value: VALID_NEO_ADDRESS },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "1 GAS" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Seal private transfer" }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Morpheus confidential storage is temporarily unavailable. Your transfer details remain local.",
+        ),
+      ).toBeTruthy();
+    });
+    // The upstream detail (status + reason) is surfaced, not discarded.
+    expect(screen.getByText(/not found \(404\)/)).toBeTruthy();
+    // Nothing was persisted on a failed seal.
+    expect(readSealedIntents()).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalled();
   });
 });

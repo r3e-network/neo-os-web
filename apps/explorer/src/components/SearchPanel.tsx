@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import "./SearchPanel.scss";
 
@@ -25,6 +26,17 @@ export default function SearchPanel({
   // disabling the action and showing an aria-live hint before any dispatch.
   const isEmptyQuery = searchQuery.trim().length === 0;
 
+  // Enter-to-submit for the most search-shaped input in the fleet. The shared
+  // NeoInput renders a real <input>, so its keydown bubbles to this wrapper —
+  // catch it here (instead of touching the shared component) and run the search
+  // when there is a query and one is not already in flight.
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter") return;
+    if (isEmptyQuery || isSearching) return;
+    event.preventDefault();
+    onSearch();
+  };
+
   return (
     <NeoCard variant="erobo" className="search-card">
       <div className="search-card__header">
@@ -32,7 +44,7 @@ export default function SearchPanel({
         <strong>{selectedNetwork === "mainnet" ? t("mainnet") : t("testnet")}</strong>
       </div>
 
-      <div className="search-box">
+      <div className="search-box" onKeyDown={handleKeyDown}>
         <NeoInput
           value={searchQuery}
           placeholder={t("searchPlaceholder")}

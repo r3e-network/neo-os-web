@@ -8,6 +8,7 @@ import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
+import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
 import type { ProjectItem } from "../pages/index/components/ProjectList";
 import type { RoundItem } from "../pages/index/components/RoundList";
 
@@ -36,7 +37,9 @@ export function useQuadraticProjects(
     return {
       id,
       roundId: String(raw.roundId || ""),
-      owner: String(raw.owner || ""),
+      // Normalize the contract UInt160 owner to display-order 0x hex so
+      // canClaimProject can match it against the connected wallet.
+      owner: parseHash160(raw.owner) || String(raw.owner || ""),
       name: String(raw.name || ""),
       description: String(raw.description || ""),
       link: String(raw.link || ""),
@@ -86,7 +89,7 @@ export function useQuadraticProjects(
   };
 
   const registerProject = async (data: { name: string; description: string; link: string }) => {
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType.get(), t)) return;
     if (isRegisteringProject.get()) return;
     if (!selectedRound.get()) {
       setStatus(t("noSelectedRound"), "error");
@@ -130,12 +133,14 @@ export function useQuadraticProjects(
   };
 
   const canClaimProject = (project: ProjectItem) => {
-    if (!selectedRound.get() || !address.get()) return false;
+    const round = selectedRound.get();
+    if (!round || !address.get()) return false;
     return (
-      selectedRound.get().finalized &&
-      !selectedRound.get().cancelled &&
+      round.finalized &&
+      !round.cancelled &&
       !project.claimed &&
-      project.owner === address.get()
+      project.matchedAmount > 0n &&
+      ownerMatchesAddress(project.owner, address.get())
     );
   };
 
@@ -147,7 +152,7 @@ export function useQuadraticProjects(
   );
 
   const claimProject = async (project: ProjectItem) => {
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType.get(), t)) return;
     if (claimingProjectId.get()) return;
 
     try {

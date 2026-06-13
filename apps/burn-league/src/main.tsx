@@ -65,6 +65,18 @@ defineMiniApp({
       );
     });
 
+    ctx.registerAction("withdrawCredit", async () => {
+      await ctx.services.notify.guard(async () => {
+        const { amount } = await burn.withdrawCredit();
+        if (amount > 0) {
+          ctx.services.notify.success("creditWithdrawn", {
+            amount: Number(amount.toFixed(4)),
+            tokenGas: ctx.t("tokenGas"),
+          });
+        }
+      });
+    });
+
     ctx.registerAction("setBurnAmount", async (amount: unknown) => {
       if (typeof amount === "string") burn.burnAmount.set(amount);
     });
@@ -86,6 +98,8 @@ defineMiniApp({
         actionNotice: burn.actionNotice,
         burnValidationError: burn.burnValidationError,
         lastSubmittedAmount: burn.lastSubmittedAmount,
+        prepaidCredit: burn.prepaidCredit,
+        prepaidCreditDisplay: burn.prepaidCreditDisplay,
         totalBurnedDisplay: burn.totalBurnedDisplay,
         userBurnedDisplay: burn.userBurnedDisplay,
         rewardPoolDisplay: burn.rewardPoolDisplay,
@@ -100,6 +114,7 @@ defineMiniApp({
         countdown: burn.countdown,
         seasonStatusLabel: burn.seasonStatusLabel,
         formattedSeason: burn.formattedSeason,
+        seasonDurationLabel: burn.seasonDurationLabel,
         prizePoolDisplay: burn.prizePoolDisplay,
         topBurnedDisplay: burn.topBurnedDisplay,
         leaderLabel: burn.leaderLabel,

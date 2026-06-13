@@ -31,6 +31,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     memoryTypeOptions.find((option) => option.value === memoryType)?.label ??
     t("memoryType");
   const forgettingId = str("forgettingId");
+  const forgetConfirmId = str("forgetConfirmId");
+  const forgetFeeDisplay = str("forgetFeeDisplay", "1 GAS");
+  const epitaphDraftId = str("epitaphDraftId");
+  const epitaphText = str("epitaphText");
+  const epitaphSavingId = str("epitaphSavingId");
+  const showAllHistory = bool("showAllHistory");
+  const historyTruncated = bool("historyTruncated");
+  const totalBuried = num("totalDestroyed");
+  const composeMode = str("composeMode", "write");
+  const memoryText = str("memoryText");
+  const isWriteMode = composeMode !== "hash";
   const trimmedAssetHash = assetHash.trim();
   const hashReady = trimmedAssetHash.length >= 12;
   const hashShort = trimmedAssetHash.length > 0 && !hashReady;
@@ -74,7 +85,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <div className="hero-metric">
             <strong>{gasReclaimedDisplay}</strong>
-            <em>{t("gasReclaimed")}</em>
+            <em>{t("gasReclaimedEstimate")}</em>
           </div>
           <div className="hero-metric">
             <strong>{historyCount}</strong>
@@ -88,21 +99,67 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         {/* Destruction Chamber */}
         <NeoCard className="grave-chamber" title={t("destroyAsset")}>
           <div className="destroy-form">
-            <NeoInput
-              value={assetHash}
-              label={t("assetHash") || "Asset Hash"}
-              placeholder={t("assetHashPlaceholder")}
-              hint={!hashError ? t("assetHashHint") : ""}
-              error={hashError}
-              onChange={(val) => state.assetHash?.set(val)}
-            />
+            {/* Compose mode: write the memory (hashed locally) or paste a hash. */}
+            <div className="grave-compose-toggle" role="tablist" aria-label={t("destroyAsset")}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={isWriteMode}
+                className={`grave-compose-tab${isWriteMode ? " active" : ""}`}
+                disabled={isDestroying}
+                onClick={() => dispatch("setComposeMode", "write")}
+              >
+                {t("composeModeWrite")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!isWriteMode}
+                className={`grave-compose-tab${!isWriteMode ? " active" : ""}`}
+                disabled={isDestroying}
+                onClick={() => dispatch("setComposeMode", "hash")}
+              >
+                {t("composeModeHash")}
+              </button>
+            </div>
+            {isWriteMode ? (
+              <>
+                <NeoInput
+                  type="textarea"
+                  value={memoryText}
+                  label={t("memoryTextLabel")}
+                  placeholder={t("memoryTextPlaceholder")}
+                  hint={t("memoryTextHint")}
+                  onChange={(val) => dispatch("setMemoryText", val)}
+                />
+                {trimmedAssetHash && (
+                  <p className="grave-local-hash" aria-label={t("hashFromMemory")}>
+                    <span className="grave-local-hash-label">{t("hashFromMemory")}</span>
+                    <code className="grave-local-hash-value">{hashPreview}</code>
+                  </p>
+                )}
+              </>
+            ) : (
+              <NeoInput
+                value={assetHash}
+                label={t("assetHash")}
+                placeholder={t("assetHashPlaceholder")}
+                hint={!hashError ? t("assetHashHint") : ""}
+                error={hashError}
+                onChange={(val) => state.assetHash?.set(val)}
+              />
+            )}
             <div className="grave-hash-actions">
               <NeoButton
                 variant="secondary"
                 size="sm"
-                disabled={!assetHash || isDestroying}
+                disabled={(!assetHash && !memoryText) || isDestroying}
                 onClick={() => {
-                  state.assetHash?.set("");
+                  if (isWriteMode) {
+                    void dispatch("setMemoryText", "");
+                  } else {
+                    state.assetHash?.set("");
+                  }
                   void dispatch("cancelDestroy");
                 }}
               >
@@ -177,9 +234,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   variant="secondary"
                   size="sm"
                   onClick={() => dispatch("cancelDestroy")}
-                  aria-label={t("cancel") || "Cancel"}
+                  aria-label={t("cancel")}
                 >
-                  {t("cancel") || "Cancel"}
+                  {t("cancel")}
                 </NeoButton>
               </div>
             )}
@@ -203,9 +260,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <HistoryTab
             history={historyItems}
             forgettingId={forgettingId || null}
+            forgetConfirmId={forgetConfirmId || null}
+            forgetFeeDisplay={forgetFeeDisplay}
+            epitaphDraftId={epitaphDraftId || null}
+            epitaphText={epitaphText}
+            epitaphSavingId={epitaphSavingId || null}
+            showAllHistory={showAllHistory}
+            historyTruncated={historyTruncated}
+            totalBuried={totalBuried}
             isLoading={isLoading}
             onRefresh={() => dispatch("refreshRecords")}
+            onRequestForget={(item: HistoryItem) => dispatch("requestForget", item)}
+            onCancelForget={() => dispatch("cancelForget")}
             onForget={(item: HistoryItem) => dispatch("forgetMemory", item)}
+            onStartEpitaph={(item: HistoryItem) => dispatch("startEpitaph", item)}
+            onCancelEpitaph={() => dispatch("cancelEpitaph")}
+            onEpitaphTextChange={(value: string) => dispatch("setEpitaphText", value)}
+            onSaveEpitaph={(item: HistoryItem) => dispatch("saveEpitaph", item)}
+            onToggleShowAll={(value: boolean) => dispatch("setShowAllHistory", value)}
             t={t}
           />
         </NeoCard>

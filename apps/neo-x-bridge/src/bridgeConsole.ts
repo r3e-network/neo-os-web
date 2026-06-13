@@ -32,15 +32,29 @@ export interface BridgeOperation {
   title: string;
   digest: string;
   createdAt: string;
+  /** English status label (fallback / non-localized contexts). */
   status: string;
+  /** i18n key for the status, translated at render time. */
+  statusKey: string;
   sourceTx?: string;
   payload: Record<string, unknown>;
 }
 
 export interface TimelineStep {
   key: string;
+  /** English step label (fallback). */
   label: string;
+  /** English step detail (fallback). */
   detail: string;
+  /** i18n key for the step label, translated at render time. */
+  labelKey: string;
+  /**
+   * i18n key for the step detail, translated at render with interpolation
+   * params (operation id, route, source tx, object noun) in {@link detailParams}.
+   */
+  detailKey: string;
+  /** Interpolation params for {@link detailKey} (e.g. {operation}, {route}). */
+  detailParams: Record<string, string>;
   state: TimelineState;
 }
 
@@ -208,6 +222,7 @@ export function buildAssetBridgeIntent(
     digest,
     createdAt,
     status: "Intent prepared",
+    statusKey: "statusIntentPrepared",
     payload,
   };
 
@@ -277,6 +292,7 @@ export function buildMessageBridgeIntent(
     digest,
     createdAt,
     status: "Message intent prepared",
+    statusKey: "statusMessageIntentPrepared",
     payload,
   };
 
@@ -299,41 +315,56 @@ export function buildStatusTimeline(form: StatusProbeForm): TimelineStep[] {
     {
       key: "intent",
       label: "Intent prepared",
+      labelKey: "tlIntentLabel",
       detail: operation
         ? `${operation} is ready for ${route}.`
         : `Prepare a ${object} intent from the operation panel.`,
+      detailKey: operation ? "tlIntentReady" : "tlIntentPending",
+      detailParams: { operation, route, object },
       state: operation ? "done" : "active",
     },
     {
       key: "source-submit",
       label: "Source transaction",
+      labelKey: "tlSourceLabel",
       detail: sourceTx
         ? `Source tx ${compactHash(sourceTx)} captured.`
         : "Waiting for the wallet-signed source-chain transaction.",
+      detailKey: sourceTx ? "tlSourceCaptured" : "tlSourceWaiting",
+      detailParams: { sourceTx: sourceTx ? compactHash(sourceTx) : "" },
       state: sourceTx ? "done" : operation ? "active" : "waiting",
     },
     {
       key: "bridge-observed",
       label: "Bridge observation",
+      labelKey: "tlObservationLabel",
       detail:
         kind === "message"
           ? "Relayer reconstructs the directional message hash chain."
           : "Relayer observes bridge events and reconstructs token hash-chain state.",
+      detailKey: kind === "message" ? "tlObservationMessage" : "tlObservationAsset",
+      detailParams: {},
       state: sourceTx ? "active" : "waiting",
     },
     {
       key: "attestation",
       label: "Validator attestation",
+      labelKey: "tlAttestationLabel",
       detail: "Validator threshold signatures authenticate the next root commitment.",
+      detailKey: "tlAttestationDetail",
+      detailParams: {},
       state: "waiting",
     },
     {
       key: "destination-finalized",
       label: "Destination finalized",
+      labelKey: "tlDestinationLabel",
       detail:
         kind === "message"
           ? "Destination contract receives the verified payload."
           : "Destination chain releases or mints the bridged GAS.",
+      detailKey: kind === "message" ? "tlDestinationMessage" : "tlDestinationAsset",
+      detailParams: {},
       state: "waiting",
     },
   ];

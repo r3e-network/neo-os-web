@@ -2,14 +2,9 @@ import "./ProofHero.scss";
 
 interface ProofHeroProps {
   t: (key: string, params?: Record<string, string | number>) => string;
-  totalProofs: number;
-  yourProofs: number;
-  latestId: string;
 }
 
-export default function ProofHero({ t, totalProofs, yourProofs, latestId }: ProofHeroProps) {
-  const hasProofs = totalProofs > 0;
-
+export default function ProofHero({ t }: ProofHeroProps) {
   return (
     <div className="hero-container">
       <div className="hero-head">
@@ -25,22 +20,6 @@ export default function ProofHero({ t, totalProofs, yourProofs, latestId }: Proo
           <p className="hero-subtitle">{t("docSubtitle")}</p>
         </div>
       </div>
-
-      {hasProofs && (
-        <div className="hero-facts">
-          <span className="hero-fact">
-            <strong>{totalProofs}</strong> {t("totalProofs")}
-          </span>
-          <span className="hero-fact-divider" aria-hidden="true">&middot;</span>
-          <span className="hero-fact">
-            <strong>{yourProofs}</strong> {t("yourProofs")}
-          </span>
-          <span className="hero-fact-divider" aria-hidden="true">&middot;</span>
-          <span className="hero-fact">
-            {t("latestId")} <strong className="hero-fact-mono">{latestId}</strong>
-          </span>
-        </div>
-      )}
     </div>
   );
 }

@@ -42,10 +42,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const myDeveloperId = num("myDeveloperId");
   const myClaimableBalance = num("myClaimableBalance");
 
+  const myCredit = num("myCredit");
+
   const [selectedDevId, setSelectedDevId] = useState<number | null>(null);
   const [tipAmount, setTipAmount] = useState("");
-  const [tipMessage, setTipMessage] = useState("");
-  const [tipperName, setTipperName] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const staleZeroTotalDisplay =
     totalDonated > 0 && /^0(?:[.,]0+)?(?:\s+GAS)?$/i.test(totalDonatedDisplay.trim());
@@ -63,27 +63,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       "sendTip",
       selectedDevId,
       tipAmount,
-      tipMessage,
-      tipperName,
       anonymous,
     )) as unknown as boolean;
     // dispatch resolves to the action's runtime result (true on success).
     // Clear the form on success to prevent an accidental duplicate tip.
     if (ok) {
       setTipAmount("");
-      setTipMessage("");
-      setTipperName("");
       setSelectedDevId(null);
     }
   };
 
-  const handleRegisterDeveloper = (name: string, role: string) => {
-    void dispatch("registerDeveloper", name, role);
-  };
+  const handleRegisterDeveloper = (name: string, role: string) =>
+    dispatch("registerDeveloper", name, role) as unknown as Promise<boolean>;
 
   const handleWithdrawTips = () => {
     if (myDeveloperId <= 0) return;
     void dispatch("withdrawTips", myDeveloperId);
+  };
+
+  const handleWithdrawCredit = () => {
+    if (myCredit <= 0) return;
+    void dispatch("withdrawCredit");
   };
 
   const [addressCopied, setAddressCopied] = useState(false);
@@ -106,25 +106,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <NeoCard variant="erobo" className="tipping-hero">
         <div className="tipping-hero__head">
           <span className="tipping-hero__badge">
-            <CategoryIcon name="social" size={40} title={t("title") || "Dev Tipping"} />
+            <CategoryIcon name="social" size={40} title={t("title")} />
           </span>
           <div className="tipping-hero__text">
-            <span className="tipping-hero__eyebrow">{t("subtitle") || "Support developers"}</span>
-            <h2 className="tipping-hero__title">{t("title") || "Dev Tipping"}</h2>
+            <span className="tipping-hero__eyebrow">{t("subtitle")}</span>
+            <h2 className="tipping-hero__title">{t("title")}</h2>
             <p className="tipping-hero__subtitle">{t("docSubtitle") || t("subtitle")}</p>
           </div>
           <div className="tipping-hero__stats">
             <div className="tipping-stat">
               <span className="tipping-stat-value">{developerCount || developers.length}</span>
-              <span className="tipping-stat-label">{t("developers") || "Developers"}</span>
+              <span className="tipping-stat-label">{t("developers")}</span>
             </div>
             <div className="tipping-stat">
               <span className="tipping-stat-value">{totalDonatedValue}</span>
-              <span className="tipping-stat-label">{t("totalDonated") || "Total Donated"}</span>
+              <span className="tipping-stat-label">{t("totalDonated")}</span>
             </div>
             <div className="tipping-stat">
               <span className="tipping-stat-value">{recentTipCount || recentTips.length}</span>
-              <span className="tipping-stat-label">{t("recentTips") || "Recent Tips"}</span>
+              <span className="tipping-stat-label">{t("recentTips")}</span>
             </div>
           </div>
         </div>
@@ -134,9 +134,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             type="button"
             className="wallet-row"
             onClick={handleCopyAddress}
-            aria-label={`${t("wallet") || "Wallet"} ${address}`}
+            aria-label={`${t("wallet")} ${address}`}
           >
-            <span className="wallet-label">{t("wallet") || "Wallet"}</span>
+            <span className="wallet-label">{t("wallet")}</span>
             <span className="wallet-value">
               <span>{address.slice(0, 8)}...{address.slice(-6)}</span>
               <span className="wallet-copy-hint" aria-hidden="true">{addressCopied ? "✓" : "⧉"}</span>
@@ -148,20 +148,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Two-column body: developer list (main) + tip form (side) */}
       <div className="tipping-body">
         <div className="tipping-col">
-          <h3 className="tipping-section-title">{t("topDevelopers") || "Top Developers"}</h3>
+          <h3 className="tipping-section-title">{t("topDevelopers")}</h3>
           {developers.length > 0 ? (
             <TipList developers={developers} formatNum={formatNum} onSelect={handleSelectDev} t={t} />
           ) : (
             <>
               <div className="tipping-empty">
-                <EmptyStateArt size={150} title={t("noDevelopers") || "No developers yet"} />
-                <span className="tipping-empty__title">{t("noDevelopers") || "No developers yet"}</span>
+                <EmptyStateArt size={150} title={t("noDevelopers")} />
+                <span className="tipping-empty__title">{t("noDevelopers")}</span>
                 <span className="tipping-empty__hint">{t("noDevelopersHint") || t("docSubtitle")}</span>
               </div>
 
               <details className="tipping-guide">
                 <summary className="tipping-guide__summary">
-                  <span>{t("howItWorks") || "How it works"}</span>
+                  <span>{t("howItWorks")}</span>
                   <span className="tipping-guide__chevron" aria-hidden="true">⌄</span>
                 </summary>
                 <ol className="tipping-guide__steps">
@@ -189,7 +189,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           {recentTips.length > 0 && (
             <details className="recent-tips">
               <summary className="recent-tips__summary">
-                <span>{t("recentTips") || "Recent Tips"}</span>
+                <span>{t("recentTips")}</span>
                 <span className="recent-tips__count">{recentTips.length}</span>
                 <span className="recent-tips__chevron" aria-hidden="true">⌄</span>
               </summary>
@@ -197,7 +197,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {recentTips.slice(0, 5).map((tip, idx) => (
                   <div key={idx} className="recent-tip-item">
                     <span className="recent-tip-from">
-                      {String(tip.tipperName || t("anonymousOn") || "Anonymous")}
+                      {String(tip.tipperName || t("anonymousOn"))}
                       {tip.to ? <span className="recent-tip-to"> → {String(tip.to)}</span> : null}
                     </span>
                     <span className="recent-tip-amount">{formatNum(Number(tip.amount || 0))} GAS</span>
@@ -209,27 +209,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
 
         <div className="tipping-col">
-          <h3 className="tipping-section-title">{t("sendTip") || "Send Tip"}</h3>
+          <h3 className="tipping-section-title">{t("sendTip")}</h3>
           <NeoCard variant="erobo">
             <TipForm
               developers={developers}
               selectedDevId={selectedDevId}
               amount={tipAmount}
-              message={tipMessage}
-              tipperName={tipperName}
               anonymous={anonymous}
               isLoading={isLoading}
               onSelectDev={(id: number | null) => setSelectedDevId(id)}
               onAmountChange={setTipAmount}
-              onMessageChange={setTipMessage}
-              onTipperNameChange={setTipperName}
               onAnonymousChange={setAnonymous}
               onSubmit={handleSendTip}
               t={t}
             />
           </NeoCard>
 
-          <h3 className="tipping-section-title">{t("developerZone") || "Developer Zone"}</h3>
+          <h3 className="tipping-section-title">{t("developerZone")}</h3>
           <NeoCard variant="erobo">
             <DeveloperPanel
               connected={Boolean(address)}
@@ -242,6 +238,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               formatNum={formatNum}
               t={t}
             />
+
+            {/* Exit path for stranded tip credit: a deposit that landed but
+                whose tip step failed persists as reusable prepaid credit. The
+                contract exposes withdraw(account) — surface it so the money-out
+                path the tipPrepaidNoTip copy promises actually exists. */}
+            {myCredit > 0 && (
+              <div className="tipping-credit-row">
+                <span className="tipping-credit-label">
+                  {t("unusedCredit")}: <strong>{formatNum(myCredit)} {t("tokenGas")}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="tipping-credit-withdraw"
+                  disabled={isWithdrawing}
+                  onClick={handleWithdrawCredit}
+                >
+                  {t("withdrawCredit")}
+                </button>
+              </div>
+            )}
           </NeoCard>
         </div>
       </div>

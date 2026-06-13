@@ -62,7 +62,10 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
   // ── Account Generator State ─────────────────────────────────────────
   const generatedAccount = createObservable<NeoAccount | null>(null);
   const accountsGenerated = createObservable(0);
-  const showSecrets = createObservable(false);
+  // Separate reveal flags so unmasking a generated WIF does not also unmask a
+  // private key sitting in the converter results (and vice versa).
+  const showGeneratedSecrets = createObservable(false);
+  const showConversionSecrets = createObservable(false);
 
   // ── Converter (delegates to existing useConverter) ──────────────────
   const converter = useConverter(t as (key: string) => string, clipboard);
@@ -72,6 +75,16 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
   const gasBalance = createObservable(0);
   const balancesLoading = createObservable(false);
   let balanceCleanups: Array<() => void> = [];
+
+  // Whether a wallet is connected — drives the hero tiles to show an em-dash
+  // (rather than misleading "0 NEO / 0 GAS" zeros that read as real balances)
+  // until a wallet is present. Mirrors chain.isConnected reactively.
+  const walletConnected = createObservable(Boolean(chain.address.get()));
+  const unsubscribeAddress = chain.address.subscribe(() => {
+    const connected = Boolean(chain.address.get());
+    walletConnected.set(connected);
+    if (connected) void loadBalances();
+  });
 
   // ── Formatted values for manifest stat/sidebar bindings ─────────────
   const deviceMode = createDerived(
@@ -99,6 +112,7 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     () =>
       converter.result.get().address !== "" ||
       converter.result.get().publicKey !== "" ||
+      converter.result.get().scriptHash !== "" ||
       converter.result.get().opcodes.length > 0,
     [converter.result],
   );
@@ -197,7 +211,7 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     try {
       generatedAccount.set(generateAccount());
       accountsGenerated.set(accountsGenerated.get() + 1);
-      showSecrets.set(false);
+      showGeneratedSecrets.set(false);
       eventBus.emit("convert:generated", { action: t("btnGenerate") });
     } catch (e) {
       eventBus.emit("convert:error", {
@@ -212,6 +226,9 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
    * Delegates to the existing useConverter composable.
    */
   const convertInput = () => {
+    // A new conversion starts masked so a freshly derived private key/WIF is not
+    // revealed by a reveal toggle left on from a previous conversion.
+    showConversionSecrets.set(false);
     converter.detectAndConvert();
 
     if (converter.statusType.get() === "success") {
@@ -228,8 +245,15 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
   /**
    * Toggle secret field visibility for the generated account.
    */
-  const toggleSecrets = () => {
-    showSecrets.set(!showSecrets.get());
+  const toggleGeneratedSecrets = () => {
+    showGeneratedSecrets.set(!showGeneratedSecrets.get());
+  };
+
+  /**
+   * Toggle secret field visibility for the converter results.
+   */
+  const toggleConversionSecrets = () => {
+    showConversionSecrets.set(!showConversionSecrets.get());
   };
 
   /**
@@ -267,6 +291,7 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
 
   const cleanup = () => {
     cleanupBalances();
+    unsubscribeAddress();
   };
 
   // ── Resize listener for mobile detection ────────────────────────────
@@ -294,7 +319,8 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     // ── Account Generator ───────────────────────────────────────────
     generatedAccount,
     accountsGenerated,
-    showSecrets,
+    showGeneratedSecrets,
+    showConversionSecrets,
     hasGeneratedAccount,
 
     // ── Converter (pass-through from useConverter) ───────────────────
@@ -309,6 +335,7 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     neoBalance,
     gasBalance,
     balancesLoading,
+    walletConnected,
 
     // ── Formatted values (for manifest stat/sidebar bindings) ────────
     deviceMode,
@@ -319,7 +346,8 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     // ── Actions ─────────────────────────────────────────────────────
     generateNewAccount,
     convertInput,
-    toggleSecrets,
+    toggleGeneratedSecrets,
+    toggleConversionSecrets,
     copyToClipboard,
     downloadPaperWallet,
     loadAll,

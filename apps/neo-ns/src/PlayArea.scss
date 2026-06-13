@@ -143,6 +143,16 @@
 
 .search-row > :first-child { flex: 1; }
 
+/* Off-screen native submit button: keeps Enter-to-search working without
+   adding a visible control (the visible action is the NeoButton). */
+.nns-visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .search-result {
   padding: 12px; border-radius: var(--ns-radius-xs, 8px);
   background: var(--ns-surface-subtle, #f7f8fa);
@@ -238,10 +248,29 @@
   display: flex; gap: 8px; flex-shrink: 0;
 }
 
+/* ── Renew confirmation (price disclosure before a paid tx) ── */
+.renew-confirm {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid var(--ns-border, #e4e7ef);
+}
+
+.renew-confirm__prompt {
+  font-size: 13px; line-height: 1.4;
+  color: var(--ns-ink, #1e1e2e);
+  font-variant-numeric: tabular-nums;
+}
+
+.renew-confirm__actions { display: flex; gap: 8px; flex-shrink: 0; }
+
 @media (max-width: 480px) {
   .domain-row { gap: 12px; }
   .domain-actions { width: 100%; }
   .domain-actions > * { flex: 1 1 0; }
+  .renew-confirm { width: 100%; }
+  .renew-confirm__actions { width: 100%; }
+  .renew-confirm__actions > * { flex: 1 1 0; }
 }
 
 /* ── Manage panel ── */

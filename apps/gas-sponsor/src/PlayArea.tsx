@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -17,6 +18,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const gasBalance = str("gasBalance", "0");
   const gasBalanceDisplay = str("gasBalanceDisplay", "0.0000");
+  const chainGasBalanceDisplay = str("chainGasBalanceDisplay", "0.0000");
+  // Defaults to available unless the state explicitly reports otherwise.
+  const serviceAvailable = state.serviceAvailable ? bool("serviceAvailable") : true;
+  const serviceNotice = str("serviceNotice");
   const isEligible = bool("isEligible");
   const fuelLevelPercent = num("fuelLevelPercent");
   const remainingQuota = num("remainingQuota");
@@ -26,7 +31,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const maxRequestAmount = num("maxRequestAmount", 0.1);
   const quickAmounts = (state.quickAmounts?.get() ?? [0.005, 0.01, 0.02, 0.05]) as number[];
   const loading = bool("loading");
-  const userAddress = str("userAddress");
   const usedQuota = num("usedQuota");
   const dailyLimit = num("dailyLimit");
   const quotaPercent = num("quotaPercent");
@@ -42,14 +46,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const sendAmountValid = bool("sendAmountValid");
   const canSend = bool("canSend");
   const tankLevelDisplay = str("tankLevelDisplay", "0%");
-  const eligibleDisplay = str("eligibleDisplay");
 
-  // Donate & Send move GAS the wallet already holds. For the app's target user
-  // (eligible, low-balance) these are "pay it forward" actions that only work
-  // once funded — frame and gate them so they don't fail at the chain.
+  // Track "touched" from real user interaction — never infer it from a
+  // pre-filled default value (which would open the form already showing an
+  // error for a wallet holding under the default amount).
+  const [donateTouched, setDonateTouched] = useState(false);
+  const [sendTouched, setSendTouched] = useState(false);
   const recipientTouched = recipientAddress.length > 0;
-  const donateTouched = donateAmount !== "0" && donateAmount !== "";
-  const sendTouched = sendAmount !== "0" && sendAmount !== "";
 
   // Field-level error copy, only shown once the user has typed something so the
   // forms don't open in an error state. Mirrors the composable's guards exactly.
@@ -90,9 +93,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
+      {/* Service-state notice — honest banner when the sponsorship API is down */}
+      {!serviceAvailable && serviceNotice && (
+        <div className="gas-service-notice" role="status">
+          <span className="gas-service-notice-title">{t("sponsorServiceTitle")}</span>
+          <span className="gas-service-notice-desc">{serviceNotice}</span>
+        </div>
+      )}
+
       {/* Primary action — request sponsored GAS */}
       <NeoCard title={t("requestGas")}>
         <RequestGasCard
+          serviceAvailable={serviceAvailable}
+          serviceNotice={serviceNotice}
           isEligible={isEligible}
           remainingQuota={remainingQuota}
           requestAmount={requestAmount}
@@ -103,21 +116,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           onRequest={() => dispatch("requestSponsorship", requestAmount)}
           t={t}
         />
-        <div className="quota-info">
-          <div className="quota-bar-container">
-            <div className="quota-bar" style={{ width: `${Math.min(quotaPercent, 100)}%` }} />
+        {serviceAvailable && (
+          <div className="quota-info">
+            <div className="quota-bar-container">
+              <div className="quota-bar" style={{ width: `${Math.min(quotaPercent, 100)}%` }} />
+            </div>
+            <div className="quota-details">
+              <span className="quota-text">
+                <span className="quota-text-label">{t("used")}</span>
+                <span className="quota-text-value">{usedQuota} / {dailyLimit}</span>
+              </span>
+              <span className="quota-reset">
+                <span className="quota-reset-label">{t("resetsAt")}</span>
+                <span className="quota-reset-value">{resetTime || "—"}</span>
+              </span>
+            </div>
           </div>
-          <div className="quota-details">
-            <span className="quota-text">
-              <span className="quota-text-label">{t("used")}</span>
-              <span className="quota-text-value">{usedQuota} / {dailyLimit}</span>
-            </span>
-            <span className="quota-reset">
-              <span className="quota-reset-label">{t("resetsAt")}</span>
-              <span className="quota-reset-value">{resetTime && resetTime !== "N/A" ? resetTime : "—"}</span>
-            </span>
-          </div>
-        </div>
+        )}
       </NeoCard>
 
       {/* Pay it forward — Donate & Send move GAS the wallet already holds, so
@@ -146,12 +161,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={donateAmount}
                 type="number"
                 min={0}
-                label={t("donateAmount") || "Amount"}
-                placeholder={t("donateAmountPlaceholder") || "0.00"}
+                label={t("donateAmount")}
+                placeholder={t("donateAmountPlaceholder")}
                 suffix={t("tokenGas")}
-                hint={t("balanceAvailable", { amount: gasBalanceDisplay })}
+                hint={t("balanceAvailable", { amount: chainGasBalanceDisplay })}
                 error={donateError}
-                onChange={(val) => state.donateAmount?.set(val)}
+                onChange={(val) => {
+                  setDonateTouched(true);
+                  state.donateAmount?.set(val);
+                }}
               />
               <NeoButton
                 variant="success"
@@ -172,7 +190,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <NeoInput
                 value={recipientAddress}
                 label={t("recipient")}
-                placeholder={t("recipientPlaceholder") || "N..."}
+                placeholder={t("recipientPlaceholder")}
                 error={recipientError}
                 onChange={(val) => state.recipientAddress?.set(val)}
               />
@@ -180,12 +198,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={sendAmount}
                 type="number"
                 min={0}
-                label={t("sendAmount") || "Amount"}
-                placeholder={t("sendAmountPlaceholder") || "0.00"}
+                label={t("sendAmount")}
+                placeholder={t("sendAmountPlaceholder")}
                 suffix={t("tokenGas")}
-                hint={t("balanceAvailable", { amount: gasBalanceDisplay })}
+                hint={t("balanceAvailable", { amount: chainGasBalanceDisplay })}
                 error={sendAmountError}
-                onChange={(val) => state.sendAmount?.set(val)}
+                onChange={(val) => {
+                  setSendTouched(true);
+                  state.sendAmount?.set(val);
+                }}
               />
               <NeoButton
                 variant="primary"

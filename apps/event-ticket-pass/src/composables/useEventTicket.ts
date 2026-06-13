@@ -44,7 +44,7 @@
 import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import { eventValue } from "@shared/utils/chain-events";
-import { addressToScriptHash } from "@shared/utils/neo";
+import { addressToScriptHash, parseHash160 } from "@shared/utils/neo";
 import { encodeTokenId, parseBigInt, parseBool, parseDateInput } from "@shared/utils/parsers";
 import type { EventItem, TicketItem } from "../types";
 
@@ -170,6 +170,11 @@ function mergeTicket(list: TicketItem[], ticket: TicketItem) {
   return [ticket, ...list.filter((item) => item.tokenId !== ticket.tokenId)];
 }
 
+// Bounds on the holdings reconstruction so it can never fan out into an
+// unbounded number of RPC reads on a large registry.
+const EVENT_SCAN_LIMIT = 200;
+const TICKET_SCAN_LIMIT = 500;
+
 export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
   const events = createObservable<EventItem[]>([]);
   const tickets = createObservable<TicketItem[]>([]);
@@ -191,6 +196,9 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
   const issueSeat = createObservable("General");
   const issueMemo = createObservable("Standard admission");
   const checkinTokenId = createObservable("");
+  // Holder-side transfer (gift) of a ticket pass to another wallet.
+  const transferTokenId = createObservable("");
+  const transferRecipient = createObservable("");
 
   const isLoading = createObservable(false);
   const isRefreshing = createObservable(false);
@@ -199,6 +207,8 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
   const isIssuing = createObservable(false);
   const isCheckingIn = createObservable(false);
   const isLookingUp = createObservable(false);
+  const isTransferring = createObservable(false);
+  const transferringTokenId = createObservable<string | null>(null);
   const togglingId = createObservable<string | null>(null);
 
   const eventsCount = createDerived(() => events.get().length, [events]);
@@ -218,6 +228,12 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
   const canCheckInTicket = createDerived(
     () => Boolean(checkinTokenId.get().trim()),
     [checkinTokenId],
+  );
+  const canTransferTicket = createDerived(
+    () =>
+      Boolean(transferTokenId.get().trim()) &&
+      Boolean(transferRecipient.get().trim()),
+    [transferTokenId, transferRecipient],
   );
 
   function currentAddress(): string {
@@ -301,6 +317,67 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
     }
   }
 
+  /**
+   * Token ids a wallet HOLDS, reconstructed without the NEP-11 iterator.
+   *
+   * tokensOf(owner) returns a session iterator (InteropInterface) and the public
+   * RPC has iterator traversal disabled, so it can never be enumerated from the
+   * browser — the old read returned [] for every attendee. Token ids are minted
+   * deterministically as "<eventId>-<serial>" with serial 1..minted, so the
+   * holdings can be reconstructed: walk every event's minted serials, build the
+   * token id, and keep the ones ownerOf resolves to this wallet (single-item
+   * reads, no iterator). An attendee may hold tickets for events they did not
+   * create, so the scan covers all events (totalEvents), not just the creator's.
+   */
+  async function loadOwnedTokenIds(ownerHash: string): Promise<string[]> {
+    // Short-circuit: an attendee with no ticket balance holds nothing to scan.
+    const rawBalance = await chain.read("balanceOf", [
+      { type: "Hash160", value: ownerHash },
+    ]);
+    const balance = Number(parseBigInt(rawBalance));
+    if (!Number.isFinite(balance) || balance <= 0) return [];
+
+    const totalEvents = Number(parseBigInt(await chain.read("totalEvents")));
+    const eventCount = Number.isFinite(totalEvents)
+      ? Math.min(totalEvents, EVENT_SCAN_LIMIT)
+      : 0;
+    if (eventCount <= 0) return [];
+
+    const eventIds = Array.from({ length: eventCount }, (_v, i) => i + 1);
+    const mintedCounts = await Promise.all(
+      eventIds.map(async (eventId) => {
+        const record = asRecord(
+          await chain
+            .read("getEventDetails", [{ type: "Integer", value: String(eventId) }])
+            .catch(() => null),
+        );
+        const minted = record ? Number(parseBigInt(record.minted)) : 0;
+        return { eventId, minted: Number.isFinite(minted) ? minted : 0 };
+      }),
+    );
+
+    const candidateTokenIds: string[] = [];
+    for (const { eventId, minted } of mintedCounts) {
+      for (let serial = 1; serial <= minted; serial += 1) {
+        candidateTokenIds.push(`${eventId}-${serial}`);
+        if (candidateTokenIds.length >= TICKET_SCAN_LIMIT) break;
+      }
+      if (candidateTokenIds.length >= TICKET_SCAN_LIMIT) break;
+    }
+
+    const ownedTokenIds: string[] = [];
+    for (const tokenId of candidateTokenIds) {
+      const rawOwner = await chain
+        .read("ownerOf", [{ type: "ByteArray", value: encodeTokenId(tokenId) }])
+        .catch(() => null);
+      if (parseHash160(rawOwner) === ownerHash) {
+        ownedTokenIds.push(tokenId);
+        if (ownedTokenIds.length >= balance) break;
+      }
+    }
+    return ownedTokenIds;
+  }
+
   async function refreshTickets(options: { quiet?: boolean } = {}) {
     if (isRefreshingTickets.get()) return tickets.get();
     const owner = currentAddress();
@@ -316,12 +393,7 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
     isRefreshingTickets.set(true);
     lastError.set("");
     try {
-      const rawTokens = await chain.read("tokensOf", [
-        { type: "Hash160", value: ownerHash },
-      ]);
-      const tokenIds = (Array.isArray(rawTokens) ? rawTokens : [])
-        .map(decodeTokenId)
-        .filter((tokenId) => tokenId.length > 0);
+      const tokenIds = await loadOwnedTokenIds(ownerHash);
       if (tokenIds.length === 0) {
         tickets.set([]);
         workflowStatus.set(t("ticketsLoaded"));
@@ -642,6 +714,81 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
     }
   }
 
+  /**
+   * Transfer (gift) a ticket pass to another wallet via the standard NEP-11
+   * transfer(to, tokenId, data). The contract resolves `from` from the token and
+   * checks the current owner's witness, so the connected wallet must hold the
+   * ticket; used tickets are rejected on-chain (and guarded here for a localized
+   * message). `data` is left null — the recipient's onNEP11Payment hook gets it.
+   */
+  async function transferTicket(input?: { tokenId?: string; recipient?: string }) {
+    if (isTransferring.get()) return null;
+    const tokenId = clean(input?.tokenId ?? transferTokenId.get());
+    const recipient = clean(input?.recipient ?? transferRecipient.get());
+    if (!tokenId) throw new Error(t("invalidTokenId"));
+    if (!recipient || !addressToScriptHash(recipient)) {
+      throw new Error(t("invalidRecipient"));
+    }
+    const held = tickets.get().find((item) => item.tokenId === tokenId);
+    if (held?.used) throw new Error(t("ticketAlreadyUsed"));
+
+    isTransferring.set(true);
+    transferringTokenId.set(tokenId);
+    lastError.set("");
+    try {
+      const holder = await ensureConnected();
+      if (!holder) throw new Error(t("walletNotConnected"));
+      const request = {
+        kind: "ticket_transfer",
+        method: "transfer",
+        from: holder,
+        recipient,
+        tokenId,
+      };
+      latestRequest.set(request);
+      const result = await chain.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: recipient },
+          { type: "ByteArray", value: encodeTokenId(tokenId) },
+          // NEP-11 `data` (Any) — an empty ByteArray; the recipient's
+          // onNEP11Payment hook receives it. No app-level payload is needed.
+          { type: "ByteArray", value: "" },
+        ],
+        { waitForEvent: "Transfer" },
+      );
+      latestResult.set({
+        kind: "ticket_transferred",
+        txid: txidFrom(result),
+        tokenId,
+        recipient,
+      });
+      // The ticket left this wallet — drop it from the holder's list optimistically.
+      tickets.set(tickets.get().filter((item) => item.tokenId !== tokenId));
+      transferTokenId.set("");
+      transferRecipient.set("");
+      workflowStatus.set(t("transferSuccess"));
+      eventBus.emit("event-ticket:transferred", { tokenId, recipient });
+      await refreshTickets({ quiet: true });
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("contractMissing");
+      lastError.set(message);
+      workflowStatus.set(message);
+      throw error;
+    } finally {
+      isTransferring.set(false);
+      transferringTokenId.set(null);
+    }
+  }
+
+  function startTransfer(ticket: unknown) {
+    const item = ticket as TicketItem;
+    if (!item?.tokenId) return;
+    transferTokenId.set(item.tokenId);
+    transferRecipient.set("");
+  }
+
   async function loadAll() {
     isLoading.set(true);
     try {
@@ -677,6 +824,8 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
     issueSeat,
     issueMemo,
     checkinTokenId,
+    transferTokenId,
+    transferRecipient,
     isLoading,
     isRefreshing,
     isRefreshingTickets,
@@ -684,12 +833,15 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
     isIssuing,
     isCheckingIn,
     isLookingUp,
+    isTransferring,
+    transferringTokenId,
     togglingId,
     eventsCount,
     ticketsCount,
     activeEventsCount,
     canIssueTicket,
     canCheckInTicket,
+    canTransferTicket,
     connectWallet,
     refreshEvents,
     refreshTickets,
@@ -700,6 +852,8 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
     toggleEvent,
     lookupTicket,
     checkInTicket,
+    transferTicket,
+    startTransfer,
     loadAll,
   };
 }

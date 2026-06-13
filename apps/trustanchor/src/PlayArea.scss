@@ -46,7 +46,13 @@ body { background: var(--anchor-bg, #ffffff); }
 }
 
 .anchor-stat-grid {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;
+  // Four stat chips: 2x2 by default avoids the orphan "3 + 1 lonely chip" row;
+  // widen to a single row only when there is room for all four.
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
+
+  @media (min-width: 860px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .stat-chip {
@@ -271,6 +277,60 @@ body { background: var(--anchor-bg, #ffffff); }
   opacity: 0.58;
   box-shadow: none;
   transform: none;
+}
+
+.anchor-action-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.anchor-recover-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+
+  &__copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ns-text-muted, #8a92a6);
+  }
+
+  strong {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ns-text-2, #5b6478);
+  }
+
+  .anchor-action-button {
+    flex: none;
+    width: auto;
+    padding-inline: 18px;
+  }
 }
 
 .anchor-status-strip {

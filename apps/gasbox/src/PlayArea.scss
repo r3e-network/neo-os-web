@@ -1017,6 +1017,97 @@
   flex: 0 0 auto;
 }
 
+.gasbox-play-credit {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 10px 14px;
+  border-radius: var(--ns-radius-md, 12px);
+  border: 1px solid var(--ns-brand-soft-border, #c7efe0);
+  background: var(--ns-brand-soft, #e4f8f0);
+
+  &__label {
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  &__value {
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 0.9375rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__hint {
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+}
+
+.gasbox-creator-controls {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid var(--ns-border, #e2e6ef);
+  background: var(--ns-surface-2, #f7f8fa);
+}
+
+.gasbox-creator-controls__head {
+  display: grid;
+  gap: 4px;
+}
+
+.gasbox-creator-controls__head .gasbox-eyebrow {
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.gasbox-creator-controls__head p {
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.gasbox-creator-controls__pool {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.8125rem;
+
+  span {
+    color: var(--ns-text-2, #5b6478);
+    font-weight: 600;
+  }
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.gasbox-creator-controls__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+
+  .gasbox-field {
+    flex: 1 1 auto;
+  }
+
+  .neo-btn {
+    flex: 0 0 auto;
+  }
+}
+
 .gasbox-studio-error {
   margin: 0;
   padding: 10px 12px;

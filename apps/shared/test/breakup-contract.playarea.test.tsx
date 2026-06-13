@@ -118,8 +118,13 @@ describe("Breakup Contract PlayArea", () => {
           contracts: [
             {
               id: 7,
-              party1: PARTNER,
-              party2: OTHER,
+              party1: OTHER,
+              party2: PARTNER,
+              // The connected wallet is the named partner (party2): only they can
+              // sign a pending pact. isCreator/isPartner are resolved by the
+              // composable (via ownerMatchesAddress) and consumed by ContractList.
+              isCreator: false,
+              isPartner: true,
               partner: OTHER,
               title: "Summer covenant",
               terms: "Shared expectations.",
@@ -128,6 +133,8 @@ describe("Breakup Contract PlayArea", () => {
               progress: 0,
               daysLeft: 90,
               status: "pending",
+              party1Signed: true,
+              party2Signed: false,
             },
           ],
           contractCount: 1,

@@ -354,7 +354,9 @@ $amber: #f59e0b;
 }
 
 .checkin-day-icon {
-  font-size: 21px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
@@ -768,7 +770,9 @@ $amber: #f59e0b;
 }
 
 .checkin-milestone-icon {
-  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
   color: $ns-text-faint;
   margin-bottom: 2px;

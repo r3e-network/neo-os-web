@@ -445,6 +445,57 @@ $tone-warning-soft: #fff3dd;
 .contract-actions {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Device-local terms notice on a partner's card: only the stake + duration are
+ * on-chain; the title/terms live on the creator's device. */
+.contract-device-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: $tone-warning-soft;
+  border: 1px solid rgba(185, 121, 26, 0.22);
+  color: #5d420d;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* ============================================================
+ *  Stranded stake-credit recovery card
+ * ============================================================ */
+
+.breakup-credit-card {
+  .breakup-credit-copy {
+    margin: 0 0 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: $ns-text-2;
+  }
+
+  .breakup-credit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    border-radius: var(--ns-radius-md, 14px);
+    background: $ac-soft;
+    border: 1px solid rgba(15, 177, 116, 0.22);
+  }
+
+  .breakup-credit-amount {
+    font-size: 14px;
+    color: $ns-text-2;
+
+    strong {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: $ac-strong;
+    }
+  }
 }
 
 /* ============================================================

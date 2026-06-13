@@ -10,6 +10,12 @@ const CONTRACT = "0x87f94598c78cb954ca8200d3964ded9b584d7250";
 // GAS base-unit multiplier (1 GAS = 1e8 base units).
 const GAS = 100_000_000n;
 
+// Default lending-pool liquidity for tests that don't care about the pool
+// preflight: large enough to cover every borrow case here (max disbursement is
+// 10 NEO × 5 GAS × 40% ≈ 20 GAS net), so the pool gate never trips unless a
+// test deliberately sets a smaller `pool`.
+const DEFAULT_POOL = 1_000n * GAS;
+
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     enterValidAmount: "Enter a valid amount",
@@ -22,6 +28,7 @@ function t(key: string, params?: Record<string, string | number>) {
     collateralCreditExceedsAmount: `You have ${params?.credit ?? ""} NEO of existing collateral credit and the contract locks ALL of it — more than the ${params?.amount ?? ""} NEO you entered`,
     noCollateralCredit: "No collateral credit to reclaim",
     noRepayCredit: "No repay credit to reclaim",
+    insufficientPool: `Pool can't cover this borrow — only ${params?.pool ?? ""} GAS available. Try a lower amount or LTV tier.`,
     walletStatusIdle: "Wallet not connected",
     missingContract: "Contract not configured",
     notAvailable: "N/A",
@@ -45,6 +52,7 @@ function t(key: string, params?: Record<string, string | number>) {
 /** Reads the contract emulates. Values are RAW on-chain forms (NEO integer / GAS base units). */
 interface ChainState {
   neoPrice?: bigint; // GAS base units per 1 NEO (0 / undefined = unset)
+  pool?: bigint; // GAS base units available to disburse (undefined = use DEFAULT_POOL)
   neoBalance?: bigint; // WHOLE NEO (integer)
   loan?: {
     collateral: bigint; // WHOLE NEO
@@ -75,6 +83,8 @@ function makeChain(state: ChainState = {}) {
         return 50n;
       case "neoPrice":
         return state.neoPrice ?? 0n;
+      case "pool":
+        return state.pool ?? DEFAULT_POOL;
       case "balanceOf":
         return state.neoBalance ?? 0n;
       case "getLoan": {
@@ -282,6 +292,25 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
     await expect(app.takeLoan()).rejects.toThrow(
       /12 NEO of existing collateral credit/,
     );
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("blocks the borrow before any deposit when the GAS pool can't cover the disbursement", async () => {
+    // price 5 GAS/NEO, tier 2 (30% LTV), 0.5% fee. 10 NEO → gross 15 GAS,
+    // net 14.925 GAS. Pool only 5 GAS → the preflight must reject up front and
+    // keep the NEO out of the credit-held detour (pool() is a Safe ABS method).
+    const { chain, invoke } = makeChain({
+      neoPrice: 5n * GAS,
+      neoBalance: 100n,
+      pool: 5n * GAS,
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    app.selectedTier.set(2);
+    app.collateralAmount.set("10");
+    await expect(app.takeLoan()).rejects.toThrow(/Pool can't cover this borrow/);
     expect(invoke).not.toHaveBeenCalled();
   });
 });

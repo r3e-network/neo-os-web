@@ -91,8 +91,32 @@ const appMessages = {
   statusSubmitted: { en: "Roll submitted", zh: "掷骰已提交" },
   statusFailed: { en: "Roll failed", zh: "掷骰失败" },
   statusFundsRecoverable: {
-    en: "Stake sent but the roll did not settle. Your GAS is locked and refundable via the contract.",
-    zh: "筹码已发送但掷骰未结算。你的 GAS 已锁定，可通过合约退款找回。",
+    en: "Stake sent but the roll did not settle. Your GAS is held as game credit and automatically funds your next roll.",
+    zh: "筹码已发送但掷骰未结算。你的 GAS 已保留为游戏余额，下次掷骰会自动使用。",
+  },
+  statusStakeOverLiquidity: {
+    en: "The house can currently pay a win on up to {max} {tokenGas}. Lower your stake to within that cap.",
+    zh: "庄家当前最多可为 {max} {tokenGas} 的下注赔付。请将下注降到该上限以内。",
+  },
+  statusStakeClamped: {
+    en: "Stake exceeds the {cap} GAS cap on {network}. Lower your stake and roll again.",
+    zh: "下注超过 {network} 上的 {cap} GAS 上限。请降低下注后重新掷骰。",
+  },
+  statusNeoXMainnetOnly: {
+    en: "Neo X dice is live on mainnet only. Switch to Neo X Mainnet or use Neo N3 for testnet play.",
+    zh: "Neo X 掷骰仅在主网开放。请切换到 Neo X 主网，或使用 Neo N3 进行测试网游玩。",
+  },
+  statusNeoXNoCredit: {
+    en: "Funding game credit is a Neo N3 feature. On Neo X each roll is paid atomically.",
+    zh: "充值游戏余额是 Neo N3 的功能。在 Neo X 上每次掷骰会原子化支付。",
+  },
+  statusCreditFunded: { en: "Game credit funded.", zh: "游戏余额已充值。" },
+  houseLiquidityLabel: { en: "House liquidity", zh: "庄家流动性" },
+  maxPayableLabel: { en: "Max payable stake", zh: "最大可赔下注" },
+  directCreditLabel: { en: "Game credit", zh: "游戏余额" },
+  directCreditBanner: {
+    en: "You have {amount} {tokenGas} game credit — it funds your next roll automatically.",
+    zh: "你有 {amount} {tokenGas} 游戏余额 — 下次掷骰会自动使用。",
   },
   statusRolling: { en: "Rolling — oracle is settling your bet…", zh: "掷骰中——预言机正在结算…" },
   statusWon: { en: "You won! 🎉", zh: "你赢了！🎉" },

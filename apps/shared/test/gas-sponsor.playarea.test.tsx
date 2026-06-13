@@ -56,6 +56,9 @@ function t(key: string, params?: Record<string, string | number>) {
     sendAction: "Send",
     sendAmountInvalid: "Enter an amount up to your balance",
     invalidAddress: "Invalid address",
+    sponsorServiceTitle: "Sponsorship unavailable",
+    sponsorServiceUnavailable: "The sponsorship service is temporarily unavailable.",
+    notAvailable: "Unavailable",
   };
   return messages[key] ?? key;
 }
@@ -67,6 +70,9 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
   const values: Record<string, unknown> = {
     gasBalance: "0",
     gasBalanceDisplay: "0",
+    chainGasBalanceDisplay: "0.0000",
+    serviceAvailable: true,
+    serviceNotice: "",
     isEligible: true,
     fuelLevelPercent: 0,
     remainingQuota: 0.1,
@@ -116,7 +122,7 @@ describe("Gas Sponsor PlayArea — pay-it-forward gating", () => {
     render(
       <PlayArea
         t={t}
-        state={state({ isFunded: true, gasBalance: "1.5", gasBalanceDisplay: "1.5", isEligible: false })}
+        state={state({ isFunded: true, chainGasBalanceDisplay: "1.5000", isEligible: false })}
         dispatch={vi.fn(async () => undefined)}
       />,
     );
@@ -124,8 +130,8 @@ describe("Gas Sponsor PlayArea — pay-it-forward gating", () => {
     expect(screen.getByRole("button", { name: "Donate" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Send" })).toBeTruthy();
     expect(screen.getByLabelText("Recipient Address")).toBeTruthy();
-    // Balance-aware helper hint surfaces the spendable amount.
-    expect(screen.getAllByText("Available: 1.5 GAS").length).toBeGreaterThan(0);
+    // Balance-aware helper hint surfaces the spendable CHAIN balance.
+    expect(screen.getAllByText("Available: 1.5000 GAS").length).toBeGreaterThan(0);
   });
 
   it("disables Donate until the amount is valid and dispatches when it is", async () => {
@@ -190,13 +196,13 @@ describe("Gas Sponsor PlayArea — pay-it-forward gating", () => {
     });
   });
 
-  it("surfaces inline field errors instead of letting a bad transfer reach the chain", () => {
+  it("surfaces inline field errors only after the user interacts (no error on open)", () => {
     render(
       <PlayArea
         t={t}
         state={state({
           isFunded: true,
-          gasBalance: "1",
+          chainGasBalanceDisplay: "1.0000",
           donateAmount: "5",
           donateAmountValid: false,
           recipientAddress: "not-a-real-address",
@@ -206,10 +212,39 @@ describe("Gas Sponsor PlayArea — pay-it-forward gating", () => {
       />,
     );
 
-    // Over-balance donate amount → inline error (role=alert from NeoInput).
+    // The donate field opens with the over-balance default but NO error, because
+    // the user has not touched it yet (touched is tracked from onChange).
+    expect(screen.queryByText("Enter an amount up to your balance")).toBeNull();
+
+    // Once the user edits the donate amount, the inline error appears.
+    const donateInput = screen.getByLabelText("Donation Amount");
+    fireEvent.change(donateInput, { target: { value: "9" } });
     expect(screen.getByText("Enter an amount up to your balance")).toBeTruthy();
-    // Malformed recipient → inline invalid-address error.
+
+    // The recipient error keys off the typed (non-empty) recipient value.
     expect(screen.getByText("Invalid address")).toBeTruthy();
+  });
+
+  it("renders the honest service-unavailable state when the sponsorship API is down", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          serviceAvailable: false,
+          serviceNotice: "The sponsorship service is temporarily unavailable.",
+          isEligible: false,
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    // The banner and the in-card message both state the real reason.
+    expect(screen.getAllByText("Sponsorship unavailable").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("The sponsorship service is temporarily unavailable.").length,
+    ).toBeGreaterThan(0);
+    // The misleading "balance exceeds 0.1 GAS" not-eligible copy is NOT shown.
+    expect(screen.queryByText("Your GAS balance exceeds 0.1 GAS.")).toBeNull();
   });
 
   it("still dispatches the primary requestSponsorship flow for eligible users", async () => {

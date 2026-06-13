@@ -55,6 +55,8 @@ export function useAASessionKeyLab({
   const integration = getExternalIntegrationConfig(network);
   const aaCore = integration.contracts.aaCore;
 
+  const sessionVerifier = integration.contracts.aaSessionKeyVerifier || "";
+
   // Form state (plain object, mutations happen through actions)
   const form = {
     accountSeed: "",
@@ -62,6 +64,8 @@ export function useAASessionKeyLab({
     targetContract: "",
     allowedMethod: DEFAULT_SESSION_ALLOWED_METHOD,
     expiresAt: getDefaultSessionExpiryTimestamp(),
+    spendingLimit: "0",
+    description: "",
     dappId: DEFAULT_SESSION_DAPP_ID,
     sponsorAmount: DEFAULT_SESSION_SPONSOR_AMOUNT,
   };
@@ -70,6 +74,10 @@ export function useAASessionKeyLab({
   const generatedPrivateKey = createObservable("");
   const lastConfigured = createObservable<SessionConfiguration | null>(null);
   const isSubmitting = createObservable(false);
+  const isRevoking = createObservable(false);
+  // The on-chain session key read back from the verifier (or null when none).
+  const onChainSession = createObservable<string | null>(null);
+  const hasOnChainSession = createObservable(false);
 
   // Helpers
   function normalizeHashOrAddress(value: string): string {
@@ -323,6 +331,79 @@ export function useAASessionKeyLab({
     }
   }
 
+  // Mainnet SessionKeyVerifier.setSessionKey takes 7 params (adds
+  // spendingLimit:Integer, description:String); testnet still has the 5-param
+  // signature. The contracts are frozen, so branch on the active network to
+  // forward the right arity — a 5-arg call on mainnet arity-mismatches and
+  // faults after the user signs.
+  function buildSessionKeyArgs(params: {
+    accountIdHash: string;
+    publicKey: string;
+    targetContract: string;
+    allowedMethod: string;
+    expiresAt: number;
+    spendingLimit: string;
+    description: string;
+  }) {
+    const base = [
+      { type: "Hash160", value: `0x${params.accountIdHash}` },
+      { type: "ByteArray", value: params.publicKey },
+      { type: "Hash160", value: params.targetContract },
+      { type: "String", value: params.allowedMethod },
+      { type: "Integer", value: String(params.expiresAt) },
+    ];
+    if (network === "mainnet") {
+      base.push({ type: "Integer", value: params.spendingLimit });
+      base.push({ type: "String", value: params.description });
+    }
+    return base;
+  }
+
+  // GAS spending limit as a base-unit integer string (0 = unlimited). Rejects
+  // non-numeric / negative input before it reaches the contract.
+  function normalizeSpendingLimit(value: string): string {
+    const trimmed = String(value || "").trim();
+    if (!trimmed) return "0";
+    if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+      throw new Error(t("invalidSpendingLimit"));
+    }
+    const [whole, frac = ""] = trimmed.split(".");
+    const padded = (frac + "00000000").slice(0, 8);
+    const base = `${whole}${padded}`.replace(/^0+(?=\d)/, "");
+    return base || "0";
+  }
+
+  function txidOf(result: { txid?: string; tx?: string } | null | undefined): string {
+    return String(result?.txid || result?.tx || "");
+  }
+
+  // Poll the verifier for the configured key so "Configured" reflects on-chain
+  // truth, not just a broadcast txid. A matching pubKey read means the tx
+  // HALTed and the verifier stored the key; otherwise leave the prior state.
+  async function confirmSessionKey(accountIdHash: string, publicKey: string): Promise<boolean> {
+    if (!sessionVerifier) return false;
+    const accountId = `0x${accountIdHash}`;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 4000 : 5000));
+      try {
+        const read = await chain.read(
+          "getSessionKey",
+          [{ type: "Hash160", value: accountId }],
+          { scriptHash: sessionVerifier },
+        );
+        const text = JSON.stringify(read ?? "").toLowerCase();
+        if (text.includes(publicKey.toLowerCase())) {
+          onChainSession.set(JSON.stringify(read));
+          hasOnChainSession.set(true);
+          return true;
+        }
+      } catch {
+        // RPC lag — keep retrying within the attempt budget.
+      }
+    }
+    return false;
+  }
+
   async function configureSessionKey() {
     try {
       isSubmitting.set(true);
@@ -333,6 +414,7 @@ export function useAASessionKeyLab({
       const targetContract = normalizeHashOrAddress(form.targetContract);
       const allowedMethod = normalizedAllowedMethod.get();
       const expiresAt = normalizeExpiry(form.expiresAt);
+      const spendingLimit = normalizeSpendingLimit(form.spendingLimit);
 
       const result = await invokeContract({
         scriptHash: aaCore,
@@ -342,19 +424,30 @@ export function useAASessionKeyLab({
           { type: "String", value: "setSessionKey" },
           {
             type: "Array",
-            value: [
-              { type: "Hash160", value: `0x${accountIdHash}` },
-              { type: "ByteArray", value: publicKey },
-              { type: "Hash160", value: targetContract },
-              { type: "String", value: allowedMethod },
-              { type: "Integer", value: String(expiresAt) },
-            ],
+            value: buildSessionKeyArgs({
+              accountIdHash,
+              publicKey,
+              targetContract,
+              allowedMethod,
+              expiresAt,
+              spendingLimit,
+              description: form.description.trim(),
+            }),
           },
         ],
       });
 
+      // Confirm on-chain before flipping to "Configured" so a faulted mainnet
+      // arity mismatch no longer shows a green success for a key that does not
+      // exist. Only set lastConfigured (which drives the green status) once the
+      // verifier actually reports the key.
+      const confirmed = await confirmSessionKey(accountIdHash, publicKey);
+      if (!confirmed) {
+        throw new Error(t("sessionNotConfirmed"));
+      }
+
       lastConfigured.set({
-        txid: String(result.txid || result.tx || ""),
+        txid: txidOf(result),
         accountIdHash: `0x${accountIdHash}`,
         publicKey,
         targetContract,
@@ -372,6 +465,60 @@ export function useAASessionKeyLab({
     }
   }
 
+  // Read the active session key directly from the verifier (key/target/method/
+  // expiry/spent) — the security-critical "what did I delegate?" view.
+  async function inspectSessionKey() {
+    if (!sessionVerifier) throw new Error(t("sessionVerifierMissing"));
+    const accountIdHash = deriveAAAccountIdHash(form.accountSeed);
+    const accountId = `0x${accountIdHash}`;
+    const read = await chain.read(
+      "getSessionKey",
+      [{ type: "Hash160", value: accountId }],
+      { scriptHash: sessionVerifier },
+    );
+    const present =
+      read !== null &&
+      read !== undefined &&
+      read !== "" &&
+      !(Array.isArray(read) && read.length === 0);
+    onChainSession.set(present ? JSON.stringify(read) : null);
+    hasOnChainSession.set(present);
+    eventBus.emit("session:inspected", { present });
+  }
+
+  // Revoke the delegated session key — the permission-out path the verifier
+  // exposes (clearSessionKey) but the app previously never wired.
+  async function revokeSessionKey() {
+    try {
+      isRevoking.set(true);
+      if (!address.value) await connect();
+      const accountIdHash = deriveAAAccountIdHash(form.accountSeed);
+      await invokeContract({
+        scriptHash: aaCore,
+        operation: "callVerifier",
+        args: [
+          { type: "Hash160", value: `0x${accountIdHash}` },
+          { type: "String", value: "clearSessionKey" },
+          {
+            type: "Array",
+            value: [{ type: "Hash160", value: `0x${accountIdHash}` }],
+          },
+        ],
+      });
+      onChainSession.set(null);
+      hasOnChainSession.set(false);
+      lastConfigured.set(null);
+      eventBus.emit("session:revoked", {});
+    } catch (error: unknown) {
+      eventBus.emit("session:error", {
+        message: formatErrorMessage(error, t("sessionRevokeFailed")),
+      });
+      throw error;
+    } finally {
+      isRevoking.set(false);
+    }
+  }
+
   const loadAll = async () => {};
 
   return {
@@ -379,6 +526,9 @@ export function useAASessionKeyLab({
     generatedPrivateKey,
     lastConfigured,
     isSubmitting,
+    isRevoking,
+    onChainSession,
+    hasOnChainSession,
     sponsorState,
     derivedAccountIdHash,
     normalizedAllowedMethod,
@@ -396,6 +546,8 @@ export function useAASessionKeyLab({
     checkSponsor,
     requestSponsor,
     configureSessionKey,
+    inspectSessionKey,
+    revokeSessionKey,
     loadAll,
   };
 }

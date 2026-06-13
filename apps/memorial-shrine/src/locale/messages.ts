@@ -57,6 +57,10 @@ const appMessages = {
   receiptId: { en: "Payment receipt ID", zh: "支付收据 ID" },
   receiptIdPlaceholder: { en: "Required for mainnet tribute", zh: "主网祭拜必填" },
   receiptIdRequired: { en: "Mainnet tribute requires a payment receipt ID.", zh: "主网祭拜需要支付收据 ID。" },
+  mainnetTributeNote: {
+    en: "On mainnet, the offering payment and tribute call are batched by the host's operation panel, which fills the receipt ID for you. Pay tribute from there, or paste a receipt ID below.",
+    zh: "在主网上，祭品付款与祭拜调用由主程序的操作面板合并提交，并自动填入收据 ID。请从操作面板祭拜，或在下方粘贴收据 ID。",
+  },
   // Form
   createTitle: { en: "Create a Memorial", zh: "为逝去的亲人立灵位" },
   createDesc: { en: "Memorial will be permanently stored on blockchain", zh: "灵位将永久保存于区块链之上" },

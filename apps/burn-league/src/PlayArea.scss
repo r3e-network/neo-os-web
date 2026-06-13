@@ -299,6 +299,43 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
   color: var(--ns-text-muted, #8a92a6);
 }
 
+/* ── Recovery Card (withdraw unused prepaid burn-credit) ── */
+.burn-league-recovery-card {
+  width: 100%;
+}
+
+.burn-league-recovery-card__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.burn-league-recovery-card__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.burn-league-recovery-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ns-text, #2a2d3d);
+}
+
+.burn-league-recovery-card__text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+@media (max-width: 560px) {
+  .burn-league-recovery-card__body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 /* ── Action Card ── */
 .burn-league-action-card {
   width: 100%;

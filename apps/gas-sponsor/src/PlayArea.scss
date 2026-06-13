@@ -366,6 +366,30 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   color: var(--ns-text-muted, #8a92a6);
 }
 
+/* ── Service-state notice (sponsorship API down/unset) ── */
+.gas-service-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-warning-soft, #fff3dd);
+  color: var(--ns-warning, #b9791a);
+}
+
+.gas-service-notice-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.gas-service-notice-desc {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 /* ── Quota info (compact strip below the request form) ── */
 .quota-info {
   display: flex;

@@ -7,8 +7,11 @@
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
+import { fetchOwnedDomains, ownerValueToAddress } from "./nnsRpc";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
+/** A registered .neo domain's lifetime: the NNS contract issues a 1-year term. */
+const REGISTRATION_TERM_MS = 365 * 24 * 60 * 60 * 1000;
 const NNS_RECORD_TYPE_ADDRESS = 16;
 const EXPIRY_WARNING_MS = 30 * 24 * 60 * 60 * 1000;
 const SEARCH_DEBOUNCE_MS = 500;
@@ -73,13 +76,6 @@ function domainToTokenId(name: string): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
-function tokenIdToName(tokenId: string): string {
-  try {
-    const bytes = Uint8Array.from(atob(tokenId), (c) => c.charCodeAt(0));
-    return new TextDecoder().decode(bytes);
-  } catch { return tokenId; }
-}
-
 export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOptions) {
   const contractHash = nnsContractHash ?? NNS_CONTRACT_HASH;
   const readOpts = { scriptHash: contractHash };
@@ -124,34 +120,17 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     const addr = chain.address.get();
     if (!addr) { myDomains.set([]); return; }
     try {
-      const tokensRaw = await chain.read("tokensOf", [{ type: "Hash160", value: addr }], readOpts);
-      const tokens = Array.isArray(tokensRaw) ? tokensRaw : [];
-      if (tokens.length === 0) { myDomains.set([]); return; }
-
-      const domains: Domain[] = [];
-      for (const tokenId of tokens) {
-        try {
-          const props = await chain.read("properties", [{ type: "ByteArray", value: String(tokenId) }], readOpts) as Record<string, unknown> | null;
-          if (props) {
-            const name = tokenIdToName(String(tokenId)) || String(props.name || tokenId);
-            let target = props.target ? String(props.target) : undefined;
-            try {
-              const resolvedTarget = await chain.read("resolve", [
-                { type: "String", value: name },
-                { type: "Integer", value: String(NNS_RECORD_TYPE_ADDRESS) },
-              ], readOpts);
-              if (resolvedTarget) target = String(resolvedTarget);
-            } catch { /* address record can be unset */ }
-            domains.push({
-              name, owner: addr,
-              expiry: normalizeExpiryMs(props.expiration),
-              target,
-            });
-          }
-        } catch (e) {
-          console.warn(`[useNeoNS] Failed to fetch properties for token ${tokenId}:`, e instanceof Error ? e.message : String(e));
-        }
-      }
+      // `tokensOf` returns a session IIterator the wallet/host bridge cannot
+      // traverse, so the owned token ids come from the allowlisted
+      // `getnep11balances` RPC method instead (see nnsRpc.fetchOwnedDomains).
+      const network = await chain.detectNetwork();
+      const owned = await fetchOwnedDomains(addr, network, contractHash);
+      const domains: Domain[] = owned.map((d) => ({
+        name: d.name,
+        owner: addr,
+        expiry: normalizeExpiryMs(d.expiration),
+        target: d.target,
+      }));
       myDomains.set(domains.sort((a, b) => b.expiry - a.expiry));
     } catch (e) {
       error.set(e instanceof Error ? e.message : t("error"));
@@ -178,7 +157,9 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
         try {
           const tokenId = domainToTokenId(baseName);
           const ownerRaw = await chain.read("ownerOf", [{ type: "ByteArray", value: tokenId }], readOpts);
-          if (ownerRaw) owner = String(ownerRaw);
+          // ownerOf arrives as a little-endian Hash160 (e.g. "0xfda64993…");
+          // render the wallet-format N-address rather than the raw byte hex.
+          if (ownerRaw) owner = ownerValueToAddress(ownerRaw) || String(ownerRaw);
         } catch { /* owner lookup can fail */ }
         searchResult.set({ name: fullName, available: false, owner });
       }
@@ -226,6 +207,18 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
         searchQuery.set("");
         searchResult.set(null);
         registrationCost.set(0);
+        // Optimistically surface the just-registered domain so the success
+        // toast is never contradicted by an empty "My Domains" list while the
+        // indexer catches up; the subsequent loadMyDomains reconciles it.
+        const optimistic: Domain = {
+          name: fullName,
+          owner: chain.address.get() as string,
+          expiry: Date.now() + REGISTRATION_TERM_MS,
+        };
+        const existing = myDomains.get();
+        if (!existing.some((d) => d.name === fullName)) {
+          myDomains.set([optimistic, ...existing]);
+        }
         await loadMyDomains();
       }
     } catch (e) {
@@ -282,6 +275,17 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     } finally { isLoading.set(false); }
   };
 
+  /**
+   * Read the renewal price (in GAS) for a domain. Renewal costs the same
+   * length-based `getPrice` as registration, so the UI can disclose the cost
+   * and let the user confirm before the paid wallet tx fires.
+   */
+  const getRenewPrice = async (domain: Domain): Promise<number> => {
+    const baseName = domain.name.replace(/\.neo$/, "");
+    const priceRaw = await chain.read("getPrice", [{ type: "Integer", value: baseName.length }], readOpts);
+    return Number(priceRaw || 0) / 1e8;
+  };
+
   const renewDomain = async (domain: Domain) => {
     if (!domain) return;
     isLoading.set(true);
@@ -315,6 +319,6 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     myDomains, isLoading, error, searchQuery, searchResult, isSearching,
     registrationCost, managingDomain, domainCount, walletStatus, expiringSoon,
     loadMyDomains, loadAll, searchDomain, registerDomain, setRecord,
-    transferDomain, renewDomain, showManage, cancelManage, cleanup,
+    transferDomain, renewDomain, getRenewPrice, showManage, cancelManage, cleanup,
   };
 }

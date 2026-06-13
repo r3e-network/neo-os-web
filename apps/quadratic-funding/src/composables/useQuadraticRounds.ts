@@ -1,20 +1,28 @@
 import { createObservable, createDerived, refToObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
+import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import {
+  useContractInteraction,
+  waitForDepositConfirmation,
+  DepositConfirmedActionFailedError,
+} from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { parseBigInt, parseDateInput } from "@shared/utils/parsers";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
+import { extractTxid } from "@shared/utils/transaction";
+import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS, resolveNeoNetwork } from "@shared/constants";
+import type { Network } from "@shared/utils/n3index";
 import type { RoundItem } from "../pages/index/components/RoundList";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
+const APP_ID = "miniapp-quadratic-funding";
 
 export function useQuadraticRounds() {
   const { t } = createUseI18n(messages)();
@@ -37,35 +45,122 @@ export function useQuadraticRounds() {
   const isAddingMatching = createObservable(false);
   const isFinalizing = createObservable(false);
   const isClaimingUnused = createObservable(false);
+  const isCancelling = createObservable(false);
+  // Display-order 0x hex of the platform admin (the only address the deployed
+  // contract authorizes for FinalizeRound — see Methods.cs CheckWitness(Admin)).
+  const adminHash = createObservable<string>("");
   const sm = useStatusMessage();
   const status = refToObservable(sm.status);
   const { setStatus } = sm;
 
   const selectedRound = createDerived(() => rounds.get().find((round) => round.id === selectedRoundId.get()) || null, []);
 
-  const canManageSelectedRound = createDerived(() => {
-    if (!selectedRound.get() || !address.get()) return false;
-    return (
-      selectedRound.get().creator === address.get() && !selectedRound.get().cancelled && !selectedRound.get().finalized
-    );
+  // Round.creator arrives as a display-order 0x script hash (parseRound
+  // normalizes it via parseHash160); ownerMatchesAddress converts the connected
+  // base58 wallet address to the same form before comparing — the previous
+  // hex-vs-base58 === check was always false, disabling every owner control.
+  const isSelectedRoundCreator = createDerived(() => {
+    const round = selectedRound.get();
+    return Boolean(round && ownerMatchesAddress(round.creator, address.get()));
   }, []);
 
+  const isAdmin = createDerived(() => {
+    const admin = adminHash.get();
+    return Boolean(admin && ownerMatchesAddress(admin, address.get()));
+  }, []);
+
+  const canManageSelectedRound = createDerived(() => {
+    const round = selectedRound.get();
+    if (!round || !isSelectedRoundCreator.get()) return false;
+    return !round.cancelled && !round.finalized;
+  }, []);
+
+  // FinalizeRound is restricted to the platform admin (or gateway) on-chain, not
+  // the round creator — gate the button on admin identity so it never lands an
+  // "unauthorized" revert.
   const canFinalizeSelectedRound = createDerived(() => {
-    if (!selectedRound.get() || !address.get()) return false;
-    return (
-      selectedRound.get().creator === address.get() && !selectedRound.get().cancelled && !selectedRound.get().finalized
-    );
+    const round = selectedRound.get();
+    if (!round || !isAdmin.get()) return false;
+    return !round.cancelled && !round.finalized;
+  }, []);
+
+  // CancelRound is creator-only AND requires the round to be pre-start with zero
+  // contributions (the deployed contract asserts both).
+  const canCancelSelectedRound = createDerived(() => {
+    const round = selectedRound.get();
+    if (!round || !isSelectedRoundCreator.get()) return false;
+    if (round.cancelled || round.finalized) return false;
+    if (round.totalContributed !== 0n) return false;
+    return round.startTime === 0 || Date.now() < round.startTime;
   }, []);
 
   const canClaimUnused = createDerived(() => {
-    if (!selectedRound.get() || !address.get()) return false;
-    return (
-      selectedRound.get().creator === address.get() && selectedRound.get().finalized && !selectedRound.get().cancelled
-    );
+    const round = selectedRound.get();
+    if (!round || !isSelectedRoundCreator.get()) return false;
+    return round.finalized && !round.cancelled && round.matchingRemaining > 0n;
   }, []);
 
   const ensureContractAddress = async () => {
     return ensureAddress({ silentChainCheck: true });
+  };
+
+  const walletNetwork = (): Network => resolveNeoNetwork(chainType.get() ?? "");
+
+  /**
+   * Deposit-then-act for the credit-backed write methods.
+   *
+   * CreateRound / AddMatchingPool / Contribute consume prepaid asset credit
+   * (ConsumeDirectAssetCredit) that must first be deposited via a NEP-17
+   * transfer carrying a `miniapp-quadratic-funding:*` memo. A bare invoke faults
+   * "insufficient prepaid asset". This transfers the exact amount, waits for the
+   * deposit to land in a block, then fires the consuming call.
+   */
+  const depositThenInvoke = async (
+    assetHash: string,
+    amount: string,
+    memo: string,
+    operation: string,
+    args: { type: string; value: unknown }[],
+    contract: string,
+  ) => {
+    const from = address.get() as string;
+    const transferTx = await invokeDirectly(
+      "transfer",
+      [
+        { type: "Hash160", value: from },
+        { type: "Hash160", value: contract },
+        { type: "Integer", value: amount },
+        { type: "String", value: memo },
+      ],
+      assetHash,
+    );
+    const depositTxid = extractTxid(transferTx.tx as unknown) || transferTx.txid;
+    const settlement = await waitForDepositConfirmation(depositTxid, {
+      network: walletNetwork(),
+      contractHash: assetHash,
+    });
+    if (settlement === "unreachable") {
+      await new Promise((resolve) => setTimeout(resolve, TIME_CONSTANTS.SECOND_MS * 4));
+    }
+    try {
+      return await invokeDirectly(operation, args as never, contract);
+    } catch (error) {
+      if (settlement === "confirmed") {
+        throw new DepositConfirmedActionFailedError(operation, depositTxid, error);
+      }
+      throw error;
+    }
+  };
+
+  const refreshAdmin = async () => {
+    try {
+      const contract = await ensureContractAddress();
+      const raw = await read("admin", [], contract);
+      const hash = parseHash160(raw);
+      adminHash.set(hash && hash !== `0x${"0".repeat(40)}` ? hash : "");
+    } catch {
+      adminHash.set("");
+    }
   };
 
   const parseRound = (raw: Record<string, unknown>, id: string): RoundItem | null => {
@@ -79,9 +174,12 @@ export function useQuadraticRounds() {
         : matchingPool - matchingAllocated - matchingWithdrawn;
 
     const status = String(raw.status || "");
+    // Normalize the contract's UInt160 creator to display-order 0x hex so
+    // ownerMatchesAddress can compare it against the connected wallet.
+    const creator = parseHash160(raw.creator) || String(raw.creator || "");
     return {
       id,
-      creator: String(raw.creator || ""),
+      creator,
       assetSymbol: String(raw.assetSymbol || ""),
       matchingPool,
       matchingRemaining,
@@ -96,12 +194,6 @@ export function useQuadraticRounds() {
       description: String(raw.description || ""),
     };
   };
-
-  const globalSignerForCurrentWallet = (): WalletSigner[] => (
-    address.get()
-      ? [{ account: address.get(), scopes: "Global" }]
-      : []
-  );
 
   const fetchRoundIds = async () => {
     const contract = await ensureContractAddress();
@@ -127,6 +219,7 @@ export function useQuadraticRounds() {
     if (isRefreshingRounds.get()) return;
     try {
       isRefreshingRounds.set(true);
+      if (!adminHash.get()) await refreshAdmin();
       const ids = await fetchRoundIds();
       const details = await Promise.all(ids.map(fetchRoundDetails));
       rounds.set(details.filter(Boolean) as RoundItem[]);
@@ -152,7 +245,7 @@ export function useQuadraticRounds() {
     startTime: string;
     endTime: string;
   }) => {
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType.get(), t)) return;
     if (isCreatingRound.get()) return;
 
     const title = data.title.trim().slice(0, 60);
@@ -161,10 +254,20 @@ export function useQuadraticRounds() {
       return;
     }
 
-    const startTime = parseDateInput(data.startTime);
-    const endTime = parseDateInput(data.endTime);
-    if (!startTime || !endTime || startTime >= endTime) {
+    // parseDateInput returns SECONDS; the deployed contract clock (Runtime.Time)
+    // and the stored round times are MILLISECONDS, so scale up before sending.
+    const startSeconds = parseDateInput(data.startTime);
+    const endSeconds = parseDateInput(data.endTime);
+    if (!startSeconds || !endSeconds || startSeconds >= endSeconds) {
       setStatus(t("invalidRound"), "error");
+      return;
+    }
+    const startTime = startSeconds * 1000;
+    const endTime = endSeconds * 1000;
+    // The contract asserts endTime > Runtime.Time — reject an end already in the
+    // past client-side instead of surfacing an "end time in past" revert.
+    if (endTime <= Date.now()) {
+      setStatus(t("invalidEndTime"), "error");
       return;
     }
 
@@ -191,7 +294,10 @@ export function useQuadraticRounds() {
       const assetHash = data.asset === "NEO" ? NEO_HASH : GAS_HASH;
       const description = data.description.trim().slice(0, 240);
 
-      await invokeDirectly(
+      await depositThenInvoke(
+        assetHash,
+        matchingPool,
+        `${APP_ID}:create`,
         "createRound",
         [
           { type: "Hash160", value: address.get() as string },
@@ -203,7 +309,6 @@ export function useQuadraticRounds() {
           { type: "String", value: description },
         ],
         contract,
-        globalSignerForCurrentWallet(),
       );
 
       setStatus(t("roundCreated"), "success");
@@ -216,7 +321,7 @@ export function useQuadraticRounds() {
   };
 
   const addMatching = async (amount: string) => {
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType.get(), t)) return;
     if (!selectedRound.get() || isAddingMatching.get()) return;
 
     const decimals = selectedRound.get().assetSymbol === "NEO" ? 0 : 8;
@@ -239,7 +344,11 @@ export function useQuadraticRounds() {
       if (!address.get()) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
-      await invokeDirectly(
+      const assetHash = selectedRound.get().assetSymbol === "NEO" ? NEO_HASH : GAS_HASH;
+      await depositThenInvoke(
+        assetHash,
+        parsedAmount,
+        `${APP_ID}:matching`,
         "addMatchingPool",
         [
           { type: "Hash160", value: address.get() as string },
@@ -247,7 +356,6 @@ export function useQuadraticRounds() {
           { type: "Integer", value: parsedAmount },
         ],
         contract,
-        globalSignerForCurrentWallet(),
       );
 
       setStatus(t("matchingAdded"), "success");
@@ -269,7 +377,7 @@ export function useQuadraticRounds() {
   };
 
   const finalizeRound = async (projectIdsRaw: string, matchedRaw: string) => {
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType.get(), t)) return;
     if (!selectedRound.get() || isFinalizing.get()) return;
 
     const projectIdsArray = parseJsonArray(projectIdsRaw.trim());
@@ -308,6 +416,34 @@ export function useQuadraticRounds() {
       return;
     }
 
+    await submitFinalize(projectIds, matchedAmounts);
+  };
+
+  // Finalize from already-computed base-unit suggestions (the quadratic-match
+  // preview table), bypassing the hand-typed JSON path.
+  const finalizeSuggested = async (
+    entries: { id: string; matchBaseUnits: string }[],
+  ) => {
+    if (!requireNeoChain(chainType.get(), t)) return;
+    if (!selectedRound.get() || isFinalizing.get()) return;
+
+    const projectIds = entries
+      .map((entry) => Number.parseInt(String(entry.id), 10))
+      .filter((value) => Number.isFinite(value) && value > 0)
+      .map((value) => String(value));
+    const matchedAmounts = entries.map((entry) => entry.matchBaseUnits);
+    if (
+      projectIds.length === 0 ||
+      projectIds.length !== entries.length ||
+      matchedAmounts.some((value) => !/^\d+$/.test(value))
+    ) {
+      setStatus(t("invalidRound"), "error");
+      return;
+    }
+    await submitFinalize(projectIds, matchedAmounts);
+  };
+
+  const submitFinalize = async (projectIds: string[], matchedAmounts: string[]) => {
     try {
       isFinalizing.set(true);
       await ensureWallet();
@@ -335,7 +471,7 @@ export function useQuadraticRounds() {
   };
 
   const claimUnused = async () => {
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType.get(), t)) return;
     if (!selectedRound.get() || isClaimingUnused.get()) return;
 
     try {
@@ -362,6 +498,34 @@ export function useQuadraticRounds() {
     }
   };
 
+  const cancelRound = async () => {
+    if (!requireNeoChain(chainType.get(), t)) return;
+    if (!selectedRound.get() || isCancelling.get()) return;
+
+    try {
+      isCancelling.set(true);
+      await ensureWallet();
+      if (!address.get()) throw new Error(t("walletNotConnected"));
+
+      const contract = await ensureContractAddress();
+      await invokeDirectly(
+        "cancelRound",
+        [
+          { type: "Hash160", value: address.get() as string },
+          { type: "Integer", value: selectedRound.get().id },
+        ],
+        contract,
+      );
+
+      setStatus(t("roundCancelled"), "success");
+      await refreshRounds();
+    } catch (e) {
+      setStatus(formatErrorMessage(e, t("contractMissing")), "error");
+    } finally {
+      isCancelling.set(false);
+    }
+  };
+
   const roundStatusLabel = (statusValue: string) => {
     switch (statusValue) {
       case "upcoming":
@@ -381,8 +545,9 @@ export function useQuadraticRounds() {
 
   const formatSchedule = (startTime: number, endTime: number) => {
     if (!startTime || !endTime) return t("dateUnknown");
-    const start = new Date(startTime * 1000);
-    const end = new Date(endTime * 1000);
+    // Round times are stored in milliseconds on-chain — feed Date directly.
+    const start = new Date(startTime);
+    const end = new Date(endTime);
     return `${new Intl.DateTimeFormat(undefined).format(start)} - ${new Intl.DateTimeFormat(undefined).format(end)}`;
   };
 
@@ -415,21 +580,28 @@ export function useQuadraticRounds() {
     rounds,
     selectedRoundId,
     selectedRound,
+    adminHash,
+    isAdmin,
     isRefreshingRounds,
     isCreatingRound,
     isAddingMatching,
     isFinalizing,
     isClaimingUnused,
+    isCancelling,
     canManageSelectedRound,
     canFinalizeSelectedRound,
     canClaimUnused,
+    canCancelSelectedRound,
     status,
     refreshRounds,
+    refreshAdmin,
     selectRound,
     createRound,
     addMatching,
     finalizeRound,
+    finalizeSuggested,
     claimUnused,
+    cancelRound,
     roundStatusLabel,
     formatSchedule,
     formatAmount,

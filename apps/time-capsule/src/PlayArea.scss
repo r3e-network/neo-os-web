@@ -184,6 +184,49 @@ $accent-soft: #e4f8f0;
   line-height: 1.5;
 }
 
+// Reusable deposit-credit recovery banner — money-in always has a money-out.
+// A 0.2 GAS deposit that landed but whose bury never completed surfaces here as
+// a withdrawable balance (reused on the next bury, or reclaimed to the wallet).
+.capsule-recovery-card {
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: space-between;
+  border: 1px solid rgba(22, 199, 132, 0.22);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(22, 199, 132, 0.08), transparent 62%),
+    $accent-soft;
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+}
+
+.capsule-recovery-card__body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.capsule-recovery-card__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.capsule-recovery-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ns-text, #2a2d3d);
+}
+
+.capsule-recovery-card__text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
 .capsule-side-panel {
   display: flex;
   flex-direction: column;

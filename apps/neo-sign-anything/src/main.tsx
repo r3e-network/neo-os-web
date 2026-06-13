@@ -30,26 +30,41 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("signMessage", async (msg: string) => {
-      await notify.guard(() => signAnything.signMessage(msg), "signSuccess");
+    ctx.registerAction("signMessage", async (...args: unknown[]) => {
+      await notify.guard(
+        () => signAnything.signMessage(String(args[0] ?? "")),
+        "signSuccess",
+      );
     });
 
-    ctx.registerAction("broadcastMessage", async (msg: string) => {
+    ctx.registerAction("broadcastMessage", async (...args: unknown[]) => {
       await notify.guard(
-        () => signAnything.broadcastMessage(msg),
+        () => signAnything.broadcastMessage(String(args[0] ?? "")),
         "broadcastSuccess",
       );
     });
 
-    ctx.registerAction("copyToClipboard", async (text: string) => {
-      await signAnything.copyToClipboard(text);
+    ctx.registerAction("copyToClipboard", async (...args: unknown[]) => {
+      await signAnything.copyToClipboard(String(args[0] ?? ""));
+    });
+    ctx.registerAction("loadFileDigest", async (...args: unknown[]) => {
+      const file = args[0];
+      if (file instanceof File) {
+        await notify.guard(() => signAnything.loadFileDigest(file), "fileHashed");
+      }
+    });
+    ctx.registerAction("setMessage", async (...args: unknown[]) => {
+      signAnything.message.set(String(args[0] ?? ""));
     });
 
     return {
       state: {
         address: signAnything.address,
+        message: signAnything.message,
         signature: signAnything.signature,
+        publicKey: signAnything.publicKey,
         txHash: signAnything.txHash,
+        txPending: signAnything.txPending,
         isSigning: signAnything.isSigning,
         isBroadcasting: signAnything.isBroadcasting,
         signCount: signAnything.signCount,

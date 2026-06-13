@@ -146,6 +146,19 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
     en: "Enter an amount up to your balance",
     zh: "请输入不超过余额的金额",
   },
+  // Honest service-state copy when the sponsorship platform API is down/unset.
+  sponsorServiceTitle: {
+    en: "Sponsorship unavailable",
+    zh: "赞助服务不可用",
+  },
+  sponsorServiceUnavailable: {
+    en: "The sponsorship service is temporarily unavailable. You can still donate or send GAS below.",
+    zh: "赞助服务暂时不可用。您仍然可以在下方捐赠或发送 GAS。",
+  },
+  sponsorServiceUnconfigured: {
+    en: "The sponsorship service is not configured for this deployment. You can still donate or send GAS below.",
+    zh: "本部署未配置赞助服务。您仍然可以在下方捐赠或发送 GAS。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

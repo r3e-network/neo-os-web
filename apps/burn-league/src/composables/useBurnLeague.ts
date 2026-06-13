@@ -64,7 +64,7 @@ import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
 import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
-import { formatNumber } from "@shared/utils/format";
+import { formatNumber, fromFixed8 } from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -189,6 +189,10 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
   const topBurnerAddress = createObservable<string | null>(null);
   /** The current leader's season total, in whole GAS. */
   const topBurnedGas = createObservable(0);
+  /** Season length in ms read from seasonDuration() (0 until first load). */
+  const seasonDurationMs = createObservable(0);
+  /** Connected wallet's unused prepaid burn-credit (human GAS). */
+  const prepaidCredit = createObservable(0);
   /** Wall clock for the countdown / ended derivation, ticked once per second. */
   const now = createObservable(Date.now());
 
@@ -255,6 +259,34 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     return id > 0 ? `#${id}` : "--";
   }, [seasonId]);
 
+  /** True when the connected wallet has unused prepaid burn-credit to withdraw. */
+  const hasCredit = createDerived(() => prepaidCredit.get() > 0, [prepaidCredit]);
+
+  /**
+   * Humanized season length read from seasonDuration() — disclosed so a first
+   * burner knows how long the round they are opening will run. "--" until the
+   * duration has been read. Sub-hour durations (e.g. the 120s testnet/demo
+   * value) are shown in minutes/seconds so the figure is never rounded to "0h".
+   */
+  const seasonDurationLabel = createDerived(() => {
+    const ms = seasonDurationMs.get();
+    if (ms <= 0) return "--";
+    const totalSeconds = Math.round(ms / 1000);
+    if (totalSeconds < 60) return t("durationSeconds", { count: totalSeconds });
+    const minutes = Math.round(totalSeconds / 60);
+    if (minutes < 60) return t("durationMinutes", { count: minutes });
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return t("durationHours", { count: hours });
+    const days = Math.round(hours / 24);
+    return t("durationDays", { count: days });
+  }, [seasonDurationMs]);
+
+  /** Prepaid burn-credit, formatted for display. */
+  const prepaidCreditDisplay = createDerived(
+    () => `${formatNumber(prepaidCredit.get(), 2)} ${t("tokenGas")}`,
+    [prepaidCredit],
+  );
+
   // ── Formatted display values ─────────────────────────────────────────
   const totalBurnedDisplay = createDerived(() => `${formatNumber(totalBurned.get(), 2)} ${t("tokenGas")}`, []);
   const userBurnedDisplay = createDerived(() => `${formatNumber(userBurned.get(), 2)} ${t("tokenGas")}`, []);
@@ -305,6 +337,7 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
         countRaw,
         topBurnerRaw,
         topBurnedRaw,
+        durationRaw,
       ] = await Promise.all([
         chain.read("currentSeason", []),
         chain.read("seasonEnd", []),
@@ -312,10 +345,14 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
         chain.read("burnCount", []),
         chain.read("topBurner", []),
         chain.read("topBurned", []),
+        chain.read("seasonDuration", []),
       ]);
 
       seasonId.set(Number(parseBigInt(seasonRaw)));
       seasonEndMs.set(Number(parseBigInt(endRaw)));
+      // Disclose the season length so a first burner knows how long the round
+      // they open will run (live mainnet value is currently 120s).
+      seasonDurationMs.set(Number(parseBigInt(durationRaw)));
 
       const poolGas = fromBaseUnits(parseBigInt(poolRaw));
       // TotalBurned() == RewardPool() on the contract — both are the season pool.
@@ -327,7 +364,9 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
       topBurnerAddress.set(isZeroAddress(topAddr) ? "" : topAddr);
       topBurnedGas.set(fromBaseUnits(parseBigInt(topBurnedRaw)));
 
-      // The connected player's CURRENT-season total via userBurned(player).
+      // The connected player's CURRENT-season total via userBurned(player) and
+      // their unused prepaid burn-credit via creditOf(player) (the withdraw
+      // affordance stays honest after every action).
       const myAddr = resolveAddress();
       const myHash = myAddr ? addressToScriptHash(myAddr) || null : null;
       if (myHash) {
@@ -340,8 +379,17 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
           console.warn("[useBurnLeague] userBurned read failed:", errorMessage(e));
           userBurned.set(0);
         }
+        try {
+          const creditRaw = await chain.read("creditOf", [
+            { type: "Hash160", value: myHash },
+          ]);
+          prepaidCredit.set(fromFixed8(parseBigInt(creditRaw)));
+        } catch (e) {
+          console.warn("[useBurnLeague] creditOf read failed:", errorMessage(e));
+        }
       } else {
         userBurned.set(0);
+        prepaidCredit.set(0);
       }
 
       leagueDataAvailable.set(true);
@@ -522,15 +570,21 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
       }
 
       if (credit < amountBase) {
+        // Deposit only the SHORTFALL beyond any prepaid credit left from a prior
+        // aborted burn, and wait for the contract's "Credited" event so the
+        // deposit is confirmed in a block before burn() consumes it — an
+        // unconfirmed deposit lets burn() execute first and fault (the shared
+        // invokeWithDirectPrepaidGas path confirms the deposit for the same
+        // reason: intra-block ordering is fee/hash-based).
         await chain.invoke(
           "transfer",
           [
             { type: "Hash160", value: playerHash },
             { type: "Hash160", value: contractHash },
-            { type: "Integer", value: amountBase.toString() },
+            { type: "Integer", value: (amountBase - credit).toString() },
             { type: "String", value: BURN_MEMO },
           ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
         );
         depositSettled = true;
       }
@@ -605,6 +659,52 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     }
   };
 
+  /**
+   * Withdraw the connected wallet's unused prepaid burn-credit via
+   * withdraw(account). The contract pays the WHOLE credit back to the wallet —
+   * the recovery path when a deposit landed but burn() never completed (the
+   * burnDepositHeld case). Returns the withdrawn amount in human GAS (from the
+   * "CreditWithdrawn" event, state[1] = amount).
+   */
+  const withdrawCredit = async (): Promise<{ amount: number }> => {
+    if (isLoading.get()) return { amount: 0 };
+
+    const accountAddr = resolveAddress() || (await chain.ensureWallet());
+    const accountHash = addressToScriptHash(accountAddr || "");
+    if (!accountAddr || !accountHash) throw new Error(t("burnWalletUnavailable"));
+    setAddress(accountAddr);
+
+    isLoading.set(true);
+    try {
+      // Read the live credit first — the contract reverts "no credit" on an empty
+      // balance, so surface a clean message before prompting the wallet.
+      let credit = 0n;
+      try {
+        credit = parseBigInt(
+          await chain.read("creditOf", [{ type: "Hash160", value: accountHash }]),
+        );
+      } catch {
+        credit = 0n;
+      }
+      if (credit <= 0n) throw new Error(t("noCredit"));
+
+      const result = await chain.invoke(
+        "withdraw",
+        [{ type: "Hash160", value: accountHash }],
+        { waitForEvent: "CreditWithdrawn" },
+      );
+
+      // OnCreditWithdrawn(account, amount) — amount is state index 1.
+      const amountBase = parseBigInt(eventValue(result.event, 1));
+      const amount = amountBase > 0n ? fromFixed8(amountBase) : fromFixed8(credit);
+
+      await loadAll();
+      return { amount };
+    } finally {
+      isLoading.set(false);
+    }
+  };
+
   return {
     // ── Raw State ───────────────────────────────────────────────────
     totalBurned,
@@ -621,11 +721,15 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     actionNotice,
     burnValidationError,
     lastSubmittedAmount,
+    prepaidCredit,
+    hasCredit,
     address,
 
     // ── Season lifecycle ────────────────────────────────────────────
     seasonId,
     seasonEndMs,
+    seasonDurationMs,
+    seasonDurationLabel,
     topBurnerAddress,
     topBurnedGas,
     seasonPhase,
@@ -653,11 +757,13 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     topBurnedDisplay,
     leaderLabel,
     leaderboardPreview,
+    prepaidCreditDisplay,
 
     // ── Actions ─────────────────────────────────────────────────────
     setAddress,
     burnTokens,
     settleSeason,
+    withdrawCredit,
     loadAll,
     validateBurnAmount,
   };

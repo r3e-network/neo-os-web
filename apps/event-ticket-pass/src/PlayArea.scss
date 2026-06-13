@@ -6,9 +6,9 @@
   --tk-ink: var(--ns-ink, #1e1e2e);
   --tk-text: var(--ns-text-2, #5b6478);
   --tk-muted: var(--ns-text-muted, #8a92a6);
-  --tk-accent: var(--ns-violet, #16c784);
-  --tk-accent-strong: var(--ns-violet-strong, #0fb174);
-  --tk-accent-soft: var(--ns-violet-soft, #e4f8f0);
+  --tk-accent: var(--ns-brand, #16c784);
+  --tk-accent-strong: var(--ns-brand-strong, #0fb174);
+  --tk-accent-soft: var(--ns-brand-soft, #e4f8f0);
   --tk-radius: var(--ns-radius-lg, 20px);
   --tk-radius-sm: var(--ns-radius-sm, 12px);
   --tk-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
@@ -443,25 +443,57 @@
 }
 
 .ticket-pass {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  align-items: start;
   padding: 16px;
   border: 1px solid var(--tk-line);
   border-radius: var(--tk-radius-sm);
   background: var(--tk-surface-soft);
 }
 
-.ticket-pass > div {
+.ticket-pass__head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ticket-pass__head > div {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
 
+.ticket-pass__qr {
+  display: flex;
+  justify-content: center;
+
+  .ticket-qr {
+    display: block;
+    width: 116px;
+    height: 116px;
+    border-radius: var(--ns-radius-xs, 8px);
+    border: 1px solid var(--tk-line-strong);
+    background: var(--tk-surface);
+    padding: 6px;
+  }
+
+  &:empty {
+    display: none;
+  }
+}
+
+.ticket-pass__id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .ticket-pass code {
-  grid-column: 1 / -1;
+  flex: 1;
+  min-width: 0;
   padding: 9px 12px;
   border-radius: var(--ns-radius-xs, 8px);
   background: var(--tk-surface);
@@ -470,6 +502,50 @@
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   overflow-wrap: anywhere;
+}
+
+.ticket-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--tk-line-strong);
+  border-radius: var(--ns-radius-xs, 8px);
+  background: var(--tk-surface);
+  color: var(--tk-text);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: var(--tk-accent-soft);
+    color: var(--tk-accent-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tk-accent);
+    outline-offset: 2px;
+  }
+}
+
+.ticket-pass__transfer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tk-line);
+}
+
+.ticket-transfer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ticket-transfer-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .ticket-evidence {

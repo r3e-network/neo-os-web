@@ -128,4 +128,42 @@ describe("neo-x bridge console intent builders", () => {
       stableDigest(["message", "n3-to-neox", "payload"]),
     );
   });
+
+  it("attaches locale keys + interpolation params to every timeline step (no hardcoded English at render)", () => {
+    const timeline = buildStatusTimeline({
+      bridgeKind: "asset",
+      direction: "n3-to-neox",
+      operationId: "N3X-ASSET-12345678",
+      sourceTx: "0xabcdef***REMOVED***0123456789",
+    });
+
+    // Every step carries a labelKey + detailKey the PlayArea translates.
+    for (const step of timeline) {
+      expect(step.labelKey).toBeTruthy();
+      expect(step.detailKey).toBeTruthy();
+      expect(step.detailParams).toBeTypeOf("object");
+    }
+    // The intent step interpolates the operation id + route.
+    expect(timeline[0]?.detailKey).toBe("tlIntentReady");
+    expect(timeline[0]?.detailParams).toMatchObject({ operation: "N3X-ASSET-12345678" });
+    // The source step interpolates the compacted source tx.
+    expect(timeline[1]?.detailKey).toBe("tlSourceCaptured");
+    expect(timeline[1]?.detailParams.sourceTx).toMatch(/^0x[0-9a-f]+\.\.\.[0-9a-f]+$/i);
+  });
+
+  it("exposes a statusKey on built intents so the metrics strip can localize the status", () => {
+    const asset = buildAssetBridgeIntent({
+      direction: "n3-to-neox",
+      asset: "GAS",
+      amount: "1",
+      recipient: "0x1111111111111111111111111111111111111111",
+    });
+    const message = buildMessageBridgeIntent({
+      direction: "n3-to-neox",
+      targetContract: "0x1111111111111111111111111111111111111111",
+      payload: "{}",
+    });
+    expect(asset.operation.statusKey).toBe("statusIntentPrepared");
+    expect(message.operation.statusKey).toBe("statusMessageIntentPrepared");
+  });
 });

@@ -17,9 +17,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const agentAccounts =
     val<Array<Record<string, unknown>>>("agentAccounts", []) ?? [];
   const totalNeoDisplay = str("totalNeoDisplay", "0 NEO");
-  const selectedAgent = str("selectedAgentDisplay", "None");
+  const selectedAgent = str("selectedAgentDisplay", t("noneFallback"));
   const agentCount = str("agentCountDisplay", "0 / 21");
-  const reserveDisplay = `${stats?.rewardReserve ?? 0} GAS`;
+  const reserveDisplay = str("reserveDisplay", "0 GAS");
+  // Admin-role gating: until admin() + getAppAdmin resolve we keep the console
+  // neutral; a non-operator gets a read-only state instead of a fully armed
+  // console that only fails with a raw contract "unauthorized" assert.
+  const adminState = str("adminState", "loading");
+  const expectedAdmin = str("expectedAdminDisplay", "");
+  const isDenied = adminState === "denied";
+  const controlsDisabled = isDenied;
 
   const [fromAgentId, setFromAgentId] = useState("1");
   const [toAgentId, setToAgentId] = useState("2");
@@ -91,13 +98,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   }, [syncingVote, dispatch, voteAgentId]);
 
   const canMove =
+    !controlsDisabled &&
     Boolean(fromAgentId.trim()) &&
     Boolean(toAgentId.trim()) &&
     Boolean(moveAmount.trim()) &&
     fromAgentId.trim() !== toAgentId.trim();
   const canUpdateCandidate =
-    Boolean(candidateAgentId.trim()) && Boolean(candidatePublicKey.trim());
-  const canSyncVote = Boolean(voteAgentId.trim());
+    !controlsDisabled &&
+    Boolean(candidateAgentId.trim()) &&
+    Boolean(candidatePublicKey.trim());
+  const canSyncVote = !controlsDisabled && Boolean(voteAgentId.trim());
   const visibleAgents = agentAccounts.slice(0, 21);
   const routeItems = [
     { label: t("selectedRoute"), value: selectedAgent },
@@ -118,7 +128,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </svg>
               </div>
               <div className="anchor-admin-hero-copy">
-                <span className="anchor-admin-kicker">TrustAnchor Admin</span>
+                <span className="anchor-admin-kicker">{t("appName")}</span>
                 <h2>{t("adminHeroTitle")}</h2>
                 <p>{t("adminHeroSubtitle")}</p>
               </div>
@@ -133,7 +143,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </section>
 
-          <section className="anchor-admin-command-grid" aria-label={t("adminCommandCenter")}>
+          {isDenied && (
+            <div className="anchor-admin-role-banner" role="status">
+              <span className="anchor-admin-role-banner__eyebrow">
+                {t("operatorRequiredEyebrow")}
+              </span>
+              <strong>{t("operatorRequiredTitle")}</strong>
+              <p>
+                {expectedAdmin
+                  ? t("operatorRequiredBody", { address: expectedAdmin })
+                  : t("operatorRequiredBodyNoAddress")}
+              </p>
+            </div>
+          )}
+
+          <section
+            className={`anchor-admin-command-grid${controlsDisabled ? " is-readonly" : ""}`}
+            aria-label={t("adminCommandCenter")}
+          >
             <NeoCard title={t("moveNeo")} className="anchor-admin-workflow-card">
               <p>{t("moveNeoDesc")}</p>
               <div className="anchor-admin-form-grid">
@@ -240,7 +267,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 ) : (
                   visibleAgents.map((agent, idx) => {
                     const address = String(
-                      agent.accountAddress ??
+                      agent.account ??
+                        agent.accountAddress ??
                         agent.address ??
                         agent.name ??
                         `agent-${idx + 1}`,

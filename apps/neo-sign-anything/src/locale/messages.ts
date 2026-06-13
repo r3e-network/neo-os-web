@@ -73,6 +73,18 @@ const appMessages = {
   copySignature: { en: "Copy signature", zh: "复制签名" },
   copyTxHash: { en: "Copy transaction hash", zh: "复制交易哈希" },
   copySuccess: { en: "Copied", zh: "已复制" },
+  publicKeyLabel: { en: "Public key", zh: "公钥" },
+  bytesUnit: { en: "bytes", zh: "字节" },
+  networkFeeNote: {
+    en: "Broadcasting still pays normal Neo network + system fees (~0.01–0.05 GAS, more for larger payloads).",
+    zh: "广播仍需支付正常的 Neo 网络与系统费用（约 0.01–0.05 GAS，payload 越大费用越高）。",
+  },
+  signFileBtn: { en: "Hash & load file", zh: "哈希并载入文件" },
+  hashedFileNotice: {
+    en: "The file is hashed locally (SHA-256); only the digest is signed or broadcast — the file never leaves your device.",
+    zh: "文件在本地计算 SHA-256 哈希；仅签名/广播摘要，文件不会离开您的设备。",
+  },
+  fileHashed: { en: "File hashed and loaded", zh: "文件已哈希并载入" },
   signSuccess: { en: "Message signed", zh: "已签名" },
   connectWallet: { en: "Please connect your wallet to proceed.", zh: "请连接钱包以继续。" },
   broadcastSuccess: { en: "Message broadcasted successfully!", zh: "信息广播成功！" },

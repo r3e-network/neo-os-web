@@ -2,6 +2,7 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   // App translations
+  eyebrow: { en: "On-chain coin toss", zh: "链上抛硬币" },
   title: { en: "FogPlay", zh: "迷雾对决" },
   wins: { en: "Wins", zh: "胜利" },
   losses: { en: "Losses", zh: "失败" },
@@ -37,20 +38,20 @@ const appMessages = {
   payoutHeader: { en: "Payout", zh: "赔付" },
   gameHistory: { en: "Recent Games", zh: "最近对局" },
   noHistory: { en: "No games played yet. Place your first bet.", zh: "暂无对局，先下注一局。" },
-  docSubtitle: { en: "Oracle-backed coin toss with on-chain escrow", zh: "预言机驱动的链上抛硬币" },
+  docSubtitle: { en: "Instant on-chain coin toss with a 2x payout", zh: "即时链上抛硬币，赢取 2 倍赔付" },
   docDescription: {
-    en: "FogPlay locks your wager in the smart contract, requests randomness through the Morpheus Oracle flow, and records the final outcome on-chain for auditability. Winners receive the emitted payout result once settlement completes.",
-    zh: "迷雾对决会先将下注资金锁定在智能合约中，再通过 Morpheus Oracle 请求随机数，并将最终结果上链以供审计。结算完成后，赢家可获得对应收益结果。",
+    en: "FogPlay settles each flip on-chain using Neo's native randomness in the same transaction — there is no oracle callback to wait for. Your wager is consumed and, on a win, the 2x payout is sent from the house bankroll atomically. The outcome is recorded on-chain for auditability.",
+    zh: "迷雾对决在同一笔交易内使用 Neo 原生随机数完成结算，无需等待任何预言机回调。下注金额被即时消耗，胜出时由庄家奖池原子化支付 2 倍赔付，最终结果上链以供审计。",
   },
   step1: { en: "Choose your side: Heads or Tails.", zh: "选择你的面：正面或反面。" },
   step2: { en: "Enter the amount of GAS you want to wager.", zh: "输入你想下注的 GAS 金额。" },
   step3: {
-    en: "Click 'Flip Coin' and wait for the oracle callback to resolve the result.",
-    zh: "点击「抛硬币」，等待预言机回调完成结算。",
+    en: "Click 'Flip Coin' — the result settles instantly in the same transaction.",
+    zh: "点击「抛硬币」，结果在同一笔交易内即时结算。",
   },
   step4: { en: "View your win/loss stats in the Stats tab.", zh: "在统计标签页查看您的胜负统计。" },
-  feature1Name: { en: "Oracle Callback", zh: "预言机回调" },
-  feature1Desc: { en: "Each bet requests randomness through the configured oracle contract.", zh: "每次下注都会通过配置好的预言机合约请求随机数。" },
+  feature1Name: { en: "Instant Settlement", zh: "即时结算" },
+  feature1Desc: { en: "Each flip resolves on-chain with Neo's native randomness, paid in the same transaction.", zh: "每次抛掷都使用 Neo 原生随机数链上结算，并在同一笔交易内支付。" },
   feature2Name: { en: "Instant Payout", zh: "即时支付" },
   feature2Desc: { en: "Winnings are automatically sent via smart contract.", zh: "奖金通过智能合约自动发送。" },
   feature3Name: { en: "On-chain Outcome", zh: "链上结果" },
@@ -70,8 +71,16 @@ const appMessages = {
     zh: "下注资金已存入但投注失败 — 请从余额中提取以取回 GAS",
   },
   betPrepaidNoFlip: {
-    en: "Wager prepaid but the flip didn't settle — your credit is held and reused on your next bet",
-    zh: "下注金额已预付但本局未结算 — 你的余额已保留，下次下注会自动使用",
+    en: "Wager prepaid but the flip didn't settle — your credit is held; reuse it on your next bet or withdraw it below",
+    zh: "下注金额已预付但本局未结算 — 余额已保留，可用于下次下注，或在下方提取",
+  },
+  prepaidCredit: { en: "Prepaid credit", zh: "预付余额" },
+  withdrawCredit: { en: "Withdraw", zh: "提取" },
+  creditWithdrawn: { en: "Prepaid credit withdrawn", zh: "预付余额已提取" },
+  noCreditToWithdraw: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付余额" },
+  maxPayableHint: {
+    en: "House can currently pay up to {max}",
+    zh: "庄家当前最多可赔付 {max}",
   },
   bankrollTooLow: {
     en: "House bankroll too low for this bet — try a smaller wager",

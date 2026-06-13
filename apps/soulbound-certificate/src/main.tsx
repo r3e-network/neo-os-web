@@ -43,8 +43,10 @@ defineMiniApp({
       ctx.services.notify.guard(() => soulbound.revokeCertificate(form as never)),
     );
     ctx.registerAction("copyIssueLink", async (template: unknown) => { await soulbound.copyIssueLink(template); });
-    ctx.registerAction("shareIssueLink", async (template: unknown) => { await soulbound.shareIssueLink(template); });
+    ctx.registerAction("copyVerifyLink", async (tokenId: unknown) => { await soulbound.copyVerifyLink(tokenId); });
+    ctx.registerAction("shareVerifyLink", async (tokenId: unknown) => { await soulbound.shareVerifyLink(tokenId); });
     ctx.registerAction("consumeDeepLink", async () => { soulbound.consumeDeepLink(); });
+    ctx.registerAction("consumeVerifyDeepLink", async () => { soulbound.consumeVerifyDeepLink(); });
 
     return {
       state: refsToObservables({
@@ -54,6 +56,7 @@ defineMiniApp({
         certificatesCount: soulbound.certificatesCount,
         activeTemplatesCount: soulbound.activeTemplatesCount,
         verifiedCertificate: soulbound.verifiedCertificate,
+        verifiedIsIssuer: soulbound.verifiedIsIssuer,
         // Bind the live wallet observable so the connect prompt reacts.
         address: ctx.services.chain.address,
         isRefreshing: soulbound.isRefreshing,
@@ -69,6 +72,7 @@ defineMiniApp({
         lastSuccess: soulbound.lastSuccess,
         deepLinkTemplateId: soulbound.deepLinkTemplateId,
         deepLinkAutoIssue: soulbound.deepLinkAutoIssue,
+        deepLinkVerifyTokenId: soulbound.deepLinkVerifyTokenId,
       }),
       loadData: soulbound.loadAll,
     };

@@ -136,6 +136,47 @@ const appMessages = {
   tokenGas: { en: "GAS", zh: "GAS" },
   error: { en: "Something went wrong", zh: "发生错误" },
   connectWallet: { en: "Please connect your wallet", zh: "请连接钱包" },
+
+  // Compose mode: write the memory (hashed locally) vs paste a pre-made hash.
+  composeModeWrite: { en: "Write memory", zh: "撰写记忆" },
+  composeModeHash: { en: "I have a hash", zh: "已有哈希" },
+  memoryTextLabel: { en: "Your memory", zh: "你的记忆" },
+  memoryTextPlaceholder: {
+    en: "Write the memory to bury. It is hashed on your device — only the hash is written on-chain, never the text.",
+    zh: "写下要埋葬的记忆。它会在你的设备上被哈希处理 — 链上只写入哈希，绝不写入原文。",
+  },
+  memoryTextHint: {
+    en: "The text stays on this device. We bury its SHA-256 hash so the memory is committed without revealing it.",
+    zh: "原文仅保留在本设备。我们埋葬其 SHA-256 哈希，从而在不泄露内容的情况下完成承诺。",
+  },
+  hashFromMemory: { en: "Hash (computed locally)", zh: "哈希（本地计算）" },
+  gasReclaimedEstimate: { en: "Burial Fees (est.)", zh: "埋葬费用（估算）" },
+
+  // Forget confirmation (paid, 10× the burial fee).
+  forgetConfirmFee: {
+    en: "Forgetting costs {fee}. This records a paid state change on-chain and cannot be reversed.",
+    zh: "遗忘需花费 {fee}。这会在链上记录一次付费状态变更且不可撤销。",
+  },
+  forgetConfirmAction: { en: "Confirm forget", zh: "确认遗忘" },
+
+  // Epitaph (free, non-deposit) editor.
+  epitaph: { en: "Epitaph", zh: "墓志铭" },
+  addEpitaph: { en: "Add epitaph", zh: "添加墓志铭" },
+  editEpitaph: { en: "Edit epitaph", zh: "编辑墓志铭" },
+  epitaphPlaceholder: { en: "A short note for this memory (free, on-chain)", zh: "为这段记忆写下简短注记（免费、上链）" },
+  epitaphSave: { en: "Save epitaph", zh: "保存墓志铭" },
+  epitaphSaved: { en: "Epitaph saved on-chain", zh: "墓志铭已上链保存" },
+  epitaphRequired: { en: "Enter an epitaph before saving.", zh: "保存前请输入墓志铭。" },
+  epitaphTooLong: { en: "Epitaph must be 120 characters or less.", zh: "墓志铭不超过 120 个字符。" },
+  epitaphFree: { en: "Free — no deposit", zh: "免费 — 无需押金" },
+
+  // History pagination.
+  showAllRecords: { en: "Show all records", zh: "显示全部记录" },
+  showFewerRecords: { en: "Show fewer", zh: "收起记录" },
+  historyTruncatedNote: {
+    en: "Showing the most recent {shown} of {total} burials.",
+    zh: "显示最近 {shown} 条，共 {total} 条埋葬记录。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

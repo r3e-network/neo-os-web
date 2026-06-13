@@ -61,6 +61,7 @@ import type { ChainService } from "@shared/services/ChainService";
 import type { CacheService } from "@shared/services/CacheService";
 import type { ClipboardService } from "@shared/services/ClipboardService";
 import { eventValue } from "@shared/utils/chain-events";
+import { fromFixed8 } from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -159,6 +160,9 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
   const tarotDeck = TAROT_DECK;
   const drawn = createObservable<Card[]>([]);
   const readingsCount = createObservable(0);
+  /** Connected wallet's unused prepaid draw-credit (human GAS). */
+  const prepaidCredit = createObservable(0);
+  const hasCredit = createDerived(() => prepaidCredit.get() > 0, [prepaidCredit]);
   const hasDrawn = createDerived(() => drawn.get().length === CARDS_PER_READING, [drawn]);
   const allFlipped = createDerived(() => {
     const cards = drawn.get();
@@ -252,15 +256,19 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
       }
 
       if (credit < fee) {
+        // Wait for the contract's "Credited" event so the deposit is confirmed
+        // in a block before draw() consumes it — an unconfirmed deposit lets the
+        // draw execute first and fault on what should have been a clean first
+        // draw (intra-block ordering is fee/hash-based).
         await chain.invoke(
           "transfer",
           [
             { type: "Hash160", value: playerHash },
             { type: "Hash160", value: contractHash },
-            { type: "Integer", value: fee.toString() },
+            { type: "Integer", value: (fee - credit).toString() },
             { type: "String", value: DRAW_MEMO },
           ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
         );
       }
 
@@ -397,9 +405,81 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
     }
   };
 
+  /**
+   * Refresh the connected wallet's unused prepaid draw-credit from
+   * creditOf(player). Base units → human GAS. A missing wallet yields 0; a read
+   * failure leaves the last known value (the withdraw path re-reads first).
+   */
+  const loadCredit = async () => {
+    const playerAddr = address.get();
+    const playerHash = playerAddr ? addressToScriptHash(playerAddr) || null : null;
+    if (!playerHash) {
+      prepaidCredit.set(0);
+      return;
+    }
+    try {
+      const raw = await chain.read("creditOf", [
+        { type: "Hash160", value: playerHash },
+      ]);
+      prepaidCredit.set(fromFixed8(parseBigInt(raw)));
+    } catch (e) {
+      console.warn(
+        "[on-chain-tarot] creditOf read failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  };
+
+  /**
+   * Withdraw the connected wallet's unused prepaid draw-credit via
+   * withdraw(account). The contract pays the WHOLE credit back to the wallet —
+   * the recovery path when a deposit landed but draw() never completed. Returns
+   * the withdrawn amount in human GAS (from the "CreditWithdrawn" event,
+   * state[1] = amount).
+   */
+  const withdrawCredit = async (): Promise<{ amount: number }> => {
+    if (isLoading.get()) return { amount: 0 };
+
+    const accountAddr = address.get() || (await chain.ensureWallet());
+    const accountHash = addressToScriptHash(accountAddr || "");
+    if (!accountAddr || !accountHash) throw new Error(t("walletNotConnected"));
+    setAddress(accountAddr);
+
+    isLoading.set(true);
+    try {
+      // Read the live credit first — the contract reverts "no credit" on an empty
+      // balance, so surface a clean message before prompting the wallet.
+      let credit = 0n;
+      try {
+        credit = parseBigInt(
+          await chain.read("creditOf", [{ type: "Hash160", value: accountHash }]),
+        );
+      } catch {
+        credit = 0n;
+      }
+      if (credit <= 0n) throw new Error(t("noCredit"));
+
+      const result = await chain.invoke(
+        "withdraw",
+        [{ type: "Hash160", value: accountHash }],
+        { waitForEvent: "CreditWithdrawn" },
+      );
+
+      // OnCreditWithdrawn(account, amount) — amount is state index 1.
+      const amountBase = parseBigInt(eventValue(result.event, 1));
+      const amount = amountBase > 0n ? fromFixed8(amountBase) : fromFixed8(credit);
+
+      await loadAll();
+      return { amount };
+    } finally {
+      isLoading.set(false);
+    }
+  };
+
   const loadAll = async () => {
     setAddress(chain.address.get() ?? null);
     await loadReadingCount();
+    await loadCredit();
   };
 
   return {
@@ -413,6 +493,8 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
     question,
     isLoading,
     readingMode,
+    prepaidCredit,
+    hasCredit,
     address,
 
     // Actions
@@ -423,7 +505,9 @@ export function useTarot({ chain, cache, clipboard, t }: UseTarotOptions) {
     getReading,
     copyReading,
     restoreQuestion,
+    withdrawCredit,
     loadReadingCount,
+    loadCredit,
     loadAll,
   };
 }

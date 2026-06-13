@@ -28,8 +28,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const question = str("question");
   const readingMode = str("readingMode", "idle");
   const drawn = val<Card[]>("drawn") ?? [];
+  const prepaidCredit = num("prepaidCredit");
   const revealCount = drawn.filter((card) => card.flipped).length;
   const oracleReady = readingMode === "oracle";
+  const formatGas = (value: number) =>
+    `${value.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${t("tokenGas")}`;
 
   return (
     <div className="tarot-play-area">
@@ -201,6 +204,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <p>{t("verificationPanelCopy")}</p>
           </NeoCard>
+
+          {/* Recovery — unused prepaid draw-credit from a deposit whose draw
+              didn't complete. The contract reuses it on the next draw, or the
+              player can withdraw it back to the wallet here. */}
+          {prepaidCredit > 0 && (
+            <NeoCard variant="erobo" className="tarot-recovery-panel">
+              <div className="tarot-section-heading">
+                <span>{t("prepaidCreditLabel")}</span>
+                <strong>{formatGas(prepaidCredit)}</strong>
+              </div>
+              <p>{t("prepaidCreditHint")}</p>
+              <NeoButton
+                variant="secondary"
+                disabled={isLoading}
+                onClick={() => dispatch("withdrawCredit")}
+                aria-label={t("withdrawCredit")}
+              >
+                {t("withdrawCredit")}
+              </NeoButton>
+            </NeoCard>
+          )}
         </aside>
       </div>
     </div>

@@ -34,11 +34,13 @@ describe("disassembleScript (Neo N3 semantics)", () => {
     expect(disassembleScript("0e03000000010203")).toEqual(["PUSHDATA4 010203"]);
   });
 
-  it("decodes fixed-width PUSHINT operands", () => {
-    // 00 7f → PUSHINT8 0x7f.
-    expect(disassembleScript("007f")).toEqual(["PUSHINT8 7f"]);
-    // 01 0001 → PUSHINT16 with a 2-byte operand.
-    expect(disassembleScript("010001")).toEqual(["PUSHINT16 0001"]);
+  it("decodes fixed-width PUSHINT operands to signed decimal with the raw hex kept", () => {
+    // 00 7f → PUSHINT8 0x7f (127), the largest positive signed byte.
+    expect(disassembleScript("007f")).toEqual(["PUSHINT8 127 (0x7f)"]);
+    // 01 0001 → PUSHINT16 little-endian 0x0100 = 256.
+    expect(disassembleScript("010001")).toEqual(["PUSHINT16 256 (0x0001)"]);
+    // 00 ff → PUSHINT8 0xff is -1 in two's complement (operands are signed).
+    expect(disassembleScript("00ff")).toEqual(["PUSHINT8 -1 (0xff)"]);
   });
 
   it("decodes constant pushes with no operand", () => {
@@ -52,20 +54,19 @@ describe("disassembleScript (Neo N3 semantics)", () => {
     ]);
   });
 
-  it("frames a SYSCALL operand so the trailing RET is decoded", () => {
-    // 41 <4-byte interop hash> 40(RET). The legacy decoder had no SYSCALL
-    // framing, so the operand bytes would have been mis-read as opcodes.
+  it("frames a SYSCALL operand and resolves a known interop hash to its name", () => {
+    // 41 <4-byte interop hash> 40(RET). 0x627d5b52 is System.Contract.Call.
     const tokens = disassembleScript("41627d5b5240");
-    expect(tokens).toEqual(["SYSCALL 627d5b52", "RET"]);
+    expect(tokens).toEqual(["SYSCALL System.Contract.Call (0x627d5b52)", "RET"]);
   });
 
-  it("decodes a realistic data-then-syscall contract call", () => {
-    // PUSH0, PUSHDATA1 "hi" (0x6869), SYSCALL, RET.
+  it("decodes a realistic data-then-syscall contract call (unknown hash kept raw)", () => {
+    // PUSH0, PUSHDATA1 "hi" (0x6869), SYSCALL <unknown>, RET.
     const tokens = disassembleScript("100c026869" + "41" + "00112233" + "40");
     expect(tokens).toEqual([
       "PUSH0",
       "PUSHDATA1 6869",
-      "SYSCALL 00112233",
+      "SYSCALL 0x00112233",
       "RET",
     ]);
   });

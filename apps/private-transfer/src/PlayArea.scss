@@ -546,6 +546,135 @@
   line-height: 1.5;
 }
 
+.private-transfer__error-detail {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.private-transfer__history {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  padding: 22px;
+}
+
+.private-transfer__history-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.private-transfer__history-sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.private-transfer__history-clear {
+  flex: 0 0 auto;
+  min-height: 32px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 999px;
+  padding: 0 14px;
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.private-transfer__history-clear:hover {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: #fff7f7;
+  color: #b91c1c;
+}
+
+.private-transfer__history-clear:focus-visible {
+  outline: none;
+  border-color: var(--ns-accent-strong, #0fb174);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);
+}
+
+.private-transfer__history-empty {
+  margin: 14px 0 0;
+  border: 1px dashed var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 14px);
+  padding: 18px;
+  text-align: center;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.private-transfer__history-list {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.private-transfer__history-item {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  padding: 14px;
+}
+
+.private-transfer__history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.private-transfer__history-item dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.private-transfer__history-item div {
+  min-width: 0;
+  border-radius: var(--ns-radius-sm, 10px);
+  padding: 10px 12px;
+  background: var(--ns-surface, #ffffff);
+}
+
+.private-transfer__history-item dt {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ns-text-muted, #8a92a6);
+  text-transform: uppercase;
+}
+
+.private-transfer__history-item dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.private-transfer__history-item .private-transfer__history-meta + dl div:first-child {
+  margin-top: 0;
+}
+
 @media (max-width: 900px) {
   .private-transfer {
     padding: 16px;

@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import neoDidManifest from "../../oracle-neodid-console/neo-manifest.json";
 import {
   consoleConfig,
+  isValidCallback,
+  isValidDid,
   manifest,
   messages,
 } from "../../oracle-neodid-console/src/appConfig";
@@ -77,5 +79,64 @@ describe("Oracle NeoDID Console config", () => {
       "claim",
       "callback",
     ]);
+  });
+
+  it("validates DID and callback formats", () => {
+    expect(isValidDid("did:neo:testnet:sample-user")).toBe(true);
+    expect(isValidDid("hello world")).toBe(false);
+    expect(isValidDid("did:web:example.com")).toBe(false);
+    // An empty callback is allowed (optional); a present one must be hash160.
+    expect(isValidCallback("")).toBe(true);
+    expect(isValidCallback("0x" + "a".repeat(40))).toBe(true);
+    expect(isValidCallback("not-a-hash")).toBe(false);
+  });
+
+  it("flags a malformed DID as input_required with a validity row", () => {
+    const result = consoleConfig.buildResult(
+      { did: "hello world", provider: "neodid-registry", claim: "profile.kyc", callback: "" },
+      t,
+    );
+    expect(result.payload).toMatchObject({
+      status: "input_required",
+      didValid: false,
+    });
+    const didRow = result.rows.find((row) => row.label === t("didValid"));
+    expect(didRow?.value).toBe(t("no"));
+    expect(result.status).toBe("Enter a valid did:neo identifier");
+  });
+
+  it("flags a malformed callback as input_required and surfaces a callback row", () => {
+    const result = consoleConfig.buildResult(
+      {
+        did: "did:neo:testnet:sample-user",
+        provider: "neodid-registry",
+        claim: "profile.kyc",
+        callback: "junk",
+      },
+      t,
+    );
+    expect(result.payload).toMatchObject({
+      status: "input_required",
+      callbackValid: false,
+    });
+    const callbackRow = result.rows.find((row) => row.label === t("callbackValid"));
+    expect(callbackRow?.value).toBe(t("no"));
+    expect(result.status).toBe("Callback must be a 0x hash160");
+  });
+
+  it("keeps a well-formed preview free of the input_required marker", () => {
+    const result = consoleConfig.buildResult(
+      {
+        did: "did:neo:testnet:sample-user",
+        provider: "neodid-registry",
+        claim: "profile.kyc",
+        callback: "0x" + "b".repeat(40),
+      },
+      t,
+    );
+    expect(result.payload.status).toBeUndefined();
+    expect(result.payload.didValid).toBe(true);
+    expect(result.payload.callbackValid).toBe(true);
+    expect(result.status).toBe("Verification preview ready");
   });
 });

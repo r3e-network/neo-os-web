@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useGasBox } from "../../gasbox/src/composables/useGasBox";
 import type { Machine } from "../../gasbox/src/types";
 import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
+import { DepositConfirmedActionFailedError } from "../composables/useContractInteraction";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
@@ -33,6 +34,8 @@ function t(key: string) {
     publishing: "Publishing...",
     publishSuccess: "Machine created.",
     createPending: "Creation confirmation not available yet",
+    playPrepaidNoPull: "Play credit prepaid but the pull didn't settle",
+    tokenGas: "GAS",
     none: "None",
     yes: "Yes",
     no: "No",
@@ -92,16 +95,60 @@ function itemMap(index: number): Record<string, unknown> {
  * the direct-contract prepay + pull + studio argument shapes. `read` resolves
  * getMachine / getItem / lastMachineId / playCreditOf against the maps above.
  */
-function makeChain(opts: { playCredit?: string; pulledItemIndex?: number; pulledPrize?: string } = {}) {
+function makeChain(
+  opts: {
+    playCredit?: string;
+    pulledItemIndex?: number;
+    pulledPrize?: string;
+    pullFault?: string;
+  } = {},
+) {
+  const runPull = (options?: { waitForEvent?: string }): TxResult => {
+    if (opts.pullFault) throw new Error(opts.pullFault);
+    const event =
+      options?.waitForEvent === "Pulled"
+        ? pulledEvent(opts.pulledItemIndex ?? 0, opts.pulledPrize ?? "100000000")
+        : undefined;
+    return { txid: "0xtx", event, success: true };
+  };
+
   const invoke = vi.fn(
     async (op: string, _args: ContractArg[], options?: { waitForEvent?: string }): Promise<TxResult> => {
       let event: unknown;
-      if (op === "pull" && options?.waitForEvent === "Pulled") {
-        event = pulledEvent(opts.pulledItemIndex ?? 0, opts.pulledPrize ?? "100000000");
-      } else if (op === "createMachine" && options?.waitForEvent === "MachineCreated") {
+      if (op === "pull") return runPull(options);
+      if (op === "createMachine" && options?.waitForEvent === "MachineCreated") {
         event = { state: [{ type: "Integer", value: "1" }] };
       }
       return { txid: "0xtx", event, success: true };
+    },
+  );
+
+  // Mirrors ChainService.prepayAndInvoke: record the deposit transfer, then run
+  // the follow-up op, wrapping a confirmed-deposit follow-up fault.
+  const prepayAndInvoke = vi.fn(
+    async (
+      gasAmount: string,
+      memo: string,
+      operation: string,
+      args: ContractArg[],
+      options?: { waitForEvent?: string },
+    ): Promise<TxResult> => {
+      await invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: PLAYER_HASH },
+          { type: "Hash160", value: CONTRACT },
+          { type: "Integer", value: gasAmount },
+          { type: "String", value: memo },
+        ],
+        { scriptHash: GAS_HASH },
+      );
+      try {
+        if (operation === "pull") return runPull(options);
+        return await invoke(operation, args, options);
+      } catch (e) {
+        throw new DepositConfirmedActionFailedError(operation, "0xtx", e);
+      }
     },
   );
 
@@ -125,21 +172,23 @@ function makeChain(opts: { playCredit?: string; pulledItemIndex?: number; pulled
     address: { get: () => PLAYER },
     ensureWallet: vi.fn(async () => PLAYER),
     invoke,
+    prepayAndInvoke,
     read,
     readArray,
   } as unknown as ChainService & {
     invoke: typeof invoke;
+    prepayAndInvoke: typeof prepayAndInvoke;
     read: typeof read;
     readArray: typeof readArray;
   };
-  return { chain, invoke, read };
+  return { chain, invoke, prepayAndInvoke, read };
 }
 
 function setup(opts: Parameters<typeof makeChain>[0] = {}) {
-  const { chain, invoke, read } = makeChain(opts);
+  const { chain, invoke, prepayAndInvoke, read } = makeChain(opts);
   const app = useGasBox({ chain, t });
   app.setAddress(PLAYER);
-  return { app, chain, invoke, read };
+  return { app, chain, invoke, prepayAndInvoke, read };
 }
 
 /** Find a recorded invoke call for an operation. */
@@ -217,8 +266,8 @@ describe("useGasBox (direct MiniAppGasBox contract)", () => {
     expect(read.mock.calls.some((c) => c[0] === "getItem")).toBe(true);
   });
 
-  it("prepays play credit then pulls on-chain, reading the won item from the Pulled event", async () => {
-    const { app, invoke } = setup({ playCredit: "0", pulledItemIndex: 0, pulledPrize: "100000000" });
+  it("prepays play credit then pulls on-chain (via prepayAndInvoke, deposit confirmed first), reading the won item from the Pulled event", async () => {
+    const { app, invoke, prepayAndInvoke } = setup({ playCredit: "0", pulledItemIndex: 0, pulledPrize: "100000000" });
 
     await app.loadAll();
     app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
@@ -227,29 +276,28 @@ describe("useGasBox (direct MiniAppGasBox contract)", () => {
     const pulled = await app.playMachine();
     expect(pulled).toBe(true);
 
-    // Step 1: PREPAY — GAS transfer to the contract with the play memo, base units.
+    // The deposit→pull happens through prepayAndInvoke, which waits for the
+    // deposit to confirm before pull() test-invokes (no more deposit→pull race).
+    expect(prepayAndInvoke).toHaveBeenCalledTimes(1);
+    const [gasAmount, memo, op, pullArgs, pullOpts] = prepayAndInvoke.mock.calls[0];
+    expect(gasAmount).toBe("10000000"); // 0.1 GAS base units
+    expect(memo).toBe(PLAY_MEMO);
+    expect(op).toBe("pull");
+    expect(pullArgs).toEqual([
+      { type: "Integer", value: "1" },
+      { type: "Hash160", value: PLAYER_HASH },
+    ]);
+    expect(pullOpts).toMatchObject({ waitForEvent: "Pulled" });
+
+    // The deposit transfer carries the play memo in base units.
     const prepay = callFor(invoke, "transfer");
     expect(prepay).toBeTruthy();
     expect(prepay![1]).toEqual([
       { type: "Hash160", value: PLAYER_HASH },
       { type: "Hash160", value: CONTRACT },
-      { type: "Integer", value: "10000000" }, // 0.1 GAS in base units
+      { type: "Integer", value: "10000000" },
       { type: "String", value: PLAY_MEMO },
     ]);
-    expect(prepay![2]).toMatchObject({ scriptHash: GAS_HASH });
-
-    // Step 2: pull(machineId, player) waiting for the Pulled event.
-    const pull = callFor(invoke, "pull");
-    expect(pull).toBeTruthy();
-    expect(pull![1]).toEqual([
-      { type: "Integer", value: "1" },
-      { type: "Hash160", value: PLAYER_HASH },
-    ]);
-    expect(pull![2]).toMatchObject({ waitForEvent: "Pulled" });
-
-    // The prepay must precede the pull.
-    const order = invoke.mock.calls.map((c) => c[0]);
-    expect(order.indexOf("transfer")).toBeLessThan(order.indexOf("pull"));
 
     // The won item came from the Pulled event (itemIndex 0) + getItem amount.
     const result = app.resultItem.get();
@@ -258,6 +306,28 @@ describe("useGasBox (direct MiniAppGasBox contract)", () => {
     // Displayed payout reflects the on-chain prizeAmount (1 GAS).
     expect(result!.amountDisplay).toContain("1");
     expect(app.showResult.get()).toBe(true);
+  });
+
+  it("reuses existing play credit (no prepayAndInvoke) when it already covers the price", async () => {
+    const { app, prepayAndInvoke, invoke } = setup({ playCredit: "10000000", pulledItemIndex: 1, pulledPrize: "10000000" });
+
+    await app.loadAll();
+    app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
+    await app.playMachine();
+
+    expect(prepayAndInvoke).not.toHaveBeenCalled();
+    expect(callFor(invoke, "pull")).toBeTruthy();
+  });
+
+  it("notes the prepaid credit as reusable when the pull reverts after a confirmed deposit", async () => {
+    const { app, prepayAndInvoke } = setup({ playCredit: "0", pullFault: "insufficient prepaid gas" });
+
+    await app.loadAll();
+    app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
+
+    await expect(app.playMachine()).rejects.toThrow("Play credit prepaid but the pull didn't settle");
+    expect(prepayAndInvoke).toHaveBeenCalledTimes(1);
+    expect(app.showResult.get()).toBe(false);
   });
 
   it("skips the prepay transfer when existing play credit already covers the price", async () => {
@@ -442,7 +512,9 @@ describe("useGasBox (direct MiniAppGasBox contract)", () => {
   });
 
   it("guards against double pull submissions", async () => {
-    const { app, invoke } = setup();
+    // Existing credit covers the price, so the pull runs through invoke('pull')
+    // directly (no prepayAndInvoke) — the cleanest path to count the dispatch.
+    const { app, invoke } = setup({ playCredit: "10000000" });
     await app.loadAll();
     app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
 
@@ -455,5 +527,71 @@ describe("useGasBox (direct MiniAppGasBox contract)", () => {
 
     // Only one pull was dispatched.
     expect(invoke.mock.calls.filter((c) => c[0] === "pull")).toHaveLength(1);
+  });
+
+  it("tops up a machine's prize pool with a pool-memo transfer on the prize asset", async () => {
+    const { app, invoke } = setup();
+    await app.loadAll();
+
+    await app.topUpPool("1", "0.5"); // 0.5 GAS
+
+    const fund = invoke.mock.calls.find(
+      (c) => c[0] === "transfer" && String((c[1] as ContractArg[])[3]?.value).startsWith(POOL_MEMO_PREFIX),
+    );
+    expect(fund).toBeTruthy();
+    expect(fund![1]).toEqual([
+      { type: "Hash160", value: CREATOR_HASH },
+      { type: "Hash160", value: CONTRACT },
+      { type: "Integer", value: "50000000" }, // 0.5 GAS base units
+      { type: "String", value: `${POOL_MEMO_PREFIX}1` },
+    ]);
+    expect(fund![2]).toMatchObject({ scriptHash: GAS_HASH });
+  });
+
+  it("rejects a non-positive pool top-up before any chain call", async () => {
+    const { app, invoke } = setup();
+    await app.loadAll();
+    await expect(app.topUpPool("1", "0")).rejects.toThrow("Each item needs a positive prize amount.");
+    expect(invoke).not.toHaveBeenCalledWith("transfer", expect.anything(), expect.anything());
+  });
+
+  it("activates and deactivates a machine via setActive(creator, id, active)", async () => {
+    const { app, invoke } = setup();
+    await app.loadAll();
+
+    await app.setMachineActive("1", true);
+    let activate = callFor(invoke, "setActive");
+    expect(activate![1]).toEqual([
+      { type: "Hash160", value: CREATOR_HASH },
+      { type: "Integer", value: "1" },
+      { type: "Boolean", value: true },
+    ]);
+
+    invoke.mockClear();
+    await app.setMachineActive("1", false);
+    activate = callFor(invoke, "setActive");
+    expect(activate![1]).toContainEqual({ type: "Boolean", value: false });
+  });
+
+  it("rewords an activation fault as a pool-coverage error", async () => {
+    const { app, invoke } = setup();
+    await app.loadAll();
+    invoke.mockImplementation(async (op: string) => {
+      if (op === "setActive") throw new Error("pool cannot cover max prize");
+      return { txid: "0xtx", success: true };
+    });
+    await expect(app.setMachineActive("1", true)).rejects.toThrow(
+      "The prize pool cannot cover the largest prize.",
+    );
+  });
+
+  it("surfaces the player's prepaid play credit after loadAll", async () => {
+    const { app } = setup({ playCredit: "150000000" }); // 1.5 GAS
+
+    await app.loadAll();
+
+    expect(app.playCreditBase.get()).toBe(150000000n);
+    expect(app.hasPlayCredit.get()).toBe(true);
+    expect(app.formattedPlayCredit.get()).toContain("1.5");
   });
 });

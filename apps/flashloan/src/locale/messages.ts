@@ -4,6 +4,14 @@ const appMessages = {
   // App translations
   title: { en: "Flash Loan", zh: "闪电贷" },
   appName: { en: "Flash Loan", zh: "闪电贷" },
+
+  // Section eyebrows (uppercase + tracked per Neo Soft convention)
+  eyebrow: { en: "Atomic liquidity", zh: "原子流动性" },
+  requestLoanEyebrow: { en: "Atomic liquidity", zh: "原子流动性" },
+  loanCalculatorEyebrow: { en: "Calculator", zh: "计算器" },
+  statusLookupEyebrow: { en: "On-chain lookup", zh: "链上查询" },
+  recentLoansEyebrow: { en: "History", zh: "历史记录" },
+  liquidityEyebrow: { en: "Provide liquidity", zh: "提供流动性" },
   connectWalletToUse: { en: "Connect wallet to use Flash Loan", zh: "连接钱包使用闪电贷" },
   connectAndSign: { en: "Connect and Sign", zh: "连接并签名" },
   signRequestFlashLoan: { en: "Sign requestFlashLoan", zh: "签名 requestFlashLoan" },
@@ -155,6 +163,47 @@ const appMessages = {
   },
   notAvailable: { en: "Unavailable", zh: "不可用" },
   live: { en: "LIVE", zh: "实时" },
+
+  // Service-state notice (read failure — keep last good snapshot, never zeros)
+  statsUnavailable: {
+    en: "Live pool stats are temporarily unavailable. Showing the last known values.",
+    zh: "实时池子数据暂时不可用。当前显示最近一次的已知数值。",
+  },
+
+  // Pre-flight loan constraints
+  cooldownLabel: { en: "Cooldown", zh: "冷却时间" },
+  cooldownValue: { en: "{minutes} min between loans", zh: "每次借款间隔 {minutes} 分钟" },
+  dailyLimitLabel: { en: "Daily Limit", zh: "每日上限" },
+  dailyLimitValue: { en: "{count} loans / day", zh: "{count} 笔 / 天" },
+
+  // Callback-contract prerequisite
+  callbackPrerequisite: {
+    en: "Every loan needs a deployed contract that implements onFlashLoan(borrower, amount, fee, loanId) and repays principal + fee in the same transaction.",
+    zh: "每笔贷款都需要一个已部署的合约，实现 onFlashLoan(borrower, amount, fee, loanId) 并在同一笔交易中归还本金与手续费。",
+  },
+  viewCallbackExample: { en: "View onFlashLoan example", zh: "查看 onFlashLoan 示例" },
+
+  // Liquidity provider surface
+  liquidityTitle: { en: "Provide Liquidity", zh: "提供流动性" },
+  liquidityInfo: {
+    en: "Deposit GAS to back flash loans and earn a share of the 0.09% fee. You can withdraw up to what you deposited at any time.",
+    zh: "存入 GAS 为闪电贷提供流动性，并赚取 0.09% 手续费的分成。你随时可以提取不超过存入金额的部分。",
+  },
+  liquidityAmount: { en: "Amount", zh: "金额" },
+  liquidityAmountPlaceholder: { en: "Enter GAS amount", zh: "输入 GAS 金额" },
+  yourLiquidity: { en: "Your Liquidity", zh: "你的流动性" },
+  feesEarned: { en: "Fees Earned", zh: "已赚取手续费" },
+  deposit: { en: "Deposit", zh: "存入" },
+  withdraw: { en: "Withdraw", zh: "提取" },
+  invalidLiquidityAmount: { en: "Enter a valid GAS amount", zh: "请输入有效的 GAS 金额" },
+  receiptIdLabel: { en: "Payment Receipt ID", zh: "支付凭证 ID" },
+  receiptIdPlaceholder: { en: "Receipt ID from your GAS transfer", zh: "来自 GAS 转账的凭证 ID" },
+  receiptIdRequired: {
+    en: "On mainnet, transfer GAS to the contract first, then enter the receipt ID.",
+    zh: "在主网上，请先向合约转入 GAS，然后填写凭证 ID。",
+  },
+  liquidityDeposited: { en: "Liquidity deposited.", zh: "流动性已存入。" },
+  liquidityWithdrawn: { en: "Liquidity withdrawn.", zh: "流动性已提取。" },
   feature1Name: { en: "Atomic Execution", zh: "原子执行" },
   feature1Desc: { en: "Borrow and repay in a single transaction.", zh: "在单笔交易中借还。" },
   feature2Name: { en: "Pool Monitoring", zh: "池子监控" },

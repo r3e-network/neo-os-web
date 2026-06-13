@@ -85,12 +85,30 @@ defineMiniApp({
       );
     });
 
+    ctx.registerAction("finalizeProposal", async (...args: unknown[]) => {
+      const proposalId = Number(args[0] ?? 0);
+      if (!proposalId) return;
+      return ctx.services.notify.guard(
+        () => gov.finalizeProposal(proposalId),
+        "proposalFinalized",
+      );
+    });
+
     ctx.registerAction("executeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
       if (!proposalId) return;
       return ctx.services.notify.guard(
         () => gov.executeProposal(proposalId),
         "proposalExecuted",
+      );
+    });
+
+    ctx.registerAction("revokeProposal", async (...args: unknown[]) => {
+      const proposalId = Number(args[0] ?? 0);
+      if (!proposalId) return;
+      return ctx.services.notify.guard(
+        () => gov.revokeProposal(proposalId),
+        "proposalRevoked",
       );
     });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef } from "react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -21,11 +21,16 @@ function messageByteLength(value: string): number {
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num } = useStateBindings(state);
-  const [message, setMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const address = str("address", "");
+  // The message lives in the composable observable so the file-hash flow (which
+  // loads "sha256:<digest>" into it) and the textarea stay in sync.
+  const message = str("message", "");
   const signature = str("signature", "");
+  const publicKey = str("publicKey", "");
   const txHash = str("txHash", "");
+  const txPending = bool("txPending");
   const isSigning = bool("isSigning");
   const isBroadcasting = bool("isBroadcasting");
   const signCount = num("signCount");
@@ -34,7 +39,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canSubmit = message.trim().length > 0 && messageBytes <= 1024;
   const canBroadcast = canSubmit;
   const signaturePreview = signature ? shortValue(signature) : t("noSignatureYet");
-  const txHashPreview = txHash ? shortValue(txHash) : t("noBroadcastYet");
+  const txHashPreview = txHash
+    ? shortValue(txHash)
+    : txPending
+      ? t("txPending")
+      : t("noBroadcastYet");
 
   return (
     <div className="sign-play-area">
@@ -96,7 +105,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <NeoCard variant="erobo" className="sign-message-panel">
               <div className="sign-section-heading">
                 <span>{t("signatureDeskTitle")}</span>
-                <strong>{messageBytes}/1024 bytes</strong>
+                <strong>
+                  {messageBytes}/1024 {t("bytesUnit")}
+                </strong>
               </div>
               <label className="sign-message-field">
                 <span>{t("messageLabel")}</span>
@@ -104,9 +115,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   value={message}
                   placeholder={t("messagePlaceholder")}
                   rows={6}
-                  onChange={(event) => setMessage(event.currentTarget.value)}
+                  onChange={(event) => dispatch("setMessage", event.currentTarget.value)}
                 />
               </label>
+              <div className="sign-file-row">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="sign-file-input"
+                  aria-label={t("signFileBtn")}
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) void dispatch("loadFileDigest", file);
+                    // Allow re-selecting the same file to re-hash it.
+                    event.currentTarget.value = "";
+                  }}
+                />
+                <NeoButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {t("signFileBtn")}
+                </NeoButton>
+                <span className="sign-file-note">{t("hashedFileNotice")}</span>
+              </div>
               <div className="sign-action-grid">
                 <NeoButton
                   variant="primary"
@@ -139,6 +172,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <div className={`sign-result-box${signature ? "" : " is-empty"}`}>
                   <span>{t("signatureResult")}</span>
                   <strong>{signaturePreview}</strong>
+                  {publicKey && (
+                    <span className="sign-result-meta">
+                      {t("publicKeyLabel")}: {shortValue(publicKey)}
+                    </span>
+                  )}
                   <button
                     type="button"
                     disabled={!signature}
@@ -196,12 +234,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
                 <div className="sign-signal-row">
                   <span>{t("messageBytesLabel")}</span>
-                  <strong>{messageBytes}/1024</strong>
+                  <strong>
+                    {messageBytes}/1024 {t("bytesUnit")}
+                  </strong>
                 </div>
                 <div className="sign-signal-row">
                   <span>{t("privacyLabel")}</span>
                   <strong>{t("privacyValue")}</strong>
                 </div>
+                <p className="sign-fee-note">{t("networkFeeNote")}</p>
               </div>
             </details>
           </NeoCard>

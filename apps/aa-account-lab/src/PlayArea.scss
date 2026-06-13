@@ -186,6 +186,42 @@
   line-height: 1.45;
 }
 
+/* Read-only preview of the contract-derived accountId — the only id the
+   register call will accept. Framed as a labelled, monospace block so users can
+   verify/copy it before paying. */
+.account-derived {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 13px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.account-derived__label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.account-derived__value {
+  overflow-wrap: anywhere;
+  font-family: var(--ns-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.account-derived__hint {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+}
+
 /* Inline cautions near the Register CTA. Info (already-registered) keeps the
    green accent; the mainnet write alert uses a distinct warm tone so a real
    on-chain spend reads as higher-stakes than a neutral hint. */

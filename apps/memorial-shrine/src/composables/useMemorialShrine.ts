@@ -55,10 +55,16 @@ import type { ChainService, ContractArg, TxResult } from "@shared/services";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { readQueryParam } from "@shared/utils/url";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import type { Memorial } from "../types";
 
 const APP_ID = "miniapp-memorial-shrine";
 const FIXED8_DECIMALS = 100000000n;
+
+/** Local store of memorial ids the visitor has actually opened ("Visited"). */
+const VISITED_STORE_KEY = "memorial-shrine-visited";
+/** How many visited ids to retain locally. */
+const MAX_VISITED = 60;
 
 /** Fixed offering cost (GAS base units) keyed by on-chain offering type. */
 const OFFERING_COSTS_FIXED8: Record<number, bigint> = {
@@ -299,10 +305,44 @@ export function useMemorialShrine({
     );
   };
 
-  const loadVisitedMemorials = () => {
-    // "Visited" mirrors the memorials the visitor has opened this session;
-    // seed it from the loaded catalog so the stat is populated on first load.
-    visitedMemorials.set(memorials.get().slice(0, 2));
+  /** Read the persisted visited-memorial id list (newest first). */
+  const readVisitedIds = (): number[] => {
+    try {
+      const raw = readCachedJSON<number[]>(VISITED_STORE_KEY);
+      if (!Array.isArray(raw)) return [];
+      return raw.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0);
+    } catch {
+      return [];
+    }
+  };
+
+  /** Persist a memorial id as visited (newest first, deduped, capped). */
+  const persistVisitedId = (id: number) => {
+    try {
+      const next = [id, ...readVisitedIds().filter((existing) => existing !== id)].slice(0, MAX_VISITED);
+      writeCachedJSON(VISITED_STORE_KEY, next);
+    } catch {
+      /* best-effort local persistence */
+    }
+  };
+
+  /**
+   * "Visited" reflects memorials this device has ACTUALLY opened — persisted
+   * locally and rehydrated against the loaded catalog. It starts empty for a
+   * fresh visitor (no fabricated seeds) and resolves stored ids to the catalog
+   * entry where available, falling back to a contract read for older ones.
+   */
+  const loadVisitedMemorials = async () => {
+    const ids = readVisitedIds();
+    if (ids.length === 0) {
+      visitedMemorials.set([]);
+      return;
+    }
+    const loaded = memorials.get();
+    const resolved = await Promise.all(
+      ids.map(async (id) => loaded.find((m) => m.id === id) ?? (await readMemorial(id))),
+    );
+    visitedMemorials.set(resolved.filter((m): m is Memorial => m !== null));
   };
 
   // ------------------------------------------
@@ -415,10 +455,11 @@ export function useMemorialShrine({
     const memorial = memorials.get().find((m) => m.id === id);
     if (memorial) {
       selectedMemorial.set(memorial);
-      // Track the opened memorial in "Visited".
+      // Track the opened memorial in "Visited" — real, persisted opens only.
       if (!visitedMemorials.get().some((m) => m.id === id)) {
         visitedMemorials.set([memorial, ...visitedMemorials.get()]);
       }
+      persistVisitedId(id);
       if (typeof window !== "undefined") {
         const url = new URL(window.location.href);
         url.searchParams.set("id", String(id));
@@ -436,14 +477,47 @@ export function useMemorialShrine({
     }
   };
 
-  const shareMemorial = (memorial?: Memorial) => {
+  /** Briefly surface a share status message (auto-clears after 2.5s). */
+  const flashShareStatus = (message: string) => {
+    shareStatus.set(message);
+    if (shareStatusTimer) clearTimeout(shareStatusTimer);
+    shareStatusTimer = setTimeout(() => {
+      shareStatus.set(null);
+      shareStatusTimer = null;
+    }, 2500);
+  };
+
+  const shareMemorial = async (memorial?: Memorial) => {
     const target = memorial || selectedMemorial.get();
     if (!target || typeof window === "undefined") return;
     const shareUrl = `${window.location.origin}${window.location.pathname}?id=${target.id}`;
-    if (navigator.share) {
-      navigator.share({ title: `${target.name} - ${t("title")}`, text: `${t("tagline")} | ${target.name} (${target.birthYear}-${target.deathYear})`, url: shareUrl })
-        .catch(() => { /* fallback handled silently */ });
+    const shareData = {
+      title: `${target.name} - ${t("title")}`,
+      text: `${t("tagline")} | ${target.name} (${target.birthYear}-${target.deathYear})`,
+      url: shareUrl,
+    };
+
+    // Native Web Share when available (mobile); otherwise copy to clipboard so
+    // desktop browsers without navigator.share are not a silent no-op.
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        /* user dismissed the sheet or share failed → fall through to copy */
+      }
     }
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        flashShareStatus(t("linkCopied"));
+        eventBus.emit("memorial:shared", { id: target.id, url: shareUrl });
+        return;
+      }
+    } catch {
+      /* clipboard blocked → surface the link so the user can copy manually */
+    }
+    flashShareStatus(shareUrl);
   };
 
   const checkUrlForMemorial = async () => {
@@ -604,7 +678,7 @@ export function useMemorialShrine({
   const loadAll = async () => {
     await loadMemorials();
     await checkUrlForMemorial();
-    loadVisitedMemorials();
+    await loadVisitedMemorials();
     await loadMyTributes();
   };
 

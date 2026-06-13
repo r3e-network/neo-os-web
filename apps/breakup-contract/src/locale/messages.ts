@@ -66,16 +66,27 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   active: { en: "Active", zh: "活跃" },
   broken: { en: "Broken", zh: "已破裂" },
   ended: { en: "Ended", zh: "已结束" },
+  cancelled: { en: "Cancelled", zh: "已取消" },
 
   signContract: { en: "Sign Contract", zh: "签署合约" },
   breakContract: { en: "Break Contract", zh: "违约" },
+  cancelContract: { en: "Cancel & reclaim", zh: "取消并取回" },
   settleContract: { en: "Settle", zh: "结算退还" },
   untitledContract: { en: "Untitled pact", zh: "未命名约定" },
+  partnerTermsOffChain: {
+    en: "Only the stake and duration are on-chain. The title and terms live on the creator's device — verify them together before you match the stake.",
+    zh: "链上仅记录质押与期限。标题和条款仅保存在创建者的设备上 — 匹配质押前请与对方共同核对。",
+  },
 
   contractCreated: { en: "Contract created successfully!", zh: "合约创建成功！" },
   contractSigned: { en: "Contract signed", zh: "合约已签署" },
   contractBroken: { en: "Pact broken — your stake is forfeited to your partner.", zh: "约定已违约 — 你的质押已归对方所有。" },
   contractSettled: { en: "Pact honored — both stakes refunded.", zh: "约定已履行 — 双方质押已退回。" },
+  contractCancelled: { en: "Pact cancelled — your stake was reclaimed.", zh: "约定已取消 — 你的质押已取回。" },
+  signNotPartner: {
+    en: "Only the named partner can sign this pact.",
+    zh: "只有被指定的伴侣才能签署此约定。",
+  },
   contractPreparing: {
     en: "Preparing wallet confirmation for \"{title}\" with {amount} stake.",
     zh: "正在为「{title}」准备 {amount} 质押的钱包确认。",
@@ -128,6 +139,16 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   termsCounter: { en: "{count}/{max} characters", zh: "{count}/{max} 字符" },
   contractUnavailable: { en: "Contract not configured", zh: "合约未配置" },
   loadFailed: { en: "Failed to load contracts", zh: "加载合约失败" },
+
+  creditRecoveryTitle: { en: "Recover stranded stake", zh: "取回滞留质押" },
+  creditRecoveryCopy: {
+    en: "A stake you deposited without completing the pact (e.g. a rejected wallet prompt) is held as reusable credit on the contract. Recover it back to your wallet anytime.",
+    zh: "你已存入但未完成约定的质押（例如拒绝了钱包确认）会作为可复用额度保留在合约上。可随时取回到你的钱包。",
+  },
+  recoverCredit: { en: "Recover GAS", zh: "取回 GAS" },
+  creditRecovering: { en: "Recovering your stranded stake credit…", zh: "正在取回你的滞留质押额度…" },
+  creditRecovered: { en: "Stake credit recovered to your wallet.", zh: "质押额度已取回到你的钱包。" },
+  noCreditToRecover: { en: "No recoverable stake credit.", zh: "没有可取回的质押额度。" },
 
   docSubtitle: { en: "Stake-backed relationship agreements", zh: "带质押的关系合约" },
   docDescription: {

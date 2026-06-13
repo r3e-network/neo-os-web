@@ -21,6 +21,16 @@ beforeEach(() => {
 const PARTNER = "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq";
 const CREATOR = "NgaiKFjurmNmiRzDRQGs44yzByXuSkdGPF";
 
+// getPact returns party1/party2 as UInt160 Hash160s. chain.read surfaces those
+// as raw chain-order (little-endian) ByteStrings — parseStackItem renders them
+// as `0x<chain-order hex>`, the REVERSE of the display-order hash. mapPact must
+// normalize these to display order and match them against the wallet via
+// ownerMatchesAddress (the old N-address-vs-hex string compare was always
+// false, which hid every Sign/Break/Cancel control). Feed the realistic
+// chain-order form so the tests exercise the real normalization path.
+const CREATOR_HASH_CHAIN = "0xe2b653227293e99c4f2906d53553abb4a672df86";
+const PARTNER_HASH_CHAIN = "0x7eee1aabeb67ed1d791d44e4f5fcf3ae9171a871";
+
 // The on-chain contract script hash the composable reads from contractAddress.
 const CONTRACT = "0xe298ae87a7e31f25ad0fce23e83f0e93c02e2850";
 // GAS native contract hash (used as the transfer scriptHash override).
@@ -50,6 +60,10 @@ function t(key: string, params?: Record<string, string | number>) {
       "Your stake was deposited but the pact was not created.",
     depositPrepaidNoSign:
       "Your matching stake was deposited but the pact was not signed.",
+    signNotPartner: "Only the named partner can sign this pact.",
+    noCreditToRecover: "No recoverable stake credit.",
+    creditRecovering: "Recovering your stranded stake credit…",
+    creditRecovered: "Stake credit recovered to your wallet.",
   };
   return messages[key] ?? key;
 }
@@ -64,8 +78,8 @@ const STAKE_BASE = "500000000";
 function pact(over: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
   return {
     id: 1,
-    party1: CREATOR,
-    party2: PARTNER,
+    party1: CREATOR_HASH_CHAIN,
+    party2: PARTNER_HASH_CHAIN,
     stake: STAKE_BASE,
     endTime: Date.now() + 90 * 86_400_000,
     party1Staked: true,
@@ -305,7 +319,7 @@ describe("useBreakup", () => {
         "2": pact({ id: 2, status: 1, party2Staked: true }),                  // active
         "3": pact({ id: 3, status: 2, party2Staked: true }),                  // broken
         "4": pact({ id: 4, status: 3, party2Staked: true, endTime: now - 1 }), // settled -> ended
-        "5": pact({ id: 5, status: 4, party2Staked: false }),                 // cancelled -> ended
+        "5": pact({ id: 5, status: 4, party2Staked: false }),                 // cancelled -> cancelled
       },
     });
 
@@ -320,8 +334,8 @@ describe("useBreakup", () => {
     expect(byId["2"].party2Signed).toBe(true);
 
     expect(byId["3"].status).toBe("broken");
-    expect(byId["4"].status).toBe("ended"); // settled
-    expect(byId["5"].status).toBe("ended"); // cancelled
+    expect(byId["4"].status).toBe("ended"); // settled (honored to expiry)
+    expect(byId["5"].status).toBe("cancelled"); // cancelled (distinct from settled)
 
     // Counts derive from the mapped statuses.
     expect(app.activeCount.get()).toBe(1);
@@ -389,5 +403,130 @@ describe("useBreakup", () => {
     await app.loadContracts();
     expect(app.contracts.get()).toEqual([]);
     expect(app.serviceNotice.get()).toBe("");
+  });
+
+  it("normalizes the chain-order party hashes and matches the connected wallet (the isParty/Sign-button fix)", async () => {
+    // Viewer is the CREATOR (party1). The contract returns the parties as
+    // chain-order Hash160s; mapPact must normalize and match them so the creator
+    // is recognized as a party and the partner is resolved to the OTHER side.
+    const { app } = validApp({
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7 }) },
+    });
+    app.address.set(CREATOR);
+
+    await app.loadContracts();
+    const c = app.contracts.get()[0];
+    expect(c.isCreator).toBe(true);
+    expect(c.isPartner).toBe(false);
+    // The counterparty (the OTHER party) is the PARTNER, rendered as a real
+    // N-address — not the viewer's own truncated script hash (the old bug).
+    expect(c.partner).toBe(PARTNER);
+
+    // Switching the wallet to the PARTNER flips the party flags and the shown
+    // counterparty becomes the CREATOR.
+    app.address.set(PARTNER);
+    await app.loadContracts();
+    const c2 = app.contracts.get()[0];
+    expect(c2.isCreator).toBe(false);
+    expect(c2.isPartner).toBe(true);
+    expect(c2.partner).toBe(CREATOR);
+  });
+
+  it("blocks a non-partner (e.g. the creator) from signing BEFORE any GAS moves", async () => {
+    // The creator tapping Sign would deposit a second matching stake then revert
+    // (signPact asserts p.Party2 == caller). Reject pre-transfer so the stake
+    // never leaves the wrong wallet.
+    const { app, mock } = validApp({
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7 }) },
+    });
+    app.address.set(CREATOR); // party1, NOT the named partner
+
+    await expect(
+      app.signContract({ pactId: "7", stake: 5, stakeRaw: STAKE_BASE }),
+    ).rejects.toThrow("Only the named partner can sign this pact.");
+
+    // No transfer (deposit) and no signPact were attempted.
+    expect(mock.invoke).not.toHaveBeenCalled();
+  });
+
+  it("waits for the Credited event on both stake deposits before consuming the credit", async () => {
+    const { app, mock } = validApp({
+      events: { createPact: eventState(["7"]) },
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7 }) },
+    });
+
+    await app.createContract();
+
+    const depositCall = mock.invoke.mock.calls.find(
+      ([op, args]) =>
+        op === "transfer" &&
+        (args as { value: string }[])[3]?.value === "miniapp-breakup:stake",
+    );
+    expect(depositCall).toBeTruthy();
+    const [, , depositOpts] = depositCall as [
+      string,
+      unknown,
+      { waitForEvent?: string },
+    ];
+    // The deposit transfer waits on Credited so createPact never races ahead of
+    // the credit landing and faults "insufficient stake credit".
+    expect(depositOpts.waitForEvent).toBe("Credited");
+  });
+
+  it("reads reclaimable stake-credit (creditOf) and exposes it for recovery", async () => {
+    const { app, mock } = validApp({ partyPacts: [], pacts: {} });
+    // creditOf returns 3 GAS of stranded credit under the wallet.
+    mock.read.mockImplementation(async (op: string) => {
+      if (op === "creditOf") return "300000000";
+      return null;
+    });
+
+    await app.loadCredit();
+    expect(app.creditBalance.get()).toBe("3");
+    expect(app.creditBalanceRaw.get()).toBe("300000000");
+    expect(app.hasCredit.get()).toBe(true);
+  });
+
+  it("withdraws stranded credit via withdraw(account) waiting on CreditWithdrawn", async () => {
+    const { app, mock } = validApp({ partyPacts: [], pacts: {} });
+    mock.read.mockImplementation(async (op: string) => {
+      if (op === "creditOf") return "300000000";
+      return null;
+    });
+    await app.loadCredit();
+
+    await app.withdrawCredit();
+
+    const withdrawCall = mock.invoke.mock.calls.find(([op]) => op === "withdraw");
+    expect(withdrawCall).toBeTruthy();
+    const [, withdrawArgs, withdrawOpts] = withdrawCall as [
+      string,
+      { type: string; value: string }[],
+      { waitForEvent?: string },
+    ];
+    expect(withdrawArgs[0].type).toBe("Hash160"); // account = connected wallet
+    expect(withdrawOpts.waitForEvent).toBe("CreditWithdrawn");
+  });
+
+  it("refuses to withdraw when there is no recoverable credit", async () => {
+    const { app, mock } = validApp({ partyPacts: [], pacts: {} });
+    // creditOf returns 0 -> no recoverable credit.
+    await app.loadCredit();
+    expect(app.hasCredit.get()).toBe(false);
+
+    await expect(app.withdrawCredit()).rejects.toThrow("No recoverable stake credit.");
+    expect(mock.invoke).not.toHaveBeenCalledWith("withdraw", expect.anything(), expect.anything());
+  });
+
+  it("createContract resolves true on success so the form only resets on a real success", async () => {
+    const { app } = validApp({
+      events: { createPact: eventState(["7"]) },
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7 }) },
+    });
+    await expect(app.createContract()).resolves.toBe(true);
   });
 });

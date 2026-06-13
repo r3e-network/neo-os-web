@@ -70,6 +70,21 @@ defineMiniApp({
       );
     });
 
+    ctx.registerAction("increaseBounty", async (...args: unknown[]) => {
+      const [vaultId, amountGas] = args;
+      await ctx.services.notify.guard(async () => {
+        const result = await creator.increaseBounty(
+          String(vaultId ?? ""),
+          String(amountGas ?? ""),
+          () => breaker.loadVault().then(() => undefined),
+        );
+        ctx.services.notify.success("increaseBountySuccess", {
+          amount: result.amountGas,
+          tokenGas: t("tokenGas"),
+        });
+      });
+    });
+
     const myVaultCount = {
       get: () => creator.myVaults.get().length,
       set: () => {},

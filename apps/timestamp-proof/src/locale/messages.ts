@@ -11,10 +11,20 @@ const appMessages = {
   createSuccess: { en: "Proof saved to this device.", zh: "证明已保存到当前设备。" },
   proofId: { en: "Proof ID", zh: "证明ID" },
   timestamp: { en: "Timestamp", zh: "时间戳" },
-  txHash: { en: "Reference", zh: "引用" },
+
+  // On-chain anchoring — publish the digest + time so a third party can verify.
+  anchorStatus: { en: "Status", zh: "状态" },
+  anchorOnChain: { en: "Anchor on-chain", zh: "上链锚定" },
+  anchorShort: { en: "Anchor", zh: "锚定" },
+  anchoredOnChain: { en: "Anchored on-chain", zh: "已上链锚定" },
+  localOnly: { en: "Local only", zh: "仅本地" },
+  anchorTxid: { en: "Anchor transaction", zh: "锚定交易" },
+  proofAnchored: { en: "Proof anchored on-chain", zh: "证明已上链锚定" },
+  anchorFailed: { en: "Anchoring failed", zh: "锚定失败" },
+  alreadyAnchored: { en: "Proof is already anchored", zh: "证明已锚定" },
+  connectWalletToAnchor: { en: "Connect a wallet to anchor on-chain", zh: "连接钱包以上链锚定" },
 
   verifyProof: { en: "Verify Proof", zh: "验证证明" },
-  enterProofId: { en: "Enter Proof ID", zh: "输入证明ID" },
   proofLookup: { en: "Proof lookup", zh: "证明查询" },
   verifyPlaceholder: {
     en: "Proof ID, SHA-256 digest, or original content",
@@ -24,7 +34,6 @@ const appMessages = {
   verifyEmpty: { en: "No proof selected", zh: "未选择证明" },
   validProof: { en: "Proof Found", zh: "已找到证明" },
   invalidProof: { en: "Invalid Proof", zh: "无效证明" },
-  verifiedContent: { en: "Verified Content", zh: "已验证内容" },
   contentPreview: { en: "Content preview", zh: "内容预览" },
   proofDigest: { en: "SHA-256 digest", zh: "SHA-256 摘要" },
   verifyFailed: { en: "Verification failed", zh: "验证失败" },
@@ -32,10 +41,6 @@ const appMessages = {
   recentProofs: { en: "Recent Proofs", zh: "最近证明" },
   noProofs: { en: "No proofs yet", zh: "暂无证明" },
   noProofsHint: { en: "Saved proof entries will appear here.", zh: "已保存的证明记录会显示在这里。" },
-  myProofs: { en: "My Proofs", zh: "我的证明" },
-  localReference: { en: "Local reference", zh: "本地引用" },
-  creatorLabel: { en: "Creator", zh: "创建者" },
-  sourceLocal: { en: "Local", zh: "本地" },
 
   copyDigest: { en: "Copy digest", zh: "复制摘要" },
   copyReference: { en: "Copy proof reference", zh: "复制证明引用" },
@@ -48,14 +53,14 @@ const appMessages = {
   proofsCleared: { en: "Proofs cleared", zh: "证明已清除" },
   error: { en: "Something went wrong", zh: "出现错误" },
 
-  docSubtitle: { en: "Device-local SHA-256 proof journal", zh: "设备本地 SHA-256 证明记录" },
+  docSubtitle: { en: "SHA-256 proof journal with optional on-chain anchor", zh: "SHA-256 证明记录，可选上链锚定" },
   docDescription: {
-    en: "Create and verify local SHA-256 proof entries without depending on a deployed contract.",
-    zh: "无需依赖已部署合约，直接创建和验证本地 SHA-256 证明记录。",
+    en: "Create SHA-256 proof entries locally, then optionally anchor a proof on Neo N3 (a 0-GAS self-transfer that embeds the digest) so a third party can verify the digest and time on-chain.",
+    zh: "在本地创建 SHA-256 证明记录，并可选择将证明锚定到 Neo N3（一笔携带摘要的 0 GAS 自转账），以便第三方在链上核验摘要与时间。",
   },
   step1: { en: "Enter your content or document hash", zh: "输入您的内容或文档哈希" },
   step2: { en: "Hash it locally in the browser", zh: "在浏览器本地计算哈希" },
-  step3: { en: "Store a reusable proof entry on this device", zh: "在当前设备保存可重复验证的证明记录" },
+  step3: { en: "Optionally anchor the proof on-chain for third-party verification", zh: "可选地将证明上链锚定，供第三方核验" },
   step4: { en: "Re-open and verify the proof by ID anytime", zh: "随时按编号重新验证该证明" },
 
   feature1Name: { en: "Local Certificates", zh: "本地证明条目" },
@@ -70,12 +75,8 @@ const appMessages = {
 
   proofStats: { en: "Proof Stats", zh: "证明统计" },
   totalProofs: { en: "Total Proofs", zh: "总证明数" },
-  yourProofs: { en: "Your Proofs", zh: "你的证明" },
-  ariaProofs: { en: "Proofs", zh: "证明" },
+  anchoredProofs: { en: "Anchored", zh: "已锚定" },
   latestId: { en: "Latest ID", zh: "最新编号" },
-  ellipsis: { en: "...", zh: "..." },
-  idPrefix: { en: "#", zh: "#" },
-  labelSeparator: { en: ": ", zh: "：" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -60,6 +60,18 @@ defineMiniApp({
       }
     });
 
+    ctx.registerAction("selectTrigger", async (...args: unknown[]) => {
+      copilot.selectTrigger(String(args[0] ?? ""));
+    });
+
+    ctx.registerAction("deleteTrigger", async (...args: unknown[]) => {
+      await ctx.services.notify.guard(
+        () => copilot.deleteTrigger(String(args[0] ?? "")),
+        "triggerDeleted",
+        "triggerDeleteFailed",
+      );
+    });
+
     return {
       state: {
         asset: copilot.asset,
@@ -78,6 +90,7 @@ defineMiniApp({
         latestTriggerId: copilot.latestTriggerId,
         latestTriggerState: copilot.latestTriggerState,
         latestTrigger: copilot.latestTrigger,
+        triggers: copilot.triggers,
         triggerCount: copilot.triggerCount,
         apiStatus: copilot.apiStatus,
         lastError: copilot.lastError,

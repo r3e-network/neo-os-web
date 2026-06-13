@@ -268,6 +268,161 @@
   letter-spacing: 0;
 }
 
+// Dynamic signer rows: input + inline remove button, plus an add-row button.
+.multisig-signer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.multisig-signer-remove {
+  align-self: end;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--multisig-border);
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--multisig-soft);
+  color: var(--multisig-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: var(--ns-danger, #ef4444);
+    border-color: var(--ns-danger, #ef4444);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+  }
+}
+
+.multisig-signer-add {
+  justify-self: start;
+  padding: 6px 12px;
+  border: 1px dashed var(--multisig-border);
+  border-radius: var(--ns-radius-sm, 12px);
+  background: transparent;
+  color: var(--multisig-green-strong);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background: var(--multisig-green-soft);
+    border-color: var(--multisig-green);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+  }
+}
+
+// Connected-as line in the hero.
+.multisig-hero-connected {
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--multisig-muted);
+}
+
+// Request ID row with copy affordance.
+.multisig-request-id-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+
+  > span {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--multisig-muted);
+  }
+
+  > strong {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--multisig-ink);
+  }
+}
+
+.multisig-copy-btn {
+  padding: 3px 10px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--multisig-green-strong);
+  background: var(--multisig-green-soft);
+  border: 1px solid transparent;
+  border-radius: var(--ns-radius-sm, 8px);
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--multisig-green);
+    color: #ffffff;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+  }
+}
+
+// Signer roster in the aside.
+.multisig-roster {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--multisig-border);
+}
+
+.multisig-roster-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--multisig-muted);
+}
+
+.multisig-roster-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--ns-radius-sm, 10px);
+  background: var(--multisig-soft);
+
+  &.is-you {
+    background: var(--multisig-green-soft);
+  }
+}
+
+.multisig-roster-hash {
+  font-family: var(--ns-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  color: var(--multisig-body);
+}
+
+.multisig-roster-you {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--multisig-green-strong);
+}
+
 .multisig-form-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

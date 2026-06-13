@@ -1,14 +1,15 @@
 /**
  * PlayArea.tsx -- Oracle Price Console (on-chain MorpheusDataFeed reader)
  *
- * Uses state: asset, priceDisplay, networkDisplay, datafeedHash,
- * datafeedShort, sourceLabel, isRequesting, errorMsg.
+ * Uses state: asset, priceDisplay, freshness, freshnessLabel, availablePairs,
+ * networkDisplay, datafeedShort, sourceLabel, isRequesting, errorMsg.
  * Actions: fetchPrice, updateAsset.
  */
 
 import { NeoButton, NeoCard, NeoSelect } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import type { Freshness } from "./hooks/usePriceConsole";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -18,19 +19,29 @@ interface PlayAreaProps {
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { str, bool } = useStateBindings(state);
+  const { str, bool, val } = useStateBindings(state);
 
   const asset = str("asset", "NEO");
-  const priceDisplay = str("priceDisplay", t("notAvailable") || "N/A");
+  const priceDisplay = str("priceDisplay", t("notAvailable"));
   const networkDisplay = str("networkDisplay", "");
   const datafeedShort = str("datafeedShort", "");
   const sourceLabel = str("sourceLabel", "");
   const errorMsg = str("errorMsg", "");
   const isRequesting = bool("isRequesting");
+  const freshness = (val<Freshness>("freshness", "idle") ?? "idle") as Freshness;
+  const freshnessLabel = str("freshnessLabel", t("priceStatusReady"));
+  const pairs = val<string[]>("availablePairs", ["NEO", "GAS", "BTC"]) ?? [
+    "NEO",
+    "GAS",
+    "BTC",
+  ];
+
   const canFetchPrice = Boolean(asset);
   const assetInitial = asset.slice(0, 1);
   const displayPair = `${asset}/USD`;
-  const priceLoaded = priceDisplay !== (t("notAvailable") || "N/A");
+  const priceLoaded = freshness !== "idle";
+  const isStale = freshness === "stale";
+  const assetOptions = pairs.map((symbol) => ({ value: symbol, label: symbol }));
 
   return (
     <div className="price-play-area">
@@ -62,7 +73,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <div className="price-metric">
             <span>{t("priceMetricSource")}</span>
-            <strong>{sourceLabel || "on-chain"}</strong>
+            <strong>{sourceLabel || "—"}</strong>
           </div>
         </div>
       </section>
@@ -79,12 +90,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <span
           className={`price-status${priceLoaded ? " price-status--live" : ""}`}
+          data-freshness={freshness}
           aria-label={t("priceSignalTitle")}
         >
           <i className="price-status__dot" aria-hidden="true" />
-          {priceLoaded ? t("priceStatusLive") : t("priceStatusReady")}
+          {freshnessLabel}
         </span>
       </section>
+
+      {isStale && (
+        <div className="price-stale-note" role="status">
+          {t("priceStaleHint")}
+        </div>
+      )}
 
       <NeoCard
         variant="erobo"
@@ -95,22 +113,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="stack">
           <NeoSelect
             value={asset}
-            label={t("asset") || "Asset"}
-            options={[
-              { value: "NEO", label: "NEO" },
-              { value: "GAS", label: "GAS" },
-              { value: "BTC", label: "BTC" },
-            ]}
-            onChange={(val) => dispatch("updateAsset", val)}
+            label={t("asset")}
+            options={assetOptions}
+            onChange={(value) => dispatch("updateAsset", value)}
           />
           <NeoButton
             variant="primary"
             loading={isRequesting}
             disabled={!canFetchPrice || isRequesting}
-            aria-label={t("fetchPrice") || "Fetch Price"}
+            aria-label={t("fetchPrice")}
             onClick={() => dispatch("fetchPrice")}
           >
-            {t("fetchPrice") || "Fetch Price"}
+            {t("fetchPrice")}
           </NeoButton>
         </div>
       </NeoCard>

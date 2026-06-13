@@ -95,38 +95,6 @@ $accent-soft: #e4f8f0;
   color: var(--ns-text-2, #5b6478);
 }
 
-.hero-facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ns-text-2, #5b6478);
-
-  strong {
-    font-weight: 800;
-    color: var(--ns-ink, #1e1e2e);
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.hero-fact {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-}
-
-.hero-fact-mono {
-  font-family: var(--ns-font-mono, "JetBrains Mono", "SF Mono", monospace);
-  color: $accent-strong !important;
-}
-
-.hero-fact-divider {
-  color: var(--ns-text-muted, #8a92a6);
-  font-weight: 700;
-}
-
 @keyframes ts-stamp-rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

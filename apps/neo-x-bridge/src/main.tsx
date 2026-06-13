@@ -43,7 +43,9 @@ defineMiniApp({
       lastDigest.set(intent.operation.digest);
       lastRoute.set(intent.operation.route);
       lastKind.set(intent.operation.kind);
-      lastStatus.set(intent.operation.status);
+      // Translate the operation's status key so the metrics strip never shows a
+      // bare English status to a zh user.
+      lastStatus.set(ctx.t(intent.operation.statusKey));
       requestCount.set(requestCount.get() + 1);
     };
 
@@ -82,10 +84,11 @@ defineMiniApp({
         kind: bridgeKind,
         direction,
         route,
-        title: `${bridgeKind === "message" ? "Message" : "Asset"} status ${route}`,
+        title: `${bridgeKind === "message" ? ctx.t("messageBridge") : ctx.t("assetBridge")} ${route}`,
         digest,
         createdAt: new Date().toISOString(),
         status: ctx.t("statusTrackingReady"),
+        statusKey: "statusTrackingReady",
         sourceTx: sourceTx || undefined,
         payload,
       };

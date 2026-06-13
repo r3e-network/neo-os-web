@@ -27,8 +27,9 @@ import { getHostOrigin } from "@shared/utils/runtime-origin";
 
 const APP_ID = "miniapp-explorer";
 const POLL_INTERVAL_MS = 15000;
+const RECENT_TXS_POLL_INTERVAL_MS = 30000;
 const STATS_CACHE_KEY = "explorer_stats_cache";
-const TXS_CACHE_KEY = "explorer_txs_cache";
+const TXS_CACHE_KEY_PREFIX = "explorer_txs_cache";
 
 // ============================================================================
 // Types
@@ -173,16 +174,22 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     // in-flight fetch keyed to the latest selectedNetwork is enough.
     if (isLoadingTxs) return;
     isLoadingTxs = true;
+    // Capture the network for this load so the cache read/write and the fetch
+    // all key off the same value even if the user toggles mid-flight.
+    const network = selectedNetwork.get();
+    const cacheKey = `${TXS_CACHE_KEY_PREFIX}:${network}`;
     try {
-      const cached = readCachedJSON<TransactionRecord[]>(TXS_CACHE_KEY);
-      if (cached) recentTxs.set(cached);
+      const cached = readCachedJSON<TransactionRecord[]>(cacheKey);
+      // Only paint the cache when it still matches the active network — a stale
+      // read for a network the user already toggled away from must not flash.
+      if (cached && selectedNetwork.get() === network) recentTxs.set(cached);
       if (!shouldUseExplorerApi()) return;
 
       let freshTxs: TransactionRecord[] = [];
       let hasFreshTxs = false;
 
       try {
-        const res = await fetchWithTimeout(`${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`);
+        const res = await fetchWithTimeout(`${API_BASE}/recent?network=${network}&limit=10`);
         if (res.ok) {
           const parsed = parseResponseData(await res.json()) as Record<string, unknown> | null;
           const rows = Array.isArray(parsed?.transactions) ? (parsed.transactions as Record<string, unknown>[]) : [];
@@ -194,8 +201,9 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
       }
 
       if (hasFreshTxs) {
-        recentTxs.set(freshTxs);
-        writeCachedJSON(TXS_CACHE_KEY, freshTxs);
+        writeCachedJSON(cacheKey, freshTxs);
+        // Guard against a slow response landing after the user toggled networks.
+        if (selectedNetwork.get() === network) recentTxs.set(freshTxs);
       }
     } finally {
       isLoadingTxs = false;
@@ -204,8 +212,12 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
 
   // Switching networks must re-scope the recent-tx list to match the stats and
   // search, which both read selectedNetwork at call time. Without this the list
-  // keeps showing the previous network's transactions after a toggle.
+  // keeps showing the previous network's transactions after a toggle. The
+  // previous network's search result is also cleared so the metrics-strip
+  // "Search result" tile resets to "—" rather than implying the new network
+  // returned the old (mainnet) hit.
   selectedNetwork.subscribe(() => {
+    searchResult.set(null);
     void loadRecentTxs();
   });
 
@@ -249,14 +261,21 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
 
   // ── Polling ──────────────────────────────────────────────────────────
 
+  // Stats and the recent-tx lane must both stay live: previously only the
+  // height metric ticked while the transaction list went permanently stale.
+  // The recent list moves slower and is heavier, so poll it on its own cadence;
+  // the isLoadingTxs guard inside loadRecentTxs already prevents overlap.
   const statsTicker = useTicker(loadStats, POLL_INTERVAL_MS);
+  const txsTicker = useTicker(loadRecentTxs, RECENT_TXS_POLL_INTERVAL_MS);
 
   const startPolling = () => {
     statsTicker.start();
+    txsTicker.start();
   };
 
   const stopPolling = () => {
     statsTicker.stop();
+    txsTicker.stop();
   };
 
   /**

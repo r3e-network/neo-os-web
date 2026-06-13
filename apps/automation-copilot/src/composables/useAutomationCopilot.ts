@@ -71,7 +71,9 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
   const latestTriggerState: Observable<string> = {
     get: () => {
       const trigger = latestTrigger.get();
-      if (!trigger) return t("notAvailable");
+      // No trigger yet → return an empty string so the PlayArea status fallback
+      // chain resolves to "Ready" (apiIdle) instead of a discouraging "N/A".
+      if (!trigger) return "";
       if (trigger.registration_state === "local_automation_intent") return t("handoffPrepared");
       return trigger.enabled ? t("enabled") : t("disabled");
     },
@@ -146,10 +148,28 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
     return value;
   }
 
+  // A standard 5-field cron expression. Each field is *, a number, a list
+  // (a,b), a range (a-b), or a step (*/n or a-b/n) — enough to reject the
+  // malformed strings the gateway would otherwise reject server-side.
+  const CRON_FIELD = /^(\*|\d+|\d+-\d+|\*\/\d+|\d+-\d+\/\d+|\d+(,\d+)+)$/;
+
+  function validateSchedule(raw: string): string | null {
+    const text = String(raw ?? "").trim();
+    const fields = text.split(/\s+/);
+    if (fields.length !== 5 || !fields.every((field) => CRON_FIELD.test(field))) {
+      lastError.set(t("scheduleInvalid"));
+      return null;
+    }
+    return text;
+  }
+
   function buildRecipePayload() {
     lastError.set("");
     if (validateTargetPrice(targetPrice.get()) === null) {
       throw new Error(lastError.get() || t("targetPriceInvalid"));
+    }
+    if (validateSchedule(schedule.get()) === null) {
+      throw new Error(lastError.get() || t("scheduleInvalid"));
     }
     const request = buildAutomationTriggerRequest({
       asset: asset.get(),
@@ -292,6 +312,54 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
     }
   }
 
+  /** Make a trigger from the list the active (operated) trigger. */
+  function selectTrigger(id: string) {
+    const match = triggers.get().find((trigger) => trigger.id === id);
+    if (match) latestTrigger.set(match);
+  }
+
+  /**
+   * Delete a verified trigger via the automation-trigger-delete edge function.
+   * Local handoff intents (never persisted on the gateway) are dropped from the
+   * list without a network call. Keeps the active selection consistent.
+   */
+  async function deleteTrigger(id: string) {
+    if (isRegistering.get()) return;
+    const target = triggers.get().find((trigger) => trigger.id === id)
+      ?? (latestTrigger.get()?.id === id ? latestTrigger.get() : null);
+
+    const dropLocally = () => {
+      const next = triggers.get().filter((trigger) => trigger.id !== id);
+      triggers.set(next);
+      if (latestTrigger.get()?.id === id) latestTrigger.set(next[0] ?? null);
+    };
+
+    // A handoff-only intent was never registered server-side — just drop it.
+    if (target && isLocalAutomationIntent(target)) {
+      dropLocally();
+      apiStatus.set(t("triggerDeleted"));
+      return;
+    }
+
+    isRegistering.set(true);
+    lastError.set("");
+    try {
+      await callAutomationEndpoint<{ status?: string }>(
+        "automation-trigger-delete",
+        { method: "POST", body: { id } },
+      );
+      dropLocally();
+      apiStatus.set(t("triggerDeleted"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("triggerDeleteFailed");
+      lastError.set(message);
+      apiStatus.set(message);
+      throw error;
+    } finally {
+      isRegistering.set(false);
+    }
+  }
+
   const loadAll = async () => {};
 
   const isRequesting: Observable<boolean> = {
@@ -338,6 +406,8 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
     registerTrigger,
     refreshTriggers,
     toggleLatestTrigger,
+    selectTrigger,
+    deleteTrigger,
     loadAll,
   };
 }

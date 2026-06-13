@@ -4,7 +4,13 @@
 
 import { defineMiniApp, createObservable } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
-import { getExternalIntegrationConfig, getNetwork } from "@shared/constants/rpc";
+import {
+  getExternalIntegrationConfig,
+  getNetwork,
+  getAAIdentityWorkspaceUrl,
+  getAAAppWorkspaceUrl,
+  getAADocsUrl,
+} from "@shared/constants/rpc";
 import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
 import { parseInvokeResult } from "@shared/utils/neo";
 import PlayArea from "./PlayArea";
@@ -38,7 +44,7 @@ defineMiniApp({
     const renderedPayload: Observable<string> = {
       get: () => {
         const p = latestPayload.get();
-        return p ? JSON.stringify(p, null, 2) : ctx.t("notAvailable");
+        return p ? JSON.stringify(p, null, 2) : ctx.t("digestPlaceholder");
       },
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
@@ -52,10 +58,11 @@ defineMiniApp({
 
     // Render a payload field, treating only undefined/null as "missing" so a
     // legitimate 0 (e.g. timelock=0 / threshold=0) is shown as "0" instead of
-    // being masked as "Not available" by a falsy `||` fallback.
+    // being masked as "Not available" by a falsy `||` fallback. Unpopulated
+    // fields render the design-system em-dash, not an error-like "N/A".
     const payloadField = (key: string): string => {
       const v = latestPayload.get()?.[key];
-      return v === undefined || v === null ? ctx.t("notAvailable") : String(v);
+      return v === undefined || v === null ? ctx.t("digestPlaceholder") : String(v);
     };
 
     const accountId: Observable<string> = {
@@ -63,18 +70,41 @@ defineMiniApp({
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
+    // The verifier field shows the account's actual chain binding. When the
+    // account has NO verifier bound, render an explicit "Not configured"
+    // instead of a bare placeholder so an operator never reads an unset
+    // verifier as a live one.
     const verifierHash: Observable<string> = {
-      get: () => payloadField("verifier_hash"),
+      get: () => {
+        const p = latestPayload.get();
+        if (!p) return ctx.t("digestPlaceholder");
+        const v = p.verifier_hash;
+        return v === undefined || v === null
+          ? ctx.t("verifierNotConfigured")
+          : String(v);
+      },
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
-    const threshold: Observable<string> = {
-      get: () => payloadField("threshold"),
+    // The AA core does not expose a guardian threshold (that lives in the
+    // verifier module). Repurpose this tile to the escape/recovery status the
+    // core DOES track, so it carries real meaning instead of a permanent gap.
+    const escapeStatus: Observable<string> = {
+      get: () => payloadField("escape_status"),
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
     const timelock: Observable<string> = {
-      get: () => payloadField("timelock"),
+      get: () => {
+        const p = latestPayload.get();
+        const v = p?.timelock;
+        if (v === undefined || v === null) return ctx.t("digestPlaceholder");
+        const seconds = Number(v);
+        if (!Number.isFinite(seconds) || seconds <= 0) {
+          return ctx.t("digestPlaceholder");
+        }
+        return ctx.t("timelockSeconds", { seconds });
+      },
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
@@ -88,34 +118,53 @@ defineMiniApp({
       set: () => {},
       subscribe: (listener) => latestPayload.subscribe(listener),
     };
+    const networkDefaultVerifier: Observable<string> = {
+      get: () => payloadField("network_default_verifier"),
+      set: () => {},
+      subscribe: (listener) => latestPayload.subscribe(listener),
+    };
+    const escapeTriggeredAt: Observable<string> = {
+      get: () => payloadField("escape_triggered_at"),
+      set: () => {},
+      subscribe: (listener) => latestPayload.subscribe(listener),
+    };
+
+    // The previous recovery host (neo-recovery.app) has no DNS record, so every
+    // prepared link was a dead end. Build the recovery links on the live AA
+    // identity workspace instead, carrying the recovery parameters as the view
+    // query so guardians land on a real surface.
+    const recoveryWorkspaceBase = getAAIdentityWorkspaceUrl(getNetwork());
+    const buildRecoveryUrl = (
+      view: "recovery-preview" | "recovery-credential",
+    ): string => {
+      const account = accountAddress.get();
+      const newOwner = recoveryNewOwner.get();
+      const expiry = recoveryExpiryMinutes.get();
+      const template = recoveryTemplateId.get().trim();
+      if (
+        !isAccountLocator(account) ||
+        !isAccountLocator(newOwner) ||
+        !isRecoveryExpiryMinutes(expiry) ||
+        !isOptionalTemplateId(template)
+      ) {
+        return "";
+      }
+      const url = new URL(recoveryWorkspaceBase);
+      url.searchParams.set("view", view);
+      url.searchParams.set("account", account);
+      url.searchParams.set("newOwner", newOwner);
+      url.searchParams.set("expiryMinutes", expiry);
+      if (verifierHashOverride.get()) {
+        url.searchParams.set("verifier", verifierHashOverride.get());
+      }
+      if (template) {
+        url.searchParams.set("template", template);
+      }
+      return url.toString();
+    };
 
     const previewUrl: Observable<string> = {
-      get: () => {
-        const account = accountAddress.get();
-        const newOwner = recoveryNewOwner.get();
-        const expiry = recoveryExpiryMinutes.get();
-        const template = recoveryTemplateId.get().trim();
-        if (
-          !isAccountLocator(account) ||
-          !isAccountLocator(newOwner) ||
-          !isRecoveryExpiryMinutes(expiry) ||
-          !isOptionalTemplateId(template)
-        ) {
-          return "";
-        }
-        const params = new URLSearchParams({
-          account,
-          newOwner,
-          expiryMinutes: expiry,
-        });
-        if (verifierHashOverride.get()) {
-          params.set("verifier", verifierHashOverride.get());
-        }
-        if (template) {
-          params.set("template", template);
-        }
-        return `https://neo-recovery.app/preview?${params.toString()}`;
-      },
+      get: () => buildRecoveryUrl("recovery-preview"),
       set: () => {},
       subscribe: (listener) => {
         const unsubscribeAccount = accountAddress.subscribe(listener);
@@ -134,33 +183,7 @@ defineMiniApp({
     };
 
     const credentialUrl: Observable<string> = {
-      get: () => {
-        const account = accountAddress.get();
-        const newOwner = recoveryNewOwner.get();
-        const expiry = recoveryExpiryMinutes.get();
-        const template = recoveryTemplateId.get().trim();
-        if (
-          !isAccountLocator(account) ||
-          !isAccountLocator(newOwner) ||
-          !isRecoveryExpiryMinutes(expiry) ||
-          !isOptionalTemplateId(template)
-        ) {
-          return "";
-        }
-        const params = new URLSearchParams({
-          account,
-          newOwner,
-          expiryMinutes: expiry,
-          format: "credential",
-        });
-        if (verifierHashOverride.get()) {
-          params.set("verifier", verifierHashOverride.get());
-        }
-        if (template) {
-          params.set("template", template);
-        }
-        return `https://neo-recovery.app/credential?${params.toString()}`;
-      },
+      get: () => buildRecoveryUrl("recovery-credential"),
       set: () => {},
       subscribe: (listener) => {
         const unsubscribeAccount = accountAddress.subscribe(listener);
@@ -223,7 +246,19 @@ defineMiniApp({
         const accountIdHash = deriveAAAccountIdHash(locator);
         const accountId = `0x${accountIdHash}`;
 
-        const [verifierResult, backupOwnerResult] = await Promise.all([
+        // The AA core (UnifiedSmartWalletV3) exposes the recovery policy the
+        // hero stats and state grid display: getEscapeTimelock is the recovery
+        // timelock (seconds), and isEscapeActive / getEscapeTriggeredAt are the
+        // live escape (recovery-ticket) lifecycle. Read them alongside the
+        // verifier/backup-owner binding so timelock and escape status are
+        // actually populated instead of staying "—".
+        const [
+          verifierResult,
+          backupOwnerResult,
+          escapeTimelockResult,
+          escapeActiveResult,
+          escapeTriggeredAtResult,
+        ] = await Promise.all([
           ctx.services.chain.read(
             "getVerifier",
             [{ type: "Hash160", value: accountId }],
@@ -234,35 +269,53 @@ defineMiniApp({
             [{ type: "Hash160", value: accountId }],
             { scriptHash: aaCore },
           ),
+          ctx.services.chain.read(
+            "getEscapeTimelock",
+            [{ type: "Hash160", value: accountId }],
+            { scriptHash: aaCore },
+          ),
+          ctx.services.chain.read(
+            "isEscapeActive",
+            [{ type: "Hash160", value: accountId }],
+            { scriptHash: aaCore },
+          ),
+          ctx.services.chain.read(
+            "getEscapeTriggeredAt",
+            [{ type: "Hash160", value: accountId }],
+            { scriptHash: aaCore },
+          ),
         ]);
 
         const verifier = normalizeReadHash(verifierResult);
         const backupOwner = normalizeReadHash(backupOwnerResult);
+        const escapeTimelock = parseInvokeResult(escapeTimelockResult);
+        const escapeActive = parseInvokeResult(escapeActiveResult);
+        const escapeTriggeredAt = parseInvokeResult(escapeTriggeredAtResult);
 
-        // 2) Merge any locally-cached snapshot (e.g. threshold/timelock written
-        //    by a prior recovery flow) underneath the freshly-read chain values,
-        //    so live data always wins but cached extras still surface.
-        let cached: Record<string, unknown> = {};
-        try {
-          const stored = await ctx.os.storage.get(`guardian:${accountIdHash}`);
-          if (stored != null) {
-            const parsedStore =
-              typeof stored === "object"
-                ? (stored as Record<string, unknown>)
-                : JSON.parse(String(stored));
-            if (parsedStore && typeof parsedStore === "object") {
-              cached = parsedStore as Record<string, unknown>;
-            }
-          }
-        } catch {
-          // A malformed/absent cache must not block the live read.
-        }
+        const escapeTimelockSeconds =
+          escapeTimelock === null || escapeTimelock === undefined
+            ? null
+            : Number(escapeTimelock);
+        const isEscapeOpen = Boolean(escapeActive);
+        const triggeredAtSeconds = Number(escapeTriggeredAt ?? 0);
 
         const payload: Record<string, unknown> = {
-          ...cached,
           account_id: accountId,
-          verifier_hash: verifier ?? (socialRecoveryVerifier || null),
+          // Show the account's actual chain binding only — never the network's
+          // default verifier — so an unset verifier reads as "Not configured"
+          // in this security-critical console instead of masquerading as a
+          // live binding.
+          verifier_hash: verifier,
           backup_owner: backupOwner,
+          timelock: escapeTimelockSeconds,
+          escape_status: isEscapeOpen ? ctx.t("escapeActive") : ctx.t("escapeInactive"),
+          escape_triggered_at:
+            isEscapeOpen && triggeredAtSeconds > 0
+              ? new Date(triggeredAtSeconds * 1000).toISOString()
+              : null,
+          // Surface the network's canonical verifier separately as an explicit
+          // hint, never inside the Verifier state field.
+          network_default_verifier: socialRecoveryVerifier || null,
           checked_at: new Date().toISOString(),
         };
 
@@ -340,14 +393,17 @@ defineMiniApp({
       shared: "credentialLinkShared",
     });
 
+    // The neo-identity.app / neo-aa.app domains do not resolve and the generic
+    // docs.neo.org/recovery-guardian path 301s to the docs index. Route to the
+    // live AA frontend surfaces the README documents instead.
     ctx.registerAction("openIdentityWorkspace", async () => {
-      openExternal("https://neo-identity.app/workspace");
+      openExternal(getAAIdentityWorkspaceUrl(getNetwork()));
     });
     ctx.registerAction("openAaWorkspace", async () => {
-      openExternal("https://neo-aa.app/workspace");
+      openExternal(getAAAppWorkspaceUrl(getNetwork()));
     });
     ctx.registerAction("openRecoveryDocs", async () => {
-      openExternal("https://docs.neo.org/recovery-guardian");
+      openExternal(getAADocsUrl(getNetwork()));
     });
 
     return {
@@ -358,10 +414,12 @@ defineMiniApp({
         hasPayload,
         accountId,
         verifierHash,
-        threshold,
+        escapeStatus,
         timelock,
         backupOwnerState,
         checkedAt,
+        networkDefaultVerifier,
+        escapeTriggeredAt,
         previewUrl,
         credentialUrl,
         accountAddress,

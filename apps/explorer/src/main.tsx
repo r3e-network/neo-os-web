@@ -38,7 +38,8 @@ defineMiniApp({
       },
     });
 
-    ctx.registerAction("viewTx", async (hash?: string) => {
+    ctx.registerAction("viewTx", async (...args: unknown[]) => {
+      const [hash] = args;
       if (typeof hash === "string") {
         explorer.viewTx(hash);
       }

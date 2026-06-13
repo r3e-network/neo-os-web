@@ -29,7 +29,7 @@ export default function MercBidsList({ t, bids }: MercBidsListProps) {
           <div key={bid.address} className="gov-merc-bid-row">
             <span>{rank}</span>
             <strong>{shortAddress(bid.address)}</strong>
-            <em>{formatNum(bid.amount, 2)} GAS</em>
+            <em>{formatNum(bid.amount, 2)} {t("tokenGas")}</em>
           </div>
         );
       })}

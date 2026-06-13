@@ -45,9 +45,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isAddingMatching = bool("isAddingMatching");
   const isFinalizing = bool("isFinalizing");
   const isClaimingUnused = bool("isClaimingUnused");
+  const isCancelling = bool("isCancelling");
+  const isAdmin = bool("isAdmin");
   const canManageSelectedRound = bool("canManageSelectedRound");
   const canFinalizeSelectedRound = bool("canFinalizeSelectedRound");
   const canClaimUnused = bool("canClaimUnused");
+  const canCancelSelectedRound = bool("canCancelSelectedRound");
+  const suggestedMatches =
+    val<
+      Array<{
+        id: string;
+        name: string;
+        contributedDisplay: string;
+        donors: string;
+        matchDisplay: string;
+        matchBaseUnits: string;
+      }>
+    >("suggestedMatches") ?? [];
 
   const projects = val<Array<Record<string, unknown>>>("projects") ?? [];
   const isRefreshingProjects = bool("isRefreshingProjects");
@@ -126,9 +140,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const formatSchedule = (value: unknown) => {
     if (typeof value === "string" && value.length > 0) return value;
+    // Round timestamps are milliseconds on-chain — pass straight to Date.
     if (typeof value === "number" && value > 0) {
       return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(
-        new Date(value * 1000),
+        new Date(value),
       );
     }
     return t("dateUnknown");
@@ -194,15 +209,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     knownProjectIds={projects
                       .map((project) => String(project.id ?? ""))
                       .filter((id) => id !== "")}
+                    suggestedMatches={suggestedMatches}
                     canManage={canManageSelectedRound}
                     canFinalize={canFinalizeSelectedRound}
                     canClaimUnused={canClaimUnused}
+                    canCancel={canCancelSelectedRound}
+                    isAdmin={isAdmin}
                     isAddingMatching={isAddingMatching}
                     isFinalizing={isFinalizing}
                     isClaimingUnused={isClaimingUnused}
+                    isCancelling={isCancelling}
                     onAddMatching={(...args: unknown[]) => dispatch("addMatching", ...args)}
                     onFinalize={(...args: unknown[]) => dispatch("finalize", ...args)}
+                    onFinalizeSuggested={() => dispatch("finalizeSuggested")}
                     onClaimUnused={() => dispatch("claimUnused")}
+                    onCancel={() => dispatch("cancelRound")}
                     t={t}
                   />
                 )}

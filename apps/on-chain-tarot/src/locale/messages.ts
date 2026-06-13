@@ -66,7 +66,7 @@ const appMessages = {
   notDrawnYet: { en: "Not drawn yet", zh: "尚未抽取" },
   submitQuestionFirst: { en: "Submit a question first", zh: "先提交问题" },
   hiddenCard: { en: "Sealed card", zh: "封存卡牌" },
-  oracleSealed: { en: "Oracle sealed", zh: "预言机封存" },
+  oracleSealed: { en: "Sealed", zh: "封存" },
   revealProgress: { en: "Revealed", zh: "已揭示" },
   verificationPanelTitle: { en: "Transaction safety", zh: "交易安全" },
   verificationPanelCopy: {
@@ -79,7 +79,7 @@ const appMessages = {
   tarotFee: { en: "0.1 GAS on-chain", zh: "0.1 GAS（链上）" },
   readingStateLabel: { en: "Reading state", zh: "读牌状态" },
   revealed: { en: "revealed", zh: "已揭示" },
-  oracleVerifiedShort: { en: "Oracle verified", zh: "预言机已验证" },
+  oracleVerifiedShort: { en: "On-chain verified", zh: "链上已验证" },
   oraclePendingShort: { en: "Waiting", zh: "等待中" },
   deckPanelTitle: { en: "Neo tarot deck", zh: "Neo 塔罗牌组" },
   spreadPanelTitle: { en: "Three-card spread", zh: "三张牌阵" },
@@ -139,6 +139,16 @@ const appMessages = {
   tarotKing: { en: "King", zh: "国王" },
   copyReading: { en: "Copy reading", zh: "复制解读" },
   readingCopied: { en: "Reading copied", zh: "解读已复制" },
+  // ── Exit path (withdraw unused prepaid draw-credit) ────────────────────
+  prepaidCreditLabel: { en: "Prepaid credit", zh: "预付额度" },
+  prepaidCreditHint: {
+    en: "Unused GAS from a draw fee that didn't complete. Reused on your next draw, or withdraw it now.",
+    zh: "未完成的抽牌费用所剩的 GAS。下次抽牌会复用，也可立即提取。",
+  },
+  withdrawCredit: { en: "Withdraw credit", zh: "提取额度" },
+  creditWithdrawn: { en: "Withdrew {amount} {tokenGas} prepaid credit", zh: "已提取预付额度 {amount} {tokenGas}" },
+  noCredit: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付额度" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

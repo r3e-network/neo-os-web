@@ -9,7 +9,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Timestamp Proof",
-  description: "Create and verify device-local SHA-256 timestamp proofs",
+  description: "Create SHA-256 timestamp proofs with an optional on-chain anchor",
   icon: "clock",
   category: "tool",
   shell: "launcher",
@@ -21,20 +21,20 @@ export const manifest: MiniAppManifest = {
 
   stats: [
     { labelKey: "totalProofs", valueKey: "totalProofs", format: "number", icon: "clock" },
-    { labelKey: "yourProofs", valueKey: "yourProofs", format: "number", icon: "user" },
+    { labelKey: "anchoredProofs", valueKey: "anchoredProofs", format: "number", icon: "check-circle" },
   ],
 
   sidebar: {
     titleKey: "title",
     items: [
       { labelKey: "totalProofs", valueKey: "totalProofs", format: "number" },
-      { labelKey: "yourProofs", valueKey: "yourProofs", format: "number" },
+      { labelKey: "anchoredProofs", valueKey: "anchoredProofs", format: "number" },
       { labelKey: "latestId", valueKey: "latestId", format: "text" },
     ],
   },
 
-  // Device-local journal: hashing and storage happen entirely in the browser,
-  // so no wallet connection is required and there is no chain to warn about.
+  // Hashing and storage happen entirely in the browser; a wallet is only needed
+  // for the optional on-chain anchor, so it is not required by default.
   features: { walletRequired: false, chainWarning: false },
 
   docs: [
@@ -43,7 +43,7 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
   ],
 
-  // No funds ever move — proofs are stored locally and stamped `local:<hash>`,
-  // so the payments permission is intentionally omitted.
+  // The only chain action is the optional 0-GAS self-transfer anchor (the
+  // broadcast cost is normal network fees), so no payments permission is needed.
   contract: { mode: "custom" },
 };

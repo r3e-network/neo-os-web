@@ -61,6 +61,8 @@ function t(key: string) {
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const values = {
     anchorAppId: "custom-anchor:team:nonce",
+    // mode 1 = registered (trust); the not-registered notice only shows at 0.
+    anchorMode: 1,
     totalStaked: "12",
     rewardReserve: "3.5",
     userStake: "2",
@@ -70,6 +72,9 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     workflowStatus: "Ready",
     lastError: "",
     isLoading: false,
+    neoCredit: "0",
+    gasCredit: "0",
+    discoveredAnchors: [],
     ...overrides,
   };
   return Object.fromEntries(
@@ -129,6 +134,78 @@ describe("Custom Anchor PlayArea", () => {
       expect(dispatch).toHaveBeenCalledWith("refreshAnchor", {
         anchorAppId: "custom-anchor:dao:round1",
       });
+    });
+  });
+
+  it("seeds the anchor input EMPTY (example shown as placeholder only), so the money buttons stay disabled", () => {
+    render(<PlayArea t={t} state={state({ anchorAppId: "" })} dispatch={vi.fn(async () => undefined)} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+
+    const input = screen.getByLabelText("Anchor appId") as HTMLInputElement;
+    // No pre-filled fake id — the example is only a placeholder.
+    expect(input.value).toBe("");
+    expect(input.placeholder).toBe("custom-anchor:team:nonce");
+    // With an empty (invalid) id the stake button is disabled.
+    expect((screen.getByRole("button", { name: "Stake NEO" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("surfaces a 'not registered' notice when getAppMode resolved to 0", () => {
+    render(<PlayArea t={t} state={state({ anchorMode: 0 })} dispatch={vi.fn(async () => undefined)} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+
+    expect(screen.getByText("anchorNotRegistered")).toBeTruthy();
+  });
+
+  it("registers a new anchor with the chosen mode", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state()} dispatch={dispatch} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+
+    fireEvent.change(screen.getByLabelText("registerAnchorAppId"), {
+      target: { value: "custom-anchor:newteam:001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "registerAction" }));
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("register", {
+        anchorAppId: "custom-anchor:newteam:001",
+        mode: 1,
+      });
+    });
+  });
+
+  it("lists discovered anchors and dispatches selectAnchor on Use", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          discoveredAnchors: [{ appId: "custom-anchor:dao:round9", mode: 2 }],
+        })}
+        dispatch={dispatch}
+        status={null}
+        services={{} as never}
+        setStatus={vi.fn()}
+        clearStatus={vi.fn()}
+        loadError={null}
+        retryLoad={vi.fn()}
+        launchContext={{ params: {} } as never}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "discoverUse" }));
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("selectAnchor", "custom-anchor:dao:round9");
+    });
+  });
+
+  it("hides the credit-recovery control when there is no reclaimable credit", () => {
+    render(<PlayArea t={t} state={state({ neoCredit: "0", gasCredit: "0" })} dispatch={vi.fn(async () => undefined)} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+    expect(screen.queryByRole("button", { name: "recoverGas" })).toBeNull();
+  });
+
+  it("shows a credit-recovery control and dispatches recoverCredit when credit exists", async () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(<PlayArea t={t} state={state({ neoCredit: "0", gasCredit: "1.5" })} dispatch={dispatch} status={null} services={{} as never} setStatus={vi.fn()} clearStatus={vi.fn()} loadError={null} retryLoad={vi.fn()} launchContext={{ params: {} } as never} />);
+    fireEvent.click(screen.getByRole("button", { name: "recoverGas" }));
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("recoverCredit", "GAS");
     });
   });
 });

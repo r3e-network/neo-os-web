@@ -55,6 +55,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const actionHistory =
     val<AnchorActionHistoryItem[]>("actionHistory", []) ?? [];
   const agentCount = num("agentCount");
+  const pendingRewards = num("pendingRewards");
+  const pendingWithdraw = num("pendingWithdraw");
   const myStakeDisplay = str("myStakeDisplay", "0 NEO");
   const pendingRewardsDisplay = str("pendingRewardsDisplay", "0 GAS");
   const pendingWithdrawDisplay = str("pendingWithdrawDisplay", "0 NEO");
@@ -64,6 +66,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
   const lastTxid = str("lastTxid");
+  const submitting = val<boolean>("submitting", false) ?? false;
   const [amountInput, setAmountInput] = useState("1");
   const [localError, setLocalError] = useState("");
   const [busyAction, setBusyAction] = useState("");
@@ -82,7 +85,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     [amountInput],
   );
   const statusText = localError || lastError || workflowStatus;
-  const isBusy = Boolean(busyAction);
+  // Reflect the shared in-flight lock so PlayArea buttons disable while a
+  // submission started from the manifest operation panel is still in flight.
+  const isBusy = Boolean(busyAction) || submitting;
+  const claimReady = pendingRewards > 0;
+  const canRecoverCredit = pendingWithdraw > 0;
 
   const runAmountAction = async (action: "stakeNeo" | "withdrawNeo") => {
     if (!amountIsValid) {
@@ -100,7 +107,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   };
 
-  const runSimpleAction = async (action: "claimRewards" | "refreshAnchor") => {
+  const runSimpleAction = async (
+    action: "claimRewards" | "refreshAnchor" | "recoverNeoCredit",
+  ) => {
     setLocalError("");
     setBusyAction(action);
     try {
@@ -198,7 +207,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <button
                 type="button"
                 className="anchor-action-button"
-                disabled={isBusy}
+                disabled={isBusy || !claimReady}
+                title={claimReady ? undefined : t("noRewardsHint")}
                 onClick={() => void runSimpleAction("claimRewards")}
               >
                 {busyAction === "claimRewards" ? t("workflowSubmitting") : t("submitClaim")}
@@ -212,6 +222,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {busyAction === "refreshAnchor" ? t("workflowSubmitting") : t("refreshStatus")}
               </button>
             </div>
+            {!claimReady && (
+              <p className="anchor-action-hint">{t("noRewardsHint")}</p>
+            )}
+            {canRecoverCredit && (
+              <div className="anchor-recover-card">
+                <div className="anchor-recover-card__copy">
+                  <span className="anchor-recover-card__label">{t("pendingWithdraw")}</span>
+                  <strong>{pendingWithdrawDisplay}</strong>
+                  <small>{t("creditRecoverHint")}</small>
+                </div>
+                <button
+                  type="button"
+                  className="anchor-action-button anchor-action-button--primary"
+                  disabled={isBusy}
+                  onClick={() => void runSimpleAction("recoverNeoCredit")}
+                >
+                  {busyAction === "recoverNeoCredit"
+                    ? t("workflowSubmitting")
+                    : t("recoverCredit")}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className={`anchor-status-strip${localError || lastError ? " anchor-status-strip--error" : ""}`} aria-live="polite">

@@ -221,8 +221,15 @@ export function useMilestoneEscrow({
     [creatorEscrows],
   );
 
-  // Contract readiness: true once we have a wallet address.
-  const contractReady = createDerived(() => Boolean(address.get()), [address]);
+  // Contract readiness reflects whether the app's contract is configured for the
+  // network (what the deploymentPending copy actually describes) — NOT whether a
+  // wallet is connected. Deriving it from the address made the disconnected case
+  // show "deployment pending" and left the Connect-wallet branch (which needs
+  // contractReady && !hasAddress) mathematically unreachable.
+  const contractReady = createDerived(
+    () => Boolean(chain.contractAddress.get()),
+    [chain.contractAddress],
+  );
 
   // ── Display helpers (exposed for PlayArea) ────────────────────────────
 

@@ -23,8 +23,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isRefreshing = bool("isRefreshing");
   const connectionStatus = str("connectionStatus");
   const networkLabel = str("networkLabel");
-  const neoDisplay = str("neoDisplay", t("notAvailable") || "—");
-  const gasDisplay = str("gasDisplay", t("notAvailable") || "—");
+  const neoDisplay = str("neoDisplay", "—");
+  const gasDisplay = str("gasDisplay", "—");
   const safetyScore = num("safetyScore");
   const riskLabel = str("riskLabel");
   const riskClass = str("riskClass");
@@ -42,32 +42,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const riskIconLabel = riskIcon ? riskIcon.replace("-", " ") : riskLabel;
   const visibleRecommendations = recommendations.length > 0
     ? recommendations
-    : [t("allSet") || "All checks look good"];
+    : [t("allSet")];
   const healthReport = useMemo(() => {
     const lines = [
-      t("reportTitle") || "Wallet Health Report",
+      t("reportTitle"),
       "",
-      `${t("statNetwork") || "Network"}: ${networkLabel || "Neo N3"}`,
-      `${t("statConnection") || "Connection"}: ${connectionStatus}`,
-      `${t("walletAddress") || "Wallet address"}: ${address || t("notConnected") || "Not connected"}`,
-      `${t("statNeo") || "NEO Balance"}: ${neoDisplay}`,
-      `${t("statGas") || "GAS Balance"}: ${gasDisplay}`,
-      `${t("statScore") || "Safety Score"}: ${safetyScore}`,
-      `${t("riskInsights") || "Risk insights"}: ${riskLabel}`,
-      `${t("sectionChecklist") || "Safety Checklist"}: ${completionText}`,
+      `${t("statNetwork")}: ${networkLabel || "Neo N3"}`,
+      `${t("statConnection")}: ${connectionStatus}`,
+      `${t("walletAddress")}: ${address || t("notConnected")}`,
+      `${t("statNeo")}: ${neoDisplay}`,
+      `${t("statGas")}: ${gasDisplay}`,
+      `${t("statScore")}: ${safetyScore}%`,
+      `${t("riskInsights")}: ${riskLabel}`,
+      `${t("sectionChecklist")}: ${completionText}`,
       "",
-      t("reportChecklist") || "Checklist",
+      t("reportChecklist"),
     ];
 
     checklistItems.forEach((item) => {
-      lines.push(`${item.done ? "DONE" : "PENDING"}: ${item.title} - ${item.desc}`);
+      lines.push(`${item.done ? t("reportDone") : t("reportPending")}: ${item.title} - ${item.desc}`);
     });
 
-    lines.push("", t("recommendationsTitle") || "Next actions");
+    lines.push("", t("recommendationsTitle"));
     visibleRecommendations.forEach((recommendation) => {
       lines.push(`- ${recommendation}`);
     });
-    lines.push("", `${t("reportGeneratedAt") || "Generated at"}: ${new Date().toISOString()}`);
+    lines.push("", `${t("reportGeneratedAt")}: ${new Date().toISOString()}`);
 
     return lines.join("\n");
   }, [
@@ -88,18 +88,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
   };
   const reportStatusLabel = {
-    idle: t("reportReady") || "Report ready",
-    addressCopied: t("addressCopied") || "Address copied",
-    reportCopied: t("reportCopied") || "Report copied",
-    reportDownloaded: t("reportDownloaded") || "Report downloaded",
-    error: t("reportActionError") || "Action failed",
+    idle: t("reportReady"),
+    addressCopied: t("addressCopied"),
+    reportCopied: t("reportCopied"),
+    reportDownloaded: t("reportDownloaded"),
+    error: t("reportActionError"),
   }[reportActionState];
-  const copyText = async (text: string, successState: ReportActionState) => {
+  // Copy through the shared ClipboardService (via the host action) so the
+  // sandboxed-iframe execCommand fallback and the standardized toast apply;
+  // the local aria-live state still reports the report-specific result.
+  const copyText = async (text: string, successState: ReportActionState, successKey: string) => {
+    if (!text) {
+      setReportActionState("error");
+      return;
+    }
     try {
-      if (!globalThis.navigator?.clipboard?.writeText) {
-        throw new Error("Clipboard unavailable");
-      }
-      await globalThis.navigator.clipboard.writeText(text);
+      await dispatch("copy", text, successKey);
       setReportActionState(successState);
     } catch (_error) {
       setReportActionState("error");
@@ -198,19 +202,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               size="sm"
               variant="primary"
               disabled={!address}
-              onClick={() => copyText(address, "addressCopied")}
+              onClick={() => copyText(address, "addressCopied", "addressCopied")}
             >
-              {t("copyAddress") || "Copy address"}
+              {t("copyAddress")}
             </NeoButton>
             <NeoButton
               size="sm"
               variant="secondary"
-              onClick={() => copyText(healthReport, "reportCopied")}
+              onClick={() => copyText(healthReport, "reportCopied", "reportCopied")}
             >
-              {t("copyReport") || "Copy report"}
+              {t("copyReport")}
             </NeoButton>
             <NeoButton size="sm" variant="secondary" onClick={downloadReport}>
-              {t("downloadReport") || "Download report"}
+              {t("downloadReport")}
             </NeoButton>
           </div>
           <span className="wallet-health-report-status" role="status" aria-live="polite">
@@ -233,7 +237,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <p>{item.desc}</p>
                 </div>
                 {item.auto ? (
-                  <span className="wallet-health-auto">{t("autoChecked")}</span>
+                  <span className="wallet-health-auto">
+                    {item.pending ? t("checklistConnectToCheck") : t("autoChecked")}
+                  </span>
                 ) : (
                   <NeoButton
                     size="sm"

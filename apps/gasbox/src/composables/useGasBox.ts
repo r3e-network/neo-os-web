@@ -58,6 +58,7 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
+import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { formatGas, formatAddress } from "@shared/utils/format";
@@ -201,6 +202,10 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
   const resultItem = createObservable<MachineItem | null>(null);
   const playError = createObservable<string | null>(null);
   const showFireworks = createObservable(false);
+  // Prepaid play credit (base units, GAS) held on the contract under the player.
+  // Surfaced so a stranded prepay (aborted pull) is visible and auto-consumed by
+  // the next pull — the contract has no play-credit-withdraw method.
+  const playCreditBase = createObservable(0n);
 
   // ── Publish State ──────────────────────────────────────────────────
   const isPublishing = createObservable(false);
@@ -337,7 +342,10 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       itemCount: items.length,
       totalWeight,
       availableWeight,
-      plays: 0,
+      // Estimated plays = accrued revenue / play price (the contract keeps no
+      // per-machine play counter). Under-reports after a revenue withdrawal, so
+      // the card labels it "est. plays". 0 when price unknown.
+      plays: priceBase > 0n ? Number(revenue / priceBase) : 0,
       revenueRaw: Number(revenue),
       revenue: formatGas(revenue, 4),
       sales: 0,
@@ -419,9 +427,29 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     }
   };
 
+  /** Read the player's prepaid play credit (base units) for the credit chip. */
+  const loadPlayCredit = async () => {
+    const playerAddr = address.get();
+    const playerHash = playerAddr ? addressToScriptHash(playerAddr) || null : null;
+    if (!playerHash) {
+      playCreditBase.set(0n);
+      return;
+    }
+    try {
+      playCreditBase.set(
+        parseBigInt(await chain.read("playCreditOf", [{ type: "Hash160", value: playerHash }])),
+      );
+    } catch (e) {
+      console.warn(
+        "[useGasBox] playCreditOf read failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  };
+
   const loadAll = async () => {
     setAddress(chain.address.get() ?? null);
-    await loadMachines();
+    await Promise.all([loadMachines(), loadPlayCredit()]);
   };
 
   // ── Machine Selection ──────────────────────────────────────────────
@@ -520,30 +548,40 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
         credit = 0n;
       }
 
-      if (credit < priceBase) {
-        await chain.invoke(
-          "transfer",
-          [
-            { type: "Hash160", value: playerHash },
-            { type: "Hash160", value: contractHash },
-            { type: "Integer", value: priceBase.toString() },
-            { type: "String", value: PLAY_MEMO },
-          ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-        );
-      }
+      const pullArgs = [
+        { type: "Integer" as const, value: machineIdInt },
+        { type: "Hash160" as const, value: playerHash },
+      ];
 
       // Step 2: pull — draws + pays the prize ON-CHAIN in this tx. Read the won
       // item index from the Pulled event: Pulled(playId, machineId, player,
       // itemIndex, prizeAmount).
-      const result = await chain.invoke(
-        "pull",
-        [
-          { type: "Integer", value: machineIdInt },
-          { type: "Hash160", value: playerHash },
-        ],
-        { waitForEvent: "Pulled" },
-      );
+      //
+      // When the play credit can't cover the price, deposit THEN pull through
+      // prepayAndInvoke, which waits for the deposit to confirm in a block before
+      // pull() test-invokes — without it the pull faulted against pre-deposit
+      // state and the funded first pull always needed a retry.
+      let result;
+      try {
+        result =
+          credit < priceBase
+            ? await chain.prepayAndInvoke(
+                priceBase.toString(),
+                PLAY_MEMO,
+                "pull",
+                pullArgs,
+                { waitForEvent: "Pulled" },
+              )
+            : await chain.invoke("pull", pullArgs, { waitForEvent: "Pulled" });
+      } catch (pullErr) {
+        // Deposit confirmed but pull reverted — the prepaid play credit persists
+        // on the contract and is reused on the next pull (no funds lost).
+        if (pullErr instanceof DepositConfirmedActionFailedError) {
+          await loadPlayCredit();
+          throw new Error(t("playPrepaidNoPull"));
+        }
+        throw pullErr;
+      }
 
       const itemIndex = Number(parseBigInt(eventValue(result.event, 3)));
       const prizeAmount = parseBigInt(eventValue(result.event, 4));
@@ -608,7 +646,7 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       showResult.set(true);
       showFireworks.set(true);
 
-      await loadMachines();
+      await Promise.all([loadMachines(), loadPlayCredit()]);
       // Confirmed on-chain pull — the caller increments per-user stats only here.
       return true;
     } catch (e) {
@@ -817,6 +855,77 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     await loadMachines();
   };
 
+  /**
+   * Top up a machine's prize pool: transfer `amount` (human units, in the
+   * machine's prize asset) to the contract with the pool memo so OnNEP17Payment
+   * credits this machine's pool. Used to re-fund a drained machine so it can be
+   * reactivated — the contract already supports this; only the UI lacked it.
+   */
+  const topUpPool = async (machineId: string, amount: string): Promise<void> => {
+    const machine =
+      machines.get().find((m) => String(m.id) === String(machineId)) ?? null;
+    if (!machine) throw new Error(t("machineNotFound"));
+
+    const asset: PrizeAsset = machine.prizeAsset ?? "GAS";
+    const amountBase = toBaseUnits(amount, asset);
+    if (amountBase <= 0n) {
+      throw new Error(asset === "NEO" ? t("invalidNeoAmount") : t("invalidAmount"));
+    }
+
+    const creatorAddr = address.get() || (await chain.ensureWallet());
+    const creatorHash = addressToScriptHash(creatorAddr || "");
+    if (!creatorAddr || !creatorHash) throw new Error(t("connectWallet"));
+    setAddress(creatorAddr);
+
+    const contractHash = chain.contractAddress.get();
+    if (!contractHash) throw new Error(t("machineNotFound"));
+
+    const machineIdStr = String(Math.trunc(Number(machineId)));
+    await chain.invoke(
+      "transfer",
+      [
+        { type: "Hash160", value: creatorHash },
+        { type: "Hash160", value: contractHash },
+        { type: "Integer", value: amountBase.toString() },
+        { type: "String", value: `${POOL_MEMO_PREFIX}${machineIdStr}` },
+      ],
+      { scriptHash: assetHash(asset) },
+    );
+    await loadMachines();
+  };
+
+  /**
+   * Activate or deactivate a machine (creator only). The contract rejects
+   * activation when the pool cannot cover the max prize, so surface that
+   * cleanly. Mirrors the publish flow's setActive call.
+   */
+  const setMachineActive = async (
+    machineId: string,
+    active: boolean,
+  ): Promise<void> => {
+    const creatorAddr = address.get() || (await chain.ensureWallet());
+    const creatorHash = addressToScriptHash(creatorAddr || "");
+    if (!creatorAddr || !creatorHash) throw new Error(t("connectWallet"));
+    setAddress(creatorAddr);
+
+    try {
+      await chain.invoke(
+        "setActive",
+        [
+          { type: "Hash160", value: creatorHash },
+          { type: "Integer", value: String(Math.trunc(Number(machineId))) },
+          { type: "Boolean", value: active },
+        ],
+        { waitForEvent: "MachineActiveChanged" },
+      );
+    } catch (activateErr) {
+      // The most common activation fault is an under-funded pool; reword it.
+      if (active) throw new Error(t("poolCannotCoverMaxPrize"));
+      throw activateErr;
+    }
+    await loadMachines();
+  };
+
   // ── Derived display values ─────────────────────────────────────────
   const machineCount = createDerived(() => machines.get().length, [machines]);
   const isPlayingDisplay = createDerived(
@@ -826,6 +935,11 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
   const selectedMachineName = createDerived(
     () => selectedMachine.get()?.name || t("none"),
     [selectedMachine],
+  );
+  const hasPlayCredit = createDerived(() => playCreditBase.get() > 0n, [playCreditBase]);
+  const formattedPlayCredit = createDerived(
+    () => `${formatGas(playCreditBase.get(), 4)} ${t("tokenGas")}`,
+    [playCreditBase],
   );
 
   return {
@@ -846,6 +960,9 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     machineCount,
     isPlayingDisplay,
     selectedMachineName,
+    playCreditBase,
+    hasPlayCredit,
+    formattedPlayCredit,
 
     // ── Actions ─────────────────────────────────────────────────────
     setAddress,
@@ -857,6 +974,8 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     playMachine,
     publishMachine,
     withdrawRevenue,
+    topUpPool,
+    setMachineActive,
     loadAll,
   };
 }
