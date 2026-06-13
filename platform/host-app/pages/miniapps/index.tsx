@@ -22,10 +22,8 @@ import { Layout } from "@/components/layout";
 import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import type { MiniAppInfo } from "@/components/types";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
-import {
-  compactMiniAppManifestForCatalog,
-  getMiniAppCatalogAvailability,
-} from "@/lib/miniapp-catalog-view";
+import { getMiniAppCatalogAvailability } from "@/lib/miniapp-catalog-view";
+import { serializeMiniAppsForCatalogProps } from "@/lib/miniapp-catalog-props";
 import {
   getAvailabilityLabel,
   getCategoryLabel,
@@ -247,42 +245,6 @@ type MiniAppsPageProps = {
 
 const EMPTY_INITIAL_APPS: MiniAppInfo[] = [];
 
-function toSerializablePermissions(
-  value: MiniAppInfo["permissions"] | null | undefined,
-): MiniAppInfo["permissions"] {
-  return JSON.parse(JSON.stringify(value ?? {})) as MiniAppInfo["permissions"];
-}
-
-function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
-  return apps.map((app) => ({
-    app_id: app.app_id,
-    name: app.name,
-    name_en: app.name_en ?? null,
-    name_zh: app.name_zh ?? null,
-    name_ja: app.name_ja ?? null,
-    name_ko: app.name_ko ?? null,
-    description: app.description,
-    description_en: app.description_en ?? null,
-    description_zh: app.description_zh ?? null,
-    description_ja: app.description_ja ?? null,
-    description_ko: app.description_ko ?? null,
-    icon: app.icon,
-    category_name: app.category_name ?? null,
-    category_name_zh: app.category_name_zh ?? null,
-    category_name_ja: app.category_name_ja ?? null,
-    category_name_ko: app.category_name_ko ?? null,
-    logo_url: app.logo_url ?? null,
-    banner_url: app.banner_url ?? null,
-    category: app.category,
-    entry_url: app.entry_url,
-    contract_hash: app.contract_hash ?? null,
-    status: app.status ?? null,
-    source: app.source ?? "miniapp",
-    permissions: toSerializablePermissions(app.permissions),
-    manifest: compactMiniAppManifestForCatalog(app.manifest),
-  }));
-}
-
 export const getStaticProps: GetStaticProps<MiniAppsPageProps> = async () => {
   const definitions = await loadMiniAppDefinitions();
   const initialApps = sortMiniApps(
@@ -292,7 +254,7 @@ export const getStaticProps: GetStaticProps<MiniAppsPageProps> = async () => {
 
   return {
     props: {
-      initialApps: serializeMiniApps(initialApps),
+      initialApps: serializeMiniAppsForCatalogProps(initialApps),
     },
     revalidate: 60,
   };

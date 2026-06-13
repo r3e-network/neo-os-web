@@ -12,10 +12,23 @@
 
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
+import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
+import type { MiniAppNotification } from "../../components/types";
 
 jest.mock("../../hooks/useRealtimeNotifications", () => ({
-  useRealtimeNotifications: jest.fn(() => ({ notifications: [] })),
+  useRealtimeNotifications: jest.fn(() => ({
+    notifications: [],
+    loading: false,
+    isConnected: false,
+    error: null,
+    reconnect: jest.fn(),
+  })),
 }));
+
+const useRealtimeNotificationsMock =
+  useRealtimeNotifications as jest.MockedFunction<
+    typeof useRealtimeNotifications
+  >;
 
 jest.mock("../../lib/fetch-client", () => ({
   fetchJSON: jest.fn(),
@@ -179,5 +192,85 @@ describe("useActivityFeed polling", () => {
       title: "Claimed",
       network: "testnet",
     });
+  });
+});
+
+// The detail page used to mount useRealtimeNotifications a second time (once
+// here, once at the page level) on the same channel + /news fetch. The realtime
+// feed is now surfaced from this hook so a single subscription serves both the
+// merged activity list and the news tab.
+describe("useActivityFeed realtime surfacing", () => {
+  beforeEach(() => {
+    fetchJSONMock.mockReset();
+    emptyPayloads();
+    useRealtimeNotificationsMock.mockReset();
+    useRealtimeNotificationsMock.mockImplementation(() => ({
+      notifications: [],
+      loading: false,
+      isConnected: false,
+      error: null,
+      reconnect: jest.fn(),
+    }));
+  });
+
+  it("surfaces the realtime notifications, loading and connection status", () => {
+    const newsNotification: MiniAppNotification = {
+      id: "n-1",
+      app_id: "miniapp-demo",
+      title: "Reward live",
+      content: "A reward landed",
+      notification_type: "info",
+      source: "contract",
+      network: "testnet",
+      created_at: "2026-06-12T00:00:00.000Z",
+    };
+    useRealtimeNotificationsMock.mockImplementation(() => ({
+      notifications: [newsNotification],
+      loading: true,
+      isConnected: true,
+      error: null,
+      reconnect: jest.fn(),
+    }));
+
+    const { result } = renderHook(() =>
+      useActivityFeed({ appId: "miniapp-demo", pollInterval: 0 }),
+    );
+
+    expect(result.current.notifications).toEqual([newsNotification]);
+    expect(result.current.notificationsLoading).toBe(true);
+    expect(result.current.notificationsConnected).toBe(true);
+  });
+
+  it("subscribes to realtime by default (newsEnabled defaults to enabled)", () => {
+    renderHook(() =>
+      useActivityFeed({
+        appId: "miniapp-demo",
+        network: "testnet",
+        pollInterval: 0,
+      }),
+    );
+
+    expect(useRealtimeNotificationsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appId: "miniapp-demo",
+        network: "testnet",
+        enabled: true,
+      }),
+    );
+  });
+
+  it("gates the single realtime subscription on newsEnabled", () => {
+    renderHook(() =>
+      useActivityFeed({
+        appId: "miniapp-demo",
+        pollInterval: 0,
+        enabled: true,
+        newsEnabled: false,
+      }),
+    );
+
+    expect(useRealtimeNotificationsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ enabled: false }),
+    );
   });
 });

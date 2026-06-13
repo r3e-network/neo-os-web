@@ -71,7 +71,12 @@ jest.mock("../../components/features/miniapp/DetailContentBlocks", () => ({
 }));
 
 jest.mock("../../hooks/useActivityFeed", () => ({
-  useActivityFeed: () => ({ activities: [] }),
+  useActivityFeed: () => ({
+    activities: [],
+    notifications: [],
+    notificationsLoading: false,
+    notificationsConnected: false,
+  }),
 }));
 
 jest.mock("../../lib/wallet/store", () => ({

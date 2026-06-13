@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
-import { useServicesHealth, useServiceHealth } from "../hooks/useServices";
+import { useServicesHealth } from "../hooks/useServices";
 import { createWrapper, mockFetchResponse } from "./test-utils";
 import { ADMIN_API_KEY_STORAGE_KEY } from "../admin-client";
 
@@ -83,36 +83,6 @@ describe("useServices Hooks", () => {
 
       // Hook should be defined with default interval
       expect(result.current).toBeDefined();
-    });
-  });
-
-  describe("useServiceHealth", () => {
-    it("should fetch single service health", async () => {
-      const mockData = { name: "neoaccounts", status: "healthy" };
-
-      vi.spyOn(global, "fetch").mockImplementation(() => mockFetchResponse(mockData));
-
-      const { result } = renderHook(() => useServiceHealth("neoaccounts"), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-      expect(result.current.data).toEqual(mockData);
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/services/health?service=neoaccounts",
-        expect.objectContaining({ credentials: "include", headers: {} }),
-      );
-    });
-
-    it("should handle service not found", async () => {
-      vi.spyOn(global, "fetch").mockImplementation(() => mockFetchResponse({ error: "Not found" }, false, 404));
-
-      const { result } = renderHook(() => useServiceHealth("unknown"), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => expect(result.current.isError).toBe(true));
     });
   });
 });

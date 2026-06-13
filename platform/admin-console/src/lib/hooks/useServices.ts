@@ -37,28 +37,3 @@ export function useServicesHealth(refetchInterval = HEALTH_POLL_INTERVAL_MS) {
     staleTime: HEALTH_STALE_TIME_MS,
   });
 }
-
-/**
- * Hook to fetch single service health
- */
-export function useServiceHealth(serviceName: string) {
-  return useQuery({
-    queryKey: ["services", "health", serviceName],
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/services/health?service=${encodeURIComponent(serviceName)}`,
-        {
-          ...getAdminFetchOptions(),
-          headers: getAdminAuthHeaders(),
-          signal: AbortSignal.timeout(15000),
-        },
-      );
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${serviceName} health: ${response.status}`);
-      }
-      return response.json();
-    },
-    refetchInterval: HEALTH_POLL_INTERVAL_MS,
-    staleTime: HEALTH_STALE_TIME_MS,
-  });
-}
