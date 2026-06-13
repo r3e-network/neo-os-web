@@ -96,10 +96,38 @@ function LiveContractView({
     [app.app_id, contractHash, launchContext, requestedNetwork, rpcUrl],
   );
 
+  // Poll chain state every 15s, but pause while the document is hidden so a
+  // backgrounded tab does not keep re-reading the contract forever. A single
+  // refresh fires when the tab becomes visible again (mirrors useActivityFeed).
   useEffect(() => {
     loadContractData({ isInitial: true });
-    const interval = setInterval(() => loadContractData(), 15000);
-    return () => clearInterval(interval);
+
+    const isHidden = () =>
+      typeof document !== "undefined" && document.visibilityState === "hidden";
+
+    const interval = setInterval(() => {
+      if (isHidden()) return;
+      loadContractData();
+    }, 15000);
+
+    const handleVisibilityChange = () => {
+      if (isHidden()) return;
+      loadContractData();
+    };
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange,
+        );
+      }
+    };
   }, [loadContractData]);
 
   const statsMap = useMemo(() => {

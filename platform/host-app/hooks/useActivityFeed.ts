@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type { OnChainActivity } from "../components/types";
+import type { MiniAppNotification, OnChainActivity } from "../components/types";
 import { logger } from "../lib/logger";
 import { fetchJSON, toApiError } from "@/lib/fetch-client";
 import { useRealtimeNotifications } from "./useRealtimeNotifications";
@@ -12,6 +12,14 @@ interface UseActivityFeedOptions {
   pollInterval?: number;
   maxItems?: number;
   enabled?: boolean;
+  /**
+   * Gates the realtime notifications subscription (one Supabase channel + one
+   * `/api/app/{id}/news` fetch). Defaults to `enabled` so the activity feed
+   * keeps merging live notifications on its own; the detail page narrows it to
+   * the news-tab gate so a single subscription serves both the activity merge
+   * and the news tab without a duplicate page-level subscription.
+   */
+  newsEnabled?: boolean;
 }
 
 interface ActivityFeedState {
@@ -19,6 +27,12 @@ interface ActivityFeedState {
   loading: boolean;
   error: string | null;
   isConnected: boolean;
+  /** Raw realtime notifications behind the merged activity list. */
+  notifications: MiniAppNotification[];
+  /** True while the initial notifications fetch is in flight. */
+  notificationsLoading: boolean;
+  /** Realtime (Supabase) notifications channel connection status. */
+  notificationsConnected: boolean;
 }
 
 const DEFAULT_POLL_INTERVAL = 5000;
@@ -43,13 +57,20 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
     pollInterval = DEFAULT_POLL_INTERVAL,
     maxItems = DEFAULT_MAX_ITEMS,
     enabled = true,
+    newsEnabled = enabled,
   } = options;
 
-  // Realtime notifications via WebSocket (replaces REST polling for notifications)
-  const { notifications: realtimeNotifications } = useRealtimeNotifications({
+  // Realtime notifications via WebSocket (replaces REST polling for
+  // notifications). A single subscription drives both the merged activity list
+  // and the surfaced news feed; the caller gates it via `newsEnabled`.
+  const {
+    notifications: realtimeNotifications,
+    loading: notificationsLoading,
+    isConnected: notificationsConnected,
+  } = useRealtimeNotifications({
     appId,
     network,
-    enabled,
+    enabled: newsEnabled,
   });
 
   const [activities, setActivities] = useState<OnChainActivity[]>([]);
@@ -176,7 +197,15 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
     return combined.slice(0, maxItems);
   }, [activities, realtimeNotifications, maxItems]);
 
-  return { activities: mergedActivities, loading, error, isConnected };
+  return {
+    activities: mergedActivities,
+    loading,
+    error,
+    isConnected,
+    notifications: realtimeNotifications,
+    notificationsLoading,
+    notificationsConnected,
+  };
 }
 
 // Helper functions
