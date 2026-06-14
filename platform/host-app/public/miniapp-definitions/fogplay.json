@@ -2,7 +2,7 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "miniapp-fogplay",
   "name": "FogPlay",
-  "description": "Fast oracle-backed coin flips with on-chain settlement and direct GAS wagering.",
+  "description": "Provably-fair coin flips with commit/reveal on-chain settlement and direct GAS wagering.",
   "template_type": "gaming",
   "category": "Gaming",
   "tags": [
@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-fogplay",
-    "contract_hash": "0x5d82339da085b72468200e76a2aa2f3cd2912953"
+    "contract_hash": "0x611c3d97dd98792a3c31a0e695704c657f143cda"
   },
   "entry_url": "mf://manifest?app=miniapp-fogplay",
   "media": {
@@ -45,7 +45,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "FogPlay is a provably-fair coin flip. Pick a side, lock a stake, and settle via the Morpheus VRF oracle. Win and walk away with 2× your stake."
+            "content": "FogPlay is a provably-fair coin flip. Pick a side and place your bet — it commits on-chain, then the outcome is revealed from a later block's native randomness. Win and walk away with 2× your stake."
           },
           {
             "type": "key_value",
@@ -61,11 +61,11 @@
               },
               {
                 "key": "Randomness",
-                "value": "Morpheus VRF"
+                "value": "Neo native (later block)"
               },
               {
                 "key": "Settlement",
-                "value": "On-chain oracle callback"
+                "value": "On-chain commit / reveal"
               }
             ]
           },
@@ -74,8 +74,8 @@
             "title": "How to play",
             "items": [
               "Pick Heads or Tails and set your wager (0.05 – 100 GAS).",
-              "Transfer your GAS to the contract — an oracle request fires automatically.",
-              "Once the VRF callback lands, the result is posted on-chain and winners claim their 2× payout."
+              "Place the bet — your GAS is escrowed and the bet commits on-chain (the outcome is not yet decided).",
+              "On the next block the result is revealed from native randomness and winners are paid 2× automatically."
             ]
           }
         ]
@@ -217,12 +217,12 @@
           },
           "networks": {
             "neo-n3-mainnet": {
-              "contract_hash": "0x5d82339da085b72468200e76a2aa2f3cd2912953",
+              "contract_hash": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
               "registered": true,
               "domain": "fogplay.miniapp.neo"
             },
             "neo-n3-testnet": {
-              "contract_hash": "0x5d82339da085b72468200e76a2aa2f3cd2912953",
+              "contract_hash": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
               "registered": true
             }
           }
@@ -230,8 +230,8 @@
       ]
     },
     "contracts": {
-      "neo-n3-mainnet": "0x5d82339da085b72468200e76a2aa2f3cd2912953",
-      "neo-n3-testnet": "0x5d82339da085b72468200e76a2aa2f3cd2912953"
+      "neo-n3-mainnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
+      "neo-n3-testnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda"
     },
     "contract_domains": {
       "neo-n3-mainnet": "fogplay.miniapp.neo"

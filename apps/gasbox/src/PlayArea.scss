@@ -1075,6 +1075,79 @@
   }
 }
 
+.gasbox-pending {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--ns-radius-md, 16px);
+  border: 1px solid var(--ns-brand-soft-border, #c7efe0);
+  background: linear-gradient(135deg, var(--ns-surface, #ffffff) 0%, var(--ns-brand-soft, #e4f8f0) 100%);
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  &__spinner {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    margin-top: 2px;
+    border: 3px solid var(--ns-brand-soft, #e4f8f0);
+    border-top-color: var(--ns-brand, #16c784);
+    border-radius: var(--ns-radius-full, 9999px);
+    animation: gasbox-spin 0.8s linear infinite;
+
+    // While waiting for the reveal block (not actively settling), pulse rather
+    // than spin so the state reads as "armed, waiting" not "working".
+    &.is-waiting {
+      animation: gasbox-pending-pulse 1.4s ease-in-out infinite;
+    }
+  }
+
+  &__copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  &__copy strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1.28;
+  }
+
+  &__copy p {
+    margin: 0;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  &__hint {
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+}
+
+@keyframes gasbox-pending-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.9); }
+}
+
 .gasbox-creator-controls {
   display: grid;
   gap: 12px;

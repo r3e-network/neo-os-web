@@ -76,6 +76,41 @@
   color: var(--coin-success);
   font-size: 13px;
   font-weight: 800;
+
+  // Reveal phase: amber pill to signal "committed, waiting for the next block".
+  &.revealing {
+    border-color: rgba(245, 158, 11, 0.32);
+    background: #fef3c7;
+    color: #b45309;
+  }
+}
+
+.reveal-pending {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 18px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 14px;
+  background: #fffbeb;
+  box-shadow: 0 6px 16px rgba(20, 22, 38, 0.05);
+}
+
+.reveal-pending__text {
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.reveal-retry-btn {
+  flex-shrink: 0;
 }
 
 .status-dot {

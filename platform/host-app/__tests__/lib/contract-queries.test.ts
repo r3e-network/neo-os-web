@@ -119,13 +119,13 @@ describe("host chain contract queries", () => {
     });
   });
 
-  it("reads FogPlay bankroll/lastGameId from the standalone CoinFlip ABI", async () => {
+  it("reads FogPlay bankroll/lastBetId from the standalone CoinFlipV2 ABI", async () => {
     const integerStack = (value: string) => ({ stack: [{ type: "Integer", value }] });
     const invokeRead = jest
       .fn()
       .mockImplementation((_hash: string, method: string) => {
         if (method === "bankroll") return Promise.resolve(integerStack("1000000000"));
-        if (method === "lastGameId") return Promise.resolve(integerStack("42"));
+        if (method === "lastBetId") return Promise.resolve(integerStack("42"));
         return Promise.resolve({ stack: [] });
       });
 
@@ -145,7 +145,7 @@ describe("host chain contract queries", () => {
     );
     expect(state).toEqual({
       bankroll: 1000000000n,
-      lastGameId: 42n,
+      lastBetId: 42n,
     });
   });
 });

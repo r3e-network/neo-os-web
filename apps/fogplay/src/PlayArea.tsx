@@ -39,8 +39,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const formattedCredit = str("formattedCredit", "");
   const hasCredit = bool("hasCredit");
 
-  // Flip state
+  // Flip + commit/reveal state
   const isFlipping = bool("isFlipping");
+  const revealing = bool("revealing");
+  const hasPendingBet = bool("hasPendingBet");
+  const revealFailed = bool("revealFailed");
   const result = val<GameResult>("result");
   const displayOutcome = val<"heads" | "tails">("displayOutcome");
 
@@ -54,6 +57,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const handleDismiss = async () => {
     await dispatch("dismissOverlay");
+  };
+
+  const handleReveal = async () => {
+    await dispatch("revealResult");
   };
 
   return (
@@ -98,10 +105,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <ArenaHero
         t={t}
         isFlipping={isFlipping}
+        revealing={revealing}
+        hasPendingBet={hasPendingBet}
+        revealFailed={revealFailed}
         displayOutcome={displayOutcome}
         result={result}
         choice={choice}
         betAmount={betAmount}
+        onReveal={handleReveal}
       />
 
       <WagerControls

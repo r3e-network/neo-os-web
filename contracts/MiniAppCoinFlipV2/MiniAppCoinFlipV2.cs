@@ -1,0 +1,279 @@
+using System;
+using System.ComponentModel;
+using System.Numerics;
+using Neo;
+using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Attributes;
+using Neo.SmartContract.Framework.Native;
+using Neo.SmartContract.Framework.Services;
+
+namespace NeoMiniAppPlatform.Contracts
+{
+    /// <summary>
+    /// MiniAppCoinFlipV2 — self-contained on-chain coin-flip game with a COMMIT/REVEAL
+    /// settlement that closes the same-tx abort-on-loss exploit of v1 (MiniAppCoinFlip).
+    ///
+    /// EXPLOIT IN v1: v1 consumed the wager AND settled the flip in the SAME transaction
+    /// with Runtime.GetRandom. An attacker contract could deposit, call flip(), read the
+    /// outcome, and ABORT the whole transaction on a loss (reverting its own wager) while
+    /// letting wins commit. Because losses cost nothing and wins pay 2x, EV was strictly
+    /// positive and the house bankroll was drainable.
+    ///
+    /// FIX — COMMIT/REVEAL ACROSS BLOCKS:
+    ///   1. commit(player, choice, amount): irrevocably escrows the wager from the player
+    ///      credit and RESERVES the house exposure (= amount, the extra a 2x win pays) from
+    ///      the bankroll, recording commitIndex = Ledger.CurrentIndex. This write is in
+    ///      block N. The outcome is NOT decided here.
+    ///   2. settle(betId): PERMISSIONLESS. Asserts Ledger.CurrentIndex > commitIndex (a
+    ///      strictly LATER block — the core of the fix), then derives the outcome from
+    ///      Runtime.GetRandom of THAT later block (which was unknown when the bet was
+    ///      committed) mixed with betId+player+commitIndex. The player can no longer
+    ///      condition an abort on the result: the wager is already committed in block N,
+    ///      and whoever calls settle in block N+1 (a keeper / the frontend / anyone)
+    ///      finalizes it. Aborting a settle just leaves the bet pending for the next caller.
+    ///
+    /// RESERVATION: every pending bet reserves its worst-case house exposure (a 2x win pays
+    /// an extra `amount` from the house) into reservedBankroll, and a new commit is rejected
+    /// unless freeBankroll = bankroll - reservedBankroll covers it. So concurrent pending
+    /// bets can never oversubscribe the bankroll — EVERY pending win is fully payable.
+    ///
+    /// MODEL: GAS only, BASE UNITS (1 GAS = 1e8). House funds the bankroll (memo
+    /// "miniapp-fogplay:fund"); a player prepays a wager (memo "miniapp-fogplay:bet"). Memos
+    /// and OnNEP17Payment credit-only behaviour are identical to v1. Owner is unchanged.
+    ///
+    /// SOLVENCY INVARIANT (asserted in tests):
+    ///   heldGAS == bankroll + sum(escrowed pending amounts) + sum(player credits)
+    ///   reservedBankroll <= bankroll
+    /// </summary>
+    [DisplayName("MiniAppCoinFlipV2")]
+    [ManifestExtra("Author", "R3E Network")]
+    [ManifestExtra("Email", "dev@r3e.network")]
+    [ManifestExtra("Version", "2.0.0")]
+    [ManifestExtra("Description", "Commit/reveal on-chain coin flip: 2x payout settled across blocks with reserved bankroll — closes the same-tx abort-on-loss exploit.")]
+    [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
+    public partial class MiniAppCoinFlipV2 : SmartContract
+    {
+        #region Constants (base units)
+        private const long MIN_BET = 5_000_000;        // 0.05 GAS
+        private const long MAX_BET = 10_000_000_000;   // 100 GAS
+        private const string FUND_MEMO = "miniapp-fogplay:fund";
+        private const string BET_MEMO = "miniapp-fogplay:bet";
+
+        [InitialValue("NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32", ContractParameterType.Hash160)]
+        private static readonly UInt160 Owner = default;
+        #endregion
+
+        #region Storage prefixes
+        private static readonly byte[] PREFIX_BANKROLL = new byte[] { 0x10 };
+        private static readonly byte[] PREFIX_RESERVED = new byte[] { 0x17 };      // reserved house exposure
+        private static readonly byte[] PREFIX_CREDIT = new byte[] { 0x11 };        // + player -> GAS credit
+        private static readonly byte[] PREFIX_STATS = new byte[] { 0x12 };         // + player -> Stats
+        private static readonly byte[] PREFIX_BET_ID = new byte[] { 0x13 };        // last bet id
+        private static readonly byte[] PREFIX_BET = new byte[] { 0x14 };           // + betId -> Bet
+        private static readonly byte[] PREFIX_PLAYER_CNT = new byte[] { 0x15 };    // + player -> count
+        private static readonly byte[] PREFIX_PLAYER_ITEM = new byte[] { 0x16 };   // + player + seq -> betId
+        private static readonly byte[] PREFIX_PENDING_CNT = new byte[] { 0x18 };   // number of unsettled bets
+        #endregion
+
+        #region Events
+        [DisplayName("Credited")]
+        public static event Action<UInt160, BigInteger, BigInteger> OnCredited; // from, amount, balance
+        [DisplayName("BankrollFunded")]
+        public static event Action<UInt160, BigInteger, BigInteger> OnBankrollFunded; // from, amount, bankroll
+        [DisplayName("Committed")]
+        public static event Action<BigInteger, UInt160, BigInteger, BigInteger, BigInteger> OnCommitted; // betId, player, choice, amount, commitIndex
+        [DisplayName("Settled")]
+        public static event Action<BigInteger, UInt160, BigInteger, BigInteger, bool, BigInteger> OnSettled; // betId, player, choice, outcome, won, payout
+        [DisplayName("BankrollWithdrawn")]
+        public static event Action<UInt160, BigInteger> OnBankrollWithdrawn;
+        [DisplayName("CreditWithdrawn")]
+        public static event Action<UInt160, BigInteger> OnCreditWithdrawn; // account, amount
+        #endregion
+
+        #region Types
+        public struct Stats
+        {
+            public BigInteger Wins;
+            public BigInteger Losses;
+            public BigInteger TotalWon; // total GAS profit paid to the player (sum of winning wagers)
+        }
+        public struct Bet
+        {
+            public UInt160 Player;
+            public BigInteger Choice;      // 0 = heads, 1 = tails
+            public BigInteger Wager;       // escrowed amount
+            public BigInteger Exposure;    // house reservation released at settle (= wager)
+            public BigInteger CommitIndex; // Ledger.CurrentIndex at commit
+            public BigInteger CommitTime;  // Runtime.Time at commit
+            public bool Settled;
+            public BigInteger Outcome;     // 0 / 1 once settled
+            public bool Won;
+            public BigInteger Payout;      // 2*wager on win, 0 on loss
+            public BigInteger SettleTime;
+        }
+        #endregion
+
+        #region Deposit (bankroll + bet credit) — CREDIT ONLY, no transfers/business logic
+        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
+        {
+            ExecutionEngine.Assert(Runtime.CallingScriptHash == GAS.Hash, "only GAS accepted");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            ExecutionEngine.Assert(data is not null, "memo required");
+            string memo = (string)data;
+            StorageContext ctx = Storage.CurrentContext;
+
+            if (memo == FUND_MEMO)
+            {
+                BigInteger bankroll = (BigInteger)Storage.Get(ctx, PREFIX_BANKROLL) + amount;
+                Storage.Put(ctx, PREFIX_BANKROLL, bankroll);
+                OnBankrollFunded(from, amount, bankroll);
+                return;
+            }
+            if (memo == BET_MEMO)
+            {
+                byte[] key = Helper.Concat(PREFIX_CREDIT, (byte[])from);
+                BigInteger bal = (BigInteger)Storage.Get(ctx, key) + amount;
+                Storage.Put(ctx, key, bal);
+                OnCredited(from, amount, bal);
+                return;
+            }
+            ExecutionEngine.Assert(false, "invalid memo");
+        }
+        #endregion
+
+        #region Commit (block N — escrow + reserve, no outcome)
+        /// <summary>
+        /// Commit a coin-flip wager. choice: 0=heads, 1=tails. Escrows the wager from the
+        /// player's prepaid credit and reserves the worst-case house exposure (= amount,
+        /// since a 2x win pays an extra `amount` from the house) from the free bankroll.
+        /// The outcome is NOT decided here — call settle(betId) in a LATER block.
+        /// Returns the betId.
+        /// </summary>
+        public static BigInteger Commit(UInt160 player, BigInteger choice, BigInteger amount)
+        {
+            ExecutionEngine.Assert(player is not null && player.IsValid && !player.IsZero, "invalid player");
+            ExecutionEngine.Assert(Runtime.CheckWitness(player), "player witness required");
+            ExecutionEngine.Assert(choice == 0 || choice == 1, "choice must be 0 or 1");
+            ExecutionEngine.Assert(amount >= MIN_BET && amount <= MAX_BET, "bet out of range");
+
+            StorageContext ctx = Storage.CurrentContext;
+
+            // Escrow the prepaid wager irrevocably.
+            byte[] creditKey = Helper.Concat(PREFIX_CREDIT, (byte[])player);
+            BigInteger credit = (BigInteger)Storage.Get(ctx, creditKey);
+            ExecutionEngine.Assert(credit >= amount, "insufficient bet credit");
+            BigInteger nextCredit = credit - amount;
+            if (nextCredit == 0) Storage.Delete(ctx, creditKey); else Storage.Put(ctx, creditKey, nextCredit);
+
+            // Reserve the house exposure so concurrent pending bets cannot oversubscribe.
+            // A 2x win pays the wager back (from escrow) PLUS an extra `amount` from the house.
+            BigInteger exposure = amount;
+            BigInteger bankroll = (BigInteger)Storage.Get(ctx, PREFIX_BANKROLL);
+            BigInteger reserved = (BigInteger)Storage.Get(ctx, PREFIX_RESERVED);
+            BigInteger free = bankroll - reserved;
+            ExecutionEngine.Assert(free >= exposure, "free bankroll cannot cover this bet");
+            Storage.Put(ctx, PREFIX_RESERVED, reserved + exposure);
+
+            BigInteger betId = (BigInteger)Storage.Get(ctx, PREFIX_BET_ID) + 1;
+            Storage.Put(ctx, PREFIX_BET_ID, betId);
+
+            Bet b = new Bet
+            {
+                Player = player,
+                Choice = choice,
+                Wager = amount,
+                Exposure = exposure,
+                CommitIndex = Ledger.CurrentIndex,
+                CommitTime = Runtime.Time,
+                Settled = false,
+                Outcome = 0,
+                Won = false,
+                Payout = 0,
+                SettleTime = 0,
+            };
+            Storage.Put(ctx, BetKey(betId), StdLib.Serialize(b));
+            IndexAppend(ctx, player, betId);
+
+            BigInteger pending = (BigInteger)Storage.Get(ctx, PREFIX_PENDING_CNT) + 1;
+            Storage.Put(ctx, PREFIX_PENDING_CNT, pending);
+
+            OnCommitted(betId, player, choice, amount, b.CommitIndex);
+            return betId;
+        }
+        #endregion
+
+        #region Settle (later block — reveal + pay) — PERMISSIONLESS
+        /// <summary>
+        /// Reveal and settle a committed bet. PERMISSIONLESS: anyone can call so losses can
+        /// never be withheld. Requires Ledger.CurrentIndex strictly greater than the bet's
+        /// commitIndex (a later block), so the GetRandom beacon used to decide the flip was
+        /// unknown when the wager was committed. On a win pays 2x (escrow + reserved house
+        /// portion); on a loss the escrowed wager funds the bankroll. Always releases the
+        /// reservation. Returns the outcome (0/1).
+        /// </summary>
+        public static BigInteger Settle(BigInteger betId)
+        {
+            StorageContext ctx = Storage.CurrentContext;
+            ByteString raw = Storage.Get(ctx, BetKey(betId));
+            ExecutionEngine.Assert(raw is not null, "bet not found");
+            Bet b = (Bet)StdLib.Deserialize(raw);
+            ExecutionEngine.Assert(!b.Settled, "bet already settled");
+            ExecutionEngine.Assert(Ledger.CurrentIndex > b.CommitIndex, "reveal must be a later block");
+
+            // Outcome from the SETTLE block's beacon (unknown at commit) mixed with
+            // betId + player + commitIndex. The player cannot precompute this at commit.
+            BigInteger entropy = Runtime.GetRandom();
+            if (entropy < 0) entropy = -entropy;
+            BigInteger mix = (BigInteger)(ByteString)(byte[])b.Player + betId + b.CommitIndex;
+            if (mix < 0) mix = -mix;
+            BigInteger outcome = (entropy + mix) % 2;
+            bool won = outcome == b.Choice;
+
+            BigInteger bankroll = (BigInteger)Storage.Get(ctx, PREFIX_BANKROLL);
+            BigInteger reserved = (BigInteger)Storage.Get(ctx, PREFIX_RESERVED);
+            // Release this bet's reservation unconditionally.
+            reserved -= b.Exposure;
+
+            Stats s = LoadStats(ctx, b.Player);
+            BigInteger payout = 0;
+            if (won)
+            {
+                payout = b.Wager * 2;
+                bankroll -= b.Exposure;   // the reserved extra is spent on the win
+                s.Wins += 1;
+                s.TotalWon += b.Wager;    // player's net profit
+            }
+            else
+            {
+                bankroll += b.Wager;      // the escrowed wager funds the house
+                s.Losses += 1;
+            }
+
+            // Effects before interaction.
+            Storage.Put(ctx, PREFIX_BANKROLL, bankroll);
+            Storage.Put(ctx, PREFIX_RESERVED, reserved);
+            Storage.Put(ctx, StatsKey(b.Player), StdLib.Serialize(s));
+
+            b.Settled = true;
+            b.Outcome = outcome;
+            b.Won = won;
+            b.Payout = payout;
+            b.SettleTime = Runtime.Time;
+            Storage.Put(ctx, BetKey(betId), StdLib.Serialize(b));
+
+            BigInteger pending = (BigInteger)Storage.Get(ctx, PREFIX_PENDING_CNT);
+            if (pending > 0) Storage.Put(ctx, PREFIX_PENDING_CNT, pending - 1);
+
+            if (won)
+            {
+                bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
+                    new object[] { Runtime.ExecutingScriptHash, b.Player, payout, "" });
+                ExecutionEngine.Assert(ok, "payout transfer failed");
+            }
+
+            OnSettled(betId, b.Player, b.Choice, outcome, won, payout);
+            return outcome;
+        }
+        #endregion
+    }
+}

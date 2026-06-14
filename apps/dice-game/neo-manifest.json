@@ -4,8 +4,8 @@
   "name": "Dice Game",
   "name_zh": "骰子游戏",
   "version": "2.0.0",
-  "description": "A focused on-chain dice game for Neo N3 and Neo X mainnet. Pick one face (1-in-6 chance) and stake GAS; a matching roll pays 5.70x after a 5% house edge. On Neo N3 the roll settles atomically on-chain with Neo's native randomness — instant result, no oracle callback to wait for.",
-  "description_zh": "面向 Neo N3 与 Neo X 主网的链上骰子游戏。选择一个点数（1/6 命中率）并下注 GAS；命中后在扣除 5% 庄家抽水后按 5.70 倍赔付。在 Neo N3 上，掷骰使用 Neo 原生随机数原子化链上结算——即时出结果，无需等待预言机回调。",
+  "description": "A focused on-chain dice game for Neo N3 and Neo X mainnet. Pick one face (1-in-6 chance) and stake GAS; a matching roll pays 5.70x after a 5% house edge. On Neo N3 the bet uses a commit/reveal flow: it commits in one transaction and the roll is revealed from a strictly later block's native randomness — so the outcome is unknowable at commit and a loss can never be aborted.",
+  "description_zh": "面向 Neo N3 与 Neo X 主网的链上骰子游戏。选择一个点数（1/6 命中率）并下注 GAS；命中后在扣除 5% 庄家抽水后按 5.70 倍赔付。在 Neo N3 上，下注采用「提交/揭晓」流程：先在一笔交易内提交，再由一个严格更晚区块的原生随机数揭晓掷骰——因此结果在提交时无法预知，输的下注绝不会被中止。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
@@ -21,8 +21,8 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
-    "neo-n3-testnet": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
+    "neo-n3-mainnet": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
+    "neo-n3-testnet": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
     "neo-x-mainnet": "0xFA795F814d38F218153d21838360096f3F5cb774"
   },
   "supported_networks": [
@@ -34,13 +34,13 @@
   "deployment": {
     "neo-n3-mainnet": {
       "status": "deployed",
-      "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
+      "contract_hash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
       "registered": true,
       "deployed_at": "2026-06-14T00:00:00Z"
     },
     "neo-n3-testnet": {
       "status": "deployed",
-      "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
+      "contract_hash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
       "registered": true
     }
   },
@@ -60,7 +60,7 @@
   },
   "operation_panel": {
     "title": "Roll Dice",
-    "subtitle": "Fund GAS credit, pick one face, then roll — settled atomically on-chain.",
+    "subtitle": "Fund GAS credit, pick one face, then commit your bet — the roll reveals on the next block.",
     "operations": [
       {
         "name": "Fund Stake",
@@ -99,7 +99,7 @@
       {
         "name": "Roll",
         "method": "placeDiceBet",
-        "description": "Choose one face from 1 to 6. A matching on-chain roll pays 5.70x after the platform fee.",
+        "description": "Choose one face from 1 to 6. Your bet commits now and reveals on the next block; a matching roll pays 5.70x after the platform fee.",
         "button_style": "success",
         "priority": "primary",
         "params": [
@@ -176,7 +176,7 @@
   "technologies": {
     "oracle": {
       "enabled": false,
-      "description": "No oracle — on Neo N3 the dice roll is drawn on-chain with Neo's native Runtime.GetRandom and settled atomically in the bet transaction."
+      "description": "No oracle — on Neo N3 the dice roll is drawn on-chain with Neo's native Runtime.GetRandom using a commit/reveal flow: the wager commits in one transaction and the roll is revealed from a strictly later block."
     },
     "aa": {
       "enabled": false,

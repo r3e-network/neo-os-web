@@ -30,7 +30,7 @@ defineMiniApp({
 
     // Per-user pull counter. Pulls settle per-tx on chain (no per-player counter
     // on the contract), so this is a durable client-side tally keyed by wallet
-    // address via os.storage, incremented only after a confirmed Pulled event.
+    // address via os.storage, incremented only after a confirmed Settled event.
     const userPulls = createObservable(0);
 
     const userPullsStorageKey = (addr: string | null): string | null =>
@@ -101,14 +101,31 @@ defineMiniApp({
         return;
       }
       gasbox.selectMachine(machine);
-      // guard returns playMachine's boolean on a confirmed on-chain pull, or
-      // undefined when it swallows a thrown error. Only advance the per-user
+      // Two-step play: commit → wait one block → settle. guard returns
+      // playMachine's boolean on a confirmed, settled win, or undefined when it
+      // swallows a thrown error (a committed-but-unrevealed bet stays pending so
+      // the player can finish via the Reveal action). Only advance the per-user
       // pull counter on a real, settled win.
-      const pulled = await ctx.services.notify.guard(
+      const settled = await ctx.services.notify.guard(
         () => gasbox.playMachine(),
         "pullSuccess",
       );
-      if (pulled === true) {
+      if (settled === true) {
+        userPulls.set(userPulls.get() + 1);
+        void persistUserPulls(userPulls.get());
+      }
+    });
+
+    // Reveal-retry: re-run settle against the persisted pending betId. Safe to
+    // retry (settle is permissionless + pays exactly once). Counts the pull only
+    // when the reveal newly settles a win here.
+    ctx.registerAction("reveal", async () => {
+      if (!gasbox.canReveal.get()) return;
+      const settled = await ctx.services.notify.guard(
+        () => gasbox.revealPending(),
+        "pullSuccess",
+      );
+      if (settled === true) {
         userPulls.set(userPulls.get() + 1);
         void persistUserPulls(userPulls.get());
       }
@@ -212,6 +229,12 @@ defineMiniApp({
         studioOpen: gasbox.studioOpen,
         hasPlayCredit: gasbox.hasPlayCredit,
         formattedPlayCredit: gasbox.formattedPlayCredit,
+        // Commit/reveal (two-step) state — drives the pending "drawing on next
+        // block" panel and the Reveal-retry affordance.
+        betPhase: gasbox.betPhase,
+        pendingBetId: gasbox.pendingBetId,
+        canReveal: gasbox.canReveal,
+        isAwaitingReveal: gasbox.isAwaitingReveal,
         // Connected wallet address — the view shows the creator-only Withdraw
         // Revenue control when this matches the selected machine's creatorHash.
         walletAddress: gasbox.address,
