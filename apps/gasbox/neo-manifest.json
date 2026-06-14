@@ -21,8 +21,8 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0xeb635b6e75b01c12cc26794b906d329531f378e9",
-    "neo-n3-testnet": "0xeb635b6e75b01c12cc26794b906d329531f378e9"
+    "neo-n3-mainnet": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db",
+    "neo-n3-testnet": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db"
   },
   "contract_domains": {
     "neo-n3-mainnet": "gasbox.miniapp.neo"
@@ -64,9 +64,13 @@
   "featured": true,
   "featured_order": 7,
   "technologies": {
+    "oracle": {
+      "enabled": false,
+      "description": "No off-chain oracle. The draw uses on-chain commit/reveal randomness (a later block's Runtime.GetRandom), settled by a permissionless reveal."
+    },
     "vrf": {
       "enabled": true,
-      "description": "Verifiable random function ensures fair blind box draws"
+      "description": "Provably-fair on-chain randomness via commit/reveal: the outcome is fixed by a later block's Runtime.GetRandom, so it is unknowable at bet time and cannot be aborted on a loss"
     },
     "aa": {
       "enabled": false,
@@ -99,12 +103,12 @@
         },
         "networks": {
           "neo-n3-mainnet": {
-            "contract_hash": "0xeb635b6e75b01c12cc26794b906d329531f378e9",
+            "contract_hash": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db",
             "registered": true,
             "domain": "gasbox.miniapp.neo"
           },
           "neo-n3-testnet": {
-            "contract_hash": "0xeb635b6e75b01c12cc26794b906d329531f378e9",
+            "contract_hash": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db",
             "registered": true
           }
         }

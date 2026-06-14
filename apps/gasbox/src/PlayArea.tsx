@@ -122,6 +122,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const walletAddress = str("walletAddress", "");
   const hasPlayCredit = bool("hasPlayCredit");
   const formattedPlayCredit = str("formattedPlayCredit", "");
+  // Commit/reveal (two-step) state. The pending betId lives in the composable
+  // observable (the resume handle the Reveal action settles against); the view
+  // only needs the phase + reveal affordance flags.
+  const betPhase = str("betPhase", "idle");
+  const canReveal = bool("canReveal");
+  const isAwaitingReveal = bool("isAwaitingReveal");
 
   const [showResult, setShowResult] = useState(false);
   const [leverPulled, setLeverPulled] = useState(false);
@@ -203,15 +209,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     const machineId = selectedMachine?.id;
     if (!machineId) return;
     setLeverPulled(true);
+    // Two-step: commit → wait one block → settle. The dispatch resolves after
+    // the whole flow; the result overlay is gated on the settled result, so a
+    // committed-but-unrevealed bet shows the pending panel + Reveal button below
+    // instead of a (non-existent) result.
     await dispatch("pull", machineId);
     setShowResult(true);
     setTimeout(() => setLeverPulled(false), 600);
+  };
+
+  // Reveal-retry: finish a committed bet whose settle timed out. Permissionless
+  // and safe to retry — the contract pays exactly once.
+  const handleReveal = async () => {
+    await dispatch("reveal");
+    setShowResult(true);
   };
 
   const dismissResult = () => {
     setShowResult(false);
     void dispatch("resetResult");
   };
+
+  // Player-facing label for the current commit/reveal phase.
+  const pendingPhaseLabel =
+    betPhase === "committing"
+      ? t("gasboxCommitting")
+      : betPhase === "settling"
+        ? t("gasboxRevealing")
+        : t("gasboxCommitted");
 
   const handleWithdrawRevenue = async () => {
     const machineId = selectedMachine?.id;
@@ -622,13 +647,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 size="lg"
                 block
                 loading={isPulling}
-                disabled={isPulling || !selectedMachineReady}
+                disabled={isPulling || isAwaitingReveal || !selectedMachineReady}
                 className="gasbox-pull-btn"
                 onClick={handlePull}
               >
                 <div className="gasbox-pull-btn-content">
                   <span className="gasbox-pull-btn-text">
-                    {isPulling ? t("pulling") : t("pull")}
+                    {betPhase === "committing"
+                      ? t("gasboxCommitting")
+                      : betPhase === "settling"
+                        ? t("gasboxRevealing")
+                        : isPulling
+                          ? t("pulling")
+                          : t("pull")}
                   </span>
                   <span className="gasbox-pull-btn-cost">
                     {selectedMachine.price} GAS
@@ -654,6 +685,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </NeoButton>
               </div>
             </div>
+
+            {(isAwaitingReveal || canReveal) && (
+              <section
+                className="gasbox-pending"
+                role="status"
+                aria-live="polite"
+                aria-label={t("gasboxPendingTitle")}
+              >
+                <div className="gasbox-pending__head">
+                  <span
+                    className={`gasbox-pending__spinner${betPhase === "committed" ? " is-waiting" : ""}`}
+                    aria-hidden="true"
+                  />
+                  <div className="gasbox-pending__copy">
+                    <strong>{pendingPhaseLabel}</strong>
+                    <p>{t("gasboxPendingDesc")}</p>
+                  </div>
+                </div>
+                {/* Reveal-retry: shown once the bet is committed so a timed-out
+                    or not-yet-ready settle can be re-fired. Hidden mid-commit. */}
+                {canReveal && betPhase !== "committing" && (
+                  <div className="gasbox-pending__actions">
+                    <NeoButton
+                      variant="primary"
+                      size="md"
+                      loading={betPhase === "settling"}
+                      disabled={betPhase === "settling"}
+                      onClick={handleReveal}
+                    >
+                      {t("gasboxRevealAction")}
+                    </NeoButton>
+                    <span className="gasbox-pending__hint">{t("gasboxRevealHint")}</span>
+                  </div>
+                )}
+              </section>
+            )}
 
             {hasPlayCredit && (
               <div className="gasbox-play-credit" role="status">

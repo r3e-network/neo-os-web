@@ -4,8 +4,8 @@
   "name": "FogPlay",
   "name_zh": "迷雾对决",
   "version": "2.0.0",
-  "description": "Instant on-chain coin flip on Neo N3. Pick heads or tails (50% chance) and place a GAS wager — Neo's native randomness settles each flip and pays 2x in the same transaction, with no oracle callback to wait for.",
-  "description_zh": "Neo N3 上的即时链上抛硬币游戏。选择正面或反面（50% 胜率）并下注 GAS——Neo 原生随机数在同一笔交易内完成结算并支付 2 倍赔付，无需等待任何预言机回调。",
+  "description": "Provably-fair on-chain coin flip on Neo N3. Pick heads or tails (50% chance) and place a GAS wager — your bet commits first, then the outcome is revealed from a later block's native randomness and pays 2x, so the result can't be peeked or aborted on a loss.",
+  "description_zh": "Neo N3 上可证明公平的链上抛硬币游戏。选择正面或反面（50% 胜率）并下注 GAS——下注先行提交，随后由更晚区块的原生随机数揭晓结果并支付 2 倍赔付，结果无法被窥探或在将输时中止。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
@@ -21,8 +21,8 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0x5d82339da085b72468200e76a2aa2f3cd2912953",
-    "neo-n3-testnet": "0x5d82339da085b72468200e76a2aa2f3cd2912953"
+    "neo-n3-mainnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
+    "neo-n3-testnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda"
   },
   "contract_domains": {
     "neo-n3-mainnet": "fogplay.miniapp.neo"
@@ -66,7 +66,7 @@
   "technologies": {
     "oracle": {
       "enabled": false,
-      "description": "No oracle — each flip settles atomically on-chain using Neo's native Runtime.GetRandom in the same transaction"
+      "description": "No oracle — the bet commits first, then a permissionless settle reveals the outcome from a later block's native Runtime.GetRandom"
     },
     "aa": {
       "enabled": false,
@@ -96,12 +96,12 @@
         },
         "networks": {
           "neo-n3-mainnet": {
-            "contract_hash": "0x5d82339da085b72468200e76a2aa2f3cd2912953",
+            "contract_hash": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
             "registered": true,
             "domain": "fogplay.miniapp.neo"
           },
           "neo-n3-testnet": {
-            "contract_hash": "0x5d82339da085b72468200e76a2aa2f3cd2912953",
+            "contract_hash": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
             "registered": true
           }
         }

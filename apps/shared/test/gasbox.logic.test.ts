@@ -18,6 +18,9 @@ const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const PLAY_MEMO = "miniapp-gasbox:play";
 const POOL_MEMO_PREFIX = "miniapp-gasbox-pool:";
 
+/** Default betId the stub's Committed event reports. */
+const BET_ID = "7";
+
 function t(key: string) {
   const messages: Record<string, string> = {
     inventoryUnavailable: "Machine inventory unavailable",
@@ -34,7 +37,10 @@ function t(key: string) {
     publishing: "Publishing...",
     publishSuccess: "Machine created.",
     createPending: "Creation confirmation not available yet",
-    playPrepaidNoPull: "Play credit prepaid but the pull didn't settle",
+    // v2 commit/reveal messages.
+    playPrepaidNoCommit: "Play credit prepaid but the commit didn't settle",
+    commitPendingRetry: "Bet committed — tap Reveal shortly to draw your prize.",
+    revealPendingRetry: "Reveal not ready yet — tap Reveal again in a moment.",
     tokenGas: "GAS",
     none: "None",
     yes: "Yes",
@@ -45,23 +51,39 @@ function t(key: string) {
 }
 
 /**
- * Build a `Pulled` event payload: Pulled(playId, machineId, player, itemIndex,
- * prizeAmount). The composable reads itemIndex from slot 3 and prizeAmount from
- * slot 4 (same shape the live contract emits).
+ * Build a `Committed` event payload: Committed(betId, machineId, player,
+ * commitIndex). The composable reads betId from slot 0 (same shape the live v2
+ * contract emits).
  */
-function pulledEvent(itemIndex: number, prizeAmount: string) {
+function committedEvent(betId: string = BET_ID) {
   return {
     state: [
-      { type: "Integer", value: "1" },
+      { type: "Integer", value: betId },
       { type: "Integer", value: "1" },
       { type: "Hash160", value: PLAYER_HASH },
-      { type: "Integer", value: String(itemIndex) },
-      { type: "Integer", value: prizeAmount },
+      { type: "Integer", value: "1000" },
     ],
   };
 }
 
-/** A getMachine map matching the deployed MiniAppGasBox ABI. */
+/**
+ * Build a `Settled` event payload: Settled(betId, machineId, player, itemIndex,
+ * prize). The composable reads machineId from slot 1, itemIndex from slot 3, and
+ * prize from slot 4 (same shape the live v2 contract emits).
+ */
+function settledEvent(itemIndex: number, prize: string, betId: string = BET_ID) {
+  return {
+    state: [
+      { type: "Integer", value: betId },
+      { type: "Integer", value: "1" },
+      { type: "Hash160", value: PLAYER_HASH },
+      { type: "Integer", value: String(itemIndex) },
+      { type: "Integer", value: prize },
+    ],
+  };
+}
+
+/** A getMachine map matching the deployed MiniAppGasBoxV2 ABI. */
 function machineMap(
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> {
@@ -91,31 +113,56 @@ function itemMap(index: number): Record<string, unknown> {
 }
 
 /**
- * Minimal ChainService stand-in. Records invoke/read calls so tests can assert
- * the direct-contract prepay + pull + studio argument shapes. `read` resolves
- * getMachine / getItem / lastMachineId / playCreditOf against the maps above.
+ * Minimal ChainService stand-in for the v2 commit/reveal flow. Records
+ * invoke/prepayAndInvoke/read calls so tests can assert the direct-contract
+ * prepay + commit + settle + studio argument shapes.
+ *
+ * - op "commit"  -> resolves a `Committed` event (betId at slot 0).
+ * - op "settle"  -> resolves a `Settled` event (Settled(betId, machineId,
+ *                   player, itemIndex, prize)). A configured `commitFault` /
+ *                   `settleFault` makes the respective step throw.
+ * - read resolves getMachine / getItem / lastMachineId / playCreditOf /
+ *   getPendingBet against the maps above.
+ * - listAllEvents returns [] (recovery paths are not exercised in the happy
+ *   tests; the betId is always read straight from the Committed event).
  */
 function makeChain(
   opts: {
     playCredit?: string;
-    pulledItemIndex?: number;
-    pulledPrize?: string;
-    pullFault?: string;
+    settledItemIndex?: number;
+    settledPrize?: string;
+    commitFault?: string;
+    settleFault?: string;
+    betId?: string;
   } = {},
 ) {
-  const runPull = (options?: { waitForEvent?: string }): TxResult => {
-    if (opts.pullFault) throw new Error(opts.pullFault);
+  const betId = opts.betId ?? BET_ID;
+
+  const runCommit = (options?: { waitForEvent?: string }): TxResult => {
+    if (opts.commitFault) throw new Error(opts.commitFault);
     const event =
-      options?.waitForEvent === "Pulled"
-        ? pulledEvent(opts.pulledItemIndex ?? 0, opts.pulledPrize ?? "100000000")
+      options?.waitForEvent === "Committed" ? committedEvent(betId) : undefined;
+    return { txid: "0xcommit", event, success: true };
+  };
+
+  const runSettle = (options?: { waitForEvent?: string }): TxResult => {
+    if (opts.settleFault) throw new Error(opts.settleFault);
+    const event =
+      options?.waitForEvent === "Settled"
+        ? settledEvent(
+            opts.settledItemIndex ?? 0,
+            opts.settledPrize ?? "100000000",
+            betId,
+          )
         : undefined;
-    return { txid: "0xtx", event, success: true };
+    return { txid: "0xsettle", event, success: true };
   };
 
   const invoke = vi.fn(
     async (op: string, _args: ContractArg[], options?: { waitForEvent?: string }): Promise<TxResult> => {
       let event: unknown;
-      if (op === "pull") return runPull(options);
+      if (op === "commit") return runCommit(options);
+      if (op === "settle") return runSettle(options);
       if (op === "createMachine" && options?.waitForEvent === "MachineCreated") {
         event = { state: [{ type: "Integer", value: "1" }] };
       }
@@ -144,10 +191,11 @@ function makeChain(
         { scriptHash: GAS_HASH },
       );
       try {
-        if (operation === "pull") return runPull(options);
+        if (operation === "commit") return runCommit(options);
+        if (operation === "settle") return runSettle(options);
         return await invoke(operation, args, options);
       } catch (e) {
-        throw new DepositConfirmedActionFailedError(operation, "0xtx", e);
+        throw new DepositConfirmedActionFailedError(operation, "0xcommit", e);
       }
     },
   );
@@ -161,11 +209,22 @@ function makeChain(
         const index = Number(args?.[1]?.value ?? 0);
         return itemMap(index);
       }
+      if (op === "getPendingBet") {
+        // The bet has settled by the time the recovery path would read it.
+        return {
+          machineId: "1",
+          commitIndex: 1000,
+          settled: true,
+          itemIndex: opts.settledItemIndex ?? 0,
+          prize: opts.settledPrize ?? "100000000",
+        };
+      }
       return {};
     },
   );
 
   const readArray = vi.fn(async (): Promise<unknown[]> => []);
+  const listAllEvents = vi.fn(async (): Promise<unknown[]> => []);
 
   const chain = {
     contractAddress: { get: () => CONTRACT },
@@ -175,20 +234,43 @@ function makeChain(
     prepayAndInvoke,
     read,
     readArray,
+    listAllEvents,
   } as unknown as ChainService & {
     invoke: typeof invoke;
     prepayAndInvoke: typeof prepayAndInvoke;
     read: typeof read;
     readArray: typeof readArray;
+    listAllEvents: typeof listAllEvents;
   };
-  return { chain, invoke, prepayAndInvoke, read };
+  return { chain, invoke, prepayAndInvoke, read, listAllEvents };
 }
 
 function setup(opts: Parameters<typeof makeChain>[0] = {}) {
-  const { chain, invoke, prepayAndInvoke, read } = makeChain(opts);
+  const { chain, invoke, prepayAndInvoke, read, listAllEvents } = makeChain(opts);
   const app = useGasBox({ chain, t });
   app.setAddress(PLAYER);
-  return { app, chain, invoke, prepayAndInvoke, read };
+  return { app, chain, invoke, prepayAndInvoke, read, listAllEvents };
+}
+
+/**
+ * Drive an async action that sleeps between commit and settle to completion
+ * while flushing all pending fake timers. The composable waits ~1 block before
+ * the first settle and backs off between retries, so the promise can't resolve
+ * without advancing fake time; this pumps the microtask queue + runs every
+ * queued timer until the action settles.
+ */
+async function runWithTimers<T>(action: Promise<T>): Promise<T> {
+  let settled = false;
+  const wrapped = action.finally(() => {
+    settled = true;
+  });
+  // Yield to let the synchronous part of playMachine() schedule its first sleep,
+  // then keep running queued timers until the whole flow resolves.
+  for (let i = 0; i < 50 && !settled; i += 1) {
+    await Promise.resolve();
+    await vi.runAllTimersAsync();
+  }
+  return wrapped;
 }
 
 /** Find a recorded invoke call for an operation. */
@@ -242,7 +324,7 @@ function studioMachine(overrides: Partial<Machine> = {}): Machine {
   };
 }
 
-describe("useGasBox (direct MiniAppGasBox contract)", () => {
+describe("useGasBox (direct MiniAppGasBoxV2 contract)", () => {
   it("loads the machine catalog from getMachine (1..lastMachineId) and getItem", async () => {
     const { app, read } = setup();
 
@@ -266,83 +348,130 @@ describe("useGasBox (direct MiniAppGasBox contract)", () => {
     expect(read.mock.calls.some((c) => c[0] === "getItem")).toBe(true);
   });
 
-  it("prepays play credit then pulls on-chain (via prepayAndInvoke, deposit confirmed first), reading the won item from the Pulled event", async () => {
-    const { app, invoke, prepayAndInvoke } = setup({ playCredit: "0", pulledItemIndex: 0, pulledPrize: "100000000" });
+  it("prepays play credit then commits + settles on-chain (via prepayAndInvoke, deposit confirmed first), reading the won item from the Settled event", async () => {
+    vi.useFakeTimers();
+    try {
+      const { app, invoke, prepayAndInvoke } = setup({ playCredit: "0", settledItemIndex: 0, settledPrize: "100000000" });
 
-    await app.loadAll();
-    app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
+      await app.loadAll();
+      app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
 
-    // A confirmed on-chain pull returns true so callers can advance per-user stats.
-    const pulled = await app.playMachine();
-    expect(pulled).toBe(true);
+      // A confirmed on-chain commit→settle returns true so callers can advance
+      // per-user stats. The flow sleeps ~1 block between commit and settle, so
+      // fake timers must be pumped to completion.
+      const settled = await runWithTimers(app.playMachine());
+      expect(settled).toBe(true);
 
-    // The deposit→pull happens through prepayAndInvoke, which waits for the
-    // deposit to confirm before pull() test-invokes (no more deposit→pull race).
-    expect(prepayAndInvoke).toHaveBeenCalledTimes(1);
-    const [gasAmount, memo, op, pullArgs, pullOpts] = prepayAndInvoke.mock.calls[0];
-    expect(gasAmount).toBe("10000000"); // 0.1 GAS base units
-    expect(memo).toBe(PLAY_MEMO);
-    expect(op).toBe("pull");
-    expect(pullArgs).toEqual([
-      { type: "Integer", value: "1" },
-      { type: "Hash160", value: PLAYER_HASH },
-    ]);
-    expect(pullOpts).toMatchObject({ waitForEvent: "Pulled" });
+      // ── Step 1: COMMIT ──
+      // The deposit→commit happens through prepayAndInvoke, which waits for the
+      // deposit to confirm before commit() test-invokes (no deposit→commit race).
+      expect(prepayAndInvoke).toHaveBeenCalledTimes(1);
+      const [gasAmount, memo, op, commitArgs, commitOpts] = prepayAndInvoke.mock.calls[0];
+      expect(gasAmount).toBe("10000000"); // 0.1 GAS base units
+      expect(memo).toBe(PLAY_MEMO);
+      expect(op).toBe("commit");
+      expect(commitArgs).toEqual([
+        { type: "Integer", value: "1" },
+        { type: "Hash160", value: PLAYER_HASH },
+      ]);
+      expect(commitOpts).toMatchObject({ waitForEvent: "Committed" });
 
-    // The deposit transfer carries the play memo in base units.
-    const prepay = callFor(invoke, "transfer");
-    expect(prepay).toBeTruthy();
-    expect(prepay![1]).toEqual([
-      { type: "Hash160", value: PLAYER_HASH },
-      { type: "Hash160", value: CONTRACT },
-      { type: "Integer", value: "10000000" },
-      { type: "String", value: PLAY_MEMO },
-    ]);
+      // The deposit transfer carries the play memo in base units.
+      const prepay = callFor(invoke, "transfer");
+      expect(prepay).toBeTruthy();
+      expect(prepay![1]).toEqual([
+        { type: "Hash160", value: PLAYER_HASH },
+        { type: "Hash160", value: CONTRACT },
+        { type: "Integer", value: "10000000" },
+        { type: "String", value: PLAY_MEMO },
+      ]);
 
-    // The won item came from the Pulled event (itemIndex 0) + getItem amount.
-    const result = app.resultItem.get();
-    expect(result).toBeTruthy();
-    expect(result!.name).toBe("Legend Capsule");
-    // Displayed payout reflects the on-chain prizeAmount (1 GAS).
-    expect(result!.amountDisplay).toContain("1");
-    expect(app.showResult.get()).toBe(true);
+      // ── Step 2: SETTLE ──
+      // settle(betId) is invoked with the betId read from the Committed event
+      // (slot 0) and waits for the Settled event.
+      const settle = callFor(invoke, "settle");
+      expect(settle).toBeTruthy();
+      expect(settle![1]).toEqual([{ type: "Integer", value: BET_ID }]);
+      expect(settle![2]).toMatchObject({ waitForEvent: "Settled" });
+
+      // The won item came from the Settled event (itemIndex 0) + getItem amount.
+      const result = app.resultItem.get();
+      expect(result).toBeTruthy();
+      expect(result!.name).toBe("Legend Capsule");
+      // Displayed payout reflects the on-chain prize (1 GAS).
+      expect(result!.amountDisplay).toContain("1");
+      expect(app.showResult.get()).toBe(true);
+      expect(app.betPhase.get()).toBe("settled");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("reuses existing play credit (no prepayAndInvoke) when it already covers the price", async () => {
-    const { app, prepayAndInvoke, invoke } = setup({ playCredit: "10000000", pulledItemIndex: 1, pulledPrize: "10000000" });
+    vi.useFakeTimers();
+    try {
+      const { app, prepayAndInvoke, invoke } = setup({ playCredit: "10000000", settledItemIndex: 1, settledPrize: "10000000" });
 
-    await app.loadAll();
-    app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
-    await app.playMachine();
+      await app.loadAll();
+      app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
+      const settled = await runWithTimers(app.playMachine());
+      expect(settled).toBe(true);
 
-    expect(prepayAndInvoke).not.toHaveBeenCalled();
-    expect(callFor(invoke, "pull")).toBeTruthy();
+      // Credit already covers the price: commit goes through invoke('commit')
+      // directly — no deposit prepay.
+      expect(prepayAndInvoke).not.toHaveBeenCalled();
+      const commit = callFor(invoke, "commit");
+      expect(commit).toBeTruthy();
+      expect(commit![1]).toEqual([
+        { type: "Integer", value: "1" },
+        { type: "Hash160", value: PLAYER_HASH },
+      ]);
+      // The settle step still runs on the committed betId.
+      expect(callFor(invoke, "settle")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it("notes the prepaid credit as reusable when the pull reverts after a confirmed deposit", async () => {
-    const { app, prepayAndInvoke } = setup({ playCredit: "0", pullFault: "insufficient prepaid gas" });
+  it("notes the prepaid credit as reusable when the commit reverts after a confirmed deposit", async () => {
+    const { app, prepayAndInvoke } = setup({ playCredit: "0", commitFault: "insufficient prepaid gas" });
 
     await app.loadAll();
     app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
 
-    await expect(app.playMachine()).rejects.toThrow("Play credit prepaid but the pull didn't settle");
+    // The deposit confirmed but commit() reverted — prepayAndInvoke raises a
+    // DepositConfirmedActionFailedError, which the composable surfaces as the
+    // "credit prepaid but commit didn't settle" message (credit stays reusable).
+    await expect(app.playMachine()).rejects.toThrow(
+      "Play credit prepaid but the commit didn't settle",
+    );
     expect(prepayAndInvoke).toHaveBeenCalledTimes(1);
     expect(app.showResult.get()).toBe(false);
+    // The bet never committed, so the play returns to idle (no pending reveal).
+    expect(app.betPhase.get()).toBe("idle");
   });
 
   it("skips the prepay transfer when existing play credit already covers the price", async () => {
-    const { app, invoke } = setup({ playCredit: "10000000", pulledItemIndex: 1, pulledPrize: "10000000" });
+    vi.useFakeTimers();
+    try {
+      const { app, invoke } = setup({ playCredit: "10000000", settledItemIndex: 1, settledPrize: "10000000" });
 
-    await app.loadAll();
-    app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
+      await app.loadAll();
+      app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
 
-    await app.playMachine();
+      const settled = await runWithTimers(app.playMachine());
+      expect(settled).toBe(true);
 
-    // No top-up transfer — credit already covers the 0.1 GAS price.
-    expect(callFor(invoke, "transfer")).toBeUndefined();
-    // The pull still runs.
-    expect(callFor(invoke, "pull")).toBeTruthy();
-    expect(app.resultItem.get()?.name).toBe("GAS Rebate");
+      // No top-up transfer — credit already covers the 0.1 GAS price.
+      expect(callFor(invoke, "transfer")).toBeUndefined();
+      // The commit + settle still run.
+      expect(callFor(invoke, "commit")).toBeTruthy();
+      expect(callFor(invoke, "settle")).toBeTruthy();
+      // Won item resolves from the Settled event itemIndex (1 -> "GAS Rebate").
+      expect(app.resultItem.get()?.name).toBe("GAS Rebate");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("blocks a pull on an inactive / under-funded machine before any chain call", async () => {
@@ -512,21 +641,29 @@ describe("useGasBox (direct MiniAppGasBox contract)", () => {
   });
 
   it("guards against double pull submissions", async () => {
-    // Existing credit covers the price, so the pull runs through invoke('pull')
-    // directly (no prepayAndInvoke) — the cleanest path to count the dispatch.
-    const { app, invoke } = setup({ playCredit: "10000000" });
-    await app.loadAll();
-    app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
+    vi.useFakeTimers();
+    try {
+      // Existing credit covers the price, so the commit runs through
+      // invoke('commit') directly (no prepayAndInvoke) — the cleanest path to
+      // count the dispatch.
+      const { app, invoke } = setup({ playCredit: "10000000" });
+      await app.loadAll();
+      app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
 
-    const first = app.playMachine();
-    // Second call while the first is in flight must be a no-op that returns false
-    // (so the caller does NOT double-count the per-user pull).
-    const second = await app.playMachine();
-    expect(second).toBe(false);
-    await first;
+      const first = app.playMachine();
+      // Second call while the first is in flight (isPlaying stays true across the
+      // whole commit→settle span) must be a no-op that returns false, so the
+      // caller does NOT double-count the per-user play.
+      const second = await app.playMachine();
+      expect(second).toBe(false);
+      await runWithTimers(first);
 
-    // Only one pull was dispatched.
-    expect(invoke.mock.calls.filter((c) => c[0] === "pull")).toHaveLength(1);
+      // Only one commit was dispatched across both calls.
+      expect(invoke.mock.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
+      expect(invoke.mock.calls.filter((c) => c[0] === "settle")).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("tops up a machine's prize pool with a pool-memo transfer on the prize asset", async () => {

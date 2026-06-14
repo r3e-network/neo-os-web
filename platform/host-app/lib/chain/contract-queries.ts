@@ -251,18 +251,18 @@ export async function getStreamVaultState(
   return { totalStreams: parseInteger(res.stack[0]) };
 }
 
-/** FogPlay (CoinFlip) standalone: bankroll() + lastGameId() */
+/** FogPlay (CoinFlipV2 commit/reveal) standalone: bankroll() + lastBetId() */
 export async function getCoinFlipState(
   contractHash: string,
   network: Network,
 ): Promise<Record<string, unknown>> {
-  const [bankroll, lastGameId] = await Promise.all([
+  const [bankroll, lastBetId] = await Promise.all([
     invokeRead(contractHash, "bankroll", [], network),
-    invokeRead(contractHash, "lastGameId", [], network),
+    invokeRead(contractHash, "lastBetId", [], network),
   ]);
   return {
     bankroll: parseInteger(bankroll.stack?.[0]),
-    lastGameId: parseInteger(lastGameId.stack?.[0]),
+    lastBetId: parseInteger(lastBetId.stack?.[0]),
   };
 }
 
@@ -313,7 +313,7 @@ export async function getContractStats(
         const state = await getCoinFlipState(contractHash, network);
         return {
           totalValueLocked: gasToWhole(parseUnknownInteger(state.bankroll)),
-          totalTransactions: safeNumber(parseUnknownInteger(state.lastGameId)),
+          totalTransactions: safeNumber(parseUnknownInteger(state.lastBetId)),
           uniqueUsers: 0,
         };
       }

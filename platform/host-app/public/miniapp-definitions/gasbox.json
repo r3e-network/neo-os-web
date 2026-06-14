@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-gasbox",
-    "contract_hash": "0xeb635b6e75b01c12cc26794b906d329531f378e9"
+    "contract_hash": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db"
   },
   "entry_url": "mf://manifest?app=miniapp-gasbox",
   "media": {
@@ -45,7 +45,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "GASBox is a two-step gacha. Pick a machine, initiate a pull, and wait for the VRF callback to reveal your prize. Each machine has its own prize pool with transparent drop rates."
+            "content": "GASBox is a two-step gacha. Pick a machine, place your bet, then reveal on the next block to draw your prize. Each machine has its own prize pool with transparent drop rates."
           },
           {
             "type": "key_value",
@@ -57,11 +57,11 @@
               },
               {
                 "key": "Flow",
-                "value": "initiate → VRF → settle"
+                "value": "commit → next block → reveal"
               },
               {
                 "key": "Randomness",
-                "value": "Morpheus VRF"
+                "value": "On-chain commit/reveal (later-block randomness)"
               },
               {
                 "key": "Drop Rates",
@@ -74,8 +74,8 @@
             "title": "How to play",
             "items": [
               "Open the full GASBox app and browse the available machines.",
-              "Pick a machine and transfer its entry cost in GAS to initiate a pull.",
-              "Once the VRF callback lands, your prize is credited automatically — NFTs land in your wallet, GAS prizes land as balance."
+              "Pick a machine and pay its entry cost in GAS to place a bet — the outcome is fixed by a later block, so it can't be known or cancelled.",
+              "Reveal on the next block to draw and receive your prize — GAS and NEO prizes land in your wallet automatically."
             ]
           }
         ]
@@ -100,7 +100,7 @@
     ],
     "operation_panel": {
       "title": "GASBox",
-      "subtitle": "Two-step VRF gacha. Use the full app to pick a machine and draw.",
+      "subtitle": "Two-step commit/reveal gacha. Use the full app to pick a machine, bet, then reveal.",
       "cta_label": "Open GASBox",
       "operations": []
     }
@@ -121,7 +121,7 @@
   "detail_template": {
     "operation_panel": {
       "title": "GASBox",
-      "subtitle": "Two-step VRF gacha. Use the full app to pick a machine and draw.",
+      "subtitle": "Two-step commit/reveal gacha. Use the full app to pick a machine, bet, then reveal.",
       "cta_label": "Open GASBox",
       "operations": []
     }
@@ -146,12 +146,12 @@
           },
           "networks": {
             "neo-n3-mainnet": {
-              "contract_hash": "0xeb635b6e75b01c12cc26794b906d329531f378e9",
+              "contract_hash": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db",
               "registered": true,
               "domain": "gasbox.miniapp.neo"
             },
             "neo-n3-testnet": {
-              "contract_hash": "0xeb635b6e75b01c12cc26794b906d329531f378e9",
+              "contract_hash": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db",
               "registered": true
             }
           }
@@ -159,11 +159,21 @@
       ]
     },
     "contracts": {
-      "neo-n3-mainnet": "0xeb635b6e75b01c12cc26794b906d329531f378e9",
-      "neo-n3-testnet": "0xeb635b6e75b01c12cc26794b906d329531f378e9"
+      "neo-n3-mainnet": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db",
+      "neo-n3-testnet": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db"
     },
     "contract_domains": {
       "neo-n3-mainnet": "gasbox.miniapp.neo"
+    },
+    "technologies": {
+      "oracle": {
+        "enabled": false,
+        "description": "No off-chain oracle. The draw uses on-chain commit/reveal randomness (a later block's Runtime.GetRandom), settled by a permissionless reveal."
+      },
+      "vrf": {
+        "enabled": true,
+        "description": "Provably-fair on-chain randomness via commit/reveal: the outcome is fixed by a later block's Runtime.GetRandom, so it is unknowable at bet time and cannot be aborted on a loss"
+      }
     }
   }
 }
