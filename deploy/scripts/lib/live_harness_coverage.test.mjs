@@ -37,8 +37,13 @@ test("live harness coverage summary exposes fix lists", () => {
   // exercised by a live-flow script, not treated as a pure UI flow):
   //   - miniapp-neo-multisig: v2 contract 0xa361cdc792e97c4d8ddf42048cf48f3283ea7178
   //     (replacing v1 0xa89f8dd1ebc0e29561c4c3e9ad60ec307b9a473e which stays live for
-  //     user exits); the on-chain approval flow still needs a dedicated
-  //     deploy/scripts/live_validate_* script.
+  //     user exits). The on-chain approval-flow harness now EXISTS
+  //     (deploy/scripts/live_validate_multisig.mjs), but it is intentionally NOT yet
+  //     wired into LIVE_CHAIN_FLOWS here: removing miniapp-neo-multisig from the audit
+  //     output would diverge from the KNOWN_MISSING_LIVE_HARNESS allowlist in
+  //     build_goal_validation_report.js (a separate file). Registering the flow +
+  //     trimming both allowlists is a single coordinated follow-up; until then the
+  //     audit keeps reporting the gap and this assertion stays green.
   // (miniapp-dice-game now has a registered harness — deploy/scripts/live_validate_dicegame.mjs
   // for the self-contained MiniAppDiceGame 0x2c6134f9… — so it is no longer a gap.)
   // This is a real coverage gap, not a misclassification — the expectation is pinned to

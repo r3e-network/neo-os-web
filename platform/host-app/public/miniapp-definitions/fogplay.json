@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-fogplay",
-    "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7"
+    "contract_hash": "0x5d82339da085b72468200e76a2aa2f3cd2912953"
   },
   "entry_url": "mf://manifest?app=miniapp-fogplay",
   "media": {
@@ -141,14 +141,6 @@
       ]
     },
     {
-      "name": "Fund Oracle Fee",
-      "method": "fundOracleRequestFee",
-      "description": "Top up the Morpheus VRF request fee required before the game can settle randomness.",
-      "button_style": "secondary",
-      "priority": "primary",
-      "params": []
-    },
-    {
       "name": "Flip",
       "method": "placeCoinFlipBet",
       "button_style": "primary",
@@ -225,21 +217,21 @@
           },
           "networks": {
             "neo-n3-mainnet": {
-              "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+              "contract_hash": "0x5d82339da085b72468200e76a2aa2f3cd2912953",
               "registered": true,
               "domain": "fogplay.miniapp.neo"
             },
             "neo-n3-testnet": {
-              "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
-              "registered": false
+              "contract_hash": "0x5d82339da085b72468200e76a2aa2f3cd2912953",
+              "registered": true
             }
           }
         }
       ]
     },
     "contracts": {
-      "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-      "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+      "neo-n3-mainnet": "0x5d82339da085b72468200e76a2aa2f3cd2912953",
+      "neo-n3-testnet": "0x5d82339da085b72468200e76a2aa2f3cd2912953"
     },
     "contract_domains": {
       "neo-n3-mainnet": "fogplay.miniapp.neo"

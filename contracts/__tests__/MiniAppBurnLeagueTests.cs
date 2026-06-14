@@ -31,10 +31,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
     {
         private const long GAS = 100000000; // 1 GAS base units
 
-        // MiniAppBurnLeague's artifacts live in the contract's own build dir
-        // (contracts/MiniAppBurnLeague/build), not the shared contracts/build.
+        // MiniAppBurnLeague's NEF is produced into the shared contracts/build dir
+        // by contracts/build.sh, like every other contract artifact these suites load.
         private static readonly string BuildDir = Path.GetFullPath(
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "MiniAppBurnLeague", "build"));
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "build"));
 
         private static (NefFile nef, ContractManifest manifest) Load(string name)
         {

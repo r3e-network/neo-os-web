@@ -1,6 +1,8 @@
 /**
- * Live testnet validation for MiniAppBurnLeague
- * (0xdd3bf2ff39bc4e39107ace953e2271a43a58e28f).
+ * Live testnet validation for MiniAppBurnLeague.
+ *
+ * The contract hash resolves from apps/burn-league/neo-manifest.json
+ * (override: CONTRACT_OVERRIDE / CONTRACT_OVERRIDE_BURN_LEAGUE).
  *
  *   1. A deposits 5 GAS burn credit, burns 2 GAS (lazily starts the season).
  *   2. A funds a fresh wallet B; B deposits 4 GAS credit, burns 3 GAS -> B is top burner.
@@ -8,64 +10,41 @@
  *   4. Wait out the season deadline, then settle() -> whole 5 GAS pool paid to B.
  *   5. A reclaims unused 3 GAS credit; contract left solvent; season advanced + dormant.
  *
- * Asserts on lag-free events (Burned / SeasonSettled / CreditWithdrawn). Testnet-pinned.
+ * Asserts on lag-free events (Burned / SeasonSettled / CreditWithdrawn). Testnet-pinned
+ * (endpoints/magic via lib/neo_network.js env overrides + failover); no WIFs printed.
  */
 import pkg from "@cityofzion/neon-js";
-const { sc, wallet, rpc, tx, u } = pkg;
+import { getManifestContractHash } from "./lib/miniapp_manifest_hash.js";
+import { requireCredential } from "./lib/live_credentials.js";
+import { createLiveRpc } from "./lib/live_rpc.mjs";
 
-const RPC = process.env.NEO_TESTNET_RPC_URL || "https://rpc.t5.n3.nspcc.ru:20331";
-const MAGIC = 894710606;
-const CONTRACT = "0xdd3bf2ff39bc4e39107ace953e2271a43a58e28f";
+const { sc, wallet } = pkg;
+
+const CONTRACT = getManifestContractHash("burn-league", { network: "testnet" });
 const GAS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const G = 100000000n; // 1 GAS in base units
 
-const A = new wallet.Account(process.env.NEO_TESTNET_WIF);
+const A = new wallet.Account(requireCredential("NEO_TESTNET_WIF", process.env.NEO_TESTNET_WIF));
 const B = new wallet.Account();
-const client = new rpc.RPCClient(RPC);
+
+const live = createLiveRpc({ network: "testnet", neon: pkg, label: "live_validate_burnleague" });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const retry = async (fn) => { for (let i = 0; i < 8; i++) { try { return await fn(); } catch (e) { if (i === 7) throw e; await sleep(3000); } } };
+
 const H = (a) => sc.ContractParam.hash160(a);
 const I = (n) => sc.ContractParam.integer(n.toString());
 const S = (s) => sc.ContractParam.string(s);
 const P_H = (a) => ({ type: "Hash160", value: a });
 
-async function invoke(label, account, scriptHash, operation, args) {
-  const script = sc.createScript({ scriptHash, operation, args });
-  const count = await retry(() => client.getBlockCount());
-  const signers = [tx.Signer.fromJson({ account: "0x" + account.scriptHash, scopes: "CalledByEntry" })];
-  const txn = new tx.Transaction({ signers, validUntilBlock: count + 50, script });
-  const inv = await retry(() => client.invokeScript(u.HexString.fromHex(script), signers));
-  if (inv.state !== "HALT") throw new Error(`${label} test-invoke FAULT: ${inv.exception}`);
-  txn.systemFee = u.BigInteger.fromNumber(inv.gasconsumed);
-  txn.sign(account, MAGIC);
-  txn.networkFee = u.BigInteger.fromNumber(await retry(() => client.calculateNetworkFee(txn)));
-  txn.sign(account, MAGIC);
-  const txid = await retry(() => client.sendRawTransaction(txn));
-  for (let i = 0; i < 45; i++) {
-    await sleep(4000);
-    let log; try { log = await client.getApplicationLog(txid); } catch { continue; }
-    const ex = log.executions?.[0];
-    if (ex?.vmstate === "HALT") { console.log(`  ${label} ✓ (${txid.slice(0, 12)}…)`); return { txid, log }; }
-    throw new Error(`${label} FAULT: ${JSON.stringify(ex?.exception)}`);
-  }
-  throw new Error(`${label} not confirmed`);
-}
-async function read(method, params = []) {
-  const res = await retry(() => client.invokeFunction(CONTRACT, method, params));
-  if (res.state !== "HALT") throw new Error(`${method} FAULT: ${res.exception}`);
-  return res.stack;
-}
+const invoke = (label, account, scriptHash, operation, args) =>
+  live.invokeAndConfirm({ label, account, scriptHash, operation, args });
+const read = (method, params = []) => live.readStack(CONTRACT, method, params);
 const decInt = (s) => BigInt(s?.[0]?.value ?? "0");
 function eventState(log, name) {
   for (const n of log?.executions?.[0]?.notifications ?? []) if (n.eventname === name) return n.state?.value ?? [];
   return null;
 }
 const addrFromState = (v) => "0x" + Buffer.from(v, "base64").reverse().toString("hex");
-
-async function gasBal(h) {
-  const r = await retry(() => client.invokeFunction(GAS, "balanceOf", [P_H(h)]));
-  return BigInt(r.stack?.[0]?.value ?? "0");
-}
+const gasBal = (h) => live.nep17BalanceOf(GAS, h);
 
 async function main() {
   console.log("contract :", CONTRACT, "(MiniAppBurnLeague)\nA:", A.address, "\nB:", B.address);
@@ -136,4 +115,4 @@ async function main() {
   console.log(fail === 0 ? "\n✅ BURN LEAGUE VALIDATED (full season lifecycle + payout)" : `\n❌ ${fail} check(s) failed`);
   process.exit(fail === 0 ? 0 : 1);
 }
-main().catch((e) => { console.error("ERROR:", e.message); process.exit(1); });
+main().catch((e) => { console.error("ERROR:", String(e?.message || e).replace(/\b[KL][1-9A-HJ-NP-Za-km-z]{50,51}\b/g, "***WIF***")); process.exit(1); });

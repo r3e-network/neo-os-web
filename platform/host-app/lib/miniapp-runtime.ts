@@ -46,7 +46,6 @@ export type ResolvedMiniAppRuntime = ResolvedPlatformRuntime | ResolvedDedicated
 export type MiniAppContractDomainSource =
   | "runtime"
   | "manifest"
-  | "configured"
   | "expected";
 
 export type ResolvedMiniAppContractDomain = {
@@ -54,22 +53,6 @@ export type ResolvedMiniAppContractDomain = {
   contractHash: string;
   domain: string;
   source: MiniAppContractDomainSource;
-};
-
-const MAINNET_CONTRACT_DOMAINS_BY_APP_ID: Record<string, string> = {
-  "miniapp-last-survivor": "lastsurvivor.miniapp.neo",
-  "miniapp-fogplay": "fogplay.miniapp.neo",
-  "miniapp-gasbox": "gasbox.miniapp.neo",
-  "miniapp-dice-game": "dicegame.miniapp.neo",
-  "miniapp-redenvelope": "redenvelope.miniapp.neo",
-  "miniapp-gas-lucky-pool": "gasluckypool.miniapp.neo",
-  "miniapp-dailycheckin": "dailycheckin.miniapp.neo",
-  "miniapp-self-loan": "selfloan.miniapp.neo",
-  "miniapp-neo-pay": "neopay.miniapp.neo",
-  "miniapp-profitanchor": "profitanchor.miniapp.neo",
-  "miniapp-trustanchor": "trustanchor.miniapp.neo",
-  "miniapp-profitanchor-admin": "profitanchor.miniapp.neo",
-  "miniapp-trustanchor-admin": "trustanchor.miniapp.neo",
 };
 
 function asObject(value: unknown): Dict {
@@ -250,7 +233,23 @@ export function resolveMiniAppRuntime(
     const registered = binding?.registered === true;
 
     const manifestHash = getContractHashForNetwork(asObject(manifest.contracts), network);
-    if ((!contractHash || !registered) && manifestHash && manifestHash !== contractHash) {
+    // Treat a platform module as stale and fall through to the dedicated
+    // standalone contract when:
+    //   - the module has no contract for this network, OR
+    //   - the module is not registered, OR
+    //   - the module's contract_hash disagrees with the manifest `contracts`
+    //     hash (which is generated from the deployed standalone contract).
+    // The last case is the migration drift guard: several apps migrated to
+    // self-contained contracts but left an old kernel hash in the runtime
+    // module with registered===true, which silently routed reads/writes to a
+    // dead contract. The manifest `contracts` entry is authoritative.
+    const moduleHashIsStale =
+      Boolean(manifestHash) && manifestHash !== contractHash;
+    if (
+      (!contractHash || !registered || moduleHashIsStale) &&
+      manifestHash &&
+      manifestHash !== contractHash
+    ) {
       return {
         mode: "dedicated",
         network,
@@ -330,16 +329,6 @@ export function resolveMiniAppContractDomain(
   }
 
   if (network !== "neo-n3-mainnet") return null;
-
-  const configuredDomain = MAINNET_CONTRACT_DOMAINS_BY_APP_ID[app.app_id];
-  if (configuredDomain) {
-    return {
-      network,
-      contractHash,
-      domain: configuredDomain,
-      source: "configured",
-    };
-  }
 
   const expectedDomain = buildExpectedMainnetContractDomain(app.app_id);
   return expectedDomain

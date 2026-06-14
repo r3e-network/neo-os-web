@@ -71,6 +71,30 @@ jobs:
       - name: Typecheck SDK
         run: npm --prefix platform/sdk run typecheck
 
+  contracts:
+    name: Contract Tests (.NET / NeoVM TestEngine)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6 — audit fix M-22 (pinned to SHA)
+
+      - name: Set up .NET
+        # NOTE: pin to the v5 commit SHA to match this repo's M-22 action-pinning policy
+        # before merging (kept as a version tag here because the SHA must be verified).
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Neo contract compiler (nccs)
+        run: dotnet tool install --global Neo.Compiler.CSharp --version 3.9.1
+
+      - name: Compile contract NEFs (nccs)
+        run: npm run -s build:contracts
+
+      - name: Run contract test suite (xUnit + TestEngine)
+        run: npm run -s test:contracts
+
   go-format:
     name: Format Check (Go)
     runs-on: ubuntu-latest
