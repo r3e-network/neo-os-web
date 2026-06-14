@@ -1,62 +1,72 @@
 /**
  * Contract Query Functions
  * Query flagship MiniApp contract states on Neo N3.
+ *
+ * Contract hashes are sourced from the shared, drift-guarded
+ * MINIAPP_CONTRACTS registry (generated from each app's neo-manifest.json)
+ * so the host can never read from a different contract than the one the
+ * runtime invokes. The decoders below speak the deployed standalone ABIs.
  */
 
 import type { MiniAppInfo } from "@/components/types";
 import { invokeRead, type Network, type StackItem } from "./rpc-client";
 import { resolveSharedModeRuntime } from "./shared-mode";
+import { getMiniAppContractHash } from "../../../../apps/shared/constants/rpc";
 import { logger } from "@/lib/logger";
 
-export const CONTRACTS = {
-  lastSurvivor: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-  gasBox: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-  redEnvelope: "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
-  dailyCheckin: "0x25db219a701a2b23130788723fcf9a2e76857235",
-  fogPlay: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-  selfLoan: "0x942da575b31f39cbb59e64b5813b128739b44c25",
-  neoPay: "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
-  platformAnchor: "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
-} as const;
+/**
+ * Flagship app ids whose live contract state the host reads, with the
+ * category used for live-status rendering. Contract hashes are resolved
+ * per-network from the shared registry (never hardcoded here).
+ */
+const FLAGSHIP_APP_CATEGORIES: Record<string, string> = {
+  "miniapp-last-survivor": "gaming",
+  "miniapp-gasbox": "gaming",
+  "miniapp-redenvelope": "social",
+  "miniapp-dailycheckin": "gaming",
+  "miniapp-fogplay": "gaming",
+  "miniapp-self-loan": "defi",
+  "miniapp-neo-pay": "defi",
+  "miniapp-trustanchor": "defi",
+  "miniapp-profitanchor": "defi",
+  "miniapp-trustanchor-admin": "utility",
+  "miniapp-profitanchor-admin": "utility",
+};
 
-export const TESTNET_CONTRACTS = {
-  lastSurvivor: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
-  gasBox: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
-  redEnvelope: "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
-  dailyCheckin: "0x25db219a701a2b23130788723fcf9a2e76857235",
-  fogPlay: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
-  selfLoan: "0x39d4584ddb0731e48e611647931993ee033bf373",
-  neoPay: "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
-  platformAnchor: "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
-} as const;
-
-const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
-const FOGPLAY_APP_ID = "miniapp-fogplay";
-
-const PLATFORM_GAME_CONTRACT_HASHES = new Set([
-  CONTRACTS.lastSurvivor.toLowerCase(),
-  TESTNET_CONTRACTS.lastSurvivor.toLowerCase(),
+const PLATFORM_ANCHOR_APP_IDS = new Set([
+  "miniapp-trustanchor",
+  "miniapp-profitanchor",
+  "miniapp-trustanchor-admin",
+  "miniapp-profitanchor-admin",
 ]);
 
-function isPlatformGameContract(contractHash: string): boolean {
-  return PLATFORM_GAME_CONTRACT_HASHES.has(contractHash.toLowerCase());
+const PLATFORM_ANCHOR_FALLBACK = {
+  mainnet: "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+  testnet: "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
+} as const;
+
+function toRegistryNetwork(network: Network): "mainnet" | "testnet" {
+  return network === "testnet" ? "testnet" : "mainnet";
+}
+
+function resolveFlagshipContract(appId: string, network: Network): string {
+  const registryHash = getMiniAppContractHash(appId, toRegistryNetwork(network));
+  if (registryHash) return registryHash;
+  // The shared PlatformAnchor contract backs several anchor app ids that
+  // are not 1:1 with a deployed standalone contract in the registry.
+  if (PLATFORM_ANCHOR_APP_IDS.has(appId)) {
+    return PLATFORM_ANCHOR_FALLBACK[toRegistryNetwork(network)];
+  }
+  return "";
 }
 
 export function getFlagshipApps(network: Network): Record<string, { contract: string; category: string }> {
-  const contracts = network === "testnet" ? TESTNET_CONTRACTS : CONTRACTS;
-  const apps: Record<string, { contract: string; category: string }> = {
-    "miniapp-last-survivor": { contract: contracts.lastSurvivor, category: "gaming" },
-    "miniapp-gasbox": { contract: contracts.gasBox, category: "gaming" },
-    "miniapp-redenvelope": { contract: contracts.redEnvelope, category: "social" },
-    "miniapp-dailycheckin": { contract: contracts.dailyCheckin, category: "gaming" },
-    "miniapp-fogplay": { contract: contracts.fogPlay, category: "gaming" },
-    "miniapp-self-loan": { contract: contracts.selfLoan, category: "defi" },
-    "miniapp-neo-pay": { contract: contracts.neoPay, category: "defi" },
-    "miniapp-trustanchor": { contract: contracts.platformAnchor, category: "defi" },
-    "miniapp-profitanchor": { contract: contracts.platformAnchor, category: "defi" },
-    "miniapp-trustanchor-admin": { contract: contracts.platformAnchor, category: "utility" },
-    "miniapp-profitanchor-admin": { contract: contracts.platformAnchor, category: "utility" },
-  };
+  const apps: Record<string, { contract: string; category: string }> = {};
+  for (const [appId, category] of Object.entries(FLAGSHIP_APP_CATEGORIES)) {
+    const contract = resolveFlagshipContract(appId, network);
+    if (!contract) continue;
+    apps[appId] = { contract, category };
+  }
   return apps;
 }
 
@@ -83,6 +93,10 @@ function parseUnknownInteger(value: unknown): bigint {
   } catch {
     return 0n;
   }
+}
+
+function gasToWhole(value: bigint): string {
+  return (value / 100000000n).toString();
 }
 
 function parseByteString(item?: StackItem): string {
@@ -188,52 +202,44 @@ export async function getSharedModeLiveStatus(
   return { appId: app.app_id };
 }
 
-export async function getDoomsdayState(
+/** LastSurvivor standalone: getCurrentRound() -> Map */
+export async function getLastSurvivorRound(
   contractHash: string,
   network: Network,
 ): Promise<Record<string, unknown>> {
-  if (isPlatformGameContract(contractHash) || network === "testnet") {
-    const res = await invokeRead(contractHash, "getCountdownStatus", [
-      { type: "String", value: LAST_SURVIVOR_APP_ID },
-    ], network);
-    return mapFromResult(res.stack[0]);
-  }
-  const res = await invokeRead(contractHash, "getGameStatus", [], network);
-  return mapFromResult(res.stack[0]);
+  const res = await invokeRead(contractHash, "getCurrentRound", [], network);
+  return mapFromResult(res.stack?.[0]);
 }
 
-export async function getDoomsdayPlatformStats(
-  contractHash: string,
-  network: Network,
-): Promise<Record<string, unknown>> {
-  if (isPlatformGameContract(contractHash) || network === "testnet") {
-    const state = await getDoomsdayState(contractHash, network);
-    return {
-      currentRoundPot: parseUnknownInteger(state.pot),
-      totalKeysSold: parseUnknownInteger(state.totalKeysSold ?? state.totalKeys),
-      totalPlayers: parseUnknownInteger(state.totalPlayers),
-    };
-  }
-  const res = await invokeRead(contractHash, "getPlatformStats", [], network);
-  return mapFromResult(res.stack[0]);
-}
-
+/** DailyCheckin standalone: getPlatformStats() -> Map { totalUsers, totalCheckins } */
 export async function getDailyCheckinState(
   contractHash: string,
   network: Network,
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "getPlatformStats", [], network);
-  return mapFromResult(res.stack[0]);
+  return mapFromResult(res.stack?.[0]);
 }
 
+/** SelfLoan standalone: totalLoans/totalBorrowed/totalRepaid/pool (all Integer) */
 export async function getSelfLoanState(
   contractHash: string,
   network: Network,
-): Promise<Record<string, unknown>> {
-  const res = await invokeRead(contractHash, "getPlatformStats", [], network);
-  return mapFromResult(res.stack[0]);
+): Promise<Record<string, bigint>> {
+  const [totalLoans, totalBorrowed, totalRepaid, pool] = await Promise.all([
+    invokeRead(contractHash, "totalLoans", [], network),
+    invokeRead(contractHash, "totalBorrowed", [], network),
+    invokeRead(contractHash, "totalRepaid", [], network),
+    invokeRead(contractHash, "pool", [], network),
+  ]);
+  return {
+    totalLoans: parseInteger(totalLoans.stack?.[0]),
+    totalBorrowed: parseInteger(totalBorrowed.stack?.[0]),
+    totalRepaid: parseInteger(totalRepaid.stack?.[0]),
+    pool: parseInteger(pool.stack?.[0]),
+  };
 }
 
+/** NeoPay vault: totalStreams() -> Integer */
 export async function getStreamVaultState(
   contractHash: string,
   network: Network,
@@ -245,46 +251,31 @@ export async function getStreamVaultState(
   return { totalStreams: parseInteger(res.stack[0]) };
 }
 
+/** FogPlay (CoinFlip) standalone: bankroll() + lastGameId() */
 export async function getCoinFlipState(
   contractHash: string,
   network: Network,
 ): Promise<Record<string, unknown>> {
-  if (isPlatformGameContract(contractHash)) {
-    const res = await invokeRead(contractHash, "getCoinFlipBetLimits", [
-      { type: "String", value: FOGPLAY_APP_ID },
-    ], network);
-    const values = mapFromResult(res.stack?.[0]);
-    return {
-      maxBet: parseUnknownInteger(values.maxBet),
-      dailyLimit: parseUnknownInteger(values.dailyLimit),
-      cooldownSeconds: parseUnknownInteger(values.cooldownMs),
-      maxConsecutive: parseUnknownInteger(values.maxConsecutive),
-    };
-  }
-
-  const res = await invokeRead(contractHash, "getBetLimits", [], network);
-  const values = Array.isArray(res.stack?.[0]?.value) ? (res.stack[0].value as StackItem[]) : [];
+  const [bankroll, lastGameId] = await Promise.all([
+    invokeRead(contractHash, "bankroll", [], network),
+    invokeRead(contractHash, "lastGameId", [], network),
+  ]);
   return {
-    maxBet: parseInteger(values[0]) || 0n,
-    dailyLimit: parseInteger(values[1]) || 0n,
-    cooldownSeconds: parseInteger(values[2]) || 0n,
-    maxConsecutive: parseInteger(values[3]) || 0n,
+    bankroll: parseInteger(bankroll.stack?.[0]),
+    lastGameId: parseInteger(lastGameId.stack?.[0]),
   };
 }
 
+/** GasBox (gacha) standalone: lastMachineId() -> Integer */
 export async function getNeoGachaState(
   contractHash: string,
   network: Network,
 ): Promise<Record<string, unknown>> {
-  if (isPlatformGameContract(contractHash)) {
-    return { totalMachines: 0n };
-  }
-
-  const res = await invokeRead(contractHash, "totalMachines", [], network);
+  const res = await invokeRead(contractHash, "lastMachineId", [], network);
   if (!res.stack || res.stack.length === 0) {
-    return { totalMachines: 0n };
+    return { lastMachineId: 0n };
   }
-  return { totalMachines: parseInteger(res.stack[0]) };
+  return { lastMachineId: parseInteger(res.stack[0]) };
 }
 
 export async function getContractStats(
@@ -295,27 +286,35 @@ export async function getContractStats(
   try {
     switch (appId) {
       case "miniapp-last-survivor": {
-        const state = await getDoomsdayPlatformStats(contractHash, network);
+        const state = await getLastSurvivorRound(contractHash, network);
         return {
-          totalValueLocked: (BigInt((state.currentRoundPot as bigint) || 0n) / 100000000n).toString(),
-          totalTransactions: safeNumber(BigInt((state.totalKeysSold as bigint) || 0n)),
-          uniqueUsers: safeNumber(BigInt((state.totalPlayers as bigint) || 0n)),
+          totalValueLocked: gasToWhole(parseUnknownInteger(state.pot)),
+          totalTransactions: safeNumber(parseUnknownInteger(state.totalKeys)),
+          uniqueUsers: 0,
         };
       }
       case "miniapp-dailycheckin": {
         const state = await getDailyCheckinState(contractHash, network);
         return {
           totalValueLocked: "0",
-          totalTransactions: safeNumber(BigInt(state.totalCheckins as bigint || 0n)),
-          uniqueUsers: safeNumber(BigInt(state.totalUsers as bigint || 0n)),
+          totalTransactions: safeNumber(parseUnknownInteger(state.totalCheckins)),
+          uniqueUsers: safeNumber(parseUnknownInteger(state.totalUsers)),
         };
       }
       case "miniapp-self-loan": {
         const state = await getSelfLoanState(contractHash, network);
         return {
-          totalValueLocked: (BigInt(state.totalCollateral as bigint || 0n) / 100000000n).toString(),
-          totalTransactions: safeNumber(BigInt(state.totalLoans as bigint || 0n)),
-          uniqueUsers: safeNumber(BigInt(state.totalBorrowers as bigint || 0n)),
+          totalValueLocked: gasToWhole(state.pool),
+          totalTransactions: safeNumber(state.totalLoans),
+          uniqueUsers: 0,
+        };
+      }
+      case "miniapp-fogplay": {
+        const state = await getCoinFlipState(contractHash, network);
+        return {
+          totalValueLocked: gasToWhole(parseUnknownInteger(state.bankroll)),
+          totalTransactions: safeNumber(parseUnknownInteger(state.lastGameId)),
+          uniqueUsers: 0,
         };
       }
       case "miniapp-neo-pay": {
@@ -326,8 +325,14 @@ export async function getContractStats(
           uniqueUsers: 0,
         };
       }
-      case "miniapp-fogplay":
-      case "miniapp-gasbox":
+      case "miniapp-gasbox": {
+        const state = await getNeoGachaState(contractHash, network);
+        return {
+          totalValueLocked: "0",
+          totalTransactions: safeNumber(parseUnknownInteger(state.lastMachineId)),
+          uniqueUsers: 0,
+        };
+      }
       case "miniapp-redenvelope":
       default:
         return { totalValueLocked: "0", totalTransactions: 0, uniqueUsers: 0 };
@@ -349,21 +354,27 @@ export async function getLiveStatus(
   try {
     switch (appId) {
       case "miniapp-last-survivor": {
-        const state = await getDoomsdayState(contractHash, network);
-        status.jackpot = (parseUnknownInteger(state.pot) / 100000000n).toString();
+        const state = await getLastSurvivorRound(contractHash, network);
+        status.jackpot = gasToWhole(parseUnknownInteger(state.pot));
         status.playersOnline = safeNumber(parseUnknownInteger(state.totalKeys));
-        status.nextDraw = safeNumber(parseUnknownInteger(state.remainingSeconds ?? state.remainingTime));
+        status.nextDraw = safeNumber(parseUnknownInteger(state.remainingTime));
         return status;
       }
       case "miniapp-dailycheckin": {
         const state = await getDailyCheckinState(contractHash, network);
-        status.playersOnline = safeNumber(BigInt(state.totalUsers as bigint || 0n));
+        status.playersOnline = safeNumber(parseUnknownInteger(state.totalUsers));
         return status;
       }
       case "miniapp-self-loan": {
         const state = await getSelfLoanState(contractHash, network);
-        status.tvl = (BigInt(state.totalCollateral as bigint || 0n) / 100000000n).toString();
-        status.volume24h = (BigInt(state.totalRepaid as bigint || 0n) / 100000000n).toString();
+        status.tvl = gasToWhole(state.pool);
+        status.volume24h = gasToWhole(state.totalRepaid);
+        return status;
+      }
+      case "miniapp-fogplay": {
+        const state = await getCoinFlipState(contractHash, network);
+        status.tvl = gasToWhole(parseUnknownInteger(state.bankroll));
+        status.volume24h = parseUnknownInteger(state.lastGameId).toString();
         return status;
       }
       case "miniapp-neo-pay": {

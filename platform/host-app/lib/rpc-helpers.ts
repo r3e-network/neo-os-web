@@ -6,7 +6,7 @@
  *    (resolved from the shared MINIAPP_CONTRACTS registry)
  * 2. KERNEL-REGISTERED apps — read from Morpheus Oracle kernel state
  */
-import { MINIAPP_CONTRACTS } from "../../../apps/shared/constants/rpc";
+import { getMiniAppContractHash as resolveSharedMiniAppContractHash } from "../../../apps/shared/constants/rpc";
 
 // Neo3Fura/N3Index is the platform-owned Neo N3 gateway. It provides JSON-RPC
 // pass-through plus indexed read APIs behind the same Cloudflare edge.
@@ -23,15 +23,6 @@ const MORPHEUS_KERNEL_TESTNET = "0x4b882e94ed766807c4fd728768f972e13008ad52";
 
 type NeoNetwork = "mainnet" | "testnet";
 
-// Apps with their own deployed smart contracts (atomic GAS handling) resolve
-// straight from the shared, drift-guarded registry (generated from each app's
-// neo-manifest.json). Sourcing from MINIAPP_CONTRACTS — the same map the
-// miniapp runtimes use — guarantees the host can never drift from the deployed
-// contracts (a hand-maintained copy here had gone stale across the OS-path
-// standalone-contract migrations). Apps absent from the registry have no
-// standalone contract and read from the Morpheus kernel.
-const CUSTOM_CONTRACT_HASHES = MINIAPP_CONTRACTS;
-
 function getTargetNetwork(): NeoNetwork {
   const raw = String(
     process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK
@@ -47,8 +38,15 @@ export function getRpcNetwork(): NeoNetwork {
   return getTargetNetwork();
 }
 
+// Apps with their own deployed smart contracts (atomic GAS handling) resolve
+// straight from the shared, drift-guarded registry (generated from each app's
+// neo-manifest.json) via the shared resolver. Sourcing from the same resolver
+// the miniapp runtimes use guarantees the host can never drift from the
+// deployed contracts. The shared resolver returns an empty-string sentinel
+// for apps with no standalone contract; normalize that to `null` here so
+// callers can keep using the kernel fallback path.
 export function getMiniAppContractHash(appId: string, network: NeoNetwork = getTargetNetwork()): string | null {
-  return CUSTOM_CONTRACT_HASHES[network][appId] || null;
+  return resolveSharedMiniAppContractHash(appId, network) || null;
 }
 
 export function getKernelHash(network: "mainnet" | "testnet" = "mainnet"): string {

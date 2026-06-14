@@ -19,7 +19,7 @@
   },
   "contract": {
     "template_id": "gaming-dice",
-    "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7"
+    "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6"
   },
   "entry_url": "mf://manifest?app=miniapp-dice-game",
   "media": {
@@ -71,14 +71,6 @@
           ]
         }
       ]
-    },
-    {
-      "name": "Fund Oracle Fee",
-      "method": "fundOracleRequestFee",
-      "description": "Top up the Morpheus VRF request fee required before rolling.",
-      "button_style": "secondary",
-      "priority": "primary",
-      "params": []
     },
     {
       "name": "Roll",
@@ -169,12 +161,12 @@
           "moduleType": 4,
           "networks": {
             "neo-n3-mainnet": {
-              "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+              "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
               "registered": true,
               "domain": "dicegame.miniapp.neo"
             },
             "neo-n3-testnet": {
-              "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+              "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
               "registered": true
             }
           }
@@ -182,8 +174,8 @@
       ]
     },
     "contracts": {
-      "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-      "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+      "neo-n3-mainnet": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
+      "neo-n3-testnet": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6"
     },
     "contract_domains": {
       "neo-n3-mainnet": "dicegame.miniapp.neo"
@@ -191,10 +183,10 @@
     "deployment": {
       "neo-n3-mainnet": {
         "status": "deployed",
-        "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+        "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
         "registered": true,
         "domain": "dicegame.miniapp.neo",
-        "deployed_at": "2026-05-08T13:07:29Z",
+        "deployed_at": "2026-06-14T00:00:00Z",
         "report": "contracts/build/mainnet_game_deployment.json"
       }
     }

@@ -31,26 +31,18 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         private const long MIN_TIP = 100000; // 0.001 GAS
         private const string TIP_MEMO = "miniapp-devtipping:tip";
 
-        // The TipJar NEF is produced into the contract's own build directory
-        // (contracts/MiniAppTipJar/build); fall back to the shared contracts/build
-        // so a future consolidation keeps working.
-        private static readonly string[] BuildDirs =
-        {
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "MiniAppTipJar", "build")),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "build")),
-        };
+        // The TipJar NEF is produced into the shared contracts/build dir by
+        // contracts/build.sh, like every other contract artifact these suites load.
+        private static readonly string BuildDir = Path.GetFullPath(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "build"));
 
         private static (NefFile nef, ContractManifest manifest) Load(string name)
         {
-            foreach (string dir in BuildDirs)
-            {
-                string nefPath = Path.Combine(dir, name + ".nef");
-                string manifestPath = Path.Combine(dir, name + ".manifest.json");
-                if (!File.Exists(nefPath) || !File.Exists(manifestPath)) continue;
-                return (NefFile.Parse(File.ReadAllBytes(nefPath)),
-                        ContractManifest.Parse(File.ReadAllText(manifestPath)));
-            }
-            throw new FileNotFoundException($"NEF missing for {name}; looked in: {string.Join(", ", BuildDirs)}");
+            string nefPath = Path.Combine(BuildDir, name + ".nef");
+            string manifestPath = Path.Combine(BuildDir, name + ".manifest.json");
+            Assert.True(File.Exists(nefPath), $"NEF missing: {nefPath}");
+            return (NefFile.Parse(File.ReadAllBytes(nefPath)),
+                    ContractManifest.Parse(File.ReadAllText(manifestPath)));
         }
 
         private static void Fund(TestEngine engine, UInt160 to, BigInteger gas)

@@ -83,3 +83,141 @@ test('gas-lucky-pool manifest declares its deployed contracts (registry coverage
     '0xfa1b7240fead2a63999c02defa3aec5eb274a919'
   );
 });
+
+// ---------------------------------------------------------------------------
+// Contract-address single-source-of-truth drift guard.
+//
+// The deployed contract for an app is the canonical manifest-built registry
+// entry (generated from apps/<app>/neo-manifest.json `contracts`). Two OTHER
+// stores historically drifted from it and silently routed reads/writes to a
+// dead kernel contract:
+//   1. each manifest's `runtime.modules[].networks[net].contract_hash`
+//      (both the apps/<app>/neo-manifest.json AND the served
+//      public/miniapp-definitions/*.json `manifest.runtime`), and
+//   2. the served definitions' `manifest.contracts`.
+// These guards fail when either disagrees with the canonical registry, and
+// forbid hardcoded contract-hash literals in the host contract-queries map.
+// ---------------------------------------------------------------------------
+
+const NETWORK_MANIFEST_KEYS = {
+  mainnet: ['neo-n3-mainnet', 'mainnet'],
+  testnet: ['neo-n3-testnet', 'testnet'],
+};
+
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function normalizeHash(value) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function readNetworkContractHash(contracts, network) {
+  const obj = asObject(contracts);
+  for (const key of NETWORK_MANIFEST_KEYS[network]) {
+    const raw = obj[key];
+    if (!raw) continue;
+    if (typeof raw === 'string') return normalizeHash(raw);
+    const nested = asObject(raw);
+    const candidate = nested.contract_hash ?? nested.hash ?? nested.address;
+    if (candidate) return normalizeHash(candidate);
+  }
+  return '';
+}
+
+function collectPlatformModuleHashes(manifest, network) {
+  const runtime = asObject(asObject(manifest).runtime);
+  if (String(runtime.mode ?? '').trim() !== 'platform') return [];
+  const modules = Array.isArray(runtime.modules) ? runtime.modules : [];
+  const hashes = [];
+  for (const rawModule of modules) {
+    const networks = asObject(asObject(rawModule).networks);
+    const hash = readNetworkContractHash(networks, network);
+    if (hash) hashes.push(hash);
+  }
+  return hashes;
+}
+
+test('app manifest platform runtime module hashes equal the canonical registry', async () => {
+  const { buildMiniAppContractRegistry } = await loadGenerator();
+  const canonical = buildMiniAppContractRegistry({ repoRoot });
+  const appsDir = path.join(repoRoot, 'apps');
+
+  for (const entry of fs.readdirSync(appsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const manifestPath = path.join(appsDir, entry.name, 'neo-manifest.json');
+    if (!fs.existsSync(manifestPath)) continue;
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const appId = String(manifest.app_id || manifest.id || '').trim();
+
+    for (const network of ['mainnet', 'testnet']) {
+      const registryHash = normalizeHash(canonical[network][appId] || '');
+      for (const moduleHash of collectPlatformModuleHashes(manifest, network)) {
+        assert.equal(
+          moduleHash,
+          registryHash,
+          `${appId} ${network}: runtime module hash ${moduleHash} != deployed contract ${registryHash || '(none in registry)'} (apps/${entry.name}/neo-manifest.json)`
+        );
+      }
+    }
+  }
+});
+
+test('served miniapp-definitions contracts/runtime equal the canonical registry', async () => {
+  const { buildMiniAppContractRegistry } = await loadGenerator();
+  const canonical = buildMiniAppContractRegistry({ repoRoot });
+  const definitionsDir = path.join(repoRoot, 'platform/host-app/public/miniapp-definitions');
+
+  for (const fileName of fs.readdirSync(definitionsDir)) {
+    if (!fileName.endsWith('.json')) continue;
+    if (fileName.endsWith('.schema.json')) continue;
+    const def = JSON.parse(fs.readFileSync(path.join(definitionsDir, fileName), 'utf8'));
+    const appId = String(def.app_id || '').trim();
+    if (!appId) continue;
+    const manifest = asObject(def.manifest);
+    // Only apps that have a deployed standalone contract in the registry are
+    // covered; shared/kernel apps (no registry entry) are skipped.
+    for (const network of ['mainnet', 'testnet']) {
+      const registryHash = normalizeHash(canonical[network][appId] || '');
+      if (!registryHash) continue;
+
+      const manifestContracts = readNetworkContractHash(manifest.contracts, network);
+      if (manifestContracts) {
+        assert.equal(
+          manifestContracts,
+          registryHash,
+          `${appId} ${network}: served manifest.contracts ${manifestContracts} != deployed ${registryHash} (${fileName})`
+        );
+      }
+
+      for (const moduleHash of collectPlatformModuleHashes(manifest, network)) {
+        assert.equal(
+          moduleHash,
+          registryHash,
+          `${appId} ${network}: served runtime module hash ${moduleHash} != deployed ${registryHash} (${fileName})`
+        );
+      }
+    }
+  }
+});
+
+test('host contract-queries.ts has no hardcoded contract-hash literals', () => {
+  const queriesPath = path.join(repoRoot, 'platform/host-app/lib/chain/contract-queries.ts');
+  const source = fs.readFileSync(queriesPath, 'utf8');
+  // 0x + 40 hex is a Neo N3 script hash. The flagship contracts must be
+  // resolved from the shared registry, never pinned here (the old hardcoded
+  // CONTRACTS/TESTNET_CONTRACTS maps had silently gone stale).
+  const literals = source.match(/0x[0-9a-fA-F]{40}/g) || [];
+  // The PlatformAnchor fallback is intentionally allowed: that shared contract
+  // backs several anchor app ids that are not 1:1 with a registry entry.
+  const allowed = new Set([
+    '0x02beeef6f65c6989a121c0a0e6b23190333edb98',
+    '0xeb6b3725d47d0941f36a834bdbd12f1427977604',
+  ]);
+  const disallowed = literals.filter((hash) => !allowed.has(hash.toLowerCase()));
+  assert.deepEqual(
+    disallowed,
+    [],
+    `contract-queries.ts must not pin contract-hash literals (found: ${disallowed.join(', ')})`
+  );
+});
