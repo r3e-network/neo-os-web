@@ -345,16 +345,19 @@ const T_SELF_LOAN: AppTemplate = {
       operations: [],
     },
   },
+  // Operations call the deployed MiniAppSelfLoan ABI directly:
+  // borrow(borrower, tier), repay(borrower), addCollateral(borrower). The contract
+  // keys one loan per borrower address (no loanId) and applies prepaid deposit
+  // credit, so there is no loanId/amount arg and no ProfitAnchor voting method.
   operations: [
     {
-      name: "Create Loan",
-      method: "createLoan",
+      name: "Borrow",
+      method: "borrow",
       button_style: "primary",
       priority: "primary",
       description:
-        "Locks whole NEO as collateral and calls PlatformDeFi createLoan in the same wallet transaction.",
+        "Deposits whole NEO as collateral and calls borrow(borrower, tier) in the same wallet transaction to draw GAS.",
       params: [
-        str("appId", "App ID", "miniapp-self-loan", true),
         wallet("borrower", "Borrower"),
         {
           ...int("collateralNeo", "Collateral NEO", "1"),
@@ -366,7 +369,7 @@ const T_SELF_LOAN: AppTemplate = {
           ],
         },
         {
-          name: "ltvTier",
+          name: "tier",
           type: "select",
           label: "LTV Tier",
           required: true,
@@ -385,9 +388,8 @@ const T_SELF_LOAN: AppTemplate = {
       ],
     },
     {
-      ...op("Repay Loan", "repayLoan", "primary", [
-        str("appId", "App ID", "miniapp-self-loan", true),
-        int("loanId", "Loan ID", "1"),
+      ...op("Repay", "repay", "primary", [
+        wallet("borrower", "Borrower"),
         {
           ...amt("repayGas", "Repay GAS", "0.25", 8),
           default_value: "0.25",
@@ -395,12 +397,11 @@ const T_SELF_LOAN: AppTemplate = {
       ]),
       priority: "primary",
       description:
-        "Prepays GAS to the SelfLoan credit ledger and calls repayLoan for the selected loan.",
+        "Prepays GAS to the SelfLoan credit ledger and calls repay(borrower), releasing collateral on full repayment.",
     },
     {
       ...op("Add Collateral", "addCollateral", "secondary", [
-        str("appId", "App ID", "miniapp-self-loan", true),
-        int("loanId", "Loan ID", "1"),
+        wallet("borrower", "Borrower"),
         {
           ...int("collateralNeo", "Additional NEO", "1"),
           default_value: "1",
@@ -408,15 +409,7 @@ const T_SELF_LOAN: AppTemplate = {
       ]),
       priority: "secondary",
       description:
-        "Transfers additional whole NEO collateral and applies it to an active loan.",
-    },
-    {
-      ...op("Sync Anchor Vote", "syncProfitAnchorVote", "secondary", [
-        str("appId", "App ID", "miniapp-self-loan", true),
-      ]),
-      priority: "operator",
-      description:
-        "Syncs SelfLoan collateral voting to the ProfitAnchor selected route.",
+        "Deposits additional whole NEO collateral and applies it to the active loan.",
     },
   ],
 };

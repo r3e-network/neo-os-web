@@ -29,7 +29,7 @@ import {
   RED_ENVELOPE_CREATE_MEMO,
   SELF_LOAN_APP_ID,
   SELF_LOAN_COLLATERAL_MEMO,
-  SELF_LOAN_POOL_MEMO,
+  SELF_LOAN_FUND_MEMO,
   SELF_LOAN_REPAY_MEMO,
   TIME_CAPSULE_APP_ID,
   TIME_CAPSULE_DEFAULT_SEAL_FEE_FIXED8,
@@ -51,7 +51,6 @@ import {
   accountIdByteArrayValue,
   boundedTextValue,
   booleanOperationValue,
-  buildInvokeArgsWithoutParams,
   cleanValue,
   formatFixed8Amount,
   futureUnlockTimeMsValue,
@@ -772,57 +771,31 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
     },
   ),
 
-  [`${SELF_LOAN_APP_ID}:createLoan`]: fundedRecipe(
+  // SelfLoan recipes call the deployed MiniAppSelfLoan ABI directly
+  // (contracts/MiniAppSelfLoan/MiniAppSelfLoan.cs), mirroring the iframe app's
+  // composable (apps/self-loan/src/composables/useSelfLoan.ts). The deployed
+  // contract has NO loanId concept (one loan per borrower keyed by address) and
+  // NO mainnet/testnet ABI divergence — both networks resolve to the same hash.
+  //   borrow(borrower, tier)  — NEO collateral deposit (memo "selfloan:collateral")
+  //                             then borrow against ALL credited collateral.
+  //   repay(borrower)         — GAS repay deposit (memo "selfloan:repay") then
+  //                             apply the prepaid credit (capped at the debt).
+  //   addCollateral(borrower) — NEO collateral deposit then move it into the loan.
+  [`${SELF_LOAN_APP_ID}:borrow`]: fundedRecipe(
     "SelfLoan contract",
     "funded loan transaction",
-    ({ values, walletAddress, targetHash, targetNetwork }) => {
+    ({ values, walletAddress, targetHash }) => {
       const collateralNeo = positiveWholeValue(
         values,
         ["collateralNeo", "collateralAmount", "neoAmount", "amount"],
         "Collateral NEO",
       );
-      const ltvTier = integerRangeValue(
+      const tier = integerRangeValue(
         values,
-        ["ltvTier", "tier"],
+        ["tier", "ltvTier"],
         "LTV tier",
         1,
         3,
-      );
-      if (targetNetwork === "mainnet") {
-        return {
-          invocation: {
-            scriptHash: targetHash,
-            operation: "createLoan",
-            args: buildInvokeArgs(
-              [
-                {
-                  name: "borrower",
-                  type: "hash160",
-                  required: true,
-                  default_value: "$wallet",
-                },
-                {
-                  name: "neoAmount",
-                  type: "integer",
-                  required: true,
-                },
-                {
-                  name: "ltvTier",
-                  type: "integer",
-                  required: true,
-                },
-              ],
-              { borrower: "$wallet", neoAmount: collateralNeo, ltvTier },
-              walletAddress,
-            ),
-          },
-          successMessage: (txid) => `Loan created: ${txid}`,
-        };
-      }
-      const liquidityTopup = optionalPositiveFixed8Value(
-        values,
-        ["poolTopupGas", "liquidityTopupGas"],
-        "Liquidity top-up",
       );
       const borrowerArg = buildInvokeArgs(
         [
@@ -836,10 +809,19 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         { borrower: "$wallet" },
         walletAddress,
       )[0];
+      // Optional owner-only pool funding so a fresh testnet pool can settle the
+      // disbursement. The contract requires the "selfloan:fund" memo for pool
+      // top-ups; non-owner top-ups simply accrue to the pool, so this is a safe
+      // no-op for ordinary borrowers who omit it.
+      const liquidityTopup = optionalPositiveFixed8Value(
+        values,
+        ["poolTopupGas", "liquidityTopupGas"],
+        "Liquidity top-up",
+      );
       const deposits: InvokeRecipeInvocation[] = [];
       if (liquidityTopup) {
         deposits.push(
-          gasTransfer(walletAddress, targetHash, liquidityTopup, SELF_LOAN_POOL_MEMO),
+          gasTransfer(walletAddress, targetHash, liquidityTopup, SELF_LOAN_FUND_MEMO),
         );
       }
       deposits.push(
@@ -854,22 +836,18 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         deposits,
         invocation: {
           scriptHash: targetHash,
-          operation: "createLoan",
-          args: [
-            { type: "String", value: SELF_LOAN_APP_ID },
-            borrowerArg,
-            { type: "Integer", value: ltvTier },
-          ],
+          operation: "borrow",
+          args: [borrowerArg, { type: "Integer", value: tier }],
         },
         successMessage: (txid) => `Loan created: ${txid}`,
       };
     },
   ),
 
-  [`${SELF_LOAN_APP_ID}:repayLoan`]: fundedRecipe(
+  [`${SELF_LOAN_APP_ID}:repay`]: fundedRecipe(
     "SelfLoan contract",
     "funded repayment transaction",
-    ({ operation, values, walletAddress, targetHash, targetNetwork }) => {
+    ({ values, walletAddress, targetHash }) => {
       const repayGas = optionalPositiveFixed8Value(
         values,
         ["repayGas", "amount", "repayAmount"],
@@ -878,48 +856,26 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
       if (!repayGas) {
         throw new Error("Repay amount must be a positive GAS value.");
       }
-      if (targetNetwork === "mainnet") {
-        const loanId = positiveWholeValue(values, ["loanId"], "Loan ID");
-        return {
-          invocation: {
-            scriptHash: targetHash,
-            operation: "repayDebt",
-            args: buildInvokeArgs(
-              [
-                { name: "loanId", type: "integer", required: true },
-                {
-                  name: "payer",
-                  type: "hash160",
-                  required: true,
-                  default_value: "$wallet",
-                },
-                { name: "amount", type: "amount", required: true, scale: 8 },
-              ],
-              {
-                loanId,
-                payer: "$wallet",
-                amount: formatFixed8Amount(BigInt(repayGas)),
-              },
-              walletAddress,
-            ),
+      const borrowerArg = buildInvokeArgs(
+        [
+          {
+            name: "borrower",
+            type: "hash160",
+            required: true,
+            default_value: "$wallet",
           },
-          successMessage: (txid) => `Loan repayment submitted: ${txid}`,
-        };
-      }
-      const args = buildInvokeArgsWithoutParams(
-        operation,
-        { ...values, appId: SELF_LOAN_APP_ID },
+        ],
+        { borrower: "$wallet" },
         walletAddress,
-        ["repayGas", "amount", "repayAmount"],
-      );
+      )[0];
       return {
         deposits: [
           gasTransfer(walletAddress, targetHash, repayGas, SELF_LOAN_REPAY_MEMO),
         ],
         invocation: {
           scriptHash: targetHash,
-          operation: "repayLoan",
-          args,
+          operation: "repay",
+          args: [borrowerArg],
         },
         successMessage: (txid) => `Loan repayment submitted: ${txid}`,
       };
@@ -929,46 +885,24 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
   [`${SELF_LOAN_APP_ID}:addCollateral`]: fundedRecipe(
     "SelfLoan contract",
     "collateral transaction",
-    ({ operation, values, walletAddress, targetHash, targetNetwork }) => {
+    ({ values, walletAddress, targetHash }) => {
       const collateralNeo = positiveWholeValue(
         values,
         ["collateralNeo", "collateralAmount", "neoAmount", "amount"],
         "Collateral NEO",
       );
-      if (targetNetwork === "mainnet") {
-        const loanId = positiveWholeValue(values, ["loanId"], "Loan ID");
-        return {
-          invocation: {
-            scriptHash: targetHash,
-            operation: "addCollateral",
-            args: buildInvokeArgs(
-              [
-                { name: "loanId", type: "integer", required: true },
-                {
-                  name: "depositor",
-                  type: "hash160",
-                  required: true,
-                  default_value: "$wallet",
-                },
-                {
-                  name: "neoAmount",
-                  type: "integer",
-                  required: true,
-                },
-              ],
-              { loanId, depositor: "$wallet", neoAmount: collateralNeo },
-              walletAddress,
-            ),
+      const borrowerArg = buildInvokeArgs(
+        [
+          {
+            name: "borrower",
+            type: "hash160",
+            required: true,
+            default_value: "$wallet",
           },
-          successMessage: (txid) => `Collateral added: ${txid}`,
-        };
-      }
-      const args = buildInvokeArgsWithoutParams(
-        operation,
-        { ...values, appId: SELF_LOAN_APP_ID },
+        ],
+        { borrower: "$wallet" },
         walletAddress,
-        ["collateralNeo", "collateralAmount", "neoAmount", "amount"],
-      );
+      )[0];
       return {
         deposits: [
           neoTransfer(
@@ -981,7 +915,7 @@ export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
         invocation: {
           scriptHash: targetHash,
           operation: "addCollateral",
-          args,
+          args: [borrowerArg],
         },
         successMessage: (txid) => `Collateral added: ${txid}`,
       };

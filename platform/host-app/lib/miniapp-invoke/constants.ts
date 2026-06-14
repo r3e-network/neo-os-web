@@ -22,9 +22,14 @@ export const RED_ENVELOPE_CREATE_MEMO = "miniapp-redenvelope:create";
 export const NEO_PAY_APP_ID = "miniapp-neo-pay";
 
 export const SELF_LOAN_APP_ID = "miniapp-self-loan";
-export const SELF_LOAN_COLLATERAL_MEMO = "miniapp-self-loan:collateral";
-export const SELF_LOAN_POOL_MEMO = "miniapp-self-loan:pool";
-export const SELF_LOAN_REPAY_MEMO = "miniapp-self-loan:repay";
+// Memos MUST match the deployed MiniAppSelfLoan contract
+// (contracts/MiniAppSelfLoan/MiniAppSelfLoan.cs): NEO collateral deposits carry
+// "selfloan:collateral", GAS repayments carry "selfloan:repay", and owner pool
+// top-ups carry "selfloan:fund". The contract reverts ("invalid memo") on any
+// other memo, so these strings are load-bearing.
+export const SELF_LOAN_COLLATERAL_MEMO = "selfloan:collateral";
+export const SELF_LOAN_FUND_MEMO = "selfloan:fund";
+export const SELF_LOAN_REPAY_MEMO = "selfloan:repay";
 
 export const DEV_TIPPING_APP_ID = "miniapp-dev-tipping";
 export const DEV_TIPPING_TIP_MEMO = "miniapp-dev-tipping:tip";
