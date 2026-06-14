@@ -38,8 +38,11 @@ async function main() {
   const nef = sc.NEF.fromBuffer(fs.readFileSync(nefPath));
   const manifest = sc.ContractManifest.fromJson(JSON.parse(fs.readFileSync(manifestPath, "utf8")));
 
+  // account.scriptHash is a raw hex string; experimental.getContractHash expects a
+  // HexString (it ASCII-encodes a bare string, producing a wrong prediction). Wrap
+  // it so the printed prediction matches the node's computed deploy hash.
   const expectedHash = experimental.getContractHash(
-    account.scriptHash,
+    pkg.u.HexString.fromHex(account.scriptHash),
     nef.checksum,
     manifest.name,
   );

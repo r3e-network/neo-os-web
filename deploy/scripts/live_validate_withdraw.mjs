@@ -1,60 +1,43 @@
 /**
  * Live testnet validation for the Withdraw(account) credit-refund hardening,
- * exercised against the hardened MiniAppTarot (0xb680225a1be276b03ecd7de82ea985dcc7435cec).
+ * exercised against the hardened MiniAppTarot.
  *
- * The Withdraw method is byte-identical across all six hardened contracts
- * (same PREFIX_CREDIT, same body), so proving it on tarot proves the pattern.
+ * The contract hash resolves from apps/on-chain-tarot/neo-manifest.json — the
+ * hardened MiniAppTarot deploy (override: CONTRACT_OVERRIDE /
+ * CONTRACT_OVERRIDE_ON_CHAIN_TAROT). The Withdraw method is byte-identical across
+ * all six hardened contracts (same PREFIX_CREDIT, same body), so proving it on
+ * tarot proves the pattern.
  *
  *   1. A deposits 0.2 GAS (memo "miniapp-tarot:draw")  -> credit 0.2
  *   2. draw() consumes one 0.1 fee                      -> credit 0.1
  *   3. Withdraw(A) refunds the unused 0.1 GAS           -> credit 0, CreditWithdrawn(A, 0.1)
  *
  * Asserts on the CreditWithdrawn event (lag-free) + creditOf before/after.
- * Testnet-pinned; no WIFs printed.
+ * Testnet-pinned (endpoints/magic via lib/neo_network.js env overrides +
+ * failover); no WIFs printed.
  */
 import pkg from "@cityofzion/neon-js";
-const { sc, wallet, rpc, tx, u } = pkg;
+import { getManifestContractHash } from "./lib/miniapp_manifest_hash.js";
+import { requireCredential } from "./lib/live_credentials.js";
+import { createLiveRpc } from "./lib/live_rpc.mjs";
 
-const RPC = "https://testnet1.neo.coz.io:443";
-const MAGIC = 894710606;
-const CONTRACT = "0xb680225a1be276b03ecd7de82ea985dcc7435cec"; // hardened MiniAppTarot
+const { sc, wallet } = pkg;
+
+const CONTRACT = getManifestContractHash("on-chain-tarot", { network: "testnet" }); // hardened MiniAppTarot
 const GAS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
-const A = new wallet.Account(process.env.NEO_TESTNET_WIF);
-const client = new rpc.RPCClient(RPC);
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const retry = async (fn) => { for (let i = 0; i < 6; i++) { try { return await fn(); } catch (e) { if (i === 5) throw e; await sleep(3000); } } };
+const A = new wallet.Account(requireCredential("NEO_TESTNET_WIF", process.env.NEO_TESTNET_WIF));
+
+const live = createLiveRpc({ network: "testnet", neon: pkg, label: "live_validate_withdraw" });
+
 const H = (a) => sc.ContractParam.hash160(a);
 const I = (n) => sc.ContractParam.integer(n.toString());
 const S = (s) => sc.ContractParam.string(s);
 const P_H = (a) => ({ type: "Hash160", value: a });
 
-async function invoke(label, account, scriptHash, operation, args) {
-  const script = sc.createScript({ scriptHash, operation, args });
-  const count = await retry(() => client.getBlockCount());
-  const signers = [tx.Signer.fromJson({ account: "0x" + account.scriptHash, scopes: "CalledByEntry" })];
-  const txn = new tx.Transaction({ signers, validUntilBlock: count + 50, script });
-  const inv = await retry(() => client.invokeScript(u.HexString.fromHex(script), signers));
-  if (inv.state !== "HALT") throw new Error(`${label} test-invoke FAULT: ${inv.exception}`);
-  txn.systemFee = u.BigInteger.fromNumber(inv.gasconsumed);
-  txn.sign(account, MAGIC);
-  txn.networkFee = u.BigInteger.fromNumber(await retry(() => client.calculateNetworkFee(txn)));
-  txn.sign(account, MAGIC);
-  const txid = await retry(() => client.sendRawTransaction(txn));
-  for (let i = 0; i < 45; i++) {
-    await sleep(4000);
-    let log; try { log = await client.getApplicationLog(txid); } catch { continue; }
-    const ex = log.executions?.[0];
-    if (ex?.vmstate === "HALT") { console.log(`  ${label} ✓ (${txid.slice(0, 12)}…)`); return { txid, log }; }
-    throw new Error(`${label} FAULT: ${JSON.stringify(ex?.exception)}`);
-  }
-  throw new Error(`${label} not confirmed`);
-}
-async function read(method, params = []) {
-  const res = await retry(() => client.invokeFunction(CONTRACT, method, params));
-  if (res.state !== "HALT") throw new Error(`${method} FAULT: ${res.exception}`);
-  return res.stack;
-}
+const invoke = (label, account, scriptHash, operation, args) =>
+  live.invokeAndConfirm({ label, account, scriptHash, operation, args });
+const read = (method, params = []) => live.readStack(CONTRACT, method, params);
 const decInt = (s) => BigInt(s?.[0]?.value ?? "0");
 function eventState(log, name) {
   for (const n of log?.executions?.[0]?.notifications ?? []) if (n.eventname === name) return n.state?.value ?? [];
@@ -102,4 +85,4 @@ async function main() {
   console.log(fail === 0 ? "\n✅ WITHDRAW HARDENING VALIDATED" : `\n❌ ${fail} check(s) failed`);
   process.exit(fail === 0 ? 0 : 1);
 }
-main().catch((e) => { console.error("ERROR:", e.message); process.exit(1); });
+main().catch((e) => { console.error("ERROR:", String(e?.message || e).replace(/\b[KL][1-9A-HJ-NP-Za-km-z]{50,51}\b/g, "***WIF***")); process.exit(1); });

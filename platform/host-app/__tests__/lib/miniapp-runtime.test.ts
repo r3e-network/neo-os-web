@@ -111,7 +111,7 @@ describe("miniapp runtime resolver", () => {
     });
   });
 
-  it("falls back to configured mainnet domains for known MiniApp contracts", () => {
+  it("derives mainnet domains for known MiniApp contracts from the app id", () => {
     const app = {
       app_id: "miniapp-neo-pay",
       name: "NeoPay",
@@ -126,7 +126,51 @@ describe("miniapp runtime resolver", () => {
 
     expect(resolveMiniAppContractDomain(app, "mainnet")).toMatchObject({
       domain: "neopay.miniapp.neo",
-      source: "configured",
+      source: "expected",
+    });
+  });
+
+  it("falls through to the dedicated standalone contract when a platform module hash is stale", () => {
+    // Migration drift: the runtime module still points at an old kernel hash
+    // (registered===true) but the manifest `contracts` entry is the deployed
+    // standalone contract. The resolver must prefer the standalone hash.
+    const staleApp = {
+      app_id: "miniapp-last-survivor",
+      name: "Last Survivor",
+      description: "Countdown auction",
+      icon: "timer",
+      category: "gaming",
+      entry_url: "mf://manifest?app=miniapp-last-survivor",
+      contract_hash: null,
+      permissions: {},
+      manifest: {
+        contracts: {
+          "neo-n3-testnet": "0x8e1e432e966357de8d7642564b744d3274a81bd0",
+        },
+        runtime: {
+          mode: "platform",
+          modules: [
+            {
+              binding: "countdown-auction",
+              platform: "PlatformGame",
+              appId: "miniapp-last-survivor",
+              moduleType: 1,
+              networks: {
+                "neo-n3-testnet": {
+                  contract_hash: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+                  registered: true,
+                },
+              },
+            },
+          ],
+        },
+      },
+    } satisfies MiniAppInfo;
+
+    expect(resolveMiniAppRuntime(staleApp, "neo-n3-testnet")).toMatchObject({
+      mode: "dedicated",
+      contractHash: "0x8e1e432e966357de8d7642564b744d3274a81bd0",
+      writesEnabled: true,
     });
   });
 

@@ -1,6 +1,8 @@
 /**
- * Live testnet validation + seed for MiniAppTipJar
- * (0x6fdcf2ff29bde658cdcd9fddd082fe1813dd21ec).
+ * Live testnet validation + seed for MiniAppTipJar.
+ *
+ * The contract hash resolves from apps/dev-tipping/neo-manifest.json
+ * (override: CONTRACT_OVERRIDE / CONTRACT_OVERRIDE_DEV_TIPPING).
  *
  *   1. A (deployer) self-registers as developer #1 (persistent seed).
  *   2. A funds a fresh wallet B; B self-registers as developer #2.
@@ -11,21 +13,24 @@
  *   6. A reclaims the unused 0.2 credit via Withdraw.
  *
  * Asserts on lag-free events (Tipped / TipsWithdrawn / CreditWithdrawn) plus
- * settled getDeveloper/creditOf reads. Testnet-pinned; no WIFs printed.
+ * settled getDeveloper/creditOf reads. Testnet-pinned (endpoints/magic via
+ * lib/neo_network.js env overrides + failover); no WIFs printed.
  */
 import pkg from "@cityofzion/neon-js";
-const { sc, wallet, rpc, tx, u } = pkg;
+import { getManifestContractHash } from "./lib/miniapp_manifest_hash.js";
+import { requireCredential } from "./lib/live_credentials.js";
+import { createLiveRpc } from "./lib/live_rpc.mjs";
 
-const RPC = process.env.NEO_TESTNET_RPC_URL || "https://rpc.t5.n3.nspcc.ru:20331";
-const MAGIC = 894710606;
-const CONTRACT = "0x6fdcf2ff29bde658cdcd9fddd082fe1813dd21ec";
+const { sc, wallet } = pkg;
+
+const CONTRACT = getManifestContractHash("dev-tipping", { network: "testnet" });
 const GAS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
-const A = new wallet.Account(process.env.NEO_TESTNET_WIF);
+const A = new wallet.Account(requireCredential("NEO_TESTNET_WIF", process.env.NEO_TESTNET_WIF));
 const B = new wallet.Account(); // fresh dev #2
-const client = new rpc.RPCClient(RPC);
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const retry = async (fn) => { for (let i = 0; i < 8; i++) { try { return await fn(); } catch (e) { if (i === 7) throw e; await sleep(3000); } } };
+
+const live = createLiveRpc({ network: "testnet", neon: pkg, label: "live_validate_tipjar" });
+
 const H = (a) => sc.ContractParam.hash160(a);
 const I = (n) => sc.ContractParam.integer(n.toString());
 const S = (s) => sc.ContractParam.string(s);
@@ -33,32 +38,9 @@ const Bool = (b) => sc.ContractParam.boolean(b);
 const P_H = (a) => ({ type: "Hash160", value: a });
 const P_I = (n) => ({ type: "Integer", value: n.toString() });
 
-async function invoke(label, account, scriptHash, operation, args) {
-  const script = sc.createScript({ scriptHash, operation, args });
-  const count = await retry(() => client.getBlockCount());
-  const signers = [tx.Signer.fromJson({ account: "0x" + account.scriptHash, scopes: "CalledByEntry" })];
-  const txn = new tx.Transaction({ signers, validUntilBlock: count + 50, script });
-  const inv = await retry(() => client.invokeScript(u.HexString.fromHex(script), signers));
-  if (inv.state !== "HALT") throw new Error(`${label} test-invoke FAULT: ${inv.exception}`);
-  txn.systemFee = u.BigInteger.fromNumber(inv.gasconsumed);
-  txn.sign(account, MAGIC);
-  txn.networkFee = u.BigInteger.fromNumber(await retry(() => client.calculateNetworkFee(txn)));
-  txn.sign(account, MAGIC);
-  const txid = await retry(() => client.sendRawTransaction(txn));
-  for (let i = 0; i < 45; i++) {
-    await sleep(4000);
-    let log; try { log = await client.getApplicationLog(txid); } catch { continue; }
-    const ex = log.executions?.[0];
-    if (ex?.vmstate === "HALT") { console.log(`  ${label} ✓ (${txid.slice(0, 12)}…)`); return { txid, log }; }
-    throw new Error(`${label} FAULT: ${JSON.stringify(ex?.exception)}`);
-  }
-  throw new Error(`${label} not confirmed`);
-}
-async function read(method, params = []) {
-  const res = await retry(() => client.invokeFunction(CONTRACT, method, params));
-  if (res.state !== "HALT") throw new Error(`${method} FAULT: ${res.exception}`);
-  return res.stack;
-}
+const invoke = (label, account, scriptHash, operation, args) =>
+  live.invokeAndConfirm({ label, account, scriptHash, operation, args });
+const read = (method, params = []) => live.readStack(CONTRACT, method, params);
 const decInt = (s) => BigInt(s?.[0]?.value ?? "0");
 function eventState(log, name) {
   for (const n of log?.executions?.[0]?.notifications ?? []) if (n.eventname === name) return n.state?.value ?? [];
@@ -123,10 +105,10 @@ async function main() {
   check(decInt(await read("creditOf", [P_H(A.scriptHash)])) === 0n, "A credit reset to 0 (settled)");
 
   // solvency: contract should hold no leftover GAS from this flow
-  const bal = await retry(() => client.invokeFunction(GAS, "balanceOf", [P_H(CONTRACT)]));
-  console.log("\n  contract GAS balance:", (Number(bal.stack[0].value) / 1e8).toFixed(4), "GAS (expect ~0 from this flow)");
+  const bal = await live.nep17BalanceOf(GAS, CONTRACT);
+  console.log("\n  contract GAS balance:", (Number(bal) / 1e8).toFixed(4), "GAS (expect ~0 from this flow)");
 
   console.log(fail === 0 ? "\n✅ TIPJAR VALIDATED (2 developers seeded)" : `\n❌ ${fail} check(s) failed`);
   process.exit(fail === 0 ? 0 : 1);
 }
-main().catch((e) => { console.error("ERROR:", e.message); process.exit(1); });
+main().catch((e) => { console.error("ERROR:", String(e?.message || e).replace(/\b[KL][1-9A-HJ-NP-Za-km-z]{50,51}\b/g, "***WIF***")); process.exit(1); });

@@ -364,30 +364,45 @@ describe("miniapp-definitions loader", () => {
     );
   });
 
-  it("exposes oracle fee funding before VRF game actions", async () => {
+  it("exposes oracle fee funding before VRF game actions for oracle-backed apps", async () => {
     process.env.MINIAPP_DEFINITIONS_DIR = path.resolve(
       __dirname,
       "../../public/miniapp-definitions",
     );
 
     const apps = await loadMiniAppDefinitions();
-    const vrfActionByAppId = {
-      "miniapp-fogplay": "placeCoinFlipBet",
-      "miniapp-dice-game": "placeDiceBet",
+    // Red Envelope still settles its lucky split via the Morpheus oracle, so
+    // it keeps the oracle fee-funding action before the VRF-backed action.
+    const oracleVrfActionByAppId = {
       "miniapp-redenvelope": "createEnvelope",
     } as const;
 
-    for (const [appId, actionMethod] of Object.entries(vrfActionByAppId)) {
+    for (const [appId, actionMethod] of Object.entries(oracleVrfActionByAppId)) {
       const app = getApp(apps, appId);
       const methods = app?.operations?.map((operation) => operation.method);
-      if (appId !== "miniapp-redenvelope") {
-        expect(methods).toContain("fundGameCredit");
-      }
       expect(methods).toContain("fundOracleRequestFee");
       const oracleIndex = methods?.indexOf("fundOracleRequestFee") ?? -1;
       const playIndex = methods?.indexOf(actionMethod) ?? -1;
       expect(oracleIndex).toBeGreaterThan(-1);
       expect(playIndex).toBeGreaterThan(oracleIndex);
+    }
+  });
+
+  it("does not expose a phantom oracle fee button on atomic-settlement games", async () => {
+    process.env.MINIAPP_DEFINITIONS_DIR = path.resolve(
+      __dirname,
+      "../../public/miniapp-definitions",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    // FogPlay/Dice settle atomically on-chain via Neo's native randomness
+    // (oracle disabled), so the oracle fee-funding action must NOT render —
+    // it would waste GAS funding an oracle the game never calls.
+    for (const appId of ["miniapp-fogplay", "miniapp-dice-game"]) {
+      const app = getApp(apps, appId);
+      const methods = app?.operations?.map((operation) => operation.method) ?? [];
+      expect(methods).toContain("fundGameCredit");
+      expect(methods).not.toContain("fundOracleRequestFee");
     }
   });
 

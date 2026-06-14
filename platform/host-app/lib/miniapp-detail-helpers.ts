@@ -271,17 +271,14 @@ export function resolveAnchorOperationAppId(
 }
 
 export function resolveNetworkOperationMethod(
-  appId: string,
+  _appId: string,
   method: string,
-  network: string,
+  _network: string,
 ): string {
-  if (
-    appId === "miniapp-self-loan" &&
-    (network === "mainnet" || network === "neo-n3-mainnet") &&
-    method === "repayLoan"
-  ) {
-    return "repayDebt";
-  }
+  // Mainnet and testnet now resolve to the same standalone contracts, so the
+  // former network-conditional method remaps (e.g. self-loan repayLoan ->
+  // repayDebt) no longer apply — the deployed ABI is identical on both nets.
+  // Kept as a pass-through so call sites stay stable.
   return method;
 }
 

@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-gasbox",
-    "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7"
+    "contract_hash": "0xeb635b6e75b01c12cc26794b906d329531f378e9"
   },
   "entry_url": "mf://manifest?app=miniapp-gasbox",
   "media": {
@@ -146,21 +146,21 @@
           },
           "networks": {
             "neo-n3-mainnet": {
-              "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+              "contract_hash": "0xeb635b6e75b01c12cc26794b906d329531f378e9",
               "registered": true,
               "domain": "gasbox.miniapp.neo"
             },
             "neo-n3-testnet": {
-              "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
-              "registered": false
+              "contract_hash": "0xeb635b6e75b01c12cc26794b906d329531f378e9",
+              "registered": true
             }
           }
         }
       ]
     },
     "contracts": {
-      "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-      "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+      "neo-n3-mainnet": "0xeb635b6e75b01c12cc26794b906d329531f378e9",
+      "neo-n3-testnet": "0xeb635b6e75b01c12cc26794b906d329531f378e9"
     },
     "contract_domains": {
       "neo-n3-mainnet": "gasbox.miniapp.neo"
