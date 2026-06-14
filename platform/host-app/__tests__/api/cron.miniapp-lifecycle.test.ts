@@ -135,6 +135,34 @@ describe("/api/cron/miniapp-lifecycle", () => {
     });
   });
 
+  it("does not emit a start_needed write when the status read faults to empty", async () => {
+    // A faulted (or wrong-ABI) status read decodes to {} — which would look like
+    // roundId<=0 → start_needed. The lifecycle guard must reject that empty read
+    // so the cron degrades the target to a no-op instead of (re)starting a round.
+    invokeRead.mockResolvedValue({ state: "FAULT", stack: [] });
+
+    const handler = require("@/pages/api/cron/miniapp-lifecycle").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: { network: "testnet", dry_run: "true" },
+      headers: { authorization: "Bearer cron-secret" },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    const body = JSON.parse(res._getData());
+    expect(body.success).toBe(true);
+    // No relayer invoke is produced for the unreadable target.
+    expect(body.results[0].invoke).toBeNull();
+    expect(body.results[0].decision.action).not.toBe("start_needed");
+    expect(body.actionCount).toBe(0);
+  });
+
   it("requires the cron secret", async () => {
     const handler = require("@/pages/api/cron/miniapp-lifecycle").default as (
       req: NextApiRequest,

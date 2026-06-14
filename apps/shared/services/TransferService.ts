@@ -15,7 +15,8 @@
  * ```
  */
 
-import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "../constants";
+import { BLOCKCHAIN_CONSTANTS } from "../constants";
+import { gasToBaseUnits, neoToInteger } from "../utils/amounts";
 import type { ChainService, TxResult } from "./ChainService";
 import { EventBus } from "./EventBus";
 
@@ -129,26 +130,26 @@ export class TransferService {
 
   /**
    * Scale a display-unit amount to base units (Fixed8) for GAS.
-   * NEO is indivisible, so it passes through as-is.
+   * NEO is indivisible, so it passes through as a whole integer.
    *
    * Display units are always numbers with optional decimals (e.g. "1.5", "100").
    * The caller is responsible for passing display units, not base units.
+   *
+   * Uses the canonical {@link gasToBaseUnits}/{@link neoToInteger} BigInt
+   * helpers — float scaling (`amount * 1e8` then round) loses precision near
+   * the 8-decimal limit (e.g. "99999999.99999999"). Both helpers return 0n for
+   * any invalid / non-positive input; we throw on 0n so a malformed or
+   * zero-value transfer is rejected before it reaches the chain.
    */
   private scaleAmount(scriptHash: string, amount: string): string {
-    // Validate once for every asset: reject non-numeric (NaN) and negative
-    // amounts before scaling. This also closes the NEO path, where a malformed
-    // amount would otherwise produce String(Math.trunc(NaN)) === "NaN".
-    const parsed = Number(amount);
-    if (!Number.isFinite(parsed) || parsed < 0) {
+    // NEO is indivisible — whole-integer token count, never scaled.
+    const base =
+      scriptHash === BLOCKCHAIN_CONSTANTS.NEO_HASH
+        ? neoToInteger(amount)
+        : gasToBaseUnits(amount);
+    if (base === 0n) {
       throw new Error(`Invalid transfer amount: ${amount}`);
     }
-
-    // NEO is indivisible — pass through as integer
-    if (scriptHash === BLOCKCHAIN_CONSTANTS.NEO_HASH) {
-      return String(Math.trunc(parsed));
-    }
-
-    // GAS and other NEP-17 tokens: always scale from display to Fixed8
-    return String(Math.round(parsed * TOKEN_CONSTANTS.GAS_MULTIPLIER));
+    return base.toString();
   }
 }

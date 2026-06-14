@@ -15,25 +15,13 @@
  * ```
  */
 
-import { createObservable } from "../react/context";
-import type { Observable } from "../react/context";
+import { createObservable, withValueCompat } from "../react/context";
+import type { RefCompatObservable } from "../react/context";
 import { useWalletBalanceReader } from "../composables/useWalletBalanceReader";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 import type { CacheService } from "./CacheService";
 import { EventBus } from "./EventBus";
 import type { ChainService } from "./ChainService";
-
-/** Observable with a backward-compatible `.value` property. */
-type RefCompatObservable<T> = Observable<T> & { value: T };
-
-function withValueCompat<T>(obs: Observable<T>): RefCompatObservable<T> {
-  return Object.defineProperty(obs, "value", {
-    get() { return obs.get(); },
-    set(v: T) { obs.set(v); },
-    enumerable: true,
-    configurable: true,
-  }) as RefCompatObservable<T>;
-}
 
 const BALANCE_CACHE_TTL_MS = 15_000; // 15 seconds
 const BALANCE_CACHE_PREFIX = "bal";

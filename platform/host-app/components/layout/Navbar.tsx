@@ -48,7 +48,9 @@ function withNetworkQuery(href: string, network: string): string {
 export function Navbar() {
   const router = useRouter();
   const { locale, setLocale, t } = useI18n();
-  const { address: walletAddress } = useWalletStore();
+  // Subscribe to the single field this component renders so the 60s balance
+  // poll does not re-render the whole navbar (logo, nav links, search).
+  const walletAddress = useWalletStore((state) => state.address);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);

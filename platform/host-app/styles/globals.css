@@ -197,6 +197,26 @@
   }
 }
 
+/* Route enter transition — a CSS-only replacement for the framer-motion page
+   wrapper that previously shipped in the shared `_app` bundle. Keyed off
+   `router.asPath` via React `key`, so each navigation remounts the main element
+   and replays this animation. The global prefers-reduced-motion block above
+   collapses it to ~0ms for users who opt out. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: page-enter 0.2s ease-in-out both;
+}
+
 /* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

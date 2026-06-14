@@ -69,6 +69,32 @@ export function createDerived<T>(
 }
 
 /**
+ * Observable with a backward-compatible `.value` property. Consumers can use
+ * either `obs.get()`/`obs.set()` (Observable) or `obs.value` (legacy Ref-style)
+ * interchangeably.
+ */
+export type RefCompatObservable<T> = Observable<T> & { value: T };
+
+/**
+ * Wrap an Observable with a `.value` getter/setter for backward compat.
+ *
+ * The single shared definition for the byte-identical copies that previously
+ * lived in ChainService and BalanceService.
+ */
+export function withValueCompat<T>(obs: Observable<T>): RefCompatObservable<T> {
+  return Object.defineProperty(obs, "value", {
+    get() {
+      return obs.get();
+    },
+    set(v: T) {
+      obs.set(v);
+    },
+    enumerable: true,
+    configurable: true,
+  }) as RefCompatObservable<T>;
+}
+
+/**
  * Adapt a Vue-style ref (object with .value property) to an Observable.
  * This allows composables written with Vue `ref()` to be used in the React runtime.
  *
@@ -120,6 +146,36 @@ export function refsToObservables(
 
 /** Record of observable state values keyed by name */
 export type ObservableState = Record<string, Observable>;
+
+// ============================================================================
+// Action dispatch single-flight guard
+// ============================================================================
+
+/**
+ * Run `work` under a per-key single-flight guard. If an action with the same
+ * `key` is already in flight (its key present in the shared `inFlight` set),
+ * the call returns early with `undefined` instead of running `work` again —
+ * preventing automatic double-submit (e.g. an impatient double click, or a
+ * button press racing a programmatic dispatch of the same operation).
+ *
+ * The key is always removed in a `finally`, including when `work` throws, so a
+ * failed dispatch never wedges the action permanently. The set is shared
+ * between every dispatch entry point so the same logical operation cannot
+ * overlap regardless of which path triggered it.
+ */
+export async function runSingleFlight<T>(
+  inFlight: Set<string>,
+  key: string,
+  work: () => Promise<T>,
+): Promise<T | undefined> {
+  if (inFlight.has(key)) return undefined;
+  inFlight.add(key);
+  try {
+    return await work();
+  } finally {
+    inFlight.delete(key);
+  }
+}
 
 // ============================================================================
 // MiniApp Context Type (React version)

@@ -76,13 +76,56 @@ import {
   buildOneGateDirectMiniAppUrl,
   buildOneGateLaunchUrl,
 } from "../../../../apps/shared/utils/onegate-launch";
-import { waitForTransactionStatus } from "../../../../apps/shared/utils/n3index";
+import { getApplicationLog } from "../../lib/chain/rpc-client";
 
 const DORA_TX_BASE = "https://dora.coz.io/transaction/neo3";
 const TX_CONFIRMATION_TIMEOUT_MS = 90_000;
 const TX_CONFIRMATION_POLL_MS = 5_000;
 
-type TxConfirmationState = "idle" | "pending" | "confirmed" | "settled";
+type TxConfirmationState =
+  | "idle"
+  | "pending"
+  | "confirmed"
+  | "failed"
+  | "settled";
+
+type TxVmStateOutcome = "confirmed" | "failed" | "settled";
+
+/**
+ * Authoritatively confirm a submitted transaction by polling its application
+ * log: a wallet that hands back a txid only proves the tx was *relayed*, not
+ * that it executed. We confirm on `vmstate === "HALT"` and surface FAULT as a
+ * failure so a reverted on-chain action is never shown as a neutral "Submitted"
+ * receipt. If the log never appears before the deadline we fall back to
+ * "settled" (the indexer may simply be lagging) rather than asserting failure.
+ */
+async function confirmTransactionByVmState(
+  network: "mainnet" | "testnet",
+  txid: string,
+  timeoutMs: number,
+  pollIntervalMs: number,
+  shouldContinue: () => boolean,
+): Promise<TxVmStateOutcome> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if (!shouldContinue()) return "settled";
+    try {
+      const log = (await getApplicationLog(txid, network)) as {
+        executions?: Array<{ vmstate?: string }>;
+      } | null;
+      const vmstate = log?.executions?.[0]?.vmstate;
+      if (typeof vmstate === "string" && vmstate) {
+        return vmstate.toUpperCase() === "HALT" ? "confirmed" : "failed";
+      }
+      // Log not yet available (tx still mempool/unindexed) — keep polling.
+    } catch {
+      // getapplicationlog throws while the tx is not yet known; keep polling
+      // until the deadline, then fall back to the neutral settled state.
+    }
+    if (Date.now() >= deadline) return "settled";
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+}
 
 function shortTxId(value: string) {
   return value.length > 18
@@ -176,7 +219,11 @@ function InvokeFeedbackNotice({
   confirmation: TxConfirmationState;
   network: "mainnet" | "testnet";
 }) {
-  const success = feedback.type === "success";
+  // A txid alone only means the tx was relayed. An on-chain FAULT must read as a
+  // failure, not a neutral success banner — recolor the whole notice red once
+  // the application log reports a non-HALT execution.
+  const failed = confirmation === "failed";
+  const success = feedback.type === "success" && !failed;
   return (
     <div
       className={`mt-3 rounded-xl border px-3 py-2 text-xs break-words ${
@@ -186,8 +233,12 @@ function InvokeFeedbackNotice({
       }`}
       data-testid="invoke-feedback"
     >
-      <span className="block">{feedback.message}</span>
-      {success && txid && (
+      <span className="block">
+        {failed
+          ? "Transaction reverted on-chain (FAULT). Nothing was applied."
+          : feedback.message}
+      </span>
+      {feedback.type === "success" && txid && (
         <span
           className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1"
           data-testid="invoke-feedback-tx"
@@ -197,16 +248,27 @@ function InvokeFeedbackNotice({
             href={getTransactionExplorerUrl(network, txid)}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 font-semibold underline underline-offset-2 transition hover:text-emerald-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40"
+            className={`inline-flex items-center gap-1 font-semibold underline underline-offset-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40 ${
+              failed ? "hover:text-red-900" : "hover:text-emerald-900"
+            }`}
           >
             View on explorer
             <ExternalLink className="h-3 w-3" aria-hidden="true" />
           </a>
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+          <span
+            className={`inline-flex items-center gap-1 rounded-full border bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+              failed ? "border-red-200" : "border-emerald-200"
+            }`}
+          >
             {confirmation === "confirmed" ? (
               <>
                 <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                 Confirmed
+              </>
+            ) : confirmation === "failed" ? (
+              <>
+                <X className="h-3 w-3" aria-hidden="true" />
+                Failed
               </>
             ) : confirmation === "pending" ? (
               "Confirming…"
@@ -241,11 +303,20 @@ export default function MiniAppDetailPage({
   );
   const [txConfirmation, setTxConfirmation] =
     useState<TxConfirmationState>("idle");
+  // The reference/diagnostics accordion is collapsed by default. Gating the
+  // activity feed on it stops two `/api/activity/*` endpoints from polling every
+  // 5s behind a section the user never opened.
+  const [referenceOpen, setReferenceOpen] = useState(false);
 
   const walletConnected = useWalletStore((state) => state.connected);
   const walletAddress = useWalletStore((state) => state.address);
   const walletNetwork = useWalletStore((state) => state.network);
   const refreshWalletBalance = useWalletStore((state) => state.refreshBalance);
+  // A persisted session is reconnecting when restore is in flight (`loading`)
+  // or pending a one-click resume (`restorePending`). During that window the
+  // action console should not flash "Wallet Required"/unsafe-network.
+  const walletLoading = useWalletStore((state) => state.loading);
+  const walletRestorePending = useWalletStore((state) => state.restorePending);
   const routerPath = typeof router.asPath === "string" ? router.asPath : "";
   const launchContext = useMemo(
     () => parseMiniAppLaunchContext(routerPath, app?.app_id),
@@ -517,20 +588,21 @@ export default function MiniAppDetailPage({
     }
     let cancelled = false;
     setTxConfirmation("pending");
-    waitForTransactionStatus(
+    confirmTransactionByVmState(
       targetNetwork,
       invokeFeedbackTxId,
-      consoleContractHash,
       TX_CONFIRMATION_TIMEOUT_MS,
       TX_CONFIRMATION_POLL_MS,
+      () => !cancelled,
     )
-      .then((result) => {
+      .then((outcome) => {
         if (cancelled) return;
-        if (result.status === "confirmed") {
+        if (outcome === "confirmed") {
           setTxConfirmation("confirmed");
           handleTxConfirmed();
         } else {
-          setTxConfirmation("settled");
+          // FAULT → "failed"; deadline with no log → neutral "settled".
+          setTxConfirmation(outcome);
         }
       })
       .catch(() => {
@@ -565,8 +637,12 @@ export default function MiniAppDetailPage({
     appId: app?.app_id,
     network: targetNetwork,
     pollInterval: 5000,
-    enabled: Boolean(app?.app_id),
-    newsEnabled: Boolean(app?.app_id) && showNews,
+    // Only poll/subscribe once the diagnostics accordion (which renders the
+    // activity feed and news tab) is actually open. News still SSR-hydrates via
+    // the `notifications` prop, so the closed state shows hydrated content
+    // without any client polling.
+    enabled: Boolean(app?.app_id) && referenceOpen,
+    newsEnabled: Boolean(app?.app_id) && showNews && referenceOpen,
   });
 
   // Use realtime notifications if available, fall back to SSR-provided notifications
@@ -659,6 +735,15 @@ export default function MiniAppDetailPage({
         consoleOperationTarget(activeOperation),
       ),
   );
+  // While a persisted wallet session is silently reconnecting (or waiting on a
+  // one-click resume), the console shouldn't claim "Wallet Required" or warn
+  // about an unsafe network — neither is known yet. Show a neutral checking
+  // state instead.
+  const actionConsoleWalletRestoring =
+    actionConsoleRequiresWallet &&
+    !walletConnected &&
+    !activeOperationSubmittedFromEmbed &&
+    (walletLoading || walletRestorePending);
   const actionConsoleStatusLabel = actionConsoleUsesLocalContext
     ? "Workspace Preview"
     : actionConsoleUsesHostApi
@@ -667,6 +752,8 @@ export default function MiniAppDetailPage({
       ? "Synced"
       : walletConnected
       ? "Wallet Ready"
+      : actionConsoleWalletRestoring
+      ? "Checking wallet…"
       : "Wallet Required";
   const actionConsoleStatusClass = actionConsoleUsesLocalContext
     ? "border-sky-200 bg-sky-50 text-sky-700"
@@ -676,6 +763,8 @@ export default function MiniAppDetailPage({
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : walletConnected
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : actionConsoleWalletRestoring
+      ? "border-gray-200 bg-gray-50 text-gray-500"
       : "border-gray-200 bg-gray-50 text-gray-500";
   const actionConsoleWalletText = actionConsoleUsesLocalContext
     ? `No transaction is sent from this host button. It opens or updates the embedded workspace for ${targetNetworkLabel}; submit wallet actions inside the MiniApp.`
@@ -685,6 +774,8 @@ export default function MiniAppDetailPage({
       ? `Embedded workspace submitted ${shortTxId(embeddedWalletResult.txid)}. Refresh after confirmation before submitting again.`
       : walletConnected && walletAddress
       ? walletAddress
+      : actionConsoleWalletRestoring
+      ? "Reconnecting your saved wallet session…"
       : "Connect wallet from the top navigation to submit on-chain transactions.";
 
   useEffect(() => {
@@ -789,7 +880,13 @@ export default function MiniAppDetailPage({
                 />
               </section>
 
-              <details className="focus-mode-reference group">
+              <details
+                className="focus-mode-reference group"
+                open={referenceOpen}
+                onToggle={(event) =>
+                  setReferenceOpen(event.currentTarget.open)
+                }
+              >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm shadow-gray-950/5 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40">
                   <span className="min-w-0">
                     <span className="block text-sm font-black text-gray-950">
@@ -909,7 +1006,7 @@ export default function MiniAppDetailPage({
                   </span>
                 </div>
 
-                {actionConsoleRequiresWallet && (
+                {actionConsoleRequiresWallet && !actionConsoleWalletRestoring && (
                   <NetworkSafetyBadge
                     networkSafetyOk={networkSafetyOk}
                     targetNetworkLabel={targetNetworkLabel}
@@ -1089,13 +1186,14 @@ export default function MiniAppDetailPage({
                       </span>
                     </div>
 
-                    {actionConsoleRequiresWallet && (
-                      <NetworkSafetyBadge
-                        networkSafetyOk={networkSafetyOk}
-                        targetNetworkLabel={targetNetworkLabel}
-                        walletNetworkLabel={walletNetworkLabel}
-                      />
-                    )}
+                    {actionConsoleRequiresWallet &&
+                      !actionConsoleWalletRestoring && (
+                        <NetworkSafetyBadge
+                          networkSafetyOk={networkSafetyOk}
+                          targetNetworkLabel={targetNetworkLabel}
+                          walletNetworkLabel={walletNetworkLabel}
+                        />
+                      )}
 
                     {invokeFeedback && (
                       <InvokeFeedbackNotice

@@ -63,9 +63,14 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
     if (!isOpen || !appId) return;
     let active = true;
 
-    const fetchMessages = async () => {
+    const isHidden = () =>
+      typeof document !== "undefined" && document.visibilityState === "hidden";
+
+    const fetchMessages = async (isInitial = false) => {
       if (!active) return;
-      setLoading(true);
+      // Only show the skeleton on the first load; background polls must not
+      // toggle the loading state or the panel flickers every 5s.
+      if (isInitial) setLoading(true);
       try {
         const data = await fetchJSON<ChatMessagesResponse>(
           `/api/chat/${encodeURIComponent(appId)}/messages?limit=50`,
@@ -76,15 +81,32 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
       } catch (err) {
         logger.warn("Failed to fetch chat messages:", err);
       } finally {
-        if (active) setLoading(false);
+        if (active && isInitial) setLoading(false);
       }
     };
 
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    fetchMessages(true);
+    // Pause polling while the tab is hidden; resume with a fresh fetch when it
+    // becomes visible again.
+    const interval = setInterval(() => {
+      if (!active || isHidden()) return;
+      void fetchMessages(false);
+    }, 5000);
+
+    const handleVisibilityChange = () => {
+      if (!active || isHidden()) return;
+      void fetchMessages(false);
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+
     return () => {
       active = false;
       clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
     };
   }, [isOpen, appId]);
 
