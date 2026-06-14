@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6 — audit fix M-22 (pinned to SHA)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6 — audit fix M-22 (pinned to SHA)
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6 — audit fix M-22 (pinned to SHA)
@@ -77,7 +77,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6 — audit fix M-22 (pinned to SHA)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6 — audit fix M-22 (pinned to SHA)
 
       - name: Set up .NET
         # NOTE: pin to the v5 commit SHA to match this repo's M-22 action-pinning policy
@@ -101,7 +101,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6 — audit fix M-22 (pinned to SHA)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6 — audit fix M-22 (pinned to SHA)
 
       - name: Set up Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6 — audit fix M-22 (pinned to SHA)
@@ -140,7 +140,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6 — audit fix M-22 (pinned to SHA)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6 — audit fix M-22 (pinned to SHA)
 
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6 — audit fix M-22 (pinned to SHA)

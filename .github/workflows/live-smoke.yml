@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6 — audit fix M-22 (pinned to SHA)
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6 — audit fix M-22 (pinned to SHA)
 
       - name: Preflight secrets and scope
         id: preflight
