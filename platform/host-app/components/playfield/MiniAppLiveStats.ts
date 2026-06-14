@@ -14,6 +14,22 @@ import {
 
 /* ── Per-app contract reads ──────────────────────────────────────────── */
 
+type CouncilProposal = { id: number; map: Record<string, unknown> };
+
+/**
+ * Cache of the per-proposal details for the council-governance app, keyed by
+ * `${network}:${contractHash}`. The polling loop (every 15s) only needs the
+ * proposal list to change when a proposal is added/removed, which is reflected
+ * by the (cheap) proposal count. By caching the decoded proposals against the
+ * last seen count we drop the steady-state poll from ~21 RPC round-trips
+ * (1 count + up to 20 details) down to 1 (count only). A newly-added proposal
+ * surfaces on the next poll tick once the count moves, which is acceptable.
+ */
+const councilProposalCache = new Map<
+  string,
+  { count: number; proposals: CouncilProposal[] }
+>();
+
 export async function fetchAppStats(
   appId: string,
   rpcUrl: string,
@@ -464,22 +480,33 @@ export async function fetchAppStats(
           ];
         }
 
-        const limit = Math.min(total, 20);
-        const proposalReads = [];
-        for (let id = total; id >= total - limit + 1 && id >= 1; id -= 1) {
-          proposalReads.push(
-            invokeRead(
-              rpcUrl,
-              contractHash,
-              "getProposalDetails",
-              [{ type: "Integer", value: String(id) }],
-              network,
-            )
-              .then((stack) => ({ id, map: decodeMap(stack) }))
-              .catch(() => ({ id, map: {} as Record<string, unknown> })),
-          );
+        // Re-fetch the per-proposal details only when the proposal count has
+        // changed since the last poll; otherwise reuse the cached proposals so
+        // steady-state polling costs a single getProposalCount round-trip.
+        const cacheKey = `${network}:${contractHash}`;
+        const cached = councilProposalCache.get(cacheKey);
+        let proposals: CouncilProposal[];
+        if (cached && cached.count === total) {
+          proposals = cached.proposals;
+        } else {
+          const limit = Math.min(total, 20);
+          const proposalReads: Array<Promise<CouncilProposal>> = [];
+          for (let id = total; id >= total - limit + 1 && id >= 1; id -= 1) {
+            proposalReads.push(
+              invokeRead(
+                rpcUrl,
+                contractHash,
+                "getProposalDetails",
+                [{ type: "Integer", value: String(id) }],
+                network,
+              )
+                .then((stack) => ({ id, map: decodeMap(stack) }))
+                .catch(() => ({ id, map: {} as Record<string, unknown> })),
+            );
+          }
+          proposals = await Promise.all(proposalReads);
+          councilProposalCache.set(cacheKey, { count: total, proposals });
         }
-        const proposals = await Promise.all(proposalReads);
         const activeCount = proposals.filter((proposal) =>
           isCouncilProposalActive(proposal.map),
         ).length;

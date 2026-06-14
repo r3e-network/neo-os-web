@@ -774,31 +774,31 @@ describe("miniapp-definitions loader", () => {
     expect(byId.has("miniapp-sample-example")).toBe(false);
   });
 
-  it("keeps bundled SelfLoan host operations aligned with funded PlatformDeFi flows", async () => {
+  it("keeps bundled SelfLoan host operations aligned with the deployed MiniAppSelfLoan ABI", async () => {
     const app = await loadBundledMiniAppById("miniapp-self-loan");
     const operations = app?.operations ?? [];
     const byMethod = new Map(operations.map((operation) => [operation.method, operation] as const));
 
+    // The deployed contract exposes borrow(borrower, tier), repay(borrower) and
+    // addCollateral(borrower) — there is no createLoan/repayLoan/repayDebt and no
+    // syncProfitAnchorVote method (one loan per borrower, no loanId).
+    expect(byMethod.has("createLoan")).toBe(false);
+    expect(byMethod.has("repayLoan")).toBe(false);
     expect(byMethod.has("repayDebt")).toBe(false);
-    expect(byMethod.get("createLoan")?.params?.map((param) => [param.name, param.type])).toEqual([
-      ["appId", "string"],
+    expect(byMethod.has("syncProfitAnchorVote")).toBe(false);
+    expect(byMethod.get("borrow")?.params?.map((param) => [param.name, param.type])).toEqual([
       ["borrower", "hash160"],
       ["collateralNeo", "integer"],
-      ["ltvTier", "select"],
+      ["tier", "select"],
       ["poolTopupGas", "amount"],
     ]);
-    expect(byMethod.get("repayLoan")?.params?.map((param) => [param.name, param.type])).toEqual([
-      ["appId", "string"],
-      ["loanId", "integer"],
+    expect(byMethod.get("repay")?.params?.map((param) => [param.name, param.type])).toEqual([
+      ["borrower", "hash160"],
       ["repayGas", "amount"],
     ]);
     expect(byMethod.get("addCollateral")?.params?.map((param) => [param.name, param.type])).toEqual([
-      ["appId", "string"],
-      ["loanId", "integer"],
+      ["borrower", "hash160"],
       ["collateralNeo", "integer"],
-    ]);
-    expect(byMethod.get("syncProfitAnchorVote")?.params?.map((param) => [param.name, param.type])).toEqual([
-      ["appId", "string"],
     ]);
   });
 

@@ -1529,7 +1529,7 @@ describe("useMiniAppDetailInvoke", () => {
     });
   });
 
-  it("creates SelfLoan loans through the funded PlatformDeFi batch path", async () => {
+  it("creates SelfLoan loans through the funded borrow batch path", async () => {
     const invokeMultiple = jest.fn().mockResolvedValue({ txid: "0xselfloancreate" });
     (getWalletAdapter as jest.Mock).mockReturnValue({ invokeMultiple });
     const setInvokeFeedback = jest.fn();
@@ -1564,16 +1564,9 @@ describe("useMiniAppDetailInvoke", () => {
     await act(async () => {
       await result.current(
         {
-          method: "createLoan",
-          name: "Create Loan",
+          method: "borrow",
+          name: "Borrow",
           params: [
-            {
-              name: "appId",
-              type: "string",
-              required: true,
-              default_value: "miniapp-self-loan",
-              hidden: true,
-            },
             {
               name: "borrower",
               type: "hash160",
@@ -1587,7 +1580,7 @@ describe("useMiniAppDetailInvoke", () => {
               required: true,
             },
             {
-              name: "ltvTier",
+              name: "tier",
               type: "select",
               required: true,
             },
@@ -1599,7 +1592,7 @@ describe("useMiniAppDetailInvoke", () => {
             },
           ],
         } as never,
-        { collateralNeo: "1", ltvTier: "1", poolTopupGas: "0.30" },
+        { collateralNeo: "1", tier: "1", poolTopupGas: "0.30" },
       );
     });
 
@@ -1618,7 +1611,7 @@ describe("useMiniAppDetailInvoke", () => {
               value: "0x39d4584ddb0731e48e611647931993ee033bf373",
             },
             { type: "Integer", value: "30000000" },
-            { type: "String", value: "miniapp-self-loan:pool" },
+            { type: "String", value: "selfloan:fund" },
           ],
         },
         {
@@ -1634,14 +1627,13 @@ describe("useMiniAppDetailInvoke", () => {
               value: "0x39d4584ddb0731e48e611647931993ee033bf373",
             },
             { type: "Integer", value: "1" },
-            { type: "String", value: "miniapp-self-loan:collateral" },
+            { type: "String", value: "selfloan:collateral" },
           ],
         },
         {
           scriptHash: "0x39d4584ddb0731e48e611647931993ee033bf373",
-          operation: "createLoan",
+          operation: "borrow",
           args: [
-            { type: "String", value: "miniapp-self-loan" },
             {
               type: "Hash160",
               value: "0x69aa227309f35d7196d0d9f97fc22b33613a31eb",
@@ -1698,17 +1690,16 @@ describe("useMiniAppDetailInvoke", () => {
     await act(async () => {
       await result.current(
         {
-          method: "repayLoan",
-          name: "Repay Loan",
+          method: "repay",
+          name: "Repay",
           params: [
             {
-              name: "appId",
-              type: "string",
+              name: "borrower",
+              type: "hash160",
               required: true,
-              default_value: "miniapp-self-loan",
+              default_value: "$wallet",
               hidden: true,
             },
-            { name: "loanId", type: "integer", required: true },
             {
               name: "repayGas",
               type: "amount",
@@ -1717,7 +1708,7 @@ describe("useMiniAppDetailInvoke", () => {
             },
           ],
         } as never,
-        { loanId: "42", repayGas: "0.25" },
+        { repayGas: "0.25" },
       );
     });
 
@@ -1736,15 +1727,17 @@ describe("useMiniAppDetailInvoke", () => {
               value: "0x39d4584ddb0731e48e611647931993ee033bf373",
             },
             { type: "Integer", value: "25000000" },
-            { type: "String", value: "miniapp-self-loan:repay" },
+            { type: "String", value: "selfloan:repay" },
           ],
         },
         {
           scriptHash: "0x39d4584ddb0731e48e611647931993ee033bf373",
-          operation: "repayLoan",
+          operation: "repay",
           args: [
-            { type: "String", value: "miniapp-self-loan" },
-            { type: "Integer", value: "42" },
+            {
+              type: "Hash160",
+              value: "0x69aa227309f35d7196d0d9f97fc22b33613a31eb",
+            },
           ],
         },
       ],
@@ -1800,13 +1793,12 @@ describe("useMiniAppDetailInvoke", () => {
           name: "Add Collateral",
           params: [
             {
-              name: "appId",
-              type: "string",
+              name: "borrower",
+              type: "hash160",
               required: true,
-              default_value: "miniapp-self-loan",
+              default_value: "$wallet",
               hidden: true,
             },
-            { name: "loanId", type: "integer", required: true },
             {
               name: "collateralNeo",
               type: "integer",
@@ -1814,7 +1806,7 @@ describe("useMiniAppDetailInvoke", () => {
             },
           ],
         } as never,
-        { loanId: "42", collateralNeo: "1" },
+        { collateralNeo: "1" },
       );
     });
 
@@ -1833,15 +1825,17 @@ describe("useMiniAppDetailInvoke", () => {
               value: "0x39d4584ddb0731e48e611647931993ee033bf373",
             },
             { type: "Integer", value: "1" },
-            { type: "String", value: "miniapp-self-loan:collateral" },
+            { type: "String", value: "selfloan:collateral" },
           ],
         },
         {
           scriptHash: "0x39d4584ddb0731e48e611647931993ee033bf373",
           operation: "addCollateral",
           args: [
-            { type: "String", value: "miniapp-self-loan" },
-            { type: "Integer", value: "42" },
+            {
+              type: "Hash160",
+              value: "0x69aa227309f35d7196d0d9f97fc22b33613a31eb",
+            },
           ],
         },
       ],
