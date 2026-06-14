@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useShallow } from "zustand/react/shallow";
 import Link from "next/link";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,25 @@ function canUseDirectWif(): boolean {
 export function ConnectButton() {
   const { t } = useI18n();
   const { user } = useUser();
-  const wallet = useWalletStore();
+  // Select only the fields this component renders (via a shallow-equal slice)
+  // so unrelated store writes do not re-render it. Balance still updates here —
+  // that is the field this button is meant to reflect — but a balance tick no
+  // longer cascades through the rest of the navbar that subscribes to its own
+  // narrower slices.
+  const wallet = useWalletStore(
+    useShallow((state) => ({
+      connected: state.connected,
+      address: state.address,
+      balance: state.balance,
+      network: state.network,
+      provider: state.provider,
+      error: state.error,
+      loading: state.loading,
+      restorePending: state.restorePending,
+      clearError: state.clearError,
+      disconnect: state.disconnect,
+    })),
+  );
   const auth = useAuthStore();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

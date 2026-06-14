@@ -63,7 +63,17 @@ async function invokeBridgeRead(
       : asBridgeString(payload?.error);
     throw new Error(message || "Embedded dApp read failed.");
   }
-  return payload?.result ?? payload;
+  const result = payload?.result ?? payload;
+  // A FAULTed read decodes to an empty/garbage stack that looks like a valid
+  // zero result. Surface it as a failed bridge read (the bridge hook's catch
+  // turns a throw into `{ ok: false }`) instead of handing the miniapp fake data.
+  if (isBridgeRecord(result)) {
+    const state = asBridgeString(result.state);
+    if (state && state.toUpperCase() !== "HALT") {
+      throw new Error(`Embedded dApp read faulted (state ${state}).`);
+    }
+  }
+  return result;
 }
 
 // Audit fix (frontend bridge hardening): wallet methods that sign or move funds must not run
@@ -113,8 +123,16 @@ export async function handleEmbeddedWalletBridgeRequest(
     ];
   }
   if (method === "authenticate") {
+    // Report the wallet's *verified* network, not the target network the host
+    // wishes for. A NEP-21 connection whose getNetwork failed leaves
+    // walletState.network null — surface that as networkVerified:false rather
+    // than asserting a magic the wallet may not actually be on.
+    const verifiedNetwork = walletState.network;
     return {
-      network: bridgeNetworkMagic(targetNetwork),
+      network: verifiedNetwork
+        ? bridgeNetworkMagic(verifiedNetwork)
+        : null,
+      networkVerified: Boolean(verifiedNetwork),
       address: walletState.address,
       pubkey: walletState.publicKey || undefined,
     };

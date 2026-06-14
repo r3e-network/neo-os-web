@@ -77,7 +77,21 @@ export async function invokeRead(
   args: unknown[],
   network: Network,
 ): Promise<InvokeResult> {
-  return rpcCall<InvokeResult>("invokefunction", [contractHash, method, args], network);
+  const result = await rpcCall<InvokeResult>(
+    "invokefunction",
+    [contractHash, method, args],
+    network,
+  );
+  // A FAULTed (or otherwise non-HALT) execution returns an empty/garbage stack
+  // that silently decodes to zeros — masking reverts and wrong-ABI calls as
+  // "valid" data. Fail loudly instead (mirrors the WIF write-path HALT check);
+  // every read caller already degrades through a try/catch.
+  if (result.state && result.state !== "HALT") {
+    throw new Error(
+      `invokeRead ${method} on ${contractHash} returned state ${result.state}`,
+    );
+  }
+  return result;
 }
 
 export async function getBlockCount(network: Network): Promise<number> {

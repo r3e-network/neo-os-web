@@ -277,6 +277,56 @@ describe("useEmbeddedWalletBridge origin gating", () => {
     expect(prompt).toContain(TARGET_CONTRACT);
   });
 
+  it("validates the wallet BEFORE prompting for confirmation (disconnected)", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    mockWalletState.connected = false;
+    mockWalletState.address = "";
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest("invoke", {
+        invocations: [
+          { hash: TARGET_CONTRACT, operation: "transfer", args: [] },
+        ],
+      }),
+    });
+
+    const { message } = await lastReply(postSpy);
+    // A disconnected wallet must error immediately — never ask the user to
+    // approve a request that cannot succeed.
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(message).toMatchObject({ ok: false });
+    expect(String((message.error as { message?: string })?.message)).toMatch(
+      /Connect wallet/i,
+    );
+    expect(mockAdapter.invoke).not.toHaveBeenCalled();
+  });
+
+  it("validates the wallet network BEFORE prompting for confirmation (unverified)", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    mockWalletState.network = null;
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest("invoke", {
+        invocations: [
+          { hash: TARGET_CONTRACT, operation: "transfer", args: [] },
+        ],
+      }),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(message).toMatchObject({ ok: false });
+    expect(String((message.error as { message?: string })?.message)).toMatch(
+      /unverified/,
+    );
+  });
+
   it("rejects WitnessRules signers instead of silently widening the witness", async () => {
     const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
     render(<BridgeHarness frame={frame} />);

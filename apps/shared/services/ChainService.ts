@@ -20,8 +20,8 @@
  * ```
  */
 
-import { createDerived } from "../react/context";
-import type { Observable } from "../react/context";
+import { createDerived, withValueCompat } from "../react/context";
+import type { Observable, RefCompatObservable } from "../react/context";
 import {
   useContractInteraction,
   waitForDepositConfirmation,
@@ -121,22 +121,11 @@ interface WalletSigner {
   rules?: unknown[];
 }
 
-/**
- * Observable with a backward-compatible `.value` property.
- * Allows consumers to use either `obs.get()`/`obs.set()` (Observable)
- * or `obs.value` (legacy Ref-style) interchangeably.
- */
-export type RefCompatObservable<T> = Observable<T> & { value: T };
-
-/** Wrap an Observable with a `.value` getter/setter for backward compat. */
-export function withValueCompat<T>(obs: Observable<T>): RefCompatObservable<T> {
-  return Object.defineProperty(obs, "value", {
-    get() { return obs.get(); },
-    set(v: T) { obs.set(v); },
-    enumerable: true,
-    configurable: true,
-  }) as RefCompatObservable<T>;
-}
+// Re-exported from the shared context module so existing
+// `import { withValueCompat, RefCompatObservable } from ".../ChainService"`
+// call sites keep working after the definition was hoisted to react/context.
+export { withValueCompat };
+export type { RefCompatObservable };
 
 // ---------------------------------------------------------------------------
 // Service implementation
@@ -650,5 +639,19 @@ export class ChainService {
     const ct = (this.wallet as unknown as { chainType?: { get?: () => string; value?: string } }).chainType;
     const raw = typeof ct?.get === "function" ? ct.get() : ct?.value;
     return resolveNeoNetwork(typeof raw === "string" ? raw : "");
+  }
+
+  // -- Lifecycle ------------------------------------------------------------
+
+  /**
+   * Release the underlying contract-interaction's pending timers (the prepaid
+   * "success" reset timer and any in-flight settle-delay sleeps). Called by
+   * {@link PlatformServices.destroy} on miniapp unmount so a write that was in
+   * flight at teardown cannot fire a `setTimeout` callback after the app is
+   * gone. Idempotent — `useContractInteraction.dispose()` clears its timer
+   * lists on every call.
+   */
+  dispose(): void {
+    this.interaction.dispose();
   }
 }

@@ -199,19 +199,48 @@ export function buildCountdownLifecycleInvoke(
 export async function readCountdownLifecycleState(
   target: CountdownLifecycleTarget,
 ): Promise<CountdownLifecycleState> {
+  // `invokeRead` already throws on a non-HALT (FAULT) execution. We additionally
+  // reject an empty/undecodable result here so a faulted or wrong-ABI status read
+  // never decodes to `{}` — which `classifyCountdownLifecycle` would read as
+  // `roundId <= 0` and (wrongly) classify as `start_needed`, triggering a
+  // relayer write to (re)start a round that may already be live.
   const result = await invokeRead(
     target.contractHash,
     target.statusMethod,
     [{ type: "String", value: target.appId }],
     target.network,
   );
-  return decodeCountdownLifecycleState(result.stack);
+  const state = decodeCountdownLifecycleState(result.stack);
+  if (Object.keys(state).length === 0) {
+    throw new Error(
+      `Countdown status read for ${target.appId} on ${target.contractHash} returned no decodable state`,
+    );
+  }
+  return state;
 }
 
 export async function evaluateCountdownLifecycleTarget(
   target: CountdownLifecycleTarget,
 ): Promise<CountdownLifecycleResult> {
-  const state = await readCountdownLifecycleState(target);
+  let state: CountdownLifecycleState;
+  try {
+    state = await readCountdownLifecycleState(target);
+  } catch (error) {
+    // A faulted/unreadable status read must never be treated as "no round
+    // exists" (which would emit a relayer write). Degrade this target to a
+    // no-op so one bad contract cannot starve the rest of the batch.
+    return {
+      appId: target.appId,
+      contractHash: target.contractHash,
+      network: target.network,
+      state: {},
+      decision: {
+        action: "paused",
+        reason: `status read failed: ${error instanceof Error ? error.message : String(error)}`,
+      },
+      invoke: null,
+    };
+  }
   const decision = classifyCountdownLifecycle(state);
   return {
     appId: target.appId,
