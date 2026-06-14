@@ -8,11 +8,25 @@
  * old PlatformGame gacha needed the Morpheus VRF oracle's off-chain signer to
  * settle, which is non-operational.
  *
- * MiniAppGasBox is self-contained: pull() draws a weighted item ON-CHAIN with
- * Runtime.GetRandom and PAYS THE PRIZE ATOMICALLY in the same transaction — no
- * oracle. This composable drives it directly, so the prize is real.
+ * MiniAppGasBoxV2 is self-contained and uses a COMMIT/REVEAL flow that closes
+ * the v1 same-tx abort-on-loss drain: the v1 pull() drew + paid in ONE tx, so a
+ * losing draw could be aborted in the wallet. V2 splits each play into two txs
+ * that span a block boundary, so the outcome is UNKNOWABLE at commit and CANNOT
+ * be aborted on a loss:
  *
- * Contract interaction model (verified against the deployed ABI):
+ *   1. commit(machineId, player) -> betId   (deposit-then-commit, one tx)
+ *      Consumes the machine price from prepaid play credit and RESERVES the
+ *      machine's worst-case prize from its pool. The bet is escrowed and
+ *      irrevocable. Emits Committed(betId, machineId, player, commitIndex).
+ *   2. settle(betId) -> itemIndex            (a STRICTLY LATER block, permissionless)
+ *      Reverts unless Ledger.CurrentIndex > commitIndex, so it can only run from
+ *      the next block onward. Draws the weighted item from that block's
+ *      Runtime.GetRandom, pays it, and emits
+ *      Settled(betId, machineId, player, itemIndex, prize). Safe to retry.
+ *
+ * The prize is real — drawn and paid ON-CHAIN, no oracle.
+ *
+ * Contract interaction model (verified against the deployed v2 ABI):
  *
  *   READS (chain.read / chain.readArray, default app contract script hash):
  *     lastMachineId()                 -> Integer (machines are ids 1..lastMachineId)
@@ -21,6 +35,8 @@
  *                                            poolBalance,revenue,active}
  *     getItem(machineId,index)        -> Map{index,name,weight,amount}
  *     playCreditOf(player)            -> Integer (prepaid GAS credit in base units)
+ *     getPendingBet(betId)            -> Map{machineId,player,commitIndex,settled,
+ *                                            itemIndex,prize} (empty once cleared)
  *
  *   PLAYER MUTATIONS (chain.invoke):
  *     1. PREPAY play credit — a GAS transfer to the contract with the memo
@@ -28,11 +44,17 @@
  *        balance (only when playCreditOf(player) < price):
  *          transfer(from, CONTRACT, priceBaseUnits, "miniapp-gasbox:play")
  *          { scriptHash: GAS_HASH }
- *     2. pull(machineId, player) -> Integer itemIndex
- *        Consumes the price from play credit, draws a weighted item, and
- *        transfers the prize to the player in the SAME tx. The won item is read
- *        from the "Pulled" event: Pulled(playId, machineId, player, itemIndex,
- *        prizeAmount), then resolved against getItem(machineId, itemIndex).
+ *     2a. commit(machineId, player) -> betId
+ *        Consumes the price from play credit, reserves the worst-case prize, and
+ *        escrows the bet. The betId + commitIndex are read from the "Committed"
+ *        event (betId is slot 0); the commitIndex is taken authoritatively from
+ *        getPendingBet(betId) when available, falling back to the event tail.
+ *     2b. settle(betId) -> itemIndex
+ *        Drawn on a later block. The won item index is read from the "Settled"
+ *        event: Settled(betId, machineId, player, itemIndex, prize), then
+ *        resolved against getItem(machineId, itemIndex). Permissionless + safe to
+ *        retry; a second settle on an already-settled bet reverts, in which case
+ *        the recorded outcome is recovered from getPendingBet / the Settled log.
  *
  *   STUDIO/CREATOR MUTATIONS (chain.invoke):
  *     createMachine(creator, name, prizeAsset, price) -> machineId
@@ -51,9 +73,10 @@
  * The composable owns:
  *   - Reactive state (observables + derived) for manifest/PlayArea bindings
  *   - Machine selection + display logic
- *   - Loading/pulling/publishing UI flags (double-submit guards)
+ *   - Loading/commit/reveal/publishing UI flags (double-submit guards)
+ *   - The commit→wait-block→settle two-step play orchestration + Reveal-retry
  *   - Reading the machine catalog + items straight from chain
- *   - The won-item read from the Pulled event + getItem
+ *   - The won-item read from the Settled event + getItem
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
@@ -85,6 +108,35 @@ const MAX_MACHINES = 500;
 
 /** Hard cap on items read per machine (defensive). */
 const MAX_ITEMS_PER_MACHINE = 100;
+
+/**
+ * settle() reverts until Ledger.CurrentIndex > commitIndex (i.e. from the next
+ * block onward). There is no block-height read on the shared chain service, so
+ * the reveal waits roughly one Neo N3 block (~15s) before the first settle, then
+ * retries a few times with a short backoff to ride out indexer lag and a slow
+ * block. The contract's revert IS the safety gate — these timings only avoid a
+ * guaranteed-doomed first attempt.
+ */
+const REVEAL_FIRST_WAIT_MS = 15_000;
+const REVEAL_RETRY_DELAY_MS = 6_000;
+const REVEAL_MAX_ATTEMPTS = 4;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * A settle() reverts (rather than fails for another reason) when the reveal
+ * block has not been minted yet OR when the bet was already settled. Both are
+ * recoverable: the former is retried, the latter recovers the recorded outcome.
+ * Matched loosely against the surfaced revert message.
+ */
+const isTooEarlyRevert = (message: string): boolean =>
+  /current\s*index|commit|too\s*early|not\s*yet|later\s*block|reveal/i.test(message);
+
+const isAlreadySettledRevert = (message: string): boolean =>
+  /already\s*settled|settled|no\s*pending|unknown\s*bet|not\s*found/i.test(message);
+
+/** Player-facing phase of a two-step play (commit → reveal → done). */
+export type BetPhase = "idle" | "committing" | "committed" | "settling" | "settled";
 
 // ============================================================================
 // Types
@@ -197,15 +249,39 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
   const isLoadingMachines = createObservable(false);
 
   // ── Play State ─────────────────────────────────────────────────────
+  // isPlaying is true for the WHOLE two-step play (commit through settle) so the
+  // existing single double-submit guard and the view's spinner still hold.
   const isPlaying = createObservable(false);
   const showResult = createObservable(false);
   const resultItem = createObservable<MachineItem | null>(null);
   const playError = createObservable<string | null>(null);
   const showFireworks = createObservable(false);
   // Prepaid play credit (base units, GAS) held on the contract under the player.
-  // Surfaced so a stranded prepay (aborted pull) is visible and auto-consumed by
-  // the next pull — the contract has no play-credit-withdraw method.
+  // Surfaced so a stranded prepay (aborted commit) is visible and auto-consumed
+  // by the next play — the contract has no play-credit-withdraw method.
   const playCreditBase = createObservable(0n);
+
+  // ── Commit/Reveal (two-step) State ─────────────────────────────────
+  // The play is no longer instant: a committed bet awaits a later-block reveal.
+  // These observables drive the pending "drawing on next block" UI and the
+  // Reveal-retry button. pendingBetId is the resume handle — a settle can always
+  // be retried against it (settle is permissionless + safe to retry).
+  const betPhase = createObservable<BetPhase>("idle");
+  const pendingBetId = createObservable<string | null>(null);
+  const pendingMachineId = createObservable<string | null>(null);
+  // True when a committed bet still needs (or is mid-) reveal. Drives the
+  // Reveal-retry affordance so a timed-out settle is recoverable. Also true when
+  // the bet is committed but its betId is still unknown (commit event missed) —
+  // revealPending() then recovers the betId from the Committed log before
+  // settling, so the button must be reachable.
+  const canReveal = createDerived(
+    () =>
+      betPhase.get() !== "settled" &&
+      betPhase.get() !== "idle" &&
+      betPhase.get() !== "committing" &&
+      (pendingBetId.get() !== null || betPhase.get() === "committed"),
+    [pendingBetId, betPhase],
+  );
 
   // ── Publish State ──────────────────────────────────────────────────
   const isPublishing = createObservable(false);
@@ -225,6 +301,14 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     resultItem.set(null);
     playError.set(null);
     showFireworks.set(false);
+    // Clearing the result also clears a fully-settled pending bet so the next
+    // play starts clean. A still-pending (un-revealed) bet is preserved so the
+    // Reveal-retry path survives a dismissed result.
+    if (betPhase.get() === "settled") {
+      betPhase.set("idle");
+      pendingBetId.set(null);
+      pendingMachineId.set(null);
+    }
   };
 
   /** Build a MachineItem from a getItem Map (display + draw fields). */
@@ -472,29 +556,299 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     studioOpen.set(false);
   };
 
-  // ── Play Action (direct on-chain pull) ─────────────────────────────
+  // ── Play Action (commit → reveal-on-later-block → settle) ──────────
 
   /**
-   * Pull a gacha machine against the standalone contract.
+   * Read getPendingBet(betId) into a normalized record. Returns null when the
+   * bet is unknown / already cleared (the contract yields an empty map with no
+   * machineId once a bet settles and is purged).
+   */
+  const readPendingBet = async (
+    betId: string,
+  ): Promise<{
+    machineId: string;
+    commitIndex: bigint;
+    settled: boolean;
+    itemIndex: number;
+    prize: bigint;
+  } | null> => {
+    try {
+      const raw = await chain.read("getPendingBet", [
+        { type: "Integer", value: betId },
+      ]);
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+      const record = raw as Record<string, unknown>;
+      // A purged / unknown bet yields an empty map (no machineId key).
+      if (record.machineId === undefined && record.machine === undefined) return null;
+      return {
+        machineId: String(record.machineId ?? record.machine ?? ""),
+        commitIndex: parseBigInt(record.commitIndex ?? record.commitBlock ?? 0),
+        settled: Boolean(record.settled),
+        itemIndex: Number(parseBigInt(record.itemIndex ?? -1)),
+        prize: parseBigInt(record.prize ?? record.prizeAmount ?? 0),
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Recover the player's most recent still-pending betId from the Committed log.
+   * Used when a commit broadcast but its event wasn't observed in the wait window
+   * (betId unknown) — the bet is on chain, so the latest Committed(betId, player,
+   * …) for this player that getPendingBet confirms is unsettled is the resume
+   * handle the Reveal-retry button settles against. Returns null when none found.
+   */
+  const recoverPendingBetId = async (
+    playerHash: string,
+    machineIdHint: string,
+  ): Promise<string | null> => {
+    try {
+      const events = await chain.listAllEvents("Committed");
+      // Newest first — pick the latest Committed for this player that is still
+      // pending on chain. betId is slot 0; player is slot 2 for gacha's
+      // Committed(betId, machineId, player, commitIndex), but some indexers omit
+      // the machineId, so match the player defensively across slots 1 and 2.
+      const mine = events
+        .filter((ev) => {
+          const a = String(eventValue(ev, 1) ?? "").toLowerCase();
+          const b = String(eventValue(ev, 2) ?? "").toLowerCase();
+          const target = playerHash.toLowerCase();
+          return a === target || b === target;
+        })
+        .map((ev) => String(parseBigInt(eventValue(ev, 0))))
+        .filter((id) => id && id !== "0")
+        .reverse();
+      for (const id of mine) {
+        const pending = await readPendingBet(id);
+        if (pending && !pending.settled) return id;
+      }
+    } catch {
+      /* fall through */
+    }
+    // The hint machine has no betId mapping to recover; nothing else to try.
+    void machineIdHint;
+    return null;
+  };
+
+  /**
+   * Resolve the won MachineItem for display from an itemIndex + on-chain prize.
+   * Prefers the selected machine's cached item table, falls back to a fresh
+   * getItem read, and finally to a generic "prize" tile (the event/state already
+   * proves the win, so a missing item table must not hide it).
+   */
+  const setResultFromOutcome = async (
+    machineId: string,
+    itemIndex: number,
+    prizeAmount: bigint,
+  ): Promise<void> => {
+    const machine =
+      machines.get().find((m) => String(m.id) === String(machineId)) ??
+      selectedMachine.get();
+    const asset: PrizeAsset = machine?.prizeAsset ?? "GAS";
+
+    let wonItem: MachineItem | null =
+      machine && Number.isInteger(itemIndex) && itemIndex >= 0
+        ? machine.items[itemIndex] ?? null
+        : null;
+
+    if (!wonItem && Number.isInteger(itemIndex) && itemIndex >= 0) {
+      try {
+        const itemRaw = await chain.read("getItem", [
+          { type: "Integer", value: String(Math.trunc(Number(machineId))) },
+          { type: "Integer", value: String(itemIndex) },
+        ]);
+        if (itemRaw && typeof itemRaw === "object" && !Array.isArray(itemRaw)) {
+          wonItem = buildItem(
+            itemRaw as Record<string, unknown>,
+            asset,
+            machine?.totalWeight ?? 0,
+          );
+        }
+      } catch {
+        wonItem = null;
+      }
+    }
+
+    if (wonItem) {
+      // Prefer the on-chain prizeAmount from the event for the displayed payout.
+      resultItem.set({
+        ...wonItem,
+        amountRaw: Number(prizeAmount),
+        amountDisplay:
+          prizeAmount > 0n
+            ? `${formatPrizeAmount(prizeAmount, asset)} ${asset}`
+            : wonItem.amountDisplay,
+      });
+    } else {
+      resultItem.set({
+        name: t("unknownPrize"),
+        probability: 0,
+        displayProbability: 0,
+        rarity: "UNKNOWN",
+        assetType: 1,
+        assetHash: assetHash(asset),
+        amountRaw: Number(prizeAmount),
+        amountDisplay:
+          prizeAmount > 0n ? `${formatPrizeAmount(prizeAmount, asset)} ${asset}` : "0",
+        tokenId: "",
+        stockRaw: 0,
+        stockDisplay: "0",
+        tokenCount: 0,
+        decimals: asset === "NEO" ? 0 : 8,
+        available: false,
+        icon: "gift",
+      });
+    }
+
+    showResult.set(true);
+    showFireworks.set(true);
+    betPhase.set("settled");
+    await Promise.all([loadMachines(), loadPlayCredit()]);
+  };
+
+  /**
+   * Recover and show the recorded outcome of an already-settled bet (the retry
+   * path raced a prior settle). Reads getPendingBet first; if it's already
+   * purged, the most recent Settled event for this betId is the source of truth.
+   * Returns true when an outcome was recovered and displayed.
+   */
+  const recoverSettledOutcome = async (betId: string): Promise<boolean> => {
+    const pending = await readPendingBet(betId);
+    if (pending && pending.settled && pending.itemIndex >= 0) {
+      await setResultFromOutcome(pending.machineId, pending.itemIndex, pending.prize);
+      return true;
+    }
+    try {
+      const events = await chain.listAllEvents("Settled");
+      const match = events.find(
+        (ev) => String(eventValue(ev, 0)) === String(betId),
+      );
+      if (match) {
+        const machineId = String(eventValue(match, 1));
+        const itemIndex = Number(parseBigInt(eventValue(match, 3)));
+        const prize = parseBigInt(eventValue(match, 4));
+        await setResultFromOutcome(machineId, itemIndex, prize);
+        return true;
+      }
+    } catch {
+      /* fall through */
+    }
+    return false;
+  };
+
+  /**
+   * SETTLE step — reveal a committed bet on a later block. Permissionless and
+   * safe to retry. settle() reverts until Ledger.CurrentIndex > commitIndex, so
+   * a too-early revert is retried with a short backoff; an already-settled
+   * revert recovers the recorded outcome instead.
    *
-   * Two signed steps, both by the player:
-   *   1. PREPAY — if playCreditOf(player) < price, transfer the price in GAS to
-   *      the contract with the "miniapp-gasbox:play" memo so OnNEP17Payment
-   *      credits the player's play balance.
-   *   2. pull(machineId, player) — consumes the price from play credit, draws a
-   *      weighted item ON-CHAIN, and transfers the prize to the player in the
-   *      SAME tx. The won item is read from the "Pulled" event and resolved
-   *      against getItem(machineId, itemIndex). The prize is REAL — paid on
-   *      chain, not simulated.
+   * On a confirmed reveal the Settled event is read:
+   * Settled(betId, machineId, player, itemIndex, prize). Returns true once the
+   * outcome is shown, throws when no reveal could be obtained (caller may retry
+   * later via the Reveal button — the bet stays pending).
+   */
+  const settleBet = async (betId: string): Promise<boolean> => {
+    if (!betId) return false;
+    betPhase.set("settling");
+    playError.set(null);
+
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < REVEAL_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        const result = await chain.invoke(
+          "settle",
+          [{ type: "Integer", value: String(betId) }],
+          { waitForEvent: "Settled" },
+        );
+
+        // The reveal settled but no Settled event was observed within the wait
+        // window — recover the recorded outcome rather than claim a result blindly.
+        if (!result.event) {
+          if (await recoverSettledOutcome(betId)) return true;
+          lastErr = new Error(t("revealPendingRetry"));
+          await sleep(REVEAL_RETRY_DELAY_MS);
+          continue;
+        }
+
+        const machineId = String(eventValue(result.event, 1));
+        const itemIndex = Number(parseBigInt(eventValue(result.event, 3)));
+        const prize = parseBigInt(eventValue(result.event, 4));
+        await setResultFromOutcome(machineId, itemIndex, prize);
+        return true;
+      } catch (e) {
+        lastErr = e;
+        const msg = e instanceof Error ? e.message : String(e);
+        // Already settled (a prior settle won the race) — show that outcome.
+        if (isAlreadySettledRevert(msg) && (await recoverSettledOutcome(betId))) {
+          return true;
+        }
+        // Reveal block not minted yet — wait one more block and retry.
+        if (isTooEarlyRevert(msg) && attempt < REVEAL_MAX_ATTEMPTS - 1) {
+          await sleep(REVEAL_RETRY_DELAY_MS);
+          continue;
+        }
+        // A different / terminal error — stop retrying.
+        if (!isTooEarlyRevert(msg)) break;
+      }
+    }
+
+    // No reveal obtained. Keep the bet pending so the Reveal-retry button can
+    // try again later (settle is permissionless + idempotent-safe).
+    betPhase.set("committed");
+    const msg =
+      lastErr instanceof Error ? lastErr.message : t("revealPendingRetry");
+    playError.set(msg);
+    throw new Error(msg);
+  };
+
+  /**
+   * Reveal-retry entry point (the "Reveal result" button). Settles the persisted
+   * pending betId; when the betId is unknown (a commit whose event wasn't
+   * observed) it first recovers the handle from the Committed log. Returns true
+   * when the outcome is shown.
+   */
+  const revealPending = async (): Promise<boolean> => {
+    let betId = pendingBetId.get();
+    if (!betId) {
+      // Recover a lost betId from the player's latest pending Committed event.
+      const playerAddr = address.get();
+      const playerHash = playerAddr ? addressToScriptHash(playerAddr) || "" : "";
+      if (!playerHash) return false;
+      const recoveredId = await recoverPendingBetId(
+        playerHash,
+        pendingMachineId.get() ?? "",
+      );
+      if (!recoveredId) return false;
+      pendingBetId.set(recoveredId);
+      betId = recoveredId;
+    }
+    // Already-settled bet from a prior session/race — recover without resigning.
+    const recovered = await recoverSettledOutcome(betId);
+    if (recovered) return true;
+    return settleBet(betId);
+  };
+
+  /**
+   * Play a gacha machine via the v2 commit/reveal flow.
    *
-   * The pull's nested prize transfer needs a healthy systemFee; fee estimation
-   * is delegated to the chain service / dApi wallet (which budgets a buffer), so
-   * no manual fee is set here.
+   * Three steps, the first two signed by the player:
+   *   1. COMMIT — if playCreditOf(player) < price, deposit the price in GAS with
+   *      the "miniapp-gasbox:play" memo, THEN commit(machineId, player) in the
+   *      same flow. The bet is escrowed + the worst-case prize reserved; the
+   *      outcome is UNKNOWABLE here, so a loss cannot be aborted. The betId is
+   *      read from the "Committed" event (slot 0).
+   *   2. WAIT one block — settle() reverts until the next block, so the reveal
+   *      waits ~1 block before the first settle attempt.
+   *   3. SETTLE — settle(betId) draws + pays the prize and emits Settled; the won
+   *      item is read from that event. Permissionless + retryable.
    *
-   * Returns `true` on a confirmed on-chain pull (the Pulled event settled and a
-   * result was recorded), `false` for a no-op double-submit guard, and throws on
-   * any failure so notify.guard reports the real error. Callers use the boolean
-   * to advance per-user stats only on a real win.
+   * Returns `true` on a confirmed, settled win (caller advances per-user stats),
+   * `false` for a no-op double-submit guard. Throws on commit failure AND when a
+   * committed bet's reveal can't be obtained yet — but in the latter case the bet
+   * is left pending (betPhase "committed", canReveal true) so the surfaced
+   * "tap Reveal" message points the player at the Reveal-retry button, which
+   * finishes the settle (no funds at risk — the bet is escrowed on chain).
    */
   const playMachine = async (): Promise<boolean> => {
     const machine = selectedMachine.get();
@@ -534,9 +888,13 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
       isPlaying.set(true);
       playError.set(null);
       resetResult();
+      betPhase.set("committing");
+      pendingBetId.set(null);
+      pendingMachineId.set(machineIdInt);
 
-      // Step 1: PREPAY — only top up when the existing play credit can't cover
-      // the price (credit may persist from a prior aborted pull).
+      // ── Step 1: COMMIT ────────────────────────────────────────────
+      // Top up only when the existing play credit can't cover the price (credit
+      // may persist from a prior aborted commit).
       let credit = 0n;
       try {
         credit = parseBigInt(
@@ -548,111 +906,76 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
         credit = 0n;
       }
 
-      const pullArgs = [
+      const commitArgs = [
         { type: "Integer" as const, value: machineIdInt },
         { type: "Hash160" as const, value: playerHash },
       ];
 
-      // Step 2: pull — draws + pays the prize ON-CHAIN in this tx. Read the won
-      // item index from the Pulled event: Pulled(playId, machineId, player,
-      // itemIndex, prizeAmount).
-      //
-      // When the play credit can't cover the price, deposit THEN pull through
-      // prepayAndInvoke, which waits for the deposit to confirm in a block before
-      // pull() test-invokes — without it the pull faulted against pre-deposit
-      // state and the funded first pull always needed a retry.
-      let result;
+      // deposit-then-commit: when credit can't cover the price, prepayAndInvoke
+      // waits for the deposit to confirm in a block before commit() test-invokes.
+      let commitResult;
       try {
-        result =
+        commitResult =
           credit < priceBase
             ? await chain.prepayAndInvoke(
                 priceBase.toString(),
                 PLAY_MEMO,
-                "pull",
-                pullArgs,
-                { waitForEvent: "Pulled" },
+                "commit",
+                commitArgs,
+                { waitForEvent: "Committed" },
               )
-            : await chain.invoke("pull", pullArgs, { waitForEvent: "Pulled" });
-      } catch (pullErr) {
-        // Deposit confirmed but pull reverted — the prepaid play credit persists
-        // on the contract and is reused on the next pull (no funds lost).
-        if (pullErr instanceof DepositConfirmedActionFailedError) {
+            : await chain.invoke("commit", commitArgs, {
+                waitForEvent: "Committed",
+              });
+      } catch (commitErr) {
+        // Deposit confirmed but commit reverted — the prepaid play credit
+        // persists on the contract and is reused on the next play (no funds lost).
+        if (commitErr instanceof DepositConfirmedActionFailedError) {
+          betPhase.set("idle");
+          pendingMachineId.set(null);
           await loadPlayCredit();
-          throw new Error(t("playPrepaidNoPull"));
+          throw new Error(t("playPrepaidNoCommit"));
         }
-        throw pullErr;
+        throw commitErr;
       }
 
-      const itemIndex = Number(parseBigInt(eventValue(result.event, 3)));
-      const prizeAmount = parseBigInt(eventValue(result.event, 4));
-
-      // Resolve the won item from getItem(machineId, itemIndex). Fall back to the
-      // cached item table if the read fails (the event already proves the win).
-      let wonItem: MachineItem | null =
-        Number.isInteger(itemIndex) && itemIndex >= 0
-          ? machine.items[itemIndex] ?? null
-          : null;
-      const asset: PrizeAsset = machine.prizeAsset ?? "GAS";
-
-      if (!wonItem && Number.isInteger(itemIndex) && itemIndex >= 0) {
-        try {
-          const itemRaw = await chain.read("getItem", [
-            { type: "Integer", value: machineIdInt },
-            { type: "Integer", value: String(itemIndex) },
-          ]);
-          if (itemRaw && typeof itemRaw === "object" && !Array.isArray(itemRaw)) {
-            wonItem = buildItem(
-              itemRaw as Record<string, unknown>,
-              asset,
-              machine.totalWeight,
-            );
-          }
-        } catch {
-          wonItem = null;
+      // betId is slot 0 of Committed(betId, machineId, player, commitIndex).
+      let betId = String(parseBigInt(eventValue(commitResult.event, 0)));
+      if (!betId || betId === "0") {
+        // The commit broadcast but its event wasn't observed in the wait window;
+        // the bet is on chain. Recover the latest still-pending betId for this
+        // player from the Committed log so the Reveal-retry path can settle it.
+        const recovered = await recoverPendingBetId(playerHash, machineIdInt);
+        await loadPlayCredit();
+        if (recovered) {
+          pendingBetId.set(recovered);
+          betPhase.set("committed");
+          betId = recovered;
+        } else {
+          // No betId yet — leave pending without a handle and ask the player to
+          // tap Reveal shortly (a later getPendingBet/Committed read will resolve
+          // it). canReveal stays false until pendingBetId is known.
+          betPhase.set("committed");
+          throw new Error(t("commitPendingRetry"));
         }
-      }
-
-      if (wonItem) {
-        // Prefer the on-chain prizeAmount from the event for the displayed payout.
-        resultItem.set({
-          ...wonItem,
-          amountRaw: Number(prizeAmount),
-          amountDisplay:
-            prizeAmount > 0n
-              ? `${formatPrizeAmount(prizeAmount, asset)} ${asset}`
-              : wonItem.amountDisplay,
-        });
       } else {
-        resultItem.set({
-          name: t("unknownPrize"),
-          probability: 0,
-          displayProbability: 0,
-          rarity: "UNKNOWN",
-          assetType: 1,
-          assetHash: assetHash(asset),
-          amountRaw: Number(prizeAmount),
-          amountDisplay:
-            prizeAmount > 0n ? `${formatPrizeAmount(prizeAmount, asset)} ${asset}` : "0",
-          tokenId: "",
-          stockRaw: 0,
-          stockDisplay: "0",
-          tokenCount: 0,
-          decimals: asset === "NEO" ? 0 : 8,
-          available: false,
-          icon: "gift",
-        });
+        pendingBetId.set(betId);
+        betPhase.set("committed");
+        await loadPlayCredit();
       }
 
-      showResult.set(true);
-      showFireworks.set(true);
+      // ── Step 2: WAIT one block ────────────────────────────────────
+      // settle() reverts until Ledger.CurrentIndex > commitIndex.
+      await sleep(REVEAL_FIRST_WAIT_MS);
 
-      await Promise.all([loadMachines(), loadPlayCredit()]);
-      // Confirmed on-chain pull — the caller increments per-user stats only here.
-      return true;
+      // ── Step 3: SETTLE (reveal) ───────────────────────────────────
+      // settleBet keeps the bet pending + throws if it can't reveal yet, so the
+      // Reveal-retry button can finish it. A confirmed reveal returns true.
+      return await settleBet(betId);
     } catch (e) {
-      // Surface the failure so notify.guard reports the real error and
-      // suppresses the false success toast. The prepay may have settled, so the
-      // credit persists on the contract and the pull can be retried.
+      // Surface the failure so notify.guard reports the real error and suppresses
+      // the false success toast. A committed-but-unrevealed bet stays pending
+      // (canReveal) so the player can finish the reveal from the Reveal button.
       playError.set(e instanceof Error ? e.message : t("error"));
       throw e;
     } finally {
@@ -941,6 +1264,13 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     () => `${formatGas(playCreditBase.get(), 4)} ${t("tokenGas")}`,
     [playCreditBase],
   );
+  // True only while a bet is committed and awaiting its later-block reveal — the
+  // "drawing on next block" pending state. Distinct from canReveal (which also
+  // stays true mid-settle so the Reveal button can re-fire after a failed retry).
+  const isAwaitingReveal = createDerived(
+    () => betPhase.get() === "committed" || betPhase.get() === "settling",
+    [betPhase],
+  );
 
   return {
     // ── Raw State ───────────────────────────────────────────────────
@@ -955,6 +1285,12 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     isPublishing,
     studioOpen,
     address,
+    // Commit/reveal (two-step) state.
+    betPhase,
+    pendingBetId,
+    pendingMachineId,
+    canReveal,
+    isAwaitingReveal,
 
     // ── Formatted values (for manifest stat/sidebar bindings) ────────
     machineCount,
@@ -972,6 +1308,8 @@ export function useGasBox({ chain, t }: UseGasBoxOptions) {
     closeStudio,
     resetResult,
     playMachine,
+    settleBet,
+    revealPending,
     publishMachine,
     withdrawRevenue,
     topUpPool,

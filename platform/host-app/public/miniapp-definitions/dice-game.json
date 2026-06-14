@@ -2,7 +2,7 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "miniapp-dice-game",
   "name": "Dice Game",
-  "description": "Morpheus VRF dice roll with app-scoped GAS credit and on-chain settlement.",
+  "description": "Commit/reveal on-chain dice roll with app-scoped GAS credit: the wager commits in one transaction and the roll reveals on a strictly later block.",
   "template_type": "gaming",
   "category": "Gaming",
   "tags": [
@@ -19,7 +19,7 @@
   },
   "contract": {
     "template_id": "gaming-dice",
-    "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6"
+    "contract_hash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39"
   },
   "entry_url": "mf://manifest?app=miniapp-dice-game",
   "media": {
@@ -34,7 +34,7 @@
     "layout": "default",
     "operation_panel": {
       "title": "Roll Dice",
-      "subtitle": "Fund GAS credit, choose one face, then roll with Morpheus VRF.",
+      "subtitle": "Fund GAS credit, choose one face, then commit your bet — the roll reveals on the next block.",
       "operations": []
     }
   },
@@ -161,12 +161,12 @@
           "moduleType": 4,
           "networks": {
             "neo-n3-mainnet": {
-              "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
+              "contract_hash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
               "registered": true,
               "domain": "dicegame.miniapp.neo"
             },
             "neo-n3-testnet": {
-              "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
+              "contract_hash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
               "registered": true
             }
           }
@@ -174,8 +174,8 @@
       ]
     },
     "contracts": {
-      "neo-n3-mainnet": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
-      "neo-n3-testnet": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6"
+      "neo-n3-mainnet": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
+      "neo-n3-testnet": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39"
     },
     "contract_domains": {
       "neo-n3-mainnet": "dicegame.miniapp.neo"
@@ -183,7 +183,7 @@
     "deployment": {
       "neo-n3-mainnet": {
         "status": "deployed",
-        "contract_hash": "0x2c6134f9a37327fc785c1509dea640a6d30d13a6",
+        "contract_hash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
         "registered": true,
         "domain": "dicegame.miniapp.neo",
         "deployed_at": "2026-06-14T00:00:00Z",

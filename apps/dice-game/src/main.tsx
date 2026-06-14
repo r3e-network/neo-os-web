@@ -24,7 +24,16 @@ const PAYOUT_MULTIPLIER = 5.7;
 const LIQUIDITY_COVER_MULTIPLE = 47 / 10; // = 4.7
 
 // Memos the contract requires on the GAS-transfer deposits (OnNEP17Payment).
-const STAKE_MEMO = `${appId}:stake`; // player bet credit
+// UNCHANGED from v1 — the v2 commit() escrows the wager via this same memo.
+const STAKE_MEMO = `${appId}:stake`; // player bet credit / commit wager
+// Neo N3 commit/reveal pacing. After commit, the outcome is drawn from the
+// GetRandom of a block STRICTLY LATER than the commit block, so the result is
+// unknowable at commit and cannot be aborted on a loss. We wait roughly one
+// block before the first settle attempt, then retry — settle() reverts (and is
+// safe to retry) until Ledger.CurrentIndex has advanced past the commit block.
+const SETTLE_INITIAL_WAIT_MS = 18_000; // ~1 Neo N3 block (15s) + margin
+const SETTLE_RETRY_DELAY_MS = 6_000; // between settle re-attempts
+const SETTLE_MAX_ATTEMPTS = 8; // ~18s + 8×6s ≈ 66s total before giving up
 // Neo X (EVM) dice deployment. The Neo N3 path calls the self-contained
 // MiniAppDiceGame (resolved by the host from the manifest) directly; the EVM
 // path calls the EVM contract directly. The two branches are independent.
@@ -87,6 +96,34 @@ function addrEq(eventValue: unknown, playerHash: string): boolean {
   // Indexers may serialize the Hash160 big- or little-endian; accept either.
   const reversed = (b.match(/../g) ?? []).reverse().join("");
   return a === b || a === reversed;
+}
+
+/**
+ * The v2 contract's betId is a BigInteger (incrementing counter). Indexers may
+ * serialize it as a decimal string, a number, or a little-endian hex byte
+ * string. Normalize any of those to a canonical decimal string ("" if unknown)
+ * so it can be compared and passed back as an Integer arg to settle().
+ */
+function parseBetId(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "number" && Number.isFinite(value)) return String(Math.trunc(value));
+  if (typeof value === "bigint") return value.toString();
+  const raw = String(value).trim();
+  if (raw.length === 0) return "";
+  // Plain decimal (the common indexer shape).
+  if (/^\d+$/.test(raw)) return raw;
+  // Hex (with/without 0x) — Neo serializes integers little-endian, so reverse
+  // the byte order before interpreting.
+  const hex = raw.toLowerCase().replace(/^0x/, "");
+  if (/^[0-9a-f]+$/.test(hex) && hex.length % 2 === 0) {
+    try {
+      const le = (hex.match(/../g) ?? []).reverse().join("");
+      return BigInt(`0x${le}`).toString();
+    } catch {
+      return "";
+    }
+  }
+  return "";
 }
 
 defineMiniApp({
@@ -187,10 +224,10 @@ defineMiniApp({
     };
 
     /**
-     * On (re)load, seed history from the connected player's settled Rolled events
-     * so a refresh doesn't lose a roll that DID land on-chain. The standalone
-     * MiniAppDiceGame settles every N3 roll atomically in the bet tx and emits
-     * Rolled(gameId, player, face, rolled, won, payout) — state slots: gameId(0),
+     * On (re)load, seed history from the connected player's Settled events so a
+     * refresh doesn't lose a bet that DID settle on-chain. The v2
+     * MiniAppDiceGameV2 reveals each bet in a separate settle() tx and emits
+     * Settled(betId, player, face, rolled, won, payout) — state slots: betId(0),
      * player(1), face(2), rolled(3), won(4), payout(5). Only seeds when the
      * in-memory history is empty (a fresh load), newest-first.
      */
@@ -200,7 +237,7 @@ defineMiniApp({
       const playerHash = player ? addressToScriptHash(player) : "";
       if (!playerHash || rollHistory.get().length > 0) return;
       try {
-        const events = await ctx.services.chain.listEvents("Rolled", { limit: 60 });
+        const events = await ctx.services.chain.listEvents("Settled", { limit: 60 });
         const mine = events
           .filter((ev) => addrEq(eventStateValue(ev, 1), playerHash))
           // Newest first — the indexer returns oldest-first, so reverse.
@@ -281,17 +318,95 @@ defineMiniApp({
       tracker.markUnresolved(rowId); // timed out — stays "rolling" in history
     };
 
-    // Neo N3: re-read the Rolled event for an already-settled roll whose event
-    // read timed out at submit (the tx halted, so the result IS on-chain). Used
-    // only by the rare event-timeout "Check again" path; the normal N3 roll
-    // settles synchronously from the bet tx's own Rolled event.
-    const recheckN3Roll = async (rowId: string, txid: string, amount: string) => {
-      const player = ctx.services.chain.address.get();
-      const playerHash = player ? addressToScriptHash(player) : "";
-      for (let i = 0; i < 6; i += 1) {
-        await sleep(4000);
+    // Neo N3 v2 — find a betId's already-recorded Settled outcome by scanning the
+    // Settled event log (the settle() tx halted, so the result IS on-chain even if
+    // the event-wait timed out, or another caller settled it first). Returns the
+    // matching event or null. betId (slot 0) is compared as a canonical decimal.
+    const findSettledEvent = async (betId: string): Promise<unknown | null> => {
+      if (!betId) return null;
+      try {
+        const events = await ctx.services.chain.listEvents("Settled", { limit: 60 });
+        const hit = [...events]
+          .reverse()
+          .find((ev) => parseBetId(eventStateValue(ev, 0)) === betId);
+        return hit ?? null;
+      } catch {
+        return null;
+      }
+    };
+
+    // Reveal a settled betId from its Settled event (slots: betId(0), player(1),
+    // face(2), rolled(3), won(4), payout(5)). Returns true if revealed.
+    const revealFromSettledEvent = (rowId: string, event: unknown, amount: string): boolean => {
+      if (event == null) return false;
+      const rolled = Number(eventStateValue(event, 3)) || 0;
+      const won = asBool(eventStateValue(event, 4));
+      finishResolve(rowId, won ? "won" : "lost", rolled, amount);
+      return true;
+    };
+
+    /**
+     * Neo N3 v2 — settle a committed bet. The outcome is unknowable until a block
+     * strictly LATER than the commit block, so we wait ~1 block then call the
+     * PERMISSIONLESS settle(betId), waiting for the Settled event. settle()
+     * reverts until Ledger.CurrentIndex passes the commit block and is safe to
+     * retry, so a revert/timeout simply re-attempts (after first checking the
+     * Settled log in case it already landed). On success the outcome is read from
+     * the Settled event; if all attempts are exhausted the bet is left unresolved
+     * so the player can press "Reveal result" to retry.
+     */
+    const settleN3Bet = async (rowId: string, betId: string, amount: string, initialWaitMs = SETTLE_INITIAL_WAIT_MS) => {
+      if (!betId) {
+        tracker.markUnresolved(rowId);
+        lastStatus.set(ctx.t("statusSettlementPending"));
+        ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+        return;
+      }
+      // Wait roughly one block so the reveal block exists before the first settle.
+      if (initialWaitMs > 0) await sleep(initialWaitMs);
+      for (let attempt = 0; attempt < SETTLE_MAX_ATTEMPTS; attempt += 1) {
+        // Another caller (settle is permissionless) may have settled it already —
+        // or a prior attempt's event read timed out though the tx halted.
+        const prior = await findSettledEvent(betId);
+        if (revealFromSettledEvent(rowId, prior, amount)) return;
         try {
-          const events = await ctx.services.chain.listEvents("Rolled", { limit: 40 });
+          const result = await ctx.services.chain.invoke(
+            "settle",
+            [{ type: "Integer", value: betId }],
+            { waitForEvent: "Settled", waitTimeoutMs: 30_000 },
+          );
+          if (revealFromSettledEvent(rowId, result.event, amount)) return;
+          // The settle tx halted but the event read timed out — re-read the log.
+          const settled = await findSettledEvent(betId);
+          if (revealFromSettledEvent(rowId, settled, amount)) return;
+        } catch {
+          // settle() reverted (reveal block not reached yet, or already settled) —
+          // re-check the log then back off and retry.
+          const settled = await findSettledEvent(betId);
+          if (revealFromSettledEvent(rowId, settled, amount)) return;
+        }
+        await sleep(SETTLE_RETRY_DELAY_MS);
+      }
+      // Out of attempts — leave it unresolved with a retry handle.
+      tracker.markUnresolved(rowId);
+      recheckActiveBet = () => void settleN3Bet(rowId, betId, amount, 0);
+      lastStatus.set(ctx.t("statusSettlementPending"));
+      ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+    };
+
+    /**
+     * Neo N3 v2 — recover a betId from the Committed event log when the commit
+     * tx's own event read timed out (the tx halted, so the bet IS committed). We
+     * locate the Committed event by txid (falling back to the player's newest
+     * Committed event), read its betId (slot 0), then drive the normal
+     * wait→settle flow. If the betId can't be recovered the bet stays unresolved
+     * for a manual retry.
+     */
+    const recoverAndSettleN3 = async (rowId: string, txid: string, playerHash: string, amount: string) => {
+      for (let i = 0; i < 6; i += 1) {
+        await sleep(SETTLE_RETRY_DELAY_MS);
+        try {
+          const events = await ctx.services.chain.listEvents("Committed", { limit: 40 });
           const hit = txid
             ? events.find((ev) => String((ev as { txid?: unknown })?.txid ?? "") === txid)
             : undefined;
@@ -300,9 +415,9 @@ defineMiniApp({
             (playerHash
               ? [...events].reverse().find((ev) => addrEq(eventStateValue(ev, 1), playerHash))
               : undefined);
-          if (mine) {
-            const won = asBool(eventStateValue(mine, 4));
-            finishResolve(rowId, won ? "won" : "lost", Number(eventStateValue(mine, 3)) || 0, amount);
+          const betId = mine ? parseBetId(eventStateValue(mine, 0)) : "";
+          if (betId) {
+            await settleN3Bet(rowId, betId, amount, 0);
             return;
           }
         } catch {
@@ -310,6 +425,8 @@ defineMiniApp({
         }
       }
       tracker.markUnresolved(rowId);
+      lastStatus.set(ctx.t("statusSettlementPending"));
+      ctx.setStatus(ctx.t("statusSettlementPending"), "info");
     };
 
     // Host operation-panel "Fund Stake": pre-fund bet credit by transferring GAS
@@ -450,16 +567,16 @@ defineMiniApp({
           return result;
         }
 
-        // -- Neo N3 — self-contained, ATOMIC roll (settles in the bet tx) ------
+        // -- Neo N3 v2 — COMMIT → wait one block → SETTLE (anti-abort) ---------
         const player = await ctx.services.chain.ensureWallet();
         const playerHash = addressToScriptHash(player);
         if (!playerHash) {
           throw new Error(ctx.t("statusFailed"));
         }
-        // PRE-FLIGHT: the standalone contract asserts bankroll >= stake * 4.7
-        // INSIDE roll() — i.e. after the deposit already landed. With the live
-        // bankroll (re-read here for freshness), refuse a stake the house cannot
-        // pay BEFORE depositing, so the GAS is never stranded as credit.
+        // PRE-FLIGHT: commit() reserves the house exposure (bankroll >= stake *
+        // 4.7) when the wager is escrowed. With the live free bankroll (re-read
+        // here for freshness), refuse a stake the house cannot cover a win on
+        // BEFORE depositing, so the GAS is never stranded as credit.
         await refreshLiquidity(network);
         const cap = maxPayableStake.get();
         if (cap > 0 && Number(nextAmount) > cap) {
@@ -470,23 +587,26 @@ defineMiniApp({
             }),
           );
         }
-        // DEPOSIT (miniapp-dice-game:stake) then roll(player, face, amount). The
-        // roll settles ON-CHAIN in the SAME tx via Runtime.GetRandom and pays a
-        // 5.70x win atomically — the outcome is read straight from the Rolled
-        // event, no oracle, no pending state. stakeSent flips the moment the
-        // stake transfer broadcasts so a post-deposit roll fault is surfaced as
-        // recoverable (and now WITHDRAWABLE) credit.
+        // STEP 1 — COMMIT. DEPOSIT (miniapp-dice-game:stake) then
+        // commit(player, face, amount) in the SAME tx: the wager is escrowed and
+        // the house exposure reserved. The outcome is drawn from the GetRandom of
+        // a block STRICTLY LATER than this commit block, so it is unknowable now
+        // and the bet cannot be aborted on a loss (the v1 same-tx drain is gone).
+        // The contract emits Committed(betId, player, face, commitIndex) — we read
+        // the betId from it. stakeSent flips the moment the wager transfer
+        // broadcasts so a post-deposit commit fault is surfaced as recoverable
+        // (and WITHDRAWABLE) credit.
         const result = await ctx.services.chain.invokeWithPayment(
           amountFixed8,
           STAKE_MEMO,
-          "roll",
+          "commit",
           [
             { type: "Hash160", value: playerHash },
             { type: "Integer", value: nextFace },
             { type: "Integer", value: amountFixed8 },
           ],
           {
-            waitForEvent: "Rolled",
+            waitForEvent: "Committed",
             waitTimeoutMs: 30_000,
             onPaymentSent: () => {
               stakeSent = true;
@@ -495,38 +615,43 @@ defineMiniApp({
         );
 
         lastTxid.set(result.txid ?? "");
+        // Committed(betId, player, face, amount, commitIndex): betId is slot 0
+        // (a BigInteger counter). The wager is now escrowed; reflect a clear
+        // pending "revealing on the next block" state. The bet is irrevocable.
+        const betId = result.event != null ? parseBetId(eventStateValue(result.event, 0)) : "";
         const rowId = tracker.beginBet({
           face: nextFace,
           stake: `${nextAmount} GAS`,
-          result: ctx.t("statusRolling"),
+          result: ctx.t("statusRevealing"),
           payout: payoutFor(nextAmount),
           outcome: "pending" as RollOutcome,
           txid: result.txid ?? "",
           at: new Date().toISOString(),
         });
-        // Rolled(gameId, player, face, rolled, won, payout): rolled slot 3,
-        // won slot 4, payout slot 5. The roll is final the instant the tx halts,
-        // so begin and settle the bet row in one shot — no polling. If the
-        // indexer event read timed out (event null) the roll STILL settled
-        // on-chain; rather than fabricate a win/loss, leave the row unresolved so
-        // hydrateHistory reconciles the true result (from Rolled events) on the
-        // next load — and the player can re-poll via "Check again".
-        if (result.event != null) {
-          const rolled = Number(eventStateValue(result.event, 3)) || 0;
-          const won = asBool(eventStateValue(result.event, 4));
-          finishResolve(rowId, won ? "won" : "lost", rolled, nextAmount);
-        } else {
-          tracker.markUnresolved(rowId);
-          recheckActiveBet = () => void recheckN3Roll(rowId, result.txid ?? "", nextAmount);
-          lastStatus.set(ctx.t("statusSettlementPending"));
-          ctx.setStatus(ctx.t("statusSettlementPending"), "info");
-        }
-        // Reconcile bankroll + credit after the settled roll.
+        lastStatus.set(ctx.t("statusBetPlaced"));
+        ctx.setStatus(
+          `${ctx.t("statusBetPlaced")}${result.txid ? `: ${formatHash(result.txid, 10, 8)}` : ""}`,
+          "info",
+        );
+        // Reconcile bankroll + credit after the wager was escrowed.
         try {
           await refreshLiquidity(network);
         } catch {
           /* keep the prior values */
         }
+        if (!betId) {
+          // The commit tx halted but the Committed event read timed out — without
+          // the betId we cannot settle. Recover the betId from the Committed log
+          // by txid, then settle; offer a manual retry meanwhile.
+          recheckActiveBet = () => void recoverAndSettleN3(rowId, result.txid ?? "", playerHash, nextAmount);
+          void recoverAndSettleN3(rowId, result.txid ?? "", playerHash, nextAmount);
+          return result;
+        }
+        // STEP 2 + 3 — wait one block then settle(betId), revealing the outcome
+        // from the Settled event. Runs asynchronously so the user can keep
+        // playing; "Reveal result" re-runs settle if it times out.
+        recheckActiveBet = () => void settleN3Bet(rowId, betId, nextAmount, 0);
+        void settleN3Bet(rowId, betId, nextAmount);
         return result;
       } catch (error) {
         const rawMessage = error instanceof Error ? error.message : ctx.t("statusFailed");
@@ -563,16 +688,17 @@ defineMiniApp({
       }
     });
 
-    // "Check again": re-run the active bet's settlement poll after it timed out
-    // unresolved. On EVM this awaits the VRF callback; on N3 it only ever runs in
-    // the rare case the Rolled-event read timed out at submit (the roll already
-    // settled on-chain), re-reading the event. The N3 roll otherwise settles
-    // synchronously from the bet tx and never enters this state.
+    // "Reveal result": re-run the active bet's reveal after the settle poll timed
+    // out unresolved. On EVM this awaits the VRF callback; on N3 v2 it re-calls
+    // the PERMISSIONLESS settle(betId) (safe to retry — a revert simply means the
+    // reveal block isn't reached yet, and an "already settled" revert is
+    // reconciled by re-reading the Settled event). The wager is escrowed and the
+    // outcome is fixed once a later block exists, so this never loses funds.
     ctx.registerAction("recheckSettlement", async () => {
       if (!recheckActiveBet || isResolving.get()) return;
       isUnresolved.set(false);
       isResolving.set(true);
-      lastStatus.set(ctx.t("statusRolling"));
+      lastStatus.set(ctx.t("statusRevealing"));
       recheckActiveBet();
     });
 

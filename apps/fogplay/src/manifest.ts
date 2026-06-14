@@ -20,7 +20,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // -- Identity ---------------------------------------------------------------
   name: "FogPlay",
-  description: "Instant on-chain coin toss with a 2x payout",
+  description: "Provably-fair on-chain coin toss with a 2x payout",
   icon: "coin",
   category: "game",
   shell: "game",
@@ -74,7 +74,8 @@ export const manifest: MiniAppManifest = {
   ],
 
   // -- Contract ---------------------------------------------------------------
-  // FogPlay uses a custom payment flow (direct GAS transfer + oracle VRF).
+  // FogPlay uses a custom payment flow: a direct GAS transfer commits the bet,
+  // then a permissionless settle reveals the outcome from a later block.
   contract: {
     mode: "custom",
   },

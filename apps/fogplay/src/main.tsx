@@ -24,9 +24,20 @@ defineMiniApp({
     coinFlip.setAddress(ctx.services.chain.address.get() ?? null);
 
     ctx.registerAction("placeBet", async () => {
-      // The toast must reflect the actual outcome — placeBet resolves on both a
-      // win and a loss, so a blanket "youWon" success key would celebrate losses.
+      // The toast must reflect the actual outcome — placeBet commits, waits one
+      // block, then settles and resolves on both a win and a loss, so a blanket
+      // "youWon" success key would celebrate losses.
       const result = await ctx.services.notify.guard(() => coinFlip.placeBet());
+      if (result) {
+        if (result.won) ctx.services.notify.success("youWon");
+        else ctx.services.notify.info("youLost");
+      }
+    });
+
+    ctx.registerAction("revealResult", async () => {
+      // Permissionless, idempotent retry of settle() for the persisted pending
+      // bet — used by the "Reveal result" button when the inline reveal failed.
+      const result = await ctx.services.notify.guard(() => coinFlip.revealResult());
       if (result) {
         if (result.won) ctx.services.notify.success("youWon");
         else ctx.services.notify.info("youLost");
@@ -67,12 +78,15 @@ defineMiniApp({
         betAmount: coinFlip.betAmount,
         choice: coinFlip.choice,
         isFlipping: coinFlip.isFlipping,
+        revealing: coinFlip.revealing,
         result: coinFlip.result,
         displayOutcome: coinFlip.displayOutcome,
         showWinOverlay: coinFlip.showWinOverlay,
         winAmount: coinFlip.winAmount,
         validationError: coinFlip.validationError,
         canBet: coinFlip.canBet,
+        hasPendingBet: coinFlip.hasPendingBet,
+        revealFailed: coinFlip.revealFailed,
         gameHistory: coinFlip.gameHistory,
         bankrollBase: coinFlip.bankrollBase,
         creditBase: coinFlip.creditBase,

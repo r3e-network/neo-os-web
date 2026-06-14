@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "uni",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "vitest run"
   },
   "dependencies": {},
   "devDependencies": {

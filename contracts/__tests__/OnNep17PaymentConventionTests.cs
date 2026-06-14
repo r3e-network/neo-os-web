@@ -41,6 +41,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             new object[] { "MiniAppDailyCheckin", "MiniAppDailyCheckin/MiniAppDailyCheckin.cs" },
             new object[] { "MiniAppDiceGame", "MiniAppDiceGame/MiniAppDiceGame.cs" },
             new object[] { "MiniAppGasBox", "MiniAppGasBox/MiniAppGasBox.cs" },
+            new object[] { "MiniAppGasBoxV2", "MiniAppGasBoxV2/MiniAppGasBoxV2.cs" },
             new object[] { "MiniAppGovMerc", "MiniAppGovMerc/MiniAppGovMerc.cs" },
             new object[] { "MiniAppLastSurvivor", "MiniAppLastSurvivor/MiniAppLastSurvivor.cs" },
             new object[] { "MiniAppMilestoneEscrow", "MiniAppMilestoneEscrow/MiniAppMilestoneEscrow.Lifecycle.cs" },
