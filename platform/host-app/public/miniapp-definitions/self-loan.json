@@ -78,7 +78,7 @@
             "title": "How it works",
             "items": [
               "Transfer NEO to the contract as collateral.",
-              "Pick an LTV tier (1 = conservative, 3 = aggressive) and call createLoan to draw GAS.",
+              "Pick an LTV tier (1 = conservative, 3 = aggressive) and call borrow to draw GAS.",
               "SelfLoan can sync collateralized NEO voting to ProfitAnchor's selected route without transferring collateral custody.",
               "NEO staking rewards flow to the contract and repay the debt. Once repaid, the NEO is released back to you."
             ]
@@ -112,20 +112,12 @@
   },
   "operations": [
     {
-      "name": "Create Loan",
-      "method": "createLoan",
+      "name": "Borrow",
+      "method": "borrow",
       "button_style": "primary",
       "priority": "primary",
-      "description": "Locks whole NEO as collateral and calls PlatformDeFi createLoan in the same wallet transaction. Testnet can include a small GAS liquidity top-up so the loan can settle.",
+      "description": "Deposits whole NEO as collateral (memo selfloan:collateral) and calls borrow(borrower, tier) in the same wallet transaction to draw GAS. The owner can include a GAS pool top-up (memo selfloan:fund) so a fresh pool can settle the disbursement.",
       "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-self-loan",
-          "hidden": true
-        },
         {
           "name": "borrower",
           "type": "hash160",
@@ -158,7 +150,7 @@
           ]
         },
         {
-          "name": "ltvTier",
+          "name": "tier",
           "type": "select",
           "label": "LTV Tier",
           "required": true,
@@ -190,26 +182,19 @@
       ]
     },
     {
-      "name": "Repay Loan",
-      "method": "repayLoan",
+      "name": "Repay",
+      "method": "repay",
       "button_style": "primary",
       "priority": "primary",
-      "description": "Prepays GAS to the SelfLoan credit ledger and calls repayLoan for the selected loan.",
+      "description": "Prepays GAS to the SelfLoan credit ledger (memo selfloan:repay) and calls repay(borrower), which applies the credit to your loan (capped at the debt) and releases the NEO collateral on full repayment.",
       "params": [
         {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
+          "name": "borrower",
+          "type": "hash160",
+          "label": "Borrower",
           "required": true,
-          "default_value": "miniapp-self-loan",
+          "default_value": "$wallet",
           "hidden": true
-        },
-        {
-          "name": "loanId",
-          "type": "integer",
-          "label": "Loan ID",
-          "required": true,
-          "placeholder": "1"
         },
         {
           "name": "repayGas",
@@ -227,22 +212,15 @@
       "method": "addCollateral",
       "button_style": "secondary",
       "priority": "secondary",
-      "description": "Transfers additional whole NEO collateral and applies it to an active loan.",
+      "description": "Deposits additional whole NEO collateral (memo selfloan:collateral) and calls addCollateral(borrower) to move it into your active loan.",
       "params": [
         {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
+          "name": "borrower",
+          "type": "hash160",
+          "label": "Borrower",
           "required": true,
-          "default_value": "miniapp-self-loan",
+          "default_value": "$wallet",
           "hidden": true
-        },
-        {
-          "name": "loanId",
-          "type": "integer",
-          "label": "Loan ID",
-          "required": true,
-          "placeholder": "1"
         },
         {
           "name": "collateralNeo",
@@ -251,23 +229,6 @@
           "required": true,
           "default_value": "1",
           "placeholder": "1"
-        }
-      ]
-    },
-    {
-      "name": "Sync Anchor Vote",
-      "method": "syncProfitAnchorVote",
-      "button_style": "secondary",
-      "priority": "operator",
-      "description": "Syncs SelfLoan collateral voting to the ProfitAnchor selected route when the runtime has been configured.",
-      "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-self-loan",
-          "hidden": true
         }
       ]
     }
