@@ -16,6 +16,7 @@ import {
   SENSITIVE_BRIDGE_METHODS,
   confirmSensitiveBridgeOperation,
   handleEmbeddedWalletBridgeRequest,
+  requireBridgeWallet,
 } from "./request-handler";
 
 export function useEmbeddedWalletBridge({
@@ -96,13 +97,31 @@ export function useEmbeddedWalletBridge({
 
       // Audit fix (confirmation hardening): require explicit user approval before any signing
       // or fund-moving wallet operation requested by the embedded miniapp.
-      if (
-        SENSITIVE_BRIDGE_METHODS.has(method) &&
-        !confirmSensitiveBridgeOperation(appId, method, data.payload)
-      ) {
-        dispatchBridgeError("User rejected the request.", true);
-        reply({ ok: false, error: { message: "User rejected the request." } });
-        return;
+      if (SENSITIVE_BRIDGE_METHODS.has(method)) {
+        // Validate the wallet/network BEFORE prompting — a disconnected or
+        // wrong-network wallet should error immediately instead of asking the
+        // user to approve a request that can never succeed. `invoke`/`send`
+        // additionally require a verified (non-null) wallet network.
+        try {
+          requireBridgeWallet(network, {
+            requireVerifiedNetwork: method === "invoke" || method === "send",
+          });
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          dispatchBridgeError(message, false);
+          reply({ ok: false, error: { message } });
+          return;
+        }
+
+        if (!confirmSensitiveBridgeOperation(appId, method, data.payload)) {
+          dispatchBridgeError("User rejected the request.", true);
+          reply({
+            ok: false,
+            error: { message: "User rejected the request." },
+          });
+          return;
+        }
       }
 
       void handleEmbeddedWalletBridgeRequest(method, data.payload, network)

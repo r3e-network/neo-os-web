@@ -236,15 +236,31 @@ describe("handleEmbeddedWalletBridgeRequest", () => {
     ]);
   });
 
-  it("returns the network magic for authenticate", async () => {
+  it("returns the wallet's verified network magic for authenticate", async () => {
+    // Wallet is verified on mainnet — even though the bridge target below is
+    // also mainnet, the response must reflect the wallet's own network.
     mockWalletState.network = "mainnet";
     const result = (await handleEmbeddedWalletBridgeRequest(
       "authenticate",
       undefined,
       "mainnet",
-    )) as { network: number; address: string };
+    )) as { network: number; networkVerified: boolean; address: string };
     expect(result.network).toBe(860833102);
+    expect(result.networkVerified).toBe(true);
     expect(result.address).toBe(WALLET_ADDRESS);
+  });
+
+  it("flags authenticate as unverified when the wallet network is null", async () => {
+    mockWalletState.network = null;
+    const result = (await handleEmbeddedWalletBridgeRequest(
+      "authenticate",
+      undefined,
+      "testnet",
+    )) as { network: number | null; networkVerified: boolean };
+    // Must not assert the target-network magic for a wallet whose network we
+    // could not read.
+    expect(result.network).toBeNull();
+    expect(result.networkVerified).toBe(false);
   });
 
   it("invokes the adapter with the contract resolved from the invocation hash", async () => {
@@ -297,6 +313,58 @@ describe("handleEmbeddedWalletBridgeRequest", () => {
       ),
     ).rejects.toThrow(/unverified/);
     expect(mockAdapter.invoke).not.toHaveBeenCalled();
+  });
+
+  it("throws on a FAULTed bridge read instead of handing back fake data", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        result: { state: "FAULT", stack: [], gasconsumed: "0" },
+      }),
+    }) as unknown as typeof fetch;
+    try {
+      await expect(
+        handleEmbeddedWalletBridgeRequest(
+          "call",
+          {
+            invocation: {
+              hash: TARGET_CONTRACT,
+              operation: "getStatus",
+              args: [],
+            },
+          },
+          "testnet",
+        ),
+      ).rejects.toThrow(/fault/i);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it("returns the decoded result for a HALTed bridge read", async () => {
+    const originalFetch = globalThis.fetch;
+    const haltResult = { state: "HALT", stack: [{ type: "Integer", value: "7" }] };
+    globalThis.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: haltResult }),
+    }) as unknown as typeof fetch;
+    try {
+      const result = await handleEmbeddedWalletBridgeRequest(
+        "call",
+        {
+          invocation: {
+            hash: TARGET_CONTRACT,
+            operation: "getStatus",
+            args: [],
+          },
+        },
+        "testnet",
+      );
+      expect(result).toEqual(haltResult);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("still serves getAccounts when the wallet network is unverified", async () => {

@@ -3,7 +3,6 @@ import type { AppProps } from "next/app";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { UserProvider, useUser } from "@auth0/nextjs-auth0/client";
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { QueryProvider } from "@/lib/query";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n/react";
@@ -70,44 +69,44 @@ export default function App({ Component, pageProps }: AppProps) {
         Skip to main content
       </a>
       <ErrorBoundary>
-        <MotionConfig reducedMotion="user">
-          <UserProvider profileUrl="/api/auth/profile">
-            <AuthSync>
-              <I18nProvider>
-                <QueryProvider>
-                  <ThemeProvider>
-                    <AnalyticsProvider>
-                      <MonitoringInit />
-                      <AnimatePresence mode="wait" initial={false}>
-                        <motion.main
-                          key={router.asPath}
-                          id="main-content"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.2, ease: "easeInOut" }}
-                        >
-                          <Component {...pageProps} />
-                        </motion.main>
-                      </AnimatePresence>
+        <UserProvider profileUrl="/api/auth/profile">
+          <AuthSync>
+            <I18nProvider>
+              <QueryProvider>
+                <ThemeProvider>
+                  <AnalyticsProvider>
+                    <MonitoringInit />
+                    {/* CSS-only route enter transition (was framer-motion).
+                        `key={router.asPath}` remounts on navigation so the
+                        `page-enter` keyframe replays; the global
+                        prefers-reduced-motion rule collapses it for opt-outs.
+                        This keeps framer-motion out of the shared first-load
+                        bundle — route-scoped usage (developer page) loads it in
+                        its own page chunk. */}
+                    <main
+                      key={router.asPath}
+                      id="main-content"
+                      className="page-transition"
+                    >
+                      <Component {...pageProps} />
+                    </main>
 
-                      {/* Development monitoring panels */}
-                      {process.env.NODE_ENV === "development" && (
-                        <>
-                          <PerformanceReportPanel
-                            devOnly={true}
-                            position="bottom-right"
-                          />
-                          <MonitoringPanel position="bottom-right" />
-                        </>
-                      )}
-                    </AnalyticsProvider>
-                  </ThemeProvider>
-                </QueryProvider>
-              </I18nProvider>
-            </AuthSync>
-          </UserProvider>
-        </MotionConfig>
+                    {/* Development monitoring panels */}
+                    {process.env.NODE_ENV === "development" && (
+                      <>
+                        <PerformanceReportPanel
+                          devOnly={true}
+                          position="bottom-right"
+                        />
+                        <MonitoringPanel position="bottom-right" />
+                      </>
+                    )}
+                  </AnalyticsProvider>
+                </ThemeProvider>
+              </QueryProvider>
+            </I18nProvider>
+          </AuthSync>
+        </UserProvider>
       </ErrorBoundary>
     </div>
   );

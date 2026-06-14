@@ -33,6 +33,7 @@ import {
   MiniAppActionsContext,
   MiniAppStateContext,
   createObservable,
+  runSingleFlight,
 } from "./context";
 import type {
   MiniAppContextValue,
@@ -226,6 +227,11 @@ export function MiniAppRoot({
   const actionHandlersRef = useRef(
     new Map<string, (...args: unknown[]) => Promise<unknown>>(),
   );
+  // Per-key set of actions currently executing. Shared by both dispatch entry
+  // points (handleAction + dispatch) so the same operation cannot run twice
+  // concurrently — a double click or a click racing a programmatic dispatch
+  // collapses to a single in-flight run.
+  const actionsInFlightRef = useRef(new Set<string>());
   const loadErrorRef = useRef(createObservable<Error | null>(null));
   const stateSubscriptionsRef = useRef<Array<() => void>>([]);
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -412,15 +418,17 @@ export function MiniAppRoot({
         );
         return;
       }
-      try {
-        await handler(formData);
-      } catch (err) {
-        console.error(`[${appId}] action "${methodKey}" error:`, err);
-        setStatus(
-          err instanceof Error ? err.message : "Action failed",
-          "error",
-        );
-      }
+      await runSingleFlight(actionsInFlightRef.current, methodKey, async () => {
+        try {
+          await handler(formData);
+        } catch (err) {
+          console.error(`[${appId}] action "${methodKey}" error:`, err);
+          setStatus(
+            err instanceof Error ? err.message : "Action failed",
+            "error",
+          );
+        }
+      });
     },
     [appId, manifest.operations, setStatus],
   );
@@ -433,23 +441,30 @@ export function MiniAppRoot({
     async (name: string, ...args: unknown[]): Promise<void> => {
       const handler = actionHandlersRef.current.get(name);
       if (!handler) return;
-      try {
-        // Preserve the public Promise<void> type while still returning handler
-        // payloads at runtime for components that need success/failure semantics.
-        return (await handler(...args)) as void;
-      } catch (err) {
-        // Kernel-level error convention (mirrors handleAction): every failed
-        // dispatch surfaces as a status toast so apps that never wrap their
-        // handlers are safe by default. The error then rethrows so PlayAreas
-        // keep their existing catch blocks and post-success steps (form
-        // resets, modal closes) stay gated on a resolved dispatch.
-        console.error(`[${appId}] action "${name}" error:`, err);
-        setStatus(
-          err instanceof Error ? err.message : "Action failed",
-          "error",
-        );
-        throw err;
-      }
+      // Single-flight by action name: a same-key dispatch that arrives while
+      // one is still running is dropped (resolves with undefined) so a
+      // double-submit cannot fire the handler twice. Shares the in-flight set
+      // with handleAction so the button path and a programmatic dispatch of the
+      // same op also cannot overlap.
+      return runSingleFlight(actionsInFlightRef.current, name, async () => {
+        try {
+          // Preserve the public Promise<void> type while still returning handler
+          // payloads at runtime for components that need success/failure semantics.
+          return (await handler(...args)) as void;
+        } catch (err) {
+          // Kernel-level error convention (mirrors handleAction): every failed
+          // dispatch surfaces as a status toast so apps that never wrap their
+          // handlers are safe by default. The error then rethrows so PlayAreas
+          // keep their existing catch blocks and post-success steps (form
+          // resets, modal closes) stay gated on a resolved dispatch.
+          console.error(`[${appId}] action "${name}" error:`, err);
+          setStatus(
+            err instanceof Error ? err.message : "Action failed",
+            "error",
+          );
+          throw err;
+        }
+      }) as Promise<void>;
     },
     [appId, setStatus],
   );

@@ -67,6 +67,13 @@ const POST_INVOKE_BALANCE_REFRESH_DELAY_MS = 15_000;
 
 let balanceRefreshInterval: ReturnType<typeof setInterval> | null = null;
 let postInvokeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let balanceVisibilityListener: (() => void) | null = null;
+
+function isDocumentHidden(): boolean {
+  return (
+    typeof document !== "undefined" && document.visibilityState === "hidden"
+  );
+}
 
 function stopBalanceAutoRefresh() {
   if (balanceRefreshInterval !== null) {
@@ -77,14 +84,29 @@ function stopBalanceAutoRefresh() {
     clearTimeout(postInvokeRefreshTimer);
     postInvokeRefreshTimer = null;
   }
+  if (balanceVisibilityListener !== null && typeof document !== "undefined") {
+    document.removeEventListener("visibilitychange", balanceVisibilityListener);
+  }
+  balanceVisibilityListener = null;
 }
 
 function startBalanceAutoRefresh() {
   if (typeof window === "undefined") return;
   stopBalanceAutoRefresh();
+  // Pause the poll while the tab is backgrounded so a hidden navbar does not
+  // keep hitting the RPC every minute; refresh once it becomes visible again
+  // (mirrors the activity-feed visibility gating).
   balanceRefreshInterval = setInterval(() => {
+    if (isDocumentHidden()) return;
     void useWalletStore.getState().refreshBalance();
   }, BALANCE_REFRESH_INTERVAL_MS);
+  if (typeof document !== "undefined") {
+    balanceVisibilityListener = () => {
+      if (isDocumentHidden()) return;
+      void useWalletStore.getState().refreshBalance();
+    };
+    document.addEventListener("visibilitychange", balanceVisibilityListener);
+  }
 }
 
 /**

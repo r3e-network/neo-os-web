@@ -9,7 +9,20 @@
  * @see https://n3index.dev
  */
 
+import { fetchWithTimeout, DEFAULT_FETCH_TIMEOUT_MS } from "./fetch-timeout";
+
 const N3INDEX_BASE = "https://api.n3index.dev";
+
+/**
+ * Per-request deadline for every indexer call. A single hung connection must
+ * never suspend the deposit-confirmation poller — that poll loop relies on its
+ * own deadline check running between requests, which a bare `fetch` that never
+ * resolves would starve, freezing `withProcessing`/`isProcessing` forever for
+ * the payment flow. 10s is ≥ the default 3s poll interval (so a slow-but-alive
+ * indexer still gets a full request) and short enough to surface as a
+ * recoverable "unreachable"/timeout well inside the poll deadline.
+ */
+const INDEXER_FETCH_TIMEOUT_MS = DEFAULT_FETCH_TIMEOUT_MS;
 
 export type Network = "mainnet" | "testnet";
 
@@ -103,7 +116,9 @@ async function apiFetch<T>(
       url.searchParams.set(key, String(val));
     }
   }
-  const res = await fetch(url.toString());
+  const res = await fetchWithTimeout(url.toString(), {
+    timeoutMs: INDEXER_FETCH_TIMEOUT_MS,
+  });
   if (!res.ok) {
     throw new Error("Indexer request failed. Please try again later.");
   }

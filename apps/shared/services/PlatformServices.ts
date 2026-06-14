@@ -147,6 +147,9 @@ export class PlatformServices {
    */
   destroy(): void {
     this.lifecycle.unmount();
+    // Clear the chain interaction's pending timers (prepaid success-reset +
+    // settle-delay sleeps) so no setTimeout callback fires after unmount.
+    this.chain.dispose();
     this.cache.destroy();
     this.events.destroy();
   }

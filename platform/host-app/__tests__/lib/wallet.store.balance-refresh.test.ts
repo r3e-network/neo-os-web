@@ -113,4 +113,29 @@ describe("wallet store balance freshness", () => {
     await jest.advanceTimersByTimeAsync(180_000);
     expect(provider.getBalance.mock.calls.length).toBe(baseline);
   });
+
+  it("skips the background poll while the tab is hidden", async () => {
+    const setVisibility = (state: "visible" | "hidden") =>
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => state,
+      });
+    try {
+      await useWalletStore.getState().connect("nep21");
+      const baseline = provider.getBalance.mock.calls.length;
+
+      setVisibility("hidden");
+      await jest.advanceTimersByTimeAsync(60_000);
+      // Hidden tab: the interval tick is a no-op.
+      expect(provider.getBalance.mock.calls.length).toBe(baseline);
+
+      // Becoming visible again fires an immediate refresh.
+      setVisibility("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+      await flushMicrotasks();
+      expect(provider.getBalance.mock.calls.length).toBeGreaterThan(baseline);
+    } finally {
+      setVisibility("visible");
+    }
+  });
 });
