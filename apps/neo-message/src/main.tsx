@@ -67,16 +67,38 @@ function cachePlaintext(id: string, recipient: string, plaintext: string): void 
   safeWriteJSON(PLAINTEXT_KEY, cache);
 }
 
+// Cache with a short TTL, not forever: the kernel's oracle encryption key carries
+// a version and can be rotated (re-sealed in-TEE). A forever cache would keep
+// encrypting to a stale key after a rotation, producing permanently undecryptable
+// messages. Re-fetch every ORACLE_KEY_TTL_MS so a rotation is picked up; tolerate a
+// transient fetch failure by reusing the last good key.
+const ORACLE_KEY_TTL_MS = 5 * 60 * 1000;
 let cachedOraclePublicKey = "";
+let cachedOraclePublicKeyAt = 0;
 async function getOraclePublicKey(): Promise<string> {
-  if (cachedOraclePublicKey) return cachedOraclePublicKey;
-  const res = await fetchWithTimeout(`${ORACLE_EDGE_BASE}/oracle/public-key`, {
-    headers: { accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`oracle public key unavailable (${res.status})`);
+  if (cachedOraclePublicKey && Date.now() - cachedOraclePublicKeyAt < ORACLE_KEY_TTL_MS) {
+    return cachedOraclePublicKey;
+  }
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(`${ORACLE_EDGE_BASE}/oracle/public-key`, {
+      headers: { accept: "application/json" },
+    });
+  } catch (err) {
+    if (cachedOraclePublicKey) return cachedOraclePublicKey;
+    throw err;
+  }
+  if (!res.ok) {
+    if (cachedOraclePublicKey) return cachedOraclePublicKey;
+    throw new Error(`oracle public key unavailable (${res.status})`);
+  }
   const body = (await res.json()) as { public_key?: string };
-  if (!body.public_key) throw new Error("oracle returned no public key");
+  if (!body.public_key) {
+    if (cachedOraclePublicKey) return cachedOraclePublicKey;
+    throw new Error("oracle returned no public key");
+  }
   cachedOraclePublicKey = body.public_key;
+  cachedOraclePublicKeyAt = Date.now();
   return cachedOraclePublicKey;
 }
 
