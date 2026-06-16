@@ -229,5 +229,46 @@ namespace NeoMiniAppPlatform.Contracts
             else credits.Put(key, next);
         }
 
+        /// <summary>Unconsumed direct-asset (NEP-17) credit for (asset, payer).</summary>
+        [Safe]
+        public static BigInteger DirectAssetCreditOf(UInt160 asset, UInt160 payer)
+        {
+            if (asset == UInt160.Zero || !asset.IsValid || payer == UInt160.Zero || !payer.IsValid) return 0;
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
+            ByteString existing = credits.Get(GetDirectAssetCreditKey(asset, payer));
+            return existing == null ? 0 : (BigInteger)existing;
+        }
+
+        /// <summary>
+        /// Reclaim direct-asset (NEP-17) credit that a follow-up call never consumed.
+        /// CreditDirectAssetPayment deposits are consumed by a separate state-changing call;
+        /// any over-deposit or unspent remainder previously had NO withdrawal path and was
+        /// permanently stranded. This lets the original payer recover it. Witness-gated;
+        /// CEI (the balance is decremented before the asset transfer).
+        /// </summary>
+        public static BigInteger ReclaimDirectAssetCredit(UInt160 asset, UInt160 payer, BigInteger amount)
+        {
+            ValidateAddress(asset);
+            ValidateAddress(payer);
+            ExecutionEngine.Assert(Runtime.CheckWitness(payer), "payer witness required");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
+            ByteString key = GetDirectAssetCreditKey(asset, payer);
+            ByteString existing = credits.Get(key);
+            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
+            ExecutionEngine.Assert(balance >= amount, "insufficient direct-asset credit");
+
+            BigInteger next = balance - amount;
+            if (next == 0) credits.Delete(key);
+            else credits.Put(key, next);
+
+            ExecutionEngine.Assert(
+                (bool)Contract.Call(asset, "transfer", CallFlags.All,
+                    new object[] { Runtime.ExecutingScriptHash, payer, amount, "" }),
+                "reclaim transfer failed");
+            return amount;
+        }
+
     }
 }
