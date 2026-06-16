@@ -202,6 +202,47 @@ environment to validate safely:
   classifyError substring matching; idempotency-during-Supabase-backoff window; enclave digest
   cross-check doesn't verify the signature against the expected verifier key.
 
+## Remediation update — round 4 (the "hard" remaining items)
+
+- **C1 (High) attestation now ENFORCING** (oracle `d8ee729`): the enclave folds an attestation
+  doc bound to `sha256(fulfillment_digest)` + verifier pubkey into `/oracle/fulfill`; the relayer
+  `verifyEnclaveAttestation()` parses the COSE_Sign1, **hard-fails on a wrong-digest binding**,
+  asserts the pinned PCR0 (`MORPHEUS_EXPECTED_PCR0` / `config.nitro.expectedPcr0`), and derives
+  `trust_tier` from the verified doc — downgrading to host-unattested when absent/unpinned
+  (backward-compatible: still submits). Plus opt-in enclave-signature verification against the
+  on-chain-pinned verifier pubkey. Relayer 353 / worker 253 / ops 93 green.
+- **C3 (High) decrypt-binding coordinated** (`d8ee729`): the relayer now sends chain+message_id+
+  contract to `/oracle/decrypt`, **`neox.js` preserves the on-chain messageId** (was decoded then
+  discarded — this was the gap that would have broken the live neox lane), and the worker requires
+  binding by default.
+- **Idempotency fail-closed** (`d8ee729`): no local claim during Supabase backoff, in both
+  `queue.js` and `config.js` (was defaulting open); explicit opt-in for single-instance. Plus
+  `classifyError` word-boundary matching (don't finalize a recoverable failure as permanent).
+- **C9 (Med) storage grants enforced** (platform `1bbb785f6`): new `miniapp_storage_grants` table +
+  `recordStorageGrant`/`hasStorageGrant`; `os-storage-read-shared` now denies reads without a
+  matching owner/prefix grant (was unconditionally `granted:true`).
+- **host-app bridge read-consent** (`1bbb785f6`): wallet identity/balance reads now require a
+  one-time per-origin consent (persisted); opaque/un-consented cross-origin embeds are denied.
+
+### Findings that turned out NOT to apply in this repo (verified by reading the code)
+- **C5 (paymaster durable limits)**: `platform/host-app/pages/api/rpc/sponsor.ts` and all the
+  `MAX_GAS`/`dailyGasSpent`/`userTxCounts` logic the review cited **do not exist in this repo** —
+  the only rpc routes are thin edge proxies. The sponsor/paymaster code lives in a different
+  app/repo; the durable-store fix belongs there. (No fabricated endpoint was added.)
+- **host-app invoke-prompt truncation + ACAO `null` reflection**: no such code here — the bridge is
+  `lib/bridge/handler.ts` (send/call stubbed) and `pages/api/rpc/[fn].ts` sets no CORS headers.
+
+### Genuinely deferred (1 item) — needs a coordinated change + real-wallet testing
+- **neo-sig (Low)**: `platform/edge/functions/_shared/neo.ts` verifies `sha256(message)` while
+  NEP-dapi wallets sign a salted/parameterized payload. The current login flow works because both
+  the signing adapter AND the verifier use the raw form; changing only the verifier would break
+  logins. The correct fix is a coordinated adapter+verifier change to the NEP-dapi salted format,
+  validated against real wallets — out of scope for an isolated code edit.
+- The **flag-off relayer trust-root** (verifier key in process memory) is the pre-cutover topology
+  by design; the **enclave-fulfill cutover path is now the hardened, attestation-enforcing one**
+  (C1 above). Flipping `MORPHEUS_RELAYER_ENCLAVE_FULFILL` on (with PCR0 pinned) is the operational
+  step that retires the in-memory-key path.
+
 ## Redeploy / operational notes
 
 - The **shared-base** `ReclaimDirectAssetCredit` addition changed the NEF + manifest (hence
