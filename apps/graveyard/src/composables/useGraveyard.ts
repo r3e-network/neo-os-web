@@ -472,7 +472,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
               const ep = typeof d.epitaph === "string" ? d.epitaph : "";
               // The epitaph comes back as raw printable text via parseByteLike;
               // keep only printable values so a byte blob never renders garbage.
-              if (ep && /^[\x20-\x7e -￿]*$/.test(ep)) epitaph = ep;
+              if (ep && /^[\x20-\x7e -]*$/.test(ep)) epitaph = ep;
             }
           } catch (e) {
             console.warn(
