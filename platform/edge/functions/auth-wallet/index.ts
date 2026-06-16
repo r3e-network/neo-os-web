@@ -75,8 +75,15 @@ export async function handler(req: Request): Promise<Response> {
     return error(401, "address not present in signed message", "AUTH_INVALID", req);
   }
 
-  // Clear the consumed nonce on the row that carried it.
-  await supabase.from("users").update({ nonce: null }).eq("id", accountId);
+  // Atomically consume the nonce: the conditional update (id AND still-equals-nonce) means
+  // only ONE concurrent request can null a given nonce, closing the check-then-clear race
+  // that previously let two requests both authenticate on the same nonce. If the row no
+  // longer carries this nonce, another request already consumed it -> reject (replay/race).
+  const { data: consumed, error: consumeErr } = await supabase
+    .from("users").update({ nonce: null }).eq("id", accountId).eq("nonce", nonce).select("id");
+  if (consumeErr || !consumed || consumed.length === 0) {
+    return error(401, "invalid or expired nonce", "AUTH_INVALID", req);
+  }
 
   // Issue a REAL Supabase (GoTrue) session for the wallet. The previous path
   // self-signed an HS256 JWT, which the OS edge functions reject because
