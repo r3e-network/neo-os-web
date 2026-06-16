@@ -19,7 +19,7 @@ The single highest-impact findings span four different surfaces:
 2. **`MiniAppQuadraticFunding.FinalizeRound`** lets the round creator assign arbitrary match amounts to any project, including their own; combined with permissive self-contribution this completely defeats the QF property.
 3. **MiniApp iframes have no `sandbox` attribute** and are served same-origin — any of the 60 third-party miniapps can lift the host's JWT, hijack `window.MiniAppSDK`, and submit arbitrary wallet intents.
 4. **The admin console has no in-app auth gate** — middleware silently injects the admin API key on every browser request, making the dashboard a single URL away from full admin compromise.
-5. **A testnet WIF (`***REMOVED***`)** was committed in 2026-03-31 and removed two weeks later, but remains recoverable from git history; the same WIF is still active in the local `.env` for `NEO_TESTNET_WIF`, `FLAGSHIP_LIVE_WIF`, `AA_TEST_WIF`, and `ORACLE_TEST_WIF`.
+5. **A testnet WIF (`REDACTED_SET_YOUR_OWN`)** was committed in 2026-03-31 and removed two weeks later, but remains recoverable from git history; the same WIF is still active in the local `.env` for `NEO_TESTNET_WIF`, `FLAGSHIP_LIVE_WIF`, `AA_TEST_WIF`, and `ORACLE_TEST_WIF`.
 6. **`secrets-get` decrypts every user's secrets with one master AES key**; combined with weak edge auth, compromise of `SECRETS_MASTER_KEY` exposes all stored secrets.
 
 | Severity | Count |
@@ -118,7 +118,7 @@ The middleware silently sets `x-admin-key: $ADMIN_CONSOLE_API_KEY` on every `/ap
 **Active reuse:** `.env` `NEO_TESTNET_WIF`, `FLAGSHIP_LIVE_WIF`, `AA_TEST_WIF`, `ORACLE_TEST_WIF`
 **Found by:** secrets/supply-chain audit agent
 
-The WIF `***REMOVED***` (address `NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu`) is recoverable from any clone via `git show 3423e507:deploy/scripts/smoke_business_workflows.js`. The same WIF still appears as the active value in the local `.env` for four separate variables. Although it is "only" testnet, it is the key used for the project's flagship live-validate flows and oracle test paths; anyone holding the public commit can sign txns from those accounts.
+The WIF `REDACTED_SET_YOUR_OWN` (address `NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu`) is recoverable from any clone via `git show 3423e507:deploy/scripts/smoke_business_workflows.js`. The same WIF still appears as the active value in the local `.env` for four separate variables. Although it is "only" testnet, it is the key used for the project's flagship live-validate flows and oracle test paths; anyone holding the public commit can sign txns from those accounts.
 
 **Fix:** treat the WIF as compromised. Generate a fresh testnet keypair; update `.env` and any deployment secrets; either accept the historical exposure (acceptable for testnet-only blast radius if the new key is genuinely never the same) or rewrite history with `git filter-repo` and force-push (coordinate with collaborators).
 
