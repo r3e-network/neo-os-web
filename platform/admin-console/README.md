@@ -48,7 +48,7 @@ Create a `.env.local` file:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://supabase.localhost
 NEXT_PUBLIC_EDGE_URL=https://edge.localhost
-SUPABASE_SERVICE_ROLE_KEY=***REMOVED***
+SUPABASE_SERVICE_ROLE_KEY=REDACTED_SET_YOUR_OWN
 ADMIN_CONSOLE_API_KEY=your-admin-api-key
 ```
 

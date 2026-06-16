@@ -41,7 +41,7 @@ function successfulGasTransferAppLog(toAddress: string, amountFixed8: string) {
                 {
                   type: "ByteString",
                   value: hash160NotificationValue(
-                    "0x***REMOVED***01234567",
+                    "0x0123456789abcdef0123456789abcdef01234567",
                   ),
                 },
                 { type: "ByteString", value: hash160NotificationValue(toAddress) },
@@ -474,7 +474,7 @@ describe("OneGate Vault off-chain claim engine", () => {
 
     try {
       const payment = createTxProxyOneGateVaultPaymentService({
-        rewardSource: "0x***REMOVED***01234567",
+        rewardSource: "0x0123456789abcdef0123456789abcdef01234567",
       });
       const result = await payment.sendGas({
         requestId: "req-1",
@@ -499,7 +499,7 @@ describe("OneGate Vault off-chain claim engine", () => {
           {
             type: "Hash160",
             value: normalizeOneGateVaultHash160(
-              "0x***REMOVED***01234567",
+              "0x0123456789abcdef0123456789abcdef01234567",
             ),
           },
           { type: "Hash160", value: normalizeOneGateVaultHash160(WALLET) },
@@ -540,7 +540,7 @@ describe("OneGate Vault off-chain claim engine", () => {
     try {
       const payment = createTxProxyOneGateVaultPaymentService({
         txProxyUrl: "https://edge.example/txproxy",
-        rewardSource: "0x***REMOVED***01234567",
+        rewardSource: "0x0123456789abcdef0123456789abcdef01234567",
       });
       const result = await payment.sendGas({
         requestId: "req-1",
@@ -584,7 +584,7 @@ describe("OneGate Vault off-chain claim engine", () => {
         network: "testnet",
         toAddress: WALLET,
         amountFixed8: "100000000",
-        rewardSource: "0x***REMOVED***01234567",
+        rewardSource: "0x0123456789abcdef0123456789abcdef01234567",
       });
 
       const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
@@ -593,7 +593,7 @@ describe("OneGate Vault off-chain claim engine", () => {
           {
             type: "Hash160",
             value: normalizeOneGateVaultHash160(
-              "0x***REMOVED***01234567",
+              "0x0123456789abcdef0123456789abcdef01234567",
             ),
           },
           { type: "Hash160", value: normalizeOneGateVaultHash160(WALLET) },
@@ -673,7 +673,7 @@ describe("OneGate Vault off-chain claim engine", () => {
     try {
       const payment = createTxProxyOneGateVaultPaymentService({
         txProxyUrl: "https://edge.example/txproxy",
-        rewardSource: "0x***REMOVED***01234567",
+        rewardSource: "0x0123456789abcdef0123456789abcdef01234567",
       });
 
       await expect(
@@ -719,7 +719,7 @@ describe("OneGate Vault off-chain claim engine", () => {
     try {
       const payment = createTxProxyOneGateVaultPaymentService({
         txProxyUrl: "https://edge.example/txproxy",
-        rewardSource: "0x***REMOVED***01234567",
+        rewardSource: "0x0123456789abcdef0123456789abcdef01234567",
       });
 
       await expect(

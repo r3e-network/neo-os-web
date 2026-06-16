@@ -930,7 +930,7 @@ describe("useMiniAppDetailInvoke", () => {
     );
 
     const contentHash =
-      "***REMOVED******REMOVED***";
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     try {
       await act(async () => {
@@ -1005,7 +1005,7 @@ describe("useMiniAppDetailInvoke", () => {
     const setInvokeFeedback = jest.fn();
     const { result } = renderUnbreakableVaultInvoke({ setInvokeFeedback });
     const secretHash =
-      "***REMOVED******REMOVED***";
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     await act(async () => {
       await result.current(
@@ -1085,7 +1085,7 @@ describe("useMiniAppDetailInvoke", () => {
       walletNetwork: "mainnet",
     });
     const secretHash =
-      "abcdef***REMOVED***0123456789abcdef0123456789";
+      "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 
     await act(async () => {
       await result.current(
@@ -1882,7 +1882,7 @@ describe("useMiniAppDetailInvoke", () => {
     );
 
     const contentHash =
-      "***REMOVED******REMOVED***";
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     await act(async () => {
       await result.current(
         {
