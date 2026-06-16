@@ -295,17 +295,27 @@ async function signInjectedWalletMessage(
       context.accountHash ?? context.address,
     );
     const signature = String(signed.signature ?? signed.data ?? "");
+    // The wallet may or may not echo the message it actually signed. Only
+    // treat the message as verified when the wallet returns one; otherwise
+    // fall back to the local copy but flag it so downstream code does not
+    // assume the wallet attested to this exact text.
+    const echoed =
+      typeof signed.message === "string" ? signed.message.trim() : "";
     return {
       publicKey: String(signed.pubkey ?? signed.publicKey ?? ""),
       data: signature,
       signature,
       account: signed.account,
       salt: String(signed.salt ?? ""),
-      message: String(signed.message ?? message),
+      message: echoed || message,
+      messageVerified: echoed.length > 0,
     };
   }
   if (context.kind === "neoline" && context.instance.signMessage) {
-    return context.instance.signMessage({ message });
+    // NeoLine returns the signed payload directly; it does not echo back the
+    // plaintext message, so the message/signature pairing is unverified here.
+    const signed = await context.instance.signMessage({ message });
+    return { ...signed, messageVerified: false };
   }
   throw new Error("Connected wallet does not support signMessage");
 }
@@ -330,6 +340,46 @@ function resolveInvocationParams(
   });
 }
 
+// Neo script hashes are 20-byte values: a 0x-prefixed 40-hex string. A base58
+// address (starts with 'N' on Neo N3) is also acceptable as a recipient since
+// wallets resolve both. The SENDER placeholder is resolved before this runs.
+const NEO_HASH160_RE = /^0x[0-9a-fA-F]{40}$/;
+const NEO_ADDRESS_RE = /^N[1-9A-HJ-NP-Za-km-z]{33}$/;
+
+function isPlausibleRecipient(value: string): boolean {
+  const trimmed = value.trim();
+  return NEO_HASH160_RE.test(trimmed) || NEO_ADDRESS_RE.test(trimmed);
+}
+
+// Basic client-side sanity check on a resolved invocation before it is handed
+// to the wallet for signing. This does not replace the contract's own checks;
+// it catches obviously malformed or tampered intents (empty/garbled Hash160
+// recipients, negative or non-integer amounts) so the user is not asked to
+// sign a transaction the SDK can already tell is broken.
+function assertInvocationParamsSane(params: ContractParam[]): void {
+  for (const param of params) {
+    if (param.type === "Hash160") {
+      const value = String(param.value ?? "").trim();
+      if (!value) throw new Error("invocation has an empty Hash160 recipient");
+      if (!isPlausibleRecipient(value)) {
+        throw new Error(
+          `invocation has a malformed Hash160 recipient: ${value}`,
+        );
+      }
+    } else if (param.type === "Integer") {
+      const value = String(param.value ?? "").trim();
+      if (!/^-?\d+$/.test(value)) {
+        throw new Error(`invocation has a non-integer amount: ${value}`);
+      }
+      if (value.startsWith("-")) {
+        throw new Error(`invocation has a negative amount: ${value}`);
+      }
+    } else if (param.type === "Array" && Array.isArray(param.value)) {
+      assertInvocationParamsSane(param.value);
+    }
+  }
+}
+
 async function invokeDirectInvocation(
   invocation: InvocationIntent,
 ): Promise<unknown> {
@@ -349,6 +399,10 @@ async function invokeDirectInvocation(
   // Resolve SENDER placeholders in params with the user's actual Neo account.
   const rawArgs = Array.isArray(invocation.params) ? invocation.params : [];
   const args = resolveInvocationParams(rawArgs, signerAccount);
+
+  // Reject obviously malformed recipients/amounts before asking the wallet to
+  // sign. The SENDER placeholder is already resolved to the signer above.
+  assertInvocationParamsSane(args);
 
   if (context.kind === "nep21") {
     if (!context.provider.invoke) {
