@@ -35,6 +35,14 @@ export type SignedMessage = {
   account?: string;
   salt?: string;
   message: string;
+  /**
+   * Whether `message` is the exact text the wallet reported signing. When the
+   * wallet does not echo the signed message back, the SDK falls back to the
+   * locally-supplied copy and sets this to `false` — callers must treat the
+   * message/signature pairing as unverified and avoid asserting downstream
+   * that the wallet signed that specific text.
+   */
+  messageVerified?: boolean;
 };
 
 export type IntentWithTx<TIntent> = {
