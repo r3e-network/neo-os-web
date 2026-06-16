@@ -149,6 +149,59 @@ verified-email merge gate (Med, account-takeover).
 - The ~20 services Lows (constant-time cron compare, IP-header rate-limit keying, bridge consent
   granularity, etc.) are tracked here for a follow-up hardening pass.
 
+## Remediation update — round 3 (services hardening + merged to main/master)
+
+All fix branches were fast-forward **merged into main/master and pushed** (platform `→ acbb4fe8d`+,
+oracle `→ 21426c0`, AA `→ 919b570`). Additional services hardening landed:
+
+**Oracle (commit `21426c0`, validated lint + worker 252 / relayer 339 / control-plane 31 / ops 91):**
+- enclave-server (C2 High): reject host-provisioned plaintext signing keys unless an explicit
+  `MORPHEUS_ALLOW_PLAINTEXT_KEY_PROVISION` opt-in (default off); accept only `*_KMS_CIPHERTEXT`;
+  expose `key_source` in `/health`; image-pinned bootstrap-token gate on first `/provision`;
+  exact/prefix route matching (no `endsWith` spoofing).
+- edge gateway (C10 Med): rate-limit **fails closed** when a configured limit has no backend;
+  dedicated limit on the confidential decrypt/reveal passthrough; no origin-hostname leak in
+  errors; feed-symbol whitelisted before path interpolation.
+- web-api (Med/Low): operation-log value-shape redaction (apps/web vitest 5/5); constant-time
+  cron-secret compare; automation-execute rejects raw signer material.
+- nitro-worker (Med/Low): default-deny unverified NeoDID providers; reject caller-supplied raw
+  keys on enclave-signing lanes; separate trusted-service rate-limit bypass credential.
+
+**Platform (commits `acbb4fe8d`, `01a39ea3a`):**
+- sdk (Low): bridge `postMessage` fails closed when the target origin can't be derived (no `'*'`
+  broadcast); `messageVerified` flag so an un-echoed signed message isn't presented as verified;
+  intent recipient(Hash160)/amount(Integer) sanity checks before signing. (SDK vitest 32/32)
+- edge (Med/Low): secrets-get returns a generic decrypt error (detail server-side only);
+  auth-wallet consumes the login nonce atomically (conditional update) closing the replay race.
+
+## STILL OPEN — need infra / architecture / coordination / real-env testing (documented, not patched)
+
+These are intentionally NOT patched blind because each needs a deployment-side change or a live
+environment to validate safely:
+- **C5 (High) paymaster durable spend limits** (`platform/host-app/pages/api/rpc/sponsor.ts`):
+  in-memory counters must move to a durable atomic store. Fix = a `sponsor_spend` table + a
+  Postgres atomic-increment RPC (`INSERT … ON CONFLICT DO UPDATE SET spent = spent + delta
+  RETURNING spent`), checked against `MAX_GAS_PER_DAY` / per-user-hour; the host-app already has
+  `supabaseServiceClient`. Needs a migration + DB-backed test; shipping it unvalidated risks the
+  live GAS-sponsorship path.
+- **C1 (High) attestation is advisory**: make it enforcing — relayer/on-chain verifier validates a
+  COSE_Sign1 attestation bound to `sha256(fulfillment_digest)` + expected PCR0 before trusting a
+  result. Architecture change on the fulfillment path.
+- **C3 (High) decrypt-binding default**: defaulting `MORPHEUS_ORACLE_DECRYPT_REQUIRE_BINDING=true`
+  must be paired with the relayer sending chain+contract+messageId binding, else it breaks the live
+  `{envelope}`-only decrypt lane (in-TEE recipient-sig + time-lock still gate it).
+- **C2-residual / C9 (Med)**: os-storage grant enforcement needs a grants table + read-side check
+  (low impact — the "shared" data is public on-chain kernel state, so the unenforced grant is
+  false-trust, not data exposure).
+- **neo-sig (Low)**: `_shared/neo.ts` verifies `sha256(message)` while NEP-dapi wallets sign a
+  salted/parameterized payload — reconcile the exact format + test against real wallets (changing
+  it blind risks breaking login).
+- **host-app bridge Lows**: gate wallet identity/balance reads behind per-app consent; show invoke
+  args + full signMessage text in the approval prompt; don't reflect ACAO `null` with credentials.
+- **Relayer trust-model Lows**: flag-off topology holds the verifier key in process memory;
+  classifyError substring matching; idempotency-during-Supabase-backoff window; enclave digest
+  cross-check doesn't verify the signature against the expected verifier key.
+
 ## Redeploy / operational notes
 
 - The **shared-base** `ReclaimDirectAssetCredit` addition changed the NEF + manifest (hence
