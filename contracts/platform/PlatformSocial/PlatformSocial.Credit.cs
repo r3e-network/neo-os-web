@@ -100,6 +100,48 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             return existing == null ? 0 : (BigInteger)existing;
         }
 
+        [Safe]
+        public static BigInteger GetDirectNeoCredit(UInt160 payer)
+        {
+            if (payer == UInt160.Zero || !payer.IsValid) return 0;
+            return GetNeoCreditBalance(payer);
+        }
+
+        // Reclaim direct NEO credit that a follow-up call did not fully consume. Without
+        // this, NEO deposited (CreditNeo) but not spent by a subsequent state-changing call
+        // would be permanently stranded — there was no NEO withdrawal path (only GAS had
+        // one). Mirrors WithdrawGasCredit: witness-gated, CEI (decrement before transfer).
+        public static BigInteger WithdrawNeoCredit(UInt160 user, BigInteger amount)
+        {
+            ExecutionEngine.Assert(user != UInt160.Zero && user.IsValid, "invalid user");
+            ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
+            ByteString key = (ByteString)(byte[])user;
+            BigInteger balance = GetNeoCreditBalance(user);
+            ExecutionEngine.Assert(balance >= amount, "insufficient NEO credit");
+
+            BigInteger next = balance - amount;
+            if (next == 0) credits.Delete(key);
+            else credits.Put(key, next);
+
+            ExecutionEngine.Assert(
+                NEO.Transfer(Runtime.ExecutingScriptHash, user, amount),
+                "NEO credit withdrawal failed");
+
+            OnNeoCreditWithdrawn(user, amount);
+            return amount;
+        }
+
+        private static BigInteger GetNeoCreditBalance(UInt160 payer)
+        {
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
+            ByteString key = (ByteString)(byte[])payer;
+            ByteString existing = credits.Get(key);
+            return existing == null ? 0 : (BigInteger)existing;
+        }
+
         private static void CreditNeo(UInt160 from, BigInteger amount)
         {
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
