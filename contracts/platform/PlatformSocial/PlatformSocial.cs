@@ -24,6 +24,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void RangeGasPoolFundedHandler(string appId, BigInteger poolId, UInt160 creator, BigInteger amount, BigInteger totalAmount, BigInteger remainingAmount);
     public delegate void RangeGasPoolRefundedHandler(string appId, BigInteger poolId, UInt160 creator, BigInteger refundAmount);
     public delegate void GasCreditWithdrawnHandler(UInt160 user, BigInteger amount);
+    public delegate void NeoCreditWithdrawnHandler(UInt160 user, BigInteger amount);
     public delegate void TrustCreatedHandler(string appId, BigInteger trustId, UInt160 owner, UInt160 heir, BigInteger principal);
     public delegate void HeartbeatRecordedHandler(string appId, BigInteger trustId, BigInteger newDeadline);
     public delegate void TrustExecutedHandler(string appId, BigInteger trustId, UInt160 heir, BigInteger principal);
@@ -186,6 +187,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         [DisplayName("GasCreditWithdrawn")]
         public static event GasCreditWithdrawnHandler OnGasCreditWithdrawn;
+        [DisplayName("NeoCreditWithdrawn")]
+        public static event NeoCreditWithdrawnHandler OnNeoCreditWithdrawn;
 
         [DisplayName("TrustCreated")]
         public static event TrustCreatedHandler OnTrustCreated;
