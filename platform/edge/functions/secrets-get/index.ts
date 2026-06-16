@@ -50,7 +50,10 @@ export async function handler(req: Request): Promise<Response> {
   try {
     value = await decryptSecretValue(encryptedBase64);
   } catch (e) {
-    return error(500, `failed to decrypt secret: ${e instanceof Error ? e.message : String(e)}`, "DECRYPT_FAILED", req);
+    // Log the decryption-failure detail server-side only; never return it to the client
+    // (it can reveal key/cipher internals about the secret store).
+    console.error("[secrets-get] decrypt failed:", e instanceof Error ? e.message : String(e));
+    return error(500, "failed to decrypt secret", "DECRYPT_FAILED", req);
   }
 
   return json(
