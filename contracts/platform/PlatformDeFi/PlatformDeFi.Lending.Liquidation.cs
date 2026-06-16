@@ -114,6 +114,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             UpdateTotalRepaid(appId, debtRepaid);
             UpdateTotalCollateral(appId, seized, false);
 
+            // Audit fix A10: the liquidator's GAS repaid the debt into the contract,
+            // so it returns to the lending liquidity pool just like a normal repay.
+            RefillLendingLiquidity(appId, debtRepaid);
+
             // Interaction: hand the seized collateral to the liquidator.
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, liquidator, seized),

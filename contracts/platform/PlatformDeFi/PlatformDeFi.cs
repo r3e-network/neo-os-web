@@ -71,6 +71,25 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_NEO_CREDIT = new byte[] { 0x14 };
         // Per-app GAS credit (for Lending repay + FlashLoan deposit)
         private static readonly byte[] PREFIX_GAS_CREDIT = new byte[] { 0x15 };
+
+        // Audit fix A10 (per-product GAS segregation): one deployed contract hosts
+        // several products that all hold GAS in the SAME native GAS balance. Without
+        // per-product accounting, a lending disbursement or capsule compound payout
+        // could draw the contract's GAS below what is owed to FlashLoan LPs (their
+        // principal becomes strandable). Each product now tracks its OWN GAS pool and
+        // may only ever spend from its own counter:
+        //
+        //   * PREFIX_LENDING_GAS_LIQUIDITY - GAS available to disburse lending loans.
+        //     Funded by LendingDeposit, drawn down on CreateLoan, refilled on repay /
+        //     liquidation. CreateLoan asserts netLoan <= this counter (audit fix A12).
+        //   * PREFIX_CAPSULE_GAS_RESERVE - GAS reserve that funds capsule compound
+        //     yield. Funded by FundCapsuleYieldReserve, drawn down at unlock. Compound
+        //     payout asserts the reserve covers it (audit fix A9) so yield is never
+        //     paid from FlashLoan LP principal or lending liquidity.
+        //   * FlashLoan LP principal already lives in PREFIX_FLASH_TOTAL_LP_DEPOSITS
+        //     and the pool balance, so it is the third segregated GAS pool.
+        private static readonly byte[] PREFIX_LENDING_GAS_LIQUIDITY = new byte[] { 0x16 };
+        private static readonly byte[] PREFIX_CAPSULE_GAS_RESERVE = new byte[] { 0x17 };
         #endregion
 
         #region Lending Prefixes (0x20-0x2F)

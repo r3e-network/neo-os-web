@@ -119,6 +119,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 Put(AppKey(appId, PREFIX_TOTAL_BORROWERS), 0);
                 PutAddress(AppKey(appId, PREFIX_PROFIT_ANCHOR_CONTRACT), UInt160.Zero);
                 Put(AppKey(appId, PREFIX_PROFIT_ANCHOR_APP_ID), (ByteString)"");
+                // Audit fix A10/A12: lending disburses only from this tracked pool.
+                Put(AppKey(appId, PREFIX_LENDING_GAS_LIQUIDITY), 0);
             }
             else if (productType == ProductType_FlashLoan)
             {
@@ -137,6 +139,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 Put(AppKey(appId, PREFIX_TOTAL_CAPSULE_USERS), 0);
                 Put(AppKey(appId, PREFIX_TOTAL_WITHDRAWN), 0);
                 Put(AppKey(appId, PREFIX_TOTAL_PENALTIES), 0);
+                // Audit fix A9/A10: compound yield is paid only from this funded reserve.
+                Put(AppKey(appId, PREFIX_CAPSULE_GAS_RESERVE), 0);
             }
 
             OnProductRegistered(appId, productType, appAdmin);

@@ -174,6 +174,13 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger fee = total * CAPSULE_FEE_BPS / 10000;
             BigInteger payout = total - fee;
 
+            // Audit fix A9 / A10: compound yield is paid in GAS that the contract does
+            // not otherwise hold. The ENTIRE compound (the owner's share plus the fee
+            // portion retained from it) must be backed by the app-funded capsule yield
+            // reserve, drawn down here BEFORE any transfer. This stops compound payouts
+            // from drawing GAS owed to FlashLoan LPs / lending borrowers.
+            if (capsule.Compound > 0) DrawCapsuleYieldReserve(appId, capsule.Compound);
+
             capsule.Active = false;
             StoreCapsule(appId, capsuleId, capsule);
 

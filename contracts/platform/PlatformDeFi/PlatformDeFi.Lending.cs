@@ -109,6 +109,15 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 Put(totalBorrowersKey, GetBigInteger(totalBorrowersKey) + 1);
             }
 
+            // Audit fix A12 / A10: the net GAS disbursement must be backed by the
+            // lending product's OWN tracked liquidity (funded via LendingDeposit) and
+            // is decremented here BEFORE the transfer. Without this the loan was paid
+            // opportunistically from the contract's shared GAS balance, which could
+            // strand FlashLoan LP principal (A10) or disburse with no backing (A12).
+            // The retained origination fee stays as protocol revenue (swept via
+            // WithdrawLendingFees) - only netLoan leaves the lending pool here.
+            DrawLendingLiquidity(appId, loanAmount);
+            if (fee > 0) RefillLendingLiquidity(appId, fee);
             TransferLoanGasToBorrower(appId, loanId, borrower, netLoan);
 
             OnLoanCreated(appId, loanId, borrower, neoAmount, netLoan);
@@ -181,6 +190,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             loan.Debt -= repayAmount;
             loan.TotalRepaid += repayAmount;
             StoreLoan(appId, loanId, loan);
+
+            // Audit fix A10 / A12: repaid GAS returns to the lending liquidity pool so
+            // the counter tracks the GAS the contract actually holds for lending.
+            RefillLendingLiquidity(appId, repayAmount);
 
             UpdateTotalDebt(appId, repayAmount, false);
             UpdateTotalRepaid(appId, repayAmount);
