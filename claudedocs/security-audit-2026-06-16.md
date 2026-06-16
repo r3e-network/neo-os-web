@@ -107,6 +107,48 @@ Plus **23 Low** (host-app `invoke`/read bridge consent granularity + identity le
 
 ---
 
+## Remediation update — round 2 (all confirmed contract findings fixed)
+
+After the initial report, the remaining findings were remediated. Each fix has regression
+tests and was validated against the full suites (platform contracts **196/196**, AA **156/156**,
+oracle relayer **339/339**).
+
+**AA — ALL 14 fixed** (commit `919b570`, neo-abstract-account `security/audit-remediation-2026-06`):
+B1 Crit (per-account oracle-credit accounting + owner gate), B2/B3/B4/B5 High (Update timelock;
+market-escrow owner force-cancel; DailyLimitHook all-token metering; action-session domain
+separation), B6–B10 Med (native-transfer scoping; paymaster reimbursement cap + mandatory
+budgets; FinalizeEscape verifier/hook reset; SessionKey fail-closed; market in-flight-deposit
+lock) + the recovery min-timelock Low.
+
+**Platform — A9–A15 + Lows fixed** (commits `0be6c55a8`, `40cdaa3ce`):
+A9/A10/A12 High/Med (per-product GAS segregation in PlatformDeFi), A11 High (factory
+per-user-NEF deploy, no hash collision + digest verify), A13 Med (gacha NEP-11 fail-closed),
+A14 Med (coinflip solvency guard + permissionless expiry refund), A15 Med (milestone
+grace-period reclaim), QF duplicate-projectId Low, breakup expired-pact Low.
+
+**Services — fixed** (oracle commits `a7ab546`, `80c5e90`; platform `d353ed742`):
+edge Phala-token revoke (High), relayer log credential-redaction (Med), auth-social-sync
+verified-email merge gate (Med, account-takeover).
+
+**Intentionally NOT changed (documented decision):**
+- MiniAppMultisig any-signer cancel (Low): this is a deliberate prior fix (MP-D-04) to avoid
+  creator-only-cancel deadlock when a key is lost. Restricting it would re-introduce that
+  deadlock; the residual "griefing" requires an already-trusted vault signer. Left as-is.
+
+**Remaining services items — need infra/design/coordination (not safe one-line fixes):**
+- C1 (attestation advisory): make attestation enforcing requires an on-chain/relayer COSE_Sign1
+  + PCR verifier on the fulfillment path — an architecture change.
+- C2 (host can provision plaintext keys): gate behind an image-pinned transition flag / reject
+  plaintext key env vars in the prod enclave image.
+- C3 (decrypt-binding default): defaulting `MORPHEUS_ORACLE_DECRYPT_REQUIRE_BINDING=true` must
+  be paired with the relayer sending chain+contract+messageId binding fields, else it breaks the
+  live `{envelope}`-only decrypt lane (the in-TEE recipient-sig + time-lock gates still apply).
+- C5 (paymaster in-memory limits): needs a durable shared store (Supabase/Upstash atomic counter).
+- C9 (os-storage-grant returns true): needs a grants table that `os-storage-read-shared` enforces.
+- C10 (edge rate-limit fails open): flip to fail-closed when a configured limit has no backend.
+- The ~20 services Lows (constant-time cron compare, IP-header rate-limit keying, bridge consent
+  granularity, etc.) are tracked here for a follow-up hardening pass.
+
 ## Redeploy / operational notes
 
 - The **shared-base** `ReclaimDirectAssetCredit` addition changed the NEF + manifest (hence
