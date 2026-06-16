@@ -204,6 +204,33 @@ namespace NeoMiniAppPlatform.Contracts
             StoreGachaItem(appId, machineId, itemIndex, item);
         }
 
+        /// <summary>
+        /// Withdraw a machine's accrued pull revenue (GAS) to a recipient. Without this,
+        /// the per-pull GAS banked into machine.Revenue was permanently stranded (no path
+        /// to collect it). Owner/admin-gated; CEI: revenue is zeroed before the transfer.
+        /// </summary>
+        public static BigInteger WithdrawGachaRevenue(string appId, BigInteger machineId, UInt160 to)
+        {
+            RequireRegistered(appId);
+            RequireGameType(appId, GameType_Gacha);
+            ValidateAddress(to);
+
+            GachaMachine machine = LoadGachaMachine(appId, machineId);
+            ExecutionEngine.Assert(machine.Creator != UInt160.Zero, "machine not found");
+            RequireGachaMachineOwnerOrAdmin(appId, machine);
+
+            BigInteger revenue = machine.Revenue;
+            ExecutionEngine.Assert(revenue > 0, "no revenue");
+            machine.Revenue = 0;
+            StoreGachaMachine(appId, machineId, machine);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, to, revenue),
+                "revenue withdrawal failed");
+            OnGachaRevenueWithdrawn(appId, machineId, to, revenue);
+            return revenue;
+        }
+
         private static bool ConsumePendingGachaInventoryPayment(
             string appId,
             UInt160 from,
