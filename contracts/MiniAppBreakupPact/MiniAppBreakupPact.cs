@@ -149,6 +149,7 @@ namespace NeoMiniAppPlatform.Contracts
             Pact p = LoadPact(ctx, pactId);
             ExecutionEngine.Assert(p.Status == STATUS_PENDING, "pact not pending");
             ExecutionEngine.Assert(p.Party2 == party2, "only the named partner");
+            ExecutionEngine.Assert((BigInteger)Runtime.Time < p.EndTime, "pact expired");
             ConsumeCredit(ctx, party2, p.Stake);
             p.Party2Staked = true;
             p.Status = STATUS_ACTIVE;
