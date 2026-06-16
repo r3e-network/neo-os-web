@@ -79,16 +79,22 @@ namespace NeoMiniAppPlatform.Contracts
             StorageContext ctx = Storage.CurrentContext;
             PendingBet bet = LoadBet(betId);
             ExecutionEngine.Assert(!bet.Settled, "already settled");
-            // CORE OF THE FIX: the reveal block must be strictly later than the commit
-            // block, so the player could not have known this block's GetRandom at commit.
+            // The reveal block must be strictly later than the commit block, which also
+            // guarantees the beacon block (commitIndex+1) exists.
             ExecutionEngine.Assert(Ledger.CurrentIndex > bet.CommitIndex, "reveal must be a later block");
 
             Machine m = LoadMachine(bet.MachineId);
 
-            // Weighted selection with the SETTLE block's beacon mixed with the bet's
-            // identity (betId + player + commitIndex), so the outcome differs per bet and
-            // was unknown at commit.
-            BigInteger entropy = Runtime.GetRandom();
+            // Weighted selection from a FIXED beacon — the hash of block commitIndex+1
+            // (unknown at commit, immutable once produced) — mixed with the bet's identity
+            // (betId + player + commitIndex). Because the beacon is a fixed past block,
+            // re-calling settle in ANY later block yields the SAME draw, so a player cannot
+            // abort an unfavourable settle via a wrapper contract and retry to grind for the
+            // jackpot. An earlier design drew from Runtime.GetRandom() at settle, which
+            // re-rolled every block and did NOT close that abort-and-retry exploit.
+            var beacon = Ledger.GetBlock((uint)(bet.CommitIndex + 1));
+            ExecutionEngine.Assert(beacon is not null, "beacon block unavailable");
+            BigInteger entropy = (BigInteger)(ByteString)(byte[])beacon.Hash;
             if (entropy < 0) entropy = -entropy;
             BigInteger mix = (BigInteger)(ByteString)(byte[])bet.Player + betId + bet.CommitIndex;
             if (mix < 0) mix = -mix;

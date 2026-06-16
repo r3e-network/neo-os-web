@@ -167,10 +167,18 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             BigInteger bobBefore = engine.Native.GAS.BalanceOf(bob) ?? 0;
             engine.SetTransactionSigners(alice); // settle is permissionless — anyone may call
             Assert.Equal(pot, game.settle());
-            Assert.Equal(bobBefore + pot, engine.Native.GAS.BalanceOf(bob));
+            // Pull-payment: the winner (Bob) is CREDITED the whole pot, not paid directly,
+            // so a contract winner that rejects GAS can never brick settle().
+            Assert.Equal(pot, game.creditOf(bob));
+            Assert.Equal(bobBefore, engine.Native.GAS.BalanceOf(bob)); // not paid until claimed
             Assert.Equal(new BigInteger(2), game.currentRoundId());
 
-            // Solvency: the contract paid out everything it held.
+            // The winner claims the pot via Withdraw.
+            engine.SetTransactionSigners(bob);
+            Assert.Equal(pot, game.withdraw(bob));
+            Assert.Equal(bobBefore + pot, engine.Native.GAS.BalanceOf(bob));
+
+            // Solvency: the contract holds nothing after the winner has claimed.
             Assert.Equal(BigInteger.Zero, engine.Native.GAS.BalanceOf(game.Hash));
 
             // The fresh round has no keys to settle.

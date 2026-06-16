@@ -40,7 +40,7 @@ namespace NeoMiniAppPlatform.Contracts
             bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
                 new object[] { Runtime.ExecutingScriptHash, account, credit, "" });
             ExecutionEngine.Assert(ok, "withdraw transfer failed");
-            OnCollateralWithdrawn(account, credit);
+            OnRepayCreditWithdrawn(account, credit);
             return credit;
         }
         #endregion

@@ -33,10 +33,10 @@ namespace NeoMiniAppPlatform.Contracts
     /// - GAS only; amounts in BASE UNITS (1 GAS = 100_000_000).
     /// - Deposit-then-buy: GAS sent with memo "miniapp-lastsurvivor:buy" credits the
     ///   sender; buyKeys consumes that credit, so the pot is always fully funded.
-    /// - settle() is permissionless and always pays the recorded last buyer (not the
-    ///   caller), so the game can never deadlock on an inactive winner.
-    /// - Checks-effects-interactions: round state is advanced before the payout; a
-    ///   failed transfer asserts and reverts the whole atomic invocation.
+    /// - settle() is permissionless and CREDITS the recorded last buyer (claimed via
+    ///   Withdraw), never pushing GAS — a push to a GAS-rejecting contract winner would
+    ///   brick settle() and strand the pot. Round state advances before crediting (CEI),
+    ///   so the game can never deadlock on an inactive winner or settle twice.
     /// </summary>
     [DisplayName("MiniAppLastSurvivor")]
     [ManifestExtra("Author", "R3E Network")]
@@ -183,11 +183,10 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger nextRound = roundId + 1;
             Storage.Put(ctx, PREFIX_CUR_ROUND, nextRound);
 
-            if (pot > 0)
+            if (pot > 0) // pull-payment: credit the winner (claimed via Withdraw), never push
             {
-                bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
-                    new object[] { Runtime.ExecutingScriptHash, winner, pot, "" });
-                ExecutionEngine.Assert(ok, "pot transfer failed");
+                byte[] wKey = Helper.Concat(PREFIX_CREDIT, (byte[])winner);
+                Storage.Put(ctx, wKey, (BigInteger)Storage.Get(ctx, wKey) + pot);
             }
 
             OnRoundSettled(roundId, winner, pot, nextRound);
