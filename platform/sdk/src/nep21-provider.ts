@@ -422,6 +422,17 @@ function hostBridgeRequest<T>(
 
   const id = createHostBridgeRequestId();
   const expectedOrigin = deriveHostBridgeOrigin(win);
+  if (!expectedOrigin) {
+    // Fail closed: with no concrete target origin we would have to post the
+    // wallet-bridge request with "*", broadcasting the payload (and any
+    // sensitive arguments) to every listener that can reach this window.
+    // Refuse to send rather than leak it.
+    return Promise.reject(
+      new Error(
+        "MiniApp host wallet bridge target origin could not be determined.",
+      ),
+    );
+  }
   return new Promise<T>((resolve, reject) => {
     const timeout = win.setTimeout(() => {
       cleanup();
@@ -475,7 +486,7 @@ function hostBridgeRequest<T>(
         payload,
         version: 1,
       },
-      expectedOrigin ?? "*",
+      expectedOrigin,
     );
   });
 }
