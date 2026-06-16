@@ -73,7 +73,7 @@ describe("neo-x bridge console intent builders", () => {
       bridgeKind: "message",
       direction: "n3-to-neox",
       operationId: "N3X-MSG-12345678",
-      sourceTx: "0xabcdef***REMOVED***0123456789",
+      sourceTx: "0xabcdef0123456789abcdef0123456789abcdef0123456789",
     });
 
     expect(timeline.map((step) => step.state)).toEqual([
@@ -88,7 +88,7 @@ describe("neo-x bridge console intent builders", () => {
   it("accepts txHash as a status tracking alias", () => {
     const timeline = buildStatusTimeline({
       bridgeKind: "asset",
-      txHash: "0xabcdef***REMOVED***0123456789",
+      txHash: "0xabcdef0123456789abcdef0123456789abcdef0123456789",
     } as Parameters<typeof buildStatusTimeline>[0] & { txHash: string });
 
     expect(timeline[1]?.state).toBe("done");
@@ -137,7 +137,7 @@ describe("neo-x bridge console intent builders", () => {
       bridgeKind: "asset",
       direction: "n3-to-neox",
       operationId: "N3X-ASSET-12345678",
-      sourceTx: "0xabcdef***REMOVED***0123456789",
+      sourceTx: "0xabcdef0123456789abcdef0123456789abcdef0123456789",
     });
 
     // Every step carries a labelKey + detailKey the PlayArea translates.
