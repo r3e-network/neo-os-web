@@ -22,6 +22,9 @@ export default tseslint.config(
       "**/out/**",
       "**/coverage/**",
       "**/.turbo/**",
+      // Claude Code session data + transient agent git worktrees (full repo copies that
+      // would otherwise be linted as duplicates and pollute results).
+      "**/.claude/**",
       // Test tooling artifacts.
       "**/playwright-report/**",
       "**/test-results/**",
