@@ -103,19 +103,28 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             AssertRevert("season not ended", () => league.settle());
 
             // After the season deadline, anyone may settle: Bob (top burner) is
-            // paid the entire 5 GAS pool and the season rolls over.
+            // CREDITED the entire 5 GAS pool (pull-payment) and the season rolls over.
             engine.PersistingBlock.Advance(TimeSpan.FromMilliseconds((long)(league.seasonDuration() ?? 0) + 1));
             BigInteger bobBefore = engine.Native.GAS.BalanceOf(bob) ?? 0;
             engine.SetTransactionSigners(alice);
             league.settle();
-            Assert.Equal(bobBefore + 5L * GAS, engine.Native.GAS.BalanceOf(bob));
+            // Pull-payment: Bob is credited, not paid directly, so a GAS-rejecting contract
+            // winner can never brick settle() and strand the pool.
+            Assert.Equal(5L * GAS, league.creditOf(bob));
+            Assert.Equal(bobBefore, engine.Native.GAS.BalanceOf(bob)); // not paid until claimed
             Assert.Equal(new BigInteger(2), league.currentSeason());
             Assert.Equal(BigInteger.Zero, league.seasonEnd());
             Assert.Equal(BigInteger.Zero, league.rewardPool());
             Assert.Equal(UInt160.Zero, league.topBurner());
+
+            // Bob claims the prize via Withdraw; the contract is then empty.
+            engine.SetTransactionSigners(bob);
+            Assert.Equal(5L * GAS, league.withdraw(bob));
+            Assert.Equal(bobBefore + 5L * GAS, engine.Native.GAS.BalanceOf(bob));
             Assert.Equal(BigInteger.Zero, engine.Native.GAS.BalanceOf(league.Hash));
 
             // A settled season cannot be settled twice.
+            engine.SetTransactionSigners(alice);
             AssertRevert("no active season", () => league.settle());
         }
 

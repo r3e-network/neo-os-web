@@ -175,9 +175,14 @@ namespace NeoMiniAppPlatform.Contracts
             UInt160 winner = winnerRaw is null ? UInt160.Zero : (UInt160)winnerRaw;
             if (pool > 0 && winnerRaw is not null)
             {
-                bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
-                    new object[] { Runtime.ExecutingScriptHash, winner, pool, "" });
-                ExecutionEngine.Assert(ok, "prize transfer failed");
+                // PULL-PAYMENT: credit the winner instead of pushing GAS. A push to a winner
+                // that is a contract rejecting incoming GAS would fail the assert and brick
+                // settle() permanently — the season could never close, stranding the pool and
+                // freezing all future seasons. Crediting can never block settlement; the
+                // winner claims via Withdraw().
+                byte[] wKey = Helper.Concat(PREFIX_CREDIT, (byte[])winner);
+                BigInteger wbal = (BigInteger)Storage.Get(ctx, wKey) + pool;
+                Storage.Put(ctx, wKey, wbal);
             }
             OnSeasonSettled(seasonId, winner, pool);
         }
