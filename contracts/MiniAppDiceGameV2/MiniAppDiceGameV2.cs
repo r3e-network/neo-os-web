@@ -24,11 +24,13 @@ namespace NeoMiniAppPlatform.Contracts
     ///      credit and RESERVES the worst-case house exposure (= amount*47/10, the extra a
     ///      5.70x win pays beyond the wager) from the bankroll, recording
     ///      commitIndex = Ledger.CurrentIndex. Block N. Outcome NOT decided here.
-    ///   2. settle(betId): PERMISSIONLESS. Asserts Ledger.CurrentIndex > commitIndex (a
-    ///      strictly LATER block — the core of the fix), then derives the rolled face from
-    ///      Runtime.GetRandom of THAT later block (unknown at commit) mixed with
-    ///      betId+player+commitIndex, reduced to [1,6]. The player can no longer condition
-    ///      an abort on the result.
+    ///   2. settle(betId): PERMISSIONLESS. Asserts Ledger.CurrentIndex > commitIndex, then
+    ///      derives the rolled face from a FIXED beacon — the hash of block commitIndex+1
+    ///      (unknown at commit, immutable once produced) — mixed with betId+player+commitIndex,
+    ///      reduced to [1,6]. Because the beacon is a fixed past block, re-calling settle in
+    ///      any later block yields the SAME roll, so a player cannot abort-on-loss and retry
+    ///      for a different outcome (an earlier design used Runtime.GetRandom() at settle,
+    ///      which re-rolled every block and did NOT close the exploit).
     ///
     /// PAYOUT / EDGE: a win pays 5.70x the wager (amount*57/10). A fair 1/6 game would pay
     /// 6x; 5.70x leaves the house a 5% edge ((6 - 5.7)/6 = 0.05). The reserved house
@@ -227,9 +229,17 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(!b.Settled, "bet already settled");
             ExecutionEngine.Assert(Ledger.CurrentIndex > b.CommitIndex, "reveal must be a later block");
 
-            // Rolled face from the SETTLE block's beacon (unknown at commit) mixed with
-            // betId + player + commitIndex, reduced to [1,6].
-            BigInteger entropy = Runtime.GetRandom();
+            // Rolled face from a FIXED beacon: the hash of the block immediately AFTER commit
+            // (block commitIndex+1). That block is unknown at commit but immutable once it
+            // exists, so re-calling settle in ANY later block yields the SAME roll — an
+            // abort-and-retry via a wrapper contract gains nothing. This is what actually
+            // closes the v1-class abort-on-loss exploit: Runtime.GetRandom() re-rolls every
+            // block (so a permissionless atomic settle could be aborted on a loss and retried
+            // until a win), whereas a fixed past-block hash cannot be re-rolled. The assert
+            // above (CurrentIndex > CommitIndex) guarantees block commitIndex+1 exists.
+            var beacon = Ledger.GetBlock((uint)(b.CommitIndex + 1));
+            ExecutionEngine.Assert(beacon is not null, "beacon block unavailable");
+            BigInteger entropy = (BigInteger)(ByteString)(byte[])beacon.Hash;
             if (entropy < 0) entropy = -entropy;
             BigInteger mix = (BigInteger)(ByteString)(byte[])b.Player + betId + b.CommitIndex;
             if (mix < 0) mix = -mix;

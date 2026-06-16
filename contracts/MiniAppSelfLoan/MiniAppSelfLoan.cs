@@ -87,7 +87,9 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("PoolWithdrawn")]
         public static event Action<UInt160, BigInteger> OnPoolWithdrawn; // to, amount
         [DisplayName("CollateralWithdrawn")]
-        public static event Action<UInt160, BigInteger> OnCollateralWithdrawn; // borrower, amount
+        public static event Action<UInt160, BigInteger> OnCollateralWithdrawn; // borrower, amount (NEO)
+        [DisplayName("RepayCreditWithdrawn")]
+        public static event Action<UInt160, BigInteger> OnRepayCreditWithdrawn; // account, amount (GAS)
         #endregion
 
         #region Types
