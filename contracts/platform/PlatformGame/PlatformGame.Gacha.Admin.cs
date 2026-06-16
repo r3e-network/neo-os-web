@@ -90,7 +90,10 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(weight > 0, "weight must be > 0");
             ExecutionEngine.Assert(machine.ItemCount < GA_MAX_ITEMS_PER_MACHINE, "too many items");
             ExecutionEngine.Assert(machine.TotalWeight + weight <= GA_MAX_TOTAL_WEIGHT, "total weight exceeded");
-            ExecutionEngine.Assert(assetType == GA_ASSET_NEP17 || assetType == GA_ASSET_NEP11, "invalid asset type");
+            // Fail closed: NEP-11 gacha prizes have no deposit path (OnNEP11Payment is
+            // unimplemented), so a NEP-11 item always has TokenCount==0 and is silently
+            // skipped at draw time, misweighting the odds. Reject NEP-11 until supported.
+            ExecutionEngine.Assert(assetType == GA_ASSET_NEP17, "NEP-11 prizes not supported");
             ValidateAddress(assetHash);
 
             if (assetType == GA_ASSET_NEP17)
