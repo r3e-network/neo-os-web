@@ -38,9 +38,13 @@ export async function handler(req: Request): Promise<Response> {
   const body = bodyOrErr instanceof Response ? null : bodyOrErr;
   if (!body?.sub) return error(400, "sub required", "INVALID_INPUT", req);
 
-  const { sub, email, name, avatar } = body as {
-    sub: string; email?: string; name?: string; avatar?: string;
+  const { sub, email, name, avatar, email_verified } = body as {
+    sub: string; email?: string; name?: string; avatar?: string; email_verified?: boolean;
   };
+  // Only merge into an existing account by email when the provider asserts the email is
+  // verified. Otherwise a login carrying an unverified email matching a victim's could be
+  // merged into the victim's account (takeover). Unverified email => create a separate account.
+  const emailVerified = email_verified === true;
 
   // Parse Auth0 sub: "google-oauth2|123" -> provider="google", id="123"
   const pipeIdx = sub.indexOf("|");
@@ -70,7 +74,7 @@ export async function handler(req: Request): Promise<Response> {
 
   // Check if another identity with same email exists (merge case)
   let accountId: string | null = null;
-  if (email) {
+  if (email && emailVerified) {
     const { data: byEmail, error: byEmailErr } = await supabase
       .from("linked_identities")
       .select("user_id")
@@ -86,8 +90,8 @@ export async function handler(req: Request): Promise<Response> {
 
   // Create new user entry if needed
   if (!accountId) {
-    // Check main users table directly just in case
-    if (email) {
+    // Check main users table directly just in case (verified email only — see above).
+    if (email && emailVerified) {
       const { data: userByEmail, error: userByEmailErr } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
       if (userByEmailErr) {
         console.warn("[auth-social-sync] user email lookup failed:", userByEmailErr.message);
