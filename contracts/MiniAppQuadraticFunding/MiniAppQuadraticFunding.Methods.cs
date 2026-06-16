@@ -203,6 +203,11 @@ namespace NeoMiniAppPlatform.Contracts
                 BigInteger projectId = projectIds[i];
                 BigInteger amount = matchedAmounts[i];
                 ExecutionEngine.Assert(amount >= 0, "invalid match amount");
+                // Reject duplicate projectIds: a repeat re-adds to totalMatched while only the
+                // last MatchedAmount write sticks, inflating MatchingAllocated and stranding
+                // the difference from ClaimUnusedMatching.
+                for (int j = 0; j < i; j++)
+                    ExecutionEngine.Assert(projectIds[j] != projectId, "duplicate project");
 
                 ProjectData project = GetProject(projectId);
                 RequireProjectExists(project);

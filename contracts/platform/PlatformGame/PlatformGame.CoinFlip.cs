@@ -118,6 +118,12 @@ namespace NeoMiniAppPlatform.Contracts
 
             ConsumeDirectGasCredit(appId, player, amount);
 
+            // Solvency guard (mirrors Dice): the contract must hold enough GAS to cover the
+            // worst-case 2x (minus fee) payout before accepting the bet, else a winning stake
+            // could be locked with no payout liquidity.
+            BigInteger maxPayout = amount * 2 * (100 - CF_PLATFORM_FEE_PERCENT) / 100;
+            ExecutionEngine.Assert(GAS.BalanceOf(Runtime.ExecutingScriptHash) >= maxPayout, "insufficient payout liquidity");
+
             // Generate bet ID
             BigInteger betId = AppGetInt(appId, CF_PREFIX_BET_ID) + 1;
             AppPut(appId, CF_PREFIX_BET_ID, betId);

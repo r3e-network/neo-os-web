@@ -213,26 +213,26 @@ namespace NeoMiniAppPlatform.Contracts
         //  Frontend ABI: deployment + miniapp creation
         // ===================================================================
 
-        // Used by Asset Factory (NEP-17) and NFT Factory (NEP-11).
-        // Artifact-backed templates are really deployed; otherwise recorded.
+        // Used by Asset Factory (NEP-17) and NFT Factory (NEP-11) for record-only
+        // (metadata) templates: the deployment is RECORDED for registry
+        // coordination but no on-chain contract is created here.
+        //
+        // A11: artifact-backed templates MUST use DeployArtifactFromTemplate, which
+        // takes the user's own (unique) NEF + manifest. Deploying the single shared
+        // stored NEF here yielded a deterministic hash that collided for every user
+        // after the first, so that path is rejected rather than silently bricking.
         public static UInt160 DeployFromTemplate(string templateId, string packageId, string digest, string initParamsJson)
         {
             UInt160 creator = Runtime.Transaction.Sender;
             ExecutionEngine.Assert(Runtime.CheckWitness(creator), "unauthorized creator");
             ValidateDeploymentInputs(templateId, packageId, digest, initParamsJson);
             ExecutionEngine.Assert(GetTemplateRaw(templateId) != null, "template not found");
+            ExecutionEngine.Assert(!HasArtifact(templateId), "use DeployArtifactFromTemplate for artifact templates");
 
             StorageMap deployments = new StorageMap(Storage.CurrentContext, PREFIX_DEPLOYMENT);
             ExecutionEngine.Assert(deployments.Get(packageId) == null, "package already deployed");
 
             UInt160 deployedHash = UInt160.Zero;
-            if (HasArtifact(templateId))
-            {
-                ByteString nef = new StorageMap(Storage.CurrentContext, PREFIX_TEMPLATE_NEF).Get(templateId);
-                string manifest = new StorageMap(Storage.CurrentContext, PREFIX_TEMPLATE_MANIFEST).Get(templateId);
-                Contract deployed = ContractManagement.Deploy(nef, manifest, initParamsJson);
-                deployedHash = deployed.Hash;
-            }
 
             DeploymentRecord record = new DeploymentRecord
             {
@@ -249,11 +249,7 @@ namespace NeoMiniAppPlatform.Contracts
             new StorageMap(Storage.CurrentContext, PREFIX_DEPLOY_INDEX).Put(index.ToByteArray(), packageId);
             Storage.Put(Storage.CurrentContext, PREFIX_DEPLOY_COUNT, index + 1);
 
-            if (deployedHash != UInt160.Zero)
-                OnTokenDeployed(templateId, packageId, deployedHash, creator);
-            else
-                OnDeploymentRecorded(templateId, packageId, digest, creator);
-
+            OnDeploymentRecorded(templateId, packageId, digest, creator);
             return deployedHash;
         }
 
