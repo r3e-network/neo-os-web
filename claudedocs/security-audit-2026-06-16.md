@@ -253,3 +253,38 @@ environment to validate safely:
   semantics; redeploying requires the frontend to claim winnings via `Withdraw` (pull-payment)
   and is unaffected for the beacon fixes.
 - Owner-key custody (NR3E4D8N) and the leaked-key rotation remain separate standing items.
+
+## Phala retirement (2026-06-17)
+
+The production runtime is fully AWS Nitro; the Phala TEE runtime is decommissioned. Code-level
+Phala retirement across all three repos:
+
+- **Platform** (`5d1a1aad8`): `host-app/lib/morpheus-endpoints.ts resolveMorpheusRuntimeToken`
+  and `edge/functions/_shared/tee.ts` no longer accept `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
+  fallbacks; `host-app/lib/morpheus-neodid.ts` stops emitting the legacy `x-phala-token` header
+  (Bearer + `x-nitro-token` remain). Tests updated to assert retired Phala creds are ignored and
+  the legacy header is no longer sent (host-app jest 115 suites / 550 tests green).
+- **Oracle** (`a49f669`): the relayer `nitro.js` no longer emits the dead `x-phala-token` header.
+  Verified the live Nitro worker (`nitro-worker/src/platform/auth.js`, `request-guards.js`)
+  authorizes via `Bearer` / `x-nitro-token` only and intentionally dropped Phala tokens, so the
+  emission was inert. (worker 253 / relayer 365 green.)
+- **AA** (already landed + guarded): production relay/proxy code is Phala-free, locked in by
+  `frontend/tests/apiSecurity.test.js` (asserts no `phala-remote` / `x-phala-token` / `PHALA_` /
+  `resolvePhalaCliCommand` in source) and `morpheusApiProxy.test.js`.
+
+### Deferred (load-bearing or inert — not defects, need operator coordination)
+
+1. **Oracle key-material env-name aliases.** `workers/morpheus-relayer/src/lib/neo-signers.js`,
+   `nitro-signer.js`, `config.js`, and `scripts/render-nitro-env.mjs` still read/emit `PHALA_*`
+   names for signer keys (e.g. `PHALA_ORACLE_VERIFIER_WIF_*`, `PHALA_NEO_N3_WIF`). These name the
+   **live** Nitro enclave/relayer deployment env. `MORPHEUS_RUNTIME_TOKEN` is already the primary
+   token, so auth is Nitro-first; only the signer-key variable *names* remain legacy. Fully
+   excising them requires atomically re-rendering and redeploying the live env (AWS SSM), which
+   needs operator credentials — doing it code-only would cause a signing/auth outage.
+2. **AA legacy live-validation tooling.** `sdk/js/tests/phala-cli.js` plus the
+   `testnet:validate:*` suites use `phala cp` / `phala ssh` to provision a Phala CVM. This is
+   **inert at runtime** today: with no `phala` binary present, `resolvePhalaCliCommand` returns
+   null and every Phala branch is guarded and skipped. These are manual scripts (not in `npm
+   test`); rewriting them carries regression risk for no functional gain.
+3. **Historical reports.** `docs/reports/*.json` and `claudedocs/*.json` reference Phala as
+   immutable audit artifacts of past runs.
