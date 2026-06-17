@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "types:check": "tsc -p tsconfig.json && tsc -p types-check/tsconfig.json",
     "test": "vitest run"
   },
   "devDependencies": {
