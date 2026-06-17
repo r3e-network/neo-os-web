@@ -3,12 +3,25 @@
  * Acts as the "Binder" transport layer between miniapp and OS services.
  */
 import { useWallet } from "../../utils/wallet-sdk";
+import {
+  fetchWithTimeout,
+  HttpResponseError,
+  isTransientFetchError,
+} from "../../utils/fetch-timeout";
+import { retryAsync } from "../../utils/async-utils";
 import type {
   ContractArg,
   InvokeParams,
   InvokeResult,
   WalletSigner,
 } from "../../utils/wallet-sdk-types";
+
+/** Whole-request deadline for an OS edge call (unchanged from the prior inline value). */
+const EDGE_TIMEOUT_MS = 30000;
+/** Bounded retry for transient OS-edge blips; deterministic 4xx are not retried. */
+const EDGE_RETRY_ATTEMPTS = 3;
+const EDGE_RETRY_BASE_DELAY_MS = 400;
+const EDGE_RETRY_MAX_DELAY_MS = 2000;
 
 type RecordLike = Record<string, unknown>;
 type InvocationIntent = {
@@ -111,40 +124,60 @@ export class EdgeClient {
       headers["Authorization"] = `Bearer ${authToken}`;
     }
 
-    // Bound the request so a slow/dead gateway (stalled DNS, hung server)
-    // cannot freeze the miniapp indefinitely — same pattern as
-    // useMorpheusDataFeed. Abort surfaces as a rejected fetch the callers
-    // already handle as an OS boundary error.
-    const res = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(30000),
-    });
+    // Fetch + parse the HTTP response. This is the only retried unit: it is a
+    // read of the edge's reply, idempotent to re-issue. The wallet-intent
+    // submission below (which may sign/broadcast) is deliberately OUTSIDE the
+    // retry so a transient HTTP blip never re-pops a signing request.
+    //
+    // Bound each attempt so a slow/dead gateway (stalled DNS, hung server)
+    // cannot freeze the miniapp indefinitely. A transient OS-edge blip (timeout,
+    // network drop, 429, 5xx) is retried with bounded backoff via retryAsync;
+    // a deterministic 4xx (bad request, auth) fails fast — re-issuing it would
+    // only waste time and mask the real error.
+    const data = await retryAsync(
+      async () => {
+        const res = await fetchWithTimeout(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+          timeoutMs: EDGE_TIMEOUT_MS,
+        });
 
-    if (!res.ok) {
-      const error = await res
-        .json()
-        .catch(() => ({ message: res.statusText }));
-      throw new Error(
-        `OS service error (${endpoint}): ${error.message || res.statusText}`,
-      );
-    }
+        if (!res.ok) {
+          const error = await res
+            .json()
+            .catch(() => ({ message: res.statusText }));
+          throw new HttpResponseError(
+            `OS service error (${endpoint}): ${error.message || res.statusText}`,
+            res.status,
+          );
+        }
 
-    // A 2xx with a non-JSON body (e.g. an HTML gateway page) must not throw an
-    // uncaught SyntaxError — fall back to an empty object so the shape checks
-    // below treat it as a plain payload, mirroring the error-path .catch().
-    const payload = await res.json().catch(() => ({}));
-    if (
-      payload &&
-      typeof payload === "object" &&
-      "ok" in payload &&
-      (payload as { ok?: unknown }).ok === true &&
-      "data" in payload
-    ) {
-      return this.submitWalletIntentIfPresent((payload as { data: T }).data);
-    }
-    return this.submitWalletIntentIfPresent(payload as T);
+        // A 2xx with a non-JSON body (e.g. an HTML gateway page) must not throw
+        // an uncaught SyntaxError — fall back to an empty object so the shape
+        // checks below treat it as a plain payload, mirroring the error-path
+        // .catch().
+        const payload = await res.json().catch(() => ({}));
+        if (
+          payload &&
+          typeof payload === "object" &&
+          "ok" in payload &&
+          (payload as { ok?: unknown }).ok === true &&
+          "data" in payload
+        ) {
+          return (payload as { data: T }).data;
+        }
+        return payload as T;
+      },
+      {
+        maxAttempts: EDGE_RETRY_ATTEMPTS,
+        baseDelayMs: EDGE_RETRY_BASE_DELAY_MS,
+        maxDelayMs: EDGE_RETRY_MAX_DELAY_MS,
+        shouldRetry: isTransientFetchError,
+      },
+    );
+
+    return this.submitWalletIntentIfPresent(data);
   }
 
   /**

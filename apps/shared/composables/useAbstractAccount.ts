@@ -17,6 +17,18 @@ import {
   type NeoNetwork,
 } from "../constants/rpc";
 import { MiniAppError } from "../utils/errorHandling";
+import {
+  DEFAULT_FETCH_TIMEOUT_MS,
+  fetchWithTimeout,
+  HttpResponseError,
+  isTransientFetchError,
+} from "../utils/fetch-timeout";
+import { retryAsync } from "../utils/async-utils";
+
+/** Bounded retry for the read-only (idempotent GET) sponsorship eligibility check. */
+const READ_RETRY_ATTEMPTS = 3;
+const READ_RETRY_BASE_DELAY_MS = 300;
+const READ_RETRY_MAX_DELAY_MS = 1500;
 
 // Error codes for i18n-compatible error handling
 const ERROR_CODE_GAS_SPONSORSHIP_CHECK = "AA_GAS_SPONSORSHIP_CHECK_FAILED";
@@ -174,6 +186,13 @@ async function requestJson<T>(
     body?: Record<string, unknown>;
     getAuthToken?: TokenResolver;
     getAPIKey?: TokenResolver;
+    /**
+     * Retry transient failures (timeout, network drop, 429/5xx) with bounded
+     * backoff. Only safe for idempotent reads — NEVER set for the sponsorship
+     * request or relay submission, which mint state / broadcast and must run
+     * at most once.
+     */
+    retryOnTransient?: boolean;
   },
 ): Promise<T> {
   const headers = new Headers();
@@ -187,29 +206,48 @@ async function requestJson<T>(
   const apiKey = await resolveToken(options.getAPIKey);
   if (apiKey) headers.set("X-API-Key", apiKey);
 
-  const response = await fetch(url, {
-    method: options.method,
-    headers,
-    credentials: "include",
-    ...(options.body ? { body: (() => { try { return JSON.stringify(options.body); } catch { return String(options.body); } })() } : {}),
+  // Bound the request so a hung edge/relay gateway cannot freeze the AA flow
+  // indefinitely — this path previously had NO timeout at all.
+  const attempt = async (): Promise<T> => {
+    const response = await fetchWithTimeout(url, {
+      method: options.method,
+      headers,
+      credentials: "include",
+      timeoutMs: DEFAULT_FETCH_TIMEOUT_MS,
+      ...(options.body ? { body: (() => { try { return JSON.stringify(options.body); } catch { return String(options.body); } })() } : {}),
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      // Carry the HTTP status so the transient classifier can tell a retryable
+      // 5xx/429 apart from a deterministic 4xx — while keeping the existing
+      // summarized, user-facing message verbatim.
+      throw new HttpResponseError(
+        summarizeErrorBody(text) || `${options.method} ${url} failed (${response.status})`,
+        response.status,
+      );
+    }
+
+    if (!text) {
+      return {} as T;
+    }
+
+    try {
+      return JSON.parse(text) as T;
+    } catch (_e) {
+      throw new Error(`invalid JSON response from ${url}`);
+    }
+  };
+
+  if (!options.retryOnTransient) {
+    return attempt();
+  }
+  return retryAsync(attempt, {
+    maxAttempts: READ_RETRY_ATTEMPTS,
+    baseDelayMs: READ_RETRY_BASE_DELAY_MS,
+    maxDelayMs: READ_RETRY_MAX_DELAY_MS,
+    shouldRetry: isTransientFetchError,
   });
-
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(
-      summarizeErrorBody(text) || `${options.method} ${url} failed (${response.status})`,
-    );
-  }
-
-  if (!text) {
-    return {} as T;
-  }
-
-  try {
-    return JSON.parse(text) as T;
-  } catch (_e) {
-    throw new Error(`invalid JSON response from ${url}`);
-  }
 }
 
 export function useAbstractAccount(config: AAConfig = {}) {
@@ -248,6 +286,8 @@ export function useAbstractAccount(config: AAConfig = {}) {
         {
           method: "GET",
           getAuthToken: config.getAuthToken,
+          // Idempotent eligibility read — safe to retry a transient blip.
+          retryOnTransient: true,
         },
       );
     } catch (e) {
