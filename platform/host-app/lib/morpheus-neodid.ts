@@ -92,10 +92,7 @@ async function fetchRuntimeJson(path: string, network: NeoNetwork): Promise<Reco
   const headers = new Headers({ accept: "application/json" });
   if (runtimeToken) {
     headers.set("authorization", `Bearer ${runtimeToken}`);
-    // Emit both the new and legacy runtime auth headers so the live runtime
-    // (which may still read x-phala-token) keeps working during the cutover.
     headers.set("x-nitro-token", runtimeToken);
-    headers.set("x-phala-token", runtimeToken);
   }
 
   const requestTimeoutMs = 6000;

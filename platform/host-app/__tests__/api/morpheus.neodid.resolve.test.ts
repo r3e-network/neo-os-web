@@ -96,9 +96,9 @@ describe("/api/morpheus/neodid/resolve", () => {
     const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
     const headers = init.headers as Headers;
     expect(headers.get("authorization")).toBe("Bearer testnet-token");
-    // Emits the new primary header plus the legacy header for backward-compat.
+    // Emits the Nitro runtime header only; the retired x-phala-token is no longer sent.
     expect(headers.get("x-nitro-token")).toBe("testnet-token");
-    expect(headers.get("x-phala-token")).toBe("testnet-token");
+    expect(headers.get("x-phala-token")).toBeNull();
 
     expect(res._getStatusCode()).toBe(200);
     const payload = JSON.parse(res._getData());

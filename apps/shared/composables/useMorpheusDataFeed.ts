@@ -9,7 +9,7 @@
  *
  * Trade-off vs HTTP:
  *   - on-chain read is one RPC call (~300ms), no GAS cost (read-only)
- *   - data freshness depends on how often the Phala TEE pushes updates
+ *   - data freshness depends on how often the Nitro TEE pushes updates
  *     to the contract (currently every few hours in normal operation)
  *   - no per-call TEE attestation in the response — but the on-chain
  *     value is signed by the registered oracleVerificationPublicKey when
