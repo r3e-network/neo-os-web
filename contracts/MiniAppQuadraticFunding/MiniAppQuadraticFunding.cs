@@ -129,6 +129,11 @@ namespace NeoMiniAppPlatform.Contracts
             public BigInteger MatchedAmount;
             public bool Active;
             public bool Claimed;
+            // Set when the creator has swept the unclaimed match (ReclaimUnclaimedMatch).
+            // Kept separate from Claimed so a match sweep does not also block the
+            // per-contributor ReclaimContribution path (which is gated on the
+            // contributor's own non-zero ledger, not on Claimed).
+            public bool MatchClaimed;
         }
         #endregion
 

@@ -239,10 +239,13 @@ namespace NeoMiniAppPlatform.Contracts
         /// the matched amount was already counted against the pool at finalization,
         /// so it is paid out directly from the contract's asset balance.
         ///
-        /// CEI: project.MatchedAmount is zeroed and project.Claimed is set BEFORE the
-        /// transfer. Setting Claimed prevents ClaimProject from later double-paying
-        /// the same project (the invariant total-out &lt;= TotalContributed +
-        /// MatchedAmount holds because Claimed blocks every other payout path).
+        /// CEI: project.MatchedAmount is zeroed and project.MatchClaimed is set BEFORE
+        /// the transfer. MatchClaimed (not Claimed) is used so sweeping the match does
+        /// NOT block contributors from still reclaiming their own contributions via
+        /// ReclaimContribution. ClaimProject (which pays both pools) reads the current
+        /// MatchedAmount (now 0) so it cannot re-pay the swept match, and a second
+        /// ReclaimUnclaimedMatch is blocked by MatchClaimed; the invariant total-out
+        /// &lt;= TotalContributed + MatchedAmount holds because each pool drains once.
         /// </summary>
         public static void ReclaimUnclaimedMatch(UInt160 creator, BigInteger projectId)
         {
@@ -252,6 +255,7 @@ namespace NeoMiniAppPlatform.Contracts
             ProjectData project = GetProject(projectId);
             RequireProjectExists(project);
             ExecutionEngine.Assert(!project.Claimed, "already claimed");
+            ExecutionEngine.Assert(!project.MatchClaimed, "match already claimed");
 
             RoundData round = GetRound(project.RoundId);
             RequireRoundExists(round);
@@ -267,10 +271,10 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger matched = project.MatchedAmount;
             ExecutionEngine.Assert(matched > 0, "no unclaimed match");
 
-            // CEI: zero the matched amount and mark the project claimed so neither
-            // ClaimProject nor a second ReclaimUnclaimedMatch can pay it again.
+            // CEI: zero the matched amount and mark only the MATCH as claimed (not the
+            // whole project) so contributors can still reclaim their contributions.
             project.MatchedAmount = 0;
-            project.Claimed = true;
+            project.MatchClaimed = true;
             StoreProject(projectId, project);
 
             bool transferred = IsNeo(round.Asset)
