@@ -488,9 +488,24 @@ export default function PlayArea({
           className="gas-pool-workspace"
           aria-label={t("ownerWorkspaceTitle")}
         >
-          {/* Role-orienting header: opening the app directly (no claim QR) lands
-              on this campaign-builder, so state who it is for + that it powers the
-              QR rewards before the forms. */}
+          {/* On-system hero: opening the app directly (no claim QR) lands on this
+              campaign-builder, so lead with the app identity (badge + eyebrow +
+              title + tagline) before the forms, matching the claim screen. */}
+          <header className="gas-pool-workspace-hero">
+            <div className="gas-pool-congrats__badge" aria-hidden="true">
+              GAS
+            </div>
+            <div className="gas-pool-workspace-hero__copy">
+              <span className="gas-pool-workspace-hero__eyebrow">
+                {t("oneGateReady")}
+              </span>
+              <h2>{t("vaultName")}</h2>
+              <p>{t("subtitle")}</p>
+            </div>
+          </header>
+
+          {/* Supporting note beneath the hero: who the workspace is for + the two
+              ways a funded campaign can distribute rewards. */}
           <div className="gas-pool-role-header" role="note">
             <strong>{t("workspaceRoleTitle")}</strong>
             <p>{t("workspaceRoleCopy")}</p>

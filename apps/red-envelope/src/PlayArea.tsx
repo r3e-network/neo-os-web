@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
@@ -372,7 +373,11 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               <strong>{poolCount || recentClaims.length}</strong>
             </div>
             {!hasActivity ? (
-              <div className="redenv-empty-line">{t("noPools")}</div>
+              <StateView
+                kind="empty"
+                className="redenv-activity-empty"
+                title={t("noPools")}
+              />
             ) : (
               <div className="redenv-activity-grid">
                 {activeEnvelopes.length > 0 && (

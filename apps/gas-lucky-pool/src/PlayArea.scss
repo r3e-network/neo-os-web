@@ -407,65 +407,57 @@ body {
   align-items: start;
 }
 
-.gas-pool-hero {
+// On-system workspace hero: white/elevated card with the GAS badge + eyebrow +
+// title + tagline, matching the claim screen's identity treatment.
+.gas-pool-workspace-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
-  padding: 1.25rem;
-  border: 1px solid rgba(6, 37, 27, 0.1);
-  border-radius: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.95rem;
+  align-items: center;
+  padding: clamp(1.1rem, 3vw, 1.5rem);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
   background:
-    linear-gradient(135deg, rgba(13, 148, 95, 0.1), rgba(255, 255, 255, 0.92)),
-    #ffffff;
+    linear-gradient(135deg, rgba(22, 199, 132, 0.1), rgba(255, 255, 255, 0)) ,
+    var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+
+  .gas-pool-congrats__badge {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 16px;
+    font-size: 0.9rem;
+  }
 }
 
-.gas-pool-hero__copy {
+.gas-pool-workspace-hero__eyebrow {
+  display: block;
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.gas-pool-workspace-hero__copy {
+  min-width: 0;
+
   h2 {
-    margin: 0;
-    color: #06251b;
-    font-size: clamp(1.5rem, 3vw, 2.4rem);
-    line-height: 1.04;
-    font-weight: 900;
-    letter-spacing: 0;
+    margin: 0.2rem 0 0;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: clamp(1.5rem, 4vw, 1.9rem);
+    line-height: 1.08;
+    font-weight: 800;
+    letter-spacing: -0.02em;
   }
 
   p {
-    margin: 0.55rem 0 0;
-    color: #4b635b;
-    font-size: 0.95rem;
-    line-height: 1.55;
-  }
-}
-
-.gas-pool-hero__stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.55rem;
-
-  div {
-    min-width: 0;
-    padding: 0.8rem;
-    border: 1px solid rgba(6, 37, 27, 0.08);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.78);
-  }
-
-  span {
-    display: block;
-    color: #008f5f;
-    font-size: 1.15rem;
-    font-weight: 900;
-    white-space: nowrap;
-  }
-
-  small {
-    display: block;
-    margin-top: 0.25rem;
-    color: #65776f;
-    font-size: 0.68rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    margin: 0.4rem 0 0;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.92rem;
+    font-weight: 500;
+    line-height: 1.5;
   }
 }
 
@@ -1359,11 +1351,6 @@ body {
     align-self: start;
   }
 
-  .gas-pool-hero {
-    grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
-    align-items: end;
-  }
-
   .gas-pool-grid {
     grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
   }
@@ -1443,7 +1430,6 @@ body {
     font-size: 0.56rem;
   }
 
-  .gas-pool-hero__stats,
   .gas-pool-actions,
   .gas-pool-credit__actions,
   .gas-pool-congrats,
@@ -1453,6 +1439,26 @@ body {
   .gas-pool-list button,
   .gas-pool-claims div {
     grid-template-columns: 1fr;
+  }
+
+  .gas-pool-workspace-hero {
+    gap: 0.75rem;
+    padding: 1rem;
+
+    .gas-pool-congrats__badge {
+      width: 2.85rem;
+      height: 2.85rem;
+      border-radius: 14px;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+    }
+
+    p {
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
   }
 
   .gas-pool-qr--inline {

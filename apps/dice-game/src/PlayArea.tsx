@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
+import { StateView } from "@shared/components";
 import { formatHash } from "@shared/utils/format";
 import "./PlayArea.scss";
 
@@ -424,7 +425,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <div className="dice-history-list">
             {rollHistory.length === 0 ? (
-              <p>{t("diceHistoryEmpty")}</p>
+              <StateView
+                kind="empty"
+                className="dice-history-empty"
+                title={t("diceHistoryEmpty")}
+              />
             ) : (
               rollHistory.map((item) => (
                 <div

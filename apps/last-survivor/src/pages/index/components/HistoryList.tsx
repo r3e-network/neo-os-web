@@ -1,4 +1,6 @@
 import { NeoCard } from "@shared/components-react";
+import { StateView } from "@shared/components";
+import { EmptyStateArt } from "@shared/components-react/illustrations";
 import type { HistoryEvent } from "../../../composables/useLastSurvivor";
 import "./HistoryList.scss";
 
@@ -11,7 +13,11 @@ export default function HistoryList({ history, t }: HistoryListProps) {
   return (
     <NeoCard variant="erobo">
       {history.length === 0 ? (
-        <div className="empty-state">{t("noHistory")}</div>
+        <StateView
+          kind="empty"
+          icon={<EmptyStateArt size={96} title={t("noHistory")} />}
+          title={t("noHistory")}
+        />
       ) : (
         <div className="history-list">
           {history.map((item) => (

@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import {
@@ -307,7 +308,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </NeoButton>
         </div>
         {inbox.length === 0 ? (
-          <p className="nm-empty">{connected ? t("inboxEmpty") : t("connectToView")}</p>
+          <StateView
+            kind="empty"
+            icon={null}
+            className="nm-inbox-empty"
+            title={connected ? t("inboxEmpty") : undefined}
+            hint={connected ? undefined : t("connectToView")}
+          />
         ) : (
           <div className="nm-list">{inbox.map((m) => renderMessage(m, "inbox"))}</div>
         )}

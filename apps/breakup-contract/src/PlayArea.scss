@@ -346,6 +346,18 @@ $tone-warning-soft: var(--ns-warning-soft, #fff3dd);
   }
 }
 
+/* Disabled "Create Contract" CTA — override the shared washed mint-outline
+   convention with a muted-but-solid desaturated brand fill so the primary
+   action reads as a real (currently inactive) button, not a broken/empty pill.
+   Text stays solid white for legibility; reverts to the full brand fill once
+   the form is valid and the button enables. */
+.breakup-create-cta.neo-btn--primary:disabled {
+  background: #9fd9c1;
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: none;
+}
+
 .breakup-action-notice,
 .breakup-last-submit {
   padding: 12px 14px;

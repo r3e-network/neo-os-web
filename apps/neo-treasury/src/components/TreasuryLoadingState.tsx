@@ -1,4 +1,5 @@
 import { NeoButton } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import "./TreasuryLoadingState.scss";
 
 interface TreasuryLoadingStateProps {
@@ -19,26 +20,22 @@ export default function TreasuryLoadingState({ t, loading, error, hasData, onRet
   }
 
   if (!hasData && loading) {
-    return (
-      <div className="loading-container" role="status" aria-live="polite">
-        <div className="skeleton-card mb-4" aria-hidden="true" />
-        <div className="loading-overlay">
-          <span className="loading-label">{t("loading")}</span>
-        </div>
-      </div>
-    );
+    return <StateView kind="loading" title={t("loading")} />;
   }
 
   if (error) {
     return (
-      <div className="error-container" role="alert">
-        <span className="error-label">{error}</span>
-        {onRetry && (
-          <NeoButton variant="primary" className="mt-4" onClick={onRetry}>
-            {t("retry")}
-          </NeoButton>
-        )}
-      </div>
+      <StateView
+        kind="error"
+        title={error}
+        action={
+          onRetry ? (
+            <NeoButton variant="primary" onClick={onRetry}>
+              {t("retry")}
+            </NeoButton>
+          ) : undefined
+        }
+      />
     );
   }
 
