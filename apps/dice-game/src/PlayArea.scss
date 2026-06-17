@@ -673,15 +673,11 @@
   gap: 10px;
 }
 
-.dice-history-list p {
-  margin: 0;
+.dice-history-empty {
   padding: 20px 12px;
   border: 0;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--dice-surface-soft);
-  color: var(--dice-muted);
-  font-size: 13px;
-  text-align: center;
 }
 
 .dice-history-row {

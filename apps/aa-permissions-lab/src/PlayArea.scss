@@ -289,22 +289,13 @@
   line-height: 1.45;
 }
 
-.permissions-empty-line {
-  display: grid;
-  place-items: center;
-  // Give the empty placeholder real height so the left column ends closer to
-  // the taller Update Verifier/Hook stack on the right instead of leaving a
-  // tall blank band beneath "Current permissions".
+.permissions-empty {
+  // Sit on the panel's subtle surface and give the placeholder real height so
+  // the left column ends closer to the taller Update Verifier/Hook stack on the
+  // right instead of leaving a blank band beneath "Current permissions".
   min-height: 180px;
-  margin: 0;
-  padding: 22px;
-  border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-  border-radius: var(--ns-radius-md, 16px);
+  justify-content: center;
   background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 14px;
-  line-height: 1.55;
-  text-align: center;
 }
 
 .aa-permissions-play-area button:disabled {

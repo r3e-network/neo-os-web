@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { StateView } from "@shared/components";
+import { EmptyStateArt } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { StatusType } from "@shared/composables/useStatusMessage";
@@ -414,16 +416,15 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
 
       {/* Recent Vaults */}
       <NeoCard title={t("recentVaults")}>
-        <div className="vault-list-container">
-          {recentVaults.length === 0 ? (
-            <div className="empty-state">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="11" width="18" height="10" rx="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-              <span>{t("noRecentVaults")}</span>
-            </div>
-          ) : (
+        {recentVaults.length === 0 ? (
+          <StateView
+            kind="empty"
+            className="vault-empty-state"
+            icon={<EmptyStateArt size={96} title={t("noRecentVaults")} />}
+            title={t("noRecentVaults")}
+          />
+        ) : (
+          <div className="vault-list-container">
             <div className="vault-list">
               {(recentVaults as Array<Record<string, unknown>>).map((vault) => (
                 <div
@@ -441,8 +442,8 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </NeoCard>
       </div>
       </div>

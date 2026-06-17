@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
@@ -245,7 +246,13 @@ export default function PlayArea({
                 )}
               </>
             ) : (
-              <p className="account-empty">{t("accountStateTitle")} {DASH}</p>
+              <StateView
+                kind="empty"
+                icon={null}
+                className="account-empty"
+                title={t("accountStateTitle")}
+                hint={t("inspectBlocked")}
+              />
             )}
           </div>
         </NeoCard>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Share2 } from "lucide-react";
 import { NeoButton, NeoCard } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable, ObservableState } from "@shared/react/context";
 import { formatHash } from "@shared/utils/format";
@@ -412,7 +413,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 ))}
               </div>
             ) : (
-              <div className="empty-note">{t("emptyCertificatesHint")}</div>
+              <StateView
+                kind="empty"
+                title={t("emptyCertificates")}
+                hint={t("emptyCertificatesHint")}
+              />
             )}
           </NeoCard>
         </div>
@@ -639,7 +644,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 )}
               </div>
             ) : (
-              <div className="empty-note">{t("certificateNotFoundHint")}</div>
+              <StateView
+                kind="empty"
+                title={t("certificateNotFound")}
+                hint={t("certificateNotFoundHint")}
+              />
             )}
           </NeoCard>
         </div>

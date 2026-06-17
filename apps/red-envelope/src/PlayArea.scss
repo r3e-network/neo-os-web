@@ -398,16 +398,11 @@
   align-items: start;
 }
 
-.redenv-empty-line {
-  padding: 14px 16px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+.redenv-activity-empty {
+  padding: 20px 16px;
+  border: 0;
   border-radius: 14px;
   background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 12px;
-  line-height: 1.45;
-  letter-spacing: 0;
-  text-align: center;
 }
 
 .redenv-list {

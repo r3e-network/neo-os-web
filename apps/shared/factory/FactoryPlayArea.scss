@@ -37,6 +37,16 @@
   min-width: 0;
 }
 
+.domain-factory-hero__eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
 .domain-factory-hero h2 {
   margin: 0;
   font-size: 22px;
@@ -419,15 +429,20 @@
   color: var(--ns-text-muted, #8a92a6);
 }
 
-.domain-factory-deployments__empty {
-  margin: 0;
-  padding: 14px;
-  border-radius: var(--ns-radius-md, 14px);
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-2, #5b6478);
-  font-size: 13px;
-  line-height: 1.5;
-  text-align: center;
+/* Compact StateView treatment for the inline on-chain-creations slot: the
+   default illustration is suppressed (icon={null}), so tighten the padding and
+   tint the empty/error card to match the panel's quiet subtle surface. */
+.domain-factory-deployments__state {
+  padding: 18px 14px;
+
+  &.ns-state-view--loading {
+    padding: 6px 0;
+  }
+
+  &.ns-state-view--empty {
+    background: var(--ns-surface-subtle, #f7f8fa);
+    border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
+  }
 }
 
 .domain-factory-deployments__list {

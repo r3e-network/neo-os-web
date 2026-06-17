@@ -404,24 +404,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  text-align: center;
-  // A taller empty state so the right column (Break + Recent Vaults) reaches
-  // closer to the tall Create form, instead of stopping high and leaving a
-  // large blank lower-right area.
+// Shared StateView empty placeholder for the Recent Vaults slot. Hold a taller
+// minimum so the right column (Break + Recent Vaults) reaches closer to the
+// tall Create form, instead of stopping high and leaving a blank lower-right area.
+.vault-empty-state {
   min-height: 200px;
-  padding: 32px 24px;
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 14px;
-
-  svg {
-    color: var(--ns-text-faint, #aeb4c2);
-  }
 }
 
 @media (max-width: 720px) {

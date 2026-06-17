@@ -708,19 +708,6 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 }
 
-.empty-note {
-  margin-bottom: 14px;
-  padding: 20px 16px;
-  border: 1px dashed var(--ns-border);
-  border-radius: var(--ns-radius-sm);
-  background: var(--ns-surface-subtle);
-  text-align: center;
-  color: var(--ns-text-muted);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
 /* ── Certificates summary ───────────────────────────── */
 .certificates-grid {
   display: flex;
@@ -812,7 +799,7 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
     color: var(--ns-danger);
   }
   &.soulbound {
-    background: var(--ns-brand-soft, rgba(99, 102, 241, 0.12));
+    background: var(--ns-brand-soft, #e4f8f0);
     color: var(--ns-brand-strong);
   }
 }
