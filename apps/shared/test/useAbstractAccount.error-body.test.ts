@@ -49,13 +49,21 @@ describe("useAbstractAccount — server error bodies are summarized", () => {
   it("falls back to error.code, then top-level message, then raw text", async () => {
     const aa = useAbstractAccount({ network: "testnet" });
 
-    fetchMock.mockResolvedValueOnce(httpError(500, '{"error":{"code":"INTERNAL_ERROR"}}'));
+    // checkGasSponsorship is an idempotent GET → a transient 5xx is retried
+    // with bounded backoff, so every attempt must see the same response (the
+    // summarized message survives into retryAsync's final wrapped error).
+    fetchMock.mockResolvedValue(httpError(500, '{"error":{"code":"INTERNAL_ERROR"}}'));
     await expect(aa.checkGasSponsorship()).rejects.toThrow(/INTERNAL_ERROR/);
 
+    // requestGasSponsorship is a non-idempotent write → never retried, so a
+    // single response is consumed and a deterministic 4xx fails fast.
+    fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce(httpError(400, '{"message":"amount too large"}'));
     await expect(aa.requestGasSponsorship("5")).rejects.toThrow(/amount too large/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
 
-    fetchMock.mockResolvedValueOnce(httpError(502, "upstream unavailable"));
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(httpError(502, "upstream unavailable"));
     await expect(aa.checkGasSponsorship()).rejects.toThrow(/upstream unavailable/);
   });
 

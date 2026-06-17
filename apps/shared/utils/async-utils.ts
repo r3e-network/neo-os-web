@@ -91,6 +91,13 @@ export async function retryAsync<T>(
     maxDelayMs?: number;
     backoffMultiplier?: number;
     onRetry?: (attempt: number, error: Error) => void;
+    /**
+     * Decide whether a thrown error is worth retrying. Return `false` to fail
+     * fast (e.g. a deterministic HTTP 4xx that re-issuing will never fix).
+     * Omitted → every error is retried until attempts are exhausted (the
+     * original behavior).
+     */
+    shouldRetry?: (error: Error) => boolean;
   },
 ): Promise<T> {
   const {
@@ -99,6 +106,7 @@ export async function retryAsync<T>(
     maxDelayMs = 10000,
     backoffMultiplier = 2,
     onRetry,
+    shouldRetry,
   } = options || {};
 
   let lastError: Error | null = null;
@@ -108,6 +116,13 @@ export async function retryAsync<T>(
       return await operation();
     } catch (error: unknown) {
       lastError = error instanceof Error ? error : new Error(String(error));
+
+      // A non-transient error (per the caller's predicate) is rethrown
+      // immediately and verbatim — no backoff, no attempt-count wrapping —
+      // so deterministic failures stay fast and keep their original message.
+      if (shouldRetry && !shouldRetry(lastError)) {
+        throw lastError;
+      }
 
       if (attempt === maxAttempts) {
         break;
