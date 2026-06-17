@@ -181,11 +181,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         // which marks the project Claimed so it can never be paid out again.
         // ---------------------------------------------------------------------
         [Fact]
-        public void Reclaim_CreatorSweepsUnclaimedMatchAndBlocksDoublePay()
+        public void Reclaim_CreatorSweepsMatchFirstAndContributorsStillReclaim()
         {
             var engine = new TestEngine(true);
-            var contract = BuildFinalizedUnclaimed(engine, out _, out var creator, out var owner,
-                out var c1, out _, out var roundId, out var projectId,
+            var contract = BuildFinalizedUnclaimed(engine, out _, out var creator, out _,
+                out var c1, out var c2, out var roundId, out var projectId,
                 matchingPool: 10 * GAS, contrib1: 3 * GAS, contrib2: 2 * GAS, matched: 4 * GAS);
 
             // Before grace the creator cannot sweep.
@@ -195,24 +195,37 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             engine.PersistingBlock.Advance(TimeSpan.FromMilliseconds(CLAIM_GRACE_MS));
 
+            // Adversarial ordering: the creator sweeps the match BEFORE any contributor
+            // has reclaimed. This must NOT strand the contributors' principals.
             BigInteger creatorBefore = engine.Native.GAS.BalanceOf(creator) ?? 0;
             engine.SetTransactionSigners(creator);
             contract.reclaimUnclaimedMatch(creator, projectId);
 
-            // Creator received the 4 GAS matched amount; the project is now Claimed.
+            // Creator received the 4 GAS match; the match is swept but the project is
+            // NOT fully Claimed (contributions are still owed to the contributors).
             Assert.Equal(creatorBefore + 4 * GAS, engine.Native.GAS.BalanceOf(creator));
             var pd = contract.getProjectDetails(projectId);
             Assert.Equal(BigInteger.Zero, pd[(Neo.VM.Types.PrimitiveType)"matchedAmount"].GetInteger());
-            Assert.True(pd[(Neo.VM.Types.PrimitiveType)"claimed"].GetBoolean());
+            Assert.False(pd[(Neo.VM.Types.PrimitiveType)"claimed"].GetBoolean());
 
-            // The Claimed flag blocks every other payout path: a second sweep, the
-            // owner's claim, and the contributor reclaim all revert.
-            AssertRevert("already claimed",
+            // A second sweep is blocked by MatchClaimed.
+            AssertRevert("match already claimed",
                 () => contract.reclaimUnclaimedMatch(creator, projectId));
-            engine.SetTransactionSigners(owner);
-            AssertRevert("already claimed", () => contract.claimProject(owner, projectId));
+
+            // The fix: each contributor can STILL reclaim their own contribution.
+            BigInteger c1Before = engine.Native.GAS.BalanceOf(c1) ?? 0;
             engine.SetTransactionSigners(c1);
-            AssertRevert("already claimed",
+            contract.reclaimContribution(c1, roundId, projectId);
+            Assert.Equal(c1Before + 3 * GAS, engine.Native.GAS.BalanceOf(c1));
+
+            BigInteger c2Before = engine.Native.GAS.BalanceOf(c2) ?? 0;
+            engine.SetTransactionSigners(c2);
+            contract.reclaimContribution(c2, roundId, projectId);
+            Assert.Equal(c2Before + 2 * GAS, engine.Native.GAS.BalanceOf(c2));
+
+            // A contributor cannot double-reclaim (ledger is now zero).
+            engine.SetTransactionSigners(c1);
+            AssertRevert("nothing to reclaim",
                 () => contract.reclaimContribution(c1, roundId, projectId));
         }
 
@@ -294,11 +307,12 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(projectFunds, paidOut);
 
             // The project is drained for these payout paths: no further reclaim works.
+            // A contributor's ledger is now zero; the match is MatchClaimed.
             engine.SetTransactionSigners(c1);
-            AssertRevert("already claimed",
+            AssertRevert("nothing to reclaim",
                 () => contract.reclaimContribution(c1, roundId, projectId));
             engine.SetTransactionSigners(creator);
-            AssertRevert("already claimed",
+            AssertRevert("match already claimed",
                 () => contract.reclaimUnclaimedMatch(creator, projectId));
         }
 
