@@ -422,11 +422,14 @@ body {
     var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
 
-  .gas-pool-congrats__badge {
+  .gas-pool-workspace-hero__logo {
     width: 3.25rem;
     height: 3.25rem;
     border-radius: 16px;
-    font-size: 0.9rem;
+    object-fit: cover;
+    background: #ffffff;
+    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    box-shadow: 0 12px 26px rgba(15, 177, 116, 0.2);
   }
 }
 
