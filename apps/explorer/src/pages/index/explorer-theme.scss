@@ -9,7 +9,7 @@
   --matrix-danger-glow: 0 0 10px #330000;
   --matrix-input-bg: #001100;
   --matrix-text-glow: 0 0 5px #00ff00;
-  --matrix-success: #16c784;
+  --matrix-success: var(--ns-brand, #16c784);
   --matrix-error: #ef4444;
 }
 

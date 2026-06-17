@@ -7,10 +7,10 @@
   --tarot-soft: #f7f8fa;
   --tarot-panel: #ffffff;
   --tarot-border: rgba(20, 22, 38, 0.06);
-  --tarot-violet: #0fb174;
-  --tarot-violet-soft: #e4f8f0;
-  --tarot-green: #0fb174;
-  --tarot-green-soft: #e4f8f0;
+  --tarot-violet: var(--ns-brand-strong, #0fb174);
+  --tarot-violet-soft: var(--ns-brand-soft, #e4f8f0);
+  --tarot-green: var(--ns-brand-strong, #0fb174);
+  --tarot-green-soft: var(--ns-brand-soft, #e4f8f0);
   --tarot-night: #1e1e2e;
 
   width: 100%;

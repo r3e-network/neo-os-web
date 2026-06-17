@@ -34,8 +34,8 @@
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  color: #0fb174;
-  background: #e4f8f0;
+  color: var(--ns-brand-strong, #0fb174);
+  background: var(--ns-brand-soft, #e4f8f0);
 }
 
 .bridge-eyebrow {
@@ -308,7 +308,7 @@
 .bridge-preset:hover,
 .bridge-preset--active {
   border-color: rgba(15, 177, 116, 0.28);
-  background: #e4f8f0;
+  background: var(--ns-brand-soft, #e4f8f0);
   color: #0b6f69;
 }
 
@@ -353,7 +353,7 @@
   border: 1px solid rgba(15, 177, 116, 0.22);
   border-radius: 8px;
   padding: 10px 12px;
-  background: #e4f8f0;
+  background: var(--ns-brand-soft, #e4f8f0);
   color: #0b6f69;
   font-size: 13px;
   font-weight: 800;
@@ -441,13 +441,13 @@
 }
 
 .timeline-step--done .timeline-icon {
-  color: #0fb174;
-  background: #e4f8f0;
+  color: var(--ns-brand-strong, #0fb174);
+  background: var(--ns-brand-soft, #e4f8f0);
 }
 
 .timeline-step--active .timeline-icon {
-  color: #0fb174;
-  background: #e4f8f0;
+  color: var(--ns-brand-strong, #0fb174);
+  background: var(--ns-brand-soft, #e4f8f0);
 }
 
 .timeline-copy strong,
@@ -483,7 +483,7 @@
   padding: 10px 14px;
   border-radius: 14px;
   border: 1px solid rgba(15, 177, 116, 0.18);
-  background: #e4f8f0;
+  background: var(--ns-brand-soft, #e4f8f0);
   color: #0b6f69;
   font-size: 12px;
   font-weight: 700;
@@ -493,7 +493,7 @@
 
 .bridge-resource-link svg {
   flex: 0 0 auto;
-  color: #0fb174;
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .bridge-resource-link:hover {
@@ -534,8 +534,8 @@
   width: fit-content;
   padding: 4px 8px;
   border-radius: 999px;
-  background: #e4f8f0;
-  color: #0fb174;
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;

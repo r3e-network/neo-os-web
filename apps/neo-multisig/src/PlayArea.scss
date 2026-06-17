@@ -486,7 +486,7 @@
 
 .multisig-request-hint.is-ready {
   border-color: rgba(22, 199, 132, 0.24);
-  background: #e4f8f0;
+  background: var(--ns-brand-soft, #e4f8f0);
   color: var(--multisig-green-strong);
 }
 

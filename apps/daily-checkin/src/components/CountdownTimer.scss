@@ -14,7 +14,7 @@
   &__label { font-size: $font-size-xs; font-weight: $font-weight-semibold; text-transform: uppercase; color: var(--text-secondary, rgba(255, 255, 255, 0.5)); margin-top: $spacing-1; }
   &__urgency-hint {
     font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin-top: $spacing-1;
-    &.calm { color: #16c784; }
+    &.calm { color: var(--ns-brand, #16c784); }
     &.attention { color: #fbbf24; animation: hint-blink 2s ease-in-out infinite; }
     &.urgent { color: #ef4444; animation: hint-blink 0.8s ease-in-out infinite; }
   }

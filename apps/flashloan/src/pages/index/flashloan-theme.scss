@@ -18,7 +18,7 @@
   --flash-button-text: #000;
   --flash-button-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
   --flash-button-shadow-pressed: 0 0 8px rgba(251, 191, 36, 0.5);
-  --flash-success: #16c784;
+  --flash-success: var(--ns-brand, #16c784);
   --flash-danger: #ef4444;
   --flash-pending: #FBBF24;
   --flash-warning-box-bg: rgba(251, 191, 36, 0.08);
@@ -34,7 +34,7 @@
   --flash-atomic-border: rgba(251, 191, 36, 0.2);
   --flash-surface: rgba(10, 15, 28, 0.7);
   --bg-elevated: #0c1222;
-  --neo-green: #16c784;
+  --neo-green: var(--ns-brand, #16c784);
   --neo-purple: #9f7aea;
   --brutal-yellow: #FBBF24;
   --bg-body: #05080f;

@@ -11,9 +11,9 @@
   --ns-radius-lg: 20px;
   --ns-radius-md: 16px;
 
-  --anchor-accent: #16c784;
-  --anchor-accent-strong: #0fb174;
-  --anchor-accent-soft: #e4f8f0;
+  --anchor-accent: var(--ns-brand, #16c784);
+  --anchor-accent-strong: var(--ns-brand-strong, #0fb174);
+  --anchor-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   min-height: 100%;
   padding: 20px;

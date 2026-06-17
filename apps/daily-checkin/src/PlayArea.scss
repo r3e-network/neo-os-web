@@ -38,9 +38,9 @@ $ns-text-muted: var(--ns-text-muted, #8a92a6);
 $ns-text-faint: var(--ns-text-faint, #aeb4c2);
 
 /* Accent — GREEN */
-$ac: #16c784;
-$ac-strong: #0fb174;
-$ac-soft: #e4f8f0;
+$ac: var(--ns-brand, #16c784);
+$ac-strong: var(--ns-brand-strong, #0fb174);
+$ac-soft: var(--ns-brand-soft, #e4f8f0);
 $ac-border: rgba(22, 199, 132, 0.22);
 
 $amber: #f59e0b;
@@ -471,7 +471,7 @@ $amber: #f59e0b;
   }
 
   &.error {
-    background: #fde7e9;
+    background: var(--ns-danger-soft, #fde7e9);
     border-color: rgba(200, 30, 42, 0.18);
     color: #c81e2a;
   }
@@ -490,7 +490,7 @@ $amber: #f59e0b;
 
   &--paused {
     border-color: rgba(200, 30, 42, 0.22);
-    background: #fde7e9;
+    background: var(--ns-danger-soft, #fde7e9);
     color: #c81e2a;
   }
 

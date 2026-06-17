@@ -23,9 +23,9 @@
   --burn-flame-orange: #f97316;
   --burn-flame-red: #ef4444;
   --burn-flame-amber: #f59e0b;
-  --burn-coral: #ff6b6b;
+  --burn-coral: var(--ns-spark, #ff6b6b);
   --burn-gold-bright: #ffd93d;
-  --burn-green: #16c784;
+  --burn-green: var(--ns-brand, #16c784);
   --burn-reward-bg: rgba(249, 115, 22, 0.1);
   --burn-reward-border: rgba(249, 115, 22, 0.2);
 }

@@ -3,8 +3,8 @@
 .milestone-escrow-play-area {
   // Local accent (green) + neutral tokens, aligned to Neo Soft system
   --me-accent: var(--ns-brand, #16c784);
-  --me-accent-strong: #0fb174;
-  --me-accent-soft: #e4f8f0;
+  --me-accent-strong: var(--ns-brand-strong, #0fb174);
+  --me-accent-soft: var(--ns-brand-soft, #e4f8f0);
   --me-surface: var(--ns-surface, #ffffff);
   --me-surface-subtle: var(--ns-surface-subtle, #f7f8fa);
   --me-line: var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -388,12 +388,12 @@
 }
 
 .escrow-status--completed {
-  background: #e6f0ff;
+  background: var(--ns-info-soft, #e6f0ff);
   color: #2f6fe0;
 }
 
 .escrow-status--cancelled {
-  background: #fde7e9;
+  background: var(--ns-danger-soft, #fde7e9);
   color: #c81e2a;
 }
 
@@ -678,7 +678,7 @@
   transition: background 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
-    background: #fde7e9;
+    background: var(--ns-danger-soft, #fde7e9);
   }
 
   &:focus-visible {
