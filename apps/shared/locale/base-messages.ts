@@ -150,6 +150,22 @@ export const baseMessages = {
   navigationSidebar: { en: "Navigation sidebar", zh: "导航侧边栏" },
   operationsPanel: { en: "Operations panel", zh: "操作面板" },
   detailsLabel: { en: "Details", zh: "详情" },
+
+  // --- Operation panel keys ---
+  operationsPanelEyebrow: { en: "Focus action", zh: "重点操作" },
+  operationsPanelTitle: { en: "Operations", zh: "操作" },
+  operationWorkflowConfigure: { en: "Configure", zh: "配置" },
+  operationWorkflowPreview: { en: "Preview", zh: "预览" },
+  operationWorkflowSubmit: { en: "Submit", zh: "提交" },
+  operationEmptyTitle: { en: "No transaction action required", zh: "无需交易操作" },
+  operationEmptyDescription: { en: "This miniapp is ready to use from the workspace.", zh: "此迷你应用已可在工作区中直接使用。" },
+  advancedOperations: { en: "Advanced / Operator", zh: "高级 / 运营" },
+  operationSelectedAction: { en: "Selected action", zh: "已选操作" },
+  operationReady: { en: "Ready", zh: "就绪" },
+  operationNoExtraFields: { en: "No extra fields are needed for this action.", zh: "此操作无需额外填写字段。" },
+  operationClaimingReward: { en: "Claiming reward...", zh: "正在领取奖励……" },
+  operationProcessing: { en: "Processing...", zh: "处理中……" },
+  operationActionInProgress: { en: "{action}...", zh: "{action}……" },
   scrollRevealAriaLabel: { en: "Animated content", zh: "动画内容" },
   vaultLabel: { en: "Vault {id}", zh: "保险库 {id}" },
 
