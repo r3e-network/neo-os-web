@@ -10,16 +10,94 @@
  * .env cannot cause an accidental mainnet deploy.
  */
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import pkg from "@cityofzion/neon-js";
+import { writebackDeployedHash } from "./lib/manifest_hash_writeback.mjs";
+import {
+  buildMiniAppContractRegistry,
+  renderGeneratedTs,
+  generatedTargetPath,
+} from "../../scripts/generate-miniapp-contract-registry.mjs";
 const { sc, wallet, rpc, experimental } = pkg;
 
 const TESTNET_RPC = process.env.NEO_TESTNET_RPC_URL || "https://testnet1.neo.coz.io:443";
 const TESTNET_MAGIC = Number(process.env.NEO_TESTNET_MAGIC || 894710606);
 
-const nefPath = process.argv[2];
-const manifestPath = process.argv[3];
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+
+/** --app <id|slug> flags (repeatable) plus MINIAPP_DEPLOY_APP_IDS (comma/space). */
+function explicitDeployTargets() {
+  const targets = [];
+  for (let i = 2; i < process.argv.length; i += 1) {
+    if (process.argv[i] === "--app" && process.argv[i + 1]) targets.push(process.argv[i + 1]);
+  }
+  for (const value of String(process.env.MINIAPP_DEPLOY_APP_IDS || "").split(/[\s,]+/)) {
+    if (value.trim()) targets.push(value.trim());
+  }
+  return targets;
+}
+
+/**
+ * Write the deployed hash into the owning app manifest(s) on the testnet network
+ * and re-run the registry generator so the committed registry never drifts from a
+ * fresh deploy. Idempotent. Set MINIAPP_DEPLOY_SKIP_WRITEBACK=1 to skip.
+ */
+function syncManifestsAndRegistry(hash) {
+  if (process.env.MINIAPP_DEPLOY_SKIP_WRITEBACK === "1") {
+    console.log("writeback skipped (MINIAPP_DEPLOY_SKIP_WRITEBACK=1)");
+    return;
+  }
+  let report;
+  try {
+    report = writebackDeployedHash({
+      repoRoot: REPO_ROOT,
+      network: "testnet",
+      hash,
+      explicitTargets: explicitDeployTargets(),
+    });
+  } catch (error) {
+    console.log("writeback ERROR: " + (error instanceof Error ? error.message : String(error)));
+    process.exitCode = 6;
+    return;
+  }
+  if (report.targets === 0) {
+    console.log(
+      "writeback: no app manifest references " + hash +
+      " — pass --app <id|slug> (or MINIAPP_DEPLOY_APP_IDS) for a new contract",
+    );
+    return;
+  }
+  if (report.written.length === 0) {
+    console.log("writeback: manifests already at " + hash + " (no change)");
+  } else {
+    for (const entry of report.written) {
+      console.log("writeback: updated " + entry.slug + " -> " + entry.changes.join(", "));
+    }
+  }
+  try {
+    const registry = buildMiniAppContractRegistry({ repoRoot: REPO_ROOT });
+    const targetPath = generatedTargetPath(REPO_ROOT);
+    fs.writeFileSync(targetPath, renderGeneratedTs(registry), "utf8");
+    const counts = "mainnet=" + Object.keys(registry.mainnet).length + ", testnet=" + Object.keys(registry.testnet).length;
+    console.log("registry: regenerated " + path.relative(REPO_ROOT, targetPath) + " (" + counts + ")");
+  } catch (error) {
+    console.log("registry generator FAILED: " + (error instanceof Error ? error.message : String(error)));
+    process.exitCode = 7;
+  }
+}
+
+// Positional args, skipping `--app <value>` flag pairs so writeback targeting
+// can be passed alongside <nef> <manifest> in any order.
+const positionals = [];
+for (let i = 2; i < process.argv.length; i += 1) {
+  if (process.argv[i] === "--app") { i += 1; continue; }
+  positionals.push(process.argv[i]);
+}
+const nefPath = positionals[0];
+const manifestPath = positionals[1];
 if (!nefPath || !manifestPath) {
-  console.error("usage: deploy_contract_neonjs.mjs <nef> <manifest>");
+  console.error("usage: deploy_contract_neonjs.mjs <nef> <manifest> [--app <id|slug>]");
   process.exit(2);
 }
 
@@ -78,6 +156,7 @@ async function main() {
     if (state && state.hash) {
       console.log("ALREADY DEPLOYED at 0x" + expectedHash + " (id " + state.id + ") — skipping");
       console.log("RESULT_HASH=0x" + expectedHash);
+      syncManifestsAndRegistry("0x" + expectedHash);
       return;
     }
   } catch {
@@ -120,6 +199,7 @@ async function main() {
         }
         console.log("DEPLOYED ✓  hash=" + actualHash);
         console.log("RESULT_HASH=" + actualHash);
+        syncManifestsAndRegistry(actualHash);
       } else {
         console.log("DEPLOY FAULTED: " + JSON.stringify(execution?.exception));
       }
