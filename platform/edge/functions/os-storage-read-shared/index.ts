@@ -10,11 +10,19 @@ export const handler = createOSHandler(
     const key = String(params.key ?? "").trim();
     if (!key) throw new Error("key required");
 
-    // Enforce the shared-storage grant model. The calling app (appId) is the
-    // reader; it may only read ownerAppId's state when ownerAppId has recorded
-    // a grant (owner_app_id=ownerAppId, reader_app_id=appId) whose key_prefix
-    // covers `key`. An app reading its own state is always allowed.
-    // hasStorageGrant throws on DB failure → fail-closed (treated as deny).
+    // Apply the shared-storage grant visibility filter. The calling app (appId)
+    // is the reader; this endpoint only surfaces ownerAppId's state when
+    // ownerAppId has recorded a grant (owner_app_id=ownerAppId,
+    // reader_app_id=appId) whose key_prefix covers `key`. An app reading its own
+    // state is always surfaced. hasStorageGrant throws on DB failure → treated
+    // as "not visible".
+    //
+    // NOTE: this is an advisory / visibility filter, NOT a confidentiality
+    // boundary. Shared-storage values live in the on-chain kernel state, which
+    // is world-readable: any caller can read ownerAppId's state directly from a
+    // public RPC node regardless of this check. The filter only governs what
+    // this endpoint returns. For real per-reader confidentiality, use the
+    // TEE / sealed-storage lane instead.
     if (appId !== ownerAppId) {
       const allowed = await hasStorageGrant(ownerAppId, appId, key);
       if (!allowed) {
