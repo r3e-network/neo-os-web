@@ -328,3 +328,46 @@ The live-testnet `test:integration` reports 7 failures — **all the deployed-vs
 - **LOW / dataflow-gap** — AA RECOVERY/ESCAPE + SESSION-KEY + MARKET-ESCROW: Owner force-cancel of a stuck escrow leaves the market listing in a permanently-unsettleable zombie state while a buyer's GAS is still locked
 - **LOW / dataflow-gap** — AA RECOVERY/ESCAPE + SESSION-KEY + MARKET-ESCROW: SettleMarketEscrow/FinalizeEscape do not clear stale pending-module-call and escape-cooldown markers handed to the new owner
 - **LOW / misuse** — AA RECOVERY/ESCAPE + SESSION-KEY + MARKET-ESCROW: Recovery request path lets an attacker-chosen newOwner/executor spam oracle requests and unbounded storage writes (no rate limit / bond)
+
+## Round 10 — "fix everything": deferred items + lows fixed (2026-06-17)
+
+Fixed and pushed across all three repos (then adversarially re-verified, which caught two
+self-inflicted regressions — both fixed):
+
+**Fixed:** C3 oracle opt-in per-app sponsorship allowlist/cap; L1 expiry inbox item; C1+C2
+datafeed on-chain signature verification + canonical aggregate record; L2 example consumers
+track issued requestIds; L3 automation-cancel surfaces the in-flight execution; L12 market
+zombie listing + L13 clean-shell markers; C8 relay allowlist for executeSponsored*; L9/L10 SDK
+simulate-signature flag + deprecated argsHash throws; L5 BreakupPact pull-payment; C6 V2 games
+mix K=3-block entropy + validator caveat; L0/C2-consumer/L4 feed-staleness + AGG-pair +
+ChainService.verified.
+
+**Adversarial re-verify caught + fixed 2 regressions this batch introduced:**
+- The C1 datafeed fix was caller-opt-in (an unsigned write still anchored an arbitrary price
+  even with a key registered). Now signatures are **mandatory** once a key is registered, the
+  worker signs the canonical message and submits via `updateFeedSigned`, and providers are
+  de-duplicated. Inert until an admin registers the key.
+- The L12 market fix let `abandonListing` cancel any listing on the shared core. Now
+  `EnterMarketEscrow` requires the caller to be the market and `AbandonListing` is bound to the
+  account.
+
+### Genuinely deferred — by-design or operator/deployment-only (not source-fixable here)
+- **C1/C2 activation**: an admin must register the on-chain verification key (and provision the
+  matching `oracle_verifier` signing key in the worker) and configure ≥2 providers with consumers
+  reading the `AGG:<pair>` record. Validate on testnet before registering the key on mainnet — a
+  worker/contract canonical-message mismatch would reject feed writes (the contract verifies the
+  exact `symbol|price|timestamp|round` bytes the worker now signs).
+- **C8 full on-chain budget**: the relay now allows `executeSponsored*`, but the frontend must
+  BUILD sponsored ops (`createSponsoredUserOpPayload`) for the on-chain `MaxPerOp`/`DailyBudget`
+  to actually apply; the off-chain fee caps bound exposure meanwhile.
+- **L7** OS shared-storage writes require the app admin/updater witness — intended access control.
+- **L8** `app_id` is taken from the request body — bounded by the caller signature + the kernel
+  witness; round-6 (C9) closed the storage-grant boundary. A full session↔app_id binding is a
+  larger auth change.
+- **L11** the SDK `autoDeadline` allows far-future deadlines — by design; a long deadline does not
+  enable replay (the nonce is one-shot).
+- **L14** the recovery request path allows attacker-chosen `newOwner`/`executor` to generate
+  oracle-side work — bounded griefing (the attacker bears their own GAS cost, no privileged effect,
+  cannot arm a recovery without a valid Morpheus signature).
+- **Operator**: rotate the shared `NR3E4D8N` deployer/owner key to a cold/multisig before any
+  redeploy of the upgradable contracts; all contract fixes need a redeploy to take effect on-chain.
