@@ -8,7 +8,17 @@
  *   - the configured RPC is really Neo N3 mainnet;
  *   - the contract exists on mainnet;
  *   - runtime-declared operations exist in the live ABI;
+ *   - the safe ABI surface published by the COMMITTED contract build manifest
+ *     (contracts/build/<Contract>.manifest.json) is still exposed by the live
+ *     contract — for EVERY contract-backed app, not just ones that declare
+ *     runtime.modules operations;
  *   - safe ABI methods can be invoked with deterministic smoke parameters.
+ *
+ * Contract-backed apps are enumerated from the shared live-harness coverage map
+ * (audit_live_harness_coverage.js) so the drift check cannot silently skip an
+ * app. A contract-backed app with NO expected-method source (no committed build
+ * manifest for its deployed contract name AND no runtime operations) is a
+ * blocker, not a silent pass.
  *
  * Some entity lookups are expected to fault when the sampled id does not exist;
  * those are reported as non-blocking expected faults. Zero-argument reads and
@@ -20,6 +30,7 @@
 const fs = require("fs");
 const path = require("path");
 const { MAINNET_MAGIC } = require("./lib/neo_network");
+const { buildCoverageRows } = require("./audit_live_harness_coverage");
 
 const ROOT = path.resolve(__dirname, "../..");
 const APPS_DIR = path.join(ROOT, "apps");
@@ -452,10 +463,96 @@ async function withConcurrency(items, concurrency, worker) {
   return results;
 }
 
+/**
+ * Pure ABI-drift evaluation for a single contract-backed app.
+ *
+ * Given the deployed contract name, the live ABI method list, whether the app
+ * declares any runtime operations, and the resolver/finder from the build-ABI
+ * lib, return { source, failures } where `failures` is empty when the live ABI
+ * still publishes every committed safe method. A contract-backed app with no
+ * committed build manifest AND no runtime operations yields a hard failure
+ * instead of an empty (silent) pass.
+ */
+function evaluateBuildAbiDrift({
+  contractName,
+  liveMethods,
+  hasRuntimeMethodSource,
+  resolveExpectedMethods,
+  findMissingSafeMethods,
+  buildAbis,
+}) {
+  const failures = [];
+  const expected = resolveExpectedMethods(contractName, buildAbis);
+  if (expected) {
+    const missingSafe = findMissingSafeMethods(liveMethods, expected);
+    for (const name of missingSafe) {
+      failures.push(
+        `build-manifest safe method ${name} (contracts/build/${expected.manifestFile}) missing from live ABI`,
+      );
+    }
+    return {
+      source: {
+        contractName: expected.contractName,
+        manifestFile: expected.manifestFile,
+        expectedSafeMethods: expected.safeMethods.length,
+        missingSafeMethods: missingSafe,
+      },
+      failures,
+    };
+  }
+  if (!hasRuntimeMethodSource) {
+    failures.push(
+      `no expected-method source: deployed contract "${contractName || "(unnamed)"}" has no committed build manifest in contracts/build and the manifest declares no runtime operations`,
+    );
+  }
+  return {
+    source: { contractName: contractName || null, manifestFile: null, expectedSafeMethods: 0, missingSafeMethods: [] },
+    failures,
+  };
+}
+
+/**
+ * Pure reconciliation: a mainnet-contract-backed app the shared coverage map
+ * tracks but the verifier did not load, or loaded without a mainnet contract to
+ * drift-check, is a coverage gap (blocker), not a silent omission.
+ */
+function reconcileCoverageBackedApps({ coverageMainnetIds, loadedAppIds, checkedMainnetIds }) {
+  const gaps = [];
+  for (const id of [...coverageMainnetIds].sort()) {
+    if (!loadedAppIds.has(id)) {
+      gaps.push(`${id}: coverage-tracked contract-backed app not loaded by the verifier`);
+      continue;
+    }
+    if (!checkedMainnetIds.has(id)) {
+      gaps.push(`${id}: coverage-tracked contract-backed app has no mainnet contract to drift-check`);
+    }
+  }
+  return gaps;
+}
+
 async function main() {
   logProgress(`starting mainnet method verifier concurrency=${METHOD_CONCURRENCY} timeout=${RPC_TIMEOUT_MS}ms`);
+  // ESM-only helper: committed build-manifest ABIs are the expected-method source.
+  const { loadBuildManifestAbis, resolveExpectedMethods, findMissingSafeMethods } = await import(
+    "./lib/contract_build_abi.mjs"
+  );
+  const buildAbis = loadBuildManifestAbis({ repoRoot: ROOT });
+  logProgress(`loaded ${buildAbis.byName.size} committed contract build manifest(s)`);
+
+  // Authoritative mainnet-contract-backed app set from the shared live-harness
+  // coverage map, so this mainnet drift check enumerates EVERY app with a
+  // mainnet contract (not just the flagships) and any such app the verifier
+  // itself fails to load/classify is surfaced. Testnet-only contract apps are
+  // out of scope for a mainnet verifier and intentionally excluded.
+  const coverageMainnetIds = new Set(
+    buildCoverageRows({ root: ROOT })
+      .filter((row) => row.mainnetHash)
+      .map((row) => String(row.id)),
+  );
+
   const selectedRpc = await selectMainnetRpc();
   const apps = loadApps();
+  const loadedAppIds = new Set(apps.map((app) => app.appId));
   const contractApps = apps.filter((app) => app.mainnetHash);
   const uniqueHashes = [...new Set(contractApps.map((app) => app.mainnetHash))].sort();
   const contractStates = new Map();
@@ -541,6 +638,22 @@ async function main() {
       }
     }
 
+    // ABI-drift sentinel for ALL contract-backed apps: derive the expected safe
+    // method surface from the COMMITTED build manifest (matched by the deployed
+    // contract name) and assert the live contract still publishes it. Apps with
+    // an empty `runtime` (e.g. red-envelope) have no runtime operations to check,
+    // so without this the verifier would silently pass.
+    const drift = evaluateBuildAbiDrift({
+      contractName: row.contractName,
+      liveMethods: methods,
+      hasRuntimeMethodSource: row.runtimeOperations.length > 0,
+      resolveExpectedMethods,
+      findMissingSafeMethods,
+      buildAbis,
+    });
+    row.buildAbiSource = drift.source;
+    row.failures.push(...drift.failures);
+
     const uiOperationRows = row.uiOperations.map((operation) => ({
       ...operation,
       effectiveMethod: normalizeRuntimeOperationMethod(app.appId, operation.method),
@@ -593,6 +706,20 @@ async function main() {
     rows.push(row);
   }
 
+  // Reconcile against the shared coverage map: a contract-backed app that the
+  // coverage audit knows about but the verifier did not classify as a deployed
+  // mainnet contract (e.g. it was dropped from loadApps, or its mainnet hash
+  // silently disappeared) must be a blocker, not an omission.
+  const checkedMainnetIds = new Set(
+    rows.filter((row) => row.contractBacked).map((row) => row.appId),
+  );
+  const coverageGaps = reconcileCoverageBackedApps({
+    coverageMainnetIds,
+    loadedAppIds,
+    checkedMainnetIds,
+  });
+  blockers.push(...coverageGaps);
+
   const summary = {
     generatedAt: new Date().toISOString(),
     network: MAINNET_KEY,
@@ -603,6 +730,10 @@ async function main() {
     frontendOrServerOnlyApps: apps.length - contractApps.length,
     uniqueMainnetContracts: uniqueHashes.length,
     contractStateErrors: contractErrors.size,
+    coverageMainnetContractApps: coverageMainnetIds.size,
+    coverageGapCount: coverageGaps.length,
+    coverageGaps,
+    buildManifestsLoaded: buildAbis.byName.size,
     safeMethodsDiscovered,
     safeInvocationsAttempted,
     safeInvocationsSkipped,
@@ -650,7 +781,30 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+/**
+ * Mainnet-contract-backed app ids from the shared live-harness coverage map.
+ * Exposed so the all-apps coverage test can assert the sentinel enumerates the
+ * same set the verifier reconciles against.
+ */
+function coverageMainnetContractAppIds({ root = ROOT } = {}) {
+  return buildCoverageRows({ root })
+    .filter((row) => row.mainnetHash)
+    .map((row) => String(row.id))
+    .sort();
+}
+
+module.exports = {
+  evaluateBuildAbiDrift,
+  reconcileCoverageBackedApps,
+  coverageMainnetContractAppIds,
+  extractRuntimeOperations,
+  loadApps,
+  main,
+};
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}
