@@ -20,6 +20,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void CollateralAddedHandler(string appId, BigInteger loanId, BigInteger amount, BigInteger newTotal);
     public delegate void LoanLiquidatedHandler(string appId, BigInteger loanId, UInt160 borrower, UInt160 liquidator, BigInteger debtRepaid, BigInteger collateralSeized);
     public delegate void NeoGasPriceUpdatedHandler(string appId, BigInteger price);
+    // Audit fix FixV: emitted when a price update lowers the stored NEO/GAS price, marking
+    // the start of the liquidation grace window. (oldPrice, newPrice, dropTime)
+    public delegate void PriceDropRecordedHandler(string appId, BigInteger oldPrice, BigInteger newPrice, BigInteger dropTime);
+    // Audit fix FixV: emitted when liquidation returns surplus collateral to the borrower.
+    public delegate void LiquidationSurplusReturnedHandler(string appId, BigInteger loanId, UInt160 borrower, BigInteger surplus);
     public delegate void ProfitAnchorConfiguredHandler(string appId, UInt160 profitAnchorContract, string profitAnchorAppId);
     public delegate void ProfitAnchorVoteSyncedHandler(string appId, UInt160 profitAnchorContract, string profitAnchorAppId, ByteString candidate);
 
@@ -115,6 +120,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         // collateral for loan sizing, health factor, and liquidation. A keeper/oracle updater
         // pushes the live price; unset defaults to 1 NEO = 1 GAS to preserve legacy behavior.
         private static readonly byte[] PREFIX_NEO_GAS_PRICE = new byte[] { 0x2C };
+        // Audit fix FixV (liquidation manipulation): last NEO/GAS price-update timestamp,
+        // used to enforce a minimum update interval so an admin cannot ladder many small
+        // updates within one block/window to bypass the per-update deviation cap.
+        private static readonly byte[] PREFIX_NEO_GAS_PRICE_TIME = new byte[] { 0x2D };
+        // Audit fix FixV: timestamp of the most recent PRICE DECREASE. Loans only become
+        // liquidatable against the lowered valuation once LIQUIDATION_GRACE_MS has elapsed
+        // since this time, giving borrowers a window to top up collateral or repay.
+        private static readonly byte[] PREFIX_PRICE_DROP_TIME = new byte[] { 0x2E };
         #endregion
 
         #region FlashLoan Prefixes (0x30-0x3F)
@@ -161,6 +174,22 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private const int MIN_HEALTH_FACTOR = 100; // 1.0 scaled by 100
         private const long MIN_COLLATERAL = 1;     // 1 NEO
         private const int LENDING_FEE_BPS = 50;    // 0.5% origination
+        // Audit fix FixV (price-manipulation liquidation): a single SetNeoGasPrice update
+        // may move the stored price by at most +/- MAX_PRICE_DEVIATION_BPS (20%). This caps
+        // how far an admin (or a compromised keeper) can crash the price in one step, so a
+        // collateral confiscation requires many throttled updates rather than one swing.
+        private const int MAX_PRICE_DEVIATION_BPS = 2000; // +/-20% per update
+        // Minimum wall-clock gap between two price updates for the same app. Combined with
+        // the deviation cap, this rate-limits how fast the valuation can be driven down.
+        private const ulong MIN_PRICE_UPDATE_INTERVAL_MS = 3_600_000UL; // 1 hour
+        // Grace period after a price DECREASE before loans may be liquidated against the
+        // lowered valuation, giving borrowers time to add collateral or repay.
+        private const ulong LIQUIDATION_GRACE_MS = 3_600_000UL; // 1 hour
+        // Liquidation bonus: the liquidator keeps collateral worth debt + this bonus; any
+        // remaining collateral surplus is returned to the borrower's NEO credit. This both
+        // incentivizes keepers and stops a healthy-but-underwater loan from being fully
+        // confiscated when collateral value far exceeds the debt.
+        private const int LIQUIDATION_BONUS_BPS = 1000; // 10% bonus over debt value
         #endregion
 
         #region FlashLoan Constants
