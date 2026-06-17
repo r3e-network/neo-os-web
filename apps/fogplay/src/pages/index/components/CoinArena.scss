@@ -72,7 +72,7 @@
   padding: 8px 18px;
   border: 1px solid var(--coin-balance-pill-border);
   border-radius: 999px;
-  background: #e4f8f0;
+  background: var(--ns-brand-soft, #e4f8f0);
   color: var(--coin-success);
   font-size: 13px;
   font-weight: 800;

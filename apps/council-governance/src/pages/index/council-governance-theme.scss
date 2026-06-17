@@ -31,10 +31,10 @@
   --senate-danger-border: #f87171;
   --senate-danger-text: #fecaca;
   --senate-button-gradient: linear-gradient(to bottom, #1e293b, #0f172a);
-  --senate-success: #16c784;
+  --senate-success: var(--ns-brand, #16c784);
   --senate-danger: #ef4444;
   --senate-warning: #fde047;
-  --senate-executed: #16c784;
+  --senate-executed: var(--ns-brand, #16c784);
   --senate-font: "Cinzel", serif;
 }
 

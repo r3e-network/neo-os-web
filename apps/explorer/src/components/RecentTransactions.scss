@@ -133,12 +133,12 @@
 }
 
 .vm-state.HALT {
-  background: #e4f8f0;
-  color: #0fb174;
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .vm-state.FAULT {
-  background: #fde7e9;
+  background: var(--ns-danger-soft, #fde7e9);
   color: #c81e2a;
 }
 

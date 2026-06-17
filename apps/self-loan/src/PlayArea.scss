@@ -3,9 +3,9 @@
 
 .selfloan-play-area {
   // ----- Single-hue accent system (green) + Neo Soft tokens -----
-  --sl-accent: #16c784;
-  --sl-accent-strong: #0fb174;
-  --sl-accent-soft: #e4f8f0;
+  --sl-accent: var(--ns-brand, #16c784);
+  --sl-accent-strong: var(--ns-brand-strong, #0fb174);
+  --sl-accent-soft: var(--ns-brand-soft, #e4f8f0);
   --sl-accent-tint: #f1fbf7;
   --sl-accent-line: rgba(22, 199, 132, 0.18);
 

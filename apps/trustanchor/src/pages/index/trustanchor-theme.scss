@@ -7,7 +7,7 @@
   --anchor-bg: #ffffff;
   --anchor-bg-deep: #f7f8fa;
   --anchor-ocean: #2f6fe0;
-  --anchor-ocean-light: #3e8cff;
+  --anchor-ocean-light: var(--ns-info, #3e8cff);
   --anchor-ocean-soft: rgba(62, 140, 255, 0.1);
   --anchor-ocean-glow: rgba(62, 140, 255, 0.2);
   --anchor-gray: #5b6478;

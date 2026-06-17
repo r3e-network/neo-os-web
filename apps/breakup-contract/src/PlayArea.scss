@@ -37,16 +37,16 @@ $ns-text-muted: var(--ns-text-muted, #8a92a6);
 $ns-text-faint: var(--ns-text-faint, #aeb4c2);
 
 /* Accent — GREEN (Neo Soft) */
-$ac: #16c784;
-$ac-strong: #0fb174;
-$ac-soft: #e4f8f0;
+$ac: var(--ns-brand, #16c784);
+$ac-strong: var(--ns-brand-strong, #0fb174);
+$ac-soft: var(--ns-brand-soft, #e4f8f0);
 $ac-border: rgba(22, 199, 132, 0.22);
 
 /* Status tones */
-$tone-success: #16c784;
-$tone-success-soft: #e4f8f0;
-$tone-warning: #b9791a;
-$tone-warning-soft: #fff3dd;
+$tone-success: var(--ns-brand, #16c784);
+$tone-success-soft: var(--ns-brand-soft, #e4f8f0);
+$tone-warning: var(--ns-warning-strong, #b9791a);
+$tone-warning-soft: var(--ns-warning-soft, #fff3dd);
 
 /* ============================================================
  *  Root canvas — one centered column

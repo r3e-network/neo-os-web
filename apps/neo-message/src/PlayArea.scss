@@ -316,8 +316,8 @@ $accent-soft: #eef0fe;
         color: #c47d18;
       }
       &.nm-badge-unlockable {
-        background: #e4f8f0;
-        color: #0fb174;
+        background: var(--ns-brand-soft, #e4f8f0);
+        color: var(--ns-brand-strong, #0fb174);
       }
       &.nm-badge-revealed {
         background: #eef0fe;

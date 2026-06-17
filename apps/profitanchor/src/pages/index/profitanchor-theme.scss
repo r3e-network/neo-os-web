@@ -28,9 +28,9 @@
   --text-secondary: var(--anchor-text-muted);
   --border-color: var(--anchor-card-border);
 
-  --ns-brand: #16c784;
-  --ns-brand-strong: #0fb174;
-  --ns-brand-soft: #e4f8f0;
+  --ns-brand: var(--ns-brand, #16c784);
+  --ns-brand-strong: var(--ns-brand-strong, #0fb174);
+  --ns-brand-soft: var(--ns-brand-soft, #e4f8f0);
   --ns-ink: #1e1e2e;
   --ns-text-2: #5b6478;
   --ns-text-muted: #8a92a6;

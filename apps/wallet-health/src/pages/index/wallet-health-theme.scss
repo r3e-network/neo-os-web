@@ -3,8 +3,8 @@
   --health-bg-end: #f7f8fa;
   --health-card-bg: #ffffff;
   --health-card-border: rgba(22, 199, 132, 0.18);
-  --health-accent: #16c784;
-  --health-accent-strong: #0fb174;
+  --health-accent: var(--ns-brand, #16c784);
+  --health-accent-strong: var(--ns-brand-strong, #0fb174);
   --health-accent-soft: rgba(22, 199, 132, 0.12);
   --health-accent-soft-strong: rgba(22, 199, 132, 0.2);
   --health-accent-glow: rgba(22, 199, 132, 0.25);
@@ -24,8 +24,8 @@
   --health-bg-end: #f7f8fa;
   --health-card-bg: #ffffff;
   --health-card-border: rgba(22, 199, 132, 0.18);
-  --health-accent: #16c784;
-  --health-accent-strong: #0fb174;
+  --health-accent: var(--ns-brand, #16c784);
+  --health-accent-strong: var(--ns-brand-strong, #0fb174);
   --health-accent-soft: rgba(22, 199, 132, 0.12);
   --health-accent-soft-strong: rgba(22, 199, 132, 0.2);
   --health-accent-glow: rgba(22, 199, 132, 0.25);

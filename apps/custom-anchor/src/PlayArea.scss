@@ -316,7 +316,7 @@
 
 .custom-anchor-status-strip.error {
   border-color: rgba(200, 30, 42, 0.22);
-  background: #fde7e9;
+  background: var(--ns-danger-soft, #fde7e9);
   color: #c81e2a;
 }
 

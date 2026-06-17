@@ -5,9 +5,9 @@
   --ns-ink: #1e1e2e;
   --ns-text-2: #5b6478;
   --ns-text-muted: #8a92a6;
-  --ns-accent: #16c784;
-  --ns-accent-strong: #0fb174;
-  --ns-accent-soft: #e4f8f0;
+  --ns-accent: var(--ns-brand, #16c784);
+  --ns-accent-strong: var(--ns-brand-strong, #0fb174);
+  --ns-accent-soft: var(--ns-brand-soft, #e4f8f0);
   --ns-radius-lg: 20px;
   --ns-radius-md: 14px;
   --ns-radius-sm: 10px;
@@ -390,8 +390,8 @@
 }
 
 .private-transfer__status--stored .private-transfer__status-icon {
-  background: #e4f8f0;
-  color: #0fb174;
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .private-transfer__status--stored strong {
@@ -399,7 +399,7 @@
 }
 
 .private-transfer__status--error .private-transfer__status-icon {
-  background: #fde7e9;
+  background: var(--ns-danger-soft, #fde7e9);
   color: #c81e2a;
 }
 

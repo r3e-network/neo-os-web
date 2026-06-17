@@ -1,19 +1,19 @@
 :global(.theme-neo-treasury) {
   --treasury-bg: var(--ns-surface, #ffffff);
-  --treasury-gold: #0fb174;
-  --treasury-light-gold: #16c784;
-  --treasury-dark-gold: #0fb174;
+  --treasury-gold: var(--ns-brand-strong, #0fb174);
+  --treasury-light-gold: var(--ns-brand, #16c784);
+  --treasury-dark-gold: var(--ns-brand-strong, #0fb174);
   --treasury-text: var(--ns-ink, #1e1e2e);
-  --treasury-card-bg: radial-gradient(120% 140% at 100% 0%, #e4f8f0 0%, rgba(228, 248, 240, 0) 60%), var(--ns-surface, #ffffff);
+  --treasury-card-bg: radial-gradient(120% 140% at 100% 0%, var(--ns-brand-soft, #e4f8f0) 0%, rgba(228, 248, 240, 0) 60%), var(--ns-surface, #ffffff);
   --treasury-card-border: var(--ns-border, rgba(20, 22, 38, 0.06));
   --treasury-card-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   --treasury-card-edge: linear-gradient(90deg, transparent, rgba(22, 199, 132, 0.5), transparent);
-  --treasury-button-bg: linear-gradient(to bottom, #16c784, #0fb174);
+  --treasury-button-bg: linear-gradient(to bottom, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
   --treasury-button-text: #ffffff;
-  --treasury-button-border: #0fb174;
+  --treasury-button-border: var(--ns-brand-strong, #0fb174);
   --treasury-button-shadow: 0 2px 4px rgba(20, 22, 38, 0.12);
   --treasury-button-text-shadow: none;
-  --treasury-button-active-bg: linear-gradient(to top, #16c784, #0fb174);
+  --treasury-button-active-bg: linear-gradient(to top, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
   --treasury-overlay: rgba(255, 255, 255, 0.72);
   --treasury-soft-bg: var(--ns-brand-soft, #e4f8f0);
   --treasury-soft-border: var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -22,10 +22,10 @@
   --treasury-skeleton-border: var(--ns-border, rgba(20, 22, 38, 0.06));
   --treasury-flare: rgba(22, 199, 132, 0.1);
   --treasury-flake: rgba(22, 199, 132, 0.08);
-  --treasury-danger: #ea3943;
-  --treasury-neo-green: #16c784;
-  --treasury-positive: #16c784;
-  --treasury-negative: #ea3943;
+  --treasury-danger: var(--ns-danger, #ea3943);
+  --treasury-neo-green: var(--ns-brand, #16c784);
+  --treasury-positive: var(--ns-brand, #16c784);
+  --treasury-negative: var(--ns-danger, #ea3943);
 
   --bg-primary: var(--treasury-bg);
   --bg-secondary: var(--ns-surface-subtle, #f7f8fa);
@@ -37,20 +37,20 @@
 :global(.theme-light .theme-neo-treasury),
 :global([data-theme="light"] .theme-neo-treasury) {
   --treasury-bg: var(--ns-surface, #ffffff);
-  --treasury-gold: #0fb174;
-  --treasury-light-gold: #16c784;
-  --treasury-dark-gold: #0fb174;
+  --treasury-gold: var(--ns-brand-strong, #0fb174);
+  --treasury-light-gold: var(--ns-brand, #16c784);
+  --treasury-dark-gold: var(--ns-brand-strong, #0fb174);
   --treasury-text: var(--ns-ink, #1e1e2e);
-  --treasury-card-bg: radial-gradient(120% 140% at 100% 0%, #e4f8f0 0%, rgba(228, 248, 240, 0) 60%), var(--ns-surface, #ffffff);
+  --treasury-card-bg: radial-gradient(120% 140% at 100% 0%, var(--ns-brand-soft, #e4f8f0) 0%, rgba(228, 248, 240, 0) 60%), var(--ns-surface, #ffffff);
   --treasury-card-border: var(--ns-border, rgba(20, 22, 38, 0.06));
   --treasury-card-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   --treasury-card-edge: linear-gradient(90deg, transparent, rgba(22, 199, 132, 0.5), transparent);
-  --treasury-button-bg: linear-gradient(to bottom, #16c784, #0fb174);
+  --treasury-button-bg: linear-gradient(to bottom, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
   --treasury-button-text: #ffffff;
-  --treasury-button-border: #0fb174;
+  --treasury-button-border: var(--ns-brand-strong, #0fb174);
   --treasury-button-shadow: 0 2px 4px rgba(20, 22, 38, 0.12);
   --treasury-button-text-shadow: none;
-  --treasury-button-active-bg: linear-gradient(to top, #16c784, #0fb174);
+  --treasury-button-active-bg: linear-gradient(to top, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
   --treasury-overlay: rgba(255, 255, 255, 0.72);
   --treasury-soft-bg: var(--ns-brand-soft, #e4f8f0);
   --treasury-soft-border: var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -59,10 +59,10 @@
   --treasury-skeleton-border: var(--ns-border, rgba(20, 22, 38, 0.06));
   --treasury-flare: rgba(22, 199, 132, 0.1);
   --treasury-flake: rgba(22, 199, 132, 0.08);
-  --treasury-danger: #ea3943;
-  --treasury-neo-green: #16c784;
-  --treasury-positive: #16c784;
-  --treasury-negative: #ea3943;
+  --treasury-danger: var(--ns-danger, #ea3943);
+  --treasury-neo-green: var(--ns-brand, #16c784);
+  --treasury-positive: var(--ns-brand, #16c784);
+  --treasury-negative: var(--ns-danger, #ea3943);
 
   --bg-primary: var(--treasury-bg);
   --bg-secondary: var(--ns-surface-subtle, #f7f8fa);
