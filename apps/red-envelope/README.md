@@ -28,6 +28,23 @@ What elevates Red Envelope beyond a simple transfer tool is that creation, claim
 - **Expiry & Refund**: Unclaimed packets return to the sender automatically.
 - **Cultural Flair**: Custom blessing messages, themed UI, and celebration animations.
 
+## Randomness & Fairness
+
+Lucky-draw packet amounts are drawn on-chain at claim time using the Neo consensus
+beacon (`Runtime.GetRandom()`) mixed with the claimer's address. This makes each
+share unpredictable and hard to front-run, but it is **not VRF-grade randomness**.
+Because the draw resolves inside the claim transaction, a claimer could in principle
+abort and retry across blocks to nudge toward a larger packet ("grinding").
+
+This is bounded by design: every packet is capped near twice the running average and
+at least the minimum per-packet amount is always reserved for each remaining packet,
+so grinding can never drain the envelope or starve later claimers — it only shifts a
+single share toward its capped maximum at the cost of extra fees and blocks. Red
+Envelope is intended for low-stakes social gifting, where this residual bias is
+acceptable. A commit/reveal scheme would remove it but would require a second
+transaction per claim, degrading the one-tap claim experience, so it is intentionally
+not used here.
+
 ## Technical Architecture
 
 ### Smart Contract

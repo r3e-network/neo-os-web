@@ -114,7 +114,12 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             string dice = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Dice.cs");
 
             Assert.Contains("UInt160 winner = round.LastBuyer", countdown);
-            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, winner, winnerPrize)", countdown);
+            // The winner is paid via pull-payment: the prize is added to the
+            // existing direct GAS credit ledger (claimed via WithdrawGasCredit),
+            // never pushed. A push to a GAS-rejecting contract winner would brick
+            // settlement and strand the pot.
+            Assert.Contains("AddDirectGasCredit(appId, winner, winnerPrize)", countdown);
+            Assert.DoesNotContain("GAS.Transfer(Runtime.ExecutingScriptHash, winner, winnerPrize)", countdown);
             Assert.DoesNotContain("UInt160 recipient", countdown);
 
             Assert.Contains("bet.Player", coinFlip);

@@ -20,7 +20,8 @@ namespace NeoMiniAppPlatform.Contracts
     /// - reveal() after the unlock time returns the locked GAS to the owner ATOMICALLY
     ///   and marks the capsule opened.
     /// - fish() lets another user pay a discovery fee on a PUBLIC, unrevealed capsule;
-    ///   the fee is forwarded to the capsule's owner as a real tip, in the same tx.
+    ///   the fee is credited to the capsule owner's fish-revenue balance, which the
+    ///   owner pulls out with withdrawFishRevenue().
     /// No external settler, no pending state.
     ///
     /// SAFETY:
@@ -28,13 +29,16 @@ namespace NeoMiniAppPlatform.Contracts
     /// - Deposit-then-bury: GAS sent with memo "miniapp-timecapsule:bury" credits the
     ///   sender; bury() consumes that credit as the locked amount, so a capsule is
     ///   always fully backed.
-    /// - fish is a one-shot GAS transfer with memo "miniapp-timecapsule:fish:<id>";
-    ///   the sent amount is forwarded to the owner (the fisher pays, the owner is
-    ///   tipped). The fisher cannot be the owner; the capsule must be public and not
-    ///   yet revealed/fished.
-    /// - Checks-effects-interactions: capsule state is written before every transfer;
-    ///   a failed transfer asserts and reverts the whole atomic invocation. reveal()
-    ///   is guarded by the Revealed flag so the deposit can never be withdrawn twice.
+    /// - fish is a one-shot GAS transfer with memo "miniapp-timecapsule:fish:<id>".
+    ///   OnNEP17Payment is credit-only: it validates the conditions (public, not
+    ///   revealed, not yet fished, fisher != owner), marks the capsule fished and
+    ///   credits the fee to the owner's fish-revenue ledger. The owner later pulls the
+    ///   accrued fees with withdrawFishRevenue(); the deposit callback never performs an
+    ///   outbound transfer, avoiding reentrancy surface and TestEngine host crashes.
+    /// - Checks-effects-interactions: every direct withdrawal debits its ledger before
+    ///   transferring; a failed transfer asserts and reverts the whole atomic
+    ///   invocation. reveal() is guarded by the Revealed flag so the deposit can never
+    ///   be withdrawn twice.
     /// </summary>
     [DisplayName("MiniAppTimeCapsule")]
     [ManifestExtra("Author", "R3E Network")]
@@ -42,7 +46,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Self-contained on-chain time-lock vault: bury locks GAS until an unlock time, reveal returns it, fishing fee tips the owner — no oracle.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
-    public class MiniAppTimeCapsule : SmartContract
+    public partial class MiniAppTimeCapsule : SmartContract
     {
         #region Constants
         private const long MIN_DURATION_SECONDS = 1;            // contract floor; UI enforces >= 1 day
@@ -59,6 +63,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_CREDIT = new byte[] { 0x12 };       // + owner -> GAS credit
         private static readonly byte[] PREFIX_OWNER_CNT = new byte[] { 0x13 };    // + owner -> count
         private static readonly byte[] PREFIX_OWNER_ITEM = new byte[] { 0x14 };   // + owner + seq -> capsuleId
+        private static readonly byte[] PREFIX_FISH_REV = new byte[] { 0x15 };     // + owner -> accrued fish fees
         #endregion
 
         #region Events
@@ -72,6 +77,8 @@ namespace NeoMiniAppPlatform.Contracts
         public static event Action<BigInteger, UInt160, UInt160, BigInteger> OnFished; // id, fisher, owner, fee
         [DisplayName("CreditWithdrawn")]
         public static event Action<UInt160, BigInteger> OnCreditWithdrawn; // account, amount
+        [DisplayName("FishRevenueWithdrawn")]
+        public static event Action<UInt160, BigInteger> OnFishRevenueWithdrawn; // owner, amount
         #endregion
 
         #region Types
@@ -91,8 +98,11 @@ namespace NeoMiniAppPlatform.Contracts
         #region Deposit + fish (NEP-17 entry)
         /// <summary>
         /// - memo "miniapp-timecapsule:bury" credits the sender's prepaid balance (bury consumes it).
-        /// - memo "miniapp-timecapsule:fish:&lt;id&gt;" pays a discovery fee that is forwarded to
-        ///   the public capsule's owner as a tip.
+        /// - memo "miniapp-timecapsule:fish:&lt;id&gt;" pays a discovery fee that is credited to
+        ///   the public capsule owner's fish-revenue balance (pulled via withdrawFishRevenue()).
+        ///
+        /// Credit-only by design: this callback never performs an outbound transfer; it
+        /// only validates, writes storage and credits ledgers.
         /// </summary>
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
@@ -120,14 +130,16 @@ namespace NeoMiniAppPlatform.Contracts
                 ExecutionEngine.Assert(!c.Fished, "capsule already fished");
                 ExecutionEngine.Assert(from != c.Owner, "cannot fish your own capsule");
 
-                // Effect before interaction.
+                // Effects only: mark the capsule fished and credit the discovery fee to
+                // the owner's fish-revenue ledger. No transfer here — the owner pulls
+                // the accrued fees with withdrawFishRevenue().
                 c.Fished = true;
                 Storage.Put(ctx, CapKey(capsuleId), StdLib.Serialize(c));
 
-                // Forward the discovery fee to the owner as a tip.
-                bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
-                    new object[] { Runtime.ExecutingScriptHash, c.Owner, amount, "" });
-                ExecutionEngine.Assert(ok, "tip transfer failed");
+                byte[] revKey = Helper.Concat(PREFIX_FISH_REV, (byte[])c.Owner);
+                BigInteger revBal = (BigInteger)Storage.Get(ctx, revKey) + amount;
+                Storage.Put(ctx, revKey, revBal);
+
                 OnFished(capsuleId, from, c.Owner, amount);
                 return;
             }
@@ -224,56 +236,25 @@ namespace NeoMiniAppPlatform.Contracts
         }
         #endregion
 
-        #region Read-only
-        [Safe]
-        public static BigInteger LastCapsuleId() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_CAP_ID);
-
-        [Safe]
-        public static BigInteger CreditOf(UInt160 owner) =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_CREDIT, (byte[])owner));
-
-        [Safe]
-        public static Map<string, object> GetCapsule(BigInteger capsuleId)
+        #region Withdraw fish revenue
+        /// <summary>
+        /// Pull the discovery fees accrued to `owner` from other users fishing their
+        /// public capsules. Witness-gated; checks-effects-interactions (the ledger is
+        /// debited before the transfer).
+        /// </summary>
+        public static BigInteger WithdrawFishRevenue(UInt160 owner)
         {
-            Capsule c = LoadCapsule(Storage.CurrentContext, capsuleId);
-            Map<string, object> r = new Map<string, object>();
-            r["id"] = capsuleId;
-            r["owner"] = c.Owner;
-            r["contentHash"] = c.ContentHash;
-            r["unlockTime"] = c.UnlockTime;
-            r["isPublic"] = c.IsPublic;
-            r["category"] = c.Category;
-            r["revealed"] = c.Revealed;
-            r["amount"] = c.Amount;
-            r["fished"] = c.Fished;
-            return r;
-        }
-
-        [Safe]
-        public static BigInteger OwnerCapsuleCount(UInt160 owner) =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_OWNER_CNT, (byte[])owner));
-
-        [Safe]
-        public static BigInteger[] GetOwnerCapsules(UInt160 owner, BigInteger offset, BigInteger limit)
-        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(owner), "owner witness required");
             StorageContext ctx = Storage.CurrentContext;
-            BigInteger n = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_OWNER_CNT, (byte[])owner));
-            if (offset < 0) offset = 0;
-            if (limit <= 0 || limit > 100) limit = 100;
-            BigInteger start = offset + 1;
-            BigInteger end = start + limit - 1;
-            if (end > n) end = n;
-            if (start > end) return new BigInteger[0];
-            BigInteger count = end - start + 1;
-            BigInteger[] result = new BigInteger[(int)count];
-            BigInteger idx = 0;
-            for (BigInteger i = start; i <= end; i++)
-            {
-                byte[] itemKey = Helper.Concat(Helper.Concat(PREFIX_OWNER_ITEM, (byte[])owner), (byte[])(ByteString)i);
-                result[(int)idx] = (BigInteger)Storage.Get(ctx, itemKey);
-                idx += 1;
-            }
-            return result;
+            byte[] key = Helper.Concat(PREFIX_FISH_REV, (byte[])owner);
+            BigInteger revenue = (BigInteger)Storage.Get(ctx, key);
+            ExecutionEngine.Assert(revenue > 0, "no fish revenue");
+            Storage.Delete(ctx, key);
+            bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
+                new object[] { Runtime.ExecutingScriptHash, owner, revenue, "" });
+            ExecutionEngine.Assert(ok, "fish revenue transfer failed");
+            OnFishRevenueWithdrawn(owner, revenue);
+            return revenue;
         }
         #endregion
 

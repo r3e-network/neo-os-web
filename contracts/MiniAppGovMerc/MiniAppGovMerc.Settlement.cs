@@ -32,17 +32,21 @@ namespace NeoMiniAppPlatform.Contracts
             Storage.Put(ctx, Helper.Concat(PREFIX_SETTLE_WINNER, (byte[])(ByteString)epoch), winner);
             Storage.Put(ctx, Helper.Concat(PREFIX_SETTLE_AMOUNT, (byte[])(ByteString)epoch), highBid);
 
-            BigInteger total = (BigInteger)Storage.Get(ctx, PREFIX_TOTAL_STAKED);
+            // MP-G-02: divide the winning bid only across ELIGIBLE stake — NEO that was
+            // present before this epoch's bidding window opened. Stake added once bidding
+            // started sits in the pending bucket (excluded here), so it cannot capture
+            // this epoch's revenue. The accRewardPerShare math is otherwise unchanged.
+            BigInteger eligible = (BigInteger)Storage.Get(ctx, PREFIX_ELIGIBLE_STAKED);
             BigInteger distributed = 0;
-            if (total > 0)
+            if (eligible > 0)
             {
-                BigInteger accRps = (BigInteger)Storage.Get(ctx, PREFIX_ACC_RPS) + highBid * SCALE / total;
+                BigInteger accRps = (BigInteger)Storage.Get(ctx, PREFIX_ACC_RPS) + highBid * SCALE / eligible;
                 Storage.Put(ctx, PREFIX_ACC_RPS, accRps);
                 distributed = highBid;
             }
             else
             {
-                // No stakers to reward: refund the winner's bid to their credit.
+                // No eligible stakers to reward: refund the winner's bid to their credit.
                 byte[] wc = Helper.Concat(PREFIX_GAS_CREDIT, (byte[])winner);
                 Storage.Put(ctx, wc, (BigInteger)Storage.Get(ctx, wc) + highBid);
             }

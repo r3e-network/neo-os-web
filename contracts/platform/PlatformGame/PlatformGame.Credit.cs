@@ -119,6 +119,22 @@ namespace NeoMiniAppPlatform.Contracts
             OnGasCreditWithdrawn(appId, payer, amount);
         }
 
+        /// <summary>
+        /// Credit GAS to a payer's prepaid balance from contract-internal funds
+        /// (e.g. a settled prize). Used for pull-payment payouts so a recipient
+        /// whose onNEP17Payment faults can never brick the paying call: the
+        /// recipient pulls the credited GAS via WithdrawGasCredit instead.
+        /// </summary>
+        private static void AddDirectGasCredit(string appId, UInt160 payer, BigInteger amount)
+        {
+            ValidateAddress(payer);
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            byte[] key = AppKey(appId, PREFIX_DIRECT_GAS_CREDIT, payer);
+            BigInteger balance = (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            Storage.Put(Storage.CurrentContext, key, balance + amount);
+        }
+
         #endregion
 
         // ===================================================================

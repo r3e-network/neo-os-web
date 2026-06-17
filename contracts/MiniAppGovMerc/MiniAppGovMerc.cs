@@ -33,6 +33,16 @@ namespace NeoMiniAppPlatform.Contracts
     /// NEO scaled by SCALE; a staker's reward debt is snapshotted on every stake change so
     /// distributions are split exactly by stake-share. Floor division can only UNDER-
     /// distribute (dust stays in the contract), never over-distribute.
+    ///
+    /// JIT-STAKING GUARD (MP-G-02): the winning bid is split only across stake that was
+    /// present BEFORE the live epoch's bidding window opened (the epoch's first bid).
+    /// NEO staked once the window is open is parked in a per-user PENDING bucket tagged
+    /// with the next epoch and is NOT counted in the eligible total that settle divides
+    /// by, so it earns nothing from the current epoch's bid. Pending stake folds into the
+    /// eligible balance on the staker's next interaction once the epoch advances. This
+    /// stops an attacker from staking large after the bid is locked in, snatching a
+    /// pro-rata cut at settle, then unstaking — siphoning revenue from long-term stakers.
+    /// The accRewardPerShare / rewardDebt math over eligible stake is unchanged.
     /// </summary>
     [DisplayName("MiniAppGovMerc")]
     [ManifestExtra("Author", "R3E Network")]
@@ -59,10 +69,10 @@ namespace NeoMiniAppPlatform.Contracts
         #endregion
 
         #region Storage prefixes
-        private static readonly byte[] PREFIX_STAKED = new byte[] { 0x10 };       // + user -> NEO staked
-        private static readonly byte[] PREFIX_TOTAL_STAKED = new byte[] { 0x11 };
+        private static readonly byte[] PREFIX_STAKED = new byte[] { 0x10 };       // + user -> ELIGIBLE NEO staked (earns the live epoch)
+        private static readonly byte[] PREFIX_TOTAL_STAKED = new byte[] { 0x11 }; // total NEO held (eligible + pending)
         private static readonly byte[] PREFIX_ACC_RPS = new byte[] { 0x12 };      // accRewardPerShare (scaled)
-        private static readonly byte[] PREFIX_REWARD_DEBT = new byte[] { 0x13 };  // + user -> reward debt
+        private static readonly byte[] PREFIX_REWARD_DEBT = new byte[] { 0x13 };  // + user -> reward debt (over eligible stake)
         private static readonly byte[] PREFIX_PENDING = new byte[] { 0x14 };      // + user -> banked claimable GAS
         private static readonly byte[] PREFIX_GAS_CREDIT = new byte[] { 0x15 };   // + user -> GAS bid credit
         private static readonly byte[] PREFIX_EPOCH = new byte[] { 0x16 };        // current epoch
@@ -72,6 +82,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_SETTLE_WINNER = new byte[] { 0x1a };// + epoch -> winner
         private static readonly byte[] PREFIX_SETTLE_AMOUNT = new byte[] { 0x1b };// + epoch -> winning bid
         private static readonly byte[] PREFIX_EPOCH_END = new byte[] { 0x1c };    // + epoch -> bidding deadline (ms)
+        private static readonly byte[] PREFIX_ELIGIBLE_STAKED = new byte[] { 0x1d };  // total ELIGIBLE NEO (the settle divisor)
+        private static readonly byte[] PREFIX_PENDING_STAKE = new byte[] { 0x1e };    // + user -> NEO staked after the live window opened
+        private static readonly byte[] PREFIX_PENDING_EPOCH = new byte[] { 0x1f };    // + user -> epoch from which PENDING_STAKE becomes eligible
         #endregion
 
         #region Deposit (NEO stake / GAS bid credit)
@@ -102,43 +115,8 @@ namespace NeoMiniAppPlatform.Contracts
         }
         #endregion
 
-        #region Staking
-        private static void StakeInternal(StorageContext ctx, UInt160 user, BigInteger amount)
-        {
-            ExecutionEngine.Assert(amount >= MIN_STAKE, "stake below minimum");
-            Harvest(ctx, user);
-            byte[] sKey = Helper.Concat(PREFIX_STAKED, (byte[])user);
-            BigInteger staked = (BigInteger)Storage.Get(ctx, sKey) + amount;
-            Storage.Put(ctx, sKey, staked);
-            BigInteger total = (BigInteger)Storage.Get(ctx, PREFIX_TOTAL_STAKED) + amount;
-            Storage.Put(ctx, PREFIX_TOTAL_STAKED, total);
-            SetRewardDebt(ctx, user, staked);
-            OnStaked(user, amount, total);
-        }
-
-        /// <summary>Withdraw staked NEO. Pending rewards are banked first.</summary>
-        public static void WithdrawStake(UInt160 user, BigInteger amount)
-        {
-            ExecutionEngine.Assert(Runtime.CheckWitness(user), "user witness required");
-            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
-            StorageContext ctx = Storage.CurrentContext;
-            byte[] sKey = Helper.Concat(PREFIX_STAKED, (byte[])user);
-            BigInteger staked = (BigInteger)Storage.Get(ctx, sKey);
-            ExecutionEngine.Assert(staked >= amount, "insufficient stake");
-
-            Harvest(ctx, user);
-            BigInteger remaining = staked - amount;
-            if (remaining == 0) Storage.Delete(ctx, sKey); else Storage.Put(ctx, sKey, remaining);
-            BigInteger total = (BigInteger)Storage.Get(ctx, PREFIX_TOTAL_STAKED) - amount;
-            Storage.Put(ctx, PREFIX_TOTAL_STAKED, total);
-            SetRewardDebt(ctx, user, remaining);
-
-            bool ok = (bool)Contract.Call(NEO.Hash, "transfer", CallFlags.All,
-                new object[] { Runtime.ExecutingScriptHash, user, amount, "" });
-            ExecutionEngine.Assert(ok, "NEO transfer failed");
-            OnUnstaked(user, amount, total);
-        }
-        #endregion
+        // Staking (StakeInternal / WithdrawStake / pending-eligibility) lives in
+        // MiniAppGovMerc.Staking.cs.
 
         #region Rewards accounting
         // Bank a staker's earned-but-unclaimed rewards into PENDING. Does NOT touch
@@ -168,6 +146,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ExecutionEngine.Assert(Runtime.CheckWitness(user), "user witness required");
             StorageContext ctx = Storage.CurrentContext;
+            ActivatePending(ctx, user);
             Harvest(ctx, user);
             byte[] sKey = Helper.Concat(PREFIX_STAKED, (byte[])user);
             SetRewardDebt(ctx, user, (BigInteger)Storage.Get(ctx, sKey));
