@@ -38,6 +38,9 @@ export type { PlayMetric, PlayTone } from "./shared-helpers";
 export {
   HOST_WALLET_BRIDGE_RESULT,
   HOST_WALLET_BRIDGE_ERROR,
+  HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
+  HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS,
+  isCompatibleBridgeProtocolVersion,
   buildEmbeddedWalletBridgeResultDetail,
   useEmbeddedWalletBridge,
 } from "./bridge";

@@ -9,6 +9,10 @@ export {
   requestNep21Provider,
   resetNep21ProviderCacheForTests,
   waitForNep21Provider,
+  HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
+  HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS,
+  isCompatibleBridgeProtocolVersion,
+  normalizeBridgeProtocolVersion,
 } from "./nep21-provider.js";
 
 // Core types
