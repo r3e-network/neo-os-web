@@ -39,12 +39,17 @@ namespace NeoMiniAppPlatform.Contracts
             round.WinnerPrize = winnerPrize;
             StoreCountdownRound(appId, roundId, round);
 
-            // Transfer prize to winner
+            // Credit the prize to the winner (pull-payment). A direct GAS.Transfer
+            // to the winner here would let a contract winner whose onNEP17Payment
+            // faults permanently brick settlement — both permissionless
+            // CheckAndEndCountdownRound and the auto-settle in BuyCountdownKeys ->
+            // EnsureActiveCountdownRound would revert, stranding the whole pot.
+            // Instead the prize is added to the existing direct GAS credit ledger;
+            // the winner pulls it via WithdrawGasCredit. Round state is already
+            // persisted above (CEI), so settlement always completes.
             if (winner != UInt160.Zero && winnerPrize > 0)
             {
-                ExecutionEngine.Assert(
-                    GAS.Transfer(Runtime.ExecutingScriptHash, winner, winnerPrize),
-                    "winner payout failed");
+                AddDirectGasCredit(appId, winner, winnerPrize);
 
                 // Update winner stats
                 CountdownPlayerStats stats = LoadCountdownPlayerStats(appId, winner);

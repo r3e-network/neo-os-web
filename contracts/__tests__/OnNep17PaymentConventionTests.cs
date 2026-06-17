@@ -59,13 +59,12 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         // effect-before-interaction (state written before the transfer) and perform
         // NO business-logic revert after the transfer, so they neither strand funds
         // nor crash the TestEngine happy path.
-        //   - MiniAppTimeCapsule: forwards a "fish" discovery fee straight to the
-        //     capsule owner (the deposit IS the tip; nothing is credited/held).
-        //     Deployed 0x5cc0269c…, validated net balance 0.
-        private static readonly HashSet<string> ReviewedTransferExceptions = new()
-        {
-            "MiniAppTimeCapsule",
-        };
+        //
+        // Currently empty: MiniAppTimeCapsule's "fish" discovery fee used to be
+        // forwarded straight to the capsule owner inside the callback; it is now
+        // credit-only (the fee accrues to the owner's fish-revenue ledger and is pulled
+        // via withdrawFishRevenue), so the callback no longer performs a transfer.
+        private static readonly HashSet<string> ReviewedTransferExceptions = new();
 
         // Outbound asset-moving call shapes:
         //   foo.Transfer(...)                       — strongly-typed native helper

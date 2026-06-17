@@ -15,9 +15,13 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract BigInteger? bury(UInt160 owner, byte[] contentHash, BigInteger durationSeconds, bool isPublic, BigInteger category, BigInteger amount);
         public abstract BigInteger? reveal(UInt160 owner, BigInteger capsuleId);
         public abstract BigInteger? withdraw(UInt160 account);
+        public abstract BigInteger? withdrawFishRevenue(UInt160 owner);
         public abstract BigInteger? creditOf(UInt160 owner);
+        public abstract BigInteger? fishRevenueOf(UInt160 owner);
         public abstract BigInteger? lastCapsuleId();
         public abstract BigInteger? ownerCapsuleCount(UInt160 owner);
+        // Maps come back as raw Neo.VM.Types.Map — the binding the testing host emits.
+        public abstract Neo.VM.Types.Map? getCapsule(BigInteger capsuleId);
     }
 
     public class MiniAppTimeCapsuleTests
@@ -119,14 +123,16 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
-        public void TimeCapsule_FishForwardsFeeToOwner()
+        public void TimeCapsule_FishAccruesOwnerCreditAndOwnerWithdraws()
         {
             // NOTE: fish rejections (private capsule, double fish, below-minimum fee,
-            // self-fish) FAULT inside the OnNEP17Payment callback of a native GAS
-            // transfer, which hangs the TestEngine host — they are exercised live
-            // instead (deploy/scripts/live_validate_timecapsule.mjs). The success
-            // path below is the contract's one in-callback transfer and must keep
-            // working on a real NeoVM.
+            // self-fish) still revert inside the OnNEP17Payment callback of a native
+            // GAS transfer and are exercised live instead
+            // (deploy/scripts/live_validate_timecapsule.mjs). The success path is now
+            // CREDIT-ONLY: the callback validates, marks the capsule Fished and credits
+            // the fee to the owner's fish-revenue ledger — no transfer in the callback.
+            // The owner pulls the accrued fee with the direct, witness-gated
+            // withdrawFishRevenue().
             var engine = new TestEngine(true);
             var (nef, manifest) = Load("MiniAppTimeCapsule");
             var vault = engine.Deploy<TimeCapsuleContract>(nef, manifest);
@@ -141,14 +147,36 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             engine.Native.GAS.Transfer(alice, vault.Hash, 1 * GAS, BURY_MEMO);
             vault.bury(alice, ContentHash, 3600, true, 1, 1 * GAS);
 
-            // Bob's discovery fee is forwarded to Alice in the same transaction.
-            BigInteger aliceBefore = engine.Native.GAS.BalanceOf(alice) ?? 0;
+            // Bob's discovery fee accrues to Alice's fish-revenue ledger (no transfer
+            // out of the callback) and the capsule is marked Fished.
+            BigInteger fee = GAS / 10;
             engine.SetTransactionSigners(bob);
-            bool? ok = engine.Native.GAS.Transfer(bob, vault.Hash, GAS / 10, FISH_MEMO_PREFIX + "1");
+            bool? ok = engine.Native.GAS.Transfer(bob, vault.Hash, fee, FISH_MEMO_PREFIX + "1");
             Assert.True(ok == true, "fish transfer should succeed");
-            Assert.Equal(aliceBefore + GAS / 10, engine.Native.GAS.BalanceOf(alice));
+            Assert.Equal(fee, vault.fishRevenueOf(alice));
 
-            // Solvency: the fee passed through; only the locked capsule deposit remains.
+            Neo.VM.Types.Map? capsule = vault.getCapsule(1);
+            Assert.NotNull(capsule);
+            Assert.True(capsule![(Neo.VM.Types.PrimitiveType)"fished"].GetBoolean(), "capsule should be marked fished");
+
+            // (Double-fish / private-capsule / self-fish rejections revert inside the
+            // GAS-transfer callback and are exercised live, per the note above.)
+
+            // A stranger cannot pull Alice's accrued fish revenue.
+            engine.SetTransactionSigners(bob);
+            Assert.ThrowsAny<Exception>(() => vault.withdrawFishRevenue(alice));
+
+            // Alice pulls her accrued fee with the direct, witness-gated method.
+            engine.SetTransactionSigners(alice);
+            BigInteger aliceBefore = engine.Native.GAS.BalanceOf(alice) ?? 0;
+            Assert.Equal(fee, vault.withdrawFishRevenue(alice));
+            Assert.Equal(aliceBefore + fee, engine.Native.GAS.BalanceOf(alice));
+            Assert.Equal(BigInteger.Zero, vault.fishRevenueOf(alice));
+
+            // The ledger is drained; a second pull reverts.
+            Assert.ThrowsAny<Exception>(() => vault.withdrawFishRevenue(alice));
+
+            // Solvency: the fee left the contract; only the locked capsule deposit remains.
             Assert.Equal(new BigInteger(1 * GAS), engine.Native.GAS.BalanceOf(vault.Hash));
         }
 

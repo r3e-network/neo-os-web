@@ -54,9 +54,34 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger TotalStaked() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_STAKED);
 
+        /// <summary>Total NEO a user has staked: eligible plus not-yet-eligible pending.</summary>
         [Safe]
-        public static BigInteger StakeOf(UInt160 user) =>
+        public static BigInteger StakeOf(UInt160 user)
+        {
+            StorageContext ctx = Storage.CurrentContext;
+            BigInteger eligible = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_STAKED, (byte[])user));
+            BigInteger pending = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_PENDING_STAKE, (byte[])user));
+            return eligible + pending;
+        }
+
+        /// <summary>Total stake currently eligible for the live epoch's distribution.</summary>
+        [Safe]
+        public static BigInteger EligibleStaked() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_ELIGIBLE_STAKED);
+
+        /// <summary>A user's stake that earns the live epoch (present before bidding opened).</summary>
+        [Safe]
+        public static BigInteger EligibleStakeOf(UInt160 user) =>
             (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_STAKED, (byte[])user));
+
+        /// <summary>A user's NEO staked after bidding opened, awaiting eligibility next epoch.</summary>
+        [Safe]
+        public static BigInteger PendingStakeOf(UInt160 user) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_PENDING_STAKE, (byte[])user));
+
+        /// <summary>Epoch from which a user's pending stake becomes eligible (0 if none).</summary>
+        [Safe]
+        public static BigInteger PendingStakeEpoch(UInt160 user) =>
+            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_PENDING_EPOCH, (byte[])user));
 
         [Safe]
         public static BigInteger CurrentEpoch() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_EPOCH);
