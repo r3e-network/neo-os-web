@@ -26,17 +26,18 @@ namespace NeoMiniAppPlatform.Contracts
     ///      (MaxPrize) is RESERVED from the prize pool so concurrent pending pulls can
     ///      never oversubscribe the pool.
     ///   2. settle(betId) [PERMISSIONLESS]: the prize is drawn and paid only in a
-    ///      STRICTLY LATER block (Ledger.CurrentIndex > commitIndex), whose
-    ///      Runtime.GetRandom was unknown at commit time. The player can no longer
-    ///      condition an abort on the result: the wager already committed in block N,
-    ///      and anyone (a keeper / the frontend) can settle, so a small-prize draw
-    ///      cannot be withheld.
+    ///      STRICTLY LATER block, derived from the hash of the FIXED beacon block
+    ///      commitIndex+1 (unknown at commit time, immutable once produced). The player
+    ///      can no longer condition an abort on the result: the wager already committed
+    ///      in block N, and anyone (a keeper / the frontend) can settle, so a small-prize
+    ///      draw cannot be withheld.
     ///
-    /// RANDOMNESS: Runtime.GetRandom() at the SETTLE block (the per-block consensus
-    /// beacon, unknown at commit) mixed with betId + player + commitIndex, so the
-    /// outcome differs per bet and cannot be conditioned at commit. NOT VRF-grade (a
-    /// block producer has some influence), so this is intended for low-stakes mystery
-    /// boxes; high-value draws should use the VRF oracle when operational.
+    /// RANDOMNESS: the hash of the FIXED beacon block commitIndex+1 (unknown at commit,
+    /// immutable once produced) mixed with betId + player + commitIndex, so re-running
+    /// settle in ANY later block yields the SAME draw — closing same-tx abort-and-retry
+    /// grinding. NOT VRF-grade (a block producer can still influence/withhold the single
+    /// beacon block), so this is intended for low-stakes mystery boxes; high-value draws
+    /// should use the VRF oracle when operational.
     ///
     /// PER-MACHINE solvency (V1 model preserved): each machine owns its own prize pool
     /// and its own GAS price-revenue; the machine CREATOR funds/activates/withdraws it.
@@ -61,7 +62,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "2.0.0")]
-    [ManifestExtra("Description", "Commit/reveal on-chain gacha: weighted prize pool drawn across blocks with Runtime.GetRandom — closes the same-tx abort-on-loss exploit, no oracle.")]
+    [ManifestExtra("Description", "Commit/reveal on-chain gacha: weighted prize pool drawn across blocks from a fixed past-block beacon — closes the same-tx abort-on-loss exploit, no oracle.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
     [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer")] // NEO
     public partial class MiniAppGasBoxV2 : SmartContract
