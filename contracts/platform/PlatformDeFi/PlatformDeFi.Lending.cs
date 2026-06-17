@@ -70,8 +70,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             // (GAS per NEO) instead of the hardcoded 1 NEO = 1 GAS assumption that left loans
             // structurally under-backed whenever NEO traded below GAS.
             BigInteger loanAmount = CollateralValueGas(appId, neoAmount) * ltvBps / 10000;
+            // Audit fix FixV (Low): reject a zero-value loan up front with a clear error
+            // instead of relying on the downstream TransferLoanGasToBorrower assert. Integer
+            // math can round loanAmount (and therefore netLoan) to 0 when the priced
+            // collateral value times the LTV is below 1 GAS base unit.
+            ExecutionEngine.Assert(loanAmount > 0, "loan amount must be positive");
             BigInteger fee = loanAmount * LENDING_FEE_BPS / 10000;
             BigInteger netLoan = loanAmount - fee;
+            ExecutionEngine.Assert(netLoan > 0, "net loan must be positive");
 
             // Track the retained origination fee so admin can sweep accumulated
             // protocol revenue. Without this the fee just sat untracked in the

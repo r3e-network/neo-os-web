@@ -37,6 +37,19 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         /// Push the live NEO/GAS price. Authority-gated (platform admin or app admin) — the same
         /// trust model as an oracle updater. Pricing in GAS-per-NEO (FIXED8) lets the lending math
         /// stay in GAS units end to end.
+        ///
+        /// Audit fix FixV (price-manipulation liquidation): the update is now bounded so a
+        /// rogue/compromised authority cannot crash the price in one step and confiscate
+        /// collateral:
+        ///   (a) per-update deviation cap — the new price may differ from the stored price by
+        ///       at most +/- MAX_PRICE_DEVIATION_BPS;
+        ///   (b) minimum update interval — at least MIN_PRICE_UPDATE_INTERVAL_MS must elapse
+        ///       between updates so the cap cannot be laddered around within one block/window;
+        ///   (c) price-drop grace — when the price decreases, the drop timestamp is recorded
+        ///       and LiquidateLoan refuses to act on the lowered valuation until the grace
+        ///       window passes (see <see cref="LiquidateLoan"/>).
+        /// The very first price an app sets (no prior price stored) is unrestricted so the
+        /// keeper can establish the initial valuation.
         /// </summary>
         public static void SetNeoGasPrice(string appId, BigInteger price)
         {
@@ -44,9 +57,42 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ValidateAppAuthority(appId);
             ExecutionEngine.Assert(price > 0, "price must be positive");
 
-            Put(AppKey(appId, PREFIX_NEO_GAS_PRICE), price);
+            ByteString priceKey = AppKey(appId, PREFIX_NEO_GAS_PRICE);
+            BigInteger stored = GetBigInteger(priceKey); // 0 == never set
+            BigInteger nowTime = Runtime.Time;
+
+            if (stored > 0)
+            {
+                // (b) Rate-limit updates so the deviation cap cannot be bypassed by spamming.
+                BigInteger lastTime = GetBigInteger(AppKey(appId, PREFIX_NEO_GAS_PRICE_TIME));
+                ExecutionEngine.Assert(
+                    nowTime - lastTime >= (BigInteger)MIN_PRICE_UPDATE_INTERVAL_MS,
+                    "price update too frequent");
+
+                // (a) Bound the per-update move to +/- MAX_PRICE_DEVIATION_BPS of the stored price.
+                BigInteger maxDelta = stored * MAX_PRICE_DEVIATION_BPS / 10000;
+                BigInteger lowerBound = stored - maxDelta;
+                BigInteger upperBound = stored + maxDelta;
+                ExecutionEngine.Assert(price >= lowerBound && price <= upperBound,
+                    "price deviation exceeds cap");
+
+                // (c) Record the start of the liquidation grace window on any decrease.
+                if (price < stored)
+                {
+                    Put(AppKey(appId, PREFIX_PRICE_DROP_TIME), nowTime);
+                    OnPriceDropRecorded(appId, stored, price, nowTime);
+                }
+            }
+
+            Put(priceKey, price);
+            Put(AppKey(appId, PREFIX_NEO_GAS_PRICE_TIME), nowTime);
             OnNeoGasPriceUpdated(appId, price);
         }
+
+        /// <summary>Timestamp of the most recent NEO/GAS price decrease (0 if none). View for keepers.</summary>
+        [Safe]
+        public static BigInteger GetLastPriceDropTime(string appId) =>
+            GetBigInteger(AppKey(appId, PREFIX_PRICE_DROP_TIME));
 
         /// <summary>GAS (FIXED8) value of a NEO collateral amount at the current price.</summary>
         private static BigInteger CollateralValueGas(string appId, BigInteger collateralNeo)
@@ -89,6 +135,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             bool liquidatable = collateralValue * LIQUIDATION_THRESHOLD_BPS / 10000 < loan.Debt;
             ExecutionEngine.Assert(liquidatable, "loan is healthy: not liquidatable");
 
+            // Audit fix FixV (c): if the price was recently decreased, give borrowers a grace
+            // window to top up / repay before liquidation may act on the lowered valuation.
+            BigInteger dropTime = GetBigInteger(AppKey(appId, PREFIX_PRICE_DROP_TIME));
+            if (dropTime > 0)
+            {
+                ExecutionEngine.Assert(
+                    Runtime.Time >= dropTime + (BigInteger)LIQUIDATION_GRACE_MS,
+                    "liquidation grace period active");
+            }
+
             // Liquidator covers the full debt from prepaid GAS credit.
             StorageMap gasCredits = new StorageMap(Storage.CurrentContext, PREFIX_GAS_CREDIT);
             ByteString creditKey = (ByteString)(byte[])liquidator;
@@ -97,7 +153,15 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(credit >= loan.Debt, "insufficient GAS credit to cover debt");
 
             BigInteger debtRepaid = loan.Debt;
-            BigInteger seized = loan.Collateral;
+
+            // Audit fix FixV (Med): seize only enough collateral to cover the debt plus a
+            // bounded liquidation bonus; return any surplus to the borrower. The amount of
+            // NEO seized is debt*(1+bonus) valued at the current price, capped at the loan's
+            // collateral. The remainder is credited back to the borrower's NEO credit ledger.
+            BigInteger neoPrice = GetNeoGasPrice(appId);
+            BigInteger seizeTarget = SeizeCollateralForDebt(debtRepaid, neoPrice);
+            BigInteger seized = seizeTarget < loan.Collateral ? seizeTarget : loan.Collateral;
+            BigInteger surplus = loan.Collateral - seized;
 
             BigInteger remainingCredit = credit - debtRepaid;
             if (remainingCredit == 0) gasCredits.Delete(creditKey);
@@ -112,11 +176,22 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
             UpdateTotalDebt(appId, debtRepaid, false);
             UpdateTotalRepaid(appId, debtRepaid);
-            UpdateTotalCollateral(appId, seized, false);
+            // The whole collateral leaves the loan's collateral accounting: part to the
+            // liquidator, part back to the borrower as withdrawable NEO credit.
+            UpdateTotalCollateral(appId, loan.Collateral, false);
 
             // Audit fix A10: the liquidator's GAS repaid the debt into the contract,
             // so it returns to the lending liquidity pool just like a normal repay.
             RefillLendingLiquidity(appId, debtRepaid);
+
+            // Audit fix FixV (Med): credit the surplus collateral back to the borrower so an
+            // over-collateralized liquidation does not confiscate more than debt + bonus. The
+            // NEO stays in the contract (no transfer) and is reclaimable via WithdrawNeoCredit.
+            if (surplus > 0)
+            {
+                CreditNeoToBorrower(borrower, surplus);
+                OnLiquidationSurplusReturned(appId, loanId, borrower, surplus);
+            }
 
             // Interaction: hand the seized collateral to the liquidator.
             ExecutionEngine.Assert(
