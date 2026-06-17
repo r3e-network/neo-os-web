@@ -26,7 +26,20 @@ namespace NeoMiniAppPlatform.Contracts
     /// the final packet takes the exact remainder. Randomness is Runtime.GetRandom()
     /// (the per-block consensus beacon, unknown until the tx mines) mixed with the
     /// claimer address + time + envelope id so it differs per claimer and cannot be
-    /// cheaply front-run. NOT VRF-grade — intended for low-stakes social packets.
+    /// cheaply front-run.
+    ///
+    /// RANDOMNESS LIMITATION (acknowledged, low severity): the share is drawn at
+    /// claim time, so a claimer who can read their own draw within the transaction
+    /// could in principle abort and retry across blocks until they hit a larger
+    /// share ("grinding"). This is bounded — a single packet can never exceed the
+    /// double-average cap (~2*avg) and at least 1 base unit is always reserved for
+    /// every later packet — so grinding cannot drain the envelope or starve later
+    /// claimers, only nudge one share toward its capped maximum at the cost of extra
+    /// fees and blocks. Runtime.GetRandom() is NOT VRF-grade and this contract is
+    /// intended for low-stakes social packets only; it is grinding-resistant for that
+    /// use, not a fair-randomness primitive. A commit/reveal scheme would remove the
+    /// residual bias but require a second claim transaction, which would materially
+    /// degrade the one-tap social-gifting UX, so it is intentionally not used here.
     ///
     /// SAFETY:
     /// - GAS only (divisible — required to split into random sub-amounts); amounts
@@ -44,7 +57,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Self-contained on-chain lucky red envelope: GAS split into random packets via Runtime.GetRandom and paid atomically — no oracle.")]
+    [ManifestExtra("Description", "Self-contained on-chain lucky red envelope: GAS split into random packets via Runtime.GetRandom and paid atomically — no oracle. Randomness is not VRF-grade; bounded and grinding-resistant for low-stakes social packets only.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
     public partial class MiniAppRedEnvelope : SmartContract
     {
@@ -191,6 +204,12 @@ namespace NeoMiniAppPlatform.Contracts
             else
             {
                 // Double-average upper bound, then a random draw in [1, 2*avg].
+                // NOTE: this draw resolves at claim time, so it is grinding-resistant
+                // but not grinding-proof — a claimer could abort/retry to push toward a
+                // larger share. The outcome is bounded by the 2*avg cap and the
+                // 1-base-unit-per-later-packet reservation below, so this only matters
+                // for low-stakes social packets and is accepted by design (see class
+                // summary). It is NOT VRF-grade randomness.
                 BigInteger avg = e.RemainingAmount / remainingPackets;
                 BigInteger maxShare = avg * 2;
                 if (maxShare < 1) maxShare = 1;

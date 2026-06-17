@@ -96,6 +96,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(GetRaw(grabberKey) == null, "already claimed");
 
             BigInteger claimIndex = envelope.ClaimedCount + 1;
+            // The packet amount is drawn here at claim time from a bounded distribution
+            // (see NextEnvelopePacketAmount). This is grinding-resistant but not
+            // grinding-proof — a claimer could abort/retry to nudge toward a larger
+            // packet — and the entropy source is NOT VRF-grade. The draw is capped and
+            // always reserves MIN_PER_PACKET for every later packet, so this only
+            // matters for low-stakes social envelopes and is an accepted design choice.
             BigInteger amount = NextEnvelopePacketAmount(envelope, claimIndex, envelopeId, claimer);
             ExecutionEngine.Assert(amount > 0, "invalid packet amount");
 

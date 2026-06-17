@@ -27,6 +27,8 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void ContributionMadeHandler(BigInteger roundId, BigInteger projectId, UInt160 contributor, BigInteger amount, string memo);
     /// <summary>Event emitted when project claimed.</summary>
     public delegate void ProjectClaimedHandler(BigInteger projectId, UInt160 owner, BigInteger amount);
+    /// <summary>Event emitted when a contributor reclaims a contribution from an unclaimed project after the grace period.</summary>
+    public delegate void ContributionReclaimedHandler(BigInteger roundId, BigInteger projectId, UInt160 contributor, BigInteger amount);
 
     /// <summary>
     /// Quadratic Funding MiniApp - public grant rounds with QF matching (off-chain).
@@ -56,6 +58,13 @@ namespace NeoMiniAppPlatform.Contracts
         private const int MAX_PROJECT_DESC_LENGTH = 300;
         private const int MAX_PROJECT_LINK_LENGTH = 200;
         private const int MAX_MEMO_LENGTH = 160;
+        // Audit fix (stranded funds): once a round is finalized, an inactive project
+        // owner who never calls ClaimProject would otherwise lock that project's
+        // contributions + matched amount forever. After this grace period elapses
+        // (measured from round.EndTime, in the same millisecond unit as Runtime.Time),
+        // contributors can reclaim their own contributions and the round creator can
+        // sweep the unclaimed matched amount.
+        private const long CLAIM_GRACE = 90L * 86400 * 1000; // 90 days in milliseconds
         #endregion
 
         #region Storage Prefixes
@@ -150,6 +159,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("ProjectClaimed")]
         public static event ProjectClaimedHandler OnProjectClaimed;
+
+        [DisplayName("ContributionReclaimed")]
+        public static event ContributionReclaimedHandler OnContributionReclaimed;
         #endregion
 
         #region Lifecycle

@@ -54,6 +54,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         /// claimer address, so the result cannot be predicted or front-run and differs per claimer
         /// within the same block. `envelope` is the pre-claim state (ClaimedCount/RemainingAmount
         /// not yet updated); claimIndex == ClaimedCount + 1.
+        ///
+        /// LIMITATION (acknowledged, low severity): because the amount is drawn at claim time,
+        /// the draw is grinding-resistant but not grinding-proof — a claimer could abort and retry
+        /// across blocks to nudge toward a larger packet. The outcome is bounded (the upper bound
+        /// keeps MIN_PER_PACKET reserved for every still-unclaimed packet), so grinding cannot
+        /// drain the envelope or starve later claimers; it only shifts one share toward its capped
+        /// maximum at the cost of extra fees and blocks. Runtime.GetRandom() is NOT VRF-grade; this
+        /// is intended for low-stakes social envelopes only. A commit/reveal scheme would remove the
+        /// residual bias but require a second transaction per claim, degrading the social-gifting
+        /// UX, so it is intentionally not used.
         /// </summary>
         private static BigInteger NextEnvelopePacketAmount(EnvelopeData envelope, BigInteger claimIndex, BigInteger envelopeId, UInt160 claimer)
         {

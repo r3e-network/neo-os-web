@@ -179,6 +179,108 @@ namespace NeoMiniAppPlatform.Contracts
             OnProjectClaimed(projectId, owner, amount);
         }
 
+        /// <summary>
+        /// Reclaim a contribution from a finalized round whose project owner never
+        /// called ClaimProject. Without this path an inactive project owner locks
+        /// every contributor's funds (and the matched amount) forever. After the
+        /// CLAIM_GRACE window past round.EndTime, each contributor can recover their
+        /// own contribution. Witness-gated (or routed via the trusted gateway).
+        ///
+        /// CEI: the per-contributor ledger is zeroed and project.TotalContributed is
+        /// decremented BEFORE the asset transfer. Setting these to zero also keeps
+        /// the invariant that total paid out per project never exceeds the project's
+        /// original TotalContributed + MatchedAmount: once a contribution is
+        /// reclaimed it can no longer be paid out by ClaimProject (which reads the
+        /// reduced project.TotalContributed), and reclaim itself is barred once the
+        /// project is Claimed.
+        /// </summary>
+        public static void ReclaimContribution(UInt160 contributor, BigInteger roundId, BigInteger projectId)
+        {
+            ValidateNotGloballyPaused(APP_ID);
+            ValidateAddress(contributor);
+
+            RoundData round = GetRound(roundId);
+            RequireRoundExists(round);
+            ExecutionEngine.Assert(round.Finalized, "round not finalized");
+            ExecutionEngine.Assert(!round.Cancelled, "round cancelled");
+            ExecutionEngine.Assert(Runtime.Time >= round.EndTime + CLAIM_GRACE, "grace period not elapsed");
+
+            ProjectData project = GetProject(projectId);
+            RequireProjectExists(project);
+            ExecutionEngine.Assert(project.RoundId == roundId, "project mismatch");
+            ExecutionEngine.Assert(!project.Claimed, "already claimed");
+
+            UInt160 gateway = Gateway();
+            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
+            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(contributor), "unauthorized");
+
+            BigInteger amount = GetContributionInternal(contributor, roundId, projectId);
+            ExecutionEngine.Assert(amount > 0, "nothing to reclaim");
+
+            // CEI: zero the contributor's ledger entry and decrement the project total
+            // before moving any funds.
+            StoreContribution(contributor, roundId, projectId, 0);
+            project.TotalContributed -= amount;
+            StoreProject(projectId, project);
+
+            bool transferred = IsNeo(round.Asset)
+                ? NEO.Transfer(Runtime.ExecutingScriptHash, contributor, amount)
+                : GAS.Transfer(Runtime.ExecutingScriptHash, contributor, amount);
+            ExecutionEngine.Assert(transferred, "transfer failed");
+
+            OnContributionReclaimed(roundId, projectId, contributor, amount);
+        }
+
+        /// <summary>
+        /// Sweep the matched amount of a finalized project whose owner never claimed
+        /// it. Mirrors ReclaimContribution for the matching side: after CLAIM_GRACE,
+        /// the round creator recovers a project's MatchedAmount that would otherwise
+        /// be stranded. Does NOT touch round.MatchingWithdrawn / MatchingAllocated —
+        /// the matched amount was already counted against the pool at finalization,
+        /// so it is paid out directly from the contract's asset balance.
+        ///
+        /// CEI: project.MatchedAmount is zeroed and project.Claimed is set BEFORE the
+        /// transfer. Setting Claimed prevents ClaimProject from later double-paying
+        /// the same project (the invariant total-out &lt;= TotalContributed +
+        /// MatchedAmount holds because Claimed blocks every other payout path).
+        /// </summary>
+        public static void ReclaimUnclaimedMatch(UInt160 creator, BigInteger projectId)
+        {
+            ValidateNotGloballyPaused(APP_ID);
+            ValidateAddress(creator);
+
+            ProjectData project = GetProject(projectId);
+            RequireProjectExists(project);
+            ExecutionEngine.Assert(!project.Claimed, "already claimed");
+
+            RoundData round = GetRound(project.RoundId);
+            RequireRoundExists(round);
+            ExecutionEngine.Assert(round.Creator == creator, "not creator");
+            ExecutionEngine.Assert(round.Finalized, "round not finalized");
+            ExecutionEngine.Assert(!round.Cancelled, "round cancelled");
+            ExecutionEngine.Assert(Runtime.Time >= round.EndTime + CLAIM_GRACE, "grace period not elapsed");
+
+            UInt160 gateway = Gateway();
+            bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
+            ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(creator), "unauthorized");
+
+            BigInteger matched = project.MatchedAmount;
+            ExecutionEngine.Assert(matched > 0, "no unclaimed match");
+
+            // CEI: zero the matched amount and mark the project claimed so neither
+            // ClaimProject nor a second ReclaimUnclaimedMatch can pay it again.
+            project.MatchedAmount = 0;
+            project.Claimed = true;
+            StoreProject(projectId, project);
+
+            bool transferred = IsNeo(round.Asset)
+                ? NEO.Transfer(Runtime.ExecutingScriptHash, creator, matched)
+                : GAS.Transfer(Runtime.ExecutingScriptHash, creator, matched);
+            ExecutionEngine.Assert(transferred, "transfer failed");
+
+            OnMatchingWithdrawn(project.RoundId, creator, matched);
+        }
+
         #endregion
     }
 }

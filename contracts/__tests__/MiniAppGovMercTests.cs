@@ -31,6 +31,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract BigInteger? settlementAmount(BigInteger epoch);
         public abstract BigInteger? epochDuration();
         public abstract BigInteger? epochDeadline(BigInteger epoch);
+        public abstract BigInteger? eligibleStaked();
+        public abstract BigInteger? eligibleStakeOf(UInt160 user);
+        public abstract BigInteger? pendingStakeOf(UInt160 user);
+        public abstract BigInteger? pendingStakeEpoch(UInt160 user);
     }
 
     public class MiniAppGovMercTests
@@ -278,6 +282,72 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(carol, gov.settlementWinner(0));
             Assert.Equal(new BigInteger(3L * 100000000), gov.gasCreditOf(dave));
             Assert.Equal(new BigInteger(3L * 100000000), gov.withdraw(dave));
+        }
+
+        // MP-G-02: a just-in-time staker could previously stake large after the bid
+        // window closed, capture a pro-rata slice of the winning bid at settle, then
+        // unstake — siphoning revenue from long-term stakers. NEO staked once the
+        // window is open is now parked as not-yet-eligible and earns nothing from the
+        // current epoch's bid; the honest staker keeps the entire distribution.
+        [Fact]
+        public void GovMerc_JitStakerCannotSiphonCurrentEpochBid()
+        {
+            var engine = new TestEngine(true);
+            var (nef, manifest) = Load("MiniAppGovMerc");
+            var gov = engine.Deploy<GovMercContract>(nef, manifest);
+
+            var alice = TestEngine.GetNewSigner().Account;    // honest early staker 100 NEO
+            var carol = TestEngine.GetNewSigner().Account;    // winning bidder 4 GAS
+            var mallory = TestEngine.GetNewSigner().Account;  // JIT staker 10_000 NEO
+
+            Fund(engine, alice, 100, 1_00000000);
+            Fund(engine, carol, 0, 10L * 100000000);
+            Fund(engine, mallory, 10_000, 1_00000000);
+
+            // Honest staker is present BEFORE bidding opens -> eligible for epoch 0.
+            engine.SetTransactionSigners(alice);
+            engine.Native.NEO.Transfer(alice, gov.Hash, 100, "govmerc:stake");
+            Assert.Equal(new BigInteger(100), gov.eligibleStaked());
+
+            // Carol's first bid opens the bidding window for epoch 0.
+            engine.SetTransactionSigners(carol);
+            engine.Native.GAS.Transfer(carol, gov.Hash, 4L * 100000000, "govmerc:bid");
+            gov.bid(carol, 4L * 100000000);
+            Assert.True((gov.epochDeadline(0) ?? 0) > 0, "first bid should open the bidding window");
+
+            // The window elapses: the winning bid is now locked in, no counter-bids.
+            AdvancePastDeadline(engine, gov);
+
+            // JIT attacker stakes large AFTER the window opened (and past the deadline),
+            // racing to settle. The stake is parked as pending (eligible only next epoch)
+            // and is excluded from the live epoch's eligible total.
+            engine.SetTransactionSigners(mallory);
+            engine.Native.NEO.Transfer(mallory, gov.Hash, 10_000, "govmerc:stake");
+            Assert.Equal(new BigInteger(10_000), gov.pendingStakeOf(mallory));
+            Assert.Equal(BigInteger.Zero, gov.eligibleStakeOf(mallory));
+            Assert.Equal(new BigInteger(1), gov.pendingStakeEpoch(mallory)); // eligible from epoch 1
+            Assert.Equal(new BigInteger(100), gov.eligibleStaked());          // still only Alice's 100
+
+            // Settle epoch 0: the 4 GAS bid is divided across eligible stake only.
+            gov.settleEpoch();
+            Assert.Equal(new BigInteger(1), gov.currentEpoch());
+            Assert.Equal(carol, gov.settlementWinner(0));
+
+            // The JIT staker earns ~0 of this epoch's bid; the claim has nothing to pay.
+            Assert.Equal(BigInteger.Zero, gov.pendingRewards(mallory));
+            AssertRevert("no rewards", () => gov.claimRewards(mallory));
+
+            // The honest staker captures the ENTIRE winning bid (4 GAS), undiluted.
+            Assert.Equal(new BigInteger(4L * 100000000), gov.pendingRewards(alice));
+            engine.SetTransactionSigners(alice);
+            Assert.Equal(new BigInteger(4L * 100000000), gov.claimRewards(alice));
+
+            // The attacker recovers only their NEO principal — no auction revenue.
+            engine.SetTransactionSigners(mallory);
+            gov.withdrawStake(mallory, 10_000);
+            Assert.Equal(new BigInteger(10_000), engine.Native.NEO.BalanceOf(mallory));
+            Assert.Equal(BigInteger.Zero, gov.pendingRewards(mallory));
+            Assert.Equal(BigInteger.Zero, gov.stakeOf(mallory));
         }
     }
 }
