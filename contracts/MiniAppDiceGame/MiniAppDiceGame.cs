@@ -225,6 +225,13 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(ok, "bankroll transfer failed");
             OnBankrollWithdrawn(to, amount);
         }
+
+        /// <summary>Owner-gated, instant contract upgrade (no timelock).</summary>
+        public static void Update(ByteString nef, string manifest)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(Owner), "owner only");
+            ContractManagement.Update(nef, manifest, new object[0]);
+        }
         #endregion
 
         #region Withdraw credit

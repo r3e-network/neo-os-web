@@ -126,5 +126,19 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(ok, "pool transfer failed");
         }
         #endregion
+
+        #region Upgrade — owner-gated, instant (no timelock)
+        /// <summary>
+        /// Owner-gated contract upgrade. The global Owner (NR3E4D8N) replaces the
+        /// contract's NEF + manifest in place via ContractManagement.Update. This is an
+        /// admin maintenance path only; it does not touch any creator's prize pool,
+        /// reserved funds, escrowed wagers, or play credits.
+        /// </summary>
+        public static void Update(ByteString nef, string manifest)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(Owner), "owner only");
+            ContractManagement.Update(nef, manifest, new object[0]);
+        }
+        #endregion
     }
 }

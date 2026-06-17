@@ -34,6 +34,18 @@ namespace NeoMiniAppPlatform.Contracts
         }
         #endregion
 
+        #region Upgrade (owner-gated, instant)
+        /// <summary>
+        /// Owner-only contract upgrade. Replaces the contract NEF and manifest in place via
+        /// ContractManagement.Update. Instant (no timelock): gated solely by the owner witness.
+        /// </summary>
+        public static void Update(ByteString nef, string manifest)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(Owner), "owner only");
+            ContractManagement.Update(nef, manifest, new object[0]);
+        }
+        #endregion
+
         #region Withdraw credit
         /// <summary>Reclaim any unused prepaid bet-credit back to the sender. Does NOT touch
         /// escrowed pending wagers — those are settled via settle().</summary>

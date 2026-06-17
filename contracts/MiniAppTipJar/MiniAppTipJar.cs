@@ -36,7 +36,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Self-contained on-chain developer tip jar: registry + GAS tips that accrue to a claimable balance — no oracle.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
-    public class MiniAppTipJar : SmartContract
+    public partial class MiniAppTipJar : SmartContract
     {
         #region Constants
         private const long MIN_TIP = 100_000;            // 0.001 GAS
@@ -52,6 +52,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_CREDIT = new byte[] { 0x13 };       // + tipper -> GAS credit
         private static readonly byte[] PREFIX_TOTAL_DONATED = new byte[] { 0x14 };
         private static readonly byte[] PREFIX_TIP_COUNT = new byte[] { 0x15 };
+        private static readonly byte[] PREFIX_OWNER = new byte[] { 0x16 };
         #endregion
 
         #region Events
@@ -76,6 +77,33 @@ namespace NeoMiniAppPlatform.Contracts
             public BigInteger TotalReceived; // lifetime GAS tipped to this developer
             public BigInteger TipCount;      // number of tips received
             public BigInteger Balance;       // currently claimable GAS
+        }
+        #endregion
+
+        #region Lifecycle / owner
+        /// <summary>
+        /// Captures the deployer as the contract owner on first deployment. The owner is
+        /// never reset on update so an upgrade cannot silently hijack control.
+        /// </summary>
+        public static void _deploy(object data, bool update)
+        {
+            if (update) return;
+            Storage.Put(Storage.CurrentContext, PREFIX_OWNER, Runtime.Transaction.Sender);
+        }
+
+        /// <summary>The contract owner (deployer). Authorizes contract upgrades.</summary>
+        [Safe]
+        public static UInt160 GetOwner()
+        {
+            ByteString v = Storage.Get(Storage.CurrentContext, PREFIX_OWNER);
+            return v is null ? UInt160.Zero : (UInt160)v;
+        }
+
+        /// <summary>Owner-gated, instant contract upgrade (no timelock).</summary>
+        public static void Update(ByteString nef, string manifest)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(GetOwner()), "unauthorized");
+            ContractManagement.Update(nef, manifest, new object[0]);
         }
         #endregion
 
@@ -208,48 +236,6 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(ok, "withdraw transfer failed");
             OnCreditWithdrawn(account, credit);
             return credit;
-        }
-        #endregion
-
-        #region Read-only
-        [Safe]
-        public static BigInteger TotalDevelopers() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_DEV_COUNT);
-
-        [Safe]
-        public static BigInteger TotalDonated() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_DONATED);
-
-        [Safe]
-        public static BigInteger TipsCount() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TIP_COUNT);
-
-        [Safe]
-        public static BigInteger MinTip() => MIN_TIP;
-
-        [Safe]
-        public static BigInteger CreditOf(UInt160 tipper) =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_CREDIT, (byte[])tipper));
-
-        [Safe]
-        public static BigInteger DeveloperIdOf(UInt160 wallet)
-        {
-            ByteString v = Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_WALLET_DEV, (byte[])wallet));
-            return v is null ? 0 : (BigInteger)v;
-        }
-
-        [Safe]
-        public static Map<string, object> GetDeveloper(BigInteger devId)
-        {
-            ByteString raw = Storage.Get(Storage.CurrentContext, DevKey(devId));
-            ExecutionEngine.Assert(raw is not null, "developer not found");
-            Developer dev = (Developer)StdLib.Deserialize(raw);
-            Map<string, object> m = new Map<string, object>();
-            m["id"] = devId;
-            m["wallet"] = dev.Wallet;
-            m["name"] = dev.Name;
-            m["role"] = dev.Role;
-            m["totalReceived"] = dev.TotalReceived;
-            m["tipCount"] = dev.TipCount;
-            m["balance"] = dev.Balance;
-            return m;
         }
         #endregion
 

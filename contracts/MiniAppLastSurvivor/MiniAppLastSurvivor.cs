@@ -44,7 +44,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Self-contained on-chain last-survivor pot game: rising key price, timer extension, last buyer wins the pot atomically — no oracle.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
-    public class MiniAppLastSurvivor : SmartContract
+    public partial class MiniAppLastSurvivor : SmartContract
     {
         #region Constants (base units / milliseconds)
         private const long BASE_KEY_PRICE = 10_000_000;       // 0.1 GAS
@@ -56,6 +56,7 @@ namespace NeoMiniAppPlatform.Contracts
         #endregion
 
         #region Storage prefixes
+        private static readonly byte[] PREFIX_OWNER = new byte[] { 0x01 };        // contract owner (deployer)
         private static readonly byte[] PREFIX_CUR_ROUND = new byte[] { 0x10 };
         private static readonly byte[] PREFIX_ROUND = new byte[] { 0x11 };        // + roundId -> Round
         private static readonly byte[] PREFIX_CREDIT = new byte[] { 0x12 };       // + player -> GAS credit

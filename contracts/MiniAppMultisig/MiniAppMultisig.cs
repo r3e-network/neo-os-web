@@ -55,6 +55,7 @@ namespace NeoMiniAppPlatform.Contracts
         #endregion
 
         #region Storage prefixes
+        private static readonly byte[] PREFIX_OWNER = new byte[] { 0x01 };        // -> deployer (upgrade authority)
         private static readonly byte[] PREFIX_VAULT_ID = new byte[] { 0x10 };
         private static readonly byte[] PREFIX_VAULT = new byte[] { 0x11 };       // + vaultId -> Vault
         private static readonly byte[] PREFIX_BALANCE = new byte[] { 0x12 };     // + vaultId + assetByte -> BigInteger

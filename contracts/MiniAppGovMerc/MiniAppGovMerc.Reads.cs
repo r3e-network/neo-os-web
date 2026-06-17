@@ -51,6 +51,14 @@ namespace NeoMiniAppPlatform.Contracts
         #endregion
 
         #region Read-only
+        /// <summary>Contract owner (the deployer), authorized to upgrade the contract.</summary>
+        [Safe]
+        public static UInt160 GetOwner()
+        {
+            ByteString v = Storage.Get(Storage.CurrentContext, PREFIX_OWNER);
+            return v is null ? UInt160.Zero : (UInt160)v;
+        }
+
         [Safe]
         public static BigInteger TotalStaked() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_STAKED);
 
