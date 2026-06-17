@@ -11,9 +11,13 @@
  *   - on-chain read is one RPC call (~300ms), no GAS cost (read-only)
  *   - data freshness depends on how often the Nitro TEE pushes updates
  *     to the contract (currently every few hours in normal operation)
- *   - no per-call TEE attestation in the response — but the on-chain
- *     value is signed by the registered oracleVerificationPublicKey when
- *     it's written, so the trust path is the same.
+ *   - no per-call TEE attestation, and NO ECDSA signature is verifiable
+ *     on-chain: the struct's "signature" field carries only a sha256
+ *     attestation digest, not a recoverable signature over the price. The
+ *     on-chain trust path is therefore the registered updater's witness
+ *     (only the authorized writer can set the record) plus the producer-side
+ *     TEE guards at write time — it is NOT equivalent to verifying a signed
+ *     HTTP response per call.
  */
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
