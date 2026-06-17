@@ -103,7 +103,27 @@ export interface InvokeOptions {
 export interface TxResult {
   txid: string;
   event?: unknown;
+  /**
+   * Whether the transaction was broadcast. A relayed tx (non-empty txid) is
+   * `true` even when its confirming event was never observed — broadcasting
+   * succeeded. Use {@link TxResult.verified} to tell a confirmed tx from a
+   * relayed-but-unconfirmed one.
+   */
   success: boolean;
+  /**
+   * Whether the outcome is CONFIRMED on-chain. When a `waitForEvent` was
+   * requested, this is `true` only if that event was actually observed (so a
+   * timeout/FAULT yields `success: true, verified: false` — broadcast, not
+   * confirmed). When no event wait was requested there is nothing to confirm,
+   * so it defaults to `true`.
+   *
+   * Optional only for backward compatibility: every {@link ChainService}
+   * invoke path sets it, so it is always a real boolean at runtime. The type
+   * stays optional so existing `TxResult`-typed stubs/callers that predate the
+   * field keep compiling — a reader that wants the confirmed/unconfirmed
+   * distinction treats an absent value as "unverified" (`verified !== true`).
+   */
+  verified?: boolean;
 }
 
 export type SignedMessageResult = string | { publicKey?: string; data?: string } | null;
@@ -248,7 +268,10 @@ export class ChainService {
       this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation: call.selector });
       const event = eventId ? { id: eventId } : undefined;
       if (event) this.events.emit(EventBus.TRANSACTION_CONFIRMED, { txid, event });
-      return { txid, event, success: Boolean(txid) };
+      // No waitForEvent in the EVM path (the event id, if any, comes from the
+      // receipt synchronously), so there is nothing to confirm separately —
+      // verified defaults to true, matching the Neo N3 no-wait case.
+      return { txid, event, success: Boolean(txid), verified: true };
     });
   }
 
@@ -386,7 +409,11 @@ export class ChainService {
         this.emitEventWaitOutcome(txid, operation, event);
       }
 
-      return { txid, event, success: Boolean(txid) };
+      // verified === false marks a relayed-but-unconfirmed tx: a waitForEvent was
+      // requested but its event never landed (timeout/FAULT). success stays true
+      // (the broadcast happened) so existing callers are unaffected.
+      const verified = options?.waitForEvent ? Boolean(event) : true;
+      return { txid, event, success: Boolean(txid), verified };
     });
   }
 
@@ -426,7 +453,10 @@ export class ChainService {
         this.emitEventWaitOutcome(txid, operation, event);
       }
 
-      return { txid, event, success: Boolean(txid) };
+      // See {@link invoke}: verified distinguishes a confirmed tx from a
+      // relayed-but-unconfirmed one without disturbing success.
+      const verified = options?.waitForEvent ? Boolean(event) : true;
+      return { txid, event, success: Boolean(txid), verified };
     });
   }
 

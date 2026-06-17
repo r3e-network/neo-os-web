@@ -158,6 +158,16 @@ const appMessages = {
   collateralAdded: { en: "Collateral added to your loan", zh: "抵押品已追加到您的贷款" },
   reclaimCollateralSuccess: { en: "Collateral credit reclaimed", zh: "抵押额度已取回" },
   reclaimRepaySuccess: { en: "Repay credit reclaimed", zh: "还款额度已取回" },
+  // ── Relayed-but-unconfirmed notice ──────────────────────────────────────
+  loanPendingConfirmation: {
+    en: "Your loan transaction was submitted but its on-chain confirmation hasn't been observed yet. Don't resubmit — refresh in a moment to see the updated position.",
+    zh: "您的贷款交易已提交，但尚未观察到链上确认。请勿重复提交——稍后刷新即可查看更新后的头寸。",
+  },
+  repayPendingConfirmation: {
+    en: "Your repayment was submitted but its on-chain confirmation hasn't been observed yet. Don't resubmit — refresh in a moment to see the updated position.",
+    zh: "您的还款已提交，但尚未观察到链上确认。请勿重复提交——稍后刷新即可查看更新后的头寸。",
+  },
+  pendingConfirmationLabel: { en: "Pending confirmation", zh: "等待确认" },
   // ── Deposit-then-act held-credit notices ────────────────────────────────
   collateralCreditHeld: {
     en: "Your NEO deposit landed but the loan could not be opened. It is held as collateral credit — use Reclaim Collateral to recover it.",

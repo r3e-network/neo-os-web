@@ -173,6 +173,51 @@ describe("ChainService event-wait honesty", () => {
   });
 });
 
+describe("ChainService.invoke verified flag", () => {
+  it("reports verified=true when the awaited event is observed", async () => {
+    const { chain } = makeChain(makeInteraction());
+    stubEventWait(chain, { name: "Claimed" });
+
+    const result = await chain.invoke("claim", [], { waitForEvent: "Claimed" });
+
+    expect(result.success).toBe(true);
+    expect(result.verified).toBe(true);
+  });
+
+  it("reports success=true but verified=false on an event-wait timeout (relayed, unconfirmed)", async () => {
+    const { chain } = makeChain(makeInteraction());
+    stubEventWait(chain, null);
+
+    const result = await chain.invoke("claim", [], { waitForEvent: "Claimed" });
+
+    // The broadcast happened (success) but its event never landed (unverified):
+    // callers can tell a relayed-but-unconfirmed tx from a confirmed one.
+    expect(result.success).toBe(true);
+    expect(result.verified).toBe(false);
+  });
+
+  it("defaults verified=true when no event wait was requested (nothing to confirm)", async () => {
+    const { chain } = makeChain(makeInteraction());
+
+    const result = await chain.invoke("settle", []);
+
+    expect(result.success).toBe(true);
+    expect(result.verified).toBe(true);
+  });
+
+  it("applies the same verified semantics to invokeWithPayment", async () => {
+    const { chain } = makeChain(makeInteraction());
+    stubEventWait(chain, null);
+
+    const result = await chain.invokeWithPayment("100000000", "memo", "buy", [], {
+      waitForEvent: "Bought",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.verified).toBe(false);
+  });
+});
+
 describe("ChainService.prepayAndInvoke deposit settlement", () => {
   function trackedInteraction(ops: string[], failTarget = false) {
     return makeInteraction({
