@@ -469,24 +469,42 @@ export function MiniAppOperationPanel({
     <div className="operation-panels">
       <div className="operation-panel-header">
         <div>
-          <span className="operation-panel-eyebrow">Focus action</span>
-          <strong>{resolveStaticLabel("operationsPanel", "Operations")}</strong>
+          <span className="operation-panel-eyebrow">
+            {resolveStaticLabel("operationsPanelEyebrow", "Focus action")}
+          </span>
+          <strong>
+            {resolveStaticLabel("operationsPanelTitle", "Operations")}
+          </strong>
         </div>
         <span className="operation-panel-count">{operations.length}</span>
       </div>
 
       <div className="operation-workflow" aria-hidden="true">
         <span className="operation-workflow__step operation-workflow__step--active">
-          Configure
+          {resolveStaticLabel("operationWorkflowConfigure", "Configure")}
         </span>
-        <span className="operation-workflow__step">Preview</span>
-        <span className="operation-workflow__step">Submit</span>
+        <span className="operation-workflow__step">
+          {resolveStaticLabel("operationWorkflowPreview", "Preview")}
+        </span>
+        <span className="operation-workflow__step">
+          {resolveStaticLabel("operationWorkflowSubmit", "Submit")}
+        </span>
       </div>
 
       {operations.length === 0 && (
         <div className="operation-empty-state" role="status">
-          <strong>No transaction action required</strong>
-          <span>This miniapp is ready to use from the workspace.</span>
+          <strong>
+            {resolveStaticLabel(
+              "operationEmptyTitle",
+              "No transaction action required",
+            )}
+          </strong>
+          <span>
+            {resolveStaticLabel(
+              "operationEmptyDescription",
+              "This miniapp is ready to use from the workspace.",
+            )}
+          </span>
         </div>
       )}
 
@@ -712,7 +730,7 @@ export function MiniAppOperationPanel({
     const actionLabel = resolveActionLabel(operation);
     const submitting = isSubmitting(operation.key);
     const buttonLabel = submitting
-      ? submittingActionLabel(operation, actionLabel)
+      ? submittingActionLabel(operation, t, actionLabel)
       : actionLabel;
 
     return (
@@ -722,7 +740,9 @@ export function MiniAppOperationPanel({
       >
         <div className="neo-card__header">
           <div>
-            <span className="operation-card-kicker">Selected action</span>
+            <span className="operation-card-kicker">
+              {resolveStaticLabel("operationSelectedAction", "Selected action")}
+            </span>
             <span className="neo-card__title">{resolveTitle(operation)}</span>
           </div>
         </div>
@@ -746,7 +766,9 @@ export function MiniAppOperationPanel({
 
           <div className="operation-card-section">
             <span className="operation-card-section__label">
-              {visibleFields.length > 0 ? "Configure" : "Ready"}
+              {visibleFields.length > 0
+                ? resolveStaticLabel("operationWorkflowConfigure", "Configure")
+                : resolveStaticLabel("operationReady", "Ready")}
             </span>
             {visibleFields.length > 0 ? (
               <div className="operation-fields">
@@ -758,7 +780,10 @@ export function MiniAppOperationPanel({
               </div>
             ) : (
               <p className="operation-ready-copy">
-                No extra fields are needed for this action.
+                {resolveStaticLabel(
+                  "operationNoExtraFields",
+                  "No extra fields are needed for this action.",
+                )}
               </p>
             )}
           </div>
@@ -814,13 +839,23 @@ function isOneGateClaimOperation(operation: OperationDefinition): boolean {
 
 function submittingActionLabel(
   operation: OperationDefinition,
+  t: (key: string, params?: Record<string, string | number>) => string,
   actionLabel?: string,
 ): string {
-  return isOneGateClaimOperation(operation)
-    ? "Claiming reward..."
-    : actionLabel
-      ? `${actionLabel}...`
-      : "Processing...";
+  const resolve = (key: string, fallback: string): string => {
+    const label = t(key);
+    return label && label !== key ? label : fallback;
+  };
+  if (isOneGateClaimOperation(operation)) {
+    return resolve("operationClaimingReward", "Claiming reward...");
+  }
+  if (actionLabel) {
+    const inProgress = t("operationActionInProgress", { action: actionLabel });
+    return inProgress && inProgress !== "operationActionInProgress"
+      ? inProgress
+      : `${actionLabel}...`;
+  }
+  return resolve("operationProcessing", "Processing...");
 }
 
 function normalizeKey(value: string): string {
