@@ -492,9 +492,14 @@ export default function PlayArea({
               campaign-builder, so lead with the app identity (badge + eyebrow +
               title + tagline) before the forms, matching the claim screen. */}
           <header className="gas-pool-workspace-hero">
-            <div className="gas-pool-congrats__badge" aria-hidden="true">
-              GAS
-            </div>
+            <img
+              className="gas-pool-workspace-hero__logo"
+              src={`${import.meta.env.BASE_URL}logo.svg`}
+              alt=""
+              aria-hidden="true"
+              width={52}
+              height={52}
+            />
             <div className="gas-pool-workspace-hero__copy">
               <span className="gas-pool-workspace-hero__eyebrow">
                 {t("oneGateReady")}
