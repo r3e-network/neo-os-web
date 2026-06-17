@@ -90,7 +90,11 @@ defineMiniApp({
       try {
         const freshData = await fetchTreasuryData();
         data.set(freshData);
-        stale.set(false);
+        // The fetch itself succeeded, but the on-chain price feed may have
+        // returned a delayed (still in-window) quote. Honor that: a delayed feed
+        // shows the amber "stale" signal, not the green "live synced" dot, so the
+        // USD total is never presented as fresh when its record is old.
+        stale.set(freshData.priceStale);
         writeCachedJSON(CACHE_KEY, freshData);
       } catch (e) {
         if (!data.get()) {

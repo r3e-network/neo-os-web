@@ -28,6 +28,13 @@ import { getPrices as getSharedPrices, type PriceData } from "@shared/utils/pric
 // Re-export PriceData for consumers
 export type { PriceData };
 
+// A feed record older than this (but still within the shared 1-hour staleness
+// window, otherwise getPrices() returns null) is presented as "delayed": the USD
+// total still renders but the hero shows the amber "cached/stale" signal rather
+// than the green "live synced" dot. Five minutes matches the shared price cache
+// TTL, so a record that has not advanced within one cache cycle is flagged.
+const PRICE_FRESH_WITHIN_MS = 5 * 60 * 1000;
+
 // Treasury wallet addresses - Da Hongfei & Erik Zhang (from neo-treasury.pages.dev)
 export const DA_HONGFEI_ADDRESSES = [
   "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw",
@@ -115,6 +122,14 @@ export interface TreasuryData {
   lastUpdated: number;
   /** Total wallets across all groups whose balance read failed. */
   failedCount: number;
+  /**
+   * True when the price feed returned a usable-but-delayed quote (its on-chain
+   * record is older than {@link PRICE_FRESH_WITHIN_MS} yet still within the
+   * shared freshness window). The hero shows the amber "stale" signal in this
+   * case even though the USD total renders. Always false when prices are null
+   * (that path already surfaces the "price feed unavailable" warning).
+   */
+  priceStale: boolean;
 }
 
 // RPC call helper
@@ -172,9 +187,19 @@ async function getNep17Balances(address: string): Promise<TokenBalance> {
   return { neo, gas };
 }
 
-// Fetch prices from global price feed
-export async function fetchPrices(): Promise<PriceData> {
+// Fetch prices from global price feed. Returns null when the feed is missing OR
+// frozen past the shared freshness window — the caller renders USD as "—".
+export async function fetchPrices(): Promise<PriceData | null> {
   return getSharedPrices();
+}
+
+// True when a (non-null) price quote's on-chain record is older than the "fresh"
+// threshold — usable, but the hero should show the amber "delayed" signal.
+function isPriceDelayed(prices: PriceData | null, now: number): boolean {
+  if (!prices) return false;
+  const recordTs = prices.feedRecordTimestamp;
+  if (!recordTs || recordTs <= 0) return true;
+  return now - recordTs > PRICE_FRESH_WITHIN_MS;
 }
 
 // Max addresses fetched concurrently per chunk. Bounds RPC fan-out so a slow
@@ -278,6 +303,8 @@ export async function fetchTreasuryData(): Promise<TreasuryData> {
   const totalGas = daData.totalGas + erikData.totalGas;
   const totalUsd = categoryUsd(totalNeo, totalGas, prices);
   const failedCount = daData.failedCount + erikData.failedCount;
+  const now = Date.now();
+  const priceStale = isPriceDelayed(prices, now);
 
-  return { categories, totalNeo, totalGas, totalUsd, prices, lastUpdated: Date.now(), failedCount };
+  return { categories, totalNeo, totalGas, totalUsd, prices, lastUpdated: now, failedCount, priceStale };
 }
