@@ -45,6 +45,19 @@ namespace NeoMiniAppPlatform.Contracts
         }
         #endregion
 
+        #region Upgrade
+        /// <summary>
+        /// Owner-gated, instant (no timelock) contract upgrade. Replaces the contract's
+        /// NEF and manifest in place via ContractManagement.Update; storage is preserved.
+        /// nccs infers the ContractManagement 'update' permission from this call.
+        /// </summary>
+        public static void Update(ByteString nef, string manifest)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(Owner), "owner only");
+            ContractManagement.Update(nef, manifest, new object[0]);
+        }
+        #endregion
+
         #region Read-only
         [Safe]
         public static BigInteger NeoPrice() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_NEO_PRICE);

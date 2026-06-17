@@ -68,6 +68,29 @@ namespace NeoMiniAppPlatform.Contracts
         }
         #endregion
 
+        #region Ownership + upgrade
+        /// <summary>
+        /// Captures the deployer as the upgrade authority on first deployment.
+        /// The owner is never reset on subsequent updates so an upgrade cannot
+        /// silently hand control to a new account.
+        /// </summary>
+        public static void _deploy(object data, bool update)
+        {
+            if (update) return;
+            Storage.Put(Storage.CurrentContext, PREFIX_OWNER, (ByteString)Runtime.Transaction.Sender);
+        }
+
+        [Safe]
+        public static UInt160 GetOwner() => (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_OWNER);
+
+        /// <summary>Owner-gated, instant contract upgrade.</summary>
+        public static void Update(ByteString nef, string manifest)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(GetOwner()), "owner only");
+            ContractManagement.Update(nef, manifest, new object[0]);
+        }
+        #endregion
+
         #region Internal
         private static byte AssetByte(UInt160 asset)
         {

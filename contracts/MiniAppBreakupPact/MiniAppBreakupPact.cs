@@ -37,7 +37,7 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Self-contained on-chain two-party commitment pact: matched stakes, breaker forfeits to partner, honored pacts refund both — no oracle.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
-    public class MiniAppBreakupPact : SmartContract
+    public partial class MiniAppBreakupPact : SmartContract
     {
         #region Constants
         private const long MIN_STAKE = 100_000_000;            // 1 GAS
