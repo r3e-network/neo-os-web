@@ -1,9 +1,9 @@
 @use "@shared/styles/tokens.scss" as *;
 
 // Green accent (matches this app's --ns-brand identity hue) on the Neo Soft light system
-$soul-accent: #16c784;
-$soul-accent-strong: #0fb174;
-$soul-accent-soft: #e4f8f0;
+$soul-accent: var(--ns-brand, #16c784);
+$soul-accent-strong: var(--ns-brand-strong, #0fb174);
+$soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .certificate-play-area {
   display: flex;
@@ -705,51 +705,6 @@ $soul-accent-soft: #e4f8f0;
     border-color: $soul-accent;
     color: $soul-accent-strong;
     box-shadow: 0 0 0 3px rgba($soul-accent, 0.16);
-  }
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  max-width: 320px;
-  margin: 0 auto;
-  padding: 32px 16px;
-  text-align: center;
-  color: var(--ns-text-muted);
-  font-size: 14px;
-
-  .empty-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 46px;
-    margin-bottom: 4px;
-    border-radius: var(--ns-radius-full);
-    background: $soul-accent-soft;
-    color: $soul-accent-strong;
-    font-size: 22px;
-    line-height: 1;
-  }
-
-  .empty-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--ns-ink);
-    line-height: 1.3;
-  }
-
-  .empty-hint {
-    font-size: 12.5px;
-    font-weight: 500;
-    line-height: 1.45;
-    color: var(--ns-text-muted);
-  }
-
-  .empty-action {
-    margin-top: 8px;
   }
 }
 
