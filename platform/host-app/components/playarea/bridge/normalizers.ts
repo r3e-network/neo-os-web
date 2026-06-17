@@ -263,6 +263,49 @@ export function describeBridgeSignerScopes(value: unknown): string {
   return labels.join(", ");
 }
 
+function truncateBridgeArgValue(value: string): string {
+  return value.length > 32 ? `${value.slice(0, 32)}…` : value;
+}
+
+// Render the actual call arguments so the approval prompt cannot hide what a
+// transaction does (e.g. a GAS `transfer` to an attacker). Mirrors the
+// execution path by normalizing the args identically before display.
+export function describeBridgeArgs(invocation: BridgeInvocation): string {
+  const args = normalizeBridgeArgs(invocation.args);
+  return args
+    .map((arg) => {
+      const type = arg.type;
+      const lower = type.toLowerCase();
+      if (lower === "array") {
+        return `Array(${Array.isArray(arg.value) ? arg.value.length : 0})`;
+      }
+      if (lower === "map") {
+        return `Map(${Array.isArray(arg.value) ? arg.value.length : 0})`;
+      }
+      if (lower === "any" || arg.value === null || arg.value === undefined) {
+        return "null";
+      }
+      return `${type}:${truncateBridgeArgValue(String(arg.value))}`;
+    })
+    .join(", ");
+}
+
+// Recognize the canonical NEP-17 `transfer(from, to, amount, [data])` shape so
+// the prompt can show a plain-language "transfer <amount> to <to>" line that a
+// user can actually vet, rather than burying it inside the raw arg list.
+function describeTransferIntent(invocation: BridgeInvocation): string {
+  const args = normalizeBridgeArgs(invocation.args);
+  const [from, to, amount] = args;
+  if (
+    from?.type.toLowerCase() === "hash160" &&
+    to?.type.toLowerCase() === "hash160" &&
+    amount?.type.toLowerCase() === "integer"
+  ) {
+    return `transfer ${String(amount.value)} to ${String(to.value)}`;
+  }
+  return "";
+}
+
 export function describeSensitiveBridgeOperation(
   method: string,
   payload: unknown,
@@ -284,18 +327,28 @@ export function describeSensitiveBridgeOperation(
       ? rec.invocations.filter(isBridgeRecord)
       : [];
     // Mirror the execution path exactly (invocationContractHash +
-    // normalizeBridgeOperation) so the approval prompt always names the same
-    // contract and operation that the wallet will sign.
+    // normalizeBridgeOperation + normalizeBridgeArgs) so the approval prompt
+    // always names the same contract, operation, AND arguments the wallet will
+    // sign. Hiding the args lets a malicious miniapp disguise a GAS `transfer`
+    // to an attacker address/amount as a benign-looking call.
+    const transferLines = invocations
+      .map((inv: BridgeInvocation) =>
+        normalizeBridgeOperation(inv.operation ?? inv.method) === "transfer"
+          ? describeTransferIntent(inv)
+          : "",
+      )
+      .filter(Boolean);
     const ops = invocations
       .map((inv: BridgeInvocation) => {
         const scriptHash = invocationContractHash(inv) || "?";
         const op =
           normalizeBridgeOperation(inv.operation ?? inv.method) || "?";
-        return `${op} @ ${scriptHash}`;
+        return `${op} @ ${scriptHash}(${describeBridgeArgs(inv)})`;
       })
       .join(", ");
     const signerScopes = describeBridgeSignerScopes(rec.signers);
-    return `submit a transaction (${ops || "no operations"})${
+    const prefix = transferLines.length ? `${transferLines.join("\n")}\n` : "";
+    return `${prefix}submit a transaction (${ops || "no operations"})${
       signerScopes ? ` with signer scope ${signerScopes}` : ""
     }`;
   }
