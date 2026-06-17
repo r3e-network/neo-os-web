@@ -107,9 +107,6 @@ export { parseBigInt, parseBool, encodeTokenId, parseDateInput } from "./parsers
 // createSidebarItems.ts
 export { createSidebarItems } from "./createSidebarItems";
 
-// createMiniAppEntry.ts
-export { createMiniAppEntry } from "./createMiniAppEntry";
-
 // n3index.ts — re-export all public API functions, types, and constants
 export type {
   Network,

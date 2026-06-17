@@ -8,7 +8,7 @@
  * - OneGate and NeoLine through the Neo dAPI / NEP-21 protocol
  * - Abstract Account (AA) via social login
  */
-import { ref } from "vue";
+import { createObservable, withValueCompat } from "../react/context";
 import {
   GAS_HASH,
   getMiniAppContractHash,
@@ -469,9 +469,13 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   if (existingWallet) return existingWallet;
   if (walletInstance) return walletInstance;
 
-  const address = ref<string | null>(null);
-  const chainType = ref("neo-n3");
-  const chainId = ref("neo-n3");
+  // Reactive wallet state. `withValueCompat` exposes both the Observable
+  // surface (`get`/`set`/`subscribe`) consumed by the React runtime and a
+  // `.value` getter/setter so the rest of this SDK (and `refToObservable`
+  // wrappers in the composables) keep working unchanged.
+  const address = withValueCompat(createObservable<string | null>(null));
+  const chainType = withValueCompat(createObservable("neo-n3"));
+  const chainId = withValueCompat(createObservable("neo-n3"));
   let activeProvider: ActiveWalletProvider | null = null;
   let dapiAccountHash: string | null = null;
   let dapiEventsAttached = false;
