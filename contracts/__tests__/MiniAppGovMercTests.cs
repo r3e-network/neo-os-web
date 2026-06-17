@@ -158,6 +158,49 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.ThrowsAny<Exception>(() => gov.reclaimBid(carol, 0));
         }
 
+        // Regression: a pending (window-open) stake must not let already-earned rewards
+        // be banked twice. StakeInternal's pending branch Harvests (which banks but does
+        // not reset reward debt) and leaves the eligible balance unchanged, so it must
+        // re-snapshot the debt; otherwise the next Harvest re-banks the same rewards and
+        // the staker can drain the shared pool.
+        [Fact]
+        public void GovMerc_PendingStakeDoesNotDoubleCountRewards()
+        {
+            var engine = new TestEngine(true);
+            var (nef, manifest) = Load("MiniAppGovMerc");
+            var gov = engine.Deploy<GovMercContract>(nef, manifest);
+
+            var mallory = TestEngine.GetNewSigner().Account; // sole staker
+            var bidder = TestEngine.GetNewSigner().Account;  // opens the window each epoch
+            Fund(engine, mallory, 200, 5L * 100000000);
+            Fund(engine, bidder, 0, 20L * 100000000);
+
+            // Mallory stakes 100 NEO before any bid -> eligible for epoch 0.
+            engine.SetTransactionSigners(mallory);
+            engine.Native.NEO.Transfer(mallory, gov.Hash, 100, "govmerc:stake");
+
+            // Epoch 0: a 4 GAS bid is placed and settled -> Mallory (sole staker) earns 4 GAS.
+            engine.SetTransactionSigners(bidder);
+            engine.Native.GAS.Transfer(bidder, gov.Hash, 4L * 100000000, "govmerc:bid");
+            gov.bid(bidder, 4L * 100000000);
+            AdvancePastDeadline(engine, gov);
+            gov.settleEpoch();
+            Assert.Equal(new BigInteger(1), gov.currentEpoch());
+            Assert.Equal(new BigInteger(4L * 100000000), gov.pendingRewards(mallory));
+
+            // Epoch 1: a bid opens the window, THEN Mallory stakes again -> parked pending.
+            engine.SetTransactionSigners(bidder);
+            engine.Native.GAS.Transfer(bidder, gov.Hash, 1L * 100000000, "govmerc:bid");
+            gov.bid(bidder, 1L * 100000000);
+            engine.SetTransactionSigners(mallory);
+            engine.Native.NEO.Transfer(mallory, gov.Hash, 1, "govmerc:stake");
+
+            // The entitlement is STILL exactly 4 GAS, never 8.
+            Assert.Equal(new BigInteger(4L * 100000000), gov.pendingRewards(mallory));
+            Assert.Equal(new BigInteger(4L * 100000000), gov.claimRewards(mallory));
+            Assert.Equal(BigInteger.Zero, gov.pendingRewards(mallory));
+        }
+
         [Fact]
         public void GovMerc_NoStakersRefundsWinnerAndCreditWithdraw()
         {
