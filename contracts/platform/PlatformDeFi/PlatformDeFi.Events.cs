@@ -38,6 +38,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [DisplayName("NeoGasPriceUpdated")]
         public static event NeoGasPriceUpdatedHandler OnNeoGasPriceUpdated;
 
+        [DisplayName("PriceDropRecorded")]
+        public static event PriceDropRecordedHandler OnPriceDropRecorded;
+
+        [DisplayName("LiquidationSurplusReturned")]
+        public static event LiquidationSurplusReturnedHandler OnLiquidationSurplusReturned;
+
         public delegate void LoanAbandonedHandler(string appId, BigInteger loanId, UInt160 borrower, BigInteger collateral);
         [DisplayName("LoanAbandoned")]
         public static event LoanAbandonedHandler OnLoanAbandoned;
