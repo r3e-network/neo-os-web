@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -164,6 +165,39 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.True(
                 offenders.Count == 0,
                 $"Only PlatformGame Gacha odds should use weight terminology. Offenders: {string.Join(", ", offenders)}");
+        }
+
+        [Fact]
+        public void MiniAppContractsExposeAnUpdateMethod()
+        {
+            string repoRoot = ContractSourceAssertions.FindRepoRoot();
+            string buildDir = Path.Combine(repoRoot, "contracts", "build");
+            Assert.True(Directory.Exists(buildDir), $"Expected compiled contract artifacts at {buildDir}");
+
+            List<string> offenders = new();
+            foreach (string manifestPath in Directory.GetFiles(buildDir, "MiniApp*.manifest.json"))
+            {
+                string name = Path.GetFileNameWithoutExtension(manifestPath);
+                // Test-only fixtures are not deployable contracts.
+                if (name.Contains("Fixture", StringComparison.Ordinal)) continue;
+
+                using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(manifestPath));
+                bool hasUpdate = doc.RootElement
+                    .GetProperty("abi")
+                    .GetProperty("methods")
+                    .EnumerateArray()
+                    .Any(method => method.GetProperty("name").GetString() == "update");
+
+                if (!hasUpdate)
+                {
+                    offenders.Add(name);
+                }
+            }
+
+            offenders.Sort(StringComparer.Ordinal);
+            Assert.True(
+                offenders.Count == 0,
+                $"Every deployable miniapp contract must expose an owner-gated update() so fixes can be applied in place. Missing: {string.Join(", ", offenders)}");
         }
 
         private static IEnumerable<string> EnumerateContractSourceFiles(string contractsRoot)

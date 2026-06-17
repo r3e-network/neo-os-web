@@ -32,6 +32,17 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(ok, "bankroll transfer failed");
             OnBankrollWithdrawn(to, amount);
         }
+
+        /// <summary>
+        /// Owner-only contract upgrade. Replaces the running NEF and manifest in place via
+        /// ContractManagement.Update with no timelock. The ContractManagement "update"
+        /// permission is auto-inferred from this call.
+        /// </summary>
+        public static void Update(ByteString nef, string manifest)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(Owner), "unauthorized");
+            ContractManagement.Update(nef, manifest, new object[0]);
+        }
         #endregion
 
         #region Withdraw credit
@@ -54,6 +65,9 @@ namespace NeoMiniAppPlatform.Contracts
         #endregion
 
         #region Read-only
+        [Safe]
+        public static UInt160 GetOwner() => Owner;
+
         [Safe]
         public static BigInteger Bankroll() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_BANKROLL);
 

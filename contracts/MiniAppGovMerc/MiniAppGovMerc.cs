@@ -69,6 +69,7 @@ namespace NeoMiniAppPlatform.Contracts
         #endregion
 
         #region Storage prefixes
+        private static readonly byte[] PREFIX_OWNER = new byte[] { 0x01 };        // contract owner (deployer), gates Update
         private static readonly byte[] PREFIX_STAKED = new byte[] { 0x10 };       // + user -> ELIGIBLE NEO staked (earns the live epoch)
         private static readonly byte[] PREFIX_TOTAL_STAKED = new byte[] { 0x11 }; // total NEO held (eligible + pending)
         private static readonly byte[] PREFIX_ACC_RPS = new byte[] { 0x12 };      // accRewardPerShare (scaled)
@@ -85,6 +86,25 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_ELIGIBLE_STAKED = new byte[] { 0x1d };  // total ELIGIBLE NEO (the settle divisor)
         private static readonly byte[] PREFIX_PENDING_STAKE = new byte[] { 0x1e };    // + user -> NEO staked after the live window opened
         private static readonly byte[] PREFIX_PENDING_EPOCH = new byte[] { 0x1f };    // + user -> epoch from which PENDING_STAKE becomes eligible
+        #endregion
+
+        #region Lifecycle
+        /// <summary>
+        /// Capture the deployer as the contract owner on first deployment. The owner is
+        /// never reset on update so an upgrade cannot silently transfer control.
+        /// </summary>
+        public static void _deploy(object data, bool update)
+        {
+            if (update) return;
+            Storage.Put(Storage.CurrentContext, PREFIX_OWNER, (ByteString)(byte[])Runtime.Transaction.Sender);
+        }
+
+        /// <summary>Owner-gated, instant contract upgrade (no timelock).</summary>
+        public static void Update(ByteString nef, string manifest)
+        {
+            ExecutionEngine.Assert(Runtime.CheckWitness(GetOwner()), "unauthorized");
+            ContractManagement.Update(nef, manifest, new object[0]);
+        }
         #endregion
 
         #region Deposit (NEO stake / GAS bid credit)

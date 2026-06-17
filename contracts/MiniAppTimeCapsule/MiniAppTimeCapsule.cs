@@ -58,6 +58,7 @@ namespace NeoMiniAppPlatform.Contracts
         #endregion
 
         #region Storage prefixes
+        private static readonly byte[] PREFIX_OWNER = new byte[] { 0x01 };         // contract owner (deployer)
         private static readonly byte[] PREFIX_CAP_ID = new byte[] { 0x10 };
         private static readonly byte[] PREFIX_CAP = new byte[] { 0x11 };          // + capsuleId -> Capsule
         private static readonly byte[] PREFIX_CREDIT = new byte[] { 0x12 };       // + owner -> GAS credit
