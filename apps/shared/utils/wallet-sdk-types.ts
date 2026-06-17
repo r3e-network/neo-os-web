@@ -1,15 +1,21 @@
-import type { Ref } from "vue";
+import type { RefCompatObservable } from "../react/context";
 
 import type { NeoDapiProvider as BaseNeoDapiProvider } from "./nep21-provider";
 
-// Re-export types that were previously in @neo/types
+// Re-export types that were previously in @neo/types.
+//
+// Reactive wallet fields are typed as `RefCompatObservable`: the React-native
+// Observable (`get`/`set`/`subscribe`) with a backward-compatible `.value`
+// accessor. This is the all-React replacement for the former Vue `Ref<T>` and
+// keeps both the `.value` reads used across the SDK and the `refToObservable`
+// wrappers used by composables type-correct.
 export interface WalletSDK {
-  address: Ref<string | null>;
-  chainType: Ref<string>;
+  address: RefCompatObservable<string | null>;
+  chainType: RefCompatObservable<string>;
   /** Connected chain ID (e.g. "neo-n3-mainnet", "neo-n3-testnet") */
-  chainId?: Ref<string>;
+  chainId?: RefCompatObservable<string>;
   /** App-specific chain ID override (e.g. for AA-based apps) */
-  appChainId?: Ref<string>;
+  appChainId?: RefCompatObservable<string>;
   connect: () => Promise<void>;
   invokeWithConfirmation?: (
     params: InvokeParams,

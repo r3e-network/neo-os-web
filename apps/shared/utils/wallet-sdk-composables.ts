@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { createObservable, withValueCompat } from "../react/context";
 
 import {
   GAS_HASH,
@@ -84,10 +84,13 @@ export interface SponsorshipResult {
 
 export function createGasSponsorComposable(deps: WalletSdkComposableDeps) {
   const { errorCodes, platformApi, useWallet } = deps;
-  const isCheckingEligibility = ref(false);
-  const eligibilityError = ref<string | null>(null);
-  const isRequestingSponsorship = ref(false);
-  const sponsorshipError = ref<string | null>(null);
+  // `withValueCompat` keeps the `.value` ergonomics used below while exposing
+  // the Observable surface that `refToObservable` consumers (e.g. gas-sponsor)
+  // subscribe to in the React runtime.
+  const isCheckingEligibility = withValueCompat(createObservable(false));
+  const eligibilityError = withValueCompat(createObservable<string | null>(null));
+  const isRequestingSponsorship = withValueCompat(createObservable(false));
+  const sponsorshipError = withValueCompat(createObservable<string | null>(null));
 
   const checkEligibility = async (): Promise<EligibilityResult> => {
     isCheckingEligibility.value = true;
