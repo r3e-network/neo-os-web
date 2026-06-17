@@ -24,13 +24,22 @@ namespace NeoMiniAppPlatform.Contracts
     ///      credit and RESERVES the house exposure (= amount, the extra a 2x win pays) from
     ///      the bankroll, recording commitIndex = Ledger.CurrentIndex. This write is in
     ///      block N. The outcome is NOT decided here.
-    ///   2. settle(betId): PERMISSIONLESS. Asserts Ledger.CurrentIndex > commitIndex, then
-    ///      derives the outcome from a FIXED beacon — the hash of block commitIndex+1
-    ///      (unknown at commit, immutable once produced) — mixed with betId+player+commitIndex.
-    ///      Because the beacon is a fixed past block, re-calling settle in any later block
-    ///      yields the SAME outcome, so a player CANNOT abort an unfavourable settle via a
-    ///      wrapper and retry for a different result (an earlier design used Runtime.GetRandom()
-    ///      at settle, which re-rolled every block and did NOT close that abort-on-loss drain).
+    ///   2. settle(betId): PERMISSIONLESS. Asserts Ledger.CurrentIndex > commitIndex + K
+    ///      (K = BEACON_BLOCKS = 3), then derives the outcome from a FIXED multi-block beacon
+    ///      — the concat-hash of the hashes of blocks commitIndex+1 .. commitIndex+K (all
+    ///      unknown at commit, immutable once produced) — mixed with betId+player+commitIndex.
+    ///      Because every beacon block is a fixed past block, re-calling settle in any later
+    ///      block yields the SAME outcome, so a player CANNOT abort an unfavourable settle via
+    ///      a wrapper and retry for a different result (an earlier design used
+    ///      Runtime.GetRandom() at settle, which re-rolled every block and did NOT close that
+    ///      abort-on-loss drain).
+    ///
+    /// MULTI-BLOCK BEACON (grinding cost): the entropy mixes K = 3 CONSECUTIVE block hashes,
+    /// not a single one. To bias the outcome a block producer would have to influence/withhold
+    /// all K beacon blocks in a row, which is far costlier than grinding a single block. This
+    /// is NOT VRF-grade randomness (a sustained majority of consecutive producers could still
+    /// influence the draw), so it is intended for the low-stakes coin flip; high-value draws
+    /// should use the VRF oracle when operational.
     ///
     /// RESERVATION: every pending bet reserves its worst-case house exposure (a 2x win pays
     /// an extra `amount` from the house) into reservedBankroll, and a new commit is rejected
@@ -58,6 +67,12 @@ namespace NeoMiniAppPlatform.Contracts
         private const long MAX_BET = 10_000_000_000;   // 100 GAS
         private const string FUND_MEMO = "miniapp-fogplay:fund";
         private const string BET_MEMO = "miniapp-fogplay:bet";
+
+        // Number of consecutive beacon blocks mixed into the reveal entropy. settle requires
+        // a strictly later block than commitIndex + K so all K beacons (commitIndex+1 ..
+        // commitIndex+K) exist and are immutable, raising the cost of grinding the outcome
+        // (a single-block beacon could be biased by that one block's producer).
+        private const int BEACON_BLOCKS = 3;
 
         [InitialValue("NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32", ContractParameterType.Hash160)]
         private static readonly UInt160 Owner = default;
@@ -141,75 +156,14 @@ namespace NeoMiniAppPlatform.Contracts
         }
         #endregion
 
-        #region Commit (block N — escrow + reserve, no outcome)
-        /// <summary>
-        /// Commit a coin-flip wager. choice: 0=heads, 1=tails. Escrows the wager from the
-        /// player's prepaid credit and reserves the worst-case house exposure (= amount,
-        /// since a 2x win pays an extra `amount` from the house) from the free bankroll.
-        /// The outcome is NOT decided here — call settle(betId) in a LATER block.
-        /// Returns the betId.
-        /// </summary>
-        public static BigInteger Commit(UInt160 player, BigInteger choice, BigInteger amount)
-        {
-            ExecutionEngine.Assert(player is not null && player.IsValid && !player.IsZero, "invalid player");
-            ExecutionEngine.Assert(Runtime.CheckWitness(player), "player witness required");
-            ExecutionEngine.Assert(choice == 0 || choice == 1, "choice must be 0 or 1");
-            ExecutionEngine.Assert(amount >= MIN_BET && amount <= MAX_BET, "bet out of range");
-
-            StorageContext ctx = Storage.CurrentContext;
-
-            // Escrow the prepaid wager irrevocably.
-            byte[] creditKey = Helper.Concat(PREFIX_CREDIT, (byte[])player);
-            BigInteger credit = (BigInteger)Storage.Get(ctx, creditKey);
-            ExecutionEngine.Assert(credit >= amount, "insufficient bet credit");
-            BigInteger nextCredit = credit - amount;
-            if (nextCredit == 0) Storage.Delete(ctx, creditKey); else Storage.Put(ctx, creditKey, nextCredit);
-
-            // Reserve the house exposure so concurrent pending bets cannot oversubscribe.
-            // A 2x win pays the wager back (from escrow) PLUS an extra `amount` from the house.
-            BigInteger exposure = amount;
-            BigInteger bankroll = (BigInteger)Storage.Get(ctx, PREFIX_BANKROLL);
-            BigInteger reserved = (BigInteger)Storage.Get(ctx, PREFIX_RESERVED);
-            BigInteger free = bankroll - reserved;
-            ExecutionEngine.Assert(free >= exposure, "free bankroll cannot cover this bet");
-            Storage.Put(ctx, PREFIX_RESERVED, reserved + exposure);
-
-            BigInteger betId = (BigInteger)Storage.Get(ctx, PREFIX_BET_ID) + 1;
-            Storage.Put(ctx, PREFIX_BET_ID, betId);
-
-            Bet b = new Bet
-            {
-                Player = player,
-                Choice = choice,
-                Wager = amount,
-                Exposure = exposure,
-                CommitIndex = Ledger.CurrentIndex,
-                CommitTime = Runtime.Time,
-                Settled = false,
-                Outcome = 0,
-                Won = false,
-                Payout = 0,
-                SettleTime = 0,
-            };
-            Storage.Put(ctx, BetKey(betId), StdLib.Serialize(b));
-            IndexAppend(ctx, player, betId);
-
-            BigInteger pending = (BigInteger)Storage.Get(ctx, PREFIX_PENDING_CNT) + 1;
-            Storage.Put(ctx, PREFIX_PENDING_CNT, pending);
-
-            OnCommitted(betId, player, choice, amount, b.CommitIndex);
-            return betId;
-        }
-        #endregion
-
         #region Settle (later block — reveal + pay) — PERMISSIONLESS
         /// <summary>
         /// Reveal and settle a committed bet. PERMISSIONLESS: anyone can call so losses can
         /// never be withheld. Requires Ledger.CurrentIndex strictly greater than the bet's
-        /// commitIndex (a later block), so the GetRandom beacon used to decide the flip was
-        /// unknown when the wager was committed. On a win pays 2x (escrow + reserved house
-        /// portion); on a loss the escrowed wager funds the bankroll. Always releases the
-        /// reservation. Returns the outcome (0/1).
+        /// commitIndex + BEACON_BLOCKS (so all K beacon blocks already exist), so the beacon
+        /// blocks used to decide the flip were unknown when the wager was committed. On a win
+        /// pays 2x (escrow + reserved house portion); on a loss the escrowed wager funds the
+        /// bankroll. Always releases the reservation. Returns the outcome (0/1).
         /// </summary>
         public static BigInteger Settle(BigInteger betId)
         {
@@ -218,17 +172,26 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(raw is not null, "bet not found");
             Bet b = (Bet)StdLib.Deserialize(raw);
             ExecutionEngine.Assert(!b.Settled, "bet already settled");
-            ExecutionEngine.Assert(Ledger.CurrentIndex > b.CommitIndex, "reveal must be a later block");
+            ExecutionEngine.Assert(Ledger.CurrentIndex > b.CommitIndex + BEACON_BLOCKS, "reveal must be a later block");
 
-            // Outcome from a FIXED beacon: the hash of block commitIndex+1 (unknown at commit,
-            // immutable once produced). Re-calling settle in ANY later block yields the SAME
-            // outcome, so a player cannot abort an unfavourable settle via a wrapper contract
-            // and retry until a win — this is what closes the abort-on-loss bankroll drain.
-            // (Runtime.GetRandom() at settle re-rolls every block and did NOT close it.) The
-            // assert above (CurrentIndex > CommitIndex) guarantees block commitIndex+1 exists.
-            var beacon = Ledger.GetBlock((uint)(b.CommitIndex + 1));
-            ExecutionEngine.Assert(beacon is not null, "beacon block unavailable");
-            BigInteger entropy = (BigInteger)(ByteString)(byte[])beacon.Hash;
+            // Outcome from a FIXED multi-block beacon: the concat-hash of the hashes of the K
+            // blocks commitIndex+1 .. commitIndex+K, accumulated into a single entropy value
+            // (all unknown at commit, immutable once produced). Mixing K consecutive block
+            // hashes raises the grinding cost — biasing the outcome requires influencing/
+            // withholding all K beacon blocks in a row, not just one. Re-calling settle in ANY
+            // later block yields the SAME outcome (the beacons are fixed past blocks), so a
+            // player cannot abort an unfavourable settle via a wrapper contract and retry until
+            // a win — this is what closes the abort-on-loss bankroll drain. (Runtime.GetRandom()
+            // at settle re-rolls every block and did NOT close it.) The assert above
+            // (CurrentIndex > CommitIndex + BEACON_BLOCKS) guarantees every beacon block exists.
+            ByteString beaconBytes = (ByteString)new byte[0];
+            for (int i = 1; i <= BEACON_BLOCKS; i++)
+            {
+                var beacon = Ledger.GetBlock((uint)(b.CommitIndex + i));
+                ExecutionEngine.Assert(beacon is not null, "beacon block unavailable");
+                beaconBytes = Helper.Concat(beaconBytes, (ByteString)(byte[])beacon.Hash);
+            }
+            BigInteger entropy = (BigInteger)CryptoLib.Sha256(beaconBytes);
             if (entropy < 0) entropy = -entropy;
             BigInteger mix = (BigInteger)(ByteString)(byte[])b.Player + betId + b.CommitIndex;
             if (mix < 0) mix = -mix;

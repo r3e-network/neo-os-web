@@ -31,6 +31,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         private static readonly UInt160 OwnerHash = UInt160.Parse("0x6d0656f6dd91469db1c90cc1e574380613f43738");
         private const long GAS = 100000000; // 1 GAS base units
 
+        // Mirrors the contract's BEACON_BLOCKS: settle requires CurrentIndex > commitIndex + K
+        // and mixes the hashes of the K blocks commitIndex+1 .. commitIndex+K.
+        private const int BEACON_BLOCKS = 3;
+
         private static readonly string BuildDir = Path.GetFullPath(
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "build"));
 
@@ -57,6 +61,14 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
         // Mine an empty block so Ledger.CurrentIndex advances by one.
         private static void MineBlock(TestEngine engine) => engine.PersistingBlock.Persist();
+
+        // Mine enough blocks to clear the K-block beacon window: settle needs
+        // CurrentIndex > commitIndex + BEACON_BLOCKS AND the K beacon blocks (commitIndex+1
+        // .. commitIndex+K) persisted. Persisting BEACON_BLOCKS + 1 blocks satisfies both.
+        private static void MinePastBeacon(TestEngine engine)
+        {
+            for (int i = 0; i <= BEACON_BLOCKS; i++) engine.PersistingBlock.Persist();
+        }
 
         // Solvency invariant: held GAS == bankroll + escrowed pending wagers + player credits.
         // The bankroll counter already excludes escrowed wagers (they live in pending bets),
@@ -106,9 +118,18 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             BigInteger? betId = flip.commit(player, 0, 1L * GAS);
             Assert.Equal(BigInteger.One, betId);
 
-            // Settle in the SAME block (no mining) must revert: the reveal beacon would be
-            // the commit block's, which the player could have observed.
+            // Settle in the SAME block (no mining) must revert: none of the K beacon blocks
+            // exist yet, and the player could have observed the commit block.
             AssertRevert("reveal must be a later block", () => flip.settle(betId!.Value));
+
+            // Settling anywhere inside the K-block beacon window (up to commitIndex + K) must
+            // STILL revert: the full multi-block beacon is not yet fixed, so a producer of a
+            // not-yet-final beacon block could otherwise grind the outcome.
+            for (int i = 0; i < BEACON_BLOCKS; i++)
+            {
+                MineBlock(engine);
+                AssertRevert("reveal must be a later block", () => flip.settle(betId!.Value));
+            }
 
             // The bet stays pending, escrow and reservation intact.
             var bet = BetOf(flip, betId!.Value);
@@ -146,8 +167,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(new BigInteger(10L * GAS), flip.bankroll()); // unchanged until settle
             AssertSolvent(engine, flip, 1L * GAS, player); // 1 GAS is escrowed pending
 
-            // Reveal in a later block.
-            MineBlock(engine);
+            // Reveal once the K-block beacon window has fully cleared.
+            MinePastBeacon(engine);
             BigInteger balanceBefore = engine.Native.GAS.BalanceOf(player) ?? 0;
             BigInteger? outcome = flip.settle(betId!.Value);
             Assert.True(outcome == 0 || outcome == 1);
@@ -173,7 +194,18 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(BigInteger.Zero, flip.pendingBetCount());
             AssertSolvent(engine, flip, 0, player);
 
-            // Double settle is rejected.
+            // Double settle is rejected (the recorded result is immutable).
+            AssertRevert("bet already settled", () => flip.settle(betId!.Value));
+
+            // IDEMPOTENT BEACON: mine further blocks and confirm a (would-be) re-derivation of
+            // the outcome from the now-deeper chain still matches the recorded result — the
+            // K-block beacon is fixed, so the draw can never be re-rolled by waiting.
+            BigInteger recordedOutcome = outcome!.Value;
+            MinePastBeacon(engine);
+            var betAfter = BetOf(flip, betId!.Value);
+            Assert.Equal(recordedOutcome, betAfter.outcome);
+            Assert.Equal(bet.won, betAfter.won);
+            Assert.Equal(bet.payout, betAfter.payout);
             AssertRevert("bet already settled", () => flip.settle(betId!.Value));
         }
 
@@ -198,12 +230,13 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             bool sawWin = false, sawLoss = false;
             BigInteger expectedBankroll = 50L * GAS;
 
-            // Commit, mine, settle each bet; on EVERY settle assert the exact payout math.
+            // Commit, mine past the K-block beacon, settle each bet; on EVERY settle assert
+            // the exact payout math.
             for (int i = 1; i <= 24 && !(sawWin && sawLoss); i++)
             {
                 engine.SetTransactionSigners(player);
                 BigInteger? betId = flip.commit(player, 0, bet);
-                MineBlock(engine);
+                MinePastBeacon(engine);
                 BigInteger balanceBefore = engine.Native.GAS.BalanceOf(player) ?? 0;
                 flip.settle(betId!.Value);
                 var rec = BetOf(flip, betId!.Value);
@@ -269,10 +302,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             engine.SetTransactionSigners(OwnerHash);
             AssertRevert("insufficient free bankroll", () => flip.withdrawBankroll(house, 1L * GAS));
 
-            // Settle all three in a later block. Each settle releases its reservation
-            // regardless of win/loss (a win spends the reserved exposure from the bankroll;
-            // a loss adds the wager to the bankroll), so reservation returns to zero.
-            MineBlock(engine);
+            // Settle all three once the K-block beacon window has cleared. Each settle releases
+            // its reservation regardless of win/loss (a win spends the reserved exposure from
+            // the bankroll; a loss adds the wager to the bankroll), so reservation returns to
+            // zero.
+            MinePastBeacon(engine);
             engine.SetTransactionSigners(player);
             flip.settle(b1!.Value);
             flip.settle(b2!.Value);
