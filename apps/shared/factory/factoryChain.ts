@@ -20,10 +20,20 @@
  * invocations); no transaction is ever broadcast from here.
  */
 import { getRpcUrl, resolveNeoNetwork } from "@shared/constants/rpc";
+import {
+  fetchWithTimeout,
+  HttpResponseError,
+  isTransientFetchError,
+} from "@shared/utils/fetch-timeout";
+import { retryAsync } from "@shared/utils/async-utils";
 import { addressToScriptHash, parseStackItem } from "@shared/utils/neo";
 import type { FactoryContractArg, FactoryKind, FactoryNetwork } from "./factoryPlan";
 
 const RPC_TIMEOUT_MS = 10_000;
+/** Bounded retry for transient factory-registry read blips. */
+const RPC_RETRY_ATTEMPTS = 3;
+const RPC_RETRY_BASE_DELAY_MS = 300;
+const RPC_RETRY_MAX_DELAY_MS = 1500;
 const ZERO_HASH = /^0x0{40}$/;
 
 export type TemplateArtifactPresence = "present" | "missing" | "not-registered" | "unknown";
@@ -62,23 +72,43 @@ async function rpcInvokeFunction(
   const params: unknown[] = [scriptHash, operation, args];
   if (signers?.length) params.push(signers);
 
-  const response = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "invokefunction", params }),
-    signal: AbortSignal.timeout(RPC_TIMEOUT_MS),
-  });
-  const payload = (await response.json()) as {
-    result?: RpcInvokeResult;
-    error?: { message?: string };
-  };
-  if (payload.error) {
-    throw new Error(payload.error.message || "invokefunction failed");
-  }
-  if (!payload.result) {
-    throw new Error("invokefunction returned an empty result");
-  }
-  return payload.result;
+  // Read-only `invokefunction` test-invocation — idempotent, so a transient RPC
+  // node blip (timeout, network drop, 429/5xx) retries with bounded backoff
+  // before surfacing to the callers (which already degrade to "unknown"/null).
+  // A JSON-RPC-level error is deterministic and rethrown without retry.
+  return retryAsync<RpcInvokeResult>(
+    async () => {
+      const response = await fetchWithTimeout(rpcUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "invokefunction", params }),
+        timeoutMs: RPC_TIMEOUT_MS,
+      });
+      if (!response.ok) {
+        throw new HttpResponseError(
+          `invokefunction failed: rpc HTTP ${response.status}`,
+          response.status,
+        );
+      }
+      const payload = (await response.json()) as {
+        result?: RpcInvokeResult;
+        error?: { message?: string };
+      };
+      if (payload.error) {
+        throw new Error(payload.error.message || "invokefunction failed");
+      }
+      if (!payload.result) {
+        throw new Error("invokefunction returned an empty result");
+      }
+      return payload.result;
+    },
+    {
+      maxAttempts: RPC_RETRY_ATTEMPTS,
+      baseDelayMs: RPC_RETRY_BASE_DELAY_MS,
+      maxDelayMs: RPC_RETRY_MAX_DELAY_MS,
+      shouldRetry: isTransientFetchError,
+    },
+  );
 }
 
 function asString(value: unknown): string {

@@ -22,6 +22,15 @@
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import { EXTERNAL_INTEGRATIONS, type NeoNetwork, getNetwork } from "../constants/rpc";
+import { fetchWithTimeout, HttpResponseError, isTransientFetchError } from "../utils/fetch-timeout";
+import { retryAsync } from "../utils/async-utils";
+
+/** Per-attempt RPC deadline (unchanged from the prior inline value). */
+const RPC_TIMEOUT_MS = 10000;
+/** Bounded retry for transient indexer/RPC read blips. */
+const RPC_RETRY_ATTEMPTS = 3;
+const RPC_RETRY_BASE_DELAY_MS = 300;
+const RPC_RETRY_MAX_DELAY_MS = 1500;
 
 export interface UseMorpheusDataFeedConfig {
   network?: NeoNetwork;
@@ -120,18 +129,38 @@ function decodeBase64String(b64: string): string {
 }
 
 async function rpcCall<T>(rpcUrl: string, method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-    signal: AbortSignal.timeout(10000),
-  });
-  const data = (await res.json()) as RpcResponse<T>;
-  if (data.error) {
-    throw new Error(`${method}: ${data.error.message || "rpc error"}`);
-  }
-  if (!data.result) throw new Error(`${method}: empty result`);
-  return data.result;
+  // Read-only `invokefunction` test-invocations — idempotent, so a transient
+  // RPC node blip (timeout, network drop, 429/5xx) retries with bounded backoff
+  // instead of hard-failing the price read. A JSON-RPC-level error (method not
+  // found, bad params) is deterministic and is rethrown without retry.
+  return retryAsync<T>(
+    async () => {
+      const res = await fetchWithTimeout(rpcUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        timeoutMs: RPC_TIMEOUT_MS,
+      });
+      if (!res.ok) {
+        throw new HttpResponseError(
+          `${method}: rpc HTTP ${res.status}`,
+          res.status,
+        );
+      }
+      const data = (await res.json()) as RpcResponse<T>;
+      if (data.error) {
+        throw new Error(`${method}: ${data.error.message || "rpc error"}`);
+      }
+      if (!data.result) throw new Error(`${method}: empty result`);
+      return data.result;
+    },
+    {
+      maxAttempts: RPC_RETRY_ATTEMPTS,
+      baseDelayMs: RPC_RETRY_BASE_DELAY_MS,
+      maxDelayMs: RPC_RETRY_MAX_DELAY_MS,
+      shouldRetry: isTransientFetchError,
+    },
+  );
 }
 
 export function useMorpheusDataFeed(
