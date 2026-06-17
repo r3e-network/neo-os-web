@@ -1,7 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { apiError } from "@/lib/api-response";
+import { apiError, sendError, ErrorCodes } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
+import { MAINNET_MAGIC } from "@/lib/neo-network";
+import {
+  enforcePerUserLimit,
+  releaseGlobalDailyBudget,
+  reserveGlobalDailyBudget,
+} from "@/lib/sponsor-quota";
 import { tx, wallet } from "@r3e/neo-js-sdk/browser";
 
 function getSponsorConfig() {
@@ -12,18 +18,16 @@ function getSponsorConfig() {
       process.env.NEXT_PUBLIC_NETWORK_MAGIC || "894710606",
       10,
     ),
+    // Mainnet sponsorship is disabled unless explicitly opted into. This guards
+    // the sponsor wallet's real funds against accidental/abusive mainnet drain.
+    allowMainnet: String(process.env.SPONSOR_ALLOW_MAINNET || "").trim() === "true",
   };
 }
 
 const MAX_GAS_PER_TX = 0.5; // 0.5 GAS limit per transaction
-const MAX_GAS_PER_DAY = 50; // Total global daily limit
+const MAX_GAS_PER_DAY = 50; // Total global daily limit (GAS), enforced via shared store
 const MAX_TX_PER_USER_PER_HOUR = 5;
-
-const sponsorStats = {
-  dailyGasSpent: 0,
-  lastResetDay: new Date().getUTCDate(),
-  userTxCounts: new Map<string, { count: number; hour: number }>(),
-};
+const PER_USER_WINDOW_SECONDS = 3600; // 1 hour
 
 type SponsorSigner = {
   account: string;
@@ -49,14 +53,6 @@ type SponsorTransaction = {
 
 const normalizeAccount = (account: unknown): string => String(account ?? "");
 
-function resetStatsIfNeeded() {
-  const currentDay = new Date().getUTCDate();
-  if (sponsorStats.lastResetDay !== currentDay) {
-    sponsorStats.dailyGasSpent = 0;
-    sponsorStats.lastResetDay = currentDay;
-  }
-}
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -65,9 +61,18 @@ export default async function handler(
     return apiError.methodNotAllowed(res);
   }
 
-  const { sponsoredWIF, networkMagic } = getSponsorConfig();
+  const { sponsoredWIF, networkMagic, allowMainnet } = getSponsorConfig();
   if (!sponsoredWIF) {
     return apiError.internal(res, "Sponsorship is not configured");
+  }
+
+  // Refuse to sponsor on mainnet unless explicitly opted in. Sponsoring spends
+  // the sponsor wallet's real funds, so mainnet is gated behind a deliberate flag.
+  if (networkMagic === MAINNET_MAGIC && !allowMainnet) {
+    return apiError.forbidden(
+      res,
+      "Sponsorship is disabled on mainnet",
+    );
   }
 
   try {
@@ -84,30 +89,6 @@ export default async function handler(
         res,
         "Authenticated wallet does not match requested sponsor address",
       );
-    }
-
-    resetStatsIfNeeded();
-
-    if (sponsorStats.dailyGasSpent >= MAX_GAS_PER_DAY) {
-      return apiError.rateLimited(
-        res,
-        "Global daily sponsorship limit reached",
-      );
-    }
-
-    const currentHour = new Date().getUTCHours();
-    const userStats = sponsorStats.userTxCounts.get(userAddress) || {
-      count: 0,
-      hour: currentHour,
-    };
-
-    if (userStats.hour !== currentHour) {
-      userStats.count = 0;
-      userStats.hour = currentHour;
-    }
-
-    if (userStats.count >= MAX_TX_PER_USER_PER_HOUR) {
-      return apiError.rateLimited(res, "User hourly sponsorship limit reached");
     }
 
     const sponsorAccount = new wallet.Account(sponsoredWIF);
@@ -183,12 +164,51 @@ export default async function handler(
       );
     }
 
-    transaction.networkFee = BigInt(Math.floor(calculatedFee));
-    transaction.sign(sponsoredWIF, networkMagic);
+    // Reserve this request's fee against the shared global daily budget BEFORE
+    // signing. The reservation is atomic across all serverless instances and
+    // fails closed when the store is unavailable.
+    const globalReservation = await reserveGlobalDailyBudget({
+      amountGas: requestedFeeGas,
+      dailyLimitGas: MAX_GAS_PER_DAY,
+    });
+    if (!globalReservation.allowed) {
+      return sendError(
+        res,
+        globalReservation.status,
+        globalReservation.reason,
+        globalReservation.status === 429
+          ? ErrorCodes.RATE_LIMITED
+          : ErrorCodes.INTERNAL_ERROR,
+      );
+    }
 
-    sponsorStats.dailyGasSpent += requestedFeeGas;
-    userStats.count += 1;
-    sponsorStats.userTxCounts.set(userAddress, userStats);
+    // Enforce the per-user rolling-window limit. If it denies (or the store is
+    // unavailable), release the global reservation we just took.
+    const perUserCheck = await enforcePerUserLimit({
+      userAddress,
+      maxPerWindow: MAX_TX_PER_USER_PER_HOUR,
+      windowSeconds: PER_USER_WINDOW_SECONDS,
+    });
+    if (!perUserCheck.allowed) {
+      await releaseGlobalDailyBudget(requestedFeeGas);
+      return sendError(
+        res,
+        perUserCheck.status,
+        perUserCheck.reason,
+        perUserCheck.status === 429
+          ? ErrorCodes.RATE_LIMITED
+          : ErrorCodes.INTERNAL_ERROR,
+      );
+    }
+
+    try {
+      transaction.networkFee = BigInt(Math.floor(calculatedFee));
+      transaction.sign(sponsoredWIF, networkMagic);
+    } catch (signError) {
+      // Signing failed: release the reserved global budget so it isn't stranded.
+      await releaseGlobalDailyBudget(requestedFeeGas);
+      throw signError;
+    }
 
     res.status(200).json({
       success: true,
