@@ -40,5 +40,7 @@ The next contract evolution is documented in
 - `GASBox` is the reference `router`-mode example, where a thin generated orchestrator keeps
   inventory, randomness, escrow, and settlement atomic while still reusing shared modules.
 
-The matching frontend/contract symmetry model is documented in
-[`COMPOSABLE_MINIAPP_PLATFORM_ARCHITECTURE.md`](./COMPOSABLE_MINIAPP_PLATFORM_ARCHITECTURE.md).
+The matching frontend/contract symmetry model was documented in the now-deprecated
+[`_archive/COMPOSABLE_MINIAPP_PLATFORM_ARCHITECTURE.md`](./_archive/COMPOSABLE_MINIAPP_PLATFORM_ARCHITECTURE.md)
+(v1 composable module architecture, superseded by MiniApp-OS v2; see
+[`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) for the current design).

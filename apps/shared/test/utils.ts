@@ -11,8 +11,15 @@
  */
 
 import { vi, beforeEach, expect } from "vitest";
-import { ref } from "vue";
 import { mount } from "@vue/test-utils";
+import { createObservable, withValueCompat } from "../react/context";
+
+/**
+ * `.value`-bearing reactive cell for mock fixtures. Replaces the former Vue
+ * `ref()` in these (importer-less) test helpers so the shared package carries
+ * no `vue` dependency; the React `Observable` surface is exposed too.
+ */
+const ref = <T>(value: T) => withValueCompat(createObservable(value));
 
 // ============================================================
 // MOCKS

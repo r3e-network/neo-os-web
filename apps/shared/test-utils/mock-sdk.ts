@@ -3,8 +3,14 @@
  * Provides mock implementations of @shared/utils/wallet-sdk composables
  */
 
-import { ref, Ref } from "vue";
+import { createObservable, withValueCompat } from "@shared/react/context";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
+
+/**
+ * `.value`-bearing reactive cell for mock fixtures. Replaces the former Vue
+ * `ref()` so the shared package carries no `vue` dependency.
+ */
+const ref = <T>(value: T) => withValueCompat(createObservable(value));
 
 // Mock wallet state
 const mockAddress = ref("NTestWalletAddress123456789");

@@ -3,8 +3,9 @@
  *
  * This is the "Android OS services" layer that all miniapps consume.
  * It wires together CacheService, EventBus, ChainService, BalanceService,
- * TransferService, OracleService, AAService, and LifecycleService into
- * a single object available via direct exports.
+ * TransferService, AAService, LifecycleService, the notification/clipboard/
+ * formatting helpers, and the OS proxies into a single object available via
+ * direct exports.
  *
  * Usage:
  * ```ts
@@ -16,12 +17,12 @@
  * const gas = await services.balance.getGasBalance();
  * ```
  *
- * IMPORTANT: PlatformServices.create() must be called inside a
- * component's setup context (or within defineMiniApp's setup hook).
- * The underlying composables (useContractInteraction, useOracle, etc.)
- * register lifecycle hooks that only work within a setup context.
- * Calling PlatformServices.create() outside setup will cause timer
- * cleanup hooks to silently fail to register.
+ * IMPORTANT: In the React runtime, MiniAppRoot creates the instance once via
+ * `PlatformServices.create()` inside an effect and tears it down on unmount
+ * (see `react/MiniAppRoot.tsx`). The services own their own timers/listeners
+ * and are released by `destroy()`, so creation is not tied to any framework
+ * "setup" callback — call `create()`/`providePlatformServices()` once per
+ * miniapp instance and call `destroy()` when that instance unmounts.
  */
 
 import { CacheService } from "./CacheService";
