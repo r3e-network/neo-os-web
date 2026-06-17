@@ -34,6 +34,11 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 // MP-G-02: the live epoch's bid is already locked in — this stake is
                 // ineligible for it. Park it; it becomes eligible from the next epoch.
+                // Harvest above banked rewards but does NOT reset the debt, and this
+                // branch leaves the eligible balance (PREFIX_STAKED) unchanged, so
+                // re-snapshot the debt against that balance — otherwise the next Harvest
+                // would re-bank the same rewards (double-count / drain).
+                SetRewardDebt(ctx, user, (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_STAKED, (byte[])user)));
                 byte[] pKey = Helper.Concat(PREFIX_PENDING_STAKE, (byte[])user);
                 BigInteger pending = (BigInteger)Storage.Get(ctx, pKey) + amount;
                 Storage.Put(ctx, pKey, pending);
