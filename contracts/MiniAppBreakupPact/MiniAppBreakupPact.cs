@@ -27,9 +27,12 @@ namespace NeoMiniAppPlatform.Contracts
     /// SAFETY: GAS only, BASE UNITS. Deposit-then-stake: GAS sent with memo
     /// "miniapp-breakup:stake" credits the sender; createPact/signPact consume exactly
     /// `stake` from that credit, so a pact is always fully backed by both parties before
-    /// it is active. Checks-effects-interactions: state is written before every transfer;
-    /// a failed transfer asserts and reverts the whole atomic invocation. The sum of all
-    /// payouts equals exactly the funded total — no stranding, no double-spend.
+    /// it is active. Checks-effects-interactions: state is written before every credit.
+    /// Payouts use PULL-PAYMENT — break/settle/cancel CREDIT each recipient's withdrawable
+    /// GAS balance (the same ledger as the prepaid stake credit), never pushing GAS, so a
+    /// recipient that is a GAS-rejecting contract can never brick the resolution and strand
+    /// both stakes. Recipients pull their funds with the witness-gated Withdraw. The sum of
+    /// all credits equals exactly the funded total — no stranding, no double-spend.
     /// </summary>
     [DisplayName("MiniAppBreakupPact")]
     [ManifestExtra("Author", "R3E Network")]
@@ -112,6 +115,20 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger next = credit - amount;
             if (next == 0) Storage.Delete(ctx, key); else Storage.Put(ctx, key, next);
         }
+
+        /// <summary>
+        /// Pull-payment primitive: add <paramref name="amount"/> to the recipient's
+        /// withdrawable GAS credit (the same ledger as the prepaid stake credit) instead
+        /// of pushing GAS. A resolution that credits — rather than transfers to — a
+        /// GAS-rejecting contract recipient can never revert on the payout and strand the
+        /// staked funds. The recipient pulls the balance with Withdraw.
+        /// </summary>
+        private static void Credit(StorageContext ctx, UInt160 who, BigInteger amount)
+        {
+            if (amount <= 0) return;
+            byte[] key = Helper.Concat(PREFIX_CREDIT, (byte[])who);
+            Storage.Put(ctx, key, (BigInteger)Storage.Get(ctx, key) + amount);
+        }
         #endregion
 
         #region Create / Sign
@@ -175,7 +192,8 @@ namespace NeoMiniAppPlatform.Contracts
                 ExecutionEngine.Assert(breaker == p.Party1, "only party1 can cancel a pending pact");
                 p.Status = STATUS_CANCELLED;
                 Storage.Put(ctx, PactKey(pactId), StdLib.Serialize(p));
-                Transfer(p.Party1, p.Stake);
+                // CEI: status written before crediting. Pull-payment — party1 reclaims via Withdraw.
+                Credit(ctx, p.Party1, p.Stake);
                 OnPactCancelled(pactId, p.Party1, p.Stake);
                 return;
             }
@@ -188,7 +206,9 @@ namespace NeoMiniAppPlatform.Contracts
             p.Status = STATUS_BROKEN;
             p.Breaker = breaker;
             Storage.Put(ctx, PactKey(pactId), StdLib.Serialize(p));
-            Transfer(paidTo, pot);
+            // CEI: status written before crediting. Pull-payment — the wronged partner
+            // claims both stakes via Withdraw; a GAS-rejecting partner cannot brick break.
+            Credit(ctx, paidTo, pot);
             OnPactBroken(pactId, breaker, paidTo, pot);
         }
 
@@ -202,14 +222,19 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert((BigInteger)Runtime.Time >= p.EndTime, "not yet expired");
             p.Status = STATUS_SETTLED;
             Storage.Put(ctx, PactKey(pactId), StdLib.Serialize(p));
-            Transfer(p.Party1, p.Stake);
-            Transfer(p.Party2, p.Stake);
+            // CEI: status written before crediting. Pull-payment — each party reclaims its
+            // own stake via Withdraw; a GAS-rejecting party cannot brick the permissionless
+            // settle (which would otherwise strand BOTH stakes).
+            Credit(ctx, p.Party1, p.Stake);
+            Credit(ctx, p.Party2, p.Stake);
             OnPactSettled(pactId, p.Stake);
         }
         #endregion
 
         #region Withdraw credit
-        /// <summary>Reclaim any unused prepaid stake-credit back to the sender.</summary>
+        /// <summary>Pull any withdrawable GAS balance back to the caller: unused prepaid
+        /// stake-credit AND any pull-payment owed from a break/settle/cancel resolution.
+        /// Witness-gated so only the account itself can pull its own balance.</summary>
         public static BigInteger Withdraw(UInt160 account)
         {
             ExecutionEngine.Assert(Runtime.CheckWitness(account), "account witness required");
@@ -226,60 +251,7 @@ namespace NeoMiniAppPlatform.Contracts
         }
         #endregion
 
-        #region Read-only
-        [Safe]
-        public static BigInteger LastPactId() => (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_PACT_ID);
-
-        [Safe]
-        public static BigInteger CreditOf(UInt160 who) =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_CREDIT, (byte[])who));
-
-        [Safe]
-        public static Map<string, object> GetPact(BigInteger pactId)
-        {
-            Pact p = LoadPact(Storage.CurrentContext, pactId);
-            Map<string, object> r = new Map<string, object>();
-            r["id"] = pactId; r["party1"] = p.Party1; r["party2"] = p.Party2; r["stake"] = p.Stake;
-            r["endTime"] = p.EndTime; r["party1Staked"] = p.Party1Staked; r["party2Staked"] = p.Party2Staked;
-            r["status"] = p.Status; r["breaker"] = p.Breaker;
-            return r;
-        }
-
-        [Safe]
-        public static BigInteger PartyPactCount(UInt160 who) =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, Helper.Concat(PREFIX_PARTY_CNT, (byte[])who));
-
-        [Safe]
-        public static BigInteger[] GetPartyPacts(UInt160 who, BigInteger offset, BigInteger limit)
-        {
-            StorageContext ctx = Storage.CurrentContext;
-            BigInteger n = (BigInteger)Storage.Get(ctx, Helper.Concat(PREFIX_PARTY_CNT, (byte[])who));
-            if (offset < 0) offset = 0;
-            if (limit <= 0 || limit > 100) limit = 100;
-            BigInteger start = offset + 1;
-            BigInteger end = start + limit - 1;
-            if (end > n) end = n;
-            if (start > end) return new BigInteger[0];
-            BigInteger count = end - start + 1;
-            BigInteger[] result = new BigInteger[(int)count];
-            BigInteger idx = 0;
-            for (BigInteger i = start; i <= end; i++)
-            {
-                result[(int)idx] = (BigInteger)Storage.Get(ctx, Helper.Concat(Helper.Concat(PREFIX_PARTY_ITEM, (byte[])who), (byte[])(ByteString)i));
-                idx += 1;
-            }
-            return result;
-        }
-        #endregion
-
         #region Internal
-        private static void Transfer(UInt160 to, BigInteger amount)
-        {
-            if (amount <= 0) return;
-            bool ok = (bool)Contract.Call(GAS.Hash, "transfer", CallFlags.All,
-                new object[] { Runtime.ExecutingScriptHash, to, amount, "" });
-            ExecutionEngine.Assert(ok, "transfer failed");
-        }
         private static Pact LoadPact(StorageContext ctx, BigInteger pactId)
         {
             ByteString raw = Storage.Get(ctx, PactKey(pactId));
