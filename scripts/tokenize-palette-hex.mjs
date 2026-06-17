@@ -145,7 +145,7 @@ function listFiles() {
 
 /* ----------------------------------------------------------------------------
  * 3. Mask regions where a hex must NOT be treated as a value:
- *    - block comments  /* ... *​/
+ *    - block comments  (slash-star ... star-slash)
  *    - line comments   // ...
  *    - strings         "..."  '...'
  *    - url(...) contents
