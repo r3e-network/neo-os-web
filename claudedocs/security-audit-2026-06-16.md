@@ -288,3 +288,43 @@ Phala retirement across all three repos:
    test`); rewriting them carries regression risk for no functional gain.
 3. **Historical reports.** `docs/reports/*.json` and `claudedocs/*.json` reference Phala as
    immutable audit artifacts of past runs.
+
+## Round 9 — end-to-end dataflow + attack + misuse validation (2026-06-17)
+
+Systematic validation of all major flows across the three repos.
+
+### Phase A — executable validation
+All offline/gated suites pass: platform root `npm test` (deploy-scripts + host-app 977 + admin-console + shared 1523 + 16/16 miniapp suites) and contracts 211; AA contracts 164 / frontend 369 / sdk 76; oracle worker 253+ / relayer 378 / ops 93 / control-plane 31.
+
+The live-testnet `test:integration` reports 7 failures — **all the deployed-vs-committed drift this campaign created** (e.g. `MiniAppBreakupPact.getOwner` method-not-found from the round-7 upgradability additions; `CoinFlip.getGame` / `daily-checkin.checkIn` missing on the old deployed contracts; a pre-existing `dice-game → MiniAppDiceGameV2 vs PlatformGame` binding). These are **not regressions** — the integration suite is correctly detecting that the contract fixes + upgradability **need a redeploy**, and they resolve once deployed.
+
+### Phase B — fixed (all pushed)
+- **QF match-sweep strand (regression in the round-6 QF reclaim fix)** — `ReclaimUnclaimedMatch` set the shared `Claimed` flag, locking out contributors who had not yet reclaimed. Split into a `MatchClaimed` flag; contributors can always reclaim their own ledger.
+- **neo-treasury stale price shown as live (HIGH misuse)** — consumer now reads `getPriceWithMeta` + enforces a 1h on-chain staleness window (null/dash or amber-stale); corrected the false "signed on-chain" comment.
+- **AA relay fee drain (HIGH/MED)** — added network-fee + total-fee caps enforced before signing, fail-closed when sponsoring without a ceiling, and bound the paymaster approval to the operation_hash + approved max.
+- **Wildcard session-key uncapped (MED misuse)** — `SessionKeyGranted{uncapped}` event + a distinct value-UNCAPPED warning in the grant UI.
+- **Automation idempotency (HIGH robustness)** — durable atomic claim pins execution_count + last_queued_request_id so a crash/second-instance cannot double-execute.
+- **GasBoxV2 doc (LOW honesty)** — corrected stale `Runtime.GetRandom()` doc to describe the fixed beacon the code actually uses.
+
+### Deferred (need a product/ops decision or a larger change — tracked, not silently dropped)
+- **[2] Price feed is single-source** — only `twelvedata` is configured, so the multi-source aggregation never runs on the value the consumer reads. Operational fix: configure ≥2 providers (and write the aggregated value as the consumed record).
+- **[3] Sponsored-fee drain** — anyone can spam requests against a fee-sponsoring app to drain its MorpheusOracle fee credit. Needs an optional per-app requester allowlist / rate-cap so a sponsor can bound exposure.
+- **[6] Single-block beacon grinding** — a colluding block producer can withhold/influence the single beacon block for the V2 games. Route high-stakes bets through the Morpheus VRF (the single-block beacon is acceptable only for low `MAX_BET`).
+- **[8] On-chain Paymaster budget unreachable via relay** — `executeSponsored*` is not allowlisted in the relay, so the on-chain `CapReimbursement`/`MaxPerOp`/`DailyBudget` budget never applies; gasless sponsorship relies on off-chain trust plus the new fee caps until sponsored relays are routed through `executeSponsoredUserOp`.
+
+### Remaining LOW / INFO (design-acknowledged or minor)
+- **LOW / correctness** — Oracle PRICE FEED dataflow: Swap staleness gate is bypassed when the feed returns a zero-record (recordTimestamp=0 treated as fresh)
+- **LOW / misuse** — Oracle REQUEST -> FULFILL dataflow with attestat: Expiry writes no inbox item, so inbox-only consumers can never observe a TTL-expired (refunded) request
+- **LOW / misuse** — Oracle REQUEST -> FULFILL dataflow with attestat: Example consumer (OracleCallbackConsumer / UserConsumerN3) accepts any kernel callback requestId without verifying it issued that request
+- **LOW / misuse** — Oracle CONFIDENTIAL decrypt + AUTOMATION dataflo: Cancel-after-claim consumes the user's request fee for a no-op execution with no refund or pre-cancel warning
+- **LOW / misuse** — Platform miniapp MONEY flow: ChainService.invoke reports success on relay (txid) even when the act transaction FAULTs / the confirming event never appears
+- **LOW / dataflow-gap** — Platform miniapp MONEY flow: BreakupPact SettlePact pushes GAS to both parties with no pull fallback (settle can be bricked / stake stranded if a party rejects GAS)
+- **LOW / correctness** — Platform GAME randomness/settlement flow: GasBoxV2 class documentation describes Runtime.GetRandom() at settle but the code uses a fixed-block beacon
+- **LOW / dataflow-gap** — Bridge and OS edge dataflow: OS storage write intent faults for users, kernel needs app-admin witness
+- **LOW / misuse** — Bridge and OS edge dataflow: app_id from body unbound to session
+- **LOW / misuse** — AA UserOp EXECUTE flow: SDK simulateUserOperation reports passed=true WITHOUT verifying the signature (optimistic preview)
+- **LOW / misuse** — AA UserOp EXECUTE flow: Deprecated buildEIP712PayloadForWeb3AuthVerifier argsHash fallback diverges from on-chain serialization (fails closed)
+- **INFO / misuse** — AA UserOp EXECUTE flow: SDK autoDeadline default (1h) and far-future deadlines only bounded by an advisory warning
+- **LOW / dataflow-gap** — AA RECOVERY/ESCAPE + SESSION-KEY + MARKET-ESCROW: Owner force-cancel of a stuck escrow leaves the market listing in a permanently-unsettleable zombie state while a buyer's GAS is still locked
+- **LOW / dataflow-gap** — AA RECOVERY/ESCAPE + SESSION-KEY + MARKET-ESCROW: SettleMarketEscrow/FinalizeEscape do not clear stale pending-module-call and escape-cooldown markers handed to the new owner
+- **LOW / misuse** — AA RECOVERY/ESCAPE + SESSION-KEY + MARKET-ESCROW: Recovery request path lets an attacker-chosen newOwner/executor spam oracle requests and unbounded storage writes (no rate limit / bond)
