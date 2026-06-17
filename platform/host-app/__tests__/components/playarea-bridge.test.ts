@@ -8,6 +8,8 @@
 import {
   bridgeInvocationToParams,
   buildEmbeddedWalletBridgeResultDetail,
+  describeSensitiveBridgeOperation,
+  GAS_ASSET_HASH,
   handleEmbeddedWalletBridgeRequest,
   invocationContractHash,
   normalizeBridgeArgs,
@@ -445,5 +447,74 @@ describe("buildEmbeddedWalletBridgeResultDetail", () => {
       memo: "miniapp-demo:create",
     });
     expect(typeof detail.at).toBe("string");
+  });
+});
+
+describe("describeSensitiveBridgeOperation", () => {
+  const ATTACKER_ADDRESS = "NXNG7v9R2bDgWQ3wfDhsFL5xfEbk8mAt9F";
+  const TRANSFER_AMOUNT = "100000000";
+
+  it("shows recipient and amount of a GAS transfer instead of hiding the args", () => {
+    const summary = describeSensitiveBridgeOperation("invoke", {
+      invocations: [
+        {
+          hash: GAS_ASSET_HASH,
+          operation: "transfer",
+          args: [
+            { type: "Hash160", value: WALLET_ADDRESS },
+            { type: "Hash160", value: ATTACKER_ADDRESS },
+            { type: "Integer", value: TRANSFER_AMOUNT },
+            { type: "Any", value: null },
+          ],
+        },
+      ],
+    });
+    // The user must be able to see WHO and HOW MUCH they are approving.
+    expect(summary).toContain(ATTACKER_ADDRESS);
+    expect(summary).toContain(TRANSFER_AMOUNT);
+    // Plain-language transfer line surfaces the intent up front.
+    expect(summary).toContain(`transfer ${TRANSFER_AMOUNT} to ${ATTACKER_ADDRESS}`);
+    // Raw arg list still names the operation + contract + typed args.
+    expect(summary).toContain(`transfer @ ${GAS_ASSET_HASH}(`);
+    expect(summary).toContain("Hash160:");
+    expect(summary).toContain("Integer:");
+    // Regression guard: it must NOT be the old args-less wording.
+    expect(summary).not.toBe(
+      `submit a transaction (transfer @ ${GAS_ASSET_HASH})`,
+    );
+  });
+
+  it("renders collections and Any args as readable tokens", () => {
+    const summary = describeSensitiveBridgeOperation("invoke", {
+      invocations: [
+        {
+          hash: TARGET_CONTRACT,
+          operation: "configure",
+          args: [
+            { type: "Array", value: [1, 2, 3] },
+            { type: "Map", value: [{ key: 1, value: 2 }] },
+            { type: "Any", value: null },
+          ],
+        },
+      ],
+    });
+    expect(summary).toContain("Array(3)");
+    expect(summary).toContain("Map(1)");
+    expect(summary).toContain("null");
+  });
+
+  it("keeps the signer-scope suffix alongside the rendered args", () => {
+    const summary = describeSensitiveBridgeOperation("invoke", {
+      invocations: [
+        {
+          hash: TARGET_CONTRACT,
+          operation: "claim",
+          args: [{ type: "Hash160", value: WALLET_ADDRESS }],
+        },
+      ],
+      signers: [{ account: WALLET_ADDRESS, scopes: "Global" }],
+    });
+    expect(summary).toContain(`claim @ ${TARGET_CONTRACT}(Hash160:`);
+    expect(summary).toContain("with signer scope Global");
   });
 });
