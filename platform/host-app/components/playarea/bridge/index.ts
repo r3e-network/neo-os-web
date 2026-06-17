@@ -37,6 +37,7 @@ export {
   bridgeInvocationToParams,
   bridgeScopeLabel,
   describeBridgeSignerScopes,
+  describeBridgeArgs,
   describeSensitiveBridgeOperation,
 } from "./normalizers";
 
