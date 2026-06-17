@@ -56,9 +56,7 @@ function maybeAttachRuntimeAuth(headers: Headers, url: string) {
   const token =
     getEnv("MORPHEUS_RUNTIME_TOKEN") ??
     getEnv("NITRO_API_TOKEN") ??
-    getEnv("PHALA_API_TOKEN") ??
-    getEnv("NITRO_SHARED_SECRET") ??
-    getEnv("PHALA_SHARED_SECRET");
+    getEnv("NITRO_SHARED_SECRET");
   if (!token) return;
 
   headers.set("authorization", `Bearer ${token}`);
