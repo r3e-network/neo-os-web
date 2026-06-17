@@ -13,6 +13,7 @@
  */
 
 import { handleCorsPreflight } from "./cors.ts";
+import { getEnv } from "./env.ts";
 import { getNeoRpcUrl } from "./k8s-config.ts";
 import { readJsonBody } from "./request.ts";
 import { error, json } from "./response.ts";
@@ -36,6 +37,8 @@ export type OSRequest = {
   auth: AuthContext;
   policy: MiniAppPolicy | null;
   req: Request;
+  /** Per-request correlation id, echoed in error responses and server logs. */
+  correlationId: string;
 };
 
 export type OSHandlerResult = unknown;
@@ -253,6 +256,60 @@ export function buildInvocationIntent(
 }
 
 // ---------------------------------------------------------------------------
+// Error reporting / observability
+// ---------------------------------------------------------------------------
+
+type ErrorReport = {
+  correlationId: string;
+  scope: string;
+  code: string;
+  message: string;
+};
+
+/**
+ * Emit a single structured, machine-parseable error line carrying the request
+ * correlation id so a user-reported failure (which receives the same id in the
+ * error envelope) can be located in the logs. When a Sentry / edge error DSN
+ * is configured (SENTRY_DSN or EDGE_ERROR_DSN) the report is also forwarded
+ * there; the forward is best-effort and never blocks the response.
+ */
+function reportError(report: ErrorReport): void {
+  // Structured console line — always emitted, replaces the ad-hoc
+  // `[scope] handler error:` string so log pipelines can index by field.
+  console.error(
+    JSON.stringify({
+      level: "error",
+      source: "os-service",
+      ...report,
+    }),
+  );
+
+  const dsn = getEnv("SENTRY_DSN") ?? getEnv("EDGE_ERROR_DSN");
+  if (!dsn) return;
+
+  // Fire-and-forget forward to the Sentry-compatible store endpoint. A failure
+  // to report must never surface to the caller, so swallow transport errors.
+  try {
+    void fetch(dsn, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(2_000),
+      body: JSON.stringify({
+        message: report.message,
+        level: "error",
+        tags: {
+          correlation_id: report.correlationId,
+          scope: report.scope,
+          code: report.code,
+        },
+      }),
+    }).catch(() => {});
+  } catch (_err) {
+    // ignore reporter construction failures (e.g. invalid DSN URL)
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Handler factory
 // ---------------------------------------------------------------------------
 
@@ -270,8 +327,13 @@ export function createOSHandler(opts: OSHandlerOptions, handlerFn: OSHandlerFn) 
     const preflight = handleCorsPreflight(req);
     if (preflight) return preflight;
 
+    // Per-request correlation id: returned to the caller in every error
+    // envelope (response.ts) and stamped on each structured error log so a
+    // user-reported failure maps to exactly one server log line.
+    const correlationId = crypto.randomUUID();
+
     if (req.method !== allowedMethod) {
-      return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
+      return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req, correlationId);
     }
 
     // 1. Auth
@@ -293,7 +355,7 @@ export function createOSHandler(opts: OSHandlerOptions, handlerFn: OSHandlerFn) 
 
     const appId = String(body.app_id ?? body.appId ?? "").trim();
     if (!appId) {
-      return error(400, "app_id required", "APP_ID_REQUIRED", req);
+      return error(400, "app_id required", "APP_ID_REQUIRED", req, correlationId);
     }
 
     const wallet = await requirePrimaryWallet(auth.userId, req);
@@ -303,7 +365,7 @@ export function createOSHandler(opts: OSHandlerOptions, handlerFn: OSHandlerFn) 
     try {
       walletHash = addressToScriptHash(wallet.address);
     } catch (_err) {
-      return error(428, "valid primary Neo wallet binding required", "WALLET_INVALID", req);
+      return error(428, "valid primary Neo wallet binding required", "WALLET_INVALID", req, correlationId);
     }
 
     // 5. App policy + optional permission gate
@@ -312,7 +374,7 @@ export function createOSHandler(opts: OSHandlerOptions, handlerFn: OSHandlerFn) 
     const policy: MiniAppPolicy | null = policyResult;
 
     if (opts.permission && policy && !permissionEnabled(policy.permissions, opts.permission)) {
-      return error(403, `app is not allowed to use ${opts.permission}`, "PERMISSION_DENIED", req);
+      return error(403, `app is not allowed to use ${opts.permission}`, "PERMISSION_DENIED", req, correlationId);
     }
 
     // 6. Execute handler
@@ -326,27 +388,35 @@ export function createOSHandler(opts: OSHandlerOptions, handlerFn: OSHandlerFn) 
         auth,
         policy,
         req,
+        correlationId,
       });
 
       const resInit: ResponseInit = {};
+      const headers = new Headers();
+      // Additive: expose the correlation id on the success path too so a
+      // client can quote it when reporting an issue with an otherwise-OK call.
+      headers.set("X-Request-Id", correlationId);
       if (opts.cacheable) {
         const ttl = opts.cacheTtl ?? 10;
-        resInit.headers = new Headers({
-          "Cache-Control": `public, max-age=${ttl}, s-maxage=${ttl}`,
-        });
+        headers.set("Cache-Control", `public, max-age=${ttl}, s-maxage=${ttl}`);
       }
+      resInit.headers = headers;
       return json({ ok: true, data: result }, resInit, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : "internal error";
-      console.error(`[${opts.scopeName}] handler error:`, message);
 
+      let status = 500;
+      let code = "INTERNAL_ERROR";
       if (message.includes("timed out")) {
-        return error(504, message, "RPC_TIMEOUT", req);
+        status = 504;
+        code = "RPC_TIMEOUT";
+      } else if (message.startsWith("RPC")) {
+        status = 502;
+        code = "RPC_ERROR";
       }
-      if (message.startsWith("RPC")) {
-        return error(502, message, "RPC_ERROR", req);
-      }
-      return error(500, message, "INTERNAL_ERROR", req);
+
+      reportError({ correlationId, scope: opts.scopeName, code, message });
+      return error(status, message, code, req, correlationId);
     }
   }
 

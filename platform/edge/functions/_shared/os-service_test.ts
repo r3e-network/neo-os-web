@@ -103,6 +103,61 @@ Deno.test("handler returns 405 for wrong HTTP method (GET on POST handler)", asy
   assertEquals(body.error.code, "METHOD_NOT_ALLOWED");
 });
 
+// ---------------------------------------------------------------------------
+// createOSHandler — correlation id in error envelope
+//
+// Every error response must carry a correlation id so a user-reported failure
+// can be matched to a server log line. The 405 path is reachable without auth
+// mocking and exercises the same `error(...)` envelope used everywhere.
+// ---------------------------------------------------------------------------
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+Deno.test("error responses carry a correlation id (requestId) in the envelope", async () => {
+  Deno.env.delete("EDGE_ENV");
+  Deno.env.delete("EDGE_CORS_ORIGINS");
+
+  const handler = createOSHandler(
+    { scopeName: "test" },
+    async () => ({ ok: true }),
+  );
+
+  // Wrong method → 405 error envelope.
+  const res = await handler(
+    new Request("http://localhost/test", { method: "GET" }),
+  );
+  assertEquals(res.status, 405);
+
+  const body = await res.json();
+  // Additive top-level field + nested error.requestId, both the same id.
+  assertEquals(typeof body.requestId, "string");
+  assertEquals(UUID_RE.test(body.requestId), true);
+  assertEquals(body.error.requestId, body.requestId);
+  // Backward-compatible shape preserved.
+  assertEquals(body.error.code, "METHOD_NOT_ALLOWED");
+  assertEquals(typeof body.error.message, "string");
+});
+
+Deno.test("each request gets a distinct correlation id", async () => {
+  Deno.env.delete("EDGE_ENV");
+  Deno.env.delete("EDGE_CORS_ORIGINS");
+
+  const handler = createOSHandler(
+    { scopeName: "test" },
+    async () => ({ ok: true }),
+  );
+
+  const a = await (await handler(
+    new Request("http://localhost/test", { method: "GET" }),
+  )).json();
+  const b = await (await handler(
+    new Request("http://localhost/test", { method: "GET" }),
+  )).json();
+
+  assertEquals(a.requestId !== b.requestId, true);
+});
+
 Deno.test("handler accepts GET when method option is GET", async () => {
   Deno.env.delete("EDGE_ENV");
   Deno.env.delete("EDGE_CORS_ORIGINS");
