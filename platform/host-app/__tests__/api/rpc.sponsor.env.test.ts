@@ -31,6 +31,12 @@ describe("/api/rpc/sponsor env access", () => {
       requireWalletAuth: jest.fn(async () => "user-script-hash"),
     }));
 
+    jest.doMock("@/lib/sponsor-quota", () => ({
+      reserveGlobalDailyBudget: jest.fn(async () => ({ allowed: true })),
+      releaseGlobalDailyBudget: jest.fn(async () => undefined),
+      enforcePerUserLimit: jest.fn(async () => ({ allowed: true })),
+    }));
+
     jest.doMock("@r3e/neo-js-sdk/browser", () => {
       return {
         tx: {
