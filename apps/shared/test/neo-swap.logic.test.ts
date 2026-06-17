@@ -4,10 +4,13 @@ import { createObservable } from "../react/context";
 import { EventBus } from "../services/EventBus";
 
 // Drive the on-chain feed from the test: each leg returns a price + dataTimestamp
-// (epoch seconds). A far-past timestamp exercises the staleness guard.
+// + recordTimestamp (epoch seconds). A far-past recordTimestamp exercises the
+// staleness guard; recordTimestamp=0 models a never-written feed.
 const feedState = {
   prices: { NEO: 2.182, GAS: 1.101 } as Record<string, number>,
   dataTimestamp: Math.floor(Date.now() / 1000), // fresh by default
+  // recordTimestamp tracks dataTimestamp unless a test overrides it (e.g. to 0).
+  recordTimestamp: null as number | null,
 };
 
 vi.mock("@shared/composables/useMorpheusDataFeed", () => ({
@@ -18,7 +21,8 @@ vi.mock("@shared/composables/useMorpheusDataFeed", () => ({
     getPriceWithMeta: vi.fn(async (asset: string) => ({
       price: feedState.prices[asset.toUpperCase()] ?? 0,
       dataTimestamp: feedState.dataTimestamp,
-      recordTimestamp: feedState.dataTimestamp,
+      recordTimestamp:
+        feedState.recordTimestamp === null ? feedState.dataTimestamp : feedState.recordTimestamp,
     })),
     listPairs: vi.fn(async () => ["NEO", "GAS"]),
   }),
@@ -62,6 +66,7 @@ function setup(opts: { router?: string | null; address?: string; neo?: number; g
 beforeEach(() => {
   feedState.prices = { NEO: 2.182, GAS: 1.101 };
   feedState.dataTimestamp = Math.floor(Date.now() / 1000);
+  feedState.recordTimestamp = null;
 });
 
 describe("useSwapEngine — honest router state", () => {
@@ -113,6 +118,39 @@ describe("useSwapEngine — staleness guard", () => {
 
     expect(swap.rateStale.get()).toBe(false);
     expect(swap.canSwap.get()).toBe(true);
+  });
+
+  it("treats a recordTimestamp=0 (never-written) feed as stale, not fresh", async () => {
+    // A never-written feed returns recordTimestamp=0. The old guard short-circuited
+    // `if (!ts) return false`, presenting a frozen/uninitialized price as live. It
+    // must instead be flagged stale and blocked from trading.
+    feedState.recordTimestamp = 0;
+    const { swap } = setup({ router: "0xrouter" });
+    await swap.loadAll();
+    swap.setFromAmount("2");
+
+    expect(swap.rateStale.get()).toBe(true);
+    expect(swap.canSwap.get()).toBe(false);
+    expect(swap.swapButtonText.get()).toBe("rateStale");
+  });
+
+  it("rejects executeSwap when the feed has a 0 record timestamp", async () => {
+    feedState.recordTimestamp = 0;
+    const { swap, chain } = setup({ router: "0xrouter" });
+    await swap.loadAll();
+    swap.setFromAmount("2");
+
+    // canSwap is false, so executeSwap returns early without broadcasting.
+    await swap.executeSwap();
+    expect((chain as unknown as { invoke: { mock: { calls: unknown[] } } }).invoke.mock.calls.length).toBe(0);
+  });
+
+  it("does not flag stale before any quote loads (idle pre-quote state)", async () => {
+    // With no rate yet (record timestamp 0, exchangeRate empty), the CTA reports
+    // the rate as unavailable — not "stale" — so the idle state reads honestly.
+    const { swap } = setup({ router: "0xrouter" });
+    // No loadAll() → no quote fetched; exchangeRate stays empty.
+    expect(swap.rateStale.get()).toBe(false);
   });
 });
 
