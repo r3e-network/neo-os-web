@@ -616,7 +616,7 @@
   &:hover,
   &:focus-visible {
     border-color: rgba(15, 177, 116, 0.4);
-    background: #e4f8f0;
+    background: var(--ns-brand-soft, #e4f8f0);
   }
 }
 

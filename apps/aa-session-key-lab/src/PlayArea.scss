@@ -8,7 +8,7 @@
   // App accent: AA-family violet — single hue across surfaces, focus, and inputs
   --ns-accent-soft: var(--ns-violet-soft, #e4f8f0);
   --ns-accent-strong: var(--ns-violet-strong, #0fb174);
-  --ns-violet: #16c784;
+  --ns-violet: var(--ns-brand, #16c784);
   --ns-focus-ring: 0 0 0 4px rgba(22, 199, 132, 0.18);
 }
 

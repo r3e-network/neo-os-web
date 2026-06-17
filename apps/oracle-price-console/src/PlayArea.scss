@@ -334,7 +334,7 @@
 .error-banner {
   border: 1px solid rgba(234, 57, 67, 0.24);
   border-radius: 12px;
-  background: #fde7e9;
+  background: var(--ns-danger-soft, #fde7e9);
   color: #c81e2a;
   padding: 11px 13px;
   font-size: 12px;

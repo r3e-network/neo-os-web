@@ -6,8 +6,8 @@
   --dice-text: var(--ns-ink, #1e1e2e);
   --dice-text-2: var(--ns-text-2, #5b6478);
   --dice-muted: var(--ns-text-muted, #8a92a6);
-  --dice-accent: #16c784;
-  --dice-accent-strong: #0fb174;
+  --dice-accent: var(--ns-brand, #16c784);
+  --dice-accent-strong: var(--ns-brand-strong, #0fb174);
   --dice-accent-soft: #e3f8f7;
   --dice-accent-tint: #f0fbfa;
   --dice-warning: var(--ns-warning, #f59e0b);

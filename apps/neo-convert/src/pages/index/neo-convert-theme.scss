@@ -4,8 +4,8 @@
   --erobo-gradient: linear-gradient(135deg, rgba(159, 157, 243, 0.12) 0%, rgba(247, 170, 199, 0.1) 100%);
   --convert-hero-gradient: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
   --convert-label: var(--erobo-purple);
-  --convert-success: #16c784;
-  --convert-error: #ff6b6b;
+  --convert-success: var(--ns-brand, #16c784);
+  --convert-error: var(--ns-spark, #ff6b6b);
   --convert-panel-bg: rgba(255, 255, 255, 0.03);
   --convert-panel-border: rgba(255, 255, 255, 0.08);
   --convert-panel-hover: rgba(255, 255, 255, 0.06);
@@ -13,7 +13,7 @@
   --convert-panel-strong: rgba(0, 0, 0, 0.2);
   --convert-input-bg: rgba(255, 255, 255, 0.03);
   --convert-input-border: rgba(255, 255, 255, 0.1);
-  --convert-input-focus-border: #16c784;
+  --convert-input-focus-border: var(--ns-brand, #16c784);
   --convert-input-focus-shadow: rgba(22, 199, 132, 0.12);
   --convert-danger-bg: rgba(239, 68, 68, 0.08);
   --convert-danger-border: rgba(239, 68, 68, 0.25);
@@ -22,7 +22,7 @@
   --convert-danger-text: #ef4444;
   --convert-opcode-bg: rgba(22, 199, 132, 0.12);
   --convert-opcode-border: rgba(22, 199, 132, 0.2);
-  --convert-opcode-text: #16c784;
+  --convert-opcode-text: var(--ns-brand, #16c784);
   --convert-copy-bg: rgba(255, 255, 255, 0.05);
   --convert-copy-bg-active: rgba(255, 255, 255, 0.1);
   --convert-qr-bg: #ffffff;

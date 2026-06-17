@@ -2,9 +2,9 @@
 @use "@shared/styles/variables.scss" as *;
 
 // Green accent (Neo Soft single-accent identity hue)
-$accent: #16c784;
-$accent-strong: #0fb174;
-$accent-soft: #e4f8f0;
+$accent: var(--ns-brand, #16c784);
+$accent-strong: var(--ns-brand-strong, #0fb174);
+$accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .hero-container {
   display: flex;

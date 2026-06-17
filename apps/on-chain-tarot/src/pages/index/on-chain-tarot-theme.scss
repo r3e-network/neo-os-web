@@ -48,7 +48,7 @@
   --tarot-star-text: #ffffff;
   --tarot-star-glow: #ffffff;
   --tarot-moon-glow: rgba(155, 81, 224, 0.4);
-  --tarot-neo-green: #16c784;
+  --tarot-neo-green: var(--ns-brand, #16c784);
   --tarot-neo-green-rgb: 0, 229, 153;
   --tarot-deep-purple: #582CA9;
   --tarot-deep-purple-rgb: 88, 44, 169;

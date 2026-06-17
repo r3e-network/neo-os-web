@@ -48,13 +48,13 @@
 
 .pair-item:hover,
 .pair-item.active {
-  border-color: #16c784;
-  background: #e4f8f0;
+  border-color: var(--ns-brand, #16c784);
+  background: var(--ns-brand-soft, #e4f8f0);
 }
 
 .pair-item:focus-visible {
   outline: none;
-  border-color: #16c784;
+  border-color: var(--ns-brand, #16c784);
   box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);
 }
 

@@ -12,15 +12,15 @@
   --gacha-pattern-blue: rgba(34, 211, 238, 0.12);
   --gacha-accent-pink: #f472b6;
   --gacha-accent-blue: #22d3ee;
-  --gacha-accent-green: #16c784;
+  --gacha-accent-green: var(--ns-brand, #16c784);
   --gacha-accent-yellow: #fde047;
   --gacha-accent-amber: #fbbf24;
   --gacha-tag-bg: rgba(22, 199, 132, 0.15);
-  --gacha-tag-text: #16c784;
+  --gacha-tag-text: var(--ns-brand, #16c784);
   --gacha-badge-bg: rgba(255, 255, 255, 0.1);
   --gacha-badge-text: rgba(231, 232, 246, 0.7);
   --gacha-badge-active-bg: rgba(22, 199, 132, 0.2);
-  --gacha-badge-active-text: #16c784;
+  --gacha-badge-active-text: var(--ns-brand, #16c784);
   --gacha-badge-sale-bg: rgba(253, 224, 71, 0.2);
   --gacha-badge-sale-text: #fde047;
   --gacha-rank-pill-bg: rgba(34, 211, 238, 0.2);

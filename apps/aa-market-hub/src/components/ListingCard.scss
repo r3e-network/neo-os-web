@@ -158,13 +158,13 @@
 
 .chip--active {
   border-color: rgba(15, 177, 116, 0.22);
-  background: #e4f8f0;
-  color: #0fb174;
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .chip--sold {
   border-color: rgba(47, 111, 224, 0.2);
-  background: #e6f0ff;
+  background: var(--ns-info-soft, #e6f0ff);
   color: #2f6fe0;
 }
 
