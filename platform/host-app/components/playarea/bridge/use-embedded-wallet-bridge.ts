@@ -7,10 +7,13 @@ import type {
 } from "./types";
 import { asBridgeString, buildEmbeddedWalletBridgeResultDetail, isBridgeRecord } from "./normalizers";
 import {
+  HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS,
   HOST_WALLET_BRIDGE_ERROR,
+  HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
   HOST_WALLET_BRIDGE_REQUEST,
   HOST_WALLET_BRIDGE_RESPONSE,
   HOST_WALLET_BRIDGE_RESULT,
+  isCompatibleBridgeProtocolVersion,
 } from "./events";
 import {
   SENSITIVE_BRIDGE_METHODS,
@@ -18,6 +21,24 @@ import {
   handleEmbeddedWalletBridgeRequest,
   requireBridgeWallet,
 } from "./request-handler";
+
+// Coerce the declared protocol version from the wire envelope. A missing field
+// (pre-negotiation miniapps) yields `undefined`, which the compatibility check
+// treats as the current baseline. Anything that is present but not a finite
+// integer is reported as-is so the negotiation step can fail closed on it.
+function normalizeBridgeProtocolVersion(
+  value: unknown,
+): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed)) return parsed;
+  }
+  // Present but unparseable — surface a sentinel that is never in the
+  // compatible set so the request is rejected rather than silently accepted.
+  return Number.NaN;
+}
 
 export function useEmbeddedWalletBridge({
   appId,
@@ -75,11 +96,37 @@ export function useEmbeddedWalletBridge({
             type: HOST_WALLET_BRIDGE_RESPONSE,
             id,
             appId,
+            // Stamp the host's protocol version on every response so the
+            // embedded SDK can validate/negotiate the reply lane symmetrically.
+            protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
             ...response,
           },
           frameHasOpaqueOrigin ? "*" : expectedOrigin,
         );
       };
+
+      // Protocol negotiation: reject envelopes that declare an incompatible
+      // wallet-bridge version before doing any wallet work. A missing version
+      // is the pre-negotiation baseline and is accepted (backward compatible);
+      // a present-but-incompatible version fails closed with a clear error so
+      // the miniapp can surface an "update required" message instead of having
+      // a malformed request silently mishandled.
+      const requestProtocolVersion = normalizeBridgeProtocolVersion(
+        data.protocolVersion,
+      );
+      if (!isCompatibleBridgeProtocolVersion(requestProtocolVersion)) {
+        reply({
+          ok: false,
+          error: {
+            message: `Unsupported wallet bridge protocol version ${String(
+              data.protocolVersion,
+            )}. This host speaks version(s) ${HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS.join(
+              ", ",
+            )}.`,
+          },
+        });
+        return;
+      }
 
       const dispatchBridgeError = (message: string, rejected: boolean) => {
         const detail: EmbeddedWalletBridgeErrorDetail = {

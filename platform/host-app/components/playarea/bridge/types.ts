@@ -7,6 +7,9 @@ export type BridgeRequest = {
   id?: unknown;
   method?: unknown;
   payload?: unknown;
+  // Negotiated wallet-bridge protocol version. Absent on pre-negotiation
+  // miniapps, which the host treats as the current baseline version.
+  protocolVersion?: unknown;
 };
 
 export type EmbeddedWalletBridgeResultDetail = {

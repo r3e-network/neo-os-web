@@ -101,10 +101,48 @@ type HostBridgeResponse = {
   ok?: unknown;
   result?: unknown;
   error?: { message?: unknown } | string;
+  protocolVersion?: unknown;
 };
 
 const HOST_WALLET_BRIDGE_REQUEST = "neo-miniapp-wallet-bridge:request";
 const HOST_WALLET_BRIDGE_RESPONSE = "neo-miniapp-wallet-bridge:response";
+
+// Versioned protocol contract for the host<->iframe wallet bridge.
+//
+// This module is the embedded miniapp (iframe) end of the bridge. It lives in a
+// separate npm workspace from the host shell
+// (platform/host-app/components/playarea/bridge/events.ts) with no shared
+// dependency, so both sides declare identical copies of these values. A parity
+// test asserts they never drift. Keep these in lockstep with the host module
+// (see HOST_WALLET_BRIDGE_PROTOCOL_VERSION there).
+export const HOST_WALLET_BRIDGE_PROTOCOL_VERSION = 1;
+// Versions this SDK accepts on a host response envelope. A missing version is
+// the pre-negotiation baseline and is treated as the current protocol so an
+// older host keeps working unchanged.
+export const HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS: readonly number[] =
+  [HOST_WALLET_BRIDGE_PROTOCOL_VERSION];
+
+export function normalizeBridgeProtocolVersion(
+  value: unknown,
+): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed)) return parsed;
+  }
+  // Present but unparseable — never in the compatible set, so the response is
+  // rejected rather than silently accepted.
+  return Number.NaN;
+}
+
+export function isCompatibleBridgeProtocolVersion(
+  version: number | null | undefined,
+): boolean {
+  if (version === null || version === undefined) return true;
+  return HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS.includes(version);
+}
+
 const HOST_WALLET_BRIDGE_TIMEOUT_MS = 8000;
 const MAINNET_MAGIC = 860833102;
 const TESTNET_MAGIC = 894710606;
@@ -465,6 +503,26 @@ function hostBridgeRequest<T>(
       const data = event.data as HostBridgeResponse;
       if (!isRecord(data)) return;
       if (data.type !== HOST_WALLET_BRIDGE_RESPONSE || data.id !== id) return;
+      // Protocol negotiation on the reply lane: a host that answers with an
+      // incompatible version is rejected with a clear error instead of having
+      // its (possibly differently-shaped) result consumed blindly. A missing
+      // version is the pre-negotiation baseline and is accepted.
+      const responseProtocolVersion = normalizeBridgeProtocolVersion(
+        data.protocolVersion,
+      );
+      if (!isCompatibleBridgeProtocolVersion(responseProtocolVersion)) {
+        cleanup();
+        reject(
+          new Error(
+            `Unsupported wallet bridge protocol version ${String(
+              data.protocolVersion,
+            )}. This miniapp speaks version(s) ${HOST_WALLET_BRIDGE_COMPATIBLE_PROTOCOL_VERSIONS.join(
+              ", ",
+            )}.`,
+          ),
+        );
+        return;
+      }
       cleanup();
       if (data.ok === true) {
         resolve(data.result as T);
@@ -484,7 +542,10 @@ function hostBridgeRequest<T>(
         id,
         method,
         payload,
-        version: 1,
+        // Named, negotiable protocol version. `version: 1` is retained as the
+        // legacy alias so a host pinned to the old field still sees a value.
+        protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
+        version: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
       },
       expectedOrigin,
     );

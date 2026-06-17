@@ -4,6 +4,7 @@ import "@testing-library/jest-dom";
 
 import {
   HOST_WALLET_BRIDGE_ERROR,
+  HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
   useEmbeddedWalletBridge,
   type EmbeddedWalletBridgeErrorDetail,
 } from "../../components/playarea/PlayAreaShared";
@@ -86,14 +87,24 @@ function dispatchBridgeMessage({
   );
 }
 
-function bridgeRequest(method: string, payload?: unknown) {
-  return {
+function bridgeRequest(
+  method: string,
+  payload?: unknown,
+  options: { protocolVersion?: number | string | null } = {},
+) {
+  const request: Record<string, unknown> = {
     type: HOST_WALLET_BRIDGE_REQUEST,
     id: "req-1",
     method,
     payload,
-    version: 1,
+    version: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
   };
+  if ("protocolVersion" in options) {
+    request.protocolVersion = options.protocolVersion;
+  } else {
+    request.protocolVersion = HOST_WALLET_BRIDGE_PROTOCOL_VERSION;
+  }
+  return request;
 }
 
 async function flushBridgeHandlers() {
@@ -510,5 +521,100 @@ describe("useEmbeddedWalletBridge origin gating", () => {
     } finally {
       window.removeEventListener(HOST_WALLET_BRIDGE_ERROR, onBridgeError);
     }
+  });
+
+  it("stamps the host protocol version on every response", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest("getAccounts"),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(message).toMatchObject({ ok: true });
+    expect(message.protocolVersion).toBe(HOST_WALLET_BRIDGE_PROTOCOL_VERSION);
+  });
+
+  it("accepts a request that omits the protocol version (pre-negotiation baseline)", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      // An older miniapp built before negotiation sends no version field.
+      data: bridgeRequest("getAccounts", undefined, { protocolVersion: null }),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(message).toMatchObject({ ok: true });
+    expect(message.protocolVersion).toBe(HOST_WALLET_BRIDGE_PROTOCOL_VERSION);
+  });
+
+  it("rejects a request that declares an incompatible protocol version", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest("getAccounts", undefined, {
+        protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION + 1,
+      }),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(message).toMatchObject({ ok: false });
+    expect(String((message.error as { message?: string })?.message)).toMatch(
+      /Unsupported wallet bridge protocol version/,
+    );
+    // A version mismatch must fail closed before any wallet work happens.
+    expect(mockAdapter.invoke).not.toHaveBeenCalled();
+  });
+
+  it("rejects a request whose protocol version is present but malformed", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest("getAccounts", undefined, {
+        protocolVersion: "garbage",
+      }),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(message).toMatchObject({ ok: false });
+    expect(String((message.error as { message?: string })?.message)).toMatch(
+      /Unsupported wallet bridge protocol version/,
+    );
+  });
+
+  it("never prompts the user when the protocol version is incompatible", async () => {
+    const { frame, frameWindow, postSpy } = createBridgeFrame(PRODUCTION_SANDBOX);
+    render(<BridgeHarness frame={frame} />);
+
+    dispatchBridgeMessage({
+      origin: "null",
+      source: frameWindow,
+      data: bridgeRequest(
+        "invoke",
+        {
+          invocations: [
+            { hash: TARGET_CONTRACT, operation: "transfer", args: [] },
+          ],
+        },
+        { protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION + 1 },
+      ),
+    });
+
+    const { message } = await lastReply(postSpy);
+    expect(message).toMatchObject({ ok: false });
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(mockAdapter.invoke).not.toHaveBeenCalled();
   });
 });
