@@ -74,13 +74,40 @@ interface RpcResponse<T> {
   error?: { message?: string; code?: number };
 }
 
+/**
+ * Bare `BASE-QUOTE` pair (e.g. "NEO-USD") for an asset, with no provider/source
+ * prefix. Shared by the per-provider and canonical key builders so both resolve
+ * the same underlying pair (NEO → NEO-USD, NEO/USD → NEO-USD).
+ */
+function basePair(asset: string): string {
+  const v = String(asset || "").trim().toUpperCase();
+  if (!v) throw new Error("asset is required");
+  const colon = v.indexOf(":");
+  const bare = colon >= 0 ? v.slice(colon + 1) : v;
+  if (bare.includes("/")) return bare.replace("/", "-");
+  if (bare.includes("-")) return bare;
+  return `${bare}-USD`;
+}
+
 function normalizeAsset(asset: string): string {
   const v = String(asset || "").trim().toUpperCase();
   if (!v) throw new Error("asset is required");
-  if (v.startsWith("TWELVEDATA:")) return v;
-  if (v.includes("/")) return `TWELVEDATA:${v.replace("/", "-")}`;
-  if (v.includes("-")) return `TWELVEDATA:${v}`;
-  return `TWELVEDATA:${v}-USD`;
+  // A caller-supplied source-prefixed pair (e.g. an explicit provider record)
+  // is honoured verbatim — only bare assets get the default TWELVEDATA mapping.
+  if (v.includes(":")) return v;
+  return `TWELVEDATA:${basePair(v)}`;
+}
+
+/**
+ * Canonical aggregated storage key for an asset: `AGG:<BASE-QUOTE>`. The oracle
+ * writes this multi-provider, cross-checked record per pair (a single source can
+ * never be laundered into it). Preferred over the per-provider TWELVEDATA pair
+ * when the contract has the canonical record; reads fall back to TWELVEDATA when
+ * it is absent (a FAULT/empty getLatest), so this stays backward compatible with
+ * feeds that only publish per-provider records.
+ */
+function canonicalAsset(asset: string): string {
+  return `AGG:${basePair(asset)}`;
 }
 
 function decodeBase64String(b64: string): string {
@@ -123,6 +150,52 @@ export function useMorpheusDataFeed(
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
   };
 
+  /**
+   * Read a single pair record. Returns the parsed quote, or `null` when the
+   * contract has no usable record for the pair (a FAULT — e.g. "pair not
+   * registered" — or an unexpected/empty stack). A `null` is a contract-level
+   * miss the caller can fall back from; transport errors (RPC failure) still
+   * throw so a network outage is never silently treated as a missing pair.
+   */
+  const readPair = async (pair: string): Promise<MorpheusPriceQuote | null> => {
+    const result = await rpcCall<InvokeResult>(rpcUrl, "invokefunction", [
+      contractHash,
+      "getLatest",
+      [{ type: "String", value: pair }],
+    ]);
+    if (result.state !== "HALT") {
+      // A FAULT means the pair has no record (not a transport failure) — let the
+      // caller fall back to another key rather than aborting the read.
+      return null;
+    }
+    const top = result.stack?.[0];
+    // Returns Struct: [pair, dataTimestamp, price, recordTimestamp, signature, version_or_active_flag]
+    // Timestamps are epoch SECONDS (verified live against the mainnet feed).
+    // Note: field [5] looks like an active/version flag (observed value = 1),
+    // NOT decimals. TwelveData publishes prices on-chain at a fixed 6-decimal
+    // scale (confirmed by the gateway response shape: `decimals: 6,
+    // price_scale_decimals: 6`). Use that fixed scale here.
+    if (!top || (top.type !== "Struct" && top.type !== "Array")) {
+      return null;
+    }
+    const fields = (top.value as NeoStackItem[]) || [];
+    const priceField = fields[2];
+    if (!priceField || priceField.type !== "Integer") {
+      throw new Error(`price field missing or wrong type: ${priceField?.type}`);
+    }
+    const priceInt = BigInt(String(priceField.value || "0"));
+    const PRICE_SCALE = 1_000_000;
+    const priceNumber = Number(priceInt) / PRICE_SCALE;
+    if (!Number.isFinite(priceNumber)) {
+      throw new Error(`price overflow for ${pair}: ${priceField.value}`);
+    }
+    return {
+      price: priceNumber,
+      dataTimestamp: parseTimestampField(fields[1]),
+      recordTimestamp: parseTimestampField(fields[3]),
+    };
+  };
+
   const getPriceWithMeta = async (asset: string): Promise<MorpheusPriceQuote> => {
     error.set(null);
     if (!contractHash) {
@@ -131,41 +204,20 @@ export function useMorpheusDataFeed(
       throw new Error(msg);
     }
     try {
-      const pair = normalizeAsset(asset);
-      const result = await rpcCall<InvokeResult>(rpcUrl, "invokefunction", [
-        contractHash,
-        "getLatest",
-        [{ type: "String", value: pair }],
-      ]);
-      if (result.state !== "HALT") {
-        throw new Error(`getLatest FAULT: ${result.exception || "unknown"}`);
+      // Prefer the canonical multi-provider AGG:<PAIR> record when the contract
+      // has it; fall back to the per-provider TWELVEDATA:<PAIR> record so feeds
+      // that only publish per-provider records keep working unchanged. A
+      // caller-supplied source-prefixed asset (normalizeAsset keeps its prefix)
+      // is read directly without the canonical attempt.
+      const fallbackPair = normalizeAsset(asset);
+      const explicitPrefix = String(asset || "").includes(":");
+      if (!explicitPrefix) {
+        const canonical = await readPair(canonicalAsset(asset));
+        if (canonical) return canonical;
       }
-      const top = result.stack?.[0];
-      // Returns Struct: [pair, dataTimestamp, price, recordTimestamp, signature, version_or_active_flag]
-      // Timestamps are epoch SECONDS (verified live against the mainnet feed).
-      // Note: field [5] looks like an active/version flag (observed value = 1),
-      // NOT decimals. TwelveData publishes prices on-chain at a fixed 6-decimal
-      // scale (confirmed by the gateway response shape: `decimals: 6,
-      // price_scale_decimals: 6`). Use that fixed scale here.
-      if (!top || (top.type !== "Struct" && top.type !== "Array")) {
-        throw new Error(`getLatest returned unexpected shape: ${top?.type}`);
-      }
-      const fields = (top.value as NeoStackItem[]) || [];
-      const priceField = fields[2];
-      if (!priceField || priceField.type !== "Integer") {
-        throw new Error(`price field missing or wrong type: ${priceField?.type}`);
-      }
-      const priceInt = BigInt(String(priceField.value || "0"));
-      const PRICE_SCALE = 1_000_000;
-      const priceNumber = Number(priceInt) / PRICE_SCALE;
-      if (!Number.isFinite(priceNumber)) {
-        throw new Error(`price overflow for ${pair}: ${priceField.value}`);
-      }
-      return {
-        price: priceNumber,
-        dataTimestamp: parseTimestampField(fields[1]),
-        recordTimestamp: parseTimestampField(fields[3]),
-      };
+      const quote = await readPair(fallbackPair);
+      if (quote) return quote;
+      throw new Error(`getLatest FAULT: no record for ${fallbackPair}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "DataFeed read failed";
       error.set(msg);

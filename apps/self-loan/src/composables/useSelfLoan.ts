@@ -169,6 +169,13 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
   const repayOkNonce = createObservable(0);
   const addCollateralOkNonce = createObservable(0);
 
+  // A relayed-but-unconfirmed notice: the action's transaction was broadcast but
+  // its confirming event was never observed (chain.invoke returns verified=false
+  // on a waitForEvent timeout/FAULT). Empty when there is nothing pending. The
+  // UI surfaces this as "pending confirmation" rather than a definitive success
+  // so the user neither double-submits nor assumes the position already moved.
+  const pendingConfirmation = createObservable("");
+
   const platformStats = createObservable<PlatformStats>({
     ltvTier1Bps: 2000,
     ltvTier2Bps: 3000,
@@ -332,6 +339,13 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
   // Collateral simply sits in the contract and is returned on repayment — there
   // is no voting/ProfitAnchor path on-chain, so this surfaces the real disposition.
   const custodyValue = createObservable(t("custodyValue"));
+
+  // ── Pending-confirmation affordance ──────────────────────────────────
+  /** True while a relayed-but-unconfirmed action notice is showing. */
+  const hasPendingConfirmation = createDerived(
+    () => pendingConfirmation.get().length > 0,
+    [pendingConfirmation],
+  );
 
   // ── Reclaim affordances ──────────────────────────────────────────────
   const hasCollateralCredit = createDerived(() => collateralCredit.get() > 0, [collateralCredit]);
@@ -530,6 +544,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
    */
   const takeLoan = async () => {
     if (isBusy.get()) return;
+    pendingConfirmation.set("");
 
     // One loan per address: the contract asserts "loan already active" only in
     // step 2 — AFTER the NEO deposit lands — so block up front to keep the NEO
@@ -613,8 +628,9 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       // Step 2: borrow — locks the credited NEO + disburses GAS. If the deposit
       // landed but this reverts, the NEO credit persists as reclaimable collateral
       // credit (withdraw); surface that distinctly so the user knows to reclaim.
+      let borrowResult: { verified?: boolean };
       try {
-        await chain.invoke(
+        borrowResult = await chain.invoke(
           "borrow",
           [
             { type: "Hash160", value: hash },
@@ -625,6 +641,17 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       } catch (borrowErr) {
         if (depositSettled) throw new Error(t("collateralCreditHeld"));
         throw new Error(errorMessage(borrowErr) || t("error"));
+      }
+
+      // The borrow tx was broadcast (success) but its LoanTaken event was never
+      // observed (verified=false on a wait timeout/FAULT). Treat that as PENDING,
+      // not a definitive success: surface the notice and skip the success-nonce
+      // bump so the PlayArea does not clear the form as if the loan opened. The
+      // reload still runs — the position hydrates if the tx actually landed.
+      if (borrowResult.verified !== true) {
+        pendingConfirmation.set(t("loanPendingConfirmation"));
+        await loadAll();
+        return;
       }
 
       collateralAmount.set("");
@@ -743,6 +770,7 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
    */
   const repay = async (amount: string) => {
     if (isRepaying.get()) return;
+    pendingConfirmation.set("");
     const value = String(amount || "").trim();
     // Strict decimal validation: reject NaN, scientific/hex/whitespace and
     // non-positive amounts before any chain call.
@@ -803,8 +831,9 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       // releasing collateral on full repayment. If the deposit landed but this
       // reverts, the GAS credit persists as reclaimable repay credit
       // (withdrawRepayCredit); surface that distinctly.
+      let repayResult: { verified?: boolean };
       try {
-        await chain.invoke(
+        repayResult = await chain.invoke(
           "repay",
           [{ type: "Hash160", value: hash }],
           { waitForEvent: "Repaid" },
@@ -812,6 +841,15 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
       } catch (repayErr) {
         if (depositSettled) throw new Error(t("repayCreditHeld"));
         throw new Error(errorMessage(repayErr) || t("error"));
+      }
+
+      // Broadcast but Repaid event unobserved → PENDING, not a definitive close.
+      // Skip the success-nonce bump and reload so the position re-hydrates if the
+      // tx actually landed.
+      if (repayResult.verified !== true) {
+        pendingConfirmation.set(t("repayPendingConfirmation"));
+        await loadAll();
+        return;
       }
 
       repayOkNonce.set(repayOkNonce.get() + 1);
@@ -927,6 +965,10 @@ export function useSelfLoan({ chain, t }: UseSelfLoanOptions) {
     collateralUtilization,
     validateCollateral,
     address,
+
+    // Pending confirmation (relayed-but-unconfirmed)
+    pendingConfirmation,
+    hasPendingConfirmation,
 
     // Reclaim
     collateralCredit,

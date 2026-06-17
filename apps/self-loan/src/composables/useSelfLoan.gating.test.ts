@@ -29,12 +29,15 @@ interface ChainReadState {
  * resolve successfully so the success path can be exercised end-to-end.
  */
 function makeChain(s: ChainReadState) {
+  // Mirror ChainService.invoke: a waitForEvent whose event lands resolves
+  // verified=true (a confirmed tx). Tests that need the relayed-but-unconfirmed
+  // path override this to return verified=false.
   const invoke = vi.fn(
     async (
       _op: string,
       _args: ContractArg[],
       _options?: { waitForEvent?: string; scriptHash?: string },
-    ): Promise<TxResult> => ({ txid: "0xtx", success: true }),
+    ): Promise<TxResult> => ({ txid: "0xtx", success: true, verified: true }),
   );
 
   const read = vi.fn(async (op: string): Promise<unknown> => {
@@ -140,7 +143,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
     // Make the borrow() leg revert; the deposit transfer succeeds.
     invoke.mockImplementation(async (op: string): Promise<TxResult> => {
       if (op === "borrow") throw new Error("on-chain revert");
-      return { txid: "0xtx", success: true };
+      return { txid: "0xtx", success: true, verified: true };
     });
     const app = useSelfLoan({ chain, t });
     app.setAddress(ALICE);
@@ -149,6 +152,55 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
     app.collateralAmount.set("5");
     await expect(app.takeLoan()).rejects.toThrow();
     expect(app.borrowOkNonce.get()).toBe(0);
+  });
+
+  it("surfaces pending-confirmation (not success) when the borrow tx is unverified", async () => {
+    const { chain, invoke } = makeChain({ neoPrice: "300000000", pool: "10000000000", neoBalance: "100" });
+    // The borrow tx broadcasts (success) but its LoanTaken event was never
+    // observed — ChainService reports verified=false. The deposit transfer stays
+    // verified=true so only the borrow leg is unconfirmed.
+    invoke.mockImplementation(async (op: string): Promise<TxResult> => {
+      if (op === "borrow") return { txid: "0xborrow", success: true, verified: false };
+      return { txid: "0xtransfer", success: true, verified: true };
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(ALICE);
+    await app.loadAll();
+
+    expect(app.hasPendingConfirmation.get()).toBe(false);
+    app.collateralAmount.set("5");
+    // No throw — the tx was broadcast; it is pending, not failed.
+    await app.takeLoan();
+
+    expect(app.hasPendingConfirmation.get()).toBe(true);
+    expect(app.pendingConfirmation.get()).toBe("loanPendingConfirmation");
+    // A pending (unverified) borrow must NOT be reported as a definitive success.
+    expect(app.borrowOkNonce.get()).toBe(0);
+    // The form input is preserved (not cleared) so the user keeps their context.
+    expect(app.collateralAmount.get()).toBe("5");
+  });
+
+  it("clears a stale pending-confirmation notice when a later borrow confirms", async () => {
+    const { chain, invoke } = makeChain({ neoPrice: "300000000", pool: "10000000000", neoBalance: "100" });
+    let unverified = true;
+    invoke.mockImplementation(async (op: string): Promise<TxResult> => {
+      if (op === "borrow") return { txid: "0xborrow", success: true, verified: !unverified };
+      return { txid: "0xtransfer", success: true, verified: true };
+    });
+    const app = useSelfLoan({ chain, t });
+    app.setAddress(ALICE);
+    await app.loadAll();
+
+    app.collateralAmount.set("5");
+    await app.takeLoan();
+    expect(app.hasPendingConfirmation.get()).toBe(true);
+
+    // A subsequent confirmed borrow clears the notice and bumps the success nonce.
+    unverified = false;
+    app.collateralAmount.set("5");
+    await app.takeLoan();
+    expect(app.hasPendingConfirmation.get()).toBe(false);
+    expect(app.borrowOkNonce.get()).toBe(1);
   });
 
   it("derives the transfer to the configured contract with the collateral memo", async () => {

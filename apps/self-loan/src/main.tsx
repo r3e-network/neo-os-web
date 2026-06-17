@@ -122,6 +122,9 @@ defineMiniApp({
         totalBorrowedDisplay: loan.totalBorrowedDisplay,
         totalRepaidDisplay: loan.totalRepaidDisplay,
         custodyValue: loan.custodyValue,
+        // Relayed-but-unconfirmed notice (chain.invoke verified=false)
+        pendingConfirmation: loan.pendingConfirmation,
+        hasPendingConfirmation: loan.hasPendingConfirmation,
         // Reclaim affordances (deposit-then-act recovery paths)
         collateralCredit: loan.collateralCredit,
         repayCredit: loan.repayCredit,

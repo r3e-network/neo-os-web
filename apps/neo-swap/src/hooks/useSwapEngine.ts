@@ -76,17 +76,30 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   };
 
   // True once a quote exists but its on-chain record (the time the feed last
-  // wrote on-chain) is older than RATE_STALE_AFTER_MS. Keyed on the on-chain
-  // recordTimestamp, NOT the upstream-source dataTimestamp, so a fresh feed with
-  // a lagging source timestamp (e.g. on testnet) is not falsely flagged stale.
+  // wrote on-chain) is older than RATE_STALE_AFTER_MS — or carries NO record
+  // time at all. Keyed on the on-chain recordTimestamp, NOT the upstream-source
+  // dataTimestamp, so a fresh feed with a lagging source timestamp (e.g. on
+  // testnet) is not falsely flagged stale.
+  //
+  // A recordTimestamp of 0 is treated as STALE, not fresh: a never-written feed
+  // returns recordTimestamp=0, and a quote we cannot prove is live must not be
+  // tradable. "Stale" only applies once a rate is actually loaded — a 0 with no
+  // rate yet is the pre-quote idle state, which surfaces as "rate unavailable",
+  // not "stale".
   const rateStale: Observable<boolean> = {
     get: () => {
+      const rate = parseFloat(exchangeRate.get());
+      if (!(Number.isFinite(rate) && rate > 0)) return false;
       const ts = rateRecordTimestamp.get();
-      if (!ts) return false;
+      if (!ts) return true;
       return Date.now() - ts > RATE_STALE_AFTER_MS;
     },
     set: () => {},
-    subscribe: (fn) => rateRecordTimestamp.subscribe(fn),
+    subscribe: (fn) => {
+      const u1 = rateRecordTimestamp.subscribe(fn);
+      const u2 = exchangeRate.subscribe(fn);
+      return () => { u1(); u2(); };
+    },
   };
 
   // "as of HH:MM" line for the quote's upstream-source data timestamp (empty

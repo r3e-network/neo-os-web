@@ -65,6 +65,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const collateralCreditDisplay = str("collateralCreditDisplay");
   const repayCreditDisplay = str("repayCreditDisplay");
 
+  // Relayed-but-unconfirmed notice: a borrow/repay tx was broadcast but its
+  // confirming event was never observed (verified=false). Surfaced as a distinct
+  // "pending confirmation" banner instead of a success toast.
+  const hasPendingConfirmation = bool("hasPendingConfirmation");
+  const pendingConfirmation = str("pendingConfirmation");
+
   const neoBalance = num("neoBalance");
   const selectedLtvPercent = num("selectedLtvPercent");
   const healthFactor = num("healthFactor");
@@ -597,6 +603,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             >
               {t("addCollateral")}
             </NeoButton>
+          </div>
+        </NeoCard>
+      )}
+
+      {/* ==================== Pending confirmation ==================== */}
+      {/* The action's transaction was broadcast but its confirming event was
+          never observed (chain.invoke verified=false). Say so honestly rather
+          than claiming success, so the user neither double-submits nor assumes
+          the position already moved — a refresh hydrates it once the tx lands. */}
+      {hasPendingConfirmation && (
+        <NeoCard variant="erobo" title={t("pendingConfirmationLabel")}>
+          <div className="selfloan-form">
+            <div className="selfloan-balance-hint">{pendingConfirmation}</div>
           </div>
         </NeoCard>
       )}
