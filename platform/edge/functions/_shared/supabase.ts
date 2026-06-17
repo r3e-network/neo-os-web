@@ -20,19 +20,53 @@ function parseUserAPIKey(req: Request): string | undefined {
   return raw ? raw : undefined;
 }
 
+// ---------------------------------------------------------------------------
+// Client memoization
+//
+// Hot path: every edge request built a brand-new Supabase client (8 call
+// sites). createClient allocates fetch wrappers and internal state on each
+// call, so a single request that touched auth + wallet + policy spun up
+// several throwaway clients. Memoize per (url, key) so a request — and warm
+// isolates across requests — reuse one client. The cache key includes the
+// resolved credentials, so a secret rotation transparently rebuilds the
+// client instead of pinning a stale one. No auth/user data is cached here;
+// these are stateless config-level clients (persistSession: false).
+// ---------------------------------------------------------------------------
+
+// Use the exact inferred return type of createClient(...) so the cache value
+// type matches what the call site produces (a bare ReturnType<typeof
+// createClient> resolves the generic schema param to `never`, which does not
+// accept the `"public"`-schema value the call actually returns).
+function buildClient(url: string, key: string) {
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+type SupabaseClientT = ReturnType<typeof buildClient>;
+
+const clientCache = new Map<string, SupabaseClientT>();
+
+function memoizedClient(url: string, key: string): SupabaseClientT {
+  const cacheKey = `${url}|${key}`;
+  const existing = clientCache.get(cacheKey);
+  if (existing) return existing;
+  const client = buildClient(url, key);
+  clientCache.set(cacheKey, client);
+  return client;
+}
+
 export function supabaseClient() {
   const url = mustGetEnv("SUPABASE_URL");
   const anonKey = mustGetEnv("SUPABASE_ANON_KEY");
-  return createClient(url, anonKey, { auth: { persistSession: false } });
+  return memoizedClient(url, anonKey);
 }
 
-export function supabaseServiceClient(): ReturnType<typeof createClient> {
+export function supabaseServiceClient(): SupabaseClientT {
   const url = mustGetEnv("SUPABASE_URL");
   const serviceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY") ?? getEnv("SUPABASE_SERVICE_KEY");
   if (!serviceKey) {
     throw new Error("missing required env var: SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)");
   }
-  return createClient(url, serviceKey, { auth: { persistSession: false } });
+  return memoizedClient(url, serviceKey);
 }
 
 export type AuthContext = {

@@ -1,12 +1,15 @@
-import { getKernelHash } from "../_shared/kernel-rpc.ts";
+import { requireKernelHash } from "../_shared/kernel-rpc.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
 import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
-
-const CONTRACT_HASH = getKernelHash();
 
 export const handler = createOSHandler(
   { scopeName: "os-escrow-create", permission: "escrow" },
   async ({ appId, userId, params }) => {
+    // Audit fix E-6 (writes): resolve the kernel hash at call time with the
+    // strict accessor. The previous module-load `getKernelHash()` captured ""
+    // when the deploy booted before its secrets arrived and produced an
+    // empty-contract CreateEscrow intent for the wallet to sign.
+    const contractHash = requireKernelHash();
     const counterparty = String(params.counterparty ?? params.beneficiary ?? "").trim() || userId;
 
     let amount: bigint;
@@ -22,7 +25,7 @@ export const handler = createOSHandler(
       : Number(params.milestones ?? params.milestoneCount ?? 1);
     if (!Number.isFinite(milestones) || milestones < 1) throw new Error("milestones must be >= 1");
 
-    return buildInvocationIntent(CONTRACT_HASH, "CreateEscrow", [
+    return buildInvocationIntent(contractHash, "CreateEscrow", [
       { type: "String", value: appId },
       { type: "Hash160", value: userId },
       { type: "Hash160", value: counterparty },

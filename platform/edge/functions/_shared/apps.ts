@@ -204,7 +204,39 @@ export async function upsertMiniAppManifest(input: {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Policy cache
+//
+// Hot path: fetchMiniAppPolicy runs on EVERY OS service request. It hit the
+// DB and re-canonicalized the full manifest each time (asset-policy
+// enforcement + canonicalization is non-trivial). Memoize the resolved
+// MiniAppPolicy per appId for a short TTL so back-to-back requests for the
+// same app skip the round trip + re-canonicalization.
+//
+// Correctness:
+//   - keyed strictly on appId
+//   - only SUCCESSFUL policies are cached; error/Response and the non-prod
+//     `null` (unregistered) result are never cached, so a fix to a broken /
+//     inactive app takes effect within one TTL window at worst
+//   - short TTL bounds staleness on status/manifest/limit changes
+//   - app-level config only — no auth/user data is cached here
+// ---------------------------------------------------------------------------
+
+const POLICY_CACHE_TTL_MS = 30_000;
+const POLICY_CACHE_MAX = 500;
+const policyCache = new Map<string, { policy: MiniAppPolicy; expires: number }>();
+
+function evictExpiredPolicyCache() {
+  const now = Date.now();
+  for (const [k, v] of policyCache) {
+    if (v.expires <= now) policyCache.delete(k);
+  }
+}
+
 export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<MiniAppPolicy | Response | null> {
+  const cached = policyCache.get(appId);
+  if (cached && cached.expires > Date.now()) return cached.policy;
+
   const supabase = supabaseServiceClient();
   const { data, error: loadErr } = await supabase
     .from("miniapps")
@@ -251,7 +283,7 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
   }
 
   const manifestHash = String(row.manifest_hash ?? "");
-  return {
+  const policy: MiniAppPolicy = {
     appId,
     manifestHash,
     contractHash: contractHash || undefined,
@@ -259,4 +291,9 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
     permissions,
     limits,
   };
+
+  policyCache.set(appId, { policy, expires: Date.now() + POLICY_CACHE_TTL_MS });
+  if (policyCache.size > POLICY_CACHE_MAX) evictExpiredPolicyCache();
+
+  return policy;
 }
