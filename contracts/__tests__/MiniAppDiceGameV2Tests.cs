@@ -31,6 +31,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         private static readonly UInt160 OwnerHash = UInt160.Parse("0x6d0656f6dd91469db1c90cc1e574380613f43738");
         private const long GAS = 100000000;        // 1 GAS base units
         private const long MAX_BET = 2000000000;   // 20 GAS
+
+        // Mirrors the contract's BEACON_BLOCKS: settle requires CurrentIndex > commitIndex + K
+        // and mixes the hashes of the K blocks commitIndex+1 .. commitIndex+K.
+        private const int BEACON_BLOCKS = 3;
         private const string FUND_MEMO = "miniapp-dice-game:fund";
         private const string BET_MEMO = "miniapp-dice-game:stake";
 
@@ -59,6 +63,14 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         private static void MineBlock(TestEngine engine) => engine.PersistingBlock.Persist();
+
+        // Mine enough blocks to clear the K-block beacon window: settle needs
+        // CurrentIndex > commitIndex + BEACON_BLOCKS AND the K beacon blocks (commitIndex+1
+        // .. commitIndex+K) persisted. Persisting BEACON_BLOCKS + 1 blocks satisfies both.
+        private static void MinePastBeacon(TestEngine engine)
+        {
+            for (int i = 0; i <= BEACON_BLOCKS; i++) engine.PersistingBlock.Persist();
+        }
 
         private static void AssertSolvent(TestEngine engine, DiceGameV2Contract dice, BigInteger escrowed, params UInt160[] players)
         {
@@ -104,7 +116,16 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             BigInteger? betId = dice.commit(player, 1, 1L * GAS);
             Assert.Equal(BigInteger.One, betId);
 
+            // Same block (no mining) reverts: none of the K beacon blocks exist yet.
             AssertRevert("reveal must be a later block", () => dice.settle(betId!.Value));
+
+            // Settling anywhere inside the K-block beacon window (up to commitIndex + K) must
+            // STILL revert: the full multi-block beacon is not yet fixed.
+            for (int i = 0; i < BEACON_BLOCKS; i++)
+            {
+                MineBlock(engine);
+                AssertRevert("reveal must be a later block", () => dice.settle(betId!.Value));
+            }
 
             var bet = BetOf(dice, betId!.Value);
             Assert.False(bet.settled);
@@ -143,7 +164,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(new BigInteger(50L * GAS), dice.bankroll()); // unchanged until settle
             AssertSolvent(engine, dice, bet, player);
 
-            MineBlock(engine);
+            // Reveal once the K-block beacon window has fully cleared.
+            MinePastBeacon(engine);
             BigInteger balanceBefore = engine.Native.GAS.BalanceOf(player) ?? 0;
             BigInteger? rolled = dice.settle(betId!.Value);
             Assert.True(rolled >= 1 && rolled <= 6);
@@ -169,6 +191,18 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Equal(BigInteger.Zero, dice.pendingBetCount());
             AssertSolvent(engine, dice, 0, player);
 
+            // Double settle is rejected (the recorded result is immutable).
+            AssertRevert("bet already settled", () => dice.settle(betId!.Value));
+
+            // IDEMPOTENT BEACON: mine further blocks and confirm the recorded roll is
+            // unchanged — the K-block beacon is fixed, so the draw can never be re-rolled by
+            // waiting for a deeper chain.
+            BigInteger recordedRoll = rolled!.Value;
+            MinePastBeacon(engine);
+            var recAfter = BetOf(dice, betId!.Value);
+            Assert.Equal(recordedRoll, recAfter.rolled);
+            Assert.Equal(rec.won, recAfter.won);
+            Assert.Equal(rec.payout, recAfter.payout);
             AssertRevert("bet already settled", () => dice.settle(betId!.Value));
         }
 
@@ -196,13 +230,14 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             BigInteger expectedBankroll = 80L * GAS;
 
             // Cycle the chosen face 1..6 across many commit/mine/settle rounds so a win is
-            // reached; on EVERY settle assert the exact 5.70x payout math.
+            // reached; mine past the K-block beacon each round and on EVERY settle assert the
+            // exact 5.70x payout math.
             for (int i = 1; i <= 60 && !(sawWin && sawLoss); i++)
             {
                 BigInteger face = (i % 6) + 1;
                 engine.SetTransactionSigners(player);
                 BigInteger? betId = dice.commit(player, face, bet);
-                MineBlock(engine);
+                MinePastBeacon(engine);
                 BigInteger balanceBefore = engine.Native.GAS.BalanceOf(player) ?? 0;
                 dice.settle(betId!.Value);
                 var rec = BetOf(dice, betId!.Value);
@@ -264,8 +299,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             engine.SetTransactionSigners(OwnerHash);
             AssertRevert("insufficient free bankroll", () => dice.withdrawBankroll(house, 1L * GAS));
 
-            // Settle both in a later block; reservation drains to zero.
-            MineBlock(engine);
+            // Settle both once the K-block beacon window has cleared; reservation drains to
+            // zero.
+            MinePastBeacon(engine);
             engine.SetTransactionSigners(player);
             dice.settle(b1!.Value);
             dice.settle(b2!.Value);
