@@ -43,11 +43,8 @@ export function resolveMorpheusRuntimeToken(networkInput?: string | null) {
   return trimString(
     resolveEnvSequence(network, "RUNTIME_TOKEN").find(Boolean)
       || resolveEnvSequence(network, "NITRO_API_TOKEN").find(Boolean)
-      || resolveEnvSequence(network, "PHALA_API_TOKEN").find(Boolean)
       || process.env.NITRO_API_TOKEN
-      || process.env.PHALA_API_TOKEN
       || process.env.NITRO_SHARED_SECRET
-      || process.env.PHALA_SHARED_SECRET
       || "",
   );
 }

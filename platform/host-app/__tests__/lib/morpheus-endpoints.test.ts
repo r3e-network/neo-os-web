@@ -48,15 +48,16 @@ describe("morpheus endpoint resolvers", () => {
     expect(resolveMorpheusRuntimeToken("mainnet")).toBe("shared-secret");
   });
 
-  it("still honours the legacy PHALA_SHARED_SECRET as a backward-compatible fallback", () => {
+  it("ignores retired PHALA_* credentials (Phala runtime decommissioned)", () => {
     process.env.PHALA_SHARED_SECRET = "legacy-shared-secret";
+    process.env.PHALA_API_TOKEN = "legacy-phala-token";
 
     const { resolveMorpheusRuntimeToken } = require("../../lib/morpheus-endpoints");
 
-    expect(resolveMorpheusRuntimeToken("mainnet")).toBe("legacy-shared-secret");
+    expect(resolveMorpheusRuntimeToken("mainnet")).toBe("");
   });
 
-  it("prefers the NITRO token over the legacy PHALA fallback", () => {
+  it("resolves the NITRO token and never falls back to retired PHALA credentials", () => {
     process.env.NITRO_API_TOKEN = "nitro-token";
     process.env.PHALA_API_TOKEN = "legacy-phala-token";
 
