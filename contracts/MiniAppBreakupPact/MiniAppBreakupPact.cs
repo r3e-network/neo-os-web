@@ -181,6 +181,7 @@ namespace NeoMiniAppPlatform.Contracts
             }
 
             ExecutionEngine.Assert(p.Status == STATUS_ACTIVE, "pact not active");
+            ExecutionEngine.Assert((BigInteger)Runtime.Time < p.EndTime, "pact expired; settle instead");
             ExecutionEngine.Assert(breaker == p.Party1 || breaker == p.Party2, "not a party to this pact");
             UInt160 paidTo = breaker == p.Party1 ? p.Party2 : p.Party1;
             BigInteger pot = p.Stake * 2;
@@ -191,10 +192,8 @@ namespace NeoMiniAppPlatform.Contracts
             OnPactBroken(pactId, breaker, paidTo, pot);
         }
 
-        /// <summary>
-        /// Permissionless: after expiry, an honored (unbroken) active pact refunds both
-        /// parties their stake.
-        /// </summary>
+        /// <summary>Permissionless: after expiry, an honored (unbroken) active pact refunds
+        /// both parties their stake.</summary>
         public static void SettlePact(BigInteger pactId)
         {
             StorageContext ctx = Storage.CurrentContext;
