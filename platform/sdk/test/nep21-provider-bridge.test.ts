@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
   readImmediateNep21Provider,
   resetNep21ProviderCacheForTests,
   type NeoDapiProvider,
@@ -11,7 +12,13 @@ const BRIDGE_TIMEOUT_MS = 8000;
 const HOST_ORIGIN = "https://host.example";
 
 type PostedMessage = {
-  message: { type: string; id: string; method: string; version: number };
+  message: {
+    type: string;
+    id: string;
+    method: string;
+    version: number;
+    protocolVersion: number;
+  };
   targetOrigin: string;
 };
 
@@ -58,8 +65,23 @@ function getBridgeProvider(win: Nep21Window): NeoDapiProvider {
   return provider;
 }
 
-function okReply(id: string, result: unknown = []) {
-  return { type: BRIDGE_RESPONSE, id, ok: true, result };
+function okReply(
+  id: string,
+  result: unknown = [],
+  options: { protocolVersion?: number | string | null } = {},
+) {
+  const reply: Record<string, unknown> = {
+    type: BRIDGE_RESPONSE,
+    id,
+    ok: true,
+    result,
+  };
+  if ("protocolVersion" in options) {
+    reply.protocolVersion = options.protocolVersion;
+  } else {
+    reply.protocolVersion = HOST_WALLET_BRIDGE_PROTOCOL_VERSION;
+  }
+  return reply;
 }
 
 describe("host wallet bridge response gating", () => {
@@ -85,6 +107,12 @@ describe("host wallet bridge response gating", () => {
     for (const entry of posted) {
       expect(entry.message.id).toMatch(/^host-wallet-[0-9a-f]{32}$/);
       expect(entry.targetOrigin).toBe(HOST_ORIGIN);
+      // Every request envelope carries the negotiated protocol version, plus
+      // the legacy `version` alias for hosts pinned to the old field.
+      expect(entry.message.protocolVersion).toBe(
+        HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
+      );
+      expect(entry.message.version).toBe(HOST_WALLET_BRIDGE_PROTOCOL_VERSION);
     }
     expect(posted[0].message.id).not.toBe(posted[1].message.id);
 
@@ -207,5 +235,82 @@ describe("host wallet bridge response gating", () => {
     });
 
     await expect(pending).rejects.toThrow("User rejected the request.");
+  });
+});
+
+describe("host wallet bridge protocol negotiation", () => {
+  beforeEach(() => {
+    resetNep21ProviderCacheForTests();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("accepts a response that matches the protocol version", async () => {
+    const { win, parent, posted, deliver } = createEmbeddedWindow();
+    const provider = getBridgeProvider(win);
+
+    const pending = provider.getAccounts();
+    deliver({
+      source: parent,
+      origin: HOST_ORIGIN,
+      data: okReply(posted[0].message.id, [], {
+        protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION,
+      }),
+    });
+
+    await expect(pending).resolves.toEqual([]);
+  });
+
+  it("accepts a response that omits the version (pre-negotiation baseline)", async () => {
+    const { win, parent, posted, deliver } = createEmbeddedWindow();
+    const provider = getBridgeProvider(win);
+
+    const pending = provider.getAccounts();
+    deliver({
+      source: parent,
+      origin: HOST_ORIGIN,
+      // A host that predates negotiation sends no protocolVersion at all.
+      data: okReply(posted[0].message.id, [], { protocolVersion: null }),
+    });
+
+    await expect(pending).resolves.toEqual([]);
+  });
+
+  it("rejects a response that declares an incompatible version", async () => {
+    const { win, parent, posted, deliver } = createEmbeddedWindow();
+    const provider = getBridgeProvider(win);
+
+    const pending = provider.getAccounts();
+    const expectation = expect(pending).rejects.toThrow(
+      /Unsupported wallet bridge protocol version/,
+    );
+    deliver({
+      source: parent,
+      origin: HOST_ORIGIN,
+      data: okReply(posted[0].message.id, [{ hash: "0xfuture" }], {
+        protocolVersion: HOST_WALLET_BRIDGE_PROTOCOL_VERSION + 1,
+      }),
+    });
+
+    await expectation;
+  });
+
+  it("rejects a response whose version is present but malformed", async () => {
+    const { win, parent, posted, deliver } = createEmbeddedWindow();
+    const provider = getBridgeProvider(win);
+
+    const pending = provider.getAccounts();
+    const expectation = expect(pending).rejects.toThrow(
+      /Unsupported wallet bridge protocol version/,
+    );
+    deliver({
+      source: parent,
+      origin: HOST_ORIGIN,
+      data: okReply(posted[0].message.id, [], { protocolVersion: "garbage" }),
+    });
+
+    await expectation;
   });
 });
