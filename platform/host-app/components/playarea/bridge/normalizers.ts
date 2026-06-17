@@ -221,6 +221,16 @@ export function normalizeBridgeOperation(value: unknown): string {
   return canonicalKernelMethods[operation] ?? operation;
 }
 
+function normalizeHashKey(hash: string): string {
+  const lower = hash.trim().toLowerCase();
+  return lower.startsWith("0x") ? lower : `0x${lower}`;
+}
+
+export function isNativeAssetHash(hash: string): boolean {
+  const key = normalizeHashKey(hash);
+  return key === GAS_ASSET_HASH || key === NEO_ASSET_HASH;
+}
+
 export function bridgeInvocationToParams(
   invocation: BridgeInvocation,
   signers?: InvokeParams["signers"],
@@ -231,10 +241,27 @@ export function bridgeInvocationToParams(
   );
   if (!scriptHash) throw new Error("Embedded wallet request is missing script hash.");
   if (!operation) throw new Error("Embedded wallet request is missing operation.");
+  const args = normalizeBridgeArgs(invocation.args);
+  // A native GAS/NEO transfer is canonically transfer(from:Hash160, to:Hash160,
+  // amount:Integer, data). Reject a transfer that disguises the recipient or amount
+  // as another type (e.g. ByteArray) — it executes identically on the VM but would
+  // bypass the human-readable recipient/amount shown in the approval prompt.
+  if (operation === "transfer" && isNativeAssetHash(scriptHash) && args.length >= 3) {
+    const to = args[1];
+    const amount = args[2];
+    if (
+      String(to?.type).toLowerCase() !== "hash160" ||
+      String(amount?.type).toLowerCase() !== "integer"
+    ) {
+      throw new Error(
+        "Refusing a native asset transfer whose recipient/amount use non-standard argument types; they must be Hash160 and Integer so the approval prompt can show them.",
+      );
+    }
+  }
   return {
     scriptHash,
     operation,
-    args: normalizeBridgeArgs(invocation.args),
+    args,
     ...(signers ? { signers } : {}),
   };
 }
@@ -295,13 +322,23 @@ export function describeBridgeArgs(invocation: BridgeInvocation): string {
 // user can actually vet, rather than burying it inside the raw arg list.
 function describeTransferIntent(invocation: BridgeInvocation): string {
   const args = normalizeBridgeArgs(invocation.args);
-  const [from, to, amount] = args;
-  if (
-    from?.type.toLowerCase() === "hash160" &&
-    to?.type.toLowerCase() === "hash160" &&
-    amount?.type.toLowerCase() === "integer"
-  ) {
+  const [, to, amount] = args;
+  const toIsHash = String(to?.type).toLowerCase() === "hash160";
+  const amountIsInt = String(amount?.type).toLowerCase() === "integer";
+  if (toIsHash && amountIsInt) {
     return `transfer ${String(amount.value)} to ${String(to.value)}`;
+  }
+  // A recipient declared as anything other than Hash160 (e.g. ByteArray) executes
+  // as the same script hash on the VM but hides who receives the funds. Flag it so
+  // the prompt is never silently misleading (native transfers are also rejected at
+  // execution by bridgeInvocationToParams).
+  if (to && !toIsHash) {
+    return "⚠ transfer with a non-standard recipient encoding — the true recipient is hidden; reject unless you fully trust this app";
+  }
+  // Recipient is a normal address but the value position is non-fungible or
+  // non-standard (e.g. an NEP-11 tokenId): still surface the recipient.
+  if (toIsHash) {
+    return `transfer to ${String(to.value)}`;
   }
   return "";
 }

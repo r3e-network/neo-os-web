@@ -517,4 +517,70 @@ describe("describeSensitiveBridgeOperation", () => {
     expect(summary).toContain(`claim @ ${TARGET_CONTRACT}(Hash160:`);
     expect(summary).toContain("with signer scope Global");
   });
+
+  it("warns when a GAS transfer recipient is disguised as a non-Hash160 type", () => {
+    // Attack: declare the recipient/amount as ByteArray, which executes identically
+    // on the VM but previously skipped the plain-language transfer line.
+    const summary = describeSensitiveBridgeOperation("invoke", {
+      invocations: [
+        {
+          hash: GAS_ASSET_HASH,
+          operation: "transfer",
+          args: [
+            { type: "Hash160", value: WALLET_ADDRESS },
+            { type: "ByteArray", value: "qrvM3e7/ABEiM0RVZneImaq7zN0=" },
+            { type: "ByteArray", value: "AOH1BQ==" },
+          ],
+        },
+      ],
+    });
+    // The prompt must not silently render only opaque base64.
+    expect(summary).toContain("non-standard recipient encoding");
+  });
+});
+
+describe("bridgeInvocationToParams native-transfer arg-type enforcement", () => {
+  const GAS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+
+  it("rejects a native GAS transfer whose recipient is disguised as a ByteArray", () => {
+    expect(() =>
+      bridgeInvocationToParams({
+        hash: GAS,
+        operation: "transfer",
+        args: [
+          { type: "Hash160", value: WALLET_ADDRESS },
+          { type: "ByteArray", value: "qrvM3e7/ABEiM0RVZneImaq7zN0=" },
+          { type: "Integer", value: "100000000" },
+        ],
+      }),
+    ).toThrow(/non-standard argument types/);
+  });
+
+  it("rejects a native GAS transfer whose amount is disguised as a ByteArray", () => {
+    expect(() =>
+      bridgeInvocationToParams({
+        hash: GAS,
+        operation: "transfer",
+        args: [
+          { type: "Hash160", value: WALLET_ADDRESS },
+          { type: "Hash160", value: WALLET_ADDRESS },
+          { type: "ByteArray", value: "AOH1BQ==" },
+        ],
+      }),
+    ).toThrow(/non-standard argument types/);
+  });
+
+  it("accepts a canonical native GAS transfer (Hash160 recipient, Integer amount)", () => {
+    const params = bridgeInvocationToParams({
+      hash: GAS,
+      operation: "transfer",
+      args: [
+        { type: "Hash160", value: WALLET_ADDRESS },
+        { type: "Hash160", value: WALLET_ADDRESS },
+        { type: "Integer", value: "100000000" },
+      ],
+    });
+    expect(params.operation).toBe("transfer");
+    expect(params.args).toHaveLength(3);
+  });
 });
