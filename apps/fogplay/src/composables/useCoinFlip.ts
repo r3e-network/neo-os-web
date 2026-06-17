@@ -15,11 +15,17 @@
  *      is NOT decided here, so it cannot be peeked/aborted on a loss.
  *      Emits Committed(betId, player, choice, commitIndex).
  *   2. settle(betId)                   — PERMISSIONLESS; reverts unless
- *      Ledger.CurrentIndex > commitIndex (i.e. a strictly LATER block exists).
- *      It reveals the outcome from THAT later block's GetRandom and pays the
- *      winner 2x atomically. Emits Settled(betId, player, choice, outcome, won,
- *      payout). Safe to call repeatedly: once a bet is settled, re-calling settle
- *      reverts ("already settled"), so the recorded result is read back instead.
+ *      Ledger.CurrentIndex > commitIndex + K (K = 3 beacon blocks), i.e. the full
+ *      K-block beacon window has cleared. It reveals the outcome from a FIXED
+ *      multi-block beacon — the concat-hash of the hashes of the K blocks
+ *      commitIndex+1 .. commitIndex+K (all unknown at commit, immutable once
+ *      produced) — and pays the winner 2x atomically. Mixing K consecutive block
+ *      hashes raises the grinding cost (a single-block beacon could be biased by
+ *      that one block's producer); it is NOT VRF-grade, so high-value play should
+ *      use the VRF oracle. Emits Settled(betId, player, choice, outcome, won,
+ *      payout). Because the beacon is a set of fixed past blocks, re-running settle
+ *      in any later block yields the SAME outcome; once a bet is settled, re-calling
+ *      settle reverts ("already settled"), so the recorded result is read back.
  *
  * TWO-STEP UX: a play is no longer instant. placeBet() commits, surfaces a clear
  * "Bet placed — revealing on the next block…" pending state, waits one block, then
@@ -57,7 +63,7 @@
  * The composable owns:
  *   - Reactive state (observables + derived) for manifest/PlayArea bindings
  *   - Bet validation logic (min/max, decimals, choice)
- *   - The commit -> wait-one-block -> settle lifecycle + a safe settle retry
+ *   - The commit -> wait-K-block-beacon -> settle lifecycle + a safe settle retry
  *   - Pending-bet persistence (betId/choice/amount) so a reload resumes the reveal
  *   - Win/loss UI updates (overlay, amounts, counters) read from the Settled event
  *   - Loading/flipping UI flags
@@ -94,12 +100,22 @@ export const BET_PRESETS = ["1", "5", "10", "50"] as const;
 const HISTORY_PAGE_LIMIT = 20;
 
 /**
- * How long to wait, after the commit confirms, before the FIRST settle attempt.
- * settle() reverts until a block strictly LATER than the commit block exists; a
- * Neo N3 block is ~15s, so ~18s gives the next block time to be produced before
- * we spend gas on a settle that would otherwise revert.
+ * Number of consecutive beacon blocks the contract mixes into the reveal entropy
+ * (mirrors the contract's BEACON_BLOCKS). settle() reverts until
+ * Ledger.CurrentIndex > commitIndex + BEACON_BLOCKS, i.e. the full K-block beacon
+ * window has been produced.
  */
-const REVEAL_WAIT_MS = 18_000;
+const BEACON_BLOCKS = 3;
+
+/**
+ * How long to wait, after the commit confirms, before the FIRST settle attempt.
+ * settle() reverts until the K-block beacon window has cleared (CurrentIndex >
+ * commitIndex + BEACON_BLOCKS), i.e. BEACON_BLOCKS + 1 later blocks must exist. A
+ * Neo N3 block is ~15s, so we wait ~(BEACON_BLOCKS + 1) blocks plus a small margin
+ * before spending gas on a settle that would otherwise revert. The capped settle
+ * retry loop below still covers any remaining lag.
+ */
+const REVEAL_WAIT_MS = (BEACON_BLOCKS + 1) * 15_000 + 3_000;
 
 /**
  * Backoff between settle retries when the reveal block has not arrived yet (the
@@ -455,7 +471,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
     await Promise.all([loadStats(), loadHistory(), loadBankrollAndCredit()]);
   };
 
-  // -- Actions (commit -> wait one block -> settle) ---------------------------
+  // -- Actions (commit -> wait K-block beacon -> settle) ----------------------
 
   /**
    * Reset the game UI to its initial state. Leaves any pending bet intact so the
@@ -603,13 +619,15 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
    * Committed event and PERSISTED in pendingBet so a reload/retry can resume.
    * The outcome is NOT decided here.
    *
-   * Step 2 — WAIT one block: settle() reverts until a strictly later block
-   * exists, so we wait ~one block (REVEAL_WAIT_MS) before revealing.
+   * Step 2 — WAIT the K-block beacon window: settle() reverts until
+   * CurrentIndex > commitIndex + BEACON_BLOCKS, so we wait ~(BEACON_BLOCKS + 1)
+   * blocks (REVEAL_WAIT_MS) before revealing.
    *
-   * Step 3 — SETTLE (reveal): settleBet() reveals the outcome from the later
-   * block's randomness and pays the winner 2x. The win/loss UI is driven from
-   * the Settled event. If the reveal can't complete, the pending bet is left set
-   * so revealResult() can retry — a win/loss is never claimed early.
+   * Step 3 — SETTLE (reveal): settleBet() reveals the outcome from the FIXED
+   * K-block beacon (the hashes of blocks commitIndex+1 .. commitIndex+K) and pays
+   * the winner 2x. The win/loss UI is driven from the Settled event. If the reveal
+   * can't complete, the pending bet is left set so revealResult() can retry — a
+   * win/loss is never claimed early.
    */
   const placeBet = async (): Promise<GameResult> => {
     // -- Validate ---
@@ -711,7 +729,7 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
       const bet: PendingBet = { betId, choice: side, amount: amountGas };
       pendingBet.set(bet);
 
-      // -- Step 2: WAIT one block, then -- Step 3: SETTLE (reveal) ---
+      // -- Step 2: WAIT the K-block beacon window, then -- Step 3: SETTLE (reveal) ---
       revealing.set(true);
       eventBus.emit("coinflip:committed", { action: t("betCommitted"), betId });
       await sleep(REVEAL_WAIT_MS);
