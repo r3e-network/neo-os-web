@@ -221,6 +221,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             variant="primary"
             size="lg"
             block
+            className="breakup-create-cta"
             loading={isLoading}
             disabled={!canSubmit}
             aria-label={isLoading ? t("contractPreparing", { title: title || "contract", amount: `${stake || "0"} GAS` }) : t("createContract")}

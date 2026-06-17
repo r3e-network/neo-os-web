@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
@@ -225,9 +226,12 @@ export default function PlayArea({
                 ))}
               </div>
             ) : (
-              <p className="permissions-empty-line">
-                {t("permissionsStateEmpty")}
-              </p>
+              <StateView
+                kind="empty"
+                className="permissions-empty"
+                title={t("permissionsStateEmpty")}
+                hint={t("inspectBlocked")}
+              />
             )}
           </section>
         </div>

@@ -10,18 +10,6 @@
   padding: 0;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 32px 16px;
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  color: pm.$text-muted;
-  background: pm.$surface;
-  border: 1px solid pm.$border;
-  border-radius: 16px;
-}
-
 .history-list {
   display: flex;
   flex-direction: column;

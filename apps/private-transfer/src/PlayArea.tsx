@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
+import { StateView } from "@shared/components";
 import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
 import {
   buildConfidentialTransferPackage,
@@ -652,24 +653,11 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
           )}
         </div>
         {history.length === 0 ? (
-          <div className="private-transfer__history-empty">
-            <span className="private-transfer__history-empty-icon" aria-hidden="true">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 3h11l3 3v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
-                <path d="M8 9h8M8 13h8M8 17h5" />
-                <circle cx="17.5" cy="17.5" r="3" />
-                <path d="m17.5 16.2.001 1.4 1 .7" />
-              </svg>
-            </span>
-            <p>{t("historyEmpty")}</p>
-          </div>
+          <StateView
+            kind="empty"
+            className="private-transfer__history-empty"
+            title={t("historyEmpty")}
+          />
         ) : (
           <ul className="private-transfer__history-list">
             {history.map((intent) => (

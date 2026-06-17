@@ -105,9 +105,14 @@ describe("LastSurvivor PlayArea", () => {
       />,
     );
 
-    expect(screen.getByRole("status").textContent).toContain(
-      "The countdown service is not available",
-    );
+    // The page now renders more than one status region (the service notice plus
+    // the shared StateView empty state for Recent Rounds), so assert the notice
+    // text is present in one of them rather than assuming a single status node.
+    expect(
+      screen
+        .getAllByRole("status")
+        .some((el) => el.textContent?.includes("The countdown service is not available")),
+    ).toBe(true);
     expect(screen.queryByText(/OS service error|os-game-status|Not Found/i)).toBeNull();
     expect(screen.getAllByRole("button", { name: "Refresh Round" }).length).toBeGreaterThan(0);
     expect(

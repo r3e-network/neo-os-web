@@ -252,23 +252,13 @@
   color: #a35a00;
 }
 
+/* Pre-inspect placeholder slot. Reuses the shared StateView; the class only
+   pins a stable compact height + quiet subtle fill so the slot doesn't stretch
+   to match the much taller Register form. */
 .account-empty {
-  display: flex;
-  // Sit at a stable, compact size instead of stretching to match the taller
-  // Register form — a tall dashed box of empty space read as a dead zone.
-  align-items: center;
-  justify-content: center;
   min-height: 180px;
-  max-height: 240px;
-  margin: 0;
-  padding: 16px;
-  border: 1px dashed var(--ns-border, rgba(20, 22, 38, 0.12));
-  border-radius: 16px;
+  justify-content: center;
   background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
 }
 
 /* Inspected results should also fill the left column height. */

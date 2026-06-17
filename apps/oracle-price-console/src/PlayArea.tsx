@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { NeoButton, NeoCard, NeoSelect } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { Freshness } from "./hooks/usePriceConsole";
@@ -136,26 +137,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </section>
 
-      <section className="price-balance-card" aria-label={t("latestPrice")}>
-        <div className={`asset-token asset-token--${asset.toLowerCase()}`}>
-          {assetInitial}
-        </div>
-        <div className="price-balance-card__content">
-          <span className="result-symbol">{displayPair}</span>
-          <span className={`result-price${priceLoaded ? "" : " result-price--empty"}`}>
-            {priceLoaded ? priceDisplay : "—"}
+      {isRequesting ? (
+        <StateView
+          kind="loading"
+          icon={null}
+          title={t("loading")}
+          className="price-balance-state"
+        />
+      ) : priceLoaded ? (
+        <section className="price-balance-card" aria-label={t("latestPrice")}>
+          <div className={`asset-token asset-token--${asset.toLowerCase()}`}>
+            {assetInitial}
+          </div>
+          <div className="price-balance-card__content">
+            <span className="result-symbol">{displayPair}</span>
+            <span className="result-price">{priceDisplay}</span>
+          </div>
+          <span
+            className="price-status price-status--live"
+            data-freshness={freshness}
+            aria-label={t("priceSignalTitle")}
+            title={onChainTimeLabel || undefined}
+          >
+            <i className="price-status__dot" aria-hidden="true" />
+            {freshnessLabel}
           </span>
-        </div>
-        <span
-          className={`price-status${priceLoaded ? " price-status--live" : ""}`}
-          data-freshness={freshness}
-          aria-label={t("priceSignalTitle")}
-          title={onChainTimeLabel || undefined}
-        >
-          <i className="price-status__dot" aria-hidden="true" />
-          {freshnessLabel}
-        </span>
-      </section>
+        </section>
+      ) : (
+        <StateView
+          kind="empty"
+          icon={null}
+          title={t("priceSignalIdle")}
+          hint={t("priceStatusReady")}
+          className="price-balance-state"
+        />
+      )}
 
       {onChainTimeLabel && (
         <div className="price-onchain-time" role="note">

@@ -504,62 +504,16 @@
   }
 }
 
-/* ---------- Notices / empty states ---------- */
-.escrow-notice,
-.escrow-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  text-align: center;
-  padding: 40px 24px;
-  background: var(--me-surface);
-  border: 1px solid var(--me-line);
+/* ---------- Notices / empty states ----------
+   Deployment-pending, wallet-not-connected and empty-list all route through the
+   shared StateView so they share one illustration + typography. The override
+   lifts StateView onto the app's card shell (larger radius + soft shadow) to
+   match the surrounding Neo Soft cards. */
+.escrow-state-view {
+  padding: 32px 24px;
+  border-color: var(--me-line);
   border-radius: var(--me-radius);
   box-shadow: var(--me-shadow);
-}
-
-.escrow-notice__icon,
-.escrow-empty__icon {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: var(--me-accent-soft);
-  color: var(--me-accent-strong);
-  box-shadow: 0 0 0 6px rgba(22, 199, 132, 0.08);
-}
-
-/* Deployment-pending is a blocking/cautionary state, not a success — give its
-   icon a neutral amber tint so brand green stays reserved for positive states. */
-.escrow-notice__icon--warn {
-  background: var(--ns-warn-soft, #fdf0d9);
-  color: var(--ns-warn-strong, #b7791f);
-  box-shadow: 0 0 0 6px rgba(183, 121, 31, 0.08);
-}
-
-.escrow-notice__title {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: var(--me-ink);
-}
-
-.escrow-notice__desc {
-  margin: 0;
-  max-width: 44ch;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--me-text-2);
-}
-
-.escrow-empty__text {
-  max-width: 40ch;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.6;
-  color: var(--me-muted);
 }
 
 /* ---------- Create escrow ---------- */
@@ -768,9 +722,8 @@
     font-size: 18px;
   }
 
-  .escrow-notice,
-  .escrow-empty {
-    padding: 32px 20px;
+  .escrow-state-view {
+    padding: 28px 20px;
   }
 
   /* Stack actions only if they would otherwise crowd, but keep them tappable. */

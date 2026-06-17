@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { EmptyStateArt } from "@shared/components-react/illustrations";
+import { StateView } from "@shared/components";
 
 export interface EscrowItem {
   id: string; creator: string; beneficiary: string; assetSymbol: "NEO" | "GAS";
@@ -54,15 +56,12 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
 
   if (created.length === 0 && incoming.length === 0) {
     return (
-      <div className="escrow-empty">
-        <div className="escrow-empty__icon" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="5" width="18" height="14" rx="2" />
-            <path d="M3 10h18" />
-          </svg>
-        </div>
-        <span className="escrow-empty__text">{tr("emptyEscrows")}</span>
-      </div>
+      <StateView
+        kind="empty"
+        className="escrow-state-view"
+        icon={<EmptyStateArt size={132} title={tr("emptyEscrows")} />}
+        title={tr("emptyEscrows")}
+      />
     );
   }
 

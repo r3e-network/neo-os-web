@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -304,9 +305,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <div className="anchor-admin-agent-list">
               {visibleAgents.length === 0 ? (
-                <div className="anchor-admin-agent-empty">
-                  {t("agentDirectoryEmpty")}
-                </div>
+                adminState === "loading" ? (
+                  <StateView
+                    className="anchor-admin-agent-state"
+                    kind="loading"
+                  />
+                ) : (
+                  <StateView
+                    className="anchor-admin-agent-state"
+                    kind="empty"
+                    icon={null}
+                    title={t("agentDirectoryEmpty")}
+                  />
+                )
               ) : (
                 visibleAgents.map((agent, idx) => {
                   const address = String(

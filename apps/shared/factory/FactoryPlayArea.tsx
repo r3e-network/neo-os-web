@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { ownerMatchesAddress } from "@shared/utils/neo";
@@ -301,6 +302,7 @@ export function FactoryPlayArea({
         <div className="domain-factory-hero__lead">
           <span className="ns-icon-badge ns-badge--mint domain-factory-hero__badge" aria-hidden="true">◆</span>
           <div className="domain-factory-hero__text">
+            <span className="domain-factory-hero__eyebrow">{t("factoryOverview")}</span>
             <h2>{t("title")}</h2>
             <p>{t("subtitle")}</p>
           </div>
@@ -552,20 +554,34 @@ export function FactoryPlayArea({
                 </NeoButton>
               </div>
               {deploymentsState === "loading" ? (
-                <p className="domain-factory-deployments__empty">{t("loadingDeployments")}</p>
+                <StateView
+                  kind="loading"
+                  className="domain-factory-deployments__state"
+                  title={t("loadingDeployments")}
+                />
               ) : deploymentsState === "error" ? (
-                <div className="domain-factory-deployments__empty">
-                  <p>{t("deploymentsError")}</p>
-                  <NeoButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => dispatch("refreshDeployments", { network: activeNetwork }).catch(() => undefined)}
-                  >
-                    {t("retryAction")}
-                  </NeoButton>
-                </div>
+                <StateView
+                  kind="error"
+                  icon={null}
+                  className="domain-factory-deployments__state"
+                  title={t("deploymentsError")}
+                  action={
+                    <NeoButton
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => dispatch("refreshDeployments", { network: activeNetwork }).catch(() => undefined)}
+                    >
+                      {t("retryAction")}
+                    </NeoButton>
+                  }
+                />
               ) : deployments.length === 0 ? (
-                <p className="domain-factory-deployments__empty">{t("noDeploymentsYet")}</p>
+                <StateView
+                  kind="empty"
+                  icon={null}
+                  className="domain-factory-deployments__state"
+                  title={t("noDeploymentsYet")}
+                />
               ) : (
                 <ul className="domain-factory-deployments__list">
                   {deployments.map((item) => (
