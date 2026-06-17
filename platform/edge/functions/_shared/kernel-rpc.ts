@@ -68,7 +68,10 @@ export function buildKernelStateWrite(
   value: string,
 ) {
   return {
-    contract: getKernelHash(),
+    // Audit fix E-6 (writes): state-mutating intents must fail-fast when the
+    // kernel hash is unconfigured, otherwise a misconfigured deploy hands the
+    // wallet a `contract: ""` invocation (silent no-op / wrong-target signing).
+    contract: requireKernelHash(),
     operation: "putMiniAppState",
     args: [
       { type: "String", value: appId },
@@ -80,7 +83,9 @@ export function buildKernelStateWrite(
 
 export function buildKernelStateDelete(appId: string, stateKey: string) {
   return {
-    contract: getKernelHash(),
+    // Audit fix E-6 (writes): fail-fast on missing kernel hash — see
+    // buildKernelStateWrite.
+    contract: requireKernelHash(),
     operation: "deleteMiniAppState",
     args: [
       { type: "String", value: appId },
@@ -95,7 +100,9 @@ export function buildKernelStateBatchWrite(
   values: string[],
 ) {
   return {
-    contract: getKernelHash(),
+    // Audit fix E-6 (writes): fail-fast on missing kernel hash — see
+    // buildKernelStateWrite.
+    contract: requireKernelHash(),
     operation: "putMiniAppStateBatch",
     args: [
       { type: "String", value: appId },
