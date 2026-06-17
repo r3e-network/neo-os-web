@@ -1,15 +1,26 @@
 /**
- * Shared-storage grant persistence + enforcement.
+ * Shared-storage grant persistence + visibility filtering.
  *
- * Audit fix C9: the OS "shared storage" access model used to be unenforced —
+ * Audit fix C9: the OS "shared storage" access model used to apply no filtering —
  * grant-access returned `granted: true` without recording anything and
- * read-shared read any owner app's kernel state with no check. These helpers
- * back the model with the `miniapp_storage_grants` table so grant-access
- * fail-closes (it must persist a row or throw) and read-shared denies any read
- * that lacks a matching recorded grant.
+ * read-shared read any owner app's kernel state without consulting any grant.
+ * These helpers back the model with the `miniapp_storage_grants` table so
+ * grant-access records a row (or throws) and read-shared filters out reads that
+ * lack a matching recorded grant.
  *
- * A grant means: `ownerAppId` allows `readerAppId` to read shared-storage keys
- * that start with `keyPrefix` (an empty prefix grants all of the owner's keys).
+ * IMPORTANT: the grant table is an ADVISORY / VISIBILITY filter, NOT a
+ * confidentiality boundary. Shared-storage values live in the on-chain kernel
+ * state, which is world-readable: anyone can read an owner app's kernel state
+ * directly via a public RPC node regardless of what (or whether) a grant exists.
+ * The filter only governs what this edge endpoint will surface; it does not and
+ * cannot keep the underlying data secret. Treat any value written to shared
+ * storage as public. Real per-reader confidentiality must instead use the
+ * TEE / sealed-storage lane, which encrypts data so only authorized readers can
+ * decrypt it.
+ *
+ * A grant means: `ownerAppId` advertises that `readerAppId` may read
+ * shared-storage keys that start with `keyPrefix` via this endpoint (an empty
+ * prefix covers all of the owner's keys).
  */
 
 import { supabaseServiceClient } from "./supabase.ts";
@@ -27,9 +38,11 @@ function assertField(name: string, value: string, allowEmpty = false): string {
 }
 
 /**
- * Persist (upsert) a grant allowing `readerAppId` to read `ownerAppId`'s shared
- * storage under `keyPrefix`. Throws on validation or DB failure so the caller
- * never reports success without a recorded grant.
+ * Persist (upsert) a grant advertising that `readerAppId` may read
+ * `ownerAppId`'s shared storage under `keyPrefix` via this endpoint. Throws on
+ * validation or DB failure so the caller never reports success without a
+ * recorded grant. Note: this only affects this endpoint's visibility filter —
+ * the underlying kernel state is world-readable on-chain regardless.
  */
 export async function recordStorageGrant(
   ownerAppId: string,
@@ -66,8 +79,10 @@ export async function recordStorageGrant(
 
 /**
  * Return true when `readerAppId` has a recorded grant from `ownerAppId` whose
- * `key_prefix` is a prefix of `key`. Throws on DB failure (fail-closed: the
- * caller must treat a thrown error as "deny").
+ * `key_prefix` is a prefix of `key`. Throws on DB failure (the caller treats a
+ * thrown error as "not visible"). This drives an advisory visibility filter
+ * only — a false result hides the value from this endpoint but does not make it
+ * confidential, since the kernel state is world-readable on-chain.
  */
 export async function hasStorageGrant(
   ownerAppId: string,
