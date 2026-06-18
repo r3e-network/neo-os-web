@@ -1,12 +1,6 @@
 import Head from "next/head";
 import type { GetStaticProps } from "next";
-import {
-  useDeferredValue,
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-} from "react";
+import { useDeferredValue, useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
@@ -37,6 +31,7 @@ import { useI18n } from "@/lib/i18n/react";
 import { sortMiniApps } from "@/lib/miniapp-showcase";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 import { BRAND } from "@/lib/brand";
+import { buildMiniAppDetailHref } from "@/lib/miniapp-routes";
 
 /* ── Color accents per flagship ──────────────────────────────────────── */
 
@@ -88,7 +83,9 @@ type StatusFilter = "all" | "live" | "tool" | "other-network" | "pending";
 
 function normalizePageNetwork(value: unknown): PageNetwork | null {
   const raw = Array.isArray(value) ? value[0] : value;
-  const text = String(raw ?? "").trim().toLowerCase();
+  const text = String(raw ?? "")
+    .trim()
+    .toLowerCase();
   if (text === "mainnet" || text === "neo-n3-mainnet") return "mainnet";
   if (text === "testnet" || text === "neo-n3-testnet") return "testnet";
   return null;
@@ -160,7 +157,7 @@ function MiniAppListingCard({
 
   return (
     <Link
-      href={`/miniapps/${encodeURIComponent(app.app_id)}?network=${targetNetwork}`}
+      href={buildMiniAppDetailHref(app.app_id, { network: targetNetwork })}
       className="group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-neo/40 hover:shadow-md sm:gap-4 sm:p-4"
       data-testid="miniapp-market-row"
     >
@@ -358,7 +355,11 @@ export default function MiniAppsPage({
         categoryFilter === "all" || app.category === categoryFilter;
       const localizedName = getLocalizedMiniAppName(app, locale);
       const localizedDescription = getLocalizedMiniAppDescription(app, locale);
-      const localizedCategory = getLocalizedMiniAppCategoryLabel(app, locale, t);
+      const localizedCategory = getLocalizedMiniAppCategoryLabel(
+        app,
+        locale,
+        t,
+      );
       const matchesQuery =
         !normalizedQuery ||
         [
@@ -565,7 +566,11 @@ export default function MiniAppsPage({
                           </div>
                           <div className="min-w-0">
                             <p className="m-0 text-xs font-bold uppercase tracking-wide text-gray-500">
-                              {getLocalizedMiniAppCategoryLabel(hero, locale, t)}
+                              {getLocalizedMiniAppCategoryLabel(
+                                hero,
+                                locale,
+                                t,
+                              )}
                             </p>
                             <h2 className="m-0 mt-1 truncate text-2xl font-extrabold text-gray-900 sm:text-3xl">
                               {getLocalizedMiniAppName(hero, locale)}
@@ -577,7 +582,9 @@ export default function MiniAppsPage({
                         </p>
                       </div>
                       <Link
-                        href={`/miniapps/${hero.app_id}?network=${targetNetwork}`}
+                        href={buildMiniAppDetailHref(hero.app_id, {
+                          network: targetNetwork,
+                        })}
                         className="mt-4 inline-flex h-12 items-center justify-center rounded-xl bg-emerald-700 px-5 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:mt-6 sm:h-14"
                       >
                         {t("catalog.openApp", "host")}
