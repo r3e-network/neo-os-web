@@ -494,7 +494,7 @@ export default function PlayArea({
           <header className="gas-pool-workspace-hero">
             <img
               className="gas-pool-workspace-hero__logo"
-              src={`${import.meta.env.BASE_URL}logo.svg`}
+              src={`${import.meta.env.BASE_URL}onegate-logo.png`}
               alt=""
               aria-hidden="true"
               width={52}
