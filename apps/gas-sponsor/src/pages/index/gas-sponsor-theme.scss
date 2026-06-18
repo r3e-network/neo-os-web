@@ -23,7 +23,11 @@
   --gas-highlight: var(--ns-brand-strong, #0fb174);
   --gas-highlight-shadow: 0 0 8px rgba(22, 199, 132, 0.18);
   --gas-warning-text: #a16207;
-  --gas-button-primary-bg: linear-gradient(90deg, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
+  --gas-button-primary-bg: linear-gradient(
+    90deg,
+    var(--ns-brand, #16c784),
+    var(--ns-brand-strong, #0fb174)
+  );
   --gas-button-primary-text: #ffffff;
   --gas-button-primary-shadow: 0 8px 24px rgba(22, 199, 132, 0.2);
   --gas-button-secondary-bg: #f7f8fa;
@@ -52,7 +56,12 @@
   --gas-pump-screen-bg: #f7f8fa;
   --gas-pump-screen-border: rgba(20, 22, 38, 0.06);
   --gas-pump-screen-shadow: 0 2px 8px rgba(20, 22, 38, 0.05);
-  --gas-pump-screen-sheen: linear-gradient(90deg, transparent, rgba(22, 199, 132, 0.2), transparent);
+  --gas-pump-screen-sheen: linear-gradient(
+    90deg,
+    transparent,
+    rgba(22, 199, 132, 0.2),
+    transparent
+  );
   --gas-pump-label: #8a92a6;
   --gas-pump-amount: var(--ns-brand-strong, #0fb174);
   --gas-pump-amount-shadow: 0 0 16px rgba(22, 199, 132, 0.12);
@@ -64,10 +73,15 @@
   --gas-quick-btn-hover-text: var(--ns-brand-strong, #0fb174);
   --gas-tank-bg: #ffffff;
   --gas-tank-border: rgba(20, 22, 38, 0.06);
-  --gas-tank-shadow: 0 8px 24px rgba(20, 22, 38, 0.06), 0 0 0 1px rgba(20, 22, 38, 0.06);
+  --gas-tank-shadow:
+    0 8px 24px rgba(20, 22, 38, 0.06), 0 0 0 1px rgba(20, 22, 38, 0.06);
   --gas-tank-grid: rgba(20, 22, 38, 0.04);
   --gas-tank-graduation: rgba(20, 22, 38, 0.18);
-  --gas-tank-highlight: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, transparent 100%);
+  --gas-tank-highlight: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.65) 0%,
+    transparent 100%
+  );
   --gas-fuel-start: rgba(22, 199, 132, 0.9);
   --gas-fuel-end: rgba(15, 177, 116, 0.9);
   --gas-fuel-shadow: 0 0 28px rgba(22, 199, 132, 0.22);
@@ -93,7 +107,7 @@
 }
 
 :global(.theme-dark .theme-gas-sponsor) {
-  --gas-font: 'Inter Tight', 'Inter', sans-serif;
+  --gas-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --gas-bg: #f7f8fa;
   --gas-bg-secondary: #eef0f4;
   --gas-bg-elevated: #ffffff;
@@ -118,7 +132,11 @@
   --gas-highlight: var(--ns-brand-strong, #0fb174);
   --gas-highlight-shadow: 0 0 8px rgba(22, 199, 132, 0.18);
   --gas-warning-text: #a16207;
-  --gas-button-primary-bg: linear-gradient(90deg, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
+  --gas-button-primary-bg: linear-gradient(
+    90deg,
+    var(--ns-brand, #16c784),
+    var(--ns-brand-strong, #0fb174)
+  );
   --gas-button-primary-text: #ffffff;
   --gas-button-primary-shadow: 0 8px 24px rgba(22, 199, 132, 0.2);
   --gas-button-secondary-bg: #f7f8fa;
@@ -147,7 +165,12 @@
   --gas-pump-screen-bg: #f7f8fa;
   --gas-pump-screen-border: rgba(20, 22, 38, 0.06);
   --gas-pump-screen-shadow: 0 2px 8px rgba(20, 22, 38, 0.05);
-  --gas-pump-screen-sheen: linear-gradient(90deg, transparent, rgba(22, 199, 132, 0.2), transparent);
+  --gas-pump-screen-sheen: linear-gradient(
+    90deg,
+    transparent,
+    rgba(22, 199, 132, 0.2),
+    transparent
+  );
   --gas-pump-label: #8a92a6;
   --gas-pump-amount: var(--ns-brand-strong, #0fb174);
   --gas-pump-amount-shadow: 0 0 16px rgba(22, 199, 132, 0.12);
@@ -159,10 +182,15 @@
   --gas-quick-btn-hover-text: var(--ns-brand-strong, #0fb174);
   --gas-tank-bg: #ffffff;
   --gas-tank-border: rgba(20, 22, 38, 0.06);
-  --gas-tank-shadow: 0 8px 24px rgba(20, 22, 38, 0.06), 0 0 0 1px rgba(20, 22, 38, 0.06);
+  --gas-tank-shadow:
+    0 8px 24px rgba(20, 22, 38, 0.06), 0 0 0 1px rgba(20, 22, 38, 0.06);
   --gas-tank-grid: rgba(20, 22, 38, 0.04);
   --gas-tank-graduation: rgba(20, 22, 38, 0.18);
-  --gas-tank-highlight: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, transparent 100%);
+  --gas-tank-highlight: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.65) 0%,
+    transparent 100%
+  );
   --gas-fuel-start: rgba(22, 199, 132, 0.9);
   --gas-fuel-end: rgba(15, 177, 116, 0.9);
   --gas-fuel-shadow: 0 0 28px rgba(22, 199, 132, 0.22);
@@ -194,5 +222,3 @@
   --shadow-color: rgba(20, 22, 38, 0.06);
   --neo-green: var(--gas-highlight);
 }
-
-
