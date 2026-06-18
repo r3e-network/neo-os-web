@@ -189,6 +189,7 @@ platform/host-app/public/miniapp-assets/**/*.jpg
 platform/host-app/public/miniapp-assets/**/*.jpeg
 platform/host-app/public/miniapp-assets/**/*.png
 !platform/host-app/public/miniapp-assets/**/logo.jpg
+!platform/host-app/public/miniapp-assets/**/logo.png
 !platform/host-app/public/miniapp-assets/**/banner.jpg
 
 # Stale reference images
