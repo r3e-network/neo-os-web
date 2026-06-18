@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createHostSDK, createMiniAppSDK, SDKError } from "../src/client";
+import {
+  buildDapiAuthenticationPayload,
+  createHostSDK,
+  createMiniAppSDK,
+  SDKError,
+} from "../src/client";
 import { resetNep21ProviderCacheForTests } from "../src/nep21-provider";
 import type { MiniAppSDKConfig } from "../src/types";
 
 const PENDING_INVOCATION_TTL_MS = 10 * 60 * 1000;
 const PENDING_INVOCATION_MAX_ENTRIES = 64;
+const MAINNET_MAGIC = 860833102;
 const ACCOUNT_HASH = "0x1111111111111111111111111111111111111111";
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
@@ -89,6 +95,35 @@ describe("createMiniAppSDK", () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.useRealTimers();
+  });
+
+  it("builds authentication challenges accepted by OneGate native dAPI", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-18T06:30:05.000Z"));
+    const wallet = createWalletWindow();
+    wallet.win.location = {
+      search: "",
+      href: "https://neomini.app/miniapps/gas-lucky-pool/index.html",
+      host: "neomini.app:443",
+      hostname: "neomini.app",
+    };
+    vi.stubGlobal("window", wallet.win);
+
+    const payload = buildDapiAuthenticationPayload([MAINNET_MAGIC]);
+
+    expect(payload).toMatchObject({
+      action: "Authentication",
+      domain: "neomini.app",
+      networks: [MAINNET_MAGIC],
+      timestamp: 1781764205000,
+      Action: "Authentication",
+      Domain: "neomini.app",
+      Networks: [MAINNET_MAGIC],
+      Timestamp: 1781764205,
+    });
+    expect(payload.allowed_algorithms).toEqual(["ECDSA-P256"]);
+    expect(typeof payload.nonce).toBe("string");
+    expect(typeof payload.Nonce).toBe("number");
   });
 
   describe("resolveInvocationParams via wallet.invokeInvocation", () => {
@@ -258,7 +293,10 @@ describe("createMiniAppSDK", () => {
     });
 
     it("maps unparseable bodies to an invalid-JSON error", async () => {
-      vi.stubGlobal("fetch", vi.fn(async () => jsonResponse("not-json{")));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => jsonResponse("not-json{")),
+      );
       const sdk = createMiniAppSDK(cfg);
 
       await expect(sdk.gasSponsor.check()).rejects.toThrow(
@@ -267,7 +305,10 @@ describe("createMiniAppSDK", () => {
     });
 
     it("maps non-object JSON bodies to a non-object error", async () => {
-      vi.stubGlobal("fetch", vi.fn(async () => jsonResponse("42")));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => jsonResponse("42")),
+      );
       const sdk = createMiniAppSDK(cfg);
 
       await expect(sdk.gasSponsor.check()).rejects.toThrow(
@@ -351,7 +392,10 @@ describe("createMiniAppSDK", () => {
     });
 
     it("types malformed success payloads", async () => {
-      vi.stubGlobal("fetch", vi.fn(async () => jsonResponse("not-json{")));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => jsonResponse("not-json{")),
+      );
       const sdk = createMiniAppSDK(cfg);
 
       const err = (await sdk.gasSponsor

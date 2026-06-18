@@ -92,8 +92,7 @@ const ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE =
 const ERROR_CODE_PAYMENT_INVALID_AMOUNT = "WALLET_PAYMENT_INVALID_AMOUNT";
 const ERROR_CODE_WALLET_NETWORK_UNVERIFIED = "WALLET_NETWORK_UNVERIFIED";
 const ERROR_CODE_WALLET_NETWORK_MISMATCH = "WALLET_NETWORK_MISMATCH";
-const ERROR_CODE_WALLET_CONFIRMATION_REJECTED =
-  "WALLET_CONFIRMATION_REJECTED";
+const ERROR_CODE_WALLET_CONFIRMATION_REJECTED = "WALLET_CONFIRMATION_REJECTED";
 
 const PLATFORM_API = import.meta.env?.VITE_PLATFORM_API || "";
 let walletInstance: WalletSDK | null = null;
@@ -127,9 +126,40 @@ function createNonce(): string {
   return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
 }
 
+function createNumericNonce(): number {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.getRandomValues === "function"
+  ) {
+    const bytes = new Uint32Array(1);
+    crypto.getRandomValues(bytes);
+    return bytes[0] ?? Math.floor(Math.random() * 0xffffffff);
+  }
+  return Math.floor(Math.random() * 0xffffffff);
+}
+
 function getAuthenticationDomain(): string {
   if (typeof window === "undefined") return "localhost";
-  return window.location.host || window.location.hostname || "localhost";
+  return window.location.hostname || window.location.host || "localhost";
+}
+
+function buildDapiAuthenticationPayload(networks: number[]) {
+  const domain = getAuthenticationDomain();
+  const timestamp = Date.now();
+  return {
+    action: "Authentication" as const,
+    grant_type: "Signature" as const,
+    allowed_algorithms: ["ECDSA-P256"] as ["ECDSA-P256"],
+    domain,
+    networks,
+    nonce: createNonce(),
+    timestamp,
+    Action: "Authentication" as const,
+    Domain: domain,
+    Networks: networks,
+    Nonce: createNumericNonce(),
+    Timestamp: Math.floor(timestamp / 1000),
+  };
 }
 
 function stringifyIntentValue(value: unknown): string {
@@ -170,8 +200,7 @@ function buildWalletIntentSummary(
     lines.push(
       "Signers:",
       ...params.signers.map(
-        (signer, index) =>
-          `${index + 1}. ${signer.account} (${signer.scopes})`,
+        (signer, index) => `${index + 1}. ${signer.account} (${signer.scopes})`,
       ),
     );
   }
@@ -224,7 +253,9 @@ function confirmWalletIntentInModal(
 ): Promise<boolean> {
   if (typeof document === "undefined" || !document.body) {
     if (typeof window !== "undefined" && typeof window.confirm === "function") {
-      return Promise.resolve(window.confirm(buildWalletIntentSummary(params, context)));
+      return Promise.resolve(
+        window.confirm(buildWalletIntentSummary(params, context)),
+      );
     }
     return Promise.reject(
       new Error("Wallet intent confirmation UI is not available."),
@@ -561,15 +592,9 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     const supportedNetworks = provider.supportedNetworks?.length
       ? provider.supportedNetworks
       : [MAINNET_MAGIC, TESTNET_MAGIC];
-    const authenticated = await provider.authenticate({
-      action: "Authentication",
-      grant_type: "Signature",
-      allowed_algorithms: ["ECDSA-P256"],
-      domain: getAuthenticationDomain(),
-      networks: supportedNetworks,
-      nonce: createNonce(),
-      timestamp: Date.now(),
-    });
+    const authenticated = await provider.authenticate(
+      buildDapiAuthenticationPayload(supportedNetworks),
+    );
 
     if (authenticated.network) {
       chainType.value = chainTypeFromDapiNetwork(authenticated.network);

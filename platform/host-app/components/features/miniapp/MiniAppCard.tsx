@@ -11,6 +11,7 @@ import {
 } from "@/lib/miniapp-media";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { cn } from "@/lib/utils";
+import { buildMiniAppDetailHref } from "@/lib/miniapp-routes";
 
 const categoryColors = {
   gaming: "bg-purple-100 text-purple-800",
@@ -60,7 +61,7 @@ export const MiniAppCard = memo(function MiniAppCard({
 
   return (
     <Link
-      href={`/miniapps/${app.app_id}`}
+      href={buildMiniAppDetailHref(app.app_id)}
       aria-label={`View ${app.name}`}
       className="relative block rounded-3xl outline-none"
     >

@@ -43,7 +43,10 @@ function createNep21Provider(overrides: Record<string, unknown> = {}) {
         isDefault: true,
       },
     ]),
-    call: vi.fn(async () => ({ state: "HALT", stack: [{ type: "Integer", value: "7" }] })),
+    call: vi.fn(async () => ({
+      state: "HALT",
+      stack: [{ type: "Integer", value: "7" }],
+    })),
     invoke: vi.fn(async () => "0xtxid"),
     getBalance: vi.fn(async () => "42"),
     send: vi.fn(async () => ({ hash: "0xsendtx" })),
@@ -89,6 +92,40 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(wallet.chainType.value).toBe("neo-n3-testnet");
   });
 
+  it("authenticates with a OneGate-native compatible challenge when accounts are gated", async () => {
+    const authenticate = vi.fn(async () => ({
+      address: "NAuthenticated",
+      network: MAINNET_MAGIC,
+    }));
+    const provider = createNep21Provider({
+      name: "OneGate",
+      supportedNetworks: [MAINNET_MAGIC],
+      getAccounts: vi.fn(async () => []),
+      authenticate,
+    });
+    window.OneGateDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    const payload = authenticate.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      action: "Authentication",
+      domain: "localhost",
+      networks: [MAINNET_MAGIC],
+      Action: "Authentication",
+      Domain: "localhost",
+      Networks: [MAINNET_MAGIC],
+    });
+    expect(typeof payload.nonce).toBe("string");
+    expect(typeof payload.Nonce).toBe("number");
+    expect(payload.Timestamp).toBe(
+      Math.floor(Number(payload.timestamp) / 1000),
+    );
+    expect(wallet.address.value).toBe("NAuthenticated");
+    expect(wallet.chainType.value).toBe("neo-n3-mainnet");
+  });
+
   it("connects through the governance-style NEP21Provider global", async () => {
     const provider = createNep21Provider({ dapiVersion: "1.0" });
     (window as typeof window & { NEP21Provider?: unknown }).NEP21Provider =
@@ -103,8 +140,13 @@ describe("wallet-sdk NEP-21 support", () => {
   });
 
   it("connects through a named provider in the governance-style NEP21Providers registry", async () => {
-    const provider = createNep21Provider({ name: "OneGate", dapiVersion: "1.0" });
-    (window as typeof window & { NEP21Providers?: Record<string, unknown> }).NEP21Providers = {
+    const provider = createNep21Provider({
+      name: "OneGate",
+      dapiVersion: "1.0",
+    });
+    (
+      window as typeof window & { NEP21Providers?: Record<string, unknown> }
+    ).NEP21Providers = {
       OneGate: provider,
     };
 
@@ -126,15 +168,16 @@ describe("wallet-sdk NEP-21 support", () => {
       const data = event.data as Record<string, any>;
       if (data?.type !== "neo-miniapp-wallet-bridge:request") return;
       bridgeRequests.push(data);
-      const result = data.method === "getAccounts"
-        ? [
-            {
-              hash: "0x1111111111111111111111111111111111111111",
-              address: "NHostWallet",
-              isDefault: true,
-            },
-          ]
-        : { txid: "0xhostbridge" };
+      const result =
+        data.method === "getAccounts"
+          ? [
+              {
+                hash: "0x1111111111111111111111111111111111111111",
+                address: "NHostWallet",
+                isDefault: true,
+              },
+            ]
+          : { txid: "0xhostbridge" };
       window.postMessage(
         {
           type: "neo-miniapp-wallet-bridge:response",
@@ -153,14 +196,18 @@ describe("wallet-sdk NEP-21 support", () => {
       expect(wallet.address.value).toBe("NHostWallet");
       expect(wallet.chainId?.value).toBe("neo-n3-testnet");
 
-      await expect(wallet.invokeContract({
-        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        operation: "StorePhoto",
-        args: [{ type: "Hash160", value: "NHostWallet" }],
-        signers: [{ account: "NHostWallet", scopes: 1 }],
-      })).resolves.toMatchObject({ txid: "0xhostbridge" });
+      await expect(
+        wallet.invokeContract({
+          scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          operation: "StorePhoto",
+          args: [{ type: "Hash160", value: "NHostWallet" }],
+          signers: [{ account: "NHostWallet", scopes: 1 }],
+        }),
+      ).resolves.toMatchObject({ txid: "0xhostbridge" });
 
-      const invokeRequest = bridgeRequests.find((entry) => entry.method === "invoke");
+      const invokeRequest = bridgeRequests.find(
+        (entry) => entry.method === "invoke",
+      );
       expect(invokeRequest?.payload).toMatchObject({
         invocations: [
           {
@@ -223,11 +270,13 @@ describe("wallet-sdk NEP-21 support", () => {
 
     try {
       const wallet = useWallet();
-      await expect(wallet.invokeRead({
-        scriptHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        operation: "GetStats",
-        args: [],
-      })).resolves.toMatchObject({ state: "HALT" });
+      await expect(
+        wallet.invokeRead({
+          scriptHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          operation: "GetStats",
+          args: [],
+        }),
+      ).resolves.toMatchObject({ state: "HALT" });
 
       expect(wallet.address.value).toBeNull();
       expect(bridgeRequests.map((entry) => entry.method)).toEqual(["call"]);
@@ -283,31 +332,52 @@ describe("wallet-sdk NEP-21 support", () => {
     });
     expect(invokeResult.txid).toBe("0xtxid");
     expect(provider.invoke).toHaveBeenCalledWith(
-      [{
-        hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        operation: "transfer",
-        args: [{ type: "Hash160", value: "0x01" }],
-      }],
-      [{ account: "0x1111111111111111111111111111111111111111", scopes: "CalledByEntry" }],
+      [
+        {
+          hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          operation: "transfer",
+          args: [{ type: "Hash160", value: "0x01" }],
+        },
+      ],
+      [
+        {
+          account: "0x1111111111111111111111111111111111111111",
+          scopes: "CalledByEntry",
+        },
+      ],
     );
 
-    await expect(wallet.invokeRead({
-      scriptHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      operation: "BalanceOf",
-      args: [{ type: "Hash160", value: "0x1111111111111111111111111111111111111111" }],
-    })).resolves.toMatchObject({ state: "HALT" });
+    await expect(
+      wallet.invokeRead({
+        scriptHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        operation: "BalanceOf",
+        args: [
+          {
+            type: "Hash160",
+            value: "0x1111111111111111111111111111111111111111",
+          },
+        ],
+      }),
+    ).resolves.toMatchObject({ state: "HALT" });
     expect(provider.call).toHaveBeenCalledWith({
       hash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       operation: "balanceOf",
-      args: [{ type: "Hash160", value: "0x1111111111111111111111111111111111111111" }],
+      args: [
+        {
+          type: "Hash160",
+          value: "0x1111111111111111111111111111111111111111",
+        },
+      ],
     });
 
     provider.getAccounts.mockClear();
-    await expect(wallet.invokeRead({
-      scriptHash: "0xcccccccccccccccccccccccccccccccccccccccc",
-      operation: "TotalSupply",
-      args: [],
-    })).resolves.toMatchObject({ state: "HALT" });
+    await expect(
+      wallet.invokeRead({
+        scriptHash: "0xcccccccccccccccccccccccccccccccccccccccc",
+        operation: "TotalSupply",
+        args: [],
+      }),
+    ).resolves.toMatchObject({ state: "HALT" });
     expect(provider.getAccounts).not.toHaveBeenCalled();
     expect(provider.call).toHaveBeenLastCalledWith({
       hash: "0xcccccccccccccccccccccccccccccccccccccccc",
@@ -321,7 +391,13 @@ describe("wallet-sdk NEP-21 support", () => {
       "0x1111111111111111111111111111111111111111",
     );
 
-    await expect(wallet.send?.("GAS", "100000000", "0x2222222222222222222222222222222222222222")).resolves.toMatchObject({ txid: "0xsendtx" });
+    await expect(
+      wallet.send?.(
+        "GAS",
+        "100000000",
+        "0x2222222222222222222222222222222222222222",
+      ),
+    ).resolves.toMatchObject({ txid: "0xsendtx" });
     expect(provider.send).toHaveBeenCalledWith(
       "0xd2a4cff31913016155e38e474a2c06d08be276cf",
       "0x1111111111111111111111111111111111111111",
@@ -334,7 +410,10 @@ describe("wallet-sdk NEP-21 support", () => {
       signature: "signed-message",
       publicKey: "03abc",
     });
-    expect(provider.signMessage).toHaveBeenCalledWith("aGVsbG8=", "0x1111111111111111111111111111111111111111");
+    expect(provider.signMessage).toHaveBeenCalledWith(
+      "aGVsbG8=",
+      "0x1111111111111111111111111111111111111111",
+    );
   });
 
   it("normalizes the connected account Hash160 argument for OneGate transaction construction", async () => {
@@ -345,28 +424,40 @@ describe("wallet-sdk NEP-21 support", () => {
     const wallet = useWallet();
     await wallet.connect();
 
-    await expect(wallet.invokeContract({
-      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      operation: "claimRangeGasPool",
-      args: [
-        { type: "String", value: "miniapp-gas-lucky-pool" },
-        { type: "Integer", value: "42" },
-        { type: "Hash160", value: "NTestAddress" },
-      ],
-      signers: [{ account: "NTestAddress", scopes: 1 }],
-    })).resolves.toMatchObject({ txid: "0xtxid" });
-
-    expect(provider.invoke).toHaveBeenCalledWith(
-      [{
-        hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         operation: "claimRangeGasPool",
         args: [
           { type: "String", value: "miniapp-gas-lucky-pool" },
           { type: "Integer", value: "42" },
-          { type: "Hash160", value: "0x1111111111111111111111111111111111111111" },
+          { type: "Hash160", value: "NTestAddress" },
         ],
-      }],
-      [{ account: "0x1111111111111111111111111111111111111111", scopes: "CalledByEntry" }],
+        signers: [{ account: "NTestAddress", scopes: 1 }],
+      }),
+    ).resolves.toMatchObject({ txid: "0xtxid" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [
+        {
+          hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          operation: "claimRangeGasPool",
+          args: [
+            { type: "String", value: "miniapp-gas-lucky-pool" },
+            { type: "Integer", value: "42" },
+            {
+              type: "Hash160",
+              value: "0x1111111111111111111111111111111111111111",
+            },
+          ],
+        },
+      ],
+      [
+        {
+          account: "0x1111111111111111111111111111111111111111",
+          scopes: "CalledByEntry",
+        },
+      ],
     );
   });
 
@@ -380,15 +471,20 @@ describe("wallet-sdk NEP-21 support", () => {
     const wallet = useWallet();
     await wallet.connect();
 
-    await expect(wallet.invokeWithConfirmation?.({
-      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      operation: "RegisterAnchor",
-      args: [{ type: "Hash160", value: "NTestAddress" }],
-      signers: [{ account: "NTestAddress", scopes: 1 }],
-    }, {
-      endpoint: "os-binder",
-      appId: "miniapp-aa-market-hub",
-    })).resolves.toMatchObject({ txid: "0xtxid" });
+    await expect(
+      wallet.invokeWithConfirmation?.(
+        {
+          scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          operation: "RegisterAnchor",
+          args: [{ type: "Hash160", value: "NTestAddress" }],
+          signers: [{ account: "NTestAddress", scopes: 1 }],
+        },
+        {
+          endpoint: "os-binder",
+          appId: "miniapp-aa-market-hub",
+        },
+      ),
+    ).resolves.toMatchObject({ txid: "0xtxid" });
 
     expect(confirmIntent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -401,12 +497,24 @@ describe("wallet-sdk NEP-21 support", () => {
       }),
     );
     expect(provider.invoke).toHaveBeenCalledWith(
-      [{
-        hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        operation: "registerAnchor",
-        args: [{ type: "Hash160", value: "0x1111111111111111111111111111111111111111" }],
-      }],
-      [{ account: "0x1111111111111111111111111111111111111111", scopes: "CalledByEntry" }],
+      [
+        {
+          hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          operation: "registerAnchor",
+          args: [
+            {
+              type: "Hash160",
+              value: "0x1111111111111111111111111111111111111111",
+            },
+          ],
+        },
+      ],
+      [
+        {
+          account: "0x1111111111111111111111111111111111111111",
+          scopes: "CalledByEntry",
+        },
+      ],
     );
   });
 
@@ -419,11 +527,13 @@ describe("wallet-sdk NEP-21 support", () => {
     const wallet = useWallet();
     await wallet.connect();
 
-    await expect(wallet.invokeWithConfirmation?.({
-      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      operation: "RegisterAnchor",
-      args: [],
-    })).rejects.toThrow(/canceled/i);
+    await expect(
+      wallet.invokeWithConfirmation?.({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "RegisterAnchor",
+        args: [],
+      }),
+    ).rejects.toThrow(/canceled/i);
     expect(provider.invoke).not.toHaveBeenCalled();
   });
 
@@ -435,11 +545,13 @@ describe("wallet-sdk NEP-21 support", () => {
     const wallet = useWallet();
     await wallet.connect();
 
-    await expect(wallet.invokeContract({
-      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      operation: "Transfer",
-      args: [],
-    })).rejects.toThrow(/targets Neo N3 Mainnet/i);
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "Transfer",
+        args: [],
+      }),
+    ).rejects.toThrow(/targets Neo N3 Mainnet/i);
     expect(provider.invoke).not.toHaveBeenCalled();
   });
 
@@ -447,7 +559,9 @@ describe("wallet-sdk NEP-21 support", () => {
     const provider = createNep21Provider();
     const requestedVersions: string[] = [];
     window.addEventListener("Neo.DapiProvider.request", (event) => {
-      requestedVersions.push((event as CustomEvent<{ version?: string }>).detail?.version ?? "");
+      requestedVersions.push(
+        (event as CustomEvent<{ version?: string }>).detail?.version ?? "",
+      );
     });
     const wallet = useWallet();
     const connectPromise = wallet.connect();
@@ -455,9 +569,11 @@ describe("wallet-sdk NEP-21 support", () => {
     await Promise.resolve();
     expect(requestedVersions).toEqual(["1.0"]);
 
-    window.dispatchEvent(new CustomEvent("Neo.DapiProvider.ready", {
-      detail: { provider },
-    }));
+    window.dispatchEvent(
+      new CustomEvent("Neo.DapiProvider.ready", {
+        detail: { provider },
+      }),
+    );
 
     await connectPromise;
     expect(wallet.address.value).toBe("NTestAddress");
@@ -470,9 +586,11 @@ describe("wallet-sdk NEP-21 support", () => {
 
     await Promise.resolve();
 
-    window.dispatchEvent(new CustomEvent("Neo.DapiProvider.ready", {
-      detail: provider,
-    }));
+    window.dispatchEvent(
+      new CustomEvent("Neo.DapiProvider.ready", {
+        detail: provider,
+      }),
+    );
 
     await connectPromise;
     expect(wallet.address.value).toBe("NTestAddress");
@@ -481,7 +599,8 @@ describe("wallet-sdk NEP-21 support", () => {
   it("updates the connected account from the standard accountchanged event", async () => {
     let accountChangedListener: (() => void) | undefined;
     const provider = createNep21Provider({
-      getAccounts: vi.fn()
+      getAccounts: vi
+        .fn()
         .mockResolvedValueOnce([
           {
             hash: "0x1111111111111111111111111111111111111111",
@@ -518,7 +637,12 @@ describe("wallet-sdk NEP-21 support", () => {
       invoke: vi.fn(async () => ({ txid: "0xneoline" })),
       invokeRead: vi.fn(async () => ({ state: "HALT", stack: [] })),
       getBalance: vi.fn(async () => ({
-        GAS: [{ amount: "12", contract: "0xd2a4cff31913016155e38e474a2c06d08be276cf" }],
+        GAS: [
+          {
+            amount: "12",
+            contract: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          },
+        ],
       })),
     };
     (window as typeof window & { neo3Dapi?: unknown }).neo3Dapi = neoLine;
@@ -543,26 +667,34 @@ describe("wallet-sdk NEP-21 support", () => {
     // User flips the wallet to mainnet mid-session.
     provider.network = MAINNET_MAGIC;
 
-    await expect(wallet.invokeContract({
-      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      operation: "Transfer",
-      args: [],
-    })).rejects.toThrow(/targets Neo N3 Testnet/i);
-    expect(provider.invoke).not.toHaveBeenCalled();
-
-    await expect(wallet.invokeMultiple?.({
-      invokeArgs: [{
+    await expect(
+      wallet.invokeContract({
         scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         operation: "Transfer",
         args: [],
-      }],
-    })).rejects.toThrow(/targets Neo N3 Testnet/i);
+      }),
+    ).rejects.toThrow(/targets Neo N3 Testnet/i);
+    expect(provider.invoke).not.toHaveBeenCalled();
 
-    await expect(wallet.send?.(
-      "GAS",
-      "100000000",
-      "0x2222222222222222222222222222222222222222",
-    )).rejects.toThrow(/targets Neo N3 Testnet/i);
+    await expect(
+      wallet.invokeMultiple?.({
+        invokeArgs: [
+          {
+            scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            operation: "Transfer",
+            args: [],
+          },
+        ],
+      }),
+    ).rejects.toThrow(/targets Neo N3 Testnet/i);
+
+    await expect(
+      wallet.send?.(
+        "GAS",
+        "100000000",
+        "0x2222222222222222222222222222222222222222",
+      ),
+    ).rejects.toThrow(/targets Neo N3 Testnet/i);
     expect(provider.send).not.toHaveBeenCalled();
 
     await expect(wallet.getBalance("GAS")).rejects.toThrow(
@@ -572,11 +704,13 @@ describe("wallet-sdk NEP-21 support", () => {
 
     // Switching back restores the write path.
     provider.network = TESTNET_MAGIC;
-    await expect(wallet.invokeContract({
-      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      operation: "Transfer",
-      args: [],
-    })).resolves.toMatchObject({ txid: "0xtxid" });
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "Transfer",
+        args: [],
+      }),
+    ).resolves.toMatchObject({ txid: "0xtxid" });
   });
 
   it("does not request a root neo-manifest from host-rendered pages", async () => {
@@ -586,7 +720,9 @@ describe("wallet-sdk NEP-21 support", () => {
 
     const wallet = useWallet();
 
-    await expect(wallet.getContractAddress()).rejects.toThrow("Contract address not configured");
+    await expect(wallet.getContractAddress()).rejects.toThrow(
+      "Contract address not configured",
+    );
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

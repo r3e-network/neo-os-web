@@ -6,6 +6,7 @@ import { MiniAppLogo } from "./MiniAppLogo";
 import { Badge } from "@/components/ui/badge";
 import type { MiniAppInfo } from "@/components/types";
 import { cn } from "@/lib/utils";
+import { buildMiniAppDetailHref } from "@/lib/miniapp-routes";
 
 interface MiniAppListItemProps {
   app: MiniAppInfo;
@@ -31,7 +32,7 @@ export const MiniAppListItem = memo(function MiniAppListItem({
 }: MiniAppListItemProps) {
   return (
     <Link
-      href={`/miniapps/${app.app_id}`}
+      href={buildMiniAppDetailHref(app.app_id)}
       className="group block rounded-2xl border border-gray-200/50 bg-white/40 hover:bg-white/80 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo glass-panel hover:shadow-lg hover:-translate-y-1 overflow-hidden relative"
     >
       <div className="absolute inset-0 bg-gradient-to-r from-white/40 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />

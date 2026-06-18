@@ -50,6 +50,7 @@ import {
   readImmediateNep21Provider,
   waitForNep21Provider,
   type NeoDapiAccount as DapiAccount,
+  type NeoDapiAuthenticationPayload,
   type NeoDapiProvider as BaseNeoDapiProvider,
 } from "./nep21-provider.js";
 
@@ -127,6 +128,18 @@ function createNonce(): string {
   return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
 }
 
+function createNumericNonce(): number {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.getRandomValues === "function"
+  ) {
+    const bytes = new Uint32Array(1);
+    crypto.getRandomValues(bytes);
+    return bytes[0] ?? Math.floor(Math.random() * 0xffffffff);
+  }
+  return Math.floor(Math.random() * 0xffffffff);
+}
+
 function readImmediateDapiProvider(): NeoDapiProvider | null {
   return readImmediateNep21Provider() as NeoDapiProvider | null;
 }
@@ -135,14 +148,35 @@ function waitForDapiProvider(timeoutMs = 750): Promise<NeoDapiProvider | null> {
   const immediate = readImmediateDapiProvider();
   if (immediate) return Promise.resolve(immediate);
   if (typeof window === "undefined") return Promise.resolve(null);
-  return waitForNep21Provider({ timeoutMs }).catch(() => null) as Promise<
-    NeoDapiProvider | null
-  >;
+  return waitForNep21Provider({ timeoutMs }).catch(
+    () => null,
+  ) as Promise<NeoDapiProvider | null>;
 }
 
 function getAuthenticationDomain(): string {
   if (typeof window === "undefined") return "localhost";
-  return window.location.host || window.location.hostname || "localhost";
+  return window.location.hostname || window.location.host || "localhost";
+}
+
+export function buildDapiAuthenticationPayload(
+  networks: number[],
+): NeoDapiAuthenticationPayload {
+  const domain = getAuthenticationDomain();
+  const timestamp = Date.now();
+  return {
+    action: "Authentication",
+    grant_type: "Signature",
+    allowed_algorithms: ["ECDSA-P256"],
+    domain,
+    networks,
+    nonce: createNonce(),
+    timestamp,
+    Action: "Authentication",
+    Domain: domain,
+    Networks: networks,
+    Nonce: createNumericNonce(),
+    Timestamp: Math.floor(timestamp / 1000),
+  };
 }
 
 async function getNeoDapiContext(
@@ -175,17 +209,13 @@ async function getNeoDapiContext(
 
   if (!allowAuthenticate || !provider.authenticate) return null;
 
-  const authenticated = await provider.authenticate({
-    action: "Authentication",
-    grant_type: "Signature",
-    allowed_algorithms: ["ECDSA-P256"],
-    domain: getAuthenticationDomain(),
-    networks: provider.supportedNetworks?.length
-      ? provider.supportedNetworks
-      : [MAINNET_MAGIC, TESTNET_MAGIC],
-    nonce: createNonce(),
-    timestamp: Date.now(),
-  });
+  const authenticated = await provider.authenticate(
+    buildDapiAuthenticationPayload(
+      provider.supportedNetworks?.length
+        ? provider.supportedNetworks
+        : [MAINNET_MAGIC, TESTNET_MAGIC],
+    ),
+  );
   const address = String(authenticated.address ?? "").trim();
   if (!address) return null;
   return { kind: "nep21", address, provider };
@@ -848,9 +878,7 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
           "direct contract reads; the privacy relayer gateway was removed",
         );
       },
-      async relay(
-        _params: PrivacyRelayRequest,
-      ): Promise<PrivacyRelayResponse> {
+      async relay(_params: PrivacyRelayRequest): Promise<PrivacyRelayResponse> {
         return retiredEndpoint(
           "privacy.relay",
           "a wallet-signed transaction; the privacy relayer gateway was removed",
