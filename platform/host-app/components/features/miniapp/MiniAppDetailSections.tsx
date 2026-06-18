@@ -19,6 +19,7 @@ import type {
 import type { OnChainActivity } from "../../types";
 import type { MiniAppNavItem } from "../../../lib/miniapp-detail-helpers";
 import type { ResolvedMiniAppContractDomain } from "../../../lib/miniapp-runtime";
+import { buildMiniAppDetailHref } from "../../../lib/miniapp-routes";
 import { DetailContentBlocks } from "./DetailContentBlocks";
 import { MiniAppLogo } from "./MiniAppLogo";
 
@@ -517,7 +518,7 @@ export function MiniAppListRail({
               key={category}
               type="button"
               onClick={() => setCategoryFilter(category)}
-                    className={`shrink-0 cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
+              className={`shrink-0 cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                 active
                   ? "border-emerald-300 bg-emerald-50 text-emerald-900"
                   : "border-gray-200 bg-white text-gray-700 hover:text-gray-900"
@@ -535,7 +536,7 @@ export function MiniAppListRail({
           return (
             <Link
               key={item.app_id}
-              href={`/miniapps/${item.app_id}`}
+              href={buildMiniAppDetailHref(item.app_id)}
               prefetch={false}
               aria-current={selected ? "page" : undefined}
               className={`flex min-w-0 items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${

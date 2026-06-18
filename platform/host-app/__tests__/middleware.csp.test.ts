@@ -1,7 +1,9 @@
 describe("middleware CSP", () => {
   let buildCSP: typeof import("../middleware").buildCSP;
   let buildMiniAppDetailRewriteUrl: typeof import("../middleware").buildMiniAppDetailRewriteUrl;
+  let buildOneGateStandaloneRuntimeUrl: typeof import("../middleware").buildOneGateStandaloneRuntimeUrl;
   let resolveMiniAppDetailRewriteId: typeof import("../middleware").resolveMiniAppDetailRewriteId;
+  let resolveOneGateStandaloneRuntimePath: typeof import("../middleware").resolveOneGateStandaloneRuntimePath;
 
   beforeAll(() => {
     if (typeof globalThis.Request === "undefined") {
@@ -12,7 +14,13 @@ describe("middleware CSP", () => {
       (globalThis as unknown as { Response: typeof Response }).Response =
         class Response {} as typeof Response;
     }
-    ({ buildCSP, buildMiniAppDetailRewriteUrl, resolveMiniAppDetailRewriteId } = require("../middleware"));
+    ({
+      buildCSP,
+      buildMiniAppDetailRewriteUrl,
+      buildOneGateStandaloneRuntimeUrl,
+      resolveMiniAppDetailRewriteId,
+      resolveOneGateStandaloneRuntimePath,
+    } = require("../middleware"));
   });
 
   const scriptDirective = (csp: string) =>
@@ -89,8 +97,12 @@ describe("middleware CSP", () => {
     expect(resolveMiniAppDetailRewriteId("/miniapps/fogplay")).toBe("fogplay");
     expect(resolveMiniAppDetailRewriteId("/miniapps/fogplay/")).toBe("fogplay");
     expect(resolveMiniAppDetailRewriteId("/miniapps/catalog.json")).toBeNull();
-    expect(resolveMiniAppDetailRewriteId("/miniapps/onegate-catalog.json")).toBeNull();
-    expect(resolveMiniAppDetailRewriteId("/miniapps/fogplay/index.html")).toBeNull();
+    expect(
+      resolveMiniAppDetailRewriteId("/miniapps/onegate-catalog.json"),
+    ).toBeNull();
+    expect(
+      resolveMiniAppDetailRewriteId("/miniapps/fogplay/index.html"),
+    ).toBeNull();
   });
 
   it("preserves query parameters when rewriting miniapp detail pages", () => {
@@ -102,5 +114,30 @@ describe("middleware CSP", () => {
     expect(rewriteUrl.pathname).toBe("/miniapp-detail/fogplay");
     expect(rewriteUrl.searchParams.get("network")).toBe("testnet");
     expect(rewriteUrl.searchParams.get("operation")).toBe("Flip");
+  });
+
+  it("routes OneGate Vault legacy dapp URLs to the standalone runtime", () => {
+    expect(
+      resolveOneGateStandaloneRuntimePath("/miniapps/miniapp-gas-lucky-pool"),
+    ).toBe("/miniapps/gas-lucky-pool/index.html");
+    expect(
+      resolveOneGateStandaloneRuntimePath("/miniapps/onegate-vault/"),
+    ).toBe("/miniapps/gas-lucky-pool/index.html");
+    expect(resolveOneGateStandaloneRuntimePath("/miniapps/fogplay")).toBeNull();
+  });
+
+  it("preserves launch query parameters on OneGate Vault runtime redirects", () => {
+    const redirectUrl = buildOneGateStandaloneRuntimeUrl(
+      "https://neomini.app/miniapps/miniapp-gas-lucky-pool?network=testnet&claim_key=abc",
+      "/miniapps/gas-lucky-pool/index.html",
+    );
+
+    expect(redirectUrl.pathname).toBe("/miniapps/gas-lucky-pool/index.html");
+    expect(redirectUrl.searchParams.get("network")).toBe("testnet");
+    expect(redirectUrl.searchParams.get("claim_key")).toBe("abc");
+    expect(redirectUrl.searchParams.get("source")).toBe("onegate");
+    expect(redirectUrl.searchParams.get("appId")).toBe(
+      "miniapp-gas-lucky-pool",
+    );
   });
 });

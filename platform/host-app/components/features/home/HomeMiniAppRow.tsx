@@ -10,6 +10,7 @@ import {
 } from "@/lib/i18n/miniapp-display";
 import type { Locale } from "@/lib/i18n";
 import { getCategoryTheme } from "@/lib/category-theme";
+import { buildMiniAppDetailHref } from "@/lib/miniapp-routes";
 import { ArrowUpRight } from "lucide-react";
 
 export function HomeMiniAppRow({
@@ -35,7 +36,9 @@ export function HomeMiniAppRow({
   );
   const theme = getCategoryTheme(app.category);
   const isLive = availability.tone === "live";
-  const detailHref = `/miniapps/${app.app_id}?network=${encodeURIComponent(targetNetwork)}`;
+  const detailHref = buildMiniAppDetailHref(app.app_id, {
+    network: targetNetwork,
+  });
   const statusClass =
     availability.tone === "live"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"

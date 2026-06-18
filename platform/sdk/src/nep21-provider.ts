@@ -25,6 +25,21 @@ export type NeoDapiAuthenticationResponse = {
   signature?: string;
 };
 
+export type NeoDapiAuthenticationPayload = {
+  action: "Authentication";
+  grant_type: "Signature";
+  allowed_algorithms: ["ECDSA-P256"];
+  domain: string;
+  networks: number[];
+  nonce: string;
+  timestamp: number;
+  Action?: "Authentication";
+  Domain?: string;
+  Networks?: number[];
+  Nonce?: number;
+  Timestamp?: number;
+};
+
 export interface NeoDapiProvider<
   TArg = { type: string; value: unknown },
   TCallResult = unknown,
@@ -39,15 +54,9 @@ export interface NeoDapiProvider<
   website?: string;
   on?: (event: NeoDapiEventName, listener: () => void) => void;
   removeListener?: (event: NeoDapiEventName, listener: () => void) => void;
-  authenticate?: (payload: {
-    action: "Authentication";
-    grant_type: "Signature";
-    allowed_algorithms: ["ECDSA-P256"];
-    domain: string;
-    networks: number[];
-    nonce: string;
-    timestamp: number;
-  }) => Promise<NeoDapiAuthenticationResponse>;
+  authenticate?: (
+    payload: NeoDapiAuthenticationPayload,
+  ) => Promise<NeoDapiAuthenticationResponse>;
   call?: (invocation: NeoDapiInvocation<TArg>) => Promise<TCallResult>;
   getAccounts: () => Promise<NeoDapiAccount[]>;
   getBalance?: (asset: string, account?: string) => Promise<unknown>;
@@ -93,7 +102,14 @@ type Candidate = {
   key?: string;
 };
 
-type HostBridgeRequestPayload = Record<string, unknown> | unknown[] | string | number | boolean | null | undefined;
+type HostBridgeRequestPayload =
+  | Record<string, unknown>
+  | unknown[]
+  | string
+  | number
+  | boolean
+  | null
+  | undefined;
 
 type HostBridgeResponse = {
   type?: string;
@@ -189,7 +205,9 @@ export function isNep21Provider(value: unknown): value is NeoDapiProvider {
   );
 }
 
-function registryCandidates(registry: Nep21Window["NEP21Providers"]): Candidate[] {
+function registryCandidates(
+  registry: Nep21Window["NEP21Providers"],
+): Candidate[] {
   if (!registry || typeof registry !== "object") return [];
   return Object.entries(registry as Record<string, unknown>).map(
     ([key, provider]) => ({
@@ -273,7 +291,8 @@ export function rememberNep21Provider(
   };
   writableWindow.NEP21Provider = provider;
   const registry =
-    writableWindow.NEP21Providers && typeof writableWindow.NEP21Providers === "object"
+    writableWindow.NEP21Providers &&
+    typeof writableWindow.NEP21Providers === "object"
       ? { ...(writableWindow.NEP21Providers as Record<string, unknown>) }
       : {};
   const name = String(provider.name ?? "").trim();
@@ -282,10 +301,12 @@ export function rememberNep21Provider(
   return provider;
 }
 
-export function readImmediateNep21Provider(options: {
-  preference?: Nep21ProviderPreference;
-  targetWindow?: Window;
-} = {}): NeoDapiProvider | null {
+export function readImmediateNep21Provider(
+  options: {
+    preference?: Nep21ProviderPreference;
+    targetWindow?: Window;
+  } = {},
+): NeoDapiProvider | null {
   const preference = options.preference ?? "any";
   const win = getTargetWindow(options.targetWindow);
   if (!win) return null;
@@ -300,9 +321,7 @@ export function readImmediateNep21Provider(options: {
   return provider ? rememberNep21Provider(provider, win) : null;
 }
 
-export function extractNep21ProviderFromReadyEvent(
-  event: Event,
-): unknown {
+export function extractNep21ProviderFromReadyEvent(event: Event): unknown {
   const detail = (event as CustomEvent<unknown>).detail;
   if (isNep21Provider(detail)) return detail;
   if (detail && typeof detail === "object") {
@@ -321,17 +340,23 @@ export function requestNep21Provider(targetWindow?: Window): void {
   );
 }
 
-export function waitForNep21Provider(options: {
-  timeoutMs?: number;
-  preference?: Nep21ProviderPreference;
-  targetWindow?: Window;
-  request?: boolean;
-} = {}): Promise<NeoDapiProvider> {
+export function waitForNep21Provider(
+  options: {
+    timeoutMs?: number;
+    preference?: Nep21ProviderPreference;
+    targetWindow?: Window;
+    request?: boolean;
+  } = {},
+): Promise<NeoDapiProvider> {
   const timeoutMs = options.timeoutMs ?? 3000;
   const preference = options.preference ?? "any";
   const win = getTargetWindow(options.targetWindow);
-  if (!win) return Promise.reject(new Error("NEP-21 dAPI provider not detected."));
-  const immediate = readImmediateNep21Provider({ preference, targetWindow: win });
+  if (!win)
+    return Promise.reject(new Error("NEP-21 dAPI provider not detected."));
+  const immediate = readImmediateNep21Provider({
+    preference,
+    targetWindow: win,
+  });
   if (immediate) return Promise.resolve(immediate);
 
   return new Promise((resolve, reject) => {
@@ -394,7 +419,9 @@ function isEmbeddedHostLaunch(win: Nep21Window): boolean {
 
 function networkMagicFromLocation(win: Nep21Window): number {
   try {
-    const raw = String(new URLSearchParams(win.location.search).get("network") || "")
+    const raw = String(
+      new URLSearchParams(win.location.search).get("network") || "",
+    )
       .trim()
       .toLowerCase();
     if (raw.includes("mainnet")) return MAINNET_MAGIC;
@@ -455,7 +482,9 @@ function hostBridgeRequest<T>(
 ): Promise<T> {
   const target = win.parent;
   if (!target) {
-    return Promise.reject(new Error("MiniApp host wallet bridge is not available."));
+    return Promise.reject(
+      new Error("MiniApp host wallet bridge is not available."),
+    );
   }
 
   const id = createHostBridgeRequestId();
@@ -529,9 +558,12 @@ function hostBridgeRequest<T>(
         return;
       }
       const error = data.error;
-      const message = typeof error === "string"
-        ? error
-        : String(error?.message || "MiniApp host wallet bridge request failed.");
+      const message =
+        typeof error === "string"
+          ? error
+          : String(
+              error?.message || "MiniApp host wallet bridge request failed.",
+            );
       reject(new Error(message));
     };
 
@@ -564,14 +596,13 @@ function getHostWalletBridgeProvider(win: Nep21Window): NeoDapiProvider | null {
     network: networkMagicFromLocation(win),
     supportedNetworks: [MAINNET_MAGIC, TESTNET_MAGIC],
     getAccounts: () =>
-      hostBridgeRequest<ReturnType<NeoDapiProvider["getAccounts"]> extends Promise<infer T> ? T : never>(
-        win,
-        "getAccounts",
-      ),
-    authenticate: (payload) =>
-      hostBridgeRequest(win, "authenticate", payload),
-    call: (invocation) =>
-      hostBridgeRequest(win, "call", { invocation }),
+      hostBridgeRequest<
+        ReturnType<NeoDapiProvider["getAccounts"]> extends Promise<infer T>
+          ? T
+          : never
+      >(win, "getAccounts"),
+    authenticate: (payload) => hostBridgeRequest(win, "authenticate", payload),
+    call: (invocation) => hostBridgeRequest(win, "call", { invocation }),
     getBalance: (asset, account) =>
       hostBridgeRequest(win, "getBalance", { asset, account }),
     invoke: (invocations, signers, suggestedSystemFee) =>
