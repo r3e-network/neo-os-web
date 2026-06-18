@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
-
 :global(.theme-unbreakable-vault) {
   --vault-bg: #e0e5ec;
   --vault-shadow-light: #ffffff;
@@ -20,7 +18,8 @@
   --vault-metal-dark: rgba(0, 0, 0, 0.02);
   --vault-button-bg: linear-gradient(145deg, #e0e5ec, #ffffff);
   --vault-button-text: #2d3748;
-  --vault-font: "Montserrat", sans-serif;
+  --vault-font:
+    Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --bg-primary: var(--vault-bg);
   --bg-secondary: var(--vault-bg);
@@ -48,12 +47,11 @@
   --vault-metal-dark: rgba(0, 0, 0, 0.3);
   --vault-button-bg: linear-gradient(145deg, #1b222c, #10161d);
   --vault-button-text: #f8fafc;
-  --vault-font: "Montserrat", sans-serif;
+  --vault-font:
+    Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --bg-primary: var(--vault-bg);
   --bg-secondary: var(--vault-bg);
   --text-primary: var(--vault-text);
   --text-secondary: var(--vault-text-muted);
 }
-
-

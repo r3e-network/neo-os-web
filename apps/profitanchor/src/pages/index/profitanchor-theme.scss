@@ -1,12 +1,13 @@
 :global(.theme-profitanchor) {
-  --anchor-font: 'Instrument Sans', 'Inter', sans-serif;
+  --anchor-font:
+    Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --profitanchor-success: #22c55e;
   --profitanchor-emerald: #10b981;
   --profitanchor-emerald-light: #34d399;
   --profitanchor-step-bg: rgba(16, 185, 129, 0.12);
   --anchor-bg: #ffffff;
   --anchor-bg-deep: #f7f8fa;
-  --anchor-ocean: #0369A1;
+  --anchor-ocean: #0369a1;
   --anchor-ocean-light: #0284c7;
   --anchor-ocean-soft: rgba(3, 105, 161, 0.1);
   --anchor-ocean-glow: rgba(3, 105, 161, 0.2);
@@ -20,8 +21,16 @@
   --anchor-card-shadow: 0 8px 24px rgba(20, 22, 38, 0.06);
   --anchor-surface: #f7f8fa;
   --anchor-divider: rgba(20, 22, 38, 0.06);
-  --anchor-chain-gradient: linear-gradient(135deg, rgba(22, 199, 132, 0.08) 0%, rgba(100, 116, 139, 0.04) 100%);
-  --anchor-depth-gradient: radial-gradient(ellipse at 50% 0%, rgba(22, 199, 132, 0.06) 0%, transparent 60%);
+  --anchor-chain-gradient: linear-gradient(
+    135deg,
+    rgba(22, 199, 132, 0.08) 0%,
+    rgba(100, 116, 139, 0.04) 100%
+  );
+  --anchor-depth-gradient: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(22, 199, 132, 0.06) 0%,
+    transparent 60%
+  );
 
   --bg-primary: var(--anchor-bg);
   --text-primary: var(--anchor-text);
@@ -44,7 +53,7 @@
   --profitanchor-success: #16a34a;
   --anchor-bg: #f0f7fd;
   --anchor-bg-deep: #e8f2fa;
-  --anchor-ocean: #0369A1;
+  --anchor-ocean: #0369a1;
   --anchor-ocean-light: #0284c7;
   --anchor-ocean-soft: rgba(3, 105, 161, 0.1);
   --anchor-ocean-glow: rgba(3, 105, 161, 0.2);
@@ -58,6 +67,14 @@
   --anchor-card-shadow: 0 8px 28px rgba(3, 105, 161, 0.06);
   --anchor-surface: rgba(255, 255, 255, 0.7);
   --anchor-divider: rgba(3, 105, 161, 0.08);
-  --anchor-chain-gradient: linear-gradient(135deg, rgba(3, 105, 161, 0.08) 0%, rgba(100, 116, 139, 0.04) 100%);
-  --anchor-depth-gradient: radial-gradient(ellipse at 50% 0%, rgba(3, 105, 161, 0.06) 0%, transparent 60%);
+  --anchor-chain-gradient: linear-gradient(
+    135deg,
+    rgba(3, 105, 161, 0.08) 0%,
+    rgba(100, 116, 139, 0.04) 100%
+  );
+  --anchor-depth-gradient: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(3, 105, 161, 0.06) 0%,
+    transparent 60%
+  );
 }
