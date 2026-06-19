@@ -95,24 +95,64 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : []),
   ];
 
+  // Optional verifier override + template id are folded into an "Advanced"
+  // disclosure so the core path (new owner + expiry -> generate link) is the
+  // visible default. Auto-open it when either field already holds a value or a
+  // verifier diagnostic is active, so nothing the operator typed is hidden.
+  const advancedOpen =
+    overrideTrimmed.length > 0 ||
+    recoveryTemplateId.trim().length > 0 ||
+    overrideDiagnostic !== null;
+
   const linkGroups = [
     {
       title: t("recoveryPreviewGroup"),
-      actions: [
-        { key: "openRecoveryPreviewLink", label: t("linkActionOpen"), aria: t("openRecoveryPreview"), primary: true },
-        { key: "copyRecoveryPreviewLink", label: t("linkActionCopy"), aria: t("copyRecoveryLink"), primary: false },
-        { key: "shareRecoveryPreviewLink", label: t("linkActionShare"), aria: t("shareRecoveryLink"), primary: false },
-      ],
+      open: { key: "openRecoveryPreviewLink", aria: t("openRecoveryPreview") },
+      copy: { key: "copyRecoveryPreviewLink", aria: t("copyRecoveryLink") },
+      share: { key: "shareRecoveryPreviewLink", aria: t("shareRecoveryLink") },
     },
     {
       title: t("recoveryCredentialGroup"),
-      actions: [
-        { key: "openRecoveryCredentialLink", label: t("linkActionOpen"), aria: t("openRecoveryCredential"), primary: true },
-        { key: "copyRecoveryCredentialLink", label: t("linkActionCopy"), aria: t("copyRecoveryCredential"), primary: false },
-        { key: "shareRecoveryCredentialLink", label: t("linkActionShare"), aria: t("shareRecoveryCredential"), primary: false },
-      ],
+      open: { key: "openRecoveryCredentialLink", aria: t("openRecoveryCredential") },
+      copy: { key: "copyRecoveryCredentialLink", aria: t("copyRecoveryCredential") },
+      share: { key: "shareRecoveryCredentialLink", aria: t("shareRecoveryCredential") },
     },
   ];
+
+  const copyIcon = (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+  const shareIcon = (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5" />
+    </svg>
+  );
 
   return (
     <div className="guardian-play-area">
@@ -247,23 +287,36 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </>
           ) : (
             <div className="guardian-state-empty">
-              <span className="guardian-state-empty__badge" aria-hidden="true">
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-              </span>
-              <strong>{t("noStateYet")}</strong>
-              <p>{t("noStateHint")}</p>
+              <div className="guardian-state-empty__head">
+                <span className="guardian-state-empty__badge" aria-hidden="true">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                </span>
+                <strong>{t("noStateYet")}</strong>
+                <p>{t("noStateHint")}</p>
+              </div>
+              <div
+                className="guardian-state-skeleton"
+                aria-hidden="true"
+              >
+                {stateItems.slice(0, 6).map((item) => (
+                  <div key={item.label} className="guardian-skel-card">
+                    <span>{item.label}</span>
+                    <i />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -294,14 +347,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard
             variant="erobo"
             title={t("guardianPrepareTitle")}
-            className="guardian-prepare-card"
+            className={
+              hasPayload
+                ? "guardian-prepare-card"
+                : "guardian-prepare-card guardian-prepare-card--locked"
+            }
           >
             <div className="guardian-scope-summary">
               <strong>{t("guardianDraftLabel")}</strong>
               <span>{accountDisplay}</span>
             </div>
-            {!canPrepareRecovery && (
-              <p className="guardian-hint">{t("recoveryLinkBlocked")}</p>
+            {!hasPayload ? (
+              <p className="guardian-hint guardian-hint--gate" role="note">
+                {t("preparePreReadHint")}
+              </p>
+            ) : (
+              !canPrepareRecovery && (
+                <p className="guardian-hint">{t("recoveryLinkBlocked")}</p>
+              )
             )}
             <div className="guardian-form">
               <NeoInput
@@ -318,52 +381,88 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 hint={t("recoveryExpiryHint")}
                 placeholder={t("recoveryExpiryPlaceholder")}
               />
-              <NeoInput
-                value={verifierHashOverride}
-                onChange={(v) => setField("verifierHashOverride", v)}
-                label={t("verifierHash")}
-                hint={t("verifierHashHint")}
-                placeholder={t("verifierHashPlaceholder")}
-              />
-              {overrideDiagnostic && (
-                <p
-                  className={`guardian-verifier-diagnostic guardian-verifier-diagnostic--${
-                    overrideDiagnostic.ok ? "match" : "mismatch"
-                  }`}
-                  role="status"
-                >
-                  {overrideDiagnostic.label}
-                </p>
-              )}
-              <NeoInput
-                value={recoveryTemplateId}
-                onChange={(v) => setField("recoveryTemplateId", v)}
-                label={t("recoveryTemplateId")}
-                hint={t("recoveryTemplateIdHint")}
-                placeholder={t("recoveryTemplateIdPlaceholder")}
-              />
+
+              <details className="guardian-advanced" open={advancedOpen}>
+                <summary className="guardian-advanced__summary">
+                  <span>{t("advancedOptional")}</span>
+                  <svg
+                    className="guardian-advanced__chevron"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </summary>
+                <div className="guardian-advanced__body">
+                  <NeoInput
+                    value={verifierHashOverride}
+                    onChange={(v) => setField("verifierHashOverride", v)}
+                    label={t("verifierHash")}
+                    hint={t("verifierHashHint")}
+                    placeholder={t("verifierHashPlaceholder")}
+                  />
+                  {overrideDiagnostic && (
+                    <p
+                      className={`guardian-verifier-diagnostic guardian-verifier-diagnostic--${
+                        overrideDiagnostic.ok ? "match" : "mismatch"
+                      }`}
+                      role="status"
+                    >
+                      {overrideDiagnostic.label}
+                    </p>
+                  )}
+                  <NeoInput
+                    value={recoveryTemplateId}
+                    onChange={(v) => setField("recoveryTemplateId", v)}
+                    label={t("recoveryTemplateId")}
+                    hint={t("recoveryTemplateIdHint")}
+                    placeholder={t("recoveryTemplateIdPlaceholder")}
+                  />
+                </div>
+              </details>
+
               <div className="guardian-link-groups">
                 {linkGroups.map((group) => (
                   <div key={group.title} className="guardian-link-group">
                     <span className="guardian-link-group__title">{group.title}</span>
                     <div className="guardian-link-row">
-                      {group.actions.map((action) => (
-                        <NeoButton
-                          key={action.key}
-                          variant={action.primary ? "primary" : "secondary"}
-                          size="sm"
-                          className={
-                            action.primary
-                              ? "guardian-link-btn guardian-link-btn--open"
-                              : "guardian-link-btn"
-                          }
-                          disabled={!canPrepareRecovery}
-                          onClick={() => handleAction(action.key)}
-                          aria-label={action.aria}
-                        >
-                          {action.label}
-                        </NeoButton>
-                      ))}
+                      <NeoButton
+                        variant="primary"
+                        size="sm"
+                        className="guardian-link-btn guardian-link-btn--open"
+                        disabled={!canPrepareRecovery}
+                        onClick={() => handleAction(group.open.key)}
+                        aria-label={group.open.aria}
+                      >
+                        {t("linkActionOpen")}
+                      </NeoButton>
+                      <NeoButton
+                        variant="secondary"
+                        size="sm"
+                        className="guardian-link-btn guardian-link-btn--icon"
+                        disabled={!canPrepareRecovery}
+                        onClick={() => handleAction(group.copy.key)}
+                        aria-label={group.copy.aria}
+                      >
+                        {copyIcon}
+                      </NeoButton>
+                      <NeoButton
+                        variant="secondary"
+                        size="sm"
+                        className="guardian-link-btn guardian-link-btn--icon"
+                        disabled={!canPrepareRecovery}
+                        onClick={() => handleAction(group.share.key)}
+                        aria-label={group.share.aria}
+                      >
+                        {shareIcon}
+                      </NeoButton>
                     </div>
                   </div>
                 ))}

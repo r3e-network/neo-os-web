@@ -176,6 +176,20 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
     en: "The sponsorship service is not configured for this deployment. You can still donate or send GAS below.",
     zh: "本部署未配置赞助服务。您仍然可以在下方捐赠或发送 GAS。",
   },
+  // Hero supporting copy: state the eligibility rule up front and tell a
+  // disconnected user that connecting populates the all-zeros resting view.
+  eligibilityRule: {
+    en: "Free GAS is for new wallets holding under 0.1 GAS — up to 0.1 GAS per day.",
+    zh: "免费 GAS 面向余额低于 0.1 GAS 的新钱包——每天最多 0.1 GAS。",
+  },
+  connectToCheck: {
+    en: "Connect your wallet to check eligibility and your remaining allowance.",
+    zh: "连接钱包以查看资格和剩余额度。",
+  },
+  tankAwaiting: {
+    en: "Awaiting wallet",
+    zh: "等待钱包",
+  },
   // Hero subtitle shown when the faucet API is offline so the headline doesn't
   // promise "Get free GAS" with no working path for the target low-balance user.
   subtitleOffline: {

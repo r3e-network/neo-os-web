@@ -111,6 +111,21 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
   const [recipient, setRecipient] = useState("");
   const [memo, setMemo] = useState("");
 
+  // Watchdog: if the first balance load has not resolved within this window
+  // (e.g. no chain/host context, or every RPC endpoint is unreachable), drop the
+  // indefinite spinner and surface an actionable empty state with Retry.
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
+  const firstLoadPending = loading && !hasLiveData;
+  useEffect(() => {
+    if (!firstLoadPending) {
+      setLoadTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setLoadTimedOut(true), 12000);
+    return () => clearTimeout(timer);
+  }, [firstLoadPending]);
+  const showFirstLoadSpinner = firstLoadPending && !loadTimedOut;
+
   useEffect(() => {
     const launchedAsset = getLaunchParam(launchContext, ["asset", "token"], "GAS").toUpperCase();
     setAsset(launchedAsset === "NEO" ? "NEO" : "GAS");
@@ -150,6 +165,9 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
   }, [address, amount, asset, hasDraftFields, memo, recipient]);
   const submitBlocked = submitDisabled || Boolean(draftReview.error);
   const submitLabel = address ? t("submitDisbursement") : t("connectAndSignDisbursement");
+  // Disconnected with nothing drafted yet -> the only sensible next step is to
+  // connect a wallet, so the action slot shows a single "Connect Wallet" CTA.
+  const showConnectOnly = !address && !hasDraftFields;
 
   // Use the same currency prefix as the hero metric (t('currencySymbol')) and
   // render the em-dash when USD is unavailable (price feed down).
@@ -246,8 +264,23 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
               ].filter(Boolean).join(" ")}
               aria-hidden="true"
             />
-            {signalLabel}
-            {lastUpdated ? ` · ${t("lastUpdated")} ${lastUpdated}` : ""}
+            <span className="treasury-hero__signal-text">
+              {signalLabel}
+              {lastUpdated ? ` · ${t("lastUpdated")} ${lastUpdated}` : ""}
+            </span>
+            {/* Single refresh affordance, co-located with the live-sync signal.
+                The former bottom-card "Refresh Data" primary button is removed
+                so the page keeps one obvious primary action (the disbursement
+                CTA) instead of three competing buttons. */}
+            <button
+              type="button"
+              className="treasury-hero__refresh"
+              disabled={isRefreshing}
+              onClick={handleRefresh}
+              aria-label={isRefreshing ? t("refreshing") : t("refreshData")}
+            >
+              {isRefreshing ? t("refreshing") : t("refresh")}
+            </button>
           </p>
           {failedCount > 0 && (
             <p className="treasury-hero__warning" role="status">
@@ -426,27 +459,44 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
 
           {disbursementError && <p className="treasury-error">{disbursementError}</p>}
 
+          {/* Single staged primary action. When disconnected with no draft yet,
+              the only next step is to connect; once a payout is drafted (or the
+              wallet is connected) the same slot becomes the progressive
+              connect-and-sign / sign button. This replaces the two co-equal
+              "Connect" / "Connect & Sign" CTAs so there is one obvious step. */}
           <div className="treasury-actions">
-            <NeoButton
-              size="lg"
-              variant={address ? "secondary" : "primary"}
-              className="op-btn"
-              onClick={handleConnect}
-              aria-label={t("connectWallet")}
-            >
-              {address ? t("walletConnected") : t("connectWallet")}
-            </NeoButton>
-            <NeoButton
-              size="lg"
-              variant="success"
-              className="op-btn"
-              disabled={submitBlocked}
-              loading={disbursementSubmitting}
-              onClick={handleDisbursement}
-              aria-label={submitLabel}
-            >
-              {submitLabel}
-            </NeoButton>
+            {showConnectOnly ? (
+              <NeoButton
+                size="lg"
+                variant="primary"
+                className="op-btn"
+                onClick={handleConnect}
+                aria-label={t("connectWallet")}
+              >
+                {t("connectWallet")}
+              </NeoButton>
+            ) : (
+              <NeoButton
+                size="lg"
+                variant="primary"
+                className="op-btn"
+                disabled={submitBlocked}
+                loading={disbursementSubmitting}
+                onClick={handleDisbursement}
+                aria-label={submitLabel}
+              >
+                {submitLabel}
+              </NeoButton>
+            )}
+            {address && (
+              <button
+                type="button"
+                className="treasury-reconnect"
+                onClick={handleConnect}
+              >
+                {t("connectWallet")}
+              </button>
+            )}
           </div>
 
           {lastTxid && (
@@ -466,16 +516,41 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
 
       {/* Initial-load skeleton (and retry-on-error) — fills the gap where the
           watchlist would otherwise paint empty "Live data pending" placeholders
-          before the first fetch resolves. */}
+          before the first fetch resolves. After the watchdog timeout it drops to
+          an actionable empty state instead of an indefinite spinner. */}
       <TreasuryLoadingState
         t={t}
-        loading={loading && !hasLiveData}
+        loading={firstLoadPending}
         error={!hasLiveData ? error : ""}
         hasData={hasLiveData}
+        timedOut={loadTimedOut}
         onRetry={handleRefresh}
       />
 
-      {!(loading && !hasLiveData) && (
+      {/* Resting / pre-load viewport: a compact, scannable reference of what the
+          watchlist contains, instead of two heavy "Live data pending" cards or a
+          blank gap. The full group cards take over once balances resolve. */}
+      {!hasLiveData && !showFirstLoadSpinner && (
+        <NeoCard variant="erobo" className="treasury-reference-card">
+          <div className="treasury-reference-card__head">
+            <span>{t("treasuryWatchlistNetwork")}</span>
+            <strong>{t("watchlistReference")}</strong>
+            <p>{t("watchlistReferenceHint")}</p>
+          </div>
+          <dl className="treasury-reference-card__groups">
+            <div>
+              <dt>Da Hongfei</dt>
+              <dd>{DA_HONGFEI_ADDRESSES.length} {t("addresses")}</dd>
+            </div>
+            <div>
+              <dt>Erik Zhang</dt>
+              <dd>{ERIK_ZHANG_ADDRESSES.length} {t("addresses")}</dd>
+            </div>
+          </dl>
+        </NeoCard>
+      )}
+
+      {hasLiveData && (
       <section className="treasury-watchlist" aria-label={t("treasuryWatchlist")}>
         <p className="treasury-watchlist__tag">{t("treasuryWatchlistNetwork")}</p>
         {watchGroups.map((group) => (
@@ -547,23 +622,16 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
       </section>
       )}
 
+      {/* Slim read-only route footer. The former "Refresh Data" primary button
+          is gone: refresh is now the single compact affordance beside the hero
+          live-sync signal, so the page keeps one primary action. */}
       <NeoCard variant="erobo" className="treasury-action-card">
         <div className="treasury-readonly-note">
           <span>{t("treasuryReadOnlyRoute")}</span>
           <strong>{watchedAddressCount} {t("addresses")}</strong>
           <p>{t("feature3Desc")}</p>
-          {error && <p className="treasury-error">{error}</p>}
+          {error && hasLiveData && <p className="treasury-error">{error}</p>}
         </div>
-        <NeoButton
-          size="lg"
-          variant="primary"
-          className="op-btn"
-          disabled={isRefreshing}
-          onClick={handleRefresh}
-          aria-label={isRefreshing ? t("refreshing") : t("refreshData")}
-        >
-          {isRefreshing ? t("refreshing") : t("refreshData")}
-        </NeoButton>
       </NeoCard>
     </div>
   );

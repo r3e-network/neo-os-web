@@ -137,80 +137,105 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </section>
 
-      {isRequesting ? (
-        <StateView
-          kind="loading"
-          icon={null}
-          title={t("loading")}
-          className="price-balance-state"
-        />
-      ) : priceLoaded ? (
-        <section className="price-balance-card" aria-label={t("latestPrice")}>
-          <div className={`asset-token asset-token--${asset.toLowerCase()}`}>
-            {assetInitial}
+      <div className="price-console-body">
+        <div className="price-result-col">
+          {isRequesting ? (
+            <StateView
+              kind="loading"
+              icon={null}
+              title={t("loading")}
+              className="price-balance-state"
+            />
+          ) : priceLoaded ? (
+            <section className="price-balance-card" aria-label={t("latestPrice")}>
+              <div className={`asset-token asset-token--${asset.toLowerCase()}`}>
+                {assetInitial}
+              </div>
+              <div className="price-balance-card__content">
+                <span className="result-symbol">{displayPair}</span>
+                <span className="result-price">{priceDisplay}</span>
+              </div>
+              <span
+                className="price-status price-status--live"
+                data-freshness={freshness}
+                aria-label={t("priceSignalTitle")}
+                title={onChainTimeLabel || undefined}
+              >
+                <i className="price-status__dot" aria-hidden="true" />
+                {freshnessLabel}
+              </span>
+            </section>
+          ) : (
+            <StateView
+              kind="empty"
+              icon={null}
+              title={t("priceSignalIdle")}
+              hint={t("priceSignalIdleHint")}
+              className="price-balance-state"
+            />
+          )}
+
+          {onChainTimeLabel && (
+            <div className="price-onchain-time" role="note">
+              {onChainTimeLabel}
+            </div>
+          )}
+
+          {isStale && (
+            <div className="price-stale-note" role="status">
+              {t("priceStaleHint")}
+            </div>
+          )}
+
+          {/* Request path is always visible — it backs the "inspectable" promise
+              up front, before any fetch, and keeps the resting viewport useful. */}
+          <section className="price-reference" aria-label={t("priceReferenceTitle")}>
+            <span className="price-reference__title">{t("priceReferenceTitle")}</span>
+            <dl className="price-reference__rows">
+              <div className="price-reference__row">
+                <dt>{t("priceReferenceContract")}</dt>
+                <dd className="price-reference__mono" title={datafeedHash || undefined}>
+                  {datafeedShort || "—"}
+                </dd>
+              </div>
+              <div className="price-reference__row">
+                <dt>{t("priceReferenceMethod")}</dt>
+                <dd className="price-reference__mono">{t("priceReferenceMethodValue")}</dd>
+              </div>
+              <div className="price-reference__row">
+                <dt>{t("priceReferenceQuote")}</dt>
+                <dd>{t("priceReferenceQuoteValue")}</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        <NeoCard
+          variant="erobo"
+          className="price-action-panel"
+          title={t("priceActionTitle")}
+        >
+          <div className="price-hint">{t("priceActionHint")}</div>
+          <div className="stack">
+            <NeoSelect
+              value={asset}
+              label={t("asset")}
+              options={assetOptions}
+              onChange={(value) => dispatch("updateAsset", value)}
+            />
+            <NeoButton
+              variant="primary"
+              loading={isRequesting}
+              disabled={!canFetchPrice || isRequesting}
+              aria-label={t("fetchPrice")}
+              onClick={() => dispatch("fetchPrice")}
+            >
+              {t("fetchPrice")}
+            </NeoButton>
           </div>
-          <div className="price-balance-card__content">
-            <span className="result-symbol">{displayPair}</span>
-            <span className="result-price">{priceDisplay}</span>
-          </div>
-          <span
-            className="price-status price-status--live"
-            data-freshness={freshness}
-            aria-label={t("priceSignalTitle")}
-            title={onChainTimeLabel || undefined}
-          >
-            <i className="price-status__dot" aria-hidden="true" />
-            {freshnessLabel}
-          </span>
-        </section>
-      ) : (
-        <StateView
-          kind="empty"
-          icon={null}
-          title={t("priceSignalIdle")}
-          hint={t("priceStatusReady")}
-          className="price-balance-state"
-        />
-      )}
-
-      {onChainTimeLabel && (
-        <div className="price-onchain-time" role="note">
-          {onChainTimeLabel}
-        </div>
-      )}
-
-      {isStale && (
-        <div className="price-stale-note" role="status">
-          {t("priceStaleHint")}
-        </div>
-      )}
-
-      <NeoCard
-        variant="erobo"
-        className="price-action-panel"
-        title={t("priceActionTitle")}
-      >
-        <div className="price-hint">{t("priceActionHint")}</div>
-        <div className="stack">
-          <NeoSelect
-            value={asset}
-            label={t("asset")}
-            options={assetOptions}
-            onChange={(value) => dispatch("updateAsset", value)}
-          />
-          <NeoButton
-            variant="primary"
-            loading={isRequesting}
-            disabled={!canFetchPrice || isRequesting}
-            aria-label={t("fetchPrice")}
-            onClick={() => dispatch("fetchPrice")}
-          >
-            {t("fetchPrice")}
-          </NeoButton>
-        </div>
-      </NeoCard>
-
-      {errorMsg && <div className="error-banner mono">{errorMsg}</div>}
+          {errorMsg && <div className="error-banner mono">{errorMsg}</div>}
+        </NeoCard>
+      </div>
     </div>
   );
 }

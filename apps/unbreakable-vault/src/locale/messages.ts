@@ -40,6 +40,11 @@ const appMessages = {
   createVault: { en: "Create Vault", zh: "创建保险库" },
   createVaultButton: { en: "Create Vault (bounty + hash)", zh: "创建保险库（悬赏 + 哈希）" },
   creatingVault: { en: "Creating vault...", zh: "正在创建保险库..." },
+  createFineLabel: { en: "Fees & secret details", zh: "费用与密钥说明" },
+  createNeedTitle: { en: "Add a vault title to continue.", zh: "请填写保险库标题以继续。" },
+  createNeedBounty: { en: "Enter a bounty of at least 1 GAS.", zh: "请输入至少 1 GAS 的悬赏。" },
+  createNeedSecret: { en: "Enter and confirm a secret phrase.", zh: "请输入并确认密钥短语。" },
+  createReady: { en: "Ready — secret hashed locally before submit.", zh: "已就绪——提交前密钥将在本地哈希。" },
   breakVault: { en: "Break a Vault", zh: "破解保险库" },
   secretNote: {
     en: "Secret is hashed locally; only the hash is stored on-chain. Keep it safe to claim your bounty.",

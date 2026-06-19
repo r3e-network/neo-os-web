@@ -43,6 +43,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     state.registrationCost?.set(0);
   };
 
+  // Prefill the search box with an example name and run the lookup in one tap —
+  // turns the empty state's example chips into a guided first action.
+  const searchExample = (name: string) => {
+    setSearch(name);
+    void dispatch("searchDomain");
+  };
+
+  // The lower reference strip belongs to the resting (browsing) view: hide it
+  // while drilled into a single domain's manage panel where it would be noise.
+  const showReference = !managingDomain;
+
   return (
     <div className="neo-ns-play-area">
       {/* Hero — leads with identity + the primary search action */}
@@ -163,8 +174,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <DomainManagement
           t={t}
           domains={myDomains}
+          connected={Boolean(address)}
+          onSearchExample={searchExample}
           dispatch={dispatch}
         />
+      )}
+
+      {/* How .neo names work — compact reference strip that gives the resting
+          viewport purposeful content (pricing + lifecycle) instead of whitespace. */}
+      {showReference && (
+        <NeoCard variant="erobo" title={t("howTitle")} className="nns-reference">
+          <ul className="nns-reference__list">
+            <li>
+              <span className="nns-reference__label">{t("howSearchLabel")}</span>
+              <span className="nns-reference__desc">{t("howSearchDesc")}</span>
+            </li>
+            <li>
+              <span className="nns-reference__label">{t("howPriceLabel")}</span>
+              <span className="nns-reference__desc">{t("howPriceDesc")}</span>
+            </li>
+            <li>
+              <span className="nns-reference__label">{t("howOwnLabel")}</span>
+              <span className="nns-reference__desc">{t("howOwnDesc")}</span>
+            </li>
+            <li>
+              <span className="nns-reference__label">{t("howRenewLabel")}</span>
+              <span className="nns-reference__desc">{t("howRenewDesc")}</span>
+            </li>
+          </ul>
+          <p className="nns-reference__note">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18" />
+            </svg>
+            <span>{t("howNote")}</span>
+          </p>
+        </NeoCard>
       )}
     </div>
   );

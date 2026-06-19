@@ -113,6 +113,150 @@ function ToggleField({
   );
 }
 
+const TEMPLATE_KIND_KEYS: Record<MiniAppDraft["templateKind"], string> = {
+  "reward-vault": "templateKindRewardVault",
+  "ticket-pass": "templateKindTicketPass",
+  certificate: "templateKindCertificate",
+  "oracle-console": "templateKindOracleConsole",
+};
+
+function PreviewStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="domain-factory-preview__stat">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+/**
+ * Kind-aware preview of the artifact this factory will create. It reads the live
+ * draft (not the generated plan) so the output column always shows a concrete
+ * picture of the input — an NFT card for nep11, a token summary for nep17, a
+ * template summary for miniapp. Purely presentational; no logic/dispatch.
+ */
+function FactoryPreviewCard({
+  kind,
+  nep11,
+  nep17,
+  miniapp,
+  t,
+}: {
+  kind: FactoryKind;
+  nep11: Nep11Draft;
+  nep17: Nep17Draft;
+  miniapp: MiniAppDraft;
+  t: PlayAreaProps["t"];
+}) {
+  let body: ReactNode;
+
+  if (kind === "nep11") {
+    const name = nep11.collectionName.trim() || t("previewUntitledCollection");
+    const symbol = nep11.symbol.trim() || t("previewSymbolPlaceholder");
+    const maxSupplyNum = Number(nep11.maxSupply);
+    const maxSupply =
+      nep11.maxSupply.trim() && Number.isFinite(maxSupplyNum) && maxSupplyNum > 0
+        ? maxSupplyNum.toLocaleString()
+        : t("previewMaxSupplyUnlimited");
+    const royaltyNum = Number(nep11.royaltyBps);
+    const royalty =
+      Number.isFinite(royaltyNum) && royaltyNum > 0
+        ? `${(royaltyNum / 100).toFixed(2).replace(/\.?0+$/, "")}%`
+        : "0%";
+    const initial = (symbol[0] ?? "N").toUpperCase();
+    body = (
+      <div className="domain-factory-preview__nft">
+        <div className="domain-factory-preview__art" aria-hidden="true">
+          <span>{initial}</span>
+        </div>
+        <div className="domain-factory-preview__nftbody">
+          <div className="domain-factory-preview__head">
+            <strong>{t("previewSampleNftName", { name })}</strong>
+            <span className="domain-factory-preview__symbol">{symbol}</span>
+          </div>
+          <div className="domain-factory-preview__stats">
+            <PreviewStat label={t("previewMaxSupply")} value={maxSupply} />
+            <PreviewStat label={t("previewRoyalty")} value={royalty} />
+            <PreviewStat
+              label={t("previewTransferPolicy")}
+              value={t(nep11.transferable ? "previewTransferable" : "previewSoulbound")}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  } else if (kind === "nep17") {
+    const name = nep17.name.trim() || t("previewUntitledToken");
+    const symbol = nep17.symbol.trim() || t("previewSymbolPlaceholder");
+    const supplyNum = Number(nep17.initialSupply);
+    const supply =
+      nep17.initialSupply.trim() && Number.isFinite(supplyNum)
+        ? supplyNum.toLocaleString()
+        : "—";
+    const decimals = nep17.decimals.trim() || "0";
+    const initial = (symbol[0] ?? "T").toUpperCase();
+    body = (
+      <div className="domain-factory-preview__token">
+        <div className="domain-factory-preview__coin" aria-hidden="true">
+          <span>{initial}</span>
+        </div>
+        <div className="domain-factory-preview__nftbody">
+          <div className="domain-factory-preview__head">
+            <strong>{name}</strong>
+            <span className="domain-factory-preview__symbol">{symbol}</span>
+          </div>
+          <div className="domain-factory-preview__stats">
+            <PreviewStat label={t("previewSupply")} value={supply} />
+            <PreviewStat label={t("decimals")} value={decimals} />
+            <PreviewStat
+              label={t("previewMintPolicy")}
+              value={t(nep17.mintable ? "previewMintable" : "previewFixedSupply")}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  } else {
+    const name = miniapp.appName.trim() || t("previewUntitledApp");
+    const id = miniapp.appId.trim() || "miniapp-…";
+    const template = t(TEMPLATE_KIND_KEYS[miniapp.templateKind]);
+    const services = [
+      miniapp.needsOracle ? t("previewServiceOracle") : null,
+      miniapp.needsOneGate ? t("previewServiceOneGate") : null,
+    ].filter(Boolean) as string[];
+    const initial = (name[0] ?? "A").toUpperCase();
+    body = (
+      <div className="domain-factory-preview__token">
+        <div className="domain-factory-preview__coin" aria-hidden="true">
+          <span>{initial}</span>
+        </div>
+        <div className="domain-factory-preview__nftbody">
+          <div className="domain-factory-preview__head">
+            <strong>{name}</strong>
+            <span className="domain-factory-preview__symbol">{id}</span>
+          </div>
+          <div className="domain-factory-preview__stats">
+            <PreviewStat label={t("previewTemplate")} value={template} />
+            <PreviewStat
+              label={t("previewServices")}
+              value={services.length ? services.join(" · ") : t("previewServiceNone")}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <NeoCard variant="erobo" title={t("previewTitle")}>
+      <div className="domain-factory-preview">
+        {body}
+        <p className="domain-factory-preview__hint">{t("previewHint")}</p>
+      </div>
+    </NeoCard>
+  );
+}
+
 export interface FactoryPlayAreaProps extends PlayAreaProps {
   fixedKind: FactoryKind;
   appId: string;
@@ -398,6 +542,14 @@ export function FactoryPlayArea({
         </NeoCard>
 
         <section className="domain-factory-output">
+          <FactoryPreviewCard
+            kind={kind}
+            nep11={nep11}
+            nep17={nep17}
+            miniapp={miniapp}
+            t={t}
+          />
+
           <NeoCard
             variant={storedPlan ? (storedPlan.publishable ? "success" : "warning") : "erobo"}
             title={t("publishPackage")}

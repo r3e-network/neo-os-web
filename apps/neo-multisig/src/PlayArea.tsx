@@ -372,7 +372,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
 
               {createBlockedReason ? (
-                <p className="multisig-request-hint">{createBlockedReason}</p>
+                <p className="multisig-request-hint multisig-request-hint--guide">
+                  {createBlockedReason}
+                </p>
               ) : (
                 <p className="multisig-request-hint is-ready">
                   {t("multisigCreateReady")}
@@ -388,22 +390,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 >
                   {t("buttonCreateVault")}
                 </NeoButton>
-                <div className="multisig-load-box">
-                  <NeoInput
-                    value={loadVaultId}
-                    type="number"
-                    label={t("loadVaultTitle")}
-                    placeholder={t("loadVaultPlaceholder")}
-                    onChange={setLoadVaultId}
-                  />
-                  <NeoButton
-                    variant="secondary"
-                    disabled={!loadVaultId.trim()}
-                    onClick={() => dispatch("loadVault", loadVaultId.trim())}
-                  >
-                    {t("loadButton")}
-                  </NeoButton>
-                </div>
               </div>
 
               {activeVault && (
@@ -521,24 +507,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </>
               )}
 
-              {/* Step 4 — approve / cancel a loaded request */}
-              <div className="multisig-load-box">
-                <NeoInput
-                  value={loadRequestId}
-                  type="number"
-                  label={t("loadRequestTitle")}
-                  placeholder={t("loadRequestPlaceholder")}
-                  onChange={setLoadRequestId}
-                />
-                <NeoButton
-                  variant="secondary"
-                  disabled={!loadRequestId.trim()}
-                  onClick={() => dispatch("loadRequest", loadRequestId.trim())}
-                >
-                  {t("loadButton")}
-                </NeoButton>
-              </div>
-
+              {/* Step 4 — approve / cancel a loaded request. The request is
+                  loaded via the "Load vault or request" disclosure in the aside,
+                  so the create card ends cleanly on its own step sequence. */}
               {activeRequest && (
                 <>
                   <div className="multisig-request-id-row" aria-live="polite">
@@ -695,26 +666,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 )}
               </NeoCard>
 
-              <NeoCard variant="erobo" className="multisig-route-panel">
-                <div className="multisig-section-heading">
-                  <span>{t("multisigRouteTitle")}</span>
-                  <strong>{t("multisigNetworkValue")}</strong>
-                </div>
-                <p>{t("multisigRouteCopy")}</p>
-                <div className="multisig-signal-row">
-                  <span>{t("buttonCreateVault")}</span>
-                  <strong>{t("multisigRouteCreate")}</strong>
-                </div>
-                <div className="multisig-signal-row">
-                  <span>{t("buttonPropose")}</span>
-                  <strong>{t("multisigRouteSign")}</strong>
-                </div>
-                <div className="multisig-signal-row">
-                  <span>{t("buttonApprove")}</span>
-                  <strong>{t("multisigRouteBroadcast")}</strong>
-                </div>
-              </NeoCard>
-
               <NeoCard variant="erobo" className="multisig-activity-panel">
                 <div className="multisig-section-heading">
                   <span>{t("recentTitle")}</span>
@@ -747,6 +698,71 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     ))}
                   </div>
                 )}
+              </NeoCard>
+
+              {/* Secondary entry path: a co-signer who receives a vault/request
+                  ID loads it here. Kept below Recent Activity since the primary
+                  flow is the create card on the left. */}
+              <NeoCard variant="erobo" className="multisig-load-panel">
+                <div className="multisig-section-heading">
+                  <span>{t("multisigLoadTitle")}</span>
+                  <strong>{t("multisigNetworkValue")}</strong>
+                </div>
+                <p>{t("multisigLoadCopy")}</p>
+                <div className="multisig-load-box">
+                  <NeoInput
+                    value={loadVaultId}
+                    type="number"
+                    label={t("loadVaultTitle")}
+                    placeholder={t("loadVaultPlaceholder")}
+                    onChange={setLoadVaultId}
+                  />
+                  <NeoButton
+                    variant="secondary"
+                    className="multisig-load-btn"
+                    disabled={!loadVaultId.trim()}
+                    onClick={() => dispatch("loadVault", loadVaultId.trim())}
+                  >
+                    {t("loadButton")}
+                  </NeoButton>
+                </div>
+                <div className="multisig-load-box">
+                  <NeoInput
+                    value={loadRequestId}
+                    type="number"
+                    label={t("loadRequestTitle")}
+                    placeholder={t("loadRequestPlaceholder")}
+                    onChange={setLoadRequestId}
+                  />
+                  <NeoButton
+                    variant="secondary"
+                    className="multisig-load-btn"
+                    disabled={!loadRequestId.trim()}
+                    onClick={() => dispatch("loadRequest", loadRequestId.trim())}
+                  >
+                    {t("loadButton")}
+                  </NeoButton>
+                </div>
+
+                {/* Pure reference: the create -> propose -> approve glossary is
+                    collapsed behind a disclosure so it stays out of the resting
+                    fold until a user wants the walkthrough. */}
+                <details className="multisig-route-details">
+                  <summary>{t("multisigRouteTitle")}</summary>
+                  <p>{t("multisigRouteCopy")}</p>
+                  <div className="multisig-signal-row">
+                    <span>{t("buttonCreateVault")}</span>
+                    <strong>{t("multisigRouteCreate")}</strong>
+                  </div>
+                  <div className="multisig-signal-row">
+                    <span>{t("buttonPropose")}</span>
+                    <strong>{t("multisigRouteSign")}</strong>
+                  </div>
+                  <div className="multisig-signal-row">
+                    <span>{t("buttonApprove")}</span>
+                    <strong>{t("multisigRouteBroadcast")}</strong>
+                  </div>
+                </details>
               </NeoCard>
             </div>
           </div>

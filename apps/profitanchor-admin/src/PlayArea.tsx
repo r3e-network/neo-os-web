@@ -67,6 +67,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   }, [selectedAgentId]);
 
   const visibleAgents = agentAccounts.slice(0, 21);
+  // Live on-chain rows carry the `active` flag (set in loadAgents); the static
+  // compile-time roster fallback does not. Use that to tell an armed directory
+  // apart from the resting/unloaded fallback, so the resting state renders one
+  // compact reference card instead of 21 near-identical "Candidate: none" rows.
+  const agentsAreLive = visibleAgents.some((agent) => "active" in agent);
+  const rosterCount = visibleAgents.length;
+  // Stats arrive from getAnchorStats; null until the first load resolves. Drives
+  // the "awaiting data" caption so the all-zero hero reads as loading, not broken.
+  const statsLoaded = stats !== null;
   // Resolve an agent's on-chain NEO balance (read in main.tsx) by agent id.
   const agentBalanceById = (id: string): number | null => {
     const numeric = Number(id);
@@ -149,6 +158,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
               ))}
             </div>
+            {!statsLoaded && (
+              <p className="anchor-admin-hero-await" role="status">
+                {t("statsAwaitConnect")}
+              </p>
+            )}
           </section>
 
           {isDenied && (
@@ -170,6 +184,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             aria-label={t("adminCommandCenter")}
           >
             <NeoCard title={t("moveNeo")} className="anchor-admin-workflow-card">
+              <span className="anchor-admin-step">{t("stepLabel", { step: 1 })}</span>
               <p>{t("moveNeoDesc")}</p>
               <div className="anchor-admin-form-grid">
                 <NeoInput
@@ -225,9 +240,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               >
                 {t("submitMove")}
               </NeoButton>
+              <p className="anchor-admin-card-rule">{t("cardRuleMove")}</p>
             </NeoCard>
 
             <NeoCard title={t("setCandidate")} className="anchor-admin-workflow-card">
+              <span className="anchor-admin-step">{t("stepLabel", { step: 2 })}</span>
               <p>{t("setCandidateDesc")}</p>
               <NeoInput
                 type="number"
@@ -257,9 +274,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               >
                 {t("submitCandidate")}
               </NeoButton>
+              <p className="anchor-admin-card-rule">{t("cardRuleCandidate")}</p>
             </NeoCard>
 
             <NeoCard title={t("syncVote")} className="anchor-admin-workflow-card">
+              <span className="anchor-admin-step">{t("stepLabel", { step: 3 })}</span>
               <p>{t("syncVoteDesc")}</p>
               <div className="anchor-admin-vote-preview">
                 <span>{t("currentVoteRoute")}</span>
@@ -293,6 +312,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               >
                 {t("submitVote")}
               </NeoButton>
+              <p className="anchor-admin-card-rule">{t("cardRuleVote")}</p>
             </NeoCard>
           </section>
         </main>
@@ -303,9 +323,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("agentDirectoryTitle")}</span>
               <strong className="anchor-admin-count-pill">{agentCount}</strong>
             </div>
-            <div className="anchor-admin-agent-list">
-              {visibleAgents.length === 0 ? (
-                adminState === "loading" ? (
+            {visibleAgents.length === 0 ? (
+              <div className="anchor-admin-agent-list anchor-admin-agent-list--state">
+                {adminState === "loading" ? (
                   <StateView
                     className="anchor-admin-agent-state"
                     kind="loading"
@@ -317,9 +337,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     icon={null}
                     title={t("agentDirectoryEmpty")}
                   />
-                )
-              ) : (
-                visibleAgents.map((agent, idx) => {
+                )}
+              </div>
+            ) : !agentsAreLive ? (
+              // Resting state: the static roster fallback (no live `active` flag).
+              // A few skeleton rows + a one-line note read as "awaiting data"
+              // instead of 21 near-identical "Candidate: none / —" rows.
+              <div className="anchor-admin-agent-rest" role="status">
+                <div className="anchor-admin-agent-skeletons" aria-hidden="true">
+                  {[0, 1, 2].map((row) => (
+                    <div key={row} className="anchor-admin-agent-skeleton" />
+                  ))}
+                </div>
+                <p className="anchor-admin-agent-rest__note">
+                  {t("directoryAwaitConnect")}
+                </p>
+                <span className="anchor-admin-agent-rest__count">
+                  {t("directoryRosterNote", { count: rosterCount })}
+                </span>
+              </div>
+            ) : (
+              <div className="anchor-admin-agent-list">
+                {visibleAgents.map((agent, idx) => {
                   const address = String(
                     agent.account ??
                       agent.accountAddress ??
@@ -366,9 +405,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       </span>
                     </div>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            )}
           </section>
 
           <section className="anchor-admin-safety-card" aria-label={t("operatorRule")}>
@@ -378,11 +417,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <p>{t("operatorRuleDesc")}</p>
             <p className="anchor-admin-yield-causality">{t("yieldCausality")}</p>
-            <div className="anchor-admin-safety-list">
-              <span>{t("safetyMove")}</span>
-              <span>{t("safetyTarget")}</span>
-              <span>{t("safetyVote")}</span>
-            </div>
           </section>
         </aside>
       </div>

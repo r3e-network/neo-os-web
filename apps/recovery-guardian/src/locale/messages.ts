@@ -80,6 +80,14 @@ const appMessages = {
     en: "Complete a valid account, new owner, expiry window, and optional verifier override before using recovery links.",
     zh: "使用恢复链接前，请补齐有效账户、新 owner、过期窗口和可选 verifier override。",
   },
+  preparePreReadHint: {
+    en: "Read the guardian state first. Run Query State, then prepare recovery links here.",
+    zh: "请先读取 guardian 状态。运行“查询状态”后再在此准备恢复链接。",
+  },
+  advancedOptional: {
+    en: "Advanced (verifier override, template id)",
+    zh: "高级（verifier 覆盖、模板 ID）",
+  },
   latestState: { en: "Latest State", zh: "最新状态" },
   accountAddress: {
     en: "Account Address / Script Hash",

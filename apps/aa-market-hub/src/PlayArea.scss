@@ -127,6 +127,17 @@
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
+/* Connected: tint the status row with the single accent hue so the wallet state
+   reads as healthy without introducing a second color. */
+.market-command__status--ok {
+  border-color: rgba(15, 177, 116, 0.28);
+  background: var(--ns-brand-soft, #e4f8f0);
+}
+
+.market-command__status--ok strong {
+  color: var(--ns-brand-strong, #0fb174);
+}
+
 .market-command__status span {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
@@ -150,10 +161,14 @@
   gap: 10px;
 }
 
+/* Two-column workspace: the create/manage rail on the left, the live board on
+   the right, so the wide viewport is used instead of stacking everything in one
+   narrow column with a tall empty band beside it. */
 .market-workspace {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
   gap: 16px;
+  align-items: start;
 }
 
 .market-list-panel,
@@ -164,13 +179,13 @@
 
 .market-side-rail {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
 
-/* No listing selected yet → collapse to a single column so Create Listing
-   spans the full width and the aux column never strands an empty right half. */
+/* Once a listing is selected the rail still stacks Create above Manage in its
+   single column — the board keeps its own column on the right. */
 .market-side-rail--single {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -305,6 +320,151 @@
   color: var(--ns-text-2, #5b6478);
 }
 
+/* Wallet-required notice carries its own Connect CTA so the unblock path is one
+   click from where the user is blocked. */
+.create-blocked-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(15, 177, 116, 0.22);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-brand-soft, #e4f8f0);
+}
+
+.create-blocked-hint p {
+  margin: 0;
+  flex: 1 1 200px;
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* Live buyer-facing preview of the listing being composed. */
+.create-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.create-preview__eyebrow {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.create-preview__card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px dashed rgba(15, 177, 116, 0.4);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.create-preview__avatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.create-preview__body {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.create-preview__title {
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.create-preview__account {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.create-preview__price {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.create-preview__price strong {
+  display: block;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.create-preview__price span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* Collapsible advanced inputs (AA core override + metadata). */
+.create-advanced {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.create-advanced > summary {
+  padding: 12px 16px;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.create-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.create-advanced > summary::after {
+  content: "+";
+  float: right;
+  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 700;
+}
+
+.create-advanced[open] > summary::after {
+  content: "–";
+}
+
+.create-advanced__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 16px 16px;
+}
+
 .market-caveat {
   padding: 12px 16px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -352,7 +512,7 @@
 }
 
 @media (max-width: 1080px) {
-  .market-side-rail {
+  .market-workspace {
     grid-template-columns: 1fr;
   }
 }

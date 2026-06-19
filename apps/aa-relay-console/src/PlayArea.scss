@@ -3,7 +3,7 @@
 .relay-play-area {
   @include console.play-area;
   gap: 18px;
-  max-width: 760px;
+  max-width: 1080px;
   margin: 0 auto;
   color: var(--ns-text-2, #5b6478);
 }
@@ -132,12 +132,14 @@
   background: var(--ns-border, rgba(20, 22, 38, 0.12));
 }
 
-/* ── Command card (single flow) ───────────────────────── */
-.relay-command {
+/* ── Shared account card (AA address + how-it-works) ──── */
+.relay-account,
+.relay-step {
   border-radius: var(--ns-radius-lg, 20px);
 }
 
-.relay-command .neo-card__content {
+.relay-account .neo-card__content,
+.relay-step .neo-card__content {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -149,28 +151,88 @@
   gap: 14px;
 }
 
-.relay-sponsor-row {
-  display: grid;
-  grid-template-columns: minmax(120px, 0.5fr) minmax(0, 1fr);
-  gap: 12px;
-  align-items: end;
+/* Collapsed "How relaying works" disclosure — keeps the two longer paragraphs
+   out of the default view so the resting surface reads as fields + concise copy. */
+.relay-howto {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.relay-sponsor-row__amount {
-  min-width: 0;
+.relay-howto > summary {
+  cursor: pointer;
+  padding: 11px 14px;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12.5px;
+  font-weight: 700;
+  list-style: none;
+}
+
+.relay-howto > summary::-webkit-details-marker {
+  display: none;
+}
+
+.relay-howto > summary::before {
+  content: "▸ ";
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.relay-howto[open] > summary::before {
+  content: "▾ ";
+}
+
+.relay-howto__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 14px 13px;
+}
+
+.relay-howto__body p {
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* ── Two-step workspace (preflight | submit) ──────────── */
+.relay-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.relay-step__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.relay-step__eyebrow {
+  color: var(--ns-violet-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.relay-step__title {
+  margin: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .relay-action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-}
-
-.relay-divider {
-  height: 1px;
-  margin: 2px 0;
-  border: 0;
-  background: var(--ns-border, rgba(20, 22, 38, 0.08));
 }
 
 .relay-play-area button:disabled {
@@ -203,12 +265,6 @@
   font-weight: 600;
   line-height: 1.5;
   color: var(--ns-text-2, #5b6478);
-}
-
-.relay-explainer--muted {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ns-text-muted, #8a92a6);
 }
 
 /* Verifiable on-chain reference when the relayer returns a txid/hash. */
@@ -336,6 +392,14 @@
 }
 
 /* ── Responsive ───────────────────────────────────────── */
+/* Below 960px the two steps stack to a single column so each card keeps full
+   width instead of cramming the payload textarea + buttons side by side. */
+@media (max-width: 960px) {
+  .relay-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .relay-play-area {
     gap: 16px;
@@ -368,7 +432,6 @@
     padding-top: 14px;
   }
 
-  .relay-sponsor-row,
   .relay-action-grid {
     grid-template-columns: 1fr;
   }

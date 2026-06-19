@@ -103,6 +103,11 @@ const appMessages = {
 
   statPending: { en: "Pending", zh: "待批准" },
   statCompleted: { en: "Executed", zh: "已执行" },
+  multisigLoadTitle: { en: "Load vault or request", zh: "加载金库或请求" },
+  multisigLoadCopy: {
+    en: "Have a vault or request ID? Load it to deposit, propose, or approve.",
+    zh: "已有金库或请求 ID？加载后即可存入、发起或批准。",
+  },
   loadVaultTitle: { en: "Load vault", zh: "加载金库" },
   loadVaultPlaceholder: { en: "Vault ID", zh: "金库 ID" },
   loadRequestTitle: { en: "Load request", zh: "加载请求" },

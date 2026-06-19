@@ -2,7 +2,8 @@
  * PlayArea.tsx - AA Relay Console
  *
  * Wallet-style sponsored relay workspace for AA payload preparation.
- * Single vertical flow: AA Address -> (Check / Request Sponsorship) -> Payload -> Submit.
+ * Two-step workspace: Step 1 Sponsor preflight (left) -> Step 2 Build & submit (right),
+ * sharing one AA address. Collapses to a single column below 960px.
  */
 
 import { useState } from "react";
@@ -255,14 +256,10 @@ export default function PlayArea({
         </div>
       </section>
 
-      <NeoCard
-        variant="erobo"
-        title={t("relayCommandTitle")}
-        className="relay-command"
-      >
+      {/* Shared AA address + concise intent line + collapsible "how it works" */}
+      <NeoCard variant="erobo" className="relay-account">
         <div className="relay-form">
           <p className="relay-explainer">{t("relayPaymasterExplainer")}</p>
-          {/* Step 1: AA address + sponsorship preflight */}
           <NeoInput
             value={aaAddress}
             label={t("aaAddress")}
@@ -271,18 +268,33 @@ export default function PlayArea({
             error={aaAddressInvalid ? t("aaAddressInvalid") : ""}
             onChange={(val) => setAaAddress(val)}
           />
-
-          <div className="relay-sponsor-row">
-            <div className="relay-sponsor-row__amount">
-              <NeoInput
-                type="number"
-                value={sponsorAmountLocal}
-                label={t("sponsorAmount")}
-                hint={t("sponsorAmountHint")}
-                placeholder={t("sponsorAmountPlaceholder")}
-                onChange={(val) => setSponsorAmountLocal(val)}
-              />
+          <details className="relay-howto">
+            <summary>{t("relayHowItWorksTitle")}</summary>
+            <div className="relay-howto__body">
+              <p>{t("sponsorDirectionNote")}</p>
+              <p>{t("relaySubmitExplainer")}</p>
             </div>
+          </details>
+        </div>
+      </NeoCard>
+
+      <section className="relay-workspace">
+        {/* Step 1: sponsorship preflight */}
+        <NeoCard variant="erobo" className="relay-step">
+          <div className="relay-form">
+            <header className="relay-step__head">
+              <span className="relay-step__eyebrow">{t("relayStep1Eyebrow")}</span>
+              <h3 className="relay-step__title">{t("relayStep1Title")}</h3>
+            </header>
+
+            <NeoInput
+              type="number"
+              value={sponsorAmountLocal}
+              label={t("sponsorAmount")}
+              hint={t("sponsorAmountHint")}
+              placeholder={t("sponsorAmountPlaceholder")}
+              onChange={(val) => setSponsorAmountLocal(val)}
+            />
             <div className="relay-action-grid">
               <NeoButton
                 variant="secondary"
@@ -294,7 +306,7 @@ export default function PlayArea({
                 {t("sponsorCheck")}
               </NeoButton>
               <NeoButton
-                variant="secondary"
+                variant="primary"
                 loading={isCheckingSponsorship}
                 disabled={!canRequestSponsor}
                 aria-label={t("sponsorRequest")}
@@ -310,85 +322,84 @@ export default function PlayArea({
                 {t("sponsorRequest")}
               </NeoButton>
             </div>
+            {!canCheckSponsor && (
+              <p className="relay-hint">{t("sponsorBlocked")}</p>
+            )}
+            {canCheckSponsor && hasSponsorAmount && !sponsorAmountIsValid && (
+              <p className="relay-hint">{t("sponsorAmountInvalid")}</p>
+            )}
           </div>
-          <p className="relay-explainer relay-explainer--muted">
-            {t("sponsorDirectionNote")}
-          </p>
-          {!canCheckSponsor && (
-            <p className="relay-hint">{t("sponsorBlocked")}</p>
-          )}
-          {canCheckSponsor && hasSponsorAmount && !sponsorAmountIsValid && (
-            <p className="relay-hint">{t("sponsorAmountInvalid")}</p>
-          )}
+        </NeoCard>
 
-          <hr className="relay-divider" />
+        {/* Step 2: build & submit payload */}
+        <NeoCard variant="erobo" className="relay-step">
+          <div className="relay-form">
+            <header className="relay-step__head">
+              <span className="relay-step__eyebrow">{t("relayStep2Eyebrow")}</span>
+              <h3 className="relay-step__title">{t("relayStep2Title")}</h3>
+            </header>
 
-          {/* Step 2: payload + submit */}
-          <NeoInput
-            value={dappIdLocal}
-            label={t("dappId")}
-            hint={t("dappIdHint")}
-            placeholder={t("dappIdPlaceholder")}
-            onChange={(val) => setDappIdLocal(val)}
-          />
-          <NeoInput
-            type="textarea"
-            value={payloadJsonLocal}
-            label={t("payloadJson")}
-            hint={t("payloadJsonHint")}
-            placeholder={t("payloadJsonPlaceholder")}
-            aria-label={t("payloadJson")}
-            onChange={(val) => setPayloadJsonLocal(val)}
-          />
-          <p className="relay-explainer relay-explainer--muted">
-            {t("relaySubmitExplainer")}
-          </p>
-          {(!hasAAAddress || !payloadJsonIsValid) && (
-            <p className="relay-hint">
-              {payloadJsonIsValid ? t("relayBlocked") : t("payloadInvalid")}
-            </p>
-          )}
-          <NeoButton
-            variant="primary"
-            loading={isRelaying}
-            disabled={!canSubmitRelay}
-            aria-label={t("submitRelay")}
-            onClick={() =>
-              dispatch("submitRelay", aaAddress, dappIdLocal, payloadJsonLocal)
-            }
-          >
-            {t("submitRelay")}
-          </NeoButton>
+            <NeoInput
+              value={dappIdLocal}
+              label={t("dappId")}
+              hint={t("dappIdHint")}
+              placeholder={t("dappIdPlaceholder")}
+              onChange={(val) => setDappIdLocal(val)}
+            />
+            <NeoInput
+              type="textarea"
+              value={payloadJsonLocal}
+              label={t("payloadJson")}
+              hint={t("payloadJsonHint")}
+              placeholder={t("payloadJsonPlaceholder")}
+              aria-label={t("payloadJson")}
+              onChange={(val) => setPayloadJsonLocal(val)}
+            />
+            {(!hasAAAddress || !payloadJsonIsValid) && (
+              <p className="relay-hint">
+                {payloadJsonIsValid ? t("relayBlocked") : t("payloadInvalid")}
+              </p>
+            )}
+            <NeoButton
+              variant="primary"
+              loading={isRelaying}
+              disabled={!canSubmitRelay}
+              aria-label={t("submitRelay")}
+              onClick={() =>
+                dispatch("submitRelay", aaAddress, dappIdLocal, payloadJsonLocal)
+              }
+            >
+              {t("submitRelay")}
+            </NeoButton>
+          </div>
+        </NeoCard>
+      </section>
 
-          {/* Single human-readable result line, only after an action runs */}
-          {activeResult && (
-            <div className={`relay-result relay-result--${resultTone}`}>
-              <div className="relay-result__line">
-                <span className="relay-result__dot" aria-hidden="true" />
-                <span className="relay-result__text">{resultText}</span>
-                <span className="relay-result__scope">{draftAAAddress}</span>
-              </div>
-              {relayTxid && (
-                <a
-                  className="relay-result__tx"
-                  href={explorerTxUrl(relayTxid)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className="relay-result__tx-label">
-                    {t("relayTxLabel")}
-                  </span>
-                  <code>{relayTxid}</code>
-                </a>
-              )}
-              <details className="relay-result__raw">
-                <summary>{t("latestRelay")}</summary>
-                <pre>{resultRaw}</pre>
-              </details>
-            </div>
+      {/* Single human-readable result line, only after an action runs */}
+      {activeResult && (
+        <div className={`relay-result relay-result--${resultTone}`}>
+          <div className="relay-result__line">
+            <span className="relay-result__dot" aria-hidden="true" />
+            <span className="relay-result__text">{resultText}</span>
+            <span className="relay-result__scope">{draftAAAddress}</span>
+          </div>
+          {relayTxid && (
+            <a
+              className="relay-result__tx"
+              href={explorerTxUrl(relayTxid)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="relay-result__tx-label">{t("relayTxLabel")}</span>
+              <code>{relayTxid}</code>
+            </a>
           )}
+          <details className="relay-result__raw">
+            <summary>{t("latestRelay")}</summary>
+            <pre>{resultRaw}</pre>
+          </details>
         </div>
-      </NeoCard>
+      )}
     </div>
   );
 }

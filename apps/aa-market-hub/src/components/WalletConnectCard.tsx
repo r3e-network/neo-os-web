@@ -26,7 +26,16 @@ export function WalletConnectCard({
 }: WalletConnectCardProps) {
   const trimmedMarketHash = marketHash.trim();
   const isValidMarketHash = isHash160OrNeoAddress(trimmedMarketHash);
+  const isConnected = Boolean(walletAddress.trim());
   const canLoad = canLoadListings && isValidMarketHash;
+  // The board can only be read once a wallet is attached. Before that, the load
+  // button explains the prerequisite ("Connect wallet to load") instead of
+  // sitting on a perpetual "Loading…" that never resolves without a session.
+  const loadLabel = !isConnected
+    ? t("loadNeedsWallet")
+    : isLoading
+      ? t("loadingListings")
+      : t("loadListings");
   return (
     <NeoCard
       variant="erobo"
@@ -34,7 +43,9 @@ export function WalletConnectCard({
       className="operation-card"
     >
       <div className="stack market-command__body">
-        <div className="market-command__status">
+        <div
+          className={`market-command__status${isConnected ? " market-command__status--ok" : ""}`}
+        >
           <span>{t("walletLabel")}</span>
           <strong>{walletAddress || t("notConnected")}</strong>
         </div>
@@ -50,27 +61,25 @@ export function WalletConnectCard({
         />
         <div className="market-command__actions">
           <NeoButton
-            variant="secondary"
+            variant="primary"
             loading={isWalletConnecting}
-            disabled={Boolean(walletAddress.trim())}
-            aria-label={
-              walletAddress ? t("walletConnected") : t("connectWallet")
-            }
+            disabled={isConnected}
+            aria-label={isConnected ? t("walletConnected") : t("connectWallet")}
             onClick={onConnect}
           >
-            {walletAddress ? t("walletConnected") : t("connectWallet")}
+            {isConnected ? t("walletConnected") : t("connectWallet")}
           </NeoButton>
-          {/* While listings load (incl. the auto-load on mount) keep the text
-              label visible instead of replacing it with a bare spinner — a
-              label-less wide pill reads as a broken/stuck control. The button is
-              disabled during the read so it stays inert without losing meaning. */}
+          {/* Keep a meaningful text label at all times — a label-less wide pill
+              reads as a broken/stuck control. Disabled until a wallet is
+              connected (and during a read) so it stays inert without losing
+              meaning. */}
           <NeoButton
-            variant="primary"
-            disabled={!canLoad || isLoading}
-            aria-label={isLoading ? t("loadingListings") : t("loadListings")}
+            variant="secondary"
+            disabled={!isConnected || !canLoad || isLoading}
+            aria-label={loadLabel}
             onClick={onLoadListings}
           >
-            {isLoading ? t("loadingListings") : t("loadListings")}
+            {loadLabel}
           </NeoButton>
         </div>
       </div>

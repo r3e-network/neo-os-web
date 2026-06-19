@@ -5,6 +5,7 @@ const appMessages = {
   marketHash: { en: "Market Hash", zh: "市场合约哈希" },
   loadListings: { en: "Load Listings", zh: "加载列表" },
   loadingListings: { en: "Loading…", zh: "加载中…" },
+  loadNeedsWallet: { en: "Connect wallet to load", zh: "连接钱包后加载" },
   totalListings: { en: "Total Listings", zh: "总 Listings" },
   activeListings: { en: "Active Listings", zh: "活跃 Listings" },
   docsSubtitle: {
@@ -83,6 +84,19 @@ const appMessages = {
   },
   priceInput: { en: "Price (GAS)", zh: "价格（GAS）" },
   pricePlaceholder: { en: "1.5", zh: "1.5" },
+  priceBoundsHint: {
+    en: "Between 0.01 and 1000 GAS (up to 8 decimals).",
+    zh: "范围 0.01 到 1000 GAS（最多 8 位小数）。",
+  },
+  createPreviewLabel: { en: "Listing preview", zh: "挂单预览" },
+  previewAccountPlaceholder: {
+    en: "Account ID pending",
+    zh: "待填写 Account ID",
+  },
+  createAdvancedSummary: {
+    en: "Advanced (AA core, metadata)",
+    zh: "高级设置（AA Core、元数据）",
+  },
   titleInput: { en: "Listing Title", zh: "Listing 标题" },
   titlePlaceholder: {
     en: "Clean wallet shell, ready for fresh plugins",
@@ -186,6 +200,14 @@ const appMessages = {
   emptyStateNoListings: {
     en: "No listings found for the current market hash.",
     zh: "未找到当前市场哈希的 Listings。",
+  },
+  emptyStateConnectTitle: {
+    en: "Connect a wallet to load the board",
+    zh: "连接钱包以加载看板",
+  },
+  emptyStateConnect: {
+    en: "Reading the market contract needs a connected wallet. Connect to load live listings for this market.",
+    zh: "读取市场合约需要已连接的钱包。连接后即可加载该市场的实时挂单。",
   },
   emptyStateLoadingTitle: { en: "Loading listings…", zh: "正在加载挂单…" },
   emptyStateLoading: {

@@ -64,6 +64,22 @@ const appMessages = {
   agentCount: { en: "Agents", zh: "Agent 数" },
   selectedRoute: { en: "Selected route", zh: "当前路由" },
   reserve: { en: "Reserve", zh: "储备" },
+  statsAwaitConnect: {
+    en: "Live route, agent count and reserves load once an operator connects.",
+    zh: "实时路由、agent 数量和储备会在运营方连接后加载。",
+  },
+  directoryAwaitConnect: {
+    en: "Live agent balances and candidates load once an operator connects.",
+    zh: "实时 agent 余额和候选人会在运营方连接后加载。",
+  },
+  directoryRosterNote: {
+    en: "{count} provisioned routes",
+    zh: "已配置 {count} 条路由",
+  },
+  stepLabel: { en: "Step {step}", zh: "第 {step} 步" },
+  cardRuleMove: { en: "No auto rebalance — you choose the route", zh: "不自动调仓 — 路由由你选择" },
+  cardRuleCandidate: { en: "Candidate key is set explicitly", zh: "候选人公钥需显式填写" },
+  cardRuleVote: { en: "Vote sync is a separate transaction", zh: "投票同步独立发交易" },
   moveNeo: { en: "Move NEO", zh: "移动 NEO" },
   moveNeoDesc: {
     en: "Move whole NEO from one ProfitAnchor AA agent to another.",
