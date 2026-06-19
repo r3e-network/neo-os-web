@@ -383,11 +383,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 // Grey out presets above the network cap OR above what the house
                 // can currently pay — pressing one would strand the GAS as credit.
                 const unpayable = Number(preset) > effectiveMaxStake;
+                const isActive =
+                  !unpayable && Number(preset) === Number(amountInput);
                 return (
                   <button
                     key={preset}
                     type="button"
-                    className={unpayable ? "dice-preset--unpayable" : undefined}
+                    className={
+                      [
+                        unpayable && "dice-preset--unpayable",
+                        isActive && "dice-preset--active",
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || undefined
+                    }
+                    aria-pressed={isActive}
                     disabled={isSubmitting || unpayable}
                     title={
                       unpayable && maxPayableStake > 0
