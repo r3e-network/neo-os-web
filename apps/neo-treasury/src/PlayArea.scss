@@ -122,7 +122,9 @@
   border: 1px solid var(--ns-border, #e4e7ec);
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-surface, #ffffff);
-  color: var(--ns-brand-strong, #0fb174);
+  // Darker green text: brand-strong #0fb174 is ~3:1 on white (fails AA);
+  // #086a45 is ~4.8:1 on white and holds on the brand-soft hover background.
+  color: #086a45;
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
@@ -161,7 +163,8 @@
 
 .treasury-hero__warning {
   margin: 6px 0 0 !important;
-  color: var(--ns-warning-strong, #b9791a) !important;
+  // Darker amber so the small warning text meets AA (#b9791a is ~3.4:1 on white).
+  color: #8a5a0a !important;
   font-size: 0.75rem !important;
   font-weight: 700 !important;
   line-height: 1.4 !important;
@@ -427,7 +430,9 @@
   border: 1px solid transparent;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  // Darker green text for AA: brand-strong #0fb174 is ~2.5:1 on brand-soft;
+  // #086a45 is ~4.8:1 on white and holds on the brand-soft resting background.
+  color: #086a45;
   font-size: 0.8125rem;
   font-weight: 800;
   cursor: pointer;
@@ -742,7 +747,9 @@
   border: 1px solid var(--ns-border, #e4e7ec);
   border-radius: 999px;
   background: var(--ns-surface, #ffffff);
-  color: var(--ns-brand-strong, #0fb174);
+  // Darker green text for AA: brand-strong #0fb174 is ~2.8:1 on white;
+  // #086a45 is ~4.8:1 on white and holds on the brand-soft hover background.
+  color: #086a45;
   font-size: 0.6875rem;
   font-weight: 700;
   cursor: pointer;
