@@ -4,9 +4,10 @@
   --ns-border: rgba(20, 22, 38, 0.06);
   --ns-ink: #1e1e2e;
   --ns-text-2: #5b6478;
-  --ns-text-muted: #8a92a6;
+  --ns-text-muted: #646d80;
   --ns-accent: var(--ns-brand, #16c784);
   --ns-accent-strong: var(--ns-brand-strong, #0fb174);
+  --ns-accent-text: var(--ns-brand-ink, #0a7d52);
   --ns-accent-soft: var(--ns-brand-soft, #e4f8f0);
   --ns-radius-lg: 20px;
   --ns-radius-md: 14px;
@@ -65,7 +66,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
 }
 
 .private-transfer__hero h2 {
@@ -110,7 +111,7 @@
   background: var(--ns-accent-soft, #e4f8f0);
   font-size: 12px;
   font-weight: 700;
-  color: var(--ns-accent-strong, #0fb174);
+  color: var(--ns-accent-text, #0a7d52);
 }
 
 .private-transfer__badge::before {
@@ -183,7 +184,7 @@
 }
 
 .private-transfer input::placeholder {
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
   font-weight: 500;
 }
 
@@ -219,7 +220,7 @@
 .private-transfer__field-hint {
   display: block;
   margin-top: 6px;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
@@ -238,7 +239,7 @@
   font-style: normal;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
 }
 
 .private-transfer__memo-count {
@@ -347,7 +348,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
 }
 
 .private-transfer__summary-grid dd {
@@ -587,7 +588,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
   text-transform: uppercase;
 }
 
@@ -678,7 +679,7 @@
 }
 
 .private-transfer__steps-chevron {
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
   font-size: 14px;
   transition: transform 0.15s ease;
 }
@@ -730,7 +731,7 @@
   place-items: initial;
   border-radius: 999px;
   background: #f1f2f5;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -754,7 +755,7 @@
 
 .private-transfer__steps article.is-external span:not(.private-transfer__step-tag) {
   background: #f1f2f5;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
 }
 
 .private-transfer__steps article p {
@@ -779,7 +780,7 @@
 .private-transfer__error-detail {
   margin: 8px 0 0;
   overflow-wrap: anywhere;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.5;
@@ -933,7 +934,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--ns-text-muted, #8a92a6);
+  color: var(--ns-text-muted, #646d80);
   text-transform: uppercase;
 }
 

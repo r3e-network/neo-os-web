@@ -7,6 +7,9 @@
 $burn-accent: var(--ns-brand, #16c784);
 $burn-accent-strong: var(--ns-brand-strong, #0fb174);
 $burn-accent-soft: var(--ns-brand-soft, #e4f8f0);
+// Deeper shade of the same green for accent text on light/soft surfaces, where
+// the standard brand-strong green falls below the AA 4.5:1 contrast threshold.
+$burn-accent-deep: var(--ns-brand-deep, #08734b);
 $burn-amber: var(--ns-warning, #f5a623);
 
 .burn-league-play-area {
@@ -474,7 +477,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   border-radius: var(--ns-radius-full, 9999px);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   background: var(--ns-surface-subtle, #f7f8fa);
-  color: $burn-accent-strong;
+  color: $burn-accent-deep;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -605,7 +608,7 @@ $burn-amber: var(--ns-warning, #f5a623);
   &.is-active {
     border-color: rgba(22, 199, 132, 0.34);
     background: $burn-accent-soft;
-    color: $burn-accent-strong;
+    color: $burn-accent-deep;
   }
 
   &:focus-visible {

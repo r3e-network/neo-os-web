@@ -499,7 +499,9 @@ body {
 }
 
 .anchor-inline-status.is-ready {
-  color: var(--ns-brand-strong, #0fb174);
+  // Darker brand green (same hue) so the 13px bold "ready" text clears WCAG AA
+  // (~7.8:1 on white) — --ns-brand-strong (#0fb174) only reaches 2.8:1.
+  color: var(--ns-brand-deep, #0b5e3e);
 }
 
 /* Wallet-effect preview: stake path, AA route, and claim plan shown before signing */
@@ -576,7 +578,9 @@ body {
   }
 
   .anchor-preflight-row.is-ready dd {
-    color: var(--ns-brand-strong, #0fb174);
+    // Darker brand green (same hue) so the 13px bold value clears WCAG AA
+    // (~7.4:1 on the subtle panel) — --ns-brand-strong only reaches 2.6:1.
+    color: var(--ns-brand-deep, #0b5e3e);
   }
 }
 
@@ -728,7 +732,9 @@ body {
   border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-surface, #ffffff);
-  color: var(--ns-brand-strong, #0fb174);
+  // Darker brand green (same hue) so this ghost button's 14px bold label clears
+  // WCAG AA (~7.8:1 on white) — --ns-brand-strong (#0fb174) only reaches 2.8:1.
+  color: var(--ns-brand-deep, #0b5e3e);
   font: inherit;
   font-size: 14px;
   font-weight: 700;
@@ -747,7 +753,9 @@ body {
 .anchor-action-link:hover:not(:disabled) {
   border-color: var(--ns-brand, #16c784);
   background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  // Keep the darker brand green on the soft-green hover fill (~7:1) so the
+  // label stays AA-compliant in the hover state too.
+  color: var(--ns-brand-deep, #0b5e3e);
   transform: translateY(-1px);
 }
 

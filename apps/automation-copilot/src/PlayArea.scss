@@ -209,7 +209,7 @@
   padding: 0 7px;
   border-radius: var(--ns-radius-full);
   background: var(--ns-brand-soft);
-  color: var(--ns-brand-strong);
+  color: var(--ns-brand-deep, #0b5e3e);
   font-size: 12px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -226,7 +226,7 @@
 
 .automation-panel__hint {
   background: var(--ns-brand-soft);
-  color: var(--ns-brand-strong);
+  color: var(--ns-brand-deep, #0b5e3e);
 }
 
 .automation-panel__hint--info {
@@ -324,7 +324,7 @@
   &--active {
     background: var(--ns-brand-soft, #e4f8f0);
     border-color: var(--ns-brand, #16c784);
-    color: var(--ns-brand-strong, #0fb174);
+    color: var(--ns-brand-deep, #0b5e3e);
   }
 }
 
@@ -583,7 +583,7 @@
   height: 24px;
   border-radius: var(--ns-radius-full);
   background: var(--ns-brand-soft);
-  color: var(--ns-brand-strong);
+  color: var(--ns-brand-deep, #0b5e3e);
   font-size: 12px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;

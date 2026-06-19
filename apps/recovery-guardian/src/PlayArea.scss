@@ -292,8 +292,12 @@
   position: relative;
 }
 
-.guardian-prepare-card--locked .guardian-link-groups {
+.guardian-prepare-card--locked .guardian-link-row {
   opacity: 0.55;
+}
+
+.guardian-prepare-card--locked .guardian-link-group__title {
+  color: var(--ns-text-2, #5b6478);
 }
 
 .guardian-play-area button:disabled {

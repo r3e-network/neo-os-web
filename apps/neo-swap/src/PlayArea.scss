@@ -6,7 +6,7 @@
   --ns-surface-subtle: #f7f8fa;
   --ns-ink: #1e1e2e;
   --ns-text-2: #5b6478;
-  --ns-muted: #8a92a6;
+  --ns-muted: #646b7d;
   --ns-line: rgba(20, 22, 38, 0.06);
   --ns-shadow: 0 8px 24px rgba(20, 22, 38, 0.06);
   --ns-green: var(--ns-brand, #16c784);
@@ -158,7 +158,7 @@
 .neo-swap-route-badge.is-ready {
   border-color: rgba(22, 199, 132, 0.28);
   background: var(--ns-green-soft);
-  color: var(--ns-green-strong);
+  color: #0a7d52;
 }
 
 /* Disconnected how-it-works panel: explains the quote-first flow and offers a

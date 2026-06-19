@@ -14,6 +14,9 @@
   --anchor-accent: var(--ns-brand, #16c784);
   --anchor-accent-strong: var(--ns-brand-strong, #0fb174);
   --anchor-accent-soft: var(--ns-brand-soft, #e4f8f0);
+  // Darkened same-hue green reserved for accent TEXT on light fills so it
+  // clears WCAG AA contrast (--anchor-accent-strong is too light as a label).
+  --anchor-accent-text: #0a7a50;
 
   min-height: 100%;
   padding: 20px;
@@ -31,9 +34,10 @@
   }
 
   // Soft-tinted disabled CTA so a gated action reads as gated, not broken.
+  // Label uses a darkened green (same hue) to clear AA contrast on the soft fill.
   .neo-btn--primary:disabled {
     background: var(--anchor-accent-soft);
-    color: var(--anchor-accent-strong);
+    color: #097048;
     box-shadow: none;
     opacity: 1;
   }
@@ -211,7 +215,7 @@
 
 .anchor-admin-section-heading strong {
   min-width: 0;
-  color: var(--anchor-accent-strong);
+  color: var(--anchor-accent-text);
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -225,7 +229,7 @@
   padding: 4px 11px;
   border-radius: 999px;
   background: var(--anchor-accent-soft);
-  color: var(--anchor-accent-strong) !important;
+  color: var(--anchor-accent-text) !important;
   font-size: 12px;
   font-weight: 700;
   overflow: visible !important;
@@ -317,7 +321,7 @@
   gap: 8px;
   margin: 0 !important;
   padding-top: 2px;
-  color: var(--ns-text-muted) !important;
+  color: var(--ns-text-2) !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   line-height: 1.4;
@@ -352,7 +356,7 @@
 
 .anchor-admin-vote-preview > span {
   display: block;
-  color: var(--anchor-accent-strong);
+  color: var(--anchor-accent-text);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -361,7 +365,7 @@
 
 .anchor-admin-vote-preview strong {
   min-width: 0;
-  color: var(--anchor-accent-strong);
+  color: var(--anchor-accent-text);
   font-size: 18px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;

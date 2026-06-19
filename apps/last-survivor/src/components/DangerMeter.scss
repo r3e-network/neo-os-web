@@ -9,11 +9,12 @@
   width: 100%;
   max-width: 340px;
 
-  // Dormant gauge: dim the whole meter so an idle round reads as "not started"
-  // rather than a disabled/buggy red control. The explicit badge label carries
-  // the meaning; the track stays visible but quiet.
+  // Dormant gauge: lightly dim the whole meter so an idle round reads as "not
+  // started" rather than a disabled/buggy red control. The explicit badge label
+  // carries the meaning; the track stays visible but quiet. Kept high enough
+  // that the dimmed badge label still clears AA contrast.
   &.is-idle {
-    opacity: 0.62;
+    opacity: 0.85;
   }
 }
 
@@ -46,18 +47,22 @@
   white-space: nowrap;
 
   // Idle / no live round — neutral placeholder, never an alarming endpoint echo.
+  // Dark navy-ink text so the (lightly dimmed) idle badge label clears AA
+  // contrast against the inset surface.
   &.idle {
     background: pm.$surface-2;
-    color: pm.$text-muted;
+    color: #3a4254;
   }
 
+  // Darker shades of the same green/amber hues so the small (10px) badge label
+  // clears AA 4.5:1 on its soft tinted background.
   &.low {
     background: pm.$green-soft;
-    color: pm.$green-text;
+    color: #097048;
   }
   &.medium {
     background: pm.$amber-soft;
-    color: pm.$amber;
+    color: #8a5a00;
   }
   &.high {
     background: pm.$red-soft;
