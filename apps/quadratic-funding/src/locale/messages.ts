@@ -2,6 +2,7 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   title: { en: "Quadratic Funding", zh: "二次方资助" },
+  actionFailed: { en: "Action failed — please try again", zh: "操作失败，请重试" },
   qfHeroTitle: {
     en: "Fund public goods with matching power",
     zh: "用匹配资金放大公共物品资助",

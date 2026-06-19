@@ -6,6 +6,7 @@ import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
 import { computeQuadraticMatches } from "@/composables/quadraticMatch";
 import { formatAddress } from "@shared/utils/format";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export function useQuadraticFundingPage(t: (key: string) => string) {
   const activeTab = createObservable("rounds");
@@ -167,15 +168,15 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     return succeededSince(before);
   };
 
-  const handleAddMatching = async (amount: string) => { await addMatching(amount).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
-  const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) => { await finalizeRound(projectIdsRaw, matchedRaw).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
+  const handleAddMatching = async (amount: string) => { await addMatching(amount).catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
+  const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) => { await finalizeRound(projectIdsRaw, matchedRaw).catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
   const handleFinalizeSuggested = async () => {
     const entries = suggestedMatches.get().map((entry) => ({ id: entry.id, matchBaseUnits: entry.matchBaseUnits }));
-    await finalizeSuggested(entries).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); });
+    await finalizeSuggested(entries).catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); });
   };
-  const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => { await claimProject(project).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
-  const handleClaimUnused = async () => { await claimUnused().catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
-  const handleCancelRound = async () => { await cancelRound().catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
+  const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => { await claimProject(project).catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
+  const handleClaimUnused = async () => { await claimUnused().catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
+  const handleCancelRound = async () => { await cancelRound().catch((e: unknown) => { setStatus(formatErrorMessage(e, t("actionFailed")), "error"); }); };
   const handleSelectRound = async (round: Parameters<typeof selectRound>[0]) => {
     selectRound(round);
     await refreshProjects();
