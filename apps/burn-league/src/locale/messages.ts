@@ -210,6 +210,10 @@ const appMessages = {
   },
   dashPlaceholder: { en: "—", zh: "—" },
   startTheSeason: { en: "Start the season", zh: "开启赛季" },
+  impactPoolEmptyHint: {
+    en: "No live pool yet — your first burn starts the season and fills these in.",
+    zh: "暂无进行中的奖池 — 你的首次燃烧将开启赛季并填入这些数据。",
+  },
   // ── How burning wins (inline 3-step rhythm) ───────────────────────────
   howItWorks: { en: "How burning wins", zh: "燃烧如何获胜" },
   howStepPick: { en: "Pick an amount", zh: "选择燃烧数量" },

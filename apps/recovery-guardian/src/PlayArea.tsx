@@ -306,17 +306,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <strong>{t("noStateYet")}</strong>
                 <p>{t("noStateHint")}</p>
               </div>
-              <div
-                className="guardian-state-skeleton"
-                aria-hidden="true"
-              >
-                {stateItems.slice(0, 6).map((item) => (
-                  <div key={item.label} className="guardian-skel-card">
-                    <span>{item.label}</span>
-                    <i />
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 

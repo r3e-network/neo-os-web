@@ -385,32 +385,44 @@ $burn-amber: var(--ns-warning, #f5a623);
   }
 }
 
-/* ── Service boundary notice (inline status inside the action card) ── */
+/* ── Service boundary notice (slim single-line status in the action card) ── */
 .burn-league-service-notice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   margin: 0 0 16px;
-  padding: 12px 14px;
+  padding: 8px 12px;
   border-radius: var(--ns-radius-sm, 12px);
   border: 1px solid rgba(245, 166, 35, 0.28);
   background: var(--ns-warning-soft, #fff3dd);
 }
 
+.burn-league-service-notice__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ns-warning, #b76b00);
+}
+
 .burn-league-service-notice__copy {
-  display: grid;
-  gap: 5px;
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
   font-size: 12px;
-  line-height: 1.5;
-  color: var(--ns-text-2, #5b6478);
+  line-height: 1.4;
 }
 
 .burn-league-service-notice__title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--ns-warning, #b76b00);
 }
 
 .burn-league-service-notice__status {
-  margin-top: 3px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -660,6 +672,16 @@ $burn-amber: var(--ns-warning, #f5a623);
   width: 1px;
   margin: 2px 16px;
   background: var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+/* Muted helper line shown under the strip while there's no live pool — keeps
+   the "start the season" sentence out of the metric value slots. */
+.burn-league-impact-hint {
+  margin: -6px 2px 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ns-text-muted, #8a92a6);
 }
 
 .burn-league-action-buttons {
