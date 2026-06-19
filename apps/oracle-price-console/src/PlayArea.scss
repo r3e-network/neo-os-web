@@ -20,10 +20,6 @@
   box-shadow: var(--ns-focus-ring);
 }
 
-.stack {
-  @include console.stack(12px);
-}
-
 .price-hero {
   display: grid;
   // The left copy column (title + one line) is light, so the metrics column is
@@ -408,6 +404,11 @@
   min-width: 0;
 }
 
+.price-action-panel .neo-card__body {
+  display: grid;
+  gap: 14px;
+}
+
 .price-action-panel .neo-card__title {
   color: var(--ns-ink);
   font-size: 18px;
@@ -416,16 +417,282 @@
   text-transform: none;
 }
 
-.price-hint {
-  padding: 13px 15px;
+.price-oracle-station {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 16px;
+  border-radius: var(--ns-radius-lg);
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(255, 255, 255, 0) 62%),
+    var(--ns-surface);
+}
+
+.price-oracle-station__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--ns-radius-md);
+  color: var(--ns-brand-strong);
+  background: var(--ns-brand-soft);
+}
+
+.price-oracle-station__copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.price-oracle-station__copy > span,
+.price-pair-picker__head > span {
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.price-oracle-station__copy strong,
+.price-pair-picker__head strong {
+  overflow-wrap: anywhere;
+  color: var(--ns-ink);
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.price-oracle-station__copy small {
+  color: var(--ns-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.price-pair-picker {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.price-pair-picker__head {
+  display: grid;
+  gap: 4px;
+}
+
+.price-pair-options {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.price-pair-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.price-pair-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: start;
+  justify-items: start;
+  min-width: 0;
+  min-height: 122px;
+  padding: 12px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.price-pair-card:hover {
+  border-color: rgba(139, 92, 246, 0.28);
+  transform: translateY(-1px);
+}
+
+.price-pair-card:focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring);
+}
+
+.price-pair-card--selected {
+  border-color: rgba(139, 92, 246, 0.38);
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(255, 255, 255, 0) 65%),
+    var(--ns-surface);
+  box-shadow: var(--ns-shadow-sm);
+}
+
+.price-pair-card .asset-token {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+  font-size: 17px;
+}
+
+.price-pair-card__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.price-pair-card__copy strong {
+  overflow-wrap: normal;
+  color: var(--ns-ink);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.price-pair-card__copy small {
+  color: var(--ns-text-muted);
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.price-catalog-dock {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
   border-radius: var(--ns-radius-md);
   background: var(--ns-surface-subtle);
   box-shadow: inset 0 0 0 1px var(--ns-border);
+}
+
+.price-catalog-dock__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.price-catalog-dock__head span {
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.price-catalog-dock__head strong {
+  color: var(--ns-ink);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.price-catalog-chips {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.price-catalog-chip {
+  flex: 0 0 auto;
+  min-height: 34px;
+  border: 1px solid var(--ns-border);
+  border-radius: var(--ns-radius-full);
+  padding: 0 12px;
+  background: var(--ns-surface);
   color: var(--ns-text-2);
-  font-size: 13px;
-  font-weight: 500;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.price-catalog-chip:hover,
+.price-catalog-chip--selected {
+  border-color: rgba(139, 92, 246, 0.34);
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--ns-brand-strong);
+}
+
+.price-catalog-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring);
+}
+
+.price-station-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.price-station-facts > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px 12px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+  box-shadow: inset 0 0 0 1px var(--ns-border);
+}
+
+.price-station-facts small {
+  color: var(--ns-text-muted);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.price-station-facts strong {
+  overflow: hidden;
+  color: var(--ns-ink);
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price-query-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.price-query-actions .neo-btn {
+  width: 100%;
+}
+
+.price-query-actions .neo-btn svg {
+  flex: 0 0 auto;
+}
+
+.price-selected-note {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+  color: var(--ns-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
   line-height: 1.5;
-  margin-bottom: 16px;
+  box-shadow: inset 0 0 0 1px var(--ns-border);
 }
 
 .error-banner {
@@ -450,6 +717,10 @@
 @media (max-width: 900px) {
   .price-console-body {
     grid-template-columns: 1fr;
+  }
+
+  .price-pair-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -485,6 +756,11 @@
 
   .result-price {
     font-size: 30px;
+  }
+
+  .price-pair-grid,
+  .price-station-facts {
+    grid-template-columns: 1fr;
   }
 }
 
