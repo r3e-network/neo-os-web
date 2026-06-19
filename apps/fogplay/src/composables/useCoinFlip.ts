@@ -274,6 +274,10 @@ export function useCoinFlip({ chain, eventBus, t }: UseCoinFlipOptions) {
     return (
       n >= MIN_BET &&
       n <= MAX_BET &&
+      // The house must be able to back the 2x payout — gate the button on the
+      // live payable cap so an over-cap bet is disabled rather than enabled then
+      // rejected at pre-flight. (maxPayableBet is MAX_BET until bankroll loads.)
+      n <= maxPayableBet.get() &&
       !validationError.get() &&
       !isFlipping.get() &&
       // A bet cannot be committed while a prior bet is still awaiting its reveal.
