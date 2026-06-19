@@ -111,7 +111,10 @@ function isEndingSoon(proposal: Proposal): boolean {
 // "X/21" instead of "X/—". Returns the value and whether it's the fallback.
 function quorumDenominator(proposal: Proposal): { value: number; isFallback: boolean } {
   if (proposal.quorumRequired > 0) return { value: proposal.quorumRequired, isFallback: false };
-  return { value: COUNCIL_SIZE, isFallback: true };
+  // When the contract reports no explicit quorum we fall back to the council
+  // size, but never let the denominator read below the actual vote count — an
+  // unbounded tally would otherwise render a nonsensical "30/21".
+  return { value: Math.max(COUNCIL_SIZE, proposal.totalVotes), isFallback: true };
 }
 
 // A proposal passes on a strict majority of the council seats voting For — the

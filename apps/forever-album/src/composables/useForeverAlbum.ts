@@ -37,8 +37,10 @@ import type { PhotoItem, UploadItem } from "../types";
 // ============================================================================
 
 const MAX_PHOTOS_PER_UPLOAD = 5;
-const MAX_PHOTO_BYTES = 45000;
-const MAX_TOTAL_BYTES = 60000;
+const MAX_PHOTO_BYTES = 46080; // 45 KiB
+// 60 KiB exactly (60 * 1024) so the "60 KB" labels and the 1024-based size
+// meter agree — the prior 60000-byte cap read as "58.6 KB" against the meter.
+const MAX_TOTAL_BYTES = 61440;
 
 /** localStorage key prefix for a wallet's device-local album. */
 const ALBUM_STORE_PREFIX = "forever-album:photos:";
