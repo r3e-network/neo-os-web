@@ -57,10 +57,13 @@
 
   // Variants — light theme
   &--primary {
-    background: #16c784;
+    // AA: white-on-green needs a darker green. #16c784 was ~2.2:1 (fail);
+    // #0a8050 is 4.98:1 with white (hover #086a45 ~5.5:1). The brighter
+    // #16c784 stays as the decorative accent/token elsewhere.
+    background: #0a8050;
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
-    &:hover:not(:disabled) { background: #059669; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3); }
+    box-shadow: 0 2px 8px rgba(10, 128, 80, 0.28);
+    &:hover:not(:disabled) { background: #086a45; box-shadow: 0 4px 16px rgba(10, 128, 80, 0.32); }
   }
 
   &--secondary {
@@ -77,17 +80,19 @@
   }
 
   &--danger {
-    background: #ef4444;
+    // AA: white-on-#ef4444 is ~3.76:1 (fail). #d4202a is 5.20:1 with white
+    // (hover #b91c1c ~6.5:1) while staying an unmistakable danger red.
+    background: #d4202a;
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
-    &:hover:not(:disabled) { background: #dc2626; }
+    box-shadow: 0 2px 8px rgba(212, 32, 42, 0.28);
+    &:hover:not(:disabled) { background: #b91c1c; }
   }
 
   &--success {
-    background: #16c784;
+    background: #0a8050;
     color: #ffffff;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
-    &:hover:not(:disabled) { background: #059669; }
+    box-shadow: 0 2px 8px rgba(10, 128, 80, 0.28);
+    &:hover:not(:disabled) { background: #086a45; }
   }
 
   &--warning {

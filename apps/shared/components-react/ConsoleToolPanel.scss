@@ -388,7 +388,10 @@
   align-items: center;
   padding: 4px 12px;
   border-radius: var(--ns-radius-full);
-  color: var(--console-accent, var(--ns-violet-strong));
+  // AA: this small (11px) bold label sits on the soft-green pill, where the
+  // strong-brand green (#0fb174) is only ~2.5:1. The deep-brand green clears
+  // ~7:1 on that soft fill while staying in the same hue family.
+  color: var(--console-accent-deep, var(--ns-brand-deep, #0b5e3e));
   background: var(--console-accent-soft, var(--ns-violet-soft));
   font-size: 0.6875rem;
   font-weight: 700;
