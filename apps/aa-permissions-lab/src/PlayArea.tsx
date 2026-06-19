@@ -93,12 +93,16 @@ export default function PlayArea({
   const canUpdateHook =
     accountReady && Boolean(hookHash.trim()) && !isHookBusy && !notBackupOwner;
 
-  // Humanize a pending-update unlock timestamp (seconds) into a status line.
-  const pendingUnlockText = (unlockAtSeconds: number): string => {
-    if (!unlockAtSeconds || unlockAtSeconds <= Math.floor(Date.now() / 1000)) {
+  // Humanize a pending-update unlock timestamp into a status line. The value is
+  // the contract's getPending*UpdateTime, computed as InitiatedAt (Runtime.Time)
+  // + ConfigUpdateTimelockMs — i.e. epoch MILLISECONDS, since Neo N3 Runtime.Time
+  // is ms. (Treating it as seconds read the unlock ~1000x into the future and
+  // never showed "ready".)
+  const pendingUnlockText = (unlockAtMs: number): string => {
+    if (!unlockAtMs || unlockAtMs <= Date.now()) {
       return t("pendingUnlockReady");
     }
-    const when = new Date(unlockAtSeconds * 1000).toLocaleString();
+    const when = new Date(unlockAtMs).toLocaleString();
     return t("pendingUnlockAt", { time: when });
   };
 
