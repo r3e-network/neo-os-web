@@ -466,9 +466,12 @@
 .sign-result-box {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px 12px;
-  align-items: center;
+  // Single column so label / value / actions stack: the value previously sat in
+  // a narrow 1fr column beside the two action buttons, which squeezed
+  // "No signature yet" into a mid-word 3-line wrap. Stacked, the value gets full
+  // width (a real signature wraps cleanly; the empty label never breaks).
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
   padding: 16px;
   border-radius: var(--sign-radius-md);
   background: var(--sign-soft);

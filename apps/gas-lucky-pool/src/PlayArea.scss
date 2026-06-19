@@ -1233,13 +1233,16 @@ body {
 }
 
 .gas-pool-sample__tag {
-  padding: 0.18rem 0.5rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  background: var(--ns-success-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
-  font-size: 0.62rem;
+  // Amber meta-badge (not green) so "SAMPLE" reads as a distinct preview marker
+  // rather than blending into the celebratory green reward — a first-time user
+  // must not mistake this mockup for a real win.
+  background: #fef3e2;
+  color: #8a5a0a;
+  font-size: 0.64rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -1249,7 +1252,8 @@ body {
   gap: 0.85rem;
   align-items: start;
   padding: 1rem 1.05rem;
-  border: 1px solid rgba(22, 199, 132, 0.2);
+  // Dashed border = this is a mockup/preview frame, not a live claim card.
+  border: 1.5px dashed rgba(22, 199, 132, 0.45);
   border-radius: 16px;
   background:
     linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(244, 200, 74, 0.1)),

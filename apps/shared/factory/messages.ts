@@ -202,6 +202,7 @@ export const factoryMessages = {
   stepStatusReady: { en: "Ready", zh: "就绪" },
   stepStatusManual: { en: "Manual", zh: "人工" },
   stepStatusBlocked: { en: "Blocked", zh: "阻断" },
+  stepStatusPending: { en: "Pending", zh: "待完成" },
 
   // ── Execution ──
   executeDeployAction: { en: "Deploy via factory", zh: "通过 Factory 部署" },
