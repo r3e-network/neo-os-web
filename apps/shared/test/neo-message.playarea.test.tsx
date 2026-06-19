@@ -60,6 +60,19 @@ function props(dispatch = vi.fn(async () => undefined), appState: ObservableStat
 }
 
 describe("Neo Message PlayArea", () => {
+  it("renders real brand imagery and delivery-mode radio cards", () => {
+    const { container } = render(<PlayArea {...props()} />);
+
+    expect(container.querySelector('.nm-hero img[src="./logo.jpg"]')).toBeTruthy();
+    expect(container.querySelector('.nm-hero-media img[src="./banner.jpg"]')).toBeTruthy();
+    expect(container.querySelector(".nm-hero svg")).toBeNull();
+
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(2);
+    expect(radios[0].getAttribute("aria-checked")).toBe("true");
+    expect(radios[1].getAttribute("aria-checked")).toBe("false");
+  });
+
   it("offers an in-app Switch to Neo X button when an EVM wallet is present", () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PlayArea {...props(dispatch, state({ networkSupported: false, hasWallet: true }))} />);
