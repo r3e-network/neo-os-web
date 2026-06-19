@@ -28,6 +28,7 @@ const messages = mergeMessages({
   panelDescription: { en: "Exercise the shared panel.", zh: "测试共享面板。" },
   runAction: { en: "Build Preview", zh: "构建预览" },
   topicLabel: { en: "Topic", zh: "主题" },
+  modeLabel: { en: "Mode", zh: "模式" },
   statNetwork: { en: "Network", zh: "网络" },
   statEndpoint: { en: "Endpoint", zh: "端点" },
   statRequests: { en: "Requests", zh: "请求数" },
@@ -175,6 +176,43 @@ describe("ConsoleToolPanel preview-mode framing", () => {
     expect(
       screen.getByRole("button", { name: baseMessages.consoleExecuteAction.en }),
     ).toBeTruthy();
+  });
+});
+
+describe("ConsoleToolPanel choice fields", () => {
+  it("renders select fields as radio cards and preserves submitted values", () => {
+    const buildResult = vi.fn((values: Record<string, string>) =>
+      makeResult(values.mode),
+    );
+    const { view } = renderPanel({
+      config: makeConfig({
+        fields: [
+          {
+            key: "mode",
+            labelKey: "modeLabel",
+            type: "select",
+            defaultValue: "GET",
+            options: [
+              { value: "GET", label: "GET" },
+              { value: "POST", label: "POST" },
+            ],
+          },
+        ],
+        buildResult,
+      }),
+    });
+
+    expect(view.container.querySelector("select")).toBeNull();
+    expect(screen.getByRole("radio", { name: "Mode: GET" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Mode: POST" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Mode: POST" }));
+    fireEvent.click(screen.getByRole("button", { name: "Build Preview" }));
+
+    expect(buildResult).toHaveBeenCalledWith(
+      { mode: "POST" },
+      expect.any(Function),
+    );
   });
 });
 

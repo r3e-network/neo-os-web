@@ -205,6 +205,7 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                     type="button"
                     role="radio"
                     aria-checked={schedule === preset.value}
+                    aria-label={t(preset.labelKey)}
                     className={`automation-preset${schedule === preset.value ? " automation-preset--active" : ""}`}
                     onClick={() => { if (state.schedule) state.schedule.set(preset.value); }}
                   >
@@ -228,26 +229,28 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                 {ACTION_PRESETS.map((preset) => {
                   const active = actionSelectValue !== CUSTOM_ACTION && actionName === preset.value;
                   return (
-                  <button
-                    key={preset.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    className={`automation-action-card${active ? " is-selected" : ""}`}
-                    onClick={() => {
-                      setCustomActionMode(false);
-                      if (state.actionName) state.actionName.set(preset.value);
-                    }}
-                  >
-                    <strong>{t(preset.labelKey)}</strong>
-                    <span>{t(preset.hintKey)}</span>
-                  </button>
+                    <button
+                      key={preset.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      aria-label={t(preset.labelKey)}
+                      className={`automation-action-card${active ? " is-selected" : ""}`}
+                      onClick={() => {
+                        setCustomActionMode(false);
+                        if (state.actionName) state.actionName.set(preset.value);
+                      }}
+                    >
+                      <strong>{t(preset.labelKey)}</strong>
+                      <span>{t(preset.hintKey)}</span>
+                    </button>
                   );
                 })}
                 <button
                   type="button"
                   role="radio"
                   aria-checked={actionSelectValue === CUSTOM_ACTION}
+                  aria-label={t("actionCustom")}
                   className={`automation-action-card${actionSelectValue === CUSTOM_ACTION ? " is-selected" : ""}`}
                   onClick={() => setCustomActionMode(true)}
                 >

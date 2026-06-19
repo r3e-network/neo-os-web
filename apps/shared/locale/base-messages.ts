@@ -108,6 +108,8 @@ export const baseMessages = {
     en: "Keep every request readable before it is bound to an on-chain callback.",
     zh: "在绑定链上回调前，保持每个请求都可读、可检查。",
   },
+  consoleConfigureEyebrow: { en: "Configure", zh: "配置" },
+  consoleConfigureTitle: { en: "Request setup", zh: "请求设置" },
   consoleSignal: { en: "Oracle signal", zh: "预言机信号" },
   consolePayload: { en: "Payload", zh: "载荷" },
   consolePreviewNotice: {

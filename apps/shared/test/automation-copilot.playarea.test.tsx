@@ -210,10 +210,10 @@ describe("Automation Copilot PlayArea", () => {
       <PlayArea {...props({ state: state({ actionName: "my_custom_action" }) })} />,
     );
 
-    // An unlisted action name flips the select to Custom and reveals the field.
+    // An unlisted action name flips the action picker to Custom and reveals the field.
     expect(screen.getByLabelText("Custom Action Name")).toBeTruthy();
-    // The select exposes the known preset action.
-    expect(screen.getByRole("option", { name: "Repay self-loan" })).toBeTruthy();
+    // The radio-card picker exposes the known preset action.
+    expect(screen.getByRole("radio", { name: "Repay self-loan" })).toBeTruthy();
   });
 
   it("fills the schedule field from a preset chip", () => {
@@ -222,7 +222,7 @@ describe("Automation Copilot PlayArea", () => {
     baseState.schedule.set = setSchedule;
     render(<PlayArea {...props({ state: baseState })} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Every 6h" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Every 6h" }));
     expect(setSchedule).toHaveBeenCalledWith("0 */6 * * *");
   });
 });
