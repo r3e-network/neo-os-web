@@ -12,6 +12,24 @@ const appMessages = {
   marketSignalTitle: { en: "Neo N3 governance desk", zh: "Neo N3 治理台" },
   marketReady: { en: "Ready", zh: "就绪" },
   walletStatusIdle: { en: "Wallet not connected", zh: "钱包未连接" },
+  // ── Civic framing: what winning the title actually grants (hero lede) ──────
+  govHeroGrant: {
+    en: "Winning records you as this epoch's influence holder on-chain — a public signal of support, not an executed vote. Your staked NEO stays yours and earns the GAS bid; it is never delegated or voted by the contract.",
+    zh: "获胜将把你记录为本周期的影响力持有者（链上公示）——这是一种公开的支持信号，而非已执行的投票。你质押的 NEO 始终归你所有并赚取 GAS 竞价收益，合约绝不会代为委托或投票。",
+  },
+  // ── Wallet-connect onboarding (shown when no wallet is linked) ─────────────
+  connectTitle: { en: "Connect your Neo wallet to take part", zh: "连接 Neo 钱包以参与" },
+  connectCopy: {
+    en: "Link a wallet to stake NEO for a reward share or bid GAS for the epoch's influence title. The first action you take will prompt your wallet to connect.",
+    zh: "连接钱包即可质押 NEO 分享收益，或竞价 GAS 争夺本周期的影响力称号。你的首个操作将提示钱包进行连接。",
+  },
+  connectAction: { en: "Connect wallet", zh: "连接钱包" },
+  // ── Token legend (disambiguate NEO stake vs GAS bid at point of action) ────
+  tokenLegendTitle: { en: "Two tokens, two roles", zh: "两种代币，两种用途" },
+  tokenLegendNeo: { en: "NEO — stake for a reward share", zh: "NEO —— 质押以分享收益" },
+  tokenLegendGas: { en: "GAS — bid for the influence title", zh: "GAS —— 竞价以争夺影响力称号" },
+  tokenTagStake: { en: "Staked in NEO", zh: "以 NEO 质押" },
+  tokenTagBid: { en: "Paid in GAS", zh: "以 GAS 支付" },
   rent: { en: "Pool", zh: "池子" },
   market: { en: "Bids", zh: "竞价" },
   poolStats: { en: "Pool Stats", zh: "池子统计" },
@@ -66,6 +84,7 @@ const appMessages = {
     zh: "结算在链上记录获胜者为该周期的影响力持有者，并将其竞价支付给质押者。质押的 NEO 不会被合约委托或投票——任何投票执行均在合约外进行。",
   },
   riskNoteTitle: { en: "Operator readiness", zh: "操作就绪度" },
+  riskNoteToggle: { en: "Contract & settlement details", zh: "合约与结算详情" },
   riskNoteCopy: {
     en: "Staking, bids, and settlement run directly against the on-chain MiniAppGovMerc contract. Review the epoch and amount before submitting.",
     zh: "质押、竞价与结算均直接调用链上 MiniAppGovMerc 合约。提交前请确认周期和金额。",

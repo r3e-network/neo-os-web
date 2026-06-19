@@ -140,6 +140,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="anchor-kicker">{t("appName")}</span>
             <h2>{t("heroTitle")}</h2>
             <p>{t("heroDescription")}</p>
+            {!hasData && (
+              <p className="anchor-connect-prompt">{t("connectPrompt")}</p>
+            )}
           </div>
         </div>
         <div className="anchor-score">
@@ -246,6 +249,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {busyAction === "refreshAnchor" ? t("workflowSubmitting") : t("refreshStatus")}
               </button>
             </div>
+            {!claimReady && (
+              <p className="anchor-claim-note">{t("claimDisabledCaption")}</p>
+            )}
             <p className="anchor-redeem-note">{t("redeemTimingNote")}</p>
             {canRecoverCredit && (
               <div className="anchor-recover-card">
@@ -292,6 +298,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
         <aside className="anchor-route-card" aria-label={t("routeStateLabel")}>
           <span>{t("routeStateLabel")}</span>
+          <small className="anchor-route-card__eyebrow">{t("voteTargetLabel")}</small>
           <strong
             className={
               stats?.selectedAgentId ? undefined : "anchor-route-card__placeholder"
@@ -299,6 +306,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           >
             {stats?.selectedAgentId ? selectedAgent : "—"}
           </strong>
+          <p className="anchor-route-card__lead-copy">{t("routeStateCaption")}</p>
           <dl>
             <div>
               <dt>{t("statusLabel")}</dt>
@@ -317,8 +325,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <dd>{hasData ? rewardPerNeoDisplay : placeholder}</dd>
             </div>
           </dl>
-          <p className="anchor-route-card__caption">{t("rewardReserveHint")}</p>
-          <p className="anchor-route-card__caption">{t("rewardPerNeoCaption")}</p>
+          <p className="anchor-route-card__caption">{t("rewardPerNeoMerged")}</p>
         </aside>
       </section>
 

@@ -96,10 +96,14 @@ function formatDate(value: number) {
   }).format(new Date(value));
 }
 
-function voteShare(proposal: Proposal) {
-  const total = proposal.yesVotes + proposal.noVotes;
-  if (total <= 0) return 0;
-  return Math.round((proposal.yesVotes / total) * 100);
+// Voting is time-sensitive: flag an active window closing within 24h so members
+// see urgency at a glance. Read-only / display-only — no logic depends on it.
+const ENDING_SOON_MS = 24 * 60 * 60 * 1000;
+function isEndingSoon(proposal: Proposal): boolean {
+  if (proposal.statusKey !== "active") return false;
+  if (!Number.isFinite(proposal.expiryTime) || proposal.expiryTime <= 0) return false;
+  const remaining = proposal.expiryTime - Date.now();
+  return remaining > 0 && remaining <= ENDING_SOON_MS;
 }
 
 // The quorum denominator. When the contract returns no explicit quorumRequired
@@ -108,6 +112,25 @@ function voteShare(proposal: Proposal) {
 function quorumDenominator(proposal: Proposal): { value: number; isFallback: boolean } {
   if (proposal.quorumRequired > 0) return { value: proposal.quorumRequired, isFallback: false };
   return { value: COUNCIL_SIZE, isFallback: true };
+}
+
+// A proposal passes on a strict majority of the council seats voting For — the
+// same majority the contract uses for quorum (>= half + 1 of the denominator).
+// This only LABELS the existing threshold; it changes no vote math.
+function passThreshold(proposal: Proposal): number {
+  return Math.floor(quorumDenominator(proposal).value / 2) + 1;
+}
+
+// Vote-bar geometry. The For and Against segments are sized against the council
+// denominator (not just cast votes) so the pass-line tick stays at a fixed,
+// readable position and a split vote reads as for / against / undecided rather
+// than "red = failing".
+function voteBarGeometry(proposal: Proposal) {
+  const denominator = Math.max(quorumDenominator(proposal).value, 1);
+  const forPct = Math.min(100, (proposal.yesVotes / denominator) * 100);
+  const againstPct = Math.min(100 - forPct, (proposal.noVotes / denominator) * 100);
+  const thresholdPct = Math.min(100, (passThreshold(proposal) / denominator) * 100);
+  return { forPct, againstPct, thresholdPct };
 }
 
 export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProps) {
@@ -237,7 +260,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <span>{historyCount}</span>
             <label>{t("historyProposals")}</label>
           </div>
-          <div className="council-stat">
+          <div className="council-stat council-stat--seat">
             <span>
               {!walletAddress || !candidateLoaded
                 ? "—"
@@ -246,6 +269,13 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                   : t("seatReadOnly")}
             </span>
             <label>{t("councilSeat")}</label>
+            <small className="council-stat-caption">
+              {!walletAddress || !candidateLoaded
+                ? t("seatCaptionConnect")
+                : isCandidate
+                  ? t("seatCaptionVerified")
+                  : t("seatCaptionReadOnly")}
+            </small>
           </div>
         </div>
       </section>
@@ -417,7 +447,17 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                       <div className="council-vote-bar-track">
                         <div
                           className="council-vote-bar-fill"
-                          style={{ width: `${voteShare(proposal)}%` }}
+                          style={{ width: `${voteBarGeometry(proposal).forPct}%` }}
+                        />
+                        <div
+                          className="council-vote-bar-against"
+                          style={{ width: `${voteBarGeometry(proposal).againstPct}%` }}
+                        />
+                        <span
+                          className="council-vote-bar-marker"
+                          style={{ left: `${voteBarGeometry(proposal).thresholdPct}%` }}
+                          title={t("passLine")}
+                          aria-hidden="true"
                         />
                       </div>
                       <div className="council-vote-counts">
@@ -426,13 +466,23 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                       </div>
                     </div>
 
+                    <p className="council-pass-threshold">
+                      {t("passThreshold", {
+                        needed: passThreshold(proposal),
+                        total: quorumDenominator(proposal).value,
+                      })}
+                    </p>
+
                     <div className="council-proposal-meta">
                       <span>
                         {t("quorum")}: {proposal.totalVotes}/{quorumDenominator(proposal).value}
                         {quorumDenominator(proposal).isFallback && ` · ${t("councilOf21")}`}
                       </span>
                       <span>{t("creator")}: {shortAddress(proposal.creatorDisplay ?? proposal.creator)}</span>
-                      <span>{t("votingEnds")}: {formatDate(proposal.expiryTime)}</span>
+                      <span className={isEndingSoon(proposal) ? "council-ending-soon" : ""}>
+                        {t("votingEnds")}: {formatDate(proposal.expiryTime)}
+                        {isEndingSoon(proposal) && ` · ${t("endingSoon")}`}
+                      </span>
                     </div>
 
                     <div className="council-proposal-actions">

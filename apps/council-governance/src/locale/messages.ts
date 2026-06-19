@@ -169,6 +169,21 @@ title: { en: "Council Governance", zh: "议会治理" },
   // Council size used as the quorum denominator when the contract returns none.
   councilOf21: { en: "Council of 21", zh: "21 人议会" },
   tokenNeo: { en: "NEO", zh: "NEO" },
+  // Pass line for the vote bar: a proposal passes on a majority of the council
+  // seats voting in favour. Surfaced as a caption + tick so a split vote does
+  // not read as failing.
+  passThreshold: {
+    en: "Needs {needed} of {total} For to pass",
+    zh: "需 {total} 席中 {needed} 票赞成方可通过",
+  },
+  passLine: { en: "Pass line", zh: "通过线" },
+  // One-line caption under the Council Seat stat so eligibility is explained in
+  // the stat block, not only in the access strip.
+  seatCaptionConnect: { en: "Connect a council wallet to vote", zh: "连接议会钱包即可投票" },
+  seatCaptionVerified: { en: "You can propose and vote", zh: "可发起提案并投票" },
+  seatCaptionReadOnly: { en: "Viewing in read-only mode", zh: "以只读模式查看" },
+  // Time-sensitivity cue for an active proposal whose voting window closes soon.
+  endingSoon: { en: "Ending soon", zh: "即将结束" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
