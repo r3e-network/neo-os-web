@@ -317,47 +317,53 @@ export default function PlayArea({
 
   const copy = (key: string, fallback: string) => text(t, key, fallback);
 
-  const launchDefaults = useMemo<LaunchDefaults>(() => {
-    const recipient = launchValue(launchContext, [
-      "recipient",
-      "to",
-      "beneficiary",
-    ]);
-    const amount = launchValue(launchContext, [
-      "amount",
-      "total",
-      "totalAmount",
-    ]);
-    const duration =
-      launchValue(launchContext, ["duration", "durationDays", "days"]) ||
-      (recipient && amount ? "7" : "");
-    const title =
-      launchValue(launchContext, ["title", "streamName", "name"]) ||
-      (recipient ? "Shared runtime stream" : "");
-    const notes = launchValue(launchContext, ["notes", "note", "memo"]);
-    const token = normalizeToken(launchValue(launchContext, ["token", "asset"]));
-    return { recipient, amount, duration, title, notes, token };
-  }, [launchContext.signature]);
+  const launchRecipient = launchValue(launchContext, [
+    "recipient",
+    "to",
+    "beneficiary",
+  ]);
+  const launchAmount = launchValue(launchContext, [
+    "amount",
+    "total",
+    "totalAmount",
+  ]);
+  const launchDuration =
+    launchValue(launchContext, ["duration", "durationDays", "days"]) ||
+    (launchRecipient && launchAmount ? "7" : "");
+  const launchTitle =
+    launchValue(launchContext, ["title", "streamName", "name"]) ||
+    (launchRecipient ? "Shared runtime stream" : "");
+  const launchNotes = launchValue(launchContext, ["notes", "note", "memo"]);
+  const launchToken = normalizeToken(
+    launchValue(launchContext, ["token", "asset"]),
+  );
 
-  const [recipient, setRecipient] = useState(launchDefaults.recipient);
-  const [amount, setAmount] = useState(launchDefaults.amount);
-  const [duration, setDuration] = useState(launchDefaults.duration);
-  const [title, setTitle] = useState(launchDefaults.title);
-  const [notes, setNotes] = useState(launchDefaults.notes);
-  const [token, setToken] = useState<StreamToken>(launchDefaults.token);
+  const [recipient, setRecipient] = useState(launchRecipient);
+  const [amount, setAmount] = useState(launchAmount);
+  const [duration, setDuration] = useState(launchDuration);
+  const [title, setTitle] = useState(launchTitle);
+  const [notes, setNotes] = useState(launchNotes);
+  const [token, setToken] = useState<StreamToken>(launchToken);
   const [amountTouched, setAmountTouched] = useState(false);
   const [durationTouched, setDurationTouched] = useState(false);
 
   useEffect(() => {
-    setRecipient(launchDefaults.recipient);
-    setAmount(launchDefaults.amount);
-    setDuration(launchDefaults.duration);
-    setTitle(launchDefaults.title);
-    setNotes(launchDefaults.notes);
-    setToken(launchDefaults.token);
-    setAmountTouched(Boolean(launchDefaults.amount));
-    setDurationTouched(Boolean(launchDefaults.duration));
-  }, [launchDefaults]);
+    setRecipient(launchRecipient);
+    setAmount(launchAmount);
+    setDuration(launchDuration);
+    setTitle(launchTitle);
+    setNotes(launchNotes);
+    setToken(launchToken);
+    setAmountTouched(Boolean(launchAmount));
+    setDurationTouched(Boolean(launchDuration));
+  }, [
+    launchAmount,
+    launchDuration,
+    launchNotes,
+    launchRecipient,
+    launchTitle,
+    launchToken,
+  ]);
 
   const amountValue = parseAmount(amount);
   const durationValue = parseDays(duration);
@@ -437,10 +443,10 @@ export default function PlayArea({
     beneficiaryStreams.length > 0 ||
     totalStreamCount > 0 ||
     activeCount > 0;
-  const totalStreamsLabel = hasStreams ? String(totalStreamCount) : "—";
-  const activeStreamsLabel = hasStreams ? String(activeCount) : "—";
-  const createdStreamsLabel = hasStreams ? String(createdStreamCount) : "—";
-  const beneficiaryLabel = hasStreams ? String(beneficiaryStreamCount) : "—";
+  const totalStreamsLabel = String(totalStreamCount);
+  const activeStreamsLabel = String(activeCount);
+  const createdStreamsLabel = String(createdStreamCount);
+  const beneficiaryLabel = String(beneficiaryStreamCount);
   const activePresetId =
     STREAM_PRESETS.find(
       (preset) =>
@@ -667,23 +673,28 @@ export default function PlayArea({
           )}
         </p>
         <div className="shared-pay-hero__stats" aria-label="Stream totals">
-          <span>
+          <span className={hasStreams ? undefined : "is-empty"}>
             <strong>{totalStreamsLabel}</strong>
             {copy("totalStreams", "Total Streams")}
           </span>
-          <span>
+          <span className={hasStreams ? undefined : "is-empty"}>
             <strong>{activeStreamsLabel}</strong>
             {copy("active", "Active")}
           </span>
-          <span>
+          <span className={hasStreams ? undefined : "is-empty"}>
             <strong>{createdStreamsLabel}</strong>
             {copy("createdByYou", "Created by You")}
           </span>
-          <span>
+          <span className={hasStreams ? undefined : "is-empty"}>
             <strong>{beneficiaryLabel}</strong>
             {copy("youAreBeneficiary", "You're Beneficiary")}
           </span>
         </div>
+        {!hasStreams && (
+          <p className="shared-pay-hero__empty-note">
+            {copy("awaitingActivity", "Awaiting activity")}
+          </p>
+        )}
       </section>
 
       {serviceNotice && (

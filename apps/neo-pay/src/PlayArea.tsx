@@ -118,37 +118,40 @@ export default function PlayArea({
 
   const createdStreams = (val("createdStreams") ?? []) as Stream[];
   const beneficiaryStreams = (val("beneficiaryStreams") ?? []) as Stream[];
+  const hasStreamActivity =
+    totalStreamCount > 0 ||
+    activeCount > 0 ||
+    createdStreams.length > 0 ||
+    beneficiaryStreams.length > 0;
 
   /* ---------- Local form state ---------- */
-  const launchDefaults = useMemo(() => {
-    const recipient = getLaunchValue(launchContext, [
-      "recipient",
-      "to",
-      "beneficiary",
-    ]);
-    const amount = getLaunchValue(launchContext, ["amount", "total"]);
-    const duration =
-      getLaunchValue(launchContext, ["duration", "durationDays", "days"]) ||
-      (recipient && amount ? "1" : "");
-    const token =
-      normalizeToken(getLaunchValue(launchContext, ["token", "asset"]));
-    const notes = getLaunchValue(launchContext, ["notes", "note", "memo"]);
-    return { recipient, amount, duration, token, notes };
-  }, [launchContext.signature]);
+  const launchRecipient = getLaunchValue(launchContext, [
+    "recipient",
+    "to",
+    "beneficiary",
+  ]);
+  const launchAmount = getLaunchValue(launchContext, ["amount", "total"]);
+  const launchDuration =
+    getLaunchValue(launchContext, ["duration", "durationDays", "days"]) ||
+    (launchRecipient && launchAmount ? "1" : "");
+  const launchToken = normalizeToken(
+    getLaunchValue(launchContext, ["token", "asset"]),
+  );
+  const launchNotes = getLaunchValue(launchContext, ["notes", "note", "memo"]);
 
-  const [recipient, setRecipient] = useState(launchDefaults.recipient);
-  const [amount, setAmount] = useState(launchDefaults.amount);
-  const [duration, setDuration] = useState(launchDefaults.duration);
-  const [token, setToken] = useState(launchDefaults.token);
-  const [notes, setNotes] = useState(launchDefaults.notes);
+  const [recipient, setRecipient] = useState(launchRecipient);
+  const [amount, setAmount] = useState(launchAmount);
+  const [duration, setDuration] = useState(launchDuration);
+  const [token, setToken] = useState(launchToken);
+  const [notes, setNotes] = useState(launchNotes);
 
   useEffect(() => {
-    if (launchDefaults.recipient) setRecipient(launchDefaults.recipient);
-    if (launchDefaults.amount) setAmount(launchDefaults.amount);
-    if (launchDefaults.duration) setDuration(launchDefaults.duration);
-    if (launchDefaults.token) setToken(launchDefaults.token);
-    if (launchDefaults.notes) setNotes(launchDefaults.notes);
-  }, [launchDefaults]);
+    if (launchRecipient) setRecipient(launchRecipient);
+    if (launchAmount) setAmount(launchAmount);
+    if (launchDuration) setDuration(launchDuration);
+    if (launchToken) setToken(launchToken);
+    if (launchNotes) setNotes(launchNotes);
+  }, [launchAmount, launchDuration, launchNotes, launchRecipient, launchToken]);
 
   /* ---------- Handlers ---------- */
   const handleCreateStream = async () => {
@@ -324,25 +327,26 @@ export default function PlayArea({
           </div>
         </div>
 
-        {/* Boxed stat tiles — always present so the hero holds its height even
-            before any stream exists. At zero streams the values fall back to a
-            muted "—" placeholder (matching the finance cluster) rather than
-            collapsing the hero to a left strip with empty right half. */}
+        {/* Boxed stat tiles stay present at first run; zeroes plus a plain
+            caption read as an empty wallet state instead of a broken feed. */}
         <div className="neopay-hero-summary" role="group" aria-label={t("ariaStreams")}>
           <div className="neopay-hero-stat">
-            <span className={`neopay-hero-stat-value${totalStreamCount > 0 ? "" : " neopay-hero-stat-value--empty"}`}>
-              {totalStreamCount > 0 ? totalStreamCount : "—"}
+            <span className={`neopay-hero-stat-value${hasStreamActivity ? "" : " neopay-hero-stat-value--empty"}`}>
+              {totalStreamCount}
             </span>
             <span className="neopay-hero-stat-label">{t("totalStreams")}</span>
           </div>
           <span className="neopay-hero-stat-divider" aria-hidden="true" />
           <div className="neopay-hero-stat">
-            <span className={`neopay-hero-stat-value${totalStreamCount > 0 ? "" : " neopay-hero-stat-value--empty"}`}>
-              {totalStreamCount > 0 ? activeCount : "—"}
+            <span className={`neopay-hero-stat-value${hasStreamActivity ? "" : " neopay-hero-stat-value--empty"}`}>
+              {activeCount}
             </span>
             <span className="neopay-hero-stat-label">{t("active")}</span>
           </div>
         </div>
+        {!hasStreamActivity && (
+          <p className="neopay-hero-empty-note">{t("awaitingActivity")}</p>
+        )}
       </div>
 
       {serviceNotice && (

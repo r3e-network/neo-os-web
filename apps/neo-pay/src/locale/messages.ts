@@ -106,6 +106,7 @@ const appMessages = {
   myCreated: { en: "Created by you", zh: "我创建的" },
   beneficiaryVaults: { en: "For you", zh: "受益给我的资金流" },
   emptyVaults: { en: "No streams yet", zh: "暂无资金流" },
+  awaitingActivity: { en: "Awaiting activity", zh: "等待链上活动" },
   refresh: { en: "Refresh", zh: "刷新" },
   sidebarCreatedStreams: { en: "Created Streams", zh: "已创建流" },
   sidebarBeneficiaryStreams: { en: "Beneficiary Streams", zh: "受益流" },
@@ -160,7 +161,34 @@ const appMessages = {
     zh: "通过共享金库与释放模块创建已注资的流式支付。",
   },
   reviewStream: { en: "Complete stream details", zh: "请完善资金流信息" },
+  enterDetails: { en: "Enter details", zh: "填写详情" },
   transactionPreview: { en: "Transaction preview", zh: "交易预览" },
+  transactionPreviewHint: {
+    en: "Funds lock in the stream immediately. The wallet shows the exact GAS network fee before you sign.",
+    zh: "资金会立即锁入资金流。钱包会在签名前显示准确的 GAS 网络费。",
+  },
+  network: { en: "Network", zh: "网络" },
+  networkMainnet: { en: "Neo N3 Mainnet", zh: "Neo N3 主网" },
+  networkTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
+  networkFee: { en: "Network fee", zh: "网络费" },
+  networkFeeValue: { en: "Estimated in GAS at signing", zh: "签名时以 GAS 估算" },
+  howItWorksTitle: { en: "How streaming payments work", zh: "流式支付如何工作" },
+  howStep1: {
+    en: "Set the recipient, amount, and duration above. GAS and NEO are supported.",
+    zh: "在上方设置收款人、金额和周期。支持 GAS 和 NEO。",
+  },
+  howStep2: {
+    en: "Funds lock in the stream on creation and release on a fixed daily schedule.",
+    zh: "创建后资金会锁入资金流，并按固定每日计划释放。",
+  },
+  howStep3: {
+    en: "The recipient claims released funds anytime; you can cancel to reclaim what is unreleased.",
+    zh: "收款人可随时领取已释放资金；你可以取消并取回未释放部分。",
+  },
+  howFootnote: {
+    en: "Your created and incoming streams will appear here once the first one is on-chain.",
+    zh: "第一条资金流上链后，你创建和收到的资金流会显示在这里。",
+  },
   clear: { en: "Clear", zh: "清空" },
   // Daily linear release model: the preview rate is per day, so label it
   // explicitly to match the derived schedule the contract receives.
