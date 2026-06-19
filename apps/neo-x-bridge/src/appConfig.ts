@@ -178,12 +178,21 @@ const appMessages = {
   appName: { en: "Neo X Bridge", zh: "Neo X 跨链桥" },
   title: { en: "Neo X Bridge", zh: "Neo X 跨链桥" },
   tabConsole: { en: "Console", zh: "控制台" },
+  routeNeoN3: { en: "Neo N3", zh: "Neo N3" },
   neoX: { en: "Neo X", zh: "Neo X" },
   assetBridge: { en: "Asset Bridge", zh: "资产桥" },
   messageBridge: { en: "Message Bridge", zh: "消息桥" },
   direction: { en: "Direction", zh: "方向" },
   routeN3ToNeoX: { en: "Neo N3 -> Neo X", zh: "Neo N3 -> Neo X" },
   routeNeoXToN3: { en: "Neo X -> Neo N3", zh: "Neo X -> Neo N3" },
+  routeN3ToNeoXHint: {
+    en: "Deposit GAS from Neo N3, then receive it on Neo X.",
+    zh: "从 Neo N3 存入 GAS，并在 Neo X 接收。",
+  },
+  routeNeoXToN3Hint: {
+    en: "Withdraw bridged GAS from Neo X back to Neo N3.",
+    zh: "从 Neo X 提回已桥接的 GAS 到 Neo N3。",
+  },
   asset: { en: "Asset", zh: "资产" },
   amount: { en: "Amount", zh: "数量" },
   recipient: { en: "Recipient", zh: "接收地址" },
@@ -345,6 +354,28 @@ const appMessages = {
   destinationPlaceholder: { en: "Neo N3 or Neo X address", zh: "Neo N3 或 Neo X 地址" },
   amountPresetsAria: { en: "GAS amount presets", zh: "GAS 数量预设" },
   targetContractPlaceholder: { en: "0x... or Neo script hash", zh: "0x... 或 Neo 脚本哈希" },
+  assetTicketEyebrow: { en: "GAS handoff ticket", zh: "GAS 交接票据" },
+  assetTicketTitle: {
+    en: "Prepare {route}",
+    zh: "准备 {route}",
+  },
+  messageIntentEyebrow: { en: "MessageBridge intent", zh: "MessageBridge 意图" },
+  messageIntentTitle: {
+    en: "Package a cross-chain call",
+    zh: "打包跨链调用",
+  },
+  messageIntentBody: {
+    en: "Target, method, payload, and gas limit are bundled into one handoff for the official bridge flow.",
+    zh: "目标、方法、载荷和 Gas 上限会打包成一个官方桥流程的交接意图。",
+  },
+  trackAssetHint: {
+    en: "Follow a GAS handoff from source transaction to destination settlement.",
+    zh: "跟踪 GAS 交接从源链交易到目标链结算的过程。",
+  },
+  trackMessageHint: {
+    en: "Follow a MessageBridge call through observation, attestation, and delivery.",
+    zh: "跟踪 MessageBridge 调用的观察、证明和交付过程。",
+  },
   messagePayloadRequired: {
     en: "Enter a payload to send across the bridge.",
     zh: "请输入要跨链发送的载荷。",
