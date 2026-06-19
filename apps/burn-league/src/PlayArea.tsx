@@ -269,9 +269,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {t("outOf", { total: leaderboardSize })}
                 </span>
               </p>
-            ) : (
+            ) : hasLivePool ? (
               <p className="burn-league-hero-prompt">{t("heroFirstBurnPrompt")}</p>
-            )}
+            ) : null}
           </div>
         </div>
         {/* Focal prize pool — the whole point of the league, given the spotlight.
@@ -385,15 +385,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         {serviceNotice && (
           <div className="burn-league-service-notice" role="status">
-            <div className="burn-league-service-notice__copy">
+            <span className="burn-league-service-notice__icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M12 3.5 1.8 21h20.4L12 3.5Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                />
+                <path d="M12 9.5v4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="12" cy="17.4" r="1.15" fill="currentColor" />
+              </svg>
+            </span>
+            <span className="burn-league-service-notice__copy">
               <span className="burn-league-service-notice__title">
                 {t("burnServiceUnavailableTitle")}
               </span>
-              <span>{serviceNotice}</span>
-              <span className="burn-league-service-notice__status">
-                {t("seasonStatus")}: {t("localPreview")}
-              </span>
-            </div>
+              <span className="burn-league-service-notice__status">{t("localPreview")}</span>
+            </span>
           </div>
         )}
         {showHowItWorks && (
@@ -441,31 +451,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="burn-league-impact-item">
               <span className="burn-league-impact-label">{t("entryAmount")}</span>
               <strong className="burn-league-impact-value">
-                {amountIsValid ? `${currentBurnAmount} GAS` : "--"}
+                {amountIsValid ? `${currentBurnAmount} GAS` : t("dashPlaceholder")}
               </strong>
             </div>
             <div className="burn-league-impact-divider" aria-hidden="true" />
             <div className="burn-league-impact-item">
               <span className="burn-league-impact-label">{t("projectedTotal")}</span>
               <strong className="burn-league-impact-value">
-                {amountIsValid ? projectedTotalDisplay : "--"}
+                {amountIsValid ? projectedTotalDisplay : t("dashPlaceholder")}
               </strong>
             </div>
             <div className="burn-league-impact-divider" aria-hidden="true" />
             <div className="burn-league-impact-item">
               <span className="burn-league-impact-label">{t("projectedRank")}</span>
               <strong className="burn-league-impact-value">
-                {amountIsValid && hasLivePool ? projectedPosition : "--"}
+                {amountIsValid && hasLivePool ? projectedPosition : t("dashPlaceholder")}
               </strong>
             </div>
             <div className="burn-league-impact-divider" aria-hidden="true" />
             <div className="burn-league-impact-item">
               <span className="burn-league-impact-label">{t("prizePool")}</span>
               <strong className="burn-league-impact-value">
-                {hasLivePool ? prizePoolDisplay : t("startTheSeason")}
+                {hasLivePool ? prizePoolDisplay : t("dashPlaceholder")}
               </strong>
             </div>
           </div>
+          {!hasLivePool && (
+            <p className="burn-league-impact-hint">{t("impactPoolEmptyHint")}</p>
+          )}
           {burnValidationError && (
             <div className="burn-league-action-error" role="alert">
               {burnValidationError}

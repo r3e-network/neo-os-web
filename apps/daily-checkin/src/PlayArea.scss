@@ -809,14 +809,26 @@ $amber: #f59e0b;
   min-height: 48px;
 }
 
-/* Disabled "Claim Rewards" — keep it as a soft accent-tinted affordance rather
-   than a flat grey slab wedged between the two active buttons. The action is
-   still clearly inert (no shadow, muted text) but reads as part of the green
-   reward flow it belongs to. */
+/* Disabled "Claim Rewards" — when the contract is paused or the pool is topping
+   up the reward is still pending, so keep the soft accent-tinted affordance that
+   reads as part of the green reward flow it belongs to (inert: no shadow, muted
+   text). */
 .checkin-claim-btn:disabled {
   background: $ac-soft !important;
   border-color: $ac-border !important;
   color: rgba(15, 177, 116, 0.55) !important;
+  box-shadow: none !important;
+}
+
+/* …but when there is genuinely nothing accrued yet ("Nothing to claim yet"),
+   the button is a true empty/dead state, not a pending-reward one. Drop the
+   green tint to a neutral greyed affordance so it no longer reads as an active
+   call to action the user might tap into a dead end. Greyed ink on the subtle
+   fill stays above the AA contrast threshold for disabled text. */
+.checkin-claim-btn--empty:disabled {
+  background: $ns-subtle !important;
+  border-color: $ns-border !important;
+  color: $ns-text-muted !important;
   box-shadow: none !important;
 }
 
@@ -846,6 +858,14 @@ $amber: #f59e0b;
   color: $ns-ink;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
+
+  /* A genuine zero is dimmed to a lighter weight + muted ink so an empty
+     network-stats grid reads as "nothing yet" rather than a wall of bold
+     zeros that looks broken. Styling only — the value is unchanged. */
+  &.is-zero {
+    font-weight: 600;
+    color: $ns-text-faint;
+  }
 }
 
 .checkin-stat-label {
@@ -1243,6 +1263,13 @@ $amber: #f59e0b;
   color: $ns-ink;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
+
+  /* Empty personal metric (0 check-ins / 0 unclaimed / 0 claimed on first run)
+     is dimmed so the strip does not read as a dead/broken app. Styling only. */
+  &.is-zero {
+    font-weight: 600;
+    color: $ns-text-faint;
+  }
 }
 
 .checkin-meta-label {

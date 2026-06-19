@@ -77,6 +77,12 @@ const appMessages = {
     en: "Oracle key unavailable on this network — sealing is paused.",
     zh: "该网络上预言机密钥不可用——封装已暂停。",
   },
+  // Plain-language reassurance paired with the degraded chip so a first-time
+  // user reads it as "a runtime token is needed", not "the app is broken".
+  networkDegradedNote: {
+    en: "Nothing is broken — you can fill in and preview the form now; live sealing just needs the runtime back online.",
+    zh: "应用并未出错 — 您现在即可填写并预览表单；实时封装只需等待运行时恢复。",
+  },
   // Actionable nudge shown when the selected lane is degraded but the other one
   // is live, so the default-path user can switch to a working lane in one tap
   // instead of being dead-ended on the paused network.

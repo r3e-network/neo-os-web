@@ -168,6 +168,19 @@ export default function PlayArea({
   // composable reflects that through sessionStatusDisplay === t("configured").
   const isConfigured = sessionStatusDisplay === t("configured");
 
+  // Glanceable per-metric status tone derived purely from the already-displayed
+  // values (no new state) so the hero row reads green = settled / amber = still
+  // pending or broad. Sponsor is "complete" only when explicitly eligible or
+  // approved; Scope is "complete" when a single method (not "Any method") binds.
+  const sessionTone = isConfigured ? "ok" : "pending";
+  const sponsorTone =
+    sponsorStatusDisplay === t("sponsorApproved") ||
+    sponsorStatusDisplay === t("sponsorEligible")
+      ? "ok"
+      : "pending";
+  const scopeTone =
+    allowedMethod.trim() && methodDisplay !== t("anyMethod") ? "ok" : "pending";
+
   const environmentItems = [
     {
       label: t("aaCore"),
@@ -261,16 +274,27 @@ export default function PlayArea({
           className="session-hero__metrics"
           aria-label={t("sessionMetricsLabel")}
         >
-          <div className="session-metric">
-            <span>{t("sessionMetricStatus")}</span>
+          <div className={`session-metric session-metric--${sessionTone}`}>
+            <span>
+              <i className="session-metric__dot" aria-hidden="true" />
+              {t("sessionMetricStatus")}
+            </span>
             <strong>{sessionStatusDisplay || DASH}</strong>
           </div>
-          <div className="session-metric">
-            <span>{t("sessionMetricSponsor")}</span>
+          <div className={`session-metric session-metric--${sponsorTone}`}>
+            <span>
+              <i className="session-metric__dot" aria-hidden="true" />
+              {t("sessionMetricSponsor")}
+            </span>
             <strong>{sponsorStatusDisplay || DASH}</strong>
           </div>
-          <div className="session-metric session-metric--scope">
-            <span>{t("sessionMetricScope")}</span>
+          <div
+            className={`session-metric session-metric--scope session-metric--${scopeTone}`}
+          >
+            <span>
+              <i className="session-metric__dot" aria-hidden="true" />
+              {t("sessionMetricScope")}
+            </span>
             <strong>{methodDisplay}</strong>
           </div>
         </div>
@@ -291,7 +315,7 @@ export default function PlayArea({
           </div>
           <div className="session-action-grid">
             <NeoButton
-              variant="secondary"
+              variant="primary"
               aria-label={t("generateKey")}
               onClick={handleGenerateKey}
             >
@@ -634,7 +658,9 @@ export default function PlayArea({
                   <NeoButton
                     variant="danger"
                     size="sm"
-                    disabled={!accountSeed.trim() || isRevoking}
+                    disabled={
+                      !accountSeed.trim() || !hasOnChainSession || isRevoking
+                    }
                     aria-label={t("revokeSession")}
                     onClick={() => setConfirmingRevoke(true)}
                   >

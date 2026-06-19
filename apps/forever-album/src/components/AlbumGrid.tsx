@@ -1,4 +1,4 @@
-import { NeoCard, NeoButton } from "@shared/components-react";
+import { NeoCard } from "@shared/components-react";
 import "./AlbumGrid.scss";
 
 interface PhotoItem {
@@ -55,9 +55,10 @@ export default function AlbumGrid({ t, photos, loading, onView, onUpload }: Albu
           </div>
           <p className="forever-album-empty-warm">{t("emptyWarmLine")}</p>
           <p className="forever-album-empty-hint">{t("emptyDesc")}</p>
-          <NeoButton variant="primary" size="sm" onClick={onUpload}>
-            {t("startHere")}
-          </NeoButton>
+          {/* No competing primary CTA here: the single upload affordance is the
+              "Choose images" dropzone rendered directly below this empty state.
+              This illustrative panel guides the eye there instead of stacking a
+              second first-run prompt for the same action. */}
         </div>
       ) : (
         <div className="forever-album-gallery-grid">

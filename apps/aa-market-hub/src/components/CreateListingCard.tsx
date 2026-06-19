@@ -113,9 +113,14 @@ export function CreateListingCard({
         {isMarketReady && !walletAddress.trim() && (
           <div className="create-blocked-hint">
             <p>{t("createListingWalletRequired")}</p>
+            {/* Demoted to a muted secondary (white fill, neutral ink) so the
+                single filled-green primary "Connect Wallet" stays in the wallet
+                bar above — this is a convenience shortcut at the point of
+                blocking, not a competing primary CTA. Secondary keeps WCAG AA
+                contrast on the pale-green hint background. */}
             {onConnect && (
               <NeoButton
-                variant="primary"
+                variant="secondary"
                 size="sm"
                 loading={isWalletConnecting}
                 aria-label={t("connectWallet")}

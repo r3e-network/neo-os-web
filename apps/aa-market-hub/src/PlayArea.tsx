@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { NeoButton } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import {
@@ -233,20 +232,15 @@ export default function PlayArea({
 
           {/* The board read needs a wallet provider. Without a session, rest on
               a "connect to load" state instead of a spinner that never resolves;
-              connecting the wallet kicks off the load automatically. */}
+              connecting the wallet kicks off the load automatically. The connect
+              action itself lives once in the wallet bar above, so this state is
+              purely informational and points there rather than repeating the
+              primary CTA. */}
           {hasMarketHash && listings.length === 0 && !hasWallet && (
             <div className="empty-state">
               <span className="empty-state__badge">AA</span>
               <strong>{t("emptyStateConnectTitle")}</strong>
               <span>{t("emptyStateConnect")}</span>
-              <NeoButton
-                variant="primary"
-                loading={isWalletConnecting}
-                aria-label={t("connectWallet")}
-                onClick={() => dispatch("connectWallet")}
-              >
-                {t("connectWallet")}
-              </NeoButton>
             </div>
           )}
 

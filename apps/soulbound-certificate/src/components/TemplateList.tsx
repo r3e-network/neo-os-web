@@ -54,7 +54,7 @@ export default function TemplateList({
           action={
             <NeoButton
               size="sm"
-              variant="primary"
+              variant="secondary"
               loading={connecting}
               disabled={connecting}
               onClick={onConnect}

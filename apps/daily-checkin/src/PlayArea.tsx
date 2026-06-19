@@ -127,11 +127,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // the accrued amount, so the CTA never invites a transaction that will fault.
   const claimBlocked = isPaused || claimableButUnfunded;
   const claimDisabled = !hasClaimable || isClaiming || claimBlocked;
+  // When there is genuinely nothing accrued, the claim CTA reads as an explicit
+  // "Nothing to claim yet" dead-state rather than an active-looking
+  // "Claim Rewards (0 GAS)" — so the disabled button is not a confusing
+  // dead-end tap. Copy-only; the disabled logic above is unchanged.
   const claimLabel = isPaused
     ? t("contractPaused")
     : claimableButUnfunded
       ? t("claimUnfunded")
-      : `${t("claimRewards")} (${formatGas(unclaimedRewards)} ${t("tokenGas")})`;
+      : hasClaimable
+        ? `${t("claimRewards")} (${formatGas(unclaimedRewards)} ${t("tokenGas")})`
+        : t("claimNothingYet");
 
   // "Today plan" facts — derived from the same state the actions use, so the
   // panel narrates exactly what the buttons will do this UTC cycle. In the
@@ -293,9 +299,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             size="lg"
             disabled={claimDisabled}
             loading={isClaiming}
-            className="checkin-claim-btn"
+            className={`checkin-claim-btn${!hasClaimable && !claimBlocked ? " checkin-claim-btn--empty" : ""}`}
             onClick={() => dispatch("claimRewards")}
-            aria-label={t("claimRewards")}
+            aria-label={hasClaimable ? t("claimRewards") : t("claimNothingYet")}
           >
             {claimLabel}
           </NeoButton>
@@ -380,17 +386,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       )}
 
       {/* One compact personal-metrics strip (replaces the separate Your Stats + Your Rewards cards) */}
+      {/* Genuinely-empty zero metrics render in a muted style (className flag only,
+          the value/number itself is untouched) so the green streak hero + Check In
+          CTA carry the visual focus on first run instead of a wall of bold zeros. */}
       <div className="checkin-meta-strip">
         <div className="checkin-meta-item">
-          <span className="checkin-meta-value">{totalUserCheckins}</span>
+          <span className={`checkin-meta-value${totalUserCheckins === 0 ? " is-zero" : ""}`}>{totalUserCheckins}</span>
           <span className="checkin-meta-label">{t("totalCheckins")}</span>
         </div>
         <div className="checkin-meta-item">
-          <span className="checkin-meta-value">{formatGas(unclaimedRewards)}</span>
+          <span className={`checkin-meta-value${unclaimedRewards === 0 ? " is-zero" : ""}`}>{formatGas(unclaimedRewards)}</span>
           <span className="checkin-meta-label">{t("unclaimed")}</span>
         </div>
         <div className="checkin-meta-item">
-          <span className="checkin-meta-value">{formatGas(totalClaimed)}</span>
+          <span className={`checkin-meta-value${totalClaimed === 0 ? " is-zero" : ""}`}>{formatGas(totalClaimed)}</span>
           <span className="checkin-meta-label">{t("totalClaimed")}</span>
         </div>
       </div>
@@ -443,19 +452,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <h3 className="checkin-section-title">{t("globalStats")}</h3>
         <div className="checkin-stats-grid">
           <div className="checkin-stat-item">
-            <span className="checkin-stat-value">{totalGlobalCheckins.toLocaleString()}</span>
+            <span className={`checkin-stat-value${totalGlobalCheckins === 0 ? " is-zero" : ""}`}>{totalGlobalCheckins.toLocaleString()}</span>
             <span className="checkin-stat-label">{t("totalCheckins")}</span>
           </div>
           <div className="checkin-stat-item">
-            <span className="checkin-stat-value">{totalGlobalUsers.toLocaleString()}</span>
+            <span className={`checkin-stat-value${totalGlobalUsers === 0 ? " is-zero" : ""}`}>{totalGlobalUsers.toLocaleString()}</span>
             <span className="checkin-stat-label">{t("totalUsers")}</span>
           </div>
           <div className="checkin-stat-item">
-            <span className="checkin-stat-value">{formatGas(totalGlobalRewarded)}</span>
+            <span className={`checkin-stat-value${totalGlobalRewarded === 0 ? " is-zero" : ""}`}>{formatGas(totalGlobalRewarded)}</span>
             <span className="checkin-stat-label">{t("totalRewarded")}</span>
           </div>
           <div className={`checkin-stat-item${rewardsUnderfunded ? " checkin-stat-item--warn" : ""}`}>
-            <span className="checkin-stat-value">{formatGas(rewardPoolBalance)}</span>
+            <span className={`checkin-stat-value${rewardPoolBalance === 0 && !rewardsUnderfunded ? " is-zero" : ""}`}>{formatGas(rewardPoolBalance)}</span>
             <span className="checkin-stat-label">{t("rewardPool")}</span>
           </div>
         </div>
