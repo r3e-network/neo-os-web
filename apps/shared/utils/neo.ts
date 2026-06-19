@@ -274,6 +274,17 @@ export function parseInvokeResult(result: unknown): unknown {
   if (typeof result === "object" && result !== null) {
     const obj = result as Record<string, unknown>;
 
+    // A VM FAULT means the read reverted — its stack is not a valid result.
+    // Return null (a faulted read carries no data) rather than decoding the
+    // half-executed stack as a real value, which silently presented garbage as
+    // success. Callers already treat null as "no data".
+    if (
+      typeof obj.state === "string" &&
+      obj.state.toUpperCase().includes("FAULT")
+    ) {
+      return null;
+    }
+
     // If there's a stack property, parse it
     if ("stack" in obj && Array.isArray(obj.stack)) {
       if (obj.stack.length === 0) {

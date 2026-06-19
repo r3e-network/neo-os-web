@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addressToScriptHash,
   ownerMatchesAddress,
+  parseInvokeResult,
   parseStackItem,
 } from "../utils/neo";
 
@@ -148,5 +149,27 @@ describe("addressToScriptHash — 0x hex normalization", () => {
     const out = addressToScriptHash(lower);
     expect(out).toMatch(/^0x[0-9a-f]{40}$/);
     expect(addressToScriptHash(upperPrefix)).toBe(out);
+  });
+});
+
+describe("parseInvokeResult — VM FAULT handling", () => {
+  it("returns null on a FAULT (does not decode the reverted stack)", () => {
+    // A reverted read may carry a leftover/garbage stack; it must not be
+    // presented as a valid value.
+    expect(
+      parseInvokeResult({ state: "FAULT", exception: "ABORT", stack: [] }),
+    ).toBeNull();
+    expect(
+      parseInvokeResult({
+        state: "FAULT",
+        exception: "assert",
+        stack: [{ type: "Integer", value: "999" }],
+      }),
+    ).toBeNull();
+  });
+  it("decodes a HALT result normally", () => {
+    expect(
+      parseInvokeResult({ state: "HALT", stack: [{ type: "Integer", value: "42" }] }),
+    ).toBe(42);
   });
 });
