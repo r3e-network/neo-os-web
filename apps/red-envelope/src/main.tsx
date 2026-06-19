@@ -144,6 +144,18 @@ defineMiniApp({
       loadData: hasLaunchEnvelopeId
         ? async () => {
             envelope.setAddress(ctx.services.chain.address.get() ?? null);
+            // Deep-link / QR claim: hydrate the launched envelope so the recipient
+            // sees its remaining-packets / pool-progress preview before claiming,
+            // rather than landing on an empty list (it is not their own envelope,
+            // so the paged loadEnvelopes would not surface it).
+            const launchId = String(
+              launchParams.envelopeId ??
+                launchParams.poolId ??
+                launchParams.id ??
+                launchParams.packet ??
+                "",
+            );
+            await envelope.hydrateEnvelope(launchId);
           }
         : async () => {
             envelope.setAddress(ctx.services.chain.address.get() ?? null);

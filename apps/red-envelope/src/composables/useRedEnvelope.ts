@@ -541,6 +541,38 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
   };
 
   /**
+   * Read ONE envelope and ensure it is present in the lists — used on the
+   * deep-link / QR-claim launch, where the recipient arrives with an envelope
+   * id but their own paged loadEnvelopes() would not contain (or not run for)
+   * someone else's envelope. Unlike refreshEnvelope (which only patches an
+   * already-listed entry), this INSERTS the launched envelope so the claim
+   * preview (remaining packets, pool progress) renders before claiming.
+   */
+  const hydrateEnvelope = async (envelopeId: string) => {
+    const id = String(envelopeId || "").trim();
+    if (!id) return;
+    try {
+      const claimerAddr = address.get();
+      const claimerHash = claimerAddr ? addressToScriptHash(claimerAddr) || null : null;
+      const item = await readEnvelope(id, claimerHash);
+      if (!item) return;
+      const existing = envelopes.get();
+      const next = existing.some((e) => e.id === id)
+        ? existing.map((e) => (e.id === id ? item : e))
+        : [item, ...existing];
+      envelopes.set(next);
+      pools.set(next.filter((e) => e.active && e.canOpen));
+    } catch (e) {
+      console.warn(
+        "[useRedEnvelope] hydrateEnvelope failed for",
+        id,
+        ":",
+        e instanceof Error ? e.message : String(e),
+      );
+    }
+  };
+
+  /**
    * Refresh the connected wallet's unused prepaid create-credit from
    * creditOf(account). Base units → human GAS. A read failure leaves the last
    * known value in place (the withdraw path re-reads before acting anyway).
@@ -936,6 +968,7 @@ export function useRedEnvelope({ chain, t }: UseRedEnvelopeOptions) {
     // Lifecycle
     loadAll,
     loadEnvelopes,
+    hydrateEnvelope,
   };
 }
 
