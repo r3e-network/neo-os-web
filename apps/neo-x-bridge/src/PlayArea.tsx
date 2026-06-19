@@ -1,10 +1,13 @@
 import {
   ArrowLeftRight,
+  ArrowRight,
   CheckCircle2,
   CircleDashed,
   Clock3,
   Copy,
   ExternalLink,
+  FileJson,
+  WalletCards,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
@@ -26,10 +29,35 @@ const GAS_PRESETS = ["0.1", "1", "5"];
 
 type WorkspaceMode = "asset" | "message" | "track";
 type DirectionValue = "n3-to-neox" | "neox-to-n3";
+type BridgeKindValue = "asset" | "message";
 
-const DIRECTION_OPTIONS: Array<{ value: DirectionValue; labelKey: string }> = [
-  { value: "n3-to-neox", labelKey: "routeN3ToNeoX" },
-  { value: "neox-to-n3", labelKey: "routeNeoXToN3" },
+const DIRECTION_OPTIONS: Array<{
+  value: DirectionValue;
+  sourceKey: string;
+  targetKey: string;
+  hintKey: string;
+}> = [
+  {
+    value: "n3-to-neox",
+    sourceKey: "routeNeoN3",
+    targetKey: "neoX",
+    hintKey: "routeN3ToNeoXHint",
+  },
+  {
+    value: "neox-to-n3",
+    sourceKey: "neoX",
+    targetKey: "routeNeoN3",
+    hintKey: "routeNeoXToN3Hint",
+  },
+];
+
+const TRACK_KIND_OPTIONS: Array<{
+  value: BridgeKindValue;
+  labelKey: string;
+  hintKey: string;
+}> = [
+  { value: "asset", labelKey: "assetBridge", hintKey: "trackAssetHint" },
+  { value: "message", labelKey: "messageBridge", hintKey: "trackMessageHint" },
 ];
 
 const STRICT_DECIMAL = /^\d+(\.\d+)?$/;
@@ -130,7 +158,7 @@ export default function PlayArea({
   const [messagePayload, setMessagePayload] = useState("");
   const [messagePayloadTouched, setMessagePayloadTouched] = useState(false);
   const [gasLimit, setGasLimit] = useState("250000");
-  const [trackKind, setTrackKind] = useState<"asset" | "message">("asset");
+  const [trackKind, setTrackKind] = useState<BridgeKindValue>("asset");
   const [trackDirection, setTrackDirection] =
     useState<DirectionValue>("n3-to-neox");
   const [operationId, setOperationId] = useState("");
@@ -454,51 +482,49 @@ export default function PlayArea({
 
         {workspaceMode === "asset" && (
           <div className="bridge-form-grid">
-            <label className="bridge-select-field">
-              <span>{t("direction")}</span>
-              <select
-                value={assetDirection}
-                onChange={(event) =>
-                  setAssetDirection(event.target.value as DirectionValue)
-                }
-              >
-                {DIRECTION_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {t(option.labelKey)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="bridge-amount-field">
-              <NeoInput
-                type="number"
-                label={t("amount")}
-                placeholder="0.1"
-                suffix="GAS"
-                value={assetAmount}
-                error={assetAmountInvalid ? t("errAmountPositive") : ""}
-                onChange={setAssetAmount}
-              />
-              <p className="bridge-asset-note">
-                <span className="bridge-asset-chip" aria-hidden="true">
-                  {t("assetFixedChip")}
+            <BridgeRouteChooser
+              t={t}
+              value={assetDirection}
+              onChange={setAssetDirection}
+            />
+            <div className="bridge-ticket bridge-field-wide">
+              <div className="bridge-ticket-copy">
+                <span className="bridge-ticket-icon" aria-hidden="true">
+                  <WalletCards size={18} />
                 </span>
-                {t("assetFixedNote")}
-              </p>
-            </div>
-            <div className="bridge-amount-presets" aria-label={t("amountPresetsAria")}>
-              {GAS_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  className={`bridge-preset${
-                    assetAmount === preset ? " bridge-preset--active" : ""
-                  }`}
-                  onClick={() => setAssetAmount(preset)}
-                >
-                  {preset} GAS
-                </button>
-              ))}
+                <span className="bridge-eyebrow">{t("assetTicketEyebrow")}</span>
+                <strong>
+                  {t("assetTicketTitle", {
+                    route: bridgeRouteLabel(t, assetDirection),
+                  })}
+                </strong>
+                <small>{t("assetFixedNote")}</small>
+              </div>
+              <div className="bridge-ticket-amount">
+                <NeoInput
+                  type="number"
+                  label={t("amount")}
+                  placeholder="0.1"
+                  suffix="GAS"
+                  value={assetAmount}
+                  error={assetAmountInvalid ? t("errAmountPositive") : ""}
+                  onChange={setAssetAmount}
+                />
+                <div className="bridge-amount-presets" aria-label={t("amountPresetsAria")}>
+                  {GAS_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={`bridge-preset${
+                        assetAmount === preset ? " bridge-preset--active" : ""
+                      }`}
+                      onClick={() => setAssetAmount(preset)}
+                    >
+                      {preset} GAS
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
             <NeoInput
               label={t("destinationAddress")}
@@ -539,21 +565,21 @@ export default function PlayArea({
 
         {workspaceMode === "message" && (
           <div className="bridge-form-grid">
-            <label className="bridge-select-field">
-              <span>{t("direction")}</span>
-              <select
-                value={messageDirection}
-                onChange={(event) =>
-                  setMessageDirection(event.target.value as DirectionValue)
-                }
-              >
-                {DIRECTION_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {t(option.labelKey)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <BridgeRouteChooser
+              t={t}
+              value={messageDirection}
+              onChange={setMessageDirection}
+            />
+            <div className="bridge-message-intent bridge-field-wide">
+              <span className="bridge-ticket-icon" aria-hidden="true">
+                <FileJson size={18} />
+              </span>
+              <div>
+                <span className="bridge-eyebrow">{t("messageIntentEyebrow")}</span>
+                <strong>{t("messageIntentTitle")}</strong>
+                <small>{t("messageIntentBody")}</small>
+              </div>
+            </div>
             <NeoInput
               label={t("targetContract")}
               placeholder={t("targetContractPlaceholder")}
@@ -618,33 +644,12 @@ export default function PlayArea({
 
         {workspaceMode === "track" && (
           <div className="bridge-form-grid">
-            <label className="bridge-select-field">
-              <span>{t("bridgeKind")}</span>
-              <select
-                value={trackKind}
-                onChange={(event) =>
-                  setTrackKind(event.target.value as "asset" | "message")
-                }
-              >
-                <option value="asset">{t("assetBridge")}</option>
-                <option value="message">{t("messageBridge")}</option>
-              </select>
-            </label>
-            <label className="bridge-select-field">
-              <span>{t("direction")}</span>
-              <select
-                value={trackDirection}
-                onChange={(event) =>
-                  setTrackDirection(event.target.value as DirectionValue)
-                }
-              >
-                {DIRECTION_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {t(option.labelKey)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <BridgeKindChooser t={t} value={trackKind} onChange={setTrackKind} />
+            <BridgeRouteChooser
+              t={t}
+              value={trackDirection}
+              onChange={setTrackDirection}
+            />
             <NeoInput
               label={t("operationId")}
               placeholder="N3X-ASSET-..."
@@ -797,6 +802,105 @@ export default function PlayArea({
 
 function bridgeRouteLabel(t: PlayAreaProps["t"], direction: DirectionValue) {
   return direction === "neox-to-n3" ? t("routeNeoXToN3") : t("routeN3ToNeoX");
+}
+
+function BridgeRouteChooser({
+  t,
+  value,
+  onChange,
+}: {
+  t: PlayAreaProps["t"];
+  value: DirectionValue;
+  onChange: (value: DirectionValue) => void;
+}) {
+  return (
+    <section
+      className="bridge-route-chooser bridge-field-wide"
+      aria-label={t("direction")}
+    >
+      <span className="bridge-composer-label">{t("direction")}</span>
+      <div
+        className="bridge-route-options"
+        role="radiogroup"
+        aria-label={t("direction")}
+      >
+        {DIRECTION_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={value === option.value}
+            className={`bridge-route-option${
+              value === option.value ? " bridge-route-option--selected" : ""
+            }`}
+            onClick={() => onChange(option.value)}
+          >
+            <span className="bridge-route-option__path">
+              <span>
+                <small>{t("routeSendLabel")}</small>
+                <strong>{t(option.sourceKey)}</strong>
+              </span>
+              <ArrowRight size={16} aria-hidden="true" />
+              <span>
+                <small>{t("routeReceiveLabel")}</small>
+                <strong>{t(option.targetKey)}</strong>
+              </span>
+            </span>
+            <span className="bridge-route-option__hint">{t(option.hintKey)}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function BridgeKindChooser({
+  t,
+  value,
+  onChange,
+}: {
+  t: PlayAreaProps["t"];
+  value: BridgeKindValue;
+  onChange: (value: BridgeKindValue) => void;
+}) {
+  return (
+    <section
+      className="bridge-kind-chooser bridge-field-wide"
+      aria-label={t("bridgeKind")}
+    >
+      <span className="bridge-composer-label">{t("bridgeKind")}</span>
+      <div
+        className="bridge-kind-options"
+        role="radiogroup"
+        aria-label={t("bridgeKind")}
+      >
+        {TRACK_KIND_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={value === option.value}
+            className={`bridge-kind-option${
+              value === option.value ? " bridge-kind-option--selected" : ""
+            }`}
+            onClick={() => onChange(option.value)}
+          >
+            <span className="bridge-kind-option__icon" aria-hidden="true">
+              {option.value === "message" ? (
+                <FileJson size={18} />
+              ) : (
+                <WalletCards size={18} />
+              )}
+            </span>
+            <span>
+              <strong>{t(option.labelKey)}</strong>
+              <small>{t(option.hintKey)}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function BridgeCostsPanel({ t }: { t: PlayAreaProps["t"] }) {
