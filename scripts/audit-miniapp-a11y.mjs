@@ -81,7 +81,7 @@ for (const slug of slugs) {
   } finally { server.close(); }
 }
 await browser.close();
-fs.writeFileSync("/tmp/a11y-report.json", JSON.stringify(report, null, 2));
+fs.writeFileSync(process.env.AXE_OUT || "/tmp/a11y-report.json", JSON.stringify(report, null, 2));
 console.log(`\n=== ${report.length} apps; violation rules across fleet (by total nodes) ===`);
 for (const [rule, n] of Object.entries(ruleTotals).sort((a, b) => b[1] - a[1])) console.log(`  ${n}  ${rule}`);
 const withCrit = report.filter((r) => r.critSerious > 0);
