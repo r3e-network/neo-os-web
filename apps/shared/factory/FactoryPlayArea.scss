@@ -254,6 +254,150 @@
   gap: 14px;
 }
 
+/* ── Kind-aware preview (what this factory will create) ── */
+.domain-factory-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.domain-factory-preview__nft,
+.domain-factory-preview__token {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  padding: 16px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+/* NFT image placeholder: square art tile with the symbol initial */
+.domain-factory-preview__art {
+  flex: 0 0 88px;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ns-radius-md, 14px);
+  background: linear-gradient(
+    135deg,
+    var(--ns-success-soft, #e4f8f0),
+    var(--ns-brand-soft, #d2f3e5)
+  );
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.domain-factory-preview__art span {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+/* Token / miniapp circular badge */
+.domain-factory-preview__coin {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--ns-success-soft, #e4f8f0);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.domain-factory-preview__coin span {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.domain-factory-preview__nftbody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.domain-factory-preview__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.domain-factory-preview__head strong {
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ns-ink, #1e1e2e);
+  word-break: break-word;
+}
+
+.domain-factory-preview__symbol {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ns-text-2, #5b6478);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.domain-factory-preview__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.domain-factory-preview__token .domain-factory-preview__stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.domain-factory-preview__stat span {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.domain-factory-preview__stat strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ns-ink, #1e1e2e);
+  word-break: break-word;
+}
+
+.domain-factory-preview__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
 .domain-factory-package__meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -644,5 +788,22 @@
 
   .domain-factory-form__row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .domain-factory-preview__nft {
+    flex-direction: column;
+  }
+
+  .domain-factory-preview__art {
+    width: 72px;
+    height: 72px;
+    flex-basis: 72px;
+  }
+
+  .domain-factory-preview__stats,
+  .domain-factory-preview__token .domain-factory-preview__stats {
+    grid-template-columns: 1fr 1fr;
   }
 }

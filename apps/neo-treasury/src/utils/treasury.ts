@@ -193,11 +193,22 @@ export async function fetchPrices(): Promise<PriceData | null> {
   return getSharedPrices();
 }
 
+// True when a price quote is actually usable for a USD total. A feed that
+// resolves with a non-positive NEO leg (0, negative, or non-finite) is NOT a
+// live quote — a frozen/zeroed feed must be treated like a missing one so the
+// dashboard renders the "—" placeholder + "price feed unavailable" warning
+// rather than a fresh-looking $0 total.
+function hasUsablePrice(prices: PriceData | null): boolean {
+  if (!prices) return false;
+  const neoUsd = prices.usd?.neo ?? prices.neo;
+  return Number.isFinite(neoUsd) && neoUsd > 0;
+}
+
 // True when a (non-null) price quote's on-chain record is older than the "fresh"
 // threshold — usable, but the hero should show the amber "delayed" signal.
 function isPriceDelayed(prices: PriceData | null, now: number): boolean {
-  if (!prices) return false;
-  const recordTs = prices.feedRecordTimestamp;
+  if (!hasUsablePrice(prices)) return false;
+  const recordTs = prices!.feedRecordTimestamp;
   if (!recordTs || recordTs <= 0) return true;
   return now - recordTs > PRICE_FRESH_WITHIN_MS;
 }
@@ -265,10 +276,12 @@ async function fetchAddressBalances(
 }
 
 // Compute a category's USD total, or null when the price feed is unavailable.
+// A feed that resolves with a non-positive NEO leg is treated as unavailable
+// (see hasUsablePrice): a zeroed/frozen quote must yield "—", not a fake $0.
 function categoryUsd(totalNeo: number, totalGas: number, prices: PriceData | null): number | null {
-  if (!prices) return null;
-  const neoUsd = prices.usd?.neo ?? prices.neo;
-  const gasUsd = prices.usd?.gas ?? prices.gas ?? 0;
+  if (!hasUsablePrice(prices)) return null;
+  const neoUsd = prices!.usd?.neo ?? prices!.neo;
+  const gasUsd = prices!.usd?.gas ?? prices!.gas ?? 0;
   return totalNeo * neoUsd + totalGas * gasUsd;
 }
 

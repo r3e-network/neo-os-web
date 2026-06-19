@@ -7,10 +7,29 @@ interface TreasuryLoadingStateProps {
   loading: boolean;
   error: string;
   hasData: boolean;
+  /**
+   * True when the first balance load has not resolved within the watchdog
+   * timeout. Prevents an indefinite spinner when there is no chain/host
+   * context: the placeholder becomes an actionable empty state instead.
+   */
+  timedOut?: boolean;
   onRetry?: () => void;
 }
 
-export default function TreasuryLoadingState({ t, loading, error, hasData, onRetry }: TreasuryLoadingStateProps) {
+export default function TreasuryLoadingState({
+  t,
+  loading,
+  error,
+  hasData,
+  timedOut,
+  onRetry,
+}: TreasuryLoadingStateProps) {
+  const retryAction = onRetry ? (
+    <NeoButton variant="primary" onClick={onRetry}>
+      {t("retry")}
+    </NeoButton>
+  ) : undefined;
+
   if (hasData && loading) {
     return (
       <div className="soft-loading" role="status" aria-live="polite">
@@ -19,24 +38,25 @@ export default function TreasuryLoadingState({ t, loading, error, hasData, onRet
     );
   }
 
-  if (!hasData && loading) {
-    return <StateView kind="loading" title={t("loading")} />;
+  if (error) {
+    return <StateView kind="error" title={error} action={retryAction} />;
   }
 
-  if (error) {
+  // Watchdog: a first load that never resolves drops to an actionable empty
+  // state rather than spinning forever.
+  if (!hasData && timedOut) {
     return (
       <StateView
-        kind="error"
-        title={error}
-        action={
-          onRetry ? (
-            <NeoButton variant="primary" onClick={onRetry}>
-              {t("retry")}
-            </NeoButton>
-          ) : undefined
-        }
+        kind="empty"
+        title={t("treasuryLoadTimeout")}
+        hint={t("treasuryLoadTimeoutHint")}
+        action={retryAction}
       />
     );
+  }
+
+  if (!hasData && loading) {
+    return <StateView kind="loading" title={t("loading")} />;
   }
 
   return null;

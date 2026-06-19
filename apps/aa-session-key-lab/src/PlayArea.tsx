@@ -104,6 +104,10 @@ export default function PlayArea({
   const [privateKeyCopied, setPrivateKeyCopied] = useState(false);
   const [privateKeyRevealed, setPrivateKeyRevealed] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+  // Two-step guard so a destructive Revoke is never a one-click peer of a read.
+  const [confirmingRevoke, setConfirmingRevoke] = useState(false);
+  // Collapse mainnet-only Limits behind a disclosure to shorten the form.
+  const [limitsOpen, setLimitsOpen] = useState(false);
 
   useEffect(() => {
     setAccountSeed(launchDefaults.accountSeed);
@@ -274,6 +278,7 @@ export default function PlayArea({
 
       {/* Linear flow: 1) Generate key + sponsorship  2) Configure scope */}
       <section className="session-flow-stack">
+        <div className="session-flow-col">
         {/* Step 1 — Generate key & check/request sponsorship */}
         <NeoCard
           variant="erobo"
@@ -333,54 +338,47 @@ export default function PlayArea({
               onChange={(v: string) => setSponsorAmount(v)}
             />
           </div>
-          {generatedPrivateKey && (
-            <div className="session-private-export">
-              <p
-                className="session-private-export__caution"
-                role="alert"
-              >
-                {t("privateKeyCaution")}
-              </p>
-              <div className="session-private-export__head">
-                <span className="session-private-export__label">
-                  {t("privateKeyReady")}
-                </span>
-                <button
-                  type="button"
-                  className="session-private-export__toggle"
-                  aria-pressed={privateKeyRevealed}
-                  onClick={() => setPrivateKeyRevealed((prev) => !prev)}
-                >
-                  {privateKeyRevealed
-                    ? t("hidePrivateKey")
-                    : t("showPrivateKey")}
-                </button>
-              </div>
-              <code
-                className="session-private-export__value"
-                aria-label={t("sessionPrivateKey")}
-              >
-                {privateKeyRevealed ? generatedPrivateKey : maskedPrivateKey}
-              </code>
-              <NeoButton
-                variant="secondary"
-                aria-label={t("copyPrivateKey")}
-                onClick={handleCopyPrivateKey}
-              >
-                {privateKeyCopied ? t("copiedPrivateKey") : t("copyPrivateKey")}
-              </NeoButton>
-              {copyFailed && (
-                <span
-                  className="session-private-export__error"
-                  role="alert"
-                  aria-live="assertive"
-                >
-                  {t("copyPrivateKeyFailed")}
-                </span>
-              )}
-            </div>
-          )}
         </NeoCard>
+
+        {/* Compact static reference filling the left column under the shorter
+            Key & Sponsorship card — orients the three-step flow without adding
+            competing actions. */}
+        <NeoCard
+          variant="erobo"
+          title={t("sessionFlowLabel")}
+          className="session-guide-card"
+        >
+          <ol className="session-guide">
+            <li className="session-guide__step">
+              <span className="session-guide__num" aria-hidden="true">
+                1
+              </span>
+              <div className="session-guide__text">
+                <strong>{t("sessionFlowKey")}</strong>
+                <span>{t("sessionFlowKeyDesc")}</span>
+              </div>
+            </li>
+            <li className="session-guide__step">
+              <span className="session-guide__num" aria-hidden="true">
+                2
+              </span>
+              <div className="session-guide__text">
+                <strong>{t("sessionFlowSponsor")}</strong>
+                <span>{t("sessionFlowSponsorDesc")}</span>
+              </div>
+            </li>
+            <li className="session-guide__step">
+              <span className="session-guide__num" aria-hidden="true">
+                3
+              </span>
+              <div className="session-guide__text">
+                <strong>{t("sessionFlowConfigure")}</strong>
+                <span>{t("sessionFlowConfigureDesc")}</span>
+              </div>
+            </li>
+          </ol>
+        </NeoCard>
+        </div>
 
         {/* Step 2 — Configure scope + submit (the primary business action) */}
         <NeoCard
@@ -392,6 +390,7 @@ export default function PlayArea({
             <p className="session-hint">{t("configureSessionBlocked")}</p>
           )}
           <div className="session-form">
+            {/* Group A — Identity: who/what key is being delegated */}
             <NeoInput
               value={accountSeed}
               label={t("accountSeed")}
@@ -404,74 +403,96 @@ export default function PlayArea({
               placeholder={t("sessionPublicKeyPlaceholder")}
               onChange={(v: string) => setSessionPublicKey(v)}
             />
-            <NeoInput
-              value={targetContract}
-              label={t("targetContract")}
-              placeholder={t("targetContractPlaceholder")}
-              onChange={(v: string) => setTargetContract(v)}
-            />
-            <NeoInput
-              value={allowedMethod}
-              label={t("allowedMethod")}
-              placeholder={t("allowedMethodPlaceholder")}
-              onChange={(v: string) => setAllowedMethod(v)}
-            />
-            {!allowedMethod.trim() && (
-              <p className="session-hint session-hint--warn" role="status">
-                {t("anyMethodCaution")}
-              </p>
-            )}
-            <NeoInput
-              value={expiresAt}
-              label={t("expiresAt")}
-              placeholder={t("expiresAtPlaceholder")}
-              onChange={(v: string) => setExpiresAt(v)}
-            />
-            <div className="session-expiry-quick">
-              <button
-                type="button"
-                className="session-expiry-quick__chip"
-                onClick={() => setExpiryIn(3600)}
-              >
-                {t("expiryQuick1h")}
-              </button>
-              <button
-                type="button"
-                className="session-expiry-quick__chip"
-                onClick={() => setExpiryIn(86400)}
-              >
-                {t("expiryQuick24h")}
-              </button>
-              <button
-                type="button"
-                className="session-expiry-quick__chip"
-                onClick={() => setExpiryIn(604800)}
-              >
-                {t("expiryQuick7d")}
-              </button>
+
+            {/* Group B — Scope: what the key may call and for how long */}
+            <div className="session-fieldgroup">
+              <span className="session-fieldgroup__label">
+                {t("scopeGroupLabel")}
+              </span>
+              <NeoInput
+                value={targetContract}
+                label={t("targetContract")}
+                placeholder={t("targetContractPlaceholder")}
+                onChange={(v: string) => setTargetContract(v)}
+              />
+              <NeoInput
+                value={allowedMethod}
+                label={t("allowedMethod")}
+                placeholder={t("allowedMethodPlaceholder")}
+                onChange={(v: string) => setAllowedMethod(v)}
+              />
+              {!allowedMethod.trim() && (
+                <p className="session-hint session-hint--warn" role="status">
+                  {t("anyMethodCaution")}
+                </p>
+              )}
+              <NeoInput
+                value={expiresAt}
+                label={t("expiresAt")}
+                placeholder={t("expiresAtPlaceholder")}
+                onChange={(v: string) => setExpiresAt(v)}
+              />
+              <div className="session-expiry-quick">
+                <button
+                  type="button"
+                  className="session-expiry-quick__chip"
+                  onClick={() => setExpiryIn(3600)}
+                >
+                  {t("expiryQuick1h")}
+                </button>
+                <button
+                  type="button"
+                  className="session-expiry-quick__chip"
+                  onClick={() => setExpiryIn(86400)}
+                >
+                  {t("expiryQuick24h")}
+                </button>
+                <button
+                  type="button"
+                  className="session-expiry-quick__chip"
+                  onClick={() => setExpiryIn(604800)}
+                >
+                  {t("expiryQuick7d")}
+                </button>
+              </div>
+              {expiryPreview && (
+                <p className="session-hint session-hint--muted">
+                  {expiryPreview}
+                </p>
+              )}
             </div>
-            {expiryPreview && (
-              <p className="session-hint session-hint--muted">{expiryPreview}</p>
-            )}
+
+            {/* Group C — Limits (mainnet only): collapsed behind a disclosure so
+                the optional GAS cap + label don't lengthen the default form. */}
             {isMainnet && (
-              <>
-                <NeoInput
-                  type="number"
-                  min={0}
-                  value={spendingLimit}
-                  label={t("spendingLimit")}
-                  hint={t("spendingLimitHint")}
-                  placeholder={t("spendingLimitPlaceholder")}
-                  onChange={(v: string) => setSpendingLimit(v)}
-                />
-                <NeoInput
-                  value={description}
-                  label={t("sessionDescription")}
-                  placeholder={t("sessionDescriptionPlaceholder")}
-                  onChange={(v: string) => setDescription(v)}
-                />
-              </>
+              <details
+                className="session-limits"
+                open={limitsOpen}
+                onToggle={(e) =>
+                  setLimitsOpen((e.target as HTMLDetailsElement).open)
+                }
+              >
+                <summary>{t("limitsGroupLabel")}</summary>
+                <div className="session-limits__body">
+                  <NeoInput
+                    type="number"
+                    min={0}
+                    value={spendingLimit}
+                    label={t("spendingLimit")}
+                    hint={t("spendingLimitHint")}
+                    placeholder={t("spendingLimitPlaceholder")}
+                    onChange={(v: string) => setSpendingLimit(v)}
+                  />
+                  <NeoInput
+                    value={description}
+                    label={t("sessionDescription")}
+                    placeholder={t("sessionDescriptionPlaceholder")}
+                    onChange={(v: string) => setDescription(v)}
+                  />
+                </div>
+              </details>
             )}
+
             <NeoButton
               variant="primary"
               loading={isSubmitting}
@@ -492,31 +513,137 @@ export default function PlayArea({
             >
               {t("configureSession")}
             </NeoButton>
-            {/* Permission-out + inspect paths: read or revoke the delegated key
-                directly on the verifier. */}
-            <div className="session-action-grid session-action-grid--manage">
-              <NeoButton
-                variant="secondary"
-                disabled={!accountSeed.trim()}
-                aria-label={t("inspectSession")}
-                onClick={() => dispatch("inspectSession", accountSeed)}
+          </div>
+        </NeoCard>
+      </section>
+
+      {/* One-time private-key export — its own prominent card so the
+          irreversible "copy now or lose it" moment never competes with the
+          dapp-id / sponsor-amount fields it used to be nested inside. */}
+      {generatedPrivateKey && (
+        <NeoCard
+          variant="erobo"
+          title={t("privateKeyCardTitle")}
+          className="session-private-card"
+        >
+          <div className="session-private-export">
+            <p className="session-private-export__caution" role="alert">
+              {t("privateKeyCaution")}
+            </p>
+            <div className="session-private-export__head">
+              <span className="session-private-export__label">
+                {t("privateKeyReady")}
+              </span>
+              <button
+                type="button"
+                className="session-private-export__toggle"
+                aria-pressed={privateKeyRevealed}
+                onClick={() => setPrivateKeyRevealed((prev) => !prev)}
               >
-                {t("inspectSession")}
-              </NeoButton>
-              <NeoButton
-                variant="secondary"
-                loading={isRevoking}
-                disabled={!accountSeed.trim() || isRevoking}
-                aria-label={t("revokeSession")}
-                onClick={() => dispatch("revokeSession", accountSeed)}
-              >
-                {t("revokeSession")}
-              </NeoButton>
+                {privateKeyRevealed
+                  ? t("hidePrivateKey")
+                  : t("showPrivateKey")}
+              </button>
             </div>
-            <div className="session-onchain" role="status">
-              <span className="session-onchain__label">
+            <code
+              className="session-private-export__value"
+              aria-label={t("sessionPrivateKey")}
+            >
+              {privateKeyRevealed ? generatedPrivateKey : maskedPrivateKey}
+            </code>
+            <NeoButton
+              variant="secondary"
+              aria-label={t("copyPrivateKey")}
+              onClick={handleCopyPrivateKey}
+            >
+              {privateKeyCopied ? t("copiedPrivateKey") : t("copyPrivateKey")}
+            </NeoButton>
+            {copyFailed && (
+              <span
+                className="session-private-export__error"
+                role="alert"
+                aria-live="assertive"
+              >
+                {t("copyPrivateKeyFailed")}
+              </span>
+            )}
+          </div>
+        </NeoCard>
+      )}
+
+      {/* Consolidated result region — the single place to read "what is live
+          on-chain now": the manage actions, the on-chain readback, and the
+          latest submitted configuration, instead of three scattered surfaces. */}
+      <section className="session-summary">
+        <div className="session-section-heading">
+          <span>{t("sessionMetricStatus")}</span>
+          <h3>{t("latestState")}</h3>
+        </div>
+
+        <NeoCard variant="erobo" className="session-result-card">
+          {/* On-chain session manage subsection: a read (Inspect) and a
+              destructive call (Revoke) are grouped and visually separated so
+              Revoke is no longer a peer of an inspect/submit. */}
+          <div className="session-manage">
+            <div className="session-manage__head">
+              <span className="session-manage__label">
                 {t("onChainSessionTitle")}
               </span>
+              <div className="session-manage__actions">
+                <NeoButton
+                  variant="secondary"
+                  size="sm"
+                  disabled={!accountSeed.trim()}
+                  aria-label={t("inspectSession")}
+                  onClick={() => dispatch("inspectSession", accountSeed)}
+                >
+                  {t("inspectSession")}
+                </NeoButton>
+                {confirmingRevoke ? (
+                  <div
+                    className="session-manage__confirm"
+                    role="group"
+                    aria-label={t("revokeConfirmPrompt")}
+                  >
+                    <span className="session-manage__confirm-text">
+                      {t("revokeConfirmPrompt")}
+                    </span>
+                    <NeoButton
+                      variant="ghost"
+                      size="sm"
+                      aria-label={t("revokeCancel")}
+                      onClick={() => setConfirmingRevoke(false)}
+                    >
+                      {t("revokeCancel")}
+                    </NeoButton>
+                    <NeoButton
+                      variant="danger"
+                      size="sm"
+                      loading={isRevoking}
+                      disabled={!accountSeed.trim() || isRevoking}
+                      aria-label={t("revokeConfirm")}
+                      onClick={async () => {
+                        await dispatch("revokeSession", accountSeed);
+                        setConfirmingRevoke(false);
+                      }}
+                    >
+                      {t("revokeConfirm")}
+                    </NeoButton>
+                  </div>
+                ) : (
+                  <NeoButton
+                    variant="danger"
+                    size="sm"
+                    disabled={!accountSeed.trim() || isRevoking}
+                    aria-label={t("revokeSession")}
+                    onClick={() => setConfirmingRevoke(true)}
+                  >
+                    {t("revokeSession")}
+                  </NeoButton>
+                )}
+              </div>
+            </div>
+            <div className="session-onchain" role="status">
               {hasOnChainSession ? (
                 onChainSessionView ? (
                   <div className="session-onchain__fields">
@@ -529,8 +656,7 @@ export default function PlayArea({
                     <div className="session-onchain__field">
                       <span>{t("onChainScopeLabel")}</span>
                       <strong>
-                        {onChainSessionView.decoded.method ||
-                          t("anyMethod")}
+                        {onChainSessionView.decoded.method || t("anyMethod")}
                       </strong>
                     </div>
                     <div className="session-onchain__field">
@@ -566,19 +692,10 @@ export default function PlayArea({
               )}
             </div>
           </div>
-        </NeoCard>
-      </section>
 
-      {/* Configured summary — only after a successful submit; otherwise a
-          single muted empty-state line. */}
-      <section className="session-summary">
-        <div className="session-section-heading">
-          <span>{t("sessionMetricStatus")}</span>
-          <h3>{t("latestState")}</h3>
-        </div>
-
-        {isConfigured ? (
-          <NeoCard variant="erobo" className="session-result-card">
+          {/* Latest submitted configuration: detail rows once a submit has
+              confirmed, otherwise a compact empty-state prompt. */}
+          {isConfigured ? (
             <div className="session-detail-list">
               {detailItems.map((item) => (
                 <div key={item.label} className="session-detail-row">
@@ -587,9 +704,7 @@ export default function PlayArea({
                 </div>
               ))}
             </div>
-          </NeoCard>
-        ) : (
-          <NeoCard variant="erobo" className="session-result-card">
+          ) : (
             <div className="session-empty-state">
               <span className="session-empty-state__badge" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -610,8 +725,8 @@ export default function PlayArea({
               </span>
               <p>{t("sessionEmptyCopy")}</p>
             </div>
-          </NeoCard>
-        )}
+          )}
+        </NeoCard>
 
         <details className="session-environment">
           <summary>{t("sessionStateLabel")}</summary>

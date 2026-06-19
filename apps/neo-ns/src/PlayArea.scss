@@ -232,8 +232,83 @@
 }
 
 .empty-state__hint {
-  margin: 0; max-width: 320px; font-size: 12.5px; line-height: 1.5;
+  margin: 0; max-width: 360px; font-size: 12.5px; line-height: 1.5;
   color: var(--ns-text-muted, #8a92a6);
+}
+
+/* Example-name chips: turn the empty state into a guided first search. */
+.empty-state__examples {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-top: 16px;
+}
+
+.empty-state__examples-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.empty-state__chips {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+}
+
+.example-chip {
+  appearance: none; cursor: pointer;
+  padding: 7px 14px;
+  font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
+  font-family: "JetBrains Mono", monospace;
+  color: var(--ns-brand-strong, #0fb174);
+  background: var(--ns-brand-soft, #e4f8f0);
+  border: 1px solid transparent;
+  border-radius: var(--ns-radius-full, 9999px);
+  transition: background 120ms ease, transform 120ms ease, border-color 120ms ease;
+}
+
+.example-chip:hover {
+  background: var(--ns-surface, #fff);
+  border-color: var(--ns-brand-strong, #0fb174);
+  transform: translateY(-1px);
+}
+
+.example-chip:focus-visible {
+  outline: 2px solid var(--ns-brand-strong, #0fb174);
+  outline-offset: 2px;
+}
+
+/* ── "How .neo names work" reference strip (resting-view content) ── */
+.nns-reference__list {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+  margin: 0; padding: 0; list-style: none;
+}
+
+.nns-reference__list li {
+  display: grid; gap: 4px; min-width: 0;
+  padding: 12px 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+}
+
+.nns-reference__label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+.nns-reference__desc {
+  font-size: 12px; line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+}
+
+.nns-reference__note {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 14px 0 0;
+  font-size: 12px; line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+
+  svg { flex-shrink: 0; margin-top: 1px; color: var(--ns-brand-strong, #0fb174); }
+}
+
+@media (max-width: 560px) {
+  .nns-reference__list { grid-template-columns: 1fr; }
 }
 
 .domain-list { display: flex; flex-direction: column; gap: 12px; }

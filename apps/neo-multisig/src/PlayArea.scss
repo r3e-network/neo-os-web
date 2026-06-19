@@ -10,7 +10,6 @@
   --multisig-green: var(--ns-brand, #16c784);
   --multisig-green-strong: var(--ns-brand-strong, #0fb174);
   --multisig-green-soft: var(--ns-brand-soft, #e4f8f0);
-  --multisig-blue: var(--ns-info, #3e8cff);
 
   width: 100%;
   min-height: 100%;
@@ -147,7 +146,7 @@
 .multisig-request-panel,
 .multisig-activity-panel,
 .multisig-signer-panel,
-.multisig-route-panel {
+.multisig-load-panel {
   min-width: 0;
   border-radius: var(--ns-radius-lg, 20px);
   display: grid;
@@ -168,7 +167,7 @@
 }
 
 .multisig-signer-panel,
-.multisig-route-panel {
+.multisig-load-panel {
   gap: 10px;
 }
 
@@ -207,12 +206,66 @@
 }
 
 .multisig-signer-panel > p,
-.multisig-route-panel > p {
+.multisig-load-panel > p {
   margin: -2px 0 2px;
   color: var(--multisig-body);
   font-size: 13px;
   line-height: 1.5;
   letter-spacing: 0;
+}
+
+/* "Execution route" glossary, collapsed by default — pure reference. */
+.multisig-route-details {
+  margin-top: 2px;
+  border-top: 1px solid var(--ns-border-subtle, #eef0f3);
+  padding-top: 8px;
+}
+
+.multisig-route-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--multisig-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  user-select: none;
+}
+
+.multisig-route-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.multisig-route-details > summary::after {
+  content: "";
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  transform: translateY(-1px) rotate(45deg);
+  border-right: 2px solid var(--multisig-muted);
+  border-bottom: 2px solid var(--multisig-muted);
+  transition: transform 0.15s ease;
+}
+
+.multisig-route-details[open] > summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+.multisig-route-details > summary:focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+  border-radius: var(--ns-radius-sm, 8px);
+}
+
+.multisig-route-details > p {
+  margin: 8px 0 2px;
+  color: var(--multisig-body);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .multisig-section-heading {
@@ -490,6 +543,17 @@
   color: var(--multisig-green-strong);
 }
 
+/* Pre-input guidance on a pristine create form. Neutral helper tone (not a
+   warning): a quiet muted surface with a soft brand rule so it reads as "fill
+   this in", never as a validation error. */
+.multisig-request-hint--guide {
+  border-color: var(--ns-border-subtle, #eef0f3);
+  border-left: 3px solid var(--multisig-green);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--multisig-body);
+  font-weight: 600;
+}
+
 /* Informational pooled-balance disclosure — softer weight than a gating hint. */
 .multisig-request-hint--info {
   font-weight: 500;
@@ -579,14 +643,25 @@
   opacity: 1;
 }
 
+// Compact load rows in the aside "Load vault or request" panel. These are a
+// secondary entry path, so they sit quietly under the create flow.
 .multisig-load-box {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
+  gap: 8px;
   align-items: end;
-  padding-top: 14px;
-  border-top: 1px solid var(--multisig-border);
   letter-spacing: 0;
+}
+
+// De-emphasized secondary action: the Load buttons are a side path, so they are
+// smaller and lighter than the headline Create Vault CTA — no full-width sweep,
+// no brand fill.
+.multisig-load-panel .multisig-load-btn {
+  align-self: end;
+  min-height: 38px;
+  padding: 0 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .multisig-empty-line {

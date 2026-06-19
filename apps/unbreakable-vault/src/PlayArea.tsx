@@ -95,6 +95,19 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
     confirmSecret.trim() !== "" &&
     !secretMismatch;
 
+  // Inline "why is Create disabled" reason so a first-timer knows the next step
+  // instead of staring at a greyed button. Ordered by the form's top-to-bottom
+  // flow; a secret mismatch is already surfaced by its own field error above, so
+  // the hint falls through to the secret prompt rather than repeating it.
+  const createHintKey =
+    title.trim() === ""
+      ? "createNeedTitle"
+      : !(Number.isFinite(bountyValue) && bountyValue >= 1)
+        ? "createNeedBounty"
+        : secret.trim() === "" || confirmSecret.trim() === "" || secretMismatch
+          ? "createNeedSecret"
+          : "createReady";
+
   const handleCreate = async () => {
     if (!canSubmitCreate) return;
     try {
@@ -212,53 +225,76 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
             value={description}
             onChange={setDescription}
           />
-          <NeoInput
-            label={t("bountyLabel")}
-            type="number"
-            placeholder={t("bountyPlaceholder")}
-            min={1}
-            value={bounty}
-            onChange={setBounty}
-          />
-          <p className="vault-secret-note">{t("minBountyNote")}</p>
-          <label className="vault-select-field">
-            <span>{t("difficultyLabel")}</span>
-            <div className="vault-select-control">
-              <select
-                value={vaultDifficulty}
-                onChange={(e) => state.vaultDifficulty?.set(e.target.value)}
-              >
-                {DIFFICULTY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {t(option.labelKey)} · {option.fee}
-                  </option>
-                ))}
-              </select>
-              <svg className="vault-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
-          </label>
-          <p className="vault-secret-note">{t("difficultyFeeNote")}</p>
-          <NeoInput
-            label={t("secretLabel")}
-            type="password"
-            placeholder={t("secretPlaceholder")}
-            value={secret}
-            onChange={setSecret}
-          />
-          <NeoInput
-            label={t("confirmSecretLabel")}
-            type="password"
-            placeholder={t("confirmSecretPlaceholder")}
-            value={confirmSecret}
-            onChange={setConfirmSecret}
-          />
+          {/* Bounty + difficulty share a row on desktop — tighter use of width
+              and keeps the per-attempt fee next to the amount being funded. */}
+          <div className="vault-form-row">
+            <NeoInput
+              label={t("bountyLabel")}
+              type="number"
+              placeholder={t("bountyPlaceholder")}
+              min={1}
+              hint={t("minBountyNote")}
+              value={bounty}
+              onChange={setBounty}
+            />
+            <label className="vault-select-field">
+              <span>{t("difficultyLabel")}</span>
+              <div className="vault-select-control">
+                <select
+                  value={vaultDifficulty}
+                  onChange={(e) => state.vaultDifficulty?.set(e.target.value)}
+                >
+                  {DIFFICULTY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {t(option.labelKey)} · {option.fee}
+                    </option>
+                  ))}
+                </select>
+                <svg className="vault-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+            </label>
+          </div>
+          {/* Both secret entries sit side-by-side on desktop so confirm reads as
+              a check on the field beside it, not another stacked block. */}
+          <div className="vault-form-row">
+            <NeoInput
+              label={t("secretLabel")}
+              type="password"
+              placeholder={t("secretPlaceholder")}
+              value={secret}
+              onChange={setSecret}
+            />
+            <NeoInput
+              label={t("confirmSecretLabel")}
+              type="password"
+              placeholder={t("confirmSecretPlaceholder")}
+              value={confirmSecret}
+              onChange={setConfirmSecret}
+            />
+          </div>
           {secretMismatch && (
             <p className="vault-field-error" role="alert">{t("secretMismatch")}</p>
           )}
-          <p className="vault-secret-note">{t("secretNote")}</p>
-          <p className="vault-secret-note">{t("createFeeNote")}</p>
+          {/* The four explanatory notes are collapsed behind a disclosure so the
+              primary action rises toward the fold; details stay one tap away. */}
+          <details className="vault-fineprint">
+            <summary>{t("createFineLabel")}</summary>
+            <div className="vault-fineprint-body">
+              <p className="vault-secret-note">{t("secretNote")}</p>
+              <p className="vault-secret-note">{t("difficultyFeeNote")}</p>
+              <p className="vault-secret-note">{t("createFeeNote")}</p>
+            </div>
+          </details>
+          {/* Inline reason mirrors the disabled state so the missing field is
+              named rather than implied by a greyed button. */}
+          <p
+            className={`vault-create-hint${canSubmitCreate ? " vault-create-hint--ready" : ""}`}
+            role={canSubmitCreate ? undefined : "status"}
+          >
+            {t(createHintKey)}
+          </p>
           <NeoButton
             variant="primary"
             size="lg"
@@ -414,7 +450,11 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
         </div>
       </NeoCard>
 
-      {/* Recent Vaults */}
+      </div>
+      </div>
+
+      {/* Recent Vaults span the full width below the two-column row so the right
+          side of the create form is no longer a tall empty gutter. */}
       <NeoCard title={t("recentVaults")}>
         {recentVaults.length === 0 ? (
           <StateView
@@ -425,7 +465,7 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
           />
         ) : (
           <div className="vault-list-container">
-            <div className="vault-list">
+            <div className="vault-list vault-list--grid">
               {(recentVaults as Array<Record<string, unknown>>).map((vault) => (
                 <div
                   key={String(vault.id)}
@@ -445,8 +485,6 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
           </div>
         )}
       </NeoCard>
-      </div>
-      </div>
 
       {/* My Vaults */}
       {myVaults.length > 0 && (

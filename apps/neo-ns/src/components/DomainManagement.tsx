@@ -9,8 +9,15 @@ import type { Domain } from "../hooks/useNeoNS";
 interface DomainManagementProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   domains: Domain[];
+  /** Whether a wallet is connected — drives the empty-state affordance. */
+  connected?: boolean;
+  /** Prefill the search box with an example name and run the lookup. */
+  onSearchExample?: (name: string) => void;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
+
+/** A few short, friendly names to demonstrate the search as a one-tap action. */
+const EXAMPLE_NAMES = ["alice.neo", "wallet.neo", "neo.neo"] as const;
 
 /** Trim trailing zeros from a GAS amount for display (e.g. "2.00000000" -> "2"). */
 function formatGas(value: number): string {
@@ -18,7 +25,7 @@ function formatGas(value: number): string {
   return value.toFixed(8).replace(/\.?0+$/, "") || "0";
 }
 
-export default function DomainManagement({ t, domains, dispatch }: DomainManagementProps) {
+export default function DomainManagement({ t, domains, connected = false, onSearchExample, dispatch }: DomainManagementProps) {
   // Per-domain renewal confirmation: clicking Renew first discloses the GAS
   // cost (a paid wallet tx) and waits for an explicit confirm.
   const [renewTarget, setRenewTarget] = useState<string | null>(null);
@@ -58,7 +65,26 @@ export default function DomainManagement({ t, domains, dispatch }: DomainManagem
             </svg>
           </span>
           <p className="empty-state__title">{t("noDomains")}</p>
-          <p className="empty-state__hint">{t("noDomainsHint")}</p>
+          <p className="empty-state__hint">
+            {connected ? t("noDomainsHint") : t("noDomainsConnectHint")}
+          </p>
+          {onSearchExample && (
+            <div className="empty-state__examples">
+              <span className="empty-state__examples-label">{t("tryExample")}</span>
+              <div className="empty-state__chips">
+                {EXAMPLE_NAMES.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className="example-chip"
+                    onClick={() => onSearchExample(name)}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </NeoCard>
     );

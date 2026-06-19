@@ -284,10 +284,68 @@
   align-items: start;
 }
 
-.session-flow-stack > .neo-card {
+.session-flow-stack > .neo-card,
+.session-flow-stack > .session-flow-col {
   display: flex;
   min-width: 0;
   flex-direction: column;
+}
+
+// Left column stacks the Key & sponsorship card over the static flow guide so
+// the guide fills the space beside the taller Configure card instead of leaving
+// a dead gap.
+.session-flow-col {
+  gap: 20px;
+}
+
+// Static three-step reference (numbered list) — orientation only, no actions.
+.session-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.session-guide__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.session-guide__num {
+  display: grid;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-accent-soft, #e4f8f0);
+  color: var(--ns-accent-strong, #0fb174);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.session-guide__text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.session-guide__text strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.session-guide__text span {
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 // Configured summary block (header + result/empty + environment disclosure)
@@ -493,14 +551,6 @@
   background: var(--ns-surface-subtle, #f7f8fa);
 }
 
-.session-onchain__label {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ns-text-muted, #8a92a6);
-}
-
 .session-onchain__value {
   overflow-wrap: anywhere;
   font-family: var(--ns-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
@@ -546,8 +596,145 @@
   color: var(--ns-text-2, #5b6478);
 }
 
-.session-action-grid--manage {
-  grid-template-columns: 1fr 1fr;
+/* Scope field group: a labelled subsection inside the Configure form so the
+   "what may it call / for how long" inputs scan as one unit, separate from the
+   identity inputs above and the optional Limits below. */
+.session-fieldgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.session-fieldgroup__label {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Optional mainnet Limits, collapsed behind a disclosure to shorten the form. */
+.session-limits {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.session-limits > summary {
+  padding: 14px 16px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+}
+
+.session-limits > summary::-webkit-details-marker {
+  display: none;
+}
+
+.session-limits > summary::after {
+  content: "+";
+  float: right;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.session-limits[open] > summary::after {
+  content: "–";
+}
+
+.session-limits__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 16px 16px;
+}
+
+/* Elevated one-time private-key export card. */
+.session-private-card .session-private-export {
+  background: transparent;
+  padding: 0;
+}
+
+/* On-chain manage subsection: groups the read (Inspect) and the destructive
+   call (Revoke) above the readback, so Revoke is fenced off from the form. */
+.session-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.session-manage__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.session-manage__label {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.session-manage__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Inline confirm prompt that replaces the Revoke button on first click. */
+.session-manage__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--ns-danger, #d64545);
+  border-radius: var(--ns-radius-sm, 12px);
+  background: rgba(214, 69, 69, 0.06);
+}
+
+.session-manage__confirm-text {
+  color: var(--ns-danger, #d64545);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Danger Revoke: a semantic destructive tone (red outline/text), not a second
+   brand accent — the single green accent stays for chrome + the primary CTA. */
+.session-play-area .neo-btn--danger {
+  border: 1px solid var(--ns-danger, #d64545) !important;
+  background: transparent !important;
+  color: var(--ns-danger, #d64545) !important;
+  box-shadow: none !important;
+}
+
+.session-play-area .neo-btn--danger:hover:not(:disabled) {
+  background: rgba(214, 69, 69, 0.08) !important;
+}
+
+/* Disabled danger keeps a muted red outline instead of the green soft fill the
+   generic disabled override below would otherwise force onto it. */
+.session-play-area .neo-btn--danger:disabled {
+  border: 1px solid rgba(214, 69, 69, 0.32) !important;
+  background: transparent !important;
+  color: rgba(214, 69, 69, 0.5) !important;
 }
 
 .session-form {
@@ -666,6 +853,23 @@
   .session-form--compact,
   .session-action-grid {
     grid-template-columns: 1fr;
+  }
+
+  .session-fieldgroup,
+  .session-limits__body {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  // Stack manage head so the Inspect/Revoke actions get full-width rows and the
+  // confirm prompt doesn't crowd the label on narrow screens.
+  .session-manage__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .session-manage__actions {
+    justify-content: flex-start;
   }
 
   .session-section-heading h3 {

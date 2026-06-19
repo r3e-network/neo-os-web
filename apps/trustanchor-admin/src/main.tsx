@@ -122,6 +122,16 @@ defineMiniApp({
       },
       [anchor.agents, agentBalances],
     );
+    // True only once the on-chain agent directory has actually loaded. The
+    // directory display falls back to the static roster (so balance/account
+    // lookups for Move/Vote pre-validation still resolve), but the visible list
+    // must not paint 21 near-identical placeholder rows before real data
+    // arrives — PlayArea gates the full directory render on this flag and shows
+    // a compact StateView until then.
+    const agentsLive = createDerived<boolean>(
+      () => anchor.agents.get().length > 0,
+      [anchor.agents],
+    );
     // Admin-role state: null while loading, true/false once admin() + getAppAdmin
     // resolve. Drives the read-only banner for non-operators.
     const adminState = createDerived<"loading" | "admin" | "denied">(
@@ -176,6 +186,7 @@ defineMiniApp({
         reserveDisplay,
         selectedAgentDisplay,
         agentCountDisplay,
+        agentsLive,
         adminState,
         expectedAdminDisplay,
       } satisfies Record<string, Observable>,

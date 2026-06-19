@@ -78,21 +78,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
 
         <div className="gas-hero-gauge">
-          <GasTank fuelLevelPercent={fuelLevelPercent} gasBalance={gasBalance} isEligible={isEligible} t={t} />
-          <dl className="gas-hero-facts">
-            <div className="gas-hero-fact">
-              <dt>{t("gasBalance")}</dt>
-              <dd>{gasBalanceDisplay}</dd>
-            </div>
-            <div className="gas-hero-fact">
-              <dt>{t("sidebarTankLevel")}</dt>
-              <dd>{tankLevelDisplay}</dd>
-            </div>
-            <div className="gas-hero-fact">
-              <dt>{t("remaining")}</dt>
-              <dd>{remainingQuotaDisplay}</dd>
-            </div>
-          </dl>
+          <GasTank
+            fuelLevelPercent={fuelLevelPercent}
+            gasBalance={gasBalance}
+            tankLevelDisplay={tankLevelDisplay}
+            isEligible={isEligible}
+            isConnected={isConnected}
+            t={t}
+          />
+          <div className="gas-hero-facts-wrap">
+            <dl className="gas-hero-facts">
+              <div className="gas-hero-fact">
+                <dt>{t("gasBalance")}</dt>
+                <dd>{gasBalanceDisplay}</dd>
+              </div>
+              <div className="gas-hero-fact">
+                <dt>{t("sidebarTankLevel")}</dt>
+                <dd>{tankLevelDisplay}</dd>
+              </div>
+              <div className="gas-hero-fact">
+                <dt>{t("remaining")}</dt>
+                <dd>{remainingQuotaDisplay}</dd>
+              </div>
+            </dl>
+            {/* Frame the eligibility rule so users grasp "free GAS" is for
+                low-balance wallets before they connect. */}
+            <p className="gas-hero-rule">{t("eligibilityRule")}</p>
+            {!isConnected && (
+              <p className="gas-hero-connect" role="note">
+                {t("connectToCheck")}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

@@ -15,6 +15,11 @@ const appMessages = {
   },
   relayEndpointMetric: { en: "Relay Endpoint", zh: "Relay Endpoint" },
   relayCommandTitle: { en: "Sponsor Preflight", zh: "赞助预检" },
+  relayHowItWorksTitle: { en: "How relaying works", zh: "Relay 工作原理" },
+  relayStep1Eyebrow: { en: "Step 1 · Sponsor preflight", zh: "第 1 步 · 赞助预检" },
+  relayStep1Title: { en: "Check or request coverage", zh: "检查或请求覆盖" },
+  relayStep2Eyebrow: { en: "Step 2 · Build & submit", zh: "第 2 步 · 构建并提交" },
+  relayStep2Title: { en: "Relay the payload", zh: "Relay 该 Payload" },
   relayPaymasterExplainer: {
     en: "A paymaster can pay the network GAS for this account so it can transact without holding GAS. Check whether this address is covered, request coverage, then submit the relayed transaction.",
     zh: "paymaster 可以为此账户支付网络 GAS，使其无需持有 GAS 即可交易。先检查该地址是否被覆盖、请求覆盖额度，再提交经 relay 的交易。",

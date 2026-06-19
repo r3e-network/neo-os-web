@@ -430,9 +430,9 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
 
   const loadAll = async () => {
     // Default the market hash to the canonical AAAddressMarket for the active
-    // network (the app's own manifest/registry) so the board loads on first run
-    // instead of showing "enter a market hash". The input stays editable as an
-    // advanced override, and a cached override still wins.
+    // network (the app's own manifest/registry) so the board is ready to load
+    // immediately. The input stays editable as an advanced override, and a
+    // cached override still wins.
     marketHash.set(
       readCachedString(MARKET_HASH_STORAGE_KEY) || getDefaultMarketHash(),
     );
@@ -440,7 +440,12 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
       readCachedString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash(),
     );
     newBackupOwner.set(walletAddress.get());
-    if (marketHash.get().trim()) {
+    // Only auto-load the board when a wallet is already connected. Reading the
+    // market needs a wallet provider; firing it with no session leaves the board
+    // spinning forever (the read blocks on a provider that never arrives in a
+    // wallet-less preview). With no session the board rests on a "connect to
+    // load" state, and connectWallet() loads it the moment a wallet attaches.
+    if (marketHash.get().trim() && walletAddress.get().trim()) {
       await loadListings().catch((e: unknown) => {
         console.warn(
           "[aa-market-hub] loadListings failed:",

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { TrustAnchorStats } from "../../trustanchor/src/hooks/useTrustAnchor";
@@ -12,10 +13,14 @@ interface PlayAreaProps {
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { val, str } = useStateBindings(state);
+  const { val, str, bool } = useStateBindings(state);
   const stats = val<TrustAnchorStats | null>("stats", null);
   const agentAccounts =
     val<Array<Record<string, unknown>>>("agentAccounts", []) ?? [];
+  // True once the on-chain directory has loaded. Until then the rows are the
+  // static roster (kept for Move/Vote balance lookups), so we suppress the
+  // full list and show a compact placeholder instead of 21 lookalike rows.
+  const agentsLive = bool("agentsLive");
   const totalNeoDisplay = str("totalNeoDisplay", "0 NEO");
   const selectedAgent = str("selectedAgentDisplay", t("noneFallback"));
   const agentCount = str("agentCountDisplay", "0 / 21");
@@ -206,6 +211,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
               ))}
             </div>
+            {!agentsLive && (
+              <p className="anchor-admin-hero-caption">{t("statsAwaitConnect")}</p>
+            )}
           </section>
 
           {isDenied && (
@@ -350,9 +358,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <strong className="anchor-admin-count-pill">{agentCount}</strong>
             </div>
             <div className="anchor-admin-agent-scroll">
-              <div className="anchor-admin-agent-list">
+              <div
+                className={`anchor-admin-agent-list${agentsLive ? "" : " is-resting"}`}
+              >
                 {visibleAgents.length === 0 ? (
-                  <div className="anchor-admin-agent-empty">{t("agentDirectoryEmpty")}</div>
+                  adminState === "loading" ? (
+                    <StateView
+                      className="anchor-admin-agent-state"
+                      kind="loading"
+                      title={t("agentDirectoryLoading")}
+                    />
+                  ) : (
+                    <StateView
+                      className="anchor-admin-agent-state"
+                      kind="empty"
+                      icon={null}
+                      title={t("agentDirectoryEmpty")}
+                      hint={t("agentDirectoryEmptyHint")}
+                    />
+                  )
                 ) : (
                   visibleAgents.map((agent, idx) => {
                     const address = String(

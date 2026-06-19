@@ -36,6 +36,18 @@ const appMessages = {
     en: "No AA agents loaded yet.",
     zh: "暂无 AA agent。",
   },
+  agentDirectoryEmptyHint: {
+    en: "Connect the operator wallet to load the on-chain agent roster.",
+    zh: "连接运营方钱包以加载链上 agent 列表。",
+  },
+  agentDirectoryLoading: {
+    en: "Loading on-chain agents…",
+    zh: "正在加载链上 agent…",
+  },
+  statsAwaitConnect: {
+    en: "Selected route, agent count and reserves load once an operator connects.",
+    zh: "当前路由、agent 数量与储备会在运营方连接后加载。",
+  },
   agentBalanceLabel: { en: "NEO", zh: "NEO" },
   agentBalanceUnknown: { en: "—", zh: "—" },
   agentActive: { en: "Active", zh: "已启用" },

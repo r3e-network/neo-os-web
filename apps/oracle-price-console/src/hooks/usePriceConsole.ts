@@ -73,17 +73,27 @@ export function usePriceConsole({ t }: UsePriceConsoleOptions) {
   // lazily extended from the on-chain catalog (listPairs) on first load.
   const availablePairs = createObservable<string[]>(["NEO", "GAS", "BTC"]);
 
+  // A feed read of 0 (or negative) is NOT a valid price — a frozen, uninitialized,
+  // or unpriced pair returns 0 on a HALT, which must never be presented as a live
+  // "$0.0000" with a green "Fresh" badge. Treat <= 0 the same as "no price yet"
+  // everywhere freshness/display is derived, so the honest "Awaiting read" empty
+  // state shows instead of a misleading zero.
+  function hasValidPrice(): boolean {
+    const price = latestPrice.get();
+    return price != null && price > 0;
+  }
+
   const priceDisplay: Observable<string> = {
     get: () => {
       const price = latestPrice.get();
-      return price == null ? t("notAvailable") : `$${price.toFixed(4)}`;
+      return price == null || price <= 0 ? t("notAvailable") : `$${price.toFixed(4)}`;
     },
     set: () => {},
     subscribe: (fn) => latestPrice.subscribe(fn),
   };
 
   function freshnessOf(): Freshness {
-    if (latestPrice.get() == null) return "idle";
+    if (!hasValidPrice()) return "idle";
     const ts = lastTimestamp.get();
     if (ts <= 0) return "fresh"; // feed omitted timestamp — cannot prove stale
     const age = Math.floor(Date.now() / 1000) - ts;
@@ -98,7 +108,7 @@ export function usePriceConsole({ t }: UsePriceConsoleOptions) {
 
   const freshnessLabel: Observable<string> = {
     get: () => {
-      if (latestPrice.get() == null) return t("priceStatusReady");
+      if (!hasValidPrice()) return t("priceStatusReady");
       const ts = lastTimestamp.get();
       if (ts <= 0) return t("priceStatusLive");
       const age = Math.max(0, Math.floor(Date.now() / 1000) - ts);
@@ -114,10 +124,10 @@ export function usePriceConsole({ t }: UsePriceConsoleOptions) {
   // Absolute on-chain write time (local-formatted) of the displayed price. This
   // is the precise datum a user needs to independently verify freshness against
   // the chain — the relative "x ago" label alone cannot be cross-checked. Empty
-  // when the feed omitted a timestamp or no read has happened yet.
+  // when the feed omitted a timestamp or no valid read has happened yet.
   const freshnessTimestamp: Observable<string> = {
     get: () => {
-      if (latestPrice.get() == null) return "";
+      if (!hasValidPrice()) return "";
       const ts = lastTimestamp.get();
       if (ts <= 0) return "";
       return new Date(ts * 1000).toLocaleString();
