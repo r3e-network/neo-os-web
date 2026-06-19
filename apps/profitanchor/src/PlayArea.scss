@@ -120,6 +120,105 @@ body {
   box-shadow: 0 0 0 3px var(--ns-brand-soft, #e4f8f0);
 }
 
+/* Variable reward-rate band: honest "current rate" framing (reserve per NEO),
+   never a fixed APR. Two columns on desktop, stacks on mobile. */
+.anchor-rate-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 20px 22px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    radial-gradient(
+      120% 160% at 100% 0%,
+      var(--ns-brand-soft, #e4f8f0) 0%,
+      transparent 58%
+    ),
+    var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+
+  @media (min-width: 640px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 24px;
+  }
+}
+
+.anchor-rate-band__copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+
+  p {
+    margin: 0;
+    max-width: 46ch;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}
+
+.anchor-rate-band__eyebrow {
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.anchor-rate-band__figure {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-width: 0;
+
+  @media (min-width: 640px) {
+    justify-items: end;
+    text-align: right;
+  }
+
+  .anchor-rate-band__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ns-text-muted, #8a92a6);
+  }
+
+  strong {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+
+    em {
+      font-size: 13px;
+      font-weight: 700;
+      font-style: normal;
+      letter-spacing: 0;
+      color: var(--ns-text-muted, #8a92a6);
+    }
+  }
+
+  small {
+    max-width: 34ch;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+}
+
+.anchor-rate-band__placeholder {
+  color: var(--ns-text-muted, #8a92a6);
+}
+
 .anchor-stat-grid {
   // Four stat chips: 2x2 by default avoids an orphan chip on a lonely row;
   // widen to a single row only when there is room for all four.
@@ -136,10 +235,11 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 16px 18px;
+  gap: 8px;
+  padding: 18px 20px;
   min-width: 0;
   background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.05));
   border-radius: var(--ns-radius-lg, 20px);
   box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
 }
@@ -207,11 +307,13 @@ body {
 }
 
 .stat-value {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--ns-brand-strong, #0fb174);
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .stat-value--placeholder {
@@ -360,6 +462,17 @@ body {
   background: var(--ns-danger-soft, #fde7e9);
 }
 
+/* Up-front precision hint: NEO is whole-only, no decimals. Sits tight under
+   the amount field (counteracts the action-panel grid gap). */
+.anchor-field-hint {
+  margin-top: -10px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 /* Inline status line under the amount input (replaces the preflight card) */
 .anchor-inline-status {
   display: flex;
@@ -419,6 +532,17 @@ body {
     font-weight: 800;
     letter-spacing: -0.01em;
   }
+}
+
+/* Honesty cue: when there is no chain/wallet data, the preflight is a preview,
+   not a "ready" state. */
+.anchor-preflight-head__note {
+  margin-top: 2px;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .anchor-preflight-summary {
@@ -768,15 +892,22 @@ body {
   .anchor-hero-facts {
     gap: 7px;
   }
+  .anchor-rate-band {
+    padding: 16px 16px;
+    gap: 12px;
+  }
+  .anchor-rate-band__figure strong {
+    font-size: 26px;
+  }
   .anchor-stat-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
   .stat-chip {
-    padding: 12px 12px;
+    padding: 14px 14px;
   }
   .stat-value {
-    font-size: 14px;
+    font-size: 17px;
   }
   .stat-label {
     font-size: 10px;

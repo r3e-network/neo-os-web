@@ -414,11 +414,33 @@ export default function PlayArea({
   const buttonLabel = canSubmit
     ? copy("createStream", "Create Stream")
     : copy("reviewStream", "Complete stream details");
+  // Honest network label from the launch context (defaults to the app's only
+  // supported network, Neo N3 Testnet). Network fees are paid in GAS and quoted
+  // by the wallet at signing time, so the preview labels them as an estimate
+  // rather than inventing a fixed number.
+  const networkLabel =
+    launchContext.network === "mainnet"
+      ? copy("networkMainnet", "Neo N3 Mainnet")
+      : copy("networkTestnet", "Neo N3 Testnet");
+  const summaryLabel = canSubmit
+    ? totalLabel
+    : copy("enterDetails", "Enter details");
+  const isDirty =
+    recipient.trim().length > 0 ||
+    amount.trim().length > 0 ||
+    duration.trim().length > 0 ||
+    title.trim().length > 0 ||
+    notes.trim().length > 0 ||
+    token !== "GAS";
   const hasStreams =
     createdStreams.length > 0 ||
     beneficiaryStreams.length > 0 ||
     totalStreamCount > 0 ||
     activeCount > 0;
+  const totalStreamsLabel = hasStreams ? String(totalStreamCount) : "—";
+  const activeStreamsLabel = hasStreams ? String(activeCount) : "—";
+  const createdStreamsLabel = hasStreams ? String(createdStreamCount) : "—";
+  const beneficiaryLabel = hasStreams ? String(beneficiaryStreamCount) : "—";
   const activePresetId =
     STREAM_PRESETS.find(
       (preset) =>
@@ -624,26 +646,24 @@ export default function PlayArea({
             "Create a funded payment stream through the shared vault and vesting modules.",
           )}
         </p>
-        {hasStreams && (
-          <div className="shared-pay-hero__stats" aria-label="Stream totals">
-            <span>
-              <strong>{totalStreamCount}</strong>
-              {copy("totalStreams", "Total Streams")}
-            </span>
-            <span>
-              <strong>{activeCount}</strong>
-              {copy("active", "Active")}
-            </span>
-            <span>
-              <strong>{createdStreamCount}</strong>
-              {copy("createdByYou", "Created by You")}
-            </span>
-            <span>
-              <strong>{beneficiaryStreamCount}</strong>
-              {copy("youAreBeneficiary", "You're Beneficiary")}
-            </span>
-          </div>
-        )}
+        <div className="shared-pay-hero__stats" aria-label="Stream totals">
+          <span>
+            <strong>{totalStreamsLabel}</strong>
+            {copy("totalStreams", "Total Streams")}
+          </span>
+          <span>
+            <strong>{activeStreamsLabel}</strong>
+            {copy("active", "Active")}
+          </span>
+          <span>
+            <strong>{createdStreamsLabel}</strong>
+            {copy("createdByYou", "Created by You")}
+          </span>
+          <span>
+            <strong>{beneficiaryLabel}</strong>
+            {copy("youAreBeneficiary", "You're Beneficiary")}
+          </span>
+        </div>
       </section>
 
       {serviceNotice && (
@@ -751,7 +771,9 @@ export default function PlayArea({
             })}
           </div>
 
-          <div className="shared-pay-actions">
+          <div
+            className={`shared-pay-actions${isDirty ? " is-dirty" : ""}`}
+          >
             <NeoButton
               variant="primary"
               block
@@ -761,15 +783,21 @@ export default function PlayArea({
             >
               {buttonLabel}
             </NeoButton>
-            <NeoButton variant="secondary" onClick={clearDraft}>
-              {copy("clear", "Clear")}
-            </NeoButton>
+            {isDirty && (
+              <NeoButton variant="secondary" onClick={clearDraft}>
+                {copy("clear", "Clear")}
+              </NeoButton>
+            )}
           </div>
 
           <details className="shared-pay-review" open={canSubmit}>
             <summary>
               <span>{copy("transactionPreview", "Transaction preview")}</span>
-              <strong>{totalLabel}</strong>
+              <strong
+                className={canSubmit ? undefined : "shared-pay-review__pending"}
+              >
+                {summaryLabel}
+              </strong>
             </summary>
             <div className="shared-pay-summary">
               <div>
@@ -788,7 +816,23 @@ export default function PlayArea({
                 <span>{copy("intervalLabel", "Interval")}</span>
                 <strong>{scheduleLabel}</strong>
               </div>
+              <div>
+                <span>{copy("network", "Network")}</span>
+                <strong>{networkLabel}</strong>
+              </div>
+              <div>
+                <span>{copy("networkFee", "Network fee")}</span>
+                <strong className="shared-pay-summary__muted">
+                  {copy("networkFeeValue", "Estimated in GAS at signing")}
+                </strong>
+              </div>
             </div>
+            <p className="shared-pay-review__hint">
+              {copy(
+                "transactionPreviewHint",
+                "Funds lock in the stream immediately. The wallet shows the exact GAS network fee before you sign.",
+              )}
+            </p>
             {rateRoundsToZero && (
               <p className="shared-pay-review__warning" role="alert">
                 {copy(
@@ -801,7 +845,7 @@ export default function PlayArea({
         </NeoCard>
       </div>
 
-      {hasStreams && (
+      {hasStreams ? (
         <div className="shared-pay-stream-grid">
           <NeoCard
             variant="default"
@@ -818,6 +862,50 @@ export default function PlayArea({
             {renderStreamList(beneficiaryStreams, "incoming")}
           </NeoCard>
         </div>
+      ) : (
+        !isLoading && (
+          <NeoCard
+            variant="default"
+            title={copy("howItWorksTitle", "How streaming payments work")}
+            className="shared-pay-card shared-pay-howto"
+          >
+            <ol className="shared-pay-howto__steps">
+              <li>
+                <span className="shared-pay-howto__num">1</span>
+                <span className="shared-pay-howto__copy">
+                  {copy(
+                    "howStep1",
+                    "Set the recipient, amount, and duration above. GAS and NEO are supported.",
+                  )}
+                </span>
+              </li>
+              <li>
+                <span className="shared-pay-howto__num">2</span>
+                <span className="shared-pay-howto__copy">
+                  {copy(
+                    "howStep2",
+                    "Funds lock in the stream on creation and release on a fixed daily schedule.",
+                  )}
+                </span>
+              </li>
+              <li>
+                <span className="shared-pay-howto__num">3</span>
+                <span className="shared-pay-howto__copy">
+                  {copy(
+                    "howStep3",
+                    "The recipient claims released funds anytime; you can cancel to reclaim what is unreleased.",
+                  )}
+                </span>
+              </li>
+            </ol>
+            <p className="shared-pay-howto__foot">
+              {copy(
+                "howFootnote",
+                "Your created and incoming streams will appear here once the first one is on-chain.",
+              )}
+            </p>
+          </NeoCard>
+        )
       )}
     </div>
   );

@@ -77,6 +77,17 @@ const appMessages = {
     en: "Oracle key unavailable on this network — sealing is paused.",
     zh: "该网络上预言机密钥不可用——封装已暂停。",
   },
+  // Actionable nudge shown when the selected lane is degraded but the other one
+  // is live, so the default-path user can switch to a working lane in one tap
+  // instead of being dead-ended on the paused network.
+  networkSwitchCta: {
+    en: "Switch to {network} (live)",
+    zh: "切换到{network}（可用）",
+  },
+  networkSwitchAria: {
+    en: "Switch to the live {network} lane",
+    zh: "切换到可用的{network}网络",
+  },
 
   // Hero
   heroEyebrow: { en: "Neo N3 private payments", zh: "Neo N3 隐私支付" },
@@ -94,7 +105,19 @@ const appMessages = {
   formRecipientPlaceholder: { en: "N...", zh: "N..." },
   formAmountLabel: { en: "Amount", zh: "金额" },
   formMemoLabel: { en: "Private memo", zh: "隐私备注" },
+  formMemoOptional: { en: "Optional", zh: "选填" },
   presetsLabel: { en: "Amount presets", zh: "金额预设" },
+  // Persistent precision helper under the Amount field — states the per-asset
+  // settlement rule up front rather than only after an invalid value triggers
+  // the error. Values are informational; they do not change validation.
+  amountHintGas: {
+    en: "GAS settles at up to 8 decimal places.",
+    zh: "GAS 最多支持 8 位小数结算。",
+  },
+  amountHintNeo: {
+    en: "NEO is indivisible — whole numbers only.",
+    zh: "NEO 不可分割——仅支持整数。",
+  },
 
   // Field validation
   errorInvalidAddress: { en: "Enter a valid Neo N3 address.", zh: "请输入有效的 Neo N3 地址。" },
@@ -119,6 +142,33 @@ const appMessages = {
     en: "No funds were moved — this seals an encrypted intent for Morpheus confidential compute, not a payment.",
     zh: "未转移任何资金 — 本步骤为 Morpheus 隐私计算封装加密意图，并非一笔支付。",
   },
+
+  // Pre-seal confirm summary — echoes the exact values being encrypted so the
+  // user verifies recipient, amount + asset, and network before the seal.
+  summaryTitle: { en: "You are about to seal", zh: "即将封装" },
+  summaryRecipient: { en: "Recipient", zh: "收款方" },
+  summaryAmount: { en: "Amount", zh: "金额" },
+  summaryNetwork: { en: "Network", zh: "网络" },
+  summaryEncryption: { en: "Encryption", zh: "加密方式" },
+  summaryPending: {
+    en: "Fill in a valid recipient and amount to preview the sealed intent.",
+    zh: "填写有效的收款方与金额，即可预览将封装的意图。",
+  },
+  summaryAmountValue: { en: "{amount} {asset}", zh: "{amount} {asset}" },
+
+  // Idle right-rail explainer (shown before the first seal) — replaces the
+  // empty rail with a short marketing/how-it-works panel and the seal CTA hint.
+  introTitle: { en: "Encrypted before it leaves your browser", zh: "在离开浏览器前完成加密" },
+  introBody: {
+    en: "Your recipient, amount, and memo are sealed locally with end-to-end encryption. Only ciphertext leaves this page — no funds move.",
+    zh: "您的收款方、金额与备注在本地完成端到端加密封装。仅密文会离开此页面——不会转移任何资金。",
+  },
+  introPointLocal: { en: "Sealed locally", zh: "本地封装" },
+  introPointLocalDesc: { en: "Private fields encrypted in your browser.", zh: "隐私字段在浏览器中加密。" },
+  introPointTee: { en: "TEE verified", zh: "TEE 校验" },
+  introPointTeeDesc: { en: "Only Morpheus confidential compute can decrypt.", zh: "仅 Morpheus 隐私计算可解密。" },
+  introPointNoFunds: { en: "No funds moved", zh: "不转移资金" },
+  introPointNoFundsDesc: { en: "This seals an intent, never a payment.", zh: "本步骤封装意图，而非支付。" },
 
   // Submit status
   statusInitial: { en: "Ready to seal private transfer details locally.", zh: "可在本地封装隐私转账细节。" },

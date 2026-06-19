@@ -386,14 +386,19 @@ export default function PlayArea({
           </p>
         </div>
         <div className="bridge-route-card" aria-label={t("routeAria")}>
-          <div className="route-node">
-            <span>Neo N3</span>
-            <small>{t("routeN3Wallet")}</small>
-          </div>
-          <ArrowLeftRight size={22} aria-hidden="true" />
-          <div className="route-node">
-            <span>{t("neoX")}</span>
-            <small>{t("routeNeoXWallet")}</small>
+          <span className="bridge-route-card__title">{t("routeCardTitle")}</span>
+          <div className="bridge-route-card__flow">
+            <div className="route-node">
+              <span className="route-node__role">{t("routeSendLabel")}</span>
+              <span className="route-node__chain">Neo N3</span>
+              <small>{t("routeN3Wallet")}</small>
+            </div>
+            <ArrowLeftRight size={20} aria-label={t("routeArrowAria")} />
+            <div className="route-node">
+              <span className="route-node__role">{t("routeReceiveLabel")}</span>
+              <span className="route-node__chain">{t("neoX")}</span>
+              <small>{t("routeNeoXWallet")}</small>
+            </div>
           </div>
         </div>
       </section>
@@ -464,15 +469,23 @@ export default function PlayArea({
                 ))}
               </select>
             </label>
-            <NeoInput
-              type="number"
-              label={t("amount")}
-              placeholder="0.1"
-              suffix="GAS"
-              value={assetAmount}
-              error={assetAmountInvalid ? t("errAmountPositive") : ""}
-              onChange={setAssetAmount}
-            />
+            <div className="bridge-amount-field">
+              <NeoInput
+                type="number"
+                label={t("amount")}
+                placeholder="0.1"
+                suffix="GAS"
+                value={assetAmount}
+                error={assetAmountInvalid ? t("errAmountPositive") : ""}
+                onChange={setAssetAmount}
+              />
+              <p className="bridge-asset-note">
+                <span className="bridge-asset-chip" aria-hidden="true">
+                  {t("assetFixedChip")}
+                </span>
+                {t("assetFixedNote")}
+              </p>
+            </div>
             <div className="bridge-amount-presets" aria-label={t("amountPresetsAria")}>
               {GAS_PRESETS.map((preset) => (
                 <button
@@ -506,6 +519,7 @@ export default function PlayArea({
                 [t("previewRecipient"), assetRecipient || EM_DASH],
               ]}
             />
+            <BridgeCostsPanel t={t} />
             <NeoButton
               variant="primary"
               size="lg"
@@ -515,6 +529,11 @@ export default function PlayArea({
             >
               {t("btnPrepareAsset")}
             </NeoButton>
+            {!canPrepareAsset && (
+              <p className="bridge-gate-hint" role="note">
+                {t("hintAssetGate")}
+              </p>
+            )}
           </div>
         )}
 
@@ -589,6 +608,11 @@ export default function PlayArea({
             >
               {t("btnPrepareMessage")}
             </NeoButton>
+            {!canPrepareMessage && (
+              <p className="bridge-gate-hint" role="note">
+                {t("hintMessageGate")}
+              </p>
+            )}
           </div>
         )}
 
@@ -650,6 +674,11 @@ export default function PlayArea({
             >
               {t("btnRefreshTracking")}
             </NeoButton>
+            {!canTrack && (
+              <p className="bridge-gate-hint" role="note">
+                {t("hintTrackGate")}
+              </p>
+            )}
           </div>
         )}
 
@@ -768,6 +797,29 @@ export default function PlayArea({
 
 function bridgeRouteLabel(t: PlayAreaProps["t"], direction: DirectionValue) {
   return direction === "neox-to-n3" ? t("routeNeoXToN3") : t("routeN3ToNeoX");
+}
+
+function BridgeCostsPanel({ t }: { t: PlayAreaProps["t"] }) {
+  return (
+    <div className="bridge-costs" role="note">
+      <span className="bridge-costs__title">{t("costsTitle")}</span>
+      <dl className="bridge-costs__rows">
+        <div>
+          <dt>{t("costsBridgeFee")}</dt>
+          <dd>{t("costsBridgeFeeValue")}</dd>
+        </div>
+        <div>
+          <dt>{t("costsGas")}</dt>
+          <dd>{t("costsGasValue")}</dd>
+        </div>
+        <div>
+          <dt>{t("costsEta")}</dt>
+          <dd>{t("costsEtaValue")}</dd>
+        </div>
+      </dl>
+      <small className="bridge-costs__footnote">{t("costsFootnote")}</small>
+    </div>
+  );
 }
 
 function BridgeActionPreview({

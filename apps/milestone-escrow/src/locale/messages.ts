@@ -45,11 +45,33 @@ const appMessages = {
   cancelSuccess: { en: "Escrow cancelled — remaining funds refunded", zh: "托管已取消——剩余资金已退回" },
 
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
-  deploymentPendingTitle: { en: "Contract deployment pending", zh: "合约待部署" },
+  deploymentPendingTitle: { en: "Not available on this network", zh: "此网络暂不可用" },
   deploymentPendingDesc: {
-    en: "The selected network is missing a configured Milestone Escrow contract address. Switch network or verify deployment configuration before creating or releasing escrows.",
-    zh: "当前网络缺少里程碑托管合约地址。请切换网络或确认部署配置后再创建或释放托管。",
+    en: "Milestone escrow isn't live on this network yet. Switch to a supported Neo N3 network to create or release staged payments.",
+    zh: "里程碑托管尚未在此网络上线。请切换到受支持的 Neo N3 网络后再创建或释放分期付款。",
   },
+
+  // --- Explanatory empty / disconnected state (marketing + how-it-works) ---
+  // Shown before a wallet is connected (or when the contract is unconfigured)
+  // so a first-time visitor understands the staged-release model and has a
+  // clear next step instead of an inert "deployment pending" card.
+  introHeadline: {
+    en: "Pay in stages, release on approval",
+    zh: "分期托管，验收后释放",
+  },
+  introLede: {
+    en: "Lock NEO or GAS once, split it into up to 12 milestones, and release each tranche only after you approve the work. Unapproved funds stay locked and refundable.",
+    zh: "一次性锁定 NEO 或 GAS，拆分为最多 12 个里程碑，验收通过后逐项释放。未批准的资金保持锁定且可退款。",
+  },
+  howItWorks: { en: "How it works", zh: "运作方式" },
+  stepLabel: { en: "Step {n}", zh: "第 {n} 步" },
+  previewLabel: { en: "Sample escrow", zh: "示例托管" },
+  previewNetwork: { en: "Neo N3 - Milestone Escrow", zh: "Neo N3 · 里程碑托管" },
+  connectToStart: { en: "Connect a wallet to create your first escrow", zh: "连接钱包以创建你的第一个托管" },
+  // Hero stat sublabels — clarify exactly what each tile counts.
+  statHintEscrows: { en: "Total you are party to", zh: "你参与的总数" },
+  statHintActive: { en: "Funds still locked", zh: "仍处于锁定" },
+  statHintCompleted: { en: "Fully released", zh: "已全部释放" },
 
   invalidAddress: { en: "Invalid beneficiary address", zh: "受益人地址无效" },
   invalidAmount: { en: "Enter a valid amount", zh: "请输入有效金额" },
