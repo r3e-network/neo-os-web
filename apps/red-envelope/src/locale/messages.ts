@@ -101,7 +101,9 @@ const appMessages = {
   remaining: { en: "{remaining}/{total} left", zh: "剩余 {remaining}/{total}" },
   envelopeSent: { en: "Envelope sent!", zh: "红包已发送！" },
   openedFrom: { en: "Opened from {sender}!", zh: "已打开来自 {sender} 的红包！" },
-  congratulations: { en: "Congratulations", zh: "恭喜发财" },
+  congratulations: { en: "Lucky you!", zh: "恭喜发财" },
+  luckyReceivedLabel: { en: "You opened a packet worth", zh: "你拆到一个红包" },
+  luckyReceivedClose: { en: "Tap to keep the luck", zh: "收下好运" },
   envelopePending: { en: "Envelope pending on-chain", zh: "红包创建确认中" },
   openPending: { en: "Open pending", zh: "打开确认中" },
   envelopeNotReady: { en: "Envelope not ready yet", zh: "红包尚未准备好" },
@@ -194,7 +196,11 @@ const appMessages = {
   claiming: { en: "Claiming...", zh: "领取中..." },
   claimSuccess: { en: "Claim submitted", zh: "领取已提交" },
   availablePools: { en: "Open envelopes", zh: "可领取的红包" },
-  noPools: { en: "No active envelopes", zh: "暂无可领取红包" },
+  noPools: { en: "No envelopes to open yet", zh: "暂时还没有可开的红包" },
+  noPoolsHint: {
+    en: "Create one to send a little GAS luck, or paste an ID from a friend's link.",
+    zh: "创建一个把好运 GAS 送出去，或粘贴好友链接里的红包 ID。",
+  },
   claimedCount: { en: "{claimed}/{total} claimed", zh: "已领取 {claimed}/{total}" },
   poolCreator: { en: "Created by", zh: "创建者" },
 

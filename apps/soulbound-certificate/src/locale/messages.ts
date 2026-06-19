@@ -11,6 +11,15 @@ const appMessages = {
   walletConnected: { en: "Wallet connected", zh: "钱包已连接" },
   issuerWorkspaceTitle: { en: "Issuer workspace", zh: "发行方工作台" },
 
+  // Live + verified credential artifact (the framed keepsake card)
+  certificatePreviewLabel: { en: "Live preview", zh: "实时预览" },
+  awardedTo: { en: "Awarded to", zh: "授予" },
+  awardedToPlaceholder: { en: "Recipient's name", zh: "受证人姓名" },
+  forAchievement: { en: "For", zh: "成就" },
+  achievementPreviewPlaceholder: { en: "Their achievement", zh: "TA 的成就" },
+  certificateTitlePlaceholder: { en: "Certificate of Achievement", zh: "成就证书" },
+  issuerPreviewPlaceholder: { en: "Issuing organization", zh: "发行机构" },
+
   templateName: { en: "Certificate name", zh: "证书名称" },
   templateNamePlaceholder: { en: "Neo Course Completion", zh: "Neo 课程完成证书" },
   issuerName: { en: "Issuer name", zh: "发行方名称" },
@@ -56,8 +65,8 @@ const appMessages = {
   templateIdPlaceholder: { en: "1", zh: "1" },
   templateIdRequired: { en: "Template ID required", zh: "需要模板 ID" },
   issueHelp: {
-    en: "Mint a non-transferable NEP-11 certificate to a recipient wallet with recipient and achievement metadata.",
-    zh: "向接收钱包铸造不可转让的 NEP-11 证书，并写入受证人与成就信息。",
+    en: "Recognize someone's achievement with a permanent, non-transferable certificate that lives in their wallet forever.",
+    zh: "用一份永久、不可转让的证书来认可某人的成就，它将永远保存在 TA 的钱包中。",
   },
   copyIssueShortcut: { en: "Copy issuing shortcut", zh: "复制签发快捷方式" },
   issueLinkCopied: { en: "Issuing shortcut copied", zh: "签发快捷方式已复制" },
@@ -93,8 +102,8 @@ const appMessages = {
 
   emptyCertificates: { en: "No certificates yet", zh: "暂无证书" },
   emptyCertificatesHint: {
-    en: "Certificates issued to this wallet will appear here.",
-    zh: "签发到该钱包的证书将显示在此处。",
+    en: "Every certificate you issue will be kept here as a permanent record of someone's accomplishment.",
+    zh: "你签发的每一份证书都会作为某人成就的永久记录保存在此处。",
   },
   certificateRevoked: { en: "Revoked", zh: "已撤销" },
   certificateValid: { en: "Valid", zh: "有效" },
@@ -111,18 +120,18 @@ const appMessages = {
   lookup: { en: "Lookup", zh: "查询" },
   lookingUp: { en: "Looking up...", zh: "查询中..." },
   verifyHelp: {
-    en: "Look up a token ID to inspect its owner, achievement, and revocation status before trusting it.",
-    zh: "输入 Token ID 查看持有人、成就与撤销状态，再决定是否信任该证书。",
+    en: "Enter a token ID to see who earned the certificate, what they achieved, and whether it's still valid.",
+    zh: "输入 Token ID，即可查看证书的获得者、成就内容，以及它是否仍然有效。",
   },
   verifyFailed: { en: "Certificate lookup failed", zh: "证书查询失败" },
   revoke: { en: "Revoke", zh: "撤销" },
   revoking: { en: "Revoking...", zh: "撤销中..." },
   revokeSuccess: { en: "Certificate revoked", zh: "证书已撤销" },
   revokeFailed: { en: "Certificate revoke failed", zh: "证书撤销失败" },
-  certificateNotFound: { en: "Certificate not found", zh: "未找到证书" },
+  certificateNotFound: { en: "Nothing to show yet", zh: "暂无可显示内容" },
   certificateNotFoundHint: {
-    en: "Enter a token ID to verify the certificate details and status.",
-    zh: "输入 Token ID 即可核验证书详情与状态。",
+    en: "Enter a token ID above and we'll show you the certificate, its recipient, and whether it's valid.",
+    zh: "在上方输入 Token ID，我们将为你展示证书、获得者及其有效状态。",
   },
 
   nameRequired: { en: "Certificate name is required", zh: "证书名称必填" },
@@ -135,7 +144,10 @@ const appMessages = {
   invalidTokenId: { en: "Token ID required", zh: "需要填写 Token ID" },
   loadFailed: { en: "Failed to load certificate data", zh: "证书数据加载失败" },
 
-  docSubtitle: { en: "On-chain, non-transferable NEP-11 certificates", zh: "链上不可转让的 NEP-11 证书" },
+  docSubtitle: {
+    en: "Celebrate real achievements with certificates that belong to the recipient forever and can never be sold.",
+    zh: "用永远属于受证人、且永不可出售的证书来庆祝真实的成就。",
+  },
   docDescription: {
     en: "Soulbound Certificate lets issuers publish templates and mint non-transferable NEP-11 badges. Each certificate stores issuer, recipient name, and achievement details, and can be verified by token ID QR.",
     zh: "灵魂绑定证书支持发行方创建模板并签发不可转让的 NEP-11 徽章。证书记录发行方、受证人姓名与成就信息，可通过 Token ID 二维码核验。",

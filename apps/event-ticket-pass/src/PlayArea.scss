@@ -190,6 +190,22 @@
   align-items: start;
 }
 
+// Right column stacks "Your Events" above the Issue / Check-in desk so the
+// tall create form on the left always has a full-height neighbour instead of
+// an orphaned short card with empty space beneath it.
+.ticket-workspace__col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.ticket-panel--events {
+  // Keep the events panel comfortably tall even when empty so the two-column
+  // workspace reads as balanced rather than top-heavy.
+  min-height: 220px;
+}
+
 .ticket-tabs {
   display: flex;
   gap: 6px;
@@ -398,6 +414,117 @@
   min-height: 118px;
 }
 
+// Empty "My Passes" state: a real designed sample pass plus a friendly line so
+// the collectible nature is visible before any ticket is issued.
+.ticket-empty-state {
+  display: grid;
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 24px;
+  border: 1px dashed var(--tk-line-strong);
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface-soft);
+}
+
+.ticket-sample {
+  position: relative;
+}
+
+.ticket-sample__flag {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  z-index: 1;
+  padding: 4px 10px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--tk-accent-soft);
+  color: var(--tk-accent-strong);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.28);
+}
+
+.ticket-pass--sample {
+  background: var(--tk-surface);
+  box-shadow: var(--tk-shadow);
+
+  &:hover {
+    transform: none;
+  }
+}
+
+.ticket-pass__sample-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  strong {
+    color: var(--tk-ink);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+}
+
+.ticket-pass__sample-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--tk-line);
+
+  code {
+    flex: 1;
+    min-width: 0;
+    color: var(--tk-muted);
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+}
+
+.ticket-pass__qr-mock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--ns-radius-xs, 8px);
+  background: var(--tk-accent-soft);
+  color: var(--tk-accent-strong);
+}
+
+.ticket-empty-state__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  strong {
+    color: var(--tk-ink);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 0;
+    color: var(--tk-text);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+}
+
 .ticket-empty--line {
   min-height: 0;
   padding: 14px 16px;
@@ -445,14 +572,85 @@
   color: var(--tk-muted, #64748b);
 }
 
+.ticket-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+// A ticket reads as a keepsake: a tinted perforated stub at the top, a notch
+// where the two halves meet, and a clean white body below. One accent hue
+// (the green brand) carries the whole motif.
 .ticket-pass {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--tk-line);
+  border-radius: var(--tk-radius-sm);
+  background: var(--tk-surface);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  transition: transform var(--ns-t-fast, 150ms) ease, box-shadow var(--ns-t-fast, 150ms) ease;
+}
+
+.ticket-pass:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--tk-shadow);
+}
+
+.ticket-pass__stub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, var(--tk-accent) 0%, var(--tk-accent-strong) 100%);
+  color: #ffffff;
+
+  svg {
+    flex: none;
+    opacity: 0.95;
+  }
+
+  span {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+}
+
+// Perforation notches + dashed tear line between the stub and the body.
+.ticket-pass__body {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 16px;
-  border: 1px solid var(--tk-line);
-  border-radius: var(--tk-radius-sm);
-  background: var(--tk-surface-soft);
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    top: -7px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--tk-surface-soft);
+    box-shadow: inset 0 0 0 1px var(--tk-line);
+  }
+
+  &::before {
+    left: -7px;
+  }
+
+  &::after {
+    right: -7px;
+  }
+}
+
+.ticket-pass--used {
+  .ticket-pass__stub {
+    background: linear-gradient(135deg, #9aa3b5 0%, #7c8699 100%);
+  }
 }
 
 .ticket-pass__head {
@@ -650,9 +848,9 @@
   overflow-wrap: anywhere;
 }
 
-// Single accent: align the shared primary CTA with this app's violet anchor
-// (icon, eyebrow, hero, tabs and selected event are all violet) so the
-// workspace reads as one hue instead of clashing violet + green.
+// Single accent: the whole app commits to the green brand hue (icon, eyebrow,
+// hero, tabs, selected event, ticket-pass stub and CTA all share it) so the
+// workspace reads as one coherent colour.
 .ticket-play-area .neo-btn--primary {
   background: var(--tk-accent);
   box-shadow: 0 2px 8px rgba(22, 199, 132, 0.25);
@@ -716,6 +914,24 @@
   }
 }
 
+@media (max-width: 720px) {
+  .ticket-empty-state {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .ticket-sample {
+    max-width: 320px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .ticket-empty-state__copy {
+    text-align: center;
+  }
+}
+
 @media (max-width: 640px) {
   .ticket-play-area {
     gap: 14px;
@@ -738,7 +954,7 @@
   .ticket-form-grid,
   .ticket-event__meta,
   .ticket-lookup,
-  .ticket-pass {
+  .ticket-pass__sample-rows {
     grid-template-columns: 1fr;
   }
 

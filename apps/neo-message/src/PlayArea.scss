@@ -119,6 +119,22 @@ $accent-soft: #eef0fe;
     gap: 14px;
   }
 
+  // Address + optional nickname side by side, so a faceless 0x… can carry a
+  // human label without crowding the layout.
+  .nm-recipient-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .nm-saved-name {
+    margin: -6px 0 0;
+    font-size: 12px;
+    font-style: normal;
+    color: $accent-strong;
+  }
+
   .nm-mode-toggle {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -126,15 +142,39 @@ $accent-soft: #eef0fe;
 
     .nm-mode-option {
       display: flex;
-      flex-direction: column;
-      gap: 3px;
+      align-items: center;
+      gap: 11px;
       text-align: left;
-      padding: 12px 14px;
+      padding: 13px 14px;
       border-radius: var(--ns-radius-lg, 14px);
       border: 1.5px solid var(--ns-border, #e4e6ef);
       background: var(--ns-surface, #fff);
       cursor: pointer;
       transition: all 0.18s var(--ns-ease-smooth, ease);
+
+      .nm-mode-icon {
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
+        background: var(--ns-surface-subtle, #f6f7fb);
+        color: var(--ns-text-muted, #6b7180);
+        transition: all 0.18s var(--ns-ease-smooth, ease);
+
+        svg {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      .nm-mode-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
 
       strong {
         font-size: 14px;
@@ -142,7 +182,7 @@ $accent-soft: #eef0fe;
         color: var(--ns-ink, #1c2030);
       }
 
-      span {
+      .nm-mode-text > span {
         font-size: 12px;
         color: var(--ns-text-muted, #6b7180);
         line-height: 1.4;
@@ -165,6 +205,12 @@ $accent-soft: #eef0fe;
 
         strong {
           color: $accent-strong;
+        }
+
+        .nm-mode-icon {
+          background: var(--ns-surface, #fff);
+          color: $accent-strong;
+          box-shadow: 0 1px 4px rgba(91, 110, 245, 0.22);
         }
       }
     }
@@ -247,6 +293,24 @@ $accent-soft: #eef0fe;
     font-style: italic;
   }
 
+  // ── identicon ──────────────────────────────────────────────────────────────
+  // A small coloured monogram derived from an address — a glanceable face for an
+  // otherwise faceless 0x… correspondent.
+  .nm-identicon {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    font-family: $font-family-mono, monospace;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 1px 3px rgba(20, 24, 40, 0.18);
+  }
+
   // ── inbox / outbox ─────────────────────────────────────────────────────────
   .nm-inbox-head {
     display: flex;
@@ -256,10 +320,26 @@ $accent-soft: #eef0fe;
     margin-bottom: 12px;
 
     .nm-account {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
       font-size: 13px;
       font-weight: 600;
       color: var(--ns-text-muted, #6b7180);
-      font-family: $font-family-mono, monospace;
+
+      .nm-identicon {
+        width: 28px;
+        height: 28px;
+        border-radius: 9px;
+        font-size: 11px;
+      }
+
+      .nm-account-addr {
+        font-family: $font-family-mono, monospace;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   }
 
@@ -306,11 +386,35 @@ $accent-soft: #eef0fe;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
 
-      .nm-id {
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--ns-text-muted, #6b7180);
+      .nm-party {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+
+        .nm-party-text {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          min-width: 0;
+        }
+
+        .nm-party-name {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--ns-ink, #1c2030);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .nm-party-addr {
+          font-size: 11px;
+          color: var(--ns-text-muted, #6b7180);
+          font-family: $font-family-mono, monospace;
+        }
       }
     }
 
@@ -370,6 +474,10 @@ $accent-soft: #eef0fe;
   }
 
   @media (max-width: 560px) {
+    .nm-recipient-row {
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
     .nm-mode-toggle {
       grid-template-columns: 1fr;
     }

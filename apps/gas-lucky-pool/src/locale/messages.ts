@@ -17,8 +17,8 @@ const appMessagesBase = {
   gasCredit: { en: "Recoverable GAS", zh: "可回收 GAS" },
   createPoolTitle: { en: "Create reward pool", zh: "创建奖励池" },
   createPoolDescription: {
-    en: "Campaign owners configure 1-50 GAS rewards and single-use claim keys in the backend, then distribute OneGate QR codes.",
-    zh: "活动发起者在后端配置 1-50 GAS 奖励和一次性领取 key，然后分发 OneGate 二维码。",
+    en: "Pick how generous each reward is and how many friends can win. Single-use claim keys are issued by your backend, then shared as OneGate QR codes.",
+    zh: "设定每份奖励的大小，以及有多少好友能中奖。一次性领取 key 由你的后端生成，再以 OneGate 二维码分享。",
   },
   claimPoolTitle: { en: "Claim with OneGate", zh: "用 OneGate 领取" },
   claimPoolDescription: {
@@ -28,10 +28,26 @@ const appMessagesBase = {
   poolId: { en: "Legacy Pool ID", zh: "旧版奖池 ID" },
   claimKey: { en: "Claim key", zh: "领取 key" },
   totalAmount: { en: "Total GAS", zh: "总 GAS" },
+  totalAmountHint: {
+    en: "How much GAS to put in the pool",
+    zh: "放入奖池的 GAS 总量",
+  },
   minClaim: { en: "Minimum claim", zh: "最小领取" },
   maxClaim: { en: "Maximum claim", zh: "最大领取" },
+  claimRangeHint: {
+    en: "Smallest and largest random reward (GAS)",
+    zh: "每份随机奖励的最小与最大额度（GAS）",
+  },
   maxClaims: { en: "Claim slots", zh: "领取名额" },
+  maxClaimsHint: {
+    en: "How many friends can win",
+    zh: "有多少好友能中奖",
+  },
   expiryHours: { en: "Expiry hours", zh: "过期小时" },
+  expiryHoursHint: {
+    en: "When the offer closes",
+    zh: "奖励活动何时结束",
+  },
   createPool: { en: "Create pool", zh: "创建奖池" },
   creatingPool: { en: "Creating pool", zh: "创建奖池中" },
   ownerWorkspaceTitle: { en: "Reward pool workspace", zh: "奖励池工作台" },
@@ -42,6 +58,66 @@ const appMessagesBase = {
   workspaceRoleCopy: {
     en: "Fund a random-GAS reward pool here, then share OneGate QR claim links. Recipients who open a claim QR see only the claim screen.",
     zh: "在此为随机 GAS 奖励池注资，然后分享 OneGate 扫码领取链接。通过领取二维码打开的领取人只会看到领取页面。",
+  },
+  workspaceHeroEyebrow: {
+    en: "Send a little luck",
+    zh: "送出一点好运",
+  },
+  workspaceHeroTitle: {
+    en: "Gift a lucky GAS reward",
+    zh: "送出幸运 GAS 红包",
+  },
+  workspaceHeroSubtitle: {
+    en: "Set up a surprise GAS pool, then share a OneGate scan link. Each friend taps once and unwraps a random reward.",
+    zh: "创建一个惊喜 GAS 奖池，再分享 OneGate 扫码链接。每位好友点一下，就能拆开一份随机奖励。",
+  },
+  pathChooserTitle: {
+    en: "What would you like to do?",
+    zh: "你想做什么？",
+  },
+  pathGiveTitle: {
+    en: "Give a lucky reward",
+    zh: "送出幸运奖励",
+  },
+  pathGiveBody: {
+    en: "Fund a pool below and share the scan link with the people you want to surprise.",
+    zh: "在下方注资一个奖池，再把扫码链接分享给你想惊喜的人。",
+  },
+  pathClaimTitle: {
+    en: "I have a claim link",
+    zh: "我收到了领取链接",
+  },
+  pathClaimBody: {
+    en: "Open the OneGate QR or link a friend sent you and your reward unwraps right here.",
+    zh: "打开好友发来的 OneGate 二维码或链接，奖励会在这里直接拆开。",
+  },
+  samplePreviewTitle: {
+    en: "What your friends will see",
+    zh: "好友会看到的画面",
+  },
+  samplePreviewBadge: {
+    en: "Sample",
+    zh: "示例",
+  },
+  sampleCongratsTitle: {
+    en: "You unwrapped a reward!",
+    zh: "你拆开了一份奖励！",
+  },
+  sampleCongratsBody: {
+    en: "A friend sent you a surprise GAS reward through OneGate Vault.",
+    zh: "好友通过 OneGate 金库给你送来了一份惊喜 GAS 奖励。",
+  },
+  sampleRewardLabel: {
+    en: "Your reward",
+    zh: "你的奖励",
+  },
+  sampleLuckLabel: {
+    en: "Luckier than most",
+    zh: "运气超群",
+  },
+  manageExistingTitle: {
+    en: "Manage a pool you created",
+    zh: "管理你创建的奖池",
   },
   distributionPathsTitle: {
     en: "Two ways to distribute",
@@ -264,23 +340,46 @@ const jaMessages = {
   gasCredit: "回収可能なGAS",
   createPoolTitle: "報酬プールを作成",
   createPoolDescription:
-    "キャンペーン管理者はバックエンドで1〜50 GASの報酬と一回限りのclaim keyを設定し、OneGate QRコードとして配布します。",
+    "各報酬の大きさと、当選できる友だちの人数を決めましょう。一回限りのclaim keyはバックエンドで発行し、OneGate QRコードとして共有します。",
   claimPoolTitle: "OneGateで受け取る",
   claimPoolDescription:
     "QRリンクをスキャンまたは開くと、dAppがclaim keyとウォレットアドレスを報酬サーバーへ送信し、GAS送金トランザクションを追跡します。",
   poolId: "旧プールID",
   claimKey: "Claim key",
   totalAmount: "合計GAS",
+  totalAmountHint: "プールに入れるGASの量",
   minClaim: "最小受取額",
   maxClaim: "最大受取額",
+  claimRangeHint: "ランダム報酬の最小・最大額（GAS）",
   maxClaims: "受取枠",
+  maxClaimsHint: "当選できる友だちの人数",
   expiryHours: "有効期限（時間）",
+  expiryHoursHint: "報酬の受付が終了するまで",
   createPool: "プールを作成",
   creatingPool: "プールを作成中",
   ownerWorkspaceTitle: "報酬プールのワークスペース",
   workspaceRoleTitle: "キャンペーン管理者の方へ",
   workspaceRoleCopy:
     "ここでランダムGAS報酬プールに資金を入れ、OneGate QRの受取リンクを共有します。受取QRから開いた受取人には受取画面のみが表示されます。",
+  workspaceHeroEyebrow: "ちょっとした幸運を贈ろう",
+  workspaceHeroTitle: "幸運のGAS報酬を贈る",
+  workspaceHeroSubtitle:
+    "サプライズのGASプールを用意して、OneGateのスキャンリンクを共有しましょう。友だちは一度タップするだけでランダムな報酬を開けます。",
+  pathChooserTitle: "何をしますか？",
+  pathGiveTitle: "幸運の報酬を贈る",
+  pathGiveBody:
+    "下でプールに資金を入れ、驚かせたい相手にスキャンリンクを共有しましょう。",
+  pathClaimTitle: "受取リンクを持っています",
+  pathClaimBody:
+    "友だちから届いたOneGateのQRやリンクを開くと、ここで報酬が開きます。",
+  samplePreviewTitle: "友だちに表示される画面",
+  samplePreviewBadge: "サンプル",
+  sampleCongratsTitle: "報酬を開けました！",
+  sampleCongratsBody:
+    "友だちがOneGate VaultからサプライズのGAS報酬を贈ってくれました。",
+  sampleRewardLabel: "あなたの報酬",
+  sampleLuckLabel: "かなりの幸運",
+  manageExistingTitle: "作成したプールを管理",
   distributionPathsTitle: "2つの配布方法",
   pathOnChain:
     "オンチェーンプール — 受取人はここで資金提供したプールに対して claimRangeGasPool を呼び出します。",

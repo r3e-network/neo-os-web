@@ -272,6 +272,25 @@
   gap: 12px;
 }
 
+/* Per-developer monogram: a warm identity so each row reads as a person, not a
+   data line. Hue is set inline per name but kept in one green-family arc so the
+   single-accent rule holds. */
+.dev-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ns-radius-full, 9999px);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  color: hsl(var(--dev-avatar-hue, 150), 55%, 32%);
+  background: hsl(var(--dev-avatar-hue, 150), 60%, 93%);
+  box-shadow: inset 0 0 0 1px hsl(var(--dev-avatar-hue, 150), 45%, 84%);
+}
+
 .dev-info {
   display: flex;
   flex-direction: column;
@@ -334,8 +353,8 @@
 
 .dev-select-item-glass {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   padding: 12px 16px;
   text-align: left;
@@ -362,6 +381,28 @@
   }
 }
 
+.dev-select-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ns-radius-full, 9999px);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--tip-accent-strong);
+  background: var(--tip-accent-soft);
+}
+
+.dev-select-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .dev-select-name-glass {
   font-size: 14px;
   font-weight: 700;
@@ -370,6 +411,21 @@
 
 .dev-select-role-glass {
   font-size: 12px;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+/* Manual developer-id fallback: pair the field with a friendly helper line so a
+   bare numeric field doesn't read as cold or unexplained. */
+.dev-id-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dev-id-help {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
   color: var(--ns-text-muted, #8a92a6);
 }
 
@@ -717,6 +773,17 @@
   background: var(--ns-surface-subtle, #eef0f4);
   border-color: rgba(20, 22, 38, 0.1);
   color: var(--ns-text-2, #5b6478);
+  box-shadow: none;
+  opacity: 1;
+}
+
+/* Empty-state Send Tip: an inviting "fill this in to tip" affordance rather than
+   a dead grey pill. A dashed accent outline on a soft accent fill reads as a
+   next-step target while staying clearly not-yet-active (no solid CTA glow). */
+.dev-tipping-play-area .neo-btn--primary.neo-btn--idle:disabled {
+  background: var(--tip-accent-soft);
+  border: 1px dashed var(--tip-accent);
+  color: var(--tip-accent-strong);
   box-shadow: none;
   opacity: 1;
 }
