@@ -211,10 +211,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <strong>{`#${currentEpoch}`}</strong>
           </div>
           <p>{t("settleCopy")}</p>
-          <div className="gov-merc-signal-row">
-            <span>{t("currentTopBid")}</span>
-            <strong>{`${highestBid.toFixed(2)} ${t("tokenGas")}`}</strong>
-          </div>
+          {/* "Current top bid" is shown once, in the hero scoreboard; the settle
+              card leads with the bidding-window state + last settlement instead. */}
           <div
             className={`gov-merc-settle-window${biddingClosed ? " is-closed" : ""}`}
             aria-live="polite"

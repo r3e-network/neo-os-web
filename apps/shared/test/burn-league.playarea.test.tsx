@@ -115,8 +115,10 @@ describe("Burn League PlayArea", () => {
     );
 
     expect(screen.getAllByRole("status")[0]).toBeTruthy();
+    // The service notice was slimmed to a one-line title (the long body
+    // sentence was dropped in the polish pass); assert the retained title.
     expect(
-      screen.getByText(/Live burn stats could not be read from the chain/),
+      screen.getByText(/Burn league data unavailable/),
     ).toBeTruthy();
     expect(screen.queryByText(/OS service error|os-game-status|Not Found/i)).toBeNull();
     expect(screen.getByText("Entry amount")).toBeTruthy();

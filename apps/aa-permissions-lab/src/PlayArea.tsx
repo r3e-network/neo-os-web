@@ -178,19 +178,19 @@ export default function PlayArea({
               <div className="permissions-action-grid">
                 <NeoButton
                   variant="primary"
+                  aria-label={t("connectWallet")}
+                  onClick={() => dispatch("connect")}
+                >
+                  {t("connectWallet")}
+                </NeoButton>
+                <NeoButton
+                  variant="secondary"
                   loading={isRefreshing}
                   disabled={!canRefresh}
                   aria-label={t("inspect")}
                   onClick={() => dispatch("refresh", accountIdHash)}
                 >
                   {t("inspect")}
-                </NeoButton>
-                <NeoButton
-                  variant="secondary"
-                  aria-label={t("connectWallet")}
-                  onClick={() => dispatch("connect")}
-                >
-                  {t("connectWallet")}
                 </NeoButton>
               </div>
               {!canRefresh ? (
@@ -294,7 +294,7 @@ export default function PlayArea({
               </NeoButton>
               <p className="permissions-caption">{t("proposeVerifierHint")}</p>
               {!canUpdateVerifier && !isVerifierBusy && !notBackupOwner ? (
-                <p className="permissions-caption permissions-caption--warn">
+                <p className="permissions-caption permissions-caption--helper">
                   {t("verifierUpdateBlocked")}
                 </p>
               ) : null}
@@ -359,7 +359,7 @@ export default function PlayArea({
               </NeoButton>
               <p className="permissions-caption">{t("proposeHookHint")}</p>
               {!canUpdateHook && !isHookBusy && !notBackupOwner ? (
-                <p className="permissions-caption permissions-caption--warn">
+                <p className="permissions-caption permissions-caption--helper">
                   {t("hookUpdateBlocked")}
                 </p>
               ) : null}

@@ -67,6 +67,8 @@ const appMessages = {
     en: "Connect your wallet to register as a developer.",
     zh: "连接钱包以注册为开发者。",
   },
+  connecting: { en: "Connecting...", zh: "连接中..." },
+  connectFailed: { en: "Connect failed", zh: "连接失败" },
   devNameLabel: { en: "Display Name", zh: "显示名称" },
   devNamePlaceholder: { en: "e.g. Neo Core", zh: "例如：Neo Core" },
   devRoleLabel: { en: "Role (optional)", zh: "角色（可选）" },
