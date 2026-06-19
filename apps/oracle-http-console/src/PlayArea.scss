@@ -53,14 +53,14 @@
   gap: 20px;
 }
 
-/* --- Inputs: Neo Soft radius + brand-tinted focus ring --- */
-.console-tool__field select {
+/* --- Choice cards: Neo Soft radius + brand-tinted focus ring --- */
+.console-tool__choice-button {
   border-radius: var(--ns-radius-md);
   transition: border-color var(--ns-t-fast) var(--ns-ease-smooth),
     box-shadow var(--ns-t-fast) var(--ns-ease-smooth);
 }
 
-.console-tool__field select:focus-visible {
+.console-tool__choice-button:focus-visible {
   outline: none;
   border-color: var(--ns-brand-strong);
   box-shadow: var(--ns-focus-ring);

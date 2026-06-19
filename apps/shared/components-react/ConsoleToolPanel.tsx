@@ -1,6 +1,16 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useId, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { Copy, FileSearch, Info, Play, RotateCcw, Send, ShieldCheck } from "lucide-react";
+import {
+  Check,
+  Copy,
+  FileSearch,
+  Info,
+  Play,
+  RotateCcw,
+  Send,
+  ShieldCheck,
+  SlidersHorizontal,
+} from "lucide-react";
 import { MiniAppManifestContext } from "../react/context";
 import type { ObservableState } from "../react/context";
 import type { PlatformServices } from "../services";
@@ -167,6 +177,7 @@ export function ConsoleToolPanel({
   const [values, setValues] = useState(() =>
     initialValues(config.fields, launchContext?.params),
   );
+  const panelId = useId();
   const [result, setResult] = useState<ConsoleResult | null>(null);
   const [executing, setExecuting] = useState(false);
   // Capture the app-provided initial status/digest once, so Reset restores the
@@ -185,6 +196,8 @@ export function ConsoleToolPanel({
   const networkLabel = readObservable(state, "networkLabel", t("notAvailable"));
   const endpointLabel = readObservable(state, "endpointLabel", t("notAvailable"));
   const requestCount = readObservable(state, "requestCount", "0");
+  const choiceFields = config.fields.filter((field) => field.type === "select");
+  const inputFields = config.fields.filter((field) => field.type !== "select");
 
   function updateValue(key: string, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -284,36 +297,105 @@ export function ConsoleToolPanel({
 
       <section className="console-tool__workspace">
         <div className="console-tool__form" aria-label={t(config.titleKey)}>
-          {config.fields.map((field) => {
-            if (field.type === "select") {
-              return (
-                <label className="console-tool__field" key={field.key}>
-                  <span>{t(field.labelKey)}</span>
-                  <select
-                    value={values[field.key] ?? ""}
-                    onChange={(event) => updateValue(field.key, event.target.value)}
-                  >
-                    {(field.options ?? []).map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.labelKey ? t(option.labelKey) : option.label ?? option.value}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              );
-            }
+          <div className="console-tool__form-head">
+            <span className="console-tool__form-icon" aria-hidden="true">
+              <SlidersHorizontal size={18} />
+            </span>
+            <div className="console-tool__form-copy">
+              <span>{t("consoleConfigureEyebrow")}</span>
+              <strong>{t("consoleConfigureTitle")}</strong>
+            </div>
+          </div>
 
-            return (
-              <NeoInput
-                key={field.key}
-                type={field.type === "number" ? "number" : field.type === "textarea" ? "textarea" : "text"}
-                label={t(field.labelKey)}
-                value={values[field.key] ?? ""}
-                placeholder={field.placeholderKey ? t(field.placeholderKey) : ""}
-                onChange={(value) => updateValue(field.key, value)}
-              />
-            );
-          })}
+          {choiceFields.length > 0 && (
+            <div className="console-tool__choice-stack">
+              {choiceFields.map((field) => {
+                const fieldLabel = t(field.labelKey);
+                const fieldHeadingId = `${panelId}-${field.key}-choice`;
+                const selectedOption = (field.options ?? []).find(
+                  (option) => option.value === values[field.key],
+                );
+                const selectedLabel = selectedOption
+                  ? optionLabel(selectedOption, t)
+                  : values[field.key] || t("notAvailable");
+
+                return (
+                  <section
+                    className="console-tool__choice-group"
+                    key={field.key}
+                    aria-labelledby={fieldHeadingId}
+                  >
+                    <div className="console-tool__choice-head">
+                      <span id={fieldHeadingId}>{fieldLabel}</span>
+                      <strong>{selectedLabel}</strong>
+                    </div>
+                    <div
+                      className="console-tool__choice-options"
+                      role="radiogroup"
+                      aria-label={fieldLabel}
+                    >
+                      {(field.options ?? []).map((option) => {
+                        const label = optionLabel(option, t);
+                        const selected = values[field.key] === option.value;
+                        const showValue = option.value !== label;
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            aria-label={`${fieldLabel}: ${label}`}
+                            className={`console-tool__choice-button${
+                              selected ? " console-tool__choice-button--active" : ""
+                            }`}
+                            onClick={() => updateValue(field.key, option.value)}
+                          >
+                            <span className="console-tool__choice-copy">
+                              <strong>{label}</strong>
+                              {showValue && <small>{option.value}</small>}
+                            </span>
+                            {selected && (
+                              <span className="console-tool__choice-check" aria-hidden="true">
+                                <Check size={14} />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          )}
+
+          {inputFields.length > 0 && (
+            <div className="console-tool__input-grid">
+              {inputFields.map((field) => (
+                <div
+                  key={field.key}
+                  className={`console-tool__input-cell${
+                    isWideConsoleField(field) ? " console-tool__input-cell--wide" : ""
+                  }`}
+                >
+                  <NeoInput
+                    type={
+                      field.type === "number"
+                        ? "number"
+                        : field.type === "textarea"
+                          ? "textarea"
+                          : "text"
+                    }
+                    label={t(field.labelKey)}
+                    value={values[field.key] ?? ""}
+                    placeholder={field.placeholderKey ? t(field.placeholderKey) : ""}
+                    onChange={(value) => updateValue(field.key, value)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="console-tool__actions">
             <NeoButton variant="primary" size="lg" onClick={runPreview}>
@@ -379,4 +461,27 @@ export function ConsoleToolPanel({
       </section>
     </div>
   );
+}
+
+function optionLabel(
+  option: ConsoleFieldOption,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  return option.labelKey ? t(option.labelKey) : option.label ?? option.value;
+}
+
+function isWideConsoleField(field: ConsoleField) {
+  if (field.type === "textarea") return true;
+  const key = field.key.toLowerCase();
+  return [
+    "address",
+    "callback",
+    "consumer",
+    "contract",
+    "did",
+    "hash",
+    "path",
+    "recipient",
+    "url",
+  ].some((token) => key.includes(token));
 }

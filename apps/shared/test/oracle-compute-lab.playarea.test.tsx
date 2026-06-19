@@ -81,9 +81,7 @@ describe("Oracle Compute Lab PlayArea", () => {
   it("shows raw input only after the user switches to public mode", () => {
     const { container } = render(<PlayArea {...props()} />);
 
-    fireEvent.change(screen.getByLabelText("Privacy"), {
-      target: { value: "public" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: "Privacy: Public" }));
     fireEvent.change(screen.getByLabelText("Input Payload"), {
       target: { value: "{\"sample\":\"public-data\"}" },
     });
