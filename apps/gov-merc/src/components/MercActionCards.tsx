@@ -42,9 +42,12 @@ export default function MercActionCards({
     isPositiveAmount(withdrawAmount) && withdrawParsed > userDeposits;
   return (
     <>
-      <div className="gov-merc-action-card">
+      <div className="gov-merc-action-card gov-merc-action-card--neo">
         <div>
-          <span>{t("depositNeo")}</span>
+          <div className="gov-merc-action-head">
+            <span>{t("depositNeo")}</span>
+            <em className="gov-merc-token-tag gov-merc-token-tag--neo">{t("tokenTagStake")}</em>
+          </div>
           <p>{t("actionDepositHint")}</p>
         </div>
         <NeoInput
@@ -66,9 +69,12 @@ export default function MercActionCards({
         </NeoButton>
       </div>
 
-      <div className="gov-merc-action-card">
+      <div className="gov-merc-action-card gov-merc-action-card--neo">
         <div>
-          <span>{t("withdrawNeo")}</span>
+          <div className="gov-merc-action-head">
+            <span>{t("withdrawNeo")}</span>
+            <em className="gov-merc-token-tag gov-merc-token-tag--neo">{t("tokenTagStake")}</em>
+          </div>
           <p>{t("actionWithdrawHint")}</p>
         </div>
         <NeoInput
@@ -93,9 +99,12 @@ export default function MercActionCards({
         ) : null}
       </div>
 
-      <div className="gov-merc-action-card">
+      <div className="gov-merc-action-card gov-merc-action-card--gas">
         <div>
-          <span>{t("placeBid")}</span>
+          <div className="gov-merc-action-head">
+            <span>{t("placeBid")}</span>
+            <em className="gov-merc-token-tag gov-merc-token-tag--gas">{t("tokenTagBid")}</em>
+          </div>
           <p>{t("actionBidHint", { min: minBid, tokenGas: t("tokenGas") })}</p>
         </div>
         <NeoInput

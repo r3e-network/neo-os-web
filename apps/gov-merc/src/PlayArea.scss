@@ -78,6 +78,20 @@ body {
   }
 }
 
+// Civic lede: what winning the title actually grants. Brand-soft callout so it
+// reads as the headline meaning, not fine print.
+.gov-merc-hero-grant {
+  max-width: 560px;
+  margin: 2px 0 0 !important;
+  padding: 12px 14px;
+  border-left: 3px solid var(--ns-brand, #16c784);
+  border-radius: 0 var(--ns-radius-sm, 10px) var(--ns-radius-sm, 10px) 0;
+  background: rgba(255, 255, 255, 0.72);
+  color: #2c463b !important;
+  font-size: 12.5px !important;
+  line-height: 1.5 !important;
+}
+
 .gov-merc-hero-meta {
   display: flex;
   flex-wrap: wrap;
@@ -212,6 +226,34 @@ body {
   border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+// Detailed on-chain disclosure under the flow strip. The hero lede states the
+// civic meaning; this carries the full "title is recorded, NEO is never voted"
+// detail in a quiet, authoritative card.
+.gov-merc-influence-note {
+  padding: 16px 18px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-left: 3px solid var(--ns-brand, #16c784);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+
+  strong {
+    display: block;
+    color: var(--ns-ink, #102019);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: #53645c;
+    font-size: 12.5px;
+    line-height: 1.5;
+    letter-spacing: 0;
+  }
 }
 
 .gov-merc-settle-panel {
@@ -355,6 +397,89 @@ body {
   }
 }
 
+// Onboarding: clear connect CTA when no wallet is linked (replaces the inert
+// look of a disabled-feeling action grid with an explicit next step).
+.gov-merc-connect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  border: 1px solid rgba(15, 177, 116, 0.22);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-brand-soft, #e4f8f0);
+
+  .gov-merc-connect-copy {
+    flex: 1 1 240px;
+    min-width: 0;
+
+    strong {
+      display: block;
+      color: var(--ns-ink, #102019);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+    }
+
+    p {
+      margin: 6px 0 0;
+      color: #3c5a4d;
+      font-size: 12px;
+      line-height: 1.45;
+      letter-spacing: 0;
+    }
+  }
+
+  .neo-btn {
+    flex: 0 0 auto;
+    min-height: 42px;
+  }
+}
+
+// Token legend: one coherent green hue, NEO and GAS told apart by chip style.
+.gov-merc-token-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.gov-merc-token-legend-title {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.gov-merc-token-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--ns-radius-full, 9999px);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+
+  &--neo {
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-strong, #0fb174);
+  }
+
+  &--gas {
+    background: var(--ns-surface-subtle, #f1f4f2);
+    color: #38554a;
+    box-shadow: inset 0 0 0 1px rgba(15, 177, 116, 0.3);
+  }
+}
+
 .gov-merc-action-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -368,6 +493,72 @@ body {
     font-size: 13px;
     line-height: 1.52;
     letter-spacing: 0;
+  }
+}
+
+// Collapsed operator/contract detail: keeps the side rail focused on the
+// actionable settle + leaderboard panels.
+.gov-merc-risk-details {
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    > span:first-child {
+      color: var(--ns-text-muted, #8a92a6);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.3;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+  }
+
+  .gov-merc-risk-summary-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0;
+
+    &::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg) translateY(-1px);
+      transition: transform 0.18s ease;
+    }
+  }
+
+  &[open] .gov-merc-risk-summary-label::after {
+    transform: rotate(-135deg) translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  summary:focus-visible {
+    outline: none;
+    border-radius: 8px;
+    box-shadow: 0 0 0 4px rgba(15, 177, 116, 0.2);
+  }
+
+  .gov-merc-risk-body {
+    margin-top: 14px;
   }
 }
 

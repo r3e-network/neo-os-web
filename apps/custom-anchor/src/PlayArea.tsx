@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SyntheticEvent } from "react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -86,6 +86,17 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   // Explicit acknowledgement required to stake into a 0-agent (inert) anchor.
   const [noAgentConfirmed, setNoAgentConfirmed] = useState(false);
 
+  // Onboarding CTAs jump the user straight to the relevant collapsed panel,
+  // turning the inert empty state into a clear next step.
+  const discoverRef = useRef<HTMLDetailsElement>(null);
+  const registerRef = useRef<HTMLDetailsElement>(null);
+  const openPanel = (ref: typeof discoverRef) => {
+    const el = ref.current;
+    if (!el) return;
+    el.open = true;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   useEffect(() => {
     if (anchorAppId && anchorAppId !== anchorInput) setAnchorInput(anchorAppId);
     // Only sync fresh launch/read state into the form. User edits should stay editable.
@@ -124,6 +135,10 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   // neutral until there is a usable anchor (linked, or a valid id typed), and
   // only paint the green "Ready" once an action can actually be taken.
   const anchorReady = anchorLinked || looseAnchorValid;
+  // First-run onboarding: nothing linked and no usable id typed yet, so the
+  // action buttons are all disabled. Show a clear next step instead of an inert
+  // button grid.
+  const showOnboarding = !anchorLinked && !looseAnchorValid;
   const hasStatusError = Boolean(formError || lastError);
   const statusText = hasStatusError
     ? formError || lastError
@@ -251,12 +266,15 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
 
   return (
     <div className="custom-anchor-playarea">
-      {/* Hero — headline state plus the few facts that matter (anchor id, status, agents, last tx) folded inline */}
+      {/* Hero — lead with the civic meaning (NEO voting power), then the few facts that matter */}
       <section className="custom-anchor-hero">
         <div className="custom-anchor-hero__body">
-          <span className="custom-anchor-kicker">{t("title")}</span>
+          <span className="custom-anchor-kicker">{t("civicEyebrow")}</span>
           <h2>{anchorAppId ? t("readyForAnchor") : t("noAnchorTitle")}</h2>
           <p>{anchorAppId ? truncate(anchorAppId) : t("noAnchorBody")}</p>
+          <p className="custom-anchor-hero__explainer">
+            <strong>{t("whatIsAnchorTitle")}</strong> {t("whatIsAnchorBody")}
+          </p>
           <div className="custom-anchor-hero__facts">
             <span>
               {t("anchorStatus")}: <strong>{anchorStatus}</strong>
@@ -306,6 +324,31 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
           <p>{t("actionPanelBody")}</p>
         </div>
 
+        {showOnboarding && (
+          <div className="custom-anchor-onboard" role="note">
+            <div className="custom-anchor-onboard__text">
+              <strong>{t("onboardTitle")}</strong>
+              <p>{t("onboardBody")}</p>
+            </div>
+            <div className="custom-anchor-onboard__actions">
+              <button
+                type="button"
+                className="custom-anchor-button custom-anchor-button--primary"
+                onClick={() => openPanel(discoverRef)}
+              >
+                {t("onboardBrowse")}
+              </button>
+              <button
+                type="button"
+                className="custom-anchor-button"
+                onClick={() => openPanel(registerRef)}
+              >
+                {t("onboardRegister")}
+              </button>
+            </div>
+          </div>
+        )}
+
         <form className="custom-anchor-form" onSubmit={(event) => runAction(event, "stake")}>
           <div className="custom-anchor-field">
             <label>
@@ -349,33 +392,62 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
               </label>
             </div>
           )}
+          {/* Write actions — the value-moving operations, each tagged with the
+              token it touches so NEO stake vs GAS claim is unmistakable. */}
           <div className="custom-anchor-action-grid">
             <button
               type="submit"
-              className="custom-anchor-button custom-anchor-button--primary"
+              className="custom-anchor-button custom-anchor-button--primary custom-anchor-button--action"
               disabled={stakeDisabled}
             >
-              {busyAction === "stake" ? t("submitting") : t("stakeAction")}
+              <span className="custom-anchor-button__label">
+                {busyAction === "stake" ? t("submitting") : t("stakeAction")}
+              </span>
+              {busyAction !== "stake" && (
+                <span className="custom-anchor-button__tag" aria-hidden="true">
+                  {t("stakeTokenTag")}
+                </span>
+              )}
             </button>
             <button
               type="button"
-              className="custom-anchor-button"
+              className="custom-anchor-button custom-anchor-button--action"
               disabled={redeemDisabled}
               onClick={(event) => runAction(event, "withdraw")}
             >
-              {busyAction === "withdraw" ? t("submitting") : t("withdrawAction")}
+              <span className="custom-anchor-button__label">
+                {busyAction === "withdraw" ? t("submitting") : t("withdrawAction")}
+              </span>
+              {busyAction !== "withdraw" && (
+                <span className="custom-anchor-button__tag" aria-hidden="true">
+                  {t("withdrawTokenTag")}
+                </span>
+              )}
             </button>
             <button
               type="button"
-              className="custom-anchor-button"
+              className="custom-anchor-button custom-anchor-button--action"
               disabled={looseActionDisabled}
               onClick={(event) => runAction(event, "claimRewards")}
             >
-              {busyAction === "claimRewards" ? t("submitting") : t("claimAction")}
+              <span className="custom-anchor-button__label">
+                {busyAction === "claimRewards" ? t("submitting") : t("claimAction")}
+              </span>
+              {busyAction !== "claimRewards" && (
+                <span className="custom-anchor-button__tag" aria-hidden="true">
+                  {t("claimTokenTag")}
+                </span>
+              )}
             </button>
+          </div>
+
+          {/* Maintenance — a read-only refresh, demoted to a ghost row so the
+              value-moving operations above stay visually dominant. */}
+          <div className="custom-anchor-maintenance">
+            <span className="custom-anchor-maintenance__label">{t("maintenanceLabel")}</span>
             <button
               type="button"
-              className="custom-anchor-button"
+              className="custom-anchor-button custom-anchor-button--ghost"
               disabled={looseActionDisabled}
               onClick={(event) => runAction(event, "refreshAnchor")}
             >
@@ -479,7 +551,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
       )}
 
       {/* Anchor discovery — browse registered anchors and use one. */}
-      <details className="custom-anchor-discover">
+      <details className="custom-anchor-discover" ref={discoverRef}>
         <summary>{t("discoverTitle")}</summary>
         <div className="custom-anchor-discover__body">
           <div className="custom-anchor-discover__head">
@@ -526,7 +598,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
       </details>
 
       {/* Register a new custom anchor. */}
-      <details className="custom-anchor-register">
+      <details className="custom-anchor-register" ref={registerRef}>
         <summary>{t("registerPanelTitle")}</summary>
         <div className="custom-anchor-register__body">
           <div className="custom-anchor-section-head">
@@ -618,8 +690,8 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
         </div>
       </details>
 
-      {/* Routing model — expanded by default; launch source folded into the metadata row */}
-      <details className="custom-anchor-model" open>
+      {/* Routing model — collapsed by default to keep the surface civic, not operator-dense. */}
+      <details className="custom-anchor-model">
         <summary>{t("routingDetails")}</summary>
         <div className="custom-anchor-model__body">
           <p>{t("agentModelBody")}</p>

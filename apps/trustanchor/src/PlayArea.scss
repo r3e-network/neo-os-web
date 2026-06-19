@@ -66,6 +66,30 @@ body {
   min-width: 0;
 }
 
+.anchor-connect-prompt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px !important;
+  padding: 8px 14px;
+  border: 1px solid var(--ns-brand-soft, #e4f8f0);
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+
+  &::before {
+    content: "";
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: var(--ns-radius-full, 9999px);
+    background: var(--ns-brand-strong, #0fb174);
+  }
+}
+
 .anchor-badge {
   display: inline-flex;
   align-items: center;
@@ -205,6 +229,31 @@ body {
   font-weight: 600;
   line-height: 1.5;
   color: var(--ns-text-muted, #8a92a6);
+}
+
+.anchor-claim-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ns-text-2, #5b6478);
+
+  &::before {
+    content: "";
+    flex: none;
+    margin-top: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: var(--ns-radius-full, 9999px);
+    background: var(--ns-text-muted, #8a92a6);
+  }
 }
 
 .anchor-route-card__caption {
@@ -616,15 +665,32 @@ body {
   color: var(--ns-text-muted, #8a92a6);
 }
 
+.anchor-route-card__eyebrow {
+  margin-top: 2px;
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .anchor-route-card > strong {
   align-self: start;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   color: var(--ns-ink, #1e1e2e);
   font-size: 28px;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.1;
   overflow-wrap: anywhere;
+}
+
+.anchor-route-card__lead-copy {
+  margin: 0 0 4px;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .anchor-route-card > strong.anchor-route-card__placeholder {

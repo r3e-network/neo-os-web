@@ -110,6 +110,14 @@ defineMiniApp({
       subscribe: (fn) => pool.lastSettlement.subscribe(fn),
     };
 
+    // Onboarding: explicitly connect a wallet (the stake/bid actions also connect
+    // lazily, but a disconnected user gets a clear next-step CTA up front). This
+    // only links the wallet and re-propagates the address — no economic logic.
+    ctx.registerAction("connectWallet", async () => {
+      const addr = await ctx.services.chain.ensureWallet();
+      pool.setAddress(addr ?? ctx.services.chain.address.get() ?? "");
+      await pool.loadData();
+    });
     ctx.registerAction("depositNeo", async () => {
       await ctx.services.notify.guard(() => pool.depositNeo(), "depositSuccess");
     });
