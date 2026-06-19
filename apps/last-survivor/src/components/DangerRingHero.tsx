@@ -34,16 +34,29 @@ export default function DangerRingHero({
   // real danger, so collapse to the calm default accent.
   const effectiveLevel = active ? dangerLevel : "low";
   const effectivePulse = active && shouldPulse;
+  // The idle hero (no live round) gets a slow breathing glow so the surface
+  // feels alive rather than a static 00:00:00 finance widget. Reserved for the
+  // calm, no-danger state only — never competes with the live red pulse.
+  const idleBreathing = !active;
 
   return (
     <div className="danger-ring-hero">
-      <div className={`danger-ring ${effectiveLevel}${effectivePulse ? " pulse" : ""}`}>
+      <div
+        className={`danger-ring ${effectiveLevel}${effectivePulse ? " pulse" : ""}${
+          idleBreathing ? " breathing" : ""
+        }`}
+      >
         <div className="ring-inner">
           <div className="ring-glow" />
           <div className="hero-countdown" aria-live="polite" role="timer">
+            {idleBreathing ? (
+              <span className="idle-dot" aria-hidden="true" />
+            ) : null}
             <span className="countdown-digits">{countdown}</span>
             <span className="countdown-label">
-              {awaitingFirstKey ? t("awaitingFirstKey") : t("timeUntilEvent")}
+              {awaitingFirstKey || idleBreathing
+                ? t("awaitingFirstKey")
+                : t("timeUntilEvent")}
             </span>
           </div>
         </div>

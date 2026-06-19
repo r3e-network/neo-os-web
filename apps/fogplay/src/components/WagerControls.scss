@@ -67,36 +67,57 @@
     height: 48px;
     border: 2px solid var(--coin-choice-ring);
     border-radius: 50%;
-    color: var(--coin-text-primary);
-    font-size: 20px;
-    font-weight: 800;
+    color: var(--coin-text-secondary);
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
   }
 
-  &.heads {
+  /* Selected affordance: filled brand fill + checkmark, not just a border, so
+     the active pick is unmistakable. One green hue for both sides. */
+  .choice-check {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: var(--coin-success);
+    color: #ffffff;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+
+  &.selected {
     border-color: var(--coin-success);
     background: var(--coin-green-active-bg-light);
-    box-shadow: 0 8px 18px rgba(22, 199, 132, 0.12);
+    box-shadow: 0 10px 22px rgba(22, 199, 132, 0.16);
 
     .symbol-ring {
       border-color: var(--coin-success);
+      background: var(--coin-success);
+      color: #ffffff;
+    }
+
+    .choice-name {
       color: var(--coin-success);
     }
-  }
 
-  &.tails {
-    border-color: #1e1e2e;
-    background: rgba(30, 30, 46, 0.05);
-    box-shadow: 0 8px 18px rgba(20, 22, 38, 0.1);
-
-    .symbol-ring {
-      border-color: #1e1e2e;
-      color: #1e1e2e;
+    .choice-check {
+      opacity: 1;
+      transform: scale(1);
     }
   }
 
   &.inactive:hover {
-    border-color: rgba(20, 22, 38, 0.14);
+    border-color: rgba(20, 22, 38, 0.16);
+    background: #ffffff;
     transform: translateY(-1px);
+
+    .symbol-ring {
+      color: var(--coin-text-primary);
+    }
   }
 
   &:focus-visible {

@@ -179,6 +179,19 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
   const actionNotice = createObservable("");
   const burnValidationError = createObservable<string | null>(null);
   const lastSubmittedAmount = createObservable("");
+  /**
+   * Outcome of the most recent successful settle, captured at settle time from
+   * the leader/pool that existed BEFORE the season rolled forward. Drives the
+   * win/payout celebration. `won` is true only when the connected wallet was the
+   * recorded top burner who is paid the pool; `amount` is the pool that was
+   * awarded (display string). A non-empty `token` marks a fresh result so the
+   * UI can fire the celebration exactly once per settle.
+   */
+  const lastSettleResult = createObservable<{
+    won: boolean;
+    amount: string;
+    token: number;
+  } | null>(null);
 
   // ── Season lifecycle state ───────────────────────────────────────────
   /** 1-based season id (0 before the very first season). */
@@ -319,6 +332,17 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     if (addr.length < 12) return addr;
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   }, [topBurnerAddress]);
+
+  /**
+   * Whether the connected wallet is the CURRENT leader (the top burner who would
+   * win the pool if the season settled now). Compared case-insensitively against
+   * the connected address; false when there is no leader or no wallet.
+   */
+  const userIsLeader = createDerived(() => {
+    const top = (topBurnerAddress.get() ?? "").trim().toLowerCase();
+    const me = (address.get() ?? "").trim().toLowerCase();
+    return top !== "" && me !== "" && top === me;
+  }, [topBurnerAddress, address]);
 
   const projectedTotalBurnedDisplay = createDerived(() => {
     const amount = parseFloat(burnAmount.get());
@@ -674,8 +698,17 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     setAddress(callerAddr);
 
     isSettling.set(true);
+    // Snapshot the leader + pool that are about to be settled — loadAll() rolls
+    // the season forward and zeroes both, so the celebration must read them now.
+    const awardedPool = prizePoolDisplay.get();
+    const winnerWasMe = userIsLeader.get();
     try {
       await chain.invoke("settle", [], { waitForEvent: "SeasonSettled" });
+      lastSettleResult.set({
+        won: winnerWasMe,
+        amount: awardedPool,
+        token: Date.now(),
+      });
       await loadAll();
     } finally {
       isSettling.set(false);
@@ -783,6 +816,8 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     leaderLabel,
     leaderboardPreview,
     prepaidCreditDisplay,
+    userIsLeader,
+    lastSettleResult,
 
     // ── Actions ─────────────────────────────────────────────────────
     setAddress,

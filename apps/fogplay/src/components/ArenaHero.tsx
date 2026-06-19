@@ -56,7 +56,17 @@ export default function ArenaHero({
       </div>
       {result && !coinSpinning && (
         <div className={`result-flash ${result.won ? "win" : "lose"}`}>
-          <span className="result-flash-icon" aria-hidden="true">{result.won ? "W" : "L"}</span>
+          <span className="result-flash-icon" aria-hidden="true">
+            {result.won ? (
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12.5 10 17l9-10" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 7l10 10M17 7 7 17" />
+              </svg>
+            )}
+          </span>
           <span className="result-flash-text">{result.won ? t("youWon") : t("youLost")}</span>
         </div>
       )}

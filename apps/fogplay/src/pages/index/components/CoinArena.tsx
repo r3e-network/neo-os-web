@@ -83,6 +83,9 @@ export default function CoinArena({
             <span className="reveal-pending__text">
               {revealFailed ? t("revealStalled") : t("betPlacedRevealing")}
             </span>
+            {!revealFailed && (
+              <span className="reveal-pending__reassure">{t("betLockedReassure")}</span>
+            )}
             {revealFailed && (
               <NeoButton
                 variant="primary"

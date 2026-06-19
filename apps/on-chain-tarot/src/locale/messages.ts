@@ -6,6 +6,10 @@ const appMessages = {
   subtitle: { en: "Blockchain-powered divination", zh: "区块链占卜" },
   drawYourCards: { en: "Draw Your Cards", zh: "抽取您的牌" },
   drawCards: { en: "Draw 3 Cards", zh: "抽取 3 张牌" },
+  drawValueHint: {
+    en: "Pay 0.1 GAS to draw your Past · Present · Future cards on-chain.",
+    zh: "支付 0.1 GAS，在链上抽出你的过去 · 现在 · 未来三张牌。",
+  },
   drawing: { en: "Drawing...", zh: "抽取中..." },
   drawAgain: { en: "Draw Again", zh: "再次抽取" },
   questionLabel: { en: "Your question", zh: "你的问题" },

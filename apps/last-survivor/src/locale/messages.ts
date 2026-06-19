@@ -167,9 +167,24 @@ const appMessages = {
   creditWithdrawn: { en: "Withdrew {amount} {tokenGas} prepaid credit", zh: "已提取预付额度 {amount} {tokenGas}" },
   noCredit: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付额度" },
   awaitingFirstKey: {
-    en: "Awaiting the first key — buying starts the clock.",
-    zh: "等待第一把钥匙——购买即开始倒计时。",
+    en: "Be the first to buy a key",
+    zh: "成为第一个购买钥匙的人",
   },
+  // ── Idle hero / danger meter energy ────────────────────────────────────
+  beFirstHint: {
+    en: "Buy a key to start the clock and seed the pot.",
+    zh: "购买钥匙即可启动倒计时并注入奖池。",
+  },
+  roundNotStarted: { en: "Round not started", zh: "本轮未开始" },
+  // ── Win / payout climax ────────────────────────────────────────────────
+  winnerPayout: { en: "Winner takes", zh: "赢家赢得" },
+  youWon: { en: "You won the pot!", zh: "你赢得了奖池！" },
+  youWonPayout: { en: "You take the entire pot", zh: "你独得全部奖池" },
+  settleToClaim: {
+    en: "Settle the round to claim your winnings on-chain.",
+    zh: "结算本轮即可在链上领取你的奖金。",
+  },
+  refreshToPlay: { en: "Refresh round to play", zh: "刷新轮次以开始游戏" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

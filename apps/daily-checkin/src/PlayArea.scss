@@ -63,11 +63,12 @@ $amber: #f59e0b;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hide the legacy fire/ember chrome + in-app CTA (Action Console owns it). */
+/* Hide the legacy fire/ember chrome + in-app CTA (Action Console owns it).
+   The confetti container is intentionally NOT hidden — it is the streak-up
+   payoff and only mounts on the real canCheckIn true->false edge (see TSX). */
 .flame-bg-effects,
 .ember,
-.checkin-flame-stack,
-.confetti-container {
+.checkin-flame-stack {
   display: none !important;
 }
 
@@ -226,11 +227,41 @@ $amber: #f59e0b;
     color: $amber;
     border-color: rgba(245, 158, 11, 0.28);
   }
+
+  /* First-open invite — an accent-filled prompt to connect, so the very first
+     screen reads as a call to action instead of a stuck "Loading…" pill. The
+     base badge is single-line (min-width: max-content); the invite is longer, so
+     reset that and let it wrap inside a constrained width. */
+  &.connect {
+    min-width: 0;
+    max-width: 128px;
+    white-space: normal;
+    text-align: right;
+    line-height: 1.25;
+    background: $ac;
+    color: #ffffff;
+    border-color: $ac;
+    box-shadow: 0 8px 18px -8px rgba(22, 199, 132, 0.55);
+  }
+
+  /* Ready-to-check-in emphasis — solid accent fill matching the open window. */
+  &.ready {
+    background: $ac;
+    color: #ffffff;
+    border-color: $ac;
+    box-shadow: 0 8px 18px -8px rgba(22, 199, 132, 0.5);
+  }
 }
 
 /* When a tier badge is shown, push the best chip below it */
 .checkin-streak-section:has(.checkin-tier-badge) .checkin-best-text {
   top: 46px;
+}
+
+/* The first-open connect prompt wraps to two lines — push the best chip lower so
+   the two chips never collide on the disconnected hero. */
+.checkin-streak-section:has(.checkin-tier-badge.connect) .checkin-best-text {
+  top: 62px;
 }
 
 /* Tier accent tweaks */
@@ -250,6 +281,37 @@ $amber: #f59e0b;
 
   .checkin-streak-number {
     color: $ns-text-muted;
+  }
+}
+
+/* "Ready to check in" energy — when the daily window is open the streak ring
+   gains an accent glow and a soft pulse so the focal number invites the action
+   instead of sitting flat. Applies even on the cold/zero tier so day-one feels
+   live, and yields to prefers-reduced-motion. */
+.streak-can-checkin .checkin-fire-ring {
+  border-color: $ac;
+  box-shadow: 0 8px 22px -8px rgba(22, 199, 132, 0.55);
+  animation: checkin-ring-pulse 2.4s ease-in-out infinite;
+
+  &.cold .checkin-streak-number {
+    color: $ac-strong;
+  }
+}
+
+@keyframes checkin-ring-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 22px -8px rgba(22, 199, 132, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(22, 199, 132, 0.1),
+      0 10px 26px -8px rgba(22, 199, 132, 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-can-checkin .checkin-fire-ring {
+    animation: none;
   }
 }
 
@@ -1003,6 +1065,26 @@ $amber: #f59e0b;
     padding-right: 0;
   }
 
+  /* The connect/ready invite is a wider pill that would collide with the streak
+     title in the top-right corner on narrow screens. Drop it to its own full-
+     width line below the ring + body instead of overlapping the title. */
+  .checkin-streak-section:has(.checkin-tier-badge.connect),
+  .checkin-streak-section:has(.checkin-tier-badge.ready) {
+    flex-wrap: wrap;
+  }
+
+  .checkin-tier-badge.connect,
+  .checkin-tier-badge.ready {
+    position: static;
+    order: 3;
+    width: 100%;
+    max-width: none;
+    min-height: 38px;
+    padding: 9px 14px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
   .checkin-fire-ring {
     width: 64px;
     height: 64px;
@@ -1204,5 +1286,230 @@ $amber: #f59e0b;
 @media (max-width: 720px) {
   .checkin-plan-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+ *  Primary action emphasis
+ *  Check In is the single full-width hero CTA; Claim + Refresh
+ *  drop to a quieter secondary row so the primary action is
+ *  unambiguous at a glance.
+ * ============================================================ */
+
+.checkin-actions-grid {
+  grid-template-columns: 1fr;
+}
+
+.checkin-actions-grid .checkin-btn {
+  min-height: 54px;
+  font-size: 15px;
+}
+
+.checkin-actions-secondary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.checkin-actions-secondary .neo-btn {
+  min-height: 44px;
+}
+
+@media (max-width: 520px) {
+  .checkin-actions-secondary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+ *  Reward reveal — milestone payout celebration
+ *  Fires on the real edge where a check-in lands on a milestone
+ *  day (currentStreak crosses 7 / 14). A brief, on-brand banner
+ *  announces the +GAS payout the daily flow just unlocked.
+ * ============================================================ */
+
+.checkin-reward-reveal {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: $ns-radius;
+  background: linear-gradient(135deg, $ac-soft 0%, rgba(245, 158, 11, 0.12) 100%);
+  border: 1px solid $ac-border;
+  box-shadow: 0 14px 30px -14px rgba(22, 199, 132, 0.5);
+  animation: checkin-reveal-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.checkin-reward-reveal__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: $ns-bg;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  color: $amber;
+  animation: checkin-reveal-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.checkin-reward-reveal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.checkin-reward-reveal__eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $ac-strong;
+}
+
+.checkin-reward-reveal__title {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: $ns-ink;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkin-reward-reveal__copy {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: $ns-text-2;
+}
+
+@keyframes checkin-reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes checkin-reveal-pop {
+  0% {
+    transform: scale(0.4) rotate(-12deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkin-reward-reveal,
+  .checkin-reward-reveal__icon {
+    animation: none;
+  }
+}
+
+/* ============================================================
+ *  Confetti — streak-up payoff
+ *  18 lightweight pieces drift down across the surface for a
+ *  short burst when the daily check-in lands. Subtle, on-system
+ *  (brand green + accent amber), pointer-events off, and fully
+ *  suppressed under prefers-reduced-motion.
+ * ============================================================ */
+
+.confetti-container {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -12px;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: confetti-fall 2.2s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+}
+
+.confetti-piece-1 {
+  left: 12%;
+  background: $ac;
+  animation-delay: 0ms;
+}
+.confetti-piece-2 {
+  left: 26%;
+  background: $amber;
+  animation-delay: 120ms;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.confetti-piece-3 {
+  left: 40%;
+  background: $ac-strong;
+  animation-delay: 60ms;
+}
+.confetti-piece-4 {
+  left: 54%;
+  background: $amber;
+  animation-delay: 200ms;
+}
+.confetti-piece-5 {
+  left: 68%;
+  background: $ac;
+  animation-delay: 90ms;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.confetti-piece-6 {
+  left: 84%;
+  background: $ac-strong;
+  animation-delay: 160ms;
+}
+
+/* Stagger the second set of pieces (TSX renders 18 = three repeats of 6) so
+   the burst spreads across the width rather than six tight columns. */
+.confetti-piece:nth-child(n + 7) {
+  animation-duration: 1.9s;
+}
+.confetti-piece:nth-child(7) { left: 19%; }
+.confetti-piece:nth-child(8) { left: 33%; }
+.confetti-piece:nth-child(9) { left: 47%; }
+.confetti-piece:nth-child(10) { left: 61%; }
+.confetti-piece:nth-child(11) { left: 75%; }
+.confetti-piece:nth-child(12) { left: 90%; }
+.confetti-piece:nth-child(n + 13) {
+  animation-duration: 2.4s;
+}
+.confetti-piece:nth-child(13) { left: 8%; }
+.confetti-piece:nth-child(14) { left: 30%; }
+.confetti-piece:nth-child(15) { left: 50%; }
+.confetti-piece:nth-child(16) { left: 64%; }
+.confetti-piece:nth-child(17) { left: 78%; }
+.confetti-piece:nth-child(18) { left: 95%; }
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(105vh) rotate(540deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-container {
+    display: none !important;
   }
 }

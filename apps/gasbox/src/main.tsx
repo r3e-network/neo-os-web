@@ -78,7 +78,20 @@ defineMiniApp({
         gasbox.machines.get(),
         ctx.launchContext,
       );
-      if (selection.source === "none") return;
+      if (selection.source === "none") {
+        // Lead with play: with no explicit launch target, auto-select the first
+        // playable machine (active + escrowed inventory) so a visitor lands on
+        // the pull experience instead of an empty "Select a Machine" prompt.
+        // Falls back to the first machine so a not-yet-funded market still shows
+        // the (blocked) pull panel rather than a bare prompt. Never overrides an
+        // existing selection.
+        if (!gasbox.selectedMachine.get()) {
+          const list = gasbox.machines.get();
+          const playable = list.find((m) => m.active && m.inventoryReady) ?? list[0];
+          if (playable) gasbox.selectMachine(playable);
+        }
+        return;
+      }
 
       if (selection.machine) {
         gasbox.selectMachine(selection.machine);

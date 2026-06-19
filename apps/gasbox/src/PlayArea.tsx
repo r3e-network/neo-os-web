@@ -105,6 +105,88 @@ function GachaMark({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Prize capsule mark — a single dispensed capsule with a shine, used for
+ * machines that already advertise a top prize. Same currentColor accent so the
+ * icon stays on a single hue.
+ */
+function PrizeMark({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M7 11a5 5 0 0 1 10 0v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" />
+      <path d="M7 13h10" />
+      <path d="M10 8.5a3 3 0 0 1 2.6-1.4" opacity="0.6" />
+      <circle cx="12" cy="16" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/**
+ * Small rarity gem/star badge. Legendary reads as a star; the lower tiers read
+ * as a faceted gem. The tier colour class is applied to the <svg> itself (not a
+ * wrapping li/span) so it sets the svg's own `color`, which `fill=currentColor`
+ * then resolves — robust against host wrappers that force `li/span { color:
+ * inherit }`. Decorative rarity art, off the single interactive accent.
+ */
+function RarityMark({ rarity, className }: { rarity?: string; className?: string }) {
+  const tier = rarity?.toLowerCase();
+  const cls = `${rarityClassName(rarity)}${className ? ` ${className}` : ""}`;
+  if (tier === "legendary") {
+    return (
+      <svg
+        className={cls}
+        viewBox="0 0 24 24"
+        width="14"
+        height="14"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path d="M12 2.5l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3 9l6.1-.9z" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      className={cls}
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M7 3h10l4 6-9 12L3 9z" opacity="0.92" />
+      <path d="M3 9h18" stroke="#ffffff" strokeWidth="1" opacity="0.45" fill="none" />
+      <path d="M12 3l-2 6 2 12 2-12z" stroke="#ffffff" strokeWidth="1" opacity="0.35" fill="none" />
+    </svg>
+  );
+}
+
+/**
+ * Module-level rarity → tier-colour class (shared by RarityMark and the
+ * component's rarityClass). Kept outside the component so the gem helper can use
+ * it without prop drilling.
+ */
+function rarityClassName(rarity: string | undefined): string {
+  switch (rarity?.toLowerCase()) {
+    case "legendary": return "gasbox-rarity--legendary";
+    case "epic": return "gasbox-rarity--epic";
+    case "rare": return "gasbox-rarity--rare";
+    case "uncommon": return "gasbox-rarity--uncommon";
+    default: return "gasbox-rarity--common";
+  }
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
@@ -325,32 +407,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   };
 
-  const rarityClass = (rarity: string | undefined) => {
-    switch (rarity?.toLowerCase()) {
-      case "legendary": return "gasbox-rarity--legendary";
-      case "epic": return "gasbox-rarity--epic";
-      case "rare": return "gasbox-rarity--rare";
-      case "uncommon": return "gasbox-rarity--uncommon";
-      default: return "gasbox-rarity--common";
-    }
-  };
+  const rarityClass = rarityClassName;
 
-  const rarityIcon = (rarity: string | undefined) => {
-    switch (rarity?.toLowerCase()) {
-      case "legendary": return "L";
-      case "epic": return "E";
-      case "rare": return "R";
-      case "uncommon": return "U";
-      default: return "C";
-    }
-  };
-
-  const machineIcon = (machine?: Machine | null) => {
-    if (!machine) return "G";
-    if (machine.topPrize) return "P";
-    if (machine.inventoryReady) return "G";
-    return "N";
-  };
+  // Real machine iconography (replaces the bare "G"/"P"/"N" letter fallbacks
+  // that read as broken image assets): a prize capsule for machines that
+  // advertise a top prize, otherwise the gachapon mark. The wrapper carries the
+  // single brand-hue badge styling.
+  const machineMark = (machine?: Machine | null) =>
+    machine?.topPrize ? <PrizeMark /> : <GachaMark />;
 
   if (isLoading) {
     return (
@@ -412,21 +476,48 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         {machines.length === 0 ? (
           <div className="gasbox-market-empty">
-            <span className="gasbox-market-empty__icon" aria-hidden="true">
-              <GachaMark />
-            </span>
+            {/* Game-inviting teaser: a locked sample capsule with hidden odds so
+                a first-time visitor sees the play loop (capsule + rarity tiers)
+                instead of an admin-flavored empty console. The lock + "?" make
+                it honestly inert until a real machine loads. */}
+            <div className="gasbox-teaser" aria-hidden="true">
+              <div className="gasbox-teaser__capsule">
+                <GachaMark className="gasbox-teaser__mark" />
+                <span className="gasbox-teaser__lock">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="5" y="11" width="14" height="9" rx="2" />
+                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                  </svg>
+                </span>
+              </div>
+              <ul className="gasbox-teaser__odds">
+                {(["legendary", "epic", "rare", "common"] as const).map((tier) => (
+                  <li key={tier} className={`gasbox-teaser__tier ${rarityClass(tier)}`}>
+                    <RarityMark rarity={tier} className="gasbox-teaser__gem" />
+                    <span className="gasbox-teaser__pct">?</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="gasbox-market-empty__copy">
               <span>{t("gasboxMarketEmptyTitle")}</span>
-              <strong>{t("gasboxMarketEmptyDesc")}</strong>
+              <strong>{t("gasboxMarketEmptyTeaser")}</strong>
             </div>
             <div className="gasbox-empty-button-row">
               <NeoButton variant="primary" size="md" onClick={() => dispatch("refreshMachines")}>
                 {t("refreshMachines")}
               </NeoButton>
-              <NeoButton variant="secondary" size="md" onClick={() => dispatch("openStudio")}>
-                {t("openStudio")}
-              </NeoButton>
             </div>
+            <p className="gasbox-empty-creator-line">
+              {t("gasboxEmptyForCreators")}{" "}
+              <button
+                type="button"
+                className="gasbox-empty-creator-link"
+                onClick={() => dispatch("openStudio")}
+              >
+                {t("openStudio")}
+              </button>
+            </p>
           </div>
         ) : (
           <div className="gasbox-machine-grid">
@@ -440,7 +531,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   className={`gasbox-machine-item${isSelected ? " gasbox-machine-item--selected" : ""}${!machine.active ? " gasbox-machine-item--inactive" : ""}`}
                   onClick={() => handleSelectMachine(machine.id)}
                 >
-                  <div className="gasbox-machine-icon">{machineIcon(machine)}</div>
+                  <div className="gasbox-machine-icon" aria-hidden="true">{machineMark(machine)}</div>
                   <div className="gasbox-machine-info">
                     <span className="gasbox-machine-name">{machine.name}</span>
                     {machine.description && (
@@ -617,7 +708,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <NeoCard variant="erobo" className="gasbox-pull-card">
           <div className="gasbox-selected-display">
             <div className="gasbox-selected-header">
-              <div className="gasbox-selected-icon">{machineIcon(selectedMachine)}</div>
+              <div className="gasbox-selected-icon" aria-hidden="true">{machineMark(selectedMachine)}</div>
               <div className="gasbox-selected-info">
                 <h3 className="gasbox-selected-name">
                   {selectedMachineName || selectedMachine.name}
@@ -865,7 +956,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     .map((item: MachineItem, idx: number) => (
                       <div key={idx} className="gasbox-rarity-bar-row">
                         <span className={`gasbox-rarity-bar-label ${rarityClass(item.rarity)}`}>
-                          {rarityIcon(item.rarity)} {item.name || item.rarity}
+                          <RarityMark rarity={item.rarity} className="gasbox-rarity-bar-gem" />
+                          <span className="gasbox-rarity-bar-name">{item.name || item.rarity}</span>
                         </span>
                         <div className="gasbox-rarity-bar-track">
                           <div
@@ -888,7 +980,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {!selectedMachine && machines.length > 0 && (
         <NeoCard variant="erobo" className="gasbox-select-prompt">
           <div className="gasbox-prompt-content">
-            <span className="gasbox-prompt-icon" aria-hidden="true">G</span>
+            <span className="gasbox-prompt-icon" aria-hidden="true"><GachaMark /></span>
             <p className="gasbox-prompt-text">
               {t("selectMachinePrompt")}
             </p>
@@ -898,7 +990,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       {showResult && pullResult && (
         <div className="gasbox-result-overlay" onClick={dismissResult} role="dialog" aria-modal="true">
-          <div className="gasbox-result-content" onClick={(e) => e.stopPropagation()}>
+          {/* Win celebration — confetti is purely decorative and only mounts on
+              the settled-result edge (showResult && pullResult), so it fires
+              exactly once per reveal and never on idle. */}
+          <div className="gasbox-confetti" aria-hidden="true">
+            {Array.from({ length: 14 }).map((_, i) => (
+              <span key={i} className={`gasbox-confetti__bit gasbox-confetti__bit--${i % 7}`} />
+            ))}
+          </div>
+          <div className={`gasbox-result-content ${rarityClass(pullResult.rarity)}`} onClick={(e) => e.stopPropagation()}>
+            <span className="gasbox-result-burst" aria-hidden="true">
+              <RarityMark rarity={pullResult.rarity} className="gasbox-result-gem" />
+            </span>
+            <span className="gasbox-result-won">{t("congratulations")}</span>
             <span className={`gasbox-result-rarity ${rarityClass(pullResult.rarity)}`}>
               {pullResult.rarity}
             </span>
@@ -912,7 +1016,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span className="gasbox-result-amount">{pullResult.amountDisplay}</span>
             )}
             <p className="gasbox-result-note">{t("gasboxOnChainPrizeNote")}</p>
-            <NeoButton variant="secondary" size="md" onClick={dismissResult}>
+            <NeoButton variant="primary" size="md" block onClick={dismissResult}>
               {t("dismiss")}
             </NeoButton>
           </div>
