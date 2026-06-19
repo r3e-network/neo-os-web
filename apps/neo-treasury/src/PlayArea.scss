@@ -170,6 +170,16 @@
   line-height: 1.4 !important;
 }
 
+// Neutral info note (not amber): a paused USD feed with native balances still
+// shown is an informational state, not a warning/error.
+.treasury-hero__notice {
+  margin: 6px 0 0 !important;
+  color: var(--ns-text-2, #5b6478) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+
 .treasury-hero__metrics {
   display: grid;
   gap: 12px;
