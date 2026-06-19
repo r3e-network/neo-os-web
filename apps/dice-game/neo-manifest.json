@@ -46,8 +46,8 @@
   },
   "urls": {
     "entry": "/miniapps/dice-game/index.html",
-    "icon": "/miniapps/dice-game/logo.svg",
-    "banner": "/miniapps/dice-game/banner.svg"
+    "icon": "/miniapps/dice-game/logo.jpg",
+    "banner": "/miniapps/dice-game/banner.jpg"
   },
   "permissions": [
     "invoke:primary",

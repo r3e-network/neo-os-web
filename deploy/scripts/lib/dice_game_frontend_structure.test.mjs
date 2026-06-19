@@ -22,6 +22,8 @@ test("Dice Game renders a modern wallet-style VRF roll desk", () => {
     "dice-shell",
     "dice-stage",
     "dice-stage__visual",
+    "dice-stage__table",
+    "dice-stage__die",
     "dice-stage__details",
     "dice-metric-grid",
     "dice-bet-panel",
@@ -54,6 +56,9 @@ test("Dice Game renders a modern wallet-style VRF roll desk", () => {
   // The settled roll is revealed (chain-aware result panel + network badge).
   assert.match(playArea, /dice-result/);
   assert.match(playArea, /dice-chain-badge/);
+  assert.match(playArea, /DiceFaceImage/);
+  assert.match(playArea, /dice-stage\.avif/);
+  assert.match(playArea, /dice-face-\$\{face\}/);
   // Bet placement is wired through the platform dispatch contract.
   assert.match(playArea, /dispatch\("placeDiceBet"/);
 
@@ -81,20 +86,22 @@ test("Dice Game renders a modern wallet-style VRF roll desk", () => {
     styles,
     /\.dice-shell\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*0\.62fr\)\s+minmax\(340px,\s*0\.44fr\)/s,
   );
-  // Stage splits into a visual half and a details half.
+  // Stage leads with a full-width game table, then the chain details below it.
   assert.match(
     styles,
-    /\.dice-stage\s*\{[^}]*grid-template-columns:\s*minmax\(240px,\s*0\.5fr\)\s+minmax\(0,\s*0\.5fr\)/s,
+    /\.dice-stage\s*\{[^}]*grid-template-columns:\s*1fr/s,
   );
   // Stage and the other panels share a white surface token + soft shadow.
   assert.match(
     styles,
     /\.dice-stage,[\s\S]*?\.dice-history-panel\s*\{[^}]*background:\s*var\(--dice-surface\)/s,
   );
-  // The signature green accent halo lives in the contained visual stage.
+  // The contained visual stage uses real game-table media, not CSS art.
+  assert.match(styles, /\.dice-stage__table img\s*\{[^}]*object-fit:\s*cover/s);
+  assert.match(styles, /\.dice-stage__die img\s*\{[^}]*object-fit:\s*cover/s);
   assert.match(
     styles,
-    /\.dice-stage__visual\s*\{[^}]*var\(--dice-accent-tint\)/s,
+    /\.dice-stage__visual\s*\{[^}]*background:\s*#07170f/s,
   );
   assert.match(
     styles,
@@ -102,14 +109,13 @@ test("Dice Game renders a modern wallet-style VRF roll desk", () => {
   );
   assert.match(
     styles,
-    /\.dice-face-grid\s*\{[^}]*grid-template-columns:\s*repeat\(6,\s*minmax\(0,\s*1fr\)\)/s,
+    /\.dice-face-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/s,
   );
   assert.match(styles, /\.dice-status-bar\s*\{[^}]*min-height:\s*52px/s);
   assert.match(styles, /@media \(max-width: 900px\)[\s\S]*\.dice-shell[\s\S]*grid-template-columns:\s*1fr/s);
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*\.dice-stage[\s\S]*grid-template-columns:\s*1fr/s);
 
-  // Neo Soft design language: uppercase eyebrow labels with 0.12em tracking are
-  // the intentional new style (the eyebrow + panel headings opt into it).
+  // Neo Soft design language: concise eyebrow labels without stretched tracking.
   assert.match(
     styles,
     /\.dice-eyebrow\s*\{[^}]*text-transform:\s*uppercase/s,
@@ -118,10 +124,11 @@ test("Dice Game renders a modern wallet-style VRF roll desk", () => {
     styles,
     /\.dice-panel-heading\s*\{[^}]*text-transform:\s*uppercase/s,
   );
-  assert.match(styles, /\.dice-eyebrow\s*\{[^}]*letter-spacing:\s*0\.12em/s);
+  assert.match(styles, /\.dice-eyebrow\s*\{[^}]*letter-spacing:\s*0/s);
   // Type stays at fixed sizes (no fluid clamp), radii stay within the soft scale.
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
   assert.doesNotMatch(styles, /border-radius:\s*(?:2[0-9]|[3-9][0-9])px/);
+  assert.doesNotMatch(styles, /dice-cube|dice-winburst|dice-confetti|dice-sheen/);
   // The accent halo is intentionally contained to the visual stage only; the
   // flat soft surfaces (metric tiles, bet summary, status bar) never use a wash.
   assert.doesNotMatch(

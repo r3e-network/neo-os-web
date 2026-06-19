@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties, FormEvent } from "react";
+import type { FormEvent } from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { StateView } from "@shared/components";
@@ -12,17 +12,6 @@ const MIN_STAKE = 0.05;
 const PAYOUT_MULTIPLIER = 5.7;
 const HOUSE_FEE_PERCENT = 5;
 const FAIR_MULTIPLIER = 6;
-
-// Pip layout per face on a standard die, indexed by the 3x3 grid cell (0..8).
-// Empty array → no resolved face yet (the cube shows a question state).
-const PIP_LAYOUT: Record<string, number[]> = {
-  "1": [4],
-  "2": [0, 8],
-  "3": [0, 4, 8],
-  "4": [0, 2, 6, 8],
-  "5": [0, 2, 4, 6, 8],
-  "6": [0, 2, 3, 5, 6, 8],
-};
 
 type RollOutcome = "" | "pending" | "won" | "lost" | "refunded";
 
@@ -58,6 +47,28 @@ function isValidStake(value: string, maxStake: number): boolean {
 function payoutFor(value: string, fallback: string, maxStake: number): string {
   if (!isValidStake(value, maxStake)) return fallback;
   return `${(Number(value) * PAYOUT_MULTIPLIER).toFixed(2)} GAS`;
+}
+
+function diceAsset(face: string, extension: "avif" | "webp" | "jpg"): string {
+  return `./dice-face-${face}.${extension}`;
+}
+
+function DiceFaceImage({
+  face,
+  className,
+  alt,
+}: {
+  face: string;
+  className: string;
+  alt: string;
+}) {
+  return (
+    <picture className={className}>
+      <source srcSet={diceAsset(face, "avif")} type="image/avif" />
+      <source srcSet={diceAsset(face, "webp")} type="image/webp" />
+      <img src={diceAsset(face, "jpg")} alt={alt} decoding="async" />
+    </picture>
+  );
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
@@ -110,15 +121,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     fair: String(FAIR_MULTIPLIER),
   });
 
-  // The dice shows the settled roll once revealed, animates while rolling, and
+  // The die shows the settled roll once revealed, animates while rolling, and
   // otherwise previews the chosen face.
   const showResult = (lastOutcome === "won" || lastOutcome === "lost" || lastOutcome === "refunded") && Boolean(lastRoll);
-  const cubeFace = isResolving ? "?" : showResult ? lastRoll : faceInput;
+  const visibleFace = isResolving ? "" : showResult ? lastRoll : faceInput;
   const stageState = isResolving ? "rolling" : showResult ? lastOutcome : "idle";
-  // Pre-roll the cube only previews the picked face, so its pips render ghosted
-  // (no resolved roll yet); a settled or rolling cube shows solid pips.
-  const cubeIsPreview = stageState === "idle";
-  const cubePips = isResolving ? [] : (PIP_LAYOUT[cubeFace] ?? []);
+  const dieIsPreview = stageState === "idle";
+  const displayFace = FACES.includes(visibleFace) ? visibleFace : faceInput;
+  const stageDieLabel = isResolving
+    ? t("statusRolling")
+    : dieIsPreview
+      ? `${t("youPicked")} ${displayFace}`
+      : `${t("rolledLabel")} ${displayFace}`;
 
   useEffect(() => {
     setFaceInput(selectedFace);
@@ -167,45 +181,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="dice-shell">
         <div className="dice-stage" aria-live="polite" data-state={stageState}>
           <div className="dice-stage__visual">
-            {stageState === "won" && (
-              <div className="dice-winburst" aria-hidden="true">
-                {Array.from({ length: 14 }).map((_, index) => (
-                  <span key={index} style={{ "--i": index } as CSSProperties} />
-                ))}
-              </div>
-            )}
-            <div
-              className={`dice-cube dice-cube--${stageState}${cubeIsPreview ? " dice-cube--preview" : ""}`}
-              role="img"
-              aria-label={
-                isResolving
-                  ? t("statusRolling")
-                  : cubeIsPreview
-                    ? `${t("youPicked")} ${cubeFace}`
-                    : `${t("rolledLabel")} ${cubeFace}`
-              }
-            >
-              {isResolving ? (
-                <span className="dice-cube__mark">?</span>
-              ) : (
-                <span className="dice-cube__pips" data-face={cubeFace}>
-                  {Array.from({ length: 9 }).map((_, cell) => (
-                    <span
-                      key={cell}
-                      className={`dice-cube__pip${cubePips.includes(cell) ? " is-on" : ""}`}
-                    />
-                  ))}
-                </span>
-              )}
-            </div>
+            <picture className="dice-stage__table" aria-hidden="true">
+              <source srcSet="./dice-stage.avif" type="image/avif" />
+              <source srcSet="./dice-stage.webp" type="image/webp" />
+              <img src="./dice-stage.jpg" alt="" decoding="async" />
+            </picture>
+            <DiceFaceImage
+              face={displayFace}
+              className={`dice-stage__die dice-stage__die--${stageState}${dieIsPreview ? " dice-stage__die--preview" : ""}`}
+              alt={stageDieLabel}
+            />
             <p className="dice-stage__caption" aria-live="polite">
-              {cubeIsPreview ? (
+              {dieIsPreview ? (
                 <>
-                  {t("youPicked")} <strong>{cubeFace}</strong>
+                  {t("youPicked")} <strong>{displayFace}</strong>
                 </>
               ) : showResult ? (
                 <>
-                  {t("rolledLabel")} <strong>{cubeFace}</strong>
+                  {t("rolledLabel")} <strong>{displayFace}</strong>
                 </>
               ) : (
                 <>
@@ -352,7 +345,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   disabled={isSubmitting}
                   onClick={() => setFaceInput(face)}
                 >
-                  {face}
+                  <DiceFaceImage face={face} className="dice-face-grid__die" alt="" />
+                  <span>{face}</span>
                 </button>
               ))}
             </div>
@@ -507,7 +501,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   className={`dice-history-row${item.outcome ? ` dice-history-row--${item.outcome}` : ""}`}
                   key={item.id ?? `${item.txid || item.at || item.face}-${item.result}`}
                 >
-                  <span>{item.face}</span>
+                  <span className="dice-history-row__face">
+                    <DiceFaceImage
+                      face={FACES.includes(item.face) ? item.face : "6"}
+                      className="dice-history-row__die"
+                      alt=""
+                    />
+                    <b>{item.face}</b>
+                  </span>
                   <strong>{item.result}</strong>
                   <em>{item.payout}</em>
                   {item.txid && <code>{formatHash(item.txid, 10, 8)}</code>}
