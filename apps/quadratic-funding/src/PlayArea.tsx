@@ -172,7 +172,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           )}
 
-          <div className="qf-action-tabs" role="tablist" aria-label={t("qfTabsLabel")}>
+          <div className="qf-action-tabs">
             {["rounds", "projects", "contribute"].map((tab) => (
               <NeoButton
                 key={tab}
