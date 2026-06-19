@@ -108,7 +108,7 @@ const NEP17_INPUT = {
 };
 
 describe("FactoryPlayArea", () => {
-  it("first paint shows a neutral Draft pill (never red Blocked) and localized select options", async () => {
+  it("first paint shows a neutral Draft pill and productized choice controls", async () => {
     const { FactoryPlayArea } = await loadFactoryModules();
     renderPlayArea(FactoryPlayArea as never, "nep17", buildState());
 
@@ -116,9 +116,35 @@ describe("FactoryPlayArea", () => {
     expect(pill?.textContent).toBe("Draft");
     expect(pill?.className).toContain("is-draft");
     expect(pill?.className).not.toContain("is-blocked");
-    expect(screen.getByText("Neo N3 Testnet")).toBeTruthy();
+    expect(document.querySelectorAll("select")).toHaveLength(0);
+    expect(document.querySelectorAll("input[type='checkbox']")).toHaveLength(0);
+    expect(screen.getByRole("radiogroup", { name: "Network" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Network: Neo N3 Testnet" }).getAttribute("aria-checked")).toBe("true");
     // The template artifact row is honest about not having a live read yet.
     expect(screen.getByText("Unverified")).toBeTruthy();
+  });
+
+  it("updates miniapp template cards and service switches without native form controls", async () => {
+    const { FactoryPlayArea } = await loadFactoryModules();
+    renderPlayArea(FactoryPlayArea as never, "miniapp", buildState());
+
+    const oracleTemplate = screen.getByRole("radio", {
+      name: "Template kind: Oracle console",
+    });
+    act(() => {
+      oracleTemplate.click();
+    });
+    expect(oracleTemplate.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getAllByText("Oracle console").length).toBeGreaterThan(0);
+
+    const oracleSwitch = screen.getByRole("switch", { name: "Needs oracle" });
+    expect(oracleSwitch.getAttribute("aria-checked")).toBe("false");
+    act(() => {
+      oracleSwitch.click();
+    });
+    expect(oracleSwitch.getAttribute("aria-checked")).toBe("true");
+    expect(document.querySelectorAll("select")).toHaveLength(0);
+    expect(document.querySelectorAll("input[type='checkbox']")).toHaveLength(0);
   });
 
   it("prefills the owner from the connected wallet and drops the blocking owner error", async () => {
