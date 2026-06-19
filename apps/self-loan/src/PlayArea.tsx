@@ -170,8 +170,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   /* ---------- Derived LTV ---------- */
   const ltvPct = selectedLtvPercent > 0 ? selectedLtvPercent : currentLTV;
+  // AA-compliant (>=4.5:1 on the light value chip) shades of the same
+  // green/amber/red risk semantics. The brighter brand tones (#16c784 / #f59e0b)
+  // failed WCAG contrast as foreground text.
   const ltvColor =
-    ltvPct <= 50 ? "#16c784" : ltvPct <= 75 ? "#f59e0b" : "#ef4444";
+    ltvPct <= 50 ? "#0a6e4a" : ltvPct <= 75 ? "#a15c07" : "#b91c1c";
 
   /* ---------- Expected borrow (collateral × LTV, net of origination fee) ---------- */
   const collateralNum = parseFloat(localCollateralAmt || collateralAmount);
