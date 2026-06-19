@@ -41,10 +41,9 @@
   flex: 0 0 46px;
 }
 
-/* Inputs: keep the Neo Soft focus ring. The shared default already tints it
-   with the app's accent (green), so no per-app color override is needed —
-   forcing a violet ring here would break the single-accent rule. */
-.console-tool__field select:focus-visible {
+/* Choice cards: keep the Neo Soft focus ring. The shared default already tints
+   it with the app's accent, so no per-app color override is needed. */
+.console-tool__choice-button:focus-visible {
   outline: none;
   box-shadow: var(--ns-focus-ring);
 }
