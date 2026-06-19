@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  NeoButton,
-  NeoCard,
-  NeoInput,
-  NeoSelect,
-} from "@shared/components-react";
+import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import type { Observable } from "@shared/react/context";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
@@ -710,79 +705,107 @@ export default function PlayArea({
           title={copy("createStream", "Create Stream")}
           className="shared-pay-card shared-pay-card--form"
         >
-          <div className="shared-pay-form">
-            <NeoInput
-              label={copy("vaultName", "Stream name")}
-              placeholder={copy("vaultNamePlaceholder", "Monthly payroll stream")}
-              value={title}
-              onChange={setTitle}
-            />
-            <NeoInput
-              label={copy("recipient", "Recipient Address")}
-              placeholder={copy("recipientPlaceholder", "N3 address...")}
-              value={recipient}
-              error={
-                recipientReady
-                  ? ""
-                  : copy("invalidAddress", "Enter a valid Neo N3 address")
-              }
-              required
-              onChange={setRecipient}
-            />
-            <NeoInput
-              label={copy("amount", "Amount")}
-              placeholder="0.00"
-              suffix={token}
-              type="number"
-              min={0}
-              value={amount}
-              error={
-                !amountTouched || amountReady
-                  ? ""
-                  : copy("invalidAmount", "Enter an amount")
-              }
-              required
-              onChange={(value) => {
-                setAmount(value);
-                setAmountTouched(true);
-              }}
-            />
-            <NeoInput
-              label={copy("duration", "Duration")}
-              placeholder={copy("durationPlaceholder", "Number of days")}
-              suffix={copy("days", "days")}
-              type="number"
-              min={1}
-              max={365}
-              value={duration}
-              error={
-                !durationTouched || durationReady
-                  ? ""
-                  : copy("intervalInvalid", "Use 1 to 365 days")
-              }
-              required
-              onChange={(value) => {
-                setDuration(value);
-                setDurationTouched(true);
-              }}
-            />
-            <NeoSelect
-              label={copy("token", "Token")}
-              value={token}
-              required
-              options={[
-                { value: "GAS", label: "GAS" },
-                { value: "NEO", label: "NEO" },
-              ]}
-              onChange={(value) => setToken(normalizeToken(value))}
-            />
-            <NeoInput
-              label={copy("notes", "Notes (optional)")}
-              placeholder={copy("notesPlaceholder", "Add context for the recipient")}
-              value={notes}
-              type="textarea"
-              onChange={setNotes}
-            />
+          <div className="shared-pay-composer">
+            <div className="shared-pay-composer__amount">
+              <span className="shared-pay-composer__label">
+                {copy("amount", "Amount")}
+              </span>
+              <NeoInput
+                placeholder="0.00"
+                suffix={token}
+                type="number"
+                min={0}
+                value={amount}
+                error={
+                  !amountTouched || amountReady
+                    ? ""
+                    : copy("invalidAmount", "Enter an amount")
+                }
+                required
+                aria-label={copy("amount", "Amount")}
+                onChange={(value) => {
+                  setAmount(value);
+                  setAmountTouched(true);
+                }}
+              />
+            </div>
+
+            <fieldset
+              className="shared-pay-asset-switch"
+              aria-label={copy("token", "Token")}
+            >
+              {(["GAS", "NEO"] as const).map((asset) => (
+                <button
+                  key={asset}
+                  type="button"
+                  className={token === asset ? "is-active" : undefined}
+                  aria-pressed={token === asset}
+                  onClick={() => setToken(asset)}
+                >
+                  <strong>{asset}</strong>
+                  <span>
+                    {asset === "GAS"
+                      ? copy("gasAssetHint", "Fees + streams")
+                      : copy("neoAssetHint", "Whole-token streams")}
+                  </span>
+                </button>
+              ))}
+            </fieldset>
+
+            <div className="shared-pay-form shared-pay-form--compact">
+              <NeoInput
+                label={copy("recipient", "Recipient Address")}
+                placeholder={copy("recipientPlaceholder", "N3 address...")}
+                value={recipient}
+                error={
+                  recipientReady
+                    ? ""
+                    : copy("invalidAddress", "Enter a valid Neo N3 address")
+                }
+                required
+                onChange={setRecipient}
+              />
+              <NeoInput
+                label={copy("duration", "Duration")}
+                placeholder={copy("durationPlaceholder", "Number of days")}
+                suffix={copy("days", "days")}
+                type="number"
+                min={1}
+                max={365}
+                value={duration}
+                error={
+                  !durationTouched || durationReady
+                    ? ""
+                    : copy("intervalInvalid", "Use 1 to 365 days")
+                }
+                required
+                onChange={(value) => {
+                  setDuration(value);
+                  setDurationTouched(true);
+                }}
+              />
+            </div>
+
+            <details
+              className="shared-pay-advanced"
+              open={title.trim().length > 0 || notes.trim().length > 0}
+            >
+              <summary>{copy("streamMetadata", "Stream details")}</summary>
+              <div className="shared-pay-form shared-pay-form--compact">
+                <NeoInput
+                  label={copy("vaultName", "Stream name")}
+                  placeholder={copy("vaultNamePlaceholder", "Monthly payroll stream")}
+                  value={title}
+                  onChange={setTitle}
+                />
+                <NeoInput
+                  label={copy("notes", "Notes (optional)")}
+                  placeholder={copy("notesPlaceholder", "Add context for the recipient")}
+                  value={notes}
+                  onChange={setNotes}
+                />
+              </div>
+            </details>
           </div>
 
           <div className="shared-pay-presets" aria-label="Stream presets">

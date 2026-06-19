@@ -172,6 +172,9 @@ const appMessages = {
   networkTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
   networkFee: { en: "Network fee", zh: "网络费" },
   networkFeeValue: { en: "Estimated in GAS at signing", zh: "签名时以 GAS 估算" },
+  streamMetadata: { en: "Stream details", zh: "资金流详情" },
+  gasAssetHint: { en: "Fees + streams", zh: "费用与支付" },
+  neoAssetHint: { en: "Whole-token streams", zh: "整数释放" },
   howItWorksTitle: { en: "How streaming payments work", zh: "流式支付如何工作" },
   howStep1: {
     en: "Set the recipient, amount, and duration above. GAS and NEO are supported.",

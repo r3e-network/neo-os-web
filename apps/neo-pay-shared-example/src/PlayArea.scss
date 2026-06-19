@@ -162,54 +162,173 @@
   min-width: 0;
 }
 
+.shared-pay-composer {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.shared-pay-composer__amount {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.95rem;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(180deg, rgba(22, 199, 132, 0.08), rgba(22, 199, 132, 0)),
+    var(--ns-surface-subtle, #f7f8fa);
+
+  .neo-input__wrapper {
+    min-height: 66px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .neo-input__field {
+    min-height: 66px;
+    padding: 0 0.15rem;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: clamp(2rem, 7vw, 3.15rem);
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  .neo-input__suffix {
+    padding-right: 0.2rem;
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 0.9rem;
+    font-weight: 900;
+  }
+}
+
+.shared-pay-composer__label {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.shared-pay-asset-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 58px;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+    border-radius: var(--ns-radius-md, 16px);
+    background: var(--ns-surface, #ffffff);
+    color: var(--ns-text-2, #5b6478);
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.15s ease;
+
+    strong {
+      color: var(--ns-ink, #1e1e2e);
+      font-size: 1rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+
+    span {
+      color: var(--ns-text-muted, #8a92a6);
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    &:hover {
+      transform: translateY(-1px);
+      border-color: rgba(22, 199, 132, 0.3);
+      box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+    }
+
+    &.is-active {
+      border-color: rgba(22, 199, 132, 0.44);
+      background: var(--ns-brand-soft, #e4f8f0);
+
+      strong,
+      span {
+        color: var(--ns-brand-strong, #0fb174);
+      }
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+    }
+  }
+}
+
 .shared-pay-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
+}
 
-  .neo-input:last-child {
-    grid-column: 1 / -1;
+.shared-pay-form--compact {
+  .neo-input__wrapper {
+    min-height: 48px;
   }
+}
 
-  // Neutralize the global `.neo-select` root styling (grey box + faint
-  // background-image chevron + off-palette green focus) that leaks onto the
-  // shared NeoSelect root div, leaving a single styled chevron.
-  .neo-select {
-    width: auto;
-    padding: 0;
-    background: none;
-    background-image: none;
-    border: none;
-    border-radius: 0;
-  }
+.shared-pay-advanced {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface, #ffffff);
 
-  // Remove the native browser arrow so only one custom chevron renders.
-  .neo-select__field {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    padding-right: 38px;
-    background-image: none;
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    padding: 0 0.9rem;
+    color: var(--ns-text-2, #5b6478);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 850;
+    list-style: none;
 
-    &::-ms-expand {
+    &::-webkit-details-marker {
       display: none;
     }
+
+    &::after {
+      content: "+";
+      color: var(--ns-brand-strong, #0fb174);
+      font-size: 1rem;
+      font-weight: 900;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+    }
   }
 
-  .neo-select__wrapper {
-    &::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      right: 16px;
-      width: 9px;
-      height: 9px;
-      border-right: 2px solid var(--ns-text-muted, #8a92a6);
-      border-bottom: 2px solid var(--ns-text-muted, #8a92a6);
-      border-radius: 1px;
-      transform: translateY(-65%) rotate(45deg);
-      pointer-events: none;
+  &[open] {
+    padding-bottom: 0.85rem;
+
+    summary::after {
+      content: "-";
     }
+  }
+
+  .shared-pay-form {
+    padding: 0 0.85rem;
   }
 }
 
