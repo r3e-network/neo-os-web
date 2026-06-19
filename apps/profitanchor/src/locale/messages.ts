@@ -176,6 +176,10 @@ const appMessages = {
     en: "Preview only — connect a wallet to stake.",
     zh: "仅为预览——请连接钱包后再质押。",
   },
+  statsAwaitConnect: {
+    en: "Your stake, rewards and rate appear here once you connect a wallet.",
+    zh: "连接钱包后，这里会显示你的质押、收益与利率。",
+  },
   wholeNeoHint: {
     en: "Whole NEO only — NEO is indivisible, no decimals.",
     zh: "仅限整数 NEO——NEO 不可分割，无小数。",
