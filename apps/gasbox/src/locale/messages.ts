@@ -211,6 +211,8 @@ const appMessages = {
     invalidNeoAmount: { en: "NEO prizes must be positive whole numbers (NEO is indivisible).", zh: "NEO 奖品必须是正整数（NEO 不可分割）。" },
     poolCannotCoverMaxPrize: { en: "The prize pool cannot cover the machine's largest prize. Fund more before activating.", zh: "奖池无法覆盖机器的最大奖品。请先补充奖池再激活。" },
     prizeAssetLabel: { en: "Prize Asset", zh: "奖品资产" },
+    prizeAssetGasHint: { en: "Decimal payouts for flexible prize amounts", zh: "支持小数发奖，适合灵活奖池" },
+    prizeAssetNeoHint: { en: "Whole-token prizes for simple fixed rewards", zh: "整数发奖，适合固定奖励" },
     weightLabel: { en: "Weight", zh: "权重" },
     weightPlaceholder: { en: "Weight", zh: "权重" },
     totalWeightLabel: { en: "Total Weight", zh: "总权重" },

@@ -92,6 +92,10 @@ function t(key: string, params?: Record<string, string | number>) {
     createMachineAction: "Create Machine",
     studioCloseAction: "Close Studio",
     itemNamePlaceholder: "Item Name",
+    prizeAssetLabel: "Prize Asset",
+    prizeAssetGasHint: "Decimal payouts for flexible prize amounts",
+    prizeAssetNeoHint: "Whole-token prizes for simple fixed rewards",
+    prizePerWinLabel: "Prize per win",
     addItem: "Add Item",
   };
   return messages[key] ?? key;
@@ -337,10 +341,32 @@ describe("GasBox PlayArea", () => {
       />,
     );
 
-    // The Studio form no longer renders a rarity <select> (it was a no-op).
-    expect(container.querySelector(".gasbox-studio-item select")).toBeNull();
+    // Studio now uses app-native picker cards instead of browser-native selects.
+    expect(container.querySelector("select")).toBeNull();
     // A read-only weight-derived tier preview is shown instead.
     expect(container.querySelector(".gasbox-derived-tier")).not.toBeNull();
     expect(screen.getByText("Tier")).toBeTruthy();
+  });
+
+  it("lets creators choose the prize asset with card radios and updates prize units", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({ studioOpen: true })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    const gas = screen.getByRole("radio", { name: "GAS Decimal payouts for flexible prize amounts" });
+    const neo = screen.getByRole("radio", { name: "NEO Whole-token prizes for simple fixed rewards" });
+    expect(gas.getAttribute("aria-checked")).toBe("true");
+    expect(neo.getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByText("Prize per win (GAS)")).toBeTruthy();
+
+    fireEvent.click(neo);
+
+    expect(gas.getAttribute("aria-checked")).toBe("false");
+    expect(neo.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByText("Prize per win (NEO)")).toBeTruthy();
   });
 });

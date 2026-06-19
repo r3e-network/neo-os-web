@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { Bot, Coins, Gem, Gift, LockKeyhole, Star, type LucideIcon } from "lucide-react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -45,6 +46,10 @@ interface StudioItem {
 
 const PRIZE_ASSET_OPTIONS = ["GAS", "NEO"] as const;
 type PrizeAsset = (typeof PRIZE_ASSET_OPTIONS)[number];
+const PRIZE_ASSET_META: Record<PrizeAsset, { icon: LucideIcon; hintKey: string }> = {
+  GAS: { icon: Coins, hintKey: "prizeAssetGasHint" },
+  NEO: { icon: Gem, hintKey: "prizeAssetNeoHint" },
+};
 
 const emptyStudioItem = (): StudioItem => ({
   name: "",
@@ -75,100 +80,50 @@ const formatPercent = (value: number, pendingLabel: string) => {
 };
 
 /**
- * Inline gachapon / blind-box mark — a capsule machine with a dispensed
- * capsule, in the Neo Soft line-icon style (single accent hue via
- * currentColor). Replaces the bare letter-"G" avatars that read as broken
- * image fallbacks.
+ * Gachapon / blind-box mark from the shared icon library. Replaces bare
+ * letter avatars without introducing handcrafted SVG art.
  */
 function GachaMark({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      width="24"
-      height="24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="4" y="3" width="16" height="13" rx="3" />
-      <path d="M4 9.5h16" />
-      <circle cx="9.5" cy="6.4" r="1.1" fill="currentColor" stroke="none" />
-      <circle cx="14.5" cy="6.4" r="1.1" fill="currentColor" stroke="none" />
-      <rect x="9" y="11.5" width="6" height="2.2" rx="1.1" />
-      <path d="M8 16v2.4a1.6 1.6 0 0 0 1.6 1.6h4.8a1.6 1.6 0 0 0 1.6-1.6V16" />
-      <circle cx="12" cy="20" r="1.4" />
-    </svg>
-  );
+  return <Bot className={className} aria-hidden="true" strokeWidth={1.8} />;
 }
 
 /**
- * Prize capsule mark — a single dispensed capsule with a shine, used for
- * machines that already advertise a top prize. Same currentColor accent so the
- * icon stays on a single hue.
+ * Prize mark from the shared icon library, used for machines that already
+ * advertise a top prize.
  */
 function PrizeMark({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      width="24"
-      height="24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M7 11a5 5 0 0 1 10 0v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z" />
-      <path d="M7 13h10" />
-      <path d="M10 8.5a3 3 0 0 1 2.6-1.4" opacity="0.6" />
-      <circle cx="12" cy="16" r="1.4" fill="currentColor" stroke="none" />
-    </svg>
-  );
+  return <Gift className={className} aria-hidden="true" strokeWidth={1.8} />;
 }
 
 /**
  * Small rarity gem/star badge. Legendary reads as a star; the lower tiers read
- * as a faceted gem. The tier colour class is applied to the <svg> itself (not a
- * wrapping li/span) so it sets the svg's own `color`, which `fill=currentColor`
- * then resolves — robust against host wrappers that force `li/span { color:
- * inherit }`. Decorative rarity art, off the single interactive accent.
+ * as a gem. The tier colour class is applied directly to the icon so it stays
+ * robust against host wrappers that force `li/span { color: inherit }`.
  */
 function RarityMark({ rarity, className }: { rarity?: string; className?: string }) {
   const tier = rarity?.toLowerCase();
   const cls = `${rarityClassName(rarity)}${className ? ` ${className}` : ""}`;
+  const Icon = tier === "legendary" ? Star : Gem;
   if (tier === "legendary") {
     return (
-      <svg
+      <Icon
         className={cls}
-        viewBox="0 0 24 24"
         width="14"
         height="14"
         fill="currentColor"
         aria-hidden="true"
-      >
-        <path d="M12 2.5l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3 9l6.1-.9z" />
-      </svg>
+        strokeWidth={1.8}
+      />
     );
   }
   return (
-    <svg
+    <Icon
       className={cls}
-      viewBox="0 0 24 24"
       width="14"
       height="14"
-      fill="currentColor"
       aria-hidden="true"
-    >
-      <path d="M7 3h10l4 6-9 12L3 9z" opacity="0.92" />
-      <path d="M3 9h18" stroke="#ffffff" strokeWidth="1" opacity="0.45" fill="none" />
-      <path d="M12 3l-2 6 2 12 2-12z" stroke="#ffffff" strokeWidth="1" opacity="0.35" fill="none" />
-    </svg>
+      strokeWidth={2}
+    />
   );
 }
 
@@ -484,10 +439,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="gasbox-teaser__capsule">
                 <GachaMark className="gasbox-teaser__mark" />
                 <span className="gasbox-teaser__lock">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="5" y="11" width="14" height="9" rx="2" />
-                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-                  </svg>
+                  <LockKeyhole aria-hidden="true" />
                 </span>
               </div>
               <ul className="gasbox-teaser__odds">
@@ -584,19 +536,36 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 onChange={(e) => setMachinePrice(e.target.value)}
               />
             </label>
-            <label className="gasbox-field gasbox-field--narrow">
+            <div className="gasbox-field gasbox-field--wide gasbox-prize-asset-field">
               <span>{t("prizeAssetLabel")}</span>
-              <select
-                value={prizeAsset}
-                onChange={(e) => setPrizeAsset(e.target.value as PrizeAsset)}
+              <div
+                className="gasbox-asset-choice-list"
+                role="radiogroup"
+                aria-label={t("prizeAssetLabel")}
               >
                 {PRIZE_ASSET_OPTIONS.map((asset) => (
-                  <option key={asset} value={asset}>
-                    {asset}
-                  </option>
+                  <button
+                    key={asset}
+                    type="button"
+                    className={`gasbox-asset-choice${prizeAsset === asset ? " is-selected" : ""}`}
+                    role="radio"
+                    aria-checked={prizeAsset === asset}
+                    onClick={() => setPrizeAsset(asset)}
+                  >
+                    <span className="gasbox-asset-choice__icon" aria-hidden="true">
+                      {(() => {
+                        const Icon = PRIZE_ASSET_META[asset].icon;
+                        return <Icon />;
+                      })()}
+                    </span>
+                    <span className="gasbox-asset-choice__copy">
+                      <strong>{asset}</strong>
+                      <span>{t(PRIZE_ASSET_META[asset].hintKey)}</span>
+                    </span>
+                  </button>
                 ))}
-              </select>
-            </label>
+              </div>
+            </div>
           </div>
 
           <div className="gasbox-studio-items">
