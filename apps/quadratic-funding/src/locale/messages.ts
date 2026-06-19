@@ -26,6 +26,14 @@ const appMessages = {
     en: "Create a GAS matching round or refresh the contract to load active community rounds.",
     zh: "创建一个 GAS 匹配轮次，或刷新合约读取进行中的社区轮次。",
   },
+  qfRoundsEmptyPreview: {
+    en: "Once a round exists, each card shows its title, matching pool, schedule and matched totals.",
+    zh: "轮次创建后，每张卡片会展示名称、匹配资金池、时间安排与匹配总额。",
+  },
+  qfMechanicExplainer: {
+    en: "Matching favors projects with more unique donors: 100 people giving 1 GAS each out-matches 1 person giving 100.",
+    zh: "匹配更青睐捐助者更广的项目：100 人各捐 1 GAS 获得的匹配，高于 1 人单独捐出 100。",
+  },
   qfNoProjectsTitle: { en: "No projects in this round", zh: "当前轮次暂无项目" },
   qfNoProjectsBody: {
     en: "Register a project with a concise mission and link before donors contribute.",
@@ -78,6 +86,11 @@ const appMessages = {
   roundStartPlaceholder: { en: "2025-06-01 09:00", zh: "2025-06-01 09:00" },
   roundEnd: { en: "End time", zh: "结束时间" },
   roundEndPlaceholder: { en: "2025-06-30 18:00", zh: "2025-06-30 18:00" },
+  roundDateFormat: { en: "YYYY-MM-DD HH:mm", zh: "YYYY-MM-DD HH:mm" },
+  roundDateFormatHint: {
+    en: "Local time, e.g. 2026-09-01 09:00",
+    zh: "本地时间，例如 2026-09-01 09:00",
+  },
 
   createRound: { en: "Create Round", zh: "创建轮次" },
   creatingRound: { en: "Creating...", zh: "创建中..." },

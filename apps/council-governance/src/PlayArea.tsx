@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -150,6 +150,26 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
   const historyProposals = val<Proposal[]>("historyProposals", []) ?? [];
   const hasVotedMap = val<Record<number, boolean>>("hasVotedMap", {}) ?? {};
 
+  // The board settles into an empty/connect state — the skeleton is shown ONLY
+  // during the very first read, never as a terminal state. Once that first read
+  // resolves (with or without data, with or without a wallet), the empty
+  // archetype state with its visible primary action takes over so a viewer can
+  // always tell "no proposals yet" from "still loading".
+  const hasResolvedRef = useRef(false);
+  if (!isLoading) hasResolvedRef.current = true;
+  // Display-only safety net: if the first read is still in flight after a short
+  // window (e.g. no reachable RPC in a standalone preview), settle the board to
+  // its empty/connect state instead of holding the skeleton indefinitely. This
+  // never mutates load state or dispatch — it only stops the skeleton from being
+  // the terminal impression.
+  const [settleTimedOut, setSettleTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isLoading || hasResolvedRef.current) return;
+    const timer = window.setTimeout(() => setSettleTimedOut(true), 2500);
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
+  const isFirstLoad = isLoading && !hasResolvedRef.current && !settleTimedOut;
+
   const [tab, setTab] = useState<"active" | "create" | "history">("active");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
@@ -170,6 +190,21 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
   const statusLabel = (proposal: Proposal) => {
     const key = proposal.statusKey || "pending";
     return t(key);
+  };
+
+  // User-initiated refresh from the settled empty state. Uses a local flag so
+  // the affordance shows a brief, self-resolving spinner on click and otherwise
+  // stays a clearly-labeled "Refresh" button — never a perpetual loader tied to
+  // an in-flight read that may not resolve in a standalone preview.
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await retryLoad();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const openDetails = async (proposal: Proposal) => {
@@ -242,7 +277,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <h2>{t("title")}</h2>
             <p className="council-hero-sub">{t("governanceSummary")}</p>
           </div>
-          <NeoButton variant="ghost" size="sm" className="council-refresh" disabled={isLoading} onClick={() => retryLoad()}>
+          <NeoButton variant="ghost" size="sm" className="council-refresh" loading={isRefreshing} disabled={isRefreshing} onClick={handleRefresh}>
             {t("refresh")}
           </NeoButton>
         </div>
@@ -263,19 +298,12 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
           <div className="council-stat council-stat--seat">
             <span>
               {!walletAddress || !candidateLoaded
-                ? "—"
+                ? t("seatNotConnected")
                 : isCandidate
                   ? t("seatVerified")
                   : t("seatReadOnly")}
             </span>
             <label>{t("councilSeat")}</label>
-            <small className="council-stat-caption">
-              {!walletAddress || !candidateLoaded
-                ? t("seatCaptionConnect")
-                : isCandidate
-                  ? t("seatCaptionVerified")
-                  : t("seatCaptionReadOnly")}
-            </small>
           </div>
         </div>
       </section>
@@ -391,7 +419,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
         </NeoCard>
       ) : (
         <section className="council-board">
-          {isLoading ? (
+          {isFirstLoad ? (
             <div
               className="council-loading"
               role="status"
@@ -422,6 +450,26 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <div className="council-empty">
               <h3>{tab === "active" ? t("noActiveProposals") : t("noHistory")}</h3>
               <p>{t("emptyProposalHelp")}</p>
+              <div className="council-empty-actions">
+                {tab === "active" && (
+                  <NeoButton
+                    variant="primary"
+                    size="md"
+                    onClick={() => setTab("create")}
+                  >
+                    {t("createProposal")}
+                  </NeoButton>
+                )}
+                <NeoButton
+                  variant="ghost"
+                  size="md"
+                  loading={isRefreshing}
+                  disabled={isRefreshing}
+                  onClick={handleRefresh}
+                >
+                  {t("refresh")}
+                </NeoButton>
+              </div>
             </div>
           ) : (
             <div className="council-proposal-list">

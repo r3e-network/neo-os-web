@@ -166,6 +166,10 @@ title: { en: "Council Governance", zh: "议会治理" },
   councilSeat: { en: "Council Seat", zh: "议会席位" },
   seatVerified: { en: "Verified", zh: "已验证" },
   seatReadOnly: { en: "Read-only", zh: "只读" },
+  // Short status word for the Council Seat tile when no wallet is connected. The
+  // full "connect a council wallet" guidance lives once in the access banner, so
+  // the tile stays a clean single-word status like the other stat tiles.
+  seatNotConnected: { en: "Not connected", zh: "未连接" },
   // Council size used as the quorum denominator when the contract returns none.
   councilOf21: { en: "Council of 21", zh: "21 人议会" },
   tokenNeo: { en: "NEO", zh: "NEO" },

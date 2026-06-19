@@ -72,6 +72,66 @@ $amber: #f59e0b;
   display: none !important;
 }
 
+/* ============================================================
+ *  Upper region two-column grid
+ *  Hero + week strip (left) sit beside the primary action card
+ *  (right) on desktop so the Check In action is above the fold
+ *  and the wide hero no longer reads as thin-and-stretched. The
+ *  left column is wider; the action rail is a fixed, comfortable
+ *  width. Collapses to a single stack on narrow screens.
+ * ============================================================ */
+
+.checkin-top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.checkin-top-left,
+.checkin-top-right {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  align-content: start;
+}
+
+/* The action rail stretches to the top of the column so the primary CTA is
+   vertically anchored beside the hero rather than floating. */
+.checkin-top-right .checkin-action-card {
+  align-self: start;
+}
+
+/* In the narrow desktop action rail the Claim + Refresh row would wrap awkwardly
+   two-up; stack them so each reads as a clean full-width peer under the primary
+   Check In. The single-column grid collapse below 720px keeps the wider layout. */
+@media (min-width: 721px) {
+  .checkin-top-right .checkin-actions-secondary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .checkin-top-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* One-line connect prompt inside the action card — co-locates the invite with
+   the operable Refresh/retry action so the next step is clear from where the
+   primary CTA lives, not only as a hero badge. */
+.checkin-connect-hint {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: $ac-soft;
+  border: 1px solid $ac-border;
+  color: $ac-strong;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .action-card {
   padding: 0 !important;
   background: transparent !important;
@@ -146,7 +206,10 @@ $amber: #f59e0b;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding-right: 150px;
+  /* Reserve only enough room for the top-right status/best chips so the
+     ring + streak cluster stays together on the left instead of being
+     pushed to the opposite edge of a stretched hero. */
+  padding-right: 112px;
 }
 
 .checkin-hero-eyebrow {

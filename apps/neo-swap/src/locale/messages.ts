@@ -153,6 +153,24 @@ title: { en: "Neo Swap — live NEO/GAS rate & trade preview", zh: "Neo 兑换 �
   routeLabel: { en: "Route", zh: "路由" },
   routeDirectValue: { en: "Direct {pair}", zh: "直接 {pair}" },
 
+  // -- Quote-only "live price preview" focus (no router deployed) -------------
+  // When settlement is unavailable, quoting is the real capability — these lead
+  // the screen so the price is the focus instead of five disabled signals.
+  pricePreviewTitle: { en: "Live price preview", zh: "实时价格预览" },
+  pricePreviewBody: {
+    en: "On-chain settlement is not enabled on this network yet, so this is a planning quote. Settle in your wallet or a DEX when a route is available.",
+    zh: "本网络尚未启用链上结算，因此这是规划报价。待路由可用后，请在您的钱包或 DEX 中结算。",
+  },
+  pricePreviewRate: { en: "1 {from} buys", zh: "1 {from} 兑换" },
+  pricePreviewAwaiting: { en: "Refresh to load the live rate", zh: "刷新以加载实时汇率" },
+  // Disclosure that folds the full From/To/slippage apparatus away until a route
+  // exists, keeping the preview compact.
+  setupTradeSummary: { en: "Set up the trade (settles when a route is enabled)", zh: "设置交易（路由启用后可结算）" },
+  // Collapsible wrapper for the four transaction-detail rows, to cut first-screen density.
+  txDetailsSummary: { en: "Transaction details", zh: "交易详情" },
+  // Read-only output relabel so it reads as a result, not a dead input.
+  receiveEstimated: { en: "You receive (estimated)", zh: "您将收到（预估）" },
+
   // -- Disconnected / how-it-works empty state -------------------------------
   introHeading: { en: "Preview a NEO ↔ GAS trade before you sign", zh: "签名前预览 NEO ↔ GAS 兑换" },
   introBody: {
