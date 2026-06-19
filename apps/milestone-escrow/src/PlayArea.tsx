@@ -11,6 +11,7 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import MilestoneHero from "./components/MilestoneHero";
 import EscrowBody from "./components/EscrowBody";
+import EscrowExplainer from "./components/EscrowExplainer";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -152,6 +153,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         totalEscrows={totalEscrows}
       />
 
+      {/* Before a wallet is connected (or when the contract isn't configured on
+          the active network) show the explanatory how-it-works panel with a
+          sample escrow and a clear next step — never an inert/jargon card. */}
+      {!(hasAddress && contractReady) && (
+        <EscrowExplainer
+          t={t}
+          mode={!hasAddress ? "connect" : "unsupported"}
+          onConnectWallet={() => dispatch("connectWallet")}
+        />
+      )}
+
       {/* Primary action — surfaced immediately after the hero. */}
       {hasAddress && contractReady && (
         <>
@@ -236,26 +248,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </>
       )}
 
-      {/* Escrow List */}
-      <EscrowBody
-        t={t}
-        contractReady={contractReady}
-        isRefreshing={isRefreshing}
-        hasAddress={hasAddress}
-        creatorEscrows={creatorEscrows}
-        beneficiaryEscrows={beneficiaryEscrows}
-        approvingId={approvingId}
-        cancellingId={cancellingId}
-        claimingId={claimingId}
-        statusLabelFunc={statusLabelFunc}
-        formatAmountFunc={formatAmountFunc}
-        formatAddressFunc={formatAddressFunc}
-        onRefresh={() => dispatch("refreshEscrows")}
-        onConnectWallet={() => dispatch("connectWallet")}
-        onApprove={(e: unknown) => dispatch("approveMilestone", e)}
-        onCancel={(e: unknown) => dispatch("cancelEscrow", e)}
-        onClaim={(e: unknown) => dispatch("claimMilestone", e)}
-      />
+      {/* Live escrow ledger — only once a wallet is connected and the contract
+          is configured; otherwise the explainer above carries the empty state. */}
+      {hasAddress && contractReady && (
+        <EscrowBody
+          t={t}
+          contractReady={contractReady}
+          isRefreshing={isRefreshing}
+          hasAddress={hasAddress}
+          creatorEscrows={creatorEscrows}
+          beneficiaryEscrows={beneficiaryEscrows}
+          approvingId={approvingId}
+          cancellingId={cancellingId}
+          claimingId={claimingId}
+          statusLabelFunc={statusLabelFunc}
+          formatAmountFunc={formatAmountFunc}
+          formatAddressFunc={formatAddressFunc}
+          onRefresh={() => dispatch("refreshEscrows")}
+          onConnectWallet={() => dispatch("connectWallet")}
+          onApprove={(e: unknown) => dispatch("approveMilestone", e)}
+          onCancel={(e: unknown) => dispatch("cancelEscrow", e)}
+          onClaim={(e: unknown) => dispatch("claimMilestone", e)}
+        />
+      )}
     </div>
   );
 }

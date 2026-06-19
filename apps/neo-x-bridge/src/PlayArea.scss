@@ -64,10 +64,9 @@
 }
 
 .bridge-route-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: center;
   min-height: 132px;
   padding: 16px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -76,13 +75,29 @@
   color: var(--ns-ink, #1e1e2e);
 }
 
-.bridge-route-card > svg {
+.bridge-route-card__title {
   color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bridge-route-card__flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+}
+
+.bridge-route-card__flow > svg {
+  color: var(--ns-brand-strong, #0fb174);
 }
 
 .route-node {
   min-width: 0;
-  padding: 14px;
+  padding: 12px 14px;
   border-radius: 14px;
   background: var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
@@ -94,7 +109,16 @@
   overflow-wrap: anywhere;
 }
 
-.route-node span {
+.route-node__role {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.route-node__chain {
+  margin-top: 3px;
   color: var(--ns-ink, #1e1e2e);
   font-weight: 800;
   font-size: 15px;
@@ -234,8 +258,103 @@
 .bridge-field-wide,
 .bridge-action-preview,
 .bridge-action-feedback,
+.bridge-costs,
+.bridge-gate-hint,
 .bridge-form-grid > .neo-btn {
   grid-column: 1 / -1;
+}
+
+.bridge-amount-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bridge-asset-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.bridge-asset-chip {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 177, 116, 0.22);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: #0b6f69;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.bridge-costs {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.bridge-costs__title {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bridge-costs__rows {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.bridge-costs__rows > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.bridge-costs__rows dt {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.bridge-costs__rows dd {
+  margin: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.bridge-costs__footnote {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.bridge-gate-hint {
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
 }
 
 // Keep the gated primary CTA recognizable as the brand pill — soft-tinted
@@ -598,10 +717,20 @@
     flex: 1 1 0;
   }
 
-  .bridge-route-card,
+  .bridge-route-card__flow,
   .bridge-form-grid,
   .bridge-action-preview {
     grid-template-columns: 1fr;
+  }
+
+  .bridge-route-card__flow > svg {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+
+  .bridge-costs__rows {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .bridge-metrics-strip {

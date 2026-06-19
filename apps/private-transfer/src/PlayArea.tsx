@@ -51,6 +51,17 @@ const DECIMAL_PATTERN = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
 const isValidNeoAddress = (value: string) =>
   NEO_ADDRESS_PATTERN.test(value.trim());
 
+// Render a Neo N3 address as a short, scannable head…tail form for the confirm
+// summary so the user can verify the recipient at a glance without horizontal
+// scrolling. The full value is still validated and sealed verbatim.
+function shortAddress(value: string) {
+  const trimmed = value.trim();
+  if (trimmed.length <= 14) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, 8)}…${trimmed.slice(-6)}`;
+}
+
 function isPositiveAmount(value: string, asset = "GAS") {
   const trimmed = value.trim();
   // Reject scientific/hex/whitespace/leading-dot strings up front so a value
@@ -273,6 +284,15 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
   const canSeal =
     isValidNeoAddress(recipient) && isPositiveAmount(amount, asset);
 
+  // When the selected lane is degraded but the other lane reports live, offer a
+  // one-tap switch so the default-path user is not dead-ended on the paused
+  // network. Only surfaces once both health probes have resolved.
+  const otherNetwork: "testnet" | "mainnet" =
+    network === "mainnet" ? "testnet" : "mainnet";
+  const showLiveSwitch =
+    networkHealth[network] === "degraded" &&
+    networkHealth[otherNetwork] === "live";
+
   const sealTransfer = useCallback(async () => {
     if (!canSeal) {
       const message = t("errorMissingInputs");
@@ -434,11 +454,7 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
         </div>
       </section>
 
-      <section
-        className={`private-transfer__grid${
-          sealed ? "" : " private-transfer__grid--solo"
-        }`}
-      >
+      <section className="private-transfer__grid">
         <div className="private-transfer__panel">
           <div className="private-transfer__form-grid">
             <label>
@@ -464,9 +480,25 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
                 })}
               </select>
               {networkHealth[network] === "degraded" && (
-                <small className="private-transfer__network-hint" role="status">
-                  {t("networkDegradedHint")}
-                </small>
+                <div className="private-transfer__network-alert" role="status">
+                  <small className="private-transfer__network-hint">
+                    {t("networkDegradedHint")}
+                  </small>
+                  {showLiveSwitch && (
+                    <button
+                      type="button"
+                      className="private-transfer__network-switch"
+                      onClick={() => handleNetworkChange(otherNetwork)}
+                      aria-label={t("networkSwitchAria", {
+                        network: networkLabelFor(otherNetwork),
+                      })}
+                    >
+                      {t("networkSwitchCta", {
+                        network: networkLabelFor(otherNetwork),
+                      })}
+                    </button>
+                  )}
+                </div>
               )}
             </label>
             <label>
@@ -503,9 +535,13 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
                 aria-invalid={amountInvalid || undefined}
                 onChange={(event) => setAmount(event.target.value)}
               />
-              {amountInvalid && (
+              {amountInvalid ? (
                 <small className="private-transfer__field-error">
                   {isNeo ? t("errorInvalidNeoAmount") : t("errorInvalidAmount")}
+                </small>
+              ) : (
+                <small className="private-transfer__field-hint">
+                  {isNeo ? t("amountHintNeo") : t("amountHintGas")}
                 </small>
               )}
               <div
@@ -527,7 +563,12 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
               </div>
             </label>
             <label className="private-transfer__wide">
-              <span>{t("formMemoLabel")}</span>
+              <span className="private-transfer__label-row">
+                {t("formMemoLabel")}
+                <em className="private-transfer__label-optional">
+                  {t("formMemoOptional")}
+                </em>
+              </span>
               <input
                 value={memo}
                 maxLength={MEMO_MAX_LENGTH}
@@ -543,7 +584,38 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
               </small>
             </label>
           </div>
-          {!canSeal && (
+          {canSeal ? (
+            <div className="private-transfer__summary" role="group">
+              <span className="private-transfer__summary-title">
+                {t("summaryTitle")}
+              </span>
+              <dl className="private-transfer__summary-grid">
+                <div>
+                  <dt>{t("summaryRecipient")}</dt>
+                  <dd title={recipient.trim()}>{shortAddress(recipient)}</dd>
+                </div>
+                <div>
+                  <dt>{t("summaryAmount")}</dt>
+                  <dd className="private-transfer__summary-amount">
+                    {t("summaryAmountValue", {
+                      amount: normalizeAmount(amount, asset),
+                      asset,
+                    })}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t("summaryNetwork")}</dt>
+                  <dd>{networkLabelFor(network)}</dd>
+                </div>
+                <div>
+                  <dt>{t("summaryEncryption")}</dt>
+                  <dd className="private-transfer__summary-algo">
+                    {MORPHEUS_ENCRYPTION_ALGORITHM}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ) : (
             <div className="private-transfer__validation" role="status">
               {t("validationHint")}
             </div>
@@ -565,6 +637,57 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
             {submitState.status === "sealing" ? t("sealing") : t("sealButton")}
           </button>
         </div>
+
+        {!sealed && (
+        <aside className="private-transfer__intro">
+          <div className="private-transfer__intro-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              <circle cx="12" cy="16" r="1" />
+            </svg>
+          </div>
+          <strong className="private-transfer__intro-title">
+            {t("introTitle")}
+          </strong>
+          <p className="private-transfer__intro-body">{t("introBody")}</p>
+          <ul className="private-transfer__intro-points">
+            {(
+              [
+                [t("introPointLocal"), t("introPointLocalDesc")],
+                [t("introPointTee"), t("introPointTeeDesc")],
+                [t("introPointNoFunds"), t("introPointNoFundsDesc")],
+              ] as const
+            ).map(([title, desc]) => (
+              <li key={title}>
+                <span aria-hidden="true" className="private-transfer__intro-tick">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m5 12 5 5 9-11" />
+                  </svg>
+                </span>
+                <div>
+                  <strong>{title}</strong>
+                  <span>{desc}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </aside>
+        )}
 
         {sealed && (
         <aside

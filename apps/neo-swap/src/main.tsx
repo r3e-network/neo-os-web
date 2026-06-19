@@ -27,11 +27,18 @@ defineMiniApp({
       t: ctx.t,
     });
 
+    ctx.registerAction("connectWallet", async () => {
+      await notify.guard(async () => {
+        await ctx.services.chain.ensureWallet();
+        await swap.refreshBalances();
+      });
+    });
     ctx.registerAction("executeSwap", async () => {
       await notify.guard(() => swap.executeSwap(), "swapSuccess");
     });
     ctx.registerAction("swapTokens", async () => { swap.swapTokens(); });
     ctx.registerAction("setFromAmount", async (value: unknown) => { swap.setFromAmount(String(value ?? "")); });
+    ctx.registerAction("setSlippage", async (value: unknown) => { swap.setSlippage(value as string | number); });
     ctx.registerAction("setMaxAmount", async () => { swap.setMaxAmount(); });
     ctx.registerAction("refreshRate", async () => { await swap.loadExchangeRate(); });
     ctx.registerAction("openFromSelector", async () => { swap.openFromSelector(); });
@@ -75,6 +82,7 @@ defineMiniApp({
         canSwap: swap.canSwap,
         swapButtonText: swap.swapButtonText,
         slippage: swap.slippage,
+        slippageValue: swap.slippageValue,
         minReceived: swap.minReceived,
         selectedPairDisplay: swap.selectedPairDisplay,
         pairCount: swap.pairCount,

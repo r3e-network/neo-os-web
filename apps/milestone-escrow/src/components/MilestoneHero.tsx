@@ -29,21 +29,25 @@ export default function MilestoneHero({ t, progressPercent, checkpoints, hasEscr
       </div>
 
       {/* Boxed stat tiles — always present so the hero carries weight even
-          before any escrow exists ("—" placeholders avoid an error-like 0). */}
+          before any escrow exists ("—" placeholders avoid an error-like 0).
+          Each tile carries a sublabel that says exactly what it counts. */}
       <div className="hero-stats" role="group" aria-label={t("escrowsTab")}>
         <div className="hero-stat" style={{ "--i": "0" } as CSSProperties}>
           <span className={`hero-stat-value${hasEscrows ? "" : " hero-stat-value--empty"}`}>{hasEscrows ? totalEscrows : "—"}</span>
           <span className="hero-stat-label">{t("escrowsTab")}</span>
+          <span className="hero-stat-hint">{t("statHintEscrows")}</span>
         </div>
         <span className="hero-stat-divider" aria-hidden="true" />
         <div className="hero-stat" style={{ "--i": "1" } as CSSProperties}>
           <span className={`hero-stat-value${hasEscrows ? "" : " hero-stat-value--empty"}`}>{hasEscrows ? activeCount : "—"}</span>
           <span className="hero-stat-label">{t("statusActive")}</span>
+          <span className="hero-stat-hint">{t("statHintActive")}</span>
         </div>
         <span className="hero-stat-divider" aria-hidden="true" />
         <div className="hero-stat" style={{ "--i": "2" } as CSSProperties}>
           <span className={`hero-stat-value${hasEscrows ? "" : " hero-stat-value--empty"}`}>{hasEscrows ? completedCount : "—"}</span>
           <span className="hero-stat-label">{t("statusCompleted")}</span>
+          <span className="hero-stat-hint">{t("statHintCompleted")}</span>
         </div>
       </div>
 

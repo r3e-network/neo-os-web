@@ -126,6 +126,46 @@ title: { en: "Neo Swap — live NEO/GAS rate & trade preview", zh: "Neo 兑换 �
     en: "Rate via Morpheus data feed, as of {time} — may be out of date",
     zh: "汇率来自 Morpheus 数据源，截至 {time} — 可能已过期",
   },
+
+  // -- Interactive slippage control -----------------------------------------
+  slippageHint: {
+    en: "Your trade reverts if you receive less than the minimum below.",
+    zh: "若实际收到低于下方的最少数量，您的交易将回滚。",
+  },
+  slippageCustom: { en: "Custom", zh: "自定义" },
+  slippageCustomLabel: { en: "Custom slippage in percent", zh: "自定义滑点（百分比）" },
+  slippagePreset: { en: "Set slippage to {pct}", zh: "将滑点设为 {pct}" },
+  slippageHigh: {
+    en: "High slippage — you may receive notably less than quoted.",
+    zh: "滑点较高 — 实际收到可能明显少于报价。",
+  },
+
+  // -- Quote / preview transparency ------------------------------------------
+  pricePreviewOnly: {
+    en: "Preview only — review every figure in your wallet before you sign.",
+    zh: "仅为预览 — 签名前请在钱包中核对每一项数据。",
+  },
+  estSettlement: { en: "Est. settlement", zh: "预计结算" },
+  estSettlementValue: { en: "~15s after wallet confirmation", zh: "钱包确认后约 15 秒" },
+  networkFeeLabel: { en: "Network fee", zh: "网络手续费" },
+  networkFeeValue: { en: "Paid in GAS at signing", zh: "签名时以 GAS 支付" },
+  networkLabel: { en: "Network", zh: "网络" },
+  routeLabel: { en: "Route", zh: "路由" },
+  routeDirectValue: { en: "Direct {pair}", zh: "直接 {pair}" },
+
+  // -- Disconnected / how-it-works empty state -------------------------------
+  introHeading: { en: "Preview a NEO ↔ GAS trade before you sign", zh: "签名前预览 NEO ↔ GAS 兑换" },
+  introBody: {
+    en: "Connect your Neo wallet to see your balances, the live cross-rate, your slippage, and the exact minimum you would receive — no transaction is sent until you confirm in your wallet.",
+    zh: "连接您的 Neo 钱包，即可查看余额、实时交叉汇率、滑点以及您将收到的精确最少数量 — 在钱包确认前不会发送任何交易。",
+  },
+  introStepRate: { en: "Live cross-rate", zh: "实时交叉汇率" },
+  introStepRateBody: { en: "Pulled from the Morpheus data feed, timestamped so you know how fresh it is.", zh: "来自 Morpheus 数据源，带时间戳以便您了解数据新鲜度。" },
+  introStepSlippage: { en: "Adjustable slippage", zh: "可调滑点" },
+  introStepSlippageBody: { en: "Pick your tolerance; the minimum received updates instantly.", zh: "选择您的容差，最少收到数量会即时更新。" },
+  introStepSettle: { en: "Settle in your wallet", zh: "在钱包中结算" },
+  introStepSettleBody: { en: "You review the amount, asset, and network before signing.", zh: "您在签名前核对数量、资产和网络。" },
+  connectToPreview: { en: "Connect wallet to preview", zh: "连接钱包以预览" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
