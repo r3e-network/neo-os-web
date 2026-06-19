@@ -184,6 +184,24 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   line-height: 1.5;
 }
 
+// Collect-tips row: public-capsule owners pull their accrued 0.05 GAS fishing
+// tips here (the contract holds them in a separate ledger, no balance getter).
+.capsule-collect-tips {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+
+  .capsule-fish-note {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 // Reusable deposit-credit recovery banner — money-in always has a money-out.
 // A 0.2 GAS deposit that landed but whose bury never completed surfaces here as
 // a withdrawable balance (reused on the next bury, or reclaimed to the wallet).

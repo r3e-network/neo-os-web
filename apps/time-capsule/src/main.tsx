@@ -70,6 +70,15 @@ defineMiniApp({
       });
     });
 
+    // withdrawFishRevenue (collect tips) emits its own dynamic success /
+    // "no tips" toast — the money-out path for fishing tips accrued on the
+    // owner's public capsules.
+    ctx.registerAction("withdrawFishRevenue", async () => {
+      await capsule.withdrawFishRevenue().catch(() => {
+        /* toast already surfaced inside the composable */
+      });
+    });
+
     return {
       state: {
         address: ctx.services.chain.address,
