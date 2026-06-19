@@ -56,7 +56,8 @@
 
     &--neo {
       background: var(--ns-brand-soft, #e4f8f0);
-      color: var(--ns-brand-strong, #0fb174);
+      // AA: #0fb174 on the soft-green tag is ~2.5:1; deep brand is ~7:1.
+      color: var(--ns-brand-deep, #0b5e3e);
     }
 
     &--gas {

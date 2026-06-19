@@ -339,17 +339,19 @@
 
 /* Single filled primary CTA */
 .custom-anchor-button--primary {
-  border-color: var(--ns-brand, #16c784);
-  background: var(--ns-brand, #16c784);
+  // AA: white-on-#16c784 is ~2.2:1. Use the darker brand green (#0a8050 =
+  // 4.98:1, hover #086a45); the bright token stays as the decorative accent.
+  border-color: #0a8050;
+  background: #0a8050;
   color: #fff;
-  box-shadow: 0 10px 24px -14px rgba(22, 199, 132, 0.8);
+  box-shadow: 0 10px 24px -14px rgba(10, 128, 80, 0.8);
 }
 
 .custom-anchor-button--primary:hover:not(:disabled) {
-  background: var(--ns-brand-strong, #0fb174);
+  background: #086a45;
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 14px 28px -14px rgba(22, 199, 132, 0.9);
+  box-shadow: 0 14px 28px -14px rgba(10, 128, 80, 0.9);
 }
 
 /* Soft-tinted disabled — preserve affordance instead of flat grey */

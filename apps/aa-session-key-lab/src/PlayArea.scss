@@ -719,14 +719,16 @@
 /* Danger Revoke: a semantic destructive tone (red outline/text), not a second
    brand accent — the single green accent stays for chrome + the primary CTA. */
 .session-play-area .neo-btn--danger {
-  border: 1px solid var(--ns-danger, #d64545) !important;
+  // AA: --ns-danger (#ea3943) as ghost-button text on white is ~4.1:1; the
+  // deeper #d4202a clears 5.2:1 while staying an unmistakable danger red.
+  border: 1px solid #d4202a !important;
   background: transparent !important;
-  color: var(--ns-danger, #d64545) !important;
+  color: #d4202a !important;
   box-shadow: none !important;
 }
 
 .session-play-area .neo-btn--danger:hover:not(:disabled) {
-  background: rgba(214, 69, 69, 0.08) !important;
+  background: rgba(212, 32, 42, 0.08) !important;
 }
 
 /* Disabled danger keeps a muted red outline instead of the green soft fill the

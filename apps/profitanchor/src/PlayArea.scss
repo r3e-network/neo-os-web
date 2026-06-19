@@ -650,13 +650,15 @@ body {
 /* Primary: stake — the single dominant action, full-width brand green */
 .anchor-action-button--primary {
   width: 100%;
-  background: var(--ns-brand, #16c784);
+  // AA: white-on-#16c784 is ~2.2:1. The stake CTA uses the darker brand green
+  // (#0a8050 = 4.98:1, hover #086a45).
+  background: #0a8050;
   color: #ffffff;
-  box-shadow: var(--ns-glow-brand, 0 8px 24px rgba(22, 199, 132, 0.2));
+  box-shadow: 0 8px 24px rgba(10, 128, 80, 0.2);
 }
 
 .anchor-action-button--primary:hover:not(:disabled) {
-  background: var(--ns-brand-strong, #0fb174);
+  background: #086a45;
   transform: translateY(-1px);
 }
 

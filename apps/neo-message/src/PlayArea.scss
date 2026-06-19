@@ -16,12 +16,14 @@ $accent-soft: #eef0fe;
   color: var(--ns-text, #2a2d3d);
 
   .neo-btn--primary:not(:disabled) {
-    background: $accent;
-    box-shadow: 0 2px 10px rgba(91, 110, 245, 0.28);
+    // AA: white-on-#5b6ef5 is ~4.2:1 (just under). Use the deeper indigo
+    // ($accent-strong #4453d6 = 6.08:1, hover #3949c0); $accent stays for accents.
+    background: $accent-strong;
+    box-shadow: 0 2px 10px rgba(68, 83, 214, 0.28);
 
     &:hover:not(:disabled) {
-      background: $accent-strong;
-      box-shadow: 0 4px 16px rgba(91, 110, 245, 0.32);
+      background: #3949c0;
+      box-shadow: 0 4px 16px rgba(68, 83, 214, 0.32);
     }
   }
 

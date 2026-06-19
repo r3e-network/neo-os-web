@@ -51,7 +51,7 @@ body {
     border: none;
     border-radius: 0;
     background: transparent;
-    color: var(--ns-brand-strong, #0fb174);
+    color: var(--ns-brand-deep, #0b5e3e);
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
@@ -132,7 +132,7 @@ body {
   padding: 4px 11px;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
@@ -191,7 +191,7 @@ body {
     height: 30px;
     border-radius: 999px;
     background: var(--ns-brand-soft, #e4f8f0);
-    color: var(--ns-brand-strong, #0fb174);
+    color: var(--ns-brand-deep, #0b5e3e);
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.04em;
@@ -305,7 +305,7 @@ body {
     border-color: rgba(15, 177, 116, 0.18);
 
     strong {
-      color: var(--ns-brand-strong, #0fb174);
+      color: var(--ns-brand-deep, #0b5e3e);
     }
   }
 }
@@ -330,7 +330,8 @@ body {
   }
 
   strong {
-    color: var(--ns-brand-strong, #0fb174);
+    // AA: #0fb174 on the soft-green settle banner is ~2.5:1; deep brand ~7:1.
+    color: var(--ns-brand-deep, #0b5e3e);
     font-size: 13px;
     font-weight: 700;
     line-height: 1.35;
@@ -350,7 +351,7 @@ body {
 .gov-merc-shell {
   .neo-input__field:focus,
   .neo-input__field:focus-within {
-    border-color: var(--ns-brand-strong, #0fb174);
+    border-color: var(--ns-brand-deep, #0b5e3e);
     box-shadow: 0 0 0 4px rgba(15, 177, 116, 0.16);
   }
 
@@ -362,7 +363,7 @@ body {
   .neo-btn--primary:disabled {
     background: var(--ns-brand-soft, #e4f8f0);
     border-color: rgba(15, 177, 116, 0.18);
-    color: var(--ns-brand-strong, #0fb174);
+    color: var(--ns-brand-deep, #0b5e3e);
     opacity: 0.65;
   }
 }
@@ -470,7 +471,8 @@ body {
 
   &--neo {
     background: var(--ns-brand-soft, #e4f8f0);
-    color: var(--ns-brand-strong, #0fb174);
+    // AA: #0fb174 on the soft-green chip is only ~2.5:1; deep brand is ~7:1.
+    color: var(--ns-brand-deep, #0b5e3e);
   }
 
   &--gas {
@@ -526,7 +528,7 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--ns-brand-strong, #0fb174);
+    color: var(--ns-brand-deep, #0b5e3e);
     font-size: 12px;
     font-weight: 700;
     line-height: 1.3;

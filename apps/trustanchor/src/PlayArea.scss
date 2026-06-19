@@ -75,7 +75,8 @@ body {
   border: 1px solid var(--ns-brand-soft, #e4f8f0);
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174) !important;
+  // AA: #0fb174 on the soft-green prompt is only ~2.5:1; deep brand is ~7:1.
+  color: var(--ns-brand-deep, #0b5e3e) !important;
   font-size: 13px !important;
   font-weight: 700 !important;
   line-height: 1.35 !important;
@@ -453,14 +454,16 @@ body {
 
 .anchor-action-button--primary {
   border-color: transparent;
-  background: var(--ns-brand-strong, #0fb174);
+  // AA: white-on-#0fb174 is ~2.2:1. The CTA uses the darker brand green
+  // (#0a8050 = 4.98:1, hover #086a45).
+  background: #0a8050;
   color: #ffffff;
-  box-shadow: var(--ns-glow-brand, 0 8px 24px rgba(22, 199, 132, 0.2));
+  box-shadow: 0 8px 24px rgba(10, 128, 80, 0.2);
 }
 
 .anchor-action-button--primary:hover:not(:disabled) {
   border-color: transparent;
-  background: var(--ns-brand, #16c784);
+  background: #086a45;
 }
 
 .anchor-action-button--ghost {
