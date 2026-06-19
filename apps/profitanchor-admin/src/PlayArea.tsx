@@ -41,7 +41,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const adminState = str("adminState", "loading");
   const expectedAdmin = str("expectedAdminDisplay", "");
   const isDenied = adminState === "denied";
-  const controlsDisabled = isDenied;
+  // Enable the admin controls only once ownership is confirmed — during the
+  // brief "loading" resolve window a doomed click would just revert on-chain.
+  const controlsDisabled = adminState !== "admin";
 
   const [fromAgentId, setFromAgentId] = useState("1");
   const [toAgentId, setToAgentId] = useState("2");
