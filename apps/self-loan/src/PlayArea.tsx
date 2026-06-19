@@ -76,6 +76,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const healthFactor = num("healthFactor");
   const currentLTV = num("currentLTV");
   const totalLoans = num("totalLoans");
+  // WHOLE GAS per NEO (0 = unconfigured). Needed so the borrow estimate mirrors
+  // takeLoan(), which sizes the loan on collateralValue = collateralNeo × neoPrice.
+  const neoPrice = num("neoPrice");
 
   const neoBalanceDisplay = str("neoBalanceDisplay");
   const neoPriceDisplay = str("neoPriceDisplay");
@@ -181,9 +184,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Use ?? so a genuine 0% fee renders as 0, not masked by a default.
   const rawFeeBps = (platformStats as PlatformStatsData | null)?.platformFeeBps;
   const feeBps = Number.isFinite(rawFeeBps) ? (rawFeeBps as number) : 0;
+  // takeLoan() sizes the loan on collateralValue = collateralNeo × neoPrice (whole
+  // GAS per NEO); when no price is configured each NEO counts as 1 unit of value.
+  // Omitting the price factor understated the estimate by ~neoPrice× (e.g. 3× at a
+  // 3 GAS/NEO price), so the user saw far less than takeLoan() actually disburses.
+  const collateralValueFactor = neoPrice > 0 ? neoPrice : 1;
   const grossBorrow =
     Number.isFinite(collateralNum) && collateralNum > 0
-      ? (collateralNum * selectedLtvPercent) / 100
+      ? (collateralNum * collateralValueFactor * selectedLtvPercent) / 100
       : 0;
   // Mirror takeLoan(): netBorrow = gross − gross*feeBps/10000. The user actually
   // receives the net amount, so display that (not the gross) to avoid overstating.

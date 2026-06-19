@@ -138,7 +138,9 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
           {created.map((escrow) => {
             const approveIdx = nextApprovableIndex(escrow);
             const canApprove = approveIdx >= 0;
-            const approveBusy = approvingId?.startsWith(escrow.id) ?? false;
+            // Match the exact `${id}-${idx}` busy key — startsWith(id) collided
+            // across ids sharing a prefix (e.g. "12-3" marked escrow "1" busy).
+            const approveBusy = approvingId === `${escrow.id}-${approveIdx}`;
             const cancelBusy = cancellingId === escrow.id;
             return (
               <div key={`creator-${escrow.id}`} className="escrow-card">
@@ -201,7 +203,8 @@ export default function EscrowList({ t, creatorEscrows, beneficiaryEscrows, appr
           {incoming.map((escrow) => {
             const claimIdx = nextClaimableIndex(escrow);
             const canClaim = claimIdx >= 0;
-            const claimBusy = claimingId?.startsWith(escrow.id) ?? false;
+            // Exact `${id}-${idx}` match (startsWith(id) collided on shared prefixes).
+            const claimBusy = claimingId === `${escrow.id}-${claimIdx}`;
             return (
               <div key={`beneficiary-${escrow.id}`} className="escrow-card">
                 <span className="escrow-title">{escrow.title || `#${escrow.id}`}</span>
