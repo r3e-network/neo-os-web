@@ -189,16 +189,16 @@
   color: pm.$text-muted;
 }
 
-/* Disabled Buy Keys CTA — reinforce the shared "inactive but legible" primary
-   convention so the disconnected/awaiting-round state reads as the button the
-   player will press once the round is live, not flat grey filler. Soft-brand
-   fill + a visible 1.5px brand ring + a full-weight deep-green label that
-   clears AA on the tint. Scoped to the buy-keys card so it can't leak onto
-   other primary buttons. */
+/* Disabled Buy Keys CTA — the awaiting-round state must read as INERT, not as a
+   primary button the player can press. A quiet dashed outline + muted label +
+   not-allowed cursor signal "this is waiting on the round", while the soft tint
+   keeps it on-system and legible (clears AA). Scoped to the buy-keys card so it
+   can't leak onto other primary buttons. */
 .buy-keys-card .neo-btn--primary:disabled {
-  background: var(--ns-brand-soft, #e4f8f0);
-  border: 1.5px solid rgba(22, 199, 132, 0.55);
-  color: var(--ns-brand-deep, #0b5e3e);
-  font-weight: 800;
+  background: var(--ns-surface, #f7f8fa);
+  border: 1.5px dashed rgba(22, 199, 132, 0.4);
+  color: pm.$text-muted;
+  font-weight: 700;
   box-shadow: none;
+  cursor: not-allowed;
 }

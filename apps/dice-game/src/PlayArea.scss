@@ -98,43 +98,71 @@
     inset 0 -10px 18px rgba(22, 199, 132, 0.06);
 }
 
-.dice-cube span {
+.dice-cube__mark {
   font-size: 64px;
   font-weight: 850;
   line-height: 1;
   letter-spacing: -0.02em;
+  color: var(--dice-accent-strong);
+}
+
+/* Real die face: 3x3 pip grid; only the cells in .is-on render a dot. */
+.dice-cube__pips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8px;
+  width: 64%;
+  height: 64%;
+  padding: 4%;
+}
+
+.dice-cube__pip {
+  align-self: center;
+  justify-self: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: transparent;
+  transition:
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease),
+    box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, ease);
+}
+
+.dice-cube__pip.is-on {
+  background: radial-gradient(circle at 32% 28%, #2bd99a 0%, var(--dice-accent-strong) 72%);
+  box-shadow:
+    inset 0 -2px 3px rgba(8, 92, 64, 0.28),
+    0 1px 2px rgba(8, 92, 64, 0.18);
+}
+
+/* Pre-roll preview: pips ghost back so a picked 6 doesn't read as "rolled a 6". */
+.dice-cube--preview .dice-cube__pip.is-on {
+  background: rgba(22, 199, 132, 0.26);
+  box-shadow: none;
 }
 
 .dice-stage__caption {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
-  left: 16px;
+  bottom: 14px;
+  left: 50%;
   z-index: 1;
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 14px;
   border: 1px solid rgba(22, 199, 132, 0.18);
-  border-radius: var(--ns-radius-sm, 12px);
-  background: rgba(255, 255, 255, 0.78);
+  border-radius: var(--ns-radius-full, 9999px);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(6px);
   color: var(--dice-muted);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-}
-
-.dice-stage__caption-cell {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.dice-stage__caption-cell--end {
-  text-align: right;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 
 .dice-stage__caption strong {
@@ -144,7 +172,6 @@
   text-transform: none;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
 }
 
 .dice-stage__details {
@@ -225,6 +252,41 @@
   color: var(--dice-text);
   font-size: 15px;
   font-variant-numeric: tabular-nums;
+}
+
+/* Honest house-edge line surfaced in the primary view (not buried in the
+   collapsed safety panel). */
+.dice-edge-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 0;
+  padding: 9px 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-warning-soft, rgba(255, 251, 235, 0.8));
+  color: #7c4a03;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.dice-edge-note::before {
+  flex-shrink: 0;
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dice-warning);
+}
+
+.dice-pending-reassure {
+  margin: -6px 0 0;
+  color: var(--dice-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.dice-pending-reassure::before {
+  content: "🛡 ";
 }
 
 .dice-bet-panel {
@@ -769,13 +831,22 @@
   }
 
   .dice-cube {
-    width: 118px;
-    margin-bottom: 44px;
+    width: 128px;
+    margin-bottom: 40px;
     border-radius: 16px;
   }
 
-  .dice-cube span {
+  .dice-cube__mark {
     font-size: 48px;
+  }
+
+  .dice-cube__pips {
+    gap: 6px;
+  }
+
+  .dice-cube__pip {
+    width: 16px;
+    height: 16px;
   }
 
   .dice-stage__details {
@@ -882,6 +953,32 @@
 }
 
 /* dice cube states */
+.dice-cube {
+  overflow: hidden;
+}
+
+/* Idle the die breathes and a slow sheen sweeps across it so the stage reads
+   as a live game at rest, not a static number tile. */
+.dice-cube--idle {
+  animation: dice-float 4.2s var(--ns-ease-smooth, ease-in-out) infinite;
+}
+.dice-cube--idle::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  content: "";
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(22, 199, 132, 0.16) 48%,
+    rgba(255, 255, 255, 0.55) 52%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  animation: dice-sheen 4.2s var(--ns-ease-smooth, ease-in-out) infinite;
+  pointer-events: none;
+}
+
 .dice-cube--rolling {
   border-color: rgba(22, 199, 132, 0.4);
   animation: dice-shake 0.6s var(--ns-ease-smooth, ease-in-out) infinite;
@@ -1022,9 +1119,50 @@
 @keyframes dice-spin {
   to { transform: rotate(360deg); }
 }
+@keyframes dice-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+@keyframes dice-sheen {
+  0%, 62% { transform: translateX(-120%); }
+  78%, 100% { transform: translateX(120%); }
+}
+
+/* Win celebration: a brief subtle confetti burst from the stage centre, gated
+   on the resolved "won" state in the TSX (renders only on a real win edge). */
+.dice-winburst {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.dice-winburst span {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--dice-accent);
+  opacity: 0;
+  transform: rotate(calc(var(--i) * 25.7deg)) translateY(0);
+  animation: dice-confetti 0.85s var(--ns-ease-smooth, ease-out) forwards;
+  animation-delay: calc(var(--i) * 12ms);
+}
+.dice-winburst span:nth-child(3n) { background: var(--dice-accent-strong); }
+.dice-winburst span:nth-child(3n + 1) { background: #2bd99a; border-radius: 50%; }
+@keyframes dice-confetti {
+  0% { opacity: 1; transform: rotate(calc(var(--i) * 25.7deg)) translateY(0) scale(0.6); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(calc(var(--i) * 25.7deg)) translateY(-120px) scale(1); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .dice-cube--rolling,
-  .dice-cube--won { animation: none; }
+  .dice-cube--won,
+  .dice-cube--idle { animation: none; }
+  .dice-cube--idle::after,
+  .dice-winburst span { animation: none; }
+  .dice-cube--idle::after { display: none; }
   .dice-result__spinner { animation-duration: 1.4s; }
 }

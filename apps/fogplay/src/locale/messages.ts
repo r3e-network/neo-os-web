@@ -53,6 +53,9 @@ const appMessages = {
   payoutHeader: { en: "Payout", zh: "赔付" },
   gameHistory: { en: "Recent Games", zh: "最近对局" },
   noHistory: { en: "No games played yet. Place your first bet.", zh: "暂无对局，先下注一局。" },
+  firstRoundPrompt: { en: "Flip to play your first round", zh: "抛硬币，开启你的第一局" },
+  firstRoundHint: { en: "Pick a side, set your wager, and flip — 50/50 odds, pays 2x.", zh: "选择一面、设置下注金额并抛掷 — 五五胜率，2 倍赔付。" },
+  betLockedReassure: { en: "Your bet is locked on-chain — the result reveals on the next block.", zh: "你的下注已锁定上链 — 结果将在下一区块揭晓。" },
   docSubtitle: { en: "Provably-fair on-chain coin toss with a 2x payout", zh: "可证明公平的链上抛硬币，赢取 2 倍赔付" },
   docDescription: {
     en: "FogPlay uses a commit/reveal flip. You first place your bet (the wager is escrowed and the house exposure reserved), then the outcome is revealed from a LATER block's native randomness and the winner is paid 2x from the house bankroll. Because the result is unknowable when you place the bet, it cannot be peeked at or aborted on a loss. Every outcome is recorded on-chain for auditability.",

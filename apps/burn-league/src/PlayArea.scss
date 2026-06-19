@@ -1,11 +1,13 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/playarea-base";
 
-// Anchored on the system VIOLET accent (matches the violet category icon
-// and platform focus ring). Red is reserved for genuine danger only.
-$burn-accent: var(--ns-violet, #16c784);
-$burn-accent-strong: var(--ns-violet-strong, #0fb174);
-$burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
+// Single league hue — the brand green. The flame mark, eyebrow, presets, CTA,
+// section titles and leaderboard ranks all share it so the surface reads as one
+// accent (the old violet game-icon clash is gone). Red stays for danger only.
+$burn-accent: var(--ns-brand, #16c784);
+$burn-accent-strong: var(--ns-brand-strong, #0fb174);
+$burn-accent-soft: var(--ns-brand-soft, #e4f8f0);
+$burn-amber: var(--ns-warning, #f5a623);
 
 .burn-league-play-area {
   display: flex;
@@ -46,6 +48,7 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
 }
 
 .burn-league-hero-badge {
+  position: relative;
   flex: 0 0 auto;
   width: 52px;
   height: 52px;
@@ -57,6 +60,28 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
   border-radius: var(--ns-radius-md, 16px);
   background: $burn-accent-soft;
   color: $burn-accent-strong;
+
+  /* While a season is live the flame breathes — a subtle game-idle pulse. */
+  &.is-live svg {
+    animation: burn-league-flame 2.2s ease-in-out infinite;
+    transform-origin: 50% 80%;
+  }
+}
+
+@keyframes burn-league-flame {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+  }
+  45% {
+    transform: scale(1.08) translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .burn-league-hero-badge.is-live svg {
+    animation: none;
+  }
 }
 
 .burn-league-hero-copy {
@@ -132,40 +157,120 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
   color: $burn-accent-strong;
 }
 
-/* ── Hero stat strip ──────────────────────────────────── */
-.burn-league-hero-stats {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
+/* Live-season hero gets a faint accent wash + ring so it reads "in play". */
+.burn-league-hero.is-live {
+  border-color: rgba(22, 199, 132, 0.3);
+  box-shadow:
+    var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06)),
+    inset 0 0 0 1px rgba(22, 199, 132, 0.16);
 }
 
-.burn-league-hero-stat {
-  flex: 1 1 110px;
-  min-width: 110px;
-  text-align: center;
-  padding: 16px 14px;
-  border-radius: var(--ns-radius-sm, 12px);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  background: var(--ns-surface-subtle, #f7f8fa);
-}
-
-.burn-league-hero-stat-value {
-  display: block;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.burn-league-hero-stat-label {
-  display: block;
-  margin-top: 6px;
+/* "You're #1" defend badge — only while leading a live season. */
+.burn-league-hero-leadbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 0;
+  padding: 4px 10px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: $burn-accent-soft;
+  color: $burn-accent-strong;
   font-size: 11px;
-  font-weight: 700;
-  color: var(--ns-text-muted, #8a92a6);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.burn-league-hero-leadbadge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: $burn-accent;
+  box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.18);
+}
+
+/* ── Focal prize pool (right side of hero) ─────────────── */
+.burn-league-hero-pool {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.burn-league-hero-pool-label {
+  font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.burn-league-hero-pool-value {
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: $burn-accent-strong;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Empty-pool hero: the "start the season" label leads as an eyebrow and a
+   small flame stands in for the (not-yet-existing) prize number. */
+.burn-league-hero-pool.is-empty .burn-league-hero-pool-label {
+  color: $burn-accent-strong;
+}
+
+.burn-league-hero-pool-flame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin: 2px 0;
+  border-radius: var(--ns-radius-md, 16px);
+  background: $burn-accent-soft;
+  color: $burn-accent-strong;
+}
+
+.burn-league-hero-pool.is-empty {
+  align-items: flex-end;
+}
+
+.burn-league-hero-pool-hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ns-text-2, #5b6478);
+}
+
+/* ── Hero demoted sub-stats (Total burned / Your burns) ── */
+.burn-league-hero-substats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 16px;
+  margin-top: 8px;
+}
+
+.burn-league-hero-substat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ns-text-muted, #8a92a6);
+
+  strong {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--ns-text, #2a2d3d);
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* ── Season lifecycle banner ─────────────────────────── */
@@ -277,10 +382,11 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
   }
 }
 
-/* ── Service boundary notice ─────────────────────────── */
+/* ── Service boundary notice (inline status inside the action card) ── */
 .burn-league-service-notice {
-  padding: 16px 18px;
-  border-radius: var(--ns-radius-md, 16px);
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: var(--ns-radius-sm, 12px);
   border: 1px solid rgba(245, 166, 35, 0.28);
   background: var(--ns-warning-soft, #fff3dd);
 }
@@ -351,6 +457,108 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
   width: 100%;
 }
 
+/* Header row: section title + inline "How burning wins" disclosure toggle. */
+.burn-league-action-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.burn-league-howto-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--ns-radius-full, 9999px);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: $burn-accent-strong;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background var(--ns-t-fast, 150ms) ease,
+    border-color var(--ns-t-fast, 150ms) ease;
+
+  &:hover {
+    background: $burn-accent-soft;
+    border-color: rgba(22, 199, 132, 0.34);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.2);
+  }
+}
+
+.burn-league-howto-caret {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--ns-t-fast, 150ms) ease;
+
+  .burn-league-howto-toggle[aria-expanded="true"] & {
+    transform: rotate(-135deg);
+  }
+}
+
+/* The 3-step rhythm, revealed inline so the steps are readable without hover. */
+.burn-league-howto-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  counter-reset: burn-step;
+}
+
+.burn-league-howto-step {
+  counter-increment: burn-step;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 8px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ns-text-2, #5b6478);
+
+  &::before {
+    content: counter(burn-step);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--ns-radius-full, 9999px);
+    background: $burn-accent-soft;
+    color: $burn-accent-strong;
+    font-size: 11px;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The payoff step wears the full accent so the "win" reads as the goal. */
+  &.is-prize {
+    background: $burn-accent;
+    border-color: transparent;
+    color: #ffffff;
+
+    &::before {
+      background: rgba(255, 255, 255, 0.24);
+      color: #ffffff;
+    }
+  }
+}
+
 .burn-league-section-title {
   font-size: 11px;
   font-weight: 700;
@@ -358,6 +566,11 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   margin: 0 0 14px;
+
+  /* Inside the action header row, spacing comes from the flex row itself. */
+  .burn-league-action-head & {
+    margin: 0;
+  }
 }
 
 .burn-league-burn-form {
@@ -747,6 +960,27 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
   }
 }
 
+/* Below 600px the hero stacks: lead on top, the prize-pool block becomes a
+   left-aligned full-width row so the focal number never crowds the title. */
+@media (max-width: 600px) {
+  .burn-league-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .burn-league-hero-pool {
+    width: 100%;
+    align-items: flex-start;
+    text-align: left;
+    padding-top: 14px;
+    border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  }
+
+  .burn-league-hero-substats {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 480px) {
   .burn-league-hero {
     padding: 20px 18px;
@@ -760,21 +994,151 @@ $burn-accent-soft: var(--ns-violet-soft, #e4f8f0);
     font-size: 22px;
   }
 
-  .burn-league-hero-stats {
-    width: 100%;
-  }
-
-  .burn-league-hero-stat {
-    flex: 1 1 calc(33.333% - 10px);
-    min-width: 0;
-    padding: 14px 8px;
-  }
-
-  .burn-league-hero-stat-value {
-    font-size: 16px;
+  .burn-league-hero-pool-value {
+    font-size: 26px;
   }
 
   .burn-league-preset {
     flex: 1 1 calc(50% - 8px);
+  }
+}
+
+/* ── Win / settle celebration overlay ─────────────────── */
+.burn-league-celebrate {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(20, 22, 38, 0.42);
+  animation: burn-league-fade-in 220ms ease both;
+}
+
+.burn-league-celebrate-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  animation: burn-league-pop 320ms var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) both;
+}
+
+.burn-league-celebrate-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin: 4px auto 12px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: $burn-accent-soft;
+  color: $burn-accent-strong;
+
+  &.is-win svg {
+    animation: burn-league-flame 1.6s ease-in-out infinite;
+    transform-origin: 50% 80%;
+  }
+}
+
+.burn-league-celebrate-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.burn-league-celebrate-body {
+  margin: 0 0 18px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--ns-text-2, #5b6478);
+}
+
+/* Confetti burst — reuses the daily-checkin streak-up pattern, tinted to the
+   league hue (green + amber accents) so a settle has a real moment. */
+.burn-league-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.burn-league-confetti-piece {
+  position: absolute;
+  top: -14px;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: burn-league-confetti-fall 2.2s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+}
+
+.burn-league-confetti-piece-1 { left: 12%; background: $burn-accent; animation-delay: 0ms; }
+.burn-league-confetti-piece-2 {
+  left: 26%;
+  background: $burn-amber;
+  animation-delay: 120ms;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.burn-league-confetti-piece-3 { left: 40%; background: $burn-accent-strong; animation-delay: 60ms; }
+.burn-league-confetti-piece-4 { left: 54%; background: $burn-amber; animation-delay: 200ms; }
+.burn-league-confetti-piece-5 {
+  left: 68%;
+  background: $burn-accent;
+  animation-delay: 90ms;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.burn-league-confetti-piece-6 { left: 84%; background: $burn-accent-strong; animation-delay: 160ms; }
+
+.burn-league-confetti-piece:nth-child(n + 7) { animation-duration: 1.9s; }
+.burn-league-confetti-piece:nth-child(7) { left: 19%; }
+.burn-league-confetti-piece:nth-child(8) { left: 33%; }
+.burn-league-confetti-piece:nth-child(9) { left: 47%; }
+.burn-league-confetti-piece:nth-child(10) { left: 61%; }
+.burn-league-confetti-piece:nth-child(11) { left: 75%; }
+.burn-league-confetti-piece:nth-child(12) { left: 90%; }
+.burn-league-confetti-piece:nth-child(n + 13) { animation-duration: 2.4s; }
+.burn-league-confetti-piece:nth-child(13) { left: 8%; }
+.burn-league-confetti-piece:nth-child(14) { left: 30%; }
+.burn-league-confetti-piece:nth-child(15) { left: 50%; }
+.burn-league-confetti-piece:nth-child(16) { left: 64%; }
+.burn-league-confetti-piece:nth-child(17) { left: 78%; }
+.burn-league-confetti-piece:nth-child(18) { left: 95%; }
+
+@keyframes burn-league-confetti-fall {
+  0% { opacity: 0; transform: translateY(0) rotate(0deg); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(105vh) rotate(540deg); }
+}
+
+@keyframes burn-league-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes burn-league-pop {
+  0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .burn-league-celebrate,
+  .burn-league-celebrate-card {
+    animation: none;
+  }
+  .burn-league-confetti-piece {
+    display: none;
+  }
+  .burn-league-celebrate-icon.is-win svg {
+    animation: none;
   }
 }

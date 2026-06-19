@@ -120,6 +120,8 @@ defineMiniApp({
         prizePoolDisplay: burn.prizePoolDisplay,
         topBurnedDisplay: burn.topBurnedDisplay,
         leaderLabel: burn.leaderLabel,
+        userIsLeader: burn.userIsLeader,
+        lastSettleResult: burn.lastSettleResult,
       },
       loadData: burn.loadAll,
       cleanup: () => {

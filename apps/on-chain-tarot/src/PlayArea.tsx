@@ -64,7 +64,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <span>
                   {t("contractRouteLabel")} · <strong>{t("tarotContractRoute")}</strong>
                 </span>
-                <span>
+                <span className={hasDrawn ? "tarot-hero-progress" : undefined}>
                   {hasDrawn ? `${revealCount}/3 ${t("revealed")}` : t("requestReady")}
                 </span>
               </div>
@@ -89,9 +89,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </label>
               <div className="tarot-action-row">
                 {!hasDrawn ? (
-                  <NeoButton variant="primary" loading={isLoading} disabled={isLoading} onClick={() => dispatch("draw")}>
-                    {isLoading ? t("drawingCards") : t("drawCards")}
-                  </NeoButton>
+                  <>
+                    <NeoButton variant="primary" loading={isLoading} disabled={isLoading} onClick={() => dispatch("draw")}>
+                      {isLoading ? t("drawingCards") : t("drawCards")}
+                    </NeoButton>
+                    <p className="tarot-draw-hint">{t("drawValueHint")}</p>
+                  </>
                 ) : (
                   <NeoButton variant="secondary" disabled={isLoading} onClick={() => dispatch("reset")}>
                     {t("drawAgain")}

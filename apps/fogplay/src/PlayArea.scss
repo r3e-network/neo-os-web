@@ -7,6 +7,32 @@
 
 .coinflip-play-area {
   @include pm.pm-canvas;
+
+  /* ----------------------------------------------------------------
+   *  Coin token bridge — the arena/wager/overlay components are styled
+   *  against a `--coin-*` palette that was only ever defined inside a
+   *  `.theme-fogplay` block that the standalone surface never applies,
+   *  so every var(--coin-*) fell back to an undefined value (black /
+   *  transparent), losing the green hue. Bind them to the live Neo Soft
+   *  `--ns-*` tokens here so the accent stays one coherent green and the
+   *  palette tracks the active light/dark theme.
+   * ---------------------------------------------------------------- */
+  --coin-success: var(--ns-brand-strong, #0fb174);
+  --coin-win: var(--ns-success, #16c784);
+  --coin-loss: var(--ns-danger, #ea3943);
+  --coin-text-primary: var(--ns-ink, #1e1e2e);
+  --coin-text-secondary: var(--ns-text-2, #5b6478);
+  --coin-text-muted: var(--ns-text-muted, #6b7180);
+  --coin-bg-primary: var(--ns-bg, #f4f5f7);
+  --coin-card-bg: var(--ns-surface, #ffffff);
+  --coin-card-border: var(--ns-border, rgba(20, 22, 38, 0.06));
+  --coin-panel-bg: var(--ns-surface-subtle, #f7f8fa);
+  --coin-choice-ring: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  --coin-arena-ambient: rgba(22, 199, 132, 0.07);
+  --coin-arena-ambient-flip: rgba(22, 199, 132, 0.16);
+  --coin-balance-pill-bg: var(--ns-brand-soft, #e4f8f0);
+  --coin-balance-pill-border: rgba(22, 199, 132, 0.22);
+  --coin-green-active-bg-light: rgba(22, 199, 132, 0.08);
 }
 
 /* ============================================================
@@ -122,6 +148,50 @@
   .stats-row {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* First-round invitation — replaces the flat 4x "0" stat strip until there's
+ * play history, giving the empty hero an inviting call to action. */
+.first-round-prompt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid pm.$border;
+  border-radius: 14px;
+  background: linear-gradient(135deg, pm.$neo-soft 0%, pm.$surface 100%);
+}
+
+.first-round-prompt__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: pm.$surface;
+  border: 1px solid pm.$border;
+  color: pm.$neo-strong;
+}
+
+.first-round-prompt__text {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.first-round-prompt__title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: pm.$ink;
+}
+
+.first-round-prompt__hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: pm.$text-2;
 }
 
 /* ============================================================

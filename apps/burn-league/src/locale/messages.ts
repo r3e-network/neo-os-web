@@ -188,6 +188,34 @@ const appMessages = {
     en: "Only the season's top burner wins the entire pool; all other burns are forfeited to the pool.",
     zh: "只有赛季燃烧榜首赢得全部奖池；其余所有燃烧都将并入奖池。",
   },
+  // ── Win / settle celebration ──────────────────────────────────────────
+  settleWinTitle: { en: "You won the pool!", zh: "你赢得了奖池！" },
+  settleWinBody: {
+    en: "The season settled and {amount} was paid to your wallet as the top burner.",
+    zh: "赛季已结算，作为燃烧榜首的 {amount} 已发放到你的钱包。",
+  },
+  settleDoneTitle: { en: "Season settled", zh: "赛季已结算" },
+  settleDoneBody: {
+    en: "The {amount} pool was awarded to the top burner. A fresh season is open — burn to climb.",
+    zh: "{amount} 奖池已发放给燃烧榜首。新赛季已开启 — 燃烧即可攀升。",
+  },
+  celebrationDismiss: { en: "Continue", zh: "继续" },
+  // ── Leader badge (live, active season) ────────────────────────────────
+  youLeadBadge: { en: "You're #1 — defend the pool", zh: "你是第一名 — 守住奖池" },
+  // ── Honest empty / dormant hero ───────────────────────────────────────
+  heroPoolLabel: { en: "Prize pool", zh: "奖池" },
+  heroPoolEmptyHint: {
+    en: "Be the first burn and open a fresh season.",
+    zh: "成为首次燃烧者，开启全新赛季。",
+  },
+  dashPlaceholder: { en: "—", zh: "—" },
+  startTheSeason: { en: "Start the season", zh: "开启赛季" },
+  // ── How burning wins (inline 3-step rhythm) ───────────────────────────
+  howItWorks: { en: "How burning wins", zh: "燃烧如何获胜" },
+  howStepPick: { en: "Pick an amount", zh: "选择燃烧数量" },
+  howStepBurn: { en: "Burn into the pool", zh: "燃烧进奖池" },
+  howStepClimb: { en: "Climb the leaderboard", zh: "攀登排行榜" },
+  howStepWin: { en: "Top burner takes it all", zh: "燃烧榜首赢得全部" },
   // App-specific sidebar keys
   ariaLeaderboard: { en: "Leaderboard", zh: "排行榜" },
   sidebarRank: { en: "Rank", zh: "排名" },

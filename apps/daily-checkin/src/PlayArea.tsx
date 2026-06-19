@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Circle, Lock } from "lucide-react";
+import { Check, Circle, Gift, Lock } from "lucide-react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -81,6 +81,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     return () => clearTimeout(timer);
   }, [canCheckIn]);
 
+  // Milestone payout reveal — when a check-in lands the streak ON a milestone
+  // day (the streak counter crosses 7 or 14 upward), surface the +GAS reward the
+  // daily flow just unlocked. Gated on a real upward edge of currentStreak so it
+  // only fires once per milestone, not on every status refresh.
+  const [reachedMilestone, setReachedMilestone] = useState<(typeof MILESTONES)[number] | null>(null);
+  const prevStreakRef = useRef(currentStreak);
+  useEffect(() => {
+    const prev = prevStreakRef.current;
+    prevStreakRef.current = currentStreak;
+    if (currentStreak <= prev) return;
+    const crossed = MILESTONES.find((m) => prev < m.day && currentStreak >= m.day);
+    if (!crossed) return;
+    setReachedMilestone(crossed);
+    const timer = setTimeout(() => setReachedMilestone(null), 4200);
+    return () => clearTimeout(timer);
+  }, [currentStreak]);
+
   const streakTier = currentStreak >= 14 ? "blaze" : currentStreak >= 7 ? "spark" : "cold";
   // Before the first chain read, eligibility is unknown — keep the CTA disabled
   // and labelled "Loading…" rather than the misleading "Wait for next" so a
@@ -124,8 +141,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // workflow message) — avoids duplicating the hero "Ready" pill.
   const showStatusPill = Boolean(lastError) || (workflowStatus !== t("workflowReady") && workflowStatus.trim().length > 0);
 
+  // The first-open / disconnected state surfaces no streak data yet. Show the
+  // hero pill as an invite to connect rather than a perpetual "Loading…":
+  // surface "Loading…" only while a user-initiated read is actually running
+  // (the initial background load can hang awaiting a wallet that never connects
+  // in standalone, which is exactly the stuck-looking case to avoid).
+  const awaitingConnect = !hasLoadedStatus && !isRefreshing && !isCheckingIn;
+  const ringReady = hasLoadedStatus && canCheckIn;
+
   return (
-    <div className={`checkin-play-area streak-${streakTier}`}>
+    <div
+      className={`checkin-play-area streak-${streakTier}${ringReady ? " streak-can-checkin" : ""}`}
+    >
       {/* Hero — streak, status, and the only timing/fee facts that matter, in one block */}
       <div className="checkin-streak-section">
         <div className={`checkin-fire-ring ${streakTier}`}>
@@ -140,8 +167,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span>{t("checkInFee")}: {formatGas(checkInFee)} {t("tokenGas")}</span>
           </div>
         </div>
-        <span className={`checkin-tier-badge ${streakTier}`}>
-          {!hasLoadedStatus ? t("loading") : canCheckIn ? t("checkInReady") : t("checkedInToday")}
+        <span
+          className={`checkin-tier-badge ${streakTier}${awaitingConnect ? " connect" : ""}${ringReady ? " ready" : ""}`}
+        >
+          {awaitingConnect
+            ? t("connectToStart")
+            : !hasLoadedStatus
+              ? t("loading")
+              : canCheckIn
+                ? t("checkInReady")
+                : t("checkedInToday")}
         </span>
         <span className="checkin-best-text">{t("bestStreak")}: {highestStreakFormatted}</span>
       </div>
@@ -225,6 +260,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           >
             {checkInLabel}
           </NeoButton>
+        </div>
+        <div className="checkin-actions-secondary">
           <NeoButton
             variant="primary"
             size="lg"
@@ -248,6 +285,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </NeoButton>
         </div>
       </NeoCard>
+
+      {/* Milestone payout reveal — the reward feedback moment. Appears briefly
+          when a check-in lands the streak on a milestone day, announcing the
+          +GAS the daily flow just unlocked. */}
+      {reachedMilestone && (
+        <div className="checkin-reward-reveal" role="status">
+          <span className="checkin-reward-reveal__icon" aria-hidden="true">
+            <Gift size={22} />
+          </span>
+          <div className="checkin-reward-reveal__body">
+            <span className="checkin-reward-reveal__eyebrow">
+              {t("milestoneReached")}
+            </span>
+            <span className="checkin-reward-reveal__title">
+              +{reachedMilestone.reward} {t("tokenGas")}
+            </span>
+            <span className="checkin-reward-reveal__copy">
+              {t("milestoneRewardUnlocked", { day: reachedMilestone.day })}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Today plan — narrates what the actions above will do this UTC cycle:
           the window status, milestone impact, claim plan, and service route. */}
