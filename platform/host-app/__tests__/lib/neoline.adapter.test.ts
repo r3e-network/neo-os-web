@@ -141,4 +141,40 @@ describe("NeoLineAdapter", () => {
     expect(legacyInstance.signMessage).not.toHaveBeenCalled();
     expect(legacyInstance.invoke).not.toHaveBeenCalled();
   });
+
+  it("waits for NeoLine NEP-21 lazy injection after the standard request event", async () => {
+    const requestedVersions: string[] = [];
+    window.addEventListener("Neo.DapiProvider.request", (event) => {
+      requestedVersions.push(
+        (event as CustomEvent<{ version?: string }>).detail?.version ?? "",
+      );
+    });
+
+    const provider = {
+      name: "NeoLine",
+      dapiVersion: "1.0.0",
+      compatibility: ["NEP-21"],
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xlazyneoline", address: "NLazyNeoLine", isDefault: true },
+      ]),
+      invoke: jest.fn(),
+    };
+    const adapter = new NeoLineAdapter();
+    const connected = adapter.connect();
+
+    await Promise.resolve();
+    expect(requestedVersions).toEqual(["1.0"]);
+
+    window.dispatchEvent(
+      new CustomEvent("Neo.DapiProvider.ready", {
+        detail: { provider },
+      }),
+    );
+
+    await expect(connected).resolves.toMatchObject({
+      address: "NLazyNeoLine",
+      network: "testnet",
+    });
+  });
 });

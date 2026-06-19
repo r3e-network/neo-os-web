@@ -153,6 +153,30 @@ describe("wallet store session restore", () => {
     expect(provider.authenticate).not.toHaveBeenCalled();
   });
 
+  it("rejects an explicit reconnect failure without promoting a stale saved address", async () => {
+    provider.getAccounts.mockRejectedValue(new Error("requires auth"));
+    provider.authenticate.mockRejectedValue(new Error("User rejected"));
+
+    useWalletStore.setState({
+      provider: "nep21",
+      address: "NPendingAddress",
+      publicKey: "03persisted",
+      network: "testnet",
+      restorePending: true,
+    });
+
+    await expect(useWalletStore.getState().connect("nep21")).rejects.toThrow(
+      /rejected/i,
+    );
+
+    const state = useWalletStore.getState();
+    expect(state.connected).toBe(false);
+    expect(state.restorePending).toBe(true);
+    expect(state.address).toBe("NPendingAddress");
+    expect(state.publicKey).toBe("03persisted");
+    expect(state.provider).toBe("nep21");
+  });
+
   it("does nothing without a persisted session identity", async () => {
     await useWalletStore.getState().restoreSession();
 

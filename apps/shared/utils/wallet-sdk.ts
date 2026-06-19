@@ -40,19 +40,12 @@ import {
 import type {
   ActiveWalletProvider,
   BatchInvokeParams,
-  ContractArg,
-  ContractEvent,
-  EventsListParams,
-  EventsListResponse,
-  GameState,
   InvokeParams,
   InvokeResult,
   MiniAppManifest,
   NeoDapiProvider,
-  StackItem,
   WalletSDK,
   WalletIntentConfirmationContext,
-  WalletSigner,
 } from "./wallet-sdk-types";
 import type { NeoDapiAccount } from "./nep21-provider";
 
@@ -782,12 +775,14 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       encodeBase64Utf8(message),
       dapiAccountHash ?? address.value ?? undefined,
     );
+    const publicKey = signed.pubkey ?? signed.publicKey;
+    const signature = signed.signature ?? signed.data;
     return {
-      publicKey: signed.pubkey,
-      data: signed.signature,
-      signature: signed.signature,
+      publicKey,
+      data: signature,
+      signature,
       account: signed.account,
-      pubkey: signed.pubkey,
+      pubkey: publicKey,
     };
   };
 

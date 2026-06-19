@@ -416,6 +416,28 @@ describe("wallet-sdk NEP-21 support", () => {
     );
   });
 
+  it("normalizes data/publicKey signing responses from compatible wallets", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider({
+      signMessage: vi.fn(async () => ({
+        data: "signed-via-data-field",
+        publicKey: "03legacykey",
+        account: "0x1111111111111111111111111111111111111111",
+      })),
+    });
+    window.neoDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    await expect(wallet.signMessage?.("hello")).resolves.toMatchObject({
+      data: "signed-via-data-field",
+      signature: "signed-via-data-field",
+      publicKey: "03legacykey",
+      pubkey: "03legacykey",
+    });
+  });
+
   it("normalizes the connected account Hash160 argument for OneGate transaction construction", async () => {
     window.history.replaceState({}, "", "/?network=testnet");
     const provider = createNep21Provider({ name: "OneGate" });

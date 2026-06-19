@@ -32,10 +32,14 @@ export class OneGateAdapter implements WalletAdapter {
   }
 
   async connect(): Promise<WalletAccount> {
-    if (!this.isInstalled()) {
-      throw new WalletNotInstalledError("OneGate NEP-21 dAPI");
+    try {
+      return await this.nep21.connect();
+    } catch (error) {
+      if (error instanceof WalletNotInstalledError) {
+        throw new WalletNotInstalledError("OneGate NEP-21 dAPI");
+      }
+      throw error;
     }
-    return this.nep21.connect();
   }
 
   async connectSilently(): Promise<WalletAccount | null> {

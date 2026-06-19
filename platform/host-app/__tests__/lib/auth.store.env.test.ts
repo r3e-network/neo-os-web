@@ -1,18 +1,18 @@
 const mockConnect = jest.fn(async () => undefined);
 const mockConnectWif = jest.fn(async () => undefined);
+const mockWalletState = {
+  connected: true,
+  address: "NUserAddress",
+  publicKey: "03userpub",
+  connect: mockConnect,
+  connectWif: mockConnectWif,
+  disconnect: jest.fn(),
+};
 
 jest.mock("@/lib/wallet/store", () => {
-  const walletState = {
-    address: "NUserAddress",
-    publicKey: "03userpub",
-    connect: mockConnect,
-    connectWif: mockConnectWif,
-    disconnect: jest.fn(),
-  };
-
   return {
     useWalletStore: {
-      getState: () => walletState,
+      getState: () => mockWalletState,
     },
     getWalletAdapter: () => ({
       signMessage: jest.fn(async () => ({ data: "signed", publicKey: "03userpub" })),
@@ -28,6 +28,9 @@ describe("auth store env access", () => {
     jest.clearAllMocks();
     mockConnect.mockResolvedValue(undefined);
     mockConnectWif.mockResolvedValue(undefined);
+    mockWalletState.connected = true;
+    mockWalletState.address = "NUserAddress";
+    mockWalletState.publicKey = "03userpub";
     mockFetch.mockReset();
     global.fetch = mockFetch;
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -141,6 +144,28 @@ describe("auth store env access", () => {
         walletType: "external",
         loading: false,
         error: null,
+      }),
+    );
+    expect(sessionStorage.getItem("sb-access-token")).toBeNull();
+  });
+
+  it("does not enter wallet-only mode from a stale saved address when reconnect fails", async () => {
+    const { useAuthStore } = require("../../lib/auth/store") as typeof import("../../lib/auth/store");
+
+    mockWalletState.connected = false;
+    mockWalletState.address = "NStaleSavedAddress";
+    mockConnect.mockRejectedValueOnce(new Error("Wallet connection was rejected"));
+
+    await useAuthStore.getState().loginWallet("neoline" as never);
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(useAuthStore.getState()).toEqual(
+      expect.objectContaining({
+        authenticated: false,
+        walletAddress: "",
+        walletType: null,
+        loading: false,
+        error: expect.stringMatching(/rejected/i),
       }),
     );
     expect(sessionStorage.getItem("sb-access-token")).toBeNull();
