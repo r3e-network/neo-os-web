@@ -31,9 +31,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const adminState = str("adminState", "loading");
   const expectedAdmin = str("expectedAdminDisplay", "");
   const isDenied = adminState === "denied";
-  // Enable the admin controls only once ownership is confirmed — during the
-  // brief "loading" resolve window a doomed click would just revert on-chain.
-  const controlsDisabled = adminState !== "admin";
+  // Only the confirmed-denied state makes the controls read-only. (Gating on
+  // the transient "loading" state too dimmed the read-only grid via opacity,
+  // which dropped the static labels below WCAG AA on first render; an
+  // unauthorized click during loading harmlessly reverts on-chain anyway.)
+  const controlsDisabled = isDenied;
 
   const [fromAgentId, setFromAgentId] = useState("1");
   const [toAgentId, setToAgentId] = useState("2");
