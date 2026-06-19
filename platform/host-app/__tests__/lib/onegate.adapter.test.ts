@@ -1,8 +1,10 @@
 import { OneGateAdapter } from "@/lib/wallet/adapters/onegate";
+import { resetNep21ProviderCacheForTests } from "../../../sdk/src/nep21-provider";
 
 describe("OneGateAdapter", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetNep21ProviderCacheForTests();
     delete (window as unknown as { NEP21Provider?: unknown }).NEP21Provider;
     delete (window as unknown as { NEP21Providers?: unknown }).NEP21Providers;
     delete (window as unknown as { OneGate?: unknown }).OneGate;
@@ -130,5 +132,41 @@ describe("OneGateAdapter", () => {
       args: [],
     })).rejects.toThrow(/OneGate NEP-21 dAPI/i);
     expect(legacyApi.getAccount).not.toHaveBeenCalled();
+  });
+
+  it("waits for OneGate NEP-21 lazy injection after the standard request event", async () => {
+    const requestedVersions: string[] = [];
+    window.addEventListener("Neo.DapiProvider.request", (event) => {
+      requestedVersions.push(
+        (event as CustomEvent<{ version?: string }>).detail?.version ?? "",
+      );
+    });
+
+    const provider = {
+      name: "OneGate",
+      dapiVersion: "1.0.0",
+      compatibility: ["NEP-21"],
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xlazyonegate", address: "NLazyOneGate", isDefault: true },
+      ]),
+      invoke: jest.fn(),
+    };
+    const adapter = new OneGateAdapter();
+    const connected = adapter.connect();
+
+    await Promise.resolve();
+    expect(requestedVersions).toEqual(["1.0"]);
+
+    window.dispatchEvent(
+      new CustomEvent("Neo.DapiProvider.ready", {
+        detail: { provider },
+      }),
+    );
+
+    await expect(connected).resolves.toMatchObject({
+      address: "NLazyOneGate",
+      network: "testnet",
+    });
   });
 });

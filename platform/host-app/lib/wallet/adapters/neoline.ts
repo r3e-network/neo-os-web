@@ -33,10 +33,14 @@ export class NeoLineAdapter implements WalletAdapter {
   }
 
   async connect(): Promise<WalletAccount> {
-    if (!this.nep21.isInstalled()) {
-      throw new WalletNotInstalledError("NeoLine NEP-21 dAPI");
+    try {
+      return await this.nep21.connect();
+    } catch (error) {
+      if (error instanceof WalletNotInstalledError) {
+        throw new WalletNotInstalledError("NeoLine NEP-21 dAPI");
+      }
+      throw error;
     }
-    return this.nep21.connect();
   }
 
   async connectSilently(): Promise<WalletAccount | null> {

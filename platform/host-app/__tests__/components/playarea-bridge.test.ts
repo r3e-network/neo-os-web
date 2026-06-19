@@ -537,10 +537,42 @@ describe("describeSensitiveBridgeOperation", () => {
     // The prompt must not silently render only opaque base64.
     expect(summary).toContain("non-standard recipient encoding");
   });
+
+  it("warns when a GAS transfer sender is disguised as a non-Hash160 type", () => {
+    const summary = describeSensitiveBridgeOperation("invoke", {
+      invocations: [
+        {
+          hash: GAS_ASSET_HASH,
+          operation: "transfer",
+          args: [
+            { type: "ByteArray", value: "qrvM3e7/ABEiM0RVZneImaq7zN0=" },
+            { type: "Hash160", value: ATTACKER_ADDRESS },
+            { type: "Integer", value: TRANSFER_AMOUNT },
+          ],
+        },
+      ],
+    });
+
+    expect(summary).toContain("non-standard sender encoding");
+  });
 });
 
 describe("bridgeInvocationToParams native-transfer arg-type enforcement", () => {
   const GAS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+
+  it("rejects a native GAS transfer whose sender is disguised as a ByteArray", () => {
+    expect(() =>
+      bridgeInvocationToParams({
+        hash: GAS,
+        operation: "transfer",
+        args: [
+          { type: "ByteArray", value: "qrvM3e7/ABEiM0RVZneImaq7zN0=" },
+          { type: "Hash160", value: WALLET_ADDRESS },
+          { type: "Integer", value: "100000000" },
+        ],
+      }),
+    ).toThrow(/non-standard argument types/);
+  });
 
   it("rejects a native GAS transfer whose recipient is disguised as a ByteArray", () => {
     expect(() =>

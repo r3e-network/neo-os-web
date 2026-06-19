@@ -243,18 +243,20 @@ export function bridgeInvocationToParams(
   if (!operation) throw new Error("Embedded wallet request is missing operation.");
   const args = normalizeBridgeArgs(invocation.args);
   // A native GAS/NEO transfer is canonically transfer(from:Hash160, to:Hash160,
-  // amount:Integer, data). Reject a transfer that disguises the recipient or amount
+  // amount:Integer, data). Reject a transfer that disguises the sender, recipient, or amount
   // as another type (e.g. ByteArray) — it executes identically on the VM but would
-  // bypass the human-readable recipient/amount shown in the approval prompt.
+  // bypass the human-readable payer/recipient/amount shown in the approval prompt.
   if (operation === "transfer" && isNativeAssetHash(scriptHash) && args.length >= 3) {
+    const from = args[0];
     const to = args[1];
     const amount = args[2];
     if (
+      String(from?.type).toLowerCase() !== "hash160" ||
       String(to?.type).toLowerCase() !== "hash160" ||
       String(amount?.type).toLowerCase() !== "integer"
     ) {
       throw new Error(
-        "Refusing a native asset transfer whose recipient/amount use non-standard argument types; they must be Hash160 and Integer so the approval prompt can show them.",
+        "Refusing a native asset transfer whose sender/recipient/amount use non-standard argument types; sender and recipient must be Hash160 and amount must be Integer so the approval prompt can show them.",
       );
     }
   }
@@ -322,11 +324,15 @@ export function describeBridgeArgs(invocation: BridgeInvocation): string {
 // user can actually vet, rather than burying it inside the raw arg list.
 function describeTransferIntent(invocation: BridgeInvocation): string {
   const args = normalizeBridgeArgs(invocation.args);
-  const [, to, amount] = args;
+  const [from, to, amount] = args;
+  const fromIsHash = String(from?.type).toLowerCase() === "hash160";
   const toIsHash = String(to?.type).toLowerCase() === "hash160";
   const amountIsInt = String(amount?.type).toLowerCase() === "integer";
-  if (toIsHash && amountIsInt) {
+  if (fromIsHash && toIsHash && amountIsInt) {
     return `transfer ${String(amount.value)} to ${String(to.value)}`;
+  }
+  if (from && !fromIsHash) {
+    return "⚠ transfer with a non-standard sender encoding — the true payer is hidden; reject unless you fully trust this app";
   }
   // A recipient declared as anything other than Hash160 (e.g. ByteArray) executes
   // as the same script hash on the VM but hides who receives the funds. Flag it so

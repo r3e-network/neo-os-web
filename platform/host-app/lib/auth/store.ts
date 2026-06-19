@@ -108,7 +108,10 @@ function isWalletAuthUnavailable(err: unknown): boolean {
 }
 
 function completeWalletOnlyLogin(set: (state: Partial<AuthStore>) => void) {
-  const { address } = useWalletStore.getState();
+  const { connected, address } = useWalletStore.getState();
+  if (!connected || !address) {
+    throw new Error("loginWallet: wallet-only fallback requires a connected wallet");
+  }
   set({
     authenticated: false,
     userId: "",
@@ -140,8 +143,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     try {
       const walletStore = useWalletStore.getState();
       await walletStore.connect(provider);
-      const { address, publicKey } = useWalletStore.getState();
-      if (!address) throw new Error("loginWallet: wallet connection failed — address is empty after connect()");
+      const { connected, address, publicKey } = useWalletStore.getState();
+      if (!connected || !address) {
+        throw new Error("loginWallet: wallet connection failed — wallet is not connected after connect()");
+      }
 
       const { access_token, user } = await authenticateWalletSession(address, publicKey);
 
@@ -172,8 +177,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     try {
       const walletStore = useWalletStore.getState();
       await walletStore.connectWif(wif);
-      const { address, publicKey } = useWalletStore.getState();
-      if (!address) throw new Error("loginWallet: developer key connection failed — address is empty after connectWif()");
+      const { connected, address, publicKey } = useWalletStore.getState();
+      if (!connected || !address) {
+        throw new Error("loginWallet: developer key connection failed — wallet is not connected after connectWif()");
+      }
 
       const { access_token, user } = await authenticateWalletSession(address, publicKey);
 
