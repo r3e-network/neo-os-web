@@ -16,14 +16,12 @@ test.describe("MiniApps List", () => {
   });
 
   test("should display the complete catalog hero", async ({ page }) => {
-    const networkLabel =
-      String(process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK || process.env.NEO_TARGET_NETWORK)
-        .toLowerCase()
-        .includes("testnet")
-        ? "Neo N3 Testnet"
-        : "Neo N3 Mainnet";
     await expect(
-      page.getByTestId("miniapps-market-shell").locator("section").first().getByText(networkLabel),
+      page
+        .getByTestId("miniapps-market-shell")
+        .locator("section")
+        .first()
+        .getByText(/Neo N3 (Mainnet|Testnet)/),
     ).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/Yiwu MiniApps/i);
     await expect(

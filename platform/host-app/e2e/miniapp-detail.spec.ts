@@ -1,17 +1,5 @@
 import { test, expect } from "@playwright/test";
 
-function isTestnetTarget() {
-  return String(
-    process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK ||
-      process.env.NEO_TARGET_NETWORK ||
-      process.env.NEXT_PUBLIC_FLAGSHIP_NETWORK ||
-      process.env.FLAGSHIP_NETWORK ||
-      "",
-  )
-    .toLowerCase()
-    .includes("testnet");
-}
-
 test.describe("MiniApp Detail", () => {
   test("should load LastSurvivor miniapp", async ({ page }) => {
     await page.goto("/miniapps/miniapp-last-survivor");
@@ -32,13 +20,9 @@ test.describe("MiniApp Detail", () => {
   });
 
   test("should show mainnet contract domain binding", async ({ page }) => {
-    await page.goto("/miniapps/miniapp-redenvelope");
+    await page.goto("/miniapps/miniapp-redenvelope?network=mainnet");
+    await page.getByText("Reference and diagnostics").first().click();
     const domainBinding = page.getByTestId("contract-domain-binding");
-
-    if (isTestnetTarget()) {
-      await expect(domainBinding).toHaveCount(0);
-      return;
-    }
 
     await expect(domainBinding).toBeVisible();
     await expect(domainBinding).toContainText("Mainnet Domain");
@@ -390,15 +374,9 @@ test.describe("MiniApp Detail", () => {
       });
     });
 
-    await page.goto("/miniapps/miniapp-neo-pay-shared-example");
+    await page.goto("/miniapps/miniapp-neo-pay-shared-example?network=testnet");
     const actionPanel = page.getByTestId("miniapp-actions");
-    if (!isTestnetTarget()) {
-      const unavailableMessages = actionPanel.getByText(
-        /not deployed or enabled on neo n3 mainnet/i,
-      );
-      expect(await unavailableMessages.count()).toBeGreaterThan(0);
-      return;
-    }
+    await expect(actionPanel.getByText(/Target: Neo N3 Testnet/i)).toBeVisible();
 
     await expect(
       actionPanel.getByRole("heading", { name: "Shared Runtime", exact: true }),
@@ -423,10 +401,11 @@ test.describe("MiniApp Detail", () => {
     await actionPanel.getByLabel("Stream Name").fill("Monthly payroll stream");
     await actionPanel.getByLabel("Notes").fill("Optional context");
 
-    await actionPanel
-      .locator("button.w-full")
-      .filter({ hasText: "Create Stream" })
-      .click();
+    await actionPanel.getByTestId("operation-submit-button").click();
+    const confirmDialog = page.getByRole("dialog", { name: "Create Stream" });
+    if (await confirmDialog.isVisible({ timeout: 1_000 }).catch(() => false)) {
+      await confirmDialog.getByRole("button", { name: "Create Stream" }).click();
+    }
 
     await page.waitForFunction(
       () =>

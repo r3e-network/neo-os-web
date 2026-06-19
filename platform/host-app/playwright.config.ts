@@ -82,6 +82,7 @@ export default defineConfig({
       // The standalone server expects production semantics; inheriting NODE_ENV=test from
       // the Playwright runner can break Next's build manifest resolution and lead to blank pages.
       NODE_ENV: "production",
+      NEXT_PUBLIC_ENABLE_WIF_WALLET: "false",
       // The full-suite surface crawl can transiently spike memory in the standalone server.
       // Give it a higher ceiling to avoid mid-suite exits that surface as ERR_CONNECTION_REFUSED.
       NODE_OPTIONS:
