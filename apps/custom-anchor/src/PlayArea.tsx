@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { SyntheticEvent } from "react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import {
   ANCHOR_AGENT_COUNT,
   defaultProfitCandidates,
@@ -172,7 +173,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
           : { anchorAppId: anchorInput.trim(), amount: amountInput.trim() };
       await dispatch(action, payload);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : String(error));
+      setFormError(formatErrorMessage(error, t("workflowFailed")));
     } finally {
       setBusyAction("");
     }
@@ -224,7 +225,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
       });
       setAnchorInput(registerInput.trim());
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : String(error));
+      setFormError(formatErrorMessage(error, t("workflowFailed")));
     } finally {
       setBusyAction("");
     }
@@ -236,7 +237,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
     try {
       await dispatch("recoverCredit", asset);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : String(error));
+      setFormError(formatErrorMessage(error, t("workflowFailed")));
     } finally {
       setBusyAction("");
     }
@@ -249,7 +250,7 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
     try {
       await dispatch("selectAnchor", id);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : String(error));
+      setFormError(formatErrorMessage(error, t("workflowFailed")));
     } finally {
       setBusyAction("");
     }
