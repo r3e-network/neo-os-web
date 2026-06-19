@@ -225,7 +225,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   today && canCheckIn ? "today-ready" : "",
                 ].filter(Boolean).join(" ")}
               >
-                <span className="checkin-day-icon" aria-label={checked ? t("dayCompleted") : t("dayPending")}>
+                <span className="checkin-day-icon" role="img" aria-label={checked ? t("dayCompleted") : t("dayPending")}>
                   {checked ? <Check size={14} aria-hidden="true" /> : <Circle size={14} aria-hidden="true" />}
                 </span>
                 <span className="checkin-day-label">{t("dayPrefix")}{day}</span>
