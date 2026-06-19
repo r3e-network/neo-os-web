@@ -95,6 +95,7 @@ describe("Private Transfer PlayArea", () => {
       name: "Seal private transfer intent",
     }) as HTMLButtonElement;
     expect(sealButton.disabled).toBe(true);
+    expect(screen.queryByRole("combobox")).toBeNull();
 
     const recipientInput = screen.getByPlaceholderText("N...");
 
@@ -136,8 +137,7 @@ describe("Private Transfer PlayArea", () => {
       target: { value: VALID_NEO_ADDRESS },
     });
 
-    const assetSelect = screen.getByDisplayValue("GAS") as HTMLSelectElement;
-    fireEvent.change(assetSelect, { target: { value: "NEO" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Asset: NEO" }));
 
     const amountInput = screen.getByRole("spinbutton") as HTMLInputElement;
     fireEvent.change(amountInput, { target: { value: "0.5" } });
@@ -197,7 +197,7 @@ describe("Private Transfer PlayArea", () => {
     expect(warnSpy).toHaveBeenCalled();
   });
 
-  it("keeps the network stat tile in sync with the in-form network select", () => {
+  it("keeps the network stat tile in sync with the in-form network picker", () => {
     // No chain service is injected, so the form defaults to mainnet — the lane
     // that currently serves a live Morpheus key — rather than the degraded
     // testnet default.
@@ -211,12 +211,22 @@ describe("Private Transfer PlayArea", () => {
     // Seeds to the active (mainnet) selection on mount instead of "Neo N3".
     expect(appState.networkLabel?.get()).toBe("Mainnet");
 
-    const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
-    const networkSelect = selects[0];
-    fireEvent.change(networkSelect, { target: { value: "testnet" } });
+    const testnetRadio = screen
+      .getAllByRole("radio")
+      .find((element) =>
+        element.getAttribute("aria-label")?.startsWith("Network: Testnet"),
+      );
+    expect(testnetRadio).toBeTruthy();
+    fireEvent.click(testnetRadio!);
     expect(appState.networkLabel?.get()).toBe("Testnet");
 
-    fireEvent.change(networkSelect, { target: { value: "mainnet" } });
+    const mainnetRadio = screen
+      .getAllByRole("radio")
+      .find((element) =>
+        element.getAttribute("aria-label")?.startsWith("Network: Mainnet"),
+      );
+    expect(mainnetRadio).toBeTruthy();
+    fireEvent.click(mainnetRadio!);
     expect(appState.networkLabel?.get()).toBe("Mainnet");
   });
 
@@ -227,8 +237,7 @@ describe("Private Transfer PlayArea", () => {
     fireEvent.change(amountInput, { target: { value: "1.5" } });
     expect(amountInput.value).toBe("1.5");
 
-    const assetSelect = screen.getByDisplayValue("GAS") as HTMLSelectElement;
-    fireEvent.change(assetSelect, { target: { value: "NEO" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Asset: NEO" }));
 
     // Fractional part dropped so the value is valid for indivisible NEO.
     expect(amountInput.value).toBe("1");
