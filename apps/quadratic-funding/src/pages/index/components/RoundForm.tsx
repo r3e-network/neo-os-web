@@ -72,7 +72,7 @@ export default function RoundForm({ onSubmit, t, loading = false, resetKey = 0 }
         <NeoInput
           value={startTime}
           label={t("roundStart")}
-          placeholder={t("roundDateFormat")}
+          placeholder={t("roundStartPlaceholderFriendly")}
           hint={t("roundDateFormatHint")}
           className="qf-datetime-field"
           onChange={setStartTime}
@@ -80,7 +80,7 @@ export default function RoundForm({ onSubmit, t, loading = false, resetKey = 0 }
         <NeoInput
           value={endTime}
           label={t("roundEnd")}
-          placeholder={t("roundDateFormat")}
+          placeholder={t("roundEndPlaceholderFriendly")}
           hint={t("roundDateFormatHint")}
           className="qf-datetime-field"
           onChange={setEndTime}

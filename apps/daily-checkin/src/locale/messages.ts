@@ -27,6 +27,7 @@ const appMessages = {
   totalClaimed: { en: "Total Claimed", zh: "已领取" },
   total: { en: "total", zh: "累计" },
   claimRewards: { en: "Claim Rewards", zh: "领取奖励" },
+  claimNothingYet: { en: "Nothing to claim yet", zh: "暂无可领取" },
   globalStats: { en: "Global Stats", zh: "全局统计" },
   totalUsers: { en: "Total Users", zh: "总用户数" },
   totalCheckins: { en: "Total Check-ins", zh: "总签到次数" },

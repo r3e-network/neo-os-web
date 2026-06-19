@@ -509,8 +509,9 @@
 .guardian-state-empty {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 18px;
-  padding: 24px 20px;
+  padding: 40px 20px;
   border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.12));
   border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-surface-subtle, #f7f8fa);
@@ -522,42 +523,6 @@
   align-items: center;
   gap: 8px;
   text-align: center;
-}
-
-.guardian-state-skeleton {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.guardian-skel-card {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding: 12px 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: var(--ns-radius-sm, 10px);
-  background: var(--ns-surface, #fff);
-}
-
-.guardian-skel-card span {
-  color: var(--ns-text-muted, #8a92a6);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.guardian-skel-card i {
-  display: block;
-  width: 70%;
-  height: 9px;
-  border-radius: 999px;
-  background: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-}
-
-.guardian-skel-card:nth-child(2n) i {
-  width: 52%;
 }
 
 .guardian-state-empty__badge {
@@ -713,8 +678,7 @@
 
   .guardian-action-grid,
   .guardian-workspace-links,
-  .guardian-state-grid,
-  .guardian-state-skeleton {
+  .guardian-state-grid {
     grid-template-columns: 1fr;
   }
 

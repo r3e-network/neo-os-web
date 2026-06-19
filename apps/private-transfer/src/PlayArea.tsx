@@ -484,6 +484,9 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
                   <small className="private-transfer__network-hint">
                     {t("networkDegradedHint")}
                   </small>
+                  <small className="private-transfer__network-note">
+                    {t("networkDegradedNote")}
+                  </small>
                   {showLiveSwitch && (
                     <button
                       type="button"

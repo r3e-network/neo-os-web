@@ -535,6 +535,17 @@
   padding: 28px 16px;
 }
 
+.qf-empty-ledger__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+}
+
 .qf-empty-ledger__preview {
   margin-top: 2px;
   padding: 8px 12px;

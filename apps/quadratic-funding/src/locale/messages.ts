@@ -85,8 +85,10 @@ const appMessages = {
   },
   roundStart: { en: "Start time", zh: "开始时间" },
   roundStartPlaceholder: { en: "2025-06-01 09:00", zh: "2025-06-01 09:00" },
+  roundStartPlaceholderFriendly: { en: "Select start time", zh: "选择开始时间" },
   roundEnd: { en: "End time", zh: "结束时间" },
   roundEndPlaceholder: { en: "2025-06-30 18:00", zh: "2025-06-30 18:00" },
+  roundEndPlaceholderFriendly: { en: "Select end time", zh: "选择结束时间" },
   roundDateFormat: { en: "YYYY-MM-DD HH:mm", zh: "YYYY-MM-DD HH:mm" },
   roundDateFormatHint: {
     en: "Local time, e.g. 2026-09-01 09:00",

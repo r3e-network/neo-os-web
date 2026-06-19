@@ -125,6 +125,49 @@
   font-size: 16px;
 }
 
+// Status dot + label sit on one line so state is glanceable at the eyebrow.
+.session-metric span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+// Glanceable state dot: amber = pending / not-yet-settled, green = complete.
+// Defaults to amber; the --ok tone flips it to brand green. Sized in em so it
+// tracks the 11px eyebrow.
+.session-metric__dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: #f0a23a;
+}
+
+.session-metric--ok .session-metric__dot {
+  background: var(--ns-brand-strong, #0fb174);
+}
+
+// Subtle vertical dividers between the three tiles so each status reads as a
+// discrete column rather than a flat run. The shared subtle surface keeps the
+// tiles legible; the divider is the inter-tile separator the row was missing.
+.session-hero__metrics {
+  position: relative;
+}
+
+.session-metric + .session-metric {
+  position: relative;
+}
+
+.session-metric + .session-metric::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: -6px;
+  width: 1px;
+  background: var(--ns-border, rgba(20, 22, 38, 0.08));
+}
+
 .session-metric span,
 .session-command__status span,
 .session-section-heading span,
@@ -731,12 +774,14 @@
   background: rgba(212, 32, 42, 0.08) !important;
 }
 
-/* Disabled danger keeps a muted red outline instead of the green soft fill the
-   generic disabled override below would otherwise force onto it. */
+/* Disabled danger reads as inert grey — NOT alarming red — so a Revoke offered
+   with no session to revoke (first run, "No session key is active") does not
+   draw the eye to a destructive action that cannot do anything yet. The muted
+   ink (#6b7280, 4.9:1 on white) stays readable while clearly de-emphasized. */
 .session-play-area .neo-btn--danger:disabled {
-  border: 1px solid rgba(214, 69, 69, 0.32) !important;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.12)) !important;
   background: transparent !important;
-  color: rgba(214, 69, 69, 0.5) !important;
+  color: #6b7280 !important;
 }
 
 .session-form {
@@ -823,6 +868,12 @@
   .session-hero__metrics,
   .session-env-grid {
     grid-template-columns: 1fr;
+  }
+
+  // Tiles stack vertically on mobile — the column divider would float between
+  // rows, so drop it and let the tile surfaces separate the statuses.
+  .session-metric + .session-metric::before {
+    display: none;
   }
 
   .session-hero__heading h2 {

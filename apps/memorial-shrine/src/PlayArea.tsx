@@ -347,7 +347,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
           <p>{t("noMemorials")}</p>
           {!showCreateForm && (
             <NeoButton
-              variant="secondary"
+              variant="ghost"
               size="sm"
               className="empty-memorials__cta"
               onClick={() => setShowCreateForm(true)}

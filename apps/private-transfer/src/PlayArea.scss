@@ -371,16 +371,19 @@
   color: var(--ns-text-2, #5b6478);
 }
 
+/* Reassurance, not a warning: this caveat is demoted to muted neutral helper
+   text so amber is reserved for the single actionable caveat (the degraded-lane
+   alert), keeping the form calm rather than anxious. */
 .private-transfer__no-funds {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   margin-top: 16px;
-  border: 1px solid rgba(180, 130, 22, 0.28);
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-md, 14px);
   padding: 11px 14px;
-  background: #fff8ec;
-  color: #8a6212;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.5;
@@ -390,6 +393,7 @@
   content: "ℹ";
   flex: 0 0 auto;
   font-weight: 700;
+  color: var(--ns-text-muted, #646d80);
 }
 
 .private-transfer__seal-button {
@@ -858,6 +862,17 @@
   color: #8a5a14;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.45;
+}
+
+/* Plain-language reassurance under the degraded hint: full-width, muted, and
+   weighted lighter so it reads as calm context, not a second alarm. */
+.private-transfer__network-note {
+  flex: 1 1 100%;
+  display: block;
+  color: #6b5a3a;
+  font-size: 11.5px;
+  font-weight: 500;
   line-height: 1.45;
 }
 
