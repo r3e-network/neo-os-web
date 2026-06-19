@@ -62,9 +62,13 @@ import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export const FIXED8 = 100_000_000;
 
+// GAS amounts must match the deployed contract: DEFAULT_WEEK_REWARD = 1_000_000
+// (0.01 GAS) at day 7 and DEFAULT_TWO_WEEK_REWARD = 2_000_000 (0.02 GAS) at day
+// 14 (cumulative 0.03). These previously read 1 / 2 GAS — a 100x over-promise
+// vs. what the contract actually pays.
 export const MILESTONES = [
-  { day: 7, reward: 1, cumulative: 1 },
-  { day: 14, reward: 2, cumulative: 3 },
+  { day: 7, reward: 0.01, cumulative: 0.01 },
+  { day: 14, reward: 0.02, cumulative: 0.03 },
 ] as const;
 
 /** Memo the contract's OnNEP17Payment requires to record a check-in. */
@@ -154,7 +158,8 @@ const eventSlot = (event: unknown, index: number): unknown => {
 
 const milestoneRewardForStreak = (streak: number): number => {
   const milestone = MILESTONES.find((item) => item.day === streak);
-  return milestone ? milestone.reward * FIXED8 : 0;
+  // Math.round avoids float artifacts from the fractional-GAS reward × 1e8.
+  return milestone ? Math.round(milestone.reward * FIXED8) : 0;
 };
 
 /** Shape of the merged on-chain state read for a user (base-unit GAS amounts). */
@@ -208,8 +213,8 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
   // surface both so the UI is honest about whether the value-prop is currently
   // deliverable rather than letting a claim fault with a raw error.
   const rewardPoolBalance = createObservable(0);
-  const weekReward = createObservable(MILESTONES[0].reward * FIXED8);
-  const twoWeekReward = createObservable(MILESTONES[1].reward * FIXED8);
+  const weekReward = createObservable(Math.round(MILESTONES[0].reward * FIXED8));
+  const twoWeekReward = createObservable(Math.round(MILESTONES[1].reward * FIXED8));
   const isPaused = createObservable(false);
   const hasLoadedPool = createObservable(false);
 
@@ -457,8 +462,8 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
     const p = (platform && typeof platform === "object" ? platform : {}) as Record<string, unknown>;
 
     const fee = intFromValue(p.checkInFee, DEFAULT_CHECKIN_FEE);
-    const week = intFromValue(p.weekReward, MILESTONES[0].reward * FIXED8);
-    const twoWeek = intFromValue(p.twoWeekReward, MILESTONES[1].reward * FIXED8);
+    const week = intFromValue(p.weekReward, Math.round(MILESTONES[0].reward * FIXED8));
+    const twoWeek = intFromValue(p.twoWeekReward, Math.round(MILESTONES[1].reward * FIXED8));
 
     // Prefer the contract's own rewardPool() report; fall back to its GAS
     // balanceOf (which equals the pool, since the contract holds the backing
@@ -479,8 +484,8 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
       totalGlobalCheckins: intFromValue(p.totalCheckins),
       totalGlobalUsers: intFromValue(p.totalUsers),
       totalGlobalRewarded: intFromValue(p.totalRewarded),
-      weekReward: week > 0 ? week : MILESTONES[0].reward * FIXED8,
-      twoWeekReward: twoWeek > 0 ? twoWeek : MILESTONES[1].reward * FIXED8,
+      weekReward: week > 0 ? week : Math.round(MILESTONES[0].reward * FIXED8),
+      twoWeekReward: twoWeek > 0 ? twoWeek : Math.round(MILESTONES[1].reward * FIXED8),
       rewardPoolBalance: Math.max(0, pool),
       paused: boolFromValue(paused),
     };

@@ -147,7 +147,9 @@ describe("Daily Check-in PlayArea", () => {
     expect(screen.getByRole("button", { name: "Refresh Status" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "Today plan" })).toBeTruthy();
     expect(screen.getByText("Check-in available")).toBeTruthy();
-    expect(screen.getAllByText("+1 GAS").length).toBeGreaterThan(0);
+    // Day-7 milestone pays 0.01 GAS (matches the contract's DEFAULT_WEEK_REWARD
+    // = 1_000_000 base units); the ladder previously over-stated this as 1 GAS.
+    expect(screen.getAllByText("+0.01 GAS").length).toBeGreaterThan(0);
     expect(screen.getByText("Rewards claimable")).toBeTruthy();
     expect(screen.getByText("Check-in deposits the GAS fee to the on-chain contract; rewards claim directly from it.")).toBeTruthy();
     expect(screen.getByText("Your Rewards")).toBeTruthy();
