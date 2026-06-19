@@ -126,13 +126,55 @@
   line-height: 1.5;
 }
 
+// One-line quadratic-matching explainer above the Create Round form so the
+// "quadratic" mechanic is visible before the Contribute tab. Shares the single
+// green accent hue with the rest of the console.
+.qf-mechanic-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(22, 199, 132, 0.22);
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  line-height: 1.5;
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-weight: 700;
+  }
+}
+
+.qf-mechanic-note__icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
+// Inline-unit amount field (matching pool) reads as a finance figure.
+.qf-amount-field {
+  .neo-input__field {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .neo-input__suffix {
+    color: var(--ns-brand-strong, #0fb174);
+    font-weight: 700;
+  }
+}
+
 // Donor amplification value-prop on the contribute tab.
 .qf-amplify-note {
   margin: 0 0 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(22, 199, 132, 0.22);
   border-radius: var(--ns-radius-sm, 12px);
-  background: rgba(99, 102, 241, 0.06);
+  background: var(--ns-brand-soft, #e4f8f0);
 
   > strong {
     display: block;
@@ -488,6 +530,17 @@
   align-items: center;
   text-align: center;
   padding: 28px 16px;
+}
+
+.qf-empty-ledger__preview {
+  margin-top: 2px;
+  padding: 8px 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .qf-project-card {

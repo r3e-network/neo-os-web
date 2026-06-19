@@ -129,26 +129,25 @@
   text-transform: uppercase;
 }
 
-// Durability disclaimer chip — overrides the "Forever" name's implied
-// permanence: photos live only in this browser's local storage.
+// Durability note — the title already states "kept on this device", so this is
+// a calm secondary reminder, not a loud warning: no filled amber box, just a
+// quiet inline note with a small amber glyph.
 .forever-album-durability-chip {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--ns-radius-md, 14px);
-  background: var(--ns-warning-soft, #fff4e0);
-  border: 1px solid var(--ns-warning, #f3a847);
-  color: var(--ns-text-2, #5b6478);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fa-muted, #8a92a6);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.45;
 
   svg {
     flex-shrink: 0;
-    margin-top: 1px;
-    color: var(--ns-warning, #f3a847);
+    color: var(--ns-warning-strong, #b9791a);
   }
 }
 
@@ -300,6 +299,12 @@
     transform: translateY(-1px);
   }
 
+  // Brief highlight when the empty-state guides the user to the dropzone.
+  &.is-pulsing {
+    border-color: var(--fa-accent);
+    animation: forever-album-dropzone-pulse 0.6s ease-in-out 2;
+  }
+
   span {
     font-size: 15px;
     font-weight: 800;
@@ -318,6 +323,23 @@
     inset: 0;
     cursor: pointer;
     opacity: 0;
+  }
+}
+
+@keyframes forever-album-dropzone-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--fa-accent-rgb), 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px rgba(var(--fa-accent-rgb), 0.22);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forever-album-file-picker.is-pulsing {
+    animation: none;
   }
 }
 

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
-import { CategoryIcon } from "@shared/components-react/illustrations";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ContractList from "./components/ContractList";
+import PactGlyph from "./components/PactGlyph";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -59,6 +59,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     !titleTooLong &&
     !termsTooLong &&
     !isLoading;
+  // Single-line "why can't I create yet" prompt: surface the first unmet
+  // requirement near the disabled CTA instead of relying only on the greyed
+  // button. Mirrors canSubmit's field order; goes quiet (ready) once valid.
+  const createHintKey = !isValidNeoAddress(partner)
+    ? "createHintPartner"
+    : !(Number.isFinite(stakeNumber) && stakeNumber >= 1)
+      ? "createHintStake"
+      : !(Number.isFinite(daysNumber) && daysNumber >= 30)
+        ? "createHintDuration"
+        : title.trim().length === 0 || titleTooLong
+          ? "createHintTitle"
+          : "createHintReady";
+
   const stakePresets = ["1", "5", "10"];
   const durationPresets = ["30", "90", "365"];
 
@@ -91,7 +104,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="breakup-hero">
         <div className="breakup-hero-head">
           <div className="breakup-hero-badge">
-            <CategoryIcon name="social" size={40} title={t("title")} />
+            <PactGlyph size={40} title={t("heroIconTitle")} />
           </div>
           <div className="breakup-hero-copy">
             <span className="breakup-hero-eyebrow">{t("contractTitle")}</span>
@@ -100,11 +113,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {t("subtitle")}
             </p>
           </div>
-          <div className="breakup-hero-tags" aria-hidden="true">
-            <span className="breakup-hero-tag">{t("heroTagStakeBacked")}</span>
-            <span className="breakup-hero-tag">{t("heroTagOnChain")}</span>
-            <span className="breakup-hero-tag">{t("heroTagRefundable")}</span>
-          </div>
+          <ul className="breakup-hero-tags" aria-label={t("howItWorksTitle")}>
+            <li className="breakup-hero-tag">{t("heroTagStakeBacked")}</li>
+            <li className="breakup-hero-tag">{t("heroTagOnChain")}</li>
+            <li className="breakup-hero-tag">{t("heroTagRefundable")}</li>
+          </ul>
         </div>
 
         {hasContracts && (
@@ -217,18 +230,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {actionNotice}
             </div>
           )}
-          <NeoButton
-            variant="primary"
-            size="lg"
-            block
-            className="breakup-create-cta"
-            loading={isLoading}
-            disabled={!canSubmit}
-            aria-label={isLoading ? t("contractPreparing", { title: title || "contract", amount: `${stake || "0"} GAS` }) : t("createContract")}
-            onClick={handleCreate}
-          >
-            {t("createContract")}
-          </NeoButton>
+          <div className="breakup-create-action">
+            <NeoButton
+              variant="primary"
+              size="lg"
+              block
+              className="breakup-create-cta"
+              loading={isLoading}
+              disabled={!canSubmit}
+              aria-label={isLoading ? t("contractPreparing", { title: title || "contract", amount: `${stake || "0"} GAS` }) : t("createContract")}
+              onClick={handleCreate}
+            >
+              {t("createContract")}
+            </NeoButton>
+            {!isLoading && (
+              <p
+                className={`breakup-create-hint${canSubmit ? " is-ready" : ""}`}
+                aria-live="polite"
+              >
+                {t(createHintKey)}
+              </p>
+            )}
+          </div>
         </div>
       </NeoCard>
 

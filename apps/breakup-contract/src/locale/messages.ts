@@ -3,11 +3,15 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
     // App translations
 title: { en: "Breakup Contract", zh: "分手合约" },
-  subtitle: { en: "Relationship stakes on-chain", zh: "链上关系赌注" },
-  contractTitle: { en: "RELATIONSHIP CONTRACT", zh: "关系合约" },
+  subtitle: {
+    en: "Put skin in the game for the people you care about.",
+    zh: "为你珍视的人，押上一点真心。",
+  },
+  contractTitle: { en: "A PROMISE, ON-CHAIN", zh: "链上的承诺" },
+  heroIconTitle: { en: "Two people sharing a pact", zh: "共守约定的两个人" },
   clause1: {
-    en: "This pact binds two parties: each locks a matching GAS stake. Break it and your stake goes to your partner; honor it to expiry and both stakes are refunded.",
-    zh: "本约定绑定双方：各自锁定等额 GAS 质押。违约则你的质押归对方所有；坚持到期满则双方质押全额退回。",
+    en: "Two people, one promise: you each lock a matching GAS stake. Honor it to the end and both stakes come back in full — break it, and yours goes to your partner.",
+    zh: "两个人，一个承诺：各自锁定等额 GAS 质押。坚持到期满则双方质押全额退回 — 若违约，你的质押便归对方所有。",
   },
 
   partnerLabel: { en: "Partner Address", zh: "伴侣地址" },
@@ -150,6 +154,26 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   lastSubmittedContract: {
     en: "Last submitted: {title}",
     zh: "上次提交：{title}",
+  },
+  createHintPartner: {
+    en: "Add your partner's NEO address to begin.",
+    zh: "先填写伴侣的 NEO 地址。",
+  },
+  createHintStake: {
+    en: "Set a stake of at least 1 GAS for each of you.",
+    zh: "为双方各设置至少 1 GAS 的质押。",
+  },
+  createHintDuration: {
+    en: "Choose a term of at least 30 days.",
+    zh: "选择至少 30 天的期限。",
+  },
+  createHintTitle: {
+    en: "Give your pact a title so you'll both recognise it.",
+    zh: "给约定起个名字，方便双方识别。",
+  },
+  createHintReady: {
+    en: "Looks good — create your pact whenever you're ready.",
+    zh: "一切就绪 — 准备好后即可创建约定。",
   },
   titleRequired: { en: "Contract title is required", zh: "请填写合约标题" },
   titleTooLong: { en: "Title must be 100 characters or less", zh: "标题最多100字符" },

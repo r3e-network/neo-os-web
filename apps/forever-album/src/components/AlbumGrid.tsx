@@ -33,12 +33,30 @@ export default function AlbumGrid({ t, photos, loading, onView, onUpload }: Albu
           <span className="forever-album-skeleton-label">{t("loading")}</span>
         </div>
       ) : photos.length === 0 ? (
-        <div className="forever-album-empty-line" role="status">
-          <span>
-            {t("emptyTitle")} · {t("emptyDesc")}
-          </span>
-          <NeoButton variant="secondary" size="sm" onClick={onUpload}>
-            {t("emptyAction")}
+        <div className="forever-album-empty" role="status">
+          <div className="forever-album-empty-frame" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="28"
+              height="28"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <circle cx="8.5" cy="8.5" r="1.6" />
+              <path d="m21 15-5-5L5 21" />
+            </svg>
+            <span className="forever-album-empty-frame-caption">
+              {t("emptySampleCaption")}
+            </span>
+          </div>
+          <p className="forever-album-empty-warm">{t("emptyWarmLine")}</p>
+          <p className="forever-album-empty-hint">{t("emptyDesc")}</p>
+          <NeoButton variant="primary" size="sm" onClick={onUpload}>
+            {t("startHere")}
           </NeoButton>
         </div>
       ) : (

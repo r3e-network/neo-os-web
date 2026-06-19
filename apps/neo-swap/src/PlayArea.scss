@@ -247,24 +247,196 @@
   line-height: 1.45;
 }
 
-.neo-swap-router-notice {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--ns-warning-soft, #fff3dd);
-  color: var(--ns-warning, #b9791a);
-  font-size: 0.8125rem;
-  line-height: 1.45;
+/* Live price preview: the focus block when no router is deployed. Quoting is the
+   real capability, so the rate is the largest element and the refresh control is
+   the single primary action on this card. */
+.neo-swap-preview {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid rgba(22, 199, 132, 0.22);
+  border-radius: 18px;
+  background: linear-gradient(155deg, var(--ns-green-soft) 0%, #ffffff 70%);
+  box-shadow: var(--ns-shadow);
 }
 
-.neo-swap-router-notice__title {
+.neo-swap-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.neo-swap-preview__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ns-green-strong);
   font-size: 11px;
   font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ns-ink, #1e1e2e);
+}
+
+.neo-swap-preview__eyebrow svg {
+  flex: 0 0 auto;
+}
+
+.neo-swap-preview__asof {
+  flex: 0 0 auto;
+  color: var(--ns-muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  &.is-stale {
+    color: var(--ns-warning, #b9791a);
+  }
+}
+
+.neo-swap-preview__rate {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--ns-ink);
+
+  &.is-muted {
+    color: var(--ns-text-2);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+}
+
+.neo-swap-preview__rate-lead {
+  color: var(--ns-text-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.neo-swap-preview__rate-figure {
+  color: var(--ns-ink);
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.neo-swap-preview__body {
+  margin: 0;
+  color: var(--ns-text-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.neo-swap-preview__refresh {
+  margin-top: 2px;
+}
+
+/* Disclosure that folds the full trade-setup form away while settlement is off. */
+.neo-swap-disclosure {
+  border: 1px solid var(--ns-line);
+  border-radius: 16px;
+  background: var(--ns-surface);
+  overflow: hidden;
+}
+
+.neo-swap-disclosure__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  color: var(--ns-text-2);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  list-style: none;
+  user-select: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.neo-swap-disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+
+.neo-swap-disclosure__summary svg {
+  flex: 0 0 auto;
+  color: var(--ns-green-strong);
+}
+
+.neo-swap-disclosure__summary:hover {
+  color: var(--ns-ink);
+  background: var(--ns-surface-subtle);
+}
+
+.neo-swap-disclosure[open] .neo-swap-disclosure__summary {
+  border-bottom: 1px solid var(--ns-line);
+  color: var(--ns-ink);
+}
+
+.neo-swap-disclosure__summary:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(22, 199, 132, 0.4);
+}
+
+.neo-swap-disclosure__body {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+/* Read-only output rendered as a result chip, not a dead text input. */
+.neo-swap-receive-amount {
+  min-width: 0;
+  padding: 10px 4px;
+  color: var(--ns-ink);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* Collapsible transaction-details fold to lower first-screen density. */
+.neo-swap-txfold {
+  border: 1px solid var(--ns-line);
+  border-radius: 14px;
+  background: var(--ns-surface-subtle);
+  overflow: hidden;
+}
+
+.neo-swap-txfold__summary {
+  padding: 11px 14px;
+  color: var(--ns-text-2);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  list-style: none;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+
+.neo-swap-txfold__summary::-webkit-details-marker {
+  display: none;
+}
+
+.neo-swap-txfold__summary:hover {
+  color: var(--ns-ink);
+}
+
+.neo-swap-txfold__summary:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(22, 199, 132, 0.4);
+}
+
+.neo-swap-txfold[open] .neo-swap-txfold__summary {
+  border-bottom: 1px solid var(--ns-line);
+  color: var(--ns-ink);
 }
 
 .neo-swap-rate-asof {
@@ -415,15 +587,14 @@
   }
 }
 
-/* Transaction detail rows: network, route, ETA, fee — exact and unambiguous. */
+/* Transaction detail rows: network, route, ETA, fee — exact and unambiguous.
+   Lives inside the collapsible .neo-swap-txfold, which supplies the surrounding
+   chrome, so the list itself carries only spacing. */
 .neo-swap-tx-details {
   display: grid;
   gap: 8px;
   margin: 0;
   padding: 12px 14px;
-  border: 1px solid var(--ns-line);
-  border-radius: 14px;
-  background: var(--ns-surface-subtle);
 }
 
 .neo-swap-tx-details > div {

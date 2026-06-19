@@ -99,17 +99,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   }, [currentStreak]);
 
   const streakTier = currentStreak >= 14 ? "blaze" : currentStreak >= 7 ? "spark" : "cold";
-  // Before the first chain read, eligibility is unknown — keep the CTA disabled
-  // and labelled "Loading…" rather than the misleading "Wait for next" so a
-  // pre-load click can't fire a check-in the contract would fault.
+  // A chain read is genuinely in flight only while the global coordinator is
+  // running before the first successful load. Once it settles with no wallet
+  // (the standalone resting state) isLoading is false again — that is NOT a
+  // loading state and must not show a "Loading…" pill.
+  const statusReadInFlight = !hasLoadedStatus && (isLoading || isRefreshing);
+  // The settled first-open / disconnected resting state: the initial read has
+  // resolved with no wallet/data (isLoading back to false) and nothing else is
+  // running. This is the empty archetype state — not a loading state.
+  const awaitingConnect = !hasLoadedStatus && !isLoading && !isRefreshing && !isCheckingIn;
   const checkInDisabled = !hasLoadedStatus || !canCheckIn || isLoading || isPaused;
+  // Only collapse the primary verb to "Loading…" while a read is actually in
+  // flight. In the settled disconnected state keep the real "Check In Now"
+  // label (disabled) so the game's core action is always visible and named,
+  // never hidden behind a perpetual loading pill.
   const checkInLabel = isPaused
     ? t("contractPaused")
-    : !hasLoadedStatus
+    : statusReadInFlight
       ? t("loading")
-      : canCheckIn
+      : !hasLoadedStatus
         ? t("checkInNow")
-        : t("waitForNext");
+        : canCheckIn
+          ? t("checkInNow")
+          : t("waitForNext");
   const hasClaimable = unclaimedRewards > 0;
   // Block claiming when the contract is paused or the reward pool cannot cover
   // the accrued amount, so the CTA never invites a transaction that will fault.
@@ -122,11 +134,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : `${t("claimRewards")} (${formatGas(unclaimedRewards)} ${t("tokenGas")})`;
 
   // "Today plan" facts — derived from the same state the actions use, so the
-  // panel narrates exactly what the buttons will do this UTC cycle.
-  const planTitle = canCheckIn ? t("todayPlanReady") : t("todayPlanDone");
-  const planCopy = canCheckIn
-    ? t("todayPlanReadyCopy", { streak: currentStreak + 1 })
-    : t("todayPlanDoneCopy");
+  // panel narrates exactly what the buttons will do this UTC cycle. In the
+  // settled disconnected state lead with the actionable invite to start the
+  // streak rather than three idle "nothing happening" rows.
+  const planTitle = awaitingConnect
+    ? t("todayPlanInvite")
+    : canCheckIn
+      ? t("todayPlanReady")
+      : t("todayPlanDone");
+  const planCopy = awaitingConnect
+    ? t("todayPlanInviteCopy")
+    : canCheckIn
+      ? t("todayPlanReadyCopy", { streak: currentStreak + 1 })
+      : t("todayPlanDoneCopy");
   const milestoneReachable = canCheckIn && currentStreak + 1 >= nextMilestone.day;
   const milestoneCopy = milestoneReachable
     ? t("milestoneImpactReady", { day: nextMilestone.day })
@@ -141,18 +161,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // workflow message) — avoids duplicating the hero "Ready" pill.
   const showStatusPill = Boolean(lastError) || (workflowStatus !== t("workflowReady") && workflowStatus.trim().length > 0);
 
-  // The first-open / disconnected state surfaces no streak data yet. Show the
-  // hero pill as an invite to connect rather than a perpetual "Loading…":
-  // surface "Loading…" only while a user-initiated read is actually running
-  // (the initial background load can hang awaiting a wallet that never connects
-  // in standalone, which is exactly the stuck-looking case to avoid).
-  const awaitingConnect = !hasLoadedStatus && !isRefreshing && !isCheckingIn;
+  // The hero pill reads as an invite to connect in the resting state rather
+  // than a perpetual "Loading…": "Loading…" is reserved for an in-flight read.
   const ringReady = hasLoadedStatus && canCheckIn;
 
   return (
     <div
       className={`checkin-play-area streak-${streakTier}${ringReady ? " streak-can-checkin" : ""}`}
     >
+      {/* Upper region — hero + week (left) and the primary action card (right)
+          share a two-column grid on desktop so the core Check In action sits
+          above the fold and the page uses its width instead of stacking thin. */}
+      <div className="checkin-top-grid">
+      <div className="checkin-top-left">
       {/* Hero — streak, status, and the only timing/fee facts that matter, in one block */}
       <div className="checkin-streak-section">
         <div className={`checkin-fire-ring ${streakTier}`}>
@@ -225,7 +246,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           />
         </div>
       </div>
+      </div>
 
+      <div className="checkin-top-right">
       {/* Honesty banners — surface a paused contract or a reward pool that is
           temporarily too low to cover the next milestone, so the user knows
           whether milestone GAS rewards can be paid before they spend the daily
@@ -247,6 +270,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className={`status-pill${lastError ? " error" : ""}`}>
             <span>{lastError || workflowStatus}</span>
           </div>
+        )}
+        {awaitingConnect && (
+          <p className="checkin-connect-hint">{t("connectHint")}</p>
         )}
         <div className="checkin-actions-grid">
           <NeoButton
@@ -285,6 +311,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </NeoButton>
         </div>
       </NeoCard>
+      </div>
+      </div>
 
       {/* Milestone payout reveal — the reward feedback moment. Appears briefly
           when a check-in lands the streak on a milestone day, announcing the

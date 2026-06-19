@@ -118,6 +118,23 @@ export default function PlayArea({
       ?.click();
   };
 
+  // The gallery empty state should not duplicate the dropzone as a second
+  // file-open affordance — instead it guides the eye to the single canonical
+  // entry point (the "Choose images" dropzone) and gently highlights it.
+  const focusDropzone = () => {
+    const dropzone = document.querySelector<HTMLElement>(
+      ".forever-album-file-picker",
+    );
+    if (!dropzone) {
+      openFilePicker();
+      return;
+    }
+    dropzone.scrollIntoView({ behavior: "smooth", block: "center" });
+    dropzone.classList.add("is-pulsing");
+    window.setTimeout(() => dropzone.classList.remove("is-pulsing"), 1200);
+    dropzone.querySelector<HTMLInputElement>("input")?.focus();
+  };
+
   return (
     <div className="album-play-area">
       <div className="forever-album-shell">
@@ -145,17 +162,18 @@ export default function PlayArea({
             <div className="forever-album-hero-copy">
               <span className="forever-album-kicker">{t("title")}</span>
               <h1 id="forever-album-title">{t("vaultHeroTitle")}</h1>
-              {/* Durability disclaimer — prominent enough to override the
-                  "Forever" name: photos live only in this browser. */}
+              <p>{t("vaultHeroSubtitle")}</p>
+              {/* Durability is acknowledged in the title (kept on this device),
+                  so the disclaimer reads as a calm secondary note rather than a
+                  loud warning that collides with the keepsake promise. */}
               <p className="forever-album-durability-chip" role="note">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M12 9v4" />
                   <path d="M12 17h.01" />
                   <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
                 </svg>
-                <span>{t("durabilityWarning")}</span>
+                <span>{t("durabilityNote")}</span>
               </p>
-              <p>{t("vaultHeroSubtitle")}</p>
               <div className="forever-album-hero-facts">
                 <span>
                   {t("vaultTimelineOne")} » {t("vaultTimelineTwo")} »{" "}
@@ -211,7 +229,7 @@ export default function PlayArea({
             photos={photos}
             loading={loadingPhotos}
             onView={(photo) => dispatch("viewPhoto", photo)}
-            onUpload={openFilePicker}
+            onUpload={focusDropzone}
           />
 
           <div className="forever-album-uploader">
