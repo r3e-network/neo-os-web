@@ -285,78 +285,250 @@
   }
 }
 
-.council-form-grid {
+.council-create-workbench {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 0.85rem;
+  gap: 1rem;
 }
 
-.council-policy-group {
-  margin-top: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+.council-draft-preview {
+  display: grid;
+  grid-template-columns: 4.8rem minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.25);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(135deg, rgba(22, 199, 132, 0.1), rgba(255, 255, 255, 0) 58%),
+    var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.06));
+}
 
-  .council-form-grid {
-    margin-bottom: 0;
+.council-draft-preview__rail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8.8rem;
+  padding: 1rem 0.65rem;
+  background: linear-gradient(135deg, var(--ns-brand, #16c784), var(--ns-brand-strong, #0fb174));
+  color: #ffffff;
+  text-align: center;
+
+  span {
+    font-size: 0.64rem;
+    font-weight: 850;
+    line-height: 1.35;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 }
 
-.council-policy-legend {
-  margin: 0 0 0.7rem;
+.council-draft-preview__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 1.2rem 1.25rem;
+
+  > strong {
+    overflow-wrap: anywhere;
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 1.28rem;
+    font-weight: 850;
+    line-height: 1.2;
+  }
+
+  p {
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+}
+
+.council-draft-preview__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+
+  span {
+    display: inline-flex;
+    min-height: 1.55rem;
+    align-items: center;
+    padding: 0 0.6rem;
+    border-radius: 999px;
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-deep, #0b5e3e);
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
+}
+
+.council-draft-policy {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 0.55rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+
+  span,
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.55rem 0.65rem;
+    border-radius: var(--ns-radius-xs, 8px);
+    background: var(--ns-surface-subtle, #f7f8fa);
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.76rem;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.council-create-section,
+.council-proposal-editor,
+.council-policy-group {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.council-section-label {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.council-field {
+.council-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.council-choice-button,
+.council-duration-chip,
+.council-policy-method {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2, #5b6478);
+  cursor: pointer;
+  transition:
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+
+  &:hover {
+    border-color: rgba(22, 199, 132, 0.35);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+  }
+
+  &.is-selected {
+    border-color: rgba(22, 199, 132, 0.45);
+    background: var(--ns-brand-soft, #e4f8f0);
+    color: var(--ns-brand-deep, #0b5e3e);
+  }
+}
+
+.council-choice-button {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--ns-radius-md, 14px);
+  text-align: left;
+
+  strong {
+    color: var(--ns-ink, #1e1e2e);
+    font-size: 0.93rem;
+    font-weight: 850;
+    line-height: 1.25;
+  }
 
   span {
+    color: currentColor;
+    font-size: 0.78rem;
+    font-weight: 650;
+    line-height: 1.42;
+  }
+}
+
+.council-choice-button.is-selected strong {
+  color: var(--ns-brand-deep, #0b5e3e);
+}
+
+.council-duration-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.council-duration-chip {
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.council-proposal-editor {
+  padding: 0.85rem;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.council-proposal-editor .neo-input__textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.council-policy-group {
+  padding: 0.9rem;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: rgba(228, 248, 240, 0.45);
+}
+
+.council-policy-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+
+  p {
+    margin: 0;
     color: var(--ns-text-2, #5b6478);
     font-size: 0.78rem;
-    font-weight: 750;
+    line-height: 1.45;
   }
+}
 
-  select {
-    min-height: 2.75rem;
-    width: 100%;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
-    border-radius: 12px;
-    background-color: var(--ns-surface, #ffffff);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.7rem center;
-    color: var(--ns-ink, #1e1e2e);
-    padding: 0 2.2rem 0 0.75rem;
-    font-size: 0.92rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
-      box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+.council-policy-methods {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
 
-    &::-ms-expand {
-      display: none;
-    }
-
-    &:hover {
-      border-color: rgba(22, 199, 132, 0.4);
-    }
-
-    &:focus-visible {
-      outline: none;
-      border-color: var(--ns-brand, #16c784);
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
-    }
-  }
+.council-policy-method {
+  min-height: 2.55rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--ns-radius-sm, 12px);
+  font-size: 0.76rem;
+  font-weight: 780;
+  line-height: 1.25;
+  text-align: left;
 }
 
 .council-loading,
@@ -877,13 +1049,31 @@
 
 @media (max-width: 720px) {
   .council-stats,
-  .council-form-grid,
+  .council-choice-grid,
+  .council-policy-methods,
   .council-details-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 480px) {
+  .council-draft-preview,
+  .council-choice-grid,
+  .council-duration-row,
+  .council-policy-methods,
+  .council-draft-policy {
+    grid-template-columns: 1fr;
+  }
+
+  .council-draft-preview__rail {
+    min-height: 3.25rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .council-draft-preview__body {
+    padding: 1rem;
+  }
+
   .council-hero-badge {
     width: 40px;
     height: 40px;

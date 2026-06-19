@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -182,13 +182,16 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
   const [policyValue, setPolicyValue] = useState("");
   const [duration, setDuration] = useState(String(DEFAULT_DURATION_MS));
 
-  const selectedProposal = useMemo(
-    () => proposals.find((proposal) => proposal.id === selectedId) ?? null,
-    [proposals, selectedId],
-  );
+  const selectedProposal = proposals.find((proposal) => proposal.id === selectedId) ?? null;
   const visibleProposals = tab === "history" ? historyProposals : activeProposals;
   const canWrite = Boolean(walletAddress && isCandidate);
   const showPolicyFields = proposalType === "1";
+  const selectedDurationLabel =
+    t(DURATION_OPTIONS.find((option) => String(option.value) === duration)?.labelKey ?? "duration7Days");
+  const selectedPolicyMethodLabel =
+    t(POLICY_METHODS.find((method) => method.key === policyMethod)?.labelKey ?? "methodFeePerByte");
+  const draftTitle = newTitle.trim() || t("proposalDraftEmpty");
+  const draftDescription = newDescription.trim() || t("descPlaceholder");
 
   const statusLabel = (proposal: Proposal) => {
     const key = proposal.statusKey || "pending";
@@ -355,54 +358,112 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <p>{t("createProposalHelp")}</p>
           </div>
 
-          <div className="council-form-grid">
-            <label className="council-field">
-              <span>{t("proposalType")}</span>
-              <select value={proposalType} onChange={(event) => setProposalType(event.target.value)}>
-                <option value="0">{t("textType")}</option>
-                <option value="1">{t("policyType")}</option>
-              </select>
-            </label>
-            <label className="council-field">
-              <span>{t("duration")}</span>
-              <select value={duration} onChange={(event) => setDuration(event.target.value)}>
-                {DURATION_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {t(option.labelKey)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <div className="council-create-workbench">
+            <section className="council-draft-preview" aria-label={t("proposalDraft")}>
+              <div className="council-draft-preview__rail" aria-hidden="true">
+                <span>{t("proposalDraft")}</span>
+              </div>
+              <div className="council-draft-preview__body">
+                <div className="council-draft-preview__meta">
+                  <span>{showPolicyFields ? t("policyType") : t("textType")}</span>
+                  <span>{selectedDurationLabel}</span>
+                </div>
+                <strong>{draftTitle}</strong>
+                <p>{draftDescription}</p>
+                {showPolicyFields && (
+                  <div className="council-draft-policy">
+                    <span>{selectedPolicyMethodLabel}</span>
+                    <strong>{policyValue || t("policyValuePlaceholder")}</strong>
+                  </div>
+                )}
+              </div>
+            </section>
 
-          <NeoInput
-            value={newTitle}
-            placeholder={t("titlePlaceholder")}
-            label={t("proposalTitle")}
-            onChange={setNewTitle}
-          />
-          <NeoInput
-            type="textarea"
-            value={newDescription}
-            placeholder={t("descPlaceholder")}
-            label={t("description")}
-            onChange={setNewDescription}
-          />
+            <section className="council-create-section" aria-label={t("proposalType")}>
+              <span className="council-section-label">{t("proposalType")}</span>
+              <div className="council-choice-grid council-choice-grid--type" role="radiogroup">
+                {[
+                  { value: "0", label: t("textType"), description: t("textProposalScope") },
+                  { value: "1", label: t("policyType"), description: t("policyProposalScope") },
+                ].map((option) => {
+                  const active = proposalType === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={`council-choice-button${active ? " is-selected" : ""}`}
+                      onClick={() => setProposalType(option.value)}
+                    >
+                      <strong>{option.label}</strong>
+                      <span>{option.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
-          {showPolicyFields && (
-            <div className="council-policy-group">
-              <p className="council-policy-legend">{t("policyDetails")}</p>
-              <div className="council-form-grid">
-                <label className="council-field">
-                  <span>{t("policyMethod")}</span>
-                  <select value={policyMethod} onChange={(event) => setPolicyMethod(event.target.value)}>
-                    {POLICY_METHODS.map((method) => (
-                      <option key={method.key} value={method.key}>
+            <section className="council-create-section" aria-label={t("duration")}>
+              <span className="council-section-label">{t("duration")}</span>
+              <div className="council-duration-row" role="radiogroup">
+                {DURATION_OPTIONS.map((option) => {
+                  const active = String(option.value) === duration;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={`council-duration-chip${active ? " is-selected" : ""}`}
+                      onClick={() => setDuration(String(option.value))}
+                    >
+                      {t(option.labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="council-proposal-editor" aria-label={t("proposalBrief")}>
+              <NeoInput
+                value={newTitle}
+                placeholder={t("titlePlaceholder")}
+                label={t("proposalTitle")}
+                onChange={setNewTitle}
+              />
+              <NeoInput
+                type="textarea"
+                value={newDescription}
+                placeholder={t("descPlaceholder")}
+                label={t("description")}
+                onChange={setNewDescription}
+              />
+            </section>
+
+            {showPolicyFields && (
+              <section className="council-policy-group" aria-label={t("policyDetails")}>
+                <div className="council-policy-head">
+                  <span className="council-section-label">{t("policyDetails")}</span>
+                  <p>{t("policyMethodHint")}</p>
+                </div>
+                <div className="council-policy-methods" role="radiogroup" aria-label={t("policyMethod")}>
+                  {POLICY_METHODS.map((method) => {
+                    const active = policyMethod === method.key;
+                    return (
+                      <button
+                        key={method.key}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        className={`council-policy-method${active ? " is-selected" : ""}`}
+                        onClick={() => setPolicyMethod(method.key)}
+                      >
                         {t(method.labelKey)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                      </button>
+                    );
+                  })}
+                </div>
                 <NeoInput
                   type="number"
                   value={policyValue}
@@ -410,9 +471,9 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                   label={t("policyValue")}
                   onChange={setPolicyValue}
                 />
-              </div>
-            </div>
-          )}
+              </section>
+            )}
+          </div>
 
           <NeoButton
             variant="primary"
