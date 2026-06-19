@@ -3,6 +3,13 @@
  */
 
 import { useState } from "react";
+import {
+  AlertTriangle,
+  Clock3,
+  LockKeyhole,
+  MessageSquareText,
+  ShieldCheck,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -230,45 +237,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   return (
     <div className="nm-play-area">
       <div className="nm-hero">
-        <div className="nm-hero-badge" aria-hidden="true">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="5" width="18" height="14" rx="2" />
-            <path d="m3 7 9 6 9-6" />
-            <rect x="14.5" y="11.5" width="7" height="6" rx="1.4" fill="currentColor" stroke="none" />
-            <path d="M16 11.5v-1.2a2 2 0 0 1 4 0v1.2" />
-          </svg>
+        <div className="nm-hero-content">
+          <div className="nm-hero-badge" aria-hidden="true">
+            <picture>
+              <source srcSet="./logo.avif" type="image/avif" />
+              <source srcSet="./logo.webp" type="image/webp" />
+              <img src="./logo.jpg" alt="" />
+            </picture>
+          </div>
+          <div className="nm-hero-copy">
+            <span className="nm-hero-eyebrow">{t("heroEyebrow")}</span>
+            <h2 className="nm-hero-title">{t("heroTitle")}</h2>
+            <p className="nm-hero-sub">{t("heroSubtitle")}</p>
+          </div>
         </div>
-        <div className="nm-hero-copy">
-          <span className="nm-hero-eyebrow">{t("heroEyebrow")}</span>
-          <h2 className="nm-hero-title">{t("heroTitle")}</h2>
-          <p className="nm-hero-sub">{t("heroSubtitle")}</p>
-        </div>
+        <picture className="nm-hero-media" aria-hidden="true">
+          <source srcSet="./banner.avif" type="image/avif" />
+          <source srcSet="./banner.webp" type="image/webp" />
+          <img src="./banner.jpg" alt="" />
+        </picture>
       </div>
 
       {!networkSupported ? (
         <NeoCard title={t("networkCardTitle")}>
           <div className="nm-network-warning" role="status">
-            <svg
-              className="nm-network-warning-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
+            <AlertTriangle className="nm-network-warning-icon" aria-hidden="true" />
             <span>{hasWallet ? t("errorWrongNetwork") : t("errorNoEvmWallet")}</span>
           </div>
           {hasWallet ? (
@@ -306,37 +299,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {t("savedNicknameNote", { name: recipientKnownName })}
             </p>
           ) : null}
-          <NeoInput
-            type="textarea"
-            label={t("messageLabel")}
-            placeholder={t("messagePlaceholder")}
-            value={form.body ?? ""}
-            hint={t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}
-            error={
-              bodyLength > MAX_BODY_LENGTH ? t("bodyTooLong") : undefined
-            }
-            onChange={(v) => setForm({ body: v.slice(0, MAX_BODY_LENGTH) })}
-          />
+          <div className={`nm-message-composer${bodyLength > MAX_BODY_LENGTH ? " nm-message-composer--error" : ""}`}>
+            <div className="nm-message-composer__head">
+              <span className="nm-message-composer__label" id="nm-message-body-label">
+                <MessageSquareText aria-hidden="true" />
+                {t("messageLabel")}
+              </span>
+              <span className="nm-message-composer__counter">
+                {t("bodyCounter", { count: bodyLength, max: MAX_BODY_LENGTH })}
+              </span>
+            </div>
+            <textarea
+              aria-labelledby="nm-message-body-label"
+              placeholder={t("messagePlaceholder")}
+              value={form.body ?? ""}
+              onChange={(e) => setForm({ body: e.target.value.slice(0, MAX_BODY_LENGTH) })}
+            />
+            {bodyLength > MAX_BODY_LENGTH ? (
+              <span className="nm-message-composer__error">{t("bodyTooLong")}</span>
+            ) : null}
+          </div>
 
           <div className="nm-mode-toggle" role="radiogroup" aria-label={t("deliveryModeLabel")}>
             <button
               type="button"
               className={`nm-mode-option ${!isTimed ? "active" : ""}`}
-              aria-pressed={!isTimed}
+              role="radio"
+              aria-checked={!isTimed}
               onClick={() => setForm({ lockMode: "recipient" })}
             >
               <span className="nm-mode-icon" aria-hidden="true">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
+                <LockKeyhole />
               </span>
               <span className="nm-mode-text">
                 <strong>{t("modeRecipient")}</strong>
@@ -346,21 +339,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <button
               type="button"
               className={`nm-mode-option ${isTimed ? "active" : ""}`}
-              aria-pressed={isTimed}
+              role="radio"
+              aria-checked={isTimed}
               onClick={() => setForm({ lockMode: "timed" })}
             >
               <span className="nm-mode-icon" aria-hidden="true">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3.5 2" />
-                </svg>
+                <Clock3 />
               </span>
               <span className="nm-mode-text">
                 <strong>{t("modeTimed")}</strong>
@@ -372,19 +356,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           {isTimed ? (
             <>
               <div className="nm-public-warning" role="alert">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
+                <AlertTriangle aria-hidden="true" />
                 <span>{t("timedPublicWarning")}</span>
               </div>
               <label className="nm-date-field">
@@ -407,7 +379,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </>
           ) : null}
 
-          <p className="nm-note">{isTimed ? t("timedNote") : t("recipientNote")}</p>
+          <p className="nm-note">
+            <ShieldCheck aria-hidden="true" />
+            <span>{isTimed ? t("timedNote") : t("recipientNote")}</span>
+          </p>
 
           <NeoButton
             variant="primary"
