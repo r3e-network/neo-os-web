@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 
+const detailLinkSelector =
+  'a[href^="/miniapps/"][href*="?network="], a[href^="/miniapp-detail/"][href*="?network="]';
+
 test.describe("Homepage", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -30,17 +33,17 @@ test.describe("Homepage", () => {
     await expect(
       page
         .getByTestId("homepage-featured-apps")
-        .locator('a[href^="/miniapps/miniapp-"]'),
+        .locator(detailLinkSelector),
     ).toHaveCount(9);
     await expect(
       page
         .getByTestId("homepage-catalog")
-        .locator('a[href^="/miniapps/miniapp-"]'),
+        .locator(detailLinkSelector),
     ).toHaveCount(enabledApps.length);
     await expect(
       page
         .getByTestId("homepage-catalog")
-        .locator('a[href="/miniapps/miniapp-onchaintarot"]'),
+        .locator('a[href^="/miniapps/miniapp-onchaintarot?network="]'),
     ).toBeVisible();
   });
 
