@@ -9,6 +9,7 @@ import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import { useMorpheusDataFeed } from "@shared/composables/useMorpheusDataFeed";
 import { EXTERNAL_INTEGRATIONS, getNetwork } from "@shared/constants/rpc";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import {
   buildAutomationTriggerRequest,
   callAutomationEndpoint,
@@ -123,7 +124,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
       });
       return { success: true };
     } catch (error) {
-      lastError.set(error instanceof Error ? error.message : t("fetchFailed"));
+      lastError.set(formatErrorMessage(error, t("fetchFailed")));
       throw error;
     } finally {
       isRequestingRaw.set(false);
@@ -228,7 +229,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
       });
       return trigger;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("triggerFailed");
+      const message = formatErrorMessage(error, t("triggerFailed"));
       lastError.set(message);
       apiStatus.set(message);
       throw error;
@@ -255,7 +256,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
       apiStatus.set(t("triggersLoaded"));
       return list;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("triggerListFailed");
+      const message = formatErrorMessage(error, t("triggerListFailed"));
       lastError.set(message);
       apiStatus.set(message);
       throw error;
@@ -303,7 +304,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
       });
       return next;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("triggerStatusFailed");
+      const message = formatErrorMessage(error, t("triggerStatusFailed"));
       lastError.set(message);
       apiStatus.set(message);
       throw error;
@@ -351,7 +352,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
       dropLocally();
       apiStatus.set(t("triggerDeleted"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("triggerDeleteFailed");
+      const message = formatErrorMessage(error, t("triggerDeleteFailed"));
       lastError.set(message);
       apiStatus.set(message);
       throw error;

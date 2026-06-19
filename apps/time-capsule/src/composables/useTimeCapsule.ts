@@ -13,7 +13,9 @@
  *   - reveal() after the unlock time RETURNS that GAS to the owner atomically
  *     and marks the capsule opened.
  *   - fish() lets another user pay a discovery fee on a PUBLIC, unrevealed
- *     capsule; the fee is forwarded to the capsule's owner as a TIP, same tx.
+ *     capsule; the fee is CREDITED to the capsule owner's fish-revenue ledger
+ *     (NOT forwarded in the tip tx) and the owner collects it via
+ *     withdrawFishRevenue().
  *
  * Contract interaction model (verified against MiniAppTimeCapsule.cs / ABI):
  *
@@ -46,8 +48,9 @@
  *        locked GAS to the owner atomically and marks it revealed. Guarded so it
  *        cannot double-withdraw.
  *     fish — a one-shot GAS transfer to the contract with the memo
- *        "miniapp-timecapsule:fish:<id>"; the sent amount is the fee, forwarded
- *        to the owner as a tip:
+ *        "miniapp-timecapsule:fish:<id>"; the sent amount is the fee, credited
+ *        to the owner's fish-revenue ledger (collected later via
+ *        withdrawFishRevenue), NOT forwarded in this tx:
  *          transfer(fisher, CONTRACT, feeBaseUnits, "miniapp-timecapsule:fish:<id>")
  *          { scriptHash: GAS_HASH }
  *
@@ -81,6 +84,7 @@ import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { NOTIFICATION_EVENT } from "@shared/services";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 // ============================================================================
 // Constants
@@ -718,7 +722,7 @@ export function useTimeCapsule({
 
       capsules.set(await loadCapsules());
     } catch (e) {
-      notify(e instanceof Error ? e.message : t("error"), "error");
+      notify(formatErrorMessage(e, t("error")), "error");
       throw e;
     } finally {
       isProcessing.set(false);
@@ -801,7 +805,7 @@ export function useTimeCapsule({
       // The tipped capsule is now flagged fished — drop it from the browsable list.
       fishCandidates.set(await loadPublicCandidates());
     } catch (e) {
-      notify(e instanceof Error ? e.message : t("error"), "error");
+      notify(formatErrorMessage(e, t("error")), "error");
       throw e;
     } finally {
       isProcessing.set(false);
@@ -853,7 +857,7 @@ export function useTimeCapsule({
       await loadCredit();
       return { amount };
     } catch (e) {
-      notify(e instanceof Error ? e.message : t("error"), "error");
+      notify(formatErrorMessage(e, t("error")), "error");
       throw e;
     } finally {
       isProcessing.set(false);
@@ -903,7 +907,7 @@ export function useTimeCapsule({
       notify(t("tipsCollected", { amount }), "success");
       return { amount };
     } catch (e) {
-      notify(e instanceof Error ? e.message : t("error"), "error");
+      notify(formatErrorMessage(e, t("error")), "error");
       throw e;
     } finally {
       isProcessing.set(false);
