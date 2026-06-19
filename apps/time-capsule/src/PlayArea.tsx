@@ -2,6 +2,16 @@
  * PlayArea.tsx — React version of Time Capsule PlayArea.
  */
 
+import {
+  BellRing,
+  Eye,
+  EyeOff,
+  Gift,
+  Landmark,
+  LockKeyhole,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -25,12 +35,19 @@ interface PlayAreaProps {
 }
 
 const CATEGORY_OPTIONS = [
-  { value: 1, labelKey: "categoryPersonal" },
-  { value: 2, labelKey: "categoryGift" },
-  { value: 3, labelKey: "categoryMemorial" },
-  { value: 4, labelKey: "categoryAnnouncement" },
-  { value: 5, labelKey: "categorySecret" },
-] as const;
+  { value: 1, labelKey: "categoryPersonal", hintKey: "categoryPersonalHint", icon: UserRound },
+  { value: 2, labelKey: "categoryGift", hintKey: "categoryGiftHint", icon: Gift },
+  { value: 3, labelKey: "categoryMemorial", hintKey: "categoryMemorialHint", icon: Landmark },
+  { value: 4, labelKey: "categoryAnnouncement", hintKey: "categoryAnnouncementHint", icon: BellRing },
+  { value: 5, labelKey: "categorySecret", hintKey: "categorySecretHint", icon: LockKeyhole },
+] satisfies ReadonlyArray<{
+  value: number;
+  labelKey: string;
+  hintKey: string;
+  icon: LucideIcon;
+}>;
+
+const DURATION_PRESETS = ["7", "30", "365", "1825"] as const;
 
 const CATEGORY_LABEL_KEYS: Record<number, string> = {
   1: "categoryPersonal",
@@ -121,37 +138,89 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={newCapsule.days ?? "30"}
             onChange={(v) => updateForm({ days: v })}
           />
-          <label className="capsule-select-field">
+          <div className="capsule-duration-presets" aria-label={t("durationPresets")}>
+            {DURATION_PRESETS.map((days) => (
+              <button
+                key={days}
+                type="button"
+                className={`capsule-duration-chip${String(newCapsule.days ?? "") === days ? " is-selected" : ""}`}
+                aria-pressed={String(newCapsule.days ?? "") === days}
+                onClick={() => updateForm({ days })}
+              >
+                {days}
+                {t("daysShort")}
+              </button>
+            ))}
+          </div>
+          <div className="capsule-choice-field">
             <span>{t("categoryLabel")}</span>
-            <select
-              value={newCapsule.category ?? 1}
-              onChange={(e) => updateForm({ category: Number(e.target.value) })}
+            <div
+              className="capsule-category-grid"
+              role="radiogroup"
+              aria-label={t("categoryLabel")}
             >
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {t(option.labelKey)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="capsule-public-toggle">
-            <input
-              type="checkbox"
-              checked={Boolean(newCapsule.isPublic)}
-              onChange={(e) => updateForm({ isPublic: e.target.checked })}
-            />
-            <span className="capsule-checkbox-box" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </span>
-            <span className="capsule-checkbox-copy">
-              <strong>{t("visibility")}</strong>
-              {Boolean(newCapsule.isPublic)
-                ? t("publicHint")
-                : t("privateHint")}
-            </span>
-          </label>
+              {CATEGORY_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`capsule-choice-card${Number(newCapsule.category ?? 1) === option.value ? " is-selected" : ""}`}
+                    role="radio"
+                    aria-checked={Number(newCapsule.category ?? 1) === option.value}
+                    onClick={() => updateForm({ category: option.value })}
+                  >
+                    <span className="capsule-choice-card__icon" aria-hidden="true">
+                      <Icon />
+                    </span>
+                    <span className="capsule-choice-card__copy">
+                      <strong>{t(option.labelKey)}</strong>
+                      <span>{t(option.hintKey)}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="capsule-choice-field">
+            <span>{t("visibility")}</span>
+            <div
+              className="capsule-visibility-grid"
+              role="radiogroup"
+              aria-label={t("visibility")}
+            >
+              <button
+                type="button"
+                className={`capsule-choice-card${!newCapsule.isPublic ? " is-selected" : ""}`}
+                role="radio"
+                aria-checked={!newCapsule.isPublic}
+                onClick={() => updateForm({ isPublic: false })}
+              >
+                <span className="capsule-choice-card__icon" aria-hidden="true">
+                  <EyeOff />
+                </span>
+                <span className="capsule-choice-card__copy">
+                  <strong>{t("private")}</strong>
+                  <span>{t("privateHint")}</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`capsule-choice-card${newCapsule.isPublic ? " is-selected" : ""}`}
+                role="radio"
+                aria-checked={Boolean(newCapsule.isPublic)}
+                onClick={() => updateForm({ isPublic: true })}
+              >
+                <span className="capsule-choice-card__icon" aria-hidden="true">
+                  <Eye />
+                </span>
+                <span className="capsule-choice-card__copy">
+                  <strong>{t("public")}</strong>
+                  <span>{t("publicHint")}</span>
+                </span>
+              </button>
+            </div>
+          </div>
           <p className="capsule-storage-note">{t("contentStorageNote")}</p>
           <p className="capsule-storage-note">{t("depositNote")}</p>
           <NeoButton

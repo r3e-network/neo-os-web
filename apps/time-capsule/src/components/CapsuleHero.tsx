@@ -11,19 +11,25 @@ export default function CapsuleHero({ t, totalCapsules, lockedCount, revealedCou
   return (
     <div className="hero-container">
       <div className="hero-head">
-        <div className="hero-badge" aria-hidden="true">
-          <div className="capsule-graphic">
-            <div className="capsule-top" />
-            <div className="capsule-body">
-              <div className="capsule-band" />
-            </div>
+        <div className="hero-identity">
+          <div className="hero-badge" aria-hidden="true">
+            <picture>
+              <source srcSet="./logo.avif" type="image/avif" />
+              <source srcSet="./logo.webp" type="image/webp" />
+              <img src="./logo.jpg" alt="" />
+            </picture>
+          </div>
+          <div className="hero-copy">
+            <span className="hero-eyebrow">{t("vaultEyebrow")}</span>
+            <h2 className="hero-title">{t("title")}</h2>
+            <p className="hero-subtitle">{t("subtitle")}</p>
           </div>
         </div>
-        <div className="hero-copy">
-          <span className="hero-eyebrow">{t("vaultEyebrow")}</span>
-          <h2 className="hero-title">{t("title")}</h2>
-          <p className="hero-subtitle">{t("subtitle")}</p>
-        </div>
+        <picture className="hero-media" aria-hidden="true">
+          <source srcSet="./banner.avif" type="image/avif" />
+          <source srcSet="./banner.webp" type="image/webp" />
+          <img src="./banner.jpg" alt="" />
+        </picture>
       </div>
 
       <div className="hero-stats">
