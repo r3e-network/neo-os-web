@@ -245,6 +245,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           ))}
         </div>
       )}
+      {metrics.length > 0 && !hasData && (
+        <p className="anchor-stats-hint">{t("statsAwaitConnect")}</p>
+      )}
 
       <section className="anchor-earn-card" aria-label={t("earnTitle")}>
         <span className="anchor-earn-card__title">{t("earnTitle")}</span>

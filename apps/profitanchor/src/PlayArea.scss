@@ -231,6 +231,15 @@ body {
   }
 }
 
+// Context line under the empty stat grid so four "—" tiles read as
+// "awaiting connect", not broken/failed data.
+.anchor-stats-hint {
+  margin: 10px 0 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .stat-chip {
   display: flex;
   flex-direction: column;
