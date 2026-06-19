@@ -19,6 +19,22 @@ module.exports = {
           DEFAULT: "#16c784",
           foreground: "#ffffff",
         },
+        // Single brand green: alias Tailwind's emerald-* (used across the shell
+        // as the brand accent) to the Neo Soft brand-green family so the OS
+        // shell's hero/nav/footer/buttons match the #16c784 / #0fb174 green that
+        // all 60 miniapps use, instead of a darker stock emerald.
+        emerald: {
+          50: "#e8f9f1",
+          100: "#d4f3e6",
+          200: "#a9e7cd",
+          300: "#74d6ad",
+          400: "#3fc78f",
+          500: "#16c784",
+          600: "#12b276",
+          700: "#0fb174",
+          800: "#0c8f5c",
+          900: "#0a7049",
+        },
         secondary: {
           DEFAULT: "#7b61ff",
           100: "#eeeaff",
