@@ -181,6 +181,202 @@
   gap: 14px;
 }
 
+.automation-recipe-composer {
+  display: grid;
+  gap: 14px;
+}
+
+.automation-recipe-preview {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  border: 1px solid rgba(22, 199, 132, 0.24);
+  border-radius: var(--ns-radius-lg);
+  background:
+    linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(255, 255, 255, 0) 58%),
+    var(--ns-surface);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.06));
+}
+
+.automation-recipe-preview__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-brand-soft);
+  color: var(--ns-brand-deep, #0b5e3e);
+}
+
+.automation-recipe-preview__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+
+  > span {
+    color: var(--ns-brand-deep, #0b5e3e);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  > strong {
+    overflow-wrap: anywhere;
+    color: var(--ns-ink);
+    font-size: 17px;
+    font-weight: 850;
+    line-height: 1.25;
+  }
+}
+
+.automation-recipe-preview__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: var(--ns-radius-sm, 12px);
+    background: var(--ns-surface-subtle);
+    color: var(--ns-text-2);
+    font-size: 12px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  svg {
+    flex: none;
+    color: var(--ns-brand-strong);
+  }
+}
+
+.automation-composer-section,
+.automation-price-rule {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.automation-composer-label {
+  color: var(--ns-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.automation-asset-grid,
+.automation-action-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.automation-asset-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.automation-action-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.automation-asset-card,
+.automation-action-card,
+.automation-preset {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.08));
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-text-2);
+  cursor: pointer;
+  transition:
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    box-shadow var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    transform var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+
+  &:hover {
+    border-color: rgba(22, 199, 132, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+  }
+}
+
+.automation-asset-card,
+.automation-action-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 88px;
+  padding: 12px;
+  border-radius: var(--ns-radius-md);
+  text-align: left;
+
+  strong {
+    color: var(--ns-ink);
+    font-size: 14px;
+    font-weight: 850;
+    line-height: 1.25;
+  }
+
+  span {
+    color: currentcolor;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1.42;
+  }
+
+  &.is-selected {
+    border-color: rgba(22, 199, 132, 0.45);
+    background: var(--ns-brand-soft);
+    color: var(--ns-brand-deep, #0b5e3e);
+
+    strong {
+      color: var(--ns-brand-deep, #0b5e3e);
+    }
+  }
+}
+
+.automation-asset-card {
+  min-height: 76px;
+}
+
+.automation-price-rule {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: end;
+  padding: 14px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.08));
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface-subtle);
+}
+
+.automation-price-rule__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  strong {
+    color: var(--ns-ink);
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+}
+
 .automation-panel__head {
   display: flex;
   align-items: center;
@@ -296,30 +492,22 @@
   gap: 12px;
 }
 
-/* Schedule presets — quick-fill chips below the cron field. */
 .automation-schedule-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 .automation-schedule-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 .automation-preset {
-  padding: 4px 12px;
+  min-height: 40px;
+  padding: 0 12px;
   border-radius: 9999px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.1));
-  background: var(--ns-surface, #fff);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ns-text-muted, #8a92a6);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-
-  &:hover { border-color: var(--ns-brand, #16c784); color: var(--ns-brand-strong, #0fb174); }
-  &:focus-visible { outline: none; box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18)); }
+  font-size: 13px;
+  font-weight: 800;
 
   &--active {
     background: var(--ns-brand-soft, #e4f8f0);
@@ -601,35 +789,6 @@
   box-shadow: var(--ns-shadow-xs);
 }
 
-.automation-play-area .neo-select {
-  width: auto;
-  padding: 0;
-  background: none;
-  border: none;
-  border-radius: 0;
-  appearance: none;
-}
-
-.automation-play-area .neo-select__field {
-  padding-right: 36px;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: none;
-}
-
-.automation-play-area .neo-select__wrapper::after {
-  content: "";
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  width: 10px;
-  height: 10px;
-  transform: translateY(-60%) rotate(45deg);
-  border-right: 2px solid var(--ns-text-faint);
-  border-bottom: 2px solid var(--ns-text-faint);
-  pointer-events: none;
-}
-
 @media (max-width: 980px) {
   .automation-hero {
     grid-template-columns: 1fr;
@@ -664,6 +823,15 @@
   }
 
   .automation-trigger-card {
+    grid-template-columns: 1fr;
+  }
+
+  .automation-recipe-preview,
+  .automation-price-rule,
+  .automation-asset-grid,
+  .automation-action-grid,
+  .automation-schedule-presets,
+  .automation-recipe-preview__steps {
     grid-template-columns: 1fr;
   }
 

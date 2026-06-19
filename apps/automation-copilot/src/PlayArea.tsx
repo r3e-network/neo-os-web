@@ -1,6 +1,6 @@
-import { Bot, CheckCircle2, Copy, ListChecks, Power, RefreshCw, Trash2 } from "lucide-react";
+import { Bot, CheckCircle2, Clock3, Copy, ListChecks, Power, RefreshCw, Target, Trash2, Zap } from "lucide-react";
 import { useState } from "react";
-import { NeoButton, NeoInput, NeoSelect } from "@shared/components-react";
+import { NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { isLocalAutomationIntent, type AutomationTrigger } from "./automationGateway";
@@ -17,10 +17,10 @@ function shortId(value: string) {
  * "__custom__" reveals a free-text field for advanced/unlisted actions.
  */
 const ACTION_PRESETS = [
-  { value: "auto_repay_self_loan", labelKey: "actionRepaySelfLoan" },
-  { value: "rebalance_vault", labelKey: "actionRebalanceVault" },
-  { value: "claim_rewards", labelKey: "actionClaimRewards" },
-  { value: "notify_webhook", labelKey: "actionNotifyWebhook" },
+  { value: "auto_repay_self_loan", labelKey: "actionRepaySelfLoan", hintKey: "actionRepaySelfLoanHint" },
+  { value: "rebalance_vault", labelKey: "actionRebalanceVault", hintKey: "actionRebalanceVaultHint" },
+  { value: "claim_rewards", labelKey: "actionClaimRewards", hintKey: "actionClaimRewardsHint" },
+  { value: "notify_webhook", labelKey: "actionNotifyWebhook", hintKey: "actionNotifyWebhookHint" },
 ] as const;
 const CUSTOM_ACTION = "__custom__";
 
@@ -28,6 +28,12 @@ const SCHEDULE_PRESETS = [
   { value: "0 * * * *", labelKey: "schedulePresetHourly" },
   { value: "0 */6 * * *", labelKey: "schedulePresetEvery6h" },
   { value: "0 0 * * *", labelKey: "schedulePresetDaily" },
+] as const;
+
+const ASSET_OPTIONS = [
+  { value: "NEO", hintKey: "assetNeoHint" },
+  { value: "GAS", hintKey: "assetGasHint" },
+  { value: "BTC", hintKey: "assetBtcHint" },
 ] as const;
 
 export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps) {
@@ -59,6 +65,12 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
   const isPresetAction = ACTION_PRESETS.some((preset) => preset.value === actionName);
   const [customActionMode, setCustomActionMode] = useState(false);
   const actionSelectValue = !isPresetAction || customActionMode ? CUSTOM_ACTION : actionName;
+  const selectedScheduleLabel =
+    t(SCHEDULE_PRESETS.find((preset) => preset.value === schedule)?.labelKey ?? "schedulePresetCustom");
+  const selectedActionLabel =
+    actionSelectValue === CUSTOM_ACTION
+      ? actionName || t("actionCustom")
+      : t(ACTION_PRESETS.find((preset) => preset.value === actionName)?.labelKey ?? "actionRepaySelfLoan");
 
   const hasPayload = renderedPayload.trim() !== "" && renderedPayload.trim() !== "{}";
   const hasTriggerRequest =
@@ -131,37 +143,68 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
             <span className="automation-panel__title">{t("recipeBuilder")}</span>
           </div>
 
-          <div className="automation-fields">
-            <NeoSelect
-              value={asset}
-              label={t("asset")}
-              options={[
-                { value: "NEO", label: "NEO" },
-                { value: "GAS", label: "GAS" },
-                { value: "BTC", label: "BTC" },
-              ]}
-              onChange={(val) => { if (state.asset) state.asset.set(val); }}
-            />
-            <NeoInput
-              value={targetPrice}
-              type="number"
-              min={0}
-              label={t("targetPrice")}
-              placeholder={t("targetPricePlaceholder")}
-              onChange={(val) => { if (state.targetPrice) state.targetPrice.set(val); }}
-            />
-            <div className="automation-schedule-field">
+          <div className="automation-recipe-composer">
+            <section className="automation-recipe-preview" aria-label={t("recipePreview")}>
+              <div className="automation-recipe-preview__icon" aria-hidden="true">
+                <Bot size={20} />
+              </div>
+              <div className="automation-recipe-preview__body">
+                <span>{t("recipeModeValue")}</span>
+                <strong>{t("recipePreviewLine", { asset, price: targetPrice || t("targetPricePlaceholder") })}</strong>
+                <div className="automation-recipe-preview__steps">
+                  <span><Target size={13} aria-hidden="true" />{asset} / {targetPrice || t("targetPricePlaceholder")}</span>
+                  <span><Clock3 size={13} aria-hidden="true" />{selectedScheduleLabel}</span>
+                  <span><Zap size={13} aria-hidden="true" />{selectedActionLabel}</span>
+                </div>
+              </div>
+            </section>
+
+            <section className="automation-composer-section" aria-label={t("asset")}>
+              <span className="automation-composer-label">{t("asset")}</span>
+              <div className="automation-asset-grid" role="radiogroup" aria-label={t("asset")}>
+                {ASSET_OPTIONS.map((option) => {
+                  const active = asset === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={`automation-asset-card${active ? " is-selected" : ""}`}
+                      onClick={() => { if (state.asset) state.asset.set(option.value); }}
+                    >
+                      <strong>{option.value}</strong>
+                      <span>{t(option.hintKey)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="automation-price-rule" aria-label={t("priceRule")}>
+              <div className="automation-price-rule__copy">
+                <span className="automation-composer-label">{t("priceRule")}</span>
+                <strong>{t("priceRuleLine", { asset })}</strong>
+              </div>
               <NeoInput
-                value={schedule}
-                label={t("schedule")}
-                placeholder={t("schedulePlaceholder")}
-                onChange={(val) => { if (state.schedule) state.schedule.set(val); }}
+                value={targetPrice}
+                type="number"
+                min={0}
+                label={t("targetPrice")}
+                placeholder={t("targetPricePlaceholder")}
+                onChange={(val) => { if (state.targetPrice) state.targetPrice.set(val); }}
               />
-              <div className="automation-schedule-presets" role="group" aria-label={t("schedule")}>
+            </section>
+
+            <section className="automation-composer-section" aria-label={t("schedule")}>
+              <span className="automation-composer-label">{t("scheduleCadence")}</span>
+              <div className="automation-schedule-presets" role="radiogroup" aria-label={t("schedule")}>
                 {SCHEDULE_PRESETS.map((preset) => (
                   <button
                     key={preset.value}
                     type="button"
+                    role="radio"
+                    aria-checked={schedule === preset.value}
                     className={`automation-preset${schedule === preset.value ? " automation-preset--active" : ""}`}
                     onClick={() => { if (state.schedule) state.schedule.set(preset.value); }}
                   >
@@ -169,31 +212,58 @@ export default function PlayArea({ t, state, dispatch, services }: PlayAreaProps
                   </button>
                 ))}
               </div>
-            </div>
-            <NeoSelect
-              value={actionSelectValue}
-              label={t("actionName")}
-              options={[
-                ...ACTION_PRESETS.map((preset) => ({ value: preset.value, label: t(preset.labelKey) })),
-                { value: CUSTOM_ACTION, label: t("actionCustom") },
-              ]}
-              onChange={(val) => {
-                if (val === CUSTOM_ACTION) {
-                  setCustomActionMode(true);
-                  return;
-                }
-                setCustomActionMode(false);
-                if (state.actionName) state.actionName.set(val);
-              }}
-            />
-            {actionSelectValue === CUSTOM_ACTION && (
+              <div className="automation-schedule-field">
               <NeoInput
-                value={actionName}
-                label={t("actionCustomLabel")}
-                placeholder={t("actionNamePlaceholder")}
-                onChange={(val) => { if (state.actionName) state.actionName.set(val); }}
+                value={schedule}
+                label={t("schedule")}
+                placeholder={t("schedulePlaceholder")}
+                onChange={(val) => { if (state.schedule) state.schedule.set(val); }}
               />
-            )}
+              </div>
+            </section>
+
+            <section className="automation-composer-section" aria-label={t("actionName")}>
+              <span className="automation-composer-label">{t("actionPlan")}</span>
+              <div className="automation-action-grid" role="radiogroup" aria-label={t("actionName")}>
+                {ACTION_PRESETS.map((preset) => {
+                  const active = actionSelectValue !== CUSTOM_ACTION && actionName === preset.value;
+                  return (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    className={`automation-action-card${active ? " is-selected" : ""}`}
+                    onClick={() => {
+                      setCustomActionMode(false);
+                      if (state.actionName) state.actionName.set(preset.value);
+                    }}
+                  >
+                    <strong>{t(preset.labelKey)}</strong>
+                    <span>{t(preset.hintKey)}</span>
+                  </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={actionSelectValue === CUSTOM_ACTION}
+                  className={`automation-action-card${actionSelectValue === CUSTOM_ACTION ? " is-selected" : ""}`}
+                  onClick={() => setCustomActionMode(true)}
+                >
+                  <strong>{t("actionCustom")}</strong>
+                  <span>{t("actionCustomHint")}</span>
+                </button>
+              </div>
+              {actionSelectValue === CUSTOM_ACTION && (
+                <NeoInput
+                  value={actionName}
+                  label={t("actionCustomLabel")}
+                  placeholder={t("actionNamePlaceholder")}
+                  onChange={(val) => { if (state.actionName) state.actionName.set(val); }}
+                />
+              )}
+            </section>
           </div>
 
           {lastError ? (
