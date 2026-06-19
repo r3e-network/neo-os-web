@@ -384,18 +384,16 @@
 }
 
 .console-tool__empty-pill {
+  // Plain uppercase status label (no fill/radius) so the waiting state reads as
+  // a caption, not a clickable button/badge. Deep-brand green keeps it on-accent
+  // and clears AA on the card surface.
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
-  border-radius: var(--ns-radius-full);
-  // AA: this small (11px) bold label sits on the soft-green pill, where the
-  // strong-brand green (#0fb174) is only ~2.5:1. The deep-brand green clears
-  // ~7:1 on that soft fill while staying in the same hue family.
   color: var(--console-accent-deep, var(--ns-brand-deep, #0b5e3e));
-  background: var(--console-accent-soft, var(--ns-violet-soft));
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .console-tool__empty-hint {

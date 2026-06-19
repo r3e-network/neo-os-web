@@ -683,7 +683,14 @@ export function FactoryPlayArea({
             >
               {currentPlan.steps.map((step) => (
                 <li key={step.key} className={statusClass(step.status)}>
-                  <span>{t(STEP_STATUS_KEYS[step.status] ?? "stepStatusManual")}</span>
+                  {/* In draft (no plan generated) the per-step ready/blocked
+                      verdict is provisional, so label every chip "Pending" —
+                      a wall of "Blocked" badges read as errors on first run. */}
+                  <span>
+                    {storedPlan
+                      ? t(STEP_STATUS_KEYS[step.status] ?? "stepStatusManual")
+                      : t("stepStatusPending")}
+                  </span>
                   <div>
                     <strong>{t(step.titleKey)}</strong>
                     <p>{t(step.detailKey)}</p>
