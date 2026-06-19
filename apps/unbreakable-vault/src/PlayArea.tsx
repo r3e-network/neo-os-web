@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Flame, Gauge, ShieldCheck, type LucideIcon } from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { StateView } from "@shared/components";
 import { EmptyStateArt } from "@shared/components-react/illustrations";
@@ -18,10 +19,16 @@ interface PlayAreaProps {
 }
 
 const DIFFICULTY_OPTIONS = [
-  { value: "1", labelKey: "difficultyEasy", fee: "0.1 GAS" },
-  { value: "2", labelKey: "difficultyMedium", fee: "0.5 GAS" },
-  { value: "3", labelKey: "difficultyHard", fee: "1 GAS" },
-] as const;
+  { value: "1", labelKey: "difficultyEasy", hintKey: "difficultyEasyHint", fee: "0.1 GAS", icon: ShieldCheck },
+  { value: "2", labelKey: "difficultyMedium", hintKey: "difficultyMediumHint", fee: "0.5 GAS", icon: Gauge },
+  { value: "3", labelKey: "difficultyHard", hintKey: "difficultyHardHint", fee: "1 GAS", icon: Flame },
+] satisfies ReadonlyArray<{
+  value: string;
+  labelKey: string;
+  hintKey: string;
+  fee: string;
+  icon: LucideIcon;
+}>;
 
 /** Status enum → localized pill label key. */
 const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -225,36 +232,44 @@ export default function PlayArea({ t, state, dispatch, setStatus, launchContext 
             value={description}
             onChange={setDescription}
           />
-          {/* Bounty + difficulty share a row on desktop — tighter use of width
-              and keeps the per-attempt fee next to the amount being funded. */}
-          <div className="vault-form-row">
-            <NeoInput
-              label={t("bountyLabel")}
-              type="number"
-              placeholder={t("bountyPlaceholder")}
-              min={1}
-              hint={t("minBountyNote")}
-              value={bounty}
-              onChange={setBounty}
-            />
-            <label className="vault-select-field">
-              <span>{t("difficultyLabel")}</span>
-              <div className="vault-select-control">
-                <select
-                  value={vaultDifficulty}
-                  onChange={(e) => state.vaultDifficulty?.set(e.target.value)}
-                >
-                  {DIFFICULTY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {t(option.labelKey)} · {option.fee}
-                    </option>
-                  ))}
-                </select>
-                <svg className="vault-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-            </label>
+          <NeoInput
+            label={t("bountyLabel")}
+            type="number"
+            placeholder={t("bountyPlaceholder")}
+            min={1}
+            hint={t("minBountyNote")}
+            value={bounty}
+            onChange={setBounty}
+          />
+          <div className="vault-difficulty-field">
+            <span>{t("difficultyLabel")}</span>
+            <div className="vault-difficulty-grid" role="radiogroup" aria-label={t("difficultyLabel")}>
+              {DIFFICULTY_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                const selected = vaultDifficulty === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    aria-label={`${t(option.labelKey)} ${option.fee}`}
+                    className={`vault-difficulty-card${selected ? " is-selected" : ""}`}
+                    onClick={() => state.vaultDifficulty?.set(option.value)}
+                  >
+                    <span className="vault-difficulty-card__icon" aria-hidden="true">
+                      <Icon />
+                    </span>
+                    <span className="vault-difficulty-card__copy">
+                      <strong>{t(option.labelKey)}</strong>
+                      <span>{option.fee}</span>
+                      <small>{t(option.hintKey)}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           {/* Both secret entries sit side-by-side on desktop so confirm reads as
               a check on the field beside it, not another stacked block. */}

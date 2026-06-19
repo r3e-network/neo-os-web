@@ -26,6 +26,9 @@ function t(key: string) {
     difficultyEasy: "Easy",
     difficultyMedium: "Medium",
     difficultyHard: "Hard",
+    difficultyEasyHint: "Low attempt fee for broad participation.",
+    difficultyMediumHint: "Balanced pressure for serious challengers.",
+    difficultyHardHint: "High-stakes attempts for premium bounties.",
     secretLabel: "Vault Secret",
     secretPlaceholder: "Enter a secret phrase",
     confirmSecretLabel: "Confirm Secret",
@@ -134,9 +137,7 @@ describe("Unbreakable Vault PlayArea", () => {
     fireEvent.change(screen.getByLabelText("Bounty"), {
       target: { value: "1" },
     });
-    fireEvent.change(screen.getByLabelText("Difficulty"), {
-      target: { value: "2" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: "Medium 0.5 GAS" }));
     fireEvent.change(screen.getByLabelText("Vault Secret"), {
       target: { value: "open sesame" },
     });
@@ -157,6 +158,15 @@ describe("Unbreakable Vault PlayArea", () => {
         }),
       );
     });
+  });
+
+  it("renders difficulty as challenge cards instead of a native select", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    expect(container.querySelector("select")).toBeNull();
+    expect(container.querySelector(".vault-select-chevron")).toBeNull();
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+    expect(screen.getByRole("radio", { name: "Easy 0.1 GAS" }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("blocks create on a secret/confirm mismatch and shows the mismatch error", () => {
@@ -284,7 +294,7 @@ describe("Unbreakable Vault PlayArea", () => {
     expect(screen.getByText("Crack me if you can")).toBeTruthy();
     expect(screen.getByText("Hint: it rhymes with cat")).toBeTruthy();
     expect(screen.getByText("5 GAS")).toBeTruthy(); // 5e8 base units → 5 GAS bounty
-    expect(screen.getByText("Medium")).toBeTruthy();
+    expect(screen.getAllByText("Medium").length).toBeGreaterThan(0);
     expect(screen.getByText("4")).toBeTruthy(); // attempts
     expect(screen.getByText("9")).toBeTruthy(); // days left
   });
