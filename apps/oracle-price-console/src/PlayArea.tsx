@@ -7,7 +7,8 @@
  */
 
 import { useState } from "react";
-import { NeoButton, NeoCard, NeoSelect } from "@shared/components-react";
+import { Activity, Check, Copy, DatabaseZap, RefreshCw } from "lucide-react";
+import { NeoButton, NeoCard } from "@shared/components-react";
 import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -68,22 +69,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const displayPair = `${asset}/USD`;
   const priceLoaded = freshness !== "idle";
   const isStale = freshness === "stale";
-  const assetOptions = pairs.map((symbol) => ({ value: symbol, label: symbol }));
+  const selectedAssetHint = assetHintKey(asset);
+  const featuredPairs = ["NEO", "GAS", "BTC"].filter((symbol) =>
+    pairs.includes(symbol),
+  );
+  const catalogPairs = pairs.filter((symbol) => !featuredPairs.includes(symbol));
 
   return (
     <div className="price-play-area">
       <section className="price-hero" aria-label={t("priceHeroTitle")}>
         <div className="price-hero__copy">
           <span className="price-hero__badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
-              <path
-                d="M3 13h3l2.4-6 3.2 12 2.6-8 1.8 4H21"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <Activity size={22} />
           </span>
           <span className="price-eyebrow">{t("priceHeroTitle")}</span>
           <h2>{displayPair}</h2>
@@ -103,25 +100,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <strong>{datafeedShort || "—"}</strong>
               <span className="price-metric__copy-cue" aria-hidden="true">
                 {feedCopied ? (
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-                    <path
-                      d="M5 12.5 10 17.5 19 7"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <Check size={14} />
                 ) : (
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-                    <rect x="9" y="9" width="11" height="11" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-                    <path
-                      d="M5 15V6.5A1.5 1.5 0 0 1 6.5 5H15"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                  <Copy size={14} />
                 )}
               </span>
             </span>
@@ -215,27 +196,141 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           className="price-action-panel"
           title={t("priceActionTitle")}
         >
-          <div className="price-hint">{t("priceActionHint")}</div>
-          <div className="stack">
-            <NeoSelect
-              value={asset}
-              label={t("asset")}
-              options={assetOptions}
-              onChange={(value) => dispatch("updateAsset", value)}
-            />
+          <div className="price-oracle-station">
+            <span className="price-oracle-station__icon" aria-hidden="true">
+              <DatabaseZap size={20} />
+            </span>
+            <div className="price-oracle-station__copy">
+              <span>{t("oracleStationEyebrow")}</span>
+              <strong>{t("oracleStationTitle", { pair: displayPair })}</strong>
+              <small>{t("priceActionHint")}</small>
+            </div>
+          </div>
+
+          <section className="price-pair-picker" aria-label={t("asset")}>
+            <div className="price-pair-picker__head">
+              <span>{t("pairPickerTitle")}</span>
+              <strong>{t("pairPickerSubtitle", { pair: displayPair })}</strong>
+            </div>
+            <div className="price-pair-options" role="radiogroup" aria-label={t("asset")}>
+              <div className="price-pair-grid">
+                {featuredPairs.map((symbol) => (
+                  <PricePairButton
+                    key={symbol}
+                    symbol={symbol}
+                    selected={asset === symbol}
+                    t={t}
+                    onSelect={() => void dispatch("updateAsset", symbol)}
+                  />
+                ))}
+              </div>
+              {catalogPairs.length > 0 && (
+                <div className="price-catalog-dock">
+                  <div className="price-catalog-dock__head">
+                    <span>{t("pairCatalogTitle")}</span>
+                    <strong>{t("pairCatalogCount", { count: catalogPairs.length })}</strong>
+                  </div>
+                  <div className="price-catalog-chips">
+                    {catalogPairs.map((symbol) => (
+                      <button
+                        key={symbol}
+                        type="button"
+                        role="radio"
+                        aria-checked={asset === symbol}
+                        aria-label={`${symbol}/USD`}
+                        className={`price-catalog-chip${
+                          asset === symbol ? " price-catalog-chip--selected" : ""
+                        }`}
+                        onClick={() => void dispatch("updateAsset", symbol)}
+                      >
+                        {symbol}/USD
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <div className="price-station-facts" aria-label={t("priceFlowTitle")}>
+            <span>
+              <small>{t("stationPair")}</small>
+              <strong>{displayPair}</strong>
+            </span>
+            <span>
+              <small>{t("stationMethod")}</small>
+              <strong>{t("priceReferenceMethodValue")}</strong>
+            </span>
+            <span>
+              <small>{t("stationFreshness")}</small>
+              <strong>{t("stationFreshnessValue")}</strong>
+            </span>
+          </div>
+
+          <div className="price-query-actions">
             <NeoButton
               variant="primary"
               loading={isRequesting}
               disabled={!canFetchPrice || isRequesting}
-              aria-label={t("fetchPrice")}
+              aria-label={t("fetchPair", { pair: displayPair })}
               onClick={() => dispatch("fetchPrice")}
             >
-              {t("fetchPrice")}
+              <RefreshCw size={16} aria-hidden="true" />
+              {t("fetchPair", { pair: displayPair })}
             </NeoButton>
           </div>
+          <p className="price-selected-note" role="note">
+            {t(selectedAssetHint)}
+          </p>
           {errorMsg && <div className="error-banner mono">{errorMsg}</div>}
         </NeoCard>
       </div>
     </div>
   );
+}
+
+function PricePairButton({
+  symbol,
+  selected,
+  t,
+  onSelect,
+}: {
+  symbol: string;
+  selected: boolean;
+  t: PlayAreaProps["t"];
+  onSelect: () => void;
+}) {
+  const pair = `${symbol}/USD`;
+
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      aria-label={pair}
+      className={`price-pair-card${selected ? " price-pair-card--selected" : ""}`}
+      onClick={onSelect}
+    >
+      <span className={`asset-token asset-token--${symbol.toLowerCase()}`}>
+        {symbol.slice(0, 1)}
+      </span>
+      <span className="price-pair-card__copy">
+        <strong>{pair}</strong>
+        <small>{t(assetHintKey(symbol))}</small>
+      </span>
+    </button>
+  );
+}
+
+function assetHintKey(symbol: string) {
+  switch (symbol.toUpperCase()) {
+    case "NEO":
+      return "assetHintNeo";
+    case "GAS":
+      return "assetHintGas";
+    case "BTC":
+      return "assetHintBtc";
+    default:
+      return "assetHintGeneric";
+  }
 }
