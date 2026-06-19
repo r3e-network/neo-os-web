@@ -2,12 +2,27 @@
 @use "@shared/styles/playarea-base";
 
 .redenv-play-area {
+  /* Category identity: one coherent warm-red accent (with a gold companion for
+     festive flourishes) drives every interactive surface AND the primary CTA,
+     so a Red Envelope unmistakably reads as a red envelope. The gold is used
+     only on decorative coin/seal/celebration motifs, never as a second
+     interactive hue. */
+  --redenv-accent: #d8392f;
+  --redenv-accent-strong: #b42318;
+  --redenv-accent-soft: #fdecea;
+  --redenv-accent-ring: rgba(216, 57, 47, 0.2);
+  --redenv-accent-shadow: rgba(180, 35, 24, 0.26);
+  --redenv-gold-strong: #c98a16;
+  --redenv-gold-soft: #fbf0d4;
+
   display: grid;
   align-content: center;
   gap: 18px;
   min-height: 100%;
   padding: 14px;
-  background: #f7f8fb;
+  background:
+    radial-gradient(120% 70% at 50% -8%, var(--redenv-accent-soft) 0%, rgba(253, 236, 234, 0) 58%),
+    #f7f8fb;
   color: var(--ns-ink, #1e1e2e);
   letter-spacing: 0;
 }
@@ -47,8 +62,8 @@
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  background: var(--ns-violet-soft, #e4f8f0);
-  color: var(--ns-violet-strong, #0fb174);
+  background: var(--redenv-accent-soft);
+  color: var(--redenv-accent);
 }
 
 .redenv-hero .redenv-hero-copy {
@@ -58,7 +73,7 @@
 
   > span {
     width: fit-content;
-    color: var(--ns-violet-strong, #0fb174);
+    color: var(--redenv-accent-strong);
     font-size: 11px;
     font-weight: 700;
     line-height: 1.2;
@@ -166,12 +181,12 @@
 
   &:focus-visible {
     outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+    box-shadow: 0 0 0 4px var(--redenv-accent-ring);
   }
 
   &--active {
     background: var(--ns-surface, #ffffff);
-    color: var(--ns-violet-strong, #0fb174);
+    color: var(--redenv-accent-strong);
     box-shadow: var(--ns-shadow-sm, 0 4px 14px rgba(20, 22, 38, 0.05));
   }
 }
@@ -378,9 +393,27 @@
   letter-spacing: 0;
 }
 
+/* The primary Claim CTA carries the category-signature red so the chrome and
+   the main action share ONE accent hue (no green-CTA / red-chrome split). */
+.redenv-action-panel .neo-btn--primary:not(:disabled) {
+  background: var(--redenv-accent);
+  border-color: var(--redenv-accent);
+  box-shadow: 0 4px 14px var(--redenv-accent-shadow);
+
+  &:hover:not(:disabled) {
+    background: var(--redenv-accent-strong);
+    border-color: var(--redenv-accent-strong);
+    box-shadow: 0 6px 18px var(--redenv-accent-shadow);
+  }
+}
+
+.redenv-action-panel .neo-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--redenv-accent-ring);
+}
+
 /* Soft-tinted disabled CTA -- awaiting input, not broken. Muted-ink label on
-   the soft fill keeps it legibly a (currently inactive) button at >=4.5:1
-   instead of low-contrast green-on-green. */
+   the soft fill keeps it legibly a (currently inactive) button at >=4.5:1. */
 .redenv-action-panel .neo-btn--primary:disabled,
 .redenv-action-panel .neo-btn--secondary:disabled {
   background: var(--ns-surface-subtle, #eef0f4);
@@ -399,10 +432,16 @@
 }
 
 .redenv-activity-empty {
-  padding: 20px 16px;
-  border: 0;
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  padding: 26px 18px;
+  border: 1px solid var(--redenv-accent-ring);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--redenv-accent-soft) 0%, rgba(253, 236, 234, 0) 70%),
+    var(--ns-surface-subtle, #f7f8fa);
+}
+
+.redenv-empty-art {
+  display: inline-flex;
 }
 
 .redenv-list {
@@ -443,7 +482,7 @@
   }
 
   strong {
-    color: var(--ns-violet-strong, #0fb174);
+    color: var(--redenv-accent-strong);
     font-size: 12px;
     font-weight: 800;
     line-height: 1.25;
@@ -453,19 +492,19 @@
   }
 
   &:hover:not(.redenv-row--static):not(.redenv-row--selected) {
-    border-color: rgba(22, 199, 132, 0.28);
+    border-color: var(--redenv-accent-ring);
     background: var(--ns-surface, #ffffff);
   }
 
   &:focus-visible {
     outline: none;
-    box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+    box-shadow: 0 0 0 4px var(--redenv-accent-ring);
   }
 
   &--selected {
-    border-color: rgba(22, 199, 132, 0.32);
-    background: var(--ns-violet-soft, #e4f8f0);
-    box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.12);
+    border-color: var(--redenv-accent);
+    background: var(--redenv-accent-soft);
+    box-shadow: inset 0 0 0 1px var(--redenv-accent-ring);
   }
 
   &--static {
@@ -514,7 +553,7 @@
 
     &:focus-visible {
       outline: none;
-      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+      box-shadow: 0 0 0 4px var(--redenv-accent-ring);
     }
 
     span {
@@ -548,8 +587,8 @@
     width: 28px;
     height: 28px;
     border-radius: 9px;
-    background: var(--ns-violet-soft, #e4f8f0);
-    color: var(--ns-violet-strong, #0fb174);
+    background: var(--redenv-accent-soft);
+    color: var(--redenv-accent);
   }
 
   .redenv-summary-value {
@@ -645,39 +684,64 @@
 }
 
 .redenv-modal-icon {
-  width: 58px;
-  height: 58px;
-  border-radius: 17px;
-  background: var(--ns-violet, #16c784);
-  box-shadow: 0 14px 30px rgba(22, 199, 132, 0.28);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 38%, var(--redenv-gold-soft) 0%, var(--redenv-accent-soft) 100%);
+  box-shadow: 0 14px 30px var(--redenv-accent-shadow);
 }
 
 .redenv-modal-title {
   margin: 0;
-  color: var(--ns-ink, #1e1e2e);
+  color: var(--redenv-accent-strong);
   font-size: 22px;
   font-weight: 800;
   letter-spacing: 0;
 }
 
-.redenv-modal-message {
-  margin: 0;
+.redenv-modal-caption {
+  margin: -4px 0 0;
   color: var(--ns-text-2, #5b6478);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.4;
   letter-spacing: 0;
 }
 
+.redenv-modal-amount {
+  margin: 0;
+  color: var(--redenv-accent-strong);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
 .redenv-modal-button {
-  min-height: 40px;
-  padding: 0 18px;
+  min-height: 42px;
+  margin-top: 4px;
+  padding: 0 22px;
   border: 0;
   border-radius: 999px;
-  background: var(--ns-ink, #1e1e2e);
+  background: var(--redenv-accent);
   color: #ffffff;
   font-weight: 800;
   cursor: pointer;
   letter-spacing: 0;
+  transition: background var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
+
+  &:hover {
+    background: var(--redenv-accent-strong);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--redenv-accent-ring);
+  }
 }
 
 @media (max-width: 640px) {

@@ -489,8 +489,9 @@ export default function PlayArea({
           aria-label={t("ownerWorkspaceTitle")}
         >
           {/* On-system hero: opening the app directly (no claim QR) lands on this
-              campaign-builder, so lead with the app identity (badge + eyebrow +
-              title + tagline) before the forms, matching the claim screen. */}
+              campaign-builder, so lead with the app identity (logo badge) plus
+              warm, gifting-framed copy so the default screen reads as a social
+              gift, not an admin console. */}
           <header className="gas-pool-workspace-hero">
             <img
               className="gas-pool-workspace-hero__logo"
@@ -502,45 +503,129 @@ export default function PlayArea({
             />
             <div className="gas-pool-workspace-hero__copy">
               <span className="gas-pool-workspace-hero__eyebrow">
-                {t("oneGateReady")}
+                {t("workspaceHeroEyebrow")}
               </span>
-              <h2>{t("vaultName")}</h2>
-              <p>{t("subtitle")}</p>
+              <h2>{t("workspaceHeroTitle")}</h2>
+              <p>{t("workspaceHeroSubtitle")}</p>
             </div>
           </header>
 
-          {/* Supporting note beneath the hero: who the workspace is for + the two
-              ways a funded campaign can distribute rewards. */}
-          <div className="gas-pool-role-header" role="note">
-            <strong>{t("workspaceRoleTitle")}</strong>
-            <p>{t("workspaceRoleCopy")}</p>
-            <div className="gas-pool-role-paths">
-              <span className="gas-pool-role-paths__title">
-                {t("distributionPathsTitle")}
+          {/* Two-path chooser: orient a first-time visitor before any forms —
+              "give a reward" (the funding flow below) vs "I have a claim link"
+              (recipients who arrive without a QR). */}
+          <div className="gas-pool-paths" role="note">
+            <span className="gas-pool-paths__title">{t("pathChooserTitle")}</span>
+            <div className="gas-pool-paths__grid">
+              <div className="gas-pool-path gas-pool-path--primary">
+                <span className="gas-pool-path__icon" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="20"
+                    height="20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="8" width="18" height="13" rx="2" />
+                    <path d="M3 12h18M12 8v13" />
+                    <path d="M12 8S9.5 3.5 7 5s1 3 5 3M12 8s2.5-4.5 5-3-1 3-5 3" />
+                  </svg>
+                </span>
+                <strong>{t("pathGiveTitle")}</strong>
+                <p>{t("pathGiveBody")}</p>
+              </div>
+              <div className="gas-pool-path">
+                <span className="gas-pool-path__icon" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="20"
+                    height="20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <path d="M14 14h3v3M21 14v7M14 21h3" />
+                  </svg>
+                </span>
+                <strong>{t("pathClaimTitle")}</strong>
+                <p>{t("pathClaimBody")}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Static preview of the recipient's delight — shows the creator the
+              warm "you won" card their campaign produces, so the social payoff
+              is visible from the workspace. Sample data only; decorative. */}
+          <div className="gas-pool-sample" aria-hidden="true">
+            <div className="gas-pool-sample__head">
+              <span className="gas-pool-sample__eyebrow">
+                {t("samplePreviewTitle")}
               </span>
-              <ul>
-                <li>{t("pathOnChain")}</li>
-                <li>{t("pathServerKey")}</li>
-              </ul>
+              <span className="gas-pool-sample__tag">
+                {t("samplePreviewBadge")}
+              </span>
+            </div>
+            <div className="gas-pool-sample__card">
+              <div className="gas-pool-sample__badge">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="8" width="18" height="13" rx="2" />
+                  <path d="M3 12h18M12 8v13" />
+                  <path d="M12 8S9.5 3.5 7 5s1 3 5 3M12 8s2.5-4.5 5-3-1 3-5 3" />
+                </svg>
+              </div>
+              <div className="gas-pool-sample__body">
+                <strong className="gas-pool-sample__title">
+                  {t("sampleCongratsTitle")}
+                </strong>
+                <p className="gas-pool-sample__copy">{t("sampleCongratsBody")}</p>
+                <div className="gas-pool-sample__reward">
+                  <span>{t("sampleRewardLabel")}</span>
+                  <strong>12.40 GAS</strong>
+                </div>
+                <span className="gas-pool-sample__luck">
+                  {t("sampleLuckLabel")}
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="gas-pool-grid">
-            <div className="gas-pool-form">
+            <div className="gas-pool-form gas-pool-form--primary">
               <h2>{t("createPoolTitle")}</h2>
               <p className="gas-pool-form__description">
                 {t("createPoolDescription")}
               </p>
-              <label className="gas-pool-form__field">
-                <span>{t("totalAmount")}</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="1"
-                  value={totalAmount}
-                  onChange={(event) => setTotalAmount(event.target.value)}
-                />
-              </label>
+              <div className="gas-pool-form__group">
+                <label className="gas-pool-form__field">
+                  <span>{t("totalAmount")}</span>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="1"
+                    value={totalAmount}
+                    onChange={(event) => setTotalAmount(event.target.value)}
+                  />
+                </label>
+                <small className="gas-pool-form__sublabel">
+                  {t("totalAmountHint")}
+                </small>
+              </div>
               <div className="gas-pool-form__row">
                 <label className="gas-pool-form__field">
                   <span>{t("minClaim")}</span>
@@ -563,27 +648,40 @@ export default function PlayArea({
                   />
                 </label>
               </div>
+              <small className="gas-pool-form__sublabel gas-pool-form__sublabel--row">
+                {t("claimRangeHint")}
+              </small>
               <div className="gas-pool-form__row">
-                <label className="gas-pool-form__field">
-                  <span>{t("maxClaims")}</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    value={maxClaims}
-                    onChange={(event) => setMaxClaims(event.target.value)}
-                  />
-                </label>
-                <label className="gas-pool-form__field">
-                  <span>{t("expiryHours")}</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    value={expiryHours}
-                    onChange={(event) => setExpiryHours(event.target.value)}
-                  />
-                </label>
+                <div className="gas-pool-form__group">
+                  <label className="gas-pool-form__field">
+                    <span>{t("maxClaims")}</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      value={maxClaims}
+                      onChange={(event) => setMaxClaims(event.target.value)}
+                    />
+                  </label>
+                  <small className="gas-pool-form__sublabel">
+                    {t("maxClaimsHint")}
+                  </small>
+                </div>
+                <div className="gas-pool-form__group">
+                  <label className="gas-pool-form__field">
+                    <span>{t("expiryHours")}</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      value={expiryHours}
+                      onChange={(event) => setExpiryHours(event.target.value)}
+                    />
+                  </label>
+                  <small className="gas-pool-form__sublabel">
+                    {t("expiryHoursHint")}
+                  </small>
+                </div>
               </div>
               <button
                 type="button"
@@ -595,7 +693,10 @@ export default function PlayArea({
               </button>
             </div>
 
-            <div className="gas-pool-form">
+            <div className="gas-pool-form gas-pool-form--manage">
+              <span className="gas-pool-form__kicker">
+                {t("manageExistingTitle")}
+              </span>
               <h2>{t("poolControlsTitle")}</h2>
               <label className="gas-pool-form__field">
                 <span>{t("poolIdLabel")}</span>

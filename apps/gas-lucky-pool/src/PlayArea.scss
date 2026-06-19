@@ -1132,53 +1132,199 @@ body {
   gap: 1rem;
 }
 
-// Role-orienting header on the creator workspace + the two distribution paths.
-.gas-pool-role-header {
-  padding: 0.95rem 1.1rem 1rem;
-  border: 1px solid rgba(22, 199, 132, 0.2);
+// Two-path chooser: orients first-time visitors (give vs claim) before forms.
+.gas-pool-paths {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.95rem 1.05rem 1.1rem;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
-  background: rgba(22, 199, 132, 0.06);
-
-  > strong {
-    display: block;
-    color: var(--ns-text-1, #14162a);
-    font-size: 0.95rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-  }
-
-  > p {
-    margin: 0.3rem 0 0;
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 0.8rem;
-    line-height: 1.5;
-  }
-}
-
-.gas-pool-role-paths {
-  margin-top: 0.7rem;
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-sm, 0 1px 2px rgba(20, 22, 38, 0.04));
 
   &__title {
-    display: block;
+    color: var(--ns-text-2, #5b6478);
     font-size: 0.68rem;
     font-weight: 800;
     letter-spacing: 0.1em;
     text-transform: uppercase;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.7rem;
+  }
+}
+
+.gas-pool-path {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.08));
+  border-radius: var(--ns-radius-md, 14px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+
+  &__icon {
+    display: grid;
+    width: 2.1rem;
+    height: 2.1rem;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--ns-success-soft, #e4f8f0);
     color: var(--ns-brand-strong, #0fb174);
   }
 
-  ul {
-    margin: 0.4rem 0 0;
-    padding-left: 1.1rem;
-    display: grid;
-    gap: 0.3rem;
+  strong {
+    color: var(--ns-text-1, #14162a);
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
 
-  li {
-    color: var(--ns-text-2, #5b6478);
-    font-size: 0.76rem;
-    line-height: 1.45;
+  p {
+    margin: 0;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 0.78rem;
+    line-height: 1.5;
   }
+}
+
+.gas-pool-path--primary {
+  border-color: rgba(22, 199, 132, 0.34);
+  background:
+    linear-gradient(135deg, rgba(22, 199, 132, 0.1), rgba(22, 199, 132, 0)),
+    var(--ns-surface, #ffffff);
+
+  .gas-pool-path__icon {
+    background: var(--ns-brand, #16c784);
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(22, 199, 132, 0.22);
+  }
+}
+
+// Static "what your friends will see" preview — the celebratory recipient card,
+// rendered with sample data so the social payoff is visible from the workspace.
+.gas-pool-sample {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.95rem 1.05rem 1.1rem;
+  border: 1px solid rgba(22, 199, 132, 0.22);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(22, 199, 132, 0.1), rgba(22, 199, 132, 0) 55%),
+    var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-sm, 0 1px 2px rgba(20, 22, 38, 0.04));
+}
+
+.gas-pool-sample__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.gas-pool-sample__eyebrow {
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.gas-pool-sample__tag {
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: var(--ns-success-soft, #e4f8f0);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gas-pool-sample__card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  padding: 1rem 1.05rem;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(244, 200, 74, 0.1)),
+    #ffffff;
+  box-shadow: 0 14px 30px rgba(6, 37, 27, 0.07);
+}
+
+.gas-pool-sample__badge {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--ns-brand, #16c784);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 177, 116, 0.24);
+}
+
+.gas-pool-sample__body {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.gas-pool-sample__title {
+  color: var(--ns-ink, #06251b);
+  font-size: 1.02rem;
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.gas-pool-sample__copy {
+  margin: 0;
+  color: var(--ns-text-2, #4b635b);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.gas-pool-sample__reward {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.2rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: 12px;
+  background: var(--ns-success-soft, #e4f8f0);
+
+  span {
+    color: #0c8f5c;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  strong {
+    color: var(--ns-brand-strong, #0fb174);
+    font-size: 1.15rem;
+    font-weight: 850;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.gas-pool-sample__luck {
+  justify-self: start;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(0, 168, 107, 0.12);
+  color: #047857;
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 
 .gas-pool-claim-only__server-note {
@@ -1233,6 +1379,48 @@ body {
   color: var(--ns-text-muted, #8a92a6);
   font-size: 0.82rem;
   line-height: 1.5;
+}
+
+// Lead "create" card carries a soft brand tint + accent edge so it reads as the
+// one obvious first step; the "manage" card stays a quiet neutral surface.
+.gas-pool-form--primary {
+  border-color: rgba(22, 199, 132, 0.28);
+  background:
+    linear-gradient(160deg, rgba(22, 199, 132, 0.06), rgba(255, 255, 255, 0) 38%),
+    var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.gas-pool-form--manage {
+  background: var(--ns-surface-subtle, #f8faf8);
+}
+
+.gas-pool-form__kicker {
+  display: block;
+  margin-bottom: -0.2rem;
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+// A field paired with its friendly hint, stacked with a tight gap.
+.gas-pool-form__group {
+  display: grid;
+  gap: 0.3rem;
+}
+
+// Friendly, sentence-case hint beneath a field's uppercase label.
+.gas-pool-form__sublabel {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.4;
+
+  &--row {
+    margin-top: -0.45rem;
+  }
 }
 
 .gas-pool-form__hint {
@@ -1356,6 +1544,11 @@ body {
 
   .gas-pool-grid {
     grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+    align-items: start;
+  }
+
+  .gas-pool-paths__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .gas-pool-lists {

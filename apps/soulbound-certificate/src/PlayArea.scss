@@ -525,6 +525,186 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 }
 
+/* ── Certificate artifact (the framed keepsake card) ──── */
+/* The credential is rendered as a designed certificate so the soulbound NEP-11
+   reads as a keepsake, not a data row. The interactive accent stays the green
+   brand; the artifact's warm parchment + gold seal are decorative only and
+   confined to this card. */
+.issue-preview {
+  margin: 0 0 14px;
+}
+
+.issue-preview__label {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ns-text-muted);
+}
+
+.certificate-artifact {
+  margin: 0;
+}
+
+.certificate-artifact__frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px 22px 18px;
+  border-radius: var(--ns-radius-md);
+  border: 1px solid #e7dcc0;
+  background:
+    radial-gradient(120% 90% at 12% 0%, #fffdf7 0%, #fbf6e9 60%, #f6efdc 100%);
+  box-shadow: var(--ns-shadow-sm);
+  overflow: hidden;
+  color: #6b5e3c;
+
+  /* Inner hairline rule that gives the credential its "framed" feel */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 7px;
+    border: 1px solid rgba(180, 150, 80, 0.32);
+    border-radius: calc(var(--ns-radius-md) - 6px);
+    pointer-events: none;
+  }
+}
+
+.certificate-artifact--draft .certificate-artifact__frame {
+  background:
+    radial-gradient(120% 90% at 12% 0%, #fffdf9 0%, #fbf7ee 70%, #f8f2e3 100%);
+}
+
+.certificate-artifact__head {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.certificate-artifact__issuer {
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9a7b32;
+  overflow-wrap: anywhere;
+}
+
+.certificate-artifact__status {
+  flex-shrink: 0;
+}
+
+.certificate-artifact__title {
+  position: relative;
+  margin: 2px 0 6px;
+  font-size: 19px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  line-height: 1.22;
+  color: #3b3520;
+  overflow-wrap: anywhere;
+}
+
+.certificate-artifact__body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.certificate-artifact__caption {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #a99668;
+}
+
+.certificate-artifact__recipient {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: #2c2615;
+  overflow-wrap: anywhere;
+}
+
+.certificate-artifact__achievement {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #5a4f30;
+  overflow-wrap: anywhere;
+}
+
+.certificate-artifact__foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(180, 150, 80, 0.4);
+}
+
+.certificate-artifact__seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  color: #c79a2e;
+}
+
+.certificate-artifact__seal-label {
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9a7b32;
+}
+
+.certificate-artifact__meta {
+  margin: 12px 0 0;
+}
+
+.certificate-artifact__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+
+  div {
+    min-width: 0;
+  }
+
+  dt {
+    margin: 0 0 3px;
+    color: var(--ns-text-muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--ns-ink);
+    font-size: 12px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+}
+
 .certificate-detail__revoke {
   display: flex;
   flex-wrap: wrap;
@@ -817,8 +997,17 @@ $soul-accent-soft: var(--ns-brand-soft, #e4f8f0);
 @media (max-width: 560px) {
   .certificate-form-grid,
   .template-metrics,
-  .certificate-detail dl {
+  .certificate-detail dl,
+  .certificate-artifact__facts {
     grid-template-columns: 1fr;
+  }
+
+  .certificate-artifact__recipient {
+    font-size: 20px;
+  }
+
+  .certificate-artifact__title {
+    font-size: 17px;
   }
 
   .verify-row {

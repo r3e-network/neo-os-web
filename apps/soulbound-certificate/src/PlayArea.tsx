@@ -7,6 +7,7 @@ import type { Observable, ObservableState } from "@shared/react/context";
 import { formatHash } from "@shared/utils/format";
 import TemplateList from "./components/TemplateList";
 import TokenQr from "./components/TokenQr";
+import CertificatePreview from "./components/CertificatePreview";
 import type { CertificateItem, TemplateItem } from "./types";
 import "./PlayArea.scss";
 
@@ -359,6 +360,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
             </label>
           </div>
+
+          <div className="issue-preview">
+            <span className="issue-preview__label">
+              {t("certificatePreviewLabel")}
+            </span>
+            <CertificatePreview
+              draft
+              issuerName={selectedTemplate?.issuerName || ""}
+              title={selectedTemplate?.name || ""}
+              recipientName={issueForm.recipientName}
+              achievement={issueForm.achievement}
+              sealLabel={t("soulboundBadge")}
+              awardedToLabel={t("awardedTo")}
+              achievementLabel={t("forAchievement")}
+              titlePlaceholder={t("certificateTitlePlaceholder")}
+              recipientPlaceholder={t("awardedToPlaceholder")}
+              achievementPlaceholder={t("achievementPreviewPlaceholder")}
+              issuerPlaceholder={t("issuerPreviewPlaceholder")}
+            />
+          </div>
+
           <NeoButton
             variant="primary"
             block
@@ -542,54 +564,63 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
             {verifiedCertificate ? (
               <div className="certificate-detail">
-                <div className="certificate-detail__top">
-                  <strong>
-                    {verifiedCertificate.templateName ||
-                      tokenLabel(verifiedCertificate.tokenId)}
-                  </strong>
-                  <span className="cert-badge soulbound">{t("soulboundBadge")}</span>
-                  <span
-                    className={`cert-badge ${
-                      verifiedCertificate.revoked ? "revoked" : "valid"
-                    }`}
-                  >
-                    {verifiedCertificate.revoked
-                      ? t("certificateRevoked")
-                      : t("certificateValid")}
-                  </span>
-                </div>
-                <p className="certificate-detail__soulbound-note">{t("soulboundNote")}</p>
-                <dl>
-                  <div>
-                    <dt>{t("tokenId")}</dt>
-                    <dd>{tokenLabel(verifiedCertificate.tokenId)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("recipientName")}</dt>
-                    <dd>{verifiedCertificate.recipientName || "—"}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("achievement")}</dt>
-                    <dd>{verifiedCertificate.achievement || "—"}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("issueRecipient")}</dt>
-                    <dd>{formatHash(verifiedCertificate.owner, 8, 6)}</dd>
-                  </div>
-                  {formatTimestamp(verifiedCertificate.issuedTime) && (
-                    <div>
-                      <dt>{t("issuedAt")}</dt>
-                      <dd>{formatTimestamp(verifiedCertificate.issuedTime)}</dd>
-                    </div>
-                  )}
-                  {verifiedCertificate.revoked &&
-                    formatTimestamp(verifiedCertificate.revokedTime) && (
+                <CertificatePreview
+                  issuerName={verifiedCertificate.issuerName || ""}
+                  title={
+                    verifiedCertificate.templateName ||
+                    tokenLabel(verifiedCertificate.tokenId)
+                  }
+                  recipientName={verifiedCertificate.recipientName}
+                  achievement={verifiedCertificate.achievement}
+                  sealLabel={t("soulboundBadge")}
+                  awardedToLabel={t("awardedTo")}
+                  achievementLabel={t("forAchievement")}
+                  titlePlaceholder={t("certificateTitlePlaceholder")}
+                  recipientPlaceholder="—"
+                  achievementPlaceholder="—"
+                  issuerPlaceholder={t("issuerPreviewPlaceholder")}
+                  status={
+                    <span
+                      className={`cert-badge ${
+                        verifiedCertificate.revoked ? "revoked" : "valid"
+                      }`}
+                    >
+                      {verifiedCertificate.revoked
+                        ? t("certificateRevoked")
+                        : t("certificateValid")}
+                    </span>
+                  }
+                  footer={
+                    <dl className="certificate-artifact__facts">
                       <div>
-                        <dt>{t("certificateRevoked")}</dt>
-                        <dd>{formatTimestamp(verifiedCertificate.revokedTime)}</dd>
+                        <dt>{t("tokenId")}</dt>
+                        <dd>{tokenLabel(verifiedCertificate.tokenId)}</dd>
                       </div>
-                    )}
-                </dl>
+                      <div>
+                        <dt>{t("issueRecipient")}</dt>
+                        <dd>{formatHash(verifiedCertificate.owner, 8, 6)}</dd>
+                      </div>
+                      {formatTimestamp(verifiedCertificate.issuedTime) && (
+                        <div>
+                          <dt>{t("issuedAt")}</dt>
+                          <dd>
+                            {formatTimestamp(verifiedCertificate.issuedTime)}
+                          </dd>
+                        </div>
+                      )}
+                      {verifiedCertificate.revoked &&
+                        formatTimestamp(verifiedCertificate.revokedTime) && (
+                          <div>
+                            <dt>{t("certificateRevoked")}</dt>
+                            <dd>
+                              {formatTimestamp(verifiedCertificate.revokedTime)}
+                            </dd>
+                          </div>
+                        )}
+                    </dl>
+                  }
+                />
+                <p className="certificate-detail__soulbound-note">{t("soulboundNote")}</p>
 
                 <div className="certificate-detail__qr">
                   <TokenQr
