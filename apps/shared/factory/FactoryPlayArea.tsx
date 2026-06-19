@@ -1,4 +1,16 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  BadgeCheck,
+  Boxes,
+  Check,
+  Coins,
+  Network,
+  PackagePlus,
+  Radio,
+  ShieldCheck,
+  Ticket,
+  type LucideIcon,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -71,45 +83,97 @@ function statusClass(status: string) {
   return "domain-factory-step--ready";
 }
 
-function SelectField({
+interface ChoiceOption<TValue extends string = string> {
+  value: TValue;
+  label: string;
+  meta?: string;
+  icon: LucideIcon;
+}
+
+function ChoiceField<TValue extends string>({
   label,
   value,
-  children,
+  options,
   onChange,
 }: {
   label: string;
-  value: string;
-  children: ReactNode;
-  onChange: (value: string) => void;
+  value: TValue;
+  options: ChoiceOption<TValue>[];
+  onChange: (value: TValue) => void;
 }) {
+  const selectedOption = options.find((option) => option.value === value);
+
   return (
-    <label className="domain-factory-select">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {children}
-      </select>
-    </label>
+    <section className="domain-factory-choice" aria-label={label}>
+      <div className="domain-factory-choice__head">
+        <span>{label}</span>
+        {selectedOption ? <strong>{selectedOption.label}</strong> : null}
+      </div>
+      <div className="domain-factory-choice__options" role="radiogroup" aria-label={label}>
+        {options.map((option) => {
+          const Icon = option.icon;
+          const selected = option.value === value;
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              aria-label={`${label}: ${option.label}`}
+              className={`domain-factory-choice__button${
+                selected ? " domain-factory-choice__button--active" : ""
+              }`}
+              onClick={() => onChange(option.value)}
+            >
+              <span className="domain-factory-choice__icon" aria-hidden="true">
+                <Icon size={16} />
+              </span>
+              <span className="domain-factory-choice__copy">
+                <strong>{option.label}</strong>
+                {option.meta ? <small>{option.meta}</small> : null}
+              </span>
+              {selected ? (
+                <span className="domain-factory-choice__check" aria-hidden="true">
+                  <Check size={14} />
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
 function ToggleField({
   label,
   checked,
+  icon: Icon = Check,
   onChange,
 }: {
   label: string;
   checked: boolean;
+  icon?: LucideIcon;
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="domain-factory-toggle">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span>{label}</span>
-    </label>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      className={`domain-factory-toggle-button${
+        checked ? " domain-factory-toggle-button--checked" : ""
+      }`}
+      onClick={() => onChange(!checked)}
+    >
+      <span className="domain-factory-toggle-button__icon" aria-hidden="true">
+        <Icon size={16} />
+      </span>
+      <span className="domain-factory-toggle-button__label">{label}</span>
+      <span className="domain-factory-toggle-button__track" aria-hidden="true" />
+    </button>
   );
 }
 
@@ -275,7 +339,7 @@ export function FactoryPlayArea({
 }: FactoryPlayAreaProps) {
   const initialDraft = useMemo(
     () => createFactoryDraftFromLaunchContext(launchContext, fixedKind),
-    [fixedKind, launchContext.signature],
+    [fixedKind, launchContext],
   );
   const kind = fixedKind;
   const [nep17, setNep17] = useState<Nep17Draft>(() => cloneDraft(initialDraft.nep17));
@@ -418,6 +482,46 @@ export function FactoryPlayArea({
 
   const networkLabel = t(activeNetwork === "neo-n3-mainnet" ? "networkMainnet" : "networkTestnet");
   const kindLabel = t(kind === "nep11" ? "nep11" : kind === "miniapp" ? "miniappTemplate" : "nep17");
+  const networkOptions: ChoiceOption<FactoryNetwork>[] = [
+    {
+      value: "neo-n3-testnet",
+      label: t("networkOptionTestnet"),
+      meta: t("networkTestnet"),
+      icon: Network,
+    },
+    {
+      value: "neo-n3-mainnet",
+      label: t("networkOptionMainnet"),
+      meta: t("networkMainnet"),
+      icon: ShieldCheck,
+    },
+  ];
+  const templateOptions: ChoiceOption<MiniAppDraft["templateKind"]>[] = [
+    {
+      value: "reward-vault",
+      label: t("templateKindRewardVault"),
+      meta: "reward-vault",
+      icon: Coins,
+    },
+    {
+      value: "ticket-pass",
+      label: t("templateKindTicketPass"),
+      meta: "ticket-pass",
+      icon: Ticket,
+    },
+    {
+      value: "certificate",
+      label: t("templateKindCertificate"),
+      meta: "certificate",
+      icon: BadgeCheck,
+    },
+    {
+      value: "oracle-console",
+      label: t("templateKindOracleConsole"),
+      meta: "oracle-console",
+      icon: Radio,
+    },
+  ];
 
   const heroPill = storedPlan
     ? storedPlan.publishable
@@ -447,7 +551,9 @@ export function FactoryPlayArea({
     <div className="domain-factory">
       <section className="domain-factory-hero">
         <div className="domain-factory-hero__lead">
-          <span className="ns-icon-badge ns-badge--mint domain-factory-hero__badge" aria-hidden="true">◆</span>
+          <span className="ns-icon-badge ns-badge--mint domain-factory-hero__badge" aria-hidden="true">
+            <PackagePlus size={24} />
+          </span>
           <div className="domain-factory-hero__text">
             <span className="domain-factory-hero__eyebrow">{t("factoryOverview")}</span>
             <h2>{t("title")}</h2>
@@ -469,10 +575,12 @@ export function FactoryPlayArea({
       <div className="domain-factory-grid">
         <NeoCard variant="erobo" title={kindLabel}>
           <div className="domain-factory-form">
-            <SelectField label={t("network")} value={activeNetwork} onChange={(value) => setNetwork(value as FactoryNetwork)}>
-              <option value="neo-n3-testnet">{t("networkOptionTestnet")}</option>
-              <option value="neo-n3-mainnet">{t("networkOptionMainnet")}</option>
-            </SelectField>
+            <ChoiceField
+              label={t("network")}
+              value={activeNetwork}
+              options={networkOptions}
+              onChange={setNetwork}
+            />
 
             {kind === "nep17" && (
               <>
@@ -489,7 +597,7 @@ export function FactoryPlayArea({
                   )}
                 </div>
                 <NeoInput label={t("treasury")} value={nep17.treasury} placeholder="N..." onChange={(treasury) => setNep17((draft) => ({ ...draft, treasury }))} />
-                <ToggleField label={t("mintable")} checked={nep17.mintable} onChange={(mintable) => setNep17((draft) => ({ ...draft, mintable }))} />
+                <ToggleField label={t("mintable")} icon={Coins} checked={nep17.mintable} onChange={(mintable) => setNep17((draft) => ({ ...draft, mintable }))} />
               </>
             )}
 
@@ -506,7 +614,7 @@ export function FactoryPlayArea({
                   <NeoInput label={t("owner")} value={nep11.owner} placeholder="N..." onChange={(owner) => setNep11((draft) => ({ ...draft, owner }))} />
                   {renderUseMyAddress(nep11.owner, () => setNep11((draft) => ({ ...draft, owner: walletAddress })))}
                 </div>
-                <ToggleField label={t("transferable")} checked={nep11.transferable} onChange={(transferable) => setNep11((draft) => ({ ...draft, transferable }))} />
+                <ToggleField label={t("transferable")} icon={Ticket} checked={nep11.transferable} onChange={(transferable) => setNep11((draft) => ({ ...draft, transferable }))} />
               </>
             )}
 
@@ -514,19 +622,21 @@ export function FactoryPlayArea({
               <>
                 <NeoInput label={t("appId")} value={miniapp.appId} onChange={(appId) => setMiniapp((draft) => ({ ...draft, appId }))} />
                 <NeoInput label={t("appName")} value={miniapp.appName} onChange={(appName) => setMiniapp((draft) => ({ ...draft, appName }))} />
-                <SelectField label={t("templateKind")} value={miniapp.templateKind} onChange={(templateKind) => setMiniapp((draft) => ({ ...draft, templateKind: templateKind as MiniAppDraft["templateKind"] }))}>
-                  <option value="reward-vault">{t("templateKindRewardVault")}</option>
-                  <option value="ticket-pass">{t("templateKindTicketPass")}</option>
-                  <option value="certificate">{t("templateKindCertificate")}</option>
-                  <option value="oracle-console">{t("templateKindOracleConsole")}</option>
-                </SelectField>
+                <ChoiceField
+                  label={t("templateKind")}
+                  value={miniapp.templateKind}
+                  options={templateOptions}
+                  onChange={(templateKind) =>
+                    setMiniapp((draft) => ({ ...draft, templateKind }))
+                  }
+                />
                 <div className="domain-factory-field">
                   <NeoInput label={t("admin")} value={miniapp.admin} placeholder="N..." onChange={(admin) => setMiniapp((draft) => ({ ...draft, admin }))} />
                   {renderUseMyAddress(miniapp.admin, () => setMiniapp((draft) => ({ ...draft, admin: walletAddress })))}
                 </div>
                 <div className="domain-factory-form__row domain-factory-form__row--toggles">
-                  <ToggleField label={t("needsOracle")} checked={miniapp.needsOracle} onChange={(needsOracle) => setMiniapp((draft) => ({ ...draft, needsOracle }))} />
-                  <ToggleField label={t("needsOneGate")} checked={miniapp.needsOneGate} onChange={(needsOneGate) => setMiniapp((draft) => ({ ...draft, needsOneGate }))} />
+                  <ToggleField label={t("needsOracle")} icon={Radio} checked={miniapp.needsOracle} onChange={(needsOracle) => setMiniapp((draft) => ({ ...draft, needsOracle }))} />
+                  <ToggleField label={t("needsOneGate")} icon={Boxes} checked={miniapp.needsOneGate} onChange={(needsOneGate) => setMiniapp((draft) => ({ ...draft, needsOneGate }))} />
                 </div>
               </>
             )}
