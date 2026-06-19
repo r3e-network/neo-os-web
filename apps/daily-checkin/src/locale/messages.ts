@@ -163,6 +163,11 @@ const appMessages = {
   plentyOfTime: { en: "Plenty of time", zh: "时间充裕" },
   hurryUp: { en: "Hurry up!", zh: "快点！" },
   almostGone: { en: "Almost gone!", zh: "快截止了！" },
+  connectToStart: { en: "Connect to start your streak", zh: "连接钱包开始连续签到" },
+  milestoneRewardUnlocked: {
+    en: "Day {day} milestone reached — claim it from your rewards.",
+    zh: "已达成第 {day} 天里程碑 — 可在奖励中领取。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { StateView } from "@shared/components";
@@ -11,6 +11,18 @@ const STAKE_PRESETS = ["0.10", "0.50", "1.00", "5.00"];
 const MIN_STAKE = 0.05;
 const PAYOUT_MULTIPLIER = 5.7;
 const HOUSE_FEE_PERCENT = 5;
+const FAIR_MULTIPLIER = 6;
+
+// Pip layout per face on a standard die, indexed by the 3x3 grid cell (0..8).
+// Empty array → no resolved face yet (the cube shows a question state).
+const PIP_LAYOUT: Record<string, number[]> = {
+  "1": [4],
+  "2": [0, 8],
+  "3": [0, 4, 8],
+  "4": [0, 2, 6, 8],
+  "5": [0, 2, 4, 6, 8],
+  "6": [0, 2, 3, 5, 6, 8],
+};
 
 type RollOutcome = "" | "pending" | "won" | "lost" | "refunded";
 
@@ -92,12 +104,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     stakeIsValid && Number.isFinite(numericStake)
       ? `${(numericStake * PAYOUT_MULTIPLIER - numericStake).toFixed(2)} GAS`
       : "0 GAS";
+  const houseEdgeNote = t("houseEdgeNote", {
+    fee: String(HOUSE_FEE_PERCENT),
+    pays: PAYOUT_MULTIPLIER.toFixed(1),
+    fair: String(FAIR_MULTIPLIER),
+  });
 
   // The dice shows the settled roll once revealed, animates while rolling, and
   // otherwise previews the chosen face.
   const showResult = (lastOutcome === "won" || lastOutcome === "lost" || lastOutcome === "refunded") && Boolean(lastRoll);
   const cubeFace = isResolving ? "?" : showResult ? lastRoll : faceInput;
   const stageState = isResolving ? "rolling" : showResult ? lastOutcome : "idle";
+  // Pre-roll the cube only previews the picked face, so its pips render ghosted
+  // (no resolved roll yet); a settled or rolling cube shows solid pips.
+  const cubeIsPreview = stageState === "idle";
+  const cubePips = isResolving ? [] : (PIP_LAYOUT[cubeFace] ?? []);
 
   useEffect(() => {
     setFaceInput(selectedFace);
@@ -146,19 +167,52 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="dice-shell">
         <div className="dice-stage" aria-live="polite" data-state={stageState}>
           <div className="dice-stage__visual">
-            <div className={`dice-cube dice-cube--${stageState}`}>
-              <span>{cubeFace}</span>
+            {stageState === "won" && (
+              <div className="dice-winburst" aria-hidden="true">
+                {Array.from({ length: 14 }).map((_, index) => (
+                  <span key={index} style={{ "--i": index } as CSSProperties} />
+                ))}
+              </div>
+            )}
+            <div
+              className={`dice-cube dice-cube--${stageState}${cubeIsPreview ? " dice-cube--preview" : ""}`}
+              role="img"
+              aria-label={
+                isResolving
+                  ? t("statusRolling")
+                  : cubeIsPreview
+                    ? `${t("youPicked")} ${cubeFace}`
+                    : `${t("rolledLabel")} ${cubeFace}`
+              }
+            >
+              {isResolving ? (
+                <span className="dice-cube__mark">?</span>
+              ) : (
+                <span className="dice-cube__pips" data-face={cubeFace}>
+                  {Array.from({ length: 9 }).map((_, cell) => (
+                    <span
+                      key={cell}
+                      className={`dice-cube__pip${cubePips.includes(cell) ? " is-on" : ""}`}
+                    />
+                  ))}
+                </span>
+              )}
             </div>
-            <div className="dice-stage__caption">
-              <span className="dice-stage__caption-cell">
-                {t("selectedFace")}
-                <strong>{faceInput}</strong>
-              </span>
-              <span className="dice-stage__caption-cell dice-stage__caption-cell--end">
-                {t("payoutPreview")}
-                <strong>{activePayout}</strong>
-              </span>
-            </div>
+            <p className="dice-stage__caption" aria-live="polite">
+              {cubeIsPreview ? (
+                <>
+                  {t("youPicked")} <strong>{cubeFace}</strong>
+                </>
+              ) : showResult ? (
+                <>
+                  {t("rolledLabel")} <strong>{cubeFace}</strong>
+                </>
+              ) : (
+                <>
+                  {t("youPicked")} <strong>{faceInput}</strong>
+                </>
+              )}
+            </p>
           </div>
 
           <div className="dice-stage__details">
@@ -192,6 +246,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     ? outcomeBody
                     : t("diceHeroSubtitle")}
             </p>
+
+            {isUnresolved && (
+              <p className="dice-pending-reassure">{t("settlementPendingReassure")}</p>
+            )}
 
             {(isResolving || isUnresolved || showResult) && (
               <div
@@ -247,6 +305,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </span>
               )}
             </div>
+            <p className="dice-edge-note" title={t("diceRiskCopy")}>
+              {houseEdgeNote}
+            </p>
             <div className="dice-rule-strip" aria-label={t("diceRoundSummary")}>
               <span>{t("diceRuleCommit")}</span>
               <span>{t("diceRuleCallback")}</span>

@@ -7,8 +7,13 @@
   --tarot-soft: #f7f8fa;
   --tarot-panel: #ffffff;
   --tarot-border: rgba(20, 22, 38, 0.06);
+  // Single coherent green accent; the dark card faces supply the mystical mood.
+  // (These --tarot-violet* names are retained to avoid churn but resolve to green.)
   --tarot-violet: var(--ns-brand-strong, #0fb174);
+  --tarot-violet-strong: var(--ns-brand-strong, #0fb174);
   --tarot-violet-soft: var(--ns-brand-soft, #e4f8f0);
+  --tarot-violet-line: rgba(15, 177, 116, 0.18);
+  // Green brand reserved for the actionable / verified surfaces (CTA, safety).
   --tarot-green: var(--ns-brand-strong, #0fb174);
   --tarot-green-soft: var(--ns-brand-soft, #e4f8f0);
   --tarot-night: #1e1e2e;
@@ -45,18 +50,47 @@
   gap: 24px;
   align-items: center;
   min-width: 0;
+  position: relative;
   padding: 28px;
-  border: 1px solid rgba(15, 177, 116, 0.14);
+  border: 1px solid var(--tarot-violet-line);
   border-radius: var(--ns-radius-lg, 20px);
   overflow: hidden;
   background:
-    radial-gradient(120% 120% at 100% 0%, rgba(15, 177, 116, 0.12), transparent 60%),
-    linear-gradient(160deg, var(--tarot-violet-soft) 0%, #ffffff 100%);
+    radial-gradient(120% 140% at 100% 0%, rgba(15, 177, 116, 0.14), transparent 58%),
+    radial-gradient(90% 120% at 0% 100%, rgba(15, 177, 116, 0.08), transparent 60%),
+    linear-gradient(160deg, var(--tarot-violet-soft) 0%, #ffffff 72%);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
   letter-spacing: 0;
+
+  // Drifting constellation sparkle to give the idle hero a mystical pulse.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(1.6px 1.6px at 18% 30%, rgba(15, 177, 116, 0.55), transparent 60%),
+      radial-gradient(1.4px 1.4px at 72% 18%, rgba(15, 177, 116, 0.4), transparent 60%),
+      radial-gradient(1.8px 1.8px at 88% 64%, rgba(15, 177, 116, 0.45), transparent 60%),
+      radial-gradient(1.3px 1.3px at 40% 78%, rgba(15, 177, 116, 0.4), transparent 60%);
+    opacity: 0.8;
+    animation: tarot-twinkle 4.6s ease-in-out infinite;
+  }
+}
+
+@keyframes tarot-twinkle {
+  0%,
+  100% { opacity: 0.35; }
+  50% { opacity: 0.85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarot-hero::after { animation: none; }
 }
 
 .tarot-hero-copy {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -81,12 +115,25 @@
   border-radius: 50%;
   color: var(--tarot-violet);
   background: #ffffff;
-  box-shadow: 0 6px 16px rgba(15, 177, 116, 0.18);
+  box-shadow:
+    0 6px 16px rgba(15, 177, 116, 0.24),
+    0 0 0 1px var(--tarot-violet-line);
+  animation: tarot-float 5.2s ease-in-out infinite;
 
   svg {
     width: 24px;
     height: 24px;
   }
+}
+
+@keyframes tarot-float {
+  0%,
+  100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(-6deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarot-hero-badge { animation: none; }
 }
 
 .tarot-hero-heading {
@@ -137,9 +184,9 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    border: 1px solid rgba(15, 177, 116, 0.16);
+    border: 1px solid var(--tarot-violet-line);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.72);
     color: var(--tarot-muted);
     font-size: 12px;
     font-weight: 600;
@@ -151,6 +198,14 @@
       font-weight: 800;
       font-variant-numeric: tabular-nums;
     }
+  }
+
+  // Live reveal-progress chip: filled violet so the loop's state stands out.
+  > .tarot-hero-progress {
+    border-color: transparent;
+    background: var(--tarot-violet-soft);
+    color: var(--tarot-violet-strong);
+    font-weight: 800;
   }
 }
 
@@ -243,6 +298,17 @@
   display: grid;
   gap: 8px;
   letter-spacing: 0;
+
+  // First-run value cue under the primary CTA: what 0.1 GAS buys.
+  .tarot-draw-hint {
+    margin: 0;
+    color: var(--tarot-muted);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: center;
+    letter-spacing: 0;
+  }
 
   // Single accent hue: scope the primary CTA to the green brand accent so it matches the hero
   .neo-btn--primary {
@@ -438,6 +504,24 @@
 .tarot-reading-summary {
   display: grid;
   gap: 14px;
+  // The completed reading is the reward moment: ease the panel in with a
+  // gentle scale/fade and a soft violet aura when all three cards are revealed.
+  transform-origin: center top;
+  animation: tarot-summary-in 460ms var(--ns-ease-smooth, cubic-bezier(0.2, 0.75, 0.25, 1)) both;
+  box-shadow:
+    var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06)),
+    0 0 0 1px var(--tarot-violet-line);
+}
+
+@keyframes tarot-summary-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .tarot-summary-list {
@@ -456,6 +540,11 @@
   border-radius: 14px;
   background: var(--ns-surface-subtle, #f7f8fa);
   letter-spacing: 0;
+  animation: tarot-row-in 420ms var(--ns-ease-smooth, cubic-bezier(0.2, 0.75, 0.25, 1)) both;
+
+  &:nth-child(1) { animation-delay: 120ms; }
+  &:nth-child(2) { animation-delay: 220ms; }
+  &:nth-child(3) { animation-delay: 320ms; }
 
   img {
     width: 54px;
@@ -498,6 +587,24 @@
   }
 }
 
+@keyframes tarot-row-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarot-reading-summary,
+  .tarot-summary-row {
+    animation: none;
+  }
+}
+
 .tarot-side-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -510,7 +617,7 @@
     flex-direction: column;
     gap: 6px;
     padding: 18px 16px;
-    border: 1px solid rgba(15, 177, 116, 0.12);
+    border: 1px solid var(--tarot-violet-line);
     border-radius: var(--ns-radius-md, 16px);
     background: rgba(255, 255, 255, 0.78);
     letter-spacing: 0;
@@ -645,10 +752,6 @@
     letter-spacing: 0.04em;
   }
 
-  .tarot-card-face > span {
-    display: none;
-  }
-
   .tarot-card-caption {
     min-height: 48px;
 
@@ -659,5 +762,34 @@
     > small {
       font-size: 10px;
     }
+  }
+}
+
+// Stacked spread for narrow touch screens: Past spans the full width, then
+// Present + Future sit side by side, so every card is large and tappable and
+// the reveal cue stays legible exactly where taps matter most.
+@media (max-width: 520px) {
+  .tarot-reading-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .tarot-card-slot:first-child {
+    grid-column: 1 / -1;
+
+    .tarot-card-frame {
+      width: min(62%, 240px);
+      margin: 0 auto;
+    }
+  }
+
+  // Keep the in-card "TAP TO REVEAL" cue visible on touch, just smaller.
+  .tarot-card-face > span {
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    min-height: 26px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
   }
 }

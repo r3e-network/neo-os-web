@@ -93,6 +93,7 @@ defineMiniApp({
         userSharePercent: game.userSharePercent,
         needsLifecycleSync: game.needsLifecycleSync,
         estimatedCost: game.estimatedCost,
+        viewerAddress: game.address,
       },
       loadData: game.loadAll,
       cleanup: () => {

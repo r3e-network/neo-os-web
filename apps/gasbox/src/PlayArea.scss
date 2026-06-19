@@ -194,6 +194,23 @@
   font-weight: 800;
 }
 
+.gasbox-machine-icon svg,
+.gasbox-selected-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.gasbox-selected-icon {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+}
+
+.gasbox-selected-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
 .gasbox-machines-card {
   display: grid;
   gap: 16px;
@@ -260,6 +277,115 @@
   justify-content: center;
   gap: 10px;
   min-width: 0;
+}
+
+/* ── Empty-market teaser (locked sample capsule) ────────────────────── */
+
+.gasbox-teaser {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.gasbox-teaser__capsule {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background:
+    radial-gradient(circle at 50% 32%, var(--ns-surface, #ffffff) 0%, var(--ns-brand-soft, #e4f8f0) 100%);
+  color: var(--ns-brand-strong, #0fb174);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+  animation: gasbox-teaser-bob 3.4s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) infinite;
+}
+
+.gasbox-teaser__mark {
+  width: 48px;
+  height: 48px;
+}
+
+.gasbox-teaser__lock {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-text-muted, #6b7180);
+  box-shadow: var(--ns-shadow-sm, 0 2px 8px rgba(20, 22, 38, 0.05));
+}
+
+.gasbox-teaser__odds {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gasbox-teaser__tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-surface, #ffffff);
+  border: 1px solid var(--ns-border, #e4e7ee);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.gasbox-teaser__gem {
+  flex: 0 0 auto;
+}
+
+.gasbox-teaser__pct {
+  color: var(--ns-text-faint, #7e859a);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes gasbox-teaser-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.gasbox-empty-creator-line {
+  margin: 0;
+  color: var(--ns-text-muted, #6b7180);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.gasbox-empty-creator-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  border-radius: var(--ns-radius-xs, 8px);
+}
+
+.gasbox-empty-creator-link:hover {
+  color: var(--ns-brand, #16c784);
+}
+
+.gasbox-empty-creator-link:focus-visible {
+  outline: none;
+  box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 }
 
 .gasbox-machine-grid {
@@ -582,22 +708,39 @@
   font-variant-numeric: tabular-nums;
 }
 
-// Rarity tiers are decorative (drop-rate bars + result label only — allowed by
-// the design rules). Keep the 4 tiers visually distinct and ordered:
-// common (muted) < rare (blue) < epic (violet) < legendary (gold). Each token's
-// fallback hex matches the token's intent so the tier renders predictably even
-// when the token is undefined — no green-fallback aliasing.
+// Rarity tiers are decorative (drop-rate bars + result label + small gem badges
+// — allowed by the design rules as decorative art). Keep the 4 tiers visually
+// distinct and ordered: common (muted) < rare (blue) < epic (violet) <
+// legendary (gold). NOTE: --ns-violet aliases to brand green at runtime, so the
+// epic tier hex is hardcoded here (not via the token) to stop epic collapsing
+// onto the green of the uncommon tier — decorative tier colour, intentionally
+// off the single interactive accent.
 .gasbox-rarity--common { color: var(--ns-text-2, #5b6478); }
 .gasbox-rarity--uncommon { color: var(--ns-brand-strong, #0fb174); }
 .gasbox-rarity--rare { color: var(--ns-info, #3e8cff); }
-.gasbox-rarity--epic { color: var(--ns-violet, #8b5cf6); }
+.gasbox-rarity--epic { color: #8b5cf6; }
 .gasbox-rarity--legendary { color: var(--ns-warning, #f5a623); }
 
 .gasbox-rarity-bar-fill.gasbox-rarity--common { background: var(--ns-text-faint, #aeb4c2); }
 .gasbox-rarity-bar-fill.gasbox-rarity--uncommon { background: var(--ns-brand, #16c784); }
 .gasbox-rarity-bar-fill.gasbox-rarity--rare { background: var(--ns-info, #3e8cff); }
-.gasbox-rarity-bar-fill.gasbox-rarity--epic { background: var(--ns-violet, #8b5cf6); }
+.gasbox-rarity-bar-fill.gasbox-rarity--epic { background: #8b5cf6; }
 .gasbox-rarity-bar-fill.gasbox-rarity--legendary { background: var(--ns-warning, #f5a623); }
+
+.gasbox-rarity-bar-label {
+  gap: 6px;
+}
+
+.gasbox-rarity-bar-gem {
+  flex: 0 0 auto;
+}
+
+.gasbox-rarity-bar-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .gasbox-lever-container {
   display: grid;
@@ -650,6 +793,11 @@
   font-weight: 800;
 }
 
+.gasbox-prompt-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
 .gasbox-select-prompt .neo-card__content {
   display: grid;
   place-items: center;
@@ -697,25 +845,118 @@
 
 .gasbox-result-content {
   position: relative;
+  z-index: 1;
   width: min(360px, 100%);
+  display: grid;
+  gap: 10px;
   justify-items: center;
-  padding: 24px;
+  padding: 28px 24px 24px;
   border-radius: var(--ns-radius-lg, 20px);
   background: var(--ns-surface, #ffffff);
   box-shadow: var(--ns-shadow-lg, 0 16px 40px rgba(20, 22, 38, 0.1));
   text-align: center;
+  animation: gasbox-result-pop 0.4s var(--ns-ease-snappy, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+/* The result card picks up a faint tier-tinted top border + glow so a rare/epic/
+   legendary win reads as more of an event than a common one. currentColor is the
+   tier hue set by the .gasbox-rarity--* class on the card. */
+.gasbox-result-content::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  border-radius: var(--ns-radius-lg, 20px) var(--ns-radius-lg, 20px) 0 0;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+@keyframes gasbox-result-pop {
+  0% { transform: scale(0.88); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.gasbox-result-burst {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--ns-radius-full, 9999px);
+  background: currentColor;
+  box-shadow: 0 6px 18px color-mix(in srgb, currentColor 35%, transparent);
+}
+
+.gasbox-result-burst .gasbox-result-gem {
+  width: 28px;
+  height: 28px;
+  color: var(--ns-surface, #ffffff);
+}
+
+.gasbox-result-won {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .gasbox-result-rarity {
   font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .gasbox-result-item {
   margin: 0;
   font-size: 1.45rem;
+  color: var(--ns-ink, #1e1e2e);
+}
+
+.gasbox-result-content .gasbox-result-amount {
+  font-size: 1.05rem;
+}
+
+.gasbox-result-content .neo-btn {
+  margin-top: 6px;
+  width: 100%;
+}
+
+/* ── Win confetti (decorative, fires once per reveal) ───────────────── */
+
+.gasbox-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.gasbox-confetti__bit {
+  position: absolute;
+  top: -12px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: gasbox-confetti-fall 1.5s var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)) forwards;
+}
+
+.gasbox-confetti__bit--0 { left: 12%; background: var(--ns-brand, #16c784); animation-delay: 0s; }
+.gasbox-confetti__bit--1 { left: 24%; background: var(--ns-warning, #f5a623); animation-delay: 0.08s; }
+.gasbox-confetti__bit--2 { left: 38%; background: var(--ns-info, #3e8cff); animation-delay: 0.16s; }
+.gasbox-confetti__bit--3 { left: 50%; background: #8b5cf6; animation-delay: 0.04s; }
+.gasbox-confetti__bit--4 { left: 63%; background: var(--ns-brand-strong, #0fb174); animation-delay: 0.2s; }
+.gasbox-confetti__bit--5 { left: 77%; background: var(--ns-warning, #f5a623); animation-delay: 0.12s; }
+.gasbox-confetti__bit--6 { left: 89%; background: var(--ns-info, #3e8cff); animation-delay: 0.24s; }
+
+.gasbox-confetti__bit:nth-child(n + 8) { top: -20px; width: 7px; height: 10px; }
+
+@keyframes gasbox-confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  12% { opacity: 1; }
+  100% { transform: translateY(104vh) rotate(540deg); opacity: 0; }
 }
 
 @media (max-width: 900px) {
@@ -776,8 +1017,16 @@
 
 @media (prefers-reduced-motion: reduce) {
   .gasbox-lever-container,
-  .gasbox-loading-spinner {
+  .gasbox-loading-spinner,
+  .gasbox-teaser__capsule,
+  .gasbox-result-content,
+  .gasbox-confetti__bit {
     animation: none;
+  }
+
+  /* Keep confetti off entirely when motion is reduced (decorative only). */
+  .gasbox-confetti {
+    display: none;
   }
 }
 

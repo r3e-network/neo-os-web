@@ -79,27 +79,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <p className="play-hero__subtitle">{t("docSubtitle")}</p>
           </div>
         </div>
-        <div className="stats-row">
-          <div className="stat-cell win">
-            <span className="stat-count">{wins}</span>
-            <span className="stat-label">{t("wins")}</span>
+        {totalGames > 0 ? (
+          <div className="stats-row">
+            <div className="stat-cell win">
+              <span className="stat-count">{wins}</span>
+              <span className="stat-label">{t("wins")}</span>
+            </div>
+            <div className="stat-divider" />
+            <div className="stat-cell loss">
+              <span className="stat-count">{losses}</span>
+              <span className="stat-label">{t("losses")}</span>
+            </div>
+            <div className="stat-divider" />
+            <div className="stat-cell total">
+              <span className="stat-count">{totalGames}</span>
+              <span className="stat-label">{t("totalGames")}</span>
+            </div>
+            <div className="stat-divider" />
+            <div className="stat-cell won">
+              <span className="stat-count won-amount">{formattedTotalWon}</span>
+              <span className="stat-label">{t("totalWon")}</span>
+            </div>
           </div>
-          <div className="stat-divider" />
-          <div className="stat-cell loss">
-            <span className="stat-count">{losses}</span>
-            <span className="stat-label">{t("losses")}</span>
+        ) : (
+          <div className="first-round-prompt">
+            <span className="first-round-prompt__icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="16" cy="16" r="11" />
+                <path d="M16 8v16M9.5 12.5h7a2.6 2.6 0 0 1 0 5.2h-4.2a2.6 2.6 0 0 0 0 5.2h7" />
+              </svg>
+            </span>
+            <div className="first-round-prompt__text">
+              <span className="first-round-prompt__title">{t("firstRoundPrompt")}</span>
+              <span className="first-round-prompt__hint">{t("firstRoundHint")}</span>
+            </div>
           </div>
-          <div className="stat-divider" />
-          <div className="stat-cell total">
-            <span className="stat-count">{totalGames}</span>
-            <span className="stat-label">{t("totalGames")}</span>
-          </div>
-          <div className="stat-divider" />
-          <div className="stat-cell won">
-            <span className="stat-count won-amount">{formattedTotalWon}</span>
-            <span className="stat-label">{t("totalWon")}</span>
-          </div>
-        </div>
+        )}
       </header>
 
       <ArenaHero

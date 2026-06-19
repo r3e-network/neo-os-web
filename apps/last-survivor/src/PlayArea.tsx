@@ -38,6 +38,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const lastBuyer = str("lastBuyer");
   const lastBuyerLabel = str("lastBuyerLabel", "---");
 
+  // Connected wallet (when present) — used to celebrate the viewer's own win in
+  // the settle/payout card. Absent in the standalone (no-wallet) capture.
+  const viewerAddress = str("viewerAddress");
+
   // User participation
   const userKeys = num("userKeys");
   // Round total keys SOLD (chain state) and the user's share of them. These
@@ -103,6 +107,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     if (!addr || addr.length < 10) return addr || "---";
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
+
+  // The settling round pays the recorded last buyer the entire pot. When the
+  // connected wallet IS that last buyer, the settle card becomes a personal
+  // "You won the pot!" celebration instead of a neutral leader readout.
+  const viewerIsWinner =
+    Boolean(viewerAddress) &&
+    Boolean(lastBuyer) &&
+    viewerAddress.toLowerCase() === lastBuyer.toLowerCase();
 
   const handleKeyCountChange = (value: string) => {
     setLocalKeyCount(value);
@@ -239,14 +251,49 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {/* Round ended on-chain — anyone can settle() to pay the last buyer the
-          entire pot atomically and open the next round (permissionless). */}
+      {/* Round ended on-chain — the payout reveal is the hero moment. Show the
+          winner + the exact GAS prize prominently, then anyone can settle() to
+          pay the last buyer the entire pot atomically and open the next round
+          (permissionless). */}
       {needsLifecycleSync && (
         <NeoCard variant="erobo" className="claim-card">
-          <div className="claim-card-inner">
-            <span className="claim-card-trophy" aria-hidden="true">★</span>
-            <span className="claim-card-text">{t("roundEnded")}</span>
-            <span className="claim-card-text">{t("settleRoundHint")}</span>
+          <div className={`claim-card-inner${viewerIsWinner ? " is-winner" : ""}`}>
+            <span className="claim-card-trophy" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M6 4h12v3a6 6 0 0 1-12 0V4Z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M6 5H3.5v1.5A3.5 3.5 0 0 0 7 10M18 5h2.5v1.5A3.5 3.5 0 0 1 17 10"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M12 13v3m-3 4h6m-5 0a3 3 0 0 1 4 0"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <span className="claim-card-eyebrow">
+              {viewerIsWinner ? t("youWon") : t("winnerDeclared")}
+            </span>
+            <div className="claim-payout">
+              <span className="claim-payout-amount">{formatNum(totalPot)}</span>
+              <span className="claim-payout-token">{t("tokenGas")}</span>
+            </div>
+            {lastBuyer && (
+              <span className="claim-winner-address" title={lastBuyer}>
+                {viewerIsWinner ? t("youWonPayout") : formatBuyerAddress(lastBuyer)}
+              </span>
+            )}
+            <span className="claim-card-text">
+              {viewerIsWinner ? t("settleToClaim") : t("settleRoundHint")}
+            </span>
             <NeoButton
               variant="primary"
               size="lg"

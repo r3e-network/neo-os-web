@@ -102,10 +102,20 @@
 }
 
 .reveal-pending__text {
+  flex-basis: 100%;
   color: #92400e;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.reveal-pending__reassure {
+  flex-basis: 100%;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
   text-align: center;
 }
 

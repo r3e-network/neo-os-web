@@ -35,6 +35,11 @@ const appMessages = {
         en: "The player view stays focused on active machines with escrowed inventory and readable odds.",
         zh: "玩家视图只聚焦已启用、库存托管且概率清晰的机器。",
     },
+    gasboxMarketEmptyTeaser: {
+        en: "Active capsule machines land here. Refresh to pull one and win an escrowed on-chain prize.",
+        zh: "可用的扭蛋机会出现在这里。刷新即可抽取，赢取托管的链上奖品。",
+    },
+    gasboxEmptyForCreators: { en: "Want to run your own machine?", zh: "想运营自己的扭蛋机？" },
     gasboxPlayerRoute: { en: "Player route", zh: "玩家路径" },
     gasboxEscrowSafetyTitle: { en: "Escrow and odds safety", zh: "托管与概率安全" },
     gasboxEscrowSafetyDesc: {

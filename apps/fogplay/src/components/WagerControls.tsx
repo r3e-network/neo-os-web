@@ -36,14 +36,31 @@ export default function WagerControls({ t, choice, betAmount, canBet, isFlipping
               <button
                 key={side}
                 type="button"
-                className={`choice-card ${choice === side ? side : "inactive"}`}
+                className={`choice-card ${choice === side ? `selected ${side}` : "inactive"}`}
                 onClick={() => updateChoice(side)}
                 aria-pressed={choice === side}
               >
                 <div className="card-inner">
-                  <div className="symbol-ring">{side === "heads" ? <div className="neo-symbol">N</div> : <div className="gas-symbol">G</div>}</div>
+                  <span className="symbol-ring" aria-hidden="true">
+                    {side === "heads" ? (
+                      <svg viewBox="0 0 32 32" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="16 4 27 10 27 22 16 28 5 22 5 10" />
+                        <path d="M12 22V11l8 10V11" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 32 32" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="16" cy="16" r="11" />
+                        <path d="M16 8v16M9.5 12.5h7a2.6 2.6 0 0 1 0 5.2h-4.2a2.6 2.6 0 0 0 0 5.2h7" />
+                      </svg>
+                    )}
+                  </span>
                   <span className="choice-name">{t(side)}</span>
                 </div>
+                <span className="choice-check" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12.5 10 17l9-10" />
+                  </svg>
+                </span>
               </button>
             ))}
           </div>

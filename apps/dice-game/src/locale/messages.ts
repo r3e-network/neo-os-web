@@ -154,6 +154,15 @@ const appMessages = {
   resultLostBody: { en: "The roll didn't match your face. Try another roll.", zh: "掷骰结果与你的点数不一致，再试一次吧。" },
   resultRefundedBody: { en: "The roll couldn't settle, so your stake was returned.", zh: "掷骰无法结算，你的筹码已退回。" },
   maxStakeNote: { en: "Max on this network", zh: "本网络上限" },
+  youPicked: { en: "You picked", zh: "你选了" },
+  houseEdgeNote: {
+    en: "House edge {fee}% — a match pays {pays}x of the {fair}x fair payout.",
+    zh: "庄家优势 {fee}% —— 命中按公平 {fair} 倍中的 {pays} 倍赔付。",
+  },
+  settlementPendingReassure: {
+    en: "The chain reveals your roll on the next block — your stake is safe and fully refundable.",
+    zh: "链会在下一个区块揭晓你的掷骰——你的筹码是安全的，可完整退回。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);
