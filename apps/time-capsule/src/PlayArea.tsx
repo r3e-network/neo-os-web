@@ -175,6 +175,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <p className="capsule-actions-eyebrow">{t("fish")}</p>
           <p className="capsule-fish-note">{t("fishDescription")}</p>
 
+          <div className="capsule-collect-tips">
+            <span className="capsule-fish-note">{t("collectTipsHint")}</span>
+            <NeoButton
+              size="sm"
+              variant="secondary"
+              loading={isProcessing}
+              disabled={isBusy}
+              aria-label={t("collectTips")}
+              onClick={() => dispatch("withdrawFishRevenue")}
+            >
+              {isProcessing ? t("collectingTips") : t("collectTips")}
+            </NeoButton>
+          </div>
+
           <div className="capsule-fish-candidates">
             <div className="capsule-fish-candidates__head">
               <span className="capsule-fish-candidates__title">{t("fishCandidatesTitle")}</span>
