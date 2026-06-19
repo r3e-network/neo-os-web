@@ -929,7 +929,7 @@
   border: 1px solid rgba(22, 199, 132, 0.28);
   border-radius: var(--ns-radius-full, 999px);
   background: var(--dice-accent-tint);
-  color: var(--dice-accent-strong);
+  color: #0a7d50;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -945,7 +945,7 @@
 .dice-chain-badge--evm {
   border-color: rgba(47, 107, 255, 0.28);
   background: rgba(47, 107, 255, 0.08);
-  color: #2f6bff;
+  color: #1f4fd6;
 }
 .dice-chain-badge--evm .dice-chain-badge__dot {
   background: #2f6bff;

@@ -160,13 +160,15 @@
   border: 1px solid var(--coin-balance-pill-border);
   border-radius: 999px;
   background: var(--coin-balance-pill-bg);
-  color: var(--coin-success);
+  // Darker brand green so 11px label text clears AA (>=4.5:1) on the soft pill fill.
+  color: #047857;
   font-size: 11px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 
   .unit {
-    opacity: 0.72;
+    // Slightly deeper green keeps the de-emphasis without an opacity dip below AA.
+    color: #065f46;
   }
 }
 

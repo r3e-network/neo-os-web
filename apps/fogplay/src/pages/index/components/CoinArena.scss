@@ -73,7 +73,8 @@
   border: 1px solid var(--coin-balance-pill-border);
   border-radius: 999px;
   background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--coin-success);
+  // Darker brand green so 13px/800 label text clears AA (>=4.5:1) on the soft fill.
+  color: #047857;
   font-size: 13px;
   font-weight: 800;
 
