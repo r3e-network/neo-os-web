@@ -57,8 +57,16 @@ const appMessages = {
   fishing: { en: "Sending tip...", zh: "打赏中..." },
   fishButton: { en: "Send 0.05 GAS Tip", zh: "打赏 0.05 GAS" },
   fishDescription: {
-    en: "This is a tip, not a reveal. Send a 0.05 GAS tip to the owner of a public, unrevealed capsule to cheer them on — the fee is forwarded on-chain to that owner. You do NOT see the message: it stays sealed until its owner reveals it. You get back only a public acknowledgement (the capsule id). Charged only when a tippable capsule exists.",
-    zh: "这是打赏，不是揭示。向某个公开且未揭示胶囊的所有者发送 0.05 GAS 打赏以示鼓励——费用会在链上转给该所有者。你看不到消息内容：消息会一直封存，直到所有者本人揭示。你只会得到一个公开的确认（胶囊编号）。仅在存在可打赏胶囊时收取。",
+    en: "This is a tip, not a reveal. Send a 0.05 GAS tip to the owner of a public, unrevealed capsule to cheer them on — the fee is credited on-chain to that owner, who collects it with \"Collect tips\". You do NOT see the message: it stays sealed until its owner reveals it. You get back only a public acknowledgement (the capsule id). Charged only when a tippable capsule exists.",
+    zh: "这是打赏，不是揭示。向某个公开且未揭示胶囊的所有者发送 0.05 GAS 打赏以示鼓励——费用会在链上记入该所有者名下，由其通过“领取打赏”自行领取。你看不到消息内容：消息会一直封存，直到所有者本人揭示。你只会得到一个公开的确认（胶囊编号）。仅在存在可打赏胶囊时收取。",
+  },
+  collectTips: { en: "Collect tips", zh: "领取打赏" },
+  collectingTips: { en: "Collecting...", zh: "领取中..." },
+  tipsCollected: { en: "Collected {amount} GAS in fishing tips", zh: "已领取 {amount} GAS 打赏" },
+  noTipsToCollect: { en: "No fishing tips to collect yet.", zh: "暂无可领取的打赏。" },
+  collectTipsHint: {
+    en: "Owners of public capsules collect any 0.05 GAS tips their capsules received here.",
+    zh: "公开胶囊的所有者可在此领取胶囊收到的 0.05 GAS 打赏。",
   },
   fishResult: { en: "Tipped capsule {id} — it stays sealed until its owner reveals it", zh: "已打赏胶囊 {id}——在所有者揭示前仍保持封存" },
   fishNone: { en: "No public capsule available to tip", zh: "没有可打赏的公开胶囊" },

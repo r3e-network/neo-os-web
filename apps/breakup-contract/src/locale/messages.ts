@@ -183,15 +183,15 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   contractUnavailable: { en: "Contract not configured", zh: "合约未配置" },
   loadFailed: { en: "Failed to load contracts", zh: "加载合约失败" },
 
-  creditRecoveryTitle: { en: "Recover stranded stake", zh: "取回滞留质押" },
+  creditRecoveryTitle: { en: "Withdraw your GAS", zh: "提取你的 GAS" },
   creditRecoveryCopy: {
-    en: "A stake you deposited without completing the pact (e.g. a rejected wallet prompt) is held as reusable credit on the contract. Recover it back to your wallet anytime.",
-    zh: "你已存入但未完成约定的质押（例如拒绝了钱包确认）会作为可复用额度保留在合约上。可随时取回到你的钱包。",
+    en: "GAS owed to you is held as credit on the contract — a break payout (both stakes), a settlement refund (your stake back), or a stake you deposited without completing the pact. Withdraw it to your wallet anytime.",
+    zh: "合约上以额度形式保留着应付给你的 GAS——可能是分手赔付（双方质押）、和解退款（退回你的质押），或你已存入但未完成约定的质押。可随时提取到你的钱包。",
   },
-  recoverCredit: { en: "Recover GAS", zh: "取回 GAS" },
-  creditRecovering: { en: "Recovering your stranded stake credit…", zh: "正在取回你的滞留质押额度…" },
-  creditRecovered: { en: "Stake credit recovered to your wallet.", zh: "质押额度已取回到你的钱包。" },
-  noCreditToRecover: { en: "No recoverable stake credit.", zh: "没有可取回的质押额度。" },
+  recoverCredit: { en: "Withdraw GAS", zh: "提取 GAS" },
+  creditRecovering: { en: "Withdrawing your GAS credit…", zh: "正在提取你的 GAS 额度…" },
+  creditRecovered: { en: "GAS withdrawn to your wallet.", zh: "GAS 已提取到你的钱包。" },
+  noCreditToRecover: { en: "No GAS credit to withdraw.", zh: "没有可提取的 GAS 额度。" },
 
   docSubtitle: { en: "Stake-backed relationship agreements", zh: "带质押的关系合约" },
   docDescription: {

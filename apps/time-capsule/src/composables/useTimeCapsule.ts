@@ -861,6 +861,56 @@ export function useTimeCapsule({
   };
 
   /**
+   * Collect fishing-tip revenue accrued on the connected wallet's public
+   * capsules via withdrawFishRevenue(owner). The contract holds each 0.05 GAS
+   * tip in a separate fish-revenue ledger (it is NOT forwarded on the tip tx)
+   * and pays the whole balance back here — the money-out path for tips. The
+   * contract exposes no balance getter, so an empty balance reverts with
+   * "no fish revenue"; that case is surfaced as a clean info message rather
+   * than an error. Returns the collected amount (human GAS) from the
+   * "FishRevenueWithdrawn" event (state[1] = amount).
+   */
+  const withdrawFishRevenue = async (): Promise<{ amount: string }> => {
+    if (isBusy.get()) return { amount: "0" };
+
+    isProcessing.set(true);
+    try {
+      const ownerAddr = chainService.address.get() || (await chainService.ensureWallet());
+      const ownerHash = addressToScriptHash(ownerAddr || "");
+      if (!ownerAddr || !ownerHash) throw new Error(t("walletRequired"));
+
+      let result;
+      try {
+        result = await chainService.invoke(
+          "withdrawFishRevenue",
+          [{ type: "Hash160", value: ownerHash }],
+          { waitForEvent: "FishRevenueWithdrawn" },
+        );
+      } catch (e) {
+        // The contract asserts revenue > 0; an empty balance is an expected
+        // "nothing to collect" outcome, not a failure to surface as an error.
+        const msg = e instanceof Error ? e.message : "";
+        if (/no fish revenue/i.test(msg)) {
+          notify(t("noTipsToCollect"), "info");
+          return { amount: "0" };
+        }
+        throw e;
+      }
+
+      // FishRevenueWithdrawn(owner, amount) — amount is state index 1.
+      const collectedBase = parseBigInt(eventValue(result.event, 1));
+      const amount = fromBaseUnits(collectedBase);
+      notify(t("tipsCollected", { amount }), "success");
+      return { amount };
+    } catch (e) {
+      notify(e instanceof Error ? e.message : t("error"), "error");
+      throw e;
+    } finally {
+      isProcessing.set(false);
+    }
+  };
+
+  /**
    * Load all data. Called by defineMiniApp on mount and wallet reconnect.
    */
   const loadAll = async () => {
@@ -899,6 +949,7 @@ export function useTimeCapsule({
     fishCapsule,
     loadFishCandidates,
     withdrawCredit,
+    withdrawFishRevenue,
     loadCredit,
     loadAll,
   };
