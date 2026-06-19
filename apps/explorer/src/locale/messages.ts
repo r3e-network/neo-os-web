@@ -119,6 +119,7 @@ title: { en: "Neo Explorer", zh: "Neo 浏览器" },
   explorerTipBlock: { en: "Block", zh: "区块" },
   vmHalt: { en: "HALT", zh: "成功" },
   vmFault: { en: "FAULT", zh: "失败" },
+  vmUnknown: { en: "Unknown", zh: "未知" },
   hashEllipsis: { en: "...", zh: "..." },
 } as const;
 
