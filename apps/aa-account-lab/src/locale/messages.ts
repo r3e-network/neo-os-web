@@ -113,6 +113,22 @@ const appMessages = {
     en: "You are on mainnet — Register Account is a real write against mainnet AA Core and spends GAS.",
     zh: "当前为主网 —— 注册账户是对主网 AA Core 的真实写交易，会消耗 GAS。",
   },
+  mainnetCautionLead: {
+    en: "You are on mainnet — Register Account is a ",
+    zh: "当前为主网 —— 注册账户是对主网 AA Core 的",
+  },
+  mainnetCautionEmphasis: {
+    en: "real write against mainnet AA Core and spends GAS",
+    zh: "真实写交易，会消耗 GAS",
+  },
+  mainnetCautionTail: {
+    en: ".",
+    zh: "。",
+  },
+  optionalFieldsSummary: {
+    en: "Optional (hook, backup owner, timelock)",
+    zh: "可选项（hook、备份所有者、锁定期）",
+  },
   alreadyRegisteredCaution: {
     en: "This account already has a verifier registered. A re-register will revert on-chain.",
     zh: "该账户已注册 verifier，重复注册会在链上回滚。",

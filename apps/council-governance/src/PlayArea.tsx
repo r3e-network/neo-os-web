@@ -298,8 +298,13 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <span>{historyCount}</span>
             <label>{t("historyProposals")}</label>
           </div>
-          <div className="council-stat council-stat--seat">
-            <span>
+          <div
+            className={`council-stat council-stat--seat council-stat--seat-${
+              !walletAddress || !candidateLoaded ? "off" : isCandidate ? "ok" : "read"
+            }`}
+          >
+            <span className="council-seat-state">
+              <span className="council-seat-dot" aria-hidden="true" />
               {!walletAddress || !candidateLoaded
                 ? t("seatNotConnected")
                 : isCandidate

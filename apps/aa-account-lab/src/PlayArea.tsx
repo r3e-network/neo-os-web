@@ -281,38 +281,62 @@ export default function PlayArea({
               placeholder={t("verifierParamsPlaceholder")}
               onChange={(v) => setVerifierParamsHex(v)}
             />
-            <NeoInput
-              value={hookHash}
-              label={t("hook")}
-              hint={t("hookHint")}
-              placeholder={t("hookPlaceholder")}
-              onChange={(v) => setHookHash(v)}
-            />
-            <NeoInput
-              value={backupOwner}
-              label={t("backupOwner")}
-              hint={t("backupOwnerHint")}
-              placeholder={t("backupOwnerPlaceholder")}
-              onChange={(v) => {
-                setBackupOwnerTouched(true);
-                setBackupOwner(v);
-              }}
-            />
-            {backupOwnerMismatch && (
-              <p className="account-caution account-caution--danger" role="alert">
-                {t("backupOwnerMustSign")}
-              </p>
-            )}
-            <NeoInput
-              value={escapeTimelock}
-              label={t("timelock")}
-              hint={t("timelockHint")}
-              placeholder={t("timelockPlaceholder")}
-              onChange={(v) => setEscapeTimelock(v)}
-            />
-            <p className="account-note account-note--muted">
-              {t("timelockExplainer")}
-            </p>
+            <details className="account-optional" open>
+              <summary>
+                <span>{t("optionalFieldsSummary")}</span>
+                <svg
+                  className="account-optional__chevron"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </summary>
+              <div className="account-optional__body">
+                <NeoInput
+                  value={hookHash}
+                  label={t("hook")}
+                  hint={t("hookHint")}
+                  placeholder={t("hookPlaceholder")}
+                  onChange={(v) => setHookHash(v)}
+                />
+                <NeoInput
+                  value={backupOwner}
+                  label={t("backupOwner")}
+                  hint={t("backupOwnerHint")}
+                  placeholder={t("backupOwnerPlaceholder")}
+                  onChange={(v) => {
+                    setBackupOwnerTouched(true);
+                    setBackupOwner(v);
+                  }}
+                />
+                {backupOwnerMismatch && (
+                  <p
+                    className="account-caution account-caution--danger"
+                    role="alert"
+                  >
+                    {t("backupOwnerMustSign")}
+                  </p>
+                )}
+                <NeoInput
+                  value={escapeTimelock}
+                  label={t("timelock")}
+                  hint={t("timelockHint")}
+                  placeholder={t("timelockPlaceholder")}
+                  onChange={(v) => setEscapeTimelock(v)}
+                />
+                <p className="account-note account-note--muted">
+                  {t("timelockExplainer")}
+                </p>
+              </div>
+            </details>
             {/* Read-only preview of the deterministic accountId the contract
                 computes from these parameters — the only id registerAccount
                 accepts (a free seed would always revert). */}
@@ -335,11 +359,32 @@ export default function PlayArea({
             )}
             {networkIsMainnet && (
               <p className="account-caution account-caution--danger" role="alert">
-                {t("mainnetCaution")}
+                <svg
+                  className="account-caution__glyph"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <span className="account-caution__text">
+                  {t("mainnetCautionLead")}
+                  <strong>{t("mainnetCautionEmphasis")}</strong>
+                  {t("mainnetCautionTail")}
+                </span>
               </p>
             )}
             <NeoButton
               variant="primary"
+              className="account-register-cta"
               loading={isSubmitting}
               disabled={!canRegister}
               aria-label={t("register")}

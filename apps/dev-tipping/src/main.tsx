@@ -46,6 +46,9 @@ defineMiniApp({
     const myClaimableBalance = createObservable(0);
     // Connected wallet's stranded tip credit (human GAS) — drives the reclaim row.
     const myCredit = createObservable(0);
+    // Drives the in-card Connect Wallet button's loading state in the Developer
+    // Zone (the connect prompt was previously a dead label).
+    const isConnecting = createObservable(false);
 
     const { notify } = ctx.services;
 
@@ -87,6 +90,25 @@ defineMiniApp({
       }
       syncMyDeveloper();
     };
+
+    // Connect the wallet from the Developer Zone. Reuses the existing wallet
+    // connect mechanism (ctx.services.chain.ensureWallet — the same path the
+    // tip/register/withdraw flows already drive); no new connect logic.
+    ctx.registerAction("connect", async () => {
+      if (isConnecting.get()) return false;
+      isConnecting.set(true);
+      try {
+        const addr = await notify.guard(
+          () => ctx.services.chain.ensureWallet(),
+          "walletConnected",
+          "connectFailed",
+        );
+        if (addr) await refresh();
+        return Boolean(addr);
+      } finally {
+        isConnecting.set(false);
+      }
+    });
 
     ctx.registerAction("sendTip", async (...args: unknown[]) => {
       const devId = args[0] as number;
@@ -146,6 +168,7 @@ defineMiniApp({
         myDeveloperId,
         myClaimableBalance,
         myCredit,
+        isConnecting,
       }),
       loadData: refresh,
     };

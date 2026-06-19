@@ -167,6 +167,20 @@
   color: var(--ns-violet-strong, #0fb174) !important;
 }
 
+/* When the form is valid the Register CTA must read as the active primary:
+   full-saturation brand green (#0a8050, 4.98:1 with white) so it no longer
+   looks disabled once the user can actually submit. */
+.aa-account-play-area .neo-btn--primary:not(:disabled) {
+  background: #0a8050 !important;
+  color: #ffffff !important;
+}
+
+/* Lift the Register CTA off the helper + caution stack above it so the primary
+   action has breathing room and reads as the decisive step. */
+.account-register-cta {
+  margin-top: 6px;
+}
+
 .account-hint {
   margin: 0;
   padding: 11px 13px;
@@ -193,6 +207,63 @@
 .account-note--muted {
   color: var(--ns-text-muted, #8a92a6);
   font-weight: 500;
+}
+
+/* Optional-fields disclosure. Groups hook / backup owner / timelock under a
+   single labelled toggle so the required verifier sits above an explicit
+   "advanced" section, mirroring the disclosure pattern used elsewhere. The
+   fields and their bindings are unchanged — only their wrapper. */
+.account-optional {
+  overflow: hidden;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: 14px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+
+  > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    list-style: none;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    user-select: none;
+    transition: background 150ms ease;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &:hover {
+      background: var(--ns-bg-2, #eceef2);
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
+    }
+  }
+}
+
+.account-optional__chevron {
+  flex: 0 0 auto;
+  color: var(--ns-text-muted, #8a92a6);
+  transition: transform 150ms ease;
+}
+
+.account-optional[open] .account-optional__chevron {
+  transform: rotate(180deg);
+}
+
+.account-optional__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 14px 14px;
 }
 
 /* Read-only preview of the contract-derived accountId — the only id the
@@ -235,6 +306,9 @@
    green accent; the mainnet write alert uses a distinct warm tone so a real
    on-chain spend reads as higher-stakes than a neutral hint. */
 .account-caution {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
   margin: 0;
   padding: 11px 13px;
   border: 1px solid var(--ns-violet-strong, #0fb174);
@@ -246,10 +320,27 @@
   line-height: 1.45;
 }
 
+/* Warning glyph sits flush with the first line of the caution copy. */
+.account-caution__glyph {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.account-caution__text {
+  min-width: 0;
+}
+
+/* Bold the spend-consequence clause so the cost reads at a glance, while the
+   surrounding sentence stays at the regular caution weight. */
+.account-caution__text strong {
+  font-weight: 800;
+}
+
 .account-caution--danger {
-  border-color: #f0a23a;
+  border-color: #d98714;
   background: #fdf3e3;
-  color: #a35a00;
+  /* #8a4b00 on #fdf3e3 ≈ 6.2:1 — clears WCAG AA for the small bold clause too. */
+  color: #8a4b00;
 }
 
 /* Pre-inspect placeholder slot. Reuses the shared StateView; the class only

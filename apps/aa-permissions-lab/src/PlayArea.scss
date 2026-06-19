@@ -157,6 +157,14 @@
   color: var(--ns-text-2, #5b6478);
 }
 
+// Inline disabled-reason for the two Propose buttons: muted helper text tucked
+// directly under the button rather than a second bordered box, so the disabled
+// CTA + its reason read as one unit instead of doubled visual weight.
+.permissions-caption--helper {
+  margin-top: -8px;
+  color: var(--ns-text-2, #5b6478);
+}
+
 /* Second-phase rotation banner: a proposed update waits out a timelock, then
    the owner confirms or cancels it. Kept on the single green accent. */
 .permissions-pending {
