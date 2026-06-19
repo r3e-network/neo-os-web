@@ -40,9 +40,16 @@ export default function RecentTransactions({ t, transactions, formatTime, trunca
             <div className="tx-content">
               <div className="tx-info">
                 <span className="tx-hash mono">{truncateHash(tx.hash)}</span>
-                <span className={`vm-state ${tx.vmState}`}>
-                  {tx.vmState === "HALT" ? t("vmHalt") : t("vmFault")}
-                </span>
+                {(() => {
+                  // Only HALT/FAULT carry the green/red styling + label; an
+                  // unknown state (e.g. the RPC-only fallback's "state
+                  // unavailable") gets a neutral pill, not a false "Fault".
+                  const s = String(tx.vmState || "").toUpperCase();
+                  const known = s === "HALT" || s === "FAULT";
+                  const label =
+                    s === "HALT" ? t("vmHalt") : s === "FAULT" ? t("vmFault") : t("vmUnknown");
+                  return <span className={`vm-state ${known ? s : ""}`}>{label}</span>;
+                })()}
               </div>
               <span className="tx-time">{formatTime(tx.blockTime)}</span>
             </div>
