@@ -96,7 +96,10 @@ defineMiniApp({
         createdStreams: pay.createdStreams,
         beneficiaryStreams: pay.beneficiaryStreams,
         isLoading: pay.isLoading,
-        isCreating: pay.isLoading,
+        // isCreating is its own observable (set only during the create flow); binding
+        // it to isLoading made the Create button miss its spinner/disabled state during
+        // a create and spuriously spin during the initial list load.
+        isCreating: pay.isCreating,
         isRefreshing: pay.isRefreshing,
         claimingId: pay.claimingId,
         cancellingId: pay.cancellingId,
