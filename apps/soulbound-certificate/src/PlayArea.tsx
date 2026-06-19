@@ -333,6 +333,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("recipientName")}</span>
               <input
                 value={issueForm.recipientName}
+                maxLength={60}
                 placeholder={t("recipientNamePlaceholder")}
                 onChange={(event) =>
                   updateIssueForm("recipientName", event.currentTarget.value)
@@ -343,6 +344,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("achievement")}</span>
               <input
                 value={issueForm.achievement}
+                maxLength={120}
                 placeholder={t("achievementPlaceholder")}
                 onChange={(event) =>
                   updateIssueForm("achievement", event.currentTarget.value)
@@ -353,6 +355,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("memo")}</span>
               <input
                 value={issueForm.memo}
+                maxLength={160}
                 placeholder={t("memoPlaceholder")}
                 onChange={(event) =>
                   updateIssueForm("memo", event.currentTarget.value)
@@ -468,6 +471,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <span>{t("templateName")}</span>
                     <input
                       value={createForm.name}
+                      maxLength={60}
                       placeholder={t("templateNamePlaceholder")}
                       onChange={(event) =>
                         updateCreateForm("name", event.currentTarget.value)
@@ -478,6 +482,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <span>{t("issuerName")}</span>
                     <input
                       value={createForm.issuerName}
+                      maxLength={60}
                       placeholder={t("issuerNamePlaceholder")}
                       onChange={(event) =>
                         updateCreateForm("issuerName", event.currentTarget.value)
@@ -488,6 +493,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <span>{t("category")}</span>
                     <input
                       value={createForm.category}
+                      maxLength={32}
                       placeholder={t("categoryPlaceholder")}
                       onChange={(event) =>
                         updateCreateForm("category", event.currentTarget.value)
@@ -516,6 +522,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <span>{t("description")}</span>
                     <textarea
                       value={createForm.description}
+                      maxLength={240}
                       placeholder={t("descriptionPlaceholder")}
                       onChange={(event) =>
                         updateCreateForm("description", event.currentTarget.value)
