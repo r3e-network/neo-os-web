@@ -12,7 +12,7 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
-import { NeoButton, NeoInput, NeoSelect } from "@shared/components-react";
+import { NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import TokenQr from "./components/TokenQr";
@@ -92,6 +92,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const requestJson = json(latestRequest);
   const resultJson = json(latestResult);
   const resultTxid = String((latestResult as { txid?: unknown } | undefined)?.txid ?? "").trim();
+  const eventSchedulePreview =
+    eventStart && eventEnd
+      ? `${eventStart} - ${eventEnd}`
+      : eventStart || eventEnd || t("eventStartPlaceholder");
+  const ticketSupplyPreview = maxSupply || t("maxSupplyPlaceholder");
 
   const hasMetrics = eventsCount > 0 || ticketsCount > 0 || activeEventsCount > 0;
   const hasEvidence = Boolean(requestJson || resultJson);
@@ -162,47 +167,81 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             <CalendarDays size={20} aria-hidden="true" />
           </div>
-          <NeoInput
-            value={eventName}
-            label={t("eventName")}
-            placeholder={t("eventNamePlaceholder")}
-            onChange={(value) => state.eventName?.set(value)}
-          />
-          <NeoInput
-            value={eventVenue}
-            label={t("eventVenue")}
-            placeholder={t("eventVenuePlaceholder")}
-            onChange={(value) => state.eventVenue?.set(value)}
-          />
-          <div className="ticket-form-grid">
-            <NeoInput
-              value={eventStart}
-              label={t("eventStart")}
-              placeholder={t("eventStartPlaceholder")}
-              onChange={(value) => state.eventStart?.set(value)}
-            />
-            <NeoInput
-              value={eventEnd}
-              label={t("eventEnd")}
-              placeholder={t("eventEndPlaceholder")}
-              onChange={(value) => state.eventEnd?.set(value)}
-            />
+          <div className="ticket-create-composer">
+            <section className="ticket-create-preview" aria-label={t("eventPass")}>
+              <div className="ticket-create-preview__stub">
+                <Ticket size={18} aria-hidden="true" />
+                <span>{t("sampleAdmitOne")}</span>
+              </div>
+              <div className="ticket-create-preview__body">
+                <span>{t("eventPass")}</span>
+                <strong>{eventName || t("eventNamePlaceholder")}</strong>
+                <p>{eventVenue || t("eventVenuePlaceholder")}</p>
+                <div className="ticket-create-preview__meta">
+                  <div>
+                    <CalendarDays size={14} aria-hidden="true" />
+                    <span>{eventSchedulePreview}</span>
+                  </div>
+                  <div>
+                    <Ticket size={14} aria-hidden="true" />
+                    <span>{ticketSupplyPreview} {t("sidebarTickets")}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="ticket-create-fields ticket-create-fields--identity">
+              <NeoInput
+                value={eventName}
+                label={t("eventName")}
+                placeholder={t("eventNamePlaceholder")}
+                onChange={(value) => state.eventName?.set(value)}
+              />
+              <NeoInput
+                value={eventVenue}
+                label={t("eventVenue")}
+                placeholder={t("eventVenuePlaceholder")}
+                onChange={(value) => state.eventVenue?.set(value)}
+              />
+            </div>
+
+            <div className="ticket-create-fields ticket-create-fields--schedule">
+              <NeoInput
+                value={eventStart}
+                label={t("eventStart")}
+                placeholder={t("eventStartPlaceholder")}
+                onChange={(value) => state.eventStart?.set(value)}
+              />
+              <NeoInput
+                value={eventEnd}
+                label={t("eventEnd")}
+                placeholder={t("eventEndPlaceholder")}
+                onChange={(value) => state.eventEnd?.set(value)}
+              />
+              <NeoInput
+                value={maxSupply}
+                type="number"
+                label={t("maxSupply")}
+                placeholder={t("maxSupplyPlaceholder")}
+                min={1}
+                onChange={(value) => state.maxSupply?.set(value)}
+              />
+            </div>
+
+            <details className="ticket-create-advanced">
+              <summary>
+                <span>{t("notes")}</span>
+                <small>{t("notesPlaceholder")}</small>
+              </summary>
+              <NeoInput
+                value={notes}
+                type="textarea"
+                label={t("notes")}
+                placeholder={t("notesPlaceholder")}
+                onChange={(value) => state.notes?.set(value)}
+              />
+            </details>
           </div>
-          <NeoInput
-            value={maxSupply}
-            type="number"
-            label={t("maxSupply")}
-            placeholder={t("maxSupplyPlaceholder")}
-            min={1}
-            onChange={(value) => state.maxSupply?.set(value)}
-          />
-          <NeoInput
-            value={notes}
-            type="textarea"
-            label={t("notes")}
-            placeholder={t("notesPlaceholder")}
-            onChange={(value) => state.notes?.set(value)}
-          />
           <NeoButton variant="primary" loading={isCreating} onClick={() => dispatch("createEvent")}>
             <CheckCircle2 size={17} aria-hidden="true" />
             <span>{t("createEvent")}</span>
@@ -306,13 +345,40 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               void dispatch("issueTicket");
             }}
           >
-            <NeoSelect
-              value={selectedEventId}
-              label={t("eventName")}
-              placeholder={selectedEvent?.name || t("selectEventFirst")}
-              options={events.map((event) => ({ value: event.id, label: event.name || event.id }))}
-              onChange={(value) => dispatch("selectEvent", value)}
-            />
+            {events.length ? (
+              <div className="ticket-issue-picker" role="radiogroup" aria-label={t("eventName")}>
+                {events.map((event) => {
+                  const active = event.id === selectedEventId;
+                  return (
+                    <button
+                      key={event.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      className={`ticket-issue-choice${active ? " is-selected" : ""}`}
+                      onClick={() => dispatch("selectEvent", event.id)}
+                    >
+                      <span className="ticket-issue-choice__top">
+                        <strong>{event.name || event.id}</strong>
+                        <em className={event.active ? "is-live" : "is-muted"}>
+                          {event.active ? t("statusActive") : t("statusInactive")}
+                        </em>
+                      </span>
+                      <span className="ticket-issue-choice__venue">{event.venue || t("venueFallback")}</span>
+                      <span className="ticket-issue-choice__meta">
+                        <span>{formatDate(event.startTime, t("dateUnknown"))}</span>
+                        <span>{event.minted.toString()} / {event.maxSupply.toString()} {t("minted")}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="ticket-empty ticket-empty--compact">
+                <CalendarDays size={28} aria-hidden="true" />
+                <span>{t("selectEventFirst")}</span>
+              </div>
+            )}
             <NeoInput
               value={issueRecipient}
               label={t("issueRecipient")}
