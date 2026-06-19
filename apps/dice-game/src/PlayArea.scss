@@ -501,6 +501,15 @@
   text-decoration: line-through;
 }
 
+/* Selected preset: a clear green highlight so the active stake is as obvious as
+   the selected face (previously no preset showed as chosen). */
+.dice-stake-presets button.dice-preset--active {
+  border-color: var(--dice-accent-strong, #0a8050);
+  background: var(--dice-accent-soft, #e4f8f0);
+  color: var(--ns-brand-deep, #0b5e3e);
+  box-shadow: inset 0 0 0 1px var(--dice-accent-strong, #0a8050);
+}
+
 .dice-credit-banner {
   margin-top: 10px;
   padding: 10px 14px;
