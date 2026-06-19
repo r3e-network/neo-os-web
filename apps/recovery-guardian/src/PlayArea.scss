@@ -183,7 +183,7 @@
 
 .guardian-link-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 40px 40px;
   gap: 8px;
 }
 
@@ -191,16 +191,109 @@
   width: 100%;
 }
 
+.guardian-link-btn--open {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.guardian-link-btn--icon {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  min-width: 0;
+  padding: 0;
+}
+
+.guardian-link-btn--icon svg {
+  display: block;
+}
+
 .guardian-link-btn--open:not(:disabled) {
-  background: var(--ns-brand-soft, #e4f8f0);
+  background: var(--ns-brand-strong, #0fb174);
   border-color: transparent;
-  color: var(--ns-brand-strong, #0fb174);
-  box-shadow: none;
+  color: #fff;
 }
 
 .guardian-link-btn--open:not(:disabled):hover {
-  background: var(--ns-brand-soft-strong, #d3f3e6);
+  background: var(--ns-brand, #16c784);
+  color: #fff;
+}
+
+.guardian-advanced {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.guardian-advanced[open] {
+  background: var(--ns-surface, #fff);
+}
+
+.guardian-advanced__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--ns-text-muted, #6b7280);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.guardian-advanced__summary::-webkit-details-marker {
+  display: none;
+}
+
+.guardian-advanced__summary:hover {
   color: var(--ns-brand-strong, #0fb174);
+}
+
+.guardian-advanced__chevron {
+  flex: 0 0 auto;
+  transition: transform 0.18s ease;
+}
+
+.guardian-advanced[open] .guardian-advanced__chevron {
+  transform: rotate(180deg);
+}
+
+.guardian-advanced__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 14px 14px;
+}
+
+.guardian-hint--gate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-color: rgba(22, 199, 132, 0.28);
+  background: var(--ns-badge-seafoam-bg, #def5e9);
+  color: var(--ns-brand-strong, #0fb174);
+  font-weight: 700;
+}
+
+.guardian-hint--gate::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.guardian-prepare-card--locked {
+  position: relative;
+}
+
+.guardian-prepare-card--locked .guardian-link-groups {
+  opacity: 0.55;
 }
 
 .guardian-play-area button:disabled {
@@ -412,13 +505,55 @@
 .guardian-state-empty {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 18px 20px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  gap: 18px;
+  padding: 24px 20px;
+  border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.12));
   border-radius: var(--ns-radius-sm, 12px);
   background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.guardian-state-empty__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   text-align: center;
+}
+
+.guardian-state-skeleton {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.guardian-skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px 14px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 10px);
+  background: var(--ns-surface, #fff);
+}
+
+.guardian-skel-card span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.guardian-skel-card i {
+  display: block;
+  width: 70%;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+}
+
+.guardian-skel-card:nth-child(2n) i {
+  width: 52%;
 }
 
 .guardian-state-empty__badge {
@@ -574,7 +709,8 @@
 
   .guardian-action-grid,
   .guardian-workspace-links,
-  .guardian-state-grid {
+  .guardian-state-grid,
+  .guardian-state-skeleton {
     grid-template-columns: 1fr;
   }
 

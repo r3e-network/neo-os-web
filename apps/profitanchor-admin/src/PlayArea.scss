@@ -165,6 +165,27 @@
   white-space: nowrap;
 }
 
+.anchor-admin-hero-await {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 0;
+  color: var(--ns-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.anchor-admin-hero-await::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--anchor-accent);
+  box-shadow: 0 0 0 4px rgba(22, 199, 132, 0.16);
+}
+
 /* ── Sections ─────────────────────────────────────────── */
 .anchor-admin-agent-strip,
 .anchor-admin-safety-card {
@@ -278,6 +299,39 @@
   line-height: 1.5;
 }
 
+.anchor-admin-step {
+  width: fit-content;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--anchor-accent-soft);
+  color: var(--anchor-accent-strong);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.anchor-admin-card-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 !important;
+  padding-top: 2px;
+  color: var(--ns-text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.4;
+}
+
+.anchor-admin-card-rule::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--anchor-accent);
+}
+
 .anchor-admin-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -337,6 +391,78 @@
 .anchor-admin-agent-list::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: rgba(22, 199, 132, 0.28);
+}
+
+.anchor-admin-agent-list--state {
+  display: block;
+}
+
+/* Compact resting state — replaces the 21-row static-roster placeholder wall. */
+.anchor-admin-agent-rest {
+  display: grid;
+  gap: 14px;
+  padding: 18px 16px;
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+}
+
+.anchor-admin-agent-skeletons {
+  display: grid;
+  gap: 10px;
+}
+
+.anchor-admin-agent-skeleton {
+  height: 40px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: linear-gradient(
+    100deg,
+    rgba(22, 199, 132, 0.05) 30%,
+    rgba(22, 199, 132, 0.12) 50%,
+    rgba(22, 199, 132, 0.05) 70%
+  );
+  background-size: 220% 100%;
+  animation: anchor-admin-shimmer 1.6s ease-in-out infinite;
+}
+
+.anchor-admin-agent-skeleton:nth-child(2) {
+  animation-delay: 0.18s;
+  opacity: 0.78;
+}
+
+.anchor-admin-agent-skeleton:nth-child(3) {
+  animation-delay: 0.36s;
+  opacity: 0.56;
+}
+
+@keyframes anchor-admin-shimmer {
+  from {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anchor-admin-agent-skeleton {
+    animation: none;
+  }
+}
+
+.anchor-admin-agent-rest__note {
+  margin: 0;
+  color: var(--ns-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.anchor-admin-agent-rest__count {
+  color: var(--ns-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .anchor-admin-agent-row {
@@ -471,35 +597,6 @@
 
 .anchor-admin-agent-state {
   grid-column: 1 / -1;
-}
-
-/* ── Operator rule ────────────────────────────────────── */
-.anchor-admin-safety-list {
-  display: grid;
-  gap: 10px;
-}
-
-.anchor-admin-safety-list span {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 44px;
-  padding: 12px 16px;
-  border-radius: var(--ns-radius-sm, 12px);
-  background: var(--ns-surface-subtle);
-  color: var(--ns-text-2);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-.anchor-admin-safety-list span::before {
-  content: "";
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--anchor-accent);
 }
 
 @media (max-width: 1060px) {

@@ -131,20 +131,100 @@
   flex-direction: column;
   gap: 16px;
 
-  /* Soft-tinted disabled primary CTAs so they read as a paused action, not inert */
+  /* Disabled primary CTAs read clearly as inert: a neutral muted fill with a
+     dashed outline, distinct from the solid accent of an active button so the
+     pale-green never looks already-styled/clickable. */
   .neo-btn--primary:disabled,
   .neo-btn--success:disabled {
-    background: var(--vault-accent-soft);
-    border-color: var(--vault-accent-soft);
-    color: var(--vault-accent-strong);
-    opacity: 0.75;
+    background: var(--ns-surface-subtle, #f1f3f6);
+    border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.18));
+    color: var(--ns-text-muted, #8a92a6);
+    box-shadow: none;
+    opacity: 1;
   }
 
   .neo-btn--danger:disabled {
-    background: var(--ns-danger-soft, #fde7e9);
-    border-color: var(--ns-danger-soft, #fde7e9);
-    color: var(--ns-down, #ea3943);
-    opacity: 0.7;
+    background: var(--ns-surface-subtle, #f1f3f6);
+    border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.18));
+    color: var(--ns-text-muted, #8a92a6);
+    box-shadow: none;
+    opacity: 1;
+  }
+}
+
+/* Paired fields share a row on desktop; stack on mobile. */
+.vault-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/* Collapsible fee/secret fine print — keeps the CTA near the fold. */
+.vault-fineprint {
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-sm, 12px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+
+  summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 11px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--ns-text-2, #5b6478);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    &::-webkit-details-marker { display: none; }
+
+    &::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid var(--ns-text-muted, #8a92a6);
+      border-bottom: 2px solid var(--ns-text-muted, #8a92a6);
+      transform: rotate(45deg);
+      transition: transform var(--ns-t, 220ms) ease;
+      margin-right: 4px;
+    }
+  }
+
+  &[open] summary::after { transform: rotate(-135deg); }
+
+  .vault-fineprint-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 14px 12px;
+  }
+}
+
+/* Inline status under the disabled/ready Create button. */
+.vault-create-hint {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ns-text-2, #5b6478);
+
+  &::before {
+    content: "";
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--ns-text-muted, #8a92a6);
+  }
+
+  &--ready {
+    color: var(--vault-accent-strong);
+    &::before { background: var(--vault-accent); }
   }
 }
 
@@ -336,6 +416,14 @@
   gap: 8px;
 }
 
+/* Full-width Recent Vaults wraps its items into columns so the list fills the
+   horizontal space below the two-column row instead of one narrow stack. */
+.vault-list--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
 .vault-list-item {
   display: flex;
   justify-content: space-between;
@@ -404,11 +492,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-// Shared StateView empty placeholder for the Recent Vaults slot. Hold a taller
-// minimum so the right column (Break + Recent Vaults) reaches closer to the
-// tall Create form, instead of stopping high and leaving a blank lower-right area.
+// Recent Vaults now spans full width below the two-column row, so the empty
+// placeholder stays compact (a tall band would re-introduce dead space).
 .vault-empty-state {
-  min-height: 200px;
+  min-height: 140px;
 }
 
 @media (max-width: 720px) {
@@ -423,6 +510,12 @@
   }
 
   .vault-col {
+    gap: 16px;
+  }
+
+  /* Paired fields stack on narrow viewports so neither input is cramped. */
+  .vault-form-row {
+    grid-template-columns: minmax(0, 1fr);
     gap: 16px;
   }
 

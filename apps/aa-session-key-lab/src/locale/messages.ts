@@ -120,6 +120,12 @@ const appMessages = {
     zh: "读取 Session key 失败。",
   },
   revokeSession: { en: "Revoke Session Key", zh: "撤销 Session Key" },
+  revokeConfirmPrompt: {
+    en: "Revoke this on-chain session key?",
+    zh: "撤销此链上 Session Key？",
+  },
+  revokeConfirm: { en: "Confirm Revoke", zh: "确认撤销" },
+  revokeCancel: { en: "Cancel", zh: "取消" },
   sessionRevoked: { en: "Session key revoked.", zh: "Session key 已撤销。" },
   sessionRevokeFailed: {
     en: "Failed to revoke the session key.",
@@ -230,6 +236,12 @@ const appMessages = {
     zh: "生成密钥或提交配置后，这里会显示最新状态。",
   },
   sessionScopeTitle: { en: "Target scope", zh: "目标作用域" },
+  scopeGroupLabel: { en: "Scope", zh: "作用域" },
+  limitsGroupLabel: {
+    en: "Limits & label (optional)",
+    zh: "上限与标签（可选）",
+  },
+  privateKeyCardTitle: { en: "Generated private key", zh: "已生成的私钥" },
   configureSessionBlocked: {
     en: "Add an account ID/hash, session public key, target contract, and expiry before submitting.",
     zh: "请先填写账户 ID/Hash、Session 公钥、目标合约和过期时间，再提交配置。",

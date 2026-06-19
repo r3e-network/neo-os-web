@@ -16,6 +16,11 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
     en: "Search for a name above to claim your first .neo domain.",
     zh: "在上方搜索名称，认领您的第一个 .neo 域名。",
   },
+  noDomainsConnectHint: {
+    en: "Connect your wallet to see the domains you own, or search for a name above to claim one.",
+    zh: "连接钱包以查看您拥有的域名，或在上方搜索名称进行认领。",
+  },
+  tryExample: { en: "Try an example", zh: "试试示例" },
   expires: { en: "Expires", zh: "到期时间" },
   // Post-expiry state: a lapsed domain shows an Expired badge + a hint that
   // renewal may no longer guarantee ownership (the name can be re-claimed).
@@ -120,6 +125,33 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   },
   confirmRenew: { en: "Confirm renew", zh: "确认续费" },
   cancel: { en: "Cancel", zh: "取消" },
+  // "How .neo names work" reference strip — fills the resting viewport with
+  // pricing + lifecycle facts so the page reads as a guide, not empty space.
+  howTitle: { en: "How .neo names work", zh: ".neo 域名如何运作" },
+  howSearchLabel: { en: "1 · Search", zh: "1 · 搜索" },
+  howSearchDesc: {
+    en: "Look up any name to see if it is available or who holds it.",
+    zh: "查询任意名称，查看是否可用或归谁所有。",
+  },
+  howPriceLabel: { en: "2 · Price", zh: "2 · 价格" },
+  howPriceDesc: {
+    en: "Pay a GAS fee per year. Shorter names are premium and cost more.",
+    zh: "按年支付 GAS 费用。较短的名称为高级域名，费用更高。",
+  },
+  howOwnLabel: { en: "3 · Own", zh: "3 · 拥有" },
+  howOwnDesc: {
+    en: "Your domain is an NFT — point it at an address, transfer, or sell it.",
+    zh: "您的域名是一个 NFT — 可指向地址、转让或出售。",
+  },
+  howRenewLabel: { en: "4 · Renew", zh: "4 · 续费" },
+  howRenewDesc: {
+    en: "Renew before expiry to keep ownership; lapsed names can be re-claimed.",
+    zh: "在到期前续费以保持所有权；过期的名称可被重新认领。",
+  },
+  howNote: {
+    en: "Names map to wallet addresses, so people can pay you at alice.neo instead of a long address.",
+    zh: "名称映射到钱包地址，因此他人可以向 alice.neo 付款，而无需使用冗长的地址。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

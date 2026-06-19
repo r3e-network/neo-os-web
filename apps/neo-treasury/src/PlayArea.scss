@@ -99,12 +99,48 @@
 
 .treasury-hero__signal {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   color: var(--ns-text-muted, #8a92a6) !important;
   font-size: 0.8125rem !important;
   font-weight: 600;
   line-height: 1.4 !important;
+}
+
+.treasury-hero__signal-text {
+  min-width: 0;
+}
+
+/* Compact refresh — the single refresh affordance, sitting next to the live
+   status it controls. Quiet by default (chrome accent on hover/focus). */
+.treasury-hero__refresh {
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 5px 12px;
+  border: 1px solid var(--ns-border, #e4e7ec);
+  border-radius: var(--ns-radius-full, 9999px);
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+    background var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.treasury-hero__refresh:hover:not(:disabled),
+.treasury-hero__refresh:focus-visible {
+  outline: none;
+  border-color: rgba(15, 177, 116, 0.4);
+  background: var(--ns-brand-soft, #e4f8f0);
+}
+
+.treasury-hero__refresh:disabled {
+  color: var(--ns-text-muted, #8a92a6);
+  cursor: progress;
 }
 
 .treasury-hero__dot {
@@ -174,7 +210,12 @@
   gap: 20px;
 }
 
+/* Cap the disbursement console width so its form fields don't stretch
+   full-bleed and visually merge with the reference cards below it — the
+   interactive write path reads as a distinct, contained console. */
 .treasury-operation-card {
+  width: 100%;
+  max-width: 720px;
   min-width: 0;
 }
 
@@ -413,6 +454,27 @@
   align-items: center;
 }
 
+/* Subordinate "change wallet" affordance shown only once connected — a quiet
+   text button so it never competes with the primary sign CTA. */
+.treasury-reconnect {
+  padding: 6px 4px;
+  border: none;
+  background: none;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.treasury-reconnect:hover,
+.treasury-reconnect:focus-visible {
+  outline: none;
+  color: var(--ns-brand-strong, #0fb174);
+}
+
 .treasury-tx-receipt {
   background: var(--ns-brand-soft, #e4f8f0) !important;
 }
@@ -423,6 +485,81 @@
   color: var(--ns-text-2, #5b6478);
   font-size: 0.8125rem;
   line-height: 1.4;
+}
+
+/* Resting/pre-load reference card — a compact, scannable summary of the watched
+   groups that fills the lower viewport before live balances resolve. */
+.treasury-reference-card {
+  min-width: 0;
+}
+
+.treasury-reference-card .neo-card__body {
+  display: grid;
+  gap: 16px;
+}
+
+.treasury-reference-card__head {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.treasury-reference-card__head > span {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.treasury-reference-card__head strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.treasury-reference-card__head p {
+  max-width: 46rem;
+  margin: 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.treasury-reference-card__groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.treasury-reference-card__groups div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.treasury-reference-card__groups dt {
+  margin: 0;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 0.875rem;
+  font-weight: 750;
+}
+
+.treasury-reference-card__groups dd {
+  margin: 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .treasury-watchlist {
@@ -637,9 +774,7 @@
 
 .treasury-action-card .neo-card__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 20px;
-  align-items: center;
+  gap: 8px;
 }
 
 .treasury-readonly-note {
@@ -683,7 +818,8 @@
     font-size: 1.375rem;
   }
 
-  .treasury-watchlist {
+  .treasury-watchlist,
+  .treasury-reference-card__groups {
     grid-template-columns: 1fr;
   }
 
@@ -691,6 +827,10 @@
   .treasury-intent-panel dl,
   .treasury-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .treasury-hero__refresh {
+    margin-left: 0;
   }
 
   .treasury-actions {

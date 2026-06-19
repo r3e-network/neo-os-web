@@ -82,7 +82,7 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
 /* ── Hero gauge + inline facts ────────────────────────── */
 .gas-hero-gauge {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 24px;
   flex-wrap: wrap;
   padding: 20px;
@@ -91,13 +91,39 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
-.gas-hero-facts {
-  flex: 1 1 220px;
+.gas-hero-facts-wrap {
+  flex: 1 1 240px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 12px;
+}
+
+.gas-hero-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin: 0;
+}
+
+.gas-hero-rule {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ns-text-muted, #8a92a6);
+}
+
+.gas-hero-connect {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--ns-radius-sm, 12px);
+  background: $gas-accent-soft;
+  color: $gas-accent-strong;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .gas-hero-fact {
@@ -132,77 +158,64 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 }
 
-/* ── Gas Tank visualization (renders inside hero gauge) ── */
+/* ── Gas Tank visualization (renders inside hero gauge) ──
+   A compact, self-evident fuel gauge: a clearly bordered rounded body with an
+   always-visible track and a baseline fill cap, so a 0-balance tank reads as an
+   intentional empty gauge rather than a clipped/broken widget. */
 .gas-tank-container {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .gas-tank {
-  width: 132px;
+  width: 116px;
 }
 
 .tank-body {
   position: relative;
-  width: 132px;
-  height: 132px;
-  border-radius: 16px;
+  width: 116px;
+  height: 124px;
+  border-radius: 18px;
   background: var(--ns-surface, #ffffff);
-  /* Slightly stronger border so the gauge has a defined outline even when empty
-     (an empty white box with a hairline border read as a missing widget). */
-  border: 1.5px solid rgba(15, 177, 116, 0.22);
-  box-shadow: inset 0 1px 3px rgba(20, 22, 38, 0.05);
+  /* Defined two-tone outline so the gauge has a clear edge even when empty. */
+  border: 1.5px solid rgba(15, 177, 116, 0.3);
+  box-shadow:
+    inset 0 1px 2px rgba(20, 22, 38, 0.04),
+    0 1px 2px rgba(20, 22, 38, 0.04);
   overflow: hidden;
+}
 
-  /* Ghost-fill floor: a faint always-present fuel band at the base so an empty
-     tank still shows the fuel-tank shape (real fuel-level overlays this). */
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    height: 14%;
-    background: linear-gradient(
-      180deg,
-      rgba(22, 199, 132, 0.16) 0%,
-      rgba(15, 177, 116, 0.24) 100%
-    );
-    pointer-events: none;
-  }
-
-  /* Fuel-tick guides so an empty tank still reads as a gauge — raised contrast
-     so the graduations are actually visible at render scale. */
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(
+/* Always-present track behind the fill: a faint tinted column with graduation
+   ticks so the body reads as a measurable gauge at any level. */
+.tank-track {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
       180deg,
       transparent 0,
-      transparent 31px,
-      rgba(20, 22, 38, 0.1) 31px,
-      rgba(20, 22, 38, 0.1) 32px
-    );
-  }
+      transparent 25px,
+      rgba(15, 177, 116, 0.1) 25px,
+      rgba(15, 177, 116, 0.1) 26px
+    ),
+    linear-gradient(180deg, rgba(22, 199, 132, 0.03) 0%, rgba(22, 199, 132, 0.07) 100%);
 }
 
 .fuel-level {
   position: absolute;
   left: 0;
+  right: 0;
   bottom: 0;
   width: 100%;
   background: linear-gradient(180deg, $gas-accent 0%, $gas-accent-strong 100%);
   transition: height 0.5s var(--ns-ease-smooth, ease);
-  min-height: 5px;
   z-index: 1;
-  /* No own radius: the tank-body's overflow:hidden + 16px radius clips the fill
-     cleanly. A self-radius larger than the fill height rendered as a cut-off bar
-     at low levels (the "clipped gauge" defect). */
+  /* A soft meniscus on top of the fuel so the fill cap is always legible. */
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.28);
 }
 
 .tank-gauge {
@@ -212,15 +225,15 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  z-index: 1;
+  gap: 2px;
+  z-index: 2;
 }
 
 .gauge-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   color: var(--ns-text-muted, #8a92a6);
 }
 
@@ -234,7 +247,16 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
 .tank-status {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.tank-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ns-text-muted, #8a92a6);
+  font-variant-numeric: tabular-nums;
 }
 
 .status-indicator {
@@ -575,13 +597,13 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
     padding: 18px 16px;
   }
 
-  /* Tank stretches full width and centers so it doesn't look orphaned */
+  /* Tank stays a compact centered badge so it doesn't look orphaned */
   .gas-tank-container {
     width: 100%;
   }
 
   /* Facts gain a top divider once stacked under the tank */
-  .gas-hero-facts {
+  .gas-hero-facts-wrap {
     flex: 1 1 auto;
     width: 100%;
     padding-top: 18px;

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { NeoButton } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import {
@@ -94,6 +95,8 @@ export default function PlayArea({
   const [marketHash, setMarketHash] = useState(resolvedMarketHash);
   const canLoadListings = Boolean(marketHash.trim());
   const isMarketReady = canLoadListings;
+  const hasWallet = Boolean(walletAddress.trim());
+  const hasMarketHash = Boolean(marketHash.trim());
   const listingCountLabel = String(totalListings || listings.length);
   const activeCountLabel = String(activeListings);
 
@@ -158,6 +161,8 @@ export default function PlayArea({
               isMarketReady={isMarketReady}
               walletAddress={walletAddress}
               marketHash={marketHash}
+              isWalletConnecting={isWalletConnecting}
+              onConnect={() => dispatch("connectWallet")}
               initialAaContractHash={
                 launchValues.aaContractHash || stateAaContractHash
               }
@@ -218,7 +223,7 @@ export default function PlayArea({
             </p>
           )}
 
-          {!marketHash.trim() && (
+          {!hasMarketHash && (
             <div className="empty-state">
               <span className="empty-state__badge">AA</span>
               <strong>{t("emptyStateTitle")}</strong>
@@ -226,24 +231,49 @@ export default function PlayArea({
             </div>
           )}
 
-          {/* A market hash is prefilled, so the board auto-loads on mount; show a
-              loading placeholder beneath the "Listings" heading so it is never
-              left orphaned above blank space while the read is in flight. */}
-          {marketHash.trim() && listings.length === 0 && isLoading && (
-            <div className="empty-state empty-state--loading" aria-busy="true">
-              <span className="empty-state__spinner" aria-hidden="true" />
-              <strong>{t("emptyStateLoadingTitle")}</strong>
-              <span>{t("emptyStateLoading")}</span>
+          {/* The board read needs a wallet provider. Without a session, rest on
+              a "connect to load" state instead of a spinner that never resolves;
+              connecting the wallet kicks off the load automatically. */}
+          {hasMarketHash && listings.length === 0 && !hasWallet && (
+            <div className="empty-state">
+              <span className="empty-state__badge">AA</span>
+              <strong>{t("emptyStateConnectTitle")}</strong>
+              <span>{t("emptyStateConnect")}</span>
+              <NeoButton
+                variant="primary"
+                loading={isWalletConnecting}
+                aria-label={t("connectWallet")}
+                onClick={() => dispatch("connectWallet")}
+              >
+                {t("connectWallet")}
+              </NeoButton>
             </div>
           )}
 
-          {marketHash.trim() && listings.length === 0 && !isLoading && (
-            <div className="empty-state">
-              <span className="empty-state__badge">0</span>
-              <strong>{t("emptyStateNoListingsTitle")}</strong>
-              <span>{t("emptyStateNoListings")}</span>
-            </div>
-          )}
+          {/* Wallet is connected and the read is in flight — show a loading
+              placeholder beneath the "Listings" heading so it is never left
+              orphaned above blank space. */}
+          {hasMarketHash &&
+            listings.length === 0 &&
+            hasWallet &&
+            isLoading && (
+              <div className="empty-state empty-state--loading" aria-busy="true">
+                <span className="empty-state__spinner" aria-hidden="true" />
+                <strong>{t("emptyStateLoadingTitle")}</strong>
+                <span>{t("emptyStateLoading")}</span>
+              </div>
+            )}
+
+          {hasMarketHash &&
+            listings.length === 0 &&
+            hasWallet &&
+            !isLoading && (
+              <div className="empty-state">
+                <span className="empty-state__badge">0</span>
+                <strong>{t("emptyStateNoListingsTitle")}</strong>
+                <span>{t("emptyStateNoListings")}</span>
+              </div>
+            )}
 
           <div className="listings">
             {listings.map((listing) => (

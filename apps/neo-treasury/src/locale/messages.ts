@@ -136,6 +136,28 @@ const appMessages = {
   lastUpdated: { en: "Last updated", zh: "最后更新" },
   loading: { en: "Loading...", zh: "加载中..." },
   retry: { en: "Retry", zh: "重试" },
+  // Watchdog empty state: shown when the first balance load has not resolved
+  // within the timeout (e.g. no chain/host context), so the dashboard never
+  // sits on an indefinite spinner.
+  treasuryLoadTimeout: {
+    en: "Public balances did not load",
+    zh: "未能加载公开余额",
+  },
+  treasuryLoadTimeoutHint: {
+    en: "The chain read is taking longer than expected. Retry to fetch live balances.",
+    zh: "链上读取耗时超出预期。请重试以获取实时余额。",
+  },
+  // Compact reference shown in the resting watchlist viewport before the first
+  // load resolves — keeps the lower viewport informative instead of blank.
+  watchlistReference: {
+    en: "Watched groups",
+    zh: "监控分组",
+  },
+  watchlistReferenceHint: {
+    en: "Da Hongfei and Erik Zhang wallet groups load read-only from public mainnet data.",
+    zh: "Da Hongfei 与 Erik Zhang 钱包组以只读方式从公开主网数据加载。",
+  },
+  refresh: { en: "Refresh", zh: "刷新" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
