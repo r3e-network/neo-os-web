@@ -238,7 +238,9 @@
 
 .ticket-tab.is-active {
   background: var(--tk-accent-soft);
-  color: var(--tk-accent-strong);
+  // AA: --tk-accent-strong (#0fb174) on the soft-green active tab is ~2.5:1;
+  // deep brand clears ~7:1 while keeping the green hue.
+  color: var(--ns-brand-deep, #0b5e3e);
   box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.28);
 }
 
@@ -564,7 +566,9 @@
 
 .ticket-badge.valid {
   background: var(--ns-success-soft, #ecfdf5);
-  color: var(--ns-success, #047857);
+  // AA: the success tokens alias to brand green (#16c784 on #e4f8f0 ≈ 2:1);
+  // deep brand keeps the "valid = green" semantic while clearing ~7:1.
+  color: var(--ns-brand-deep, #0b5e3e);
 }
 
 .ticket-badge.used {
@@ -852,12 +856,14 @@
 // hero, tabs, selected event, ticket-pass stub and CTA all share it) so the
 // workspace reads as one coherent colour.
 .ticket-play-area .neo-btn--primary {
-  background: var(--tk-accent);
-  box-shadow: 0 2px 8px rgba(22, 199, 132, 0.25);
+  // AA: white-on-#16c784 is ~2.2:1. The CTA uses the darker brand green
+  // (#0a8050 = 4.98:1, hover #086a45); --tk-accent stays for labels/icons.
+  background: #0a8050;
+  box-shadow: 0 2px 8px rgba(10, 128, 80, 0.25);
 
   &:hover:not(:disabled) {
-    background: var(--tk-accent-strong);
-    box-shadow: 0 4px 16px rgba(22, 199, 132, 0.3);
+    background: #086a45;
+    box-shadow: 0 4px 16px rgba(10, 128, 80, 0.3);
   }
 
   // Disabled primaries (Issue/Transfer before an event + recipient are set)

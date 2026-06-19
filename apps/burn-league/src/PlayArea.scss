@@ -685,12 +685,14 @@ $burn-amber: var(--ns-warning, #f5a623);
   /* Skin the primary CTA to the app's violet anchor (the shared
      primary variant is brand-green) so icon, chips and CTA share one hue. */
   .neo-btn--primary {
-    background: $burn-accent;
-    box-shadow: 0 2px 8px rgba(22, 199, 132, 0.26);
+    // AA: white-on-#16c784 is ~2.2:1. The CTA uses the darker brand green
+    // (#0a8050 = 4.98:1, hover #086a45) while chips/labels keep $burn-accent.
+    background: #0a8050;
+    box-shadow: 0 2px 8px rgba(10, 128, 80, 0.26);
 
     &:hover:not(:disabled) {
-      background: $burn-accent-strong;
-      box-shadow: 0 4px 16px rgba(22, 199, 132, 0.32);
+      background: #086a45;
+      box-shadow: 0 4px 16px rgba(10, 128, 80, 0.32);
     }
 
     /* Soft-tinted disabled — keeps affordance instead of flat grey. */

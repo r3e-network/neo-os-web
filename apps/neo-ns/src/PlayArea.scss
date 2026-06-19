@@ -256,7 +256,9 @@
   padding: 7px 14px;
   font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
   font-family: "JetBrains Mono", monospace;
-  color: var(--ns-brand-strong, #0fb174);
+  // AA: #0fb174 is ~2.5:1 on the soft-green chip and ~2.8:1 on the white hover
+  // fill; deep brand clears ~7:1 on both.
+  color: var(--ns-brand-deep, #0b5e3e);
   background: var(--ns-brand-soft, #e4f8f0);
   border: 1px solid transparent;
   border-radius: var(--ns-radius-full, 9999px);

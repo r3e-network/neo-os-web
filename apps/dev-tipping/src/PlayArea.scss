@@ -753,12 +753,14 @@
 
 /* ── Accent alignment: primary buttons follow this app's green identity ── */
 .dev-tipping-play-area .neo-btn--primary:not(:disabled) {
-  background: var(--tip-accent);
-  box-shadow: 0 2px 8px rgba(22, 199, 132, 0.25);
+  // AA: white-on-#16c784 is ~2.2:1. The CTA uses the darker brand green
+  // (#0a8050 = 4.98:1, hover #086a45); --tip-accent stays for labels/borders.
+  background: #0a8050;
+  box-shadow: 0 2px 8px rgba(10, 128, 80, 0.25);
 
   &:hover {
-    background: var(--tip-accent-strong);
-    box-shadow: 0 4px 16px rgba(22, 199, 132, 0.3);
+    background: #086a45;
+    box-shadow: 0 4px 16px rgba(10, 128, 80, 0.3);
   }
 }
 

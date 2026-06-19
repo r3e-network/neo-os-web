@@ -68,12 +68,14 @@
   flex-shrink: 0;
   border: 1px solid rgba(22, 199, 132, 0.4);
   background: var(--ns-surface, #ffffff);
-  color: var(--ns-brand-strong, #0fb174);
+  // AA: #0fb174 is ~2.8:1 on white and ~2.5:1 on the soft-green hover fill;
+  // deep brand clears ~7:1 on both.
+  color: var(--ns-brand-deep, #0b5e3e);
 
   &:hover:not(:disabled) {
     border-color: var(--ns-brand, #16c784);
     background: var(--ns-brand-soft, #e4f8f0);
-    color: var(--ns-brand-strong, #0fb174);
+    color: var(--ns-brand-deep, #0b5e3e);
   }
 
   &:disabled {
