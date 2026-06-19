@@ -11,7 +11,9 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   gap: 20px;
   margin-bottom: 4px;
   padding: 24px;
-  background: var(--ns-surface, #ffffff);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(228, 248, 240, 0.88) 100%),
+    var(--ns-surface, #ffffff);
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
@@ -20,7 +22,15 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 .hero-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
+}
+
+.hero-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
 }
 
 .hero-badge {
@@ -28,40 +38,34 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   width: 56px;
   height: 56px;
   border-radius: var(--ns-radius-md, 16px);
-  background: linear-gradient(155deg, $accent-soft, rgba(22, 199, 132, 0.16));
+  overflow: hidden;
+  background: var(--ns-surface, #ffffff);
   box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.capsule-graphic {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-}
-.capsule-top {
-  width: 22px;
-  height: 11px;
-  background: linear-gradient(180deg, $accent, $accent-strong);
-  border-radius: 11px 11px 0 0;
-}
-.capsule-body {
-  width: 28px;
-  height: 24px;
-  background: linear-gradient(180deg, rgba(22, 199, 132, 0.35), rgba(22, 199, 132, 0.18));
-  border: 1px solid rgba(22, 199, 132, 0.4);
-  border-radius: 0 0 5px 5px;
-  position: relative;
-}
-.capsule-band {
+.hero-badge img {
   width: 100%;
-  height: 3px;
-  background: $accent-strong;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-media {
+  display: block;
+  width: min(280px, 34%);
+  min-width: 220px;
+  height: 104px;
+  overflow: hidden;
+  border-radius: var(--ns-radius-lg, 20px);
+  box-shadow: inset 0 0 0 1px rgba(20, 22, 38, 0.06);
+}
+
+.hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .hero-copy {
@@ -150,6 +154,7 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   }
 
   .hero-head {
+    align-items: flex-start;
     gap: 14px;
   }
 
@@ -160,6 +165,9 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   .hero-title {
     font-size: 19px;
+  }
+  .hero-media {
+    display: none;
   }
   .hero-stat {
     padding: 14px 8px;

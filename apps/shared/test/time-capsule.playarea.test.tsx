@@ -29,9 +29,18 @@ function t(key: string) {
     categoryMemorial: "Memorial",
     categoryAnnouncement: "Announcement",
     categorySecret: "Secret",
+    categoryPersonalHint: "A note for your future self",
+    categoryGiftHint: "A timed reveal for someone else",
+    categoryMemorialHint: "Preserve a milestone or memory",
+    categoryAnnouncementHint: "Publish when the date arrives",
+    categorySecretHint: "Keep the tone private and sealed",
     visibility: "Visibility",
+    private: "Private",
+    public: "Public",
     publicHint: "Anyone can reveal after unlock",
     privateHint: "Only you can reveal after unlock",
+    durationPresets: "Duration presets",
+    daysShort: "D",
     contentStorageNote: "Your full message is stored locally on this device.",
     createCapsuleButton: "Create Capsule (0.2 GAS)",
     creatingCapsule: "Sealing capsule...",
@@ -119,5 +128,30 @@ describe("Time Capsule PlayArea", () => {
     await waitFor(() => {
       expect(dispatch).toHaveBeenCalledWith("openCapsule", capsule);
     });
+  });
+
+  it("uses app-like category, visibility, and duration choices instead of native controls", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state([])} dispatch={vi.fn()} />,
+    );
+
+    expect(container.querySelector("select")).toBeNull();
+    expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+
+    const gift = screen.getByRole("radio", { name: "Gift A timed reveal for someone else" });
+    const publicVisibility = screen.getByRole("radio", { name: "Public Anyone can reveal after unlock" });
+    const privateVisibility = screen.getByRole("radio", { name: "Private Only you can reveal after unlock" });
+
+    expect(gift.getAttribute("aria-checked")).toBe("false");
+    expect(privateVisibility.getAttribute("aria-checked")).toBe("true");
+
+    fireEvent.click(gift);
+    fireEvent.click(publicVisibility);
+    fireEvent.click(screen.getByRole("button", { name: "365D" }));
+
+    expect(gift.getAttribute("aria-checked")).toBe("true");
+    expect(privateVisibility.getAttribute("aria-checked")).toBe("false");
+    expect(publicVisibility.getAttribute("aria-checked")).toBe("true");
+    expect((screen.getByRole("spinbutton", { name: "Lock Duration" }) as HTMLInputElement).value).toBe("365");
   });
 });
