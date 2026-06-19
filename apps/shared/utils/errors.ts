@@ -167,8 +167,11 @@ export function formatErrorMessage(
       !msg.includes("0x") &&
       !msg.includes("http") &&
       !msg.includes("stack") &&
-      !msg.includes("\n") &&
-      !msg.includes("at ")
+      // A multi-line value is treated as a raw dump; a real stack frame ("…\n
+      // at fn (file:line)") is caught by this newline check, so we do NOT also
+      // filter the bare substring "at " — that swallowed legitimate one-line
+      // messages like "GAS supports at most 8 decimal places."
+      !msg.includes("\n")
     ) {
       return msg;
     }

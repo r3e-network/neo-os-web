@@ -74,7 +74,14 @@ export function fromFixed8(value: bigint | number | string | unknown): number {
  */
 export function toFixedDecimals(value: string | number, decimals: number): string {
   if (!Number.isFinite(decimals) || decimals < 0 || decimals > 80) return "0";
-  const raw = typeof value === "number" ? String(value) : String(value);
+  // A number is expanded to fixed notation: String(0.0000001) === "1e-7" would
+  // fail the digit check below and yield "0"; toFixed avoids the exponent form.
+  let raw: string;
+  if (typeof value === "number") {
+    raw = Number.isFinite(value) ? value.toFixed(decimals) : "0";
+  } else {
+    raw = String(value);
+  }
   const trimmed = raw.trim();
   if (!trimmed || trimmed.startsWith("-")) return "0";
   const parts = trimmed.split(".");
@@ -121,11 +128,14 @@ export function formatCountdown(targetSeconds: number): string {
 export function hexToBytes(hex: string): Uint8Array {
   const cleaned = hex.replace(/^0x/i, "").trim();
   if (!cleaned) return new Uint8Array();
-  const normalized = cleaned.length % 2 === 0 ? cleaned : `0${cleaned}`;
-  if (!/^[0-9a-fA-F]*$/.test(normalized)) return new Uint8Array();
-  const bytes = new Uint8Array(normalized.length / 2);
+  // Odd-length hex is a malformed byte stream (chain hex — hashes, sigs, txids —
+  // is always even-length). Reject rather than left-pad, which would silently
+  // shift every nibble. (Matches the internal hexToBytes in neo.ts.)
+  if (cleaned.length % 2 !== 0) return new Uint8Array();
+  if (!/^[0-9a-fA-F]*$/.test(cleaned)) return new Uint8Array();
+  const bytes = new Uint8Array(cleaned.length / 2);
   for (let i = 0; i < bytes.length; i += 1) {
-    bytes[i] = Number.parseInt(normalized.slice(i * 2, i * 2 + 2), 16);
+    bytes[i] = Number.parseInt(cleaned.slice(i * 2, i * 2 + 2), 16);
   }
   return bytes;
 }
