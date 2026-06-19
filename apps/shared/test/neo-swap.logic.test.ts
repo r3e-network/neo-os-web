@@ -191,6 +191,72 @@ describe("useSwapEngine — output quantization + slippage floor", () => {
   });
 });
 
+describe("useSwapEngine — interactive slippage", () => {
+  it("defaults to 0.5% (50 bps)", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 100, gas: 0 });
+    await swap.loadAll();
+    expect(swap.slippage.get()).toBe("0.5%");
+    expect(swap.slippageValue.get()).toBe(50);
+  });
+
+  it("lowers the minimum received when slippage increases (quote unchanged)", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 100, gas: 0 });
+    await swap.loadAll();
+    swap.setFromAmount("10"); // NEO → GAS
+    const quotedOutput = swap.toAmount.get();
+    const minAtHalf = parseFloat(swap.minReceived.get());
+
+    // Raise tolerance to 1% — only the floor moves, not the quoted output.
+    swap.setSlippage("1");
+    expect(swap.slippage.get()).toBe("1%");
+    expect(swap.toAmount.get()).toBe(quotedOutput);
+    expect(parseFloat(swap.minReceived.get())).toBeLessThan(minAtHalf);
+  });
+
+  it("raises the minimum received when slippage tightens to 0.1%", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 100, gas: 0 });
+    await swap.loadAll();
+    swap.setFromAmount("10");
+    const minAtHalf = parseFloat(swap.minReceived.get());
+    swap.setSlippage(0.1);
+    expect(swap.slippage.get()).toBe("0.1%");
+    expect(parseFloat(swap.minReceived.get())).toBeGreaterThan(minAtHalf);
+  });
+
+  it("clamps an out-of-range custom slippage into the supported band", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 100, gas: 0 });
+    await swap.loadAll();
+    swap.setSlippage("999"); // 999% → clamp to 50% ceiling (5000 bps)
+    expect(swap.slippageValue.get()).toBe(5000);
+    swap.setSlippage("0"); // 0% → clamp to 0.01% floor (1 bp)
+    expect(swap.slippageValue.get()).toBe(1);
+  });
+
+  it("ignores a non-numeric custom slippage", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 100, gas: 0 });
+    await swap.loadAll();
+    swap.setSlippage("abc");
+    expect(swap.slippageValue.get()).toBe(50);
+  });
+
+  it("sends the selected slippage floor as minOutput on-chain", async () => {
+    const { swap, chain } = setup({ router: "0xrouter", neo: 100, gas: 0 });
+    await swap.loadAll();
+    swap.setFromAmount("10");
+    swap.setSlippage("1"); // 1% → numerator 9900/10000
+    const displayedMin = swap.minReceived.get();
+    await swap.executeSwap();
+
+    const invoke = (chain as unknown as { invoke: { mock: { calls: unknown[][] } } }).invoke;
+    expect(invoke.mock.calls.length).toBe(1);
+    const args = invoke.mock.calls[0][1] as Array<{ type: string; value: string }>;
+    // minOutput is the 3rd positional arg (sender, amountIn, minOut, path, deadline).
+    const minOutInt = BigInt(args[2].value);
+    // Displayed minReceived (GAS, 8 decimals) equals the integer base units sent.
+    expect(minOutInt).toBe(BigInt(Math.round(parseFloat(displayedMin) * 1e8)));
+  });
+});
+
 describe("useSwapEngine — MAX headroom", () => {
   it("reserves GAS fee headroom when MAX-ing a GAS balance", async () => {
     const { swap } = setup({ router: "0xrouter", neo: 0, gas: 5 });
