@@ -18,6 +18,7 @@ import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash, parseHash160 } from "@shared/utils/neo";
 import { parseBigInt, parseBool, encodeTokenId } from "@shared/utils/parsers";
 import type { CertificateItem, TemplateItem } from "../types";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 type ContractArg = {
   type: "String" | "Integer" | "Boolean" | "Hash160" | "Hash256" | "PublicKey" | "ByteArray" | "Array";
@@ -281,7 +282,7 @@ export function useSoulbound({
   const setFailure = (error: unknown, fallbackKey: string) => {
     lastSuccess.set("");
     lastTxid.set("");
-    lastError.set(error instanceof Error ? error.message : t(fallbackKey));
+    lastError.set(formatErrorMessage(error, t(fallbackKey)));
   };
 
   const loadTemplatesFromStorage = async () => {
