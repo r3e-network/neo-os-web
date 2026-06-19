@@ -157,7 +157,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="explorer-metric">
           <span className="explorer-metric__label">{t("searchResult")}</span>
           <span className={`explorer-metric__value${searchResult ? " is-ready" : " is-pending"}`}>
-            {searchResult ? t("explorerResultReady") : PENDING_PLACEHOLDER}
+            {searchResult ? t("explorerResultReady") : t("searchResultNone")}
           </span>
         </div>
       </section>
