@@ -41,6 +41,15 @@ export function TemplateMarketplaceSection({
   onMarketSearchChange,
   onApplyTemplate,
 }: TemplateMarketplaceSectionProps) {
+  // Distinguish a genuinely-empty marketplace (no filters applied) from a
+  // no-results-after-filter state, so a first-time visitor isn't shown a
+  // "no templates matched your filters" dead-zone before touching any filter.
+  const hasActiveFilters =
+    marketSearch.trim().length > 0 ||
+    marketKind !== "all" ||
+    marketCategory !== "all" ||
+    marketSource !== "all" ||
+    marketVerified !== "all";
   return (
     <section className="py-12 px-4">
       <div className="mx-auto max-w-7xl">
@@ -105,15 +114,18 @@ export function TemplateMarketplaceSection({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-14 text-center">
-            <span className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-violet-50 text-violet-500">
+            <span className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-emerald-50 text-emerald-600">
               <Store size={22} aria-hidden="true" />
             </span>
             <p className="text-base font-semibold text-gray-700">
-              No templates matched current filters
+              {hasActiveFilters
+                ? "No templates matched current filters"
+                : "The marketplace is being seeded"}
             </p>
             <p className="mt-1 max-w-sm text-sm text-gray-500">
-              Try clearing the search or selecting a different kind, category,
-              or source above.
+              {hasActiveFilters
+                ? "Try clearing the search or selecting a different kind, category, or source above."
+                : "Published frontend and contract templates will appear here. Check back soon, or publish your own from the builder."}
             </p>
           </div>
         )}
