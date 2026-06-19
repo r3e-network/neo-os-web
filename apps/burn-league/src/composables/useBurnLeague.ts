@@ -569,7 +569,12 @@ export function useBurnLeague({ chain, t, getAddress }: UseBurnLeagueOptions) {
     const amount = parseBurnAmount(amountStr);
     const amountBase = toBaseUnits(amountStr);
     if (amountBase < MIN_BURN_BASE || amountBase > MAX_BURN_BASE) {
-      const msg = t("minBurn", { amount: MIN_BURN, tokenGas: t("tokenGas") });
+      // Report the bound actually violated — an over-max amount previously threw
+      // the "minimum burn" message.
+      const msg =
+        amountBase > MAX_BURN_BASE
+          ? t("maxBurn", { amount: MAX_BURN, tokenGas: t("tokenGas") })
+          : t("minBurn", { amount: MIN_BURN, tokenGas: t("tokenGas") });
       burnValidationError.set(msg);
       throw new Error(msg);
     }

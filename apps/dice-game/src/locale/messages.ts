@@ -83,8 +83,11 @@ const appMessages = {
   feeLabel: { en: "Platform fee", zh: "平台费" },
   rangeLabel: { en: "Stake range", zh: "下注范围" },
   invalidStake: {
-    en: "Enter a GAS stake from 0.05 to 20, using up to 8 decimals.",
-    zh: "请输入 0.05 到 20 GAS 的筹码，最多 8 位小数。",
+    // No hardcoded upper bound: the max is network- and bankroll-dependent and
+    // is shown by the adjacent maxStakeNote ("Max on this network N GAS"), so a
+    // literal "20" here contradicted the 2 GAS cap on Neo X.
+    en: "Enter a GAS stake of at least 0.05, using up to 8 decimals.",
+    zh: "请输入至少 0.05 GAS 的筹码，最多 8 位小数。",
   },
   statusReady: { en: "Ready", zh: "就绪" },
   statusSubmitting: { en: "Submitting roll...", zh: "正在提交掷骰..." },
