@@ -224,6 +224,16 @@ export function parseStackItem(item: unknown): unknown {
         return typed.value;
 
       case "Boolean":
+        // Neo RPC serializes a Boolean stack item's value as the JSON STRING
+        // "true"/"false" (not a native boolean), so a bare Boolean(value) turns
+        // "false" into true (any non-empty string is truthy). Handle the string
+        // and numeric ("0"/"1") wire forms explicitly; fall back to the native
+        // coercion when a provider does send a real boolean/number.
+        if (typeof typed.value === "string") {
+          const v = typed.value.trim().toLowerCase();
+          return v === "true" || v === "1";
+        }
+        if (typeof typed.value === "number") return typed.value !== 0;
         return Boolean(typed.value);
 
       case "String":
@@ -343,17 +353,21 @@ function base58Decode(input: string): Uint8Array | null {
  */
 export function addressToScriptHash(address: string): string {
   if (!address) return "";
-  // If already a 0x-prefixed script hash, reverse it to match other conversions
-  if (address.startsWith("0x")) {
-    const hex = address.slice(2);
-    if (hex.length === 40) {
+  const trimmed = address.trim();
+  // If already a 0x-prefixed script hash, reverse it to match other conversions.
+  // Accept an uppercase "0X" prefix and lowercase the hex so the output matches
+  // the lowercase little-endian form base58 / normalizeScriptHash produce
+  // (otherwise a direct string-compare against a normalized hash falsely fails).
+  if (/^0x/i.test(trimmed)) {
+    const hex = trimmed.slice(2).toLowerCase();
+    if (/^[0-9a-f]{40}$/.test(hex)) {
       const reversed = hex.match(/.{2}/g)?.reverse().join("") ?? "";
       return `0x${reversed}`;
     }
-    return address;
+    return trimmed;
   }
   try {
-    const decoded = base58Decode(address);
+    const decoded = base58Decode(trimmed);
     if (!decoded || decoded.length !== 25) return "";
     if (decoded[0] !== NEO_N3_ADDRESS_VERSION) return "";
     const payload = decoded.subarray(0, 21);

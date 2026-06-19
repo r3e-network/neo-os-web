@@ -119,3 +119,34 @@ describe("parseStackItem — BigInt-safe Integer parsing", () => {
     expect(parsed).toBe(`0x01${"00".repeat(19)}`);
   });
 });
+
+describe("parseStackItem — Boolean wire-format (string vs native)", () => {
+  const b = (value: unknown) => parseStackItem({ type: "Boolean", value });
+  it("decodes the string wire form the Neo RPC actually returns", () => {
+    // Neo RpcServer serializes a Boolean StackItem's value as a JSON STRING.
+    // A bare Boolean("false") is truthy, which would corrupt false -> true.
+    expect(b("false")).toBe(false);
+    expect(b("true")).toBe(true);
+    expect(b("0")).toBe(false);
+    expect(b("1")).toBe(true);
+    expect(b("FALSE")).toBe(false);
+  });
+  it("still decodes native boolean / numeric wire forms", () => {
+    expect(b(false)).toBe(false);
+    expect(b(true)).toBe(true);
+    expect(b(0)).toBe(false);
+    expect(b(1)).toBe(true);
+  });
+});
+
+describe("addressToScriptHash — 0x hex normalization", () => {
+  it("accepts an uppercase 0X prefix and lowercases the hex", () => {
+    const lower = "0x1A9E04BE3C7A2B41E936A584E79BD9E93A52DEA5";
+    const upperPrefix = lower.replace(/^0x/, "0X");
+    // 0X must behave identically to 0x, and the output is lowercased so a direct
+    // compare against a normalized (lowercase) hash does not falsely mismatch.
+    const out = addressToScriptHash(lower);
+    expect(out).toMatch(/^0x[0-9a-f]{40}$/);
+    expect(addressToScriptHash(upperPrefix)).toBe(out);
+  });
+});
