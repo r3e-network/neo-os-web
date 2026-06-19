@@ -288,7 +288,7 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
             </p>
           )}
           {priceFeedDown && (
-            <p className="treasury-hero__warning" role="status">
+            <p className="treasury-hero__notice" role="status">
               {t("treasuryPriceFeedUnavailable")}
             </p>
           )}

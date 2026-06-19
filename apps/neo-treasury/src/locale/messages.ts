@@ -44,8 +44,8 @@ const appMessages = {
     zh: "{count} 个钱包无法访问",
   },
   treasuryPriceFeedUnavailable: {
-    en: "Price feed unavailable — USD totals hidden",
-    zh: "价格源不可用 — 已隐藏美元总额",
+    en: "USD conversion paused — showing native NEO/GAS balances",
+    zh: "美元换算已暂停 — 显示原生 NEO/GAS 余额",
   },
   treasuryWatchlistNetwork: { en: "Watchlist data: Mainnet", zh: "监控数据：主网" },
   treasuryPendingHint: { en: "Public balances load independently from connected-wallet payout actions.", zh: "公开余额读取与连接钱包支出操作相互独立。" },
