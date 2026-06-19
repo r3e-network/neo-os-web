@@ -98,7 +98,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-// Muted placeholder dash so an empty hero reads as "awaiting data".
+// Muted zero so an empty hero reads as a deliberate first-run state.
 .neopay-hero-stat-value--empty {
   font-weight: 600;
   color: var(--ns-text-muted, #8a92a6);
@@ -117,6 +117,17 @@
   height: 30px;
   justify-self: center;
   background: var(--ns-border, rgba(20, 22, 38, 0.06));
+}
+
+.neopay-hero-empty-note {
+  margin: -0.45rem 0 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .neopay-service-notice {
@@ -143,14 +154,12 @@
   gap: 0.75rem;
 }
 
-// Soft-tinted disabled primary CTA, matching the finance cluster (neo-multisig)
-// so the disabled "Create Stream" still reads as the brand primary action
-// pending input — not a flat inert grey pill. Full opacity + darkened text +
-// brand border keep the label legible (>=4.5:1) and the shape unambiguous.
+// Incomplete primary action is deliberately quiet: it should read as "not ready",
+// not as an enabled pale-green CTA.
 .neopay-form .neo-btn--primary:disabled {
-  background: #d4f3e6;
-  border: 1px solid var(--ns-brand, #16c784);
-  color: #0a6b48;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+  color: var(--ns-text-muted, #8a92a6);
   box-shadow: none;
   opacity: 1;
 }
