@@ -1,4 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  Check,
+  CircleAlert,
+  Clock3,
+  Copy,
+  Gem,
+  Globe2,
+  LockKeyhole,
+  ShieldCheck,
+  type LucideIcon,
+} from "lucide-react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { StateView } from "@shared/components";
 import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
@@ -35,6 +46,8 @@ const MEMO_MAX_LENGTH = 160;
 // GAS on Neo N3 carries 8 decimal places; finer precision can never settle.
 const GAS_DECIMALS = 8;
 const NETWORKS = ["testnet", "mainnet"] as const;
+type TransferNetwork = (typeof NETWORKS)[number];
+type TransferAsset = "GAS" | "NEO";
 
 // Neo N3 addresses are Base58Check-encoded, so the Bitcoin/Base58 alphabet
 // applies: the ambiguous glyphs 0 (zero), O, I, and l are NOT valid. The
@@ -110,6 +123,18 @@ function networkFromChainId(chainId: string | null | undefined): "testnet" | "ma
   return "mainnet";
 }
 
+function networkHealthKey(health: NetworkHealth) {
+  if (health === "live") return "networkStatusLive";
+  if (health === "degraded") return "networkStatusDegraded";
+  return "networkStatusChecking";
+}
+
+function networkHealthIcon(health: NetworkHealth): LucideIcon {
+  if (health === "live") return ShieldCheck;
+  if (health === "degraded") return CircleAlert;
+  return Clock3;
+}
+
 function setObservable(state: PlayAreaProps["state"], key: string, value: unknown) {
   const observable = state[key];
   if (observable && typeof observable.set === "function") {
@@ -119,10 +144,10 @@ function setObservable(state: PlayAreaProps["state"], key: string, value: unknow
 
 export default function PlayArea({ t, state, services, setStatus }: PlayAreaProps) {
   const [recipient, setRecipient] = useState("");
-  const [asset, setAsset] = useState("GAS");
+  const [asset, setAsset] = useState<TransferAsset>("GAS");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
-  const [network, setNetwork] = useState<"testnet" | "mainnet">("mainnet");
+  const [network, setNetwork] = useState<TransferNetwork>("mainnet");
   const [networkHealth, setNetworkHealth] = useState<Record<string, NetworkHealth>>({
     testnet: "checking",
     mainnet: "checking",
@@ -238,7 +263,7 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
   // never settle, plus a now-stale GAS preset highlight. Re-floor to the whole
   // unit so the field matches the new asset's constraints instead of forcing an
   // invalid-input round trip.
-  const handleAssetChange = useCallback((value: string) => {
+  const handleAssetChange = useCallback((value: TransferAsset) => {
     setAsset(value);
     const nextIsNeo = value.trim().toUpperCase() === "NEO";
     if (nextIsNeo) {
@@ -423,23 +448,31 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
   ]);
 
   const sealed = submitState.status !== "idle";
+  const assetOptions: Array<{
+    value: TransferAsset;
+    label: string;
+    meta: string;
+    icon: LucideIcon;
+  }> = [
+    {
+      value: "GAS",
+      label: "GAS",
+      meta: t("assetGasMeta"),
+      icon: Gem,
+    },
+    {
+      value: "NEO",
+      label: "NEO",
+      meta: t("assetNeoMeta"),
+      icon: ShieldCheck,
+    },
+  ];
 
   return (
     <div className="private-transfer">
       <section className="private-transfer__hero">
         <div className="private-transfer__hero-icon" aria-hidden="true">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="11" width="18" height="11" rx="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            <circle cx="12" cy="16" r="1" />
-          </svg>
+          <LockKeyhole size={24} />
         </div>
         <div className="private-transfer__hero-body">
           <span className="private-transfer__eyebrow">{t("heroEyebrow")}</span>
@@ -457,28 +490,54 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
       <section className="private-transfer__grid">
         <div className="private-transfer__panel">
           <div className="private-transfer__form-grid">
-            <label>
-              <span>{t("formNetworkLabel")}</span>
-              <select
-                value={network}
-                onChange={(event) => handleNetworkChange(event.target.value)}
+            <section className="private-transfer__choice-field" aria-label={t("formNetworkLabel")}>
+              <div className="private-transfer__choice-head">
+                <span>{t("formNetworkLabel")}</span>
+                <strong>{networkLabelFor(network)}</strong>
+              </div>
+              <div
+                className="private-transfer__choice-grid"
+                role="radiogroup"
+                aria-label={t("formNetworkLabel")}
               >
                 {NETWORKS.map((net) => {
                   const health = networkHealth[net];
-                  const suffix =
-                    health === "live"
-                      ? ` · ${t("networkStatusLive")}`
-                      : health === "degraded"
-                        ? ` · ${t("networkStatusDegraded")}`
-                        : ` · ${t("networkStatusChecking")}`;
+                  const StatusIcon = networkHealthIcon(health);
+                  const selected = net === network;
+                  const label = networkLabelFor(net);
+                  const statusLabel = t(networkHealthKey(health));
+
                   return (
-                    <option key={net} value={net}>
-                      {networkLabelFor(net)}
-                      {suffix}
-                    </option>
+                    <button
+                      key={net}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={`${t("formNetworkLabel")}: ${label} · ${statusLabel}`}
+                      className={`private-transfer__choice-card private-transfer__choice-card--${health}${
+                        selected ? " is-active" : ""
+                      }`}
+                      onClick={() => handleNetworkChange(net)}
+                    >
+                      <span className="private-transfer__choice-icon" aria-hidden="true">
+                        {net === "mainnet" ? <ShieldCheck size={17} /> : <Globe2 size={17} />}
+                      </span>
+                      <span className="private-transfer__choice-copy">
+                        <strong>{label}</strong>
+                        <small className={`private-transfer__choice-status is-${health}`}>
+                          <StatusIcon size={12} aria-hidden="true" />
+                          {statusLabel}
+                        </small>
+                      </span>
+                      {selected ? (
+                        <span className="private-transfer__choice-check" aria-hidden="true">
+                          <Check size={14} />
+                        </span>
+                      ) : null}
+                    </button>
                   );
                 })}
-              </select>
+              </div>
               {networkHealth[network] === "degraded" && (
                 <div className="private-transfer__network-alert" role="status">
                   <small className="private-transfer__network-hint">
@@ -503,17 +562,50 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
                   )}
                 </div>
               )}
-            </label>
-            <label>
-              <span>{t("formAssetLabel")}</span>
-              <select
-                value={asset}
-                onChange={(event) => handleAssetChange(event.target.value)}
+            </section>
+            <section className="private-transfer__choice-field" aria-label={t("formAssetLabel")}>
+              <div className="private-transfer__choice-head">
+                <span>{t("formAssetLabel")}</span>
+                <strong>{asset}</strong>
+              </div>
+              <div
+                className="private-transfer__choice-grid private-transfer__choice-grid--asset"
+                role="radiogroup"
+                aria-label={t("formAssetLabel")}
               >
-                <option>GAS</option>
-                <option>NEO</option>
-              </select>
-            </label>
+                {assetOptions.map((option) => {
+                  const Icon = option.icon;
+                  const selected = option.value === asset;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={`${t("formAssetLabel")}: ${option.label}`}
+                      className={`private-transfer__choice-card${
+                        selected ? " is-active" : ""
+                      }`}
+                      onClick={() => handleAssetChange(option.value)}
+                    >
+                      <span className="private-transfer__choice-icon" aria-hidden="true">
+                        <Icon size={17} />
+                      </span>
+                      <span className="private-transfer__choice-copy">
+                        <strong>{option.label}</strong>
+                        <small>{option.meta}</small>
+                      </span>
+                      {selected ? (
+                        <span className="private-transfer__choice-check" aria-hidden="true">
+                          <Check size={14} />
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
             <label className="private-transfer__wide">
               <span>{t("formRecipientLabel")}</span>
               <input
@@ -644,18 +736,7 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
         {!sealed && (
         <aside className="private-transfer__intro">
           <div className="private-transfer__intro-icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="11" width="18" height="11" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              <circle cx="12" cy="16" r="1" />
-            </svg>
+            <LockKeyhole size={20} />
           </div>
           <strong className="private-transfer__intro-title">
             {t("introTitle")}
@@ -671,16 +752,7 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
             ).map(([title, desc]) => (
               <li key={title}>
                 <span aria-hidden="true" className="private-transfer__intro-tick">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m5 12 5 5 9-11" />
-                  </svg>
+                  <Check size={13} />
                 </span>
                 <div>
                   <strong>{title}</strong>
@@ -697,17 +769,7 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
           className={`private-transfer__status private-transfer__status--${submitState.status}`}
         >
           <div className="private-transfer__status-icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2 4 6v6c0 5 3.4 7.7 8 10 4.6-2.3 8-5 8-10V6l-8-4Z" />
-              <path d="m9 12 2 2 4-4" />
-            </svg>
+            <ShieldCheck size={20} />
           </div>
           <span>{t("statusBlockHeader")}</span>
           <strong>{submitState.message}</strong>
@@ -745,11 +807,12 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
                       }
                       title={copiedField === field ? t("copiedAction") : t("copyAction")}
                     >
-                      <span aria-hidden="true">
-                        {copiedField === field
-                          ? `✓ ${t("copiedAction")}`
-                          : `⧉ ${t("copyAction")}`}
-                      </span>
+                      {copiedField === field ? (
+                        <Check size={13} aria-hidden="true" />
+                      ) : (
+                        <Copy size={13} aria-hidden="true" />
+                      )}
+                      <span>{copiedField === field ? t("copiedAction") : t("copyAction")}</span>
                     </button>
                   </div>
                   <p className="private-transfer__result-hint">{hint}</p>
@@ -820,11 +883,12 @@ export default function PlayArea({ t, state, services, setStatus }: PlayAreaProp
                             }
                             title={copiedField === rowKey ? t("copiedAction") : t("copyAction")}
                           >
-                            <span aria-hidden="true">
-                              {copiedField === rowKey
-                                ? `✓ ${t("copiedAction")}`
-                                : `⧉ ${t("copyAction")}`}
-                            </span>
+                            {copiedField === rowKey ? (
+                              <Check size={13} aria-hidden="true" />
+                            ) : (
+                              <Copy size={13} aria-hidden="true" />
+                            )}
+                            <span>{copiedField === rowKey ? t("copiedAction") : t("copyAction")}</span>
                           </button>
                         </div>
                       </div>

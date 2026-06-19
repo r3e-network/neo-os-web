@@ -113,6 +113,8 @@ const appMessages = {
   formMemoLabel: { en: "Private memo", zh: "隐私备注" },
   formMemoOptional: { en: "Optional", zh: "选填" },
   presetsLabel: { en: "Amount presets", zh: "金额预设" },
+  assetGasMeta: { en: "8 decimal places", zh: "最多 8 位小数" },
+  assetNeoMeta: { en: "Whole units only", zh: "仅整数单位" },
   // Persistent precision helper under the Amount field — states the per-asset
   // settlement rule up front rather than only after an invalid value triggers
   // the error. Values are informational; they do not change validation.

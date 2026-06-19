@@ -60,7 +60,8 @@
 
 .private-transfer__eyebrow,
 .private-transfer__status span,
-.private-transfer label span {
+.private-transfer label span,
+.private-transfer__choice-head span {
   display: block;
   font-size: 11px;
   font-weight: 700;
@@ -74,7 +75,7 @@
   font-size: 26px;
   font-weight: 800;
   line-height: 1.18;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
 }
 
@@ -149,12 +150,160 @@
   gap: 16px;
 }
 
-.private-transfer label {
+.private-transfer label,
+.private-transfer__choice-field {
   min-width: 0;
 }
 
-.private-transfer input,
-.private-transfer select {
+.private-transfer__choice-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.private-transfer__choice-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.private-transfer__choice-head strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.private-transfer__choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.private-transfer__choice-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 22px;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 62px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-radius: var(--ns-radius-md, 14px);
+  padding: 10px;
+  background: var(--ns-surface-subtle, #f7f8fa);
+  color: var(--ns-ink, #1e1e2e);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.private-transfer__choice-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(22, 199, 132, 0.34);
+  background: var(--ns-surface, #ffffff);
+}
+
+.private-transfer__choice-card:focus-visible {
+  outline: none;
+  border-color: var(--ns-accent-strong, #0fb174);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);
+}
+
+.private-transfer__choice-card.is-active {
+  border-color: rgba(22, 199, 132, 0.42);
+  background: var(--ns-accent-soft, #e4f8f0);
+  box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.18);
+}
+
+.private-transfer__choice-card--degraded.is-active {
+  border-color: rgba(180, 130, 22, 0.34);
+  background: #fff8ec;
+  box-shadow: inset 0 0 0 1px rgba(180, 130, 22, 0.12);
+}
+
+.private-transfer__choice-icon,
+.private-transfer__choice-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.private-transfer__choice-icon {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  background: var(--ns-surface, #ffffff);
+  color: var(--ns-accent-strong, #0fb174);
+}
+
+.private-transfer__choice-card--degraded .private-transfer__choice-icon {
+  color: #a16207;
+}
+
+.private-transfer__choice-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.private-transfer__choice-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.private-transfer__choice-copy small {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--ns-text-muted, #646d80);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.private-transfer__choice-status.is-live {
+  color: var(--ns-accent-strong, #0fb174);
+}
+
+.private-transfer__choice-status.is-degraded {
+  color: #8a5a14;
+}
+
+.private-transfer__choice-status.is-checking {
+  color: var(--ns-text-muted, #646d80);
+}
+
+.private-transfer__choice-check {
+  width: 22px;
+  height: 22px;
+  background: var(--ns-accent, #16c784);
+  color: #ffffff;
+}
+
+.private-transfer__choice-card--degraded .private-transfer__choice-check {
+  background: #b48216;
+}
+
+.private-transfer input {
   width: 100%;
   height: 46px;
   margin-top: 8px;
@@ -170,8 +319,7 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
-.private-transfer input:focus,
-.private-transfer select:focus-visible {
+.private-transfer input:focus {
   border-color: var(--ns-accent-strong, #0fb174);
   background-color: var(--ns-surface, #ffffff);
   box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);
@@ -186,22 +334,6 @@
 .private-transfer input::placeholder {
   color: var(--ns-text-muted, #646d80);
   font-weight: 500;
-}
-
-.private-transfer select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  padding-right: 42px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a92a6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 15px center;
-  background-size: 16px 16px;
-  cursor: pointer;
-}
-
-.private-transfer select::-ms-expand {
-  display: none;
 }
 
 .private-transfer__wide {
@@ -409,7 +541,7 @@
   color: #ffffff;
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(15, 177, 116, 0.26);
   transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
@@ -464,7 +596,7 @@
   font-size: 16px;
   font-weight: 800;
   line-height: 1.3;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: var(--ns-ink, #1e1e2e);
 }
 
@@ -887,7 +1019,7 @@
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(15, 177, 116, 0.24);
   transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
@@ -992,6 +1124,7 @@
   }
 
   .private-transfer__form-grid,
+  .private-transfer__choice-grid,
   .private-transfer__steps-grid {
     grid-template-columns: 1fr;
   }
