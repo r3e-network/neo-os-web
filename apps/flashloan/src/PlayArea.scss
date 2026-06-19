@@ -157,7 +157,8 @@
   padding: 0.875rem 1.125rem;
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-warning-soft, #fff3dd);
-  color: var(--ns-warning, #b9791a);
+  /* Darkened amber so body + title text clear AA (>=4.5:1) on warning-soft */
+  color: #92400e;
   font-size: 0.8125rem;
   line-height: 1.5;
 }
@@ -188,7 +189,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--ns-brand-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
 }
 
 .flashloan-instruction__note {
@@ -282,7 +283,7 @@
 .flashloan-method-pill--rate {
   border-color: rgba(22, 199, 132, 0.24);
   background: var(--fl-accent-soft, #e4f8f0);
-  color: var(--fl-accent-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
   font-family: inherit;
   font-variant-numeric: tabular-nums;
 }
@@ -363,7 +364,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 0.8125rem;
   font-weight: 700;
-  color: var(--fl-accent-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
 }
 
 .flashloan-callback-note {
@@ -374,7 +375,7 @@
 }
 
 .flashloan-callback-link {
-  color: var(--fl-accent-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
   font-weight: 700;
   text-decoration: none;
   border-bottom: 1px solid rgba(22, 199, 132, 0.32);
@@ -468,11 +469,11 @@
 }
 
 .flashloan-preview-item--total span {
-  color: var(--fl-accent-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
 }
 
 .flashloan-preview-item--total strong {
-  color: var(--fl-accent-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
 }
 
 .flashloan-flow {

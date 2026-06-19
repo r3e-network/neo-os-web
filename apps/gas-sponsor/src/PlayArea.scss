@@ -4,6 +4,9 @@
 $gas-accent: var(--ns-brand, #16c784);
 $gas-accent-strong: var(--ns-brand-strong, #0fb174);
 $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
+// Deep brand green for legible accent text on the soft-brand fill (7:1 on
+// #e4f8f0) — brand-strong (#0fb174) only reaches ~2.5:1 there and fails AA.
+$gas-accent-deep: var(--ns-brand-deep, #0b5e3e);
 
 .gas-sponsor-play-area {
   display: flex;
@@ -120,7 +123,7 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   padding: 9px 12px;
   border-radius: var(--ns-radius-sm, 12px);
   background: $gas-accent-soft;
-  color: $gas-accent-strong;
+  color: $gas-accent-deep;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
@@ -280,7 +283,7 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   &.eligible {
     background: $gas-accent-soft;
-    color: $gas-accent-strong;
+    color: $gas-accent-deep;
     border: 1px solid rgba(15, 177, 116, 0.18);
   }
 
@@ -383,7 +386,7 @@ $gas-accent-soft: var(--ns-brand-soft, #e4f8f0);
   &:hover {
     background: $gas-accent-soft;
     border-color: rgba(15, 177, 116, 0.35);
-    color: $gas-accent-strong;
+    color: $gas-accent-deep;
   }
 
   &:active {

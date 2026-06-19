@@ -966,19 +966,23 @@
 
   // Claimed = the terminal "released" state: a filled green pill reads as done,
   // distinct from the green-text "Approved" state while staying one accent hue.
+  // Darker forest-green text (same hue) clears AA 4.5:1 on the soft-green chip
+  // even through the parent's 0.85 opacity blend.
   .escrow-preview-milestone__pill {
     padding: 2px 8px;
     border-radius: 999px;
     background: var(--me-accent-soft);
-    color: var(--me-accent-strong);
+    color: #075a39;
   }
 }
 
 .escrow-preview-milestone--approved {
   border-color: var(--me-accent-soft);
 
+  // Darker forest-green text (same hue) clears AA 4.5:1 against the white card;
+  // --me-accent-strong (#0fb174) only reaches 2.77:1 at this 10px size.
   .escrow-preview-milestone__pill {
-    color: var(--me-accent-strong);
+    color: #075a39;
   }
 }
 

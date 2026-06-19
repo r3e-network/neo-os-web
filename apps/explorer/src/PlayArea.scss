@@ -10,6 +10,11 @@
   --xp-accent: var(--ns-brand, #16c784);
   --xp-accent-strong: var(--ns-brand-strong, #0fb174);
   --xp-accent-soft: var(--ns-brand-soft, #e4f8f0);
+  // Accessible text shade of the same green for use on the soft-green fill:
+  // --ns-brand-strong (#0fb174) is too light on --ns-brand-soft (#e4f8f0)
+  // for WCAG AA (2.5:1). --ns-brand-deep (#0b5e3e) clears AA at ~7:1 while
+  // keeping the single green hue.
+  --xp-accent-ink: var(--ns-brand-deep, #0b5e3e);
 
   display: grid;
   gap: 24px;
@@ -62,7 +67,7 @@
   flex: 0 0 46px;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--xp-accent-soft);
-  color: var(--xp-accent-strong);
+  color: var(--xp-accent-ink);
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -111,7 +116,7 @@
   padding: 5px 12px 5px 11px;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--xp-accent-soft);
-  color: var(--xp-accent-strong);
+  color: var(--xp-accent-ink);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -183,7 +188,7 @@
 }
 
 .explorer-metric__value.is-ready {
-  color: var(--xp-accent-strong);
+  color: var(--xp-accent-ink);
 }
 
 .mono {
@@ -212,7 +217,7 @@
   padding: 16px;
   border-radius: var(--ns-radius-lg, 20px);
   background: var(--xp-accent-soft);
-  color: var(--xp-accent-strong);
+  color: var(--xp-accent-ink);
   font-size: 0.86rem;
   font-weight: 800;
 }

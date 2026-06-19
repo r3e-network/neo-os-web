@@ -3,6 +3,11 @@
   flex-direction: column;
   gap: 24px;
   color: var(--ns-text);
+
+  /* Darker shade of the Neo brand green for small-text contexts so green
+     labels/chips meet WCAG AA (>=4.5:1). The lighter --ns-brand-strong stays
+     reserved for fills, icons, and the primary button. */
+  --ndp-accent-text: #0b7d54;
 }
 
 /* ── Hero ───────────────────────────────────────────────── */
@@ -70,7 +75,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   background: var(--ns-brand-soft, rgba(14, 165, 163, 0.12));
-  color: var(--ns-brand-strong);
+  color: var(--ndp-accent-text);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
@@ -141,7 +146,7 @@
   border-radius: var(--ns-radius-md);
   background: var(--ns-surface);
   box-shadow: var(--ns-shadow-sm);
-  color: var(--ns-brand-strong);
+  color: var(--ndp-accent-text);
 }
 
 .neodid-passport__route div::before {
@@ -153,7 +158,7 @@
   height: 26px;
   border-radius: var(--ns-radius-full);
   background: var(--ns-brand-soft);
-  color: var(--ns-brand-strong);
+  color: var(--ndp-accent-text);
   font-size: 12px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;

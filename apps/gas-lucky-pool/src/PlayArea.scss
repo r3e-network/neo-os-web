@@ -265,7 +265,7 @@ body {
   min-height: 3rem;
   border: 0;
   border-radius: 999px;
-  background: var(--ns-brand, #16c784);
+  background: #0a7a52;
   color: #ffffff;
   font-size: 1rem;
   font-weight: 700;
@@ -281,7 +281,7 @@ body {
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
-    background: var(--ns-brand-strong, #0fb174);
+    background: #0a6a4f;
     box-shadow: 0 16px 30px rgba(22, 199, 132, 0.28);
   }
 
@@ -302,7 +302,7 @@ body {
    Create) reads as the lead action instead of a wall of identical pills. */
 .gas-pool-claim-only__button--soft {
   background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
   box-shadow: none;
 
   &:hover:not(:disabled) {
@@ -319,7 +319,7 @@ body {
    pull funds back out. Visually separates them from the benign primary. */
 .gas-pool-claim-only__button--outline {
   background: transparent;
-  color: var(--ns-brand-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
   box-shadow: inset 0 0 0 1px rgba(22, 199, 132, 0.4);
 
   &:hover:not(:disabled) {
@@ -578,7 +578,7 @@ body {
   strong {
     display: block;
     margin-top: 0.25rem;
-    color: #008f5f;
+    color: var(--ns-brand-deep, #0b5e3e);
     font-size: 1rem;
     font-weight: 900;
   }
@@ -1309,7 +1309,7 @@ body {
   }
 
   strong {
-    color: var(--ns-brand-strong, #0fb174);
+    color: var(--ns-brand-deep, #0b5e3e);
     font-size: 1.15rem;
     font-weight: 850;
     letter-spacing: -0.01em;

@@ -14,6 +14,9 @@
   --anchor-accent: var(--ns-brand, #16c784);
   --anchor-accent-strong: var(--ns-brand-strong, #0fb174);
   --anchor-accent-soft: var(--ns-brand-soft, #e4f8f0);
+  // Darker shade of the same green hue for accent TEXT on light surfaces,
+  // so labels/values meet WCAG AA (>=4.5:1) while keeping one coherent accent.
+  --anchor-accent-ink: #097d52;
 
   min-height: 100%;
   padding: 20px;
@@ -212,7 +215,7 @@
 
 .anchor-admin-section-heading strong {
   min-width: 0;
-  color: var(--anchor-accent-strong);
+  color: var(--anchor-accent-ink);
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -228,7 +231,7 @@
   padding: 4px 11px;
   border-radius: 999px;
   background: var(--anchor-accent-soft);
-  color: var(--anchor-accent-strong) !important;
+  color: var(--anchor-accent-ink) !important;
   font-size: 12px;
   font-weight: 700;
   overflow: visible !important;
@@ -350,7 +353,7 @@
 }
 
 .anchor-admin-vote-preview strong {
-  color: var(--anchor-accent-strong);
+  color: var(--anchor-accent-ink);
 }
 
 /* ── Agent directory ──────────────────────────────────── */
@@ -452,12 +455,14 @@
 
   &.is-active {
     background: var(--ns-brand-soft, #e4f8f0);
-    color: var(--ns-brand-strong, #0fb174) !important;
+    color: var(--anchor-accent-ink) !important;
   }
 }
 
 .anchor-admin-agent-row__candidate {
-  color: var(--ns-text-muted) !important;
+  // Darkened from --ns-text-muted to --ns-text-2 so this 11px label meets WCAG AA
+  // (>=4.5:1) against the row's --ns-surface-subtle background
+  color: var(--ns-text-2) !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   overflow-wrap: anywhere;
@@ -522,7 +527,7 @@
   padding: 10px 12px;
   border-radius: var(--ns-radius-md, 14px);
   background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  color: var(--anchor-accent-ink);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.45;

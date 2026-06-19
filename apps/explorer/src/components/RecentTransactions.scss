@@ -84,7 +84,7 @@
 }
 
 .tx-card:hover .tx-hash {
-  color: var(--xp-accent-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
 }
 
 .tx-content {
@@ -134,7 +134,7 @@
 
 .vm-state.HALT {
   background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  color: var(--ns-brand-deep, #0b5e3e);
 }
 
 .vm-state.FAULT {

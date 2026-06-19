@@ -5,6 +5,9 @@
 $grave-accent: var(--ns-brand, #16c784);
 $grave-accent-strong: var(--ns-brand-strong, #0fb174);
 $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
+// Deeper shade of the same green for accent TEXT on light surfaces; meets WCAG
+// AA contrast (>=4.5:1) where the lighter --ns-brand-strong falls short.
+$grave-accent-deep: var(--ns-brand-deep, #0b5e3e);
 
 .graveyard-play-area {
   display: flex;
@@ -47,7 +50,7 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
   line-height: 1;
   border-radius: var(--ns-radius-full, 9999px);
   background: $grave-accent-soft;
-  color: $grave-accent-strong;
+  color: $grave-accent-deep;
 }
 
 .grave-hero-copy {
@@ -185,7 +188,7 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
 
   &.active {
     background: var(--ns-surface, #ffffff);
-    color: $grave-accent-strong;
+    color: $grave-accent-deep;
     box-shadow: var(--ns-shadow-sm, 0 1px 2px rgba(20, 22, 38, 0.06));
   }
 
@@ -215,7 +218,7 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: $grave-accent-strong;
+    color: $grave-accent-deep;
   }
 
   .grave-local-hash-value {
@@ -279,7 +282,7 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
   &.active {
     border-color: $grave-accent;
     background: $grave-accent-soft;
-    color: $grave-accent-strong;
+    color: $grave-accent-deep;
   }
 
   &:hover {
@@ -558,7 +561,7 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
   padding: 0 7px;
   border-radius: var(--ns-radius-full, 9999px);
   background: $grave-accent-soft;
-  color: $grave-accent-strong;
+  color: $grave-accent-deep;
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -571,7 +574,7 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
   border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
 
   &:hover:not(:disabled) {
-    color: $grave-accent-strong;
+    color: $grave-accent-deep;
     border-color: $grave-accent-strong;
     background: $grave-accent-soft;
   }
@@ -605,7 +608,7 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
   line-height: 1;
   border-radius: var(--ns-radius-full, 9999px);
   background: $grave-accent-soft;
-  color: $grave-accent-strong;
+  color: $grave-accent-deep;
 }
 
 .empty-icon svg {
@@ -783,7 +786,7 @@ $grave-accent-soft: var(--ns-brand-soft, #e4f8f0);
 .badge-text {
   font-size: 11px;
   font-weight: 700;
-  color: $grave-accent-strong;
+  color: $grave-accent-deep;
 
   .history-badge.forgotten & {
     color: var(--ns-text-muted, #8a92a6);
