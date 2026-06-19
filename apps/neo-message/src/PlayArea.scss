@@ -1,9 +1,13 @@
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-$accent: #5b6ef5;
-$accent-strong: #4453d6;
-$accent-soft: #eef0fe;
+// Retinted from indigo to the green Neo Soft fleet accent (per design decision).
+// $accent = bright brand (decorative borders/glows); $accent-strong = the
+// AA-dark green for white-on-accent surfaces (button, icon); $accent-soft = the
+// soft-green fill.
+$accent: #16c784;
+$accent-strong: #0a8050;
+$accent-soft: #e4f8f0;
 
 .nm-play-area {
   display: flex;
@@ -16,14 +20,14 @@ $accent-soft: #eef0fe;
   color: var(--ns-text, #2a2d3d);
 
   .neo-btn--primary:not(:disabled) {
-    // AA: white-on-#5b6ef5 is ~4.2:1 (just under). Use the deeper indigo
-    // ($accent-strong #4453d6 = 6.08:1, hover #3949c0); $accent stays for accents.
+    // AA: white-on-green CTA uses the darker brand green ($accent-strong
+    // #0a8050 = 4.98:1, hover #086a45); $accent stays for decorative accents.
     background: $accent-strong;
-    box-shadow: 0 2px 10px rgba(68, 83, 214, 0.28);
+    box-shadow: 0 2px 10px rgba(10, 128, 80, 0.28);
 
     &:hover:not(:disabled) {
-      background: #3949c0;
-      box-shadow: 0 4px 16px rgba(68, 83, 214, 0.32);
+      background: #086a45;
+      box-shadow: 0 4px 16px rgba(10, 128, 80, 0.32);
     }
   }
 
@@ -33,7 +37,7 @@ $accent-soft: #eef0fe;
     gap: 16px;
     padding: 24px;
     border-radius: 20px;
-    border: 1px solid rgba(91, 110, 245, 0.16);
+    border: 1px solid rgba(22, 199, 132, 0.16);
     background: linear-gradient(135deg, $accent-soft 0%, var(--ns-surface, #fff) 64%);
     box-shadow: var(--ns-shadow-md, 0 6px 22px rgba(20, 24, 40, 0.07));
 
@@ -46,7 +50,7 @@ $accent-soft: #eef0fe;
       border-radius: 16px;
       background: var(--ns-surface, #fff);
       color: $accent-strong;
-      box-shadow: 0 2px 8px rgba(91, 110, 245, 0.18), inset 0 0 0 1px rgba(91, 110, 245, 0.16);
+      box-shadow: 0 2px 8px rgba(22, 199, 132, 0.18), inset 0 0 0 1px rgba(22, 199, 132, 0.16);
 
       svg {
         width: 24px;
@@ -198,7 +202,7 @@ $accent-soft: #eef0fe;
       &:focus-visible {
         outline: none;
         border-color: $accent;
-        box-shadow: var(--ns-focus-ring, 0 0 0 3px rgba(91, 110, 245, 0.18));
+        box-shadow: var(--ns-focus-ring, 0 0 0 3px rgba(22, 199, 132, 0.18));
       }
 
       &.active {
@@ -212,7 +216,7 @@ $accent-soft: #eef0fe;
         .nm-mode-icon {
           background: var(--ns-surface, #fff);
           color: $accent-strong;
-          box-shadow: 0 1px 4px rgba(91, 110, 245, 0.22);
+          box-shadow: 0 1px 4px rgba(22, 199, 132, 0.22);
         }
       }
     }
@@ -237,7 +241,7 @@ $accent-soft: #eef0fe;
       &:focus {
         outline: none;
         border-color: $accent;
-        box-shadow: var(--ns-focus-ring, 0 0 0 3px rgba(91, 110, 245, 0.18));
+        box-shadow: var(--ns-focus-ring, 0 0 0 3px rgba(22, 199, 132, 0.18));
       }
     }
   }
@@ -381,7 +385,7 @@ $accent-soft: #eef0fe;
     box-shadow: var(--ns-shadow-sm, 0 1px 3px rgba(20, 24, 40, 0.05));
 
     &.nm-revealed {
-      border-color: rgba(91, 110, 245, 0.4);
+      border-color: rgba(22, 199, 132, 0.4);
     }
 
     .nm-item-head {
@@ -438,11 +442,15 @@ $accent-soft: #eef0fe;
       }
       &.nm-badge-unlockable {
         background: var(--ns-brand-soft, #e4f8f0);
-        color: var(--ns-brand-strong, #0fb174);
+        // AA: brand-strong (#0fb174) on the soft-green badge is ~2.5:1; deep ~7:1.
+        color: var(--ns-brand-deep, #0b5e3e);
       }
       &.nm-badge-revealed {
-        background: #eef0fe;
-        color: #4453d6;
+        // "Revealed" is a done/past state — a muted neutral reads as complete
+        // and stays distinct from the actionable green "unlockable" badge
+        // (was an orphan indigo after the green retint).
+        background: var(--ns-surface-subtle, #f1f4f2);
+        color: var(--ns-text-muted, #6b7180);
       }
     }
 
