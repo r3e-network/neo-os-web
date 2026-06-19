@@ -401,12 +401,21 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
   };
 
   /**
-   * Resolve the connected wallet's script hash, prompting connection if needed.
+   * Resolve the connected wallet's script hash. When `prompt` is true a
+   * connection prompt is raised if no wallet is connected; when false the call
+   * is read-only and resolves immediately to "" if no wallet is present.
+   *
+   * The background mount load must NOT prompt: a standalone open with no wallet
+   * would otherwise hang on a connection prompt that never resolves, leaving the
+   * surface stuck in a perpetual loading state. Read-only resolution lets that
+   * load settle into the empty/connect state instead. Only explicit, user-
+   * initiated actions (refresh / check-in / claim) prompt for a wallet.
+   *
    * Returns "" when no wallet is available so callers can surface a clean error.
    */
-  const resolveUserHash = async (): Promise<string> => {
+  const resolveUserHash = async (prompt = true): Promise<string> => {
     let addr = chain.address.get();
-    if (!addr) {
+    if (!addr && prompt) {
       try {
         addr = await chain.ensureWallet();
       } catch {
@@ -585,7 +594,10 @@ export function useCheckin({ chain, t }: UseCheckinOptions) {
 
     isLoading.set(true);
     try {
-      const userHash = await resolveUserHash();
+      // Only prompt for a wallet on explicit (recorded) loads. The background
+      // mount load resolves read-only so a wallet-less standalone open settles
+      // into the empty/connect state rather than hanging on a connect prompt.
+      const userHash = await resolveUserHash(shouldRecord);
       if (!userHash) {
         // No wallet connected yet — leave the seed state and surface a clean
         // status only when the user explicitly asked to refresh.

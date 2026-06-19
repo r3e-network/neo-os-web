@@ -32,6 +32,17 @@ export default function RoundForm({ onSubmit, t, loading = false, resetKey = 0 }
 
   return (
     <NeoCard title={t("createRound")} className="qf-form-panel">
+      {/* Surface the quadratic mechanic before the Contribute tab: matching
+          rewards donor breadth, not the largest single cheque. */}
+      <div className="qf-mechanic-note" role="note">
+        <span className="qf-mechanic-note__icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18" />
+            <path d="M7 15l4-5 3 3 4-6" />
+          </svg>
+        </span>
+        <span>{t("qfMechanicExplainer")}</span>
+      </div>
       <p className="qf-panel-hint">{t("matchingPoolHint")}</p>
       <div className="qf-form-grid">
         <NeoInput
@@ -54,21 +65,23 @@ export default function RoundForm({ onSubmit, t, loading = false, resetKey = 0 }
           type="number"
           label={t("matchingPool")}
           placeholder={t("matchingPoolPlaceholder")}
+          suffix={asset}
+          className="qf-amount-field"
           onChange={setMatchingPool}
         />
         <NeoInput
           value={startTime}
           label={t("roundStart")}
-          placeholder={t("roundStartPlaceholder")}
-          hint={t("roundStartPlaceholder")}
+          placeholder={t("roundDateFormat")}
+          hint={t("roundDateFormatHint")}
           className="qf-datetime-field"
           onChange={setStartTime}
         />
         <NeoInput
           value={endTime}
           label={t("roundEnd")}
-          placeholder={t("roundEndPlaceholder")}
-          hint={t("roundEndPlaceholder")}
+          placeholder={t("roundDateFormat")}
+          hint={t("roundDateFormatHint")}
           className="qf-datetime-field"
           onChange={setEndTime}
         />

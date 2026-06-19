@@ -1,9 +1,11 @@
 /**
  * PlayArea.tsx -- Neo Swap
  *
- * Host-native NEO/GAS swap console. The swap form is the single primary
- * focal card; quote detail (rate / slippage / min received) appears once,
- * with popular pairs as a slim secondary column.
+ * Host-native NEO/GAS swap console. Quoting is the always-available capability;
+ * on-chain settlement depends on a deployed router. When no router exists the
+ * screen leads with a single "Live price preview" focus block and folds the full
+ * From/To/slippage apparatus behind a disclosure, so the available capability is
+ * the focus instead of a wall of disabled signals.
  */
 
 import {
@@ -53,13 +55,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const toAmount = str("toAmount", "");
   const exchangeRate = str("exchangeRate", t("rateUnavailable"));
   const rateLoading = bool("rateLoading");
-  const loading = bool("loading");
   const showSelector = bool("showSelector");
   const selectorTarget = str("selectorTarget", "");
-  const isSwapping = bool("isSwapping");
   const availableTokens = val<Token[]>("availableTokens", []) ?? [];
-  const canSwap = bool("canSwap");
-  const swapButtonText = str("swapButtonText", t("tabSwap"));
   const slippage = str("slippage", "0.5%");
   const slippageValue = val<number>("slippageValue", 50) ?? 50;
   const minReceived = str("minReceived", "");
@@ -88,18 +86,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           : t("swapRouteUnavailable");
   const routeReady = routerAvailable && !rateLoading && !rateStale && !!exchangeRate;
 
-  // Unified no-data wording: while loading say "Loading rate..." everywhere;
-  // otherwise show the quote, or a single consistent "Quote pending" placeholder
-  // when no quote is loaded — matching the route badge exactly.
-  const quotePending = t("swapRouteUnavailable");
+  // De-duplicated no-data wording. The single authoritative "unavailable" message
+  // lives in the router notice / preview banner — the rate and min-received cells
+  // must NOT echo it. They show the real figure when present, "Loading rate..."
+  // while fetching, or a neutral em-dash placeholder otherwise (never a repeated
+  // "Quote pending" that competes with the banner).
+  const ratePlaceholder = t("balanceDefault");
   const rateDisplay = rateLoading
     ? t("loadingRate")
-    : exchangeRate || quotePending;
+    : exchangeRate || ratePlaceholder;
   const formattedMinReceived = rateLoading
     ? t("loadingRate")
     : hasQuote && minReceived
       ? minReceived
-      : quotePending;
+      : ratePlaceholder;
+  // The "1 NEO buys X GAS" line for the live-price-preview focus block: only
+  // meaningful once a fresh quote has loaded.
+  const previewRateAvailable = hasQuote && !!exchangeRate;
+
   const selectorTitle = selectorTarget === "to" ? t("to") : t("from");
   const fromSymbol = fromToken?.symbol || t("selectToken");
   const toSymbol = toToken?.symbol || t("selectToken");
@@ -114,6 +118,148 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const customSlippageDisplay = isCustomSlippage
     ? String(Math.round((slippageValue / 100) * 100) / 100)
     : "";
+
+  // The full trade-setup apparatus (From / To / slippage / quote detail). Rendered
+  // inline when a router is live, or tucked inside a disclosure when settlement is
+  // unavailable so the price preview stays the focus. Identical markup either way.
+  const tradeForm = (
+    <>
+      <div className="neo-swap-token-field">
+        <div className="neo-swap-token-header">
+          <span>{t("from")}</span>
+          <button
+            type="button"
+            className="neo-swap-token-button"
+            onClick={() => dispatch("openFromSelector")}
+          >
+            <span>{fromSymbol.slice(0, 1)}</span>
+            {fromSymbol}
+          </button>
+        </div>
+        <div className="neo-swap-input-row">
+          <NeoInput
+            className="neo-swap-amount-input"
+            value={fromAmount}
+            type="number"
+            min={0}
+            placeholder={t("enterAmount")}
+            onChange={(value) => { void dispatch("setFromAmount", value); }}
+          />
+          <NeoButton size="sm" variant="secondary" onClick={() => dispatch("setMaxAmount")}>
+            {t("max")}
+          </NeoButton>
+        </div>
+        <span className="neo-swap-balance-line">
+          {t("balance")}: {formatBalance(fromToken)}
+        </span>
+      </div>
+
+      <div className="neo-swap-direction">
+        <NeoButton
+          size="sm"
+          variant="ghost"
+          aria-label={t("switchTokens")}
+          onClick={() => dispatch("swapTokens")}
+        >
+          <ArrowDownUp size={17} aria-hidden="true" />
+        </NeoButton>
+      </div>
+
+      <div className="neo-swap-token-field neo-swap-token-field--receive">
+        <div className="neo-swap-token-header">
+          <span>{t("receiveEstimated")}</span>
+          <button
+            type="button"
+            className="neo-swap-token-button"
+            onClick={() => dispatch("openToSelector")}
+          >
+            <span>{toSymbol.slice(0, 1)}</span>
+            {toSymbol}
+          </button>
+        </div>
+        <div className="neo-swap-receive-amount" aria-live="polite">
+          {toAmount || "0.00"}
+        </div>
+        <span className="neo-swap-balance-line">
+          {t("balance")}: {formatBalance(toToken)}
+        </span>
+      </div>
+
+      <div className="neo-swap-slippage" role="group" aria-label={t("slippage")}>
+        <div className="neo-swap-slippage__head">
+          <span className="neo-swap-slippage__label">{t("slippage")}</span>
+          <strong className="neo-swap-slippage__value">{slippage}</strong>
+        </div>
+        <div className="neo-swap-slippage__controls">
+          {SLIPPAGE_PRESET_BPS.map((bps) => {
+            const pct = `${parseFloat((bps / 100).toFixed(2))}%`;
+            return (
+              <button
+                key={bps}
+                type="button"
+                className={`neo-swap-chip${isPresetActive(bps) ? " is-active" : ""}`}
+                aria-pressed={isPresetActive(bps)}
+                aria-label={t("slippagePreset", { pct })}
+                onClick={() => dispatch("setSlippage", bps / 100)}
+              >
+                {pct}
+              </button>
+            );
+          })}
+          <div className={`neo-swap-chip-custom${isCustomSlippage ? " is-active" : ""}`}>
+            <NeoInput
+              className="neo-swap-slippage-input"
+              type="number"
+              min={0.01}
+              max={50}
+              step={0.1}
+              value={customSlippageDisplay}
+              placeholder={t("slippageCustom")}
+              aria-label={t("slippageCustomLabel")}
+              onChange={(value) => { void dispatch("setSlippage", value); }}
+            />
+            <span aria-hidden="true">%</span>
+          </div>
+        </div>
+        <p className={`neo-swap-slippage__hint${slippageHigh ? " is-warn" : ""}`}>
+          {slippageHigh ? t("slippageHigh") : t("slippageHint")}
+        </p>
+      </div>
+
+      <div className="neo-swap-detail-panel">
+        <div>
+          <span>{t("exchangeRate")}</span>
+          <strong>{rateDisplay}</strong>
+        </div>
+        <div>
+          <span>{t("minReceived")}</span>
+          <strong>{formattedMinReceived}</strong>
+        </div>
+      </div>
+
+      <details className="neo-swap-txfold">
+        <summary className="neo-swap-txfold__summary">{t("txDetailsSummary")}</summary>
+        <dl className="neo-swap-tx-details">
+          <div>
+            <dt><Network size={14} aria-hidden="true" />{t("networkLabel")}</dt>
+            <dd>{t("tokenNeo")} N3</dd>
+          </div>
+          <div>
+            <dt><RefreshCw size={14} aria-hidden="true" />{t("routeLabel")}</dt>
+            <dd>{t("routeDirectValue", { pair: pairLabel })}</dd>
+          </div>
+          <div>
+            <dt><Clock size={14} aria-hidden="true" />{t("estSettlement")}</dt>
+            <dd>{t("estSettlementValue")}</dd>
+          </div>
+          <div>
+            <dt><Fuel size={14} aria-hidden="true" />{t("networkFeeLabel")}</dt>
+            <dd>{t("networkFeeValue")}</dd>
+          </div>
+        </dl>
+      </details>
+    </>
+  );
 
   return (
     <div className="neo-swap-play-area">
@@ -186,177 +332,37 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           )}
 
           {!routerAvailable && (
-            <div className="neo-swap-router-notice" role="status">
-              <span className="neo-swap-router-notice__title">{t("swapRouterUnavailable")}</span>
-              <span>{t("swapRouterUnavailableHint")}</span>
-            </div>
-          )}
-
-          <div className="neo-swap-token-field">
-            <div className="neo-swap-token-header">
-              <span>{t("from")}</span>
-              <button
-                type="button"
-                className="neo-swap-token-button"
-                onClick={() => dispatch("openFromSelector")}
-              >
-                <span>{fromSymbol.slice(0, 1)}</span>
-                {fromSymbol}
-              </button>
-            </div>
-            <div className="neo-swap-input-row">
-              <NeoInput
-                className="neo-swap-amount-input"
-                value={fromAmount}
-                type="number"
-                min={0}
-                placeholder={t("enterAmount")}
-                onChange={(val) => { void dispatch("setFromAmount", val); }}
-              />
-              <NeoButton size="sm" variant="secondary" onClick={() => dispatch("setMaxAmount")}>
-                {t("max")}
-              </NeoButton>
-            </div>
-            <span className="neo-swap-balance-line">
-              {t("balance")}: {formatBalance(fromToken)}
-            </span>
-          </div>
-
-          <div className="neo-swap-direction">
-            <NeoButton
-              size="sm"
-              variant="ghost"
-              aria-label={t("switchTokens")}
-              onClick={() => dispatch("swapTokens")}
-            >
-              <ArrowDownUp size={17} aria-hidden="true" />
-            </NeoButton>
-          </div>
-
-          <div className="neo-swap-token-field neo-swap-token-field--receive">
-            <div className="neo-swap-token-header">
-              <span>{t("to")}</span>
-              <button
-                type="button"
-                className="neo-swap-token-button"
-                onClick={() => dispatch("openToSelector")}
-              >
-                <span>{toSymbol.slice(0, 1)}</span>
-                {toSymbol}
-              </button>
-            </div>
-            <NeoInput
-              className="neo-swap-amount-input"
-              value={toAmount}
-              type="number"
-              placeholder="0.00"
-              disabled
-            />
-            <span className="neo-swap-balance-line">
-              {t("balance")}: {formatBalance(toToken)}
-            </span>
-          </div>
-
-          <div className="neo-swap-slippage" role="group" aria-label={t("slippage")}>
-            <div className="neo-swap-slippage__head">
-              <span className="neo-swap-slippage__label">{t("slippage")}</span>
-              <strong className="neo-swap-slippage__value">{slippage}</strong>
-            </div>
-            <div className="neo-swap-slippage__controls">
-              {SLIPPAGE_PRESET_BPS.map((bps) => {
-                const pct = `${parseFloat((bps / 100).toFixed(2))}%`;
-                return (
-                  <button
-                    key={bps}
-                    type="button"
-                    className={`neo-swap-chip${isPresetActive(bps) ? " is-active" : ""}`}
-                    aria-pressed={isPresetActive(bps)}
-                    aria-label={t("slippagePreset", { pct })}
-                    onClick={() => dispatch("setSlippage", bps / 100)}
-                  >
-                    {pct}
-                  </button>
-                );
-              })}
-              <div className={`neo-swap-chip-custom${isCustomSlippage ? " is-active" : ""}`}>
-                <NeoInput
-                  className="neo-swap-slippage-input"
-                  type="number"
-                  min={0.01}
-                  max={50}
-                  step={0.1}
-                  value={customSlippageDisplay}
-                  placeholder={t("slippageCustom")}
-                  aria-label={t("slippageCustomLabel")}
-                  onChange={(value) => { void dispatch("setSlippage", value); }}
-                />
-                <span aria-hidden="true">%</span>
+            <div className="neo-swap-preview" role="region" aria-label={t("pricePreviewTitle")}>
+              <div className="neo-swap-preview__head">
+                <span className="neo-swap-preview__eyebrow">
+                  <TrendingUp size={14} aria-hidden="true" />
+                  {t("pricePreviewTitle")}
+                </span>
+                {rateAsOf && (
+                  <span className={`neo-swap-preview__asof${rateStale ? " is-stale" : ""}`}>
+                    {rateStale ? t("rateStale") : t("rateAsOf", { time: rateAsOf })}
+                  </span>
+                )}
               </div>
-            </div>
-            <p className={`neo-swap-slippage__hint${slippageHigh ? " is-warn" : ""}`}>
-              {slippageHigh ? t("slippageHigh") : t("slippageHint")}
-            </p>
-          </div>
-
-          <div className="neo-swap-detail-panel">
-            <div>
-              <span>{t("exchangeRate")}</span>
-              <strong>{rateDisplay}</strong>
-            </div>
-            <div>
-              <span>{t("minReceived")}</span>
-              <strong>{formattedMinReceived}</strong>
-            </div>
-          </div>
-
-          <dl className="neo-swap-tx-details">
-            <div>
-              <dt><Network size={14} aria-hidden="true" />{t("networkLabel")}</dt>
-              <dd>{t("tokenNeo")} N3</dd>
-            </div>
-            <div>
-              <dt><RefreshCw size={14} aria-hidden="true" />{t("routeLabel")}</dt>
-              <dd>{t("routeDirectValue", { pair: pairLabel })}</dd>
-            </div>
-            <div>
-              <dt><Clock size={14} aria-hidden="true" />{t("estSettlement")}</dt>
-              <dd>{t("estSettlementValue")}</dd>
-            </div>
-            <div>
-              <dt><Fuel size={14} aria-hidden="true" />{t("networkFeeLabel")}</dt>
-              <dd>{t("networkFeeValue")}</dd>
-            </div>
-          </dl>
-
-          {rateAsOf && (
-            <p className={`neo-swap-rate-asof${rateStale ? " is-stale" : ""}`}>
-              {rateStale
-                ? t("rateSourceStaleAsOf", { time: rateAsOf })
-                : t("rateSourceAsOf", { time: rateAsOf })}
-            </p>
-          )}
-
-          <p className="neo-swap-preview-note">{t("pricePreviewOnly")}</p>
-
-          {routerAvailable ? (
-            <NeoButton
-              variant="primary"
-              block
-              loading={isSwapping || loading}
-              disabled={!canSwap}
-              onClick={() => dispatch("executeSwap")}
-            >
-              {isSwapping ? t("swapping") : swapButtonText}
-            </NeoButton>
-          ) : (
-            <>
-              {/* No router deployed: the real deliverable is the quote, so the
-                  refresh control is the primary CTA — unless the wallet is
-                  disconnected, where the intro panel's Connect is the single
-                  primary and refresh steps down to secondary. The Swap action is
-                  a plainly labeled "Settlement unavailable" disabled state
-                  rather than a teasing primary button. */}
+              {rateLoading ? (
+                <strong className="neo-swap-preview__rate is-muted">{t("loadingRate")}</strong>
+              ) : previewRateAvailable ? (
+                <strong className="neo-swap-preview__rate">
+                  <span className="neo-swap-preview__rate-lead">
+                    {t("pricePreviewRate", { from: fromSymbol })}
+                  </span>
+                  <span className="neo-swap-preview__rate-figure">
+                    {exchangeRate} {toSymbol}
+                  </span>
+                </strong>
+              ) : (
+                <strong className="neo-swap-preview__rate is-muted">
+                  {t("pricePreviewAwaiting")}
+                </strong>
+              )}
+              <p className="neo-swap-preview__body">{t("pricePreviewBody")}</p>
               <NeoButton
+                className="neo-swap-preview__refresh"
                 variant={walletConnected ? "primary" : "secondary"}
                 block
                 loading={rateLoading}
@@ -365,10 +371,47 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <RefreshCw size={16} aria-hidden="true" />
                 {t("refreshRate")}
               </NeoButton>
-              <NeoButton variant="secondary" block disabled>
-                {t("settlementUnavailable")}
+            </div>
+          )}
+
+          {routerAvailable ? (
+            <>
+              {tradeForm}
+
+              {rateAsOf && (
+                <p className={`neo-swap-rate-asof${rateStale ? " is-stale" : ""}`}>
+                  {rateStale
+                    ? t("rateSourceStaleAsOf", { time: rateAsOf })
+                    : t("rateSourceAsOf", { time: rateAsOf })}
+                </p>
+              )}
+
+              <p className="neo-swap-preview-note">{t("pricePreviewOnly")}</p>
+
+              <NeoButton
+                variant="primary"
+                block
+                loading={bool("isSwapping") || bool("loading")}
+                disabled={!bool("canSwap")}
+                onClick={() => dispatch("executeSwap")}
+              >
+                {bool("isSwapping") ? t("swapping") : str("swapButtonText", t("tabSwap"))}
               </NeoButton>
             </>
+          ) : (
+            <details className="neo-swap-disclosure">
+              <summary className="neo-swap-disclosure__summary">
+                <SlidersHorizontal size={15} aria-hidden="true" />
+                {t("setupTradeSummary")}
+              </summary>
+              <div className="neo-swap-disclosure__body">
+                {tradeForm}
+                <p className="neo-swap-preview-note">{t("pricePreviewOnly")}</p>
+                <NeoButton variant="secondary" block disabled>
+                  {t("settlementUnavailable")}
+                </NeoButton>
+              </div>
+            </details>
           )}
         </NeoCard>
 

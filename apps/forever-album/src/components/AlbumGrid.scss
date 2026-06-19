@@ -133,23 +133,65 @@
   }
 }
 
-.forever-album-empty-line {
+// Warm, inviting empty state for the keepsake archetype: a decorative framed
+// sample tile previews the gallery payoff, a human line raises emotional
+// resonance, and a single primary action points to the dropzone (no competing
+// second file-open button).
+.forever-album-empty {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  padding: 16px 16px;
+  padding: 26px 18px 24px;
   border: 1px dashed var(--ns-border-strong, #dbe3ec);
   border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(22, 199, 132, 0.08), transparent 64%),
+    var(--ns-surface-subtle, #f7f8fa);
+  text-align: center;
+}
 
-  span {
-    color: var(--ns-text-2, #5b6478);
-    font-size: 12.5px;
-    font-weight: 600;
-    line-height: 1.4;
-  }
+.forever-album-empty-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 116px;
+  height: 116px;
+  padding: 12px;
+  border: 1.5px solid rgba(22, 199, 132, 0.28);
+  border-radius: var(--ns-radius-md, 16px);
+  background:
+    linear-gradient(180deg, var(--ns-brand-soft, #e4f8f0) 0%, rgba(228, 248, 240, 0.35) 100%);
+  color: var(--ns-brand-strong, #0fb174);
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.7);
+}
+
+.forever-album-empty-frame-caption {
+  color: var(--ns-brand-strong, #0fb174);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.forever-album-empty-warm {
+  margin: 4px 0 0;
+  color: var(--ns-ink, #152238);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.forever-album-empty-hint {
+  margin: 0;
+  max-width: 260px;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .forever-album-loading {

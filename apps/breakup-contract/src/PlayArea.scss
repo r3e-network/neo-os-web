@@ -96,7 +96,9 @@ $tone-warning-soft: var(--ns-warning-soft, #fff3dd);
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-left: auto;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
   justify-content: flex-end;
 }
 
@@ -282,15 +284,26 @@ $tone-warning-soft: var(--ns-warning-soft, #fff3dd);
 }
 
 .contract-economics-note {
+  position: relative;
   margin: 0 0 4px;
-  padding: 10px 12px;
-  border: 1px solid $ns-border;
+  padding: 12px 14px 12px 16px;
+  border: 1px solid $ac-border;
   border-radius: 12px;
-  background: $ns-subtle;
+  background: linear-gradient(135deg, rgba(228, 248, 240, 0.7) 0%, $ns-subtle 100%);
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.55;
-  color: $ns-text-2;
+  color: $ns-text;
+
+  /* Accent rail keeps the note warm and on-hue without a second color. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 8px auto 8px 0;
+    width: 3px;
+    border-radius: 999px;
+    background: $ac;
+  }
 }
 
 /* Group stake + duration into a balanced 2-up row */
@@ -356,6 +369,28 @@ $tone-warning-soft: var(--ns-warning-soft, #fff3dd);
   border-color: transparent;
   color: #ffffff;
   box-shadow: none;
+}
+
+/* CTA + inline "why disabled" prompt stacked together */
+.breakup-create-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Single-line helper under the primary action: names the first unmet field
+   while disabled, then turns into a calm ready confirmation once valid. */
+.breakup-create-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: $ns-text-muted;
+
+  &.is-ready {
+    color: $ac-strong;
+  }
 }
 
 .breakup-action-notice,

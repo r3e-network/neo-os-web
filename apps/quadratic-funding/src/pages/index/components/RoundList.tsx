@@ -56,6 +56,7 @@ export default function RoundList({
         <div className="qf-empty-ledger">
           <strong>{t("qfNoRoundTitle")}</strong>
           <span>{t("qfNoRoundBody")}</span>
+          <span className="qf-empty-ledger__preview">{t("qfRoundsEmptyPreview")}</span>
         </div>
       ) : (
         <div className="qf-round-list">

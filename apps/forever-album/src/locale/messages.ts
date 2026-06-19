@@ -7,7 +7,7 @@ const appMessages = {
     en: "Saved only on this device — back up your originals elsewhere. Clearing your browser or switching devices deletes them.",
     zh: "仅保存在本设备 — 请另行备份原图。清除浏览器数据或更换设备都会删除它们。",
   },
-  vaultHeroTitle: { en: "Keep memories in a private, wallet-scoped album on your device", zh: "把回忆保存在本设备的私密、按钱包隔离的相册中" },
+  vaultHeroTitle: { en: "Your private memory album, kept on this device", zh: "你的私密回忆相册，保存在本设备" },
   vaultHeroSubtitle: {
     en: "Select a few lightweight images and choose public or encrypted storage. Photos are saved on this device under your wallet — no transaction, no gas. They persist across reloads but do not sync to other devices.",
     zh: "选择几张轻量图片，决定公开或加密存储。照片按你的钱包保存在本设备 — 无需交易，无需 gas。重新加载后仍在，但不会同步到其他设备。",
@@ -75,6 +75,13 @@ const appMessages = {
   decryptedPhoto: { en: "Decrypted photo", zh: "解密照片" },
   emptyTitle: { en: "No photos yet", zh: "暂无照片" },
   emptyDesc: { en: "Save your first memory to this device.", zh: "把你的第一份记忆保存到本设备。" },
+  emptyWarmLine: { en: "Your memories will live here", zh: "你的回忆将留在这里" },
+  emptySampleCaption: { en: "Your first memory", zh: "你的第一份回忆" },
+  startHere: { en: "Add your first memory", zh: "添加第一份回忆" },
+  durabilityNote: {
+    en: "On this device only — back up originals elsewhere.",
+    zh: "仅保存在本设备 — 请另行备份原图。",
+  },
   emptyTipPublicOrPrivate: { en: "Public or encrypted", zh: "公开或加密" },
   emptyTipSizeSafe: { en: "Up to 5 · <60KB", zh: "最多 5 张 · <60KB" },
   selectMore: { en: "Select", zh: "选择" },

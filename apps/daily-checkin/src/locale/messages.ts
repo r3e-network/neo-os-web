@@ -164,6 +164,15 @@ const appMessages = {
   hurryUp: { en: "Hurry up!", zh: "快点！" },
   almostGone: { en: "Almost gone!", zh: "快截止了！" },
   connectToStart: { en: "Connect to start your streak", zh: "连接钱包开始连续签到" },
+  connectHint: {
+    en: "Connect your Neo wallet, then check in once each UTC day to start your streak.",
+    zh: "连接 Neo 钱包，每个 UTC 日签到一次即可开始连续签到。",
+  },
+  todayPlanInvite: { en: "Start your streak", zh: "开始连续签到" },
+  todayPlanInviteCopy: {
+    en: "Check in today to record day 1 and begin earning toward the day 7 reward.",
+    zh: "今天签到记录第 1 天，开始向第 7 天奖励累积。",
+  },
   milestoneRewardUnlocked: {
     en: "Day {day} milestone reached — claim it from your rewards.",
     zh: "已达成第 {day} 天里程碑 — 可在奖励中领取。",
