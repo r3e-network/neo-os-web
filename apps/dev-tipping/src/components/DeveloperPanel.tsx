@@ -4,12 +4,16 @@ import { NeoInput, NeoButton } from "@shared/components-react";
 interface DeveloperPanelProps {
   /** Whether a wallet is connected (gates registration/withdrawal). */
   connected: boolean;
+  /** True while the wallet connect prompt is in flight. */
+  isConnecting: boolean;
   /** The devId owned by the connected wallet (0 = not registered). */
   myDeveloperId: number;
   /** That developer's claimable balance in human GAS. */
   claimableBalance: number;
   isRegistering: boolean;
   isWithdrawing: boolean;
+  /** Connect the wallet (reuses the app's existing chain.ensureWallet path). */
+  onConnect: () => void;
   /** Resolves true on a confirmed registration so inputs clear only on success. */
   onRegister: (name: string, role: string) => Promise<boolean>;
   onWithdraw: () => void;
@@ -26,10 +30,12 @@ interface DeveloperPanelProps {
  */
 export default function DeveloperPanel({
   connected,
+  isConnecting,
   myDeveloperId,
   claimableBalance,
   isRegistering,
   isWithdrawing,
+  onConnect,
   onRegister,
   onWithdraw,
   formatNum,
@@ -40,7 +46,19 @@ export default function DeveloperPanel({
 
   if (!connected) {
     return (
-      <p className="dev-panel__hint">{t("registerConnectHint")}</p>
+      <div className="dev-panel form-group">
+        <p className="dev-panel__hint">{t("registerConnectHint")}</p>
+        <NeoButton
+          variant="primary"
+          size="lg"
+          block
+          loading={isConnecting}
+          disabled={isConnecting}
+          onClick={onConnect}
+        >
+          {isConnecting ? t("connecting") : t("connectWallet")}
+        </NeoButton>
+      </div>
     );
   }
 

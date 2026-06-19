@@ -41,6 +41,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isWithdrawing = bool("isWithdrawing");
   const myDeveloperId = num("myDeveloperId");
   const myClaimableBalance = num("myClaimableBalance");
+  const isConnecting = bool("isConnecting");
 
   const myCredit = num("myCredit");
 
@@ -84,6 +85,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleWithdrawCredit = () => {
     if (myCredit <= 0) return;
     void dispatch("withdrawCredit");
+  };
+
+  const handleConnectWallet = () => {
+    void dispatch("connect");
   };
 
   const [addressCopied, setAddressCopied] = useState(false);
@@ -233,10 +238,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard variant="erobo">
             <DeveloperPanel
               connected={Boolean(address)}
+              isConnecting={isConnecting}
               myDeveloperId={myDeveloperId}
               claimableBalance={myClaimableBalance}
               isRegistering={isRegistering}
               isWithdrawing={isWithdrawing}
+              onConnect={handleConnectWallet}
               onRegister={handleRegisterDeveloper}
               onWithdraw={handleWithdrawTips}
               formatNum={formatNum}

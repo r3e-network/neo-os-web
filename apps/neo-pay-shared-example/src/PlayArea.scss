@@ -561,10 +561,12 @@
 
 .shared-pay-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
   min-height: 96px;
-  padding: 1.25rem;
+  padding: 1.75rem 1.25rem;
   border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.12));
   border-radius: var(--ns-radius-md, 16px);
   background: var(--ns-surface-subtle, #f7f8fa);
@@ -572,6 +574,22 @@
   text-align: center;
   font-size: 0.84rem;
   line-height: 1.5;
+}
+
+.shared-pay-empty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ns-radius-full, 999px);
+  background: var(--ns-brand-soft, #e4f8f0);
+  color: var(--ns-brand, #16c784);
+}
+
+.shared-pay-empty__text {
+  display: block;
+  max-width: 32ch;
 }
 
 @media (max-width: 920px) {

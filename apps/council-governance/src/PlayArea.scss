@@ -125,6 +125,38 @@
   }
 }
 
+/* The 4th hero stat is a connection STATE, not a number — render its value at a
+   smaller "state" scale (so the long text never breaks the numeric row rhythm)
+   and prefix it with a status dot so it reads as a status, not an overflowing
+   figure. */
+.council-stat--seat .council-seat-state {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  font-variant-numeric: normal;
+}
+
+.council-seat-dot {
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ns-text-muted, #8a92a6);
+}
+
+.council-stat--seat-ok .council-seat-dot {
+  background: var(--ns-success, #16c784);
+  box-shadow: 0 0 0 3px var(--ns-success-soft, rgba(22, 199, 132, 0.16));
+}
+
+.council-stat--seat-read .council-seat-dot {
+  background: var(--ns-warning, #d99a00);
+}
+
 .council-stat-caption {
   display: block;
   margin-top: 0.35rem;

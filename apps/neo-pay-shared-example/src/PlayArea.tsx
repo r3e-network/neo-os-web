@@ -509,9 +509,29 @@ export default function PlayArea({
     if (streams.length === 0) {
       return (
         <div className="shared-pay-empty">
-          {direction === "incoming"
-            ? copy("noBeneficiaryStreams", "No incoming streams")
-            : copy("noCreatedStreams", "No outgoing streams")}
+          <span className="shared-pay-empty__icon" aria-hidden="true">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {direction === "incoming" ? (
+                <path d="M12 5v14M19 12l-7 7-7-7" />
+              ) : (
+                <path d="M3 12h4l2 6 4-12 2 6h4" />
+              )}
+            </svg>
+          </span>
+          <span className="shared-pay-empty__text">
+            {direction === "incoming"
+              ? copy("noBeneficiaryStreams", "No incoming streams")
+              : copy("noCreatedStreams", "No outgoing streams")}
+          </span>
         </div>
       );
     }
