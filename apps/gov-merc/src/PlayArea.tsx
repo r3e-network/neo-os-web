@@ -63,7 +63,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     state[key]?.set(value);
   };
 
-  const shortAddress = address
+  const isConnected = address.length > 0;
+  const shortAddress = isConnected
     ? `${address.slice(0, 8)}...${address.slice(-6)}`
     : t("walletStatusIdle");
 
@@ -89,6 +90,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span>{t("marketSignalTitle")}</span>
             <h2>{t("govHeroTitle")}</h2>
             <p>{t("govHeroSubtitle")}</p>
+            {/* Lead with the civic meaning: what winning grants, and that the
+                title is a signal — not an executed/delegated vote. */}
+            <p className="gov-merc-hero-grant">{t("govHeroGrant")}</p>
             <div className="gov-merc-hero-meta">
               <div className="gov-merc-hero-deposits">
                 <span>{t("yourDeposits")}</span>
@@ -119,6 +123,36 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span>{t("actionsTitle")}</span>
             <strong>{shortAddress}</strong>
           </div>
+
+          {!isConnected ? (
+            <div className="gov-merc-connect" role="note">
+              <div className="gov-merc-connect-copy">
+                <strong>{t("connectTitle")}</strong>
+                <p>{t("connectCopy")}</p>
+              </div>
+              <NeoButton
+                variant="primary"
+                loading={isBusy}
+                disabled={isBusy}
+                onClick={() => dispatch("connectWallet")}
+              >
+                {t("connectAction")}
+              </NeoButton>
+            </div>
+          ) : null}
+
+          {/* Persistent legend so NEO (stake) and GAS (bid) are never conflated
+              at the point of action. */}
+          <div className="gov-merc-token-legend" aria-label={t("tokenLegendTitle")}>
+            <span className="gov-merc-token-legend-title">{t("tokenLegendTitle")}</span>
+            <span className="gov-merc-token-chip gov-merc-token-chip--neo">
+              {t("tokenLegendNeo")}
+            </span>
+            <span className="gov-merc-token-chip gov-merc-token-chip--gas">
+              {t("tokenLegendGas")}
+            </span>
+          </div>
+
           <div className="gov-merc-action-grid">
             <MercActionCards
               t={t}
@@ -224,19 +258,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
 
         <NeoCard variant="erobo" className="gov-merc-risk-panel">
-          <div className="gov-merc-section-heading">
-            <span>{t("riskNoteTitle")}</span>
-            <strong>{shortAddress}</strong>
-          </div>
-          <p>{t("riskNoteCopy")}</p>
-          <div className="gov-merc-signal-row">
-            <span>{t("settlementWindow")}</span>
-            <strong>{t("epochSettlement")}</strong>
-          </div>
-          <div className="gov-merc-signal-row">
-            <span>{t("executionPath")}</span>
-            <strong>{t("executionPathCopy")}</strong>
-          </div>
+          {/* Operator/contract detail collapsed by default so the actionable
+              settle + leaderboard panels lead the side rail. */}
+          <details className="gov-merc-risk-details">
+            <summary>
+              <span>{t("riskNoteTitle")}</span>
+              <span className="gov-merc-risk-summary-label">{t("riskNoteToggle")}</span>
+            </summary>
+            <div className="gov-merc-risk-body">
+              <p>{t("riskNoteCopy")}</p>
+              <div className="gov-merc-signal-row">
+                <span>{t("settlementWindow")}</span>
+                <strong>{t("epochSettlement")}</strong>
+              </div>
+              <div className="gov-merc-signal-row">
+                <span>{t("executionPath")}</span>
+                <strong>{t("executionPathCopy")}</strong>
+              </div>
+            </div>
+          </details>
         </NeoCard>
       </aside>
     </div>

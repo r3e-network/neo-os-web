@@ -24,6 +24,48 @@
     min-width: 0;
   }
 
+  // A thin top accent disambiguates the token without a second hue: NEO actions
+  // read as the solid brand, the GAS bid as a softer outlined variant.
+  &--neo {
+    border-top: 2px solid var(--ns-brand, #16c784);
+  }
+
+  &--gas {
+    border-top: 2px dashed rgba(15, 177, 116, 0.5);
+  }
+
+  .gov-merc-action-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .gov-merc-token-tag {
+    flex: 0 0 auto;
+    padding: 2px 8px;
+    border-radius: var(--ns-radius-full, 9999px);
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+
+    &--neo {
+      background: var(--ns-brand-soft, #e4f8f0);
+      color: var(--ns-brand-strong, #0fb174);
+    }
+
+    &--gas {
+      background: var(--ns-surface-subtle, #f1f4f2);
+      color: #38554a;
+      box-shadow: inset 0 0 0 1px rgba(15, 177, 116, 0.3);
+    }
+  }
+
   span {
     color: #102019;
     font-size: 14px;

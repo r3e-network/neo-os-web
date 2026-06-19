@@ -195,11 +195,34 @@ const appMessages = {
   noCreditToRecover: { en: "No recoverable credit.", zh: "没有可取回的额度。" },
 
   readyForAnchor: { en: "Anchor ready", zh: "Anchor 已就绪" },
-  noAnchorTitle: { en: "Open an anchor link", zh: "打开 Anchor 链接" },
+  noAnchorTitle: { en: "Stake NEO to vote", zh: "质押 NEO 参与投票" },
   noAnchorBody: {
-    en: "Scan a OneGate link with anchorAppId, or enter the anchor appId in the action panel.",
-    zh: "扫码打开带 anchorAppId 的 OneGate 链接，或在右侧操作栏输入 Anchor appId。",
+    en: "A custom anchor pools your NEO and votes for council candidates through 21 AA agents. Stake to direct your NEO voting power and earn a share of the GAS those votes generate.",
+    zh: "自定义 Anchor 汇聚你的 NEO，并通过 21 个 AA agent 为 council 候选人投票。质押即可使用你的 NEO 投票权，并分享这些投票产生的 GAS。",
   },
+
+  // Civic framing — what an anchor grants, surfaced up front in the hero.
+  civicEyebrow: { en: "NEO governance", zh: "NEO 治理" },
+  whatIsAnchorTitle: { en: "What is an anchor?", zh: "什么是 Anchor？" },
+  whatIsAnchorBody: {
+    en: "An anchor is a shared voting account. Your staked NEO keeps its voting power and is cast for the anchor's council candidates; you can redeem your NEO at any time.",
+    zh: "Anchor 是一个共享投票账户。你质押的 NEO 保留其投票权，并投给该 Anchor 的 council 候选人；你可随时赎回自己的 NEO。",
+  },
+
+  // Onboarding next-step CTA (no anchor linked yet).
+  onboardTitle: { en: "Get started", zh: "开始使用" },
+  onboardBody: {
+    en: "Paste an anchor id (custom-anchor:slug:nonce) in the field below, browse registered anchors, or register your own.",
+    zh: "在下方字段粘贴 Anchor ID（custom-anchor:slug:nonce），浏览已注册的 Anchor，或注册你自己的。",
+  },
+  onboardBrowse: { en: "Browse anchors", zh: "浏览 Anchor" },
+  onboardRegister: { en: "Register a new anchor", zh: "注册新 Anchor" },
+
+  // Token + action clarifiers at the point of action.
+  stakeTokenTag: { en: "spend NEO", zh: "支付 NEO" },
+  withdrawTokenTag: { en: "return NEO", zh: "取回 NEO" },
+  claimTokenTag: { en: "collect GAS", zh: "领取 GAS" },
+  maintenanceLabel: { en: "Status", zh: "状态" },
   agentModel: { en: "21-agent AA model", zh: "21 个 AA agent 模型" },
   routingDetails: { en: "Routing details", zh: "调仓细节" },
   agentModelBody: {

@@ -123,6 +123,17 @@
   }
 }
 
+.council-stat-caption {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .council-access {
   display: flex;
   flex-wrap: wrap;
@@ -571,17 +582,59 @@
 }
 
 .council-vote-bar-track {
-  height: 0.5rem;
+  position: relative;
+  display: flex;
+  height: 0.6rem;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--ns-danger-soft, #fde7e9);
+  background: var(--ns-surface-subtle, #eef0f4);
+  box-shadow: inset 0 0 0 1px var(--ns-border, rgba(20, 22, 38, 0.06));
 }
 
 .council-vote-bar-fill {
   height: 100%;
-  border-radius: inherit;
   background: var(--ns-success, #16c784);
   transition: width var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.council-vote-bar-against {
+  height: 100%;
+  background: var(--ns-danger, #ea3943);
+  transition: width var(--ns-t-fast, 150ms) var(--ns-ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+// Pass-line tick: the majority threshold a proposal must clear to pass. A clear
+// marker keeps an impartial track honest — a split vote reads as undecided, not
+// failing, and the reader can see exactly how far short of passing it is.
+.council-vote-bar-marker {
+  position: absolute;
+  top: -0.18rem;
+  bottom: -0.18rem;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--ns-ink, #1e1e2e);
+  transform: translateX(-1px);
+  pointer-events: none;
+}
+
+.council-pass-threshold {
+  margin: 0.5rem 0 0;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 0.73rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+
+  &::before {
+    content: "";
+    display: inline-block;
+    width: 2px;
+    height: 0.72rem;
+    margin-right: 0.45rem;
+    vertical-align: -0.12rem;
+    border-radius: 999px;
+    background: var(--ns-ink, #1e1e2e);
+  }
 }
 
 .council-vote-counts,
@@ -608,6 +661,14 @@
   justify-content: flex-start;
   gap: 0.5rem 1.1rem;
   color: var(--ns-text-muted, #8a92a6);
+}
+
+// Time-sensitivity cue: an active proposal closing within 24h. Amber reads as a
+// deadline warning (semantic status, not interactive chrome) so it does not
+// compete with the green action accent.
+.council-ending-soon {
+  color: var(--ns-warning-strong, #b9791a);
+  font-weight: 800;
 }
 
 .council-proposal-actions {
