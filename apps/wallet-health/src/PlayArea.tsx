@@ -152,7 +152,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
             <p className="wallet-health-hero-facts">
               <strong className={`wallet-health-risk-chip ${riskClass}`}>
-                <span className="wallet-health-risk-dot" aria-label={riskIconLabel} />
+                <span className="wallet-health-risk-dot" role="img" aria-label={riskIconLabel} />
                 {riskLabel}
               </strong>
               <span className="wallet-health-fact-sep" aria-hidden="true">·</span>
