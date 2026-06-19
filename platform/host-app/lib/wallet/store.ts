@@ -195,6 +195,24 @@ async function readWalletNetwork(
   }
 }
 
+function walletConnectErrorMessage(
+  adapter: WalletAdapter,
+  err: unknown,
+): string {
+  if (err instanceof WalletNotInstalledError) {
+    return `Please install ${adapter.name} wallet`;
+  }
+  const raw = err instanceof Error ? err.message : String(err);
+  const lower = raw.toLowerCase();
+  if (lower.includes("reject") || lower.includes("denied") || lower.includes("cancel")) {
+    return "Wallet connection was rejected. Please try again and approve the request in your wallet.";
+  }
+  if (lower.includes("timeout")) {
+    return "Connection timed out. Please check your wallet is unlocked and try again.";
+  }
+  return raw || "Wallet connection failed";
+}
+
 /**
  * Subscribe to adapter account/network events and keep the store in sync.
  * Shared by the interactive connect flow and the silent session restore.
@@ -265,6 +283,7 @@ export const useWalletStore = create<WalletStore>()(
 
       // Actions
       connect: async (provider: WalletProvider) => {
+        const previous = get();
         set({ loading: true, error: null });
 
         const adapter = adapters[provider];
@@ -292,12 +311,25 @@ export const useWalletStore = create<WalletStore>()(
           attachAdapterListeners(adapter, provider, set, get);
           startBalanceAutoRefresh();
         } catch (err) {
-          const message =
-            err instanceof WalletNotInstalledError
-              ? `Please install ${adapter.name} wallet`
-              : "Wallet connection failed";
+          const message = walletConnectErrorMessage(adapter, err);
+          const preservePendingIdentity =
+            previous.provider === provider &&
+            Boolean(previous.address) &&
+            !previous.connected;
 
-          set({ loading: false, error: message });
+          stopBalanceAutoRefresh();
+          set({
+            connected: false,
+            address: preservePendingIdentity ? previous.address : "",
+            publicKey: preservePendingIdentity ? previous.publicKey : "",
+            network: preservePendingIdentity ? previous.network : null,
+            provider: preservePendingIdentity ? provider : null,
+            balance: null,
+            loading: false,
+            restorePending: preservePendingIdentity,
+            error: message,
+          });
+          throw new WalletConnectionError(message);
         }
       },
 
@@ -384,6 +416,7 @@ export const useWalletStore = create<WalletStore>()(
             restorePending: false,
             error: message,
           });
+          throw new WalletConnectionError(message);
         }
       },
 
