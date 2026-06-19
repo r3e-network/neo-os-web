@@ -133,4 +133,20 @@ describe("neo-treasury balance fetching resilience", () => {
     const category = await fetchDaHongfeiData(null);
     expect(category.totalUsd).toBeNull();
   });
+
+  it("treats a resolved-but-zeroed price feed as unavailable (no fake $0 total)", async () => {
+    // A frozen/zeroed feed that resolves with a non-positive NEO leg must not be
+    // presented as a live USD total — it yields null (rendered as "—"), the same
+    // as a missing feed, rather than a misleading $0.
+    const zeroed = await fetchDaHongfeiData({ neo: 0, gas: 0 } as PriceData);
+    expect(zeroed.totalUsd).toBeNull();
+
+    const negative = await fetchDaHongfeiData({ neo: -1, gas: 1 } as PriceData);
+    expect(negative.totalUsd).toBeNull();
+
+    // A positive quote still produces a real total.
+    const live = await fetchDaHongfeiData({ neo: 5, gas: 1 } as PriceData);
+    expect(live.totalUsd).not.toBeNull();
+    expect(live.totalUsd as number).toBeGreaterThan(0);
+  });
 });

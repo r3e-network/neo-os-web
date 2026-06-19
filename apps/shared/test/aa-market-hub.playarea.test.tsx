@@ -39,6 +39,8 @@ function t(key: string) {
     emptyStateNoListings: "No listings found.",
     emptyStateLoadingTitle: "Loading listings…",
     emptyStateLoading: "Reading the market contract for the current hash.",
+    emptyStateConnectTitle: "Connect a wallet to load the board",
+    emptyStateConnect: "Reading the market contract needs a connected wallet.",
     walletConnected: "Wallet connected",
     walletNotConnected: "Wallet not connected",
     marketHash: "Market Hash",
@@ -47,6 +49,7 @@ function t(key: string) {
     connectWallet: "Connect Wallet",
     loadListings: "Load listings",
     loadingListings: "Loading…",
+    loadNeedsWallet: "Connect wallet to load",
     createListingTitle: "Create listing",
     createListingMarketRequired: "Paste a market contract hash first.",
     createListingWalletRequired: "Connect a wallet before creating a listing.",
@@ -58,6 +61,10 @@ function t(key: string) {
     accountIdHashPlaceholder: "0x...",
     priceInput: "Price (GAS)",
     pricePlaceholder: "18",
+    priceBoundsHint: "Between 0.01 and 1000 GAS (up to 8 decimals).",
+    createPreviewLabel: "Listing preview",
+    previewAccountPlaceholder: "Account ID pending",
+    createAdvancedSummary: "Advanced (AA core, metadata)",
     titleInput: "Title",
     titlePlaceholder: "AA service package",
     metadataInput: "Metadata",
@@ -255,7 +262,7 @@ describe("AA Market Hub PlayArea launch flow", () => {
     render(
       <PlayArea
         t={t}
-        state={baseState()}
+        state={baseState({ walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3" })}
         dispatch={dispatch}
         launchContext={launch(
           `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,
@@ -263,13 +270,38 @@ describe("AA Market Hub PlayArea launch flow", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
+    // The wallet panel shows it is connected, so the load button is enabled and
+    // labelled "Load listings" rather than the wallet-required prompt.
     fireEvent.click(screen.getByRole("button", { name: "Load listings" }));
 
     await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("connectWallet");
       expect(dispatch).toHaveBeenCalledWith("loadListings", MARKET_HASH);
     });
+  });
+
+  it("blocks the board load until a wallet is connected", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState()}
+        dispatch={vi.fn()}
+        launchContext={launch(
+          `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,
+        )}
+      />,
+    );
+
+    // No wallet: the load control reads "Connect wallet to load" (not a stuck
+    // "Loading…") and is disabled, and the board rests on a connect prompt
+    // rather than a perpetual spinner.
+    const loadBtn = screen.getByRole("button", {
+      name: "Connect wallet to load",
+    }) as HTMLButtonElement;
+    expect(loadBtn.disabled).toBe(true);
+    expect(screen.queryByText("Loading listings…")).toBeNull();
+    expect(
+      screen.getByText("Connect a wallet to load the board"),
+    ).toBeTruthy();
   });
 
   it("keeps create-listing disabled for GAS prices that the contract parser rejects", () => {
@@ -396,7 +428,11 @@ describe("AA Market Hub PlayArea launch flow", () => {
     render(
       <PlayArea
         t={t}
-        state={baseState({ marketHash: MARKET_HASH, isLoading: true })}
+        state={baseState({
+          marketHash: MARKET_HASH,
+          walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
+          isLoading: true,
+        })}
         dispatch={vi.fn()}
         launchContext={launch(
           `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,
@@ -415,7 +451,12 @@ describe("AA Market Hub PlayArea launch flow", () => {
     render(
       <PlayArea
         t={t}
-        state={baseState({ marketHash: MARKET_HASH, listings: [], isLoading: true })}
+        state={baseState({
+          marketHash: MARKET_HASH,
+          walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
+          listings: [],
+          isLoading: true,
+        })}
         dispatch={vi.fn()}
         launchContext={launch(
           `https://neomini.app/miniapps/aa-market-hub?marketHash=${MARKET_HASH}`,

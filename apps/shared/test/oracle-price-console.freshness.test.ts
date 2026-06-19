@@ -111,6 +111,24 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     expect(label).not.toContain("Fresh");
   });
 
+  it("treats a resolved price of 0 as no data (idle), never a fresh $0.0000", async () => {
+    const now = 1_781_231_101_000;
+    vi.setSystemTime(now);
+    const nowSec = Math.floor(now / 1000);
+    // HALT with a recent timestamp but a zero price — an uninitialized/unpriced
+    // pair. This must NOT render as a fresh, valid feed read.
+    fetchMock.mockResolvedValue(
+      rpcResponse({ state: "HALT", exception: null, stack: [struct(nowSec - 30, "0")] }),
+    );
+    const price = usePriceConsole({ t });
+    const result = await price.fetchPrice();
+    expect(result.success).toBe(true);
+    expect(price.freshness.get()).toBe("idle");
+    expect(price.freshnessLabel.get()).not.toContain("Fresh");
+    expect(price.priceDisplay.get()).toBe(t("notAvailable"));
+    expect(price.freshnessTimestamp.get()).toBe("");
+  });
+
   it("surfaces a localized error (not the raw fault) on a feed FAULT", async () => {
     fetchMock.mockResolvedValue(
       rpcResponse({ state: "FAULT", exception: "no data for pair", stack: [] }),
