@@ -136,6 +136,15 @@
   color: var(--me-muted);
 }
 
+/* Plain-language sublabel under each stat tile clarifying what it counts. */
+.hero-stat-hint {
+  font-size: 10.5px;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--me-text-2);
+  text-wrap: balance;
+}
+
 .hero-stat-divider {
   width: 1px;
   height: 30px;
@@ -697,6 +706,290 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- Explanatory empty / disconnected state ---------- */
+/* Two-column panel: a how-it-works pitch on the left and a read-only sample
+   escrow on the right, so the standalone page demonstrates the staged-release
+   model and offers a clear next step instead of an inert notice card. */
+.escrow-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 22px;
+  padding: 26px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius);
+  box-shadow: var(--me-shadow);
+}
+
+.escrow-intro__pitch {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.escrow-intro__headline {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--me-ink);
+}
+
+.escrow-intro__lede {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--me-text-2);
+}
+
+.escrow-intro__steps {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.escrow-intro__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.escrow-intro__step-num {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--me-accent-soft);
+  color: var(--me-accent-strong);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.escrow-intro__step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.escrow-intro__step-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--me-muted);
+}
+
+.escrow-intro__step-copy {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--me-ink);
+}
+
+.escrow-intro__note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--me-text-2);
+}
+
+.escrow-intro__cta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.escrow-intro__cta-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--me-muted);
+}
+
+.escrow-intro__network-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-sm);
+  background: var(--me-surface-subtle);
+}
+
+.escrow-intro__network-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--me-ink);
+}
+
+.escrow-intro__network-desc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--me-text-2);
+}
+
+/* Right column: read-only sample escrow. */
+.escrow-intro__preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.escrow-intro__preview-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--me-muted);
+}
+
+.escrow-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  background: var(--me-surface-subtle);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-inner);
+}
+
+.escrow-preview-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.escrow-preview-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--me-ink);
+  overflow-wrap: anywhere;
+}
+
+.escrow-preview-card__status {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--me-accent-soft);
+  color: var(--me-accent-strong);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.escrow-preview-card__meta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--me-muted);
+}
+
+.escrow-preview-card__amount-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--me-line);
+}
+
+.escrow-preview-card__amount {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--me-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.escrow-preview-card__released {
+  font-size: 12px;
+  color: var(--me-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.escrow-preview-card__milestones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.escrow-preview-milestone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--me-radius-sm);
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  font-size: 12px;
+}
+
+.escrow-preview-milestone__label {
+  font-weight: 700;
+  color: var(--me-text-2);
+  min-width: 2.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.escrow-preview-milestone__amount {
+  flex: 1 1 auto;
+  color: var(--me-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.escrow-preview-milestone__pill {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--me-muted);
+}
+
+.escrow-preview-milestone--claimed {
+  opacity: 0.85;
+
+  // Claimed = the terminal "released" state: a filled green pill reads as done,
+  // distinct from the green-text "Approved" state while staying one accent hue.
+  .escrow-preview-milestone__pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--me-accent-soft);
+    color: var(--me-accent-strong);
+  }
+}
+
+.escrow-preview-milestone--approved {
+  border-color: var(--me-accent-soft);
+
+  .escrow-preview-milestone__pill {
+    color: var(--me-accent-strong);
+  }
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 640px) {
+  .escrow-intro {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
 /* ---------- Mobile ---------- */
 @media (max-width: 420px) {
   .milestone-escrow-play-area {
@@ -724,6 +1017,15 @@
 
   .escrow-state-view {
     padding: 28px 20px;
+  }
+
+  .escrow-intro {
+    padding: 20px;
+    gap: 18px;
+  }
+
+  .escrow-intro__headline {
+    font-size: 18px;
   }
 
   /* Stack actions only if they would otherwise crowd, but keep them tappable. */

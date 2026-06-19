@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 1.35rem 1.5rem;
+  padding: 1.1rem 1.4rem;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
   background:
@@ -69,8 +69,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
   gap: 0.6rem;
-  margin-top: 1.1rem;
-  padding-top: 1.1rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
   border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
 
   span {
@@ -239,10 +239,28 @@
 
 .shared-pay-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
   align-items: center;
   margin-top: 0.85rem;
+
+  // Once a field is dirty the secondary "Clear" appears as a narrow trailing
+  // control, keeping the primary CTA dominant and "Clear" clearly secondary.
+  &.is-dirty {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  // The pristine / incomplete primary is intentionally quiet: a neutral
+  // outlined control that reads as "not ready" rather than a green CTA the
+  // eye mistakes for an enabled action.
+  .neo-btn--primary:disabled,
+  .neo-btn--primary[aria-disabled="true"] {
+    background: var(--ns-surface-subtle, #f7f8fa);
+    border: 1px solid var(--ns-border-strong, rgba(20, 22, 38, 0.1));
+    color: var(--ns-text-muted, #8a92a6);
+    box-shadow: none;
+    opacity: 1;
+  }
 }
 
 .shared-pay-review {
@@ -282,6 +300,13 @@
       font-variant-numeric: tabular-nums;
     }
 
+    // Closed-state placeholder: "Enter details" should read as a muted prompt,
+    // not a real zero-value transaction.
+    strong.shared-pay-review__pending {
+      color: var(--ns-text-muted, #8a92a6);
+      font-weight: 700;
+    }
+
     &:focus-visible {
       outline: none;
       box-shadow: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
@@ -294,6 +319,13 @@
 
   .shared-pay-summary {
     margin: 0 0.7rem 0.7rem;
+  }
+
+  &__hint {
+    margin: 0 0.7rem 0.7rem;
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 0.74rem;
+    line-height: 1.5;
   }
 
   &__warning {
@@ -339,6 +371,61 @@
     font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
     text-align: right;
+  }
+
+  // The network-fee row is an honest estimate (the wallet quotes the exact GAS
+  // fee at signing), so it reads in a quieter, non-numeric weight.
+  strong.shared-pay-summary__muted {
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+}
+
+.shared-pay-howto {
+  .shared-pay-howto__steps {
+    display: grid;
+    gap: 0.7rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+    }
+  }
+
+  .shared-pay-howto__num {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--ns-violet-soft, #e4f8f0);
+    color: var(--ns-violet-strong, #0fb174);
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .shared-pay-howto__copy {
+    padding-top: 0.15rem;
+    color: var(--ns-text-2, #5b6478);
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .shared-pay-howto__foot {
+    margin: 0.9rem 0 0;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+    color: var(--ns-text-muted, #8a92a6);
+    font-size: 0.78rem;
+    line-height: 1.5;
   }
 }
 

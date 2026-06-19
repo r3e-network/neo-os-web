@@ -161,24 +161,90 @@
   color: var(--ns-green-strong);
 }
 
-.neo-swap-wallet-empty {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 12px 14px;
-  border: 1px solid var(--ns-line);
-  border-radius: 14px;
-  background: var(--ns-surface-subtle);
-  color: var(--ns-text-2);
-  font-size: 0.85rem;
-  font-weight: 600;
-  line-height: 1.4;
+/* Disconnected how-it-works panel: explains the quote-first flow and offers a
+   single clear Connect CTA instead of an inert form. */
+.neo-swap-intro {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(150deg, var(--ns-green-soft) 0%, #ffffff 78%);
 }
 
-.neo-swap-wallet-empty svg {
+.neo-swap-intro__lead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.neo-swap-intro__badge {
+  display: inline-flex;
   flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--ns-surface);
   color: var(--ns-green-strong);
+  box-shadow: 0 2px 8px rgba(20, 22, 38, 0.06);
+}
+
+.neo-swap-intro__title {
+  display: block;
+  color: var(--ns-ink);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.neo-swap-intro__body {
+  margin: 4px 0 0;
+  color: var(--ns-text-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.neo-swap-intro__steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.neo-swap-intro__steps li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.neo-swap-intro__steps svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--ns-green-strong);
+}
+
+.neo-swap-intro__steps strong {
+  display: block;
+  color: var(--ns-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.neo-swap-intro__steps span {
+  display: block;
+  margin-top: 2px;
+  color: var(--ns-text-2);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .neo-swap-router-notice {
@@ -214,9 +280,194 @@
   }
 }
 
-.neo-swap-side-actions {
+/* Interactive slippage control: preset chips + custom input. */
+.neo-swap-slippage {
   display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--ns-line);
+  border-radius: 16px;
+  background: var(--ns-surface-subtle);
+}
+
+.neo-swap-slippage__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
   min-width: 0;
+}
+
+.neo-swap-slippage__label {
+  color: var(--ns-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.neo-swap-slippage__value {
+  color: var(--ns-ink);
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.neo-swap-slippage__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.neo-swap-chip {
+  flex: 0 0 auto;
+  min-width: 52px;
+  padding: 8px 12px;
+  border: 1px solid var(--ns-line);
+  border-radius: 999px;
+  background: var(--ns-surface);
+  color: var(--ns-text-2);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.neo-swap-chip:hover {
+  border-color: var(--ns-green);
+  background: var(--ns-green-soft);
+}
+
+.neo-swap-chip.is-active {
+  border-color: var(--ns-green);
+  background: var(--ns-green-soft);
+  color: var(--ns-green-strong);
+}
+
+.neo-swap-chip:focus-visible {
+  outline: none;
+  border-color: var(--ns-green);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);
+}
+
+.neo-swap-chip-custom {
+  display: inline-flex;
+  flex: 1 1 96px;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 12px 0 4px;
+  border: 1px solid var(--ns-line);
+  border-radius: 999px;
+  background: var(--ns-surface);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.neo-swap-chip-custom.is-active {
+  border-color: var(--ns-green);
+  background: var(--ns-green-soft);
+}
+
+.neo-swap-chip-custom > span {
+  flex: 0 0 auto;
+  color: var(--ns-text-2);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.neo-swap-chip-custom .neo-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.neo-swap-slippage-input .neo-input__field {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding-left: 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.neo-swap-chip-custom:focus-within {
+  border-color: var(--ns-green);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.18);
+}
+
+.neo-swap-slippage__hint {
+  margin: 0;
+  color: var(--ns-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+
+  &.is-warn {
+    color: var(--ns-warning, #b9791a);
+    font-weight: 600;
+  }
+}
+
+/* Transaction detail rows: network, route, ETA, fee — exact and unambiguous. */
+.neo-swap-tx-details {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--ns-line);
+  border-radius: 14px;
+  background: var(--ns-surface-subtle);
+}
+
+.neo-swap-tx-details > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.neo-swap-tx-details dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--ns-text-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.neo-swap-tx-details dt svg {
+  flex: 0 0 auto;
+  color: var(--ns-muted);
+}
+
+.neo-swap-tx-details dd {
+  margin: 0;
+  color: var(--ns-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.neo-swap-preview-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ns-text-2);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .neo-swap-token-field {
@@ -336,7 +587,7 @@
 
 .neo-swap-detail-panel {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -420,6 +671,10 @@
 
   .neo-swap-input-row {
     align-items: stretch;
+  }
+
+  .neo-swap-tx-details > div {
+    gap: 10px;
   }
 }
 

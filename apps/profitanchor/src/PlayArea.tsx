@@ -54,6 +54,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const pendingWithdrawDisplay = str("pendingWithdrawDisplay", "0 NEO");
   const rewardReserveDisplay = str("rewardReserveDisplay", "0 GAS");
   const rewardPerNeoDisplay = str("rewardPerNeoDisplay", "0");
+  const effectiveRateDisplay = str("effectiveRateDisplay", "0");
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
   const lastTxid = str("lastTxid");
@@ -202,6 +203,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </section>
 
+      <section className="anchor-rate-band" aria-label={t("rateBandTitle")}>
+        <div className="anchor-rate-band__copy">
+          <span className="anchor-rate-band__eyebrow">{t("rateBandTitle")}</span>
+          <p>{t("rateBandCopy")}</p>
+        </div>
+        <div className="anchor-rate-band__figure">
+          <span className="anchor-rate-band__label">{t("effectiveRate")}</span>
+          <strong>
+            {hasData ? (
+              <>
+                {effectiveRateDisplay}
+                <em>{t("effectiveRateUnit")}</em>
+              </>
+            ) : (
+              <span className="anchor-rate-band__placeholder">{placeholder}</span>
+            )}
+          </strong>
+          <small>
+            {hasData && Number(effectiveRateDisplay) === 0
+              ? t("effectiveRateEmpty")
+              : t("effectiveRateCaption")}
+          </small>
+        </div>
+      </section>
+
       {metrics.length > 0 && (
         <div className="anchor-stat-grid">
           {metrics.map((metric) => (
@@ -265,6 +291,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               onChange={(event) => setAmountInput(event.currentTarget.value)}
             />
           </label>
+          <span className="anchor-field-hint">{t("wholeNeoHint")}</span>
 
           <p
             className={`anchor-inline-status${amountIsValid ? " is-ready" : " is-blocked"}`}
@@ -281,6 +308,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="anchor-preflight-head">
               <span>{t("preflightEyebrow")}</span>
               <strong>{t("preflightTitle")}</strong>
+              {!hasData && (
+                <em className="anchor-preflight-head__note">
+                  {t("previewNotConnected")}
+                </em>
+              )}
             </div>
             <dl className="anchor-preflight-summary" aria-label={t("preflightChecklist")}>
               {preflightChecks.map((check) => (

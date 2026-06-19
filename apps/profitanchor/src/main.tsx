@@ -83,6 +83,22 @@ defineMiniApp({
       const rps = Number(anchor.stats.get()?.rps ?? 0);
       return Number.isFinite(rps) ? formatNum(rps / REWARD_PER_NEO_SCALE) : formatNum(0);
     }, [anchor.stats]);
+    // Honest, variable "current rate": what the funded reward reserve covers per
+    // staked NEO right now (reserve GAS ÷ total staked NEO). This is a derived
+    // VIEW of existing on-chain figures, not a guaranteed APR — it falls to 0
+    // when the reserve is empty and rises only as GAS is funded in.
+    const effectiveRateDisplay = createDerived(() => {
+      const s = anchor.stats.get();
+      const reserve = s?.rewardReserve ?? 0;
+      const staked = s?.totalStaked ?? 0;
+      if (!staked || !Number.isFinite(staked) || staked <= 0) return formatNum(0);
+      return formatNumber(reserve / staked, 4);
+    }, [anchor.stats]);
+    // Distinguishes "no chain data yet" (— placeholder) from a genuine on-chain 0.
+    const statsLoaded = createDerived(
+      () => anchor.stats.get() != null,
+      [anchor.stats],
+    );
     const agentCount = createDerived(
       () => {
         const s = anchor.stats.get();
@@ -209,6 +225,8 @@ defineMiniApp({
         totalNeoDisplay,
         rewardReserveDisplay,
         rewardPerNeoDisplay,
+        effectiveRateDisplay,
+        statsLoaded,
         agentCount,
         ingressCount,
         submitting,

@@ -26,9 +26,18 @@ const RATE_STALE_AFTER_MS = 10 * 60 * 1000;
 // GAS reserved for network fees when MAX-ing a GAS balance, so the swap (and the
 // fee) can both settle instead of consuming the entire balance.
 const GAS_FEE_HEADROOM = 0.1;
-// Slippage tolerance: minReceived = output * (1000 - 5) / 1000 = output * 0.995.
-const SLIPPAGE_NUMERATOR = 995n;
-const SLIPPAGE_DENOMINATOR = 1000n;
+// Slippage tolerance is expressed in basis points (1 bp = 0.01%) and applied as
+// minReceived = output * (10000 - bps) / 10000. The default is 50 bps (0.5%);
+// the user can pick a preset or enter a custom value. Selecting more slippage
+// only LOWERS the minimum-received floor — it never changes the quoted output.
+const SLIPPAGE_BPS_DENOMINATOR = 10000n;
+const DEFAULT_SLIPPAGE_BPS = 50;
+// Bounds keep a custom slippage sane: 0.01% floor (1 bp) so minReceived stays
+// meaningful, 50% ceiling so a fat-finger entry cannot zero out the floor.
+const MIN_SLIPPAGE_BPS = 1;
+const MAX_SLIPPAGE_BPS = 5000;
+/** Preset slippage chips, in basis points, surfaced as 0.1% / 0.5% / 1%. */
+export const SLIPPAGE_PRESET_BPS: ReadonlyArray<number> = [10, 50, 100];
 
 /** Canonical list of swappable pairs surfaced in the playarea + manifest stats. */
 export const POPULAR_PAIRS: ReadonlyArray<{ id: string; name: string }> = [
@@ -62,6 +71,8 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   const showSelector = createObservable(false);
   const selectorTarget = createObservable<"from" | "to">("from");
   const isSwapping = createObservable(false);
+  // Selected slippage tolerance in basis points. Defaults to 0.5% (50 bps).
+  const slippageBps = createObservable(DEFAULT_SLIPPAGE_BPS);
   const datafeed = useMorpheusDataFeed();
   let swapAnimTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -241,19 +252,55 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     },
   };
 
-  const slippage: Observable<string> = { get: () => "0.5%", set: () => {}, subscribe: () => () => {} };
+  /** Format a basis-point value as a trimmed percentage string, e.g. 50 → "0.5%". */
+  function formatSlippagePct(bps: number): string {
+    const pct = bps / 100;
+    // Up to 2 decimals, trailing zeros trimmed: 10→"0.1%", 50→"0.5%", 100→"1%".
+    return `${parseFloat(pct.toFixed(2))}%`;
+  }
+
+  // Human-readable selected slippage, e.g. "0.5%". Read by the detail panel and
+  // the wallet-review copy.
+  const slippage: Observable<string> = {
+    get: () => formatSlippagePct(slippageBps.get()),
+    set: () => {},
+    subscribe: (fn) => slippageBps.subscribe(fn),
+  };
+
+  // Raw selected slippage in basis points, so the UI can highlight the active
+  // preset chip and the custom input can show the current value.
+  const slippageValue: Observable<number> = {
+    get: () => slippageBps.get(),
+    set: () => {},
+    subscribe: (fn) => slippageBps.subscribe(fn),
+  };
 
   /**
-   * Minimum received, computed in integer base units to apply the 0.5% slippage
-   * floor without float scientific-notation artifacts. Returns a decimal string
-   * quantized to the receiving token's decimals.
+   * Update the slippage tolerance from a percentage string or number (e.g. "0.5"
+   * or 0.5 → 50 bps). Out-of-range / invalid input is clamped to the supported
+   * 0.01%–50% band so the minimum-received floor stays meaningful. This only
+   * adjusts the floor used for minReceived — it never alters the quoted output.
+   */
+  function setSlippage(value: string | number): void {
+    const pct = typeof value === "number" ? value : parseFloat(String(value).trim().replace("%", ""));
+    if (!Number.isFinite(pct)) return;
+    const bps = Math.round(pct * 100);
+    const clamped = Math.min(MAX_SLIPPAGE_BPS, Math.max(MIN_SLIPPAGE_BPS, bps));
+    slippageBps.set(clamped);
+  }
+
+  /**
+   * Minimum received, computed in integer base units to apply the selected
+   * slippage floor without float scientific-notation artifacts. Returns a
+   * decimal string quantized to the receiving token's decimals.
    */
   function computeMinReceived(): string {
     const tt = toToken.get();
     const outInt = toFixedDecimals(toAmount.get() || "0", tt.decimals);
+    const numerator = BigInt(SLIPPAGE_BPS_DENOMINATOR - BigInt(slippageBps.get()));
     let minInt: bigint;
     try {
-      minInt = (BigInt(outInt) * SLIPPAGE_NUMERATOR) / SLIPPAGE_DENOMINATOR;
+      minInt = (BigInt(outInt) * numerator) / SLIPPAGE_BPS_DENOMINATOR;
     } catch {
       return tt.decimals === 0 ? "0" : (0).toFixed(Math.min(tt.decimals, 4));
     }
@@ -263,7 +310,12 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   const minReceived: Observable<string> = {
     get: () => computeMinReceived(),
     set: () => {},
-    subscribe: (fn) => { const u1 = toAmount.subscribe(fn); const u2 = toToken.subscribe(fn); return () => { u1(); u2(); }; },
+    subscribe: (fn) => {
+      const u1 = toAmount.subscribe(fn);
+      const u2 = toToken.subscribe(fn);
+      const u3 = slippageBps.subscribe(fn);
+      return () => { u1(); u2(); u3(); };
+    },
   };
 
   // Manifest-bound views: header stats + sidebar rows read these keys.
@@ -389,7 +441,8 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
       // Min received in integer base units — apply the 0.5% floor with BigInt so
       // a tiny output never collapses to "0" via float scientific notation.
       const outInt = BigInt(toFixedDecimals(toAmount.get() || "0", tt.decimals));
-      const minOutputBig = (outInt * SLIPPAGE_NUMERATOR) / SLIPPAGE_DENOMINATOR;
+      const slippageNumerator = SLIPPAGE_BPS_DENOMINATOR - BigInt(slippageBps.get());
+      const minOutputBig = (outInt * slippageNumerator) / SLIPPAGE_BPS_DENOMINATOR;
       if (minOutputBig <= 0n) throw new Error(t("invalidAmount"));
       const minOutputInt = minOutputBig.toString();
       const routerAddress = chain.contractAddress.get();
@@ -428,9 +481,9 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   return {
     fromToken, toToken, fromAmount, toAmount, exchangeRate, rateLoading, loading,
     showSelector, selectorTarget, isSwapping, availableTokens, canSwap,
-    swapButtonText, slippage, minReceived, selectedPairDisplay, pairCount, currentRate,
+    swapButtonText, slippage, slippageValue, minReceived, selectedPairDisplay, pairCount, currentRate,
     routerAvailable, rateStale, rateAsOf, walletConnected,
-    setMaxAmount, setFromAmount, loadExchangeRate,
+    setSlippage, setMaxAmount, setFromAmount, loadExchangeRate,
     swapTokens, openFromSelector, openToSelector, closeSelector, selectToken,
     executeSwap, refreshBalances, loadAll, cleanup,
   };

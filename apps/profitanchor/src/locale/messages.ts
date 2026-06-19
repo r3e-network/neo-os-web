@@ -26,6 +26,18 @@ const appMessages = {
     en: "Cumulative GAS distributed per NEO since launch — not a current rate.",
     zh: "自上线以来每 NEO 累计分配的 GAS——并非当前收益率。",
   },
+  effectiveRate: { en: "Reserve per NEO", zh: "每 NEO 储备" },
+  effectiveRateUnit: { en: "GAS / NEO", zh: "GAS / NEO" },
+  effectiveRateCaption: {
+    en: "Reward reserve ÷ total staked NEO — variable and not guaranteed.",
+    zh: "奖励储备 ÷ 总质押 NEO——浮动且不保证。",
+  },
+  effectiveRateEmpty: { en: "Funds when the reserve is topped up", zh: "储备注入后即有数值" },
+  rateBandTitle: { en: "Variable reward rate", zh: "浮动奖励率" },
+  rateBandCopy: {
+    en: "ProfitAnchor pays a variable rate, never a fixed APR. The figure below is what the current reserve covers per staked NEO right now.",
+    zh: "ProfitAnchor 支付浮动收益率，从不承诺固定 APR。下方数字是当前储备目前每枚质押 NEO 可覆盖的额度。",
+  },
   selfLoanNote: {
     en: "Composability: ProfitAnchor's selected route is published on-chain for SelfLoan to follow — without transferring your collateral custody.",
     zh: "可组合性：ProfitAnchor 选定的路由发布在链上供 SelfLoan 跟随——且无需转移你的抵押品托管权。",
@@ -158,8 +170,16 @@ const appMessages = {
     en: "Enter a whole NEO amount, send the wallet transaction, then track the submitted action and route state in one place.",
     zh: "输入整数 NEO 数量，发送钱包交易，并在同一区域跟踪已提交动作和路由状态。",
   },
-  preflightEyebrow: { en: "Preflight", zh: "提交前检查" },
+  preflightEyebrow: { en: "Preview", zh: "提交前预览" },
   preflightTitle: { en: "Review the wallet effect", zh: "确认钱包操作影响" },
+  previewNotConnected: {
+    en: "Preview only — connect a wallet to stake.",
+    zh: "仅为预览——请连接钱包后再质押。",
+  },
+  wholeNeoHint: {
+    en: "Whole NEO only — NEO is indivisible, no decimals.",
+    zh: "仅限整数 NEO——NEO 不可分割，无小数。",
+  },
   preflightBody: {
     en: "Confirm the amount, route, stake memo, and claim state before the wallet prompt opens.",
     zh: "在钱包弹窗打开前确认金额、路由、质押 memo 和领取状态。",

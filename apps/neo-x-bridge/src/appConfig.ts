@@ -322,6 +322,10 @@ const appMessages = {
   routeAria: { en: "Active route", zh: "当前路径" },
   routeN3Wallet: { en: "NEP-21 / NeoLine", zh: "NEP-21 / NeoLine" },
   routeNeoXWallet: { en: "EVM / MetaMask", zh: "EVM / MetaMask" },
+  routeCardTitle: { en: "How the bridge moves GAS", zh: "GAS 如何跨链" },
+  routeSendLabel: { en: "Send from", zh: "从此发送" },
+  routeReceiveLabel: { en: "Receive on", zh: "在此接收" },
+  routeArrowAria: { en: "moves to", zh: "转移至" },
 
   // Metrics strip
   metricsAria: { en: "Bridge console status", zh: "跨链控制台状态" },
@@ -345,16 +349,56 @@ const appMessages = {
     en: "Enter a payload to send across the bridge.",
     zh: "请输入要跨链发送的载荷。",
   },
+  // GAS-only constraint — the asset bridge path exposes GAS only.
+  assetFixedNote: {
+    en: "GAS only — this is the production token path for the native Neo X bridge.",
+    zh: "仅支持 GAS——这是原生 Neo X 跨链桥的生产代币路径。",
+  },
+  assetFixedChip: { en: "GAS", zh: "GAS" },
 
   // Preview labels
   previewRoute: { en: "Route", zh: "路径" },
-  previewAmount: { en: "Amount", zh: "数量" },
+  previewAmount: { en: "You bridge", zh: "桥接数量" },
   previewRecipient: { en: "Recipient", zh: "接收地址" },
   previewTarget: { en: "Target", zh: "目标" },
   previewPayload: { en: "Payload", zh: "载荷" },
   previewBridge: { en: "Bridge", zh: "桥" },
   previewSourceTx: { en: "Source tx", zh: "源链交易" },
   previewReady: { en: "Ready", zh: "就绪" },
+
+  // Costs & timing — surfaced honestly before handoff (no protocol fee on this
+  // console; gas is paid on each chain; ETA derives from expectedSettlement).
+  costsTitle: { en: "Costs & timing", zh: "费用与时间" },
+  costsBridgeFee: { en: "Bridge protocol fee", zh: "桥接协议费" },
+  costsBridgeFeeValue: { en: "None", zh: "无" },
+  costsGas: { en: "Network gas", zh: "网络 Gas" },
+  costsGasValue: {
+    en: "Paid on each chain at submit",
+    zh: "提交时在各链上支付",
+  },
+  costsEta: { en: "Settlement ETA", zh: "结算预计时间" },
+  costsEtaValue: {
+    en: "~1–2 min after source confirmation",
+    zh: "源链确认后约 1–2 分钟",
+  },
+  costsFootnote: {
+    en: "Estimate, not a guarantee — finalization time depends on chain congestion and validator attestation. This console moves no funds.",
+    zh: "为预估值，并非保证——最终完成时间取决于链上拥堵和验证者签名。本控制台不会转移资金。",
+  },
+
+  // Inline gating hints (mirror the disabled-CTA pattern across DeFi apps)
+  hintAssetGate: {
+    en: "Enter a positive GAS amount and a valid destination address for the selected chain to continue.",
+    zh: "请输入正数的 GAS 数量和所选链上的有效目标地址以继续。",
+  },
+  hintMessageGate: {
+    en: "Enter a valid target contract, a message payload, and a gas limit of at least 21000 to continue.",
+    zh: "请输入有效的目标合约、消息载荷以及不小于 21000 的 Gas 上限以继续。",
+  },
+  hintTrackGate: {
+    en: "Enter an operation ID or a valid source transaction hash to preview the lifecycle.",
+    zh: "请输入操作 ID 或有效的源链交易哈希以预览生命周期。",
+  },
 
   // Buttons
   btnPrepareAsset: { en: "Prepare asset handoff", zh: "生成资产交接" },

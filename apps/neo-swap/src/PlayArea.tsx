@@ -8,7 +8,13 @@
 
 import {
   ArrowDownUp,
+  Clock,
+  Fuel,
+  Network,
   RefreshCw,
+  ShieldCheck,
+  SlidersHorizontal,
+  TrendingUp,
   Wallet,
   X,
 } from "lucide-react";
@@ -17,7 +23,7 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import SwapHero from "./components/SwapHero";
 import PopularPairs from "./components/PopularPairs";
-import { POPULAR_PAIRS } from "./hooks/useSwapEngine";
+import { POPULAR_PAIRS, SLIPPAGE_PRESET_BPS } from "./hooks/useSwapEngine";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -55,34 +61,59 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canSwap = bool("canSwap");
   const swapButtonText = str("swapButtonText", t("tabSwap"));
   const slippage = str("slippage", "0.5%");
+  const slippageValue = val<number>("slippageValue", 50) ?? 50;
   const minReceived = str("minReceived", "");
   // routerAvailable defaults to false: the manifest declares no router, so the
   // honest baseline is "no on-chain route" unless state says otherwise.
   const routerAvailable = state.routerAvailable ? bool("routerAvailable") : false;
   const rateStale = bool("rateStale");
   const rateAsOf = str("rateAsOf", "");
+  const walletConnected = state.walletConnected ? bool("walletConnected") : false;
+
+  // A single source of truth for "is there a usable quote loaded right now".
+  // Drives the badge, exchange-rate cell, and minimum-received cell so the three
+  // signals never contradict each other ("unavailable" vs "pending" vs "0").
+  const hasQuote = !!exchangeRate && !rateStale;
 
   // The route badge must reflect the real settlement path. With no router the
   // swap cannot complete, so the badge says so up front rather than "ready".
-  const routeHealth = !routerAvailable
-    ? t("swapRouteUnavailable")
-    : rateLoading
-      ? t("swapRouteSyncing")
+  const routeHealth = rateLoading
+    ? t("swapRouteSyncing")
+    : !routerAvailable
+      ? t("swapRouteUnavailable")
       : rateStale
         ? t("rateStale")
         : exchangeRate
           ? t("swapRouteReady")
           : t("swapRouteUnavailable");
   const routeReady = routerAvailable && !rateLoading && !rateStale && !!exchangeRate;
-  const rateDisplay = rateLoading ? t("loadingRate") : exchangeRate || t("rateUnavailable");
-  const formattedMinReceived = minReceived || "0.0000";
+
+  // Unified no-data wording: while loading say "Loading rate..." everywhere;
+  // otherwise show the quote, or a single consistent "Quote pending" placeholder
+  // when no quote is loaded — matching the route badge exactly.
+  const quotePending = t("swapRouteUnavailable");
+  const rateDisplay = rateLoading
+    ? t("loadingRate")
+    : exchangeRate || quotePending;
+  const formattedMinReceived = rateLoading
+    ? t("loadingRate")
+    : hasQuote && minReceived
+      ? minReceived
+      : quotePending;
   const selectorTitle = selectorTarget === "to" ? t("to") : t("from");
   const fromSymbol = fromToken?.symbol || t("selectToken");
   const toSymbol = toToken?.symbol || t("selectToken");
+  const pairLabel = `${fromSymbol}/${toSymbol}`;
 
-  const fromBalance = fromToken?.balance ?? 0;
-  const toBalance = toToken?.balance ?? 0;
-  const walletEmpty = fromBalance === 0 && toBalance === 0;
+  // Slippage above 1% (100 bps) warrants a gentle warning — the minimum received
+  // can come in notably below the quote.
+  const slippageHigh = slippageValue > 100;
+  // Is the current selection one of the presets, or a custom value?
+  const isPresetActive = (bps: number) => slippageValue === bps;
+  const isCustomSlippage = !SLIPPAGE_PRESET_BPS.includes(slippageValue);
+  const customSlippageDisplay = isCustomSlippage
+    ? String(Math.round((slippageValue / 100) * 100) / 100)
+    : "";
 
   return (
     <div className="neo-swap-play-area">
@@ -109,17 +140,55 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
           </div>
 
+          {!walletConnected && (
+            <div className="neo-swap-intro" role="status">
+              <div className="neo-swap-intro__lead">
+                <span className="neo-swap-intro__badge" aria-hidden="true">
+                  <Wallet size={18} />
+                </span>
+                <div>
+                  <strong className="neo-swap-intro__title">{t("introHeading")}</strong>
+                  <p className="neo-swap-intro__body">{t("introBody")}</p>
+                </div>
+              </div>
+              <ul className="neo-swap-intro__steps">
+                <li>
+                  <TrendingUp size={16} aria-hidden="true" />
+                  <div>
+                    <strong>{t("introStepRate")}</strong>
+                    <span>{t("introStepRateBody")}</span>
+                  </div>
+                </li>
+                <li>
+                  <SlidersHorizontal size={16} aria-hidden="true" />
+                  <div>
+                    <strong>{t("introStepSlippage")}</strong>
+                    <span>{t("introStepSlippageBody")}</span>
+                  </div>
+                </li>
+                <li>
+                  <ShieldCheck size={16} aria-hidden="true" />
+                  <div>
+                    <strong>{t("introStepSettle")}</strong>
+                    <span>{t("introStepSettleBody")}</span>
+                  </div>
+                </li>
+              </ul>
+              <NeoButton
+                variant="primary"
+                block
+                onClick={() => dispatch("connectWallet")}
+              >
+                <Wallet size={16} aria-hidden="true" />
+                {t("connectToPreview")}
+              </NeoButton>
+            </div>
+          )}
+
           {!routerAvailable && (
             <div className="neo-swap-router-notice" role="status">
               <span className="neo-swap-router-notice__title">{t("swapRouterUnavailable")}</span>
               <span>{t("swapRouterUnavailableHint")}</span>
-            </div>
-          )}
-
-          {routerAvailable && walletEmpty && (
-            <div className="neo-swap-wallet-empty">
-              <Wallet size={18} aria-hidden="true" />
-              <span>{t("step1")}</span>
             </div>
           )}
 
@@ -188,20 +257,76 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
           </div>
 
+          <div className="neo-swap-slippage" role="group" aria-label={t("slippage")}>
+            <div className="neo-swap-slippage__head">
+              <span className="neo-swap-slippage__label">{t("slippage")}</span>
+              <strong className="neo-swap-slippage__value">{slippage}</strong>
+            </div>
+            <div className="neo-swap-slippage__controls">
+              {SLIPPAGE_PRESET_BPS.map((bps) => {
+                const pct = `${parseFloat((bps / 100).toFixed(2))}%`;
+                return (
+                  <button
+                    key={bps}
+                    type="button"
+                    className={`neo-swap-chip${isPresetActive(bps) ? " is-active" : ""}`}
+                    aria-pressed={isPresetActive(bps)}
+                    aria-label={t("slippagePreset", { pct })}
+                    onClick={() => dispatch("setSlippage", bps / 100)}
+                  >
+                    {pct}
+                  </button>
+                );
+              })}
+              <div className={`neo-swap-chip-custom${isCustomSlippage ? " is-active" : ""}`}>
+                <NeoInput
+                  className="neo-swap-slippage-input"
+                  type="number"
+                  min={0.01}
+                  max={50}
+                  step={0.1}
+                  value={customSlippageDisplay}
+                  placeholder={t("slippageCustom")}
+                  aria-label={t("slippageCustomLabel")}
+                  onChange={(value) => { void dispatch("setSlippage", value); }}
+                />
+                <span aria-hidden="true">%</span>
+              </div>
+            </div>
+            <p className={`neo-swap-slippage__hint${slippageHigh ? " is-warn" : ""}`}>
+              {slippageHigh ? t("slippageHigh") : t("slippageHint")}
+            </p>
+          </div>
+
           <div className="neo-swap-detail-panel">
             <div>
               <span>{t("exchangeRate")}</span>
               <strong>{rateDisplay}</strong>
             </div>
             <div>
-              <span>{t("slippage")}</span>
-              <strong>{slippage}</strong>
-            </div>
-            <div>
               <span>{t("minReceived")}</span>
               <strong>{formattedMinReceived}</strong>
             </div>
           </div>
+
+          <dl className="neo-swap-tx-details">
+            <div>
+              <dt><Network size={14} aria-hidden="true" />{t("networkLabel")}</dt>
+              <dd>{t("tokenNeo")} N3</dd>
+            </div>
+            <div>
+              <dt><RefreshCw size={14} aria-hidden="true" />{t("routeLabel")}</dt>
+              <dd>{t("routeDirectValue", { pair: pairLabel })}</dd>
+            </div>
+            <div>
+              <dt><Clock size={14} aria-hidden="true" />{t("estSettlement")}</dt>
+              <dd>{t("estSettlementValue")}</dd>
+            </div>
+            <div>
+              <dt><Fuel size={14} aria-hidden="true" />{t("networkFeeLabel")}</dt>
+              <dd>{t("networkFeeValue")}</dd>
+            </div>
+          </dl>
 
           {rateAsOf && (
             <p className={`neo-swap-rate-asof${rateStale ? " is-stale" : ""}`}>
@@ -210,6 +335,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 : t("rateSourceAsOf", { time: rateAsOf })}
             </p>
           )}
+
+          <p className="neo-swap-preview-note">{t("pricePreviewOnly")}</p>
 
           {routerAvailable ? (
             <NeoButton
@@ -224,11 +351,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           ) : (
             <>
               {/* No router deployed: the real deliverable is the quote, so the
-                  primary CTA refreshes it and the Swap action is a plainly
-                  labeled "Settlement unavailable" disabled state rather than a
-                  teasing primary button. */}
+                  refresh control is the primary CTA — unless the wallet is
+                  disconnected, where the intro panel's Connect is the single
+                  primary and refresh steps down to secondary. The Swap action is
+                  a plainly labeled "Settlement unavailable" disabled state
+                  rather than a teasing primary button. */}
               <NeoButton
-                variant="primary"
+                variant={walletConnected ? "primary" : "secondary"}
                 block
                 loading={rateLoading}
                 onClick={() => dispatch("refreshRate")}
@@ -244,19 +373,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
 
         <aside className="neo-swap-side-stack" aria-label={t("tabPool")}>
-          <div className="neo-swap-side-actions">
-            <NeoButton
-              size="sm"
-              variant="secondary"
-              block
-              onClick={() => dispatch("refreshRate")}
-              aria-label={t("refreshRate")}
-            >
-              <RefreshCw size={15} aria-hidden="true" />
-              {t("refreshRate")}
-            </NeoButton>
-          </div>
-
           <PopularPairs
             t={t}
             selectedPair={
