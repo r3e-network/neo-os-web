@@ -154,10 +154,13 @@ function FactoryPreviewCard({
     const name = nep11.collectionName.trim() || t("previewUntitledCollection");
     const symbol = nep11.symbol.trim() || t("previewSymbolPlaceholder");
     const maxSupplyNum = Number(nep11.maxSupply);
+    // An empty/invalid max supply is a blocking validation error (the template
+    // requires 1–1,000,000), so it can never deploy as "Unlimited" — show a
+    // neutral placeholder instead of implying an unavailable option.
     const maxSupply =
       nep11.maxSupply.trim() && Number.isFinite(maxSupplyNum) && maxSupplyNum > 0
         ? maxSupplyNum.toLocaleString()
-        : t("previewMaxSupplyUnlimited");
+        : "—";
     const royaltyNum = Number(nep11.royaltyBps);
     const royalty =
       Number.isFinite(royaltyNum) && royaltyNum > 0

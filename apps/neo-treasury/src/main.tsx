@@ -82,7 +82,13 @@ defineMiniApp({
 
       try {
         const cached = readCachedJSON<TreasuryData>(CACHE_KEY);
-        if (cached) data.set(cached);
+        if (cached) {
+          data.set(cached);
+          // Cached balances/prices are not a live read — show the amber "stale"
+          // signal until the fresh fetch resolves and sets real freshness, so old
+          // cached USD is never momentarily presented as "live synced".
+          stale.set(true);
+        }
       } catch (_e) {
         console.warn("[neo-treasury] cache read failed:", _e instanceof Error ? _e.message : String(_e));
       }
