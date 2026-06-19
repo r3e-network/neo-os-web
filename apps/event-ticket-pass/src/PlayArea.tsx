@@ -104,7 +104,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <Ticket size={24} />
           </span>
           <div>
-            <span className="ticket-hero__eyebrow">{t("eventPass")}</span>
+            <span className="ticket-hero__eyebrow">{t("heroTagline")}</span>
             <h2 id="event-ticket-title">{t("title")}</h2>
             <p>{t("docSubtitle")}</p>
             <div className="ticket-hero__flow" aria-label={t("workflow")}>
@@ -209,6 +209,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </NeoButton>
         </form>
 
+        <div className="ticket-workspace__col">
         <section className="ticket-panel ticket-panel--events" aria-label={t("yourEvents")}>
           <div className="ticket-panel__head ticket-panel__head--row">
             <div>
@@ -271,9 +272,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           )}
         </section>
-      </section>
 
-      <section className="ticket-panel ticket-desk" aria-label={t("issueTicketTitle")}>
+        <section className="ticket-panel ticket-desk" aria-label={t("issueTicketTitle")}>
         <div className="ticket-tabs" role="tablist">
           <button
             type="button"
@@ -387,6 +387,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
           </form>
         )}
+        </section>
+        </div>
       </section>
 
       <section className="ticket-panel ticket-panel--tickets" aria-label={t("ticketsTab")}>
@@ -406,37 +408,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               const isTransferTarget = transferTokenId === ticket.tokenId;
               const isThisTransferring = transferringTokenId === ticket.tokenId;
               return (
-                <article key={ticket.tokenId} className="ticket-pass">
-                  <div className="ticket-pass__head">
-                    <div>
-                      <span>{ticket.eventName || ticket.eventId}</span>
-                      <strong>{ticket.seat || t("seatFallback")}</strong>
+                <article key={ticket.tokenId} className={`ticket-pass${ticket.used ? " ticket-pass--used" : ""}`}>
+                  <div className="ticket-pass__stub">
+                    <Ticket size={18} aria-hidden="true" />
+                    <span>{t("sampleAdmitOne")}</span>
+                  </div>
+                  <div className="ticket-pass__body">
+                    <div className="ticket-pass__head">
+                      <div>
+                        <span>{ticket.eventName || ticket.eventId}</span>
+                        <strong>{ticket.seat || t("seatFallback")}</strong>
+                      </div>
+                      <span className={`ticket-badge ${ticket.used ? "used" : "valid"}`}>
+                        {ticket.used ? t("ticketUsed") : t("ticketValid")}
+                      </span>
                     </div>
-                    <span className={`ticket-badge ${ticket.used ? "used" : "valid"}`}>
-                      {ticket.used ? t("ticketUsed") : t("ticketValid")}
-                    </span>
-                  </div>
 
-                  {/* Show the token-ID QR the door/check-in flow expects, so an
-                      attendee can present it instead of reading the id aloud. */}
-                  <div className="ticket-pass__qr">
-                    <TokenQr value={ticket.tokenId} label={t("ticketQrLabel")} />
-                  </div>
+                    {/* Show the token-ID QR the door/check-in flow expects, so an
+                        attendee can present it instead of reading the id aloud. */}
+                    <div className="ticket-pass__qr">
+                      <TokenQr value={ticket.tokenId} label={t("ticketQrLabel")} />
+                    </div>
 
-                  <div className="ticket-pass__id">
-                    <code>{ticket.tokenId}</code>
-                    <button
-                      type="button"
-                      className="ticket-icon-button"
-                      aria-label={t("copyTokenId")}
-                      title={t("copyTokenId")}
-                      onClick={() => dispatch("copyTokenId", ticket.tokenId)}
-                    >
-                      <Copy size={14} aria-hidden="true" />
-                    </button>
-                  </div>
+                    <div className="ticket-pass__id">
+                      <code>{ticket.tokenId}</code>
+                      <button
+                        type="button"
+                        className="ticket-icon-button"
+                        aria-label={t("copyTokenId")}
+                        title={t("copyTokenId")}
+                        onClick={() => dispatch("copyTokenId", ticket.tokenId)}
+                      >
+                        <Copy size={14} aria-hidden="true" />
+                      </button>
+                    </div>
 
-                  {!ticket.used && (
+                    {!ticket.used && (
                     <div className="ticket-pass__transfer">
                       {isTransferTarget ? (
                         <form
@@ -498,15 +505,52 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         </NeoButton>
                       )}
                     </div>
-                  )}
+                    )}
+                  </div>
                 </article>
               );
             })}
           </div>
         ) : (
-          <div className="ticket-empty">
-            <Ticket size={28} aria-hidden="true" />
-            <span>{t("emptyTicketsHint")}</span>
+          <div className="ticket-empty-state">
+            <div className="ticket-sample" aria-label={t("samplePreviewHeading")}>
+              <span className="ticket-sample__flag">{t("samplePreviewLabel")}</span>
+              <article className="ticket-pass ticket-pass--sample" aria-hidden="true">
+                <div className="ticket-pass__stub">
+                  <Ticket size={18} aria-hidden="true" />
+                  <span>{t("sampleAdmitOne")}</span>
+                </div>
+                <div className="ticket-pass__body">
+                  <div className="ticket-pass__head">
+                    <div>
+                      <span>{t("sampleVenue")}</span>
+                      <strong>{t("sampleEventName")}</strong>
+                    </div>
+                    <span className="ticket-badge valid">{t("ticketValid")}</span>
+                  </div>
+                  <div className="ticket-pass__sample-rows">
+                    <div>
+                      <span>{t("ticketSeat")}</span>
+                      <strong>{t("sampleSeat")}</strong>
+                    </div>
+                    <div>
+                      <span>{t("sampleHolder")}</span>
+                      <strong>{t("sampleHolderName")}</strong>
+                    </div>
+                  </div>
+                  <div className="ticket-pass__sample-foot">
+                    <span className="ticket-pass__qr-mock" aria-hidden="true">
+                      <QrCode size={26} />
+                    </span>
+                    <code>1-1042</code>
+                  </div>
+                </div>
+              </article>
+            </div>
+            <div className="ticket-empty-state__copy">
+              <strong>{t("samplePreviewHeading")}</strong>
+              <p>{t("samplePreviewCaption")}</p>
+            </div>
           </div>
         )}
       </section>

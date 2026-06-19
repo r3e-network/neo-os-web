@@ -39,8 +39,8 @@ const appMessages = {
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
   emptyEvents: { en: "No events yet", zh: "暂无活动" },
   emptyEventsHint: {
-    en: "Create an event to open the organizer workflow: issue passes to attendee addresses, pause issuance, and check people in at the door.",
-    zh: "创建活动后即可进入主办方流程：向参与者地址签发通行证、暂停签发，并在现场核验入场。",
+    en: "Start with an event on the left. Once it's live you can issue passes to your guests, pause issuance any time, and welcome people in at the door.",
+    zh: "先在左侧创建一个活动。活动上线后，您即可向宾客签发通行证、随时暂停签发，并在入口处迎接到场来宾。",
   },
   freePassesNote: {
     en: "Free passes — issued to the addresses you choose. No payment is taken on-chain.",
@@ -59,11 +59,23 @@ const appMessages = {
   deactivate: { en: "Deactivate", zh: "停用" },
   activate: { en: "Activate", zh: "启用" },
 
-  emptyTickets: { en: "No tickets yet", zh: "暂无门票" },
+  emptyTickets: { en: "No passes yet", zh: "暂无通行证" },
   emptyTicketsHint: {
-    en: "Issued attendee tickets appear here with token id, seat, and check-in state.",
-    zh: "已签发的参与者门票会显示在这里，包括 Token ID、座位和核验状态。",
+    en: "Every pass you hand out shows up here as a keepsake your guests can carry, transfer, and present at the door.",
+    zh: "您签发的每一张通行证都会以可收藏的形式显示在这里，宾客可随身携带、转赠，并在入口处出示。",
   },
+  samplePreviewLabel: { en: "Preview", zh: "预览" },
+  samplePreviewHeading: { en: "What your guests will keep", zh: "宾客将收藏的样子" },
+  samplePreviewCaption: {
+    en: "A sample of the keepsake pass attendees receive — once you issue one, real passes appear below.",
+    zh: "这是参与者将收到的纪念通行证样张——签发后，真实通行证会显示在下方。",
+  },
+  sampleEventName: { en: "Neo Builder Summit", zh: "Neo 开发者峰会" },
+  sampleVenue: { en: "Neo Community Hall", zh: "Neo 社区中心" },
+  sampleSeat: { en: "Row A · Seat 12", zh: "A 排 · 12 座" },
+  sampleHolder: { en: "Holder", zh: "持有人" },
+  sampleHolderName: { en: "Your guest", zh: "您的宾客" },
+  sampleAdmitOne: { en: "Admit one", zh: "凭票一人入场" },
   ticketUsed: { en: "Used", zh: "已使用" },
   ticketValid: { en: "Valid", zh: "有效" },
   ticketSeat: { en: "Seat", zh: "座位" },
@@ -115,7 +127,11 @@ const appMessages = {
 
   dateUnknown: { en: "Schedule TBD", zh: "时间待定" },
 
-  docSubtitle: { en: "On-chain tickets with organizer check-in", zh: "链上门票与主办方核验" },
+  docSubtitle: {
+    en: "Hand out passes your guests actually keep — issue them in seconds and check people in at the door.",
+    zh: "送出宾客真正愿意收藏的通行证——几秒即可签发，并在入口处完成核验。",
+  },
+  heroTagline: { en: "A keepsake for every guest", zh: "为每位宾客留下纪念" },
   docDescription: {
     en: "Event Ticket Pass publishes event metadata on-chain, mints NEP-11 tickets, and records check-in status at the gate. Each ticket can carry seat/memo data and becomes used after check-in.",
     zh: "活动门票通行证将活动信息上链、签发 NEP-11 门票，并记录入场核验状态。门票可包含座位/备注信息，核验后标记为已使用。",

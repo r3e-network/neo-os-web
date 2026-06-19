@@ -35,6 +35,55 @@ function localDateTimeMin(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
+// A friendly, warm palette for the per-address identicon. Deterministic from the
+// address so the same correspondent always wears the same colour — a small
+// visual identity for an otherwise faceless 0x… string. Display-only.
+const IDENTICON_HUES = ["#5b6ef5", "#7b5bf5", "#e07b4f", "#0fb174", "#d6516e", "#3b9ae0", "#c08a18"];
+
+function identiconColor(addr: string | undefined | null): string {
+  const a = String(addr ?? "").toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < a.length; i += 1) hash = (hash * 31 + a.charCodeAt(i)) % 100000;
+  return IDENTICON_HUES[hash % IDENTICON_HUES.length];
+}
+
+// Two leading hex characters make a stable, glanceable monogram for an address.
+function identiconLabel(addr: string | undefined | null): string {
+  const a = String(addr ?? "").replace(/^0x/i, "");
+  return (a.slice(0, 2) || "··").toUpperCase();
+}
+
+// Local-only nickname book. Maps a recipient address → a name the sender chose,
+// stored on this device alone. It never touches the compose form, the dispatch
+// path, or the on-chain payload — purely a human label for the UI.
+const NICKNAME_STORE_KEY = "neo-message:nicknames";
+
+function loadNicknames(): Record<string, string> {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(NICKNAME_STORE_KEY) : null;
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    if (parsed && typeof parsed === "object") return parsed as Record<string, string>;
+  } catch {
+    // Corrupt or unavailable storage falls back to an empty book.
+  }
+  return {};
+}
+
+function persistNicknames(book: Record<string, string>): void {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(NICKNAME_STORE_KEY, JSON.stringify(book));
+    }
+  } catch {
+    // Storage may be full or blocked; the in-memory book still works this session.
+  }
+}
+
+function nicknameFor(book: Record<string, string>, addr: string | undefined | null): string {
+  const key = String(addr ?? "").toLowerCase();
+  return key ? (book[key] ?? "").trim() : "";
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { bool, val } = useStateBindings(state);
 
@@ -64,15 +113,57 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [publicRevealAck, setPublicRevealAck] = useState(false);
   const sendBlockedByAck = needsPublicRevealAck(form.lockMode, publicRevealAck);
 
+  // Local-only nickname book. Lets the sender label a 0x… recipient with a human
+  // name (Mom, Alex…) that is shown back on rows. Display-only: stored on this
+  // device and never sent on-chain or through dispatch.
+  const [nicknames, setNicknames] = useState<Record<string, string>>(loadNicknames);
+  const [recipientNickname, setRecipientNickname] = useState("");
+
+  const recipientKnownName = nicknameFor(nicknames, form.recipient);
+  const recipientNicknameValue = recipientNickname || recipientKnownName;
+
+  const onRecipientNicknameChange = (value: string) => {
+    setRecipientNickname(value);
+    const key = String(form.recipient ?? "").toLowerCase();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(key)) return;
+    setNicknames((prev) => {
+      const next = { ...prev };
+      const trimmed = value.trim();
+      if (trimmed) next[key] = trimmed;
+      else delete next[key];
+      persistNicknames(next);
+      return next;
+    });
+  };
+
+  const Identicon = ({ addr }: { addr: string }) => (
+    <span
+      className="nm-identicon"
+      aria-hidden="true"
+      style={{ background: identiconColor(addr) }}
+    >
+      {identiconLabel(addr)}
+    </span>
+  );
+
   const renderMessage = (msg: MessageView, box: "inbox" | "outbox") => {
     const status = messageStatus(msg);
     const unlockLabel = formatUnlock(msg.unlockTime);
     const youAreRecipient = addressesEqual(address, msg.recipient);
     const isBusy = busyIds.includes(msg.id);
+    const partyAddr = box === "inbox" ? msg.sender : msg.recipient;
+    const partyName = nicknameFor(nicknames, partyAddr);
+    const partyLabel = box === "inbox" ? t("fromLabel") : t("toLabel");
     return (
       <div key={`${box}-${msg.id}`} className={`nm-item nm-${status}`}>
         <div className="nm-item-head">
-          <span className="nm-id">#{msg.id}</span>
+          <div className="nm-party">
+            <Identicon addr={partyAddr} />
+            <span className="nm-party-text">
+              <span className="nm-party-name">{partyName || partyLabel}</span>
+              <span className="nm-party-addr">{shortAddress(partyAddr)}</span>
+            </span>
+          </div>
           <span className={`nm-badge nm-badge-${status}`}>
             {status === "revealed"
               ? t("statusBadgeRevealed")
@@ -83,12 +174,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   : t("statusBadgeLocked")}
           </span>
         </div>
-
-        <p className="nm-meta">
-          {box === "inbox"
-            ? `${t("fromLabel")}: ${shortAddress(msg.sender)}`
-            : `${t("toLabel")}: ${shortAddress(msg.recipient)}`}
-        </p>
         {msg.timeLocked && unlockLabel ? (
           <p className="nm-meta nm-unlock">{t("unlocksLabel")}: {unlockLabel}</p>
         ) : (
@@ -202,12 +287,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <NeoCard title={t("composeTitle")}>
         <div className="nm-form">
-          <NeoInput
-            label={t("recipientLabel")}
-            placeholder="0x…"
-            value={form.recipient ?? ""}
-            onChange={(v) => setForm({ recipient: v })}
-          />
+          <div className="nm-recipient-row">
+            <NeoInput
+              label={t("recipientLabel")}
+              placeholder="0x…"
+              value={form.recipient ?? ""}
+              onChange={(v) => setForm({ recipient: v })}
+            />
+            <NeoInput
+              label={t("recipientNicknameLabel")}
+              placeholder={t("recipientNicknamePlaceholder")}
+              value={recipientNicknameValue}
+              onChange={onRecipientNicknameChange}
+            />
+          </div>
+          {recipientKnownName && !recipientNickname ? (
+            <p className="nm-hint nm-saved-name">
+              {t("savedNicknameNote", { name: recipientKnownName })}
+            </p>
+          ) : null}
           <NeoInput
             type="textarea"
             label={t("messageLabel")}
@@ -227,8 +325,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               aria-pressed={!isTimed}
               onClick={() => setForm({ lockMode: "recipient" })}
             >
-              <strong>{t("modeRecipient")}</strong>
-              <span>{t("modeRecipientHint")}</span>
+              <span className="nm-mode-icon" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
+              <span className="nm-mode-text">
+                <strong>{t("modeRecipient")}</strong>
+                <span>{t("modeRecipientHint")}</span>
+              </span>
             </button>
             <button
               type="button"
@@ -236,8 +349,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               aria-pressed={isTimed}
               onClick={() => setForm({ lockMode: "timed" })}
             >
-              <strong>{t("modeTimed")}</strong>
-              <span>{t("modeTimedHint")}</span>
+              <span className="nm-mode-icon" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3.5 2" />
+                </svg>
+              </span>
+              <span className="nm-mode-text">
+                <strong>{t("modeTimed")}</strong>
+                <span>{t("modeTimedHint")}</span>
+              </span>
             </button>
           </div>
 
@@ -296,7 +424,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <NeoCard title={t("inboxTitle")}>
         <div className="nm-inbox-head">
-          <span className="nm-account">{connected ? shortAddress(address) : t("notConnected")}</span>
+          <span className="nm-account">
+            {connected ? <Identicon addr={address} /> : null}
+            <span className="nm-account-addr">
+              {connected ? shortAddress(address) : t("notConnected")}
+            </span>
+          </span>
           <NeoButton
             variant="secondary"
             size="sm"

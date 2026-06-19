@@ -183,11 +183,12 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         <section className="redenv-main" aria-label={t("redEnvelopeHeroTitle")}>
           <div className="redenv-hero">
             <div className="redenv-hero-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-                <rect x="4" y="3" width="16" height="18" rx="3" fill="currentColor" opacity="0.16" />
-                <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
-                <path d="M9 3l3 5 3-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="12" cy="13" r="2.6" fill="currentColor" />
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+                <rect x="4" y="3" width="16" height="18" rx="3" fill="currentColor" opacity="0.14" />
+                <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.7" />
+                <path d="M8 3c1.3 2.3 2.6 3.6 4 3.6S14.7 5.3 16 3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="13.5" r="2.9" fill="var(--redenv-gold-strong)" />
+                <path d="M12 11.6v3.8M10.6 13.5h2.8" stroke="#ffffff" strokeWidth="1.1" strokeLinecap="round" />
               </svg>
             </div>
             <div className="redenv-hero-copy">
@@ -377,6 +378,17 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 kind="empty"
                 className="redenv-activity-empty"
                 title={t("noPools")}
+                hint={t("noPoolsHint")}
+                icon={
+                  <span className="redenv-empty-art" aria-hidden="true">
+                    <svg viewBox="0 0 96 80" width="116" height="96" fill="none">
+                      <rect x="14" y="14" width="68" height="54" rx="9" fill="var(--redenv-accent-soft)" stroke="var(--redenv-accent)" strokeWidth="2" />
+                      <path d="M14 23l34 22 34-22" stroke="var(--redenv-accent)" strokeWidth="2" strokeLinejoin="round" />
+                      <circle cx="48" cy="40" r="12" fill="var(--redenv-gold-soft)" stroke="var(--redenv-gold-strong)" strokeWidth="2" />
+                      <path d="M48 34v12M44 38h8M44 43h8" stroke="var(--redenv-gold-strong)" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                }
               />
             ) : (
               <div className="redenv-activity-grid">
@@ -504,13 +516,19 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         <div className="redenv-modal-backdrop">
           <div className="redenv-modal">
             <div className="redenv-modal-content">
-              <div className="redenv-modal-icon" aria-hidden="true" />
+              <div className="redenv-modal-icon" aria-hidden="true">
+                <svg viewBox="0 0 48 48" width="34" height="34" fill="none">
+                  <circle cx="24" cy="24" r="16" fill="var(--redenv-gold-soft)" stroke="var(--redenv-gold-strong)" strokeWidth="2.4" />
+                  <path d="M24 14v20M18 19h12M18 26h12" stroke="var(--redenv-gold-strong)" strokeWidth="2.4" strokeLinecap="round" />
+                  <path d="M40 10l1.3 3.4L45 14.7l-3.4 1.3L40 19l-1.3-3.4L35 14.7l3.4-1.3z" fill="var(--redenv-gold-strong)" />
+                  <path d="M9 30l.9 2.4 2.4.9-2.4.9L9 37l-.9-2.4L5.7 33.7l2.4-.9z" fill="var(--redenv-gold-strong)" />
+                </svg>
+              </div>
               <h3 className="redenv-modal-title">{t("congratulations")}</h3>
-              <p className="redenv-modal-message">
-                {t("claimReceivedMessage", { amount: String(luckyMessage.amount ?? "?") })}
-              </p>
+              <p className="redenv-modal-caption">{t("luckyReceivedLabel")}</p>
+              <p className="redenv-modal-amount">{formatGas(luckyMessage.amount)}</p>
               <button className="redenv-modal-button" type="button" onClick={() => dispatch("dismissOverlay")}>
-                {t("confirm")}
+                {t("luckyReceivedClose")}
               </button>
             </div>
           </div>
