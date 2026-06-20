@@ -5,6 +5,17 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  BadgeCheck,
+  Clock3,
+  Fingerprint,
+  KeyRound,
+  Link2,
+  RefreshCw,
+  ShieldCheck,
+  SlidersHorizontal,
+  WalletCards,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { StateView } from "@shared/components";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -29,7 +40,7 @@ export default function PlayArea({
   const { str, bool, num } = useStateBindings(state);
   const launchDefaults = useMemo(
     () => getPermissionsLaunchDefaults(launchContext),
-    [launchContext.signature],
+    [launchContext],
   );
 
   const PLACEHOLDER = "—";
@@ -118,43 +129,45 @@ export default function PlayArea({
     },
   ];
 
-  const lockGlyph = (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle
-        cx="7.5"
-        cy="15.5"
-        r="4.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="m10.8 12.2 8.2-8.2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="m16 5 3 3M14 7l3 3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
   return (
     <div className="aa-permissions-play-area">
       <section className="permissions-hero">
-        <span className="permissions-hero__badge" aria-hidden="true">
-          {lockGlyph}
-        </span>
         <div className="permissions-hero__copy">
-          <span className="permissions-hero__eyebrow">
-            {t("permissionsHeroEyebrow")}
+          <span className="permissions-hero__badge" aria-hidden="true">
+            <KeyRound size={24} />
           </span>
-          <h2>{t("permissionsHeroTitle")}</h2>
-          <p>{t("permissionsHeroCopy")}</p>
+          <div>
+            <span className="permissions-hero__eyebrow">
+              {t("permissionsHeroEyebrow")}
+            </span>
+            <h2>{t("permissionsHeroTitle")}</h2>
+            <p>{t("permissionsHeroCopy")}</p>
+            <span className="permissions-hero__chip">{t("permissionsHeroChip")}</span>
+          </div>
+        </div>
+        <figure className="permissions-hero__visual">
+          <img src="./permission-console.jpg" alt={t("permissionsHeroImageAlt")} />
+          <figcaption>
+            <span>{t("permissionsHeroVisualLabel")}</span>
+            <strong>{hasInspected ? t("configured") : t("notInspected")}</strong>
+          </figcaption>
+        </figure>
+        <div className="permissions-hero__metrics" aria-label={t("permissionsMetricsLabel")}>
+          <span>
+            <Fingerprint size={15} aria-hidden="true" />
+            {t("permissionsMetricAccount")}
+            <strong>{accountIdHash.trim() || PLACEHOLDER}</strong>
+          </span>
+          <span>
+            <ShieldCheck size={15} aria-hidden="true" />
+            {t("permissionsMetricVerifier")}
+            <strong>{normalize(currentVerifier)}</strong>
+          </span>
+          <span>
+            <Link2 size={15} aria-hidden="true" />
+            {t("permissionsMetricHook")}
+            <strong>{normalize(currentHook)}</strong>
+          </span>
         </div>
       </section>
 
@@ -166,6 +179,26 @@ export default function PlayArea({
             className="permissions-command"
           >
             <div className="permissions-form">
+              <div className="permissions-account-card" aria-label={t("permissionsAccountPreview")}>
+                <span className="permissions-account-card__icon" aria-hidden="true">
+                  <Fingerprint size={26} />
+                </span>
+                <div className="permissions-account-card__copy">
+                  <span>{t("permissionsAccountPreview")}</span>
+                  <strong>{accountIdHash.trim() || t("accountPreviewEmpty")}</strong>
+                  <p>{t("permissionsRiskCopy")}</p>
+                </div>
+                <dl className="permissions-account-card__facts">
+                  <div>
+                    <dt>{t("currentBackupOwner")}</dt>
+                    <dd>{normalize(currentBackupOwner)}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("connectedWallet")}</dt>
+                    <dd>{connectedWalletHash || PLACEHOLDER}</dd>
+                  </div>
+                </dl>
+              </div>
               <NeoInput
                 value={accountIdHash}
                 label={t("accountId")}
@@ -181,6 +214,7 @@ export default function PlayArea({
                   aria-label={t("connectWallet")}
                   onClick={() => dispatch("connect")}
                 >
+                  <WalletCards size={17} aria-hidden="true" />
                   {t("connectWallet")}
                 </NeoButton>
                 <NeoButton
@@ -190,6 +224,7 @@ export default function PlayArea({
                   aria-label={t("inspect")}
                   onClick={() => dispatch("refresh", accountIdHash)}
                 >
+                  <RefreshCw size={17} aria-hidden="true" />
                   {t("inspect")}
                 </NeoButton>
               </div>
@@ -246,7 +281,23 @@ export default function PlayArea({
             <h3>{t("permissionsRiskTitle")}</h3>
           </div>
 
-          <p className="permissions-caption">{t("twoPhaseExplainer")}</p>
+          <div className="permissions-flow-rail" aria-label={t("permissionsFlowLabel")}>
+            <span>
+              <b>1</b>
+              <strong>{t("permissionsFlowInspect")}</strong>
+              <small>{t("permissionsFlowInspectDesc")}</small>
+            </span>
+            <span>
+              <b>2</b>
+              <strong>{t("writeStagePropose")}</strong>
+              <small>{t("twoPhaseExplainer")}</small>
+            </span>
+            <span>
+              <b>3</b>
+              <strong>{t("writeStageConfirm")}</strong>
+              <small>{t("timelockPurpose")}</small>
+            </span>
+          </div>
 
           {notBackupOwner && (
             <p
@@ -263,6 +314,15 @@ export default function PlayArea({
             className="permissions-operation-card"
           >
             <div className="permissions-form">
+              <div className="permissions-operation-intro">
+                <span className="permissions-operation-intro__icon" aria-hidden="true">
+                  <BadgeCheck size={18} />
+                </span>
+                <div>
+                  <strong>{t("permissionsFlowVerifier")}</strong>
+                  <p>{t("permissionsFlowVerifierDesc")}</p>
+                </div>
+              </div>
               <NeoInput
                 value={verifierHash}
                 label={t("verifier")}
@@ -290,6 +350,7 @@ export default function PlayArea({
                   )
                 }
               >
+                <SlidersHorizontal size={17} aria-hidden="true" />
                 {t("updateVerifier")}
               </NeoButton>
               <p className="permissions-caption">{t("proposeVerifierHint")}</p>
@@ -342,6 +403,15 @@ export default function PlayArea({
             className="permissions-operation-card"
           >
             <div className="permissions-form">
+              <div className="permissions-operation-intro">
+                <span className="permissions-operation-intro__icon" aria-hidden="true">
+                  <Clock3 size={18} />
+                </span>
+                <div>
+                  <strong>{t("permissionsFlowHook")}</strong>
+                  <p>{t("permissionsFlowHookDesc")}</p>
+                </div>
+              </div>
               <NeoInput
                 value={hookHash}
                 label={t("hook")}
@@ -355,6 +425,7 @@ export default function PlayArea({
                 aria-label={t("updateHook")}
                 onClick={() => dispatch("submitHook", accountIdHash, hookHash)}
               >
+                <Link2 size={17} aria-hidden="true" />
                 {t("updateHook")}
               </NeoButton>
               <p className="permissions-caption">{t("proposeHookHint")}</p>

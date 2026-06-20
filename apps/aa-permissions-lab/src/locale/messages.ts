@@ -92,6 +92,18 @@ const appMessages = {
     en: "Inspect the current verifier, hook, and backup-owner state before rotating authentication or policy bindings on the shared AA core.",
     zh: "在共享 AA Core 上切换认证或策略绑定前，先检查当前 verifier、hook 与 backup-owner 状态。",
   },
+  permissionsHeroChip: {
+    en: "Inspect first. Propose second. Confirm after the timelock.",
+    zh: "先检查，再提议，锁定期后确认。",
+  },
+  permissionsHeroImageAlt: {
+    en: "A bright AA permission security console with verifier, hook, wallet, and timelock modules.",
+    zh: "明亮的 AA 权限安全控制台，包含 verifier、hook、钱包与 timelock 模块。",
+  },
+  permissionsHeroVisualLabel: {
+    en: "Permission boundary",
+    zh: "权限边界",
+  },
   // Hero eyebrow has its own key so a future edit to the metrics aria-label
   // can't silently rewrite the visible header (and vice-versa).
   permissionsHeroEyebrow: { en: "AA permission state", zh: "AA 权限状态" },
@@ -100,6 +112,9 @@ const appMessages = {
   permissionsMetricHook: { en: "Hook", zh: "Hook" },
   permissionsMetricAccount: { en: "Account", zh: "账户" },
   permissionsCommandTitle: { en: "Account inspector", zh: "账户检查器" },
+  permissionsAccountPreview: { en: "Account boundary preview", zh: "账户边界预览" },
+  accountPreviewEmpty: { en: "Paste an AccountId hash to inspect", zh: "粘贴 AccountId hash 后检查" },
+  connectedWallet: { en: "Connected Wallet", zh: "已连接钱包" },
   accountIdHint: {
     en: "Required before reading or writing permission bindings.",
     zh: "读取或写入权限绑定前必须填写。",
@@ -127,6 +142,8 @@ const appMessages = {
     en: "Change policy hooks with the same account guard.",
     zh: "在同一账户保护下切换策略 hook。",
   },
+  writeStagePropose: { en: "Propose rotation", zh: "提议轮换" },
+  writeStageConfirm: { en: "Confirm or cancel", zh: "确认或取消" },
   permissionsStateLabel: { en: "Live state", zh: "实时状态" },
   permissionsStateTitle: { en: "Current permissions", zh: "当前权限" },
   permissionsStateEmpty: {
