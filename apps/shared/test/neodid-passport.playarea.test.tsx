@@ -53,6 +53,19 @@ function t(key: string) {
     externalVerifierCopy: "GitHub and email proofs are prepared for an external verifier.",
     externalVerifierLink: "Open attestation docs",
     emailProvider: "Email attestation",
+    credentialCardTitle: "Identity passport",
+    credentialFlowCopy: "Resolve, review, then attach a proof.",
+    githubProviderTile: "Prepare a package for a GitHub verifier.",
+    heroVisualAlt: "Identity passport desk",
+    passportPreview: "Passport preview",
+    passportWorkspaceTitle: "Credential studio",
+    previewAudienceLabel: "Audience",
+    previewClaimLabel: "Claim",
+    previewSubjectFallback: "Subject DID pending",
+    proofLaneHint: "No chain transaction",
+    proofLaneTitle: "Choose proof lane",
+    walletProviderTile: "Sign in-app with the connected wallet.",
+    emailProviderTile: "Prepare a package for an email verifier.",
   };
   return messages[key] ?? key;
 }
@@ -167,7 +180,7 @@ describe("NeoDID Passport PlayArea", () => {
       />,
     );
 
-    expect(screen.getByText("did:morpheus:neo_n3:service:neodid")).toBeTruthy();
+    expect(screen.getAllByText("did:morpheus:neo_n3:service:neodid").length).toBeGreaterThan(0);
     expect(screen.getByText("compose-testnet-123")).toBeTruthy();
     expect(screen.getByText("1234567890...90abcdef")).toBeTruthy();
     expect(container.textContent).not.toContain("[object Object]");
@@ -223,9 +236,7 @@ describe("NeoDID Passport PlayArea", () => {
     expect(screen.queryByText("Submit to an external verifier")).toBeNull();
 
     // Switching to GitHub surfaces the external-verifier guidance + docs link.
-    fireEvent.change(screen.getByLabelText("Proof Provider"), {
-      target: { value: "github" },
-    });
+    fireEvent.click(screen.getByRole("radio", { name: "Proof Provider: GitHub attestation" }));
     expect(screen.getByText("Submit to an external verifier")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /Open attestation docs/i }),
