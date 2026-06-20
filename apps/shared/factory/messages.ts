@@ -300,6 +300,11 @@ export const factoryMessages = {
 
   // ── On-chain creations ──
   myDeployments: { en: "On-chain creations", zh: "链上创建记录" },
+  operationalDetails: { en: "Operational details", zh: "运维细节" },
+  operationalDetailsHint: {
+    en: "History, launch link, and registry notes.",
+    zh: "历史记录、启动链接和注册表说明。",
+  },
   deploymentsCount: {
     en: "{count} recorded on-chain",
     zh: "链上共 {count} 条记录",
@@ -340,6 +345,22 @@ export const factoryMessages = {
   templateKindTicketPass: { en: "Event ticket pass", zh: "活动门票通行证" },
   templateKindCertificate: { en: "Soulbound certificate", zh: "灵魂绑定证书" },
   templateKindOracleConsole: { en: "Oracle console", zh: "预言机控制台" },
+  templateKindRewardVaultHint: {
+    en: "Token rewards, campaigns, and claim rails.",
+    zh: "代币奖励、活动和领取通道。",
+  },
+  templateKindTicketPassHint: {
+    en: "Event access, QR claims, and attendee records.",
+    zh: "活动准入、二维码领取和参与记录。",
+  },
+  templateKindCertificateHint: {
+    en: "Issued credentials with non-transferable proof.",
+    zh: "带不可转让证明的证书凭证。",
+  },
+  templateKindOracleConsoleHint: {
+    en: "Data-backed workflow for prices or feeds.",
+    zh: "面向价格或数据源的数据工作流。",
+  },
   copySignature: { en: "Copy signature", zh: "复制签名" },
 
   // ── Live preview card (what this factory will create) ──
@@ -352,6 +373,15 @@ export const factoryMessages = {
   tokenStudioHint: {
     en: "{symbol} supply, treasury, and mint policy update this asset live.",
     zh: "{symbol} 的供应量、金库和增发策略会实时更新此资产。",
+  },
+  launchStudio: { en: "Launch studio", zh: "发布工作台" },
+  launchStudioHint: {
+    en: "{appId} will become a catalog-ready launch record.",
+    zh: "{appId} 将成为可进入目录的启动记录。",
+  },
+  templateDockHint: {
+    en: "Pick the product pattern first; parameters stay below.",
+    zh: "先选择产品模式；参数保留在下方。",
   },
   dropStudio: { en: "Drop studio", zh: "发行工作台" },
   dropStudioHint: {
@@ -378,4 +408,6 @@ export const factoryMessages = {
   previewServiceNone: { en: "None", zh: "无" },
   previewServiceOracle: { en: "Oracle", zh: "预言机" },
   previewServiceOneGate: { en: "OneGate", zh: "OneGate" },
+  previewLaunchState: { en: "Launch state", zh: "启动状态" },
+  previewReadyToRegister: { en: "Ready to register", zh: "可登记" },
 } as const;

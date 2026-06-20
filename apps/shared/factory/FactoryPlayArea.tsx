@@ -194,6 +194,85 @@ const TEMPLATE_KIND_KEYS: Record<MiniAppDraft["templateKind"], string> = {
   "oracle-console": "templateKindOracleConsole",
 };
 
+const TEMPLATE_KIND_HINT_KEYS: Record<MiniAppDraft["templateKind"], string> = {
+  "reward-vault": "templateKindRewardVaultHint",
+  "ticket-pass": "templateKindTicketPassHint",
+  certificate: "templateKindCertificateHint",
+  "oracle-console": "templateKindOracleConsoleHint",
+};
+
+function TemplateLaunchPicker({
+  label,
+  value,
+  options,
+  t,
+  onChange,
+}: {
+  label: string;
+  value: MiniAppDraft["templateKind"];
+  options: ChoiceOption<MiniAppDraft["templateKind"]>[];
+  t: PlayAreaProps["t"];
+  onChange: (value: MiniAppDraft["templateKind"]) => void;
+}) {
+  const selectedOption = options.find((option) => option.value === value);
+
+  return (
+    <section className="domain-factory-template-dock" aria-label={label}>
+      <div className="domain-factory-template-dock__head">
+        <div>
+          <span>{label}</span>
+          <strong>{selectedOption?.label ?? ""}</strong>
+        </div>
+        <small>{t("templateDockHint")}</small>
+      </div>
+      <div
+        className="domain-factory-template-dock__grid"
+        role="radiogroup"
+        aria-label={label}
+      >
+        {options.map((option) => {
+          const Icon = option.icon;
+          const selected = option.value === value;
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={`domain-factory-template-card${
+                selected ? " domain-factory-template-card--active" : ""
+              }`}
+              onClick={() => onChange(option.value)}
+            >
+              <span className="domain-factory-template-card__top">
+                <span
+                  className="domain-factory-template-card__icon"
+                  aria-hidden="true"
+                >
+                  <Icon size={17} />
+                </span>
+                {selected ? (
+                  <span
+                    className="domain-factory-template-card__check"
+                    aria-hidden="true"
+                  >
+                    <Check size={14} />
+                  </span>
+                ) : null}
+              </span>
+              <span className="domain-factory-template-card__copy">
+                <strong>{option.label}</strong>
+                <small>{t(TEMPLATE_KIND_HINT_KEYS[option.value])}</small>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function PreviewStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="domain-factory-preview__stat">
@@ -327,9 +406,18 @@ function FactoryPreviewCard({
     ].filter(Boolean) as string[];
     const initial = (name[0] ?? "A").toUpperCase();
     body = (
-      <div className="domain-factory-preview__token">
-        <div className="domain-factory-preview__coin" aria-hidden="true">
-          <span>{initial}</span>
+      <div className="domain-factory-preview__miniapp">
+        <div className="domain-factory-preview__miniapp-art" aria-hidden="true">
+          <img
+            src="./miniapp-launch-studio.jpg"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="domain-factory-preview__miniapp-mark">
+            <span>{t("miniappTemplate")}</span>
+            <strong>{initial}</strong>
+          </div>
         </div>
         <div className="domain-factory-preview__nftbody">
           <div className="domain-factory-preview__head">
@@ -343,6 +431,10 @@ function FactoryPreviewCard({
               value={
                 services.length ? services.join(" · ") : t("previewServiceNone")
               }
+            />
+            <PreviewStat
+              label={t("previewLaunchState")}
+              value={t("previewReadyToRegister")}
             />
           </div>
         </div>
@@ -648,6 +740,16 @@ export function FactoryPlayArea({
   const nep17PolicyLabel = t(
     nep17.mintable ? "previewMintable" : "previewFixedSupply",
   );
+  const miniappNameLabel = miniapp.appName.trim() || t("previewUntitledApp");
+  const miniappIdLabel = miniapp.appId.trim() || "miniapp-…";
+  const miniappTemplateLabel = t(TEMPLATE_KIND_KEYS[miniapp.templateKind]);
+  const miniappServices = [
+    miniapp.needsOracle ? t("previewServiceOracle") : null,
+    miniapp.needsOneGate ? t("previewServiceOneGate") : null,
+  ].filter(Boolean) as string[];
+  const miniappServiceLabel = miniappServices.length
+    ? miniappServices.join(" · ")
+    : t("previewServiceNone");
 
   function renderUseMyAddress(currentValue: string, apply: () => void) {
     if (!walletAddress || currentValue === walletAddress) return null;
@@ -724,6 +826,44 @@ export function FactoryPlayArea({
                     <div>
                       <dt>{t("previewMintPolicy")}</dt>
                       <dd>{nep17PolicyLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("network")}</dt>
+                      <dd>{networkLabel}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
+            )}
+
+            {kind === "miniapp" && (
+              <section
+                className="domain-factory-app-rail"
+                aria-label={t("launchStudio")}
+              >
+                <img
+                  className="domain-factory-app-rail__image"
+                  src="./miniapp-launch-studio.jpg"
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                />
+                <div className="domain-factory-app-rail__content">
+                  <div className="domain-factory-app-rail__copy">
+                    <span>{t("launchStudio")}</span>
+                    <strong>{miniappNameLabel}</strong>
+                    <small>
+                      {t("launchStudioHint", { appId: miniappIdLabel })}
+                    </small>
+                  </div>
+                  <dl className="domain-factory-app-rail__stats">
+                    <div>
+                      <dt>{t("previewTemplate")}</dt>
+                      <dd>{miniappTemplateLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("previewServices")}</dt>
+                      <dd>{miniappServiceLabel}</dd>
                     </div>
                     <div>
                       <dt>{t("network")}</dt>
@@ -931,10 +1071,11 @@ export function FactoryPlayArea({
                     setMiniapp((draft) => ({ ...draft, appName }))
                   }
                 />
-                <ChoiceField
+                <TemplateLaunchPicker
                   label={t("templateKind")}
                   value={miniapp.templateKind}
                   options={templateOptions}
+                  t={t}
                   onChange={(templateKind) =>
                     setMiniapp((draft) => ({ ...draft, templateKind }))
                   }
@@ -1192,129 +1333,150 @@ export function FactoryPlayArea({
             </ol>
           </NeoCard>
 
-          <NeoCard variant="erobo" title={t("myDeployments")}>
-            <div className="domain-factory-deployments">
-              <div className="domain-factory-deployments__bar">
-                <span>
-                  {deploymentsState === "ready"
-                    ? t("deploymentsCount", { count: deploymentsTotal })
-                    : "—"}
-                </span>
-                <NeoButton
-                  variant="ghost"
-                  size="sm"
-                  disabled={deploymentsState === "loading"}
-                  onClick={() =>
-                    dispatch("refreshDeployments", {
-                      network: activeNetwork,
-                    }).catch(() => undefined)
-                  }
-                >
-                  {t("refreshAction")}
-                </NeoButton>
-              </div>
-              {deploymentsState === "loading" ? (
-                <StateView
-                  kind="loading"
-                  className="domain-factory-deployments__state"
-                  title={t("loadingDeployments")}
-                />
-              ) : deploymentsState === "error" ? (
-                <StateView
-                  kind="error"
-                  icon={null}
-                  className="domain-factory-deployments__state"
-                  title={t("deploymentsError")}
-                  action={
-                    <NeoButton
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        dispatch("refreshDeployments", {
-                          network: activeNetwork,
-                        }).catch(() => undefined)
+          <details className="domain-factory-secondary-details">
+            <summary>
+              <span>
+                <strong>{t("operationalDetails")}</strong>
+                <small>{t("operationalDetailsHint")}</small>
+              </span>
+              <ChevronDown
+                className="domain-factory-secondary-details__chevron"
+                size={16}
+                aria-hidden="true"
+              />
+            </summary>
+            <div className="domain-factory-secondary-grid">
+              <section className="domain-factory-secondary-panel">
+                <div className="domain-factory-secondary-panel__head">
+                  <h3>{t("myDeployments")}</h3>
+                  <NeoButton
+                    variant="ghost"
+                    size="sm"
+                    disabled={deploymentsState === "loading"}
+                    onClick={() =>
+                      dispatch("refreshDeployments", {
+                        network: activeNetwork,
+                      }).catch(() => undefined)
+                    }
+                  >
+                    {t("refreshAction")}
+                  </NeoButton>
+                </div>
+                <div className="domain-factory-deployments">
+                  <div className="domain-factory-deployments__bar">
+                    <span>
+                      {deploymentsState === "ready"
+                        ? t("deploymentsCount", { count: deploymentsTotal })
+                        : "—"}
+                    </span>
+                  </div>
+                  {deploymentsState === "loading" ? (
+                    <StateView
+                      kind="loading"
+                      className="domain-factory-deployments__state"
+                      title={t("loadingDeployments")}
+                    />
+                  ) : deploymentsState === "error" ? (
+                    <StateView
+                      kind="error"
+                      icon={null}
+                      className="domain-factory-deployments__state"
+                      title={t("deploymentsError")}
+                      action={
+                        <NeoButton
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            dispatch("refreshDeployments", {
+                              network: activeNetwork,
+                            }).catch(() => undefined)
+                          }
+                        >
+                          {t("retryAction")}
+                        </NeoButton>
                       }
-                    >
-                      {t("retryAction")}
-                    </NeoButton>
-                  }
-                />
-              ) : deployments.length === 0 ? (
-                <StateView
-                  kind="empty"
-                  icon={null}
-                  className="domain-factory-deployments__state"
-                  title={t("noDeploymentsYet")}
-                />
-              ) : (
-                <ul className="domain-factory-deployments__list">
-                  {deployments.map((item) => (
-                    <li
-                      key={item.packageId}
-                      className="domain-factory-deployment"
-                    >
-                      <div className="domain-factory-deployment__head">
-                        <strong>{item.packageId}</strong>
-                        {ownerMatchesAddress(
-                          item.creator,
-                          walletAddress || null,
-                        ) ? (
-                          <span className="domain-factory-deployment__mine">
-                            {t("mineTag")}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="domain-factory-deployment__meta">
-                        <span>{item.templateId}</span>
-                        {item.createdAt > 0 ? (
-                          <span>
-                            {new Date(item.createdAt).toLocaleString()}
-                          </span>
-                        ) : null}
-                      </div>
-                      {item.deployedHash ? (
-                        <div className="domain-factory-deployment__hash">
-                          <code>{item.deployedHash}</code>
-                          <NeoButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              copyText(
-                                item.deployedHash,
-                                `hash-${item.packageId}`,
-                              )
-                            }
-                          >
-                            {copyLabel(
-                              `hash-${item.packageId}`,
-                              "copyContractHash",
-                            )}
-                          </NeoButton>
-                        </div>
-                      ) : (
-                        <span className="domain-factory-deployment__recordonly">
-                          {t("recordOnly")}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </NeoCard>
+                    />
+                  ) : deployments.length === 0 ? (
+                    <StateView
+                      kind="empty"
+                      icon={null}
+                      className="domain-factory-deployments__state"
+                      title={t("noDeploymentsYet")}
+                    />
+                  ) : (
+                    <ul className="domain-factory-deployments__list">
+                      {deployments.map((item) => (
+                        <li
+                          key={item.packageId}
+                          className="domain-factory-deployment"
+                        >
+                          <div className="domain-factory-deployment__head">
+                            <strong>{item.packageId}</strong>
+                            {ownerMatchesAddress(
+                              item.creator,
+                              walletAddress || null,
+                            ) ? (
+                              <span className="domain-factory-deployment__mine">
+                                {t("mineTag")}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="domain-factory-deployment__meta">
+                            <span>{item.templateId}</span>
+                            {item.createdAt > 0 ? (
+                              <span>
+                                {new Date(item.createdAt).toLocaleString()}
+                              </span>
+                            ) : null}
+                          </div>
+                          {item.deployedHash ? (
+                            <div className="domain-factory-deployment__hash">
+                              <code>{item.deployedHash}</code>
+                              <NeoButton
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  copyText(
+                                    item.deployedHash,
+                                    `hash-${item.packageId}`,
+                                  )
+                                }
+                              >
+                                {copyLabel(
+                                  `hash-${item.packageId}`,
+                                  "copyContractHash",
+                                )}
+                              </NeoButton>
+                            </div>
+                          ) : (
+                            <span className="domain-factory-deployment__recordonly">
+                              {t("recordOnly")}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </section>
 
-          <NeoCard variant="erobo" title={t("oneGateLaunch")}>
-            <div className="domain-factory-onegate">
-              <p>{currentPlan.oneGate.url}</p>
-              <NeoButton
-                variant="ghost"
-                onClick={() => copyText(currentPlan.oneGate.url, "link")}
-              >
-                {copyLabel("link", "copyLink")}
-              </NeoButton>
+              <section className="domain-factory-secondary-panel">
+                <div className="domain-factory-secondary-panel__head">
+                  <h3>{t("oneGateLaunch")}</h3>
+                </div>
+                <div className="domain-factory-onegate">
+                  <p>{currentPlan.oneGate.url}</p>
+                  <NeoButton
+                    variant="ghost"
+                    onClick={() => copyText(currentPlan.oneGate.url, "link")}
+                  >
+                    {copyLabel("link", "copyLink")}
+                  </NeoButton>
+                </div>
+                <p className="domain-factory-note">{t("deployHonesty")}</p>
+              </section>
             </div>
-            <p className="domain-factory-note">{t("deployHonesty")}</p>
-          </NeoCard>
+          </details>
         </section>
       </div>
     </div>
