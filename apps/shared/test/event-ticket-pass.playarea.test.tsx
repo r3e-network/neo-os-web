@@ -97,7 +97,9 @@ function t(key: string) {
   return messages[key] ?? key;
 }
 
-function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function state(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const values: Record<string, unknown> = {
     events: [],
     tickets: [],
@@ -150,7 +152,13 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 
 describe("Event Ticket Pass PlayArea", () => {
   it("renders the complete organizer and check-in workflow", () => {
-    render(<PlayArea t={t} state={state()} dispatch={vi.fn(async () => undefined)} />);
+    render(
+      <PlayArea
+        t={t}
+        state={state()}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
 
     expect(screen.getAllByText("Create Event").length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("Event name").length).toBeGreaterThan(0);
@@ -163,7 +171,9 @@ describe("Event Ticket Pass PlayArea", () => {
     expect(screen.getByLabelText("Ticket Token ID")).toBeTruthy();
 
     expect(screen.getByText("Latest Request")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Request and result evidence" })).toBeTruthy();
+    expect(
+      screen.getByRole("region", { name: "Request and result evidence" }),
+    ).toBeTruthy();
   });
 
   it("dispatches business actions from visible controls", () => {

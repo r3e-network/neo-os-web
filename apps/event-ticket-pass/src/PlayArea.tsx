@@ -95,14 +95,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const togglingId = str("togglingId");
   const requestJson = json(latestRequest);
   const resultJson = json(latestResult);
-  const resultTxid = String((latestResult as { txid?: unknown } | undefined)?.txid ?? "").trim();
+  const resultTxid = String(
+    (latestResult as { txid?: unknown } | undefined)?.txid ?? "",
+  ).trim();
   const eventSchedulePreview =
     eventStart && eventEnd
       ? `${eventStart} - ${eventEnd}`
       : eventStart || eventEnd || t("eventStartPlaceholder");
   const ticketSupplyPreview = maxSupply || t("maxSupplyPlaceholder");
 
-  const hasMetrics = eventsCount > 0 || ticketsCount > 0 || activeEventsCount > 0;
+  const hasMetrics =
+    eventsCount > 0 || ticketsCount > 0 || activeEventsCount > 0;
   const hasEvidence = Boolean(requestJson || resultJson);
 
   return (
@@ -125,9 +128,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <h2 id="event-ticket-title">{t("title")}</h2>
             <p>{t("docSubtitle")}</p>
             <div className="ticket-hero__flow" aria-label={t("workflow")}>
-              <span><CalendarDays size={14} aria-hidden="true" />{t("flowCreate")}</span>
-              <span><UserPlus size={14} aria-hidden="true" />{t("flowIssue")}</span>
-              <span><ScanLine size={14} aria-hidden="true" />{t("flowCheckin")}</span>
+              <span>
+                <CalendarDays size={14} aria-hidden="true" />
+                {t("flowCreate")}
+              </span>
+              <span>
+                <UserPlus size={14} aria-hidden="true" />
+                {t("flowIssue")}
+              </span>
+              <span>
+                <ScanLine size={14} aria-hidden="true" />
+                {t("flowCheckin")}
+              </span>
             </div>
           </div>
         </div>
@@ -136,16 +148,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="ticket-hero__mini-art" aria-hidden="true" />
             <div>
               <span>{t("eventPass")}</span>
-              <strong>{selectedEvent?.name || eventName || t("eventNamePlaceholder")}</strong>
-              <small>{selectedEvent?.venue || eventVenue || t("eventVenuePlaceholder")}</small>
+              <strong>
+                {selectedEvent?.name || eventName || t("eventNamePlaceholder")}
+              </strong>
+              <small>
+                {selectedEvent?.venue ||
+                  eventVenue ||
+                  t("eventVenuePlaceholder")}
+              </small>
             </div>
           </div>
           <div className="ticket-hero__wallet">
             <span>{t("wallet")}</span>
-            <strong>{address ? short(address) : t("walletNotConnected")}</strong>
+            <strong>
+              {address ? short(address) : t("walletNotConnected")}
+            </strong>
             <small>{isLoading ? t("lookingUp") : workflowStatus}</small>
           </div>
-          <NeoButton variant="secondary" onClick={() => dispatch("connectWallet")}>
+          <NeoButton
+            variant="secondary"
+            onClick={() => dispatch("connectWallet")}
+          >
             <CheckCircle2 size={17} aria-hidden="true" />
             <span>{address ? t("refresh") : t("connectWallet")}</span>
           </NeoButton>
@@ -169,7 +192,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </section>
       ) : null}
 
-      {lastError ? <div className="ticket-alert" role="alert">{lastError}</div> : null}
+      {lastError ? (
+        <div className="ticket-alert" role="alert">
+          {lastError}
+        </div>
+      ) : null}
 
       <section className="ticket-workspace">
         <form
@@ -188,10 +215,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <CalendarDays size={20} aria-hidden="true" />
           </div>
           <div className="ticket-create-composer">
-            <section className="ticket-create-preview" aria-label={t("eventPass")}>
+            <section
+              className="ticket-create-preview"
+              aria-label={t("eventPass")}
+            >
               <div className="ticket-create-preview__art" aria-hidden="true" />
               <div className="ticket-create-preview__body">
-                <span><Sparkles size={14} aria-hidden="true" />{t("eventPass")}</span>
+                <span>
+                  <Sparkles size={14} aria-hidden="true" />
+                  {t("eventPass")}
+                </span>
                 <strong>{eventName || t("eventNamePlaceholder")}</strong>
                 <p>{eventVenue || t("eventVenuePlaceholder")}</p>
                 <div className="ticket-create-preview__meta">
@@ -201,13 +234,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </div>
                   <div>
                     <Ticket size={14} aria-hidden="true" />
-                    <span>{ticketSupplyPreview} {t("sidebarTickets")}</span>
+                    <span>
+                      {ticketSupplyPreview} {t("sidebarTickets")}
+                    </span>
                   </div>
                 </div>
               </div>
             </section>
 
-            <div className="ticket-create-fields ticket-create-fields--identity" aria-label={t("eventIdentity")}>
+            <div
+              className="ticket-create-fields ticket-create-fields--identity"
+              aria-label={t("eventIdentity")}
+            >
               <NeoInput
                 value={eventName}
                 label={t("eventName")}
@@ -222,7 +260,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
             </div>
 
-            <div className="ticket-create-fields ticket-create-fields--schedule" aria-label={t("eventDetails")}>
+            <div
+              className="ticket-create-fields ticket-create-fields--schedule"
+              aria-label={t("eventDetails")}
+            >
               <NeoInput
                 value={eventStart}
                 label={t("eventStart")}
@@ -247,7 +288,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
             <details className="ticket-create-advanced">
               <summary>
-                <span><ClipboardCheck size={15} aria-hidden="true" />{t("notes")}</span>
+                <span>
+                  <ClipboardCheck size={15} aria-hidden="true" />
+                  {t("notes")}
+                </span>
                 <small>{t("notesPlaceholder")}</small>
                 <ChevronDown size={16} aria-hidden="true" />
               </summary>
@@ -260,239 +304,343 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               />
             </details>
           </div>
-          <NeoButton variant="primary" loading={isCreating} onClick={() => dispatch("createEvent")}>
+          <NeoButton
+            variant="primary"
+            loading={isCreating}
+            onClick={() => dispatch("createEvent")}
+          >
             <CheckCircle2 size={17} aria-hidden="true" />
             <span>{t("createEvent")}</span>
           </NeoButton>
         </form>
 
         <div className="ticket-workspace__col">
-        <section className="ticket-panel ticket-panel--events" aria-label={t("yourEvents")}>
-          <div className="ticket-panel__head ticket-panel__head--row">
-            <div>
-              <span>{t("yourEvents")}</span>
-              <strong>
-                {events.length
-                  ? selectedEvent?.name || t("eventsCountLabel", { count: events.length })
-                  : t("emptyEvents")}
-              </strong>
-            </div>
-            <NeoButton variant="ghost" size="sm" loading={isRefreshing} onClick={() => dispatch("refreshEvents")}>
-              <RefreshCw size={15} aria-hidden="true" />
-              <span>{t("refresh")}</span>
-            </NeoButton>
-          </div>
-          {events.length ? (
-            <div className="ticket-event-list">
-              {events.map((event) => {
-                const active = event.id === selectedEventId;
-                const soldOut = event.minted >= event.maxSupply;
-                return (
-                  <article key={event.id} className={`ticket-event${active ? " is-selected" : ""}`}>
-                    <button
-                      type="button"
-                      className="ticket-event__main"
-                      onClick={() => dispatch("selectEvent", event.id)}
-                    >
-                      <span>{event.name || event.id}</span>
-                      <strong><MapPin size={14} aria-hidden="true" />{event.venue || t("venueFallback")}</strong>
-                    </button>
-                    <div className="ticket-event__meta">
-                      <span><CalendarDays size={13} aria-hidden="true" />{formatDate(event.startTime, t("dateUnknown"))}</span>
-                      <span><Users size={13} aria-hidden="true" />{event.minted.toString()} / {event.maxSupply.toString()} {t("minted")}</span>
-                      <span className={event.active ? "is-live" : "is-muted"}>
-                        {event.active ? t("statusActive") : t("statusInactive")}
-                      </span>
-                    </div>
-                    <div className="ticket-event__actions">
-                      <NeoButton variant="secondary" size="sm" disabled={soldOut} onClick={() => dispatch("openIssueModal", event)}>
-                        <UserPlus size={15} aria-hidden="true" />
-                        <span>{t("issueTicket")}</span>
-                      </NeoButton>
-                      <NeoButton
-                        variant="ghost"
-                        size="sm"
-                        loading={togglingId === event.id}
-                        onClick={() => dispatch("toggleEvent", event)}
-                      >
-                        <span>{event.active ? t("deactivate") : t("activate")}</span>
-                      </NeoButton>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="ticket-empty">
-              <CalendarDays size={28} aria-hidden="true" />
-              <span>{t("emptyEventsHint")}</span>
-            </div>
-          )}
-        </section>
-
-        <section className="ticket-panel ticket-desk" aria-label={t("issueTicketTitle")}>
-        <div className="ticket-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={deskTab === "issue"}
-            className={`ticket-tab${deskTab === "issue" ? " is-active" : ""}`}
-            onClick={() => setDeskTab("issue")}
+          <section
+            className="ticket-panel ticket-panel--events"
+            aria-label={t("yourEvents")}
           >
-            <UserPlus size={16} aria-hidden="true" />
-            <span>{t("issueTicketTitle")}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={deskTab === "checkin"}
-            className={`ticket-tab${deskTab === "checkin" ? " is-active" : ""}`}
-            onClick={() => setDeskTab("checkin")}
-          >
-            <ClipboardCheck size={16} aria-hidden="true" />
-            <span>{t("checkinTab")}</span>
-          </button>
-        </div>
-
-        {deskTab === "issue" ? (
-          <form
-            className="ticket-desk__panel"
-            aria-label={t("issueTicketTitle")}
-            onSubmit={(event) => {
-              event.preventDefault();
-              void dispatch("issueTicket");
-            }}
-          >
+            <div className="ticket-panel__head ticket-panel__head--row">
+              <div>
+                <span>{t("yourEvents")}</span>
+                <strong>
+                  {events.length
+                    ? selectedEvent?.name ||
+                      t("eventsCountLabel", { count: events.length })
+                    : t("emptyEvents")}
+                </strong>
+              </div>
+              <NeoButton
+                variant="ghost"
+                size="sm"
+                loading={isRefreshing}
+                onClick={() => dispatch("refreshEvents")}
+              >
+                <RefreshCw size={15} aria-hidden="true" />
+                <span>{t("refresh")}</span>
+              </NeoButton>
+            </div>
             {events.length ? (
-              <div className="ticket-issue-picker" role="radiogroup" aria-label={t("eventName")}>
+              <div className="ticket-event-list">
                 {events.map((event) => {
                   const active = event.id === selectedEventId;
+                  const soldOut = event.minted >= event.maxSupply;
                   return (
-                    <button
+                    <article
                       key={event.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      className={`ticket-issue-choice${active ? " is-selected" : ""}`}
-                      onClick={() => dispatch("selectEvent", event.id)}
+                      className={`ticket-event${active ? " is-selected" : ""}`}
                     >
-                      <span className="ticket-issue-choice__top">
-                        <strong>{event.name || event.id}</strong>
-                        <em className={event.active ? "is-live" : "is-muted"}>
-                          {event.active ? t("statusActive") : t("statusInactive")}
-                        </em>
-                      </span>
-                      <span className="ticket-issue-choice__venue">{event.venue || t("venueFallback")}</span>
-                      <span className="ticket-issue-choice__meta">
-                        <span>{formatDate(event.startTime, t("dateUnknown"))}</span>
-                        <span>{event.minted.toString()} / {event.maxSupply.toString()} {t("minted")}</span>
-                      </span>
-                    </button>
+                      <button
+                        type="button"
+                        className="ticket-event__main"
+                        onClick={() => dispatch("selectEvent", event.id)}
+                      >
+                        <span>{event.name || event.id}</span>
+                        <strong>
+                          <MapPin size={14} aria-hidden="true" />
+                          {event.venue || t("venueFallback")}
+                        </strong>
+                      </button>
+                      <div className="ticket-event__meta">
+                        <span>
+                          <CalendarDays size={13} aria-hidden="true" />
+                          {formatDate(event.startTime, t("dateUnknown"))}
+                        </span>
+                        <span>
+                          <Users size={13} aria-hidden="true" />
+                          {event.minted.toString()} /{" "}
+                          {event.maxSupply.toString()} {t("minted")}
+                        </span>
+                        <span className={event.active ? "is-live" : "is-muted"}>
+                          {event.active
+                            ? t("statusActive")
+                            : t("statusInactive")}
+                        </span>
+                      </div>
+                      <div className="ticket-event__actions">
+                        <NeoButton
+                          variant="secondary"
+                          size="sm"
+                          disabled={soldOut}
+                          onClick={() => dispatch("openIssueModal", event)}
+                        >
+                          <UserPlus size={15} aria-hidden="true" />
+                          <span>{t("issueTicket")}</span>
+                        </NeoButton>
+                        <NeoButton
+                          variant="ghost"
+                          size="sm"
+                          loading={togglingId === event.id}
+                          onClick={() => dispatch("toggleEvent", event)}
+                        >
+                          <span>
+                            {event.active ? t("deactivate") : t("activate")}
+                          </span>
+                        </NeoButton>
+                      </div>
+                    </article>
                   );
                 })}
               </div>
             ) : (
-              <div className="ticket-empty ticket-empty--compact">
+              <div className="ticket-empty">
                 <CalendarDays size={28} aria-hidden="true" />
-                <span>{t("selectEventFirst")}</span>
+                <span>{t("emptyEventsHint")}</span>
               </div>
             )}
-            <section className="ticket-issue-preview" aria-label={t("issuePreview")}>
-              <div className="ticket-issue-preview__art" aria-hidden="true" />
-              <div className="ticket-issue-preview__copy">
-                <span>{t("issuePreview")}</span>
-                <strong>{selectedEvent?.name || t("eventNamePlaceholder")}</strong>
-                <div>
-                  <small>{issueSeat || t("seatFallback")}</small>
-                  <small>{issueRecipient ? short(issueRecipient) : t("issueRecipientPlaceholder")}</small>
-                </div>
-              </div>
-            </section>
-            <NeoInput
-              value={issueRecipient}
-              label={t("issueRecipient")}
-              placeholder={t("issueRecipientPlaceholder")}
-              onChange={(value) => state.issueRecipient?.set(value)}
-            />
-            <div className="ticket-form-grid">
-              <NeoInput
-                value={issueSeat}
-                label={t("issueSeat")}
-                placeholder={t("issueSeatPlaceholder")}
-                onChange={(value) => state.issueSeat?.set(value)}
-              />
-              <NeoInput
-                value={issueMemo}
-                label={t("issueMemo")}
-                placeholder={t("issueMemoPlaceholder")}
-                onChange={(value) => state.issueMemo?.set(value)}
-              />
-            </div>
-            <NeoButton variant="primary" loading={isIssuing} disabled={!canIssueTicket} onClick={() => dispatch("issueTicket")}>
-              <Ticket size={17} aria-hidden="true" />
-              <span>{t("issue")}</span>
-            </NeoButton>
-            <p className="ticket-free-note">{t("freePassesNote")}</p>
-          </form>
-        ) : (
-          <form
-            className="ticket-desk__panel"
-            aria-label={t("checkinTab")}
-            onSubmit={(event) => {
-              event.preventDefault();
-              void dispatch("lookupTicket");
-            }}
+          </section>
+
+          <section
+            className="ticket-panel ticket-desk"
+            aria-label={t("issueTicketTitle")}
           >
-            <NeoInput
-              value={checkinTokenId}
-              label={t("checkinTokenId")}
-              placeholder={t("checkinTokenIdPlaceholder")}
-              onChange={(value) => {
-                state.checkinTokenId?.set(value);
-                // Clear any prior lookup so the check-in button reflects the
-                // current token id and can't act on a stale ticket.
-                if (lookup) state.lookup?.set(null);
-              }}
-            />
-            {lookup ? (
-              <div className="ticket-lookup">
-                <div><span>{t("ticketTokenId")}</span><strong>{short(lookup.tokenId)}</strong></div>
-                <div><span>{t("eventName")}</span><strong>{lookup.eventName || lookup.eventId}</strong></div>
-                <div><span>{t("ticketSeat")}</span><strong>{lookup.seat || t("seatFallback")}</strong></div>
-                <div><span>{t("ticketOwner")}</span><strong>{short(lookup.owner)}</strong></div>
-                <span className={`ticket-badge ${lookup.used ? "used" : "valid"}`}>
-                  {lookup.used ? t("ticketUsed") : t("ticketValid")}
-                </span>
-              </div>
-            ) : (
-              <div className="ticket-empty ticket-empty--compact">
-                <QrCode size={28} aria-hidden="true" />
-                <span>{t("checkinHint")}</span>
-              </div>
-            )}
-            <div className="ticket-actions">
-              <NeoButton variant="secondary" loading={isLookingUp} disabled={!canCheckInTicket} onClick={() => dispatch("lookupTicket")}>
-                <ScanLine size={17} aria-hidden="true" />
-                <span>{t("lookup")}</span>
-              </NeoButton>
-              <NeoButton variant="primary" loading={isCheckingIn} disabled={!lookup || lookup.used} onClick={() => dispatch("checkInTicket")}>
-                <CheckCircle2 size={17} aria-hidden="true" />
-                <span>{t("checkIn")}</span>
-              </NeoButton>
+            <div className="ticket-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={deskTab === "issue"}
+                className={`ticket-tab${deskTab === "issue" ? " is-active" : ""}`}
+                onClick={() => setDeskTab("issue")}
+              >
+                <UserPlus size={16} aria-hidden="true" />
+                <span>{t("issueTicketTitle")}</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={deskTab === "checkin"}
+                className={`ticket-tab${deskTab === "checkin" ? " is-active" : ""}`}
+                onClick={() => setDeskTab("checkin")}
+              >
+                <ClipboardCheck size={16} aria-hidden="true" />
+                <span>{t("checkinTab")}</span>
+              </button>
             </div>
-          </form>
-        )}
-        </section>
+
+            {deskTab === "issue" ? (
+              <form
+                className="ticket-desk__panel"
+                aria-label={t("issueTicketTitle")}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void dispatch("issueTicket");
+                }}
+              >
+                {events.length ? (
+                  <div
+                    className="ticket-issue-picker"
+                    role="radiogroup"
+                    aria-label={t("eventName")}
+                  >
+                    {events.map((event) => {
+                      const active = event.id === selectedEventId;
+                      return (
+                        <button
+                          key={event.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          className={`ticket-issue-choice${active ? " is-selected" : ""}`}
+                          onClick={() => dispatch("selectEvent", event.id)}
+                        >
+                          <span className="ticket-issue-choice__top">
+                            <strong>{event.name || event.id}</strong>
+                            <em
+                              className={event.active ? "is-live" : "is-muted"}
+                            >
+                              {event.active
+                                ? t("statusActive")
+                                : t("statusInactive")}
+                            </em>
+                          </span>
+                          <span className="ticket-issue-choice__venue">
+                            {event.venue || t("venueFallback")}
+                          </span>
+                          <span className="ticket-issue-choice__meta">
+                            <span>
+                              {formatDate(event.startTime, t("dateUnknown"))}
+                            </span>
+                            <span>
+                              {event.minted.toString()} /{" "}
+                              {event.maxSupply.toString()} {t("minted")}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="ticket-empty ticket-empty--compact">
+                    <CalendarDays size={28} aria-hidden="true" />
+                    <span>{t("selectEventFirst")}</span>
+                  </div>
+                )}
+                <section
+                  className="ticket-issue-preview"
+                  aria-label={t("issuePreview")}
+                >
+                  <div
+                    className="ticket-issue-preview__art"
+                    aria-hidden="true"
+                  />
+                  <div className="ticket-issue-preview__copy">
+                    <span>{t("issuePreview")}</span>
+                    <strong>
+                      {selectedEvent?.name || t("eventNamePlaceholder")}
+                    </strong>
+                    <div>
+                      <small>{issueSeat || t("seatFallback")}</small>
+                      <small>
+                        {issueRecipient
+                          ? short(issueRecipient)
+                          : t("issueRecipientPlaceholder")}
+                      </small>
+                    </div>
+                  </div>
+                </section>
+                <NeoInput
+                  value={issueRecipient}
+                  label={t("issueRecipient")}
+                  placeholder={t("issueRecipientPlaceholder")}
+                  onChange={(value) => state.issueRecipient?.set(value)}
+                />
+                <div className="ticket-form-grid">
+                  <NeoInput
+                    value={issueSeat}
+                    label={t("issueSeat")}
+                    placeholder={t("issueSeatPlaceholder")}
+                    onChange={(value) => state.issueSeat?.set(value)}
+                  />
+                  <NeoInput
+                    value={issueMemo}
+                    label={t("issueMemo")}
+                    placeholder={t("issueMemoPlaceholder")}
+                    onChange={(value) => state.issueMemo?.set(value)}
+                  />
+                </div>
+                <NeoButton
+                  variant="primary"
+                  loading={isIssuing}
+                  disabled={!canIssueTicket}
+                  onClick={() => dispatch("issueTicket")}
+                >
+                  <Ticket size={17} aria-hidden="true" />
+                  <span>{t("issue")}</span>
+                </NeoButton>
+                <p className="ticket-free-note">{t("freePassesNote")}</p>
+              </form>
+            ) : (
+              <form
+                className="ticket-desk__panel"
+                aria-label={t("checkinTab")}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void dispatch("lookupTicket");
+                }}
+              >
+                <NeoInput
+                  value={checkinTokenId}
+                  label={t("checkinTokenId")}
+                  placeholder={t("checkinTokenIdPlaceholder")}
+                  onChange={(value) => {
+                    state.checkinTokenId?.set(value);
+                    // Clear any prior lookup so the check-in button reflects the
+                    // current token id and can't act on a stale ticket.
+                    if (lookup) state.lookup?.set(null);
+                  }}
+                />
+                {lookup ? (
+                  <div className="ticket-lookup">
+                    <div>
+                      <span>{t("ticketTokenId")}</span>
+                      <strong>{short(lookup.tokenId)}</strong>
+                    </div>
+                    <div>
+                      <span>{t("eventName")}</span>
+                      <strong>{lookup.eventName || lookup.eventId}</strong>
+                    </div>
+                    <div>
+                      <span>{t("ticketSeat")}</span>
+                      <strong>{lookup.seat || t("seatFallback")}</strong>
+                    </div>
+                    <div>
+                      <span>{t("ticketOwner")}</span>
+                      <strong>{short(lookup.owner)}</strong>
+                    </div>
+                    <span
+                      className={`ticket-badge ${lookup.used ? "used" : "valid"}`}
+                    >
+                      {lookup.used ? t("ticketUsed") : t("ticketValid")}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="ticket-empty ticket-empty--compact">
+                    <QrCode size={28} aria-hidden="true" />
+                    <span>{t("checkinHint")}</span>
+                  </div>
+                )}
+                <div className="ticket-actions">
+                  <NeoButton
+                    variant="secondary"
+                    loading={isLookingUp}
+                    disabled={!canCheckInTicket}
+                    onClick={() => dispatch("lookupTicket")}
+                  >
+                    <ScanLine size={17} aria-hidden="true" />
+                    <span>{t("lookup")}</span>
+                  </NeoButton>
+                  <NeoButton
+                    variant="primary"
+                    loading={isCheckingIn}
+                    disabled={!lookup || lookup.used}
+                    onClick={() => dispatch("checkInTicket")}
+                  >
+                    <CheckCircle2 size={17} aria-hidden="true" />
+                    <span>{t("checkIn")}</span>
+                  </NeoButton>
+                </div>
+              </form>
+            )}
+          </section>
         </div>
       </section>
 
-      <section className="ticket-panel ticket-panel--tickets" aria-label={t("ticketsTab")}>
+      <section
+        className="ticket-panel ticket-panel--tickets"
+        aria-label={t("ticketsTab")}
+      >
         <div className="ticket-panel__head ticket-panel__head--row">
           <div>
             <span>{t("ticketsTab")}</span>
-            <strong>{tickets.length ? t("ticketsLoaded") : t("emptyTickets")}</strong>
+            <strong>
+              {tickets.length ? t("ticketsLoaded") : t("emptyTickets")}
+            </strong>
           </div>
-          <NeoButton variant="ghost" size="sm" loading={isRefreshingTickets} onClick={() => dispatch("refreshTickets")}>
+          <NeoButton
+            variant="ghost"
+            size="sm"
+            loading={isRefreshingTickets}
+            onClick={() => dispatch("refreshTickets")}
+          >
             <RefreshCw size={15} aria-hidden="true" />
             <span>{t("refresh")}</span>
           </NeoButton>
@@ -503,7 +651,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               const isTransferTarget = transferTokenId === ticket.tokenId;
               const isThisTransferring = transferringTokenId === ticket.tokenId;
               return (
-                <article key={ticket.tokenId} className={`ticket-pass${ticket.used ? " ticket-pass--used" : ""}`}>
+                <article
+                  key={ticket.tokenId}
+                  className={`ticket-pass${ticket.used ? " ticket-pass--used" : ""}`}
+                >
                   <div className="ticket-pass__art" aria-hidden="true" />
                   <div className="ticket-pass__stub">
                     <Ticket size={18} aria-hidden="true" />
@@ -515,7 +666,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         <span>{ticket.eventName || ticket.eventId}</span>
                         <strong>{ticket.seat || t("seatFallback")}</strong>
                       </div>
-                      <span className={`ticket-badge ${ticket.used ? "used" : "valid"}`}>
+                      <span
+                        className={`ticket-badge ${ticket.used ? "used" : "valid"}`}
+                      >
                         {ticket.used ? t("ticketUsed") : t("ticketValid")}
                       </span>
                     </div>
@@ -523,7 +676,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     {/* Show the token-ID QR the door/check-in flow expects, so an
                         attendee can present it instead of reading the id aloud. */}
                     <div className="ticket-pass__qr">
-                      <TokenQr value={ticket.tokenId} label={t("ticketQrLabel")} />
+                      <TokenQr
+                        value={ticket.tokenId}
+                        label={t("ticketQrLabel")}
+                      />
                     </div>
 
                     <div className="ticket-pass__id">
@@ -540,67 +696,65 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </div>
 
                     {!ticket.used && (
-                    <div className="ticket-pass__transfer">
-                      {isTransferTarget ? (
-                        <form
-                          className="ticket-transfer-form"
-                          onSubmit={(event) => {
-                            event.preventDefault();
-                            void dispatch("transferTicket", {
-                              tokenId: ticket.tokenId,
-                              recipient: transferRecipient,
-                            });
-                          }}
-                        >
-                          <NeoInput
-                            value={transferRecipient}
-                            label={t("transferRecipient")}
-                            placeholder={t("transferRecipientPlaceholder")}
-                            onChange={(value) =>
-                              state.transferRecipient?.set(value)
-                            }
-                          />
-                          <div className="ticket-transfer-form__actions">
-                            <NeoButton
-                              variant="primary"
-                              size="sm"
-                              loading={isThisTransferring}
-                              disabled={!canTransferTicket || isTransferring}
-                              onClick={() =>
-                                dispatch("transferTicket", {
-                                  tokenId: ticket.tokenId,
-                                  recipient: transferRecipient,
-                                })
+                      <div className="ticket-pass__transfer">
+                        {isTransferTarget ? (
+                          <form
+                            className="ticket-transfer-form"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              void dispatch("transferTicket", {
+                                tokenId: ticket.tokenId,
+                                recipient: transferRecipient,
+                              });
+                            }}
+                          >
+                            <NeoInput
+                              value={transferRecipient}
+                              label={t("transferRecipient")}
+                              placeholder={t("transferRecipientPlaceholder")}
+                              onChange={(value) =>
+                                state.transferRecipient?.set(value)
                               }
-                            >
-                              <Send size={14} aria-hidden="true" />
-                              <span>{t("transferTicket")}</span>
-                            </NeoButton>
-                            <NeoButton
-                              variant="ghost"
-                              size="sm"
-                              disabled={isThisTransferring}
-                              onClick={() =>
-                                state.transferTokenId?.set("")
-                              }
-                            >
-                              <X size={14} aria-hidden="true" />
-                              <span>{t("cancel")}</span>
-                            </NeoButton>
-                          </div>
-                        </form>
-                      ) : (
-                        <NeoButton
-                          variant="secondary"
-                          size="sm"
-                          disabled={isTransferring}
-                          onClick={() => dispatch("startTransfer", ticket)}
-                        >
-                          <Send size={14} aria-hidden="true" />
-                          <span>{t("transferTicket")}</span>
-                        </NeoButton>
-                      )}
-                    </div>
+                            />
+                            <div className="ticket-transfer-form__actions">
+                              <NeoButton
+                                variant="primary"
+                                size="sm"
+                                loading={isThisTransferring}
+                                disabled={!canTransferTicket || isTransferring}
+                                onClick={() =>
+                                  dispatch("transferTicket", {
+                                    tokenId: ticket.tokenId,
+                                    recipient: transferRecipient,
+                                  })
+                                }
+                              >
+                                <Send size={14} aria-hidden="true" />
+                                <span>{t("transferTicket")}</span>
+                              </NeoButton>
+                              <NeoButton
+                                variant="ghost"
+                                size="sm"
+                                disabled={isThisTransferring}
+                                onClick={() => state.transferTokenId?.set("")}
+                              >
+                                <X size={14} aria-hidden="true" />
+                                <span>{t("cancel")}</span>
+                              </NeoButton>
+                            </div>
+                          </form>
+                        ) : (
+                          <NeoButton
+                            variant="secondary"
+                            size="sm"
+                            disabled={isTransferring}
+                            onClick={() => dispatch("startTransfer", ticket)}
+                          >
+                            <Send size={14} aria-hidden="true" />
+                            <span>{t("transferTicket")}</span>
+                          </NeoButton>
+                        )}
+                      </div>
                     )}
                   </div>
                 </article>
@@ -609,9 +763,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         ) : (
           <div className="ticket-empty-state">
-            <div className="ticket-sample" aria-label={t("samplePreviewHeading")}>
-              <span className="ticket-sample__flag">{t("samplePreviewLabel")}</span>
-              <article className="ticket-pass ticket-pass--sample" aria-hidden="true">
+            <div
+              className="ticket-sample"
+              aria-label={t("samplePreviewHeading")}
+            >
+              <span className="ticket-sample__flag">
+                {t("samplePreviewLabel")}
+              </span>
+              <article
+                className="ticket-pass ticket-pass--sample"
+                aria-hidden="true"
+              >
                 <div className="ticket-pass__art" aria-hidden="true" />
                 <div className="ticket-pass__stub">
                   <Ticket size={18} aria-hidden="true" />
@@ -623,7 +785,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <span>{t("sampleVenue")}</span>
                       <strong>{t("sampleEventName")}</strong>
                     </div>
-                    <span className="ticket-badge valid">{t("ticketValid")}</span>
+                    <span className="ticket-badge valid">
+                      {t("ticketValid")}
+                    </span>
                   </div>
                   <div className="ticket-pass__sample-rows">
                     <div>
@@ -636,7 +800,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </div>
                   </div>
                   <div className="ticket-pass__sample-foot">
-                    <TokenQr value="sample-pass-1042" label={t("ticketQrLabel")} />
+                    <TokenQr
+                      value="sample-pass-1042"
+                      label={t("ticketQrLabel")}
+                    />
                     <code>1-1042</code>
                   </div>
                 </div>
@@ -660,14 +827,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="ticket-evidence__col">
               <div className="ticket-evidence__head">
                 <span>{t("latestRequest")}</span>
-                <strong>{requestJson ? t("latestResult") : t("payloadEmpty")}</strong>
+                <strong>
+                  {requestJson ? t("latestResult") : t("payloadEmpty")}
+                </strong>
               </div>
-              {requestJson ? <pre>{requestJson}</pre> : <div className="ticket-empty ticket-empty--line">{t("requestEmpty")}</div>}
+              {requestJson ? (
+                <pre>{requestJson}</pre>
+              ) : (
+                <div className="ticket-empty ticket-empty--line">
+                  {t("requestEmpty")}
+                </div>
+              )}
             </div>
             <div className="ticket-evidence__col">
               <div className="ticket-evidence__head">
                 <span>{t("latestResult")}</span>
-                <strong>{resultJson ? t("serviceStatus") : t("payloadEmpty")}</strong>
+                <strong>
+                  {resultJson ? t("serviceStatus") : t("payloadEmpty")}
+                </strong>
               </div>
               {resultTxid ? (
                 <a
@@ -679,7 +856,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {t("viewOnExplorer")}
                 </a>
               ) : null}
-              {resultJson ? <pre>{resultJson}</pre> : <div className="ticket-empty ticket-empty--line">{t("resultEmpty")}</div>}
+              {resultJson ? (
+                <pre>{resultJson}</pre>
+              ) : (
+                <div className="ticket-empty ticket-empty--line">
+                  {t("resultEmpty")}
+                </div>
+              )}
             </div>
           </div>
         </details>
