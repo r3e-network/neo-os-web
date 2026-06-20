@@ -1,4 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  FileCheck2,
+  Landmark,
+  PencilLine,
+  ScrollText,
+  X,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -19,7 +28,14 @@ interface Proposal {
   type: number;
   title: string;
   description: string;
-  statusKey: "active" | "passed" | "rejected" | "revoked" | "expired" | "executed" | "pending";
+  statusKey:
+    | "active"
+    | "passed"
+    | "rejected"
+    | "revoked"
+    | "expired"
+    | "executed"
+    | "pending";
   statusString?: string;
   yesVotes: number;
   noVotes: number;
@@ -50,34 +66,17 @@ const POLICY_METHODS = [
 ];
 
 const DEFAULT_POLICY_METHOD = POLICY_METHODS[0]?.key ?? "FeePerByte";
-const DEFAULT_DURATION_MS = DURATION_OPTIONS[1]?.value ?? 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_DURATION_MS =
+  DURATION_OPTIONS[1]?.value ?? 7 * 24 * 60 * 60 * 1000;
 
 // Neo's council is the top-21 candidates. Used as the quorum denominator when
 // the contract returns no explicit quorumRequired so the pass bar stays legible.
 const COUNCIL_SIZE = 21;
 
 const TAB_ICONS: Record<"active" | "create" | "history", JSX.Element> = {
-  active: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 21h18" />
-      <path d="M5 21V9l7-5 7 5v12" />
-      <path d="M9 21v-6h6v6" />
-    </svg>
-  ),
-  create: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  ),
-  history: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M15 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-      <path d="M15 3v5h5" />
-      <path d="M8 13h8" />
-      <path d="M8 17h6" />
-    </svg>
-  ),
+  active: <Landmark size={15} />,
+  create: <PencilLine size={15} />,
+  history: <ScrollText size={15} />,
 };
 
 function shortAddress(value?: string) {
@@ -101,7 +100,8 @@ function formatDate(value: number) {
 const ENDING_SOON_MS = 24 * 60 * 60 * 1000;
 function isEndingSoon(proposal: Proposal): boolean {
   if (proposal.statusKey !== "active") return false;
-  if (!Number.isFinite(proposal.expiryTime) || proposal.expiryTime <= 0) return false;
+  if (!Number.isFinite(proposal.expiryTime) || proposal.expiryTime <= 0)
+    return false;
   const remaining = proposal.expiryTime - Date.now();
   return remaining > 0 && remaining <= ENDING_SOON_MS;
 }
@@ -109,12 +109,19 @@ function isEndingSoon(proposal: Proposal): boolean {
 // The quorum denominator. When the contract returns no explicit quorumRequired
 // (0/empty), fall back to the known council size so the pass bar reads as
 // "X/21" instead of "X/—". Returns the value and whether it's the fallback.
-function quorumDenominator(proposal: Proposal): { value: number; isFallback: boolean } {
-  if (proposal.quorumRequired > 0) return { value: proposal.quorumRequired, isFallback: false };
+function quorumDenominator(proposal: Proposal): {
+  value: number;
+  isFallback: boolean;
+} {
+  if (proposal.quorumRequired > 0)
+    return { value: proposal.quorumRequired, isFallback: false };
   // When the contract reports no explicit quorum we fall back to the council
   // size, but never let the denominator read below the actual vote count — an
   // unbounded tally would otherwise render a nonsensical "30/21".
-  return { value: Math.max(COUNCIL_SIZE, proposal.totalVotes), isFallback: true };
+  return {
+    value: Math.max(COUNCIL_SIZE, proposal.totalVotes),
+    isFallback: true,
+  };
 }
 
 // A proposal passes on a strict majority of the council seats voting For — the
@@ -131,12 +138,23 @@ function passThreshold(proposal: Proposal): number {
 function voteBarGeometry(proposal: Proposal) {
   const denominator = Math.max(quorumDenominator(proposal).value, 1);
   const forPct = Math.min(100, (proposal.yesVotes / denominator) * 100);
-  const againstPct = Math.min(100 - forPct, (proposal.noVotes / denominator) * 100);
-  const thresholdPct = Math.min(100, (passThreshold(proposal) / denominator) * 100);
+  const againstPct = Math.min(
+    100 - forPct,
+    (proposal.noVotes / denominator) * 100,
+  );
+  const thresholdPct = Math.min(
+    100,
+    (passThreshold(proposal) / denominator) * 100,
+  );
   return { forPct, againstPct, thresholdPct };
 }
 
-export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProps) {
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  retryLoad,
+}: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
   const isLoading = bool("isLoading");
@@ -182,14 +200,20 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
   const [policyValue, setPolicyValue] = useState("");
   const [duration, setDuration] = useState(String(DEFAULT_DURATION_MS));
 
-  const selectedProposal = proposals.find((proposal) => proposal.id === selectedId) ?? null;
-  const visibleProposals = tab === "history" ? historyProposals : activeProposals;
+  const selectedProposal =
+    proposals.find((proposal) => proposal.id === selectedId) ?? null;
+  const visibleProposals =
+    tab === "history" ? historyProposals : activeProposals;
   const canWrite = Boolean(walletAddress && isCandidate);
   const showPolicyFields = proposalType === "1";
-  const selectedDurationLabel =
-    t(DURATION_OPTIONS.find((option) => String(option.value) === duration)?.labelKey ?? "duration7Days");
-  const selectedPolicyMethodLabel =
-    t(POLICY_METHODS.find((method) => method.key === policyMethod)?.labelKey ?? "methodFeePerByte");
+  const selectedDurationLabel = t(
+    DURATION_OPTIONS.find((option) => String(option.value) === duration)
+      ?.labelKey ?? "duration7Days",
+  );
+  const selectedPolicyMethodLabel = t(
+    POLICY_METHODS.find((method) => method.key === policyMethod)?.labelKey ??
+      "methodFeePerByte",
+  );
   const draftTitle = newTitle.trim() || t("proposalDraftEmpty");
   const draftDescription = newDescription.trim() || t("descPlaceholder");
 
@@ -269,23 +293,43 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
   return (
     <div className="council-play-area">
       <section className="council-hero">
-        <div className="council-hero-head">
-          <div className="council-hero-badge" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 21h18" />
-              <path d="M5 21V9l7-5 7 5v12" />
-              <path d="M9 21v-6h6v6" />
-              <path d="M12 9h.01" />
-            </svg>
-          </div>
+        <div className="council-hero-main">
           <div className="council-hero-copy">
-            <p className="council-eyebrow">{t("liveGovernance")}</p>
+            <div className="council-hero-mark">
+              <span className="council-hero-badge" aria-hidden="true">
+                <Landmark size={24} />
+              </span>
+              <p className="council-eyebrow">{t("liveGovernance")}</p>
+            </div>
             <h2>{t("title")}</h2>
             <p className="council-hero-sub">{t("governanceSummary")}</p>
+            <div className="council-hero-actions">
+              <NeoButton
+                variant="ghost"
+                size="sm"
+                className="council-refresh"
+                loading={isRefreshing}
+                disabled={isRefreshing}
+                onClick={handleRefresh}
+              >
+                {t("refresh")}
+              </NeoButton>
+            </div>
           </div>
-          <NeoButton variant="ghost" size="sm" className="council-refresh" loading={isRefreshing} disabled={isRefreshing} onClick={handleRefresh}>
-            {t("refresh")}
-          </NeoButton>
+
+          <figure className="council-hero-visual">
+            <img
+              src="./council-chamber.jpg"
+              alt={t("heroImageAlt")}
+              loading="eager"
+              decoding="sync"
+            />
+            <figcaption className="council-quorum-card">
+              <span>{t("quorumChamber")}</span>
+              <strong>{t("councilOf21")}</strong>
+              <small>{t("quorumRing")}</small>
+            </figcaption>
+          </figure>
         </div>
 
         <div className="council-stats" aria-label={t("governanceStats")}>
@@ -303,7 +347,11 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
           </div>
           <div
             className={`council-stat council-stat--seat council-stat--seat-${
-              !walletAddress || !candidateLoaded ? "off" : isCandidate ? "ok" : "read"
+              !walletAddress || !candidateLoaded
+                ? "off"
+                : isCandidate
+                  ? "ok"
+                  : "read"
             }`}
           >
             <span className="council-seat-state">
@@ -315,6 +363,13 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                   : t("seatReadOnly")}
             </span>
             <label>{t("councilSeat")}</label>
+            <small className="council-stat-caption">
+              {!walletAddress || !candidateLoaded
+                ? t("seatCaptionConnect")
+                : isCandidate
+                  ? t("seatCaptionVerified")
+                  : t("seatCaptionReadOnly")}
+            </small>
           </div>
         </div>
       </section>
@@ -331,7 +386,11 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
         {walletAddress && <strong>{shortAddress(walletAddress)}</strong>}
       </div>
 
-      <div className="council-tabs" role="tablist" aria-label={t("proposalTabs")}>
+      <div
+        className="council-tabs"
+        role="tablist"
+        aria-label={t("proposalTabs")}
+      >
         {(["active", "create", "history"] as const).map((entry) => (
           <button
             key={entry}
@@ -341,7 +400,9 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             className={tab === entry ? "is-active" : ""}
             onClick={() => setTab(entry)}
           >
-            <span className="council-tab-icon" aria-hidden="true">{TAB_ICONS[entry]}</span>
+            <span className="council-tab-icon" aria-hidden="true">
+              {TAB_ICONS[entry]}
+            </span>
             <span className="council-tab-label">
               {entry === "active" && t("active")}
               {entry === "create" && t("createProposal")}
@@ -359,13 +420,18 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
           </div>
 
           <div className="council-create-workbench">
-            <section className="council-draft-preview" aria-label={t("proposalDraft")}>
+            <section
+              className="council-draft-preview"
+              aria-label={t("proposalDraft")}
+            >
               <div className="council-draft-preview__rail" aria-hidden="true">
                 <span>{t("proposalDraft")}</span>
               </div>
               <div className="council-draft-preview__body">
                 <div className="council-draft-preview__meta">
-                  <span>{showPolicyFields ? t("policyType") : t("textType")}</span>
+                  <span>
+                    {showPolicyFields ? t("policyType") : t("textType")}
+                  </span>
                   <span>{selectedDurationLabel}</span>
                 </div>
                 <strong>{draftTitle}</strong>
@@ -373,106 +439,141 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                 {showPolicyFields && (
                   <div className="council-draft-policy">
                     <span>{selectedPolicyMethodLabel}</span>
-                    <strong>{policyValue || t("policyValuePlaceholder")}</strong>
+                    <strong>
+                      {policyValue || t("policyValuePlaceholder")}
+                    </strong>
                   </div>
                 )}
               </div>
             </section>
 
-            <section className="council-create-section" aria-label={t("proposalType")}>
-              <span className="council-section-label">{t("proposalType")}</span>
-              <div className="council-choice-grid council-choice-grid--type" role="radiogroup">
-                {[
-                  { value: "0", label: t("textType"), description: t("textProposalScope") },
-                  { value: "1", label: t("policyType"), description: t("policyProposalScope") },
-                ].map((option) => {
-                  const active = proposalType === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      className={`council-choice-button${active ? " is-selected" : ""}`}
-                      onClick={() => setProposalType(option.value)}
-                    >
-                      <strong>{option.label}</strong>
-                      <span>{option.description}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="council-create-section" aria-label={t("duration")}>
-              <span className="council-section-label">{t("duration")}</span>
-              <div className="council-duration-row" role="radiogroup">
-                {DURATION_OPTIONS.map((option) => {
-                  const active = String(option.value) === duration;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={active}
-                      className={`council-duration-chip${active ? " is-selected" : ""}`}
-                      onClick={() => setDuration(String(option.value))}
-                    >
-                      {t(option.labelKey)}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            <section className="council-proposal-editor" aria-label={t("proposalBrief")}>
-              <NeoInput
-                value={newTitle}
-                placeholder={t("titlePlaceholder")}
-                label={t("proposalTitle")}
-                onChange={setNewTitle}
-              />
-              <NeoInput
-                type="textarea"
-                value={newDescription}
-                placeholder={t("descPlaceholder")}
-                label={t("description")}
-                onChange={setNewDescription}
-              />
-            </section>
-
-            {showPolicyFields && (
-              <section className="council-policy-group" aria-label={t("policyDetails")}>
-                <div className="council-policy-head">
-                  <span className="council-section-label">{t("policyDetails")}</span>
-                  <p>{t("policyMethodHint")}</p>
-                </div>
-                <div className="council-policy-methods" role="radiogroup" aria-label={t("policyMethod")}>
-                  {POLICY_METHODS.map((method) => {
-                    const active = policyMethod === method.key;
+            <div className="council-create-controls">
+              <section
+                className="council-create-section"
+                aria-label={t("proposalType")}
+              >
+                <span className="council-section-label">
+                  {t("proposalType")}
+                </span>
+                <div
+                  className="council-choice-grid council-choice-grid--type"
+                  role="radiogroup"
+                >
+                  {[
+                    {
+                      value: "0",
+                      label: t("textType"),
+                      description: t("textProposalScope"),
+                    },
+                    {
+                      value: "1",
+                      label: t("policyType"),
+                      description: t("policyProposalScope"),
+                    },
+                  ].map((option) => {
+                    const active = proposalType === option.value;
                     return (
                       <button
-                        key={method.key}
+                        key={option.value}
                         type="button"
                         role="radio"
                         aria-checked={active}
-                        className={`council-policy-method${active ? " is-selected" : ""}`}
-                        onClick={() => setPolicyMethod(method.key)}
+                        className={`council-choice-button${active ? " is-selected" : ""}`}
+                        onClick={() => setProposalType(option.value)}
                       >
-                        {t(method.labelKey)}
+                        <strong>{option.label}</strong>
+                        <span>{option.description}</span>
                       </button>
                     );
                   })}
                 </div>
+              </section>
+
+              <section
+                className="council-create-section"
+                aria-label={t("duration")}
+              >
+                <span className="council-section-label">{t("duration")}</span>
+                <div className="council-duration-row" role="radiogroup">
+                  {DURATION_OPTIONS.map((option) => {
+                    const active = String(option.value) === duration;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        className={`council-duration-chip${active ? " is-selected" : ""}`}
+                        onClick={() => setDuration(String(option.value))}
+                      >
+                        {t(option.labelKey)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section
+                className="council-proposal-editor"
+                aria-label={t("proposalBrief")}
+              >
                 <NeoInput
-                  type="number"
-                  value={policyValue}
-                  placeholder={t("policyValuePlaceholder")}
-                  label={t("policyValue")}
-                  onChange={setPolicyValue}
+                  value={newTitle}
+                  placeholder={t("titlePlaceholder")}
+                  label={t("proposalTitle")}
+                  onChange={setNewTitle}
+                />
+                <NeoInput
+                  type="textarea"
+                  value={newDescription}
+                  placeholder={t("descPlaceholder")}
+                  label={t("description")}
+                  onChange={setNewDescription}
                 />
               </section>
-            )}
+
+              {showPolicyFields && (
+                <section
+                  className="council-policy-group"
+                  aria-label={t("policyDetails")}
+                >
+                  <div className="council-policy-head">
+                    <span className="council-section-label">
+                      {t("policyDetails")}
+                    </span>
+                    <p>{t("policyMethodHint")}</p>
+                  </div>
+                  <div
+                    className="council-policy-methods"
+                    role="radiogroup"
+                    aria-label={t("policyMethod")}
+                  >
+                    {POLICY_METHODS.map((method) => {
+                      const active = policyMethod === method.key;
+                      return (
+                        <button
+                          key={method.key}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          className={`council-policy-method${active ? " is-selected" : ""}`}
+                          onClick={() => setPolicyMethod(method.key)}
+                        >
+                          {t(method.labelKey)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <NeoInput
+                    type="number"
+                    value={policyValue}
+                    placeholder={t("policyValuePlaceholder")}
+                    label={t("policyValue")}
+                    onChange={setPolicyValue}
+                  />
+                </section>
+              )}
+            </div>
           </div>
 
           <NeoButton
@@ -480,7 +581,12 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             size="md"
             block
             loading={isCreating}
-            disabled={isCreating || !canWrite || !newTitle.trim() || !newDescription.trim()}
+            disabled={
+              isCreating ||
+              !canWrite ||
+              !newTitle.trim() ||
+              !newDescription.trim()
+            }
             onClick={handleCreateProposal}
           >
             {t("submitProposal")}
@@ -517,7 +623,12 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             </div>
           ) : visibleProposals.length === 0 ? (
             <div className="council-empty">
-              <h3>{tab === "active" ? t("noActiveProposals") : t("noHistory")}</h3>
+              <span className="council-empty-icon" aria-hidden="true">
+                <FileCheck2 size={24} />
+              </span>
+              <h3>
+                {tab === "active" ? t("noActiveProposals") : t("noHistory")}
+              </h3>
               <p>{t("emptyProposalHelp")}</p>
               <div className="council-empty-actions">
                 {tab === "active" && (
@@ -548,42 +659,69 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                 return (
                   <article key={proposal.id} className="council-proposal-item">
                     <div className="council-proposal-top">
-                      <span className={`council-status-badge council-status--${proposal.statusKey}`}>
+                      <span
+                        className={`council-status-badge council-status--${proposal.statusKey}`}
+                      >
+                        {proposal.statusKey === "active" && (
+                          <CheckCircle2 size={13} aria-hidden="true" />
+                        )}
                         {statusLabel(proposal)}
                       </span>
                       <span className="council-proposal-id">
-                        {proposal.externalId ? `#${proposal.id} · neo.community` : `#${proposal.id}`}
+                        {proposal.externalId
+                          ? `#${proposal.id} · neo.community`
+                          : `#${proposal.id}`}
                       </span>
-                      {alreadyVoted && <span className="council-voted">{t("alreadyVotedLabel")}</span>}
+                      {alreadyVoted && (
+                        <span className="council-voted">
+                          {t("alreadyVotedLabel")}
+                        </span>
+                      )}
                     </div>
 
                     <h3 className="council-proposal-title">{proposal.title}</h3>
-                    <p className="council-proposal-desc">{proposal.description || t("noDescription")}</p>
+                    <p className="council-proposal-desc">
+                      {proposal.description || t("noDescription")}
+                    </p>
 
-                    <div className="council-vote-bar" aria-label={t("voteSplit")}>
+                    <div
+                      className="council-vote-bar"
+                      aria-label={t("voteSplit")}
+                    >
                       <div className="council-vote-bar-track">
                         <div
                           className="council-vote-bar-fill"
-                          style={{ width: `${voteBarGeometry(proposal).forPct}%` }}
+                          style={{
+                            width: `${voteBarGeometry(proposal).forPct}%`,
+                          }}
                         />
                         <div
                           className="council-vote-bar-against"
-                          style={{ width: `${voteBarGeometry(proposal).againstPct}%` }}
+                          style={{
+                            width: `${voteBarGeometry(proposal).againstPct}%`,
+                          }}
                         />
                         <span
                           className="council-vote-bar-marker"
-                          style={{ left: `${voteBarGeometry(proposal).thresholdPct}%` }}
+                          style={{
+                            left: `${voteBarGeometry(proposal).thresholdPct}%`,
+                          }}
                           title={t("passLine")}
                           aria-hidden="true"
                         />
                       </div>
                       <div className="council-vote-counts">
-                        <span className="council-vote-for">{proposal.yesVotes} {t("for")}</span>
-                        <span className="council-vote-against">{proposal.noVotes} {t("against")}</span>
+                        <span className="council-vote-for">
+                          {proposal.yesVotes} {t("for")}
+                        </span>
+                        <span className="council-vote-against">
+                          {proposal.noVotes} {t("against")}
+                        </span>
                       </div>
                     </div>
 
                     <p className="council-pass-threshold">
+                      <span aria-hidden="true" />
                       {t("passThreshold", {
                         needed: passThreshold(proposal),
                         total: quorumDenominator(proposal).value,
@@ -592,47 +730,67 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
 
                     <div className="council-proposal-meta">
                       <span>
-                        {t("quorum")}: {proposal.totalVotes}/{quorumDenominator(proposal).value}
-                        {quorumDenominator(proposal).isFallback && ` · ${t("councilOf21")}`}
+                        {t("quorum")}: {proposal.totalVotes}/
+                        {quorumDenominator(proposal).value}
+                        {quorumDenominator(proposal).isFallback &&
+                          ` · ${t("councilOf21")}`}
                       </span>
-                      <span>{t("creator")}: {shortAddress(proposal.creatorDisplay ?? proposal.creator)}</span>
-                      <span className={isEndingSoon(proposal) ? "council-ending-soon" : ""}>
+                      <span>
+                        {t("creator")}:{" "}
+                        {shortAddress(
+                          proposal.creatorDisplay ?? proposal.creator,
+                        )}
+                      </span>
+                      <span
+                        className={
+                          isEndingSoon(proposal) ? "council-ending-soon" : ""
+                        }
+                      >
                         {t("votingEnds")}: {formatDate(proposal.expiryTime)}
                         {isEndingSoon(proposal) && ` · ${t("endingSoon")}`}
                       </span>
                     </div>
 
                     <div className="council-proposal-actions">
-                      <NeoButton variant="secondary" size="md" block onClick={() => openDetails(proposal)}>
+                      <NeoButton
+                        variant="secondary"
+                        size="md"
+                        block
+                        onClick={() => openDetails(proposal)}
+                      >
                         {t("viewDetails")}
                       </NeoButton>
-                      {proposal.statusKey === "active" && !isExternalProposal && (
-                        <div className="council-vote-actions">
-                          <NeoButton
-                            variant="success"
-                            size="sm"
-                            block
-                            loading={isVoting}
-                            disabled={isVoting || !canWrite || alreadyVoted}
-                            onClick={() => handleVote(proposal.id, "for")}
-                          >
-                            {t("voteFor")}
-                          </NeoButton>
-                          <NeoButton
-                            variant="danger"
-                            size="sm"
-                            block
-                            loading={isVoting}
-                            disabled={isVoting || !canWrite || alreadyVoted}
-                            onClick={() => handleVote(proposal.id, "against")}
-                          >
-                            {t("voteAgainst")}
-                          </NeoButton>
-                        </div>
-                      )}
-                      {proposal.statusKey === "active" && isExternalProposal && (
-                        <span className="council-readonly-note">{t("externalProposalReadOnly")}</span>
-                      )}
+                      {proposal.statusKey === "active" &&
+                        !isExternalProposal && (
+                          <div className="council-vote-actions">
+                            <NeoButton
+                              variant="success"
+                              size="sm"
+                              block
+                              loading={isVoting}
+                              disabled={isVoting || !canWrite || alreadyVoted}
+                              onClick={() => handleVote(proposal.id, "for")}
+                            >
+                              {t("voteFor")}
+                            </NeoButton>
+                            <NeoButton
+                              variant="danger"
+                              size="sm"
+                              block
+                              loading={isVoting}
+                              disabled={isVoting || !canWrite || alreadyVoted}
+                              onClick={() => handleVote(proposal.id, "against")}
+                            >
+                              {t("voteAgainst")}
+                            </NeoButton>
+                          </div>
+                        )}
+                      {proposal.statusKey === "active" &&
+                        isExternalProposal && (
+                          <span className="council-readonly-note">
+                            {t("externalProposalReadOnly")}
+                          </span>
+                        )}
                     </div>
                   </article>
                 );
@@ -643,43 +801,69 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
       )}
 
       {selectedProposal && (
-        <aside className="council-details-panel" aria-label={t("proposalDetails")}>
+        <aside
+          className="council-details-panel"
+          aria-label={t("proposalDetails")}
+        >
           <div className="council-details-head">
             <div>
-              <span className={`council-status-badge council-status--${selectedProposal.statusKey}`}>
+              <span
+                className={`council-status-badge council-status--${selectedProposal.statusKey}`}
+              >
+                {selectedProposal.statusKey === "active" && (
+                  <CheckCircle2 size={13} aria-hidden="true" />
+                )}
                 {statusLabel(selectedProposal)}
               </span>
               <h3>{selectedProposal.title}</h3>
             </div>
-            <button type="button" onClick={() => setSelectedId(null)} aria-label={t("close")}>
-              <span aria-hidden="true">×</span>
+            <button
+              type="button"
+              onClick={() => setSelectedId(null)}
+              aria-label={t("close")}
+            >
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
           <p>{selectedProposal.description || t("noDescription")}</p>
           <dl className="council-details-grid">
-            <div><dt>{t("proposalType")}</dt><dd>{selectedProposal.type === 1 ? t("policyType") : t("textType")}</dd></div>
-            <div><dt>{t("votingEnds")}</dt><dd>{formatDate(selectedProposal.expiryTime)}</dd></div>
-            <div><dt>{t("proposalCreated")}</dt><dd>{formatDate(selectedProposal.createTime)}</dd></div>
+            <div>
+              <dt>{t("proposalType")}</dt>
+              <dd>
+                {selectedProposal.type === 1 ? t("policyType") : t("textType")}
+              </dd>
+            </div>
+            <div>
+              <dt>{t("votingEnds")}</dt>
+              <dd>{formatDate(selectedProposal.expiryTime)}</dd>
+            </div>
+            <div>
+              <dt>{t("proposalCreated")}</dt>
+              <dd>{formatDate(selectedProposal.createTime)}</dd>
+            </div>
             <div>
               <dt>{t("quorum")}</dt>
               <dd>
-                {selectedProposal.totalVotes}/{quorumDenominator(selectedProposal).value}
-                {quorumDenominator(selectedProposal).isFallback && ` · ${t("councilOf21")}`}
+                {selectedProposal.totalVotes}/
+                {quorumDenominator(selectedProposal).value}
+                {quorumDenominator(selectedProposal).isFallback &&
+                  ` · ${t("councilOf21")}`}
               </dd>
             </div>
           </dl>
 
-          {selectedProposal.statusKey === "passed" && selectedProposal.source !== "neo-community" && (
-            <NeoButton
-              variant="primary"
-              size="md"
-              block
-              disabled={!canWrite}
-              onClick={() => handleFinalize(selectedProposal.id)}
-            >
-              {t("finalizeProposal")}
-            </NeoButton>
-          )}
+          {selectedProposal.statusKey === "passed" &&
+            selectedProposal.source !== "neo-community" && (
+              <NeoButton
+                variant="primary"
+                size="md"
+                block
+                disabled={!canWrite}
+                onClick={() => handleFinalize(selectedProposal.id)}
+              >
+                {t("finalizeProposal")}
+              </NeoButton>
+            )}
 
           {/* Execute the on-chain PolicyContract change for a passed POLICY
               proposal — a distinct step from finalize (previously unreachable,
@@ -699,31 +883,56 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             )}
 
           {/* Revoke an own, still-active proposal (creator exit path). */}
-          {selectedProposal.statusKey === "active" && isOwnProposal(selectedProposal) && (
-            <NeoButton
-              variant="danger"
-              size="md"
-              block
-              disabled={!walletAddress}
-              onClick={() => handleRevoke(selectedProposal.id)}
-            >
-              {t("revokeProposal")}
-            </NeoButton>
-          )}
+          {selectedProposal.statusKey === "active" &&
+            isOwnProposal(selectedProposal) && (
+              <NeoButton
+                variant="danger"
+                size="md"
+                block
+                disabled={!walletAddress}
+                onClick={() => handleRevoke(selectedProposal.id)}
+              >
+                {t("revokeProposal")}
+              </NeoButton>
+            )}
 
           <details className="council-more-details">
-            <summary>{t("proposalDetails")}</summary>
+            <summary>
+              <ChevronRight
+                className="council-more-details__icon"
+                size={15}
+                aria-hidden="true"
+              />
+              {t("proposalDetails")}
+            </summary>
             <dl className="council-details-grid">
               <div>
                 <dt>{t("proposalId")}</dt>
-                <dd>{selectedProposal.externalId ? `#${selectedProposal.id} · ${selectedProposal.externalId}` : `#${selectedProposal.id}`}</dd>
+                <dd>
+                  {selectedProposal.externalId
+                    ? `#${selectedProposal.id} · ${selectedProposal.externalId}`
+                    : `#${selectedProposal.id}`}
+                </dd>
               </div>
-              <div><dt>{t("creator")}</dt><dd>{shortAddress(selectedProposal.creatorDisplay ?? selectedProposal.creator)}</dd></div>
+              <div>
+                <dt>{t("creator")}</dt>
+                <dd>
+                  {shortAddress(
+                    selectedProposal.creatorDisplay ?? selectedProposal.creator,
+                  )}
+                </dd>
+              </div>
               {selectedProposal.policyMethod && (
-                <div><dt>{t("policyMethod")}</dt><dd>{selectedProposal.policyMethod}</dd></div>
+                <div>
+                  <dt>{t("policyMethod")}</dt>
+                  <dd>{selectedProposal.policyMethod}</dd>
+                </div>
               )}
               {selectedProposal.policyValue && (
-                <div><dt>{t("policyValue")}</dt><dd>{selectedProposal.policyValue}</dd></div>
+                <div>
+                  <dt>{t("policyValue")}</dt>
+                  <dd>{selectedProposal.policyValue}</dd>
+                </div>
               )}
             </dl>
           </details>
