@@ -10,6 +10,14 @@ const appMessages = {
     en: "Read guardian state first, then prepare recovery preview and credential links only after the account, new owner, and expiry window are ready.",
     zh: "先读取 guardian 状态，再在账户、新 owner 与过期窗口就绪后准备恢复预览和凭证链接。",
   },
+  guardianHeroVisualAlt: {
+    en: "Protected account vault connected to trusted recovery guardians",
+    zh: "受保护账户金库与可信恢复守护人连接",
+  },
+  guardianHeroVisualBadge: {
+    en: "Guardian route armed",
+    zh: "守护路径已就绪",
+  },
   guardianMetricsLabel: {
     en: "Recovery preparation summary",
     zh: "恢复准备摘要",
@@ -37,7 +45,10 @@ const appMessages = {
     en: "Require the account, new owner, and expiry window before generating links.",
     zh: "生成链接前必须补齐账户、新 owner 与过期窗口。",
   },
-  guardianFlowCredential: { en: "Continue in AA workspace", zh: "在 AA 工作区继续" },
+  guardianFlowCredential: {
+    en: "Continue in AA workspace",
+    zh: "在 AA 工作区继续",
+  },
   guardianFlowCredentialDesc: {
     en: "Open, copy, or share the prepared links, then open them in the AA identity workspace to sign the recovery — it is not executed here.",
     zh: "打开、复制或分享准备好的链接，然后在 AA 身份工作区中打开它们以签署恢复——此处不执行恢复。",
@@ -67,7 +78,10 @@ const appMessages = {
     en: "Optional Hash160. When set it is compared to the bound verifier (match / mismatch is shown after Query State) and carried into the recovery links.",
     zh: "可选 Hash160。设置后会与绑定的 verifier 比较（查询状态后显示匹配/不匹配），并带入恢复链接。",
   },
-  verifierOverrideMatch: { en: "Override matches bound verifier", zh: "覆盖值与绑定 verifier 匹配" },
+  verifierOverrideMatch: {
+    en: "Override matches bound verifier",
+    zh: "覆盖值与绑定 verifier 匹配",
+  },
   verifierOverrideMismatch: {
     en: "Override differs from bound verifier",
     zh: "覆盖值与绑定 verifier 不一致",

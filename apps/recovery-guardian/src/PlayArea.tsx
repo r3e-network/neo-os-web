@@ -5,6 +5,16 @@
  */
 
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import {
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  FileCheck2,
+  KeyRound,
+  Search,
+  Share2,
+  ShieldCheck,
+} from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import {
@@ -34,7 +44,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const timelock = str("timelock", t("digestPlaceholder"));
   const backupOwner = str("backupOwnerState", t("digestPlaceholder"));
   const checkedAt = str("checkedAt", t("digestPlaceholder"));
-  const networkDefaultVerifier = str("networkDefaultVerifier", t("digestPlaceholder"));
+  const networkDefaultVerifier = str(
+    "networkDefaultVerifier",
+    t("digestPlaceholder"),
+  );
   const escapeTriggeredAt = str("escapeTriggeredAt", t("digestPlaceholder"));
 
   const previewUrl = str("previewUrl");
@@ -62,7 +75,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // bound verifier and badge match/mismatch (case-insensitive Hash160 compare).
   const overrideTrimmed = verifierHashOverride.trim();
   const boundVerifierKnown =
-    hasPayload && verifierHash !== t("digestPlaceholder") && verifierHash !== t("verifierNotConfigured");
+    hasPayload &&
+    verifierHash !== t("digestPlaceholder") &&
+    verifierHash !== t("verifierNotConfigured");
   const overrideDiagnostic =
     overrideTrimmed.length > 0 && verifierReady && boundVerifierKnown
       ? overrideTrimmed.toLowerCase() === verifierHash.trim().toLowerCase()
@@ -91,7 +106,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       ? [{ label: t("escapeTriggeredAtLabel"), value: escapeTriggeredAt }]
       : []),
     ...(showNetworkDefaultVerifier
-      ? [{ label: t("networkDefaultVerifierLabel"), value: networkDefaultVerifier }]
+      ? [
+          {
+            label: t("networkDefaultVerifierLabel"),
+            value: networkDefaultVerifier,
+          },
+        ]
       : []),
   ];
 
@@ -113,46 +133,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     },
     {
       title: t("recoveryCredentialGroup"),
-      open: { key: "openRecoveryCredentialLink", aria: t("openRecoveryCredential") },
-      copy: { key: "copyRecoveryCredentialLink", aria: t("copyRecoveryCredential") },
-      share: { key: "shareRecoveryCredentialLink", aria: t("shareRecoveryCredential") },
+      open: {
+        key: "openRecoveryCredentialLink",
+        aria: t("openRecoveryCredential"),
+      },
+      copy: {
+        key: "copyRecoveryCredentialLink",
+        aria: t("copyRecoveryCredential"),
+      },
+      share: {
+        key: "shareRecoveryCredentialLink",
+        aria: t("shareRecoveryCredential"),
+      },
     },
   ];
 
-  const copyIcon = (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="9" y="9" width="13" height="13" rx="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
-  );
-  const shareIcon = (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5" />
-    </svg>
-  );
+  const copyIcon = <Copy aria-hidden="true" />;
+  const shareIcon = <Share2 aria-hidden="true" />;
 
   return (
     <div className="guardian-play-area">
@@ -160,19 +157,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="guardian-hero__copy">
           <div className="guardian-hero__head">
             <span className="guardian-hero__badge" aria-hidden="true">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
+              <ShieldCheck />
             </span>
             <div className="guardian-hero__heading">
               <span className="guardian-hero__eyebrow">{t("title")}</span>
@@ -196,6 +181,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span>{t("guardianMetricExpiry")}</span>
               <strong>{expiryDisplay}</strong>
             </div>
+          </div>
+          <div
+            className="guardian-hero__visual"
+            role="img"
+            aria-label={t("guardianHeroVisualAlt")}
+          >
+            <img
+              src="./recovery-command-center.jpg"
+              alt=""
+              loading="eager"
+              decoding="async"
+            />
+            <span>
+              <KeyRound aria-hidden="true" />
+              {t("guardianHeroVisualBadge")}
+            </span>
           </div>
         </div>
 
@@ -223,6 +224,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 onClick={() => handleAction("queryGuardianState")}
                 aria-label={t("queryState")}
               >
+                <Search aria-hidden="true" />
                 {t("queryState")}
               </NeoButton>
               <NeoButton
@@ -230,6 +232,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 onClick={() => handleAction("openRecoveryDocs")}
                 aria-label={t("openRecoveryDocs")}
               >
+                <FileCheck2 aria-hidden="true" />
                 {t("openRecoveryDocs")}
               </NeoButton>
             </div>
@@ -288,20 +291,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           ) : (
             <div className="guardian-state-empty">
               <div className="guardian-state-empty__head">
-                <span className="guardian-state-empty__badge" aria-hidden="true">
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m21 21-4.3-4.3" />
-                  </svg>
+                <span
+                  className="guardian-state-empty__badge"
+                  aria-hidden="true"
+                >
+                  <Search />
                 </span>
                 <strong>{t("noStateYet")}</strong>
                 <p>{t("noStateHint")}</p>
@@ -311,19 +305,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           <div className="guardian-risk-note">
             <span aria-hidden="true">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
+              <ShieldCheck />
             </span>
             <div>
               <strong>{t("guardianRiskTitle")}</strong>
@@ -348,6 +330,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </div>
             {!hasPayload ? (
               <p className="guardian-hint guardian-hint--gate" role="note">
+                <span className="guardian-status-dot" aria-hidden="true" />
                 {t("preparePreReadHint")}
               </p>
             ) : (
@@ -374,20 +357,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <details className="guardian-advanced" open={advancedOpen}>
                 <summary className="guardian-advanced__summary">
                   <span>{t("advancedOptional")}</span>
-                  <svg
+                  <ChevronDown
                     className="guardian-advanced__chevron"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
                     aria-hidden="true"
-                  >
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
+                  />
                 </summary>
                 <div className="guardian-advanced__body">
                   <NeoInput
@@ -404,6 +377,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       }`}
                       role="status"
                     >
+                      <span
+                        className="guardian-status-dot"
+                        aria-hidden="true"
+                      />
                       {overrideDiagnostic.label}
                     </p>
                   )}
@@ -420,7 +397,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="guardian-link-groups">
                 {linkGroups.map((group) => (
                   <div key={group.title} className="guardian-link-group">
-                    <span className="guardian-link-group__title">{group.title}</span>
+                    <span className="guardian-link-group__title">
+                      {group.title}
+                    </span>
                     <div className="guardian-link-row">
                       <NeoButton
                         variant="primary"
@@ -430,6 +409,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         onClick={() => handleAction(group.open.key)}
                         aria-label={group.open.aria}
                       >
+                        <ExternalLink aria-hidden="true" />
                         {t("linkActionOpen")}
                       </NeoButton>
                       <NeoButton
@@ -465,6 +445,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               onClick={() => handleAction("openIdentityWorkspace")}
               aria-label={t("openIdentityWorkspace")}
             >
+              <ExternalLink aria-hidden="true" />
               {t("openIdentityWorkspace")}
             </NeoButton>
             <NeoButton
@@ -472,6 +453,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               onClick={() => handleAction("openAaWorkspace")}
               aria-label={t("openAaWorkspace")}
             >
+              <ExternalLink aria-hidden="true" />
               {t("openAaWorkspace")}
             </NeoButton>
           </div>
