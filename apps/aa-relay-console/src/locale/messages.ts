@@ -14,6 +14,10 @@ const appMessages = {
     en: "Sponsor GAS, validate the AA payload, then hand the transaction to the relayer.",
     zh: "赞助 GAS、校验 AA payload，然后交给 relayer 广播交易。",
   },
+  relayHeroVisualAlt: {
+    en: "A bright paymaster relay station routing sponsored account transactions.",
+    zh: "明亮的 paymaster relay 工作台正在路由受赞助的账户交易。",
+  },
   relayMetricsLabel: {
     en: "Relay environment summary",
     zh: "Relay 环境摘要",
@@ -21,14 +25,33 @@ const appMessages = {
   relayEndpointMetric: { en: "Relay Endpoint", zh: "Relay Endpoint" },
   relayCommandTitle: { en: "Sponsor Preflight", zh: "赞助预检" },
   relayHowItWorksTitle: { en: "How relaying works", zh: "Relay 工作原理" },
-  relayStep1Eyebrow: { en: "Step 1 · Sponsor preflight", zh: "第 1 步 · 赞助预检" },
+  relayStep1Eyebrow: {
+    en: "Step 1 · Sponsor preflight",
+    zh: "第 1 步 · 赞助预检",
+  },
   relayStep1Title: { en: "Check or request coverage", zh: "检查或请求覆盖" },
-  relayStep2Eyebrow: { en: "Step 2 · Build & submit", zh: "第 2 步 · 构建并提交" },
+  relayStep2Eyebrow: {
+    en: "Step 2 · Build & submit",
+    zh: "第 2 步 · 构建并提交",
+  },
   relayStep2Title: { en: "Relay the payload", zh: "Relay 该 Payload" },
   relayPaymasterExplainer: {
     en: "A paymaster can pay the network GAS for this account so it can transact without holding GAS. Check whether this address is covered, request coverage, then submit the relayed transaction.",
     zh: "paymaster 可以为此账户支付网络 GAS，使其无需持有 GAS 即可交易。先检查该地址是否被覆盖、请求覆盖额度，再提交经 relay 的交易。",
   },
+  relayAccountEyebrow: { en: "Account routing", zh: "账户路由" },
+  relayAccountTitle: {
+    en: "Set the account once, then move through the relay line.",
+    zh: "先设定账户，再沿着 relay 流程推进。",
+  },
+  relayReadinessLabel: {
+    en: "Relay readiness checklist",
+    zh: "Relay 就绪清单",
+  },
+  relayReady: { en: "Ready", zh: "已就绪" },
+  relayNeedsAA: { en: "Needs address", zh: "需要地址" },
+  relayNeedsAmount: { en: "Needs GAS amount", zh: "需要 GAS 额度" },
+  relayNeedsPayload: { en: "Needs valid JSON", zh: "需要有效 JSON" },
   sponsorDirectionNote: {
     en: "The paymaster grants this GAS to cover the account's fees — you are not charged for requesting it. It draws against a shared daily limit, so run Check Sponsorship first to see the remaining budget.",
     zh: "paymaster 授予此 GAS 以覆盖账户的手续费——请求本身不向你收费。它从共享的每日额度中扣减，因此请先运行“检查赞助”以查看剩余额度。",
@@ -68,7 +91,10 @@ const appMessages = {
     zh: "提交到 relayer 前，请先修正 JSON payload。",
   },
   relayPayloadLens: { en: "Payload lens", zh: "Payload 视图" },
-  relayPayloadReady: { en: "Relay payload is readable", zh: "Relay payload 可读" },
+  relayPayloadReady: {
+    en: "Relay payload is readable",
+    zh: "Relay payload 可读",
+  },
   relayPayloadOperation: { en: "Operation", zh: "操作" },
   relayPayloadTarget: { en: "Target", zh: "目标" },
   relayPayloadArgs: { en: "Args", zh: "参数" },
