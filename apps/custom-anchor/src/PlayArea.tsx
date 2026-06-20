@@ -1,5 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SyntheticEvent } from "react";
+import {
+  BadgeCheck,
+  ChevronDown,
+  CircleAlert,
+  Coins,
+  Landmark,
+  Network,
+  Orbit,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  WalletCards,
+} from "lucide-react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -37,7 +50,12 @@ interface DiscoveredAnchor {
   mode: number;
 }
 
-export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) {
+export default function PlayArea({
+  t,
+  state,
+  status,
+  dispatch,
+}: PlayAreaProps) {
   const { str, num, bool, val } = useStateBindings(state);
   const anchorAppId = str("anchorAppId");
   const anchorMode = num("anchorMode");
@@ -62,11 +80,14 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
     : anchorNotRegistered
       ? t("anchorNotRegisteredBadge")
       : t("anchorLinked");
-  const displayedAnchor = anchorAppId ? truncate(anchorAppId) : t("anchorAwaitingLaunch");
+  const displayedAnchor = anchorAppId
+    ? truncate(anchorAppId)
+    : t("anchorAwaitingLaunch");
   const displayedTx = lastTxid ? truncate(lastTxid) : "—";
   // Show the real on-chain agent count (0 is a valid value for an unconfigured anchor).
   // Only fall back to a neutral placeholder before an anchor is linked, never mask a real 0.
-  const displayedAgentCount = anchorLinked && !anchorNotRegistered ? String(agentCount) : "—";
+  const displayedAgentCount =
+    anchorLinked && !anchorNotRegistered ? String(agentCount) : "—";
   const hasNeoCredit = Number(neoCredit) > 0;
   const hasGasCredit = Number(gasCredit) > 0;
   const hasAnyCredit = hasNeoCredit || hasGasCredit;
@@ -104,8 +125,14 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorAppId]);
 
-  const anchorInputValid = useMemo(() => isValidAnchorId(anchorInput), [anchorInput]);
-  const amountValid = useMemo(() => isPositiveWholeNeo(amountInput), [amountInput]);
+  const anchorInputValid = useMemo(
+    () => isValidAnchorId(anchorInput),
+    [anchorInput],
+  );
+  const amountValid = useMemo(
+    () => isPositiveWholeNeo(amountInput),
+    [amountInput],
+  );
   // Redeem / claim / refresh use the contract's looser id rule (1-64 chars) so a
   // script-registered anchor stays reachable for reclaiming staked NEO; only a
   // NEW stake requires the strict slug:nonce shape.
@@ -179,8 +206,14 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
     }
   };
 
-  const registerInputValid = useMemo(() => isValidAnchorId(registerInput), [registerInput]);
-  const candidateKeys = useMemo(() => splitCandidateKeys(candidatesInput), [candidatesInput]);
+  const registerInputValid = useMemo(
+    () => isValidAnchorId(registerInput),
+    [registerInput],
+  );
+  const candidateKeys = useMemo(
+    () => splitCandidateKeys(candidatesInput),
+    [candidatesInput],
+  );
   const validCandidateCount = useMemo(
     () => candidateKeys.filter((key) => COMPRESSED_PUBLIC_KEY.test(key)).length,
     [candidateKeys],
@@ -188,8 +221,19 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
   // Provisioning needs EXACTLY 21 valid compressed pubkeys (duplicates allowed —
   // the on-chain RegisterAgents accepts repeats, mirroring the deploy default).
   const candidatesValid =
-    candidateKeys.length === ANCHOR_AGENT_COUNT && validCandidateCount === ANCHOR_AGENT_COUNT;
+    candidateKeys.length === ANCHOR_AGENT_COUNT &&
+    validCandidateCount === ANCHOR_AGENT_COUNT;
   const registerDisabled = busy || !registerInputValid || !candidatesValid;
+  const candidatePreview = candidateKeys.slice(0, 3);
+  const remainingCandidateCount = Math.max(
+    0,
+    candidateKeys.length - candidatePreview.length,
+  );
+  const candidateStatusLabel = candidatesValid
+    ? t("candidateKitReady")
+    : candidateKeys.length > 0
+      ? t("candidateKitPartial")
+      : t("candidateKitEmpty");
 
   const fillDefaultCandidates = () => {
     setCandidatesInput(defaultProfitCandidates().join("\n"));
@@ -270,59 +314,88 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
       {/* Hero — lead with the civic meaning (NEO voting power), then the few facts that matter */}
       <section className="custom-anchor-hero">
         <div className="custom-anchor-hero__body">
-          <span className="custom-anchor-kicker">{t("civicEyebrow")}</span>
-          <h2>{anchorAppId ? t("readyForAnchor") : t("noAnchorTitle")}</h2>
+          <div className="custom-anchor-hero__heading">
+            <span className="custom-anchor-hero__badge" aria-hidden="true">
+              <Landmark size={24} />
+            </span>
+            <div>
+              <span className="custom-anchor-kicker">{t("civicEyebrow")}</span>
+              <h2>{anchorAppId ? t("readyForAnchor") : t("noAnchorTitle")}</h2>
+            </div>
+          </div>
           <p>{anchorAppId ? truncate(anchorAppId) : t("noAnchorBody")}</p>
           <p className="custom-anchor-hero__explainer">
             <strong>{t("whatIsAnchorTitle")}</strong> {t("whatIsAnchorBody")}
           </p>
           <div className="custom-anchor-hero__facts">
             <span>
+              <ShieldCheck size={14} aria-hidden="true" />
               {t("anchorStatus")}: <strong>{anchorStatus}</strong>
             </span>
             <span>
+              <Network size={14} aria-hidden="true" />
               {t("agentCount")}: <strong>{displayedAgentCount}</strong>
             </span>
             <span>
+              <Sparkles size={14} aria-hidden="true" />
               {t("lastTxid")}: <strong>{displayedTx}</strong>
             </span>
           </div>
         </div>
-        <div className="custom-anchor-orbit" aria-hidden="true">
-          {anchorLinked && !anchorNotRegistered ? (
-            <span>{displayedAgentCount}</span>
-          ) : (
-            // Before an anchor is linked there is no real agent count yet — show
-            // a deliberate AA-cluster glyph instead of a bare em-dash so the
-            // focal badge never reads as missing/errored data.
-            <svg
-              className="custom-anchor-orbit__glyph"
-              viewBox="0 0 24 24"
-              width="30"
-              height="30"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none" />
-              <circle cx="12" cy="4.4" r="1.7" fill="currentColor" stroke="none" />
-              <circle cx="18.6" cy="15.8" r="1.7" fill="currentColor" stroke="none" />
-              <circle cx="5.4" cy="15.8" r="1.7" fill="currentColor" stroke="none" />
-              <path d="M12 6.6v3M13.9 13.1l2.9 1.7M10.1 13.1l-2.9 1.7" opacity="0.55" />
-            </svg>
-          )}
-          <small>AA</small>
-        </div>
+        <figure className="custom-anchor-hero__stage">
+          <img
+            src="./custom-anchor-stage.jpg"
+            alt={t("anchorStageAlt")}
+            loading="eager"
+            decoding="async"
+          />
+          <figcaption>
+            <span>{t("anchorStageLabel")}</span>
+            <strong>
+              {anchorLinked && !anchorNotRegistered
+                ? t("anchorStageValueReady")
+                : t("anchorStageValueIdle")}
+            </strong>
+          </figcaption>
+        </figure>
       </section>
 
       {/* Primary action — surfaced immediately after the hero */}
-      <section className="custom-anchor-action-panel" aria-label={t("actionPanelTitle")}>
+      <section
+        className="custom-anchor-action-panel"
+        aria-label={t("actionPanelTitle")}
+      >
         <div className="custom-anchor-section-head">
           <span>{t("actionPanelLabel")}</span>
           <h3>{t("actionPanelTitle")}</h3>
           <p>{t("actionPanelBody")}</p>
+        </div>
+
+        <div
+          className="custom-anchor-route-strip"
+          aria-label={t("anchorFlowTitle")}
+        >
+          <span className={anchorReady ? "is-ready" : ""}>
+            <Orbit size={17} aria-hidden="true" />
+            <small>{t("anchorFlowOpen")}</small>
+            <strong>
+              {anchorReady ? truncate(anchorInput) : t("anchorAwaitingInput")}
+            </strong>
+          </span>
+          <span className={anchorReady && amountValid ? "is-ready" : ""}>
+            <Coins size={17} aria-hidden="true" />
+            <small>{t("anchorFlowAction")}</small>
+            <strong>
+              {amountValid ? `${amountInput} NEO` : t("invalidAmount")}
+            </strong>
+          </span>
+          <span className={anchorReady && amountValid ? "is-ready" : ""}>
+            <WalletCards size={17} aria-hidden="true" />
+            <small>{t("anchorFlowSign")}</small>
+            <strong>
+              {stakeDisabled ? t("anchorAwaitingInput") : t("workflowReady")}
+            </strong>
+          </span>
         </div>
 
         {showOnboarding && (
@@ -350,7 +423,10 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
           </div>
         )}
 
-        <form className="custom-anchor-form" onSubmit={(event) => runAction(event, "stake")}>
+        <form
+          className="custom-anchor-form"
+          onSubmit={(event) => runAction(event, "stake")}
+        >
           <div className="custom-anchor-field">
             <label>
               <span>{t("anchorAppId")}</span>
@@ -363,7 +439,10 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
                 aria-describedby="custom-anchor-id-hint"
               />
             </label>
-            <small id="custom-anchor-id-hint" className="custom-anchor-field-hint">
+            <small
+              id="custom-anchor-id-hint"
+              className="custom-anchor-field-hint"
+            >
               {t("anchorIdHint")}
             </small>
           </div>
@@ -385,10 +464,14 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
                 <input
                   type="checkbox"
                   checked={noAgentConfirmed}
-                  onChange={(event) => setNoAgentConfirmed(event.currentTarget.checked)}
+                  onChange={(event) =>
+                    setNoAgentConfirmed(event.currentTarget.checked)
+                  }
                 />
                 <span>
-                  {noAgentConfirmed ? t("noAgentsConfirmActive") : t("noAgentsConfirm")}
+                  {noAgentConfirmed
+                    ? t("noAgentsConfirmActive")
+                    : t("noAgentsConfirm")}
                 </span>
               </label>
             </div>
@@ -417,7 +500,9 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
               onClick={(event) => runAction(event, "withdraw")}
             >
               <span className="custom-anchor-button__label">
-                {busyAction === "withdraw" ? t("submitting") : t("withdrawAction")}
+                {busyAction === "withdraw"
+                  ? t("submitting")
+                  : t("withdrawAction")}
               </span>
               {busyAction !== "withdraw" && (
                 <span className="custom-anchor-button__tag" aria-hidden="true">
@@ -432,7 +517,9 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
               onClick={(event) => runAction(event, "claimRewards")}
             >
               <span className="custom-anchor-button__label">
-                {busyAction === "claimRewards" ? t("submitting") : t("claimAction")}
+                {busyAction === "claimRewards"
+                  ? t("submitting")
+                  : t("claimAction")}
               </span>
               {busyAction !== "claimRewards" && (
                 <span className="custom-anchor-button__tag" aria-hidden="true">
@@ -445,14 +532,18 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
           {/* Maintenance — a read-only refresh, demoted to a ghost row so the
               value-moving operations above stay visually dominant. */}
           <div className="custom-anchor-maintenance">
-            <span className="custom-anchor-maintenance__label">{t("maintenanceLabel")}</span>
+            <span className="custom-anchor-maintenance__label">
+              {t("maintenanceLabel")}
+            </span>
             <button
               type="button"
               className="custom-anchor-button custom-anchor-button--ghost"
               disabled={looseActionDisabled}
               onClick={(event) => runAction(event, "refreshAnchor")}
             >
-              {busyAction === "refreshAnchor" ? t("submitting") : t("refreshStatus")}
+              {busyAction === "refreshAnchor"
+                ? t("submitting")
+                : t("refreshStatus")}
             </button>
           </div>
         </form>
@@ -474,29 +565,35 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
       </section>
 
       {/* Carded metrics group — tiles wrapped so they stay off the viewport edge, consistent with the rest of the suite */}
-      <section className="custom-anchor-metrics-card" aria-label={t("totalStaked")}>
+      <section
+        className="custom-anchor-metrics-card"
+        aria-label={t("totalStaked")}
+      >
         <div className="custom-anchor-metrics" aria-live="polite">
-        <div>
-          <span>{t("userStake")}</span>
-          <strong>{str("userStake")} NEO</strong>
-        </div>
-        <div>
-          <span>{t("pendingRewards")}</span>
-          <strong>{str("pendingRewards")} GAS</strong>
-        </div>
-        <div>
-          <span>{t("rewardReserve")}</span>
-          <strong>{str("rewardReserve")} GAS</strong>
-        </div>
-        <div>
-          <span>{t("totalStaked")}</span>
-          <strong>{str("totalStaked")} NEO</strong>
-        </div>
+          <div>
+            <span>{t("userStake")}</span>
+            <strong>{str("userStake")} NEO</strong>
+          </div>
+          <div>
+            <span>{t("pendingRewards")}</span>
+            <strong>{str("pendingRewards")} GAS</strong>
+          </div>
+          <div>
+            <span>{t("rewardReserve")}</span>
+            <strong>{str("rewardReserve")} GAS</strong>
+          </div>
+          <div>
+            <span>{t("totalStaked")}</span>
+            <strong>{str("totalStaked")} NEO</strong>
+          </div>
         </div>
       </section>
 
       {/* Reward model — explain where claimable GAS comes from before users stake. */}
-      <section className="custom-anchor-reward-model" aria-label={t("rewardModelTitle")}>
+      <section
+        className="custom-anchor-reward-model"
+        aria-label={t("rewardModelTitle")}
+      >
         <div className="custom-anchor-reward-model__head">
           <span>{t("rewardModelTitle")}</span>
           {anchorLinked && !anchorNotRegistered && (
@@ -507,13 +604,18 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
         </div>
         <p>{t("rewardModelBody")}</p>
         {anchorLinked && !anchorNotRegistered && (
-          <p className="custom-anchor-reward-model__caption">{t("rewardPerNeoCaption")}</p>
+          <p className="custom-anchor-reward-model__caption">
+            {t("rewardPerNeoCaption")}
+          </p>
         )}
       </section>
 
       {/* Stranded contract-credit recovery — shown only when there is something to reclaim. */}
       {hasAnyCredit && (
-        <section className="custom-anchor-credit-card" aria-label={t("creditTitle")}>
+        <section
+          className="custom-anchor-credit-card"
+          aria-label={t("creditTitle")}
+        >
           <div className="custom-anchor-section-head">
             <span>{t("creditTitle")}</span>
             <p>{t("creditBody")}</p>
@@ -529,7 +631,9 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
                   disabled={busy}
                   onClick={() => handleRecover("NEO")}
                 >
-                  {busyAction === "recover-NEO" ? t("submitting") : t("recoverNeo")}
+                  {busyAction === "recover-NEO"
+                    ? t("submitting")
+                    : t("recoverNeo")}
                 </button>
               </div>
             )}
@@ -543,7 +647,9 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
                   disabled={busy}
                   onClick={() => handleRecover("GAS")}
                 >
-                  {busyAction === "recover-GAS" ? t("submitting") : t("recoverGas")}
+                  {busyAction === "recover-GAS"
+                    ? t("submitting")
+                    : t("recoverGas")}
                 </button>
               </div>
             )}
@@ -553,7 +659,10 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
 
       {/* Anchor discovery — browse registered anchors and use one. */}
       <details className="custom-anchor-discover" ref={discoverRef}>
-        <summary>{t("discoverTitle")}</summary>
+        <summary>
+          <span>{t("discoverTitle")}</span>
+          <ChevronDown size={16} aria-hidden="true" />
+        </summary>
         <div className="custom-anchor-discover__body">
           <div className="custom-anchor-discover__head">
             <span>{t("discoverLabel")}</span>
@@ -563,16 +672,22 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
               disabled={busy}
               onClick={handleDiscover}
             >
-              {busyAction === "discoverAnchors" ? t("submitting") : t("discoverRefresh")}
+              {busyAction === "discoverAnchors"
+                ? t("submitting")
+                : t("discoverRefresh")}
             </button>
           </div>
           {discoveredAnchors.length === 0 ? (
-            <p className="custom-anchor-discover__empty">{t("discoverEmpty")}</p>
+            <p className="custom-anchor-discover__empty">
+              {t("discoverEmpty")}
+            </p>
           ) : (
             <ul className="custom-anchor-discover__list">
               {discoveredAnchors.map((entry) => (
                 <li key={entry.appId}>
-                  <span className="custom-anchor-discover__id">{truncate(entry.appId)}</span>
+                  <span className="custom-anchor-discover__id">
+                    {truncate(entry.appId)}
+                  </span>
                   <span
                     className="custom-anchor-discover__mode"
                     title={
@@ -600,100 +715,175 @@ export default function PlayArea({ t, state, status, dispatch }: PlayAreaProps) 
 
       {/* Register a new custom anchor. */}
       <details className="custom-anchor-register" ref={registerRef}>
-        <summary>{t("registerPanelTitle")}</summary>
+        <summary>
+          <span>{t("registerPanelTitle")}</span>
+          <ChevronDown size={16} aria-hidden="true" />
+        </summary>
         <div className="custom-anchor-register__body">
           <div className="custom-anchor-section-head">
             <span>{t("registerPanelLabel")}</span>
             <p>{t("registerPanelBody")}</p>
           </div>
-          <form className="custom-anchor-form" onSubmit={handleRegister}>
+          <form
+            className="custom-anchor-form custom-anchor-register-form"
+            onSubmit={handleRegister}
+          >
             <label>
               <span>{t("registerAnchorAppId")}</span>
               <input
                 value={registerInput}
-                onChange={(event) => setRegisterInput(event.currentTarget.value)}
+                onChange={(event) =>
+                  setRegisterInput(event.currentTarget.value)
+                }
                 placeholder="custom-anchor:team:nonce"
                 autoComplete="off"
                 aria-invalid={registerInput.length > 0 && !registerInputValid}
               />
             </label>
-            <div className="custom-anchor-mode-toggle" role="radiogroup" aria-label={t("registerPanelTitle")}>
+            <div
+              className="custom-anchor-mode-toggle"
+              role="radiogroup"
+              aria-label={t("registerPanelTitle")}
+            >
               <button
                 type="button"
                 role="radio"
                 aria-checked={registerMode === 1}
+                aria-label={t("registerModeTrust")}
                 className={`custom-anchor-mode${registerMode === 1 ? " active" : ""}`}
                 onClick={() => handleSelectMode(1)}
               >
-                {t("registerModeTrust")}
+                <ShieldCheck size={17} aria-hidden="true" />
+                <span>
+                  <strong>{t("registerModeTrust")}</strong>
+                  <small>{t("registerModeTrustDesc")}</small>
+                </span>
               </button>
               <button
                 type="button"
                 role="radio"
                 aria-checked={registerMode === 2}
+                aria-label={t("registerModeProfit")}
                 className={`custom-anchor-mode${registerMode === 2 ? " active" : ""}`}
                 onClick={() => handleSelectMode(2)}
               >
-                {t("registerModeProfit")}
+                <Coins size={17} aria-hidden="true" />
+                <span>
+                  <strong>{t("registerModeProfit")}</strong>
+                  <small>{t("registerModeProfitDesc")}</small>
+                </span>
               </button>
             </div>
-            <p className="custom-anchor-mode-desc">
-              {registerMode === 2 ? t("registerModeProfitDesc") : t("registerModeTrustDesc")}
-            </p>
-            <div className="custom-anchor-field">
-              <label>
-                <span>{t("registerCandidatesLabel")}</span>
-                <textarea
-                  className="custom-anchor-candidates"
-                  value={candidatesInput}
-                  onChange={(event) => setCandidatesInput(event.currentTarget.value)}
-                  placeholder={t("registerCandidatesPlaceholder")}
-                  rows={6}
-                  spellCheck={false}
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  aria-invalid={candidatesInput.trim().length > 0 && !candidatesValid}
-                  aria-describedby="custom-anchor-candidates-hint"
-                />
-              </label>
-              <div className="custom-anchor-candidates__meta">
-                <small id="custom-anchor-candidates-hint" className="custom-anchor-field-hint">
+            <div className="custom-anchor-candidate-kit">
+              <div className="custom-anchor-candidate-kit__head">
+                <div>
+                  <span>{t("candidateKitTitle")}</span>
+                  <strong>{candidateStatusLabel}</strong>
+                </div>
+                <span
+                  className={`custom-anchor-candidates__count${candidatesValid ? " valid" : ""}`}
+                  aria-live="polite"
+                >
+                  {t("registerCandidatesCount").replace(
+                    "{count}",
+                    String(validCandidateCount),
+                  )}
+                </span>
+              </div>
+              <div className="custom-anchor-candidate-kit__preview">
+                <span
+                  className="custom-anchor-candidate-kit__icon"
+                  aria-hidden="true"
+                >
+                  {candidatesValid ? (
+                    <BadgeCheck size={18} />
+                  ) : (
+                    <CircleAlert size={18} />
+                  )}
+                </span>
+                <div>
+                  <strong>{t("candidatePreviewTitle")}</strong>
+                  {candidatePreview.length > 0 ? (
+                    <ul>
+                      {candidatePreview.map((key) => (
+                        <li key={key}>{truncate(key)}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>{t("candidatePreviewEmpty")}</p>
+                  )}
+                  {remainingCandidateCount > 0 && (
+                    <small>
+                      {t("candidateRemaining").replace(
+                        "{count}",
+                        String(remainingCandidateCount),
+                      )}
+                    </small>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="custom-anchor-button custom-anchor-button--ghost"
+                  disabled={busy}
+                  onClick={fillDefaultCandidates}
+                >
+                  <Search size={15} aria-hidden="true" />
+                  {t("registerCandidatesUseDefault")}
+                </button>
+              </div>
+              <div className="custom-anchor-field">
+                <label>
+                  <span>{t("registerCandidatesLabel")}</span>
+                  <textarea
+                    className="custom-anchor-candidates"
+                    value={candidatesInput}
+                    onChange={(event) =>
+                      setCandidatesInput(event.currentTarget.value)
+                    }
+                    placeholder={t("registerCandidatesPlaceholder")}
+                    rows={5}
+                    spellCheck={false}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    aria-invalid={
+                      candidatesInput.trim().length > 0 && !candidatesValid
+                    }
+                    aria-describedby="custom-anchor-candidates-hint"
+                  />
+                </label>
+                <small
+                  id="custom-anchor-candidates-hint"
+                  className="custom-anchor-field-hint"
+                >
                   {t("registerCandidatesHint")}
                 </small>
-                <div className="custom-anchor-candidates__controls">
-                  <span
-                    className={`custom-anchor-candidates__count${candidatesValid ? " valid" : ""}`}
-                    aria-live="polite"
-                  >
-                    {t("registerCandidatesCount").replace("{count}", String(validCandidateCount))}
-                  </span>
-                  <button
-                    type="button"
-                    className="custom-anchor-button custom-anchor-button--ghost"
-                    disabled={busy}
-                    onClick={fillDefaultCandidates}
-                  >
-                    {t("registerCandidatesUseDefault")}
-                  </button>
-                </div>
               </div>
             </div>
             <button
               type="submit"
-              className="custom-anchor-button custom-anchor-button--primary"
+              className="custom-anchor-button custom-anchor-button--primary custom-anchor-submit-button"
               disabled={registerDisabled}
             >
-              {busyAction === "register" ? t("submitting") : t("registerAction")}
+              {busyAction === "register"
+                ? t("submitting")
+                : t("registerAction")}
             </button>
           </form>
-          <p className="custom-anchor-register__note">{t("registerAgentsNote")}</p>
-          <p className="custom-anchor-register__note">{t("registerProvisionedNote")}</p>
+          <p className="custom-anchor-register__note">
+            {t("registerAgentsNote")}
+          </p>
+          <p className="custom-anchor-register__note">
+            {t("registerProvisionedNote")}
+          </p>
         </div>
       </details>
 
       {/* Routing model — collapsed by default to keep the surface civic, not operator-dense. */}
       <details className="custom-anchor-model">
-        <summary>{t("routingDetails")}</summary>
+        <summary>
+          <span>{t("routingDetails")}</span>
+          <ChevronDown size={16} aria-hidden="true" />
+        </summary>
         <div className="custom-anchor-model__body">
           <p>{t("agentModelBody")}</p>
           <p className="custom-anchor-source-line">
