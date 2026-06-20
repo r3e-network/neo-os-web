@@ -2,193 +2,358 @@
 @use "@shared/styles/playarea-base";
 
 .redenv-play-area {
-  /* Category identity: one coherent warm-red accent (with a gold companion for
-     festive flourishes) drives every interactive surface AND the primary CTA,
-     so a Red Envelope unmistakably reads as a red envelope. The gold is used
-     only on decorative coin/seal/celebration motifs, never as a second
-     interactive hue. */
-  --redenv-accent: #d8392f;
-  --redenv-accent-strong: #b42318;
-  --redenv-accent-soft: #fdecea;
-  --redenv-accent-ring: rgba(216, 57, 47, 0.2);
-  --redenv-accent-shadow: rgba(180, 35, 24, 0.26);
-  --redenv-gold-strong: #c98a16;
-  --redenv-gold-soft: #fbf0d4;
+  --re-ink: #241715;
+  --re-text: #4f3732;
+  --re-muted: #806762;
+  --re-line: rgba(105, 50, 43, 0.12);
+  --re-line-strong: rgba(105, 50, 43, 0.2);
+  --re-surface: rgba(255, 255, 255, 0.94);
+  --re-surface-soft: #fff8f3;
+  --re-red: #df4c42;
+  --re-red-strong: #b42318;
+  --re-red-soft: #ffe8e2;
+  --re-gold: #d99a26;
+  --re-gold-soft: #fff2ca;
+  --re-green: #15845a;
+  --re-green-soft: #e2f7ed;
+  --re-shadow: 0 16px 42px rgba(88, 46, 36, 0.09);
+  --re-shadow-soft: 0 8px 22px rgba(88, 46, 36, 0.07);
+  --re-radius: 12px;
+  --re-radius-sm: 10px;
 
   display: grid;
-  align-content: center;
-  gap: 18px;
   min-height: 100%;
-  padding: 14px;
+  padding: 18px 12px 24px;
   background:
-    radial-gradient(120% 70% at 50% -8%, var(--redenv-accent-soft) 0%, rgba(253, 236, 234, 0) 58%),
-    #f7f8fb;
-  color: var(--ns-ink, #1e1e2e);
+    radial-gradient(circle at 90% 0%, rgba(255, 209, 154, 0.34), transparent 34%),
+    linear-gradient(180deg, #fff8ee 0%, #fffdf8 46%, #f6fbf6 100%);
+  color: var(--re-ink);
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
 
-.redenv-shell {
-  display: grid;
+.redenv-play-area * {
   min-width: 0;
+  letter-spacing: 0;
+}
+
+.redenv-play-area .neo-input__label,
+.redenv-play-area .neo-input__hint {
+  color: var(--re-muted);
+  font-weight: 750;
+}
+
+.redenv-play-area .neo-input__wrapper {
+  min-height: 44px;
+  border-color: var(--re-line);
+  border-radius: var(--re-radius-sm);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.58);
+}
+
+.redenv-play-area .neo-input__field {
+  color: var(--re-ink);
+  font-weight: 650;
+}
+
+.redenv-play-area .neo-input__field::placeholder {
+  color: #a38f89;
+}
+
+.redenv-shell {
+  width: min(100%, 1240px);
+  margin: 0 auto;
 }
 
 .redenv-main {
   display: grid;
   gap: 16px;
-  width: min(680px, 100%);
-  margin: 0 auto;
-  min-width: 0;
   align-content: start;
 }
 
-/* Split white-card hero with a system-accent icon badge -- matches north-star shape */
 .redenv-hero {
-  display: flex;
-  align-items: center;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(260px, 340px);
   gap: 16px;
-  min-width: 0;
-  padding: 18px 22px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 18px;
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+  align-items: start;
+  min-height: 360px;
+  padding: 26px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--re-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--re-shadow);
 }
 
-.redenv-hero .redenv-hero-badge {
+.redenv-hero__image,
+.redenv-hero__shade {
+  position: absolute;
+  inset: 0;
+}
+
+.redenv-hero__image {
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.redenv-hero__shade {
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78) 42%, rgba(255, 255, 255, 0.18) 78%),
+    linear-gradient(0deg, rgba(255, 248, 238, 0.9), rgba(255, 248, 238, 0.12) 58%);
+}
+
+.redenv-hero-badge,
+.redenv-summary-badge {
   display: inline-flex;
-  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: var(--redenv-accent-soft);
-  color: var(--redenv-accent);
+  flex: 0 0 auto;
+  color: var(--re-red-strong);
+  background: rgba(255, 232, 226, 0.9);
 }
 
-.redenv-hero .redenv-hero-copy {
+.redenv-hero-badge {
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(223, 76, 66, 0.22);
+  border-radius: var(--re-radius);
+  box-shadow: var(--re-shadow-soft);
+}
+
+.redenv-hero-copy {
   display: grid;
-  gap: 6px;
-  min-width: 0;
-
-  > span {
-    width: fit-content;
-    color: var(--redenv-accent-strong);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  > h2 {
-    margin: 0;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 22px;
-    font-weight: 800;
-    line-height: 1.12;
-    letter-spacing: -0.02em;
-  }
-
-  > p {
-    margin: 2px 0 0;
-    max-width: 46ch;
-    color: var(--ns-text-2, #5b6478);
-    font-size: 13px;
-    line-height: 1.5;
-    letter-spacing: 0;
-  }
+  gap: 8px;
+  max-width: 650px;
 }
 
-/* One compact metrics strip (replaces the duplicated hero stats + side counters) */
+.redenv-hero-copy > span,
+.redenv-metrics span,
+.redenv-envelope-preview__copy span,
+.redenv-section-heading span,
+.redenv-selected-card span,
+.redenv-create-summary span,
+.redenv-details > summary span,
+.redenv-signal-row span {
+  color: var(--re-muted);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.redenv-hero-copy > span {
+  color: var(--re-red-strong);
+}
+
+.redenv-hero-copy > h2 {
+  margin: 0;
+  color: var(--re-ink);
+  font-size: 32px;
+  font-weight: 860;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.redenv-hero-copy > p {
+  max-width: 610px;
+  margin: 0;
+  color: var(--re-text);
+  font-size: 14px;
+  font-weight: 620;
+  line-height: 1.55;
+}
+
+.redenv-hero-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.redenv-hero-flow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  border: 1px solid rgba(223, 76, 66, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 232, 226, 0.86);
+  color: var(--re-red-strong);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.redenv-hero-card {
+  align-self: end;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid rgba(105, 50, 43, 0.12);
+  border-radius: var(--re-radius);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: var(--re-shadow-soft);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.redenv-hero-card span {
+  color: var(--re-muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.redenv-hero-card strong {
+  color: var(--re-ink);
+  font-size: 24px;
+  font-weight: 860;
+  line-height: 1.08;
+}
+
+.redenv-hero-card small {
+  color: var(--re-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .redenv-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  min-width: 0;
-
-  div {
-    display: grid;
-    align-content: center;
-    gap: 6px;
-    min-width: 0;
-    padding: 14px 16px;
-    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-    border-radius: 14px;
-    background: var(--ns-surface, #ffffff);
-    box-shadow: var(--ns-shadow-sm, 0 4px 14px rgba(20, 22, 38, 0.05));
-  }
-
-  span {
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  strong {
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 19px;
-    font-weight: 800;
-    line-height: 1.15;
-    white-space: nowrap;
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-  }
 }
 
+.redenv-metrics div,
 .redenv-action-panel,
-.redenv-activity-panel {
-  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 18px;
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+.redenv-activity-panel,
+.redenv-recovery-panel,
+.redenv-details {
+  border: 1px solid var(--re-line);
+  border-radius: var(--re-radius);
+  background: var(--re-surface);
+  box-shadow: var(--re-shadow);
+}
+
+.redenv-metrics div {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+}
+
+.redenv-metrics strong {
+  overflow: hidden;
+  color: var(--re-ink);
+  font-size: 19px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .redenv-action-panel .neo-card__content,
-.redenv-activity-panel .neo-card__content {
+.redenv-activity-panel .neo-card__content,
+.redenv-recovery-panel .neo-card__content {
   display: grid;
   gap: 14px;
 }
 
-/* Tabs: Claim is primary, Create demoted behind a secondary tab */
 .redenv-tabs {
   display: inline-grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  gap: 5px;
+  width: fit-content;
+  padding: 5px;
+  border: 1px solid var(--re-line);
+  border-radius: 999px;
+  background: var(--re-surface-soft);
 }
 
 .redenv-tab {
-  min-height: 36px;
+  min-height: 38px;
   padding: 0 18px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 999px;
   background: transparent;
-  color: var(--ns-text-2, #5b6478);
+  color: var(--re-muted);
+  cursor: pointer;
   font: inherit;
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0;
-  cursor: pointer;
-  transition: background var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease),
-    color var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
+  font-weight: 800;
+}
 
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 4px var(--redenv-accent-ring);
-  }
+.redenv-tab--active {
+  background: #fff;
+  color: var(--re-red-strong);
+  box-shadow: var(--re-shadow-soft);
+}
 
-  &--active {
-    background: var(--ns-surface, #ffffff);
-    color: var(--redenv-accent-strong);
-    box-shadow: var(--ns-shadow-sm, 0 4px 14px rgba(20, 22, 38, 0.05));
-  }
+.redenv-envelope-preview {
+  position: relative;
+  display: grid;
+  min-height: 230px;
+  overflow: hidden;
+  border: 1px solid rgba(223, 76, 66, 0.2);
+  border-radius: var(--re-radius);
+  background: #fff;
+  box-shadow: var(--re-shadow-soft);
+}
+
+.redenv-envelope-preview__art {
+  position: absolute;
+  inset: 0;
+}
+
+.redenv-envelope-preview__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.redenv-envelope-preview__copy {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  display: grid;
+  gap: 8px;
+  margin: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: var(--re-radius);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 12px 30px rgba(88, 46, 36, 0.13);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.redenv-envelope-preview__copy strong {
+  color: var(--re-ink);
+  font-size: 1.28rem;
+  font-weight: 860;
+  line-height: 1.2;
+}
+
+.redenv-envelope-preview__copy div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.redenv-envelope-preview__copy small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--re-text);
+  font-size: 11px;
+  font-weight: 760;
 }
 
 .redenv-claim-body,
@@ -198,62 +363,50 @@
 }
 
 .redenv-helper {
-  margin: -4px 0 0;
-  color: var(--ns-text-2, #5b6478);
+  margin: -3px 0 0;
+  color: var(--re-text);
   font-size: 12px;
+  font-weight: 610;
   line-height: 1.5;
-  letter-spacing: 0;
 }
 
-/* Inline validation feedback on the create tab: explains why Send is disabled. */
 .redenv-helper--error {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 0;
-  padding: 9px 12px;
-  border: 1px solid var(--ns-danger-soft, #fde7e9);
-  border-radius: 12px;
-  background: var(--ns-danger-soft, #fde7e9);
-  color: var(--ns-danger, #ea3943);
-  font-weight: 600;
-
-  &::before {
-    content: "";
-    flex: 0 0 auto;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--ns-danger, #ea3943);
-  }
+  padding: 10px 12px;
+  border: 1px solid rgba(180, 35, 24, 0.18);
+  border-radius: var(--re-radius-sm);
+  background: var(--re-red-soft);
+  color: var(--re-red-strong);
+  font-weight: 760;
 }
 
-/* Post-create share affordance — copy a OneGate-claimable deep link. */
 .redenv-share-card {
   display: grid;
   gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--ns-success-soft, #d8f3e3);
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-success-soft, #eafaf1);
+  padding: 14px;
+  border: 1px solid rgba(21, 132, 90, 0.2);
+  border-radius: var(--re-radius);
+  background: var(--re-green-soft);
 }
 
 .redenv-share-copy {
   display: grid;
   gap: 4px;
-  min-width: 0;
 }
 
 .redenv-share-title {
+  color: var(--re-ink);
   font-size: 13px;
-  font-weight: 700;
-  color: var(--ns-text, #2a2d3d);
+  font-weight: 820;
 }
 
 .redenv-share-hint {
+  color: var(--re-text);
   font-size: 12px;
   line-height: 1.5;
-  color: var(--ns-text-2, #5b6478);
 }
 
 .redenv-share-actions {
@@ -262,186 +415,126 @@
   gap: 8px;
 }
 
-.redenv-section-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-
-  span {
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.25;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  strong {
-    max-width: 62%;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1.25;
-    text-align: right;
-    word-break: break-word;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-/* Collapsed read-only card -- only rendered once a real envelope resolves */
-.redenv-selected-card {
+.redenv-selected-card,
+.redenv-create-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
 
-  div {
-    min-width: 0;
-    padding: 12px 11px;
-    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-    border-radius: 14px;
-    background: var(--ns-surface-subtle, #f7f8fa);
-  }
+.redenv-selected-card div,
+.redenv-create-summary div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--re-line);
+  border-radius: var(--re-radius-sm);
+  background: var(--re-surface-soft);
+}
 
-  span {
-    display: block;
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1.25;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  strong {
-    display: block;
-    min-width: 0;
-    margin-top: 6px;
-    overflow: hidden;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 15px;
-    font-weight: 800;
-    line-height: 1.2;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-  }
+.redenv-selected-card strong,
+.redenv-create-summary strong {
+  display: block;
+  min-width: 0;
+  margin-top: 6px;
+  overflow: hidden;
+  color: var(--re-ink);
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .redenv-create-grid {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
 .redenv-create-summary {
-  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+}
 
-  div {
-    min-width: 0;
-    padding: 12px;
-    border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-    border-radius: 14px;
-    background: var(--ns-surface-subtle, #f7f8fa);
-  }
-
-  span,
-  strong {
-    display: block;
-    min-width: 0;
-    line-height: 1.25;
-    letter-spacing: 0;
-  }
-
-  span {
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  strong {
-    margin-top: 6px;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .redenv-per-packet-note {
-    display: block;
-    margin-top: 6px;
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 10.5px;
-    font-weight: 600;
-    font-style: normal;
-    line-height: 1.4;
-    letter-spacing: 0;
-    text-transform: none;
-  }
+.redenv-per-packet-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--re-muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  font-style: normal;
+  line-height: 1.4;
 }
 
 .redenv-action-panel .neo-btn {
+  gap: 7px;
   min-height: 42px;
-  border-radius: 14px;
-  letter-spacing: 0;
+  border-radius: var(--re-radius-sm);
+  font-weight: 780;
 }
 
-/* The primary Claim CTA carries the category-signature red so the chrome and
-   the main action share ONE accent hue (no green-CTA / red-chrome split). */
 .redenv-action-panel .neo-btn--primary:not(:disabled) {
-  background: var(--redenv-accent);
-  border-color: var(--redenv-accent);
-  box-shadow: 0 4px 14px var(--redenv-accent-shadow);
-
-  &:hover:not(:disabled) {
-    background: var(--redenv-accent-strong);
-    border-color: var(--redenv-accent-strong);
-    box-shadow: 0 6px 18px var(--redenv-accent-shadow);
-  }
+  border-color: var(--re-red);
+  background: var(--re-red);
+  color: #fff;
+  box-shadow: 0 5px 16px rgba(180, 35, 24, 0.24);
 }
 
-.redenv-action-panel .neo-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 4px var(--redenv-accent-ring);
+.redenv-action-panel .neo-btn--primary:hover:not(:disabled) {
+  border-color: var(--re-red-strong);
+  background: var(--re-red-strong);
 }
 
-/* Soft-tinted disabled CTA -- awaiting input, not broken. Muted-ink label on
-   the soft fill keeps it legibly a (currently inactive) button at >=4.5:1. */
 .redenv-action-panel .neo-btn--primary:disabled,
 .redenv-action-panel .neo-btn--secondary:disabled {
-  background: var(--ns-surface-subtle, #eef0f4);
-  border-color: rgba(20, 22, 38, 0.1);
-  color: var(--ns-text-2, #5b6478);
+  border-color: rgba(105, 50, 43, 0.1);
+  background: #f2eee9;
+  color: var(--re-muted);
   opacity: 1;
   box-shadow: none;
 }
 
-/* Activity: one panel, two lists when there is data, slim line when empty */
+.redenv-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.redenv-section-heading strong {
+  flex: 0 0 auto;
+  color: var(--re-ink);
+  font-size: 13px;
+  font-weight: 850;
+}
+
 .redenv-activity-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  align-items: start;
 }
 
 .redenv-activity-empty {
-  padding: 26px 18px;
-  border: 1px solid var(--redenv-accent-ring);
-  border-radius: 16px;
-  background:
-    radial-gradient(120% 80% at 50% 0%, var(--redenv-accent-soft) 0%, rgba(253, 236, 234, 0) 70%),
-    var(--ns-surface-subtle, #f7f8fa);
+  padding: 22px 18px;
+  border: 1px solid rgba(223, 76, 66, 0.16);
+  border-radius: var(--re-radius);
+  background: var(--re-surface-soft);
 }
 
 .redenv-empty-art {
   display: inline-flex;
+  width: 148px;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(223, 76, 66, 0.16);
+  border-radius: var(--re-radius);
+  box-shadow: var(--re-shadow-soft);
+}
+
+.redenv-empty-art img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
 }
 
 .redenv-list {
@@ -456,203 +549,131 @@
   align-items: center;
   width: 100%;
   min-height: 44px;
-  min-width: 0;
   padding: 10px 12px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-2, #5b6478);
+  border: 1px solid var(--re-line);
+  border-radius: var(--re-radius-sm);
+  background: var(--re-surface-soft);
+  color: var(--re-text);
+  cursor: pointer;
   font: inherit;
   text-align: left;
-  cursor: pointer;
-  transition: border-color var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease),
-    background var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
-
-  span {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--ns-ink, #1e1e2e);
-    font-family: "SF Mono", "JetBrains Mono", monospace;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.25;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    letter-spacing: 0;
-  }
-
-  strong {
-    color: var(--redenv-accent-strong);
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1.25;
-    white-space: nowrap;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-  }
-
-  &:hover:not(.redenv-row--static):not(.redenv-row--selected) {
-    border-color: var(--redenv-accent-ring);
-    background: var(--ns-surface, #ffffff);
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 4px var(--redenv-accent-ring);
-  }
-
-  &--selected {
-    border-color: var(--redenv-accent);
-    background: var(--redenv-accent-soft);
-    box-shadow: inset 0 0 0 1px var(--redenv-accent-ring);
-  }
-
-  &--static {
-    cursor: default;
-  }
-
-  /* Recovery rows (reclaim / withdraw credit) carry an inline action button. */
-  &--recovery {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-  }
 }
 
-/* Creator recovery: expired-envelope reclaims + prepaid-credit withdrawal */
-.redenv-recovery-panel {
-  border-color: var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 18px;
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+.redenv-row:hover:not(.redenv-row--static):not(.redenv-row--selected) {
+  border-color: var(--re-line-strong);
+  background: #fff;
 }
 
-.redenv-recovery-panel .neo-card__content {
-  display: grid;
-  gap: 14px;
+.redenv-row--selected {
+  border-color: rgba(223, 76, 66, 0.45);
+  background: var(--re-red-soft);
+  box-shadow: inset 0 0 0 1px rgba(223, 76, 66, 0.14);
 }
 
-/* Diagnostics collapsed behind a Details disclosure -- internal telemetry */
+.redenv-row--static {
+  cursor: default;
+}
+
+.redenv-row--recovery {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.redenv-row span {
+  overflow: hidden;
+  color: var(--re-ink);
+  font-family: "SF Mono", "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.redenv-row strong {
+  color: var(--re-red-strong);
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
 .redenv-details {
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 16px;
-  background: var(--ns-surface, #ffffff);
-  box-shadow: var(--ns-shadow-sm, 0 4px 14px rgba(20, 22, 38, 0.05));
+  overflow: hidden;
+}
 
-  > summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 16px;
-    list-style: none;
-    cursor: pointer;
-    border-radius: 16px;
+.redenv-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
 
-    &::-webkit-details-marker {
-      display: none;
-    }
+.redenv-details > summary::-webkit-details-marker {
+  display: none;
+}
 
-    &:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 4px var(--redenv-accent-ring);
-    }
+.redenv-summary-label,
+.redenv-summary-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
 
-    span {
-      color: var(--ns-text-muted, #8a92a6);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-    }
+.redenv-summary-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
 
-    strong {
-      color: var(--ns-ink, #1e1e2e);
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0;
-    }
-  }
+.redenv-summary-value strong {
+  color: var(--re-ink);
+  font-size: 13px;
+  font-weight: 820;
+}
 
-  .redenv-summary-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-  }
+.redenv-summary-chevron {
+  flex: 0 0 auto;
+  color: var(--re-muted);
+  transition: transform 0.15s ease;
+}
 
-  .redenv-summary-badge {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 9px;
-    background: var(--redenv-accent-soft);
-    color: var(--redenv-accent);
-  }
+.redenv-details[open] > summary {
+  border-bottom: 1px solid var(--re-line);
+}
 
-  .redenv-summary-value {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  .redenv-summary-chevron {
-    flex: 0 0 auto;
-    color: var(--ns-text-muted, #8a92a6);
-    transition: transform var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
-  }
-
-  &[open] > summary {
-    border-bottom: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  }
-
-  &[open] > summary .redenv-summary-chevron {
-    transform: rotate(180deg);
-  }
+.redenv-details[open] > summary .redenv-summary-chevron {
+  transform: rotate(180deg);
 }
 
 .redenv-details-body {
   display: grid;
   gap: 0;
   padding: 14px 16px;
+}
 
-  > p {
-    margin: 0 0 6px;
-    color: var(--ns-text-2, #5b6478);
-    font-size: 13px;
-    line-height: 1.52;
-    letter-spacing: 0;
-  }
+.redenv-details-body > p {
+  margin: 0 0 8px;
+  color: var(--re-text);
+  font-size: 13px;
+  line-height: 1.52;
 }
 
 .redenv-signal-row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  min-width: 0;
   padding: 9px 0;
-  border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border-top: 1px solid var(--re-line);
+}
 
-  span {
-    color: var(--ns-text-2, #5b6478);
-    font-size: 12px;
-    line-height: 1.25;
-    letter-spacing: 0;
-  }
-
-  strong {
-    min-width: 0;
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.25;
-    text-align: right;
-    word-break: break-word;
-    letter-spacing: 0;
-    font-variant-numeric: tabular-nums;
-  }
+.redenv-signal-row strong {
+  color: var(--re-ink);
+  font-size: 12px;
+  font-weight: 780;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .redenv-modal-backdrop {
@@ -663,62 +684,76 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(17, 24, 39, 0.42);
-  backdrop-filter: blur(4px);
+  background: rgba(36, 23, 21, 0.42);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
 }
 
 .redenv-modal {
-  width: min(360px, 100%);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 18px;
-  background: var(--ns-surface, #ffffff);
-  box-shadow: 0 24px 70px rgba(20, 22, 38, 0.22);
+  width: min(380px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--re-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(36, 23, 21, 0.24);
 }
 
 .redenv-modal-content {
   display: grid;
   justify-items: center;
   gap: 12px;
-  padding: 28px 22px;
+  padding: 26px 22px;
   text-align: center;
 }
 
 .redenv-modal-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 38%, var(--redenv-gold-soft) 0%, var(--redenv-accent-soft) 100%);
-  box-shadow: 0 14px 30px var(--redenv-accent-shadow);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 156px;
+  overflow: hidden;
+  border: 1px solid rgba(223, 76, 66, 0.18);
+  border-radius: var(--re-radius);
+  box-shadow: var(--re-shadow-soft);
+}
+
+.redenv-modal-icon img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.redenv-modal-icon svg {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--re-gold);
 }
 
 .redenv-modal-title {
   margin: 0;
-  color: var(--redenv-accent-strong);
+  color: var(--re-red-strong);
   font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0;
+  font-weight: 860;
 }
 
 .redenv-modal-caption {
   margin: -4px 0 0;
-  color: var(--ns-text-2, #5b6478);
+  color: var(--re-text);
   font-size: 13px;
   line-height: 1.4;
-  letter-spacing: 0;
 }
 
 .redenv-modal-amount {
   margin: 0;
-  color: var(--redenv-accent-strong);
+  color: var(--re-red-strong);
   font-size: 30px;
-  font-weight: 800;
+  font-weight: 860;
   line-height: 1.05;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
 }
 
 .redenv-modal-button {
@@ -727,72 +762,73 @@
   padding: 0 22px;
   border: 0;
   border-radius: 999px;
-  background: var(--redenv-accent);
-  color: #ffffff;
-  font-weight: 800;
+  background: var(--re-red);
+  color: #fff;
   cursor: pointer;
-  letter-spacing: 0;
-  transition: background var(--ns-t-fast, 0.15s) var(--ns-ease-smooth, ease);
+  font-weight: 850;
+}
 
-  &:hover {
-    background: var(--redenv-accent-strong);
+.redenv-modal-button:hover {
+  background: var(--re-red-strong);
+}
+
+.redenv-tab:focus-visible,
+.redenv-row:focus-visible,
+.redenv-details > summary:focus-visible,
+.redenv-modal-button:focus-visible,
+.redenv-action-panel .neo-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(223, 76, 66, 0.2);
+}
+
+@media (max-width: 920px) {
+  .redenv-hero {
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 4px var(--redenv-accent-ring);
+  .redenv-hero-card {
+    grid-column: 1 / -1;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .redenv-play-area {
-    gap: 12px;
-    padding: 10px;
+    padding: 14px 10px 18px;
   }
 
   .redenv-hero {
-    padding: 16px;
-    border-radius: 16px;
+    grid-template-columns: 1fr;
+    min-height: 520px;
+    padding: 20px;
   }
 
   .redenv-hero-copy > h2 {
-    font-size: 20px;
-    line-height: 1.1;
+    font-size: 26px;
   }
 
+  .redenv-metrics,
   .redenv-selected-card,
+  .redenv-create-grid,
   .redenv-create-summary,
   .redenv-activity-grid {
     grid-template-columns: 1fr;
   }
 
-  /* Keep the three metrics as a compact horizontal 3-up row on mobile so the
-     primary Claim action stays above the fold instead of three stacked cards. */
-  .redenv-metrics {
-    gap: 6px;
+  .redenv-tabs {
+    width: 100%;
   }
 
-  .redenv-metrics div {
-    padding: 10px 8px;
-    text-align: center;
-    justify-items: center;
+  .redenv-row--recovery {
+    grid-template-columns: 1fr;
   }
 
-  .redenv-metrics span {
-    font-size: 9px;
-    letter-spacing: 0.06em;
+  .redenv-summary-value {
+    justify-content: flex-end;
   }
+}
 
-  .redenv-metrics strong {
-    font-size: 15px;
-  }
-
-  .redenv-section-heading {
-    flex-direction: column;
-  }
-
-  .redenv-section-heading strong {
-    max-width: 100%;
-    text-align: left;
+@media (prefers-reduced-motion: reduce) {
+  .redenv-summary-chevron {
+    transition: none;
   }
 }
