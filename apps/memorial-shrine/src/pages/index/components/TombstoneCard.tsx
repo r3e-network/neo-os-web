@@ -1,3 +1,5 @@
+import { Heart } from "lucide-react";
+
 interface MemorialOfferings {
   incense?: number;
   candle?: number;
@@ -76,19 +78,7 @@ export default function TombstoneCard({ memorial, onClick, t }: TombstoneCardPro
             }}
           />
         ) : null}
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={photoSrc ? { display: "none" } : undefined}
-        >
-          <path d="M12 21s-6.5-4.35-9-8.5C1.5 9.5 3 6 6.5 6 9 6 10.5 7.5 12 9.5 13.5 7.5 15 6 17.5 6 21 6 22.5 9.5 21 12.5 18.5 16.65 12 21 12 21Z" />
-        </svg>
+        <Heart size={20} strokeWidth={1.9} style={photoSrc ? { display: "none" } : undefined} />
       </span>
       <div className="tombstone-body">
         <span className="name">{memorial.name}</span>

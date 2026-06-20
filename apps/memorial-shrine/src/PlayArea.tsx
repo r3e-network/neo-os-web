@@ -1,12 +1,29 @@
 /**
  * PlayArea.tsx — Memorial Shrine
  *
- * Full interactive memorial console: stats bar, obituary banner,
- * memorial grid with TombstoneCards, create form, and tribute panel.
+ * Full interactive memorial console: garden hero, obituary rail,
+ * memorial wall, creation studio, and tribute station.
  */
 
 import { useState } from "react";
-import { NeoButton, NeoCard, NeoInput, NeoSelect } from "@shared/components-react";
+import {
+  Apple,
+  CalendarDays,
+  Flame,
+  Flower2,
+  Heart,
+  Image as ImageIcon,
+  Plus,
+  ScrollText,
+  Share2,
+  ShieldCheck,
+  Sprout,
+  Utensils,
+  Wine,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import TombstoneCard, { resolvePhotoSrc } from "./pages/index/components/TombstoneCard";
@@ -46,7 +63,6 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const lastTx = state.lastTx?.get() as { txid?: string } | null;
   const memorialCount = num("memorialCount");
   const tributeCount = num("tributeCount");
-  const obituaryCount = num("obituaryCount");
   const isSubmitting = bool("isSubmitting");
   const isPaying = bool("isPaying");
 
@@ -64,17 +80,25 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const [tributeReceiptId, setTributeReceiptId] = useState("");
   const isMainnet = launchContext?.network === "mainnet";
 
-  const defaultOffering = { value: "1", costGas: "0.01 GAS", label: `${t("incense")} · 0.01 GAS` };
+  const defaultOffering = { value: "1", costGas: "0.01 GAS", label: t("incense") };
   const offeringOptions = [
     defaultOffering,
-    { value: "2", costGas: "0.02 GAS", label: `${t("candle")} · 0.02 GAS` },
-    { value: "3", costGas: "0.03 GAS", label: `${t("flower")} · 0.03 GAS` },
-    { value: "4", costGas: "0.05 GAS", label: `${t("fruit")} · 0.05 GAS` },
-    { value: "5", costGas: "0.10 GAS", label: `${t("wine")} · 0.10 GAS` },
-    { value: "6", costGas: "0.50 GAS", label: `${t("feast")} · 0.50 GAS` },
+    { value: "2", costGas: "0.02 GAS", label: t("candle") },
+    { value: "3", costGas: "0.03 GAS", label: t("flower") },
+    { value: "4", costGas: "0.05 GAS", label: t("fruit") },
+    { value: "5", costGas: "0.10 GAS", label: t("wine") },
+    { value: "6", costGas: "0.50 GAS", label: t("feast") },
   ];
   const selectedOffering =
     offeringOptions.find((item) => item.value === tributeOfferingType) ?? defaultOffering;
+  const offeringVisuals: Record<string, LucideIcon> = {
+    "1": Sprout,
+    "2": Flame,
+    "3": Flower2,
+    "4": Apple,
+    "5": Wine,
+    "6": Utensils,
+  };
   const currentYear = new Date().getFullYear();
   const birthYearRaw = formBirthYear.trim();
   const deathYearRaw = formDeathYear.trim();
@@ -118,6 +142,16 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const selectedPaidOfferings = OFFERING_FIELDS.filter(
     (field) => Number(selectedOfferings[field.key]) > 0,
   );
+  const previewPhotoSrc = resolvePhotoSrc(formPhotoHash);
+  const previewName = formName.trim() || t("previewEmptyName");
+  const previewRelation = formRelationship.trim() || t("previewRelationEmpty");
+  const previewYears =
+    birthYearRaw || deathYearRaw
+      ? `${birthYearRaw || "----"}-${deathYearRaw || "----"}`
+      : t("previewDatesEmpty");
+  const previewBio = formBiography.trim() || t("previewBioEmpty");
+  const previewObituary = formObituary.trim() || t("previewObituaryEmpty");
+  const canPayTribute = !isMainnet || tributeReceiptId.trim().length > 0;
 
   const handleCreate = async () => {
     if (!canCreateMemorial) return;
@@ -136,6 +170,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   };
 
   const handlePayTribute = async (memorialId: number) => {
+    if (!canPayTribute) return;
     await dispatch("payTribute", memorialId, parseInt(tributeOfferingType, 10), tributeMessage, tributeReceiptId);
     setTributeMessage("");
     setTributeReceiptId("");
@@ -143,45 +178,31 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
   return (
     <div className="memorial-play-area">
-      {/* Hero: identity + stats strip in one white card */}
       <div className="shrine-hero">
-        <div className="shrine-hero__head">
-          <span className="shrine-hero__badge" aria-hidden="true">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 21s-6.5-4.35-9-8.5C1.5 9.5 3 6 6.5 6 9 6 10.5 7.5 12 9.5 13.5 7.5 15 6 17.5 6 21 6 22.5 9.5 21 12.5 18.5 16.65 12 21 12 21Z" />
-            </svg>
-          </span>
-          <div className="shrine-hero__text">
-            <span className="shrine-hero__eyebrow">{t("memorials")}</span>
-            <span className="shrine-hero__title">{t("title")}</span>
-            <span className="shrine-hero__subtitle">{t("subtitle")}</span>
+        <img className="shrine-hero__image" src="./memorial-garden.jpg" alt={t("gardenAlt")} />
+        <div className="shrine-hero__shade" aria-hidden="true" />
+        <div className="shrine-hero__content">
+          <span className="shrine-hero__eyebrow">{t("heroKicker")}</span>
+          <h2 className="shrine-hero__title">{t("title")}</h2>
+          <p className="shrine-hero__subtitle">{t("subtitle")}</p>
+          <div className="shrine-hero__signals" aria-label={t("chainPermanence")}>
+            <span>
+              <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" />
+              {t("chainPermanence")}
+            </span>
+            <span>{memorialCount} {t("memorials")}</span>
+            <span>{tributeCount} {t("myTributes")}</span>
+            <span>{visitedMemorials.length} {t("visited")}</span>
           </div>
           <NeoButton
             variant="primary"
             className="shrine-hero__cta"
-            onClick={() => setShowCreateForm(!showCreateForm)}
+            onClick={() => setShowCreateForm((current) => !current)}
             aria-label={showCreateForm ? t("cancel") : t("createMemorial")}
           >
+            {showCreateForm ? <X size={16} strokeWidth={2.2} aria-hidden="true" /> : <Plus size={16} strokeWidth={2.2} aria-hidden="true" />}
             {showCreateForm ? t("cancel") : t("createMemorial")}
           </NeoButton>
-        </div>
-        <div className="shrine-hero__stats">
-          <div className="stat-chip">
-            <span className="stat-value">{memorialCount}</span>
-            <span className="stat-label">{t("memorials")}</span>
-          </div>
-          <div className="stat-chip">
-            <span className="stat-value">{tributeCount}</span>
-            <span className="stat-label">{t("myTributes")}</span>
-          </div>
-          <div className="stat-chip">
-            <span className="stat-value">{obituaryCount}</span>
-            <span className="stat-label">{t("obituaries")}</span>
-          </div>
-          <div className="stat-chip">
-            <span className="stat-value">{visitedMemorials.length}</span>
-            <span className="stat-label">{t("visited")}</span>
-          </div>
         </div>
         {lastTx?.txid && (
           <div className="chain-receipt" aria-live="polite">
@@ -191,10 +212,12 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         )}
       </div>
 
-      {/* Obituary Banner */}
       {recentObituaries.length > 0 && (
         <div className="obituary-banner">
-          <span className="banner-title">{t("obituaries")}</span>
+          <div className="banner-title">
+            <ScrollText size={16} strokeWidth={2} aria-hidden="true" />
+            <span>{t("obituaries")}</span>
+          </div>
           <div className="banner-scroll">
             {recentObituaries.map((ob) => (
               <button key={ob.id} type="button" className="obituary-item" aria-label={ob.name}
@@ -207,25 +230,34 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         </div>
       )}
 
-      {/* Selected Memorial Detail */}
       {selectedMemorial && (
-        <NeoCard variant="erobo" className="detail-card">
+        <NeoCard variant="erobo" className="detail-card memorial-focus">
           <div className="detail-header">
-            {selectedPhotoSrc && (
-              <img
-                className="detail-photo"
-                src={selectedPhotoSrc}
-                alt=""
-                loading="lazy"
-                onError={(event) => {
-                  event.currentTarget.style.display = "none";
-                }}
-              />
-            )}
-            <span className="detail-name">{selectedMemorialName}</span>
-            {selectedMemorialYears && (
-              <span className="detail-years">{selectedMemorialYears}</span>
-            )}
+            <div className="detail-portrait" aria-hidden="true">
+              {selectedPhotoSrc ? (
+                <img
+                  className="detail-photo"
+                  src={selectedPhotoSrc}
+                  alt=""
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <Heart size={25} strokeWidth={1.9} />
+              )}
+            </div>
+            <div className="detail-identity">
+              <span className="detail-kicker">{t("foreverRemember")}</span>
+              <span className="detail-name">{selectedMemorialName}</span>
+              {selectedMemorialYears && (
+                <span className="detail-years">
+                  <CalendarDays size={14} strokeWidth={2} aria-hidden="true" />
+                  {selectedMemorialYears}
+                </span>
+              )}
+            </div>
             <div className="detail-actions">
               <NeoButton
                 variant="ghost"
@@ -233,6 +265,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 onClick={() => dispatch("shareMemorial", selectedMemorial.id)}
                 aria-label={t("shareMemorial")}
               >
+                <Share2 size={15} strokeWidth={2.2} aria-hidden="true" />
                 {t("share")}
               </NeoButton>
               <NeoButton
@@ -241,6 +274,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 onClick={() => dispatch("closeMemorial")}
                 aria-label={t("close")}
               >
+                <X size={15} strokeWidth={2.2} aria-hidden="true" />
                 {t("close")}
               </NeoButton>
             </div>
@@ -264,20 +298,45 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
               </div>
             </div>
           )}
-          <div className="tribute-form">
-            <span className="tribute-title">{t("payTribute")}</span>
-            <NeoInput value={tributeMessage} label={t("tributeMessage")} placeholder={t("tributeMessagePlaceholder")} onChange={setTributeMessage} />
-            <div className="tribute-row">
-              <NeoSelect
-                value={tributeOfferingType}
-                label={t("offeringType")}
-                options={offeringOptions}
-                onChange={setTributeOfferingType}
-              />
+          <div className="tribute-station">
+            <div className="tribute-station__head">
+              <div>
+                <span className="tribute-title">{t("payTribute")}</span>
+                <p>{t("tributeStationDesc")}</p>
+              </div>
               <div className="offering-cost-card" aria-label={t("offeringCost")}>
                 <span>{t("offeringCost")}</span>
                 <strong>{selectedOffering.costGas}</strong>
               </div>
+            </div>
+            <NeoInput
+              value={tributeMessage}
+              label={t("tributeMessage")}
+              placeholder={t("tributeMessagePlaceholder")}
+              className="tribute-message-input"
+              onChange={setTributeMessage}
+            />
+            <div className="offering-tray" role="radiogroup" aria-label={t("selectOffering")}>
+              {offeringOptions.map((option) => {
+                const Icon = offeringVisuals[option.value] ?? Sprout;
+                const isSelected = option.value === tributeOfferingType;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`offering-option${isSelected ? " is-selected" : ""}`}
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => setTributeOfferingType(option.value)}
+                  >
+                    <span className="offering-option__icon" aria-hidden="true">
+                      <Icon size={17} strokeWidth={2} />
+                    </span>
+                    <span className="offering-option__label">{option.label}</span>
+                    <span className="offering-option__cost">{option.costGas}</span>
+                  </button>
+                );
+              })}
             </div>
             <p className="tribute-disclosure" role="note">{t("offeringDisclosure")}</p>
             {isMainnet && (
@@ -291,46 +350,96 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 />
               </>
             )}
-            <NeoButton variant="primary" loading={isPaying} onClick={() => handlePayTribute(selectedMemorial.id)} aria-label={t("payTribute")}>
+            <NeoButton
+              variant="primary"
+              loading={isPaying}
+              disabled={!canPayTribute}
+              className="tribute-submit"
+              onClick={() => handlePayTribute(selectedMemorial.id)}
+              aria-label={t("payTribute")}
+            >
+              <Heart size={16} strokeWidth={2.2} aria-hidden="true" />
               {t("payTribute")}
             </NeoButton>
           </div>
         </NeoCard>
       )}
 
-      {/* Create Memorial */}
       {showCreateForm && (
-        <NeoCard variant="erobo" className="create-form-card">
-          <div className="create-form">
+        <section className="memorial-studio" aria-label={t("memoryStudio")}>
+          <div className="studio-preview">
+            <div className="studio-preview__media">
+              {previewPhotoSrc ? (
+                <img
+                  src={previewPhotoSrc}
+                  alt=""
+                  onError={(event) => {
+                    event.currentTarget.style.display = "none";
+                  }}
+                />
+              ) : (
+                <ImageIcon size={24} strokeWidth={1.9} aria-hidden="true" />
+              )}
+            </div>
+            <span className="studio-preview__label">{t("previewLabel")}</span>
+            <strong>{previewName}</strong>
+            <span className="studio-preview__years">{previewYears}</span>
+            <span className="studio-preview__relation">{previewRelation}</span>
+            <p>{previewBio}</p>
+            <blockquote>{previewObituary}</blockquote>
+          </div>
+
+          <div className="create-form-panel">
             <div className="create-form__head">
-              <span>{t("createTitle")}</span>
+              <span>{t("memoryStudio")}</span>
               <p>{t("createDesc")}</p>
             </div>
-            <NeoInput value={formName} label={t("labelName")} placeholder={t("placeholderName")} onChange={setFormName} />
-            <NeoInput value={formPhotoHash} label={t("labelPhoto")} placeholder={t("photoHashPlaceholder")} onChange={setFormPhotoHash} />
-            <NeoInput value={formRelationship} label={t("labelRelation")} placeholder={t("placeholderRelation")} onChange={setFormRelationship} />
-            <div className="year-row">
-              <NeoInput value={formBirthYear} label={t("labelBirth")} placeholder={t("placeholderBirthYear")} onChange={setFormBirthYear} />
-              <NeoInput value={formDeathYear} label={t("labelDeath")} placeholder={t("placeholderDeathYear")} onChange={setFormDeathYear} />
+            <div className="studio-step">
+              <span className="studio-step__index">01</span>
+              <span>{t("studioStepIdentity")}</span>
+            </div>
+            <div className="field-grid">
+              <NeoInput value={formName} label={t("labelName")} placeholder={t("placeholderName")} onChange={setFormName} />
+              <NeoInput value={formRelationship} label={t("labelRelation")} placeholder={t("placeholderRelation")} onChange={setFormRelationship} />
+              <NeoInput value={formPhotoHash} label={t("labelPhoto")} placeholder={t("photoHashPlaceholder")} hint={t("photoUrlHelper")} onChange={setFormPhotoHash} />
+              <div className="year-row">
+                <NeoInput value={formBirthYear} label={t("labelBirth")} placeholder={t("placeholderBirthYear")} onChange={setFormBirthYear} />
+                <NeoInput value={formDeathYear} label={t("labelDeath")} placeholder={t("placeholderDeathYear")} onChange={setFormDeathYear} />
+              </div>
             </div>
             {(birthYearError || deathYearError) && (
               <p className="field-error" role="alert">
                 {deathYearError || birthYearError}
               </p>
             )}
-            <NeoInput value={formBiography} type="textarea" label={t("labelBio")} placeholder={t("placeholderBio")} onChange={setFormBiography} />
-            <NeoInput value={formObituary} type="textarea" label={t("labelObituary")} placeholder={t("placeholderObituary")} onChange={setFormObituary} />
-            <NeoButton variant="primary" loading={isSubmitting} disabled={!canCreateMemorial} onClick={handleCreate} aria-label={t("createMemorial")}>
-              {t("createMemorial")}
-            </NeoButton>
+            <div className="studio-step">
+              <span className="studio-step__index">02</span>
+              <span>{t("studioStepStory")}</span>
+            </div>
+            <div className="story-grid">
+              <NeoInput value={formBiography} type="textarea" label={t("labelBio")} placeholder={t("placeholderBio")} onChange={setFormBiography} />
+              <NeoInput value={formObituary} type="textarea" label={t("labelObituary")} placeholder={t("placeholderObituary")} onChange={setFormObituary} />
+            </div>
+            <div className="studio-publish">
+              <div className="studio-step studio-step--publish">
+                <span className="studio-step__index">03</span>
+                <span>{t("studioStepPublish")}</span>
+              </div>
+              <NeoButton variant="primary" loading={isSubmitting} disabled={!canCreateMemorial} onClick={handleCreate} aria-label={t("createMemorial")}>
+                <Plus size={16} strokeWidth={2.2} aria-hidden="true" />
+                {t("createMemorial")}
+              </NeoButton>
+            </div>
           </div>
-        </NeoCard>
+        </section>
       )}
 
-      {/* Memorial Grid */}
       {memorials.length > 0 ? (
         <section className="memorials-section">
-          <span className="section-eyebrow">{t("memorials")}</span>
+          <div className="section-heading">
+            <span className="section-eyebrow">{t("memorials")}</span>
+            <span>{t("chainPermanenceDesc")}</span>
+          </div>
           <div className="memorials-grid">
             {memorials.map((memorial) => (
               <TombstoneCard key={memorial.id} memorial={memorial} onClick={() => dispatch("openMemorial", memorial.id)} t={t} />
@@ -340,9 +449,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       ) : (
         <div className="empty-memorials">
           <span className="empty-memorials__badge" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 21s-6.5-4.35-9-8.5C1.5 9.5 3 6 6.5 6 9 6 10.5 7.5 12 9.5 13.5 7.5 15 6 17.5 6 21 6 22.5 9.5 21 12.5 18.5 16.65 12 21 12 21Z" />
-            </svg>
+            <Heart size={27} strokeWidth={1.8} />
           </span>
           <p>{t("noMemorials")}</p>
           {!showCreateForm && (
