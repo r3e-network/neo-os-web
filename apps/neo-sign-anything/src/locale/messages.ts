@@ -14,7 +14,20 @@ const appMessages = {
     en: "Prepare a message, request a wallet signature, or publish a 0 GAS self-transfer with the message attached for public proof.",
     zh: "准备信息，请求钱包签名，或发布一笔附带信息的 0 GAS 自转账作为公开证明。",
   },
+  signStageKicker: { en: "Signature desk", zh: "签署工作台" },
+  signStageTitle: {
+    en: "Review the payload, approve it in wallet, then keep the signature or broadcast receipt as proof.",
+    zh: "先核对 payload，再在钱包确认；随后保留签名或广播回执作为证明。",
+  },
   signatureDeskTitle: { en: "Message composer", zh: "信息编辑器" },
+  messagePreviewLabel: { en: "Message signing preview", zh: "签名消息预览" },
+  messagePreviewEmptyTitle: { en: "Ready for a message", zh: "等待签署内容" },
+  messagePreviewEmpty: {
+    en: "Your message preview will appear here before it goes to wallet review.",
+    zh: "输入后会先在这里预览，再进入钱包确认。",
+  },
+  messageTypePlain: { en: "Message payload", zh: "消息 payload" },
+  messageTypeDigest: { en: "File digest", zh: "文件摘要" },
   signFlowTitle: { en: "Signature flow", zh: "签名流程" },
   signFlowStepOne: { en: "Write message", zh: "填写信息" },
   signFlowStepOneCopy: {

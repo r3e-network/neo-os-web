@@ -1,4 +1,16 @@
 import { useRef } from "react";
+import {
+  BadgeCheck,
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  FileCheck2,
+  FileSignature,
+  RadioTower,
+  ShieldCheck,
+  Upload,
+  WalletCards,
+} from "lucide-react";
 import { NeoButton, NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -45,6 +57,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : txPending
       ? t("txPending")
       : t("noBroadcastYet");
+  const trimmedMessage = message.trim();
+  const isDigestMessage = /^sha256:[0-9a-f]{64}$/i.test(trimmedMessage);
+  const messageKind = isDigestMessage ? t("messageTypeDigest") : t("messageTypePlain");
+  const previewTitle = trimmedMessage ? messageKind : t("messagePreviewEmptyTitle");
+  const previewCopy = trimmedMessage || t("messagePreviewEmpty");
 
   // A self-describing verify bundle: everything a third party needs to confirm
   // authorship off-chain (address ⇄ public key ⇄ message ⇄ signature). The
@@ -66,37 +83,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="sign-shell">
         <section className="sign-main" aria-label={t("signHeroTitle")}>
           <div className="sign-hero">
-            <span className="sign-hero-accent" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 19l7-7 3 3-7 7-3-3z" />
-                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-                <path d="M2 2l7.586 7.586" />
-                <circle cx="11" cy="11" r="2" />
-              </svg>
-            </span>
-            <div className="sign-hero-copy">
-              <span className="sign-hero-eyebrow">{t("signHeroKicker")}</span>
-              <h2>{t("signHeroTitle")}</h2>
-              <p>{t("signHeroSubtitle")}</p>
-            </div>
-            <div className="sign-hero-stats">
-              <div>
-                <span>{t("signCount")}</span>
-                <strong>{signCount}</strong>
+            <div className="sign-hero-content">
+              <div className="sign-hero-head">
+                <span className="sign-hero-accent" aria-hidden="true">
+                  <FileSignature size={24} />
+                </span>
+                <div className="sign-hero-copy">
+                  <span className="sign-hero-eyebrow">{t("signHeroKicker")}</span>
+                  <h2>{t("signHeroTitle")}</h2>
+                  <p>{t("signHeroSubtitle")}</p>
+                </div>
               </div>
-              <div>
-                <span>{t("broadcastCount")}</span>
-                <strong>{broadcastCount}</strong>
+              <div className="sign-hero-stats">
+                <div>
+                  <span>{t("signCount")}</span>
+                  <strong>{signCount}</strong>
+                </div>
+                <div>
+                  <span>{t("broadcastCount")}</span>
+                  <strong>{broadcastCount}</strong>
+                </div>
               </div>
             </div>
+            <figure className="sign-hero-stage">
+              <img src="./signature-desk.jpg" alt="" />
+              <figcaption>
+                <span>{t("signStageKicker")}</span>
+                <strong>{t("signStageTitle")}</strong>
+              </figcaption>
+            </figure>
           </div>
 
           <details className="sign-flow-disclosure">
             <summary>
               <span className="sign-flow-disclosure__label">{t("signFlowTitle")}</span>
-              <svg className="sign-flow-disclosure__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 9l6 6 6-6" />
-              </svg>
+              <ChevronDown className="sign-flow-disclosure__chevron" size={18} aria-hidden="true" />
             </summary>
             <div className="sign-flow-strip">
               <div>
@@ -125,6 +146,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   {messageBytes}/1024 {t("bytesUnit")}
                 </strong>
               </div>
+              <div className="sign-document-preview" aria-label={t("messagePreviewLabel")}>
+                <div className="sign-document-preview__paper">
+                  <span className="sign-document-preview__seal" aria-hidden="true">
+                    <ShieldCheck size={25} />
+                  </span>
+                  <span className="sign-document-preview__type">{previewTitle}</span>
+                  <p>{previewCopy}</p>
+                </div>
+                <div className="sign-document-preview__meta">
+                  <span>
+                    <small>{t("messageBytesLabel")}</small>
+                    <strong>
+                      {messageBytes}/1024 {t("bytesUnit")}
+                    </strong>
+                  </span>
+                  <span>
+                    <small>{t("walletAddress")}</small>
+                    <strong>{address ? shortValue(address) : t("disconnected")}</strong>
+                  </span>
+                  <span>
+                    <small>{t("walletPrompt")}</small>
+                    <strong>{canSubmit ? t("ready") : t("awaitingSignature")}</strong>
+                  </span>
+                </div>
+              </div>
               <label className="sign-message-field">
                 <span>{t("messageLabel")}</span>
                 <textarea
@@ -152,6 +198,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
                 >
+                  <Upload size={15} aria-hidden="true" />
                   {t("signFileBtn")}
                 </NeoButton>
                 <span className="sign-file-note">{t("hashedFileNotice")}</span>
@@ -163,6 +210,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   disabled={!canSubmit || isSigning}
                   onClick={() => dispatch("signMessage", message)}
                 >
+                  <FileSignature size={17} aria-hidden="true" />
                   {t("signBtn")}
                 </NeoButton>
                 <NeoButton
@@ -171,6 +219,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   disabled={!canBroadcast || isBroadcasting}
                   onClick={() => dispatch("broadcastMessage", message)}
                 >
+                  <RadioTower size={17} aria-hidden="true" />
                   {t("broadcastBtn")}
                 </NeoButton>
               </div>
@@ -187,10 +236,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {!signature && !txHash && (
                 <div className="sign-result-placeholder">
                   <span className="sign-result-placeholder__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 12.5 11 14.5 15.5 10" />
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
+                    <BadgeCheck size={26} />
                   </span>
                   <p>{t("proofEmptyHint")}</p>
                 </div>
@@ -210,6 +256,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       disabled={!signature}
                       onClick={() => dispatch("copyToClipboard", signature)}
                     >
+                      <Copy size={14} aria-hidden="true" />
                       {t("copySignature")}
                     </button>
                     <button
@@ -218,6 +265,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       title={t("verifyBundleHint")}
                       onClick={() => dispatch("copyToClipboard", verifyBundle)}
                     >
+                      <FileCheck2 size={14} aria-hidden="true" />
                       {t("copyVerifyBundle")}
                     </button>
                   </div>
@@ -234,6 +282,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       disabled={!txHash}
                       onClick={() => dispatch("copyToClipboard", txHash)}
                     >
+                      <Copy size={14} aria-hidden="true" />
                       {t("copyTxHash")}
                     </button>
                     {txHash && (
@@ -243,6 +292,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
+                        <ExternalLink size={14} aria-hidden="true" />
                         {t("viewOnExplorer")}
                       </a>
                     )}
@@ -258,6 +308,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="sign-section-heading">
               <span>{t("safetyPanelTitle")}</span>
               <strong className={`sign-status-pill${address ? " is-on" : ""}`}>
+                <WalletCards size={14} aria-hidden="true" />
                 {address ? t("connected") : t("disconnected")}
               </strong>
             </div>
@@ -291,9 +342,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <details className="sign-details">
               <summary>
                 <span>{t("broadcastPanelTitle")}</span>
-                <svg className="sign-details__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
+                <ChevronDown className="sign-details__chevron" size={18} aria-hidden="true" />
               </summary>
               <div className="sign-details__body">
                 <p>{t("broadcastPanelCopy")}</p>
