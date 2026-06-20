@@ -6,7 +6,15 @@
  * sharing one AA address. Collapses to a single column below 960px.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  CircleDollarSign,
+  ClipboardCheck,
+  FileJson2,
+  Rocket,
+  ShieldCheck,
+  WalletCards,
+} from "lucide-react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -66,6 +74,29 @@ function parseStateJson(value: string): Record<string, unknown> | null {
   return null;
 }
 
+function summarizePayload(value: string) {
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    const metaInvocation =
+      parsed.metaInvocation && typeof parsed.metaInvocation === "object"
+        ? (parsed.metaInvocation as Record<string, unknown>)
+        : parsed;
+    const operation = String(metaInvocation.operation ?? "—");
+    const target = String(
+      metaInvocation.scriptHash ?? metaInvocation.contract ?? "—",
+    );
+    const args = metaInvocation.args;
+    const argsLabel = Array.isArray(args)
+      ? `${args.length}`
+      : args == null
+        ? "0"
+        : "custom";
+    return { operation, target, argsLabel };
+  } catch {
+    return { operation: "—", target: "—", argsLabel: "—" };
+  }
+}
+
 export default function PlayArea({
   t,
   state,
@@ -97,6 +128,10 @@ export default function PlayArea({
   const hasAAAddress = Boolean(aaAddress.trim());
   const aaAddressValid = isValidAAAddress(aaAddress);
   const payloadJsonIsValid = isValidJson(payloadJsonLocal);
+  const payloadSummary = useMemo(
+    () => summarizePayload(payloadJsonLocal),
+    [payloadJsonLocal],
+  );
   // Require a strictly positive plain decimal (no NaN, no <=0, no scientific/hex,
   // no whitespace). The edge function is the real authority, but blocking the
   // obviously-invalid client call surfaces inline guidance instead of an opaque
@@ -209,57 +244,63 @@ export default function PlayArea({
   return (
     <div className="relay-play-area">
       <section className="relay-hero">
-        <div className="relay-hero__head">
-          <span className="relay-hero__badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M12 2 4 6v6c0 4.42 3.05 7.7 8 9 4.95-1.3 8-4.58 8-9V6l-8-4Z"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinejoin="round"
-              />
-              <path
-                d="m9 12 2 2 4-4"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <div className="relay-hero__copy">
-            <span className="relay-hero__eyebrow">{t("relayLabel")}</span>
-            <h2>{t("relayHeroTitle")}</h2>
-            <p>{t("relayHeroCopy")}</p>
+        <div className="relay-hero__content">
+          <div className="relay-hero__head">
+            <span className="relay-hero__badge" aria-hidden="true">
+              <ShieldCheck size={24} />
+            </span>
+            <div className="relay-hero__copy">
+              <span className="relay-hero__eyebrow">{t("relayLabel")}</span>
+              <h2>{t("relayHeroTitle")}</h2>
+              <p>{t("relayHeroCopy")}</p>
+            </div>
+          </div>
+
+          <div className="relay-hero__facts" aria-label={t("relayMetricsLabel")}>
+            <span className="relay-fact">
+              <span className="relay-fact__label">{t("network")}</span>
+              <strong>{networkDisplay || "—"}</strong>
+            </span>
+            <span className="relay-fact">
+              <span className="relay-fact__label">{t("relayEndpointMetric")}</span>
+              <strong title={relayUrlDisplay || "—"}>
+                <code>{relayUrlDisplay || "—"}</code>
+              </strong>
+            </span>
+            <span className="relay-fact">
+              <span className="relay-fact__label">{t("aaCoreLabel")}</span>
+              <strong title={aaCoreDisplay || "—"}>
+                <code>{aaCoreDisplay || "—"}</code>
+              </strong>
+            </span>
           </div>
         </div>
-
-        <div className="relay-hero__facts" aria-label={t("relayMetricsLabel")}>
-          <span className="relay-fact">
-            <span className="relay-fact__label">{t("network")}</span>
-            <strong>{networkDisplay || "—"}</strong>
-          </span>
-          <span className="relay-hero__divider" aria-hidden="true" />
-          <span className="relay-fact">
-            <span className="relay-fact__label">{t("relayEndpointMetric")}</span>
-            <strong title={relayUrlDisplay || "—"}>
-              <code>{relayUrlDisplay || "—"}</code>
-            </strong>
-          </span>
-          <span className="relay-hero__divider" aria-hidden="true" />
-          <span className="relay-fact">
-            <span className="relay-fact__label">{t("aaCoreLabel")}</span>
-            <strong title={aaCoreDisplay || "—"}>
-              <code>{aaCoreDisplay || "—"}</code>
-            </strong>
-          </span>
-        </div>
+        <figure className="relay-hero__stage">
+          <img src="./aa-relay-station.jpg" alt="" />
+          <figcaption>
+            <span>{t("relayStageKicker")}</span>
+            <strong>{t("relayStageTitle")}</strong>
+          </figcaption>
+        </figure>
       </section>
 
-      {/* Shared AA address + concise intent line + collapsible "how it works" */}
       <NeoCard variant="erobo" className="relay-account">
         <div className="relay-form">
           <p className="relay-explainer">{t("relayPaymasterExplainer")}</p>
+          <div className="relay-account__summary" aria-label={t("relayDraftLabel")}>
+            <span>
+              <small>{t("aaAddress")}</small>
+              <strong title={draftAAAddress}>{draftAAAddress}</strong>
+            </span>
+            <span>
+              <small>{t("dappId")}</small>
+              <strong title={dappIdLocal || "—"}>{dappIdLocal || "—"}</strong>
+            </span>
+            <span>
+              <small>{t("sponsorAmount")}</small>
+              <strong>{sponsorAmountTrimmed || "—"}</strong>
+            </span>
+          </div>
           <NeoInput
             value={aaAddress}
             label={t("aaAddress")}
@@ -277,6 +318,36 @@ export default function PlayArea({
           </details>
         </div>
       </NeoCard>
+
+      <section className="relay-route" aria-label={t("relayFlowLabel")}>
+        <div className="relay-route__step">
+          <span aria-hidden="true">
+            <ShieldCheck size={18} />
+          </span>
+          <div>
+            <strong>{t("relayFlowSponsor")}</strong>
+            <p>{t("relayFlowSponsorDesc")}</p>
+          </div>
+        </div>
+        <div className="relay-route__step">
+          <span aria-hidden="true">
+            <WalletCards size={18} />
+          </span>
+          <div>
+            <strong>{t("relayFlowRequest")}</strong>
+            <p>{t("relayFlowRequestDesc")}</p>
+          </div>
+        </div>
+        <div className="relay-route__step">
+          <span aria-hidden="true">
+            <Rocket size={18} />
+          </span>
+          <div>
+            <strong>{t("relayFlowSubmit")}</strong>
+            <p>{t("relayFlowSubmitDesc")}</p>
+          </div>
+        </div>
+      </section>
 
       <section className="relay-workspace">
         {/* Step 1: sponsorship preflight */}
@@ -303,6 +374,7 @@ export default function PlayArea({
                 aria-label={t("sponsorCheck")}
                 onClick={() => dispatch("checkSponsor", aaAddress, dappIdLocal)}
               >
+                <ClipboardCheck size={17} aria-hidden="true" />
                 {t("sponsorCheck")}
               </NeoButton>
               <NeoButton
@@ -319,6 +391,7 @@ export default function PlayArea({
                   )
                 }
               >
+                <CircleDollarSign size={17} aria-hidden="true" />
                 {t("sponsorRequest")}
               </NeoButton>
             </div>
@@ -346,6 +419,40 @@ export default function PlayArea({
               placeholder={t("dappIdPlaceholder")}
               onChange={(val) => setDappIdLocal(val)}
             />
+            <div
+              className={`relay-payload-lens${
+                payloadJsonIsValid ? "" : " relay-payload-lens--invalid"
+              }`}
+              aria-label={t("relayPayloadLens")}
+            >
+              <div className="relay-payload-lens__head">
+                <span aria-hidden="true">
+                  <FileJson2 size={18} />
+                </span>
+                <div>
+                  <small>{t("relayPayloadLens")}</small>
+                  <strong>
+                    {payloadJsonIsValid
+                      ? t("relayPayloadReady")
+                      : t("payloadInvalid")}
+                  </strong>
+                </div>
+              </div>
+              <div className="relay-payload-lens__grid">
+                <span>
+                  <small>{t("relayPayloadOperation")}</small>
+                  <strong>{payloadSummary.operation}</strong>
+                </span>
+                <span>
+                  <small>{t("relayPayloadTarget")}</small>
+                  <strong title={payloadSummary.target}>{payloadSummary.target}</strong>
+                </span>
+                <span>
+                  <small>{t("relayPayloadArgs")}</small>
+                  <strong>{payloadSummary.argsLabel}</strong>
+                </span>
+              </div>
+            </div>
             <NeoInput
               type="textarea"
               value={payloadJsonLocal}
@@ -369,6 +476,7 @@ export default function PlayArea({
                 dispatch("submitRelay", aaAddress, dappIdLocal, payloadJsonLocal)
               }
             >
+              <Rocket size={17} aria-hidden="true" />
               {t("submitRelay")}
             </NeoButton>
           </div>

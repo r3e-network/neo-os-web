@@ -2,22 +2,40 @@
 
 .relay-play-area {
   @include console.play-area;
+  --relay-warm: #fff8ed;
+  --relay-mint: #eefcf5;
+  --relay-blue: #eef7ff;
+
   gap: 18px;
-  max-width: 1080px;
+  max-width: 1120px;
   margin: 0 auto;
+  padding: 8px;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: var(--ns-radius-lg, 20px);
+  background:
+    linear-gradient(135deg, var(--relay-warm), rgba(255, 255, 255, 0) 50%),
+    linear-gradient(315deg, var(--relay-blue), var(--relay-mint));
   color: var(--ns-text-2, #5b6478);
 }
 
 /* ── Hero ─────────────────────────────────────────────── */
 .relay-hero {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 26px 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(310px, 0.78fr);
+  gap: 20px;
+  align-items: stretch;
+  padding: 18px;
   border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
   border-radius: var(--ns-radius-lg, 20px);
-  background: var(--ns-surface, #ffffff);
+  background: rgba(255, 255, 255, 0.9);
   box-shadow: var(--ns-shadow-md, 0 8px 24px rgba(20, 22, 38, 0.06));
+}
+
+.relay-hero__content {
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  min-width: 0;
 }
 
 .relay-hero__head {
@@ -28,19 +46,14 @@
 
 .relay-hero__badge {
   display: grid;
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   flex: 0 0 auto;
   place-items: center;
   border-radius: var(--ns-radius-full, 9999px);
   background: var(--ns-violet-soft, #e4f8f0);
   color: var(--ns-violet-strong, #0fb174);
   box-shadow: 0 4px 12px rgba(22, 199, 132, 0.15);
-
-  svg {
-    width: 23px;
-    height: 23px;
-  }
 }
 
 .relay-hero__copy {
@@ -53,8 +66,8 @@
 .relay-hero__eyebrow {
   color: var(--ns-violet-strong, #0fb174);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 800;
+  letter-spacing: 0;
   line-height: 1;
   text-transform: uppercase;
 }
@@ -63,8 +76,8 @@
   margin: 2px 0 0;
   color: var(--ns-ink, #1e1e2e);
   font-size: 27px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 850;
+  letter-spacing: 0;
   line-height: 1.12;
 }
 
@@ -76,25 +89,23 @@
 }
 
 .relay-hero__facts {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-  padding: 12px 16px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 10px;
 }
 
 .relay-fact {
-  display: flex;
+  display: grid;
+  gap: 4px;
   min-width: 0;
-  align-items: baseline;
-  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.78);
   color: var(--ns-text-muted, #8a92a6);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 800;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -108,7 +119,6 @@
 
 .relay-fact strong {
   overflow: hidden;
-  max-width: 240px;
   color: var(--ns-ink, #1e1e2e);
   font-size: 13px;
   font-weight: 800;
@@ -125,11 +135,53 @@
   }
 }
 
-.relay-hero__divider {
-  width: 1px;
-  height: 18px;
-  flex: 0 0 auto;
-  background: var(--ns-border, rgba(20, 22, 38, 0.12));
+.relay-hero__stage {
+  position: relative;
+  min-width: 0;
+  min-height: 270px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: var(--ns-surface, #ffffff);
+  box-shadow: var(--ns-shadow-sm, 0 4px 12px rgba(20, 22, 38, 0.05));
+}
+
+.relay-hero__stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.relay-hero__stage figcaption {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: var(--ns-radius-md, 16px);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--ns-shadow-sm, 0 4px 12px rgba(20, 22, 38, 0.05));
+}
+
+.relay-hero__stage figcaption span {
+  color: var(--ns-violet-strong, #0fb174);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.relay-hero__stage figcaption strong {
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
 }
 
 /* ── Shared account card (AA address + how-it-works) ──── */
@@ -149,6 +201,43 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.relay-account__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.relay-account__summary span,
+.relay-payload-lens__grid span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-md, 16px);
+  background: var(--ns-surface-subtle, #f7f8fa);
+}
+
+.relay-account__summary small,
+.relay-payload-lens small {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.relay-account__summary strong,
+.relay-payload-lens strong {
+  overflow: hidden;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Collapsed "How relaying works" disclosure — keeps the two longer paragraphs
@@ -173,12 +262,12 @@
 }
 
 .relay-howto > summary::before {
-  content: "▸ ";
+  content: "> ";
   color: var(--ns-text-muted, #8a92a6);
 }
 
 .relay-howto[open] > summary::before {
-  content: "▾ ";
+  content: "v ";
 }
 
 .relay-howto__body {
@@ -204,6 +293,51 @@
   align-items: start;
 }
 
+.relay-route {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.relay-route__step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-lg, 20px);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--ns-shadow-xs, 0 1px 2px rgba(20, 22, 38, 0.04));
+}
+
+.relay-route__step > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ns-radius-md, 16px);
+  color: var(--ns-violet-strong, #0fb174);
+  background: var(--ns-violet-soft, #e4f8f0);
+}
+
+.relay-route__step strong {
+  display: block;
+  color: var(--ns-ink, #1e1e2e);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+.relay-route__step p {
+  margin: 4px 0 0;
+  color: var(--ns-text-2, #5b6478);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .relay-step__head {
   display: flex;
   flex-direction: column;
@@ -215,8 +349,8 @@
 .relay-step__eyebrow {
   color: var(--ns-violet-strong, #0fb174);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  letter-spacing: 0;
   line-height: 1.2;
   text-transform: uppercase;
 }
@@ -225,14 +359,22 @@
   margin: 0;
   color: var(--ns-ink, #1e1e2e);
   font-size: 16px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-weight: 850;
+  letter-spacing: 0;
 }
 
 .relay-action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.relay-action-grid .neo-btn,
+.relay-step .neo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .relay-play-area button:disabled {
@@ -279,7 +421,7 @@
 .relay-result__tx-label {
   font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--ns-text-muted, #8a92a6);
 }
@@ -371,11 +513,52 @@
 }
 
 .relay-result__raw summary::before {
-  content: "▸ ";
+  content: "> ";
 }
 
 .relay-result__raw[open] summary::before {
-  content: "▾ ";
+  content: "v ";
+}
+
+.relay-payload-lens {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-md, 16px);
+  background:
+    linear-gradient(135deg, var(--ns-violet-soft, #e4f8f0), rgba(255, 255, 255, 0) 72%),
+    var(--ns-surface-subtle, #f7f8fa);
+}
+
+.relay-payload-lens--invalid {
+  background:
+    linear-gradient(135deg, rgba(240, 121, 91, 0.16), rgba(255, 255, 255, 0) 72%),
+    var(--ns-surface-subtle, #f7f8fa);
+}
+
+.relay-payload-lens__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.relay-payload-lens__head > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--ns-radius-md, 16px);
+  color: var(--ns-violet-strong, #0fb174);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.relay-payload-lens__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .relay-result__raw pre {
@@ -395,7 +578,19 @@
 /* Below 960px the two steps stack to a single column so each card keeps full
    width instead of cramming the payload textarea + buttons side by side. */
 @media (max-width: 960px) {
+  .relay-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .relay-hero__stage {
+    min-height: 240px;
+  }
+
   .relay-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .relay-route {
     grid-template-columns: 1fr;
   }
 }
@@ -403,6 +598,9 @@
 @media (max-width: 640px) {
   .relay-play-area {
     gap: 16px;
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
 
   .relay-hero {
@@ -421,18 +619,18 @@
   .relay-hero__badge {
     width: 42px;
     height: 42px;
-
-    svg {
-      width: 21px;
-      height: 21px;
-    }
   }
 
   .relay-hero__facts {
-    padding-top: 14px;
+    grid-template-columns: 1fr;
   }
 
   .relay-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .relay-account__summary,
+  .relay-payload-lens__grid {
     grid-template-columns: 1fr;
   }
 

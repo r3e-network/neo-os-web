@@ -9,6 +9,11 @@ const appMessages = {
     en: "Check sponsorship, request paymaster support, and submit relay-ready payloads from one guarded operator surface.",
     zh: "在一个带防护的操作台里检查赞助、请求 paymaster 支持，并提交 relay-ready payload。",
   },
+  relayStageKicker: { en: "Paymaster relay", zh: "Paymaster Relay" },
+  relayStageTitle: {
+    en: "Sponsor GAS, validate the AA payload, then hand the transaction to the relayer.",
+    zh: "赞助 GAS、校验 AA payload，然后交给 relayer 广播交易。",
+  },
   relayMetricsLabel: {
     en: "Relay environment summary",
     zh: "Relay 环境摘要",
@@ -62,6 +67,11 @@ const appMessages = {
     en: "Fix the JSON payload before submitting it to the relayer.",
     zh: "提交到 relayer 前，请先修正 JSON payload。",
   },
+  relayPayloadLens: { en: "Payload lens", zh: "Payload 视图" },
+  relayPayloadReady: { en: "Relay payload is readable", zh: "Relay payload 可读" },
+  relayPayloadOperation: { en: "Operation", zh: "操作" },
+  relayPayloadTarget: { en: "Target", zh: "目标" },
+  relayPayloadArgs: { en: "Args", zh: "参数" },
   submitRelay: { en: "Submit Relay Payload", zh: "提交 Relay Payload" },
   sponsorCheck: { en: "Check Sponsorship", zh: "检查赞助资格" },
   sponsorRequest: { en: "Request Sponsorship", zh: "请求赞助" },
