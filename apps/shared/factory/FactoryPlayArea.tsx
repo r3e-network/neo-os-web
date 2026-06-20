@@ -234,7 +234,11 @@ function FactoryPreviewCard({
     body = (
       <div className="domain-factory-preview__nft">
         <div className="domain-factory-preview__art" aria-hidden="true">
-          <span>{initial}</span>
+          <img src="./nft-drop-preview.jpg" alt="" loading="lazy" decoding="async" />
+          <div className="domain-factory-preview__art-overlay">
+            <span>NEP-11</span>
+            <strong>{initial}</strong>
+          </div>
         </div>
         <div className="domain-factory-preview__nftbody">
           <div className="domain-factory-preview__head">
@@ -537,6 +541,18 @@ export function FactoryPlayArea({
           percent: (royaltyBpsNumber / 100).toFixed(2).replace(/\.?0+$/, "") || "0",
         })
       : "";
+  const nep11CollectionLabel = nep11.collectionName.trim() || t("previewUntitledCollection");
+  const nep11SymbolLabel = nep11.symbol.trim() || t("previewSymbolPlaceholder");
+  const nep11MaxSupplyNum = Number(nep11.maxSupply);
+  const nep11MaxSupplyLabel =
+    nep11.maxSupply.trim() && Number.isFinite(nep11MaxSupplyNum) && nep11MaxSupplyNum > 0
+      ? nep11MaxSupplyNum.toLocaleString()
+      : "—";
+  const nep11RoyaltyLabel =
+    Number.isFinite(royaltyBpsNumber) && royaltyBpsNumber >= 0
+      ? `${(royaltyBpsNumber / 100).toFixed(2).replace(/\.?0+$/, "") || "0"}%`
+      : "—";
+  const nep11PolicyLabel = t(nep11.transferable ? "previewTransferable" : "previewSoulbound");
 
   function renderUseMyAddress(currentValue: string, apply: () => void) {
     if (!walletAddress || currentValue === walletAddress) return null;
@@ -548,7 +564,7 @@ export function FactoryPlayArea({
   }
 
   return (
-    <div className="domain-factory">
+    <div className={`domain-factory domain-factory--${kind}`}>
       <section className="domain-factory-hero">
         <div className="domain-factory-hero__lead">
           <span className="ns-icon-badge ns-badge--mint domain-factory-hero__badge" aria-hidden="true">
@@ -603,6 +619,30 @@ export function FactoryPlayArea({
 
             {kind === "nep11" && (
               <>
+                <section className="domain-factory-drop-rail" aria-label={t("dropStudio")}>
+                  <span className="domain-factory-drop-rail__icon" aria-hidden="true">
+                    <Ticket size={18} />
+                  </span>
+                  <div className="domain-factory-drop-rail__copy">
+                    <span>{t("dropStudio")}</span>
+                    <strong>{nep11CollectionLabel}</strong>
+                    <small>{t("dropStudioHint", { symbol: nep11SymbolLabel })}</small>
+                  </div>
+                  <dl className="domain-factory-drop-rail__stats">
+                    <div>
+                      <dt>{t("previewMaxSupply")}</dt>
+                      <dd>{nep11MaxSupplyLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("previewRoyalty")}</dt>
+                      <dd>{nep11RoyaltyLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("previewTransferPolicy")}</dt>
+                      <dd>{nep11PolicyLabel}</dd>
+                    </div>
+                  </dl>
+                </section>
                 <NeoInput label={t("collectionName")} value={nep11.collectionName} onChange={(collectionName) => setNep11((draft) => ({ ...draft, collectionName }))} />
                 <div className="domain-factory-form__row">
                   <NeoInput label={t("symbol")} value={nep11.symbol} onChange={(symbol) => setNep11((draft) => ({ ...draft, symbol }))} />
