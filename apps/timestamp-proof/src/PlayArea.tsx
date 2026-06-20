@@ -76,6 +76,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const latestId = !rawLatestId || rawLatestId === "N/A" ? "—" : rawLatestId;
   const proofList = val<TimestampProof[]>("proofs", []) ?? [];
   const verifiedProof = val<TimestampProof>("verifiedProof", null);
+  const hasProofStats =
+    totalProofs > 0 || anchoredProofs > 0 || latestId !== "—";
 
   const [content, setContent] = useState("");
   const [verifyId, setVerifyId] = useState("");
@@ -95,22 +97,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="proof-play-area">
       <ProofHero t={t} />
 
-      <div className="proof-stats" role="group" aria-label={t("proofStats")}>
-        <div className="proof-stat">
-          <span className="proof-stat__label">{t("totalProofs")}</span>
-          <span className="proof-stat__value">{totalProofs}</span>
+      {hasProofStats && (
+        <div className="proof-stats" role="group" aria-label={t("proofStats")}>
+          <div className="proof-stat">
+            <span className="proof-stat__label">{t("totalProofs")}</span>
+            <span className="proof-stat__value">{totalProofs}</span>
+          </div>
+          <div className="proof-stat">
+            <span className="proof-stat__label">{t("anchoredProofs")}</span>
+            <span className="proof-stat__value">{anchoredProofs}</span>
+          </div>
+          <div className="proof-stat">
+            <span className="proof-stat__label">{t("latestId")}</span>
+            <span className="proof-stat__value proof-stat__value--mono">
+              {latestId}
+            </span>
+          </div>
         </div>
-        <div className="proof-stat">
-          <span className="proof-stat__label">{t("anchoredProofs")}</span>
-          <span className="proof-stat__value">{anchoredProofs}</span>
-        </div>
-        <div className="proof-stat">
-          <span className="proof-stat__label">{t("latestId")}</span>
-          <span className="proof-stat__value proof-stat__value--mono">
-            {latestId}
-          </span>
-        </div>
-      </div>
+      )}
 
       <section className="proof-workbench" aria-label={t("proofWorkspace")}>
         <NeoCard className="proof-composer">
@@ -123,6 +127,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <h3>{t("createPanelTitle")}</h3>
               <p>{t("createPanelBody")}</p>
             </div>
+          </div>
+
+          <div
+            className="proof-template-row"
+            aria-label={t("proofTemplatesLabel")}
+          >
+            {PROOF_PRESETS.map((preset) => {
+              const Icon = preset.icon;
+
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  className="proof-template-card"
+                  onClick={() => setContent(preset.sample)}
+                >
+                  <span
+                    className="proof-template-card__icon"
+                    aria-hidden="true"
+                  >
+                    <Icon size={17} />
+                  </span>
+                  <span>
+                    <strong>{t(preset.labelKey)}</strong>
+                    <small>{t(preset.bodyKey)}</small>
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <div
@@ -182,34 +215,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <div className="proof-form proof-form--composer">
-            <div
-              className="proof-template-row"
-              aria-label={t("proofTemplatesLabel")}
-            >
-              {PROOF_PRESETS.map((preset) => {
-                const Icon = preset.icon;
-
-                return (
-                  <button
-                    key={preset.key}
-                    type="button"
-                    className="proof-template-card"
-                    onClick={() => setContent(preset.sample)}
-                  >
-                    <span
-                      className="proof-template-card__icon"
-                      aria-hidden="true"
-                    >
-                      <Icon size={17} />
-                    </span>
-                    <span>
-                      <strong>{t(preset.labelKey)}</strong>
-                      <small>{t(preset.bodyKey)}</small>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
             <NeoInput
               value={content}
               type="textarea"

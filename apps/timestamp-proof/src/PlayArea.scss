@@ -333,6 +333,7 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
+  margin-bottom: 14px;
 }
 
 .proof-template-card {
@@ -697,6 +698,22 @@ $accent-soft: var(--ns-brand-soft, #e4f8f0);
   .proof-document-preview__meta,
   .proof-route {
     grid-template-columns: 1fr;
+  }
+
+  .proof-document-preview__paper {
+    min-height: 150px;
+    padding: 16px;
+  }
+
+  .proof-document-preview__seal {
+    right: 16px;
+    bottom: 48px;
+    width: 58px;
+    height: 58px;
+  }
+
+  .proof-document-preview__meta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .proof-stat {
