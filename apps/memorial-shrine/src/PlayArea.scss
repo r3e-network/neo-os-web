@@ -1,570 +1,986 @@
 @use "@shared/styles/tokens.scss" as *;
 
-// Single system accent hue for the whole app (NeoSoft green brand)
-$shrine-accent: var(--ns-brand, #16c784);
-$shrine-accent-deep: var(--ns-brand-strong, #0fb174);
-$shrine-accent-soft: var(--ns-brand-soft, #e4f8f0);
+$shrine-green: var(--ns-brand, #16c784);
+$shrine-green-deep: var(--ns-brand-strong, #0a8050);
+$shrine-green-soft: var(--ns-brand-soft, #e4f8f0);
+$shrine-coral: #d97757;
+$shrine-coral-soft: #fff0ea;
+$shrine-ink: var(--ns-ink, #17202b);
+$shrine-muted: var(--ns-text-2, #5b6478);
+$shrine-line: var(--ns-border, rgba(20, 22, 38, 0.08));
 $shrine-focus: var(--ns-focus-ring, 0 0 0 4px rgba(22, 199, 132, 0.18));
 
 .memorial-play-area {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 22px;
   min-height: 300px;
   max-width: 1120px;
   margin: 0 auto;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background:
-    linear-gradient(135deg, rgba(22, 199, 132, 0.05), rgba(255, 255, 255, 0) 36%),
-    linear-gradient(315deg, rgba(22, 199, 132, 0.04), rgba(255, 255, 255, 0) 42%),
-    #f8fafc;
-  color: var(--ns-text, #2a2d3d);
-  position: relative;
+  padding: 22px;
   overflow: hidden;
-
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-    letter-spacing: 0;
-  }
+  color: var(--ns-text, #2a2d3d);
+  background:
+    radial-gradient(circle at 8% 4%, rgba(217, 119, 87, 0.12), transparent 24%),
+    radial-gradient(circle at 92% 18%, rgba(22, 199, 132, 0.13), transparent 26%),
+    linear-gradient(180deg, #f7fbf9 0%, #f4f7fb 100%);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  position: relative;
 }
 
-/* ── Hero: identity + stats in one white card ── */
+.memorial-play-area * {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+
 .shrine-hero {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 24px;
+  background: #10201b;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+  isolation: isolate;
+}
+
+.shrine-hero__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.02);
+  transform: scale(1.01);
+}
+
+.shrine-hero__shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 18, 18, 0.84) 0%, rgba(11, 26, 25, 0.67) 38%, rgba(15, 23, 42, 0.08) 78%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.24));
+  z-index: 1;
+}
+
+.shrine-hero__content {
+  position: relative;
+  z-index: 2;
   display: flex;
+  min-height: 360px;
+  max-width: 640px;
   flex-direction: column;
-  gap: 20px;
-  padding: 24px;
-  background: var(--ns-surface, #ffffff);
-  border: 1px solid rgba(15, 23, 42, 0.07);
-  border-radius: 20px;
-  box-shadow: $shadow-lg;
-}
-
-.shrine-hero__head {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.shrine-hero__cta {
-  margin-left: auto;
-  flex-shrink: 0;
-  align-self: center;
-  border-radius: 12px;
-}
-
-.shrine-hero__badge {
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 50px;
-  flex-shrink: 0;
-  border-radius: 16px;
-  background: $shrine-accent-soft;
-  color: $shrine-accent;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 34px;
+  color: #ffffff;
 }
 
-.shrine-hero__text {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+.shrine-hero__eyebrow,
+.section-eyebrow,
+.detail-kicker,
+.tribute-title,
+.studio-preview__label,
+.studio-step {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .shrine-hero__eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: $shrine-accent;
+  color: #bff4df;
 }
 
 .shrine-hero__title {
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  color: var(--ns-ink, #1e1e2e);
+  margin: 0;
+  max-width: 560px;
+  color: #ffffff !important;
+  font-size: clamp(30px, 4.8vw, 52px);
+  font-weight: 850;
+  line-height: 1.04;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.28);
 }
 
 .shrine-hero__subtitle {
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--ns-text-2, #5b6478);
+  max-width: 520px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  line-height: 1.7;
 }
 
-.shrine-hero__stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.stat-chip {
+.shrine-hero__signals {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 560px;
+}
+
+.shrine-hero__signals span {
+  display: inline-flex;
   align-items: center;
-  text-align: center;
-  gap: 4px;
-  padding: 16px 12px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  border-radius: 16px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-}
-
-.stat-value {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--ns-ink, #1e1e2e);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-  line-height: 1.1;
-}
-
-.stat-label {
-  font-size: 11px;
+  gap: 6px;
+  min-height: 32px;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ns-text-muted, #8a92a6);
+  backdrop-filter: blur(18px);
 }
 
-/* ── Primary buttons follow the app's single accent hue ── */
+.shrine-hero__cta {
+  min-height: 44px;
+  margin-top: 2px;
+  border-radius: 14px;
+}
+
 .memorial-play-area .neo-btn--primary {
-  // AA: white-on-#16c784 is ~2.2:1. The CTA uses the darker brand green
-  // (#0a8050 = 4.98:1, hover #086a45); $shrine-accent stays for labels/icons.
   background: #0a8050;
-  box-shadow: 0 2px 10px rgba(10, 128, 80, 0.22);
-
-  &:hover:not(:disabled) {
-    background: #086a45;
-    box-shadow: 0 4px 16px rgba(10, 128, 80, 0.28);
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: $shrine-focus;
-  }
+  box-shadow: 0 8px 22px rgba(10, 128, 80, 0.24);
 }
 
-/* ── Chain receipt (neutral info notice — keeps green as the only accent hue) ── */
+.memorial-play-area .neo-btn--primary:hover:not(:disabled) {
+  background: #086a45;
+  box-shadow: 0 10px 28px rgba(10, 128, 80, 0.3);
+}
+
+.memorial-play-area .neo-btn--primary:focus-visible,
+.memorial-play-area button:focus-visible {
+  outline: none;
+  box-shadow: $shrine-focus;
+}
+
 .chain-receipt {
+  position: relative;
+  z-index: 2;
   display: grid;
   gap: 4px;
+  max-width: calc(100% - 68px);
+  margin: -72px 34px 24px auto;
   padding: 12px 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-  color: var(--ns-text-2, #5b6478);
-
-  span {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--ns-text-muted, #8a92a6);
-  }
-
-  strong {
-    overflow: hidden;
-    font-size: 12px;
-    font-weight: 650;
-    font-variant-numeric: tabular-nums;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--ns-ink, #1e1e2e);
-  }
+  background: rgba(255, 255, 255, 0.72);
+  color: $shrine-muted;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(18px);
 }
 
-/* ── Obituary banner ── */
-.obituary-banner { background: #ffffff; border-radius: 20px; padding: 18px 20px; border: 1px solid rgba(15, 23, 42, 0.07); box-shadow: $shadow-sm; min-width: 0; }
-.obituary-banner .banner-title { display: block; font-size: 11px; color: var(--ns-text-muted, #8a92a6); margin-bottom: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; }
-.obituary-banner .banner-scroll { display: flex; gap: 10px; max-width: 100%; white-space: nowrap; overflow-x: auto; }
+.chain-receipt span {
+  color: $shrine-green-deep;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.chain-receipt strong {
+  overflow: hidden;
+  color: $shrine-ink;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obituary-banner,
+.memorial-studio,
+.empty-memorials {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.obituary-banner {
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+  padding: 18px 20px;
+}
+
+.banner-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: $shrine-green-deep;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.banner-scroll {
+  display: flex;
+  gap: 10px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .obituary-item {
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
-  min-width: 0;
-  max-width: 280px;
-  min-height: 44px;
-  margin-right: 0;
-  padding: 10px 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
-  color: var(--ns-text-muted, #8a92a6);
-  background: var(--ns-surface-subtle, #f7f8fa);
+  gap: 4px;
+  min-width: 220px;
+  max-width: 300px;
+  min-height: 58px;
+  padding: 12px 14px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: 16px;
+  color: $shrine-muted;
+  background: #f7faf9;
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
   line-height: 1.4;
   text-align: left;
   transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
-.obituary-item:hover {
-  background: var(--ns-surface, #ffffff);
-  border-color: rgba(22, 199, 132, 0.28);
-  box-shadow: $shadow-sm;
-  transform: translateY(-1px);
-}
-.obituary-item .name { flex: 0 0 auto; color: var(--ns-ink, #1e1e2e); font-weight: 700; font-size: 13px; }
-.obituary-item .text { width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.obituary-item:focus-visible { outline: none; box-shadow: $shrine-focus; }
 
-/* ── Detail card ── */
-.detail-card { margin-bottom: 4px; }
-.detail-header { position: relative; margin-bottom: 12px; padding-right: 132px; }
-.detail-name { display: block; font-size: 20px; font-weight: 800; letter-spacing: -0.01em; color: var(--ns-ink, #1e1e2e); }
-.detail-years { display: block; font-size: 13px; color: var(--ns-text-muted, #8a92a6); margin-top: 2px; font-variant-numeric: tabular-nums; }
-.detail-actions { position: absolute; top: 0; right: 0; display: flex; gap: 8px; }
-.detail-action { padding: 6px 12px; font-size: 13px; }
-.detail-bio { font-size: 14px; color: var(--ns-text-2, #5b6478); line-height: 1.6; margin-bottom: 16px; }
-.detail-photo {
-  display: block;
-  width: 64px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 16px;
-  margin-bottom: 10px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.08));
-  background: $shrine-accent-soft;
+.obituary-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(22, 199, 132, 0.28);
+  background: #ffffff;
+  box-shadow: $shadow-sm;
 }
-.detail-share-status {
-  margin: 0 0 12px;
+
+.obituary-item .name {
+  color: $shrine-ink;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.obituary-item .text {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: $shrine-muted;
   font-size: 12px;
-  color: $shrine-accent-deep;
-  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memorial-focus {
+  border-radius: 22px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
+}
+
+.memorial-focus .neo-card__body {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.detail-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.detail-portrait {
+  display: inline-flex;
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(22, 199, 132, 0.2);
+  border-radius: 20px;
+  background: linear-gradient(135deg, $shrine-green-soft, $shrine-coral-soft);
+  color: $shrine-green-deep;
+}
+
+.detail-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-identity {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.detail-kicker {
+  color: $shrine-green-deep;
+}
+
+.detail-name {
+  display: block;
+  color: $shrine-ink;
+  font-size: 23px;
+  font-weight: 850;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.detail-years {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  align-self: start;
+}
+
+.detail-action {
+  min-width: 76px;
+  border-radius: 12px;
+}
+
+.detail-share-status,
+.detail-bio {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.detail-share-status {
+  color: $shrine-green-deep;
+  font-size: 12px;
+  font-weight: 700;
   word-break: break-all;
 }
 
-/* Tribute impact — per-offering tallies the contract actually tracks. */
-.detail-offerings { margin-bottom: 16px; }
-.detail-offerings__title {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ns-text-muted, #8a92a6);
-  margin-bottom: 8px;
+.detail-bio {
+  color: $shrine-muted;
+  font-size: 14px;
 }
-.detail-offerings__tallies { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.detail-offerings {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid rgba(22, 199, 132, 0.16);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(228, 248, 240, 0.88), rgba(255, 240, 234, 0.72));
+}
+
+.detail-offerings__title {
+  color: $shrine-green-deep;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.detail-offerings__tallies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .detail-offering-tally {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  padding: 6px 11px;
   border-radius: 9999px;
-  background: $shrine-accent-soft;
+  background: rgba(255, 255, 255, 0.78);
   font-size: 12px;
 }
-.detail-offering-tally__label { color: var(--ns-text-2, #5b6478); font-weight: 600; }
-.detail-offering-tally__count { color: $shrine-accent-deep; font-weight: 800; font-variant-numeric: tabular-nums; }
 
-.tribute-form { display: flex; flex-direction: column; gap: 12px; padding-top: 16px; border-top: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06)); }
-.tribute-title { font-size: 11px; color: $shrine-accent; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; }
-.tribute-row { display: flex; gap: 12px; align-items: flex-end; }
-.tribute-row > * { flex: 1; }
-.tribute-mainnet-note {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--ns-surface-2, rgba(22, 199, 132, 0.06));
-  border: 1px solid rgba(22, 199, 132, 0.18);
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ns-text-2, #5b6478);
+.detail-offering-tally__label {
+  color: $shrine-muted;
+  font-weight: 700;
 }
 
-// Honest disclosure: the offering GAS is non-refundable and routed to no one.
-.tribute-disclosure {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ns-text-muted, #8a92a6);
+.detail-offering-tally__count {
+  color: $shrine-green-deep;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
 }
 
-.create-form-card { margin-bottom: 4px; }
-.create-form { display: flex; flex-direction: column; gap: 12px; }
-.create-form__head {
+.tribute-station {
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid $shrine-line;
+}
+
+.tribute-station__head {
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.tribute-station__head div:first-child {
   display: grid;
   gap: 4px;
-  padding-bottom: 4px;
-
-  span {
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 18px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-  }
-
-  p {
-    margin: 0;
-    color: var(--ns-text-2, #5b6478);
-    font-size: 13px;
-    line-height: 1.45;
-  }
 }
-.year-row { display: flex; gap: 12px; }
-.year-row > * { flex: 1; }
 
-.field-error {
-  margin: -4px 0 0;
+.tribute-title {
+  color: $shrine-green-deep;
+}
+
+.tribute-station__head p,
+.tribute-disclosure,
+.tribute-mainnet-note {
+  margin: 0;
+  color: $shrine-muted;
   font-size: 12px;
-  line-height: 1.4;
-  font-weight: 600;
-  color: var(--ns-danger, #ea3943);
+  line-height: 1.55;
+}
+
+.tribute-message-input .neo-input__textarea {
+  height: 76px;
+  resize: vertical;
+}
+
+.offering-tray {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.offering-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 8px;
+  align-items: center;
+  min-height: 62px;
+  padding: 10px 11px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
+  color: $shrine-ink;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.offering-option:hover,
+.offering-option.is-selected {
+  transform: translateY(-1px);
+  border-color: rgba(10, 128, 80, 0.34);
+  background: #f6fffb;
+  box-shadow: 0 8px 18px rgba(10, 128, 80, 0.1);
+}
+
+.offering-option__icon {
+  display: inline-flex;
+  grid-row: 1 / span 2;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: $shrine-green-soft;
+  color: $shrine-green-deep;
+}
+
+.offering-option__label {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.offering-option__cost {
+  color: var(--ns-text-muted, #8a92a6);
+  font-size: 11px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
 }
 
 .offering-cost-card {
   display: grid;
-  align-content: center;
+  min-width: 144px;
   gap: 4px;
-  min-height: 56px;
-  padding: 12px 14px;
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 14px;
-  background: var(--ns-surface-subtle, #f7f8fa);
-
-  span {
-    color: var(--ns-text-muted, #8a92a6);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  strong {
-    color: var(--ns-ink, #1e1e2e);
-    font-size: 16px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-  }
+  padding: 11px 13px;
+  border: 1px solid rgba(217, 119, 87, 0.24);
+  border-radius: 16px;
+  background: $shrine-coral-soft;
 }
 
-/* ── Memorial grid + tombstone cards ── */
-.memorials-section {
+.offering-cost-card span {
+  color: #9a4d32;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.offering-cost-card strong {
+  color: $shrine-ink;
+  font-size: 17px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.tribute-mainnet-note {
+  padding: 11px 12px;
+  border: 1px solid rgba(217, 119, 87, 0.24);
+  border-radius: 14px;
+  background: $shrine-coral-soft;
+}
+
+.tribute-submit {
+  justify-self: start;
+  min-width: 156px;
+}
+
+.memorial-studio {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.78fr) minmax(0, 1.22fr);
+  gap: 18px;
+  padding: 18px;
+}
+
+.studio-preview {
   display: flex;
+  min-height: 100%;
   flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(22, 199, 132, 0.18);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(228, 248, 240, 0.92), rgba(255, 240, 234, 0.78)),
+    #ffffff;
+  color: $shrine-ink;
+}
+
+.studio-preview__media {
+  display: inline-flex;
+  width: 72px;
+  height: 72px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(10, 128, 80, 0.2);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+  color: $shrine-green-deep;
+}
+
+.studio-preview__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.studio-preview__label {
+  margin-top: 4px;
+  color: $shrine-green-deep;
+}
+
+.studio-preview strong {
+  color: $shrine-ink;
+  font-size: 25px;
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.studio-preview__years,
+.studio-preview__relation {
+  color: $shrine-muted;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.studio-preview p,
+.studio-preview blockquote {
+  margin: 0;
+  color: $shrine-muted;
+  font-size: 13px;
+  line-height: 1.58;
+}
+
+.studio-preview blockquote {
+  padding: 11px 12px;
+  border-left: 3px solid $shrine-coral;
+  border-radius: 0 14px 14px 0;
+  background: rgba(255, 240, 234, 0.76);
+}
+
+.create-form-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 2px;
+}
+
+.create-form__head {
+  display: grid;
+  gap: 4px;
+}
+
+.create-form__head span {
+  color: $shrine-ink;
+  font-size: 21px;
+  font-weight: 850;
+}
+
+.create-form__head p {
+  margin: 0;
+  color: $shrine-muted;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.studio-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: $shrine-green-deep;
+}
+
+.studio-step__index {
+  display: inline-flex;
+  min-width: 30px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: $shrine-green-soft;
+  color: $shrine-green-deep;
+  font-size: 10px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.field-grid,
+.story-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
+.field-grid .neo-input:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+.year-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.story-grid .neo-input__textarea {
+  min-height: 112px;
+}
+
+.field-error {
+  margin: -4px 0 0;
+  color: var(--ns-danger, #d4202a);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.studio-publish {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.studio-step--publish {
+  color: #9a4d32;
+}
+
+.studio-step--publish .studio-step__index {
+  background: $shrine-coral-soft;
+  color: #9a4d32;
+}
+
+.memorials-section {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.section-heading {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
 .section-eyebrow {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--ns-text-muted, #8a92a6);
+  color: $shrine-green-deep;
+}
+
+.section-heading > span:last-child {
+  color: $shrine-muted;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: right;
 }
 
 .memorials-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
+  gap: 12px;
 }
 
 .tombstone-card {
   display: flex;
+  min-height: 208px;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 22px 16px;
-  text-align: center;
+  gap: 11px;
+  padding: 20px 15px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+  color: inherit;
   cursor: pointer;
   font-family: inherit;
-  background: var(--ns-surface, #ffffff);
-  border: 1px solid var(--ns-border, rgba(20, 22, 38, 0.06));
-  border-radius: 20px;
-  box-shadow: $shadow-md;
+  text-align: center;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .tombstone-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(22, 199, 132, 0.24);
-  box-shadow: $shadow-lg;
-}
-
-.tombstone-card:focus-visible {
-  outline: none;
-  box-shadow: $shrine-focus;
+  border-color: rgba(22, 199, 132, 0.28);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
 }
 
 .tombstone-icon {
   display: inline-flex;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  border-radius: 14px;
-  background: $shrine-accent-soft;
-  color: $shrine-accent;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(135deg, $shrine-green-soft, $shrine-coral-soft);
+  color: $shrine-green-deep;
+}
 
-  /* Host stylesheet forces plain <span> color to inherit (→ black);
-     paint the accent directly on the icon stroke so the badge keeps the hue. */
-  svg {
-    stroke: $shrine-accent;
-  }
+.tombstone-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .tombstone-body {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 0;
 }
 
 .tombstone-body .name {
+  color: $shrine-ink;
   font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: var(--ns-ink, #1e1e2e);
+  font-weight: 850;
   line-height: 1.3;
   word-break: break-word;
 }
 
 .tombstone-body .years {
-  font-size: 12px;
   color: var(--ns-text-muted, #8a92a6);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 .tombstone-relation {
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
+  max-width: 100%;
+  padding: 4px 11px;
+  overflow: hidden;
   border-radius: 9999px;
-  background: $shrine-accent-soft;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: $shrine-accent;
+  background: $shrine-green-soft;
+  color: $shrine-green-deep;
   font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Photo (https/ipfs) fills the badge; falls back to the heart glyph on error. */
-.tombstone-photo {
-  width: 44px;
-  height: 44px;
-  object-fit: cover;
-  border-radius: 14px;
-}
-
-/* Offering tallies — makes paid tributes visible on the card, not just a count. */
 .tombstone-offerings {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
-  margin-top: 2px;
+  margin-top: auto;
 }
+
 .tombstone-offering-tally {
   display: inline-flex;
   align-items: center;
-  padding: 3px 9px;
+  padding: 3px 8px;
   border-radius: 9999px;
-  background: $shrine-accent-soft;
+  background: rgba(228, 248, 240, 0.86);
+  color: $shrine-green-deep;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: $shrine-accent-deep;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Empty state ── */
 .empty-memorials {
   display: flex;
+  min-height: 220px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 14px;
-  // A centered badge + min-height so the first paint isn't a single italic
-  // line floating under the hero with a vast blank canvas below it.
-  min-height: 200px;
   padding: 40px 20px;
   text-align: center;
-  color: var(--ns-text-muted, #8a92a6);
-  background: var(--ns-surface, #ffffff);
-  border: 1px dashed var(--ns-border-strong, rgba(20, 22, 38, 0.12));
-  border-radius: 20px;
+  color: $shrine-muted;
 }
+
 .empty-memorials__badge {
   display: inline-flex;
+  width: 58px;
+  height: 58px;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--ns-radius-md, 16px);
-  background: var(--ns-brand-soft, #e4f8f0);
-  color: var(--ns-brand-strong, #0fb174);
+  border-radius: 18px;
+  background: linear-gradient(135deg, $shrine-green-soft, $shrine-coral-soft);
+  color: $shrine-green-deep;
 }
+
 .empty-memorials p {
+  max-width: 320px;
   margin: 0;
   font-size: 13px;
-  font-style: italic;
+  line-height: 1.5;
 }
-.empty-memorials__cta {
-  font-style: normal;
+
+@media (max-width: 780px) {
+  .memorial-studio,
+  .detail-header {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-actions,
+  .studio-publish {
+    justify-content: flex-start;
+  }
+
+  .offering-tray,
+  .field-grid,
+  .story-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-grid .neo-input:nth-child(3) {
+    grid-column: auto;
+  }
 }
 
 @media (max-width: 520px) {
   .memorial-play-area {
-    padding: 14px 12px;
     gap: 14px;
+    padding: 14px 12px;
   }
 
-  .shrine-hero {
-    padding: 20px;
-    gap: 16px;
+  .shrine-hero,
+  .shrine-hero__content {
+    min-height: 430px;
   }
 
-  .shrine-hero__head {
-    flex-wrap: wrap;
+  .shrine-hero__content {
+    padding: 24px 20px;
+    justify-content: flex-end;
   }
 
-  .shrine-hero__cta {
-    margin-left: 0;
+  .shrine-hero__shade {
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.08) 0%, rgba(6, 18, 17, 0.82) 58%, rgba(6, 18, 17, 0.9) 100%);
+  }
+
+  .shrine-hero__signals {
     width: 100%;
-    flex-basis: 100%;
   }
 
-  .shrine-hero__stats {
-    grid-template-columns: repeat(2, 1fr);
+  .shrine-hero__signals span {
+    flex: 1 1 46%;
+    justify-content: center;
+    text-align: center;
   }
 
-  .shrine-hero__title {
-    font-size: 24px;
+  .shrine-hero__cta,
+  .tribute-submit,
+  .studio-publish .neo-btn {
+    width: 100%;
   }
 
-  .obituary-banner .banner-scroll {
+  .chain-receipt {
+    max-width: none;
+    margin: -18px 12px 0;
+  }
+
+  .obituary-banner,
+  .memorial-studio,
+  .memorial-focus .neo-card__body {
+    padding: 16px;
+  }
+
+  .banner-scroll {
     flex-direction: column;
-    gap: 8px;
-    white-space: normal;
     overflow-x: hidden;
   }
 
   .obituary-item {
     width: 100%;
     max-width: 100%;
-    min-height: 48px;
-    padding: 12px 14px;
-    justify-content: flex-start;
-    text-align: left;
+    min-width: 0;
   }
 
   .obituary-item .text {
     white-space: normal;
   }
 
-  .tribute-row,
-  .year-row {
+  .tribute-station__head,
+  .studio-publish,
+  .section-heading {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .offering-cost-card {
+    min-width: 0;
+  }
+
+  .year-row {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading > span:last-child {
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .obituary-item,
+  .offering-option,
+  .tombstone-card {
+    transition: none;
+  }
+
+  .obituary-item:hover,
+  .offering-option:hover,
+  .offering-option.is-selected,
+  .tombstone-card:hover {
+    transform: none;
   }
 }
