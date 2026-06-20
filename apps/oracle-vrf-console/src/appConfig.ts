@@ -167,7 +167,12 @@ export const consoleConfig: ConsoleToolConfig = {
         { label: t("salt"), value: salt },
         { label: t("rounds"), value: rounds },
         ...(roundsAdjusted
-          ? [{ label: t("roundsAdjusted"), value: t("roundsAdjustedValue", { raw: rawRounds, rounds }) }]
+          ? [
+              {
+                label: t("roundsAdjusted"),
+                value: t("roundsAdjustedValue", { raw: rawRounds, rounds }),
+              },
+            ]
           : []),
         { label: t("clientDigest"), value: requestId },
       ],
@@ -198,6 +203,15 @@ const appMessages = {
     en: "Prepare randomness requests with consumer, salt, proof mode, and repeat count. This request id is what you submit to the Morpheus VRF lane (or your consumer contract); the returned proof matches back to this id — the draw and verification happen there, not in this preview.",
     zh: "用消费者、盐值、证明模式和轮次准备随机数请求。此请求 ID 即你提交给 Morpheus VRF 通道（或你的消费者合约）的标识；返回的证明会与该 ID 对应——抽取与验证发生在那里，而非本预览中。",
   },
+  vrfHeroAlt: {
+    en: "A bright randomness machine preparing verifiable proof capsules.",
+    zh: "明亮的随机性机器正在准备可验证证明胶囊。",
+  },
+  vrfHeroCopy: {
+    en: "Compose a consumer seed, choose proof mode, and produce a request id that your game, raffle, or app flow can verify later.",
+    zh: "组合消费者种子、选择证明模式，并生成可供游戏、抽奖或应用流程后续验证的请求 ID。",
+  },
+  vrfStatusLabel: { en: "VRF request status", zh: "VRF 请求状态" },
   runAction: { en: "Build VRF Request", zh: "生成 VRF 请求" },
   consumer: { en: "Consumer", zh: "消费者" },
   consumerPlaceholder: {
@@ -220,6 +234,14 @@ const appMessages = {
   mode: { en: "Proof Mode", zh: "证明模式" },
   modeSingle: { en: "Single proof", zh: "单次证明" },
   modeBatch: { en: "Batch proof", zh: "批量证明" },
+  modeSingleHint: {
+    en: "Best for one round, one winner, or one callback.",
+    zh: "适合单回合、单赢家或单次回调。",
+  },
+  modeBatchHint: {
+    en: "Package repeat draws with the same consumer seed.",
+    zh: "用同一消费者种子打包多轮抽取。",
+  },
   requestId: { en: "Request ID", zh: "请求 ID" },
   clientDigest: { en: "Client Digest", zh: "客户端摘要" },
   inputRequired: { en: "Required fields missing", zh: "缺少必填字段" },
@@ -238,6 +260,58 @@ const appMessages = {
   statDigest: { en: "Request ID", zh: "请求 ID" },
   digestPlaceholder: { en: "—", zh: "—" },
   lastStatus: { en: "Last Status", zh: "最近状态" },
+  vrfFlowTitle: { en: "VRF proof flow", zh: "VRF 证明流程" },
+  vrfFlowSeed: { en: "Seed", zh: "种子" },
+  vrfFlowSeedDesc: {
+    en: "Consumer and salt define the request identity.",
+    zh: "消费者和盐值定义请求身份。",
+  },
+  vrfFlowDraw: { en: "Draw", zh: "抽取" },
+  vrfFlowDrawDesc: {
+    en: "Rounds decide how many random values are requested.",
+    zh: "轮次决定请求多少个随机值。",
+  },
+  vrfFlowVerify: { en: "Verify", zh: "验证" },
+  vrfFlowVerifyDesc: {
+    en: "The returned proof matches back to the digest.",
+    zh: "返回的证明会匹配回摘要。",
+  },
+  vrfRequestPlan: { en: "Request plan", zh: "请求方案" },
+  vrfRequestPlanCopy: {
+    en: "Tune the seed, rounds, and proof mode before creating the digest.",
+    zh: "生成摘要前，先调整种子、轮次和证明模式。",
+  },
+  vrfSeedIdentity: { en: "Seed identity", zh: "种子身份" },
+  vrfSeedIdentityCopy: {
+    en: "Use stable values so proofs can be matched after callback.",
+    zh: "使用稳定值，方便回调后匹配证明。",
+  },
+  vrfConsumerHint: {
+    en: "App id, contract hash, or consumer lane that will receive the callback.",
+    zh: "接收回调的 app id、合约哈希或消费者通道。",
+  },
+  vrfSaltHint: {
+    en: "Make it unique per round, draw, raffle, or game match.",
+    zh: "每个回合、抽取、抽奖或比赛都应唯一。",
+  },
+  vrfRoundsTitle: { en: "Draw rounds", zh: "抽取轮次" },
+  vrfRoundsHint: {
+    en: "Clamp to 1-10 whole rounds for a valid preview package.",
+    zh: "限制为 1-10 的整数轮次，确保预览包有效。",
+  },
+  vrfDecreaseRounds: { en: "Decrease rounds", zh: "减少轮次" },
+  vrfIncreaseRounds: { en: "Increase rounds", zh: "增加轮次" },
+  vrfProofModeTitle: { en: "Proof mode", zh: "证明模式" },
+  vrfProofModeHint: {
+    en: "Choose whether the request stands alone or batches repeat draws.",
+    zh: "选择单次请求，或批量打包重复抽取。",
+  },
+  vrfProofPreview: { en: "Proof preview", zh: "证明预览" },
+  vrfEmptyTitle: { en: "No digest yet", zh: "尚未生成摘要" },
+  vrfEmptyCopy: {
+    en: "Build the request to mint a preview digest and inspect the payload before you send it to a VRF lane.",
+    zh: "生成请求后会创建预览摘要，并可在发送到 VRF 通道前检查 payload。",
+  },
   docsSubtitle: {
     en: "A compact console for Morpheus randomness request planning.",
     zh: "面向 Morpheus 随机数请求规划的轻量控制台。",
