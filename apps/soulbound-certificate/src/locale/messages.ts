@@ -10,6 +10,11 @@ const appMessages = {
   connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
   walletConnected: { en: "Wallet connected", zh: "钱包已连接" },
   issuerWorkspaceTitle: { en: "Issuer workspace", zh: "发行方工作台" },
+  certificateHeroTitle: { en: "Design a credential, issue it on-chain, verify it anywhere.", zh: "设计凭证，链上签发，随处核验。" },
+  certificateTrustSignals: { en: "Credential trust signals", zh: "凭证可信信号" },
+  certificateProofPermanent: { en: "Permanent record", zh: "永久记录" },
+  certificateProofVerify: { en: "QR verification", zh: "二维码核验" },
+  templatePreviewLabel: { en: "Template preview", zh: "模板预览" },
 
   // Live + verified credential artifact (the framed keepsake card)
   certificatePreviewLabel: { en: "Live preview", zh: "实时预览" },
