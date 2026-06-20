@@ -1,19 +1,23 @@
 /* Accent plumbing: the panel sets --console-accent/--console-accent-soft
    inline from the app manifest's theme.accentColor (see consoleAccentVars in
-   ConsoleToolPanel.tsx). Every accent-colored piece of chrome below reads the
-   custom property first and falls back to the legacy --ns-violet-* aliases so
-   hosts without a manifest accent keep their current look. */
+   ConsoleToolPanel.tsx). */
 .console-tool {
+  --console-stage-border: rgba(20, 22, 38, 0.1);
+  --console-warm: #fff8ed;
+  --console-mint: #eefcf5;
+  --console-blue: #eef7ff;
+
   display: grid;
-  gap: 16px;
-  padding: 0;
-  border-radius: 0;
-  background: #f7f8fb;
-  /* Focused-tool width so the form + result don't sprawl edge-to-edge on wide
-     desktops (the console dead-space the review flagged). */
+  gap: 18px;
   width: 100%;
-  max-width: 1080px;
+  max-width: 1120px;
   margin-inline: auto;
+  padding: 8px;
+  border: 1px solid rgba(20, 22, 38, 0.06);
+  border-radius: var(--ns-radius-lg);
+  background:
+    linear-gradient(135deg, var(--console-warm), rgba(255, 255, 255, 0) 48%),
+    linear-gradient(315deg, var(--console-mint), var(--console-blue));
 }
 
 .console-tool .neo-btn:disabled {
@@ -26,20 +30,21 @@
 
 .console-tool__hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.9fr);
+  grid-template-columns: minmax(0, 0.95fr) minmax(300px, 0.78fr);
   gap: 20px;
   align-items: stretch;
   padding: 18px;
   border: 1px solid var(--ns-border);
   border-radius: var(--ns-radius-lg);
-  background: var(--ns-surface);
+  background: rgba(255, 255, 255, 0.86);
   box-shadow: var(--ns-shadow-md);
 }
 
 .console-tool__intro {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px 16px;
+  align-content: center;
   min-width: 0;
 }
 
@@ -47,12 +52,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  flex: 0 0 48px;
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
   border-radius: var(--ns-radius-full);
   color: var(--console-accent, var(--ns-violet-strong));
   background: var(--console-accent-soft, var(--ns-violet-soft));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
 }
 
 .console-tool__intro-copy {
@@ -65,66 +71,132 @@
 .console-tool__eyebrow {
   color: var(--ns-text-muted);
   font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 800;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .console-tool__intro h2 {
   margin: 0;
   color: var(--ns-ink);
-  font-size: 1.4rem;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-size: 1.55rem;
+  font-weight: 850;
+  line-height: 1.18;
+  letter-spacing: 0;
 }
 
 .console-tool__intro p {
   margin: 0;
-  max-width: 42rem;
+  max-width: 44rem;
   color: var(--ns-text-2);
   font-size: 0.9375rem;
   line-height: 1.55;
 }
 
-/* IA refactor (2026-06): compact inline context line — replaces the 3-tile N/A
-   hero-metrics strip + the redundant asset card across all 6 oracle consoles. */
 .console-tool__hero-meta {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  gap: 7px 18px;
-
-  span {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 6px;
-    min-width: 0;
-    color: var(--ns-text-muted);
-    font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  strong {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--ns-ink);
-    font-size: 0.8125rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0;
-    text-transform: none;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  gap: 10px;
+  min-width: 0;
 }
 
-/* Honest preview-mode framing: shown whenever a console has no live execute
-   hook so "preview only" is an explicit promise, not a silent dead-end. */
+.console-tool__hero-meta span,
+.console-tool__request-summary span,
+.console-tool__form-copy span,
+.console-tool__choice-head span,
+.console-tool__section-head span,
+.console-tool__result-top span,
+.console-tool__rows span {
+  color: var(--ns-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.console-tool__hero-meta > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-md);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.console-tool__hero-meta strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ns-ink);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.console-tool__request-summary strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ns-ink);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.console-tool__stage {
+  position: relative;
+  min-width: 0;
+  min-height: 250px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--console-stage-border);
+  border-radius: var(--ns-radius-lg);
+  background: var(--ns-surface);
+  box-shadow: var(--ns-shadow-sm);
+}
+
+.console-tool__stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.console-tool__stage figcaption {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(20, 22, 38, 0.08);
+  border-radius: var(--ns-radius-md);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--ns-shadow-sm);
+}
+
+.console-tool__stage figcaption span {
+  color: var(--console-accent, var(--ns-violet-strong));
+  font-size: 0.6875rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.console-tool__stage figcaption strong {
+  color: var(--ns-ink);
+  font-size: 0.8125rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
 .console-tool__notice {
   display: flex;
   align-items: flex-start;
@@ -133,11 +205,11 @@
   padding: 12px 16px;
   border: 1px solid var(--ns-border);
   border-radius: var(--ns-radius-lg);
-  background: var(--ns-surface);
+  background: rgba(255, 255, 255, 0.88);
   box-shadow: var(--ns-shadow-xs);
   color: var(--ns-text-2);
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.5;
 }
 
@@ -149,12 +221,8 @@
 
 .console-tool__workspace {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
-  gap: 16px;
-  /* stretch (not start) so the result card tracks the form column height — the
-     empty/waiting card centers its content instead of collapsing to a short
-     pill that left a tall dead-zone beside the form (the console dead-space the
-     review flagged across all 6 oracle consoles). */
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.92fr);
+  gap: 18px;
   align-items: stretch;
 }
 
@@ -163,7 +231,7 @@
   min-width: 0;
   border: 1px solid var(--ns-border);
   border-radius: var(--ns-radius-lg);
-  background: var(--ns-surface);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: var(--ns-shadow-md);
 }
 
@@ -174,56 +242,96 @@
   padding: 20px;
 }
 
-.console-tool__form-head {
+.console-tool__form-head,
+.console-tool__result-top {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 12px;
   align-items: center;
   min-width: 0;
-  padding: 13px 14px;
-  border-radius: var(--ns-radius-md);
-  background:
-    linear-gradient(135deg, var(--console-accent-soft, var(--ns-violet-soft)), rgba(255, 255, 255, 0) 70%),
-    var(--ns-surface-subtle);
-  box-shadow: inset 0 0 0 1px var(--ns-border);
 }
 
-.console-tool__form-icon {
+.console-tool__form-icon,
+.console-tool__result-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--ns-radius-md);
   color: var(--console-accent, var(--ns-violet-strong));
   background: var(--console-accent-soft, var(--ns-violet-soft));
 }
 
-.console-tool__form-copy {
+.console-tool__form-copy,
+.console-tool__result-top div,
+.console-tool__section-head {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
-.console-tool__form-copy span,
-.console-tool__choice-head span {
-  color: var(--ns-text-muted);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 .console-tool__form-copy strong,
+.console-tool__section-head strong,
+.console-tool__result-top strong,
 .console-tool__choice-head strong {
   overflow-wrap: anywhere;
   color: var(--ns-ink);
-  font-size: 0.9rem;
-  font-weight: 800;
+  font-size: 0.9375rem;
+  font-weight: 850;
   line-height: 1.25;
 }
 
+.console-tool__flow-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: var(--ns-radius-md);
+  background:
+    linear-gradient(135deg, var(--console-accent-soft, var(--ns-violet-soft)), rgba(255, 255, 255, 0) 72%),
+    var(--ns-surface-subtle);
+  box-shadow: inset 0 0 0 1px rgba(20, 22, 38, 0.07);
+}
+
+.console-tool__flow-rail span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  min-width: 0;
+  padding: 0 8px;
+  border-radius: var(--ns-radius-full);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--ns-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.console-tool__flow-rail svg {
+  color: var(--console-accent, var(--ns-violet-strong));
+}
+
+.console-tool__request-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.console-tool__request-summary div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(20, 22, 38, 0.07);
+  border-radius: var(--ns-radius-md);
+  background: var(--ns-surface-subtle);
+}
+
 .console-tool__choice-stack,
+.console-tool__input-section,
 .console-tool__input-grid {
   display: grid;
   gap: 12px;
@@ -234,10 +342,6 @@
   display: grid;
   gap: 10px;
   min-width: 0;
-  padding: 13px;
-  border-radius: var(--ns-radius-md);
-  background: var(--ns-surface-subtle);
-  box-shadow: inset 0 0 0 1px var(--ns-border);
 }
 
 .console-tool__choice-head {
@@ -255,7 +359,7 @@
 
 .console-tool__choice-options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
   gap: 9px;
   min-width: 0;
 }
@@ -266,8 +370,8 @@
   justify-content: space-between;
   gap: 10px;
   min-width: 0;
-  min-height: 56px;
-  padding: 10px 11px;
+  min-height: 58px;
+  padding: 10px 12px;
   border: 1px solid var(--ns-border);
   border-radius: var(--ns-radius-md);
   background: var(--ns-surface);
@@ -309,8 +413,8 @@
 .console-tool__choice-copy strong {
   overflow: hidden;
   color: var(--ns-ink);
-  font-size: 0.86rem;
-  font-weight: 800;
+  font-size: 0.875rem;
+  font-weight: 850;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -321,7 +425,7 @@
   color: var(--ns-text-muted);
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -351,7 +455,7 @@
 }
 
 .console-tool__input-cell--wide .neo-input__textarea {
-  min-height: 104px;
+  min-height: 108px;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   line-height: 1.55;
 }
@@ -399,14 +503,14 @@
   color: var(--console-accent, var(--ns-violet-strong));
   background: var(--console-accent-soft, var(--ns-violet-soft));
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0;
 }
 
 .console-tool__result-head strong {
   color: var(--ns-ink);
   font-size: 1.0625rem;
-  font-weight: 700;
+  font-weight: 750;
   line-height: 1.35;
 }
 
@@ -426,11 +530,6 @@
 
 .console-tool__rows span {
   display: block;
-  color: var(--ns-text-muted);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .console-tool__rows strong {
@@ -438,7 +537,7 @@
   overflow-wrap: anywhere;
   color: var(--ns-ink);
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 750;
   font-variant-numeric: tabular-nums;
   line-height: 1.35;
   margin-top: 4px;
@@ -449,14 +548,13 @@
   gap: 8px;
 }
 
-/* IA refactor: raw payload JSON is now collapsed behind a disclosure (P6). */
 .console-tool__payload-card > summary {
   cursor: pointer;
   width: fit-content;
   color: var(--ns-text-muted);
   font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 800;
+  letter-spacing: 0;
   text-transform: uppercase;
   list-style: none;
 }
@@ -465,8 +563,6 @@
   display: none;
 }
 
-/* Keyboard users need a visible focus ring on the disclosure toggle — it has
-   no other affordance besides cursor:pointer. */
 .console-tool__payload-card > summary:focus-visible {
   outline: none;
   border-radius: var(--ns-radius-sm, 8px);
@@ -474,12 +570,12 @@
 }
 
 .console-tool__payload-card > summary::after {
-  content: " ⌄";
+  content: " v";
   color: var(--ns-text-faint);
 }
 
 .console-tool__payload-card[open] > summary::after {
-  content: " ⌃";
+  content: " ^";
 }
 
 .console-tool__payload-card pre {
@@ -499,11 +595,8 @@
 
 .console-tool__empty {
   display: grid;
-  /* Fill the result card height (which now stretches to the form) and center
-     the waiting content vertically so the aside reads as a deliberate empty
-     state, not a stranded pill above a void. */
   height: 100%;
-  min-height: 260px;
+  min-height: 230px;
   place-content: center;
   justify-items: center;
   gap: 12px;
@@ -511,28 +604,14 @@
   text-align: center;
 }
 
-.console-tool__empty-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--ns-radius-full);
-  color: var(--console-accent, var(--ns-violet-strong));
-  background: var(--console-accent-soft, var(--ns-violet-soft));
-}
-
 .console-tool__empty-pill {
-  // Plain uppercase status label (no fill/radius) so the waiting state reads as
-  // a caption, not a clickable button/badge. Deep-brand green keeps it on-accent
-  // and clears AA on the card surface.
   display: inline-flex;
   align-items: center;
   color: var(--console-accent-deep, var(--ns-brand-deep, #0b5e3e));
-  font-size: 0.6875rem;
-  font-weight: 700;
+  font-size: 0.75rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
 }
 
 .console-tool__empty-hint {
@@ -546,6 +625,9 @@
 @media (max-width: 860px) {
   .console-tool {
     gap: 14px;
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
 
   .console-tool__hero,
@@ -555,7 +637,11 @@
 
   .console-tool__hero {
     gap: 16px;
-    padding: 20px;
+    padding: 18px;
+  }
+
+  .console-tool__stage {
+    min-height: 220px;
   }
 
   .console-tool__actions {
@@ -569,5 +655,28 @@
   .console-tool__input-grid,
   .console-tool__rows {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .console-tool__intro {
+    grid-template-columns: 1fr;
+  }
+
+  .console-tool__hero-badge {
+    width: 44px;
+    height: 44px;
+  }
+
+  .console-tool__flow-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .console-tool__flow-rail svg {
+    display: none;
+  }
+
+  .console-tool__result-head {
+    display: grid;
   }
 }

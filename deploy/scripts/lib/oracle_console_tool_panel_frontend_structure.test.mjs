@@ -22,29 +22,16 @@ function read(relativePath) {
 }
 
 function assertNoLoudHeroTracking(styles) {
-  // Neo Soft eyebrow/kicker labels intentionally use restrained 0.12em tracking
-  // and the compact hero title uses a tight negative track (-0.02em). What we
-  // still guard against is loud "display/marketing-hero" expanded tracking
-  // (>= 0.2em) that would not belong on an embedded console surface.
   const values = [...styles.matchAll(/letter-spacing:\s*([^;]+);/g)].map(
     (match) => match[1].trim(),
   );
   assert.ok(values.length > 0, "expected at least one letter-spacing declaration");
   for (const value of values) {
-    const em = /^(-?[\d.]+)em$/.exec(value);
-    if (em) {
-      assert.ok(
-        Number.parseFloat(em[1]) < 0.2,
-        `letter-spacing ${value} is too wide for an embedded console (no loud hero tracking)`,
-      );
-    } else {
-      // Only unitless 0 (or px/other) restrained values are expected otherwise.
-      assert.match(
-        value,
-        /^0$|px$/,
-        `unexpected letter-spacing ${value} on embedded console surface`,
-      );
-    }
+    assert.equal(
+      value,
+      "0",
+      `unexpected letter-spacing ${value}; oracle consoles should not use tracked UI text`,
+    );
   }
 }
 
@@ -53,13 +40,16 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
   const styles = read("apps/shared/components-react/ConsoleToolPanel.scss");
 
   assert.match(component, /className="console-tool__hero"/);
-  // IA refactor (2026-06): the 3-tile hero-metrics strip + the separate asset
-  // card were replaced by the compact inline `console-tool__hero-meta` context
-  // line and a two-column `console-tool__workspace` (form + result).
+  assert.match(component, /className="console-tool__stage"/);
+  assert.match(component, /oracle-workspace-stage\.jpg/);
   assert.match(component, /className="console-tool__hero-meta"/);
   assert.match(component, /className="console-tool__workspace"/);
   assert.match(component, /className="console-tool__form"/);
+  assert.match(component, /className="console-tool__flow-rail"/);
+  assert.match(component, /className="console-tool__request-summary"/);
+  assert.match(component, /className="console-tool__input-section"/);
   assert.match(component, /className="console-tool__result"/);
+  assert.match(component, /className="console-tool__result-top"/);
   assert.match(component, /className="console-tool__empty"/);
   assert.match(component, /className="console-tool__payload-card"/);
   assert.match(component, /const networkLabel =/);
@@ -69,19 +59,20 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
   // through the preview+reset lifecycle, so guard the actual state wiring.
   assert.match(component, /setObservable\(state, "lastDigest"/);
 
-  assert.match(styles, /\.console-tool\s*\{[^}]*#f7f8fb/s);
+  assert.match(styles, /\.console-tool\s*\{[^}]*--console-warm:\s*#fff8ed/s);
+  assert.match(styles, /\.console-tool\s*\{[^}]*--console-mint:\s*#eefcf5/s);
   assert.match(styles, /\.console-tool__hero\s*\{/);
   assert.match(styles, /\.console-tool__hero\s*\{[^}]*padding:\s*18px/s);
-  // Neo Soft redesign swapped literal hero surface values for --ns-* design tokens
-  // (--ns-radius-lg = 20px, --ns-surface = #ffffff, --ns-shadow-md soft shadow).
   assert.match(styles, /\.console-tool__hero\s*\{[^}]*border-radius:\s*var\(--ns-radius-lg\)/s);
-  assert.match(styles, /\.console-tool__hero\s*\{[^}]*background:\s*var\(--ns-surface\)/s);
+  assert.match(styles, /\.console-tool__hero\s*\{[^}]*background:\s*rgba\(255, 255, 255, 0\.86\)/s);
   assert.match(styles, /\.console-tool__hero\s*\{[^}]*box-shadow:\s*var\(--ns-shadow-md\)/s);
-  // The dense data tiles inside the result panel (the "hint"/asset replacement)
-  // keep the compact padded, subtle-surface card treatment.
+  assert.match(styles, /\.console-tool__stage\s*\{[^}]*min-height:\s*250px/s);
+  assert.match(styles, /\.console-tool__stage img\s*\{[^}]*object-fit:\s*cover/s);
+  assert.match(styles, /\.console-tool__flow-rail\s*\{/);
+  assert.match(styles, /\.console-tool__request-summary\s*\{/);
+  assert.match(styles, /\.console-tool__result-top\s*\{/);
   assert.match(styles, /\.console-tool__rows div\s*\{[^}]*padding:\s*11px 14px/s);
   assert.match(styles, /\.console-tool__rows div\s*\{[^}]*background:\s*var\(--ns-surface-subtle\)/s);
-  // Reset placeholder status badge stays a fully-rounded pill.
   assert.match(styles, /\.console-tool__status-badge\s*\{[^}]*border-radius:\s*var\(--ns-radius-full\)/s);
   assert.match(styles, /\.console-tool \.neo-btn:disabled\s*\{[^}]*opacity:\s*1/s);
   assert.doesNotMatch(styles, /\.console-tool__intro h2\s*\{[^}]*#f8fafc/s);
@@ -89,9 +80,6 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
   assert.doesNotMatch(styles, /font-size:\s*clamp\([^)]*vw/i);
   assert.doesNotMatch(styles, /filter:\s*saturate/);
   assert.doesNotMatch(styles, /opacity:\s*0\.5/);
-  // Neo Soft eyebrow/kicker labels (small ~0.69rem caps) legitimately use
-  // uppercase; what stays forbidden is uppercasing the oversized hero title,
-  // which would read as a loud marketing hero rather than a calm console.
   assert.doesNotMatch(
     styles,
     /\.console-tool__intro h2\s*\{[^}]*text-transform:\s*uppercase/s,
@@ -103,23 +91,20 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
     /border-radius:\s*(?:1[8-9]|2[0-9])px/,
     "embedded oracle console surfaces should keep compact web radii",
   );
-  assert.doesNotMatch(
-    styles,
-    /\.console-tool\s*\{[^}]*linear-gradient/s,
-    "embedded oracle console shell should use a calm flat surface",
-  );
   assert.match(
     styles,
-    /\.console-tool__intro h2\s*\{[^}]*font-size:\s*1\.4rem;/s,
+    /\.console-tool__intro h2\s*\{[^}]*font-size:\s*1\.55rem;/s,
     "panel title should be compact enough for embedded miniapp surfaces",
   );
-  // The rendered request/result data tiles keep a restrained data-sized type
-  // scale (the asset-copy hero block this used to guard was removed in the IA
-  // refactor; the result rows are now where digest/value data is read).
   assert.match(
     styles,
     /\.console-tool__rows strong\s*\{[^}]*font-size:\s*0\.9rem;/s,
     "request digest should read as data, not oversized hero text",
+  );
+  assert.match(
+    styles,
+    /@media \(max-width: 520px\)[\s\S]*\.console-tool__flow-rail\s*\{[^}]*grid-template-columns:\s*1fr/s,
+    "mobile oracle console flow rail should stack instead of squeezing labels",
   );
   assert.match(
     styles,
@@ -140,12 +125,18 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
     /@media \(max-width: 860px\)[\s\S]*\.console-tool__actions \.neo-btn\s*\{[^}]*width:\s*100%/s,
     "mobile oracle console buttons should not wrap into uneven partial-width controls",
   );
+
+  const baseMessages = read("apps/shared/locale/base-messages.ts");
+  assert.match(baseMessages, /consoleConfigureTitle:\s*\{\s*en:\s*"Request studio"/);
+  assert.match(baseMessages, /consolePreviewTitle:\s*\{\s*en:\s*"Preview receipt"/);
+  assert.doesNotMatch(baseMessages, /Run the form/i);
 });
 
 test("oracle console miniapps all use the shared wallet-style console panel", () => {
   for (const app of ORACLE_CONSOLE_APPS) {
     const playArea = read(`apps/${app}/src/PlayArea.tsx`);
     const config = read(`apps/${app}/src/appConfig.ts`);
+    const stageAsset = path.join(ROOT, `apps/${app}/public/oracle-workspace-stage.jpg`);
 
     assert.match(playArea, /ConsoleToolPanel/);
     assert.match(config, /export const consoleConfig/);
@@ -153,5 +144,9 @@ test("oracle console miniapps all use the shared wallet-style console panel", ()
     assert.match(config, /panelDescription/);
     assert.match(config, /statNetwork/);
     assert.match(config, /statDigest/);
+    assert.ok(
+      fs.existsSync(stageAsset),
+      `${app} should ship the shared no-text oracle workspace scene asset`,
+    );
   }
 });
