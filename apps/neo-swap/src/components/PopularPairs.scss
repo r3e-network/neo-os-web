@@ -1,5 +1,10 @@
 @use "@shared/styles/tokens.scss" as *;
 
+.neo-swap-pairs-card .neo-card__content {
+  display: grid;
+  gap: 14px;
+}
+
 .pair-header {
   display: flex;
   align-items: flex-start;
@@ -16,27 +21,39 @@
 
 .pair-header span,
 .pair-header small {
-  color: #6a7487;
+  color: #728078;
   font-size: 11px;
-  font-weight: 750;
+  font-weight: 800;
   letter-spacing: 0;
+  line-height: 1.25;
   text-transform: uppercase;
 }
 
 .pair-header strong {
-  color: #101827;
+  min-width: 0;
+  color: #12211c;
   font-size: 1rem;
   font-weight: 850;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .pair-header small {
+  display: inline-flex;
   flex: 0 0 auto;
-  padding: 5px 9px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  border: 1px solid rgba(18, 33, 28, 0.1);
   border-radius: 999px;
-  background: #f5f8fb;
+  background: #f7faf9;
+  color: #52635c;
   text-transform: none;
+  white-space: nowrap;
+}
+
+.pair-header small svg {
+  color: #0a8050;
 }
 
 .pair-list {
@@ -51,9 +68,10 @@
   align-items: center;
   min-width: 0;
   padding: 12px;
-  border: 1px solid rgba(20, 22, 38, 0.08);
-  border-radius: 14px;
-  background: linear-gradient(135deg, #ffffff 0%, #f5faf8 100%);
+  border: 1px solid rgba(18, 33, 28, 0.09);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, #ffffff 0%, rgba(228, 248, 240, 0.42) 100%);
   color: inherit;
   cursor: pointer;
   font: inherit;
@@ -66,15 +84,16 @@
 
 .pair-item:hover,
 .pair-item.active {
-  border-color: rgba(22, 199, 132, 0.42);
-  background: linear-gradient(135deg, #f0fff8 0%, #f7fbff 100%);
+  border-color: rgba(22, 199, 132, 0.44);
+  background:
+    linear-gradient(135deg, #ffffff 0%, rgba(228, 248, 240, 0.82) 58%, rgba(255, 244, 207, 0.6) 100%);
   transform: translateY(-1px);
 }
 
 .pair-item:focus-visible {
   outline: none;
   border-color: var(--ns-brand, #16c784);
-  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.22);
+  box-shadow: 0 0 0 3px rgba(22, 199, 132, 0.2);
 }
 
 .pair-token-stack {
@@ -86,7 +105,7 @@
 .pair-token-stack .neo-swap-token-icon {
   width: 32px;
   height: 32px;
-  box-shadow: 0 6px 16px rgba(3, 11, 20, 0.12);
+  box-shadow: 0 6px 16px rgba(18, 33, 28, 0.1);
 }
 
 .pair-token-stack .neo-swap-token-icon + .neo-swap-token-icon {
@@ -101,7 +120,7 @@
 
 .pair-name {
   min-width: 0;
-  color: #101827;
+  color: #12211c;
   font-size: 0.92rem;
   font-weight: 850;
   line-height: 1.2;
@@ -110,21 +129,37 @@
 
 .pair-route {
   min-width: 0;
-  color: #6a7487;
+  color: #52635c;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 650;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
-.pair-status {
+.pair-market {
+  display: inline-flex;
   flex: 0 0 auto;
-  color: #0b8a5b;
-  font-size: 0.72rem;
+  align-items: center;
+  gap: 7px;
+  color: #0a8050;
   font-weight: 800;
   line-height: 1.2;
-  text-align: right;
   white-space: nowrap;
+}
+
+.pair-status {
+  max-width: 118px;
+  color: #0a8050;
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pair-market svg {
+  flex: 0 0 auto;
+  color: #0a8050;
 }
 
 @media (max-width: 440px) {
@@ -132,10 +167,15 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .pair-status {
+  .pair-market {
     grid-column: 2;
-    text-align: left;
+    justify-content: flex-start;
     white-space: normal;
+  }
+
+  .pair-status {
+    max-width: none;
+    text-align: left;
   }
 }
 
