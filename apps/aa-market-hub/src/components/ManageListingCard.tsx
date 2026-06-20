@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { Ban, RefreshCcw, RotateCcw, ShoppingBag } from "lucide-react";
 import type { MarketListing } from "../utils/aa-market";
 import { statusLabel } from "./ListingCard";
 import "./ManageListingCard.scss";
@@ -18,7 +19,19 @@ interface ManageListingCardProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-export function ManageListingCard({ t, selectedListing, isUpdatingPrice, isCancelling, isBuying, isRefunding, canManage, canBuy, hasPendingRefund, walletAddress, dispatch }: ManageListingCardProps) {
+export function ManageListingCard({
+  t,
+  selectedListing,
+  isUpdatingPrice,
+  isCancelling,
+  isBuying,
+  isRefunding,
+  canManage,
+  canBuy,
+  hasPendingRefund,
+  walletAddress,
+  dispatch,
+}: ManageListingCardProps) {
   const [nextPriceGas, setNextPriceGas] = useState("");
   const [newBackupOwner, setNewBackupOwner] = useState("");
 
@@ -30,14 +43,22 @@ export function ManageListingCard({ t, selectedListing, isUpdatingPrice, isCance
   }, [selectedListing, walletAddress]);
 
   return (
-    <NeoCard variant="erobo" title={t("manageListingTitle")} className="operation-card">
+    <NeoCard
+      variant="erobo"
+      title={t("manageListingTitle")}
+      className="operation-card"
+    >
       {selectedListing ? (
         <div className="stack">
           <div className="selection-summary">
-            <div className="selection-summary__title">{selectedListing.title || t("untitledListing")}</div>
+            <div className="selection-summary__title">
+              {selectedListing.title || t("untitledListing")}
+            </div>
             <div className="selection-summary__meta">
               <span>#{selectedListing.id}</span>
-              <span>{selectedListing.priceGas} {t("tokenGas")}</span>
+              <span>
+                {selectedListing.priceGas} {t("tokenGas")}
+              </span>
               <span>{statusLabel(selectedListing.status, t)}</span>
             </div>
           </div>
@@ -52,13 +73,27 @@ export function ManageListingCard({ t, selectedListing, isUpdatingPrice, isCance
           />
 
           {canManage && (
-            <NeoButton variant="primary" loading={isUpdatingPrice} disabled={!nextPriceGas.trim() || isUpdatingPrice} aria-label={t("updatePriceCta")} onClick={() => dispatch("updatePrice", nextPriceGas)}>
+            <NeoButton
+              variant="primary"
+              loading={isUpdatingPrice}
+              disabled={!nextPriceGas.trim() || isUpdatingPrice}
+              aria-label={t("updatePriceCta")}
+              onClick={() => dispatch("updatePrice", nextPriceGas)}
+            >
+              <RefreshCcw aria-hidden="true" />
               {t("updatePriceCta")}
             </NeoButton>
           )}
 
           {canManage && (
-            <NeoButton variant="secondary" loading={isCancelling} disabled={isCancelling} aria-label={t("cancelListingCta")} onClick={() => dispatch("cancelSelected")}>
+            <NeoButton
+              variant="secondary"
+              loading={isCancelling}
+              disabled={isCancelling}
+              aria-label={t("cancelListingCta")}
+              onClick={() => dispatch("cancelSelected")}
+            >
+              <Ban aria-hidden="true" />
               {t("cancelListingCta")}
             </NeoButton>
           )}
@@ -90,21 +125,33 @@ export function ManageListingCard({ t, selectedListing, isUpdatingPrice, isCance
           )}
 
           {canBuy && (
-            <NeoButton variant="primary" loading={isBuying} disabled={isBuying} aria-label={t("buyListingCta")} onClick={() => dispatch("buySelected", newBackupOwner)}>
+            <NeoButton
+              variant="primary"
+              loading={isBuying}
+              disabled={isBuying}
+              aria-label={t("buyListingCta")}
+              onClick={() => dispatch("buySelected", newBackupOwner)}
+            >
+              <ShoppingBag aria-hidden="true" />
               {t("buyListingCta")}
             </NeoButton>
           )}
 
           {hasPendingRefund && (
-            <NeoButton variant="secondary" loading={isRefunding} disabled={isRefunding} aria-label={t("refundPendingCta")} onClick={() => dispatch("refundSelected")}>
+            <NeoButton
+              variant="secondary"
+              loading={isRefunding}
+              disabled={isRefunding}
+              aria-label={t("refundPendingCta")}
+              onClick={() => dispatch("refundSelected")}
+            >
+              <RotateCcw aria-hidden="true" />
               {t("refundPendingCta")}
             </NeoButton>
           )}
         </div>
       ) : (
-        <p className="hint-text">
-          {t("selectListingHint")}
-        </p>
+        <p className="hint-text">{t("selectListingHint")}</p>
       )}
     </NeoCard>
   );

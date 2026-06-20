@@ -1,4 +1,5 @@
 import { NeoButton, NeoCard } from "@shared/components-react";
+import { CheckCircle2, MousePointer2 } from "lucide-react";
 import { formatGasFractions, type MarketListing } from "../utils/aa-market";
 import "./ListingCard.scss";
 
@@ -9,7 +10,10 @@ interface ListingCardProps {
   onSelect: (listing: MarketListing) => void;
 }
 
-type Translate = (key: string, params?: Record<string, string | number>) => string;
+type Translate = (
+  key: string,
+  params?: Record<string, string | number>,
+) => string;
 
 const STATUS_KEY: Record<string, string> = {
   active: "statusActive",
@@ -140,6 +144,11 @@ export function ListingCard({
         aria-label={isSelected ? t("selected") : t("selectListing")}
         onClick={() => onSelect(listing)}
       >
+        {isSelected ? (
+          <CheckCircle2 aria-hidden="true" />
+        ) : (
+          <MousePointer2 aria-hidden="true" />
+        )}
         {isSelected ? t("selected") : t("selectListing")}
       </NeoButton>
     </NeoCard>

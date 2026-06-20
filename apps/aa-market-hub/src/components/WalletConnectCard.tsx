@@ -1,4 +1,5 @@
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { Search, Wallet } from "lucide-react";
 import { isHash160OrNeoAddress } from "../utils/validation";
 
 interface WalletConnectCardProps {
@@ -67,6 +68,7 @@ export function WalletConnectCard({
             aria-label={isConnected ? t("walletConnected") : t("connectWallet")}
             onClick={onConnect}
           >
+            <Wallet aria-hidden="true" />
             {isConnected ? t("walletConnected") : t("connectWallet")}
           </NeoButton>
           {/* Keep a meaningful text label at all times — a label-less wide pill
@@ -79,6 +81,7 @@ export function WalletConnectCard({
             aria-label={loadLabel}
             onClick={onLoadListings}
           >
+            <Search aria-hidden="true" />
             {loadLabel}
           </NeoButton>
         </div>
