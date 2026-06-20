@@ -22,6 +22,8 @@ function t(key: string) {
   const messages: Record<string, string> = {
     relayHeroTitle: "Sponsored relay desk",
     relayHeroCopy: "Check sponsorship and submit payloads.",
+    relayStageKicker: "Paymaster relay",
+    relayStageTitle: "Sponsor GAS, validate payload, then relay.",
     relayMetricsLabel: "Relay environment summary",
     network: "Network",
     relayEndpointMetric: "Relay Endpoint",
@@ -52,6 +54,11 @@ function t(key: string) {
     relayDraftLabel: "Draft AA",
     relayBlocked: "Enter an AA address and keep the payload JSON valid.",
     payloadInvalid: "Fix the JSON payload before submitting.",
+    relayPayloadLens: "Payload lens",
+    relayPayloadReady: "Relay payload is readable",
+    relayPayloadOperation: "Operation",
+    relayPayloadTarget: "Target",
+    relayPayloadArgs: "Args",
     dappId: "Paymaster Dapp ID",
     dappIdHint: "Optional paymaster scope.",
     dappIdPlaceholder: "Optional dapp id",
@@ -139,6 +146,10 @@ describe("AA Relay Console PlayArea", () => {
       (screen.getByLabelText("Relay Payload JSON") as HTMLTextAreaElement)
         .value,
     ).toBe(payload);
+    expect(document.querySelector('.relay-hero__stage img[src="./aa-relay-station.jpg"]')).toBeTruthy();
+    expect(screen.getByLabelText("AA relay workflow")).toBeTruthy();
+    expect(screen.getByLabelText("Payload lens")).toBeTruthy();
+    expect(screen.getByText("transfer")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Check Sponsorship" }));
     await waitFor(() => {
@@ -190,7 +201,7 @@ describe("AA Relay Console PlayArea", () => {
       (screen.getByRole("button", { name: "Submit Relay Payload" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
-    expect(screen.getByText("Fix the JSON payload before submitting.")).toBeTruthy();
+    expect(screen.getAllByText("Fix the JSON payload before submitting.").length).toBeGreaterThanOrEqual(1);
   });
 
   it("promotes the eligibility answer to the result headline", () => {
