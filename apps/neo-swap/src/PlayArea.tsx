@@ -25,6 +25,7 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import SwapHero from "./components/SwapHero";
 import PopularPairs from "./components/PopularPairs";
+import TokenIcon from "./components/TokenIcon";
 import { POPULAR_PAIRS, SLIPPAGE_PRESET_BPS } from "./hooks/useSwapEngine";
 import "./PlayArea.scss";
 
@@ -132,7 +133,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             className="neo-swap-token-button"
             onClick={() => dispatch("openFromSelector")}
           >
-            <span>{fromSymbol.slice(0, 1)}</span>
+            <TokenIcon symbol={fromSymbol} />
             {fromSymbol}
           </button>
         </div>
@@ -173,7 +174,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             className="neo-swap-token-button"
             onClick={() => dispatch("openToSelector")}
           >
-            <span>{toSymbol.slice(0, 1)}</span>
+            <TokenIcon symbol={toSymbol} />
             {toSymbol}
           </button>
         </div>
@@ -235,6 +236,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <span>{t("minReceived")}</span>
           <strong>{formattedMinReceived}</strong>
         </div>
+        <div>
+          <span>{t("slippage")}</span>
+          <strong>{slippage}</strong>
+        </div>
       </div>
 
       <details className="neo-swap-txfold">
@@ -268,6 +273,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           t={t}
           fromSymbol={fromSymbol}
           toSymbol={toSymbol}
+          rateDisplay={rateDisplay}
+          routeHealth={routeHealth}
+          rateAsOf={rateAsOf}
+          rateStale={rateStale}
         />
       </section>
 
@@ -454,7 +463,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   className="neo-swap-token-option"
                   onClick={() => dispatch("selectToken", token as unknown)}
                 >
-                  <span>{token.symbol.slice(0, 1)}</span>
+                  <TokenIcon symbol={token.symbol} />
                   <strong>{token.symbol}</strong>
                   <small>{t("balance")}: {formatBalance(token)}</small>
                 </button>

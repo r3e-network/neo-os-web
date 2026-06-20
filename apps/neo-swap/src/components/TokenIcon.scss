@@ -1,0 +1,35 @@
+@use "@shared/styles/tokens.scss" as *;
+
+.neo-swap-token-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 20px rgba(3, 11, 20, 0.16);
+  overflow: hidden;
+}
+
+.neo-swap-token-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.neo-swap-token-icon.is-fallback span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: var(--ns-green-soft, #e4f8f0);
+  color: var(--ns-green-strong, #0fb174);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
