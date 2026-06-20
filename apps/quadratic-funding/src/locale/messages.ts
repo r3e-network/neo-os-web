@@ -2,7 +2,10 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   title: { en: "Quadratic Funding", zh: "二次方资助" },
-  actionFailed: { en: "Action failed — please try again", zh: "操作失败，请重试" },
+  actionFailed: {
+    en: "Action failed — please try again",
+    zh: "操作失败，请重试",
+  },
   qfHeroTitle: {
     en: "Fund public goods with matching power",
     zh: "用匹配资金放大公共物品资助",
@@ -11,6 +14,11 @@ const appMessages = {
     en: "Create rounds, register projects, contribute GAS, and finalize matching from one clean grant console.",
     zh: "在一个清爽的资助控制台里创建轮次、登记项目、捐助 GAS 并结算匹配金额。",
   },
+  qfFundingDeskAlt: {
+    en: "Quadratic funding allocation desk",
+    zh: "二次方资助分配工作台",
+  },
+  qfMatchSignal: { en: "Matching signal", zh: "匹配信号" },
   qfPrimaryAction: { en: "Contribute", zh: "立即捐助" },
   qfRefreshAction: { en: "Refresh rounds", zh: "刷新轮次" },
   qfWalletSummary: { en: "Funding summary", zh: "资助概览" },
@@ -35,7 +43,22 @@ const appMessages = {
     en: "Matching favors projects with more unique donors: 100 people giving 1 GAS each out-matches 1 person giving 100.",
     zh: "匹配更青睐捐助者更广的项目：100 人各捐 1 GAS 获得的匹配，高于 1 人单独捐出 100。",
   },
-  qfNoProjectsTitle: { en: "No projects in this round", zh: "当前轮次暂无项目" },
+  qfCreateDeskIntro: {
+    en: "Shape the round like a funding desk: pick the capital asset, lock the pool, set the window, and preview the donor-facing card before signing.",
+    zh: "像配置资助交易桌一样创建轮次：选择资金资产、锁定匹配池、设置窗口，并在签名前预览捐助者看到的卡片。",
+  },
+  qfRoundBlueprint: { en: "Round blueprint", zh: "轮次蓝图" },
+  qfRoundLivePreview: {
+    en: "Funding round live preview",
+    zh: "资助轮次实时预览",
+  },
+  qfRoundPreviewWindowEmpty: { en: "Window not set", zh: "尚未设置窗口" },
+  qfGasPoolLabel: { en: "Grant pool", zh: "资助池" },
+  qfNeoPoolLabel: { en: "Governance stake", zh: "治理权益" },
+  qfNoProjectsTitle: {
+    en: "No projects in this round",
+    zh: "当前轮次暂无项目",
+  },
   qfNoProjectsBody: {
     en: "Register a project with a concise mission and link before donors contribute.",
     zh: "先登记项目使命与链接，再让捐助者进行资助。",
@@ -48,7 +71,10 @@ const appMessages = {
     en: "Contribution calls are signed against the selected round and project ID.",
     zh: "捐助交易会按已选轮次和项目 ID 发起签名。",
   },
-  qfAmplifyTitle: { en: "Why your donation is amplified", zh: "为什么你的捐助会被放大" },
+  qfAmplifyTitle: {
+    en: "Why your donation is amplified",
+    zh: "为什么你的捐助会被放大",
+  },
   qfAmplifyCopy: {
     en: "This round's matching pool tops up each project based on the breadth of its donors. Each unique donor increases a project's match — many small donations are amplified more than one large one.",
     zh: "本轮的匹配资金池会根据每个项目的捐助者广度进行追加。每位独立捐助者都会提升项目的匹配额——众多小额捐助比单笔大额捐助被放大得更多。",
@@ -65,7 +91,10 @@ const appMessages = {
   tabProjects: { en: "Projects", zh: "项目" },
   tabContribute: { en: "Contribute", zh: "捐助" },
 
-  contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
+  contractMissing: {
+    en: "Contract address not configured",
+    zh: "合约地址未配置",
+  },
 
   refresh: { en: "Refresh", zh: "刷新" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
@@ -73,7 +102,10 @@ const appMessages = {
   roundTitle: { en: "Round title", zh: "轮次名称" },
   roundTitlePlaceholder: { en: "Public Goods Round", zh: "公共资助轮次" },
   roundDescription: { en: "Round description", zh: "轮次说明" },
-  roundDescriptionPlaceholder: { en: "Focus on open-source infra and education.", zh: "关注开源基础设施与教育。" },
+  roundDescriptionPlaceholder: {
+    en: "Focus on open-source infra and education.",
+    zh: "关注开源基础设施与教育。",
+  },
   assetType: { en: "Asset (GAS only)", zh: "资产（仅 GAS）" },
   assetNeo: { en: "NEO", zh: "NEO" },
   assetGas: { en: "GAS", zh: "GAS" },
@@ -85,7 +117,10 @@ const appMessages = {
   },
   roundStart: { en: "Start time", zh: "开始时间" },
   roundStartPlaceholder: { en: "2025-06-01 09:00", zh: "2025-06-01 09:00" },
-  roundStartPlaceholderFriendly: { en: "Select start time", zh: "选择开始时间" },
+  roundStartPlaceholderFriendly: {
+    en: "Select start time",
+    zh: "选择开始时间",
+  },
   roundEnd: { en: "End time", zh: "结束时间" },
   roundEndPlaceholder: { en: "2025-06-30 18:00", zh: "2025-06-30 18:00" },
   roundEndPlaceholderFriendly: { en: "Select end time", zh: "选择结束时间" },
@@ -99,8 +134,14 @@ const appMessages = {
   creatingRound: { en: "Creating...", zh: "创建中..." },
   roundCreated: { en: "Round created", zh: "轮次已创建" },
   invalidRound: { en: "Invalid round configuration", zh: "轮次配置无效" },
-  invalidMatchingPool: { en: "Invalid matching pool amount", zh: "匹配池金额无效" },
-  invalidEndTime: { en: "End time must be in the future", zh: "结束时间必须晚于当前时间" },
+  invalidMatchingPool: {
+    en: "Invalid matching pool amount",
+    zh: "匹配池金额无效",
+  },
+  invalidEndTime: {
+    en: "End time must be in the future",
+    zh: "结束时间必须晚于当前时间",
+  },
   assetSelect: { en: "Matching asset", zh: "匹配资产" },
 
   roundsTitle: { en: "Funding Rounds", zh: "资助轮次" },
@@ -129,7 +170,10 @@ const appMessages = {
   finalizeProjectsPlaceholder: { en: "[1,2,3]", zh: "[1,2,3]" },
   finalizeMatchesJson: { en: "Matched amounts (JSON)", zh: "匹配金额（JSON）" },
   finalizeMatchesPlaceholder: { en: "[100,50,25]", zh: "[100,50,25]" },
-  finalizeHint: { en: "Amounts are in GAS units, not raw integers.", zh: "金额以 GAS 为单位输入。" },
+  finalizeHint: {
+    en: "Amounts are in GAS units, not raw integers.",
+    zh: "金额以 GAS 为单位输入。",
+  },
   finalizeKnownProjects: { en: "Projects in this round", zh: "本轮项目" },
   finalizePrefill: { en: "Use these", zh: "填入项目" },
   finalizing: { en: "Finalizing...", zh: "结算中..." },
@@ -138,7 +182,10 @@ const appMessages = {
     en: "Finalize is restricted to the platform admin and only after the round ends.",
     zh: "结算仅限平台管理员，且需在轮次结束后进行。",
   },
-  finalizeSuggested: { en: "Finalize with suggested matches", zh: "按建议匹配结算" },
+  finalizeSuggested: {
+    en: "Finalize with suggested matches",
+    zh: "按建议匹配结算",
+  },
   matchApproxCaveat: {
     en: "Suggested matches are an approximation of quadratic matching computed from on-chain aggregates (donor count × total), not exact per-donor CLR. Review and override the amounts before finalizing real funds.",
     zh: "建议匹配额是基于链上汇总数据（捐助人数 × 总额）对二次方匹配的近似估算，并非按每位捐助者精确计算的 CLR。结算真实资金前请复核并按需修改金额。",
@@ -151,7 +198,10 @@ const appMessages = {
     en: "Connect the platform admin wallet to finalize this round.",
     zh: "请连接平台管理员钱包以结算本轮。",
   },
-  finalizeShowAdvanced: { en: "Advanced: enter match amounts manually", zh: "高级：手动输入匹配金额" },
+  finalizeShowAdvanced: {
+    en: "Advanced: enter match amounts manually",
+    zh: "高级：手动输入匹配金额",
+  },
   finalizeHideAdvanced: { en: "Hide advanced inputs", zh: "隐藏高级输入" },
   matchTableProject: { en: "Project", zh: "项目" },
   matchTableContributed: { en: "Contributed", zh: "已捐助" },
@@ -166,7 +216,10 @@ const appMessages = {
     zh: "仅在轮次开始前且无任何捐助时可用，将退回你的匹配押金。",
   },
   cancelling: { en: "Cancelling...", zh: "取消中..." },
-  roundCancelled: { en: "Round cancelled and matching refunded", zh: "轮次已取消，匹配押金已退回" },
+  roundCancelled: {
+    en: "Round cancelled and matching refunded",
+    zh: "轮次已取消，匹配押金已退回",
+  },
 
   registerProject: { en: "Register Project", zh: "注册项目" },
   projectsList: { en: "Project ledger", zh: "项目账本" },
@@ -174,9 +227,15 @@ const appMessages = {
   projectName: { en: "Project name", zh: "项目名称" },
   projectNamePlaceholder: { en: "Open Source Explorer", zh: "开源浏览器" },
   projectDescription: { en: "Project description", zh: "项目说明" },
-  projectDescriptionPlaceholder: { en: "Building tools for Neo developers.", zh: "构建 Neo 开发者工具。" },
+  projectDescriptionPlaceholder: {
+    en: "Building tools for Neo developers.",
+    zh: "构建 Neo 开发者工具。",
+  },
   projectLink: { en: "Project link", zh: "项目链接" },
-  projectLinkPlaceholder: { en: "https://example.org", zh: "https://example.org" },
+  projectLinkPlaceholder: {
+    en: "https://example.org",
+    zh: "https://example.org",
+  },
   projectRegistered: { en: "Project registered", zh: "项目已注册" },
   emptyProjects: { en: "No projects yet", zh: "暂无项目" },
   projectStatusActive: { en: "Active", zh: "进行中" },
@@ -197,32 +256,71 @@ const appMessages = {
   contributionAmount: { en: "Amount", zh: "金额" },
   contributionAmountPlaceholder: { en: "2", zh: "2" },
   contributionMemo: { en: "Memo (optional)", zh: "备注（可选）" },
-  contributionMemoPlaceholder: { en: "For open-source tooling", zh: "支持开源工具" },
+  contributionMemoPlaceholder: {
+    en: "For open-source tooling",
+    zh: "支持开源工具",
+  },
   contributionSent: { en: "Contribution sent", zh: "捐助已提交" },
   invalidContribution: { en: "Invalid contribution", zh: "捐助信息无效" },
-  neoNoFractional: { en: "NEO is indivisible — enter a whole number.", zh: "NEO 不可分割，请输入整数。" },
+  neoNoFractional: {
+    en: "NEO is indivisible — enter a whole number.",
+    zh: "NEO 不可分割，请输入整数。",
+  },
   invalidProject: { en: "Invalid project details", zh: "项目信息无效" },
-  selectProjectHint: { en: "Choose a project from the list above.", zh: "从上方列表选择项目。" },
-  selectRoundFirst: { en: "Select a round before contributing.", zh: "捐助前请先选择轮次。" },
-  noSelectedRound: { en: "Select a round to view projects.", zh: "请选择轮次查看项目。" },
+  selectProjectHint: {
+    en: "Choose a project from the list above.",
+    zh: "从上方列表选择项目。",
+  },
+  selectRoundFirst: {
+    en: "Select a round before contributing.",
+    zh: "捐助前请先选择轮次。",
+  },
+  noSelectedRound: {
+    en: "Select a round to view projects.",
+    zh: "请选择轮次查看项目。",
+  },
 
   dateUnknown: { en: "Schedule TBD", zh: "时间待定" },
 
-  docSubtitle: { en: "Quadratic matching for public grants", zh: "公共资助的二次方匹配" },
+  docSubtitle: {
+    en: "Quadratic matching for public grants",
+    zh: "公共资助的二次方匹配",
+  },
   docDescription: {
     en: "Quadratic Funding rounds let communities match small donor contributions with a shared pool. Matching is computed off-chain and finalized on-chain.",
     zh: "二次方资助轮次通过共享匹配池放大小额捐助。匹配金额链下计算、链上结算。",
   },
-  step1: { en: "Create a round with matching pool and schedule.", zh: "创建轮次并设置匹配池与时间。" },
-  step2: { en: "Projects register with descriptions and links.", zh: "项目方提交说明与链接完成注册。" },
-  step3: { en: "Donors contribute during the active window.", zh: "捐助者在轮次期间完成捐助。" },
-  step4: { en: "Compute matching off-chain and finalize on-chain.", zh: "链下计算匹配金额并上链结算。" },
+  step1: {
+    en: "Create a round with matching pool and schedule.",
+    zh: "创建轮次并设置匹配池与时间。",
+  },
+  step2: {
+    en: "Projects register with descriptions and links.",
+    zh: "项目方提交说明与链接完成注册。",
+  },
+  step3: {
+    en: "Donors contribute during the active window.",
+    zh: "捐助者在轮次期间完成捐助。",
+  },
+  step4: {
+    en: "Compute matching off-chain and finalize on-chain.",
+    zh: "链下计算匹配金额并上链结算。",
+  },
   feature1Name: { en: "Matching Pools", zh: "匹配资金池" },
-  feature1Desc: { en: "Lock GAS to match community donations.", zh: "锁定 GAS 为社区捐助匹配。" },
+  feature1Desc: {
+    en: "Lock GAS to match community donations.",
+    zh: "锁定 GAS 为社区捐助匹配。",
+  },
   feature2Name: { en: "Project Registry", zh: "项目登记" },
-  feature2Desc: { en: "Each project has a dedicated record and funding stats.", zh: "每个项目有独立档案与资金统计。" },
+  feature2Desc: {
+    en: "Each project has a dedicated record and funding stats.",
+    zh: "每个项目有独立档案与资金统计。",
+  },
   feature3Name: { en: "Donor Signals", zh: "捐助信号" },
-  feature3Desc: { en: "Unique donor totals enable quadratic matching.", zh: "记录唯一捐助者金额以支持二次方匹配。" },
+  feature3Desc: {
+    en: "Unique donor totals enable quadratic matching.",
+    zh: "记录唯一捐助者金额以支持二次方匹配。",
+  },
   sidebarSelectedRound: { en: "Selected Round", zh: "已选轮次" },
   sidebarMatchingPool: { en: "Matching Pool", zh: "匹配资金池" },
   ariaProjects: { en: "Projects", zh: "项目" },

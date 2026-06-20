@@ -1,3 +1,4 @@
+import { HandCoins, Leaf, RefreshCw, Sparkles } from "lucide-react";
 import { NeoButton } from "@shared/components-react";
 
 interface FundingHeroProps {
@@ -29,52 +30,75 @@ export default function FundingHero({
 
   return (
     <section className="qf-hero" aria-labelledby="qf-hero-title">
-      <div className="qf-hero-intro">
-        <span className="qf-hero-badge" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 21V11" />
-            <path d="M12 11C12 7.5 9.5 5 6 5c0 3.5 2.5 6 6 6Z" />
-            <path d="M12 11c0-3 2.2-5.2 5-5.2 0 3-2.2 5.2-5 5.2Z" />
-            <path d="M7 21h10" />
-          </svg>
-        </span>
-        <span className="qf-hero-kicker">{t("title")}</span>
+      <div className="qf-hero-copy">
+        <div className="qf-hero-intro">
+          <span className="qf-hero-badge" aria-hidden="true">
+            <Leaf />
+          </span>
+          <span className="qf-hero-kicker">{t("title")}</span>
+        </div>
+
+        <h1 id="qf-hero-title">{t("qfHeroTitle")}</h1>
+        <p>{t("qfHeroSubtitle")}</p>
+
+        {hasSelectedRound ? (
+          <div className="qf-hero-facts">
+            <span>
+              {t("qfSelectedRound")}: <strong>{selectedRoundDisplay}</strong>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {t("sidebarMatchingPool")}: <strong>{matchingPoolDisplay}</strong>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {t("qfLiveRound")}:{" "}
+              <strong>
+                {activeRoundCount}/{roundCount}
+              </strong>
+            </span>
+          </div>
+        ) : (
+          <p className="qf-hero-empty">{t("qfNoRoundBody")}</p>
+        )}
+
+        {hasSelectedRound && (
+          <div
+            className="qf-progress-bar"
+            aria-label={`${boundedProgress}% ${t("qfLiveRound")}`}
+          >
+            <span style={{ width: `${boundedProgress}%` }} />
+          </div>
+        )}
+
+        <div className="qf-hero-actions">
+          <NeoButton variant="primary" onClick={onContribute}>
+            <HandCoins aria-hidden="true" />
+            {t("qfPrimaryAction")}
+          </NeoButton>
+          <NeoButton
+            variant="secondary"
+            disabled={isRefreshing}
+            onClick={onRefresh}
+          >
+            <RefreshCw aria-hidden="true" />
+            {t("qfRefreshAction")}
+          </NeoButton>
+        </div>
       </div>
-
-      <h1 id="qf-hero-title">{t("qfHeroTitle")}</h1>
-      <p>{t("qfHeroSubtitle")}</p>
-
-      {hasSelectedRound ? (
-        <div className="qf-hero-facts">
+      <div
+        className="qf-hero-art"
+        role="img"
+        aria-label={t("qfFundingDeskAlt")}
+      >
+        <img src="./funding-desk.jpg" alt="" loading="eager" decoding="async" />
+        <div className="qf-hero-art-card">
           <span>
-            {t("qfSelectedRound")}: <strong>{selectedRoundDisplay}</strong>
+            <Sparkles aria-hidden="true" />
+            {t("qfMatchSignal")}
           </span>
-          <span aria-hidden="true">·</span>
-          <span>
-            {t("sidebarMatchingPool")}: <strong>{matchingPoolDisplay}</strong>
-          </span>
-          <span aria-hidden="true">·</span>
-          <span>
-            {t("qfLiveRound")}: <strong>{activeRoundCount}/{roundCount}</strong>
-          </span>
+          <strong>{matchingPoolDisplay}</strong>
         </div>
-      ) : (
-        <p className="qf-hero-empty">{t("qfNoRoundBody")}</p>
-      )}
-
-      {hasSelectedRound && (
-        <div className="qf-progress-bar" aria-label={`${boundedProgress}% ${t("qfLiveRound")}`}>
-          <span style={{ width: `${boundedProgress}%` }} />
-        </div>
-      )}
-
-      <div className="qf-hero-actions">
-        <NeoButton variant="primary" onClick={onContribute}>
-          {t("qfPrimaryAction")}
-        </NeoButton>
-        <NeoButton variant="secondary" disabled={isRefreshing} onClick={onRefresh}>
-          {t("qfRefreshAction")}
-        </NeoButton>
       </div>
     </section>
   );

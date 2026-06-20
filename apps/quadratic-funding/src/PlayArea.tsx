@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CircleDollarSign, FolderKanban, HandCoins } from "lucide-react";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -17,7 +18,8 @@ interface PlayAreaProps {
 
 function formatTokenAmount(value: unknown) {
   if (value === null || value === undefined || value === "") return "0";
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "0";
+  if (typeof value === "number")
+    return Number.isFinite(value) ? String(value) : "0";
   const raw = String(value);
   if (raw.includes(".")) return raw;
   try {
@@ -72,11 +74,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const selectedRoundDisplay = str("selectedRoundDisplay", "—");
   const roundCount = num("roundCount", rounds.length);
   const projectCount = num("projectCount", projects.length);
-  const activeRoundCount = num("activeRoundCount", rounds.filter((r) => r.status === "active").length);
+  const activeRoundCount = num(
+    "activeRoundCount",
+    rounds.filter((r) => r.status === "active").length,
+  );
 
   const roundsStatus = val<Record<string, unknown>>("roundsStatus");
-  const statusMessage = roundsStatus ? String(roundsStatus.msg ?? roundsStatus.message ?? "") : "";
-  const statusType = roundsStatus ? String(roundsStatus.type ?? "info") : "info";
+  const statusMessage = roundsStatus
+    ? String(roundsStatus.msg ?? roundsStatus.message ?? "")
+    : "";
+  const statusType = roundsStatus
+    ? String(roundsStatus.type ?? "info")
+    : "info";
 
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
@@ -91,6 +100,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Form-reset counter handed to RoundForm; bumped only after a successful
   // create so the round inputs clear (RoundForm owns its own field state).
   const [roundResetKey, setRoundResetKey] = useState(0);
+  const workflowTabs = [
+    {
+      id: "rounds",
+      label: `${t("tabRounds")} (${roundCount})`,
+      Icon: CircleDollarSign,
+    },
+    {
+      id: "projects",
+      label: `${t("tabProjects")} (${projectCount})`,
+      Icon: FolderKanban,
+    },
+    {
+      id: "contribute",
+      label: t("tabContribute"),
+      Icon: HandCoins,
+    },
+  ];
 
   // dispatch is typed Promise<void> but resolves to the handler's runtime
   // payload (see MiniAppRoot.dispatch); handlers return success booleans.
@@ -142,9 +168,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     if (typeof value === "string" && value.length > 0) return value;
     // Round timestamps are milliseconds on-chain — pass straight to Date.
     if (typeof value === "number" && value > 0) {
-      return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(
-        new Date(value),
-      );
+      return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+      }).format(new Date(value));
     }
     return t("dateUnknown");
   };
@@ -168,21 +195,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           {statusMessage && (
             <div className={`qf-status-banner qf-status-${statusType}`}>
+              <span className="qf-status-dot" aria-hidden="true" />
               <span>{statusMessage}</span>
             </div>
           )}
 
-          <div className="qf-action-tabs">
-            {["rounds", "projects", "contribute"].map((tab) => (
+          <div className="qf-action-tabs" aria-label={t("qfTabsLabel")}>
+            {workflowTabs.map(({ id, label, Icon }) => (
               <NeoButton
-                key={tab}
+                key={id}
                 size="sm"
-                variant={activeTab === tab ? "primary" : "secondary"}
-                onClick={() => switchTab(tab)}
+                variant={activeTab === id ? "primary" : "secondary"}
+                onClick={() => switchTab(id)}
               >
-                {tab === "rounds" && `${t("tabRounds")} (${roundCount})`}
-                {tab === "projects" && `${t("tabProjects")} (${projectCount})`}
-                {tab === "contribute" && t("tabContribute")}
+                <Icon aria-hidden="true" />
+                {label}
               </NeoButton>
             ))}
           </div>
@@ -190,10 +217,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           {activeTab === "rounds" && (
             <div
               className={`qf-content-grid${
-                rounds.length === 0 && !selectedRound ? " qf-content-grid--single" : ""
+                rounds.length === 0 && !selectedRound
+                  ? " qf-content-grid--single"
+                  : ""
               }`}
             >
-              <RoundForm onSubmit={submitCreateRound} resetKey={roundResetKey} t={t} loading={isCreatingRound} />
+              <RoundForm
+                onSubmit={submitCreateRound}
+                resetKey={roundResetKey}
+                t={t}
+                loading={isCreatingRound}
+              />
               <div className="qf-side-stack">
                 <RoundList
                   rounds={rounds}
@@ -223,8 +257,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     isFinalizing={isFinalizing}
                     isClaimingUnused={isClaimingUnused}
                     isCancelling={isCancelling}
-                    onAddMatching={(...args: unknown[]) => dispatch("addMatching", ...args)}
-                    onFinalize={(...args: unknown[]) => dispatch("finalize", ...args)}
+                    onAddMatching={(...args: unknown[]) =>
+                      dispatch("addMatching", ...args)
+                    }
+                    onFinalize={(...args: unknown[]) =>
+                      dispatch("finalize", ...args)
+                    }
                     onFinalizeSuggested={() => dispatch("finalizeSuggested")}
                     onClaimUnused={() => dispatch("claimUnused")}
                     onCancel={() => dispatch("cancelRound")}
@@ -239,7 +277,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="qf-content-grid">
               <NeoCard title={t("registerProject")} className="qf-form-panel">
                 <p className="qf-panel-hint">
-                  {selectedRound ? selectedRoundDisplay : t("qfSelectRoundBeforeProject")}
+                  {selectedRound
+                    ? selectedRoundDisplay
+                    : t("qfSelectRoundBeforeProject")}
                 </p>
                 <div className="qf-form-grid">
                   <NeoInput
@@ -268,14 +308,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     disabled={isRegisteringProject || !selectedRound}
                     onClick={submitRegisterProject}
                   >
-                    {isRegisteringProject ? t("registeringProject") : t("registerProject")}
+                    {isRegisteringProject
+                      ? t("registeringProject")
+                      : t("registerProject")}
                   </NeoButton>
                 </div>
               </NeoCard>
 
-              <NeoCard title={t("projectsList") || t("tabProjects")} className="qf-project-panel">
+              <NeoCard
+                title={t("projectsList") || t("tabProjects")}
+                className="qf-project-panel"
+              >
                 {isRefreshingProjects && (
-                  <div className="qf-loading-row">{t("loading") || "Loading..."}</div>
+                  <div className="qf-loading-row">
+                    {t("loading") || "Loading..."}
+                  </div>
                 )}
                 {projects.length === 0 && !isRefreshingProjects ? (
                   <div className="qf-empty-ledger">
@@ -287,18 +334,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     {projects.map((project) => (
                       <div key={String(project.id)} className="qf-project-card">
                         <div className="qf-project-header">
-                          <strong>{String(project.name || `#${project.id}`)}</strong>
-                          <span className={`qf-status-pill ${project.active ? "active" : "inactive"}`}>
-                            {project.active ? t("projectStatusActive") : t("projectStatusInactive")}
+                          <strong>
+                            {String(project.name || `#${project.id}`)}
+                          </strong>
+                          <span
+                            className={`qf-status-pill ${project.active ? "active" : "inactive"}`}
+                          >
+                            {project.active
+                              ? t("projectStatusActive")
+                              : t("projectStatusInactive")}
                           </span>
                         </div>
-                        <span>{String(project.description || t("projectDescriptionPlaceholder"))}</span>
+                        <span>
+                          {String(
+                            project.description ||
+                              t("projectDescriptionPlaceholder"),
+                          )}
+                        </span>
                         <div className="qf-project-stats">
-                          <span>{t("totalContributed")}: {formatTokenAmount(project.totalContributed)}</span>
-                          <span>{t("donors")}: {String(project.contributorCount ?? 0)}</span>
-                          <span>{t("matchedAmount")}: {formatTokenAmount(project.matchedAmount)}</span>
+                          <span>
+                            {t("totalContributed")}:{" "}
+                            {formatTokenAmount(project.totalContributed)}
+                          </span>
+                          <span>
+                            {t("donors")}:{" "}
+                            {String(project.contributorCount ?? 0)}
+                          </span>
+                          <span>
+                            {t("matchedAmount")}:{" "}
+                            {formatTokenAmount(project.matchedAmount)}
+                          </span>
                         </div>
-                        {project.link && <span className="qf-project-link">{String(project.link)}</span>}
+                        {project.link && (
+                          <span className="qf-project-link">
+                            {String(project.link)}
+                          </span>
+                        )}
                         <div className="qf-project-actions">
                           <NeoButton
                             size="sm"
@@ -311,14 +382,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                             {t("contributeNow")}
                           </NeoButton>
                           {project.claimed ? (
-                            <span className="qf-status-pill claimed">{t("projectStatusClaimed")}</span>
+                            <span className="qf-status-pill claimed">
+                              {t("projectStatusClaimed")}
+                            </span>
                           ) : (
-                            claimableProjectIds.includes(String(project.id ?? "")) && (
+                            claimableProjectIds.includes(
+                              String(project.id ?? ""),
+                            ) && (
                               <NeoButton
                                 size="sm"
                                 variant="primary"
-                                loading={claimingProjectId === String(project.id ?? "")}
-                                onClick={() => dispatch("claimProject", project)}
+                                loading={
+                                  claimingProjectId === String(project.id ?? "")
+                                }
+                                onClick={() =>
+                                  dispatch("claimProject", project)
+                                }
                               >
                                 {t("claimProject")}
                               </NeoButton>
@@ -334,10 +413,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           )}
 
           {activeTab === "contribute" && (
-            <NeoCard title={t("quickContribute")} className="qf-contribute-panel">
+            <NeoCard
+              title={t("quickContribute")}
+              className="qf-contribute-panel"
+            >
               <div className="qf-contribute-summary">
                 <span>{t("sidebarSelectedRound")}</span>
-                <strong>{selectedRound ? selectedRoundDisplay : t("qfNoRoundTitle")}</strong>
+                <strong>
+                  {selectedRound ? selectedRoundDisplay : t("qfNoRoundTitle")}
+                </strong>
               </div>
               {/* Donor value-prop at the moment of contributing: the matching pool
                   amplifies donations by donor breadth — surfaced here (not just in
@@ -364,7 +448,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 })()}
               </div>
               <p className="qf-panel-hint">
-                {selectedRound ? t("qfContributionHint") : t("selectRoundFirst")}
+                {selectedRound
+                  ? t("qfContributionHint")
+                  : t("selectRoundFirst")}
               </p>
               <div className="qf-form-grid">
                 <NeoInput
