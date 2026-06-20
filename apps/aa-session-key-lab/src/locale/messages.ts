@@ -114,7 +114,10 @@ const appMessages = {
     zh: "当前网络未配置 session-key 校验器。",
   },
   inspectSession: { en: "Inspect Session Key", zh: "查询 Session Key" },
-  sessionInspected: { en: "Session key state loaded.", zh: "已加载 Session key 状态。" },
+  sessionInspected: {
+    en: "Session key state loaded.",
+    zh: "已加载 Session key 状态。",
+  },
   sessionInspectFailed: {
     en: "Failed to read the session key.",
     zh: "读取 Session key 失败。",
@@ -203,6 +206,14 @@ const appMessages = {
   sessionHeroCopy: {
     en: "Generate a local session key, bind it to one contract and method, then submit the scoped verifier update through the connected wallet.",
     zh: "先在本地生成 session key，再绑定到指定合约和方法，最后通过已连接钱包提交受限 verifier 更新。",
+  },
+  sessionHeroVisualAlt: {
+    en: "Smart wallet session key linked to scoped contract and method permissions",
+    zh: "智能钱包 session key 连接到受限合约和方法权限",
+  },
+  sessionHeroVisualBadge: {
+    en: "Scoped until expiry",
+    zh: "到期前受限授权",
   },
   sessionMetricsLabel: {
     en: "Session key readiness",
