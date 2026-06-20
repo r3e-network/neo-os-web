@@ -25,7 +25,11 @@
   gap: 16px;
   padding: 18px 12px 24px;
   background:
-    radial-gradient(circle at 88% 2%, rgba(255, 213, 159, 0.35), transparent 32%),
+    radial-gradient(
+      circle at 88% 2%,
+      rgba(255, 213, 159, 0.35),
+      transparent 32%
+    ),
     linear-gradient(180deg, #fffaf2 0%, #fbfdfb 46%, #f4f8f6 100%);
   color: var(--tk-ink);
   font-variant-numeric: tabular-nums;
@@ -115,8 +119,17 @@
 .ticket-hero__shade {
   z-index: -1;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.7) 42%, rgba(255, 255, 255, 0.18) 78%),
-    linear-gradient(0deg, rgba(255, 250, 242, 0.9) 0%, rgba(255, 250, 242, 0.08) 56%);
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.94) 0%,
+      rgba(255, 255, 255, 0.7) 42%,
+      rgba(255, 255, 255, 0.18) 78%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(255, 250, 242, 0.9) 0%,
+      rgba(255, 250, 242, 0.08) 56%
+    );
 }
 
 .ticket-hero__copy {
@@ -234,7 +247,7 @@
   width: 58px;
   height: 58px;
   border-radius: 10px;
-  background-image: url("/pass-artwork.jpg");
+  background-image: url("../pass-artwork.jpg");
   background-size: cover;
   background-position: center;
 }
@@ -387,7 +400,7 @@
 .ticket-create-preview__art {
   position: absolute;
   inset: 0;
-  background-image: url("/pass-artwork.jpg");
+  background-image: url("../pass-artwork.jpg");
   background-size: cover;
   background-position: center;
 }
@@ -563,8 +576,11 @@
   padding: 14px;
   border: 1px solid var(--tk-line);
   border-radius: 12px;
-  background:
-    linear-gradient(135deg, #ffffff 0%, rgba(228, 248, 240, 0.5) 100%);
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(228, 248, 240, 0.5) 100%
+  );
   transition:
     border-color 0.15s ease,
     background 0.15s ease,
@@ -574,8 +590,12 @@
 .ticket-event:hover,
 .ticket-event.is-selected {
   border-color: rgba(22, 199, 132, 0.38);
-  background:
-    linear-gradient(135deg, #ffffff 0%, rgba(228, 248, 240, 0.85) 62%, rgba(255, 240, 232, 0.72) 100%);
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(228, 248, 240, 0.85) 62%,
+    rgba(255, 240, 232, 0.72) 100%
+  );
   transform: translateY(-1px);
 }
 
@@ -807,8 +827,11 @@
   padding: 12px;
   border: 1px solid rgba(244, 127, 97, 0.18);
   border-radius: 12px;
-  background:
-    linear-gradient(135deg, #ffffff 0%, rgba(255, 240, 232, 0.72) 100%);
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(255, 240, 232, 0.72) 100%
+  );
 }
 
 .ticket-issue-preview__copy {
@@ -915,7 +938,7 @@
 
 .ticket-pass__art {
   min-height: 142px;
-  background-image: url("/pass-artwork.jpg");
+  background-image: url("../pass-artwork.jpg");
   background-size: cover;
   background-position: center;
 }

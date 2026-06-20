@@ -6,8 +6,14 @@ const appMessages = {
   ticketsTab: { en: "My Tickets", zh: "我的门票" },
   checkinTab: { en: "Check-in", zh: "核验" },
 
-  contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
-  deploymentPendingTitle: { en: "Contract deployment pending", zh: "合约待部署" },
+  contractMissing: {
+    en: "Contract address not configured",
+    zh: "合约地址未配置",
+  },
+  deploymentPendingTitle: {
+    en: "Contract deployment pending",
+    zh: "合约待部署",
+  },
   deploymentPendingDesc: {
     en: "The selected network is missing a configured Event Ticket contract address. Switch network or verify deployment configuration before sending on-chain actions.",
     zh: "当前网络缺少活动门票合约地址。请切换网络或确认部署配置后再发送链上操作。",
@@ -26,7 +32,10 @@ const appMessages = {
   maxSupply: { en: "Max tickets", zh: "票量上限" },
   maxSupplyPlaceholder: { en: "500", zh: "500" },
   notes: { en: "Notes (optional)", zh: "备注（可选）" },
-  notesPlaceholder: { en: "VIP access, badges, or extra info", zh: "VIP 权益、徽章或其他说明" },
+  notesPlaceholder: {
+    en: "VIP access, badges, or extra info",
+    zh: "VIP 权益、徽章或其他说明",
+  },
 
   createEvent: { en: "Create Event", zh: "创建活动" },
   eventCreated: { en: "Event created", zh: "活动已创建" },
@@ -67,7 +76,10 @@ const appMessages = {
     zh: "您签发的每一张通行证都会以可收藏的形式显示在这里，宾客可随身携带、转赠，并在入口处出示。",
   },
   samplePreviewLabel: { en: "Preview", zh: "预览" },
-  samplePreviewHeading: { en: "What your guests will keep", zh: "宾客将收藏的样子" },
+  samplePreviewHeading: {
+    en: "What your guests will keep",
+    zh: "宾客将收藏的样子",
+  },
   samplePreviewCaption: {
     en: "A sample of the keepsake pass attendees receive — once you issue one, real passes appear below.",
     zh: "这是参与者将收到的纪念通行证样张——签发后，真实通行证会显示在下方。",
@@ -88,14 +100,20 @@ const appMessages = {
   tokenIdCopied: { en: "Token ID copied", zh: "Token ID 已复制" },
   ticketQrLabel: { en: "Ticket token ID QR code", zh: "门票 Token ID 二维码" },
   tokenQrLabel: { en: "Ticket token ID QR code", zh: "门票 Token ID 二维码" },
-  tokenQrCaption: { en: "Show this QR at the door", zh: "在入口处出示此二维码" },
+  tokenQrCaption: {
+    en: "Show this QR at the door",
+    zh: "在入口处出示此二维码",
+  },
   transferTicket: { en: "Transfer", zh: "转赠" },
   transferRecipient: { en: "Transfer to", zh: "转赠给" },
   transferRecipientPlaceholder: { en: "Neo N3 address", zh: "Neo N3 地址" },
   transferSuccess: { en: "Ticket transferred", zh: "门票已转赠" },
 
   checkinTokenId: { en: "Ticket Token ID", zh: "门票 Token ID" },
-  checkinTokenIdPlaceholder: { en: "Enter token ID from QR", zh: "输入二维码中的 Token ID" },
+  checkinTokenIdPlaceholder: {
+    en: "Enter token ID from QR",
+    zh: "输入二维码中的 Token ID",
+  },
   lookup: { en: "Lookup", zh: "查询" },
   lookingUp: { en: "Looking up...", zh: "查询中..." },
   checkIn: { en: "Check-in", zh: "核验" },
@@ -143,16 +161,37 @@ const appMessages = {
     en: "Event Ticket Pass publishes event metadata on-chain, mints NEP-11 tickets, and records check-in status at the gate. Each ticket can carry seat/memo data and becomes used after check-in.",
     zh: "活动门票通行证将活动信息上链、签发 NEP-11 门票，并记录入场核验状态。门票可包含座位/备注信息，核验后标记为已使用。",
   },
-  step1: { en: "Create an event with venue, schedule, and ticket supply.", zh: "创建活动并填写场地、时间与票量。" },
-  step2: { en: "Issue NEP-11 tickets to attendee addresses with seat/memo.", zh: "向参与者地址签发门票，可填写座位与备注。" },
-  step3: { en: "Attendees open My Tickets and show the token ID QR.", zh: "参与者在“我的门票”展示二维码 Token ID。" },
-  step4: { en: "Organizer checks in the token and marks it as used.", zh: "主办方核验 Token 并标记为已使用。" },
+  step1: {
+    en: "Create an event with venue, schedule, and ticket supply.",
+    zh: "创建活动并填写场地、时间与票量。",
+  },
+  step2: {
+    en: "Issue NEP-11 tickets to attendee addresses with seat/memo.",
+    zh: "向参与者地址签发门票，可填写座位与备注。",
+  },
+  step3: {
+    en: "Attendees open My Tickets and show the token ID QR.",
+    zh: "参与者在“我的门票”展示二维码 Token ID。",
+  },
+  step4: {
+    en: "Organizer checks in the token and marks it as used.",
+    zh: "主办方核验 Token 并标记为已使用。",
+  },
   feature1Name: { en: "On-chain Event Data", zh: "链上活动信息" },
-  feature1Desc: { en: "Event name, venue, and schedule live on-chain.", zh: "活动名称、场地与时间信息上链保存。" },
+  feature1Desc: {
+    en: "Event name, venue, and schedule live on-chain.",
+    zh: "活动名称、场地与时间信息上链保存。",
+  },
   feature2Name: { en: "Check-in Status", zh: "核验状态" },
-  feature2Desc: { en: "Each ticket records whether it has been used.", zh: "每张门票记录是否已核验使用。" },
+  feature2Desc: {
+    en: "Each ticket records whether it has been used.",
+    zh: "每张门票记录是否已核验使用。",
+  },
   feature3Name: { en: "Issuer Control", zh: "发行方控制" },
-  feature3Desc: { en: "Only the organizer can issue and check in tickets.", zh: "仅主办方可签发与核验门票。" },
+  feature3Desc: {
+    en: "Only the organizer can issue and check in tickets.",
+    zh: "仅主办方可签发与核验门票。",
+  },
   sidebarEvents: { en: "Events", zh: "活动" },
   sidebarTickets: { en: "Tickets", zh: "门票" },
   sidebarActive: { en: "Active", zh: "进行中" },
@@ -168,7 +207,10 @@ const appMessages = {
   evidence: { en: "Request and result evidence", zh: "请求与结果证据" },
   latestRequest: { en: "Latest Request", zh: "最新请求" },
   latestResult: { en: "Latest Result", zh: "最新结果" },
-  viewOnExplorer: { en: "View transaction on explorer", zh: "在区块浏览器查看交易" },
+  viewOnExplorer: {
+    en: "View transaction on explorer",
+    zh: "在区块浏览器查看交易",
+  },
   payloadEmpty: { en: "No action submitted yet", zh: "尚未提交操作" },
   requestEmpty: {
     en: "Create an event, issue a ticket, or check in a token to inspect the exact OS service request.",
